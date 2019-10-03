@@ -219,7 +219,7 @@ export function getFirstQueryString(
 export type QueryWithColumnState =
   | Query
   | {
-      alias: string | string[] | null | undefined;
+      fieldnames: string | string[] | null | undefined;
       field: string | string[] | null | undefined;
       sort: string | string[] | null | undefined;
     };
@@ -246,21 +246,21 @@ export function decodeColumnOrderAndColumnSortBy(location: Location): TableState
 export function decodeColumnOrder(
   query: QueryWithColumnState
 ): TableColumn<React.ReactText>[] {
-  const {alias, field} = query;
+  const {fieldnames, field} = query;
   const columnsRaw: {
     aggregationField: string;
     name: string;
   }[] = [];
 
-  if (typeof alias === 'string' && typeof field === 'string') {
-    columnsRaw.push({aggregationField: field, name: alias});
+  if (typeof fieldnames === 'string' && typeof field === 'string') {
+    columnsRaw.push({aggregationField: field, name: fieldnames});
   } else if (
-    Array.isArray(alias) &&
+    Array.isArray(fieldnames) &&
     Array.isArray(field) &&
-    alias.length === field.length
+    fieldnames.length === field.length
   ) {
     field.forEach((f, i) => {
-      columnsRaw.push({aggregationField: f, name: alias[i]});
+      columnsRaw.push({aggregationField: f, name: fieldnames[i]});
     });
   }
 
@@ -312,13 +312,13 @@ export function encodeColumnOrderAndColumnSortBy(
   tableState: TableState
 ): QueryWithColumnState {
   return {
-    alias: encodeColumnAlias(tableState),
+    fieldnames: encodeColumnFieldName(tableState),
     field: encodeColumnField(tableState),
     sort: encodeColumnSort(tableState),
   };
 }
 
-function encodeColumnAlias(tableState: TableState): string[] {
+function encodeColumnFieldName(tableState: TableState): string[] {
   return tableState.columnOrder.map(col => col.name);
 }
 

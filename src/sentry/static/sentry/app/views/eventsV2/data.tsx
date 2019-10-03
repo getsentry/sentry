@@ -24,7 +24,7 @@ export const DEFAULT_EVENT_VIEW_V1: Readonly<EventViewv1> = {
   name: t('All Events'),
   data: {
     fields: ['title', 'event.type', 'project', 'user', 'timestamp'],
-    columnNames: ['title', 'type', 'project', 'user', 'time'],
+    fieldnames: ['title', 'type', 'project', 'user', 'time'],
     sort: ['-timestamp'],
   },
   tags: ['event.type', 'release', 'project.name', 'user.email', 'user.ip', 'environment'],
@@ -36,7 +36,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     name: t('Project Summary'),
     data: {
       fields: ['project', 'count()', 'count_unique(issue.id)'],
-      columnNames: ['project', 'events', 'unique errors'],
+      fieldnames: ['project', 'events', 'unique errors'],
       sort: ['-count'],
       query: 'event.type:error',
     },
@@ -46,7 +46,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     name: t('Errors'),
     data: {
       fields: ['title', 'count()', 'count_unique(user)', 'project', 'last_seen'],
-      columnNames: ['error', 'events', 'users', 'project', 'last seen'],
+      fieldnames: ['error', 'events', 'users', 'project', 'last seen'],
       sort: ['-count', '-title'],
       query: 'event.type:error',
     },
@@ -56,7 +56,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     name: t('Errors by URL'),
     data: {
       fields: ['url', 'count()', 'count_unique(issue.id)'],
-      columnNames: ['URL', 'events', 'unique errors'],
+      fieldnames: ['URL', 'events', 'unique errors'],
       sort: ['-count'],
       query: 'event.type:error',
     },
@@ -66,7 +66,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     name: t('Errors by User'),
     data: {
       fields: ['user', 'count()', 'count_unique(issue.id)'],
-      columnNames: ['User', 'events', 'unique errors'],
+      fieldnames: ['User', 'events', 'unique errors'],
       sort: ['-count'],
       query: 'event.type:error',
     },
@@ -76,7 +76,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     name: t('CSP'),
     data: {
       fields: ['title', 'count()', 'count_unique(user)', 'project', 'last_seen'],
-      columnNames: ['csp', 'events', 'users', 'project', 'last seen'],
+      fieldnames: ['csp', 'events', 'users', 'project', 'last seen'],
       sort: ['-count', '-title'],
       query: 'event.type:csp',
     },
@@ -92,7 +92,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     name: t('CSP Report by Directive'),
     data: {
       fields: ['effective-directive', 'count()', 'count_unique(title)'],
-      columnNames: ['directive', 'events', 'reports'],
+      fieldnames: ['directive', 'events', 'reports'],
       sort: ['-count'],
       query: 'event.type:csp',
     },
@@ -102,7 +102,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     name: t('CSP Report by Blocked URI'),
     data: {
       fields: ['blocked-uri', 'count()'],
-      columnNames: ['URI', 'events'],
+      fieldnames: ['URI', 'events'],
       sort: ['-count'],
       query: 'event.type:csp',
     },
@@ -112,7 +112,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     name: t('CSP Report by User'),
     data: {
       fields: ['user', 'count()', 'count_unique(title)'],
-      columnNames: ['User', 'events', 'reports'],
+      fieldnames: ['User', 'events', 'reports'],
       sort: ['-count'],
       query: 'event.type:csp',
     },
@@ -122,7 +122,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     name: t('Transactions'),
     data: {
       fields: ['transaction', 'project', 'count()'],
-      columnNames: ['transaction', 'project', 'volume'],
+      fieldnames: ['transaction', 'project', 'volume'],
       sort: ['-count'],
       query: 'event.type:transaction',
     },
@@ -132,7 +132,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     name: t('Transactions by User'),
     data: {
       fields: ['user', 'count()', 'count_unique(transaction)'],
-      columnNames: ['user', 'events', 'unique transactions'],
+      fieldnames: ['user', 'events', 'unique transactions'],
       sort: ['-count'],
       query: 'event.type:transaction',
     },
@@ -142,7 +142,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     name: t('Transactions by Region'),
     data: {
       fields: ['geo.region', 'count()'],
-      columnNames: ['Region', 'events'],
+      fieldnames: ['Region', 'events'],
       sort: ['-count'],
       query: 'event.type:transaction',
     },

@@ -5,9 +5,11 @@ import {Panel, PanelBody, PanelItem, PanelHeader} from 'app/components/panels';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import space from 'app/styles/space';
 
-import {Trigger, AlertRuleThresholdType} from '../types';
+import {Trigger} from '../types';
+import getTriggerConditionDisplayName from '../utils/getTriggerConditionDisplayName';
 
 type Props = {
   triggers: Trigger[];
@@ -15,23 +17,6 @@ type Props = {
   onEdit: (trigger: Trigger) => void;
 };
 
-function getConditionStrings(trigger: Trigger): [string, string | null] {
-  if (trigger.thresholdType === AlertRuleThresholdType.ABOVE) {
-    return [
-      `> ${trigger.alertThreshold}`,
-      typeof trigger.resolveThreshold !== 'undefined' && trigger.resolveThreshold !== null
-        ? `Auto-resolves when metric falls below ${trigger.resolveThreshold}`
-        : null,
-    ];
-  } else {
-    return [
-      `< ${trigger.alertThreshold}`,
-      typeof trigger.resolveThreshold !== 'undefined' && trigger.resolveThreshold !== null
-        ? `Auto-resolves when metric is above ${trigger.resolveThreshold}`
-        : null,
-    ];
-  }
-}
 export default class TriggersList extends React.Component<Props> {
   handleEdit = (trigger: Trigger) => {
     this.props.onEdit(trigger);
@@ -44,6 +29,8 @@ export default class TriggersList extends React.Component<Props> {
   render() {
     const {triggers} = this.props;
 
+    const isEmpty = triggers && !triggers.length;
+
     return (
       <Panel>
         <PanelHeaderGrid>
@@ -52,8 +39,11 @@ export default class TriggersList extends React.Component<Props> {
           <div>{t('Actions')}</div>
         </PanelHeaderGrid>
         <PanelBody>
+          {isEmpty && <EmptyMessage>{t('No triggers added')}</EmptyMessage>}
           {triggers.map(trigger => {
-            const [mainCondition, secondaryCondition] = getConditionStrings(trigger);
+            const [mainCondition, secondaryCondition] = getTriggerConditionDisplayName(
+              trigger
+            );
 
             return (
               <Grid key={trigger.id}>
@@ -82,7 +72,7 @@ export default class TriggersList extends React.Component<Props> {
                       priority="danger"
                     >
                       <Button
-                        priority="danger"
+                        priority="default"
                         size="small"
                         aria-label={t('Delete Trigger')}
                         icon="icon-trash"

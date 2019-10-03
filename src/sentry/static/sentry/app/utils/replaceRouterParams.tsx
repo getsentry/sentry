@@ -1,4 +1,12 @@
-export default function replaceRouterParams(route, params) {
+/**
+ * Given a route string, replace path parameters (e.g. `:id`) with value from `params`
+ *
+ * e.g. {id: 'test'}
+ */
+export default function replaceRouterParams(
+  route: string,
+  params: {[key: string]: string}
+): string {
   // parse route params from route
   const matches = route.match(/:\w+/g);
 

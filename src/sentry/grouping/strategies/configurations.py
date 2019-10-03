@@ -64,8 +64,7 @@ register_strategy_config(
     ],
     delegates=["frame:v1", "stacktrace:v1", "single-exception:v1"],
     changelog="""
-        * New grouping strategy optimized for native and javascript
-        * Not compatible with the old legacy grouping
+        * Experimental grouping algorithm (should not be used)
     """,
     hidden=True,
 )
@@ -85,8 +84,7 @@ register_strategy_config(
     ],
     delegates=["frame:v2", "stacktrace:v1", "single-exception:v2"],
     changelog="""
-        * messages are now preprocessed to increase change of grouping together
-        * exceptions without stacktraces are now grouped by a trimmed message
+        * Experimental grouping algorithm (should not be used)
     """,
     hidden=True,
 )
@@ -106,12 +104,16 @@ register_strategy_config(
     ],
     delegates=["frame:v3", "stacktrace:v1", "single-exception:v2"],
     changelog="""
-        * context lines are honored again for platforms with reliable source
-          code information (JavaScript, Python, PHP and Ruby)
+        * uses source code information all platforms with reliable sources
+          for grouping (JavaScript, Python, PHP and Ruby) and function
+          names and filenames otherwise.
+        * Fallback grouping applies clean-up logic on exception messages
+          (numbers, uuids, email addresses and others are removed)
         * JavaScript stacktraces are better deduplicated across browser
-          versions.
+          versions yielding a higher chance of these grouping together.
         * JavaScript stacktraces involving source maps are likely to group
           better.
+        * C/C++ and other native stacktraces are more reliably grouped.
     """,
 )
 

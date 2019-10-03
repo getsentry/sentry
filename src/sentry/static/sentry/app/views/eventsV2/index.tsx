@@ -100,17 +100,12 @@ class EventsV2 extends React.Component<Props> {
                     {pageTitle} <BetaTag />
                   </PageHeading>
                   {hasQuery && (
-                    <Feature
+                    <EventsSaveQueryButton
+                      isEditing={!!location.query.edit}
+                      location={location}
                       organization={organization}
-                      features={['discover-v2-query-builder']}
-                    >
-                      <EventsSaveQueryButton
-                        isEditing={!!location.query.edit}
-                        location={location}
-                        organization={organization}
-                        eventView={eventView}
-                      />
-                    </Feature>
+                      eventView={eventView}
+                    />
                   )}
                 </PageHeader>
                 {!hasQuery && this.renderQueryList()}

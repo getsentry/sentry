@@ -150,6 +150,18 @@ class OrganizationMember(Model):
         self.token_expires_at = now + timedelta(days=INVITE_DAYS_VALID)
 
     @property
+    def invite_approved(self):
+        return self.invite_status == InviteStatus.APPROVED.value
+
+    @property
+    def requested_to_join(self):
+        return self.invite_status == InviteStatus.REQUESTED_TO_JOIN.value
+
+    @property
+    def requested_to_be_invited(self):
+        return self.invite_status == InviteStatus.REQUESTED_TO_BE_INVITED.value
+
+    @property
     def is_pending(self):
         return self.user_id is None
 
@@ -175,7 +187,7 @@ class OrganizationMember(Model):
         return uuid4().hex + uuid4().hex
 
     def get_invite_link(self):
-        if not self.is_pending:
+        if not self.is_pending or not self.invite_approved:
             return None
         return absolute_uri(
             reverse(

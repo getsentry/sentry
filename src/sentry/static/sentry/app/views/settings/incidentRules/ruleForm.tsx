@@ -11,7 +11,8 @@ import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 
-import {AlertRuleAggregations, IncidentRule} from './types';
+import {AlertRuleAggregations, IncidentRule, TimeWindow} from './types';
+import getMetricDisplayName from './utils/getMetricDisplayName';
 
 const DEFAULT_METRIC = [AlertRuleAggregations.TOTAL];
 
@@ -20,6 +21,20 @@ type Props = {
   organization: Organization;
   initialData?: IncidentRule;
   projects: Project[];
+};
+
+type TimeWindowMapType = {[key in TimeWindow]: string};
+
+const TIME_WINDOW_MAP: TimeWindowMapType = {
+  [TimeWindow.ONE_MINUTE]: t('1 minute'),
+  [TimeWindow.FIVE_MINUTES]: t('5 minutes'),
+  [TimeWindow.TEN_MINUTES]: t('10 minutes'),
+  [TimeWindow.FIFTEEN_MINUTES]: t('15 minutes'),
+  [TimeWindow.THIRTY_MINUTES]: t('30 minutes'),
+  [TimeWindow.ONE_HOUR]: t('1 hour'),
+  [TimeWindow.TWO_HOURS]: t('2 hours'),
+  [TimeWindow.FOUR_HOURS]: t('4 hours'),
+  [TimeWindow.ONE_DAY]: t('24 hours'),
 };
 
 class RuleForm extends React.Component<Props> {
@@ -75,8 +90,14 @@ class RuleForm extends React.Component<Props> {
                 label: t('Metric'),
                 help: t('Choose which metric to trigger on'),
                 choices: [
-                  [AlertRuleAggregations.UNIQUE_USERS, 'Users Affected'],
-                  [AlertRuleAggregations.TOTAL, 'Events'],
+                  [
+                    AlertRuleAggregations.UNIQUE_USERS,
+                    getMetricDisplayName(AlertRuleAggregations.UNIQUE_USERS),
+                  ],
+                  [
+                    AlertRuleAggregations.TOTAL,
+                    getMetricDisplayName(AlertRuleAggregations.TOTAL),
+                  ],
                 ],
                 required: true,
                 setValue: value => (value && value.length ? value[0] : value),
@@ -109,6 +130,14 @@ class RuleForm extends React.Component<Props> {
                     </FormField>
                   );
                 },
+              },
+              {
+                name: 'timeWindow',
+                type: 'select',
+                label: t('Time Window'),
+                help: t('The time window to use when evaluating the Metric'),
+                choices: Object.entries(TIME_WINDOW_MAP),
+                required: true,
               },
               {
                 name: 'isDefault',

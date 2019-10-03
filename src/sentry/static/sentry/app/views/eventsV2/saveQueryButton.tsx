@@ -34,12 +34,23 @@ type State = {
 };
 
 class EventsSaveQueryButton extends React.Component<Props, State> {
-  constructor(props) {
-    super(props);
+  state = {
+    queryName: '',
+  };
 
-    this.state = {
-      queryName: props.isEditing ? props.eventView.name : '',
-    };
+  componentDidUpdate(prevProps: Props) {
+    // Going from one query to another whilst not leaving edit mode
+    if (
+      (this.props.isEditing === true &&
+        this.props.eventView.id !== prevProps.eventView.id) ||
+      this.props.isEditing !== prevProps.isEditing
+    ) {
+      const queryName =
+        this.props.isEditing === true ? this.props.eventView.name || '' : '';
+
+      // eslint-disable-next-line react/no-did-update-set-state
+      this.setState({queryName});
+    }
   }
 
   swallowEvent = (event: React.MouseEvent) => {

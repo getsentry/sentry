@@ -816,8 +816,6 @@ SENTRY_FEATURES = {
     "organizations:create": True,
     # Enable the 'discover' interface.
     "organizations:discover": False,
-    # Enable the Discover v2 query builder
-    "organizations:discover-v2-query-builder": False,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": False,
     # Allow organizations to configure built-in symbol sources.
@@ -1527,7 +1525,7 @@ SENTRY_BUILTIN_SOURCES = {
         "id": "sentry:microsoft",
         "name": "Microsoft",
         "layout": {"type": "symstore"},
-        "filters": {"filetypes": ["pdb", "pe"], "path_patterns": ["?:/windows/**"]},
+        "filters": {"filetypes": ["pdb", "pe"]},
         "url": "https://msdl.microsoft.com/download/symbols/",
         "is_public": True,
     },
