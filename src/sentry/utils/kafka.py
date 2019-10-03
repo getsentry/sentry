@@ -10,7 +10,6 @@ import confluent_kafka as kafka
 from django.conf import settings
 
 from sentry.utils import metrics
-from sentry.utils.safe import safe_execute
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +76,9 @@ class SimpleKafkaConsumer(object):
         self.initial_offset_reset = initial_offset_reset
         self.consumer_group = consumer_group
 
+        if self.commit_batch_size <= 0:
+            raise ValueError("Commit batch size must be a positive integer")
+
         cluster_name = settings.KAFKA_TOPICS[topic_name]["cluster"]
         bootstrap_servers = settings.KAFKA_CLUSTERS[cluster_name]["bootstrap.servers"]
 
@@ -106,7 +108,7 @@ class SimpleKafkaConsumer(object):
         Runs the message processing loop
         """
         logger.debug(
-            "Staring kafka consumer for topic:{} with consumer group:{}",
+            "Staring kafka consumer for topic:%s with consumer group:%s",
             self.topic_name,
             self.consumer_group,
         )
@@ -153,7 +155,7 @@ class SimpleKafkaConsumer(object):
                         )
 
                     with metrics.timer("simple_consumer.processing_time", tags=metrics_tags):
-                        safe_execute(self.process_message, message, _with_transaction=False)
+                        self.process_message(message)
 
                 if len(messages) > 0:
                     # we have read some messages in the previous consume, commit the offset
@@ -162,10 +164,16 @@ class SimpleKafkaConsumer(object):
                 metrics.timing(
                     "simple_consumer.committed_batch.size", len(messages), tags=metrics_tags
                 )
+                # Value between 0.0 and 1.0 that can help to estimate the consumer bandwidth/usage
+                metrics.timing(
+                    "simple_consumer.batch_capacity.usage",
+                    1.0 * len(messages) / self.commit_batch_size,
+                    tags=metrics_tags,
+                )
 
         consumer.close()
         logger.debug(
-            "Closing kafka consumer for topic:{} with consumer group:{}",
+            "Closing kafka consumer for topic:%s with consumer group:%s",
             self.topic_name,
             self.consumer_group,
         )

@@ -78,7 +78,7 @@ class Table extends React.PureComponent<TableProps, TableState> {
     if (
       this.props.location !== prevProps.location ||
       this.props.location.query !== prevProps.location.query ||
-      this.props.location.query.alias !== prevProps.location.query.alias ||
+      this.props.location.query.fieldnames !== prevProps.location.query.fieldnames ||
       this.props.location.query.field !== prevProps.location.query.field ||
       this.props.location.query.sort !== prevProps.location.query.sort
     ) {

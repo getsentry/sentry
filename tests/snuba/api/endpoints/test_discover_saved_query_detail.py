@@ -50,6 +50,27 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
         assert response.data["conditions"] == []
         assert response.data["limit"] == 10
 
+    def test_get_version(self):
+        query = {"fields": ["event_id"], "query": "event.type:error", "limit": 10, "version": 2}
+        model = DiscoverSavedQuery.objects.create(
+            organization=self.org, created_by=self.user, name="v2 query", query=query
+        )
+
+        model.set_projects(self.project_ids)
+        with self.feature(self.feature_name):
+            url = reverse(
+                "sentry-api-0-discover-saved-query-detail", args=[self.org.slug, model.id]
+            )
+            response = self.client.get(url)
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == six.text_type(model.id)
+        assert response.data["projects"] == self.project_ids
+        assert response.data["fields"] == ["event_id"]
+        assert response.data["query"] == "event.type:error"
+        assert response.data["limit"] == 10
+        assert response.data["version"] == 2
+
     def test_get_org_without_access(self):
         with self.feature(self.feature_name):
             url = reverse(
@@ -158,11 +179,3 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
             response = self.client.delete(url)
 
         assert response.status_code == 403, response.content
-
-
-class DiscoverSavedQueryV2DetailTest(APITestCase, SnubaTestCase):
-    """
-    Ensure that all the scenarios work with the discover2 feature flag.
-    """
-
-    feature_name = "organizations:discover-v2-query-builder"

@@ -144,6 +144,7 @@ from .endpoints.organization_releases import OrganizationReleasesEndpoint
 from .endpoints.organization_repositories import OrganizationRepositoriesEndpoint
 from .endpoints.organization_repository_commits import OrganizationRepositoryCommitsEndpoint
 from .endpoints.organization_repository_details import OrganizationRepositoryDetailsEndpoint
+from .endpoints.organization_join_request import OrganizationJoinRequestEndpoint
 from .endpoints.organization_search_details import OrganizationSearchDetailsEndpoint
 from .endpoints.organization_searches import OrganizationSearchesEndpoint
 from .endpoints.organization_sentry_apps import OrganizationSentryAppsEndpoint
@@ -155,6 +156,9 @@ from .endpoints.organization_tags import OrganizationTagsEndpoint
 from .endpoints.organization_teams import OrganizationTeamsEndpoint
 from .endpoints.organization_user_teams import OrganizationUserTeamsEndpoint
 from .endpoints.organization_user_details import OrganizationUserDetailsEndpoint
+from .endpoints.organization_projects_sent_first_event import (
+    OrganizationProjectsSentFirstEventEndpoint,
+)
 from .endpoints.organization_user_issues import OrganizationUserIssuesEndpoint
 from .endpoints.organization_user_issues_search import OrganizationUserIssuesSearchEndpoint
 from .endpoints.organization_user_reports import OrganizationUserReportsEndpoint
@@ -858,6 +862,11 @@ urlpatterns = patterns(
                     name="sentry-api-0-organization-projects",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/sent-first-event/$",
+                    OrganizationProjectsSentFirstEventEndpoint.as_view(),
+                    name="sentry-api-0-organization-sent-first-event",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/repos/$",
                     OrganizationRepositoriesEndpoint.as_view(),
                     name="sentry-api-0-organization-repositories",
@@ -981,6 +990,11 @@ urlpatterns = patterns(
                     r"^(?P<organization_slug>[^\/]+)/broadcasts/$",
                     BroadcastIndexEndpoint.as_view(),
                     name="sentry-api-0-organization-broadcasts",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/join-request/$",
+                    OrganizationJoinRequestEndpoint.as_view(),
+                    name="sentry-api-0-organization-join-request",
                 ),
             ]
         ),

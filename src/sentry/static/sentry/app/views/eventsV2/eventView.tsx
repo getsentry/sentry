@@ -29,17 +29,17 @@ const decodeFields = (location: Location): Array<Field> => {
   }
 
   const fields: string[] = isString(query.field) ? [query.field] : query.field;
-  const aliases: string[] = Array.isArray(query.alias)
-    ? query.alias
-    : isString(query.alias)
-    ? [query.alias]
+  const fieldnames: string[] = Array.isArray(query.fieldnames)
+    ? query.fieldnames
+    : isString(query.fieldnames)
+    ? [query.fieldnames]
     : [];
 
   const parsed: Field[] = [];
   fields.forEach((field, i) => {
     let title = field;
-    if (aliases[i]) {
-      title = aliases[i];
+    if (fieldnames[i]) {
+      title = fieldnames[i];
     }
     parsed.push({field, title});
   });
@@ -239,7 +239,7 @@ class EventView {
     const fields = eventViewV1.data.fields.map((fieldName: string, index: number) => {
       return {
         field: fieldName,
-        title: eventViewV1.data.columnNames[index],
+        title: eventViewV1.data.fieldnames[index],
       };
     });
 
@@ -301,11 +301,10 @@ class EventView {
   }
 
   generateQueryStringObject(): Query {
-    // TODO(mark) normalize naming conventions for aliases to be more consistent.
     const output = {
       id: this.id,
       field: this.fields.map(item => item.field),
-      alias: this.fields.map(item => item.title),
+      fieldnames: this.fields.map(item => item.title),
       sort: encodeSorts(this.sorts),
       tag: this.tags,
       query: this.query,

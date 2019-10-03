@@ -343,7 +343,7 @@ export type EventViewv1 = {
   name: string;
   data: {
     fields: string[];
-    columnNames: string[];
+    fieldnames: string[];
     sort: string[];
     query?: string;
   };
