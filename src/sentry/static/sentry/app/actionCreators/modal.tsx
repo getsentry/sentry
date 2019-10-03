@@ -211,3 +211,10 @@ export function openDebugFileSourceModal(options: ModalOptions = {}) {
       });
     });
 }
+
+export async function openInviteMembersModal(options = {}) {
+  const mod = await import(/* webpackChunkName: "InviteMembersModal" */ 'app/components/modals/inviteMembersModal');
+  const {default: Modal, modalClassName} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />, {modalClassName});
+}
