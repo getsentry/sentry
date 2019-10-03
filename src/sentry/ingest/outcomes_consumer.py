@@ -25,7 +25,7 @@ from django.core.cache import cache
 from sentry.models.project import Project
 from sentry.signals import event_filtered, event_dropped
 from sentry.utils.kafka import SimpleKafkaConsumer
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome
 
 logger = logging.getLogger(__name__)
@@ -59,7 +59,8 @@ def is_signal_sent(project_id, event_id):
 
 class OutcomesConsumer(SimpleKafkaConsumer):
     def process_message(self, message):
-        msg = json.loads(message.value())
+        with metrics.timer("outcomes_consumer.json_loads"):
+            msg = json.loads(message.value())
 
         project_id = int(msg.get("project_id", 0))
         if project_id == 0:
@@ -70,11 +71,13 @@ class OutcomesConsumer(SimpleKafkaConsumer):
             return  # nothing to do here
 
         event_id = msg.get("event_id")
-        if is_signal_sent(project_id=project_id, event_id=event_id):
-            return  # message already processed nothing left to do
+        with metrics.timer("outcomes_consumer.is_signal_sent"):
+            if is_signal_sent(project_id=project_id, event_id=event_id):
+                return  # message already processed nothing left to do
 
         try:
-            project = Project.objects.get_from_cache(id=project_id)
+            with metrics.timer("outcomes_consumer.project_get_from_cache"):
+                project = Project.objects.get_from_cache(id=project_id)
         except Project.DoesNotExist:
             logger.error("OutcomesConsumer could not find project with id: %s", project_id)
             return
@@ -83,14 +86,19 @@ class OutcomesConsumer(SimpleKafkaConsumer):
         remote_addr = msg.get("remote_addr")
 
         if outcome == Outcome.FILTERED:
-            event_filtered.send_robust(ip=remote_addr, project=project, sender=self.process_message)
+            with metrics.timer("outcomes_consumer.send.event_filtered"):
+                event_filtered.send_robust(
+                    ip=remote_addr, project=project, sender=self.process_message
+                )
         elif outcome == Outcome.RATE_LIMITED:
-            event_dropped.send_robust(
-                ip=remote_addr, project=project, reason_code=reason, sender=self.process_message
-            )
+            with metrics.timer("outcomes_consumer.send.event_dropped"):
+                event_dropped.send_robust(
+                    ip=remote_addr, project=project, reason_code=reason, sender=self.process_message
+                )
 
-        # remember that we sent the signal just in case the processor dies before
-        mark_signal_sent(project_id=project_id, event_id=event_id)
+        with metrics.timer("outcomes_consumer.mark_signal_sent"):
+            # remember that we sent the signal just in case the processor dies before
+            mark_signal_sent(project_id=project_id, event_id=event_id)
 
 
 def run_outcomes_consumer(
