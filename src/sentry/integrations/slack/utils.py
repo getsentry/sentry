@@ -256,6 +256,7 @@ def build_group_attachment(group, event=None, tags=None, identity=None, actions=
             footer += u" (+{} other)".format(len(rules) - 1)
 
     obj = event if event is not None else group
+    project = Project.objects.get_from_cache(id=obj.project_id)
     return {
         "fallback": u"[{}] {}".format(project.slug, obj.title),
         "title": build_attachment_title(obj),
