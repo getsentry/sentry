@@ -690,11 +690,17 @@ class EventManager(object):
             cache.set(key, environment, 3600)
 
         if group:
-            group_environment, is_new_group_environment = GroupEnvironment.get_or_create(
-                group_id=group.id,
-                environment_id=environment.id,
-                defaults={"first_release": release if release else None},
-            )
+            key = "group_environment:1:%s" % hash_values([group.id, environment.id])
+            group_environment = cache.get(key)
+            if group_environment is None:
+                group_environment, is_new_group_environment = GroupEnvironment.get_or_create(
+                    group_id=group.id,
+                    environment_id=environment.id,
+                    defaults={"first_release": release if release else None},
+                )
+                cache.set(key, group_environment, 3600)
+            else:
+                is_new_group_environment = False
         else:
             is_new_group_environment = False
 
