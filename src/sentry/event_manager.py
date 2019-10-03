@@ -705,13 +705,16 @@ class EventManager(object):
             is_new_group_environment = False
 
         if release:
-            ReleaseEnvironment.get_or_create(
-                project=project, release=release, environment=environment, datetime=date
-            )
+            # Both models use the same kwargs so can key off the same cache value
+            key = "rpe:1:%s" % hash_values([project.id, release.id, environment.id, date])
+            if cache.get(key) is None:
+                ReleaseEnvironment.get_or_create(
+                    project=project, release=release, environment=environment, datetime=date
+                )
 
-            ReleaseProjectEnvironment.get_or_create(
-                project=project, release=release, environment=environment, datetime=date
-            )
+                ReleaseProjectEnvironment.get_or_create(
+                    project=project, release=release, environment=environment, datetime=date
+                )
 
             if group:
                 grouprelease = GroupRelease.get_or_create(
