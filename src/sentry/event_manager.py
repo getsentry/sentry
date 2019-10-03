@@ -683,7 +683,11 @@ class EventManager(object):
         # store a reference to the group id to guarantee validation of isolation
         event.data.bind_ref(event)
 
-        environment = Environment.get_or_create(project=project, name=environment)
+        key = "environment:1:%s" % hash_values([project.id, environment])
+        environment = cache.get(key)
+        if environment is None:
+            environment = Environment.get_or_create(project=project, name=environment)
+            cache.set(key, environment, 3600)
 
         if group:
             group_environment, is_new_group_environment = GroupEnvironment.get_or_create(
