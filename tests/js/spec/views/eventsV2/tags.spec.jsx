@@ -58,7 +58,37 @@ describe('Tags', function() {
     Client.clearMockResponses();
   });
 
-  it.only('renders', async function() {
+  it('renders', async function() {
+    const api = new Client();
+
+    const view = new EventView({
+      fields: [],
+      sorts: [],
+      tags: ['release', 'environment'],
+      query: 'event.type:csp',
+    });
+
+    const wrapper = mount(
+      <Tags
+        eventView={view}
+        api={api}
+        organization={org}
+        selection={{projects: [], environments: [], datetime: {}}}
+        location={{query: {}}}
+      />
+    );
+
+    // component is in loading state
+    expect(wrapper.find('StyledPlaceholder')).toHaveLength(2);
+
+    await tick();
+    wrapper.update();
+
+    // component has loaded
+    expect(wrapper.find('StyledPlaceholder')).toHaveLength(0);
+  });
+
+  it('environment tag is a dedicated query string', async function() {
     const api = new Client();
 
     const view = new EventView({
