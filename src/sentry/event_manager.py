@@ -558,7 +558,7 @@ class EventManager(object):
         if release:
             # dont allow a conflicting 'release' tag
             pop_tag(data, "release")
-            key = "release:1:%s" % hash_values([project, release, date])
+            key = "release:1:%s" % hash_values([project.id, release, date])
             release = cache.get(key)
             if release is None:
                 release = Release.get_or_create(project=project, version=release, date_added=date)
