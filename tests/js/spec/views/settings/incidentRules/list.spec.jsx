@@ -22,5 +22,8 @@ describe('Incident Rules List', function() {
 
     expect(req).toHaveBeenCalled();
     expect(wrapper.find('RuleLink').text()).toEqual('My Incident Rule');
+    expect(wrapper.find('MetricName').text()).toEqual('Events');
+
+    expect(wrapper.find('Thresholds').text()).toEqual('70');
   });
 });

@@ -12,6 +12,7 @@ import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 
 import {AlertRuleAggregations, IncidentRule, TimeWindow} from './types';
+import getMetricDisplayName from './utils/getMetricDisplayName';
 
 const DEFAULT_METRIC = [AlertRuleAggregations.TOTAL];
 
@@ -89,8 +90,14 @@ class RuleForm extends React.Component<Props> {
                 label: t('Metric'),
                 help: t('Choose which metric to trigger on'),
                 choices: [
-                  [AlertRuleAggregations.UNIQUE_USERS, 'Users Affected'],
-                  [AlertRuleAggregations.TOTAL, 'Events'],
+                  [
+                    AlertRuleAggregations.UNIQUE_USERS,
+                    getMetricDisplayName(AlertRuleAggregations.UNIQUE_USERS),
+                  ],
+                  [
+                    AlertRuleAggregations.TOTAL,
+                    getMetricDisplayName(AlertRuleAggregations.TOTAL),
+                  ],
                 ],
                 required: true,
                 setValue: value => (value && value.length ? value[0] : value),
