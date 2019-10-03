@@ -78,6 +78,7 @@ from sentry.utils.data_filters import (
 )
 from sentry.utils.dates import to_timestamp
 from sentry.utils.db import is_postgres
+from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import safe_execute, trim, get_path, setdefault_path
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.culprit import generate_culprit
@@ -557,7 +558,12 @@ class EventManager(object):
         if release:
             # dont allow a conflicting 'release' tag
             pop_tag(data, "release")
-            release = Release.get_or_create(project=project, version=release, date_added=date)
+            key = "release:1:%s" % hash_values([project, release, date])
+            release = cache.get(key)
+            if release is None:
+                release = Release.get_or_create(project=project, version=release, date_added=date)
+                cache.set(key, release, 3600)
+
             set_tag(data, "sentry:release", release.version)
 
         if dist and release:
