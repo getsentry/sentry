@@ -33,7 +33,7 @@ class EventTags extends React.Component<EventTagsProps> {
 
   renderPill(tag: EventTag, streamPath: string, releasesPath: string) {
     const {orgId, projectId, location} = this.props;
-    const query = {...location.query, ...generateQueryWithTag(tag)};
+    const query = generateQueryWithTag(location.query, tag);
 
     const locationSearch = `?${queryString.stringify(query)}`;
 

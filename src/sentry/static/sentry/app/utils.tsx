@@ -250,8 +250,11 @@ export type OmitHtmlDivProps<P extends object> = Omit<
 > &
   P;
 
-export function generateQueryWithTag(tag: {key: string; value: string}): Query {
-  const query: Query = {};
+export function generateQueryWithTag(
+  prevQuery: Query,
+  tag: {key: string; value: string}
+): Query {
+  const query = {...prevQuery};
 
   // some tags are dedicated query strings since other parts of the app consumes this,
   // for example, the global selection header.

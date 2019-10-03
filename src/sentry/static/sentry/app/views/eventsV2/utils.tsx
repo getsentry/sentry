@@ -64,10 +64,7 @@ export function getEventTagSearchUrl(
   tagValue: string,
   location: Location
 ) {
-  const query = {
-    ...location.query,
-    ...generateQueryWithTag({key: tagKey, value: tagValue}),
-  };
+  const query = generateQueryWithTag(location.query, {key: tagKey, value: tagValue});
 
   // Remove the event slug so the user sees new search results.
   delete query.eventSlug;
