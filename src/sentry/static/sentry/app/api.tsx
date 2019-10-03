@@ -231,6 +231,8 @@ export class Client {
   }
 
   request(path: string, options: Readonly<RequestOptions> = {}): Request {
+    // delaying finishing transaction
+
     const method = options.method || (options.data ? 'POST' : 'GET');
     let data = options.data;
 
@@ -252,6 +254,7 @@ export class Client {
 
     const id: string = uniqueId();
     metric.mark(`api-request-start-${id}`);
+    startRequest(id);
 
     let fullUrl: string;
     if (path.indexOf(this.baseUrl) === -1) {

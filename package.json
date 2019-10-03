@@ -109,6 +109,7 @@
     "react-virtualized": "^9.20.1",
     "reflux": "0.4.1",
     "regenerator-runtime": "^0.13.3",
+    "scheduler": "^0.15.0",
     "scroll-to-element": "^2.0.0",
     "sentry-dreamy-components": "^2.0.1",
     "sprintf-js": "1.0.3",

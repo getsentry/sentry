@@ -334,6 +334,8 @@ const appConfig = {
   ],
   resolve: {
     alias: {
+      'react-dom$': 'react-dom/profiling',
+      'scheduler/tracing': 'scheduler/tracing-profiling',
       app: path.join(staticPrefix, 'app'),
 
       // Aliasing this for getsentry's build, otherwise `less/select2` will not be able
