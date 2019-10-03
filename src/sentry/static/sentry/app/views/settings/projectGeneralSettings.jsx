@@ -133,18 +133,18 @@ class ProjectGeneralSettings extends AsyncView {
     let alertType;
     switch (riskLevel) {
       case 0:
-        riskNote = t('This upgrade has the chance to create some new groups.');
+        riskNote = t('This upgrade has the chance to create some new issues.');
         alertType = 'info';
         break;
       case 1:
-        riskNote = t('This upgrade will create some new groups.');
+        riskNote = t('This upgrade will create some new issues.');
         alertType = 'warning';
         break;
       case 2:
         riskNote = (
           <strong>
             {t(
-              'The new grouping strategy is incompatible with the current and will create entirely new groups.'
+              'The new grouping strategy is incompatible with the current and will create entirely new issues.'
             )}
           </strong>
         );
