@@ -230,9 +230,9 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
    *
    * Returns `null` if data does not exist
    */
-  getData(
+  getData = (
     data: EventsStatsData
-  ): {previous: EventsStatsData | null; current: EventsStatsData} {
+  ): {previous: EventsStatsData | null; current: EventsStatsData} => {
     const {period, includePrevious} = this.props;
 
     const hasPreviousPeriod = canIncludePreviousPeriod(includePrevious, period);
