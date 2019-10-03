@@ -117,6 +117,37 @@ class BaseModel(models.Model):
             return None
         return self.__data.get(field_name)
 
+    def bind_cached_fk(self, *rels):
+        """
+        Try to bind a foreign key relationship(s) in the
+        most efficient way possible. If the relationship
+        is already bound, do nothing.
+
+        e.g. group.bind_cached_fk("project").project
+
+        This would assert that group.project is now safe
+        to use, and can be used in situation where you're unsure.
+
+        Can also be chained.
+        """
+        for rel in rels:
+            if rel[-3:] != "_id":
+                rel_short = rel
+                rel_full = rel + "_id"
+            else:
+                rel_full = rel
+                rel_short = rel_full[:-3]
+            cache_attr = "_%s_cache" % rel_short
+            if hasattr(self, cache_attr):
+                continue
+            to = self._meta.get_field_by_name(rel_full)[0].rel.to
+            pk = getattr(self, rel_full)
+            if isinstance(to.objects, BaseManager):
+                setattr(self, cache_attr, to.objects.get_from_cache(id=pk))
+            else:
+                setattr(self, cache_attr, to.objects.get(id=pk))
+        return self
+
 
 class Model(BaseModel):
     id = BoundedBigAutoField(primary_key=True)
