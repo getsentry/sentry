@@ -71,7 +71,7 @@ describe('Tags', function() {
     const initialData = initializeOrg({
       organization: org,
       router: {
-        location: {query: {lol: 42}},
+        location: {query: {}},
       },
     });
 
@@ -95,8 +95,6 @@ describe('Tags', function() {
     // component has loaded
     expect(wrapper.find('StyledPlaceholder')).toHaveLength(0);
 
-    // console.log(wrapper.debug());
-
     const environmentFacetMap = wrapper
       .find('TagDistributionMeter')
       .filterWhere(component => {
@@ -106,17 +104,14 @@ describe('Tags', function() {
 
     const clickable = environmentFacetMap.find('Segment').first();
 
-    console.log('dumbbutton', clickable.debug());
-
-    clickable.simulate('click');
+    clickable.simulate('click', {button: 0});
 
     await tick();
     wrapper.update();
 
-    console.log('router', initialData.router);
-
-    expect(initialData.router.push).toHaveBeenCalled();
-
-    expect(false).toBe(true);
+    expect(initialData.router.push).toHaveBeenCalledWith({
+      pathname: undefined,
+      query: {environment: 'abcd123'},
+    });
   });
 });
