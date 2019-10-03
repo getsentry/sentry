@@ -18,6 +18,7 @@ from sentry.models import (
     GroupStatus,
     GroupAssignee,
     OrganizationMember,
+    Project,
     User,
     Identity,
     Team,
@@ -174,7 +175,7 @@ def build_group_attachment(group, event=None, tags=None, identity=None, actions=
 
     ignore_button = {"name": "status", "value": "ignored", "type": "button", "text": "Ignore"}
 
-    project = Project.objects.get_from_cache(id=project_id)
+    project = Project.objects.get_from_cache(id=group.project_id)
 
     cache_key = "has_releases:1:%s" % hash_values([project.id, project.organization_id])
     has_releases = cache.get(cache_key)
