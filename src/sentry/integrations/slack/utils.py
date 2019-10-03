@@ -186,7 +186,7 @@ def build_group_attachment(group, event=None, tags=None, identity=None, actions=
         if has_releases:
             cache.set(cache_key, has_releases, 3600)
         else:
-            cache.set(cache_key, 0, 60)
+            cache.set(cache_key, False, 60)
             resolve_button.update({"name": "status", "text": "Resolve", "value": "resolved"})
 
     if status == GroupStatus.RESOLVED:
