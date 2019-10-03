@@ -102,6 +102,7 @@ class ProjectGeneralSettings extends AsyncView {
     }
 
     let updateNotes = '';
+    let riskLevel = 0;
     const newData = {};
 
     this.state.groupingConfigs.forEach(({id, latest, changelog}) => {
@@ -117,6 +118,35 @@ class ProjectGeneralSettings extends AsyncView {
         newData.groupingEnhancementsBase = id;
       }
     });
+
+    // legacy to newstyle is a risky update
+    if (
+      this.state.data.groupingConfig.match(/^legacy:/) &&
+      newData.groupingConfig &&
+      newData.groupingConfig.match(/^newstyle:/)
+    ) {
+      riskLevel = 2;
+    }
+
+    let riskNote;
+    switch (riskLevel) {
+      case 0:
+        riskNote = t('This upgrade has the chance to create some new groups.');
+        break;
+      case 1:
+        riskNote = t('This upgrade will create some new groups.');
+        break;
+      case 2:
+        riskNote = (
+          <strong>
+            {t(
+              'The new grouping strategy is incompatible with the current and will create entirely new groups.'
+            )}
+          </strong>
+        );
+        break;
+      default:
+    }
 
     const noUpdates = Object.keys(newData).length === 0;
 
@@ -145,27 +175,24 @@ class ProjectGeneralSettings extends AsyncView {
                 this.fetchData();
               }, handleXhrErrorResponse('Unable to upgrade config'));
           }}
-          priority="danger"
+          priority={riskLevel >= 2 ? 'danger' : 'primary'}
           title={t('Upgrade grouping strategy?')}
           confirmText={t('Upgrade')}
           message={
             <div>
               <TextBlock>
-                <strong>
-                  {t(
-                    'This will upgrade grouping and cause new events to group differently.'
-                  )}
-                </strong>
+                <strong>{t('Upgrading Grouping Strategy')}</strong>
               </TextBlock>
               <TextBlock>
                 {t(
-                  'From this moment onwards new events are likely to generate new groups.'
+                  'You can upgrade the grouping strategy to the latest but this is an irreversible operation.'
                 )}
-                <br />
-                <br />
+              </TextBlock>
+              <TextBlock>
                 <strong>{t('New Behavior')}</strong>
                 <div dangerouslySetInnerHTML={{__html: marked(updateNotes)}} />
               </TextBlock>
+              <TextBlock>{riskNote}</TextBlock>
             </div>
           }
         >
