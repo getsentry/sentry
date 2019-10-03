@@ -31,6 +31,8 @@ class Profiler {
     let span;
     const start = window.performance && window.performance.timing.navigationStart;
 
+    console.log(_interactions);
+
     if (phase === 'mount') {
       startRender(id);
       span = Sentry.startSpan({
@@ -38,6 +40,11 @@ class Profiler {
         op: 'react',
         description: `render <${id}>`,
       });
+
+      if (!span) {
+        return;
+      }
+
       span.startTimestamp = (start + startTime) / 1000;
       this.commit(id, span, (start + startTime + actualDuration) / 1000);
       this.spansById.set(id, span);
