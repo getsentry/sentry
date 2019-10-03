@@ -172,7 +172,7 @@ _type_mapping = {
     list: Sequence,
 }
 try:
-    _type_mapping[long] = Int
+    _type_mapping[long] = Int  # noqa: B311
 except NameError:  # long was removed in Python 3
     pass
 
