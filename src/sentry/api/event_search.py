@@ -667,19 +667,19 @@ FIELD_ALIASES = {
     "last_seen": {"aggregations": [["max", "timestamp", "last_seen"]]},
     "latest_event": {"aggregations": [["argMax", ["id", "timestamp"], "latest_event"]]},
     "project": {"fields": ["project.id"]},
-    "user": {"fields": ["user.id", "user.name", "user.username", "user.email", "user.ip"]}
-    # TODO(mark) Add rpm alias.
+    "user": {"fields": ["user.id", "user.name", "user.username", "user.email", "user.ip"]},
+    # Long term these will become more complex functions but these are
+    # field aliases.
+    "p75": {"aggregations": [["quantileTiming(0.75)(duration)", "", "p75"]]},
+    "p95": {"aggregations": [["quantileTiming(0.95)(duration)", "", "p95"]]},
 }
 
 VALID_AGGREGATES = {
     "count_unique": {"snuba_name": "uniq", "fields": "*"},
     "count": {"snuba_name": "count", "fields": "*"},
-    "min": {"snuba_name": "min", "fields": ["timestamp", "duration"]},
-    "max": {"snuba_name": "max", "fields": ["timestamp", "duration"]},
-    "sum": {"snuba_name": "sum", "fields": ["duration"]},
-    # These don't entirely work yet but are intended to be illustrative
-    "avg": {"snuba_name": "avg", "fields": ["duration"]},
-    "p75": {"snuba_name": "quantileTiming(0.75)", "fields": ["duration"]},
+    "min": {"snuba_name": "min", "fields": ["timestamp", "transaction.duration"]},
+    "max": {"snuba_name": "max", "fields": ["timestamp", "transaction.duration"]},
+    "avg": {"snuba_name": "avg", "fields": ["transaction.duration"]},
 }
 
 AGGREGATE_PATTERN = re.compile(r"^(?P<function>[^\(]+)\((?P<column>[a-z\._]*)\)$")
