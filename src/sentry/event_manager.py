@@ -715,11 +715,16 @@ class EventManager(object):
                 ReleaseProjectEnvironment.get_or_create(
                     project=project, release=release, environment=environment, datetime=date
                 )
+                cache.set(key, 1, 3600)
 
             if group:
-                grouprelease = GroupRelease.get_or_create(
-                    group=group, release=release, environment=environment, datetime=date
-                )
+                key = "grouprelease:1:%s" % hash_values([group.id, release.id, environment.id, date])
+                grouprelease = cache.get(key)
+                if grouprelease is None:
+                    grouprelease = GroupRelease.get_or_create(
+                        group=group, release=release, environment=environment, datetime=date
+                    )
+                    cache.set(key, grouprelease, 3600)
 
         counters = [(tsdb.models.project, project.id)]
 
