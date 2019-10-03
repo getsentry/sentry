@@ -113,12 +113,14 @@ class BulkRawQueryTest(TestCase, SnubaTestCase):
         results = snuba.bulk_raw_query(
             [
                 snuba.SnubaQueryParams(
+                    dataset=snuba.Dataset.Events,
                     start=timezone.now() - timedelta(days=1),
                     end=timezone.now(),
                     selected_columns=["event_id", "issue", "timestamp"],
                     filter_keys={"project_id": [self.project.id], "issue": [event_1.group.id]},
                 ),
                 snuba.SnubaQueryParams(
+                    dataset=snuba.Dataset.Events,
                     start=timezone.now() - timedelta(days=1),
                     end=timezone.now(),
                     selected_columns=["event_id", "issue", "timestamp"],

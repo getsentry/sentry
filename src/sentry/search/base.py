@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from django.conf import settings
 from sentry.utils.services import Service
 
 ANY = object()
@@ -26,3 +27,15 @@ class SearchBackend(Service):
         **parameters
     ):
         raise NotImplementedError
+
+
+def selector_func(context, method, callargs):
+    backends = ["default"]
+    if settings.SENTRY_USE_MORESNUBA:
+        backends.append("moresnuba")
+
+    return backends
+
+
+def callback_func(*args):
+    return

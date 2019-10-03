@@ -41,7 +41,14 @@ from sentry.snuba.subscriptions import (
     bulk_update_snuba_subscriptions,
 )
 from sentry.utils.committers import get_event_file_committers
-from sentry.utils.snuba import bulk_raw_query, raw_query, SnubaQueryParams, SnubaTSResult, zerofill
+from sentry.utils.snuba import (
+    bulk_raw_query,
+    raw_query,
+    SnubaQueryParams,
+    SnubaTSResult,
+    zerofill,
+    Dataset,
+)
 
 MAX_INITIAL_INCIDENT_PERIOD = timedelta(days=7)
 
@@ -147,6 +154,7 @@ def calculate_incident_start(query, projects, groups):
     rollup = int(INCIDENT_START_ROLLUP.total_seconds())
 
     result = raw_query(
+        dataset=snuba.Dataset.Events,
         aggregations=[("count()", "", "count"), ("min", "timestamp", "first_seen")],
         orderby="time",
         groupby=["time"],
@@ -454,6 +462,7 @@ def get_incident_event_stats(incident, start=None, end=None, data_points=50):
 def bulk_get_incident_event_stats(incidents, query_params_list, data_points=50):
     snuba_params_list = [
         SnubaQueryParams(
+            dataset=Dataset.Events,
             aggregations=[("count()", "", "count")],
             orderby="time",
             groupby=["time"],
@@ -483,6 +492,7 @@ def get_incident_aggregates(incident):
 def bulk_get_incident_aggregates(query_params_list):
     snuba_params_list = [
         SnubaQueryParams(
+            dataset=Dataset.Events,
             aggregations=[("count()", "", "count"), ("uniq", "tags[sentry:user]", "unique_users")],
             limit=10000,
             **query_param

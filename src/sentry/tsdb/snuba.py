@@ -22,10 +22,8 @@ SnubaModelQuerySettings = collections.namedtuple(
 class SnubaTSDB(BaseTSDB):
     """
     A time series query interface to Snuba
-
     Write methods are not supported, as the raw data from which we generate our
     time series is assumed to already exist in snuba.
-
     Read methods are supported only for models based on group/event data and
     will return empty results for unsupported models.
     """
@@ -160,7 +158,6 @@ class SnubaTSDB(BaseTSDB):
     ):
         """
         Normalizes all the TSDB parameters and sends a query to snuba.
-
         `group_on_time`: whether to add a GROUP BY clause on the 'time' field.
         `group_on_model`: whether to add a GROUP BY clause on the primary model.
         """

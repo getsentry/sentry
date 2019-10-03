@@ -77,6 +77,7 @@ class SnubaEventStorage(EventStorage):
             return None
 
         result = snuba.raw_query(
+            dataset=snuba.Dataset.Groups,
             selected_columns=cols,
             filter_keys={"event_id": [event_id], "project_id": [project_id]},
             referrer="eventstore.get_event_by_id",

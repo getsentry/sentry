@@ -138,21 +138,19 @@ spaces               = ~r"\ *"
 """
 )
 
-
 # Create the known set of fields from the issue properties
 # and the transactions and events dataset mapping definitions.
 SEARCH_MAP = {
     "start": "start",
     "end": "end",
     "project_id": "project_id",
-    "first_seen": "first_seen",
-    "last_seen": "last_seen",
     "times_seen": "times_seen",
     # TODO(mark) figure out how to safelist aggregate functions/field aliases
     # so they can be used in conditions
 }
 SEARCH_MAP.update(**DATASETS[Dataset.Transactions])
 SEARCH_MAP.update(**DATASETS[Dataset.Events])
+SEARCH_MAP.update(**DATASETS[Dataset.Groups])
 
 no_conversion = set(["project_id", "start", "end"])
 
@@ -573,7 +571,6 @@ def convert_search_filter_to_snuba_query(search_filter):
             if isinstance(value, datetime) and name != "timestamp"
             else value
         )
-
         # Tags are never null, but promoted tags are columns and so can be null.
         # To handle both cases, use `ifNull` to convert to an empty string and
         # compare so we need to check for empty values.

@@ -1064,7 +1064,10 @@ SENTRY_TSDB_OPTIONS = {}
 SENTRY_NEWSLETTER = "sentry.newsletter.base.Newsletter"
 SENTRY_NEWSLETTER_OPTIONS = {}
 
-SENTRY_EVENTSTREAM = "sentry.eventstream.snuba.SnubaEventStream"
+# CHANGED FOR USING KAFKA / CDC!!!
+# SENTRY_EVENTSTREAM = "sentry.eventstream.snuba.SnubaEventStream"
+SENTRY_EVENTSTREAM = "sentry.eventstream.kafka.KafkaEventStream"
+
 SENTRY_EVENTSTREAM_OPTIONS = {}
 
 # rollups must be ordered from highest granularity to lowest
@@ -1080,7 +1083,8 @@ SENTRY_METRICS_BACKEND = "sentry.metrics.dummy.DummyMetricsBackend"
 SENTRY_METRICS_OPTIONS = {}
 SENTRY_METRICS_SAMPLE_RATE = 1.0
 SENTRY_METRICS_PREFIX = "sentry."
-SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefixes.
+# Order this by most frequent prefixes.
+SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []
 
 # URI Prefixes for generating DSN URLs
 # (Defaults to URL_PREFIX by default)
@@ -1327,7 +1331,7 @@ SENTRY_DEVSERVICES = {
         "volumes": {"redis": {"bind": "/data"}},
     },
     "postgres": {
-        "image": "postgres:9.6-alpine",
+        "image": "cdc_sentry_postgres:latest",
         "ports": {"5432/tcp": 5432},
         "environment": {"POSTGRES_DB": "sentry"},
         "volumes": {"postgres": {"bind": "/var/lib/postgresql/data"}},

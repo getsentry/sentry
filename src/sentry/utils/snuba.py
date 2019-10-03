@@ -16,16 +16,7 @@ import urllib3
 from concurrent.futures import ThreadPoolExecutor
 from django.conf import settings
 
-from sentry import quotas
-from sentry.models import (
-    Environment,
-    Group,
-    GroupRelease,
-    Organization,
-    Project,
-    Release,
-    ReleaseProject,
-)
+from sentry.models import Environment, Group, GroupRelease, Project, Release, ReleaseProject
 from sentry.net.http import connection_from_url
 from sentry.utils import metrics, json
 from sentry.utils.dates import to_timestamp
@@ -51,6 +42,16 @@ OVERRIDE_OPTIONS = {
 SENTRY_SNUBA_MAP = {
     col.value.alias: col.value.event_name for col in Columns if col.value.event_name is not None
 }
+
+GROUPS_SENTRY_SNUBA_MAP = {
+    # general
+    "status": "groups.status",
+    "active_at": "groups.active_at",
+    "first_seen": "first_seen",
+    "last_seen": "last_seen",
+    "first_release": "first_release",
+}
+
 TRANSACTIONS_SENTRY_SNUBA_MAP = {
     col.value.alias: col.value.transaction_name
     for col in Columns
@@ -61,12 +62,17 @@ TRANSACTIONS_SENTRY_SNUBA_MAP = {
 @unique
 class Dataset(Enum):
     Events = "events"
+    Groups = "groups"
     Transactions = "transactions"
     Outcomes = "outcomes"
     OutcomesRaw = "outcomes_raw"
 
 
-DATASETS = {Dataset.Events: SENTRY_SNUBA_MAP, Dataset.Transactions: TRANSACTIONS_SENTRY_SNUBA_MAP}
+DATASETS = {
+    Dataset.Events: SENTRY_SNUBA_MAP,
+    Dataset.Transactions: TRANSACTIONS_SENTRY_SNUBA_MAP,
+    Dataset.Groups: GROUPS_SENTRY_SNUBA_MAP,
+}
 
 # Store the internal field names to save work later on.
 # Add `group_id` to the events dataset list as we don't want to publically
@@ -604,7 +610,7 @@ def _prepare_query_params(query_params):
             query_params.filter_keys, is_grouprelease=query_params.is_grouprelease
         )
 
-    if query_params.dataset in [Dataset.Events, Dataset.Transactions]:
+    if query_params.dataset in [Dataset.Events, Dataset.Transactions, Dataset.Groups]:
         (organization_id, params_to_update) = get_query_params_to_update_for_projects(query_params)
     elif query_params.dataset in [Dataset.Outcomes, Dataset.OutcomesRaw]:
         (organization_id, params_to_update) = get_query_params_to_update_for_organizations(
@@ -624,9 +630,6 @@ def _prepare_query_params(query_params):
             else:
                 query_params.conditions.append((col, "IN", keys))
 
-    retention = quotas.get_event_retention(organization=Organization(organization_id))
-    if retention:
-        start = max(start, datetime.utcnow() - timedelta(days=retention))
         if start > end:
             raise QueryOutsideRetentionError
 
@@ -635,7 +638,6 @@ def _prepare_query_params(query_params):
     # wouldn't return any results anyway
     new_start = shrink_time_window(query_params.filter_keys.get("issue"), start)
 
-    # TODO (alexh) this is a quick emergency fix for an occasion where a search
     # results in only 1 django candidate, which is then passed to snuba to
     # check and we raised because of it. Remove this once we figure out why the
     # candidate was returned from django at all if it existed only outside the
@@ -705,6 +707,8 @@ class SnubaQueryParams(object):
         **kwargs
     ):
         # TODO: instead of having events be the default, make dataset required.
+        # if dataset is None:
+        #     raise SnubaError("Snuba dataset must be provided")
         self.dataset = dataset or Dataset.Events
         self.start = start or datetime.utcfromtimestamp(0)  # will be clamped to project retention
         self.end = end or datetime.utcnow()
@@ -1093,9 +1097,14 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
     """
 
     # Helper lambdas to compose translator functions
-    identity = lambda x: x
-    compose = lambda f, g: lambda x: f(g(x))
-    replace = lambda d, key, val: d.update({key: val}) or d
+    def identity(x):
+        return x
+
+    def compose(f, g):
+        return lambda x: f(g(x))
+
+    def replace(d, key, val):
+        return d.update({key: val}) or d
 
     forward = identity
     reverse = identity

@@ -147,6 +147,7 @@ def up(project, exclude):
         click.secho(
             "> Creating '%s' container%s" % (options["name"], listening), err=True, fg="yellow"
         )
+        click.echo(repr(options))
         client.containers.run(**options)
 
 

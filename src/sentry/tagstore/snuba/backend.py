@@ -345,6 +345,7 @@ class SnubaTagStorage(TagStorage):
         ]
 
         result = snuba.query(
+            dataset=snuba.Dataset.Events,
             start=start,
             end=end,
             groupby=["issue"],
@@ -534,8 +535,9 @@ class SnubaTagStorage(TagStorage):
             ["min", SEEN_COLUMN, "first_seen"],
             ["max", SEEN_COLUMN, "last_seen"],
         ]
-
+        print ("DEBUG: ", conditions, filters, aggregations, limit)
         result = snuba.query(
+            dataset=snuba.Dataset.Events,
             groupby=["issue", "user_id"],
             conditions=conditions,
             filter_keys=filters,
@@ -561,7 +563,9 @@ class SnubaTagStorage(TagStorage):
             filters["environment"] = environment_ids
         aggregations = [["uniq", "tags[sentry:user]", "count"]]
 
+        print ("DEBUG: ", filters, aggregations)
         result = snuba.query(
+            dataset=snuba.Dataset.Events,
             start=start,
             end=end,
             groupby=["issue"],
@@ -710,6 +714,7 @@ class SnubaTagStorage(TagStorage):
             conditions.append([u"tags[{}]".format(tag_name), operator, tag_val])
 
         result = snuba.raw_query(
+            dataset=snuba.Dataset.Events,
             start=start,
             end=end,
             selected_columns=["event_id"],
