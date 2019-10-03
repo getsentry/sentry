@@ -5,7 +5,7 @@ import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
 import SentryTypes from 'app/sentryTypes';
-import {Member, Organization, User} from 'app/types';
+import {Member, User} from 'app/types';
 
 import {assignToUser, assignToActor, clearAssignment} from 'app/actionCreators/group';
 import {t} from 'app/locale';
@@ -272,7 +272,6 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
               assignedTo && (
                 <MenuItemWrapper
                   data-test-id="clear-assignee"
-                  // disabled={!loading}
                   onClick={this.clearAssignTo}
                   py={0}
                 >
@@ -381,7 +380,6 @@ const IconContainer = styled('div')`
 `;
 
 const MenuItemWrapper = styled('div')<{
-  px?: number;
   py?: number;
 }>`
   cursor: pointer;
