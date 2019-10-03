@@ -81,13 +81,15 @@ export default class SentryApplicationRow extends React.PureComponent<Props> {
     const {app, organization} = this.props;
 
     return (
-      <StyledButton
-        size="small"
-        icon="icon-stats"
-        to={`/settings/${organization.slug}/developer-settings/${app.slug}/dashboard`}
-      >
-        {t('Dashboard')}
-      </StyledButton>
+      <Access isSuperuser>
+        <StyledButton
+          size="small"
+          icon="icon-stats"
+          to={`/settings/${organization.slug}/developer-settings/${app.slug}/dashboard`}
+        >
+          {t('Dashboard')}
+        </StyledButton>
+      </Access>
     );
   }
 
