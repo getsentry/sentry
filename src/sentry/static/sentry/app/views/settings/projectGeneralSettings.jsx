@@ -181,7 +181,7 @@ class ProjectGeneralSettings extends AsyncView {
           message={
             <div>
               <TextBlock>
-                <strong>{t('Upgrading Grouping Strategy')}</strong>
+                <strong>{t('Upgrade Grouping Strategy')}</strong>
               </TextBlock>
               <TextBlock>
                 {t(
