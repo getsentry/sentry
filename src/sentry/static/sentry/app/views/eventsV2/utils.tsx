@@ -4,7 +4,7 @@ import {browserHistory} from 'react-router';
 
 import {Client} from 'app/api';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {appendTagCondition} from 'app/utils/queryString';
+import {generateQueryWithTag} from 'app/utils';
 
 import {
   AGGREGATE_ALIASES,
@@ -64,20 +64,10 @@ export function getEventTagSearchUrl(
   tagValue: string,
   location: Location
 ) {
-  const query = {...location.query};
-
-  // some tags are dedicated query strings since other parts of the app consumes this,
-  // for example, the global selection header.
-  switch (tagKey) {
-    case 'environment':
-      query.environment = tagValue;
-      break;
-    case 'project':
-      query.project = tagValue;
-      break;
-    default:
-      query.query = appendTagCondition(query.query, tagKey, tagValue);
-  }
+  const query = {
+    ...location.query,
+    ...generateQueryWithTag({key: tagKey, value: tagValue}),
+  };
 
   // Remove the event slug so the user sees new search results.
   delete query.eventSlug;

@@ -14,7 +14,7 @@ import Pills from 'app/components/pills';
 import Pill from 'app/components/pill';
 import VersionHoverCard from 'app/components/versionHoverCard';
 import InlineSvg from 'app/components/inlineSvg';
-import {appendTagCondition} from 'app/utils/queryString';
+import {generateQueryWithTag} from 'app/utils';
 
 type EventTagsProps = {
   group: Group;
@@ -33,18 +33,7 @@ class EventTags extends React.Component<EventTagsProps> {
 
   renderPill(tag: EventTag, streamPath: string, releasesPath: string) {
     const {orgId, projectId, location} = this.props;
-    const query = {...location.query};
-
-    switch (tag.key) {
-      case 'environment':
-        query.environment = tag.value;
-        break;
-      case 'project':
-        query.project = tag.value;
-        break;
-      default:
-        query.query = appendTagCondition(query.query, tag.key, tag.value);
-    }
+    const query = {...location.query, ...generateQueryWithTag(tag)};
 
     const locationSearch = `?${queryString.stringify(query)}`;
 
