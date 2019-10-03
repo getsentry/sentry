@@ -33,16 +33,12 @@ type QueryValue = string | string[] | undefined | null;
 export function appendTagCondition(
   query: QueryValue,
   key: string,
-  value: string,
-  wrapWithTag?: boolean
+  value: string
 ): string {
   let currentQuery = Array.isArray(query) ? query.pop() : isString(query) ? query : '';
 
   if (isString(value) && value.indexOf(' ') > -1) {
     value = `"${value}"`;
-  }
-  if (wrapWithTag) {
-    key = `tags[${key}]`;
   }
   if (currentQuery) {
     currentQuery += ` ${key}:${value}`;

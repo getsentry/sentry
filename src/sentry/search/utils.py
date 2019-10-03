@@ -436,7 +436,7 @@ def parse_query(projects, query, user, environments):
 
 def convert_user_tag_to_query(key, value):
     """
-    Converts a tag to a query string that can be used to search for that
+    Converts a user tag to a query string that can be used to search for that
     user. Returns None if not a user tag.
     """
     if key == "user" and ":" in value:
