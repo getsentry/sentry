@@ -1525,7 +1525,7 @@ SENTRY_BUILTIN_SOURCES = {
         "id": "sentry:microsoft",
         "name": "Microsoft",
         "layout": {"type": "symstore"},
-        "filters": {"filetypes": ["pdb", "pe"], "path_patterns": ["?:/windows/**"]},
+        "filters": {"filetypes": ["pdb", "pe"]},
         "url": "https://msdl.microsoft.com/download/symbols/",
         "is_public": True,
     },
