@@ -21,12 +21,12 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
         Process a login request via username/password. SSO login is handled
         elsewhere.
         """
-        login_form = AuthenticationForm(request, request.DATA)
+        login_form = AuthenticationForm(request, request.data)
 
         # Rate limit logins
         is_limited = ratelimiter.is_limited(
             u"auth:login:username:{}".format(
-                md5_text(request.DATA.get("username").lower()).hexdigest()
+                md5_text(request.data.get("username").lower()).hexdigest()
             ),
             limit=10,
             window=60,  # 10 per minute should be enough for anyone
