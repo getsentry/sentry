@@ -30,7 +30,12 @@ import withApi from 'app/utils/withApi';
 import withConfig from 'app/utils/withConfig';
 
 // TODO: Need better way of identifying anonymous pages that don't trigger redirect
-const ALLOWED_ANON_PAGES = [/^\/accept\//, /^\/share\//, /^\/auth\/login\//];
+const ALLOWED_ANON_PAGES = [
+  /^\/accept\//,
+  /^\/share\//,
+  /^\/auth\/login\//,
+  /^\/join-request\//,
+];
 
 function getAlertTypeForProblem(problem) {
   switch (problem.severity) {

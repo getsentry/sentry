@@ -9,6 +9,7 @@ import styled from 'react-emotion';
 class NarrowLayout extends React.Component {
   static propTypes = {
     showLogout: PropTypes.bool,
+    maxWidth: PropTypes.string,
   };
 
   componentWillMount() {
@@ -29,7 +30,7 @@ class NarrowLayout extends React.Component {
     return (
       <div className="app">
         <div className="pattern-bg" />
-        <div className="container">
+        <div className="container" style={{maxWidth: this.props.maxWidth}}>
           <div className="box box-modal">
             <div className="box-header">
               <a href="/">
