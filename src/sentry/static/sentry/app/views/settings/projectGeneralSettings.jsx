@@ -5,6 +5,7 @@ import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import marked from 'marked';
 
+import Alert from 'app/components/alert';
 import {Panel, PanelAlert, PanelHeader} from 'app/components/panels';
 import {
   changeProjectSlug,
@@ -129,12 +130,15 @@ class ProjectGeneralSettings extends AsyncView {
     }
 
     let riskNote;
+    let alertType;
     switch (riskLevel) {
       case 0:
         riskNote = t('This upgrade has the chance to create some new groups.');
+        alertType = 'info';
         break;
       case 1:
         riskNote = t('This upgrade will create some new groups.');
+        alertType = 'warning';
         break;
       case 2:
         riskNote = (
@@ -144,6 +148,7 @@ class ProjectGeneralSettings extends AsyncView {
             )}
           </strong>
         );
+        alertType = 'error';
         break;
       default:
     }
@@ -192,7 +197,9 @@ class ProjectGeneralSettings extends AsyncView {
                 <strong>{t('New Behavior')}</strong>
                 <div dangerouslySetInnerHTML={{__html: marked(updateNotes)}} />
               </TextBlock>
-              <TextBlock>{riskNote}</TextBlock>
+              <TextBlock>
+                <Alert type={alertType}>{riskNote}</Alert>
+              </TextBlock>
             </div>
           }
         >
@@ -202,7 +209,7 @@ class ProjectGeneralSettings extends AsyncView {
               title={noUpdates ? t('You are already on the latest version') : null}
               className="ref-upgrade-grouping-strategy"
               type="button"
-              priority="primary"
+              priority={riskLevel >= 2 ? 'danger' : 'primary'}
             >
               {t('Update Grouping Strategy')}
             </Button>
