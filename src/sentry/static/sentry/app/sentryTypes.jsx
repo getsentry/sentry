@@ -68,7 +68,10 @@ export const Config = PropTypes.shape({
   termsUrl: PropTypes.string,
   urlPrefix: PropTypes.string,
   user: User,
-  statuspage: PropTypes.string,
+  statuspage: PropTypes.shape({
+    id: PropTypes.string,
+    api_host: PropTypes.string,
+  }),
   version: PropTypes.shape({
     current: PropTypes.string,
     build: PropTypes.string,
