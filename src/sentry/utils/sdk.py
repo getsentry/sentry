@@ -122,7 +122,6 @@ def configure_sdk():
         ],
         transport=capture_event,
         traceparent_v2=True,
-        _experiments={"fast_serialize": True},
         **sdk_options
     )
 
