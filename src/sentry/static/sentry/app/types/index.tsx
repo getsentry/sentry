@@ -339,6 +339,21 @@ export type Group = {
   userReportCount: number;
 };
 
+export type Member = {
+  id: string;
+  user: User;
+  name: string;
+  email: string;
+  pending: boolean | undefined;
+  role: string;
+  roleName: string;
+  flags: {
+    'sso:linked': boolean;
+    'sso:invalid': boolean;
+  };
+  dateCreated: string;
+};
+
 export type EventViewv1 = {
   name: string;
   data: {

@@ -4,6 +4,9 @@ import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
+import SentryTypes from 'app/sentryTypes';
+import {Member, Organization, User} from 'app/types';
+
 import {assignToUser, assignToActor, clearAssignment} from 'app/actionCreators/group';
 import {t} from 'app/locale';
 import {valueIsEqual, buildUserId, buildTeamId} from 'app/utils';
@@ -19,20 +22,19 @@ import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import MemberListStore from 'app/stores/memberListStore';
 import ProjectsStore from 'app/stores/projectsStore';
-import SentryTypes from 'app/sentryTypes';
 import TextOverflow from 'app/components/textOverflow';
 import space from 'app/styles/space';
 
 type Props = {
   id: string | null;
   size: number;
-  memberList?: SentryTypes.Member[];
+  memberList?: Member[];
 };
 
 type State = {
   loading: boolean;
-  assignedTo: SentryTypes.User;
-  memberList: SentryTypes.Member[];
+  assignedTo: User;
+  memberList: Member[];
 };
 
 const AssigneeSelectorComponent = createReactClass<Props, State>({
@@ -180,7 +182,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
     return members.map(member => {
       return {
         value: {type: 'member', assignee: member},
-        searchKey: `${member.email} ${member.name} ${member.slug}`,
+        searchKey: `${member.email} ${member.name}`,
         label: ({inputValue}) => (
           <MenuItemWrapper
             data-test-id="assignee-option"
@@ -320,7 +322,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
   },
 });
 
-export function putSessionUserFirst(members: SentryTypes.Member[]): SentryTypes.Member[] {
+export function putSessionUserFirst(members: Member[]): Member[] {
   // If session user is in the filtered list of members, put them at the top
   if (!members) {
     return [];
