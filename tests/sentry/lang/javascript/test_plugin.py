@@ -61,12 +61,9 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
         with self.assertWriteQueries(
             {
                 "nodestore_node": 2,
-                "sentry_eventtag": 1,
                 "sentry_eventuser": 1,
-                "sentry_filtervalue": 6,
                 "sentry_groupedmessage": 1,
                 "sentry_message": 1,
-                "sentry_messagefiltervalue": 6,
                 "sentry_userreport": 1,
             },
             debug=True,
