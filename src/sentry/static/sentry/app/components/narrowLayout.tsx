@@ -1,19 +1,24 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import {browserHistory} from 'react-router';
 
 import {t} from 'app/locale';
 import {logout} from 'app/actionCreators/account';
 import {Client} from 'app/api';
 import styled from 'react-emotion';
 
-class NarrowLayout extends React.Component {
+type Props = {
+  showLogout?: boolean;
+  maxWidth?: string;
+};
+
+class NarrowLayout extends React.Component<Props> {
   static propTypes = {
     showLogout: PropTypes.bool,
     maxWidth: PropTypes.string,
   };
 
   componentWillMount() {
-    this.api = new Client();
     document.body.classList.add('narrow');
   }
 
@@ -22,8 +27,10 @@ class NarrowLayout extends React.Component {
     document.body.classList.remove('narrow');
   }
 
+  private api = new Client();
+
   handleLogout = () => {
-    logout(this.api).then(() => (window.location = '/auth/login'));
+    logout(this.api).then(() => browserHistory.push('/auth/login'));
   };
 
   render() {
