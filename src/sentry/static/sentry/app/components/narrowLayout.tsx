@@ -1,6 +1,5 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {browserHistory} from 'react-router';
 
 import {t} from 'app/locale';
 import {logout} from 'app/actionCreators/account';
@@ -30,7 +29,7 @@ class NarrowLayout extends React.Component<Props> {
   private api = new Client();
 
   handleLogout = () => {
-    logout(this.api).then(() => browserHistory.push('/auth/login'));
+    logout(this.api).then(() => (window.location.pathname = '/auth/login'));
   };
 
   render() {
