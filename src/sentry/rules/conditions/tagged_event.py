@@ -43,7 +43,7 @@ class TaggedEventForm(forms.Form):
         match = self.cleaned_data.get("match")
         value = self.cleaned_data.get("value")
 
-        if match != MatchType.IS_SET and match != MatchType.NOT_SET and not value:
+        if match not in (MatchType.IS_SET, MatchType.NOT_SET) and not value:
             raise forms.ValidationError("This field is required.")
 
 
