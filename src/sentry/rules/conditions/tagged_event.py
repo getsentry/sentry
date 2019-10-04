@@ -35,7 +35,16 @@ MATCH_CHOICES = OrderedDict(
 class TaggedEventForm(forms.Form):
     key = forms.CharField(widget=forms.TextInput())
     match = forms.ChoiceField(MATCH_CHOICES.items(), widget=forms.Select())
-    value = forms.CharField(widget=forms.TextInput())
+    value = forms.CharField(widget=forms.TextInput(), required=False)
+
+    def clean(self):
+        super(TaggedEventForm, self).clean()
+
+        match = self.cleaned_data.get("match")
+        value = self.cleaned_data.get("value")
+
+        if match != MatchType.IS_SET and match != MatchType.NOT_SET and not value:
+            raise forms.ValidationError("This field is required.")
 
 
 class TaggedEventCondition(EventCondition):
