@@ -5,7 +5,6 @@ from __future__ import absolute_import
 from datetime import timedelta
 import pytest
 from django.utils import timezone
-from django.conf import settings
 from mock import Mock, patch, ANY
 
 from sentry import tagstore
@@ -393,7 +392,7 @@ class PostProcessGroupTest(TestCase):
         assert not delay.called
 
 
-@pytest.mark.skipIf(lambda x: settings.SENTRY_TAGSTORE != "sentry.tagstore.legacy.LegacyTagStorage")
+@pytest.mark.skip(reason="Legacy")
 class IndexEventTagsTest(TestCase):
     def test_simple(self):
         group = self.create_group(project=self.project)
