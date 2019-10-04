@@ -12,7 +12,11 @@ class OrganizationUsersEndpoint(OrganizationEndpoint):
     def get(self, request, organization):
         projects = self.get_projects(request, organization)
         qs = (
-            OrganizationMember.objects.filter(user__is_active=True, organization=organization)
+            OrganizationMember.objects.filter(
+                user__is_active=True,
+                organization=organization,
+                teams__projectteam__project__in=projects,
+            )
             .select_related("user")
             .prefetch_related("teams", "teams__projectteam_set", "teams__projectteam_set__project")
             .order_by("user__email")
