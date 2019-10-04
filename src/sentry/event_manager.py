@@ -556,13 +556,8 @@ class EventManager(object):
             set_tag(data, "transaction", transaction_name)
 
         if release:
-            # dont allow a conflicting 'release' tag
-            pop_tag(data, "release")
-            key = "release:1:%s" % hash_values([project.id, release, int(to_timestamp(date))])
-            release = cache.get(key)
-            if release is None:
-                release = Release.get_or_create(project=project, version=release, date_added=date)
-                cache.set(key, release, 3600)
+            # cached in overridden get_or_create model method
+            release = Release.get_or_create(project=project, version=release, date_added=date)
 
             set_tag(data, "sentry:release", release.version)
 
