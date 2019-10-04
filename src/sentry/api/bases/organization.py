@@ -298,7 +298,10 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         on the projects to which the release is attached?
         """
 
-        actor_id = request.user.id or request.auth.id
+        if request.user.id:
+            actor_id = "user:%s" % request.user.id
+        if request.auth.id:
+            actor_id = "apikey:%s" % request.auth.id
         if actor_id is None:
             return False
         key = "release_perms:1:%s" % hash_values([actor_id, organization.id, release.id])
