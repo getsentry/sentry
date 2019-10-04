@@ -184,7 +184,7 @@ def build_group_attachment(group, event=None, tags=None, identity=None, actions=
             projects=project, organization_id=project.organization_id
         ).exists()
         if has_releases:
-            cache.set(cache_key, has_releases, 3600)
+            cache.set(cache_key, True, 3600)
         else:
             cache.set(cache_key, False, 60)
             resolve_button.update({"name": "status", "text": "Resolve", "value": "resolved"})
