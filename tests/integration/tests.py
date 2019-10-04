@@ -8,6 +8,7 @@ import json
 import logging
 import mock
 import six
+from time import sleep
 import zlib
 
 from sentry import eventstore, tagstore
@@ -601,6 +602,9 @@ class CspReportTest(TestCase, SnubaTestCase):
     def assertReportCreated(self, input, output):
         resp = self._postCspWithHeader(input)
         assert resp.status_code == 201, resp.content
+        # XXX: there appears to be a race condition between the 201 return and get_events,
+        # leading this test to sometimes fail. .1s seems to be sufficient.
+        sleep(0.1)
         events = eventstore.get_events(
             filter_keys={"project_id": [self.project.id]}, conditions=[["type", "=", "csp"]]
         )
