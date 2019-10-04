@@ -51,7 +51,7 @@ class BuildIncidentAttachmentTest(TestCase):
         self.org = self.create_organization(name="Rowdy Tiger", owner=None)
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
         self.project = self.create_project(
-            organization=self.org, teams=[self.team], name="Bengal-Elephant-Giraffe-Farm-House"
+            organization=self.org, teams=[self.team], name="Bengal-Elephant-Giraffe-Tree-House"
         )
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
         group = self.create_group(project=self.project)
@@ -92,7 +92,7 @@ class BuildIncidentAttachmentTest(TestCase):
             "mrkdwn_in": ["text"],
             "title": group.title,
             "fields": [],
-            "footer": u"BENGAL-ELEPHANT-GIRAFFE-FARM-HOUSE-1",
+            "footer": u"BENGAL-ELEPHANT-GIRAFFE-TREE-HOUSE-1",
             "ts": to_timestamp(ts),
             "title_link": u"http://testserver/organizations/rowdy-tiger/issues/"
             + six.text_type(group.id)
@@ -139,7 +139,7 @@ class BuildIncidentAttachmentTest(TestCase):
             "mrkdwn_in": ["text"],
             "title": event.title,
             "fields": [],
-            "footer": u"BENGAL-ELEPHANT-GIRAFFE-FARM-HOUSE-1",
+            "footer": u"BENGAL-ELEPHANT-GIRAFFE-TREE-HOUSE-1",
             "ts": to_timestamp(ts),
             "title_link": u"http://testserver/organizations/rowdy-tiger/issues/"
             + six.text_type(group.id)
