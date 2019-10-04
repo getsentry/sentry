@@ -132,8 +132,8 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     includeTransformedData: PropTypes.bool,
 
     /**
-     * Include a dataset transform that will aggregate count values for each timestamp.
-     * Be sure to supply a name to `timeAggregationSeriesName`
+     * Include a dataset transform that will aggregate count values for each
+     * timestamp. Be sure to supply a name to `timeAggregationSeriesName`
      */
     includeTimeAggregation: PropTypes.bool,
 
@@ -181,12 +181,14 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
   componentDidMount() {
     this.fetchData();
   }
+
   componentDidUpdate(prevProps: EventsRequestProps) {
     if (isEqual(omitIgnoredProps(prevProps), omitIgnoredProps(this.props))) {
       return;
     }
     this.fetchData();
   }
+
   componentWillUnmount() {
     this.unmounting = true;
   }
@@ -195,10 +197,12 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
 
   fetchData = async () => {
     const {api, ...props} = this.props;
-    let timeseriesData: EventsStats | null;
+    let timeseriesData: EventsStats | null = null;
+
     this.setState(state => ({
       reloading: state.timeseriesData !== null,
     }));
+
     try {
       timeseriesData = await doEventsRequest(api, props);
     } catch (resp) {
@@ -207,19 +211,22 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
       } else {
         addErrorMessage(t('Error loading chart data'));
       }
-      timeseriesData = null;
     }
+
     if (this.unmounting) {
       return;
     }
+
     this.setState({
       reloading: false,
       timeseriesData,
     });
   };
+
   /**
-   * Retrieves data set for the current period (since data can potentially contain previous period's data), as
-   * well as the previous period if possible.
+   * Retrieves data set for the current period (since data can potentially
+   * contain previous period's data), as well as the previous period if
+   * possible.
    *
    * Returns `null` if data does not exist
    */
@@ -238,26 +245,28 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
   };
 
   // This aggregates all values per `timestamp`
-  calculateTotalsPerTimestamp = (
+  calculateTotalsPerTimestamp(
     data: EventsStatsData,
     getName: (
       timestamp: number,
       countArray: {count: number}[],
       i: number
     ) => number = timestamp => timestamp * 1000
-  ): SeriesDataUnit[] =>
-    data.map(([timestamp, countArray], i) => ({
+  ): SeriesDataUnit[] {
+    return data.map(([timestamp, countArray], i) => ({
       name: getName(timestamp, countArray, i),
       value: countArray.reduce((acc, {count}) => acc + count, 0),
     }));
+  }
 
   /**
-   * Get previous period data, but transform timestampts so that data fits unto the current period's data axis
+   * Get previous period data, but transform timestamps so that data fits unto
+   * the current period's data axis
    */
-  transformPreviousPeriodData = (
+  transformPreviousPeriodData(
     current: EventsStatsData,
     previous: EventsStatsData | null
-  ): Series | null => {
+  ): Series | null {
     // Need the current period data array so we can take the timestamp
     // so we can be sure the data lines up
     if (!previous) {
@@ -271,23 +280,22 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
         (_timestamp, _countArray, i) => current[i][0] * 1000
       ),
     };
-  };
+  }
+
   /**
    * Aggregate all counts for each time stamp
    */
-  transformAggregatedTimeseries = (
-    data: EventsStatsData,
-    seriesName: string = ''
-  ): Series => {
+  transformAggregatedTimeseries(data: EventsStatsData, seriesName: string = ''): Series {
     return {
       seriesName,
       data: this.calculateTotalsPerTimestamp(data),
     };
-  };
+  }
+
   /**
    * Transforms query response into timeseries data to be used in a chart
    */
-  transformTimeseriesData = (data: EventsStatsData): [Series] => {
+  transformTimeseriesData(data: EventsStatsData): [Series] {
     return [
       {
         seriesName: 'Current Period',
@@ -297,7 +305,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
         })),
       },
     ];
-  };
+  }
 
   processData(response: EventsStats | null) {
     if (!response) {
@@ -330,6 +338,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
       timeAggregatedData,
     };
   }
+
   render() {
     const {children, showLoading, ...props} = this.props;
     const {timeseriesData, reloading} = this.state;
