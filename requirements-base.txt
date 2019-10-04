@@ -7,7 +7,7 @@ click>=5.0,<7.0
 confluent-kafka==0.11.5
 # 'cryptography>=1.3,<1.4
 croniter>=0.3.26,<0.4.0
-cssutils>=0.9.9,<0.10.0
+cssutils==1.0.2
 django-crispy-forms>=1.4.0,<1.5.0
 django-jsonfield>=0.9.13,<0.9.14
 django-picklefield>=0.3.0,<1.1.0
@@ -16,12 +16,10 @@ Django>=1.8,<1.9
 djangorestframework==3.2.5
 email-reply-parser>=0.2.0,<0.3.0
 enum34>=1.1.6,<1.2.0
-exam>=0.5.1
 functools32>=3.2.3,<3.3
 futures>=3.2.0,<4.0.0
 # broken on python3
 hiredis>=0.1.0,<0.2.0
-honcho>=1.0.0,<1.1.0
 ipaddress>=1.0.16,<1.1.0
 jsonschema==2.6.0
 kombu==3.0.35
@@ -40,9 +38,6 @@ Pillow>=3.2.0,<=4.2.1
 progressbar2>=3.10,<3.11
 psycopg2-binary>=2.7.0,<2.9.0
 PyJWT>=1.5.0,<1.6.0
-pytest-django>=2.9.1,<2.10.0
-pytest-html>=1.9.0,<1.10.0
-pytest>=3.5.0,<3.6.0
 python-dateutil>=2.0.0,<3.0.0
 python-memcached>=1.53,<2.0.0
 python-openid>=2.2
