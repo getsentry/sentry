@@ -142,6 +142,7 @@ class DiscoverQueryEndpoint(OrganizationEndpoint):
                     groupby.append(field)
 
         return self.do_query(
+            dataset="events",
             projects=projects_map,
             start=serialized.get("start"),
             end=serialized.get("end"),

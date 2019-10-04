@@ -725,6 +725,7 @@ class SnubaTagStorage(TagStorage):
             conditions.append([u"tags[{}]".format(tag_name), operator, tag_val])
 
         result = snuba.raw_query(
+            dataset="events",
             start=start,
             end=end,
             selected_columns=["event_id"],

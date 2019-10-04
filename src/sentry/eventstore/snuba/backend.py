@@ -37,6 +37,7 @@ class SnubaEventStorage(EventStorage):
         cols = self.__get_columns(additional_columns)
 
         result = snuba.raw_query(
+            dataset="events",
             start=start,
             end=end,
             selected_columns=cols,
@@ -66,6 +67,7 @@ class SnubaEventStorage(EventStorage):
             return None
 
         result = snuba.raw_query(
+            dataset="events",
             selected_columns=cols,
             filter_keys={"event_id": [event_id], "project_id": [project_id]},
             referrer="eventstore.get_event_by_id",
@@ -138,6 +140,7 @@ class SnubaEventStorage(EventStorage):
     def __get_next_or_prev_event_id(self, **kwargs):
 
         result = snuba.raw_query(
+            dataset="events",
             selected_columns=["event_id", "project_id"],
             limit=1,
             referrer="eventstore.get_next_or_prev_event_id",
