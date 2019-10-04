@@ -299,8 +299,8 @@ class OrganizationMemberDetail extends AsyncView {
             <PanelHeader>{t('Authentication')}</PanelHeader>
             <PanelBody>
               <Field
-                alignRight={true}
-                flexibleControlStateSize={true}
+                alignRight
+                flexibleControlStateSize
                 label={t('Reset two-factor authentication')}
                 help={t(
                   'Resetting two-factor authentication will remove all two-factor authentication methods for this member.'

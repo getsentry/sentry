@@ -117,7 +117,7 @@ describe('DropdownLink', function() {
     describe('Opened', function() {
       beforeEach(function() {
         wrapper = mount(
-          <DropdownLink isOpen={true} alwaysRenderMenu={false} title="test">
+          <DropdownLink isOpen alwaysRenderMenu={false} title="test">
             <li>hi</li>
           </DropdownLink>
         );
@@ -174,14 +174,14 @@ describe('DropdownLink', function() {
               className="nested-menu"
               alwaysRenderMenu={false}
               title="nested"
-              isNestedDropdown={true}
+              isNestedDropdown
             >
               <li id="nested-actor-2">
                 <DropdownLink
                   className="nested-menu-2"
                   alwaysRenderMenu={false}
                   title="nested #2"
-                  isNestedDropdown={true}
+                  isNestedDropdown
                 >
                   <li id="nested-actor-3">Hello</li>
                 </DropdownLink>

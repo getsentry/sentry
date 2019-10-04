@@ -34,12 +34,10 @@ class RichHttpContent extends React.Component {
     } else if (value) {
       switch (data.inferredContentType) {
         case 'application/json':
-          return <ContextData data={value} preserveQuotes={true} />;
+          return <ContextData data={value} preserveQuotes />;
         case 'application/x-www-form-urlencoded':
         case 'multipart/form-data':
-          return (
-            <KeyValueList data={objectToSortedTupleArray(value)} isContextData={true} />
-          );
+          return <KeyValueList data={objectToSortedTupleArray(value)} isContextData />;
         default:
           return <pre>{JSON.stringify(value, null, 2)}</pre>;
       }
@@ -52,7 +50,7 @@ class RichHttpContent extends React.Component {
     try {
       // Sentry API abbreviates long query string values, sometimes resulting in
       // an un-parsable querystring ... stay safe kids
-      return <KeyValueList data={data} isContextData={true} />;
+      return <KeyValueList data={data} isContextData />;
     } catch (e) {
       return <pre>{data}</pre>;
     }

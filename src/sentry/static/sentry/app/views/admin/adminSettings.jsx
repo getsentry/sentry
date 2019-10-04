@@ -54,7 +54,7 @@ export default class AdminSettings extends AsyncView {
           apiEndpoint={this.getEndpoint()}
           onSubmit={this.onSubmit}
           initialData={initialData}
-          requireChanges={true}
+          requireChanges
         >
           <h4>General</h4>
           {fields['system.url-prefix']}

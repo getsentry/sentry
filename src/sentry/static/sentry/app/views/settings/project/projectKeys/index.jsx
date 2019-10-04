@@ -158,7 +158,7 @@ class KeyRow extends React.Component {
           </Flex>
         </PanelHeader>
 
-        <ClippedBox clipHeight={300} defaultClipped={true} btnText={t('Expand')}>
+        <ClippedBox clipHeight={300} defaultClipped btnText={t('Expand')}>
           <PanelBody>
             <ProjectKeyCredentials projectId={`${data.projectId}`} data={data} />
           </PanelBody>

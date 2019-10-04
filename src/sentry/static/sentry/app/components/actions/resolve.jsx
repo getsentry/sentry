@@ -139,14 +139,14 @@ export default class ResolveActions extends React.Component {
 
             <DropdownLink
               key="resolve-dropdown"
-              caret={true}
+              caret
               className={buttonClass}
               title=""
               alwaysRenderMenu
               disabled={disableDropdown || disabled}
             >
-              <MenuItem header={true}>{t('Resolved In')}</MenuItem>
-              <MenuItem noAnchor={true}>
+              <MenuItem header>{t('Resolved In')}</MenuItem>
+              <MenuItem noAnchor>
                 <Tooltip title={actionTitle} containerDisplayMode="block">
                   <ActionLink
                     {...actionLinkProps}

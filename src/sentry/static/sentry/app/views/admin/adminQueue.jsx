@@ -84,7 +84,7 @@ export default class AdminQueue extends AsyncView {
               name="task"
               onChange={this.changeTask}
               value={activeTask}
-              allowClear={true}
+              allowClear
               choices={[''].concat(...taskList).map(t => [t, t])}
             />
           </div>

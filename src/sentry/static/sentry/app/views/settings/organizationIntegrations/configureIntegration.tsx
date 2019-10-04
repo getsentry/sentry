@@ -68,9 +68,9 @@ class ConfigureIntegration extends AsyncView<Props, State> {
 
         {integration.configOrganization.length > 0 && (
           <Form
-            hideFooter={true}
-            saveOnBlur={true}
-            allowUndo={true}
+            hideFooter
+            saveOnBlur
+            allowUndo
             apiMethod="POST"
             initialData={integration.configData}
             apiEndpoint={`/organizations/${orgId}/integrations/${integration.id}/`}

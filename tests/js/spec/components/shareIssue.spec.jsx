@@ -13,7 +13,7 @@ describe('ShareIssue', function() {
   it('renders when shared ', function() {
     const wrapper = shallow(
       <ShareIssue
-        isSharing={true}
+        isSharing
         onToggle={() => {}}
         onShare={() => {}}
         shareUrl="http://sentry.io/share/test/"
@@ -23,9 +23,7 @@ describe('ShareIssue', function() {
   });
 
   it('renders when busy', function() {
-    const wrapper = shallow(
-      <ShareIssue onToggle={() => {}} onShare={() => {}} busy={true} />
-    );
+    const wrapper = shallow(<ShareIssue onToggle={() => {}} onShare={() => {}} busy />);
     expect(wrapper).toMatchSnapshot();
   });
 });

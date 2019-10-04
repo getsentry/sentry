@@ -250,7 +250,7 @@ const OrganizationContext = createReactClass({
   render() {
     if (this.state.loading) {
       return (
-        <LoadingIndicator triangle={true}>
+        <LoadingIndicator triangle>
           {t('Loading data for your organization.')}
         </LoadingIndicator>
       );

@@ -15,7 +15,7 @@ class CSPContent extends React.Component {
         <h4>
           <span>{data.effective_directive}</span>
         </h4>
-        <KeyValueList data={Object.entries(data)} isContextData={true} />
+        <KeyValueList data={Object.entries(data)} isContextData />
       </div>
     );
   }

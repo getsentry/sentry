@@ -167,7 +167,7 @@ class GridEditable<
         <GridRow>
           <GridBodyCellSpan>
             <GridBodyCellLoading>
-              <LoadingContainer isLoading={true} />
+              <LoadingContainer isLoading />
             </GridBodyCellLoading>
           </GridBodyCellSpan>
         </GridRow>

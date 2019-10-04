@@ -143,7 +143,7 @@ class TeamSelect extends React.Component {
   render() {
     return (
       <Panel>
-        <PanelHeader hasButtons={true}>
+        <PanelHeader hasButtons>
           {t('Team')}
           {this.renderTeamAddDropDown()}
         </PanelHeader>

@@ -158,9 +158,7 @@ export const LoadingContainer = styled('div')`
   height: 100%;
 `;
 
-export const SidebarTabs = styled((props: any) => (
-  <NavTabs {...props} underlined={true} />
-))`
+export const SidebarTabs = styled((props: any) => <NavTabs {...props} underlined />)`
   padding: ${space(3)} ${space(3)} 0;
   margin: 0;
 `;

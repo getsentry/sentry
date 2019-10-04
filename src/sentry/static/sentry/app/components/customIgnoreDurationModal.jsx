@@ -84,7 +84,7 @@ export default class CustomIgnoreDurationModal extends React.Component {
                 id="snooze-until-date"
                 defaultValue={defaultDateVal}
                 ref={this.snoozeDateInputRef}
-                required={true}
+                required
                 style={{padding: '0 10px'}}
               />
             </div>
@@ -97,7 +97,7 @@ export default class CustomIgnoreDurationModal extends React.Component {
                 defaultValue={defaultTimeVal}
                 ref={this.snoozeTimeInputRef}
                 style={{padding: '0 10px'}}
-                required={true}
+                required
               />
             </div>
           </form>

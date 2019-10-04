@@ -57,7 +57,7 @@ export default class ApiNewToken extends AsyncView {
             name="scopes"
             choices={API_CHOICES}
             label={t('Scopes')}
-            required={true}
+            required
           />
         </ApiForm>
       </NarrowLayout>

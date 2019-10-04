@@ -25,7 +25,7 @@ describe('RadioGroup', function() {
         <RadioGroup
           name="radio"
           value="choice_one"
-          disabled={true}
+          disabled
           choices={[['choice_one', 'Choice One']]}
         />
       );

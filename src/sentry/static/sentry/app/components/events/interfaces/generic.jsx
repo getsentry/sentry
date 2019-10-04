@@ -9,7 +9,7 @@ import {t} from 'app/locale';
 function getView(view, data) {
   switch (view) {
     case 'report':
-      return <KeyValueList data={Object.entries(data)} isContextData={true} />;
+      return <KeyValueList data={Object.entries(data)} isContextData />;
     case 'raw':
       return <pre>{JSON.stringify({'csp-report': data}, null, 2)}</pre>;
     default:

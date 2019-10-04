@@ -108,7 +108,7 @@ class EventInterfaces extends React.Component<
 
     return (
       <React.Fragment>
-        <NavTabs underlined={true}>
+        <NavTabs underlined>
           {event.entries.map(entry => {
             if (!INTERFACES.hasOwnProperty(entry.type)) {
               return null;

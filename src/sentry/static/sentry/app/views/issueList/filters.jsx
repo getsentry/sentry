@@ -103,7 +103,7 @@ class IssueListFilters extends React.Component {
             query={query || ''}
             onSearch={onSearch}
             disabled={isSearchDisabled}
-            excludeEnvironment={true}
+            excludeEnvironment
             supportedTags={tags}
             tagValueLoader={tagValueLoader}
             savedSearch={savedSearch}

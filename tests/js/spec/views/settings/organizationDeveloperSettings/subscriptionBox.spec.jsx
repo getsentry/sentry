@@ -96,7 +96,7 @@ describe('SubscriptionBox', () => {
         resource="issue"
         checked={false}
         disabledFromPermissions={false}
-        webhookDisabled={true}
+        webhookDisabled
         onChange={onChange}
         organization={org}
       />,

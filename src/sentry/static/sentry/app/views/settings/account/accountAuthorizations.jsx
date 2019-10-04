@@ -107,7 +107,7 @@ class AccountAuthorizations extends AsyncView {
         </Description>
 
         <Panel>
-          <PanelHeader disablePadding={true}>
+          <PanelHeader disablePadding>
             <Flex align="center">
               <Box px={2} flex="1">
                 {t('Approved Applications')}

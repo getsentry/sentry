@@ -173,7 +173,7 @@ describe('IssueListActions', function() {
         wrapper = mount(
           <IssueListActions
             api={new MockApiClient()}
-            allResultsVisible={true}
+            allResultsVisible
             query=""
             queryCount={15}
             orgId="1337"

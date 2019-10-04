@@ -101,7 +101,7 @@ class EventsSaveQueryButton extends React.Component<Props, State> {
 
     return (
       <DropdownControl
-        alignRight={true}
+        alignRight
         menuWidth="220px"
         button={({isOpen, getActorProps}) => (
           <StyledDropdownButton

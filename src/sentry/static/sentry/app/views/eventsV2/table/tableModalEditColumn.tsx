@@ -128,7 +128,7 @@ class TableModalEditColumnBodyForm extends React.Component<
             </FormRowItemLeft>
             <FormRowItemRight>
               <SelectField
-                required={true}
+                required
                 name="field"
                 label={t('Column')}
                 placeholder="Column"
@@ -139,7 +139,7 @@ class TableModalEditColumnBodyForm extends React.Component<
           </FormRow>
           <FormRow>
             <TextField
-              required={true}
+              required
               name="name"
               label={t('Column Name')}
               placeholder="Column Name"

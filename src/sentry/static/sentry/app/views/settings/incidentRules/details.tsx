@@ -150,7 +150,7 @@ class IncidentRulesDetails extends AsyncView<
         <SettingsPageHeader title={t('Edit Incident Rule')} />
 
         <RuleForm
-          saveOnBlur={true}
+          saveOnBlur
           orgId={orgId}
           incidentRuleId={incidentRuleId}
           initialData={rule}

@@ -64,7 +64,7 @@ class OrganizationDeveloperSettings extends AsyncView {
 
     return (
       <Panel>
-        <PanelHeader hasButtons={true}>
+        <PanelHeader hasButtons>
           {t('Internal Integrations')}
           {action}
         </PanelHeader>
@@ -99,7 +99,7 @@ class OrganizationDeveloperSettings extends AsyncView {
 
     return (
       <Panel>
-        <PanelHeader hasButtons={true}>
+        <PanelHeader hasButtons>
           {t('Public Integrations')}
           {action}
         </PanelHeader>

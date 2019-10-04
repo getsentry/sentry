@@ -88,7 +88,7 @@ describe('BookmarkStar', function() {
       <BookmarkStar
         organization={TestStubs.Organization()}
         project={TestStubs.Project()}
-        isBookmarked={true}
+        isBookmarked
       />,
       TestStubs.routerContext()
     );

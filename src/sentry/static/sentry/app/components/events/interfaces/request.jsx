@@ -89,7 +89,7 @@ class RequestInterface extends React.Component {
             <Truncate
               value={parsedUrl ? parsedUrl.pathname : ''}
               maxLength={36}
-              leftTrim={true}
+              leftTrim
             />
           </span>
           {fullUrl && (

@@ -431,12 +431,12 @@ const IssueListActions = createReactClass({
             <div className="btn-group">
               <DropdownLink
                 key="actions"
-                btnGroup={true}
+                btnGroup
                 caret={false}
                 className="btn btn-sm btn-default action-more"
                 title={<span className="icon-ellipsis" />}
               >
-                <MenuItem noAnchor={true}>
+                <MenuItem noAnchor>
                   <ActionLink
                     className="action-merge hidden-md hidden-lg hidden-xl"
                     disabled={mergeDisabled}
@@ -449,7 +449,7 @@ const IssueListActions = createReactClass({
                     {t('Merge')}
                   </ActionLink>
                 </MenuItem>
-                <MenuItem noAnchor={true}>
+                <MenuItem noAnchor>
                   <ActionLink
                     className="hidden-md hidden-lg hidden-xl"
                     disabled={createNewIncidentDisabled}
@@ -459,8 +459,8 @@ const IssueListActions = createReactClass({
                     {t('Create Incident')}
                   </ActionLink>
                 </MenuItem>
-                <MenuItem divider={true} className="hidden-md hidden-lg hidden-xl" />
-                <MenuItem noAnchor={true}>
+                <MenuItem divider className="hidden-md hidden-lg hidden-xl" />
+                <MenuItem noAnchor>
                   <ActionLink
                     className="action-bookmark hidden-lg hidden-xl"
                     disabled={!anySelected}
@@ -473,8 +473,8 @@ const IssueListActions = createReactClass({
                     {t('Add to Bookmarks')}
                   </ActionLink>
                 </MenuItem>
-                <MenuItem divider={true} className="hidden-lg hidden-xl" />
-                <MenuItem noAnchor={true}>
+                <MenuItem divider className="hidden-lg hidden-xl" />
+                <MenuItem noAnchor>
                   <ActionLink
                     className="action-remove-bookmark"
                     disabled={!anySelected}
@@ -486,8 +486,8 @@ const IssueListActions = createReactClass({
                     {t('Remove from Bookmarks')}
                   </ActionLink>
                 </MenuItem>
-                <MenuItem divider={true} />
-                <MenuItem noAnchor={true}>
+                <MenuItem divider />
+                <MenuItem noAnchor>
                   <ActionLink
                     className="action-unresolve"
                     disabled={!anySelected}
@@ -499,8 +499,8 @@ const IssueListActions = createReactClass({
                     {t('Set status to: Unresolved')}
                   </ActionLink>
                 </MenuItem>
-                <MenuItem divider={true} />
-                <MenuItem noAnchor={true}>
+                <MenuItem divider />
+                <MenuItem noAnchor>
                   <ActionLink
                     className="action-delete"
                     disabled={!anySelected}

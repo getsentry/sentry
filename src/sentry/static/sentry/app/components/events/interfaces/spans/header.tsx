@@ -174,7 +174,7 @@ class TraceViewHeader extends React.Component<PropType> {
     const firstTick = (
       <TickLabel
         align={TickAlignment.Left}
-        hideTickMarker={true}
+        hideTickMarker
         duration={0}
         style={{
           left: space(1),
@@ -213,7 +213,7 @@ class TraceViewHeader extends React.Component<PropType> {
       <TickLabel
         duration={duration}
         align={TickAlignment.Right}
-        hideTickMarker={true}
+        hideTickMarker
         style={{
           right: space(1),
         }}

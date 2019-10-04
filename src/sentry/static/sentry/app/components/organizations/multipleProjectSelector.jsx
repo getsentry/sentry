@@ -153,7 +153,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
     return shouldForceProject ? (
       <StyledHeaderItem
         icon={<StyledInlineSvg src="icon-project" />}
-        locked={true}
+        locked
         lockedMessage={
           forceProject
             ? t(`This issue is unique to the ${forceProject.slug} project`)

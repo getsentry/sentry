@@ -128,7 +128,7 @@ describe('EventsRequest', function() {
         })
       );
       wrapper = mount(
-        <EventsRequest {...DEFAULTS} includePrevious={true}>
+        <EventsRequest {...DEFAULTS} includePrevious>
           {mock}
         </EventsRequest>
       );
@@ -203,7 +203,7 @@ describe('EventsRequest', function() {
       );
 
       wrapper = mount(
-        <EventsRequest {...DEFAULTS} includeTimeseries={true}>
+        <EventsRequest {...DEFAULTS} includeTimeseries>
           {mock}
         </EventsRequest>
       );
@@ -242,7 +242,7 @@ describe('EventsRequest', function() {
       );
 
       wrapper = mount(
-        <EventsRequest {...DEFAULTS} includeTimeseries={true}>
+        <EventsRequest {...DEFAULTS} includeTimeseries>
           {mock}
         </EventsRequest>
       );

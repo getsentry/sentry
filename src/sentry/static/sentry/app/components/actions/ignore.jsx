@@ -133,23 +133,23 @@ export default class IgnoreActions extends React.Component {
           </ActionLink>
 
           <DropdownLink
-            caret={true}
+            caret
             className={linkClassName}
             title=""
             alwaysRenderMenu
             disabled={disabled}
           >
-            <MenuItem header={true}>Ignore</MenuItem>
+            <MenuItem header>Ignore</MenuItem>
             <li className="dropdown-submenu">
               <DropdownLink
                 title={'For\u2026'}
                 caret={false}
-                isNestedDropdown={true}
+                isNestedDropdown
                 alwaysRenderMenu
               >
                 {this.getIgnoreDurations().map(duration => {
                   return (
-                    <MenuItem noAnchor={true} key={duration}>
+                    <MenuItem noAnchor key={duration}>
                       <ActionLink
                         {...actionLinkProps}
                         onAction={() => this.onIgnore({ignoreDuration: duration})}
@@ -159,8 +159,8 @@ export default class IgnoreActions extends React.Component {
                     </MenuItem>
                   );
                 })}
-                <MenuItem divider={true} />
-                <MenuItem noAnchor={true}>
+                <MenuItem divider />
+                <MenuItem noAnchor>
                   <a onClick={() => this.setState({modal: 'duration'})}>{t('Custom')}</a>
                 </MenuItem>
               </DropdownLink>
@@ -169,7 +169,7 @@ export default class IgnoreActions extends React.Component {
               <DropdownLink
                 title={'Until this occurs again\u2026'}
                 caret={false}
-                isNestedDropdown={true}
+                isNestedDropdown
                 alwaysRenderMenu
               >
                 {this.getIgnoreCounts().map(count => {
@@ -178,10 +178,10 @@ export default class IgnoreActions extends React.Component {
                       <DropdownLink
                         title={tn('one time', '%s times', count)}
                         caret={false}
-                        isNestedDropdown={true}
+                        isNestedDropdown
                         alwaysRenderMenu
                       >
-                        <MenuItem noAnchor={true}>
+                        <MenuItem noAnchor>
                           <ActionLink
                             {...actionLinkProps}
                             onAction={() => this.onIgnore({ignoreCount: count})}
@@ -191,7 +191,7 @@ export default class IgnoreActions extends React.Component {
                         </MenuItem>
                         {this.getIgnoreWindows().map(([hours, label]) => {
                           return (
-                            <MenuItem noAnchor={true} key={hours}>
+                            <MenuItem noAnchor key={hours}>
                               <ActionLink
                                 {...actionLinkProps}
                                 onAction={() =>
@@ -210,8 +210,8 @@ export default class IgnoreActions extends React.Component {
                     </li>
                   );
                 })}
-                <MenuItem divider={true} />
-                <MenuItem noAnchor={true}>
+                <MenuItem divider />
+                <MenuItem noAnchor>
                   <a onClick={() => this.setState({modal: 'count'})}>{t('Custom')}</a>
                 </MenuItem>
               </DropdownLink>
@@ -220,7 +220,7 @@ export default class IgnoreActions extends React.Component {
               <DropdownLink
                 title={'Until this affects an additional\u2026'}
                 caret={false}
-                isNestedDropdown={true}
+                isNestedDropdown
                 alwaysRenderMenu
               >
                 {this.getIgnoreCounts().map(count => {
@@ -229,10 +229,10 @@ export default class IgnoreActions extends React.Component {
                       <DropdownLink
                         title={tn('one user', '%s users', count)}
                         caret={false}
-                        isNestedDropdown={true}
+                        isNestedDropdown
                         alwaysRenderMenu
                       >
-                        <MenuItem noAnchor={true}>
+                        <MenuItem noAnchor>
                           <ActionLink
                             {...actionLinkProps}
                             onAction={() => this.onIgnore({ignoreUserCount: count})}
@@ -242,7 +242,7 @@ export default class IgnoreActions extends React.Component {
                         </MenuItem>
                         {this.getIgnoreWindows().map(([hours, label]) => {
                           return (
-                            <MenuItem noAnchor={true} key={hours}>
+                            <MenuItem noAnchor key={hours}>
                               <ActionLink
                                 {...actionLinkProps}
                                 onAction={() =>
@@ -261,8 +261,8 @@ export default class IgnoreActions extends React.Component {
                     </li>
                   );
                 })}
-                <MenuItem divider={true} />
-                <MenuItem noAnchor={true}>
+                <MenuItem divider />
+                <MenuItem noAnchor>
                   <a onClick={() => this.setState({modal: 'users'})}>{t('Custom')}</a>
                 </MenuItem>
               </DropdownLink>

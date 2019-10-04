@@ -41,7 +41,7 @@ class AdminUsers extends React.Component {
           method="GET"
           columns={columns}
           columnsForRow={this.getRow}
-          hasSearch={true}
+          hasSearch
           filters={{
             status: {
               name: 'Status',

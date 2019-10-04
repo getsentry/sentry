@@ -947,8 +947,8 @@ class SmartSearchBar extends React.Component {
               query={this.state.query}
               organization={organization}
               disabled={!hasQuery}
-              withTooltip={true}
-              iconOnly={true}
+              withTooltip
+              iconOnly
               buttonClassName={getInputButtonStyles({
                 collapseIntoEllipsisMenu: 2,
               })}
@@ -972,7 +972,7 @@ class SmartSearchBar extends React.Component {
 
           {(hasPinnedSearch || canCreateSavedSearch || hasSearchBuilder) && (
             <StyledDropdownLink
-              anchorRight={true}
+              anchorRight
               caret={false}
               title={
                 <EllipsisButton
