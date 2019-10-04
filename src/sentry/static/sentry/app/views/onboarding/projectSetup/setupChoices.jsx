@@ -8,7 +8,7 @@ const itemsShape = PropTypes.shape({
 });
 
 const SetupChoices = ({choices, selectedChoice, onSelect}) => (
-  <NavTabs underlined={true}>
+  <NavTabs underlined>
     {choices.map(({id, title}) => (
       <li key={id} className={id === selectedChoice ? 'active' : null}>
         <a

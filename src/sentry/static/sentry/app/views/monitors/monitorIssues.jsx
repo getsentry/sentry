@@ -29,8 +29,8 @@ export default class MonitorIssues extends Component {
         pagination={false}
         emptyText={t('No issues found')}
         showActions={false}
-        noBorder={true}
-        noMargin={true}
+        noBorder
+        noMargin
         params={{orgId}}
       />
     );

@@ -51,7 +51,7 @@ describe('ProcessingIssueList', function() {
         <ProcessingIssueList
           organization={organization}
           projects={projects}
-          showProject={true}
+          showProject
         />
       );
       await wrapper.instance().componentDidMount();

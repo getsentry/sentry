@@ -170,7 +170,7 @@ export class Frame extends React.Component {
       title.push(
         <Tooltip key={pathName} title={data.absPath} disabled={!enablePathTooltip}>
           <code key="filename" className="filename">
-            <Truncate value={pathName} maxLength={100} leftTrim={true} />
+            <Truncate value={pathName} maxLength={100} leftTrim />
           </code>
         </Tooltip>
       );

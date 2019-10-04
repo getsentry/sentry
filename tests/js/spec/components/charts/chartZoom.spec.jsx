@@ -51,7 +51,7 @@ describe('ChartZoom', function() {
     describe('UTC', function() {
       beforeEach(function() {
         mount(
-          <ChartZoom period="7d" utc={true}>
+          <ChartZoom period="7d" utc>
             {renderFunc}
           </ChartZoom>,
           routerContext
@@ -104,7 +104,7 @@ describe('ChartZoom', function() {
     describe('UTC', function() {
       beforeEach(function() {
         mount(
-          <ChartZoom period="24h" utc={true}>
+          <ChartZoom period="24h" utc>
             {renderFunc}
           </ChartZoom>,
           routerContext

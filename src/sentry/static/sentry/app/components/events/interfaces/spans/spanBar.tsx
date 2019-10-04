@@ -303,7 +303,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     }
 
     return (
-      <SpanTreeTogglerContainer style={{left: `${left}px`}} hasToggler={true}>
+      <SpanTreeTogglerContainer style={{left: `${left}px`}} hasToggler>
         {this.renderSpanTreeConnector({hasToggler: true})}
         <SpanTreeToggler
           isExpanded={this.props.showSpanTree}

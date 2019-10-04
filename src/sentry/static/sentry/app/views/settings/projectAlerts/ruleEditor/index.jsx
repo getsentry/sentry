@@ -231,7 +231,7 @@ const RuleEditor = createReactClass({
             <TextField
               name="name"
               defaultValue={name}
-              required={true}
+              required
               placeholder={t('My Rule Name')}
               onChange={val => this.handleChange('name', val)}
             />
@@ -247,7 +247,7 @@ const RuleEditor = createReactClass({
                   style={{marginBottom: 0, marginLeft: 5, marginRight: 5, width: 100}}
                   name="actionMatch"
                   value={actionMatch}
-                  required={true}
+                  required
                   choices={ACTION_MATCH_CHOICES}
                   onChange={val => this.handleChange('actionMatch', val)}
                 />
@@ -276,7 +276,7 @@ const RuleEditor = createReactClass({
               style={{marginBottom: 0, marginLeft: 5, marginRight: 5}}
               name="environment"
               value={environment}
-              required={true}
+              required
               choices={environmentChoices}
               onChange={val => this.handleEnvironmentChange(val)}
             />
@@ -308,7 +308,7 @@ const RuleEditor = createReactClass({
                   className={this.hasError('frequency') ? ' error' : ''}
                   value={frequency}
                   style={{marginBottom: 0, marginLeft: 5, marginRight: 5, width: 140}}
-                  required={true}
+                  required
                   choices={FREQUENCY_CHOICES}
                   onChange={val => this.handleChange('frequency', val)}
                 />

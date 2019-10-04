@@ -72,11 +72,8 @@ class AccountSecuritySessionHistory extends AsyncView {
         <SettingsPageHeader
           title="Security"
           tabs={
-            <NavTabs underlined={true}>
-              <ListLink
-                to={recreateRoute('', {...this.props, stepBack: -1})}
-                index={true}
-              >
+            <NavTabs underlined>
+              <ListLink to={recreateRoute('', {...this.props, stepBack: -1})} index>
                 {t('Settings')}
               </ListLink>
               <ListLink to={recreateRoute('', this.props)}>

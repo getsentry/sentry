@@ -643,7 +643,7 @@ const IssueList = createReactClass({
         org={organization}
         project={project}
         sampleIssueId={sampleIssueId}
-        gradient={true}
+        gradient
       />
     );
   },
@@ -731,7 +731,7 @@ const IssueList = createReactClass({
               <ProcessingIssueList
                 organization={this.props.organization}
                 projectIds={this.props.selection.projects}
-                showProject={true}
+                showProject
               />
               {this.renderStreamBody()}
             </PanelBody>

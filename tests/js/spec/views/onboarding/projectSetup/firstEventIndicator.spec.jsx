@@ -35,7 +35,7 @@ describe('FirstEventIndicator', function() {
       const project = TestStubs.ProjectDetails({});
 
       const wrapper = mount(
-        <Indicator organization={org} project={project} firstIssue={true} />,
+        <Indicator organization={org} project={project} firstIssue />,
         TestStubs.routerContext()
       );
 

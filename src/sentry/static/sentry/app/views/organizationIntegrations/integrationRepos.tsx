@@ -140,7 +140,7 @@ export default class IntegrationRepos extends AsyncComponent<Props, State> {
     if (!access.has('org:integrations')) {
       return (
         <DropdownButton
-          disabled={true}
+          disabled
           title={t('You do not have permission to add repositories')}
           isOpen={false}
           size="xsmall"

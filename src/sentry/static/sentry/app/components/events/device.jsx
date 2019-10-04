@@ -27,7 +27,7 @@ class DeviceInterface extends React.Component {
     });
 
     return (
-      <EventDataSection event={event} type="device" title={t('Device')} wrapTitle={true}>
+      <EventDataSection event={event} type="device" title={t('Device')} wrapTitle>
         <table className="table key-value">
           <tbody>
             {data.name && (
