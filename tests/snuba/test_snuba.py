@@ -48,6 +48,7 @@ class SnubaTest(TestCase, SnubaTestCase):
         self.snuba_insert(events)
 
         assert snuba.query(
+            dataset="events",
             start=now - timedelta(days=1),
             end=now + timedelta(days=1),
             groupby=["project_id"],
@@ -58,6 +59,7 @@ class SnubaTest(TestCase, SnubaTestCase):
         now = datetime.now()
         with pytest.raises(snuba.SnubaError):
             snuba.query(
+                dataset="events",
                 start=now - timedelta(days=1),
                 end=now + timedelta(days=1),
                 filter_keys={"project_id": [self.project.id]},
@@ -73,6 +75,7 @@ class SnubaTest(TestCase, SnubaTestCase):
         def _get_event_count():
             # attempt to query back 90 days
             return snuba.query(
+                dataset="events",
                 start=base_time - timedelta(days=90),
                 end=base_time + timedelta(days=1),
                 groupby=["project_id"],
@@ -89,6 +92,7 @@ class SnubaTest(TestCase, SnubaTestCase):
         with self.options({"system.event-retention-days": 1}):
             assert (
                 snuba.query(
+                    dataset="events",
                     start=base_time - timedelta(days=90),
                     end=base_time - timedelta(days=60),
                     groupby=["project_id"],
@@ -113,12 +117,14 @@ class BulkRawQueryTest(TestCase, SnubaTestCase):
         results = snuba.bulk_raw_query(
             [
                 snuba.SnubaQueryParams(
+                    dataset="events",
                     start=timezone.now() - timedelta(days=1),
                     end=timezone.now(),
                     selected_columns=["event_id", "issue", "timestamp"],
                     filter_keys={"project_id": [self.project.id], "issue": [event_1.group.id]},
                 ),
                 snuba.SnubaQueryParams(
+                    dataset="events",
                     start=timezone.now() - timedelta(days=1),
                     end=timezone.now(),
                     selected_columns=["event_id", "issue", "timestamp"],
