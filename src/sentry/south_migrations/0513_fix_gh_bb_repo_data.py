@@ -51,7 +51,7 @@ class Migration(DataMigration):
         See comment below for testing.
         """
 
-        # functions, etc for annotating, filtering, and fixing Repository records
+        # DB functions and expressions for annotating, filtering, and fixing Repository records
 
         # we store the config as a string, so first cast it to JSON, then grab
         # the 'name' value
