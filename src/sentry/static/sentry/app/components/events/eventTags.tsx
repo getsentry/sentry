@@ -8,13 +8,12 @@ import {Event, EventTag, Group} from 'app/types';
 
 import EventDataSection from 'app/components/events/eventDataSection';
 import DeviceName from 'app/components/deviceName';
-import {isUrl} from 'app/utils';
+import {isUrl, generateQueryWithTag} from 'app/utils';
 import {t} from 'app/locale';
 import Pills from 'app/components/pills';
 import Pill from 'app/components/pill';
 import VersionHoverCard from 'app/components/versionHoverCard';
 import InlineSvg from 'app/components/inlineSvg';
-import {generateQueryWithTag} from 'app/utils';
 
 type EventTagsProps = {
   group: Group;
