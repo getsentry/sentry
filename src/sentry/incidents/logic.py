@@ -146,6 +146,7 @@ def calculate_incident_start(query, projects, groups):
     rollup = int(INCIDENT_START_ROLLUP.total_seconds())
 
     result = raw_query(
+        dataset="events",
         aggregations=[("count()", "", "count"), ("min", "timestamp", "first_seen")],
         orderby="time",
         groupby=["time"],

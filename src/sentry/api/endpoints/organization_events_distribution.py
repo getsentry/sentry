@@ -40,6 +40,7 @@ class OrganizationEventsDistributionEndpoint(OrganizationEventsEndpointBase):
             conditions = snuba_args["conditions"] + [[colname, "IS NOT NULL", None]]
 
         top_values = raw_query(
+            dataset="events",
             start=snuba_args["start"],
             end=snuba_args["end"],
             conditions=conditions,
