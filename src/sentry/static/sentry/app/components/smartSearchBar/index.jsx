@@ -263,7 +263,7 @@ class SmartSearchBar extends React.Component {
     analytics('search.searched', {
       org_id: parseInt(organization.id, 10),
       query: removeSpace(this.state.query),
-      source: savedSearchType === 0 ? 'issues' : 'events',
+      search_type: savedSearchType === 0 ? 'issues' : 'events',
       search_source: 'main_search',
     });
 
@@ -706,7 +706,7 @@ class SmartSearchBar extends React.Component {
     analytics('search.pin', {
       org_id: parseInt(organization.id, 10),
       action: !!pinnedSearch ? 'unpin' : 'pin',
-      source: savedSearchType === 0 ? 'issues' : 'events',
+      search_type: savedSearchType === 0 ? 'issues' : 'events',
       query: pinnedSearch || this.state.query,
     });
   };
