@@ -297,11 +297,13 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         Does the given request have permission to access this release, based
         on the projects to which the release is attached?
         """
-        key = "release_perms:1:%s" % hash_values([request.user.id, organization.id, release.id])
+
+        viewabe_projects = self.get_projects(request, organization)
+        key = "release_perms:1:%s" % hash_values([viewable_projects, organization.id, release.id])
         has_perms = cache.get(key)
         if has_perms is None:
             has_perms = ReleaseProject.objects.filter(
-                release=release, project__in=self.get_projects(request, organization)
+                release=release, project__in=viewable_projects
             ).exists()
             cache.set(key, has_perms, 60)
 
