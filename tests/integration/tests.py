@@ -604,6 +604,8 @@ class CspReportTest(TestCase, SnubaTestCase):
         assert resp.status_code == 201, resp.content
         # XXX: there appears to be a race condition between the 201 return and get_events,
         # leading this test to sometimes fail. .1s seems to be sufficient.
+        # Modifying the timestamp of store_event, like how it's done in other snuba tests,
+        # doesn't work here because the event isn't created directly by this test.
         sleep(0.1)
         events = eventstore.get_events(
             filter_keys={"project_id": [self.project.id]}, conditions=[["type", "=", "csp"]]
