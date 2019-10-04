@@ -404,7 +404,7 @@ def save_attachment(event, attachment):
     # already verified PII and just store the attachment.
     if attachment.type in CRASH_REPORT_TYPES:
         project = Project.objects.get_from_cache(id=event.project_id)
-        if not project.get_option("sentry:store_crash_report"):
+        if not project.get_option("sentry:store_crash_reports"):
             organization = Organization.objects.get_from_cache(id=project.organization_id)
             if not organization.get_option("sentry:store_crash_reports"):
                 return
