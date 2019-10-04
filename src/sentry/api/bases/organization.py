@@ -299,9 +299,9 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         """
 
         actor_id = None
-        if request.user.id:
+        if getattr(request, 'user', None) and request.user.id:
             actor_id = "user:%s" % request.user.id
-        if request.auth.id:
+        if getattr(request, 'auth', None) and request.auth.id:
             actor_id = "apikey:%s" % request.auth.id
         if actor_id is None:
             return False
