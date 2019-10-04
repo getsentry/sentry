@@ -168,7 +168,7 @@ class SentryAppExternalIssueForm extends React.Component {
               inline={false}
               stacked
               flexibleControlStateSize
-              required={true}
+              required
               {...this.fieldProps(field)}
             />
           );

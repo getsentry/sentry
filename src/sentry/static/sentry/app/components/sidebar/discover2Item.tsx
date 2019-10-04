@@ -89,7 +89,7 @@ class Discover2Item extends React.Component<Props, State> {
     const {savedQueries} = this.props;
     if (!savedQueries || savedQueries.length === 0) {
       return (
-        <MenuItem role="menuitem" disabled={true}>
+        <MenuItem role="menuitem" disabled>
           No saved queries
         </MenuItem>
       );

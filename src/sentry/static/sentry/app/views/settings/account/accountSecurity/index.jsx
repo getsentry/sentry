@@ -68,8 +68,8 @@ class AccountSecurity extends AsyncView {
         <SettingsPageHeader
           title="Security"
           tabs={
-            <NavTabs underlined={true}>
-              <ListLink to={recreateRoute('', this.props)} index={true}>
+            <NavTabs underlined>
+              <ListLink to={recreateRoute('', this.props)} index>
                 {t('Settings')}
               </ListLink>
               <ListLink to={recreateRoute('session-history/', this.props)}>
@@ -87,8 +87,8 @@ class AccountSecurity extends AsyncView {
           <PanelHeader>{t('Sessions')}</PanelHeader>
           <PanelBody>
             <Field
-              alignRight={true}
-              flexibleControlStateSize={true}
+              alignRight
+              flexibleControlStateSize
               label={t('Sign out of all devices')}
               help={t(
                 'Signing out of all devices will sign you out of this device as well.'

@@ -164,7 +164,7 @@ const TeamDetails = createReactClass({
           <IdBadge hideAvatar team={team} avatarSize={36} />
         </h3>
 
-        <NavTabs underlined={true}>
+        <NavTabs underlined>
           <ListLink to={`${routePrefix}members/`}>{t('Members')}</ListLink>
           <ListLink to={`${routePrefix}projects/`}>{t('Projects')}</ListLink>
           <ListLink to={`${routePrefix}settings/`}>{t('Settings')}</ListLink>

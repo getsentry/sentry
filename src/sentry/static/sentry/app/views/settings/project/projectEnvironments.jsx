@@ -187,11 +187,11 @@ class ProjectEnvironments extends React.Component {
         <SettingsPageHeader
           title={t('Manage Environments')}
           tabs={
-            <NavTabs underlined={true}>
-              <ListLink to={baseUrl} index={true} isActive={() => !isHidden}>
+            <NavTabs underlined>
+              <ListLink to={baseUrl} index isActive={() => !isHidden}>
                 {t('Environments')}
               </ListLink>
-              <ListLink to={`${baseUrl}hidden/`} index={true} isActive={() => isHidden}>
+              <ListLink to={`${baseUrl}hidden/`} index isActive={() => isHidden}>
                 {t('Hidden')}
               </ListLink>
             </NavTabs>

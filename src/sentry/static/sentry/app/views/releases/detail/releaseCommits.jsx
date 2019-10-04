@@ -125,13 +125,10 @@ class ReleaseCommits extends React.Component {
           {Object.keys(commitsByRepository).length > 1 ? (
             <div className="commits-dropdown align-left">
               <div className="commits-dropdowng">
-                <DropdownLink
-                  caret={true}
-                  title={this.state.activeRepo || 'All Repositories'}
-                >
+                <DropdownLink caret title={this.state.activeRepo || 'All Repositories'}>
                   <MenuItem
                     key="all"
-                    noAnchor={true}
+                    noAnchor
                     onClick={() => {
                       this.setActiveRepo(null);
                     }}
@@ -143,7 +140,7 @@ class ReleaseCommits extends React.Component {
                     return (
                       <MenuItem
                         key={commitsByRepository[repository].id}
-                        noAnchor={true}
+                        noAnchor
                         onClick={() => {
                           this.setActiveRepo(repository);
                         }}

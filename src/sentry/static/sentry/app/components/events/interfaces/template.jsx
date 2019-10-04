@@ -21,7 +21,7 @@ class TemplateInterface extends React.Component {
       >
         <div className="traceback no-exception">
           <ul>
-            <Frame data={this.props.data} isExpanded={true} />
+            <Frame data={this.props.data} isExpanded />
           </ul>
         </div>
       </EventDataSection>

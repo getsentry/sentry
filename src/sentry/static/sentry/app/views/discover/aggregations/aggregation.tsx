@@ -143,9 +143,9 @@ export default class AggregationRow extends React.Component<
           filterOptions={this.filterOptions}
           onChange={this.handleChange}
           onOpen={this.handleOpen}
-          closeOnSelect={true}
-          openOnFocus={true}
-          autoBlur={true}
+          closeOnSelect
+          openOnFocus
+          autoBlur
           clearable={false}
           backspaceRemoves={false}
           deleteRemoves={false}

@@ -272,7 +272,7 @@ class Result extends React.Component<ResultProps, ResultState> {
                 tooltip={tooltipOptions}
                 legend={legendData}
                 renderer="canvas"
-                isGroupedByDate={true}
+                isGroupedByDate
                 utc={utc}
               />
               {this.renderNote()}
@@ -282,12 +282,12 @@ class Result extends React.Component<ResultProps, ResultState> {
             <ChartWrapper>
               <BarChart
                 series={byDayChartData}
-                stacked={true}
+                stacked
                 height={300}
                 tooltip={tooltipOptions}
                 legend={legendData}
                 renderer="canvas"
-                isGroupedByDate={true}
+                isGroupedByDate
                 utc={utc}
                 options={{animation: false}}
               />

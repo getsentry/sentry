@@ -30,7 +30,7 @@ export default class MissingProjectWarningModal extends React.Component<
            have access to.`);
 
     return (
-      <Modal show={true} onHide={() => {}}>
+      <Modal show onHide={() => {}}>
         <Header>{t('Project access')}</Header>
         <Body>
           <p>{text}</p>

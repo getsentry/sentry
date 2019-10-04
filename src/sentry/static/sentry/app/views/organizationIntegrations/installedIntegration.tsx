@@ -135,7 +135,7 @@ export default class InstalledIntegration extends React.Component<Props> {
                   provider={provider}
                   integration={integration}
                   onAddIntegration={this.reinstallIntegration}
-                  reinstall={true}
+                  reinstall
                 />
               )}
               {integration.status === 'active' && (

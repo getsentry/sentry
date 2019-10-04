@@ -65,7 +65,7 @@ class UserContextType extends React.Component {
           </tbody>
         </table>
         <ErrorBoundary mini>
-          {children && <KeyValueList data={children} isContextData={true} />}
+          {children && <KeyValueList data={children} isContextData />}
         </ErrorBoundary>
       </div>
     );

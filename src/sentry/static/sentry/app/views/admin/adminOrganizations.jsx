@@ -30,7 +30,7 @@ class AdminOrganizations extends React.Component {
           method="GET"
           columns={columns}
           columnsForRow={this.getRow}
-          hasSearch={true}
+          hasSearch
           sortOptions={[
             ['date', 'Date Joined'],
             ['members', 'Members'],

@@ -56,7 +56,7 @@ export default class CustomIgnoreCountModal extends React.Component {
                 value={count}
                 onChange={e => this.onChange('count', e.target.value)}
                 style={{padding: '3px 10px'}}
-                required={true}
+                required
                 placeholder={t('e.g. 100')}
               />
             </div>
@@ -68,7 +68,7 @@ export default class CustomIgnoreCountModal extends React.Component {
                 onChange={v => this.onChange('window', v)}
                 choices={this.props.windowChoices}
                 placeholder={t('e.g. per hour')}
-                allowClear={true}
+                allowClear
                 help={t(
                   '(Optional) If supplied, this rule will apply as a rate of change.'
                 )}

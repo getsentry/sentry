@@ -40,11 +40,7 @@ class EventExtraData extends React.Component {
           raw={this.state.raw}
         >
           <ErrorBoundary mini>
-            <KeyValueList
-              data={extraDataArray}
-              isContextData={true}
-              raw={this.state.raw}
-            />
+            <KeyValueList data={extraDataArray} isContextData raw={this.state.raw} />
           </ErrorBoundary>
         </EventDataSection>
       </div>

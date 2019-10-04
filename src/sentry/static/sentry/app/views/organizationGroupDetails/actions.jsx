@@ -96,7 +96,7 @@ class DeleteActions extends React.Component {
         >
           <span className="icon-trash" />
         </LinkWithConfirmation>
-        <DropdownLink caret={true} className="group-delete btn btn-default btn-sm">
+        <DropdownLink caret className="group-delete btn btn-default btn-sm">
           <MenuItem onClick={this.openDiscardModal}>
             <span>{t('Delete and discard future events')}</span>
           </MenuItem>

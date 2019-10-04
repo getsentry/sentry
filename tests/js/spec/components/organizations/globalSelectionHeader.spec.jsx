@@ -418,7 +418,7 @@ describe('GlobalSelectionHeader', function() {
     mount(
       <GlobalSelectionHeader
         organization={initializationObj.organization}
-        disableLoadFromStore={true}
+        disableLoadFromStore
       />,
       initializationObj.routerContext
     );

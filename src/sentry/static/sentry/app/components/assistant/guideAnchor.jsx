@@ -143,7 +143,7 @@ const GuideAnchor = createReactClass({
 
     return (
       <Hovercard
-        show={true}
+        show
         body={body}
         bodyClassName={css`
           background-color: ${theme.greenDark};

@@ -418,7 +418,7 @@ export const SPECIAL_FIELDS: SpecialFields = {
       };
 
       const badge = (
-        <UserBadge useLink={false} user={userObj} hideEmail={true} avatarSize={16} />
+        <UserBadge useLink={false} user={userObj} hideEmail avatarSize={16} />
       );
 
       if (!data.user) {
