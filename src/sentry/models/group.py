@@ -212,9 +212,12 @@ class GroupManager(BaseManager):
         return Group.objects.get(id=group_id)
 
     def filter_by_event_id(self, project_ids, event_id):
+        event_ids = [event_id]
+        conditions = [["group_id", "IS NOT NULL", None]]
         data = eventstore.get_events(
-            conditions=[["group_id", "IS NOT NULL", None]],
-            filter_keys={"event_id": [event_id], "project_id": project_ids},
+            filter=eventstore.Filter(
+                event_ids=event_ids, project_ids=project_ids, conditions=conditions
+            ),
             limit=len(project_ids),
             referrer="Group.filter_by_event_id",
         )

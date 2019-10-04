@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from rest_framework.exceptions import PermissionDenied
 from copy import copy
 
-from sentry import eventstore, features
+from sentry import eventstore
 from sentry.api.bases import OrganizationEndpoint, OrganizationEventsError
 from sentry.api.event_search import (
     get_snuba_query_args,
@@ -56,14 +56,6 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 snuba_args, reference_event_id
             )
 
-        # TODO(lb): remove once boolean search is fully functional
-        has_boolean_op_flag = features.has(
-            "organizations:boolean-search", organization, actor=request.user
-        )
-        if snuba_args.pop("has_boolean_terms", False) and not has_boolean_op_flag:
-            raise OrganizationEventsError(
-                "Boolean search operator OR and AND not allowed in this search."
-            )
         return snuba_args
 
     def get_snuba_query_args_legacy(self, request, organization):
@@ -93,14 +85,6 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         except InvalidSearchQuery as exc:
             raise OrganizationEventsError(exc.message)
 
-        # TODO(lb): remove once boolean search is fully functional
-        has_boolean_op_flag = features.has(
-            "organizations:boolean-search", organization, actor=request.user
-        )
-        if snuba_args.pop("has_boolean_terms", False) and not has_boolean_op_flag:
-            raise OrganizationEventsError(
-                "Boolean search operator OR and AND not allowed in this search."
-            )
         return snuba_args
 
     def next_event_id(self, snuba_args, event):
@@ -163,10 +147,12 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         conditions.extend(time_condition)
 
         result = eventstore.get_events(
-            start=snuba_args.get("start", None),
-            end=snuba_args.get("end", None),
-            conditions=conditions,
-            filter_keys=snuba_args["filter_keys"],
+            filter=eventstore.Filter(
+                start=snuba_args.get("start", None),
+                end=snuba_args.get("end", None),
+                conditions=conditions,
+                **snuba_args["filter_keys"]
+            ),
             orderby=orderby,
             limit=1,
         )

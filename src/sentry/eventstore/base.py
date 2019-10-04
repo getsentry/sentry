@@ -66,6 +66,18 @@ class Columns(Enum):
     CONTEXTS_VALUE = "contexts.value"
 
 
+class Filter(object):
+    def __init__(
+        self, start=None, end=None, conditions=None, project_id=None, group_id=None, event_id=None
+    ):
+        self.start = start
+        self.end = end
+        self.conditions = conditions
+        self.project_id = project_id
+        self.group_id = group_id
+        self.event_id = event_id
+
+
 class EventStorage(Service):
     __all__ = (
         "minimal_columns",

@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import re
-from collections import namedtuple, defaultdict
+from collections import namedtuple
 from copy import deepcopy
 from datetime import datetime
 
@@ -602,6 +602,33 @@ def convert_search_filter_to_snuba_query(search_filter):
 
 
 def get_snuba_query_args(query=None, params=None):
+    snuba_filter = get_filter(query, params)
+
+    filter_keys = {}
+
+    if snuba_filter.project_id:
+        filter_keys["project_id"] = snuba_filter.project_id
+    if snuba_filter.group_id:
+        filter_keys["issue"] = snuba_filter.group_id
+    if snuba_filter.event_id:
+        filter_keys["event_id"] = snuba_filter.event_id
+
+    kwargs = {"conditions": snuba_filter.conditions, "filter_keys": filter_keys}
+
+    if snuba_filter.start:
+        kwargs["start"] = snuba_filter.start
+
+    if snuba_filter.end:
+        kwargs["end"] = snuba_filter.end
+
+    return kwargs
+
+
+def get_filter(query=None, params=None):
+    """
+    Returns an eventstore filter given the search text provided by the user and
+    URL params
+    """
     # NOTE: this function assumes project permissions check already happened
     parsed_terms = []
     if query is not None:
@@ -614,7 +641,7 @@ def get_snuba_query_args(query=None, params=None):
     if params is not None:
         parsed_terms.extend(convert_endpoint_params(params))
 
-    kwargs = {"conditions": [], "filter_keys": defaultdict(list)}
+    kwargs = {"start": None, "end": None, "conditions": [], "project_id": [], "group_id": []}
 
     projects = {}
     has_project_term = any(
@@ -632,22 +659,20 @@ def get_snuba_query_args(query=None, params=None):
             if term.key.name == PROJECT_KEY:
                 condition = ["project_id", "=", projects.get(term.value.value)]
                 kwargs["conditions"].append(condition)
-
             elif snuba_name in ("start", "end"):
                 kwargs[snuba_name] = term.value.value
             elif snuba_name in ("project_id", "issue"):
+                if snuba_name == "issue":
+                    snuba_name = "group_id"
                 value = term.value.value
                 if isinstance(value, int):
                     value = [value]
-                kwargs["filter_keys"][snuba_name].extend(value)
+                kwargs[snuba_name].extend(value)
             else:
                 converted_filter = convert_search_filter_to_snuba_query(term)
                 kwargs["conditions"].append(converted_filter)
-        else:  # SearchBoolean
-            # TODO(lb): remove when boolean terms fully functional
-            kwargs["has_boolean_terms"] = True
-            kwargs["conditions"].append(convert_search_boolean_to_snuba_query(term))
-    return kwargs
+
+    return eventstore.Filter(**kwargs)
 
 
 FIELD_ALIASES = {

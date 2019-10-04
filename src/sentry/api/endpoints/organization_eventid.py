@@ -47,7 +47,7 @@ class EventIdLookupEndpoint(OrganizationEndpoint):
 
         try:
             event = eventstore.get_events(
-                filter_keys={"project_id": project_slugs_by_id.keys(), "event_id": event_id},
+                filter=eventstore.Filter(project_id=project_slugs_by_id.keys(), event_id=event_id),
                 limit=1,
             )[0]
         except IndexError:

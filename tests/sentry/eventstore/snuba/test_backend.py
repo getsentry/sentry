@@ -5,6 +5,7 @@ import six
 from sentry.testutils import TestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.eventstore.snuba.backend import SnubaEventStorage
+from sentry.eventstore.base import Filter
 
 
 class SnubaEventStorageTest(TestCase, SnubaTestCase):
@@ -53,7 +54,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
 
     def test_get_events(self):
         events = self.eventstore.get_events(
-            filter_keys={"project_id": [self.project1.id, self.project2.id]}
+            filter=Filter(project_id=[self.project1.id, self.project2.id])
         )
         assert len(events) == 3
         # Default sort is timestamp desc, event_id desc
@@ -63,7 +64,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
 
         # No events found
         project = self.create_project()
-        events = self.eventstore.get_events(filter_keys={"project_id": [project.id]})
+        events = self.eventstore.get_events(filter=Filter(project_id=[project.id]))
         assert events == []
 
     def test_get_event_by_id(self):
@@ -91,11 +92,11 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
     def test_get_next_prev_event_id(self):
         event = self.eventstore.get_event_by_id(self.project2.id, "b" * 32)
 
-        filter_keys = {"project_id": [self.project1.id, self.project2.id]}
+        filter = Filter(project_id=[self.project1.id, self.project2.id])
 
-        prev_event = self.eventstore.get_prev_event_id(event, filter_keys=filter_keys)
+        prev_event = self.eventstore.get_prev_event_id(event, filter=filter)
 
-        next_event = self.eventstore.get_next_event_id(event, filter_keys=filter_keys)
+        next_event = self.eventstore.get_next_event_id(event, filter=filter)
 
         assert prev_event == (six.text_type(self.project1.id), "a" * 32)
 
@@ -103,5 +104,5 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         assert next_event == (six.text_type(self.project2.id), "c" * 32)
 
         # Returns None if no event
-        assert self.eventstore.get_prev_event_id(None, filter_keys=filter_keys) is None
-        assert self.eventstore.get_next_event_id(None, filter_keys=filter_keys) is None
+        assert self.eventstore.get_prev_event_id(None, filter=filter) is None
+        assert self.eventstore.get_next_event_id(None, filter=filter) is None
