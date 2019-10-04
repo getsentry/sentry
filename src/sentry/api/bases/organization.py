@@ -298,12 +298,14 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         on the projects to which the release is attached?
         """
 
-        viewabe_projects = self.get_projects(request, organization)
-        key = "release_perms:1:%s" % hash_values([viewable_projects, organization.id, release.id])
+        actor_id = request.user.id or request.auth,id
+        if actor_id is None:
+            return False
+        key = "release_perms:1:%s" % hash_values([actor_id, organization.id, release.id])
         has_perms = cache.get(key)
         if has_perms is None:
             has_perms = ReleaseProject.objects.filter(
-                release=release, project__in=viewable_projects
+                release=release, project__in=self.get_projects(request, organization)
             ).exists()
             cache.set(key, has_perms, 60)
 
