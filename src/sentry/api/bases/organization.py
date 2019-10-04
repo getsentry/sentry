@@ -297,7 +297,7 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         Does the given request have permission to access this release, based
         on the projects to which the release is attached?
         """
-        key = "release_perms:1:%s" % hash_values(request.user.id, organization.id)
+        key = "release_perms:1:%s" % hash_values([request.user.id, organization.id, release.id])
         has_perms = cache.get(key)
         if has_perms is None:
             has_perms = ReleaseProject.objects.filter(
