@@ -558,7 +558,7 @@ class EventManager(object):
         if release:
             # dont allow a conflicting 'release' tag
             pop_tag(data, "release")
-            key = "release:1:%s" % hash_values([project.id, release, to_timestamp(date)])
+            key = "release:1:%s" % hash_values([project.id, release, int(to_timestamp(date))])
             release = cache.get(key)
             if release is None:
                 release = Release.get_or_create(project=project, version=release, date_added=date)
@@ -706,7 +706,11 @@ class EventManager(object):
 
         if release:
             # Both models use the same kwargs so can key off the same cache value
-            key = "rpe:1:%s" % hash_values([project.id, release.id, environment.id, to_timestamp(date)])
+            key = "rpe:1:%s" % hash_values([
+                project.id,
+                release.id,
+                environment.id, int(to_timestamp(date))
+            ])
             if cache.get(key) is None:
                 ReleaseEnvironment.get_or_create(
                     project=project, release=release, environment=environment, datetime=date
@@ -718,7 +722,12 @@ class EventManager(object):
                 cache.set(key, 1, 3600)
 
             if group:
-                key = "grouprelease:1:%s" % hash_values([group.id, release.id, environment.id, to_timestamp(date)])
+                key = "grouprelease:1:%s" % hash_values([
+                    group.id,
+                    release.id,
+                    environment.id,
+                    int(to_timestamp(date))
+                ])
                 grouprelease = cache.get(key)
                 if grouprelease is None:
                     grouprelease = GroupRelease.get_or_create(
