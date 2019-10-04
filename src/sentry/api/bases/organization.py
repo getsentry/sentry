@@ -298,6 +298,7 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         on the projects to which the release is attached?
         """
 
+        actor_id = None
         if request.user.id:
             actor_id = "user:%s" % request.user.id
         if request.auth.id:
