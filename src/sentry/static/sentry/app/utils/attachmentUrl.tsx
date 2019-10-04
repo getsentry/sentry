@@ -2,7 +2,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {OrganizationDetailed, Event, EventAttachment} from 'app/types';
-import ConfigStore from 'app/stores/configStore';
 import MemberListStore from 'app/stores/memberListStore';
 import withOrganization from 'app/utils/withOrganization';
 import SentryTypes from 'app/sentryTypes';
@@ -25,7 +24,8 @@ class AttachmentUrl extends React.PureComponent<Props> {
   };
 
   hasAttachmentsRole() {
-    const user = ConfigStore.get('user');
+    const member = MemberListStore.getMe();
+    const user = member && member.user;
     if (!user) {
       return false;
     }
@@ -39,12 +39,9 @@ class AttachmentUrl extends React.PureComponent<Props> {
       return false;
     }
 
-    const member = MemberListStore.getById(user.id);
-    const currentRole = member && member.role;
-
     const roleIds = availableRoles.map(role => role.id);
     const requiredIndex = roleIds.indexOf(attachmentsRole);
-    const currentIndex = roleIds.indexOf(currentRole);
+    const currentIndex = roleIds.indexOf(member.role);
     return currentIndex >= requiredIndex;
   }
 
