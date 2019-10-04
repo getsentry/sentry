@@ -2068,10 +2068,10 @@
   dependencies:
     "@types/react" "*"
 
-"@types/echarts@^4.1.10":
-  version "4.1.10"
-  resolved "https://registry.yarnpkg.com/@types/echarts/-/echarts-4.1.10.tgz#ee71911eb8b1717c7c12c0bd81fc83db872f4d3b"
-  integrity sha512-AadUmn1mHp0RGNFwcDnNdVbz5LNZZla7V9B+3ptyEp31qiyRK0Hfr2yQLD26/4ojcLDSmUzyGfVrHrEXxgUmuA==
+"@types/echarts@^4.1.11":
+  version "4.1.11"
+  resolved "https://registry.yarnpkg.com/@types/echarts/-/echarts-4.1.11.tgz#32e9ad4e390f28e44cb29121de07aa0e357e04c0"
+  integrity sha512-V5HBs2OeKSK/uWFdArDntYPvsvJjP4qQQ8nfCpCIfbzci2wzqW00v0FbLzBiLen0wnTWO5x/NDzFgUALEma0fA==
   dependencies:
     "@types/zrender" "*"
 
@@ -5459,20 +5459,20 @@ ecc-jsbn@~0.1.1:
   dependencies:
     jsbn "~0.1.0"
 
-echarts-for-react@^2.0.13:
-  version "2.0.13"
-  resolved "https://registry.yarnpkg.com/echarts-for-react/-/echarts-for-react-2.0.13.tgz#fd1bff5bcf6ebf2709b0fd28355f42b762dc89a4"
-  integrity sha512-AKUw8aellifMBb301JMqiBmI80oP1/8mOplXm7SNtOQqkqTW+3F5dt9nUTN3ir4Itskya8d7tw5djdbDSCRWkQ==
+echarts-for-react@2.0.14:
+  version "2.0.14"
+  resolved "https://registry.yarnpkg.com/echarts-for-react/-/echarts-for-react-2.0.14.tgz#6df7a31eea43ef35321e20a5854109cbc52c9df3"
+  integrity sha512-W56Cr3KP5KatVlGPKNZmmZT1IsozehT03sin7ABhzsV98jJ3rDfgKedIvrn/mlp22u/Wneddd0P7rqxLq2lO8g==
   dependencies:
     fast-deep-equal "^2.0.1"
-    size-sensor "^0.0.4"
+    size-sensor "^0.2.0"
 
-echarts@^4.1.0:
-  version "4.1.0"
-  resolved "https://registry.yarnpkg.com/echarts/-/echarts-4.1.0.tgz#d588c95f73c1a9928b9c73d5b769751c3185bcdc"
-  integrity sha512-gP1e1fNnAj9KJpTDLXV21brklbfJlqeINmpQDJCDta9TX3cPoqyQOiDVcEPzbOVHqgBRgTOwNxC5iGwJ89014A==
+echarts@4.2.1:
+  version "4.2.1"
+  resolved "https://registry.yarnpkg.com/echarts/-/echarts-4.2.1.tgz#9a8ea3b03354f86f824d97625c334cf16965ef03"
+  integrity sha512-pw4xScRPsLegD/cqEcoXRKeA2SD4+s+Kyo0Na166NamOWhzNl2yI5RZ2rE97tBlAopNmhyMeBVpAeD5qb+ee1A==
   dependencies:
-    zrender "4.0.4"
+    zrender "4.0.7"
 
 ee-first@1.1.1:
   version "1.1.1"
@@ -13196,10 +13196,10 @@ sisteransi@^1.0.0:
   resolved "https://registry.yarnpkg.com/sisteransi/-/sisteransi-1.0.0.tgz#77d9622ff909080f1c19e5f4a1df0c1b0a27b88c"
   integrity sha512-N+z4pHB4AmUv0SjveWRd6q1Nj5w62m5jodv+GD8lvmbY/83T/rpbJGZOnK5T149OldDj4Db07BSv9xY4K6NTPQ==
 
-size-sensor@^0.0.4:
-  version "0.0.4"
-  resolved "https://registry.yarnpkg.com/size-sensor/-/size-sensor-0.0.4.tgz#e72a2b5346fa6009ce8703a72859fafbd75a5b7b"
-  integrity sha512-aAHl9NV8DE/OWzZKqG59A9/ZGqjnXI6bVSDfhI8DrdpquLctnua4R9IlLVLp59C41DyfehRuT1F1eKuLCNU9eQ==
+size-sensor@^0.2.0:
+  version "0.2.5"
+  resolved "https://registry.yarnpkg.com/size-sensor/-/size-sensor-0.2.5.tgz#e8ffb7cc5258893472bfda4f5734d66583247757"
+  integrity sha512-Rip8d6LmCHIBUY5iIS3nKln1X4bF8260oFI4suo6MX+vOV/aNpNWYKTyjamSJMbxP17qMlR0DmGXFEio3BYJUg==
 
 slash@^1.0.0:
   version "1.0.0"
@@ -15301,10 +15301,10 @@ yargs@12.0.5, yargs@^12.0.2:
     y18n "^3.2.1 || ^4.0.0"
     yargs-parser "^11.1.1"
 
-zrender@4.0.4:
-  version "4.0.4"
-  resolved "https://registry.yarnpkg.com/zrender/-/zrender-4.0.4.tgz#910e60d888f00c9599073f23758dd23345fe48fd"
-  integrity sha512-03Vd/BDl/cPXp8E61f5+Xbgr/a4vDyFA+uUtUc1s+5KgcPbyY2m+78R/9LQwkR6QwFYHG8qk25Q8ESGs/qpkZw==
+zrender@4.0.7:
+  version "4.0.7"
+  resolved "https://registry.yarnpkg.com/zrender/-/zrender-4.0.7.tgz#15ae960822f5efed410995d37e5107fe3de10e6d"
+  integrity sha512-TNloHe0ums6zxbHfnaCryM61J4IWDajZwNq6dHk9vfWhhysO/OeFvvR0drBs/nbXha2YxSzfQj2FiCd6RVBe+Q==
 
 zxcvbn@^4.4.2:
   version "4.4.2"
