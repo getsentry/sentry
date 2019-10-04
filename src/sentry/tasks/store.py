@@ -21,7 +21,7 @@ from sentry.utils.data_filters import FilterStatKeys
 from sentry.utils.canonical import CanonicalKeyDict, CANONICAL_TYPES
 from sentry.utils.dates import to_datetime
 from sentry.utils.sdk import configure_scope
-from sentry.models import EventAttachment, File, ProjectOption, Activity, Project
+from sentry.models import EventAttachment, File, ProjectOption, Activity, Organization, Project
 
 error_logger = logging.getLogger("sentry.errors.events")
 info_logger = logging.getLogger("sentry.store")
@@ -403,10 +403,11 @@ def save_attachment(event, attachment):
     # store_crash_reports setting. Otherwise, we assume that the client has
     # already verified PII and just store the attachment.
     if attachment.type in CRASH_REPORT_TYPES:
-        if not event.project.get_option(
-            "sentry:store_crash_reports"
-        ) and not event.project.organization.get_option("sentry:store_crash_reports"):
-            return
+        project = Project.objects.get_from_cache(id=event.project_id)
+        if not project.get_option("sentry:store_crash_reports"):
+            organization = Organization.objects.get_from_cache(id=project.organization_id)
+            if not organization.get_option("sentry:store_crash_reports"):
+                return
 
     file = File.objects.create(
         name=attachment.name,
@@ -474,6 +475,7 @@ def _do_save_event(
     event = None
     try:
         manager = EventManager(data)
+        # event.project.organization is populated after this statement.
         event = manager.save(project_id, assume_normalized=True)
 
         # Always load attachments from the cache so we can later prune them.
