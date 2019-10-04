@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import logging
 
+from django.core.cache import cache
 from django.core.urlresolvers import reverse
 
 from sentry import tagstore
@@ -11,11 +12,13 @@ from sentry.incidents.models import IncidentStatus
 from sentry.utils import json
 from sentry.utils.assets import get_asset_url
 from sentry.utils.dates import to_timestamp
+from sentry.utils.hashlib import hash_values
 from sentry.utils.http import absolute_uri
 from sentry.models import (
     GroupStatus,
     GroupAssignee,
     OrganizationMember,
+    Project,
     User,
     Identity,
     Team,
@@ -172,9 +175,18 @@ def build_group_attachment(group, event=None, tags=None, identity=None, actions=
 
     ignore_button = {"name": "status", "value": "ignored", "type": "button", "text": "Ignore"}
 
-    has_releases = Release.objects.filter(
-        projects=group.project, organization_id=group.project.organization_id
-    ).exists()
+    project = Project.objects.get_from_cache(id=group.project_id)
+
+    cache_key = "has_releases:1:%s" % hash_values([project.id, project.organization_id])
+    has_releases = cache.get(cache_key)
+    if has_releases is None:
+        has_releases = Release.objects.filter(
+            projects=project, organization_id=project.organization_id
+        ).exists()
+        if has_releases:
+            cache.set(cache_key, True, 3600)
+        else:
+            cache.set(cache_key, False, 60)
 
     if not has_releases:
         resolve_button.update({"name": "status", "text": "Resolve", "value": "resolved"})
@@ -247,7 +259,7 @@ def build_group_attachment(group, event=None, tags=None, identity=None, actions=
 
     obj = event if event is not None else group
     return {
-        "fallback": u"[{}] {}".format(obj.project.slug, obj.title),
+        "fallback": u"[{}] {}".format(project.slug, obj.title),
         "title": build_attachment_title(obj),
         "title_link": group.get_absolute_url(params={"referrer": "slack"}),
         "text": text,
