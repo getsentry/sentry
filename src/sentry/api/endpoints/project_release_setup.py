@@ -1,7 +1,10 @@
 from __future__ import absolute_import
 
+from django.core.cache import cache
+
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.models import Group, ReleaseCommit, Repository, Deploy
+from sentry.utils.hashlib import hash_values
 from rest_framework.response import Response
 
 
@@ -17,17 +20,33 @@ class ProjectReleaseSetupCompletionEndpoint(ProjectEndpoint):
         4. tell sentry about a deploy
         """
 
-        tag = Group.objects.filter(project=project.id, first_release__isnull=False).exists()
+        tag_key = "onboard_tag:1:%s" % (project.id)
+        tag = cache.get(tag_key)
+        if tag is None:
+            tag = Group.objects.filter(project=project.id, first_release__isnull=False).exists()
+            cache.set(tag_key, tag, 3600 if tag else 60)
 
-        repo = Repository.objects.filter(organization_id=project.organization_id).exists()
+        repo_key = "onboard_repo:1:%s" % (project.organization_id)
+        repo = cache.get(repo_key)
+        if repo is None:
+            repo = Repository.objects.filter(organization_id=project.organization_id).exists()
+            cache.set(repo_key, repo, 3600 if repo else 60)
 
-        commit = ReleaseCommit.objects.filter(
-            organization_id=project.organization_id, release__projects=project.id
-        ).exists()
+        commit_key = "onboard_commit:1:%s" % hash_values([project.organization_id, project.id])
+        commit = cache.get(commit_key)
+        if commit is None:
+            commit = ReleaseCommit.objects.filter(
+                organization_id=project.organization_id, release__projects=project.id
+            ).exists()
+            cache.set(commit_key, commit, 3600 if commit else 60)
 
-        deploy = Deploy.objects.filter(
-            organization_id=project.organization_id, release__projects=project.id
-        ).exists()
+        deploy_key = "onboard_deploy:1:%s" % hash_values([project.organization_id, project.id])
+        deploy = cache.get(deploy_key)
+        if deploy is None:
+            deploy = Deploy.objects.filter(
+                organization_id=project.organization_id, release__projects=project.id
+            ).exists()
+            cache.set(deploy_key, deploy, 3600 if deploy else 60)
 
         return Response(
             [
