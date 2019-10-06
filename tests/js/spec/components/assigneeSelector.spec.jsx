@@ -1,6 +1,9 @@
 import React from 'react';
 
-import {AssigneeSelectorComponent} from 'app/components/assigneeSelector';
+import {
+  AssigneeSelectorComponent,
+  putSessionUserFirst,
+} from 'app/components/assigneeSelector';
 import {Client} from 'app/api';
 import {mount} from 'enzyme';
 import ConfigStore from 'app/stores/configStore';
@@ -105,7 +108,6 @@ describe('AssigneeSelector', function() {
   });
 
   describe('putSessionUserFirst()', function() {
-    const putSessionUserFirst = AssigneeSelectorComponent.putSessionUserFirst;
     it('should place the session user at the top of the member list if present', function() {
       jest.spyOn(ConfigStore, 'get').mockImplementation(() => ({
         id: '2',
