@@ -12,7 +12,7 @@ const OrganizationStore = Reflux.createStore({
   },
 
   reset() {
-    this.org = {};
+    this.org = null;
   },
 
   onUpdate(updatedOrg) {
