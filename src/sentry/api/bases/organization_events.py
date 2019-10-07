@@ -100,7 +100,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         Returns the next event ID if there is a subsequent event matching the
         conditions provided. Ignores the project_id.
         """
-        next_event = eventstore.get_next_event_id(self._get_filter(snuba_args))
+        next_event = eventstore.get_next_event_id(event, filter=self._get_filter(snuba_args))
 
         if next_event:
             return next_event[1]
@@ -110,7 +110,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         Returns the previous event ID if there is a previous event matching the
         conditions provided. Ignores the project_id.
         """
-        prev_event = eventstore.get_prev_event_id(self._get_filter(snuba_args))
+        prev_event = eventstore.get_prev_event_id(event, filter=self._get_filter(snuba_args))
 
         if prev_event:
             return prev_event[1]
