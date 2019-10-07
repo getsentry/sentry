@@ -3,6 +3,7 @@ import {browserHistory} from 'react-router';
 import {resetGlobalSelection} from 'app/actionCreators/globalSelection';
 import {Client} from 'app/api';
 import IndicatorStore from 'app/stores/indicatorStore';
+import OrganizationActions from 'app/actions/organizationActions';
 import OrganizationsActions from 'app/actions/organizationsActions';
 import OrganizationsStore from 'app/stores/organizationsStore';
 import ProjectsStore from 'app/stores/projectsStore';
@@ -68,6 +69,7 @@ export function changeOrganizationSlug(prev, next) {
 
 export function updateOrganization(org) {
   OrganizationsActions.update(org);
+  OrganizationActions.update(org);
 }
 
 export async function fetchOrganizationByMember(memberId, {addOrg, fetchOrgDetails}) {
