@@ -10,6 +10,7 @@ class EventAttachment(Model):
     __core__ = False
 
     project_id = BoundedBigIntegerField()
+    group = FlexibleForeignKey("sentry.Group", null=True)
     event_id = models.CharField(max_length=32, db_index=True)
     file = FlexibleForeignKey("sentry.File")
     name = models.TextField()
