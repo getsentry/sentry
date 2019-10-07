@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 from rest_framework.exceptions import PermissionDenied
-from copy import copy
 
 from sentry import eventstore
 from sentry.api.bases import OrganizationEndpoint, OrganizationEventsError
@@ -92,10 +91,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         Returns the next event ID if there is a subsequent event matching the
         conditions provided. Ignores the project_id.
         """
-        conditions = self._apply_start_and_end(snuba_args)
-        next_event = eventstore.get_next_event_id(
-            event, conditions=conditions, filter_keys=snuba_args["filter_keys"]
-        )
+        next_event = eventstore.get_next_event_id(self._get_filter(snuba_args))
 
         if next_event:
             return next_event[1]
@@ -105,21 +101,19 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         Returns the previous event ID if there is a previous event matching the
         conditions provided. Ignores the project_id.
         """
-        conditions = self._apply_start_and_end(snuba_args)
-        prev_event = eventstore.get_prev_event_id(
-            event, conditions=conditions, filter_keys=snuba_args["filter_keys"]
-        )
+        prev_event = eventstore.get_prev_event_id(self._get_filter(snuba_args))
 
         if prev_event:
             return prev_event[1]
 
-    def _apply_start_and_end(self, snuba_args):
-        conditions = copy(snuba_args["conditions"])
-        if "start" in snuba_args:
-            conditions.append(["timestamp", ">=", snuba_args["start"]])
-        if "end" in snuba_args:
-            conditions.append(["timestamp", "<=", snuba_args["end"]])
-        return conditions
+    def _get_filter(self, snuba_args):
+        return eventstore.Filter(
+            conditions=snuba_args["conditions"],
+            start=snuba_args.get("start", None),
+            end=snuba_args.get("end", None),
+            project_ids=snuba_args.get("project_id", None),
+            group_ids=snuba_args.get("issue", None),
+        )
 
     def oldest_event_id(self, snuba_args, event):
         """
