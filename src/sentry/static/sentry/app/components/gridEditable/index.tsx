@@ -80,7 +80,8 @@ type GridEditableProps<DataRow, ColumnKey extends keyof DataRow> = {
    * have to provide functions to move/delete the columns
    */
   actions: {
-    moveColumn: (indexFrom: number, indexTo: number) => void;
+    moveColumnCommit: (indexFrom: number, indexTo: number) => void;
+    moveColumnStage: (indexFrom: number, indexTo: number) => void;
     deleteColumn: (index: number) => void;
   };
 };
@@ -229,7 +230,8 @@ class GridEditable<
               indexColumnOrder={columnIndex}
               column={column}
               actions={{
-                moveColumn: actions.moveColumn,
+                moveColumnCommit: actions.moveColumnCommit,
+                moveColumnStage: actions.moveColumnStage,
                 deleteColumn: actions.deleteColumn,
                 toggleModalEditColumn: this.toggleModalEditColumn,
               }}

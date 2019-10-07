@@ -23,7 +23,8 @@ export type GridHeadCellProps<Column> = {
   children: React.ReactNode | React.ReactChild;
 
   actions: {
-    moveColumn: (indexFrom: number, indexTo: number) => void;
+    moveColumnCommit: (indexFrom: number, indexTo: number) => void;
+    moveColumnStage: (indexFrom: number, indexTo: number) => void;
     deleteColumn: (index: number) => void;
     toggleModalEditColumn: (index?: number, column?: Column) => void;
   };
@@ -81,7 +82,7 @@ class GridHeadCell<Column> extends React.Component<
                 const destinationColumn = this.props.indexColumnOrder - 1;
 
                 if (destinationColumn >= 0) {
-                  this.props.actions.moveColumn(fromColumn, destinationColumn);
+                  this.props.actions.moveColumnStage(fromColumn, destinationColumn);
                 }
               }}
             />
@@ -104,7 +105,7 @@ class GridHeadCell<Column> extends React.Component<
                 const destinationColumn = this.props.indexColumnOrder + 1;
 
                 if (destinationColumn >= 0) {
-                  this.props.actions.moveColumn(fromColumn, destinationColumn);
+                  this.props.actions.moveColumnStage(fromColumn, destinationColumn);
                 }
               }}
             />

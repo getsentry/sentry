@@ -31,7 +31,6 @@ export type TableViewProps = {
  * and re-ordering columns.
  */
 class TableView extends React.Component<TableViewProps> {
-  // TODO: update this docs
   /**
    * The entire state of the table view (or event view) is co-located within
    * the EventView object. This object is fed from the props.
@@ -105,13 +104,18 @@ class TableView extends React.Component<TableViewProps> {
   };
 
   _moveColumnStage = (fromIndex: number, toIndex: number) => {
-    // TODO:
+    this.setState({
+      moveColumnStage: {
+        fromIndex,
+        toIndex,
+      },
+    });
   };
 
   /**
    * Please read the comment on `_createColumn`
    */
-  _moveColumn = (fromIndex: number, toIndex: number) => {
+  _moveColumnCommit = (fromIndex: number, toIndex: number) => {
     const {location, eventView} = this.props;
 
     const nextEventView = eventView.withMovedColumn({fromIndex, toIndex});
@@ -205,7 +209,8 @@ class TableView extends React.Component<TableViewProps> {
         }}
         actions={{
           deleteColumn: this._deleteColumn,
-          moveColumn: this._moveColumn,
+          moveColumnCommit: this._moveColumnCommit,
+          moveColumnStage: this._moveColumnStage,
         }}
       />
     );
