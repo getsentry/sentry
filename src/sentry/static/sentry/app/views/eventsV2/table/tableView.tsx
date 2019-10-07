@@ -107,6 +107,10 @@ class TableView extends React.Component<TableViewProps> {
     });
   };
 
+  _moveColumnStage = (fromIndex: number, toIndex: number) => {
+    // TODO:
+  };
+
   /**
    * Please read the comment on `_createColumn`
    */
