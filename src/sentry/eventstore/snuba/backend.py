@@ -21,7 +21,7 @@ class SnubaEventStorage(EventStorage):
 
     def get_events(
         self,
-        filter=None,
+        filter,
         additional_columns=None,
         orderby=DEFAULT_ORDERBY,
         limit=DEFAULT_LIMIT,
@@ -31,7 +31,7 @@ class SnubaEventStorage(EventStorage):
         """
         Get events from Snuba.
         """
-        assert filter
+        assert filter, "You must provide a filter"
 
         filter_keys = {}
         if filter.project_id:
@@ -82,11 +82,12 @@ class SnubaEventStorage(EventStorage):
             return SnubaEvent(result["data"][0])
         return None
 
-    def get_next_event_id(self, event, filter=None):
+    def get_next_event_id(self, event, filter):
         """
         Returns (project_id, event_id) of a next event given a current event
         and any filters/conditions. Returns None if no next event is found.
         """
+        assert filter, "You must provide a filter"
 
         if not event:
             return None
@@ -104,11 +105,13 @@ class SnubaEventStorage(EventStorage):
 
         return self.__get_next_or_prev_event_id(filter=filter, orderby=["timestamp", "event_id"])
 
-    def get_prev_event_id(self, event, filter=None):
+    def get_prev_event_id(self, event, filter):
         """
         Returns (project_id, event_id) of a previous event given a current event
         and a filter. Returns None if no previous event is found.
         """
+        assert filter, "You must provide a filter"
+
         if not event:
             return None
 
