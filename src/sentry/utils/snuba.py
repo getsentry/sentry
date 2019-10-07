@@ -727,6 +727,7 @@ class SnubaQueryParams(object):
         is_grouprelease=False,
         **kwargs
     ):
+        # TODO: instead of having events be the default, make dataset required.
         self.dataset = dataset or "events"
         self.start = start or datetime.utcfromtimestamp(0)  # will be clamped to project retention
         self.end = end or datetime.utcnow()
