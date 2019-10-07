@@ -12,10 +12,6 @@ describe('OrganizationStore', function() {
     OrganizationActions.update(org);
     await tick();
     expect(OrganizationStore.getOrganization()).toMatchObject(org);
-    org.slug = 'newslug';
-    OrganizationActions.update(org);
-    await tick();
-    expect(OrganizationStore.getOrganization()).toMatchObject(org);
   });
 
   it('updates correctly from setting changes', async function() {
