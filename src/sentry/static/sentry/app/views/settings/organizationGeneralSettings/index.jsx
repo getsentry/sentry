@@ -4,6 +4,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 
 import {Panel, PanelHeader} from 'app/components/panels';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {addLoadingMessage} from 'app/actionCreators/indicator';
 import {
   changeOrganizationSlug,
@@ -97,6 +98,7 @@ const OrganizationGeneralSettings = createReactClass({
 
     return (
       <div>
+        <SentryDocumentTitle title={t('General Settings')} objSlug={orgId} />
         {error && <LoadingError />}
         {loading && !error && <LoadingIndicator />}
 

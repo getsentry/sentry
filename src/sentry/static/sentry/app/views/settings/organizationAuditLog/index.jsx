@@ -4,6 +4,8 @@ import React from 'react';
 
 import AsyncView from 'app/views/asyncView';
 import SentryTypes from 'app/sentryTypes';
+import {t} from 'app/locale';
+import routeTitleGen from 'app/utils/routeTitle';
 
 import AuditLogList from './auditLogList';
 
@@ -82,8 +84,7 @@ class OrganizationAuditLog extends AsyncView {
   }
 
   getTitle() {
-    const org = this.context.organization;
-    return `${org.name} Audit Log`;
+    return routeTitleGen(t('Audit Log'), this.context.organization.slug, false);
   }
 
   handleEventSelect = value => {

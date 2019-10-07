@@ -13,6 +13,7 @@ import ProjectListItem from 'app/views/settings/components/settingsProjectItem';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import withOrganization from 'app/utils/withOrganization';
+import routeTitleGen from 'app/utils/routeTitle';
 
 import ProjectStatsGraph from './projectStatsGraph';
 
@@ -67,8 +68,8 @@ class OrganizationProjects extends AsyncView {
   }
 
   getTitle() {
-    const org = this.props.organization;
-    return `${org.name} Projects`;
+    const {organization} = this.props;
+    return routeTitleGen(t('Projects'), organization.slug, false);
   }
 
   renderBody() {
