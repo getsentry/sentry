@@ -44,11 +44,11 @@ class SnubaEventStorage(EventStorage):
         cols = self.__get_columns(additional_columns)
 
         result = snuba.raw_query(
+            selected_columns=cols,
             start=filter.start,
             end=filter.end,
             conditions=filter.conditions,
             filter_keys=filter_keys,
-            selected_columns=cols,
             orderby=orderby,
             limit=limit,
             offset=offset,
@@ -147,11 +147,11 @@ class SnubaEventStorage(EventStorage):
             filter_keys["event_id"] = filter.event_id
 
         result = snuba.raw_query(
+            selected_columns=["event_id", "project_id"],
             conditions=filter.conditions,
             filter_keys=filter_keys,
             start=filter.start,
             end=filter.end,
-            selected_columns=["event_id", "project_id"],
             limit=1,
             referrer="eventstore.get_next_or_prev_event_id",
             orderby=orderby,
