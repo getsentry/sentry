@@ -64,7 +64,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
 
         # No events found
         project = self.create_project()
-        events = self.eventstore.get_events(filter=Filter(project_id=[project.id]))
+        events = self.eventstore.get_events(filter=Filter(project_ids=[project.id]))
         assert events == []
 
     def test_get_event_by_id(self):
@@ -92,7 +92,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
     def test_get_next_prev_event_id(self):
         event = self.eventstore.get_event_by_id(self.project2.id, "b" * 32)
 
-        filter = Filter(project_id=[self.project1.id, self.project2.id])
+        filter = Filter(project_ids=[self.project1.id, self.project2.id])
 
         prev_event = self.eventstore.get_prev_event_id(event, filter=filter)
 
