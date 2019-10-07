@@ -136,7 +136,8 @@ def calculate_incident_start(query, projects, groups):
     else:
         end = timezone.now()
 
-    start = end - INCIDENT_START_PERIOD
+    params["start"] = end - INCIDENT_START_PERIOD
+    params["end"] = end
 
     if projects:
         params["project_id"] = [p.id for p in projects]
@@ -151,8 +152,8 @@ def calculate_incident_start(query, projects, groups):
         rollup=rollup,
         referrer="incidents.calculate_incident_start",
         limit=10000,
-        start=start,
-        end=end,
+        start=filter.start,
+        end=filter.end,
         conditions=filter.conditions,
         filter_keys=filter.filter_keys,
     )["data"]
