@@ -12,7 +12,7 @@ from freezegun import freeze_time
 from sentry.api.event_search import (
     convert_endpoint_params,
     event_search_grammar,
-    get_snuba_query_args,
+    get_filter,
     resolve_field_list,
     get_reference_event_conditions,
     parse_search_query,
@@ -832,139 +832,130 @@ class ParseBooleanSearchQueryTest(unittest.TestCase):
 
 class GetSnubaQueryArgsTest(TestCase):
     def test_simple(self):
-        assert get_snuba_query_args(
+        filter = get_filter(
             "user.email:foo@example.com release:1.2.1 fruit:apple hello",
             {
                 "project_id": [1, 2, 3],
                 "start": datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc),
                 "end": datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc),
             },
-        ) == {
-            "conditions": [
-                ["email", "=", "foo@example.com"],
-                ["tags[sentry:release]", "=", "1.2.1"],
-                [["ifNull", ["tags[fruit]", "''"]], "=", "apple"],
-                [["positionCaseInsensitive", ["message", "'hello'"]], "!=", 0],
-            ],
-            "filter_keys": {"project_id": [1, 2, 3]},
-            "start": datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc),
-            "end": datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc),
-        }
+        )
+
+        assert filter.conditions == [
+            ["email", "=", "foo@example.com"],
+            ["tags[sentry:release]", "=", "1.2.1"],
+            [["ifNull", ["tags[fruit]", "''"]], "=", "apple"],
+            [["positionCaseInsensitive", ["message", "'hello'"]], "!=", 0],
+        ]
+        assert filter.start == datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
+        assert filter.end == datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc)
+        assert filter.filter_keys == {"project_id": [1, 2, 3]}
+        assert filter.project_ids == [1, 2, 3]
+        assert not filter.group_ids
+        assert not filter.event_ids
 
     def test_negation(self):
-        assert get_snuba_query_args("!user.email:foo@example.com") == {
-            "conditions": [[[["isNull", ["email"]], "=", 1], ["email", "!=", "foo@example.com"]]],
-            "filter_keys": {},
-        }
+        filter = get_filter("!user.email:foo@example.com")
+        assert filter.conditions == [
+            [[["isNull", ["email"]], "=", 1], ["email", "!=", "foo@example.com"]]
+        ]
+        assert filter.filter_keys == {}
 
     def test_no_search(self):
-        assert get_snuba_query_args(
+        filter = get_filter(
             params={
                 "project_id": [1, 2, 3],
                 "start": datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc),
                 "end": datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc),
             }
-        ) == {
-            "conditions": [],
-            "filter_keys": {"project_id": [1, 2, 3]},
-            "start": datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc),
-            "end": datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc),
-        }
+        )
+        assert not filter.conditions
+        assert filter.filter_keys == {"project_id": [1, 2, 3]}
+        assert filter.start == datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
+        assert filter.end == datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc)
 
     def test_wildcard(self):
-        assert get_snuba_query_args("release:3.1.* user.email:*@example.com") == {
-            "conditions": [
-                [["match", ["tags[sentry:release]", "'(?i)^3\\.1\\..*$'"]], "=", 1],
-                [["match", ["email", "'(?i)^.*\\@example\\.com$'"]], "=", 1],
-            ],
-            "filter_keys": {},
-        }
+        filter = get_filter("release:3.1.* user.email:*@example.com")
+        assert filter.conditions == [
+            [["match", ["tags[sentry:release]", "'(?i)^3\\.1\\..*$'"]], "=", 1],
+            [["match", ["email", "'(?i)^.*\\@example\\.com$'"]], "=", 1],
+        ]
+        assert filter.filter_keys == {}
 
     def test_negated_wildcard(self):
-        assert get_snuba_query_args("!release:3.1.* user.email:*@example.com") == {
-            "conditions": [
-                [
-                    [["isNull", ["tags[sentry:release]"]], "=", 1],
-                    [["match", ["tags[sentry:release]", "'(?i)^3\\.1\\..*$'"]], "!=", 1],
-                ],
-                [["match", ["email", "'(?i)^.*\\@example\\.com$'"]], "=", 1],
+        filter = get_filter("!release:3.1.* user.email:*@example.com")
+        assert filter.conditions == [
+            [
+                [["isNull", ["tags[sentry:release]"]], "=", 1],
+                [["match", ["tags[sentry:release]", "'(?i)^3\\.1\\..*$'"]], "!=", 1],
             ],
-            "filter_keys": {},
-        }
+            [["match", ["email", "'(?i)^.*\\@example\\.com$'"]], "=", 1],
+        ]
+        assert filter.filter_keys == {}
 
     def test_escaped_wildcard(self):
-        assert get_snuba_query_args("release:3.1.\\* user.email:\\*@example.com") == {
-            "conditions": [
-                [["match", ["tags[sentry:release]", "'(?i)^3\\.1\\.\\*$'"]], "=", 1],
-                [["match", ["email", "'(?i)^\*\\@example\\.com$'"]], "=", 1],
-            ],
-            "filter_keys": {},
-        }
-        assert get_snuba_query_args("release:\\\\\\*") == {
-            "conditions": [[["match", ["tags[sentry:release]", "'(?i)^\\\\\\*$'"]], "=", 1]],
-            "filter_keys": {},
-        }
-        assert get_snuba_query_args("release:\\\\*") == {
-            "conditions": [[["match", ["tags[sentry:release]", "'(?i)^\\\\.*$'"]], "=", 1]],
-            "filter_keys": {},
-        }
+        assert get_filter("release:3.1.\\* user.email:\\*@example.com").conditions == [
+            [["match", ["tags[sentry:release]", "'(?i)^3\\.1\\.\\*$'"]], "=", 1],
+            [["match", ["email", "'(?i)^\*\\@example\\.com$'"]], "=", 1],
+        ]
+        assert get_filter("release:\\\\\\*").conditions == [
+            [["match", ["tags[sentry:release]", "'(?i)^\\\\\\*$'"]], "=", 1]
+        ]
+        assert get_filter("release:\\\\*").conditions == [
+            [["match", ["tags[sentry:release]", "'(?i)^\\\\.*$'"]], "=", 1]
+        ]
 
     def test_has(self):
-        assert get_snuba_query_args("has:release") == {
-            "filter_keys": {},
-            "conditions": [[["isNull", ["tags[sentry:release]"]], "!=", 1]],
-        }
+        assert get_filter("has:release").conditions == [
+            [["isNull", ["tags[sentry:release]"]], "!=", 1]
+        ]
 
     def test_not_has(self):
-        assert get_snuba_query_args("!has:release") == {
-            "filter_keys": {},
-            "conditions": [[["isNull", ["tags[sentry:release]"]], "=", 1]],
-        }
+        assert get_filter("!has:release").conditions == [
+            [["isNull", ["tags[sentry:release]"]], "=", 1]
+        ]
 
     def test_message_negative(self):
-        assert get_snuba_query_args('!message:"post_process.process_error HTTPError 403"') == {
-            "filter_keys": {},
-            "conditions": [
+        assert get_filter('!message:"post_process.process_error HTTPError 403"').conditions == [
+            [
                 [
-                    [
-                        "positionCaseInsensitive",
-                        ["message", "'post_process.process_error HTTPError 403'"],
-                    ],
-                    "=",
-                    0,
-                ]
-            ],
-        }
+                    "positionCaseInsensitive",
+                    ["message", "'post_process.process_error HTTPError 403'"],
+                ],
+                "=",
+                0,
+            ]
+        ]
 
     def test_malformed_groups(self):
         with pytest.raises(InvalidSearchQuery):
-            get_snuba_query_args("(user.email:foo@example.com OR user.email:bar@example.com")
+            get_filter("(user.email:foo@example.com OR user.email:bar@example.com")
 
     def test_issue_filter(self):
-        assert get_snuba_query_args("issue.id:1") == {
-            "conditions": [],
-            "filter_keys": {"issue": [1]},
-        }
+        filter = get_filter("issue.id:1")
+        assert not filter.conditions
+        assert filter.filter_keys == {"issue": [1]}
+        assert filter.group_ids == [1]
 
-        assert get_snuba_query_args("issue.id:1 issue.id:2 issue.id:3") == {
-            "conditions": [],
-            "filter_keys": {"issue": [1, 2, 3]},
-        }
+        filter = get_filter("issue.id:1 issue.id:2 issue.id:3")
+        assert not filter.conditions
+        assert filter.filter_keys == {"issue": [1, 2, 3]}
+        assert filter.group_ids == [1, 2, 3]
 
-        assert get_snuba_query_args("issue.id:1 user.email:foo@example.com") == {
-            "conditions": [["email", "=", "foo@example.com"]],
-            "filter_keys": {"issue": [1]},
-        }
+        filter = get_filter("issue.id:1 user.email:foo@example.com")
+        assert filter.conditions == [["email", "=", "foo@example.com"]]
+        assert filter.filter_keys == {"issue": [1]}
+        assert filter.group_ids == [1]
 
     def test_project_name(self):
         p1 = self.create_project(organization=self.organization)
         p2 = self.create_project(organization=self.organization)
 
         params = {"project_id": [p1.id, p2.id]}
-        assert get_snuba_query_args("project.name:{}".format(p1.slug), params) == {
-            "conditions": [["project_id", "=", p1.id]],
-            "filter_keys": {"project_id": [p1.id, p2.id]},
-        }
+        filter = get_filter("project.name:{}".format(p1.slug), params)
+        filter.conditions == [["project_id", "=", p1.id]]
+        filter.filter_keys == {"project_id": [p1.id, p2.id]}
+        filter.project_ids == [p1.id, p2.id]
 
 
 class ConvertEndpointParamsTests(unittest.TestCase):

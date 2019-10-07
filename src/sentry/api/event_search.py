@@ -601,29 +601,6 @@ def convert_search_filter_to_snuba_query(search_filter):
             return condition
 
 
-def get_snuba_query_args(query=None, params=None):
-    snuba_filter = get_filter(query, params)
-
-    filter_keys = {}
-
-    if snuba_filter.project_ids:
-        filter_keys["project_id"] = snuba_filter.project_ids
-    if snuba_filter.group_ids:
-        filter_keys["issue"] = snuba_filter.group_ids
-    if snuba_filter.event_ids:
-        filter_keys["event_id"] = snuba_filter.event_ids
-
-    kwargs = {"conditions": snuba_filter.conditions, "filter_keys": filter_keys}
-
-    if snuba_filter.start:
-        kwargs["start"] = snuba_filter.start
-
-    if snuba_filter.end:
-        kwargs["end"] = snuba_filter.end
-
-    return kwargs
-
-
 def get_filter(query=None, params=None):
     """
     Returns an eventstore filter given the search text provided by the user and
