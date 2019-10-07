@@ -1,9 +1,5 @@
 from __future__ import absolute_import
 
-import pytest
-from django.conf import settings
-
-from sentry import tagstore
 from sentry.models import Group, Project, Team, User
 from sentry.testutils import TestCase
 
@@ -14,49 +10,6 @@ class SentryManagerTest(TestCase):
         self.assertEquals(event.group.last_seen, event.datetime)
         self.assertEquals(event.message, "foo")
         self.assertEquals(event.project_id, 1)
-
-    @pytest.mark.skipIf(
-        lambda x: settings.SENTRY_TAGSTORE
-        in [
-            "sentry.tagstore.snuba.SnubaCompatibilityTagStorage",
-            "sentry.tagstore.snuba.SnubaTagStorage",
-        ]
-    )
-    def test_add_tags(self):
-        if settings.SENTRY_TAGSTORE in [
-            "sentry.tagstore.legacy.LegacyTagStorage",
-            "sentry.tagstore.v2.V2TagStorage",
-        ]:
-            event = Group.objects.from_kwargs(1, message="rrr")
-            group = event.group
-            environment = self.create_environment()
-
-            with self.tasks():
-                Group.objects.add_tags(
-                    group, environment, tags=[("foo", "bar"), ("foo", "baz"), ("biz", "boz")]
-                )
-
-            results = sorted(
-                tagstore.get_group_tag_values(
-                    group.project_id, group.id, environment_id=None, key="foo"
-                ),
-                key=lambda x: x.value,
-            )
-            assert len(results) == 2
-            res = results[0]
-            self.assertEquals(res.value, "bar")
-            self.assertEquals(res.times_seen, 1)
-            res = results[1]
-            self.assertEquals(res.value, "baz")
-            self.assertEquals(res.times_seen, 1)
-
-            results = tagstore.get_group_tag_values(
-                group.project_id, group.id, environment_id=None, key="biz"
-            )
-            assert len(results) == 1
-            res = list(results)[0]
-            self.assertEquals(res.value, "boz")
-            self.assertEquals(res.times_seen, 1)
 
 
 class TeamManagerTest(TestCase):
