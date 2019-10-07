@@ -236,6 +236,7 @@ class ContextPickerModal extends React.Component<Props> {
           <div>{t('Select an organization/project to continue')}</div>
           {needOrg && (
             <StyledSelectControl
+              deprecatedSelectControl
               ref={ref => {
                 this.orgSelect = ref;
                 if (shouldShowProjectSelector) {
@@ -254,6 +255,7 @@ class ContextPickerModal extends React.Component<Props> {
 
           {organization && needProject && projects && (
             <StyledSelectControl
+              deprecatedSelectControl
               ref={ref => {
                 this.projectSelect = ref;
                 this.focusProjectSelector();
