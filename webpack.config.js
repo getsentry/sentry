@@ -228,6 +228,9 @@ const appConfig = {
           },
           {
             loader: 'ts-loader',
+            options: {
+              transpileOnly: true,
+            },
           },
         ],
       },

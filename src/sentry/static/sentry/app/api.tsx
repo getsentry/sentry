@@ -13,6 +13,8 @@ import {uniqueId} from 'app/utils/guid';
 import GroupActions from 'app/actions/groupActions';
 import createRequestError from 'app/utils/requestError/createRequestError';
 
+import {startRequest, finishRequest} from 'app/utils/apm';
+
 export class Request {
   alive: boolean;
   xhr: JQueryXHR;
@@ -146,6 +148,8 @@ export class Client {
         delete this.activeRequests[id];
       }
 
+      finishRequest(id);
+
       if (req && req.alive) {
         // Check if API response is a 302 -- means project slug was renamed and user
         // needs to be redirected
@@ -229,6 +233,8 @@ export class Client {
   }
 
   request(path: string, options: Readonly<RequestOptions> = {}): Request {
+    // delaying finishing transaction
+
     const method = options.method || (options.data ? 'POST' : 'GET');
     let data = options.data;
 
@@ -250,6 +256,7 @@ export class Client {
 
     const id: string = uniqueId();
     metric.mark(`api-request-start-${id}`);
+    startRequest(id);
 
     let fullUrl: string;
     if (path.indexOf(this.baseUrl) === -1) {

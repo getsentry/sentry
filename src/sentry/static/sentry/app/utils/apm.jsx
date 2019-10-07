@@ -28,9 +28,22 @@ function startTransaction() {
   finishTransaction(5000);
 }
 
+const requests = new Set([]);
+const renders = new Set([]);
 let flushTransactionTimeout = undefined;
-function finishTransaction(delay) {
+let interruptFlush = false;
+
+const hasActiveRequests = () => requests.size > 0;
+const hasActiveRenders = () => renders.size > 0;
+
+export function finishTransaction(delay) {
   if (flushTransactionTimeout) {
+    clearTimeout(flushTransactionTimeout);
+  }
+  if (
+    Array.from(requests).find(([, active]) => active) ||
+    Array.from(renders).find(([, active]) => active)
+  ) {
     clearTimeout(flushTransactionTimeout);
   }
   flushTransactionTimeout = setTimeout(() => {
@@ -41,6 +54,47 @@ function finishTransaction(delay) {
       }
     });
   }, delay || 5000);
+}
+
+export function startRequest(id) {
+  // if flush is active, stop it
+  if (flushTransactionTimeout) {
+    clearTimeout(flushTransactionTimeout);
+    interruptFlush = true;
+  }
+
+  requests.add(id);
+}
+export function finishRequest(id) {
+  requests.delete(id);
+
+  if (interruptFlush && !hasActiveRenders() && !hasActiveRequests()) {
+    finishTransaction(1);
+  }
+}
+
+export function startRender(id) {
+  // if flush is active, stop it
+  if (flushTransactionTimeout) {
+    clearTimeout(flushTransactionTimeout);
+    interruptFlush = true;
+  }
+
+  renders.add(id);
+}
+
+export function finishRender(id) {
+  renders.delete(id);
+
+  // if flush is active, stop it
+  if (flushTransactionTimeout) {
+    clearTimeout(flushTransactionTimeout);
+    interruptFlush = true;
+  }
+
+  if (interruptFlush && !hasActiveRenders() && !hasActiveRequests()) {
+    finishTransaction(1);
+  }
 }
 
 export function startApm() {
