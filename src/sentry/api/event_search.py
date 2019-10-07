@@ -606,12 +606,12 @@ def get_snuba_query_args(query=None, params=None):
 
     filter_keys = {}
 
-    if snuba_filter.project_id:
-        filter_keys["project_id"] = snuba_filter.project_id
-    if snuba_filter.group_id:
-        filter_keys["issue"] = snuba_filter.group_id
-    if snuba_filter.event_id:
-        filter_keys["event_id"] = snuba_filter.event_id
+    if snuba_filter.project_ids:
+        filter_keys["project_id"] = snuba_filter.project_ids
+    if snuba_filter.group_ids:
+        filter_keys["issue"] = snuba_filter.group_ids
+    if snuba_filter.event_ids:
+        filter_keys["event_id"] = snuba_filter.event_ids
 
     kwargs = {"conditions": snuba_filter.conditions, "filter_keys": filter_keys}
 

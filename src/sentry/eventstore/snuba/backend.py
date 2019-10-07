@@ -34,12 +34,12 @@ class SnubaEventStorage(EventStorage):
         assert filter, "You must provide a filter"
 
         filter_keys = {}
-        if filter.project_id:
-            filter_keys["project_id"] = filter.project_id
-        if filter.group_id:
-            filter_keys["group_id"] = filter.group_id
-        if filter.event_id:
-            filter_keys["event_id"] = filter.event_id
+        if filter.project_ids:
+            filter_keys["project_id"] = filter.project_ids
+        if filter.group_ids:
+            filter_keys["group_id"] = filter.group_ids
+        if filter.event_ids:
+            filter_keys["event_id"] = filter.event_ids
 
         cols = self.__get_columns(additional_columns)
 
@@ -139,12 +139,12 @@ class SnubaEventStorage(EventStorage):
     def __get_next_or_prev_event_id(self, filter=None, orderby=None):
 
         filter_keys = {}
-        if filter.project_id:
-            filter_keys["project_id"] = filter.project_id
-        if filter.group_id:
-            filter_keys["group_id"] = filter.group_id
-        if filter.event_id:
-            filter_keys["event_id"] = filter.event_id
+        if filter.project_ids:
+            filter_keys["project_id"] = filter.project_ids
+        if filter.group_ids:
+            filter_keys["group_id"] = filter.group_ids
+        if filter.event_ids:
+            filter_keys["event_id"] = filter.event_ids
 
         result = snuba.raw_query(
             selected_columns=["event_id", "project_id"],
