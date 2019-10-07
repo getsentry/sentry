@@ -120,8 +120,8 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             conditions=snuba_args["conditions"],
             start=snuba_args.get("start", None),
             end=snuba_args.get("end", None),
-            project_ids=snuba_args.get("project_id", None),
-            group_ids=snuba_args.get("issue", None),
+            project_ids=snuba_args["filter_keys"].get("project_id", None),
+            group_ids=snuba_args["filter_keys"].get("issue", None),
         )
 
     def oldest_event_id(self, snuba_args, event):
