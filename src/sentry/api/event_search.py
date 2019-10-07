@@ -614,7 +614,7 @@ def get_snuba_query_args(query=None, params=None):
     if params is not None:
         parsed_terms.extend(convert_endpoint_params(params))
 
-    kwargs = {"dataset": "events", "conditions": [], "filter_keys": defaultdict(list)}
+    kwargs = {"conditions": [], "filter_keys": defaultdict(list)}
 
     projects = {}
     has_project_term = any(
