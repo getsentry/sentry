@@ -88,7 +88,7 @@ class AuthLoginView(BaseView):
         if assignment != 1:
             return None
 
-        if bool(organization.flags.disable_join_requests):
+        if organization.get_option("sentry:join_requests") is False:
             return None
 
         return reverse("sentry-join-request", args=[organization.slug])

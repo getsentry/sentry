@@ -2,10 +2,15 @@ from __future__ import absolute_import
 
 from exam import fixture
 from mock import patch
-from django.db.models import F
 from django.core.urlresolvers import reverse
 
-from sentry.models import AuthIdentity, AuthProvider, Organization, OrganizationMember, UserEmail
+from sentry.models import (
+    AuthIdentity,
+    AuthProvider,
+    OrganizationOption,
+    OrganizationMember,
+    UserEmail,
+)
 from sentry.testutils import AuthProviderTestCase
 
 
@@ -44,8 +49,9 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
     @patch("sentry.experiments.get", return_value=1)
     def test_cannot_get_request_join_link_with_setting_disabled(self, mock_experiment):
-        self.organization.update(flags=F("flags").bitor(Organization.flags.disable_join_requests))
-        assert bool(self.organization.flags.disable_join_requests)
+        OrganizationOption.objects.create(
+            organization_id=self.organization.id, key="sentry:join_requests", value=False
+        )
 
         self.login_as(self.user)
         resp = self.client.get(self.path)
