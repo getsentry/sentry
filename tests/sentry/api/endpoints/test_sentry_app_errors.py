@@ -74,3 +74,13 @@ class GetSentryAppErrorsTest(SentryAppErrorsTest):
         response = self.client.get(url, format="json")
         assert response.status_code == 403
         assert response.data["detail"] == "You do not have permission to perform this action."
+
+    def test_invalid_date_params(self):
+        self.login_as(self.user)
+
+        url = "%s?start=1570489554&end=1562365872" % reverse(
+            "sentry-api-0-sentry-app-errors", args=[self.published_app.slug]
+        )
+        response = self.client.get(url, format="json")
+        assert response.status_code == 400
+        assert response.data["detail"] == "start must be before end"
