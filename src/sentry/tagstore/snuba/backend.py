@@ -57,7 +57,6 @@ class SnubaTagStorage(TagStorage):
         aggregations = [["uniq", tag, "values_seen"], ["count()", "", "count"]]
 
         result = snuba.query(
-            dataset="events",
             conditions=conditions,
             filter_keys=filters,
             aggregations=aggregations,
@@ -94,7 +93,6 @@ class SnubaTagStorage(TagStorage):
         ]
 
         result, totals = snuba.query(
-            dataset="events",
             start=kwargs.get("start"),
             end=kwargs.get("end"),
             groupby=[tag],
@@ -182,7 +180,6 @@ class SnubaTagStorage(TagStorage):
         conditions = [["tags_key", "NOT IN", self.EXCLUDE_TAG_KEYS]]
 
         result = snuba.query(
-            dataset="events",
             start=start,
             end=end,
             groupby=["tags_key"],
@@ -229,7 +226,6 @@ class SnubaTagStorage(TagStorage):
         ]
 
         data = snuba.query(
-            dataset="events",
             conditions=conditions,
             filter_keys=filters,
             aggregations=aggregations,
@@ -321,7 +317,6 @@ class SnubaTagStorage(TagStorage):
         ]
 
         result = snuba.query(
-            dataset="events",
             groupby=["issue"],
             conditions=conditions,
             filter_keys=filters,
@@ -350,7 +345,6 @@ class SnubaTagStorage(TagStorage):
         ]
 
         result = snuba.query(
-            dataset="events",
             start=start,
             end=end,
             groupby=["issue"],
@@ -371,7 +365,6 @@ class SnubaTagStorage(TagStorage):
         aggregations = [["count()", "", "count"]]
 
         return snuba.query(
-            dataset="events",
             conditions=conditions,
             filter_keys=filters,
             aggregations=aggregations,
@@ -421,7 +414,6 @@ class SnubaTagStorage(TagStorage):
             conditions.append(["tags_key", "NOT IN", self.EXCLUDE_TAG_KEYS])
 
         values_by_key = snuba.query(
-            dataset="events",
             start=kwargs.get("start"),
             end=kwargs.get("end"),
             groupby=["tags_key", "tags_value"],
@@ -464,7 +456,6 @@ class SnubaTagStorage(TagStorage):
         orderby = "seen" if first else "-seen"
 
         result = snuba.query(
-            dataset="events",
             groupby=["tags[sentry:release]"],
             conditions=conditions,
             filter_keys=filters,
@@ -501,7 +492,6 @@ class SnubaTagStorage(TagStorage):
         ]
 
         result = snuba.query(
-            dataset="events",
             groupby=["project_id", col],
             conditions=conditions,
             filter_keys=filters,
@@ -524,7 +514,6 @@ class SnubaTagStorage(TagStorage):
         aggregations = [["max", SEEN_COLUMN, "last_seen"]]
 
         result = snuba.query(
-            dataset="events",
             groupby=["issue"],
             conditions=conditions,
             filter_keys=filters,
@@ -547,7 +536,6 @@ class SnubaTagStorage(TagStorage):
         ]
 
         result = snuba.query(
-            dataset="events",
             groupby=["issue", "user_id"],
             conditions=conditions,
             filter_keys=filters,
@@ -574,7 +562,6 @@ class SnubaTagStorage(TagStorage):
         aggregations = [["uniq", "tags[sentry:user]", "count"]]
 
         result = snuba.query(
-            dataset="events",
             start=start,
             end=end,
             groupby=["issue"],
@@ -621,7 +608,6 @@ class SnubaTagStorage(TagStorage):
             filters["environment"] = environments
 
         results = snuba.query(
-            dataset="events",
             start=start,
             end=end,
             groupby=[snuba_key],
@@ -660,7 +646,6 @@ class SnubaTagStorage(TagStorage):
         if environment_id:
             filters["environment"] = [environment_id]
         results = snuba.query(
-            dataset="events",
             groupby=["tags_value"],
             filter_keys=filters,
             aggregations=[

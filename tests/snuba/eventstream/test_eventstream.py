@@ -58,7 +58,6 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
 
         def _get_event_count():
             return snuba.query(
-                dataset="events",
                 start=now - timedelta(days=1),
                 end=now + timedelta(days=1),
                 groupby=["project_id"],

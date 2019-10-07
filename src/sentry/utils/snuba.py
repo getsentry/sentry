@@ -168,7 +168,8 @@ class SnubaError(Exception):
 
 class UnqualifiedQueryError(SnubaError):
     """
-    Exception raised when the query doesn't have required parameters.
+    Exception raised when no project_id qualifications were provided in the
+    query or could be derived from other filter criteria.
     """
 
 
@@ -608,9 +609,6 @@ def transform_aliases_and_query(skip_conditions=False, **kwargs):
 
 
 def _prepare_query_params(query_params):
-    if not query_params.dataset:
-        raise UnqualifiedQueryError("No dataset provided.")
-
     # convert to naive UTC datetimes, as Snuba only deals in UTC
     # and this avoids offset-naive and offset-aware issues
     start = naiveify_datetime(query_params.start)
@@ -729,7 +727,7 @@ class SnubaQueryParams(object):
         is_grouprelease=False,
         **kwargs
     ):
-        self.dataset = dataset
+        self.dataset = dataset or "events"
         self.start = start or datetime.utcfromtimestamp(0)  # will be clamped to project retention
         self.end = end or datetime.utcnow()
         self.groupby = groupby or []

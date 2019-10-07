@@ -440,7 +440,6 @@ def get_incident_event_stats(incident, start=None, end=None, data_points=50):
 def bulk_get_incident_event_stats(incidents, query_params_list, data_points=50):
     snuba_params_list = [
         SnubaQueryParams(
-            dataset="events",
             aggregations=[("count()", "", "count")],
             orderby="time",
             groupby=["time"],
@@ -470,7 +469,6 @@ def get_incident_aggregates(incident):
 def bulk_get_incident_aggregates(query_params_list):
     snuba_params_list = [
         SnubaQueryParams(
-            dataset="events",
             aggregations=[("count()", "", "count"), ("uniq", "tags[sentry:user]", "unique_users")],
             limit=10000,
             **query_param

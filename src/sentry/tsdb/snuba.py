@@ -90,7 +90,6 @@ class SnubaTSDB(BaseTSDB):
 
         if keys:
             result = snuba.query(
-                dataset="events",
                 start=start,
                 end=end,
                 groupby=groupby,
