@@ -673,7 +673,6 @@ def snuba_search(
         referrer = "search"
 
     snuba_results = snuba.raw_query(
-        dataset="events",
         start=start,
         end=end,
         selected_columns=selected_columns,

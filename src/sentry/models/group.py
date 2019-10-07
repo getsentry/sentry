@@ -146,7 +146,6 @@ def get_oldest_or_latest_event_for_environments(
         conditions.append(["environment", "IN", environments])
 
     result = snuba.raw_query(
-        dataset="events",
         selected_columns=SnubaEvent.selected_columns,
         conditions=conditions,
         filter_keys={"issue": [issue_id], "project_id": [project_id]},

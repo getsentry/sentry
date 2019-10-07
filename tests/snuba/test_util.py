@@ -10,7 +10,6 @@ from sentry.utils import snuba
 class SnubaUtilTest(TestCase, SnubaTestCase):
     def test_filter_keys_set(self):
         snuba.raw_query(
-            dataset="events",
             start=datetime.now(),
             end=datetime.now(),
             filter_keys={"project_id": set([1]), "logger": set(["asdf"])},
