@@ -27,8 +27,6 @@ import {startApm} from 'app/utils/apm';
 // SDK INIT  --------------------------------------------------------
 Sentry.init({
   ...window.__SENTRY__OPTIONS,
-  // TODO: Default `*` in ALLOWED_HOSTS doesn't work as we don't use globs in the SDK
-  whitelistUrls: 'http',
   integrations: [
     new ExtraErrorData({
       // 6 is arbitrary, seems like a nice number
