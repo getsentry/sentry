@@ -81,7 +81,10 @@ type GridEditableProps<DataRow, ColumnKey extends keyof DataRow> = {
    */
   actions: {
     moveColumnCommit: (indexFrom: number, indexTo: number) => void;
-    onDragStart: (indexFrom: number) => void;
+    onDragStart: (
+      event: React.MouseEvent<SVGSVGElement, MouseEvent>,
+      indexFrom: number
+    ) => void;
     deleteColumn: (index: number) => void;
   };
 };

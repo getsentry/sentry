@@ -24,7 +24,10 @@ export type GridHeadCellProps<Column> = {
 
   actions: {
     moveColumnCommit: (indexFrom: number, indexTo: number) => void;
-    onDragStart: (indexFrom: number) => void;
+    onDragStart: (
+      event: React.MouseEvent<SVGSVGElement, MouseEvent>,
+      indexFrom: number
+    ) => void;
     deleteColumn: (index: number) => void;
     toggleModalEditColumn: (index?: number, column?: Column) => void;
   };
@@ -77,9 +80,9 @@ class GridHeadCell<Column> extends React.Component<
           {FLAG_GRID_DRAGGABLE && (
             <GridHeadCellButtonHoverDraggable
               src="icon-grabbable"
-              onClick={() => {
+              onMouseDown={(event: React.MouseEvent<SVGSVGElement, MouseEvent>) => {
                 const fromColumn = this.props.indexColumnOrder;
-                this.props.actions.onDragStart(fromColumn);
+                this.props.actions.onDragStart(event, fromColumn);
               }}
             />
           )}
@@ -96,9 +99,9 @@ class GridHeadCell<Column> extends React.Component<
           {FLAG_GRID_DRAGGABLE && (
             <GridHeadCellButtonHoverDraggable
               src="icon-grabbable"
-              onClick={() => {
+              onMouseDown={(event: React.MouseEvent<SVGSVGElement, MouseEvent>) => {
                 const fromColumn = this.props.indexColumnOrder;
-                this.props.actions.onDragStart(fromColumn);
+                this.props.actions.onDragStart(event, fromColumn);
               }}
             />
           )}
