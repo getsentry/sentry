@@ -1,6 +1,6 @@
 import OrganizationStore from 'app/stores/organizationStore';
 import OrganizationActions from 'app/actions/organizationActions';
-import OrganizationsActions from 'app/actions/organizationsActions';
+import {updateOrganization} from 'app/actionCreators/organizations';
 
 describe('OrganizationStore', function() {
   beforeEach(function() {
@@ -16,7 +16,7 @@ describe('OrganizationStore', function() {
 
   it('updates correctly from setting changes', async function() {
     const org = TestStubs.Organization();
-    OrganizationsActions.update(org);
+    updateOrganization(org);
     await tick();
     expect(OrganizationStore.getOrganization()).toMatchObject(org);
   });

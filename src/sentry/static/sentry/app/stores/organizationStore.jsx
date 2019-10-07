@@ -1,14 +1,11 @@
 import Reflux from 'reflux';
 
 import OrganizationActions from 'app/actions/organizationActions';
-import OrganizationsActions from 'app/actions/organizationsActions';
 
 const OrganizationStore = Reflux.createStore({
   init() {
     this.reset();
     this.listenTo(OrganizationActions.update, this.onUpdate);
-    // also listen to updates from OrganizationsActions triggered from settings
-    this.listenTo(OrganizationsActions.update, this.onUpdate);
   },
 
   reset() {
