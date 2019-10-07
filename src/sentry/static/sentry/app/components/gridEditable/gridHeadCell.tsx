@@ -74,7 +74,17 @@ class GridHeadCell<Column> extends React.Component<
 
         <GridHeadCellButtonHover>
           {FLAG_GRID_DRAGGABLE && (
-            <GridHeadCellButtonHoverDraggable src="icon-grabbable" />
+            <GridHeadCellButtonHoverDraggable
+              src="icon-grabbable"
+              onClick={() => {
+                const fromColumn = this.props.indexColumnOrder;
+                const destinationColumn = this.props.indexColumnOrder - 1;
+
+                if (destinationColumn >= 0) {
+                  this.props.actions.moveColumn(fromColumn, destinationColumn);
+                }
+              }}
+            />
           )}
 
           <GridHeadCellButtonHoverButtonGroup isFlagged={FLAG_GRID_DRAGGABLE}>
@@ -87,7 +97,17 @@ class GridHeadCell<Column> extends React.Component<
           </GridHeadCellButtonHoverButtonGroup>
 
           {FLAG_GRID_DRAGGABLE && (
-            <GridHeadCellButtonHoverDraggable src="icon-grabbable" />
+            <GridHeadCellButtonHoverDraggable
+              src="icon-grabbable"
+              onClick={() => {
+                const fromColumn = this.props.indexColumnOrder;
+                const destinationColumn = this.props.indexColumnOrder + 1;
+
+                if (destinationColumn >= 0) {
+                  this.props.actions.moveColumn(fromColumn, destinationColumn);
+                }
+              }}
+            />
           )}
         </GridHeadCellButtonHover>
       </React.Fragment>
