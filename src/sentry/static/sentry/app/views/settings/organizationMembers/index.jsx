@@ -12,6 +12,7 @@ import ConfigStore from 'app/stores/configStore';
 import Pagination from 'app/components/pagination';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import routeTitleGen from 'app/utils/routeTitle';
 import {redirectToRemainingOrganization} from 'app/actionCreators/organizations';
 import {openInviteMembersModal} from 'app/actionCreators/modal';
 
@@ -77,8 +78,8 @@ class OrganizationMembersView extends AsyncView {
   }
 
   getTitle() {
-    const org = this.context.organization;
-    return `${org.name} Members`;
+    const orgId = this.context.organization.slug;
+    return routeTitleGen(t('Members'), orgId, false);
   }
 
   removeMember = id => {
