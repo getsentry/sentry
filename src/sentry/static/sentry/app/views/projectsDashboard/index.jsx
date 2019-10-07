@@ -12,6 +12,7 @@ import ConfigStore from 'app/stores/configStore';
 import IdBadge from 'app/components/idBadge';
 import NoProjectMessage from 'app/components/noProjectMessage';
 import PageHeading from 'app/components/pageHeading';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 import SentryTypes from 'app/sentryTypes';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
@@ -64,9 +65,12 @@ class Dashboard extends React.Component {
     if (showEmptyMessage) {
       return <NoProjectMessage organization={organization}>{null}</NoProjectMessage>;
     }
-
     return (
       <React.Fragment>
+        <SentryDocumentTitle
+          title={t('Projects Dashboard')}
+          objSlug={organization.slug}
+        />
         {projects.length > 0 && (
           <ProjectsHeader>
             <PageHeading>Projects</PageHeading>
