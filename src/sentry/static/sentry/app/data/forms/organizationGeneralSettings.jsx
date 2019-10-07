@@ -141,7 +141,7 @@ const formGroups = [
         autosize: true,
         maxRows: 10,
         placeholder: 'e.g. email',
-        label: t('Global sensitive fields'),
+        label: t('Global Sensitive Fields'),
         help: t(
           'Additional field names to match against when scrubbing data for all projects. Separate multiple entries with a newline.'
         ),
@@ -158,7 +158,7 @@ const formGroups = [
         autosize: true,
         maxRows: 10,
         placeholder: t('e.g. business-email'),
-        label: t('Global safe fields'),
+        label: t('Global Safe Fields'),
         help: t(
           'Field names which data scrubbers should ignore. Separate multiple entries with a newline.'
         ),
@@ -189,7 +189,7 @@ const formGroups = [
             "Are you sure you want to disable sourcecode fetching for JavaScript events? This will affect Sentry's ability to aggregate issues if you're not already uploading sourcemaps as artifacts."
           ),
         },
-        label: t('Allow JavaScript source fetching'),
+        label: t('Allow JavaScript Source Fetching'),
         help: t('Allow Sentry to scrape missing JavaScript source context when possible'),
       },
       {
@@ -233,11 +233,11 @@ const formGroups = [
         name: 'allowJoinRequests',
         type: 'boolean',
 
-        label: t('Allow Access Requests'),
-        help: t('Allow users to request access to your organization'),
+        label: t('Allow Join Requests'),
+        help: t('Allow users to request to join your organization'),
         confirm: {
           true: t(
-            'Are you sure you want to allow users to request access to your organization?'
+            'Are you sure you want to allow users to request to join your organization?'
           ),
         },
         visible: ({experiments}) =>

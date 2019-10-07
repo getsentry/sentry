@@ -60,7 +60,7 @@ class OrganizationJoinRequestEndpoint(OrganizationEndpoint):
 
         if organization.get_option("sentry:join_requests") is False:
             return Response(
-                {"detail": "Your organization does not allow access requests."}, status=403
+                {"detail": "Your organization does not allow join requests."}, status=403
             )
 
         # users can already join organizations with SSO enabled without an invite
