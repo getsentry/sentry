@@ -90,7 +90,7 @@ const OrganizationContext = createReactClass({
       this.remountComponent();
     }
 
-    if (this.state.organization) {
+    if (this.state.organization && this.props.finishProfile) {
       this.props.finishProfile();
     }
   },

@@ -40,12 +40,10 @@ export function finishTransaction(delay) {
   if (flushTransactionTimeout) {
     clearTimeout(flushTransactionTimeout);
   }
-  if (
-    Array.from(requests).find(([, active]) => active) ||
-    Array.from(renders).find(([, active]) => active)
-  ) {
+  if (hasActiveRenders || hasActiveRequests) {
     clearTimeout(flushTransactionTimeout);
   }
+
   flushTransactionTimeout = setTimeout(() => {
     Sentry.configureScope(scope => {
       const span = scope.getSpan();

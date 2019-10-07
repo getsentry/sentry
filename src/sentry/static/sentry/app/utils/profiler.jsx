@@ -1,4 +1,3 @@
-// import {debounce} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 import * as Sentry from '@sentry/browser';
@@ -9,6 +8,7 @@ import getDisplayName from 'app/utils/getDisplayName';
 export default function profiler() {
   return WrappedComponent => {
     const displayName = getDisplayName(WrappedComponent);
+
     return class extends React.Component {
       static displayName = displayName;
 
@@ -30,11 +30,11 @@ export default function profiler() {
         });
         startRender(displayName);
 
-        /*
-        if (this.props.api) {
-          this.props.api.setParentSpan(span);
-        }
-         */
+        // TODO(apm): We could try to associate this component with API client
+        // e.g:
+        // if (this.props.api) {
+        // this.props.api.setParentSpan(span);
+        // }
 
         return span;
       }
@@ -44,7 +44,7 @@ export default function profiler() {
           return;
         }
 
-        Sentry.finishSpan(this.span);
+        this.span.finish();
         finishRender(displayName);
         this.span = null;
       };
