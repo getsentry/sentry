@@ -1,4 +1,6 @@
 import React from 'react';
+import ReactDOM from 'react-dom';
+import styled from 'react-emotion';
 
 import {
   UserSelectValues,
@@ -26,6 +28,8 @@ class DraggableColumns extends React.Component<Props, State> {
   };
 
   previousUserSelect: UserSelectValues | null = null;
+  portal: HTMLElement | null = null;
+  dragGhostRef = React.createRef<HTMLDivElement>();
 
   startColumnDrag = (
     event: React.MouseEvent<SVGSVGElement, MouseEvent>,
@@ -62,6 +66,13 @@ class DraggableColumns extends React.Component<Props, State> {
     if (!this.state.isDragging || event.type !== 'mousemove') {
       return;
     }
+
+    console.log('event.pageX', event.pageX);
+
+    if (this.dragGhostRef.current) {
+      const ghostDOM = this.dragGhostRef.current;
+      ghostDOM.style.left = `${event.pageX}px`;
+    }
   };
 
   onDragEnd = (event: MouseEvent) => {
@@ -85,6 +96,8 @@ class DraggableColumns extends React.Component<Props, State> {
     this.setState({
       isDragging: false,
     });
+
+    console.log('ended');
   };
 
   cleanUpListeners = () => {
@@ -94,17 +107,66 @@ class DraggableColumns extends React.Component<Props, State> {
     }
   };
 
+  componentDidMount() {
+    if (!this.portal) {
+      const portal = document.createElement('div');
+      portal.setAttribute('id', 'draggable-columns-portal');
+
+      portal.style.position = 'absolute';
+      portal.style.top = '0';
+      portal.style.left = '0';
+      portal.style.zIndex = '9999';
+
+      this.portal = portal;
+
+      document.body.appendChild(this.portal);
+    }
+  }
+
   componentWillUnmount() {
+    if (this.portal) {
+      document.body.removeChild(this.portal);
+    }
     this.cleanUpListeners();
   }
 
-  render() {
+  renderChildren = () => {
     const childrenProps = {
       startColumnDrag: this.startColumnDrag,
     };
 
     return this.props.children(childrenProps);
+  };
+
+  renderThing = () => {
+    if (this.portal && this.state.isDragging) {
+      return ReactDOM.createPortal(
+        <MouseGuide innerRef={this.dragGhostRef} />,
+        this.portal
+      );
+    }
+
+    return null;
+  };
+
+  render() {
+    return (
+      <React.Fragment>
+        {this.renderThing()}
+        {this.renderChildren()}
+      </React.Fragment>
+    );
   }
 }
+
+const MouseGuide = styled('div')`
+  position: absolute;
+  top: 0;
+  bottom: 0;
+
+  width: 1px;
+  height: 100vh;
+  background-color: red;
+`;
 
 export default DraggableColumns;
