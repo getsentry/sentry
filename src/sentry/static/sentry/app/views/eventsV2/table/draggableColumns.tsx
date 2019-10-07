@@ -1,5 +1,10 @@
 import React from 'react';
 
+import {
+  UserSelectValues,
+  setBodyUserSelect,
+} from 'app/components/events/interfaces/spans/utils.tsx';
+
 export type DraggableColumnsChildrenProps = {
   startColumnDrag: (
     event: React.MouseEvent<SVGSVGElement, MouseEvent>,
@@ -20,6 +25,8 @@ class DraggableColumns extends React.Component<Props, State> {
     isDragging: false,
   };
 
+  previousUserSelect: UserSelectValues | null = null;
+
   startColumnDrag = (
     event: React.MouseEvent<SVGSVGElement, MouseEvent>,
     initialColumnIndex: number
@@ -29,6 +36,17 @@ class DraggableColumns extends React.Component<Props, State> {
     if (isDragging || event.type !== 'mousedown') {
       return;
     }
+
+    // prevent the user from selecting things outside the minimap when dragging
+    // the mouse cursor outside the minimap
+
+    this.previousUserSelect = setBodyUserSelect({
+      userSelect: 'none',
+      MozUserSelect: 'none',
+      msUserSelect: 'none',
+    });
+
+    // attach event listeners so that the mouse cursor can drag anywhere
 
     window.addEventListener('mousemove', this.onDragMove);
     window.addEventListener('mouseup', this.onDragEnd);
@@ -54,6 +72,15 @@ class DraggableColumns extends React.Component<Props, State> {
     // remove listeners that were attached in startColumnDrag
 
     this.cleanUpListeners();
+
+    // restore body styles
+
+    if (this.previousUserSelect) {
+      setBodyUserSelect(this.previousUserSelect);
+      this.previousUserSelect = null;
+    }
+
+    // indicate drag has ended
 
     this.setState({
       isDragging: false,
