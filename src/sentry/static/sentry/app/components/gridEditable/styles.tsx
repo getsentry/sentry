@@ -197,6 +197,8 @@ export const GridHeadCellResizer = styled('span')<GridEditableProps>`
  *
  */
 export const GridHeadCellButtonHover = styled('div')<GridEditableProps>`
+  outline: 1px solid blue;
+
   position: absolute;
   top: 0;
   left: 0;
@@ -259,6 +261,8 @@ export const GridHeadCellButtonHoverButton = styled('div')`
 export const GridHeadCellButtonHoverDraggable = styled(InlineSvg)`
   cursor: grab;
   user-select: none;
+
+  outline: 1px solid red;
 `;
 
 /**
