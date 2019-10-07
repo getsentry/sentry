@@ -17,9 +17,6 @@ class SentryAppWebhookError(Model):
         "sentry.Organization", related_name="sentry_app_webhook_errors"
     )
 
-    # If there is a related Sentry error, store it here
-    error_id = models.CharField(max_length=64, null=True)
-
     request_body = EncryptedJsonField()
 
     request_headers = EncryptedJsonField()

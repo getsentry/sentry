@@ -15,7 +15,6 @@ class SentryAppWebhookErrorSerializer(Serializer):
             },
             "date": obj.date_added,
             "organization": {"slug": obj.organization.slug, "name": obj.organization.name},
-            "errorId": obj.error_id,
             "request": {"body": obj.request_body, "headers": obj.request_headers},
             "eventType": obj.event_type,
             "webhookUrl": obj.webhook_url,

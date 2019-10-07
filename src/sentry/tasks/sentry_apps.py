@@ -287,7 +287,6 @@ def send_webhooks(installation, event, **kwargs):
             SentryAppWebhookError.objects.create(
                 sentry_app_id=installation.sentry_app_id,
                 organization_id=installation.organization_id,
-                # error_id=TODO
                 request_body=request_data.body,
                 request_headers=request_data.headers,
                 event_type=event,
