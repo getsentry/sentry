@@ -32,7 +32,7 @@ export default class SplitInstallationIdModal extends React.Component<Props> {
     this.onCopy();
     IndicatorStore.add('Copied to clipboard', 'success', {duration: delay});
     setTimeout(() => {
-      window.open('https://app.split.io/admin/integrations');
+      window.open('https://app.split.io/org/admin/integrations');
     }, delay);
   };
 
