@@ -417,7 +417,11 @@ def save_attachment(event, attachment):
     file.putfile(six.BytesIO(attachment.data))
 
     EventAttachment.objects.create(
-        event_id=event.event_id, project_id=event.project_id, name=attachment.name, file=file
+        event_id=event.event_id,
+        group_id=event.group_id,
+        project_id=event.project_id,
+        name=attachment.name,
+        file=file,
     )
 
 

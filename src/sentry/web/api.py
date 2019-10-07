@@ -28,7 +28,7 @@ from functools import wraps
 from querystring_parser import parser
 from symbolic import ProcessMinidumpError, Unreal4Crash, Unreal4Error
 
-from sentry import features, options, quotas
+from sentry import eventstore, features, options, quotas
 from sentry.attachments import CachedAttachment
 from sentry.constants import ObjectStatus
 from sentry.coreapi import (
@@ -648,6 +648,8 @@ class EventAttachmentStoreView(StoreView):
 
         project_id = project_config.project_id
 
+        event = eventstore.get_event_by_id(project_id, event_id)
+
         if len(request.FILES) == 0:
             return HttpResponse(status=400)
 
@@ -660,7 +662,11 @@ class EventAttachmentStoreView(StoreView):
             file.putfile(uploaded_file)
 
             EventAttachment.objects.create(
-                project_id=project_id, event_id=event_id, name=uploaded_file.name, file=file
+                project_id=project_id,
+                event_id=event_id,
+                group_id=event.get("group_id", None),
+                name=uploaded_file.name,
+                file=file,
             )
 
         return HttpResponse(status=201)

@@ -65,6 +65,7 @@ class DeleteProjectTest(TestCase):
         )
         EventAttachment.objects.create(
             event_id=event.event_id,
+            group_id=event.group_id,
             project_id=event.project_id,
             file=File.objects.create(name="hello.png", type="image/png"),
             name="hello.png",
