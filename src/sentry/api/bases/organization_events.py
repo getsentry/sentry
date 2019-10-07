@@ -5,7 +5,7 @@ from rest_framework.exceptions import PermissionDenied
 from sentry import eventstore
 from sentry.api.bases import OrganizationEndpoint, OrganizationEventsError
 from sentry.api.event_search import (
-    get_snuba_query_args,
+    get_filter,
     resolve_field_list,
     InvalidSearchQuery,
     get_reference_event_conditions,
@@ -20,11 +20,15 @@ class Direction(object):
 
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
     def get_snuba_query_args(self, request, organization, params):
+        snuba_args = {}
         query = request.GET.get("query")
         try:
-            snuba_args = get_snuba_query_args(query=query, params=params)
+            filter = get_filter(query, params)
         except InvalidSearchQuery as exc:
             raise OrganizationEventsError(exc.message)
+
+        for key in ("start", "end", "conditions", "filter_keys"):
+            snuba_args[key] = getattr(filter, key)
 
         sort = request.GET.getlist("sort")
         if sort:
@@ -80,11 +84,17 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
         query = request.GET.get("query")
         try:
-            snuba_args = get_snuba_query_args(query=query, params=params)
+            # snuba_args = get_snuba_query_args(query=query, params=params)
+            filter = get_filter(query, params)
         except InvalidSearchQuery as exc:
             raise OrganizationEventsError(exc.message)
 
-        return snuba_args
+        return {
+            "start": filter.start,
+            "end": filter.end,
+            "conditions": filter.conditions,
+            "filter_keys": filter.filter_keys,
+        }
 
     def next_event_id(self, snuba_args, event):
         """
@@ -130,6 +140,9 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         return self._get_terminal_event_id(Direction.NEXT, snuba_args, event)
 
     def _get_terminal_event_id(self, direction, snuba_args, event):
+
+        filter = self._get_filter(snuba_args)
+
         if direction == Direction.NEXT:
             time_condition = [["timestamp", ">", event.timestamp]]
             orderby = ["-timestamp", "-event_id"]
@@ -137,19 +150,10 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             time_condition = [["timestamp", "<", event.timestamp]]
             orderby = ["timestamp", "event_id"]
 
-        conditions = snuba_args["conditions"][:]
-        conditions.extend(time_condition)
+        filter.conditions = filter.conditions[:]
+        filter.conditions.extend(time_condition)
 
-        result = eventstore.get_events(
-            filter=eventstore.Filter(
-                start=snuba_args.get("start", None),
-                end=snuba_args.get("end", None),
-                conditions=conditions,
-                **snuba_args["filter_keys"]
-            ),
-            orderby=orderby,
-            limit=1,
-        )
+        result = eventstore.get_events(filter=filter, orderby=orderby, limit=1)
         if not result:
             return None
 

@@ -83,6 +83,24 @@ class Filter(object):
         self.group_ids = group_ids
         self.event_ids = event_ids
 
+    @property
+    def filter_keys(self):
+        """
+        Get filter_keys value required for raw snuba query
+        """
+        filter_keys = {}
+
+        if self.project_ids:
+            filter_keys["project_id"] = self.project_ids
+
+        if self.group_ids:
+            filter_keys["issue"] = self.group_ids
+
+        if self.event_ids:
+            filter_keys["event_id"] = self.event_ids
+
+        return filter_keys
+
 
 class EventStorage(Service):
     __all__ = (
