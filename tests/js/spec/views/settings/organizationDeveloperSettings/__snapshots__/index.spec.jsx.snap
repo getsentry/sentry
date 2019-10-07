@@ -72,10 +72,10 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
     }
   >
     <SideEffect(DocumentTitle)
-      title="Sentry"
+      title="Developer Settings - org-slug - Sentry"
     >
       <DocumentTitle
-        title="Sentry"
+        title="Developer Settings - org-slug - Sentry"
       >
         <div>
           <StyledSettingsPageHeading

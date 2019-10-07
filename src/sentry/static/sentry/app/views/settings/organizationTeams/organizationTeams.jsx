@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {openCreateTeamModal} from 'app/actionCreators/modal';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
@@ -64,10 +65,12 @@ class OrganizationTeams extends React.Component {
 
     const activeTeamIds = new Set(activeTeams.map(team => team.id));
     const otherTeams = allTeams.filter(team => !activeTeamIds.has(team.id));
+    const title = t('Teams');
 
     return (
       <div data-test-id="team-list">
-        <SettingsPageHeader title={t('Teams')} action={action} />
+        <SentryDocumentTitle title={title} objSlug={organization.slug} />
+        <SettingsPageHeader title={title} action={action} />
         <Panel>
           <PanelHeader>{t('Your Teams')}</PanelHeader>
           <PanelBody>
