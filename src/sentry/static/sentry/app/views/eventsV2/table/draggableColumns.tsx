@@ -13,6 +13,11 @@ import {TableColumn} from './types';
 
 export const DRAGGABLE_COLUMN_CLASSNAME_IDENTIFIER = 'grid-head-cell-button';
 
+import {
+  UserSelectValues,
+  setBodyUserSelect,
+} from 'app/components/events/interfaces/spans/utils.tsx';
+
 export type DraggableColumnsChildrenProps = {
   isColumnDragging: boolean;
   startColumnDrag: (
