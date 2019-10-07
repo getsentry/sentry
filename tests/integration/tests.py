@@ -603,7 +603,7 @@ class CspReportTest(TestCase, SnubaTestCase):
         assert resp.status_code == 201, resp.content
         events = eventstore.get_events(
             filter=eventstore.Filter(
-                project_id=[self.project.id], conditions=[["type", "=", "csp"]]
+                project_ids=[self.project.id], conditions=[["type", "=", "csp"]]
             )
         )
         assert len(events) == 1

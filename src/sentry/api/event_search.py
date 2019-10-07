@@ -641,7 +641,7 @@ def get_filter(query=None, params=None):
     if params is not None:
         parsed_terms.extend(convert_endpoint_params(params))
 
-    kwargs = {"start": None, "end": None, "conditions": [], "project_id": [], "group_id": []}
+    kwargs = {"start": None, "end": None, "conditions": [], "project_ids": [], "group_ids": []}
 
     projects = {}
     has_project_term = any(
@@ -663,7 +663,9 @@ def get_filter(query=None, params=None):
                 kwargs[snuba_name] = term.value.value
             elif snuba_name in ("project_id", "issue"):
                 if snuba_name == "issue":
-                    snuba_name = "group_id"
+                    snuba_name = "group_ids"
+                if snuba_name == "project_id":
+                    snuba_name = "project_ids"
                 value = term.value.value
                 if isinstance(value, int):
                     value = [value]

@@ -68,14 +68,20 @@ class Columns(Enum):
 
 class Filter(object):
     def __init__(
-        self, start=None, end=None, conditions=None, project_id=None, group_id=None, event_id=None
+        self,
+        start=None,
+        end=None,
+        conditions=None,
+        project_ids=None,
+        group_ids=None,
+        event_ids=None,
     ):
         self.start = start
         self.end = end
         self.conditions = conditions
-        self.project_id = project_id
-        self.group_id = group_id
-        self.event_id = event_id
+        self.project_ids = project_ids
+        self.group_ids = group_ids
+        self.event_ids = event_ids
 
 
 class EventStorage(Service):
