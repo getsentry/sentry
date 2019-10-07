@@ -8,6 +8,7 @@ import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {t, tct} from 'app/locale';
 import Access from 'app/components/acl/access';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import withApi from 'app/utils/withApi';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
@@ -184,6 +185,7 @@ class ProjectEnvironments extends React.Component {
     const baseUrl = recreateRoute('', {routes, params, stepBack: -1});
     return (
       <div>
+        <SentryDocumentTitle title={t('Environments')} objSlug={params.projectId} />
         <SettingsPageHeader
           title={t('Manage Environments')}
           tabs={
