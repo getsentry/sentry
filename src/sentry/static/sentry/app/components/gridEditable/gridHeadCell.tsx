@@ -24,7 +24,7 @@ export type GridHeadCellProps<Column> = {
 
   actions: {
     moveColumnCommit: (indexFrom: number, indexTo: number) => void;
-    moveColumnStage: (indexFrom: number, indexTo: number) => void;
+    onDragStart: (indexFrom: number) => void;
     deleteColumn: (index: number) => void;
     toggleModalEditColumn: (index?: number, column?: Column) => void;
   };
@@ -79,11 +79,7 @@ class GridHeadCell<Column> extends React.Component<
               src="icon-grabbable"
               onClick={() => {
                 const fromColumn = this.props.indexColumnOrder;
-                const destinationColumn = this.props.indexColumnOrder - 1;
-
-                if (destinationColumn >= 0) {
-                  this.props.actions.moveColumnStage(fromColumn, destinationColumn);
-                }
+                this.props.actions.onDragStart(fromColumn);
               }}
             />
           )}
@@ -102,11 +98,7 @@ class GridHeadCell<Column> extends React.Component<
               src="icon-grabbable"
               onClick={() => {
                 const fromColumn = this.props.indexColumnOrder;
-                const destinationColumn = this.props.indexColumnOrder + 1;
-
-                if (destinationColumn >= 0) {
-                  this.props.actions.moveColumnStage(fromColumn, destinationColumn);
-                }
+                this.props.actions.onDragStart(fromColumn);
               }}
             />
           )}

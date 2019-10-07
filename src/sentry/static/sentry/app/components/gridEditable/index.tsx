@@ -81,7 +81,7 @@ type GridEditableProps<DataRow, ColumnKey extends keyof DataRow> = {
    */
   actions: {
     moveColumnCommit: (indexFrom: number, indexTo: number) => void;
-    moveColumnStage: (indexFrom: number, indexTo: number) => void;
+    onDragStart: (indexFrom: number) => void;
     deleteColumn: (index: number) => void;
   };
 };
@@ -231,7 +231,7 @@ class GridEditable<
               column={column}
               actions={{
                 moveColumnCommit: actions.moveColumnCommit,
-                moveColumnStage: actions.moveColumnStage,
+                onDragStart: actions.onDragStart,
                 deleteColumn: actions.deleteColumn,
                 toggleModalEditColumn: this.toggleModalEditColumn,
               }}

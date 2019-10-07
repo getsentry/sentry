@@ -103,13 +103,16 @@ class TableView extends React.Component<TableViewProps> {
     });
   };
 
-  _moveColumnStage = (fromIndex: number, toIndex: number) => {
-    this.setState({
-      moveColumnStage: {
-        fromIndex,
-        toIndex,
-      },
+  _onDragStart = (fromIndex: number) => {
+    console.log({
+      fromIndex,
     });
+    // this.setState({
+    //   moveColumnStage: {
+    //     fromIndex,
+    //     toIndex,
+    //   },
+    // });
   };
 
   /**
@@ -177,6 +180,21 @@ class TableView extends React.Component<TableViewProps> {
     return fieldRenderer(dataRow, {organization, location});
   };
 
+  generateColumnOrder = (): TableState['columnOrder'] => {
+    const {columnOrder} = this.state;
+
+    if (this.state.moveColumnStage) {
+      const {fromIndex, toIndex} = this.state.moveColumnStage;
+
+      const nextColumnOrder = [...columnOrder];
+      nextColumnOrder.splice(toIndex, 0, nextColumnOrder.splice(fromIndex, 1)[0]);
+
+      return nextColumnOrder;
+    }
+
+    return columnOrder;
+  };
+
   render() {
     const {organization, isLoading, error, tableData, eventView} = this.props;
 
@@ -197,7 +215,7 @@ class TableView extends React.Component<TableViewProps> {
         isLoading={isLoading}
         error={error}
         data={tableData ? tableData.data : []}
-        columnOrder={columnOrder}
+        columnOrder={this.generateColumnOrder()}
         columnSortBy={columnSortBy}
         grid={{
           renderHeaderCell: this._renderGridHeaderCell as any,
@@ -210,7 +228,7 @@ class TableView extends React.Component<TableViewProps> {
         actions={{
           deleteColumn: this._deleteColumn,
           moveColumnCommit: this._moveColumnCommit,
-          moveColumnStage: this._moveColumnStage,
+          onDragStart: this._onDragStart,
         }}
       />
     );
