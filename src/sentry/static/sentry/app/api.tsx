@@ -340,7 +340,9 @@ export class Client {
           );
         },
         complete: (jqXHR: JQueryXHR, textStatus: string) => {
-          Sentry.finishSpan(requestSpan);
+          // TODO(kamil): We forgot to add this to Spans interface
+          (requestSpan as any).finish();
+
           return this.wrapCallback<[JQueryXHR, string]>(id, options.complete, true)(
             jqXHR,
             textStatus
