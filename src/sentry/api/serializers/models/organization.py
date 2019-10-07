@@ -34,6 +34,7 @@ ATTACHMENTS_ROLE_DEFAULT = settings.SENTRY_DEFAULT_ROLE
 REQUIRE_SCRUB_IP_ADDRESS_DEFAULT = False
 SCRAPE_JAVASCRIPT_DEFAULT = True
 TRUSTED_RELAYS_DEFAULT = None
+JOIN_REQUESTS_DEFAULT = True
 
 
 @register(Organization)
@@ -162,7 +163,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "require2FA": bool(obj.flags.require_2fa),
                 "allowSharedIssues": not obj.flags.disable_shared_issues,
                 "enhancedPrivacy": bool(obj.flags.enhanced_privacy),
-                "allowJoinRequests": not bool(obj.flags.disable_join_requests),
                 "dataScrubber": bool(
                     obj.get_option("sentry:require_scrub_data", REQUIRE_SCRUB_DATA_DEFAULT)
                 ),
@@ -190,6 +190,9 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 ),
                 "trustedRelays": obj.get_option("sentry:trusted-relays", TRUSTED_RELAYS_DEFAULT)
                 or [],
+                "allowJoinRequests": bool(
+                    obj.get_option("sentry:join_requests", JOIN_REQUESTS_DEFAULT)
+                ),
             }
         )
         context["access"] = access.scopes

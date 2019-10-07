@@ -82,6 +82,7 @@ ORG_OPTIONS = (
         org_serializers.REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
     ),
     ("trustedRelays", "sentry:trusted-relays", list, org_serializers.TRUSTED_RELAYS_DEFAULT),
+    ("allowJoinRequests", "sentry:join_requests", bool, org_serializers.JOIN_REQUESTS_DEFAULT),
 )
 
 delete_logger = logging.getLogger("sentry.deletions.api")
@@ -266,8 +267,6 @@ class OrganizationSerializer(serializers.Serializer):
             org.flags.early_adopter = self.initial_data["isEarlyAdopter"]
         if "require2FA" in self.initial_data:
             org.flags.require_2fa = self.initial_data["require2FA"]
-        if "allowJoinRequests" in self.initial_data:
-            org.flags.disable_join_requests = not self.initial_data["allowJoinRequests"]
         if "name" in self.initial_data:
             org.name = self.initial_data["name"]
         if "slug" in self.initial_data:
@@ -283,7 +282,6 @@ class OrganizationSerializer(serializers.Serializer):
                 "disable_shared_issues": org.flags.disable_shared_issues.is_set,
                 "early_adopter": org.flags.early_adopter.is_set,
                 "require_2fa": org.flags.require_2fa.is_set,
-                "disable_join_requests": org.flags.disable_join_requests.is_set,
             },
         }
 

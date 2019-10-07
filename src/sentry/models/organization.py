@@ -137,7 +137,6 @@ class Organization(Model):
                 "disable_new_visibility_features",
                 "Temporarily opt out of new visibility features and ui",
             ),
-            ("disable_join_requests", "Do not allow users to request to join the organization."),
         ),
         default=1,
     )

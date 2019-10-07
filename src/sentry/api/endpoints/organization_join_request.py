@@ -58,7 +58,7 @@ class OrganizationJoinRequestEndpoint(OrganizationEndpoint):
         if assignment != 1:
             return Response(status=403)
 
-        if bool(organization.flags.disable_join_requests):
+        if organization.get_option("sentry:join_requests") is False:
             return Response(
                 {"detail": "Your organization does not allow access requests."}, status=403
             )

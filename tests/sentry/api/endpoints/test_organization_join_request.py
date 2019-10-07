@@ -2,9 +2,8 @@ from __future__ import absolute_import
 
 from exam import fixture
 from mock import patch
-from django.db.models import F
 
-from sentry.models import AuthProvider, InviteStatus, Organization, OrganizationMember
+from sentry.models import AuthProvider, InviteStatus, OrganizationOption, OrganizationMember
 from sentry.testutils import APITestCase
 from sentry.api.endpoints.organization_join_request import JOIN_REQUEST_EXPERIMENT
 
@@ -53,7 +52,9 @@ class OrganizationJoinRequestTest(APITestCase):
 
     @patch("sentry.experiments.get", return_value=1)
     def test_organization_setting_disabled(self, mock_experiment):
-        self.org.update(flags=F("flags").bitor(Organization.flags.disable_join_requests))
+        OrganizationOption.objects.create(
+            organization_id=self.org.id, key="sentry:join_requests", value=False
+        )
 
         resp = self.get_response(self.org.slug)
         assert resp.status_code == 403
