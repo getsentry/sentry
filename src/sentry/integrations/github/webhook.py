@@ -127,6 +127,16 @@ class InstallationEventWebhook(Webhook):
     def _handle_delete(self, event, integration):
 
         organizations = integration.organizations.all()
+
+        logger.info(
+            "InstallationEventWebhook._handle_delete",
+            extra={
+                "external_id": event["installation"]["id"],
+                "integration_id": integration.id,
+                "organization_id_list": organizations.values_list("id", flat=True),
+            },
+        )
+
         integration.update(status=ObjectStatus.DISABLED)
 
         Repository.objects.filter(
