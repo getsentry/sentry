@@ -84,15 +84,15 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
         query = request.GET.get("query")
         try:
-            filter = get_filter(query, params)
+            _filter = get_filter(query, params)
         except InvalidSearchQuery as exc:
             raise OrganizationEventsError(exc.message)
 
         return {
-            "start": filter.start,
-            "end": filter.end,
-            "conditions": filter.conditions,
-            "filter_keys": filter.filter_keys,
+            "start": _filter.start,
+            "end": _filter.end,
+            "conditions": _filter.conditions,
+            "filter_keys": _filter.filter_keys,
         }
 
     def next_event_id(self, snuba_args, event):
