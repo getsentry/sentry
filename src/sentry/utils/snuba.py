@@ -699,6 +699,7 @@ def _prepare_query_params(query_params):
 
     query_params.kwargs.update(
         {
+            "dataset": query_params.dataset,
             "from_date": start.isoformat(),
             "to_date": end.isoformat(),
             "groupby": query_params.groupby,
