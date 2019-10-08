@@ -79,6 +79,7 @@ class DraggableColumns extends React.Component<Props, State> {
     if (this.dragGhostRef.current) {
       const ghostDOM = this.dragGhostRef.current;
       ghostDOM.style.left = `${event.pageX}px`;
+      ghostDOM.style.top = `${event.pageY}px`;
     }
   };
 
@@ -147,11 +148,22 @@ class DraggableColumns extends React.Component<Props, State> {
   };
 
   renderThing = () => {
-    if (this.portal && this.state.isDragging) {
-      return ReactDOM.createPortal(
-        <MouseGuide innerRef={this.dragGhostRef} />,
-        this.portal
+    if (
+      this.portal &&
+      this.state.isDragging &&
+      typeof this.state.draggingColumnIndex === 'number'
+    ) {
+      const columnBeingDragged = this.props.columnOrder[this.state.draggingColumnIndex];
+
+      const ghost = (
+        <React.Fragment>
+          <DebugSquare innerRef={this.dragGhostRef}>
+            <GhostContentBox>{columnBeingDragged.name}</GhostContentBox>
+          </DebugSquare>
+        </React.Fragment>
       );
+
+      return ReactDOM.createPortal(ghost, this.portal);
     }
 
     return null;
@@ -167,14 +179,26 @@ class DraggableColumns extends React.Component<Props, State> {
   }
 }
 
-const MouseGuide = styled('div')`
+const DebugSquare = styled('div')`
   position: absolute;
   top: 0;
   bottom: 0;
-
-  width: 1px;
-  height: 100vh;
-  background-color: red;
 `;
+
+const GhostContentBox = styled('div')`
+  background-color: white;
+
+  outline: 1px solid red;
+`;
+
+// const MouseGuide = styled('div')`
+//   position: absolute;
+//   top: 0;
+//   bottom: 0;
+
+//   width: 1px;
+//   height: 100vh;
+//   background-color: red;
+// `;
 
 export default DraggableColumns;
