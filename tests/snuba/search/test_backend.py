@@ -2,9 +2,7 @@ from __future__ import absolute_import
 
 import mock
 import pytz
-import pytest
 from datetime import datetime, timedelta
-from django.conf import settings
 from django.utils import timezone
 from hashlib import md5
 
@@ -744,10 +742,6 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
         )
         assert set(results) == set([self.group1, self.group2])
 
-    @pytest.mark.xfail(
-        settings.SENTRY_TAGSTORE.startswith("sentry.tagstore.legacy.LegacyTagStorage"),
-        reason="unsupported on legacy backend due to insufficient index",
-    )
     def test_date_filter_with_environment(self):
         results = self.backend.query(
             [self.project],
