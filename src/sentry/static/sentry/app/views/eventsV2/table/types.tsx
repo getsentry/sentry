@@ -24,10 +24,6 @@ export type TableColumnSort<K> = GridColumnSortBy<K>;
 export type TableState = {
   columnOrder: TableColumn<keyof TableDataRow>[];
   columnSortBy: TableColumnSort<keyof TableDataRow>[];
-  moveColumnStage?: {
-    fromIndex: number;
-    toIndex: number;
-  };
 };
 
 export type TableDataRow = {
