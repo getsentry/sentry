@@ -21,7 +21,7 @@ from sentry.search.utils import (
     InvalidQuery,
 )
 from sentry.utils.dates import to_timestamp
-from sentry.utils.snuba import DATASETS, get_snuba_column_name
+from sentry.utils.snuba import Dataset, DATASETS, get_snuba_column_name
 
 WILDCARD_CHARS = re.compile(r"[\*]")
 
@@ -150,8 +150,8 @@ SEARCH_MAP = {
     # TODO(mark) figure out how to safelist aggregate functions/field aliases
     # so they can be used in conditions
 }
-SEARCH_MAP.update(**DATASETS["transactions"])
-SEARCH_MAP.update(**DATASETS["events"])
+SEARCH_MAP.update(**DATASETS[Dataset.Transactions])
+SEARCH_MAP.update(**DATASETS[Dataset.Events])
 
 no_conversion = set(["project_id", "start", "end"])
 

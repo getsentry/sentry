@@ -106,7 +106,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         # 'legacy' endpoints cannot access transactions dataset.
         # as they often have assumptions about which columns are returned.
         dataset = snuba.detect_dataset(snuba_args, aliased_conditions=True)
-        if dataset != "events":
+        if dataset != snuba.Dataset.Events:
             raise OrganizationEventsError(
                 "Invalid query. You cannot reference non-events data in this endpoint."
             )
