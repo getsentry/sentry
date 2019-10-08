@@ -119,7 +119,6 @@ class DraggableColumns extends React.Component<Props, State> {
   componentDidMount() {
     if (!this.portal) {
       const portal = document.createElement('div');
-      portal.setAttribute('id', 'draggable-columns-portal');
 
       portal.style.position = 'absolute';
       portal.style.top = '0';
