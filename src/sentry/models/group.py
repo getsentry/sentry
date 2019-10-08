@@ -137,25 +137,22 @@ class EventOrdering(Enum):
 def get_oldest_or_latest_event_for_environments(
     ordering, environments=(), issue_id=None, project_id=None
 ):
-    from sentry.utils import snuba
-    from sentry.models import SnubaEvent
-
     conditions = []
 
     if len(environments) > 0:
         conditions.append(["environment", "IN", environments])
 
-    result = snuba.raw_query(
-        selected_columns=SnubaEvent.selected_columns,
-        conditions=conditions,
-        filter_keys={"issue": [issue_id], "project_id": [project_id]},
-        orderby=ordering.value,
+    events = eventstore.get_events(
+        filter=eventstore.Filter(
+            conditions=conditions, project_ids=[project_id], group_ids=[issue_id]
+        ),
         limit=1,
+        orderby=ordering.value,
         referrer="Group.get_latest",
     )
 
-    if "error" not in result and len(result["data"]) == 1:
-        return SnubaEvent(result["data"][0])
+    if events:
+        return events[0]
 
     return None
 
