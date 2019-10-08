@@ -18,7 +18,9 @@ class RawExceptionContent extends React.Component {
     eventId: PropTypes.string,
     projectId: PropTypes.string.isRequired,
     values: PropTypes.array.isRequired,
-    organization: SentryTypes.Organization.isRequired,
+
+    // XXX: Organization is NOT available for Shared Issues!
+    organization: SentryTypes.Organization,
   };
 
   constructor(props) {
@@ -57,12 +59,20 @@ class RawExceptionContent extends React.Component {
   }
 
   fetchAppleCrashReport() {
+    const {api, organization} = this.props;
+
+    // Shared issues do not have access to organization
+    if (!organization) {
+      return;
+    }
+
     this.setState({
       loading: true,
       error: false,
       crashReport: '',
     });
-    this.props.api.request(this.getAppleCrashReportEndpoint(), {
+
+    api.request(this.getAppleCrashReportEndpoint(), {
       method: 'GET',
       success: data => {
         this.setState({
