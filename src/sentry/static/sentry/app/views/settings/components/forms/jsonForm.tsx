@@ -62,6 +62,7 @@ class JsonForm extends React.Component<Props, State> {
 
     access: PropTypes.object,
     features: PropTypes.object,
+    experiments: PropTypes.object,
     renderFooter: PropTypes.func,
     /**
      * Renders inside of PanelBody
@@ -129,6 +130,7 @@ class JsonForm extends React.Component<Props, State> {
       access,
       disabled,
       features,
+      experiments,
       additionalFieldProps,
       renderFooter,
       renderHeader,
@@ -140,6 +142,7 @@ class JsonForm extends React.Component<Props, State> {
       access,
       disabled,
       features,
+      experiments,
       additionalFieldProps,
       renderFooter,
       renderHeader,
