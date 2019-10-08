@@ -320,6 +320,7 @@ class TimeRangeSelector extends React.PureComponent {
         {({isOpen, getRootProps, getActorProps, getMenuProps}) => (
           <TimeRangeRoot {...getRootProps()}>
             <StyledHeaderItem
+              data-test-id="global-header-timerange-selector"
               icon={<StyledInlineSvg src="icon-calendar" />}
               isOpen={isOpen}
               hasSelected={

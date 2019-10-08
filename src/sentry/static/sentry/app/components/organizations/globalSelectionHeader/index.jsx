@@ -503,7 +503,6 @@ class GlobalSelectionHeader extends React.Component {
         <HeaderItemPosition>
           {shouldForceProject && this.getBackButton()}
           <MultipleProjectSelector
-            data-test-id="global-header-project-selector"
             organization={organization}
             shouldForceProject={shouldForceProject}
             forceProject={forceProject}
@@ -521,7 +520,6 @@ class GlobalSelectionHeader extends React.Component {
             <HeaderSeparator />
             <HeaderItemPosition>
               <MultipleEnvironmentSelector
-                data-test-id="global-header-environment-selector"
                 organization={organization}
                 selectedProjects={selectedProjects}
                 value={this.state.environments || this.props.selection.environments}
@@ -537,7 +535,6 @@ class GlobalSelectionHeader extends React.Component {
             <HeaderSeparator />
             <HeaderItemPosition>
               <TimeRangeSelector
-                data-test-id="global-header-timerange-selector"
                 key={`period:${period}-start:${start}-end:${end}-utc:${utc}`}
                 showAbsolute={showAbsolute}
                 showRelative={showRelative}
