@@ -150,9 +150,6 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         return self._get_terminal_event_id(Direction.NEXT, snuba_args, event)
 
     def _get_terminal_event_id(self, direction, snuba_args, event):
-
-        filter = self._get_filter(snuba_args)
-
         if direction == Direction.NEXT:
             time_condition = [["timestamp", ">", event.timestamp]]
             orderby = ["-timestamp", "-event_id"]
@@ -160,12 +157,20 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             time_condition = [["timestamp", "<", event.timestamp]]
             orderby = ["timestamp", "event_id"]
 
-        filter.conditions = filter.conditions[:]
-        filter.conditions.extend(time_condition)
+        conditions = snuba_args["conditions"][:]
+        conditions.extend(time_condition)
 
-        result = eventstore.get_events(filter=filter, orderby=orderby, limit=1)
-
-        if not result:
+        result = snuba.dataset_query(
+            selected_columns=["event_id"],
+            start=snuba_args.get("start", None),
+            end=snuba_args.get("end", None),
+            conditions=conditions,
+            dataset=snuba.detect_dataset(snuba_args, aliased_conditions=True),
+            filter_keys=snuba_args["filter_keys"],
+            orderby=orderby,
+            limit=1,
+        )
+        if not result or "data" not in result or len(result["data"]) == 0:
             return None
 
         return result["data"][0]["event_id"]
