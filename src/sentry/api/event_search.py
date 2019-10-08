@@ -475,10 +475,6 @@ class SearchVisitor(NodeVisitor):
         key = children[0]
         return SearchKey(self.key_mappings_lookup.get(key, key))
 
-    def visit_tag_key(self, node, children):
-        key = children[0]
-        return SearchKey(self.key_mappings_lookup.get(key, key))
-
     def visit_search_value(self, node, children):
         return SearchValue(children[0])
 
@@ -659,7 +655,6 @@ def get_snuba_query_args(query=None, params=None):
             if term.key.name == PROJECT_KEY:
                 condition = ["project_id", "=", projects.get(term.value.value)]
                 kwargs["conditions"].append(condition)
-
             elif snuba_name in ("start", "end"):
                 kwargs[snuba_name] = term.value.value
             elif snuba_name in ("project_id", "issue"):
