@@ -284,8 +284,6 @@ def send_webhooks(installation, event, **kwargs):
         # Track any webhook errors for these event types
         if not resp.ok and event in ["issue.assigned", "issue.ignored", "issue.resolved"]:
             body = safe_urlread(resp)
-            # Keep the stored response truncated at 500 chars just because it could be arbitrarily long
-            truncated_body = body[:500] + (body[500:] and "...")
             SentryAppWebhookError.objects.create(
                 sentry_app_id=installation.sentry_app_id,
                 organization_id=installation.organization_id,
@@ -293,6 +291,6 @@ def send_webhooks(installation, event, **kwargs):
                 request_headers=request_data.headers,
                 event_type=event,
                 webhook_url=servicehook.sentry_app.webhook_url,
-                response_body=truncated_body,
+                response_body=body,
                 response_code=resp.status_code,
             )
