@@ -23,12 +23,18 @@ type Props = {
 type State = {
   isDragging: boolean;
   draggingColumnIndex: undefined | number;
+  left: undefined | number;
+  top: undefined | number;
 };
 
 class DraggableColumns extends React.Component<Props, State> {
   state: State = {
     isDragging: false,
     draggingColumnIndex: void 0,
+
+    // initial coordinates for when the drag began
+    left: void 0,
+    top: void 0,
   };
 
   previousUserSelect: UserSelectValues | null = null;
@@ -64,6 +70,8 @@ class DraggableColumns extends React.Component<Props, State> {
     this.setState({
       isDragging: true,
       draggingColumnIndex: initialColumnIndex,
+      left: event.pageX,
+      top: event.pageY,
     });
 
     console.log('dragging column', initialColumnIndex, columnBeingDragged);
@@ -112,6 +120,8 @@ class DraggableColumns extends React.Component<Props, State> {
     this.setState({
       isDragging: false,
       draggingColumnIndex: void 0,
+      left: void 0,
+      top: void 0,
     });
 
     console.log('ended');
@@ -162,9 +172,15 @@ class DraggableColumns extends React.Component<Props, State> {
     ) {
       const columnBeingDragged = this.props.columnOrder[this.state.draggingColumnIndex];
 
+      const top = `${this.state.top}px`;
+      const left = `${this.state.left}px`;
+
       const ghost = (
         <React.Fragment>
-          <GhostPlacement innerRef={this.dragGhostRef} style={{display: 'block'}}>
+          <GhostPlacement
+            innerRef={this.dragGhostRef}
+            style={{display: 'block', top, left}}
+          >
             <GhostContentBox>{columnBeingDragged.name}</GhostContentBox>
           </GhostPlacement>
         </React.Fragment>
