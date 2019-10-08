@@ -26,6 +26,7 @@ from sentry.incidents.logic import (
     calculate_incident_start,
     create_alert_rule,
     create_alert_rule_trigger,
+    create_alert_rule_trigger_action,
     create_event_stat_snapshot,
     create_incident,
     create_incident_activity,
@@ -33,6 +34,7 @@ from sentry.incidents.logic import (
     create_initial_event_stats_snapshot,
     delete_alert_rule,
     delete_alert_rule_trigger,
+    delete_alert_rule_trigger_action,
     DEFAULT_ALERT_RULE_RESOLUTION,
     get_excluded_projects_for_alert_rule,
     get_incident_aggregates,
@@ -46,6 +48,7 @@ from sentry.incidents.logic import (
     subscribe_to_incident,
     StatusAlreadyChangedError,
     update_alert_rule,
+    update_alert_rule_trigger_action,
     update_alert_rule_trigger,
     update_incident_status,
 )
@@ -54,6 +57,7 @@ from sentry.incidents.models import (
     AlertRuleStatus,
     AlertRuleThresholdType,
     AlertRuleTrigger,
+    AlertRuleTriggerAction,
     AlertRuleTriggerExclusion,
     Incident,
     IncidentActivity,
@@ -1306,3 +1310,82 @@ class GetTriggersForAlertRuleTest(TestCase):
             alert_rule, "hi", AlertRuleThresholdType.ABOVE, 1000, 400
         )
         assert get_triggers_for_alert_rule(alert_rule).get() == trigger
+
+
+class BaseAlertRuleTriggerActionTest(object):
+    @fixture
+    def alert_rule(self):
+        return self.create_alert_rule()
+
+    @fixture
+    def trigger(self):
+        return create_alert_rule_trigger(
+            self.alert_rule, "hello", AlertRuleThresholdType.ABOVE, 1000, 400
+        )
+
+
+class CreateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
+    def test(self):
+        type = AlertRuleTriggerAction.Type.EMAIL
+        target_type = AlertRuleTriggerAction.TargetType.USER
+        target_identifier = six.text_type(self.user.id)
+        target_display = "hello"
+        action = create_alert_rule_trigger_action(
+            self.trigger,
+            type,
+            target_type,
+            target_identifier=target_identifier,
+            target_display=target_display,
+        )
+        assert action.alert_rule_trigger == self.trigger
+        assert action.type == type.value
+        assert action.target_type == target_type.value
+        assert action.target_identifier == target_identifier
+        assert action.target_display == target_display
+
+
+class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
+    @fixture
+    def action(self):
+        return create_alert_rule_trigger_action(
+            self.trigger,
+            AlertRuleTriggerAction.Type.EMAIL,
+            AlertRuleTriggerAction.TargetType.USER,
+            target_identifier=six.text_type(self.user.id),
+            target_display="hello",
+        )
+
+    def test(self):
+        type = AlertRuleTriggerAction.Type.SLACK
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+        target_identifier = "#ruhroh"
+        target_display = "Alert Channel"
+        update_alert_rule_trigger_action(
+            self.action,
+            type=type,
+            target_type=target_type,
+            target_identifier=target_identifier,
+            target_display=target_display,
+        )
+        assert self.action.type == type.value
+        assert self.action.target_type == target_type.value
+        assert self.action.target_identifier == target_identifier
+        assert self.action.target_display == target_display
+
+
+class DeleteAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
+    @fixture
+    def action(self):
+        return create_alert_rule_trigger_action(
+            self.trigger,
+            AlertRuleTriggerAction.Type.EMAIL,
+            AlertRuleTriggerAction.TargetType.USER,
+            target_identifier=six.text_type(self.user.id),
+            target_display="hello",
+        )
+
+    def test(self):
+        action_id = self.action.id
+        delete_alert_rule_trigger_action(self.action)
+        with self.assertRaises(AlertRuleTriggerAction.DoesNotExist):
+            AlertRuleTriggerAction.objects.get(id=action_id)
