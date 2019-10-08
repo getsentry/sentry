@@ -14,6 +14,7 @@ from sentry.utils.snuba import (
     get_snuba_column_name,
     detect_dataset,
     transform_aliases_and_query,
+    Dataset,
 )
 
 
@@ -305,7 +306,7 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
                 ["uniq", "transaction_name", "uniq_transaction"],
             ],
             filter_keys={"project_id": [self.project.id]},
-            dataset="transactions",
+            dataset=Dataset.Transactions,
             arrayjoin=None,
             end=None,
             start=None,
@@ -329,7 +330,7 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
         mock_query.assert_called_with(
             selected_columns=["transaction_name", "duration"],
             filter_keys={"project_id": [self.project.id]},
-            dataset="transactions",
+            dataset=Dataset.Transactions,
             orderby=["finish_ts"],
             aggregations=None,
             arrayjoin=None,
@@ -369,7 +370,7 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
             filter_keys={"project_id": [self.project.id]},
             groupby=["transaction_op"],
             orderby=["-finish_ts", "-count"],
-            dataset="transactions",
+            dataset=Dataset.Transactions,
             arrayjoin=None,
             end=None,
             start=None,
@@ -399,7 +400,7 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
             ],
             aggregations=[["count", "", "count"]],
             filter_keys={"project_id": [self.project.id]},
-            dataset="transactions",
+            dataset=Dataset.Transactions,
             groupby=None,
             orderby=None,
             arrayjoin=None,
@@ -426,7 +427,7 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
             conditions=[["duration", ">", 200]],
             filter_keys={"project_id": [self.project.id]},
             groupby=["transaction_op"],
-            dataset="transactions",
+            dataset=Dataset.Transactions,
             aggregations=None,
             arrayjoin=None,
             end=None,
@@ -453,7 +454,7 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
             conditions=[["tags[type]", "=", "csp"], ["duration", ">", 200]],
             filter_keys={"project_id": [self.project.id]},
             groupby=["transaction_op"],
-            dataset="transactions",
+            dataset=Dataset.Transactions,
             aggregations=None,
             arrayjoin=None,
             end=None,
@@ -480,7 +481,7 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
             conditions=[["tags[http_method]", "=", "GET"]],
             filter_keys={"project_id": [self.project.id]},
             groupby=["transaction_op"],
-            dataset="transactions",
+            dataset=Dataset.Transactions,
             aggregations=None,
             arrayjoin=None,
             end=None,
@@ -505,7 +506,7 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
             selected_columns=["event_id", "duration"],
             conditions=[["event_id", "=", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"]],
             filter_keys={"project_id": [self.project.id]},
-            dataset="transactions",
+            dataset=Dataset.Transactions,
             aggregations=None,
             arrayjoin=None,
             end=None,
@@ -536,7 +537,7 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
                 ]
             ],
             filter_keys={"project_id": [self.project.id]},
-            dataset="transactions",
+            dataset=Dataset.Transactions,
             aggregations=None,
             arrayjoin=None,
             end=None,
@@ -549,60 +550,60 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
 
 class DetectDatasetTest(TestCase):
     def test_dataset_key(self):
-        query = {"dataset": "events", "conditions": [["event.type", "=", "transaction"]]}
-        assert detect_dataset(query) == "events"
+        query = {"dataset": Dataset.Events, "conditions": [["event.type", "=", "transaction"]]}
+        assert detect_dataset(query) == Dataset.Events
 
     def test_event_type_condition(self):
         query = {"conditions": [["type", "=", "transaction"]]}
-        assert detect_dataset(query) == "transactions"
+        assert detect_dataset(query) == Dataset.Transactions
 
         query = {"conditions": [["type", "=", "error"]]}
-        assert detect_dataset(query) == "events"
+        assert detect_dataset(query) == Dataset.Events
 
         query = {"conditions": [["type", "=", "transaction"]]}
-        assert detect_dataset(query) == "transactions"
+        assert detect_dataset(query) == Dataset.Transactions
 
         query = {"conditions": [["type", "=", "error"]]}
-        assert detect_dataset(query) == "events"
+        assert detect_dataset(query) == Dataset.Events
 
     def test_conditions(self):
         query = {"conditions": [["transaction", "=", "api.do_thing"]]}
-        assert detect_dataset(query) == "events"
+        assert detect_dataset(query) == Dataset.Events
 
         query = {"conditions": [["transaction.name", "=", "api.do_thing"]]}
-        assert detect_dataset(query) == "transactions"
+        assert detect_dataset(query) == Dataset.Transactions
 
         query = {"conditions": [["transaction.duration", ">", "3"]]}
-        assert detect_dataset(query) == "transactions"
+        assert detect_dataset(query) == Dataset.Transactions
 
         # Internal aliases are treated as tags
         query = {"conditions": [["duration", ">", "3"]]}
-        assert detect_dataset(query) == "events"
+        assert detect_dataset(query) == Dataset.Events
 
     def test_conditions_aliased(self):
         query = {"conditions": [["duration", ">", "3"]]}
-        assert detect_dataset(query, aliased_conditions=True) == "transactions"
+        assert detect_dataset(query, aliased_conditions=True) == Dataset.Transactions
 
         # Not an internal alias
         query = {"conditions": [["transaction.duration", ">", "3"]]}
-        assert detect_dataset(query, aliased_conditions=True) == "events"
+        assert detect_dataset(query, aliased_conditions=True) == Dataset.Events
 
     def test_selected_columns(self):
         query = {"selected_columns": ["id", "message"]}
-        assert detect_dataset(query) == "events"
+        assert detect_dataset(query) == Dataset.Events
 
         query = {"selected_columns": ["id", "transaction", "transaction.duration"]}
-        assert detect_dataset(query) == "transactions"
+        assert detect_dataset(query) == Dataset.Transactions
 
     def test_aggregations(self):
         query = {"aggregations": [["argMax", ["id", "timestamp"], "latest_event"]]}
-        assert detect_dataset(query) == "events"
+        assert detect_dataset(query) == Dataset.Events
 
         query = {"aggregations": [["argMax", ["id", "duration"], "longest"]]}
-        assert detect_dataset(query) == "events"
+        assert detect_dataset(query) == Dataset.Events
 
         query = {"aggregations": [["quantileTiming(0.95)", "transaction.duration", "p95_duration"]]}
-        assert detect_dataset(query) == "transactions"
+        assert detect_dataset(query) == Dataset.Transactions
 
         query = {"aggregations": [["uniq", "transaction.name", "uniq_transaction"]]}
-        assert detect_dataset(query) == "transactions"
+        assert detect_dataset(query) == Dataset.Transactions
