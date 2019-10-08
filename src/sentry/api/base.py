@@ -13,8 +13,6 @@ from enum import Enum
 from pytz import utc
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.exceptions import ParseError
-from rest_framework.parsers import JSONParser
-from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from simplejson import JSONDecodeError
@@ -60,9 +58,8 @@ class DocSection(Enum):
 
 
 class Endpoint(APIView):
+    # Note: the available renderer and parser classes can be found in conf/server.py.
     authentication_classes = DEFAULT_AUTHENTICATION
-    renderer_classes = (JSONRenderer,)
-    parser_classes = (JSONParser,)
     permission_classes = (NoPermission,)
 
     def build_cursor_link(self, request, name, cursor):

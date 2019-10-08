@@ -776,6 +776,12 @@ LOGGING = {
 # django-rest-framework
 
 REST_FRAMEWORK = {
+    "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
+    "DEFAULT_PARSER_CLASSES": [
+        "rest_framework.parsers.JSONParser",
+        "rest_framework.parsers.MultiPartParser",
+        "rest_framework.parsers.FormParser",
+    ],
     "TEST_REQUEST_DEFAULT_FORMAT": "json",
     "DEFAULT_PERMISSION_CLASSES": ("sentry.api.permissions.NoPermission",),
     "EXCEPTION_HANDLER": "sentry.api.handlers.custom_exception_handler",
