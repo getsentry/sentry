@@ -31,17 +31,31 @@ function startTransaction() {
 const requests = new Set([]);
 const renders = new Set([]);
 let flushTransactionTimeout = undefined;
-let interruptFlush = false;
+let wasInterrupted = false;
 
 const hasActiveRequests = () => requests.size > 0;
 const hasActiveRenders = () => renders.size > 0;
 
-export function finishTransaction(delay) {
-  if (flushTransactionTimeout) {
-    clearTimeout(flushTransactionTimeout);
+/**
+ * Postpone finishing the root span until all renders and requests are finished
+ *
+ * TODO(apm): We probably want a hard limit for root span, e.g. it's possible we have long
+ * API requests combined with renders that could create a very long root span.
+ *
+ * TODO(apm): Handle polling requests?
+ */
+function interruptFlush() {
+  if (!flushTransactionTimeout) {
+    return;
   }
-  if (hasActiveRenders || hasActiveRequests) {
-    clearTimeout(flushTransactionTimeout);
+
+  clearTimeout(flushTransactionTimeout);
+  wasInterrupted = true;
+}
+
+export function finishTransaction(delay) {
+  if (flushTransactionTimeout || (hasActiveRenders() || hasActiveRequests())) {
+    interruptFlush();
   }
 
   flushTransactionTimeout = setTimeout(() => {
@@ -55,42 +69,31 @@ export function finishTransaction(delay) {
 }
 
 export function startRequest(id) {
-  // if flush is active, stop it
-  if (flushTransactionTimeout) {
-    clearTimeout(flushTransactionTimeout);
-    interruptFlush = true;
-  }
-
   requests.add(id);
+  // if flush is active, stop it
+  interruptFlush();
 }
 export function finishRequest(id) {
   requests.delete(id);
+  interruptFlush();
 
-  if (interruptFlush && !hasActiveRenders() && !hasActiveRequests()) {
+  if (wasInterrupted && !hasActiveRenders() && !hasActiveRequests()) {
     finishTransaction(1);
   }
 }
 
 export function startRender(id) {
-  // if flush is active, stop it
-  if (flushTransactionTimeout) {
-    clearTimeout(flushTransactionTimeout);
-    interruptFlush = true;
-  }
-
   renders.add(id);
+  // if flush is active, stop it
+  interruptFlush();
 }
 
 export function finishRender(id) {
   renders.delete(id);
-
   // if flush is active, stop it
-  if (flushTransactionTimeout) {
-    clearTimeout(flushTransactionTimeout);
-    interruptFlush = true;
-  }
+  interruptFlush();
 
-  if (interruptFlush && !hasActiveRenders() && !hasActiveRequests()) {
+  if (wasInterrupted && !hasActiveRenders() && !hasActiveRequests()) {
     finishTransaction(1);
   }
 }
