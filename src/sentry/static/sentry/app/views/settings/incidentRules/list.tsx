@@ -1,7 +1,7 @@
-import {RouteComponentProps} from 'react-router/lib/Router';
 import {Link} from 'react-router';
+import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
-import styled from 'react-emotion';
+import styled, {css} from 'react-emotion';
 
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
@@ -15,6 +15,7 @@ import space from 'app/styles/space';
 
 import {IncidentRule} from './types';
 import {deleteRule} from './actions';
+import getMetricDisplayName from './utils/getMetricDisplayName';
 
 type State = {
   rules: IncidentRule[];
@@ -79,7 +80,14 @@ class IncidentRulesList extends AsyncView<Props, State> {
       <div>
         <SettingsPageHeader title={t('Incident Rules')} action={action} />
         <Panel>
-          <PanelHeader>{t('Rules')}</PanelHeader>
+          <GridPanelHeader>
+            <NameColumn>{t('Name')}</NameColumn>
+
+            <div>{t('Metric')}</div>
+
+            <div>{t('Threshold')}</div>
+          </GridPanelHeader>
+
           <PanelBody>
             {isLoading && <LoadingIndicator />}
 
@@ -90,17 +98,38 @@ class IncidentRulesList extends AsyncView<Props, State> {
                   <RuleLink to={`/settings/${orgId}/incident-rules/${rule.id}/`}>
                     {rule.name}
                   </RuleLink>
-                  <Confirm
-                    priority="danger"
-                    onConfirm={() => this.handleRemoveRule(rule)}
-                    message={t('Are you sure you want to remove this rule?')}
-                  >
-                    <RemoveButton
-                      size="small"
-                      icon="icon-trash"
-                      label={t('Remove Rule')}
-                    />
-                  </Confirm>
+
+                  <MetricName>{getMetricDisplayName(rule.thresholdType)}</MetricName>
+
+                  <ThresholdColumn>
+                    <Thresholds>
+                      {rule.triggers.map(trigger => trigger.alertThreshold).join(', ')}
+                    </Thresholds>
+
+                    <Actions>
+                      <Button
+                        to={`/settings/${orgId}/incident-rules/${rule.id}/`}
+                        size="small"
+                        icon="icon-edit"
+                        aria-label={t('Edit Rule')}
+                      >
+                        {t('Edit')}
+                      </Button>
+
+                      <Confirm
+                        priority="danger"
+                        onConfirm={() => this.handleRemoveRule(rule)}
+                        message={t('Are you sure you want to remove this rule?')}
+                      >
+                        <Button
+                          type="button"
+                          size="small"
+                          icon="icon-trash"
+                          label={t('Remove Rule')}
+                        />
+                      </Confirm>
+                    </Actions>
+                  </ThresholdColumn>
                 </RuleRow>
               ))}
 
@@ -116,17 +145,50 @@ class IncidentRulesList extends AsyncView<Props, State> {
 
 export default IncidentRulesList;
 
+const gridCss = css`
+  display: grid;
+  grid-template-columns: 3fr 1fr 2fr;
+  align-items: center;
+`;
+
+const nameColumnCss = css`
+  padding: ${space(2)};
+`;
+
+const GridPanelHeader = styled(PanelHeader)`
+  padding: 0;
+  ${gridCss};
+`;
+
 const RuleRow = styled(PanelItem)`
   padding: 0;
+  align-items: center;
+  ${gridCss};
+`;
+
+const NameColumn = styled('div')`
+  ${nameColumnCss};
+`;
+
+const RuleLink = styled(Link)`
+  ${nameColumnCss}
+`;
+
+// For tests
+const MetricName = styled('div')``;
+
+const ThresholdColumn = styled('div')`
+  display: flex;
   align-items: center;
   justify-content: space-between;
 `;
 
-const RuleLink = styled(Link)`
-  flex: 1;
-  padding: ${space(2)};
-`;
+// For tests
+const Thresholds = styled('div')``;
 
-const RemoveButton = styled(Button)`
+const Actions = styled('div')`
+  display: grid;
+  grid-auto-flow: column;
+  grid-gap: ${space(1)};
   margin: ${space(2)};
 `;

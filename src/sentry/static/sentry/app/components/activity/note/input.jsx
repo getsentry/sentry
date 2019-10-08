@@ -229,8 +229,8 @@ class NoteInput extends React.Component {
               onBlur={this.handleBlur}
               onKeyDown={this.handleKeyDown}
               value={value}
-              required={true}
-              autoFocus={true}
+              required
+              autoFocus
               displayTransform={(_id, display, type) =>
                 `${type === 'member' ? '@' : ''}${display}`
               }
@@ -241,14 +241,14 @@ class NoteInput extends React.Component {
                 trigger="@"
                 data={memberList}
                 onAdd={this.handleAddMember}
-                appendSpaceOnAdd={true}
+                appendSpaceOnAdd
               />
               <Mention
                 type="team"
                 trigger="#"
                 data={teams}
                 onAdd={this.handleAddTeam}
-                appendSpaceOnAdd={true}
+                appendSpaceOnAdd
               />
             </MentionsInput>
           )}

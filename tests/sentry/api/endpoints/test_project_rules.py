@@ -180,3 +180,59 @@ class CreateProjectRuleTest(APITestCase):
         )
 
         assert response.status_code == 400, response.content
+
+    def test_match_values(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+
+        conditions = [
+            {
+                "id": "sentry.rules.conditions.tagged_event.TaggedEventCondition",
+                "key": "foo",
+                "match": "is",
+            }
+        ]
+
+        actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
+
+        url = reverse(
+            "sentry-api-0-project-rules",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+        response = self.client.post(
+            url,
+            data={
+                "name": "hello world",
+                "actionMatch": "any",
+                "actions": actions,
+                "conditions": conditions,
+                "frequency": 30,
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200, response.content
+
+        # should fail if using another match type
+        conditions = [
+            {
+                "id": "sentry.rules.conditions.tagged_event.TaggedEventCondition",
+                "key": "foo",
+                "match": "eq",
+            }
+        ]
+
+        response = self.client.post(
+            url,
+            data={
+                "name": "hello world",
+                "actionMatch": "any",
+                "actions": actions,
+                "conditions": conditions,
+                "frequency": 30,
+            },
+            format="json",
+        )
+
+        assert response.status_code == 400, response.content

@@ -28,10 +28,10 @@ export default class AggregationRow extends React.Component<
   AggregationProps,
   AggregationState
 > {
+  state = initalState;
+
   // This is the ref of the inner react-select component
   private select: any;
-
-  state = initalState;
 
   getOptions() {
     const currentValue = getInternal(this.props.value);
@@ -143,9 +143,9 @@ export default class AggregationRow extends React.Component<
           filterOptions={this.filterOptions}
           onChange={this.handleChange}
           onOpen={this.handleOpen}
-          closeOnSelect={true}
-          openOnFocus={true}
-          autoBlur={true}
+          closeOnSelect
+          openOnFocus
+          autoBlur
           clearable={false}
           backspaceRemoves={false}
           deleteRemoves={false}

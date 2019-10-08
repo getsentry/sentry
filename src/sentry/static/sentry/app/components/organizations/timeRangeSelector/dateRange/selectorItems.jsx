@@ -23,7 +23,7 @@ const SelectorItems = ({
         value="absolute"
         label={t('Absolute date')}
         selected={isAbsoluteSelected}
-        last={true}
+        last
       />
     )}
   </React.Fragment>

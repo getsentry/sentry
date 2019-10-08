@@ -5,10 +5,12 @@ import six
 
 from collections import namedtuple
 from datetime import timedelta
+from django.core.cache import cache
 from django.utils import timezone
 
 from sentry.models import GroupRuleStatus, Rule
 from sentry.rules import EventState, rules
+from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import safe_execute
 
 RuleFuture = namedtuple("RuleFuture", ["rule", "kwargs"])
@@ -57,10 +59,13 @@ class RuleProcessor(object):
         return Rule.get_for_project(self.project.id)
 
     def get_rule_status(self, rule):
-        rule_status, _ = GroupRuleStatus.objects.get_or_create(
-            rule=rule, group=self.group, defaults={"project": self.project}
-        )
-
+        key = "grouprulestatus:1:%s" % hash_values([self.group.id, rule.id])
+        rule_status = cache.get(key)
+        if rule_status is None:
+            rule_status, _ = GroupRuleStatus.objects.get_or_create(
+                rule=rule, group=self.group, defaults={"project": self.project}
+            )
+            cache.set(key, rule_status, 300)
         return rule_status
 
     def condition_matches(self, condition, state, rule):

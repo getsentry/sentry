@@ -183,7 +183,7 @@ const ModalLineGraph = (props: ModalLineGraphProps) => {
         start={selection.datetime.start as any}
         end={selection.datetime.end as any}
         interval={interval}
-        showLoading={true}
+        showLoading
         query={queryString}
         field={eventView.getFieldNames()}
         referenceEvent={referenceEvent}

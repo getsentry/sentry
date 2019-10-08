@@ -10,6 +10,7 @@ import {sortArray} from 'app/utils';
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import MigrationWarnings from 'app/views/organizationIntegrations/migrationWarnings';
 import PermissionAlert from 'app/views/settings/organization/permissionAlert';
 import ProviderRow from 'app/views/organizationIntegrations/providerRow';
@@ -255,6 +256,7 @@ class OrganizationIntegrations extends AsyncComponent<
   };
 
   renderBody() {
+    const {orgId} = this.props.params;
     const {reloading, orgOwnedApps, publishedApps} = this.state;
     const published = publishedApps || [];
     // we dont want the app to render twice if its the org that created
@@ -283,9 +285,12 @@ class OrganizationIntegrations extends AsyncComponent<
       orgOwned.filter(a => a.status === 'internal')
     );
 
+    const title = t('Integrations');
+
     return (
       <React.Fragment>
-        {!this.props.hideHeader && <SettingsPageHeader title={t('Integrations')} />}
+        <SentryDocumentTitle title={title} objSlug={orgId} />
+        {!this.props.hideHeader && <SettingsPageHeader title={title} />}
         <PermissionAlert access={['org:integrations']} />
 
         <MigrationWarnings

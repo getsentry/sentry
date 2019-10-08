@@ -34,7 +34,7 @@ export default class DetailsBody extends React.Component<Props> {
       <StyledPageContent>
         <Main>
           <PageContent>
-            <StyledNavTabs underlined={true}>
+            <StyledNavTabs underlined>
               <li className="active">
                 <Link>{t('Activity')}</Link>
               </li>

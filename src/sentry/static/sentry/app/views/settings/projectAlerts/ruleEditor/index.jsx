@@ -17,6 +17,7 @@ import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
 import Button from 'app/components/button';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import RuleNodeList from 'app/views/settings/projectAlerts/ruleEditor/ruleNodeList';
 import recreateRoute from 'app/utils/recreateRoute';
 import space from 'app/styles/space';
@@ -197,6 +198,7 @@ const RuleEditor = createReactClass({
   },
 
   render() {
+    const {projectId} = this.props.params;
     const {environments} = this.state;
     const environmentChoices = [
       [ALL_ENVIRONMENTS_KEY, t('All Environments')],
@@ -213,10 +215,13 @@ const RuleEditor = createReactClass({
     const environment =
       rule.environment === null ? ALL_ENVIRONMENTS_KEY : rule.environment;
 
+    const title = rule.id ? t('Edit Alert Rule') : t('New Alert Rule');
+
     return (
       <form onSubmit={this.handleSubmit} ref={node => (this.formNode = node)}>
+        <SentryDocumentTitle title={title} objSlug={projectId} />
         <Panel className="rule-detail">
-          <PanelHeader>{rule.id ? 'Edit Alert Rule' : 'New Alert Rule'}</PanelHeader>
+          <PanelHeader>{title}</PanelHeader>
           <PanelBody disablePadding={false}>
             {error && (
               <div className="alert alert-block alert-error">
@@ -231,7 +236,7 @@ const RuleEditor = createReactClass({
             <TextField
               name="name"
               defaultValue={name}
-              required={true}
+              required
               placeholder={t('My Rule Name')}
               onChange={val => this.handleChange('name', val)}
             />
@@ -247,7 +252,7 @@ const RuleEditor = createReactClass({
                   style={{marginBottom: 0, marginLeft: 5, marginRight: 5, width: 100}}
                   name="actionMatch"
                   value={actionMatch}
-                  required={true}
+                  required
                   choices={ACTION_MATCH_CHOICES}
                   onChange={val => this.handleChange('actionMatch', val)}
                 />
@@ -276,7 +281,7 @@ const RuleEditor = createReactClass({
               style={{marginBottom: 0, marginLeft: 5, marginRight: 5}}
               name="environment"
               value={environment}
-              required={true}
+              required
               choices={environmentChoices}
               onChange={val => this.handleEnvironmentChange(val)}
             />
@@ -308,7 +313,7 @@ const RuleEditor = createReactClass({
                   className={this.hasError('frequency') ? ' error' : ''}
                   value={frequency}
                   style={{marginBottom: 0, marginLeft: 5, marginRight: 5, width: 140}}
-                  required={true}
+                  required
                   choices={FREQUENCY_CHOICES}
                   onChange={val => this.handleChange('frequency', val)}
                 />

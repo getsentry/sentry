@@ -2,7 +2,7 @@
 
 exports[`OrganizationRepositoriesContainer render() without any providers is loading when initially rendering 1`] = `
 <SideEffect(DocumentTitle)
-  title="Repositories - Sentry"
+  title="Repositories - org-slug - Sentry"
 >
   <OrganizationRepositories
     api={

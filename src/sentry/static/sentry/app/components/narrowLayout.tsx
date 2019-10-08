@@ -6,13 +6,18 @@ import {logout} from 'app/actionCreators/account';
 import {Client} from 'app/api';
 import styled from 'react-emotion';
 
-class NarrowLayout extends React.Component {
+type Props = {
+  showLogout?: boolean;
+  maxWidth?: string;
+};
+
+class NarrowLayout extends React.Component<Props> {
   static propTypes = {
     showLogout: PropTypes.bool,
+    maxWidth: PropTypes.string,
   };
 
   componentWillMount() {
-    this.api = new Client();
     document.body.classList.add('narrow');
   }
 
@@ -21,15 +26,17 @@ class NarrowLayout extends React.Component {
     document.body.classList.remove('narrow');
   }
 
+  private api = new Client();
+
   handleLogout = () => {
-    logout(this.api).then(() => (window.location = '/auth/login'));
+    logout(this.api).then(() => (window.location.pathname = '/auth/login'));
   };
 
   render() {
     return (
       <div className="app">
         <div className="pattern-bg" />
-        <div className="container">
+        <div className="container" style={{maxWidth: this.props.maxWidth}}>
           <div className="box box-modal">
             <div className="box-header">
               <a href="/">

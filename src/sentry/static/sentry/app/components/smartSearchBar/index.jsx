@@ -263,7 +263,7 @@ class SmartSearchBar extends React.Component {
     analytics('search.searched', {
       org_id: parseInt(organization.id, 10),
       query: removeSpace(this.state.query),
-      source: savedSearchType === 0 ? 'issues' : 'events',
+      search_type: savedSearchType === 0 ? 'issues' : 'events',
       search_source: 'main_search',
     });
 
@@ -706,7 +706,7 @@ class SmartSearchBar extends React.Component {
     analytics('search.pin', {
       org_id: parseInt(organization.id, 10),
       action: !!pinnedSearch ? 'unpin' : 'pin',
-      source: savedSearchType === 0 ? 'issues' : 'events',
+      search_type: savedSearchType === 0 ? 'issues' : 'events',
       query: pinnedSearch || this.state.query,
     });
   };
@@ -947,8 +947,8 @@ class SmartSearchBar extends React.Component {
               query={this.state.query}
               organization={organization}
               disabled={!hasQuery}
-              withTooltip={true}
-              iconOnly={true}
+              withTooltip
+              iconOnly
               buttonClassName={getInputButtonStyles({
                 collapseIntoEllipsisMenu: 2,
               })}
@@ -972,7 +972,7 @@ class SmartSearchBar extends React.Component {
 
           {(hasPinnedSearch || canCreateSavedSearch || hasSearchBuilder) && (
             <StyledDropdownLink
-              anchorRight={true}
+              anchorRight
               caret={false}
               title={
                 <EllipsisButton

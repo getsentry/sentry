@@ -23,7 +23,7 @@ def clear_expired_resolutions(release_id):
     resolution_list = list(
         GroupResolution.objects.filter(
             Q(type=GroupResolution.Type.in_next_release) | Q(type__isnull=True),
-            release__projects=release.projects.all(),
+            release__projects__in=[p.id for p in release.projects.all()],
             release__date_added__lt=release.date_added,
             status=GroupResolution.Status.pending,
         ).exclude(release=release)

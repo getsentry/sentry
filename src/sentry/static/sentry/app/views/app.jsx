@@ -30,7 +30,12 @@ import withApi from 'app/utils/withApi';
 import withConfig from 'app/utils/withConfig';
 
 // TODO: Need better way of identifying anonymous pages that don't trigger redirect
-const ALLOWED_ANON_PAGES = [/^\/accept\//, /^\/share\//, /^\/auth\/login\//];
+const ALLOWED_ANON_PAGES = [
+  /^\/accept\//,
+  /^\/share\//,
+  /^\/auth\/login\//,
+  /^\/join-request\//,
+];
 
 function getAlertTypeForProblem(problem) {
   switch (problem.severity) {
@@ -249,7 +254,7 @@ class App extends React.Component {
   render() {
     if (this.state.loading) {
       return (
-        <LoadingIndicator triangle={true}>
+        <LoadingIndicator triangle>
           {t('Getting a list of all of your organizations.')}
         </LoadingIndicator>
       );

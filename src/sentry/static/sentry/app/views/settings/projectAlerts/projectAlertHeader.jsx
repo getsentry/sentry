@@ -47,7 +47,7 @@ export default withOrganization(
             </Tooltip>
           }
           tabs={
-            <NavTabs underlined={true}>
+            <NavTabs underlined>
               <ListLink to={`${basePath}rules/`}>{t('Rules')}</ListLink>
               <ListLink to={`${basePath}settings/`}>{t('Settings')}</ListLink>
             </NavTabs>

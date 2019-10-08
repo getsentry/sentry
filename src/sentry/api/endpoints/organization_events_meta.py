@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from rest_framework.response import Response
 
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
-from sentry.utils.snuba import raw_query
+from sentry.utils import snuba
 
 
 class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
@@ -16,7 +16,8 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
         except NoProjects:
             return Response({"count": 0})
 
-        data = raw_query(
+        data = snuba.transform_aliases_and_query(
+            skip_conditions=True,
             aggregations=[["count()", "", "count"]],
             referrer="api.organization-event-meta",
             **snuba_args
