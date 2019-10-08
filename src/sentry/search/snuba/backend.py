@@ -309,7 +309,6 @@ class SnubaSearchBackend(SearchBackend):
                 }
             ).build(group_queryset, search_filters)
         else:
-
             group_queryset = QuerySetBuilder(
                 {
                     "first_release": QCallbackCondition(
@@ -625,7 +624,7 @@ def snuba_search(
         filters["environment"] = environment_ids
 
     if candidate_ids:
-        filters["issue"] = candidate_ids
+        filters["issue"] = sorted(candidate_ids)
 
     conditions = []
     having = []
