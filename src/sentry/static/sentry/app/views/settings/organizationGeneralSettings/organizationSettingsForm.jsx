@@ -42,6 +42,7 @@ class OrganizationSettingsForm extends React.Component {
       >
         <PermissionAlert />
         <JsonForm
+          experiments={organization.experiments}
           features={new Set(organization.features)}
           access={access}
           location={this.props.location}
