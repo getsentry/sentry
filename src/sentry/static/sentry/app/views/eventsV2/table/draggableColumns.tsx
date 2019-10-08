@@ -76,6 +76,8 @@ class DraggableColumns extends React.Component<Props, State> {
 
     console.log('dragging column', initialColumnIndex, columnBeingDragged);
 
+    // TODO: experiment, clean this up
+
     const foo = document.querySelectorAll('.grid-head-cell-button');
     const moo = Array.from(foo).map(column => {
       return column.getBoundingClientRect();
@@ -83,6 +85,21 @@ class DraggableColumns extends React.Component<Props, State> {
 
     console.log('foo', foo);
     console.log('moo', moo);
+
+    foo.forEach(element => {
+      const rects = element.getBoundingClientRect();
+
+      const reference = document.createElement('div');
+      reference.style.height = '10px';
+      reference.style.width = `${rects.width}px`;
+      reference.style.position = 'absolute';
+      reference.style.top = `${rects.top}px`;
+      reference.style.left = `${rects.left}px`;
+      reference.style.zIndex = '9999';
+      reference.style.backgroundColor = 'yellow';
+
+      document.body.appendChild(reference);
+    });
   };
 
   onDragMove = (event: MouseEvent) => {
@@ -90,12 +107,31 @@ class DraggableColumns extends React.Component<Props, State> {
       return;
     }
 
-    // console.log('event.pageX', event.pageX);
-
     if (this.dragGhostRef.current) {
+      // move the ghosted column title
+
       const ghostDOM = this.dragGhostRef.current;
       ghostDOM.style.left = `${event.pageX}px`;
       ghostDOM.style.top = `${event.pageY}px`;
+    }
+
+    const gridHeadCellButtons = document.querySelectorAll('.grid-head-cell-button');
+
+    const destinationIndex = Array.from(gridHeadCellButtons).findIndex(headerElement => {
+      const rects = headerElement.getBoundingClientRect();
+
+      const left = event.pageX;
+
+      const thresholdStart = rects.left + rects.width * 0.25;
+      const thresholdEnd = rects.left + rects.width * 0.75;
+
+      return left >= thresholdStart && left <= thresholdEnd;
+    });
+
+    if (destinationIndex >= 0) {
+      const destinationColumn = this.props.columnOrder[destinationIndex];
+
+      console.log('move to', destinationColumn.name);
     }
   };
 
