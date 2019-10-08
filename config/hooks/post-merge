@@ -1,0 +1,9 @@
+#!/usr/bin/env sh
+
+git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD | \
+    grep --quiet requirements && \
+    cat <<EOF
+WARNING!
+It looks like python requirements were updated upstream.
+You'll want to run "make install-sentry-dev" to refresh your virtual environment.
+EOF
