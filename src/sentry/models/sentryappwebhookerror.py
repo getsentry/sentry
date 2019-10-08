@@ -9,7 +9,7 @@ from sentry.db.models import EncryptedJsonField, FlexibleForeignKey, Model
 class SentryAppWebhookError(Model):
     __core__ = False
 
-    date_added = models.DateTimeField(default=timezone.now)
+    date_added = models.DateTimeField(db_index=True, default=timezone.now)
 
     sentry_app = FlexibleForeignKey("sentry.SentryApp", related_name="webhook_errors")
 
