@@ -32,7 +32,7 @@ describe('EventsChart > EventsLineChart', function() {
         end={null}
         utc={false}
         router={router}
-        showLegend={true}
+        showLegend
       />,
       routerContext
     );

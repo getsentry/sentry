@@ -159,7 +159,10 @@ def get_client_config(request=None):
         "sentryConfig": {
             "dsn": _get_public_dsn(),
             "release": version_info["build"],
-            "whitelistUrls": list(settings.ALLOWED_HOSTS),
+            # By default `ALLOWED_HOSTS` is [*], however the JS SDK does not support globbing
+            "whitelistUrls": list(
+                "" if settings.ALLOWED_HOSTS == ["*"] else settings.ALLOWED_HOSTS
+            ),
         },
     }
     if user and user.is_authenticated():

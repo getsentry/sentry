@@ -98,7 +98,7 @@ class CreateSavedSearchButton extends React.Component {
           onClick={this.onToggle}
           data-test-id="save-current-search"
           size="zero"
-          borderless={true}
+          borderless
           containerDisplayMode="inline-flex"
           type="button"
           aria-label={t('Add to organization filter list')}
@@ -124,7 +124,7 @@ class CreateSavedSearchButton extends React.Component {
                 name="name"
                 label={t('Name')}
                 placeholder="e.g. My Search Results"
-                required={true}
+                required
                 onChange={this.handleChangeName}
               />
               <TextField
@@ -132,7 +132,7 @@ class CreateSavedSearchButton extends React.Component {
                 name="query"
                 label={t('Query')}
                 value={query}
-                required={true}
+                required
                 onChange={this.handleChangeQuery}
               />
             </div>

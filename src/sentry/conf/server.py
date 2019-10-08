@@ -1056,7 +1056,9 @@ _SENTRY_TAGSTORE_DEFAULT_MULTI_OPTIONS = {
     "backends": [("sentry.tagstore.legacy.LegacyTagStorage", {})],
     "runner": "ImmediateRunner",
 }
-SENTRY_TAGSTORE = os.environ.get("SENTRY_TAGSTORE", "sentry.tagstore.legacy.LegacyTagStorage")
+SENTRY_TAGSTORE = os.environ.get(
+    "SENTRY_TAGSTORE", "sentry.tagstore.snuba.SnubaCompatibilityTagStorage"
+)
 SENTRY_TAGSTORE_OPTIONS = (
     _SENTRY_TAGSTORE_DEFAULT_MULTI_OPTIONS
     if "SENTRY_TAGSTORE_DEFAULT_MULTI_OPTIONS" in os.environ
@@ -1525,7 +1527,7 @@ SENTRY_BUILTIN_SOURCES = {
         "id": "sentry:microsoft",
         "name": "Microsoft",
         "layout": {"type": "symstore"},
-        "filters": {"filetypes": ["pdb", "pe"], "path_patterns": ["?:/windows/**"]},
+        "filters": {"filetypes": ["pdb", "pe"]},
         "url": "https://msdl.microsoft.com/download/symbols/",
         "is_public": True,
     },

@@ -26,4 +26,4 @@ class TestRateLimited(APITestCase):
         self.login_as(self.user)
         resp = self.get_response()
         assert resp.status_code == 429
-        assert resp.data["detail"] == "Request was throttled. Expected available in 1 second."
+        assert resp.data["detail"] == "Request was throttled. Expected available in 1.0 second."

@@ -12,8 +12,9 @@ import ConfigStore from 'app/stores/configStore';
 import Pagination from 'app/components/pagination';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import recreateRoute from 'app/utils/recreateRoute';
+import routeTitleGen from 'app/utils/routeTitle';
 import {redirectToRemainingOrganization} from 'app/actionCreators/organizations';
+import {openInviteMembersModal} from 'app/actionCreators/modal';
 
 import OrganizationAccessRequests from './organizationAccessRequests';
 import OrganizationMemberRow from './organizationMemberRow';
@@ -77,8 +78,8 @@ class OrganizationMembersView extends AsyncView {
   }
 
   getTitle() {
-    const org = this.context.organization;
-    return `${org.name} Members`;
+    const orgId = this.context.organization.slug;
+    return routeTitleGen(t('Members'), orgId, false);
   }
 
   removeMember = id => {
@@ -133,7 +134,7 @@ class OrganizationMembersView extends AsyncView {
 
   handleDeny = id => this.approveOrDeny(false, id);
 
-  handleRemove = ({id, name}, e) => {
+  handleRemove = ({id, name}) => {
     const {organization} = this.context;
     const {slug: orgName} = organization;
 
@@ -155,7 +156,7 @@ class OrganizationMembersView extends AsyncView {
     );
   };
 
-  handleLeave = ({id}, e) => {
+  handleLeave = ({id}) => {
     const {organization} = this.context;
     const {slug: orgName} = organization;
 
@@ -186,7 +187,7 @@ class OrganizationMembersView extends AsyncView {
     this.api.request(`/organizations/${this.props.params.orgId}/members/${id}/`, {
       method: 'PUT',
       data: {reinvite: 1},
-      success: data =>
+      success: () =>
         this.setState(state => ({
           invited: state.invited.set(id, 'success'),
         })),
@@ -247,7 +248,7 @@ class OrganizationMembersView extends AsyncView {
                   ? t('You do not have enough permission to add new members')
                   : undefined
               }
-              to={recreateRoute('new/', {routes, params})}
+              onClick={openInviteMembersModal}
               icon="icon-circle-add"
               data-test-id="invite-member"
             >

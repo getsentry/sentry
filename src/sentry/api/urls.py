@@ -735,7 +735,7 @@ urlpatterns = patterns(
                     name="sentry-api-0-organization-eventsv2",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/events/(?P<project_slug>[^\/]+):(?P<event_id>(?:\d+|[A-Fa-f0-9]{32}))/$",
+                    r"^(?P<organization_slug>[^\/]+)/events/(?P<project_slug>[^\/]+):(?P<event_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
                     OrganizationEventDetailsEndpoint.as_view(),
                     name="sentry-api-0-organization-event-details",
                 ),
@@ -932,6 +932,11 @@ urlpatterns = patterns(
                     name="sentry-api-0-organization-user-feedback",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/user-teams/$",
+                    OrganizationUserTeamsEndpoint.as_view(),
+                    name="sentry-api-0-organization-user-teams",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/users/$",
                     OrganizationUsersEndpoint.as_view(),
                     name="sentry-api-0-organization-users",
@@ -960,11 +965,6 @@ urlpatterns = patterns(
                     r"^(?P<organization_slug>[^\/]+)/teams/$",
                     OrganizationTeamsEndpoint.as_view(),
                     name="sentry-api-0-organization-teams",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/user-teams/$",
-                    OrganizationUserTeamsEndpoint.as_view(),
-                    name="sentry-api-0-organization-user-teams",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/tags/$",

@@ -171,7 +171,7 @@ class VersionHoverCard extends React.Component {
     let header = null;
     let body = null;
     if (loading) {
-      body = <LoadingIndicator mini={true} />;
+      body = <LoadingIndicator mini />;
     } else if (error) {
       body = <LoadingError />;
     } else {

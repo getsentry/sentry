@@ -14,6 +14,7 @@ export type Organization = {
   projects: Project[];
   access: string[];
   features: string[];
+  teams: Team[];
 };
 
 export type OrganizationDetailed = Organization & {
@@ -339,6 +340,21 @@ export type Group = {
   userReportCount: number;
 };
 
+export type Member = {
+  id: string;
+  user: User;
+  name: string;
+  email: string;
+  pending: boolean | undefined;
+  role: string;
+  roleName: string;
+  flags: {
+    'sso:linked': boolean;
+    'sso:invalid': boolean;
+  };
+  dateCreated: string;
+};
+
 export type EventViewv1 = {
   name: string;
   data: {
@@ -481,4 +497,10 @@ export type Commit = {
   dateCreated: string;
   repository?: Repository;
   author?: User;
+};
+
+export type MemberRole = {
+  id: string;
+  name: string;
+  desc: string;
 };

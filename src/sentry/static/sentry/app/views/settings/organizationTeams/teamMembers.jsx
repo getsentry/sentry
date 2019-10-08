@@ -208,7 +208,7 @@ class TeamMembers extends React.Component {
     if (!canAddMembers) {
       return (
         <DropdownButton
-          disabled={true}
+          disabled
           title={t('You do not have enough permission to add new members')}
           isOpen={false}
           size="xsmall"

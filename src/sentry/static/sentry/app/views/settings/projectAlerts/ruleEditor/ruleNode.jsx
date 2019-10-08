@@ -88,6 +88,16 @@ class RuleNode extends React.Component {
       }
 
       const key = part.slice(1, -1);
+
+      // If matcher is "is set" or "is not set", then we do not want to show the value input
+      // because it is not required
+      if (
+        key === 'value' &&
+        (this.props.data.match === 'is' || this.props.data.match === 'ns')
+      ) {
+        return null;
+      }
+
       return formFields[key] ? this.getField(key, formFields[key]) : part;
     });
   }

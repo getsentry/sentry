@@ -29,7 +29,7 @@ class SettingsNavItem extends React.Component {
 
     if (badge === 'new') {
       renderedBadge = (
-        <StyledTag priority="warning" size="small" border={true}>
+        <StyledTag priority="warning" size="small" border>
           {badge}
         </StyledTag>
       );

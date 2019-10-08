@@ -315,7 +315,7 @@ class TimeRangeSelector extends React.PureComponent {
         isOpen={this.state.isOpen}
         onOpen={() => this.setState({isOpen: true})}
         onClose={this.handleCloseMenu}
-        keepMenuOpen={true}
+        keepMenuOpen
       >
         {({isOpen, getRootProps, getActorProps, getMenuProps}) => (
           <TimeRangeRoot {...getRootProps()}>
@@ -328,7 +328,7 @@ class TimeRangeSelector extends React.PureComponent {
               }
               hasChanges={this.state.hasChanges}
               onClear={this.handleClear}
-              allowClear={true}
+              allowClear
               {...getActorProps({isStyled: true})}
             >
               {getDynamicText({value: summary, fixed: 'start to end'})}

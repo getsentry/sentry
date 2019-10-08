@@ -12,7 +12,7 @@ describe('ResolveActions', function() {
       component = mount(
         <ResolveActions
           onUpdate={spy}
-          disabled={true}
+          disabled
           hasRelease={false}
           orgId="org-1"
           projectId="proj-1"
@@ -40,7 +40,7 @@ describe('ResolveActions', function() {
       component = mount(
         <ResolveActions
           onUpdate={spy}
-          disableDropdown={true}
+          disableDropdown
           hasRelease={false}
           orgId="org-1"
           projectId="proj-1"
@@ -73,11 +73,11 @@ describe('ResolveActions', function() {
       component = mount(
         <ResolveActions
           onUpdate={spy}
-          disabled={true}
+          disabled
           hasRelease={false}
           orgId="org-1"
           projectId="proj-1"
-          isResolved={true}
+          isResolved
         />,
         TestStubs.routerContext()
       );
@@ -101,12 +101,12 @@ describe('ResolveActions', function() {
       const component = mount(
         <ResolveActions
           onUpdate={spy}
-          disabled={true}
+          disabled
           hasRelease={false}
           orgId="org-1"
           projectId="proj-1"
-          isResolved={true}
-          isAutoResolved={true}
+          isResolved
+          isAutoResolved
         />,
         TestStubs.routerContext()
       );
@@ -154,7 +154,7 @@ describe('ResolveActions', function() {
           hasRelease={false}
           orgId="org-1"
           projectId="proj-1"
-          shouldConfirm={true}
+          shouldConfirm
           confirmMessage="Are you sure???"
         />,
         TestStubs.routerContext()

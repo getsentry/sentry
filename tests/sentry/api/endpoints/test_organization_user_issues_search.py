@@ -2,53 +2,48 @@ from __future__ import absolute_import
 
 from six.moves.urllib.parse import urlencode
 
-from datetime import timedelta
 from django.core.urlresolvers import reverse
-from django.utils import timezone
 
-from sentry import tagstore
-from sentry.models import EventUser, OrganizationMemberTeam
-from sentry.testutils import APITestCase
+from sentry.models import OrganizationMemberTeam
+from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
-class OrganizationUserIssuesSearchTest(APITestCase):
+class OrganizationUserIssuesSearchTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super(OrganizationUserIssuesSearchTest, self).setUp()
-        self.org = self.create_organization()
+        self.org = self.create_organization(owner=None)
         self.org.flags.allow_joinleave = False
         self.org.save()
         self.team1 = self.create_team(organization=self.org)
         self.team2 = self.create_team(organization=self.org)
         self.project1 = self.create_project(teams=[self.team1])
         self.project2 = self.create_project(teams=[self.team2])
-        group1 = self.create_group(
-            project=self.project1, last_seen=timezone.now() - timedelta(minutes=1)
-        )
-        group2 = self.create_group(project=self.project2)
 
-        EventUser.objects.create(email="foo@example.com", project_id=self.project1.id)
-        EventUser.objects.create(email="bar@example.com", project_id=self.project1.id)
-        EventUser.objects.create(email="foo@example.com", project_id=self.project2.id)
-
-        tagstore.create_group_tag_value(
-            key="sentry:user",
-            value="email:foo@example.com",
-            group_id=group1.id,
-            environment_id=None,
+        self.store_event(
+            data={
+                "user": {"email": "foo@example.com"},
+                "fingerprint": ["group1"],
+                "timestamp": iso_format(before_now(minutes=1)),
+            },
             project_id=self.project1.id,
         )
-        tagstore.create_group_tag_value(
-            key="sentry:user",
-            value="email:bar@example.com",
-            group_id=group1.id,
-            environment_id=None,
+
+        self.store_event(
+            data={
+                "user": {"email": "bar@example.com"},
+                "fingerprint": ["group1"],
+                "timestamp": iso_format(before_now(minutes=1)),
+            },
             project_id=self.project1.id,
         )
-        tagstore.create_group_tag_value(
-            key="sentry:user",
-            value="email:foo@example.com",
-            group_id=group2.id,
-            environment_id=None,
+
+        self.store_event(
+            data={
+                "user": {"email": "foo@example.com"},
+                "fingerprint": ["group2"],
+                "timestamp": iso_format(before_now(minutes=1)),
+            },
             project_id=self.project2.id,
         )
 
@@ -77,7 +72,6 @@ class OrganizationUserIssuesSearchTest(APITestCase):
 
         url = "%s?%s" % (self.get_url(), urlencode({"email": "foo@example.com"}))
         response = self.client.get(url, format="json")
-
         # result shouldn't include results from team2/project2 or bar@example.com
         assert response.status_code == 200
         assert len(response.data) == 1
@@ -92,5 +86,6 @@ class OrganizationUserIssuesSearchTest(APITestCase):
         # now result should include results from team2/project2
         assert response.status_code == 200
         assert len(response.data) == 2
-        assert response.data[0]["project"]["slug"] == self.project2.slug
-        assert response.data[1]["project"]["slug"] == self.project1.slug
+        assert set([r["project"]["slug"] for r in response.data]) == set(
+            [self.project1.slug, self.project2.slug]
+        )

@@ -99,7 +99,6 @@ class SuperuserUserSerializer(BaseUserSerializer):
         # no idea wtf is up with django rest framework, but we need is_active
         # and isActive
         fields = ("name", "username", "isActive", "isStaff", "isSuperuser")
-        # write_only_fields = ('password',)
 
 
 class DeleteUserSerializer(serializers.Serializer):

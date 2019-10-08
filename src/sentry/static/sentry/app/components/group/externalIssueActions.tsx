@@ -131,7 +131,7 @@ class ExternalIssueActions extends AsyncComponent<Props, State> {
             <Modal.Header closeButton>
               <Modal.Title>{`${selectedIntegration.provider.name} Issue`}</Modal.Title>
             </Modal.Header>
-            <NavTabs underlined={true}>
+            <NavTabs underlined>
               <li className={action === 'create' ? 'active' : ''}>
                 <a onClick={() => this.handleClick('create')}>{t('Create')}</a>
               </li>

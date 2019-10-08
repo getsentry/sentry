@@ -129,8 +129,9 @@ class SnubaEventStorage(EventStorage):
         return [col.value for col in columns]
 
     def __get_next_or_prev_event_id(self, filter=None, orderby=None):
-        result = snuba.raw_query(
-            selected_columns=["event_id", "project_id"],
+        columns = ["event_id", "project_id"]
+        result = snuba.dataset_query(
+            selected_columns=columns,
             conditions=filter.conditions,
             filter_keys=filter.filter_keys,
             start=filter.start,
@@ -138,6 +139,10 @@ class SnubaEventStorage(EventStorage):
             limit=1,
             referrer="eventstore.get_next_or_prev_event_id",
             orderby=orderby,
+            dataset=snuba.detect_dataset(
+                {"selected_columns": columns, "conditions": filter.conditions},
+                aliased_conditions=True,
+            ),
         )
 
         if "error" in result or len(result["data"]) == 0:

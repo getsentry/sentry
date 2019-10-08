@@ -198,7 +198,7 @@ class TableView extends React.Component<TableViewProps, TableState> {
 
     return (
       <GridEditable
-        isEditable={true}
+        isEditable
         isLoading={isLoading}
         error={error}
         data={tableData ? tableData.data : []}

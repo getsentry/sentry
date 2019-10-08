@@ -11,6 +11,7 @@ from sentry.api.event_search import (
     get_reference_event_conditions,
 )
 from sentry.models.project import Project
+from sentry.utils import snuba
 
 
 class Direction(object):
@@ -88,12 +89,22 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         except InvalidSearchQuery as exc:
             raise OrganizationEventsError(exc.message)
 
-        return {
+        snuba_args = {
             "start": _filter.start,
             "end": _filter.end,
             "conditions": _filter.conditions,
             "filter_keys": _filter.filter_keys,
         }
+
+        # 'legacy' endpoints cannot access transactions dataset.
+        # as they often have assumptions about which columns are returned.
+        dataset = snuba.detect_dataset(snuba_args, aliased_conditions=True)
+        if dataset != "events":
+            raise OrganizationEventsError(
+                "Invalid query. You cannot reference non-events data in this endpoint."
+            )
+
+        return snuba_args
 
     def next_event_id(self, snuba_args, event):
         """
@@ -153,7 +164,8 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         filter.conditions.extend(time_condition)
 
         result = eventstore.get_events(filter=filter, orderby=orderby, limit=1)
+
         if not result:
             return None
 
-        return result[0].event_id
+        return result["data"][0]["event_id"]

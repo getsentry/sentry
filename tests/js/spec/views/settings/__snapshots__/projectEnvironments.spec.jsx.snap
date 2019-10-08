@@ -25,6 +25,18 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
   routes={Array []}
 >
   <div>
+    <SentryDocumentTitle
+      objSlug="project-slug"
+      title="Environments"
+    >
+      <SideEffect(DocumentTitle)
+        title="Environments - project-slug - Sentry"
+      >
+        <DocumentTitle
+          title="Environments - project-slug - Sentry"
+        />
+      </SideEffect(DocumentTitle)>
+    </SentryDocumentTitle>
     <StyledSettingsPageHeading
       noTitleStyles={false}
       tabs={
@@ -396,6 +408,18 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
   routes={Array []}
 >
   <div>
+    <SentryDocumentTitle
+      objSlug="project-slug"
+      title="Environments"
+    >
+      <SideEffect(DocumentTitle)
+        title="Environments - project-slug - Sentry"
+      >
+        <DocumentTitle
+          title="Environments - project-slug - Sentry"
+        />
+      </SideEffect(DocumentTitle)>
+    </SentryDocumentTitle>
     <StyledSettingsPageHeading
       noTitleStyles={false}
       tabs={
@@ -767,6 +791,18 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
   routes={Array []}
 >
   <div>
+    <SentryDocumentTitle
+      objSlug="project-slug"
+      title="Environments"
+    >
+      <SideEffect(DocumentTitle)
+        title="Environments - project-slug - Sentry"
+      >
+        <DocumentTitle
+          title="Environments - project-slug - Sentry"
+        />
+      </SideEffect(DocumentTitle)>
+    </SentryDocumentTitle>
     <StyledSettingsPageHeading
       noTitleStyles={false}
       tabs={

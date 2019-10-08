@@ -307,7 +307,7 @@ const IssueList = createReactClass({
     this.lastRequest = this.api.request(this.getGroupListEndpoint(), {
       method: 'GET',
       data: qs.stringify(requestParams),
-      success: (data, ignore, jqXHR) => {
+      success: (data, _, jqXHR) => {
         const {orgId} = this.props.params;
         // If this is a direct hit, we redirect to the intended result directly.
         if (jqXHR.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
@@ -349,7 +349,7 @@ const IssueList = createReactClass({
           issuesLoading: false,
         });
       },
-      complete: jqXHR => {
+      complete: () => {
         this.lastRequest = null;
 
         this.resumePolling();
@@ -389,7 +389,7 @@ const IssueList = createReactClass({
     }
   },
 
-  onRealtimePoll(data, links) {
+  onRealtimePoll(data, _links) {
     // Note: We do not update state with cursors from polling,
     // `CursorPoller` updates itself with new cursors
     this._streamManager.unshift(data);
@@ -406,7 +406,7 @@ const IssueList = createReactClass({
     analytics('search.searched', {
       org_id: this.props.organization.id,
       query,
-      source: 'issues',
+      search_type: 'issues',
       search_source: 'search_builder',
     });
 
@@ -427,7 +427,7 @@ const IssueList = createReactClass({
     this.transitionTo({sort});
   },
 
-  onCursorChange(cursor, path, query, pageDiff) {
+  onCursorChange(cursor, _path, query, pageDiff) {
     const queryPageInt = parseInt(query.page, 10);
     let nextPage = isNaN(queryPageInt) ? pageDiff : queryPageInt + pageDiff;
 
@@ -607,7 +607,8 @@ const IssueList = createReactClass({
 
   fetchSavedSearches() {
     const {organization} = this.props;
-    fetchSavedSearches(this.api, organization.slug).then(data => {}, error => {});
+
+    fetchSavedSearches(this.api, organization.slug);
   },
 
   onSavedSearchCreate(newSavedSearch) {
@@ -642,7 +643,7 @@ const IssueList = createReactClass({
         org={organization}
         project={project}
         sampleIssueId={sampleIssueId}
-        gradient={true}
+        gradient
       />
     );
   },
@@ -730,7 +731,7 @@ const IssueList = createReactClass({
               <ProcessingIssueList
                 organization={this.props.organization}
                 projectIds={this.props.selection.projects}
-                showProject={true}
+                showProject
               />
               {this.renderStreamBody()}
             </PanelBody>
