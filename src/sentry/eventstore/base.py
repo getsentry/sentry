@@ -67,6 +67,18 @@ class Columns(Enum):
 
 
 class Filter(object):
+    """
+    A set of conditions, start/end times and project, group and event ID sets
+    used to restrict the results of a Snuba query.
+
+    start (DateTime): Start datetime - default None
+    end (DateTime): Start datetime - default None
+    conditions (Sequence[Sequence[str, str, Any]]): List of conditions to fetch - default None
+    project_ids (Sequence[int]): List of project IDs to fetch - default None
+    group_ids (Sequence[int]): List of group IDs to fetch - defualt None
+    event_ids (Sequence[int]): List of event IDs to fetch - default None
+    """
+
     def __init__(
         self,
         start=None,
