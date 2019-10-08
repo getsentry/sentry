@@ -310,6 +310,7 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
             has_perms = ReleaseProject.objects.filter(
                 release=release, project__in=self.get_projects(request, organization)
             ).exists()
-            cache.set(key, has_perms, 60)
+            if actor_id is not None:
+                cache.set(key, has_perms, 60)
 
         return has_perms
