@@ -4,7 +4,6 @@ import logging
 from collections import defaultdict, OrderedDict
 
 from django.db import transaction
-from django.conf import settings
 
 from sentry import eventstore, eventstream, tagstore
 from sentry.app import tsdb
@@ -220,20 +219,9 @@ def migrate_events(
     for event in events:
         event.group = destination
 
-    if settings.SENTRY_TAGSTORE == "sentry.tagstore.legacy.LegacyTagStorage":
-        postgres_id_set = set(
-            Event.objects.filter(project_id=project.id, event_id__in=event_id_set).values_list(
-                "id", flat=True
-            )
-        )
+    event_id_set = set(event.event_id for event in events)
 
-        tagstore.update_group_for_events(
-            project_id=project.id, event_ids=postgres_id_set, destination_id=destination_id
-        )
-
-    event_event_id_set = set(event.event_id for event in events)
-
-    UserReport.objects.filter(project_id=project.id, event_id__in=event_event_id_set).update(
+    UserReport.objects.filter(project_id=project.id, event_id__in=event_id_set).update(
         group=destination_id
     )
 
