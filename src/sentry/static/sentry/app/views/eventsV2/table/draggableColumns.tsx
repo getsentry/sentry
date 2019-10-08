@@ -156,9 +156,9 @@ class DraggableColumns extends React.Component<Props, State> {
 
       const ghost = (
         <React.Fragment>
-          <DebugSquare innerRef={this.dragGhostRef}>
+          <GhostPlacement innerRef={this.dragGhostRef}>
             <GhostContentBox>{columnBeingDragged.name}</GhostContentBox>
-          </DebugSquare>
+          </GhostPlacement>
         </React.Fragment>
       );
 
@@ -178,10 +178,12 @@ class DraggableColumns extends React.Component<Props, State> {
   }
 }
 
-const DebugSquare = styled('div')`
+const GhostPlacement = styled('div')`
   position: absolute;
   top: 0;
   bottom: 0;
+
+  user-select: none;
 `;
 
 const GhostContentBox = styled('div')`
