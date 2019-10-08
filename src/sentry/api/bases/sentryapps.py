@@ -353,10 +353,6 @@ class SentryAppStatsPermission(SentryPermission):
 
         self.determine_access(request, sentry_app.owner)
 
-        # Don't show stats for unpublished or internal apps
-        if not sentry_app.is_published:
-            return False
-
         if is_active_superuser(request):
             return True
 
