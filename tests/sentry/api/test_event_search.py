@@ -885,6 +885,11 @@ class GetSnubaQueryArgsTest(TestCase):
             "filter_keys": {},
         }
 
+        assert get_snuba_query_args("tags[project_id]:123") == {
+            "conditions": [[["ifNull", ["tags[project_id]", "''"]], "=", "123"]],
+            "filter_keys": {},
+        }
+
     def test_no_search(self):
         assert get_snuba_query_args(
             params={
