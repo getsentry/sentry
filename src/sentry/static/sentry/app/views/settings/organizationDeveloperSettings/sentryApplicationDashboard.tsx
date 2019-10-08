@@ -11,7 +11,7 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 import space from 'app/styles/space';
 import {intcomma} from 'app/utils';
-import {t} from 'app/locale';
+import {t, tn} from 'app/locale';
 import {SentryApp} from 'app/types';
 
 type Props = AsyncView['props'];
@@ -80,11 +80,11 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
       <div style={{width: '150px'}}>
         <div className="time-label">{timeLabel}</div>
         <div className="value-label">
-          {intcomma(installed)} {`install${installed !== 1 ? 's' : ''}`}
+          {intcomma(installed)} {tn('install', 'installs', installed)}
           {uninstalled > 0 && (
             <React.Fragment>
               <br />
-              {intcomma(uninstalled)} {`uninstall${uninstalled !== 1 ? 's' : ''}`}
+              {intcomma(uninstalled)} {tn('uninstall', 'uninstalls', uninstalled)}
             </React.Fragment>
           )}
         </div>
