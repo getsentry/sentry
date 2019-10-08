@@ -28,7 +28,7 @@ class OrganizationJoinRequest extends React.Component<Props, State> {
   };
 
   handleSubmitError() {
-    addErrorMessage(t('Access request failed'));
+    addErrorMessage(t('Request to join failed'));
   }
 
   handleCancel = e => {
@@ -48,7 +48,7 @@ class OrganizationJoinRequest extends React.Component<Props, State> {
           <SuccessModal>
             <MegaphoneIcon src="icon-megaphone" size="5em" />
             <StyledHeader>{t('Request Sent')}</StyledHeader>
-            <StyledText>{t('Your access request has been sent.')}</StyledText>
+            <StyledText>{t('Your request to join has been sent.')}</StyledText>
             <ReceiveEmailMessage>
               {tct('You will receive an email when your request is approved.', {orgId})}
             </ReceiveEmailMessage>
@@ -60,7 +60,7 @@ class OrganizationJoinRequest extends React.Component<Props, State> {
     return (
       <NarrowLayout maxWidth="650px">
         <MegaphoneIcon src="icon-megaphone" size="5em" />
-        <StyledHeader>{t('Request Access')}</StyledHeader>
+        <StyledHeader>{t('Request to Join')}</StyledHeader>
         <StyledText>
           {tct('Ask the admins if you can join the [orgId] organization.', {
             orgId,
@@ -70,7 +70,7 @@ class OrganizationJoinRequest extends React.Component<Props, State> {
           requireChanges
           apiEndpoint={`/organizations/${orgId}/join-request/`}
           apiMethod="POST"
-          submitLabel={t('Request Access')}
+          submitLabel={t('Request to Join')}
           onSubmitSuccess={this.handleSubmitSuccess}
           onSubmitError={this.handleSubmitError}
           onCancel={this.handleCancel}
