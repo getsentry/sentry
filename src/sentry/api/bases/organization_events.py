@@ -12,6 +12,7 @@ from sentry.api.event_search import (
     get_reference_event_conditions,
 )
 from sentry.models.project import Project
+from sentry.utils import snuba
 
 
 class Direction(object):
@@ -101,6 +102,14 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             raise OrganizationEventsError(
                 "Boolean search operator OR and AND not allowed in this search."
             )
+
+        # 'legacy' endpoints cannot access transactions dataset.
+        # as they often have assumptions about which columns are returned.
+        dataset = snuba.detect_dataset(snuba_args, aliased_conditions=True)
+        if dataset != "events":
+            raise OrganizationEventsError(
+                "Invalid query. You cannot reference non-events data in this endpoint."
+            )
         return snuba_args
 
     def next_event_id(self, snuba_args, event):
@@ -162,15 +171,17 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         conditions = snuba_args["conditions"][:]
         conditions.extend(time_condition)
 
-        result = eventstore.get_events(
+        result = snuba.dataset_query(
+            selected_columns=["event_id"],
             start=snuba_args.get("start", None),
             end=snuba_args.get("end", None),
             conditions=conditions,
+            dataset=snuba.detect_dataset(snuba_args, aliased_conditions=True),
             filter_keys=snuba_args["filter_keys"],
             orderby=orderby,
             limit=1,
         )
-        if not result:
+        if not result or "data" not in result or len(result["data"]) == 0:
             return None
 
-        return result[0].event_id
+        return result["data"][0]["event_id"]

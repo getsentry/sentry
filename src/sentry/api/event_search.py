@@ -21,7 +21,7 @@ from sentry.search.utils import (
     InvalidQuery,
 )
 from sentry.utils.dates import to_timestamp
-from sentry.utils.snuba import SENTRY_SNUBA_MAP, get_snuba_column_name
+from sentry.utils.snuba import DATASETS, get_snuba_column_name
 
 WILDCARD_CHARS = re.compile(r"[\*]")
 
@@ -138,20 +138,21 @@ spaces               = ~r"\ *"
 )
 
 
-# add valid snuba `raw_query` args
-SEARCH_MAP = dict(
-    {
-        "start": "start",
-        "end": "end",
-        "project_id": "project_id",
-        "first_seen": "first_seen",
-        "last_seen": "last_seen",
-        "times_seen": "times_seen",
-        # TODO(mark) figure out how to safelist aggregate functions/field aliases
-        # so they can be used in conditions
-    },
-    **SENTRY_SNUBA_MAP
-)
+# Create the known set of fields from the issue properties
+# and the transactions and events dataset mapping definitions.
+SEARCH_MAP = {
+    "start": "start",
+    "end": "end",
+    "project_id": "project_id",
+    "first_seen": "first_seen",
+    "last_seen": "last_seen",
+    "times_seen": "times_seen",
+    # TODO(mark) figure out how to safelist aggregate functions/field aliases
+    # so they can be used in conditions
+}
+SEARCH_MAP.update(**DATASETS["transactions"])
+SEARCH_MAP.update(**DATASETS["events"])
+
 no_conversion = set(["project_id", "start", "end"])
 
 PROJECT_KEY = "project.name"
@@ -226,11 +227,23 @@ class SearchVisitor(NodeVisitor):
             "stack.in_app",
             "stack.lineno",
             "stack.stack_level",
+            "transaction.duration",
             # TODO(mark) figure out how to safelist aggregate functions/field aliases
             # so they can be used in conditions
         ]
     )
-    date_keys = set(["start", "end", "first_seen", "last_seen", "time", "timestamp"])
+    date_keys = set(
+        [
+            "start",
+            "end",
+            "first_seen",
+            "last_seen",
+            "time",
+            "timestamp",
+            "transaction.start_time",
+            "transaction.end_time",
+        ]
+    )
 
     unwrapped_exceptions = (InvalidSearchQuery,)
 
