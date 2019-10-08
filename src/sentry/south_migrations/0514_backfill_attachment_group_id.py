@@ -29,7 +29,7 @@ class Migration(DataMigration):
         EventAttachment = orm['sentry.EventAttachment']
         Event = orm['sentry.Event']
 
-        queryset = EventAttachment.objects.all()
+        queryset = EventAttachment.objects.filter(group__isnull=True)
 
         for event_attachment in RangeQuerySetWrapperWithProgressBar(queryset):
             with transaction.atomic():
