@@ -20,9 +20,9 @@ describe('OrganizationJoinRequest', function() {
       TestStubs.routerContext()
     );
 
-    expect(wrapper.find('h3').text()).toBe('Request Access');
+    expect(wrapper.find('h3').text()).toBe('Request to Join');
     expect(wrapper.find('EmailField').exists()).toBe(true);
-    expect(wrapper.find('button[aria-label="Request Access"]').exists()).toBe(true);
+    expect(wrapper.find('button[aria-label="Request to Join"]').exists()).toBe(true);
   });
 
   it('submits', async function() {
@@ -48,7 +48,7 @@ describe('OrganizationJoinRequest', function() {
 
     expect(wrapper.find('h3').text()).toBe('Request Sent');
     expect(wrapper.find('EmailField').exists()).toBe(false);
-    expect(wrapper.find('button[aria-label="Request Access"]').exists()).toBe(false);
+    expect(wrapper.find('button[aria-label="Request to Join"]').exists()).toBe(false);
   });
 
   it('errors', async function() {
@@ -74,9 +74,9 @@ describe('OrganizationJoinRequest', function() {
     wrapper.update();
 
     expect(addErrorMessage).toHaveBeenCalled();
-    expect(wrapper.find('h3').text()).toBe('Request Access');
+    expect(wrapper.find('h3').text()).toBe('Request to Join');
     expect(wrapper.find('EmailField').exists()).toBe(true);
-    expect(wrapper.find('button[aria-label="Request Access"]').exists()).toBe(true);
+    expect(wrapper.find('button[aria-label="Request to Join"]').exists()).toBe(true);
   });
 
   it('cancels', function() {
