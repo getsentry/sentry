@@ -53,13 +53,14 @@ class GetSentryAppStatsTest(SentryAppStatsTest):
         )
         assert (install_epoch, 1) in response.data["install_stats"]
 
-    def test_superuser_does_not_see_unowned_unpublished_stats(self):
+    def test_superuser_sees_unowned_unpublished_stats(self):
         self.login_as(user=self.superuser, superuser=True)
 
         url = reverse("sentry-api-0-sentry-app-stats", args=[self.unowned_unpublished_app.slug])
         response = self.client.get(url, format="json")
-        assert response.status_code == 403
-        assert response.data["detail"] == "You do not have permission to perform this action."
+        assert response.status_code == 200
+        assert response.data["total_installs"] == 0
+        assert response.data["total_uninstalls"] == 0
 
     def test_user_sees_owned_published_stats(self):
         self.login_as(self.user)
@@ -84,21 +85,23 @@ class GetSentryAppStatsTest(SentryAppStatsTest):
         assert response.status_code == 403
         assert response.data["detail"] == "You do not have permission to perform this action."
 
-    def test_user_does_not_see_owned_unpublished_stats(self):
+    def test_user_sees_owned_unpublished_stats(self):
         self.login_as(self.user)
 
         url = reverse("sentry-api-0-sentry-app-stats", args=[self.unpublished_app.slug])
         response = self.client.get(url, format="json")
-        assert response.status_code == 403
-        assert response.data["detail"] == "You do not have permission to perform this action."
+        assert response.status_code == 200
+        assert response.data["total_installs"] == 0
+        assert response.data["total_uninstalls"] == 0
 
-    def test_user_does_not_see_internal_stats(self):
+    def test_user_sees_internal_stats(self):
         self.login_as(self.user)
 
         url = reverse("sentry-api-0-sentry-app-stats", args=[self.internal_app.slug])
         response = self.client.get(url, format="json")
-        assert response.status_code == 403
-        assert response.data["detail"] == "You do not have permission to perform this action."
+        assert response.status_code == 200
+        assert response.data["total_installs"] == 1
+        assert response.data["total_uninstalls"] == 0
 
     def test_invalid_startend_throws_error(self):
         self.login_as(self.user)

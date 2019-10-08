@@ -41,13 +41,13 @@ class GetSentryAppErrorsTest(SentryAppErrorsTest):
         assert response.data[0]["organization"]["slug"] == self.webhook_error2.organization.slug
         assert response.data[0]["app"]["slug"] == self.unowned_published_app.slug
 
-    def test_superuser_does_not_see_unpublished_stats(self):
+    def test_superuser_sees_unpublished_stats(self):
         self.login_as(user=self.superuser, superuser=True)
 
         url = reverse("sentry-api-0-sentry-app-errors", args=[self.unowned_unpublished_app.slug])
         response = self.client.get(url, format="json")
-        assert response.status_code == 403
-        assert response.data["detail"] == "You do not have permission to perform this action."
+        assert response.status_code == 200
+        assert len(response.data) == 0
 
     def test_user_sees_owned_published_errors(self):
         self.login_as(user=self.user)
@@ -67,13 +67,13 @@ class GetSentryAppErrorsTest(SentryAppErrorsTest):
         assert response.status_code == 403
         assert response.data["detail"] == "You do not have permission to perform this action."
 
-    def test_user_does_not_see_owned_unpublished_errors(self):
+    def test_user_sees_owned_unpublished_errors(self):
         self.login_as(user=self.user)
 
         url = reverse("sentry-api-0-sentry-app-errors", args=[self.unpublished_app.slug])
         response = self.client.get(url, format="json")
-        assert response.status_code == 403
-        assert response.data["detail"] == "You do not have permission to perform this action."
+        assert response.status_code == 200
+        assert len(response.data) == 0
 
     def test_invalid_date_params(self):
         self.login_as(self.user)
