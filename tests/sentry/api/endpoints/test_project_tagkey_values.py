@@ -2,16 +2,16 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 
-from sentry import tagstore
-from sentry.testutils import APITestCase
+from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
-class ProjectTagKeyValuesTest(APITestCase):
+class ProjectTagKeyValuesTest(APITestCase, SnubaTestCase):
     def test_simple(self):
         project = self.create_project()
-        tagkey = tagstore.create_tag_key(project_id=project.id, environment_id=None, key="foo")
-        tagstore.create_tag_value(
-            project_id=project.id, environment_id=None, key="foo", value="bar"
+        self.store_event(
+            data={"tags": {"foo": "bar"}, "timestamp": iso_format(before_now(seconds=1))},
+            project_id=project.id,
         )
 
         self.login_as(user=self.user)
@@ -21,7 +21,7 @@ class ProjectTagKeyValuesTest(APITestCase):
             kwargs={
                 "organization_slug": project.organization.slug,
                 "project_slug": project.slug,
-                "key": tagkey.key,
+                "key": "foo",
             },
         )
 
@@ -34,9 +34,9 @@ class ProjectTagKeyValuesTest(APITestCase):
 
     def test_query(self):
         project = self.create_project()
-        tagkey = tagstore.create_tag_key(project_id=project.id, environment_id=None, key="foo")
-        tagstore.create_tag_value(
-            project_id=project.id, environment_id=None, key="foo", value="bar"
+        self.store_event(
+            data={"tags": {"foo": "bar"}, "timestamp": iso_format(before_now(seconds=1))},
+            project_id=project.id,
         )
 
         self.login_as(user=self.user)
@@ -46,7 +46,7 @@ class ProjectTagKeyValuesTest(APITestCase):
             kwargs={
                 "organization_slug": project.organization.slug,
                 "project_slug": project.slug,
-                "key": tagkey.key,
+                "key": "foo",
             },
         )
         response = self.client.get(url + "?query=bar")

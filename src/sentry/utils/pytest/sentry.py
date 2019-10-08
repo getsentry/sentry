@@ -100,7 +100,6 @@ def pytest_configure(config):
 
     if os.environ.get("USE_SNUBA", False):
         settings.SENTRY_SEARCH = "sentry.search.snuba.SnubaSearchBackend"
-        settings.SENTRY_TAGSTORE = "sentry.tagstore.snuba.SnubaCompatibilityTagStorage"
         settings.SENTRY_TSDB = "sentry.tsdb.redissnuba.RedisSnubaTSDB"
         settings.SENTRY_EVENTSTREAM = "sentry.eventstream.snuba.SnubaEventStream"
 

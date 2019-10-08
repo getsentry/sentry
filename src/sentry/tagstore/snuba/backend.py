@@ -93,12 +93,12 @@ class SnubaTagStorage(TagStorage):
         ]
 
         result, totals = snuba.query(
-            kwargs.get("start"),
-            kwargs.get("end"),
-            [tag],
-            conditions,
-            filters,
-            aggregations,
+            start=kwargs.get("start"),
+            end=kwargs.get("end"),
+            groupby=[tag],
+            conditions=conditions,
+            filter_keys=filters,
+            aggregations=aggregations,
             orderby="-count",
             limit=limit,
             totals=True,
@@ -180,12 +180,12 @@ class SnubaTagStorage(TagStorage):
         conditions = [["tags_key", "NOT IN", self.EXCLUDE_TAG_KEYS]]
 
         result = snuba.query(
-            start,
-            end,
-            ["tags_key"],
-            conditions,
-            filters,
-            aggregations,
+            start=start,
+            end=end,
+            groupby=["tags_key"],
+            conditions=conditions,
+            filter_keys=filters,
+            aggregations=aggregations,
             limit=limit,
             orderby="-count",
             referrer="tagstore.__get_tag_keys",
@@ -345,12 +345,12 @@ class SnubaTagStorage(TagStorage):
         ]
 
         result = snuba.query(
-            start,
-            end,
-            ["issue"],
-            conditions,
-            filters,
-            aggregations,
+            start=start,
+            end=end,
+            groupby=["issue"],
+            conditions=conditions,
+            filter_keys=filters,
+            aggregations=aggregations,
             referrer="tagstore.get_group_seen_values_for_environments",
         )
 
@@ -414,12 +414,12 @@ class SnubaTagStorage(TagStorage):
             conditions.append(["tags_key", "NOT IN", self.EXCLUDE_TAG_KEYS])
 
         values_by_key = snuba.query(
-            kwargs.get("start"),
-            kwargs.get("end"),
-            ["tags_key", "tags_value"],
-            conditions,
-            filters,
-            aggregations,
+            start=kwargs.get("start"),
+            end=kwargs.get("end"),
+            groupby=["tags_key", "tags_value"],
+            conditions=conditions,
+            filter_keys=filters,
+            aggregations=aggregations,
             orderby="-count",
             limitby=[value_limit, "tags_key"],
             referrer="tagstore.__get_tag_keys_and_top_values",
@@ -562,12 +562,12 @@ class SnubaTagStorage(TagStorage):
         aggregations = [["uniq", "tags[sentry:user]", "count"]]
 
         result = snuba.query(
-            start,
-            end,
-            ["issue"],
-            None,
-            filters,
-            aggregations,
+            start=start,
+            end=end,
+            groupby=["issue"],
+            conditions=None,
+            filter_keys=filters,
+            aggregations=aggregations,
             referrer="tagstore.get_groups_user_counts",
         )
         return defaultdict(int, {k: v for k, v in result.items() if v})
