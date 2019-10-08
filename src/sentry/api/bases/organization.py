@@ -296,6 +296,9 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         """
         Does the given request have permission to access this release, based
         on the projects to which the release is attached?
+
+        If the given request has an actor (user or ApiKey), cache the results
+        for a minute on the unique combination of actor,org,release.
         """
         actor_id = None
         has_perms = None
