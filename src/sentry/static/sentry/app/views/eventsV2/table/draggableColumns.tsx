@@ -22,6 +22,10 @@ export type DraggableColumnsChildrenProps = {
 type Props = {
   children: (props: DraggableColumnsChildrenProps) => JSX.Element;
   columnOrder: TableColumn<React.ReactText>[];
+  onDragDone: (props: {
+    draggingColumnIndex: undefined | number;
+    destinationColumnIndex: undefined | number;
+  }) => void;
 };
 
 type State = {
@@ -169,6 +173,9 @@ class DraggableColumns extends React.Component<Props, State> {
 
     // indicate drag has ended
 
+    const destinationColumnIndex = this.state.destinationColumnIndex;
+    const draggingColumnIndex = this.state.draggingColumnIndex;
+
     this.setState({
       isDragging: false,
       left: void 0,
@@ -177,7 +184,7 @@ class DraggableColumns extends React.Component<Props, State> {
       destinationColumnIndex: void 0,
     });
 
-    console.log('ended');
+    this.props.onDragDone({draggingColumnIndex, destinationColumnIndex});
   };
 
   cleanUpListeners = () => {
