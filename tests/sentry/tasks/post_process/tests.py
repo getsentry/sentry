@@ -3,6 +3,7 @@
 from __future__ import absolute_import
 
 from datetime import timedelta
+import pytest
 from django.utils import timezone
 from mock import Mock, patch, ANY
 
@@ -391,6 +392,7 @@ class PostProcessGroupTest(TestCase):
         assert not delay.called
 
 
+@pytest.mark.skip(reason="Legacy")
 class IndexEventTagsTest(TestCase):
     def test_simple(self):
         group = self.create_group(project=self.project)
