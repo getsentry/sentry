@@ -2,7 +2,7 @@
 
 exports[`ProjectSecurityHeaders renders 1`] = `
 <SideEffect(DocumentTitle)
-  title="Sentry"
+  title="Security Headers - project-slug - Sentry"
 >
   <div>
     <StyledSettingsPageHeading

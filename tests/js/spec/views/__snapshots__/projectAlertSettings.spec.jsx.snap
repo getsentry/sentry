@@ -2,7 +2,7 @@
 
 exports[`ProjectAlertSettings render() renders 1`] = `
 <SideEffect(DocumentTitle)
-  title="Project Alert Settings - Sentry"
+  title="Alerts Settings - project-slug - Sentry"
 >
   <withConfig(AccessContainer)
     access={

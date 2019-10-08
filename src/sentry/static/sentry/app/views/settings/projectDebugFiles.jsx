@@ -8,6 +8,7 @@ import {fields} from 'app/data/forms/projectDebugFiles';
 import {t} from 'app/locale';
 import Access from 'app/components/acl/access';
 import AsyncComponent from 'app/components/asyncComponent';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import Form from 'app/views/settings/components/forms/form';
@@ -226,6 +227,8 @@ class ProjectDebugSymbols extends AsyncComponent {
 
     return (
       <React.Fragment>
+        <SentryDocumentTitle objSlug={projectId} title={t('Debug Files')} />
+
         <SettingsPageHeader title={t('Debug Information Files')} />
 
         <TextBlock>

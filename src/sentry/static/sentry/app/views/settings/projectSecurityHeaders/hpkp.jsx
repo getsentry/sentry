@@ -10,6 +10,7 @@ import ReportUri, {
 } from 'app/views/settings/projectSecurityHeaders/reportUri';
 import PreviewFeature from 'app/components/previewFeature';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import routeTitleGen from 'app/utils/routeTitle';
 
 export default class ProjectHpkpReports extends AsyncView {
   static propTypes = {
@@ -27,6 +28,11 @@ export default class ProjectHpkpReports extends AsyncView {
       ['keyList', `/projects/${orgId}/${projectId}/keys/`],
       ['project', `/projects/${orgId}/${projectId}/`],
     ];
+  }
+
+  getTitle() {
+    const {projectId} = this.props.params;
+    return routeTitleGen(t('HTTP Public Key Pinning (HPKP)'), projectId, false);
   }
 
   getInstructions() {
