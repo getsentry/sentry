@@ -35,14 +35,11 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
 
   getEndpoints(): Array<[string, string, any] | [string, string]> {
     const {appSlug} = this.props.params;
-    if (appSlug) {
-      return [
-        ['stats', `/sentry-apps/${appSlug}/stats/`],
-        ['errors', `/sentry-apps/${appSlug}/errors/`],
-        ['app', `/sentry-apps/${appSlug}/`],
-      ];
-    }
-    return [];
+    return [
+      ['stats', `/sentry-apps/${appSlug}/stats/`],
+      ['errors', `/sentry-apps/${appSlug}/errors/`],
+      ['app', `/sentry-apps/${appSlug}/`],
+    ];
   }
 
   getTitle() {
@@ -122,11 +119,11 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
           <PanelHeader>
             <TableLayout>
               <div>{t('Time')}</div>
+              <div>{t('Status Code')}</div>
               <div>{t('Organization')}</div>
               <div>{t('Event Type')}</div>
               <div>{t('Webhook URL')}</div>
               <div>{t('Response Body')}</div>
-              <div>{t('Status Code')}</div>
             </TableLayout>
           </PanelHeader>
 
@@ -136,11 +133,11 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
                 <PanelItem key={idx}>
                   <TableLayout>
                     <DateTime date={error.date} />
+                    <div>{error.response.statusCode}</div>
                     <div>{error.organization.name}</div>
                     <div>{error.eventType}</div>
                     <OverflowBox>{error.webhookUrl}</OverflowBox>
-                    <div>{error.response.body}</div>
-                    <div>{error.response.statusCode}</div>
+                    <OverflowBox>{error.response.body}</OverflowBox>
                   </TableLayout>
                 </PanelItem>
               ))
@@ -187,7 +184,7 @@ const StatsHeader = styled('h6')`
 
 const TableLayout = styled('div')`
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr 2fr 0.5fr;
+  grid-template-columns: 1fr 0.5fr 1fr 1fr 1fr 2fr;
   grid-column-gap: ${space(1.5)};
   width: 100%;
   align-items: center;
