@@ -31,8 +31,25 @@ import {
   addSentryAppToken,
   removeSentryAppToken,
 } from 'app/actionCreators/sentryAppTokens';
-import {SentryApp, InternalAppApiToken} from 'app/types';
+import {SentryApp, InternalAppApiToken, Scope} from 'app/types';
 import Tooltip from 'app/components/tooltip';
+import {SENTRY_APP_PERMISSIONS} from 'app/constants';
+
+const getResourceFromScope = (scope: Scope) => {
+  for (const permObj of SENTRY_APP_PERMISSIONS) {
+    const allChoices = Object.values(permObj.choices);
+
+    const allScopes = allChoices.reduce(
+      (_allScopes: string[], choice) => _allScopes.concat(_.get(choice, 'scopes', [])),
+      []
+    );
+
+    if (allScopes.includes(scope)) {
+      return permObj.resource;
+    }
+  }
+  return undefined;
+};
 
 class SentryAppFormModel extends FormModel {
   /**
@@ -55,6 +72,24 @@ class SentryAppFormModel extends FormModel {
       }
       return data;
     }, {});
+  }
+
+  mapFormErrors(responseJSON?: any) {
+    if (!responseJSON) {
+      return responseJSON;
+    }
+    const formErrors = _.omit(responseJSON, ['scopes']);
+    if (responseJSON.scopes) {
+      responseJSON.scopes.forEach((message: string) => {
+        const matches = message.match(/Requested permission of (\w+:\w+)/);
+        if (matches) {
+          const scope = matches[1];
+          const resource = getResourceFromScope(scope as Scope);
+          formErrors[`${resource}--permission`] = [message];
+        }
+      });
+    }
+    return formErrors;
   }
 }
 
