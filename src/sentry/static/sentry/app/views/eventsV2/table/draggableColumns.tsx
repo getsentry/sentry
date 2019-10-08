@@ -2,10 +2,12 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import styled from 'react-emotion';
 
+import space from 'app/styles/space';
 import {
   UserSelectValues,
   setBodyUserSelect,
-} from 'app/components/events/interfaces/spans/utils.tsx';
+} from 'app/components/events/interfaces/spans/utils';
+
 import {TableColumn} from './types';
 
 export type DraggableColumnsChildrenProps = {
@@ -137,13 +139,15 @@ class DraggableColumns extends React.Component<Props, State> {
     );
 
     if (destinationColumnIndex >= 0) {
-      const destinationColumn = this.props.columnOrder[destinationColumnIndex];
+      //   const destinationColumn = this.props.columnOrder[destinationColumnIndex];
 
-      console.log('move to', destinationColumn.name);
+      //   console.log('move to', destinationColumn.name);
 
-      this.setState({
-        destinationColumnIndex,
-      });
+      if (this.state.destinationColumnIndex !== destinationColumnIndex) {
+        this.setState({
+          destinationColumnIndex,
+        });
+      }
     }
   };
 
@@ -265,7 +269,19 @@ const GhostPlacement = styled('div')`
 const GhostContentBox = styled('div')`
   background-color: white;
 
-  outline: 1px solid red;
+  padding: ${space(1)} ${space(1.5)};
+  border-radius: ${p => p.theme.borderRadius};
+
+  color: ${p => p.theme.gray2};
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+
+  background: ${p => p.theme.offWhite2};
 `;
 
 // const MouseGuide = styled('div')`
