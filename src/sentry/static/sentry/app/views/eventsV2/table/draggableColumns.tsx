@@ -67,6 +67,14 @@ class DraggableColumns extends React.Component<Props, State> {
     });
 
     console.log('dragging column', initialColumnIndex, columnBeingDragged);
+
+    const foo = document.querySelectorAll('.grid-head-cell-button');
+    const moo = Array.from(foo).map(column => {
+      return column.getBoundingClientRect();
+    });
+
+    console.log('foo', foo);
+    console.log('moo', moo);
   };
 
   onDragMove = (event: MouseEvent) => {
@@ -156,7 +164,7 @@ class DraggableColumns extends React.Component<Props, State> {
 
       const ghost = (
         <React.Fragment>
-          <GhostPlacement innerRef={this.dragGhostRef}>
+          <GhostPlacement innerRef={this.dragGhostRef} style={{display: 'block'}}>
             <GhostContentBox>{columnBeingDragged.name}</GhostContentBox>
           </GhostPlacement>
         </React.Fragment>
@@ -182,6 +190,7 @@ const GhostPlacement = styled('div')`
   position: absolute;
   top: 0;
   bottom: 0;
+  display: none;
 
   user-select: none;
 `;

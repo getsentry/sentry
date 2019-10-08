@@ -99,6 +99,8 @@ export const GridHeadCell = styled('th')`
   background: ${p => p.theme.offWhite};
 `;
 export const GridHeadCellButton = styled('div')<GridEditableProps>`
+  outline: 1px solid blue;
+
   position: relative;
   min-width: 24px; /* Ensure that edit/remove buttons are never hidden */
   display: block;
@@ -160,8 +162,6 @@ export const GridHeadCellResizer = styled('span')<GridEditableProps>`
  *
  */
 export const GridHeadCellButtonHover = styled('div')<GridEditableProps>`
-  outline: 1px solid blue;
-
   position: absolute;
   top: 0;
   left: 0;

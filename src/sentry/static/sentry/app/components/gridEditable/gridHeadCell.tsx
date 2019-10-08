@@ -119,7 +119,7 @@ class GridHeadCell<Column> extends React.Component<
         onMouseEnter={() => this.setHovering(true)}
         onMouseLeave={() => this.setHovering(false)}
       >
-        <GridHeadCellButton isEditing={isEditing}>
+        <GridHeadCellButton className="grid-head-cell-button" isEditing={isEditing}>
           {children}
           {isEditing && isHovering && this.renderButtonHoverDraggable(children)}
         </GridHeadCellButton>
