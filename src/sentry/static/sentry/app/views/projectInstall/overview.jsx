@@ -5,6 +5,7 @@ import React from 'react';
 import {t, tct} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import AutoSelectText from 'app/components/autoSelectText';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
 import PlatformPicker from 'app/components/platformPicker';
@@ -46,7 +47,7 @@ class ProjectInstallOverview extends AsyncComponent {
   };
 
   render() {
-    const {orgId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
     const {keyList} = this.state;
 
     const issueStreamLink = `/organizations/${orgId}/issues/#welcome`;
@@ -55,6 +56,7 @@ class ProjectInstallOverview extends AsyncComponent {
 
     return (
       <div>
+        <SentryDocumentTitle title={t('Error Tracking')} objSlug={projectId} />
         <SettingsPageHeader title={t('Configure your application')} />
         <TextBlock>
           {t(

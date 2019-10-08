@@ -11,6 +11,7 @@ import re
 import six
 import time
 import urllib3
+import uuid
 
 from concurrent.futures import ThreadPoolExecutor
 from django.conf import settings
@@ -129,6 +130,7 @@ TRANSACTIONS_SENTRY_SNUBA_MAP = {
     "trace_id": "trace_id",
     "span_id": "span_id",
     "title": "transaction_name",
+    "message": "transaction_name",
     "transaction": "transaction_name",
     "transaction.name": "transaction_name",
     "transaction.op": "transaction_op",
@@ -139,7 +141,7 @@ TRANSACTIONS_SENTRY_SNUBA_MAP = {
     # Time related properties
     "transaction.duration": "duration",
     "transaction.start_time": "start_ts",
-    "transaction.end_time": "end_ts",
+    "transaction.end_time": "finish_ts",
     # User
     "user": "user",
     "user.id": "user_id",
@@ -155,11 +157,17 @@ TRANSACTIONS_SENTRY_SNUBA_MAP = {
     "contexts.value": "contexts.value",
     # Shim to make queries that can act on
     # events or transactions work more smoothly.
-    "timestamp": "start_ts",
-    "time": "bucketed_start",
+    "timestamp": "finish_ts",
+    "time": "bucketed_end",
 }
 
 DATASETS = {EVENTS: SENTRY_SNUBA_MAP, TRANSACTIONS: TRANSACTIONS_SENTRY_SNUBA_MAP}
+
+# Store the internal field names to save work later on.
+DATASET_FIELDS = {
+    EVENTS: SENTRY_SNUBA_MAP.values(),
+    TRANSACTIONS: TRANSACTIONS_SENTRY_SNUBA_MAP.values(),
+}
 
 
 class SnubaError(Exception):
@@ -325,7 +333,7 @@ def zerofill(data, start, end, rollup, orderby):
     return rv
 
 
-def get_snuba_column_name(name):
+def get_snuba_column_name(name, dataset="events"):
     """
     Get corresponding Snuba column name from Sentry snuba map, if not found
     the column is assumed to be a tag. If name is falsy or name is a quoted literal
@@ -339,28 +347,46 @@ def get_snuba_column_name(name):
     if not name or QUOTED_LITERAL_RE.match(name):
         return name
 
-    return SENTRY_SNUBA_MAP.get(name, u"tags[{}]".format(name))
+    return DATASETS[dataset].get(name, u"tags[{}]".format(name))
 
 
-def detect_dataset(query_args):
+def detect_dataset(query_args, aliased_conditions=False):
     """
     Determine the dataset to use based on the conditions, selected_columns,
     groupby clauses.
 
     This function operates on the end user field aliases and not the internal column
     names that have been converted using the field mappings.
+
+    The aliased_conditions parameter switches column detection between
+    the public aliases and the internal names. When query conditions
+    have been pre-parsed by api.event_search set aliased_conditions=True
+    as we need to look for internal names.
     """
     if query_args.get("dataset", None):
         return query_args["dataset"]
 
     dataset = EVENTS
     transaction_fields = set(DATASETS[TRANSACTIONS].keys()) - set(DATASETS[EVENTS].keys())
+    condition_fieldset = transaction_fields
+
+    if aliased_conditions:
+        # Release and user are also excluded as they are present on both
+        # datasets and don't trigger usage of transactions.
+        condition_fieldset = (
+            set(DATASET_FIELDS[TRANSACTIONS])
+            - set(DATASET_FIELDS[EVENTS])
+            - set(["release", "user"])
+        )
+
     for condition in query_args.get("conditions") or []:
-        if isinstance(condition[0], six.string_types) and condition[0] in transaction_fields:
+        if isinstance(condition[0], six.string_types) and condition[0] in condition_fieldset:
             return TRANSACTIONS
-        if condition == ["event.type", "=", "transaction"]:
-            return TRANSACTIONS
-        if condition == ["type", "=", "transaction"]:
+        if condition == ["event.type", "=", "transaction"] or condition == [
+            "type",
+            "=",
+            "transaction",
+        ]:
             return TRANSACTIONS
 
     for field in query_args.get("selected_columns") or []:
@@ -421,7 +447,7 @@ def get_function_index(column_expr, depth=0):
         return None
 
 
-def parse_columns_in_functions(col, context=None, index=None):
+def parse_columns_in_functions(col, context=None, index=None, dataset="events"):
     """
     Checks expressions for arguments that should be considered a column while
     ignoring strings that represent clickhouse function names
@@ -444,23 +470,23 @@ def parse_columns_in_functions(col, context=None, index=None):
         if function_name_index > 0:
             for i in six.moves.xrange(0, function_name_index):
                 if context is not None:
-                    context[i] = get_snuba_column_name(col[i])
+                    context[i] = get_snuba_column_name(col[i], dataset)
 
         args = col[function_name_index + 1]
 
         # check for nested functions in args
         if get_function_index(args):
             # look for columns
-            return parse_columns_in_functions(args, args)
+            return parse_columns_in_functions(args, args, dataset=dataset)
 
         # check each argument for column names
         else:
             for (i, arg) in enumerate(args):
-                parse_columns_in_functions(arg, args, i)
+                parse_columns_in_functions(arg, args, i, dataset=dataset)
     else:
         # probably a column name
         if context is not None and index is not None:
-            context[index] = get_snuba_column_name(col)
+            context[index] = get_snuba_column_name(col, dataset)
 
 
 def get_arrayjoin(column):
@@ -469,7 +495,7 @@ def get_arrayjoin(column):
         return match.groups()[0]
 
 
-def valid_orderby(orderby, custom_fields=None):
+def valid_orderby(orderby, custom_fields=None, dataset="events"):
     """
     Check if a field can be used in sorting. We don't allow
     sorting on fields that would be aliased as tag[foo] because those
@@ -478,9 +504,10 @@ def valid_orderby(orderby, custom_fields=None):
     if custom_fields is None:
         custom_fields = []
     fields = orderby if isinstance(orderby, (list, tuple)) else [orderby]
+    mapping = DATASETS[dataset]
     for field in fields:
         field = field.lstrip("-")
-        if field not in SENTRY_SNUBA_MAP and field not in custom_fields:
+        if field not in mapping and field not in custom_fields:
             return False
     return True
 
@@ -507,6 +534,7 @@ def transform_aliases_and_query(skip_conditions=False, **kwargs):
     rollup = kwargs.get("rollup")
     orderby = kwargs.get("orderby")
     having = kwargs.get("having", [])
+    dataset = detect_dataset(kwargs, aliased_conditions=skip_conditions)
 
     if selected_columns:
         for (idx, col) in enumerate(selected_columns):
@@ -518,14 +546,14 @@ def transform_aliases_and_query(skip_conditions=False, **kwargs):
                 translated_columns[col[2]] = col[2]
                 derived_columns.add(col[2])
             else:
-                name = get_snuba_column_name(col)
+                name = get_snuba_column_name(col, dataset)
                 selected_columns[idx] = name
                 translated_columns[name] = col
 
     if groupby:
         for (idx, col) in enumerate(groupby):
             if col not in derived_columns:
-                name = get_snuba_column_name(col)
+                name = get_snuba_column_name(col, dataset)
             else:
                 name = col
 
@@ -535,13 +563,13 @@ def transform_aliases_and_query(skip_conditions=False, **kwargs):
     for aggregation in aggregations or []:
         derived_columns.add(aggregation[2])
         if isinstance(aggregation[1], six.string_types):
-            aggregation[1] = get_snuba_column_name(aggregation[1])
+            aggregation[1] = get_snuba_column_name(aggregation[1], dataset)
         elif isinstance(aggregation[1], (set, tuple, list)):
-            aggregation[1] = [get_snuba_column_name(col) for col in aggregation[1]]
+            aggregation[1] = [get_snuba_column_name(col, dataset) for col in aggregation[1]]
 
     if not skip_conditions:
-        for (col, _value) in six.iteritems(filter_keys):
-            name = get_snuba_column_name(col)
+        for col in filter_keys.keys():
+            name = get_snuba_column_name(col, dataset)
             filter_keys[name] = filter_keys.pop(col)
 
     def handle_condition(cond):
@@ -550,29 +578,28 @@ def transform_aliases_and_query(skip_conditions=False, **kwargs):
                 cond[0] = handle_condition(cond[0])
             elif len(cond) == 3:
                 # map column name
-                cond[0] = get_snuba_column_name(cond[0])
+                cond[0] = get_snuba_column_name(cond[0], dataset)
             elif len(cond) == 2 and cond[0] == "has":
                 # first function argument is the column if function is "has"
-                cond[1][0] = get_snuba_column_name(cond[1][0])
+                cond[1][0] = get_snuba_column_name(cond[1][0], dataset)
         return cond
 
     if conditions:
-        kwargs["conditions"] = []
+        aliased_conditions = []
         for condition in conditions:
             field = condition[0]
             if not isinstance(field, (list, tuple)) and field in derived_columns:
                 having.append(condition)
             elif skip_conditions:
-                kwargs["conditions"].append(condition)
+                aliased_conditions.append(condition)
             else:
-                kwargs["conditions"].append(handle_condition(condition))
+                aliased_conditions.append(handle_condition(condition))
+        kwargs["conditions"] = aliased_conditions
 
     if having:
         kwargs["having"] = having
 
     if orderby:
-        if orderby is None:
-            orderby = []
         orderby = orderby if isinstance(orderby, (list, tuple)) else [orderby]
         translated_orderby = []
 
@@ -581,15 +608,16 @@ def transform_aliases_and_query(skip_conditions=False, **kwargs):
             translated_orderby.append(
                 u"{}{}".format(
                     "-" if field_with_order.startswith("-") else "",
-                    field if field in derived_columns else get_snuba_column_name(field),
+                    field if field in derived_columns else get_snuba_column_name(field, dataset),
                 )
             )
 
         kwargs["orderby"] = translated_orderby
 
     kwargs["arrayjoin"] = arrayjoin_map.get(arrayjoin, arrayjoin)
+    kwargs["dataset"] = dataset
 
-    result = raw_query(**kwargs)
+    result = dataset_query(**kwargs)
 
     # Translate back columns that were converted to snuba format
     for col in result["meta"]:
@@ -903,6 +931,137 @@ def nest_groups(data, groups, aggregate_cols):
         )
 
 
+def constrain_column_to_dataset(col, dataset, value=None):
+    """
+    Ensure conditions only reference valid columns on the provided
+    dataset. Return none for conditions to be removed, and convert
+    unknown columns into tags expressions.
+    """
+    if col.startswith("tags["):
+        return col
+    # Special case for the type condition as we only want
+    # to drop it when we are querying transactions.
+    if dataset == TRANSACTIONS and col == "type" and value == "transaction":
+        return None
+    if not col or QUOTED_LITERAL_RE.match(col):
+        return col
+    if col in DATASETS[dataset]:
+        return DATASETS[dataset][col]
+    if col in DATASET_FIELDS[dataset]:
+        return col
+    return u"tags[{}]".format(col)
+
+
+def constrain_condition_to_dataset(cond, dataset):
+    """
+    When conditions have been parsed by the api.event_search module
+    we can end up with conditions that are not valid on the current dataset
+    due to how ap.event_search checks for valid field names without
+    being aware of the dataset.
+
+    We have the dataset context here, so we need to re-scope conditions to the
+    current dataset.
+    """
+    if isinstance(cond, (list, tuple)) and len(cond):
+        if isinstance(cond[0], (list, tuple)):
+            # Nested condition or function expressions
+            cond = [constrain_condition_to_dataset(c, dataset) for c in cond]
+        elif len(cond) == 3:
+            # map column name
+            name = constrain_column_to_dataset(cond[0], dataset, cond[2])
+            if name is None:
+                return None
+            cond[0] = name
+            # Reformat 32 byte uuids to 36 byte variants.
+            # The transactions dataset requires properly formatted uuid values.
+            # But the rest of sentry isn't aware of that requirement.
+            if dataset == TRANSACTIONS and name == "event_id" and len(cond[2]) == 32:
+                cond[2] = six.text_type(uuid.UUID(cond[2]))
+        elif len(cond) == 2 and cond[0] == "has":
+            # first function argument is the column if function is "has"
+            cond[1][0] = constrain_column_to_dataset(cond[1][0], dataset)
+        elif len(cond) == 2 and SAFE_FUNCTION_RE.match(cond[0]):
+            # Function call with column name arguments.
+            if isinstance(cond[1], list):
+                cond[1] = [constrain_column_to_dataset(item, dataset) for item in cond[1]]
+    return cond
+
+
+def dataset_query(
+    start=None,
+    end=None,
+    groupby=None,
+    conditions=None,
+    filter_keys=None,
+    aggregations=None,
+    selected_columns=None,
+    arrayjoin=None,
+    having=None,
+    dataset=None,
+    orderby=None,
+    **kwargs
+):
+    """
+    Wrapper around raw_query that selects the dataset based on the
+    selected_columns, conditions and groupby parameters.
+    Useful for taking arbitrary end user queries and searching
+    either error or transaction events.
+
+    This function will also re-alias columns to match the selected dataset
+    """
+    if dataset is None:
+        dataset = detect_dataset(
+            dict(
+                dataset=dataset,
+                aggregations=aggregations,
+                conditions=conditions,
+                selected_columns=selected_columns,
+                groupby=groupby,
+            )
+        )
+
+    derived_columns = []
+    if selected_columns:
+        for (i, col) in enumerate(selected_columns):
+            if isinstance(col, list):
+                derived_columns.append(col[2])
+            else:
+                selected_columns[i] = constrain_column_to_dataset(col, dataset)
+        selected_columns = list(filter(None, selected_columns))
+
+    if aggregations:
+        for aggregation in aggregations:
+            derived_columns.append(aggregation[2])
+
+    if conditions:
+        for (i, condition) in enumerate(conditions):
+            replacement = constrain_condition_to_dataset(condition, dataset)
+            conditions[i] = replacement
+        conditions = list(filter(None, conditions))
+
+    if orderby:
+        for (i, order) in enumerate(orderby):
+            order_field = order.lstrip("-")
+            if order_field not in derived_columns:
+                order_field = constrain_column_to_dataset(order_field, dataset)
+            orderby[i] = u"{}{}".format("-" if order.startswith("-") else "", order_field)
+
+    return raw_query(
+        start=start,
+        end=end,
+        groupby=groupby,
+        conditions=conditions,
+        aggregations=aggregations,
+        selected_columns=selected_columns,
+        filter_keys=filter_keys,
+        arrayjoin=arrayjoin,
+        having=having,
+        dataset=dataset,
+        orderby=orderby,
+        **kwargs
+    )
+
+
 JSON_TYPE_MAP = {
     "UInt8": "boolean",
     "UInt16": "integer",
@@ -972,6 +1131,7 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
     map_columns = {
         "environment": (Environment, "name", lambda name: None if name == "" else name),
         "tags[sentry:release]": (Release, "version", identity),
+        "release": (Release, "version", identity),
     }
 
     for col, (model, field, fmt) in six.iteritems(map_columns):
@@ -979,7 +1139,7 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
         ids = filter_keys.get(col)
         if not ids:
             continue
-        if is_grouprelease and col == "tags[sentry:release]":
+        if is_grouprelease and col in ("release", "tags[sentry:release]"):
             # GroupRelease -> Release translation is a special case because the
             # translation relies on both the Group and Release value in the result row.
             #
@@ -1038,6 +1198,15 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
         if "time" in row
         else row,
     )
+    # Extra reverse translator for bucketed_start column.
+    reverse = compose(
+        reverse,
+        lambda row: replace(
+            row, "bucketed_start", int(to_timestamp(parse_datetime(row["bucketed_start"])))
+        )
+        if "bucketed_start" in row
+        else row,
+    )
 
     return (forward, reverse)
 
@@ -1049,6 +1218,7 @@ def get_related_project_ids(column, ids):
     mappings = {
         "issue": (Group, "id", "project_id"),
         "tags[sentry:release]": (ReleaseProject, "release_id", "project_id"),
+        "release": (ReleaseProject, "release_id", "project_id"),
     }
     if ids:
         if column == "project_id":

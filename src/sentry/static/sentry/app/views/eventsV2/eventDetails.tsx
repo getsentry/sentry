@@ -26,7 +26,7 @@ const slugValidator = function(
   const value = props[propName];
   // Accept slugs that look like:
   // * project-slug:deadbeef
-  if (value && typeof value === 'string' && !/^(?:[^:]+):(?:[a-f0-9]+)$/.test(value)) {
+  if (value && typeof value === 'string' && !/^(?:[^:]+):(?:[a-f0-9-]+)$/.test(value)) {
     return new Error(`Invalid value for ${propName} provided to ${componentName}.`);
   }
   return null;

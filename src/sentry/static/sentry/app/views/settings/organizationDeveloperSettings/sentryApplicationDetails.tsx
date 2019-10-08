@@ -20,6 +20,7 @@ import {
   internalIntegrationForms,
 } from 'app/data/forms/sentryApplication';
 import getDynamicText from 'app/utils/getDynamicText';
+import routeTitleGen from 'app/utils/routeTitle';
 
 import DateTime from 'app/components/dateTime';
 import Button from 'app/components/button';
@@ -92,7 +93,8 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
   }
 
   getTitle() {
-    return t('Sentry Integration Details');
+    const {orgId} = this.props.params;
+    return routeTitleGen(t('Sentry Integration Details'), orgId, false);
   }
 
   // Events may come from the API as "issue.created" when we just want "issue" here.

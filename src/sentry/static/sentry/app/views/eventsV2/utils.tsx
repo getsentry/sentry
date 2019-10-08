@@ -4,7 +4,7 @@ import {browserHistory} from 'react-router';
 
 import {Client} from 'app/api';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {appendTagCondition} from 'app/utils/queryString';
+import {generateQueryWithTag} from 'app/utils';
 
 import {
   AGGREGATE_ALIASES,
@@ -64,8 +64,7 @@ export function getEventTagSearchUrl(
   tagValue: string,
   location: Location
 ) {
-  const query = {...location.query};
-  query.query = appendTagCondition(query.query, tagKey, tagValue);
+  const query = generateQueryWithTag(location.query, {key: tagKey, value: tagValue});
 
   // Remove the event slug so the user sees new search results.
   delete query.eventSlug;
