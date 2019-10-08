@@ -18,6 +18,7 @@ from sentry.incidents.models import (
     AlertRuleQuerySubscription,
     AlertRuleStatus,
     AlertRuleTrigger,
+    AlertRuleTriggerAction,
     AlertRuleTriggerExclusion,
     Incident,
     IncidentActivity,
@@ -1009,3 +1010,67 @@ def get_subscriptions_from_alert_rule(alert_rule, projects):
         )
         raise ProjectsNotAssociatedWithAlertRuleError(invalid_slugs)
     return excluded_subscriptions
+
+
+def create_alert_rule_trigger_action(
+    trigger, type, target_type, target_identifier=None, target_display=None, integration=None
+):
+    """
+    Creates an AlertRuleTriggerAction
+    :param trigger: The trigger to create the action on
+    :param type: Which sort of action to take
+    :param target_type: Which type of target to send to
+    :param target_identifier: (Optional) The identifier of the target
+    :param target_display: (Optional) Human readable name for the target
+    :param integration: (Optional) The Integration related to this action.
+    :return: The created action
+    """
+    return AlertRuleTriggerAction.objects.create(
+        alert_rule_trigger=trigger,
+        type=type.value,
+        target_type=target_type.value,
+        target_identifier=target_identifier,
+        target_display=target_display,
+        integration=integration,
+    )
+
+
+def update_alert_rule_trigger_action(
+    trigger_action,
+    type=None,
+    target_type=None,
+    target_identifier=None,
+    target_display=None,
+    integration=None,
+):
+    """
+    Updates values on an AlertRuleTriggerAction
+    :param trigger_action: The trigger action to update
+    :param type: Which sort of action to take
+    :param target_type: Which type of target to send to
+    :param target_identifier: The identifier of the target
+    :param target_display: Human readable name for the target
+    :param integration: The Integration related to this action.
+    :return:
+    """
+    updated_fields = {}
+    if type is not None:
+        updated_fields["type"] = type.value
+    if target_type is not None:
+        updated_fields["target_type"] = target_type.value
+    if target_identifier is not None:
+        updated_fields["target_identifier"] = target_identifier
+    if target_display is not None:
+        updated_fields["target_display"] = target_display
+    if integration is not None:
+        updated_fields["integration"] = integration
+
+    trigger_action.update(**updated_fields)
+    return trigger_action
+
+
+def delete_alert_rule_trigger_action(trigger_action):
+    """
+    Deletes a AlertRuleTriggerAction
+    """
+    trigger_action.delete()
