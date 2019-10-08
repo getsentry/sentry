@@ -6,6 +6,7 @@ import {
   UserSelectValues,
   setBodyUserSelect,
 } from 'app/components/events/interfaces/spans/utils.tsx';
+import {TableColumn} from './types';
 
 export type DraggableColumnsChildrenProps = {
   startColumnDrag: (
@@ -16,15 +17,18 @@ export type DraggableColumnsChildrenProps = {
 
 type Props = {
   children: (props: DraggableColumnsChildrenProps) => JSX.Element;
+  columnOrder: TableColumn<React.ReactText>[];
 };
 
 type State = {
   isDragging: boolean;
+  draggingColumnIndex: undefined | number;
 };
 
 class DraggableColumns extends React.Component<Props, State> {
   state: State = {
     isDragging: false,
+    draggingColumnIndex: void 0,
   };
 
   previousUserSelect: UserSelectValues | null = null;
@@ -55,11 +59,14 @@ class DraggableColumns extends React.Component<Props, State> {
     window.addEventListener('mousemove', this.onDragMove);
     window.addEventListener('mouseup', this.onDragEnd);
 
+    const columnBeingDragged = this.props.columnOrder[initialColumnIndex];
+
     this.setState({
       isDragging: true,
+      draggingColumnIndex: initialColumnIndex,
     });
 
-    console.log('dragging column', initialColumnIndex);
+    console.log('dragging column', initialColumnIndex, columnBeingDragged);
   };
 
   onDragMove = (event: MouseEvent) => {
@@ -67,7 +74,7 @@ class DraggableColumns extends React.Component<Props, State> {
       return;
     }
 
-    console.log('event.pageX', event.pageX);
+    // console.log('event.pageX', event.pageX);
 
     if (this.dragGhostRef.current) {
       const ghostDOM = this.dragGhostRef.current;
@@ -95,6 +102,7 @@ class DraggableColumns extends React.Component<Props, State> {
 
     this.setState({
       isDragging: false,
+      draggingColumnIndex: void 0,
     });
 
     console.log('ended');

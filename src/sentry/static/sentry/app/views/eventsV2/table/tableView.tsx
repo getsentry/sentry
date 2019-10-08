@@ -184,7 +184,7 @@ class TableView extends React.Component<TableViewProps> {
     });
 
     return (
-      <DraggableColumns>
+      <DraggableColumns columnOrder={this.state.columnOrder}>
         {({startColumnDrag}) => {
           return (
             <GridEditable
