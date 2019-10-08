@@ -5,6 +5,7 @@ from copy import deepcopy
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_datetime
+from enum import Enum, unique
 import os
 import pytz
 import re
@@ -36,9 +37,6 @@ MAX_HASHES = 5000
 
 SAFE_FUNCTION_RE = re.compile(r"-?[a-zA-Z_][a-zA-Z0-9_]*$")
 QUOTED_LITERAL_RE = re.compile(r"^'.*'$")
-
-TRANSACTIONS = "transactions"
-EVENTS = "events"
 
 # Global Snuba request option override dictionary. Only intended
 # to be used with the `options_override` contextmanager below.
@@ -161,12 +159,20 @@ TRANSACTIONS_SENTRY_SNUBA_MAP = {
     "time": "bucketed_end",
 }
 
-DATASETS = {EVENTS: SENTRY_SNUBA_MAP, TRANSACTIONS: TRANSACTIONS_SENTRY_SNUBA_MAP}
+
+@unique
+class Dataset(Enum):
+    Events = "events"
+    Transactions = "transactions"
+    Outcomes = "outcomes"
+
+
+DATASETS = {Dataset.Events: SENTRY_SNUBA_MAP, Dataset.Transactions: TRANSACTIONS_SENTRY_SNUBA_MAP}
 
 # Store the internal field names to save work later on.
 DATASET_FIELDS = {
-    EVENTS: SENTRY_SNUBA_MAP.values(),
-    TRANSACTIONS: TRANSACTIONS_SENTRY_SNUBA_MAP.values(),
+    Dataset.Events: SENTRY_SNUBA_MAP.values(),
+    Dataset.Transactions: TRANSACTIONS_SENTRY_SNUBA_MAP.values(),
 }
 
 
@@ -333,7 +339,7 @@ def zerofill(data, start, end, rollup, orderby):
     return rv
 
 
-def get_snuba_column_name(name, dataset="events"):
+def get_snuba_column_name(name, dataset=Dataset.Events):
     """
     Get corresponding Snuba column name from Sentry snuba map, if not found
     the column is assumed to be a tag. If name is falsy or name is a quoted literal
@@ -366,46 +372,48 @@ def detect_dataset(query_args, aliased_conditions=False):
     if query_args.get("dataset", None):
         return query_args["dataset"]
 
-    dataset = EVENTS
-    transaction_fields = set(DATASETS[TRANSACTIONS].keys()) - set(DATASETS[EVENTS].keys())
+    dataset = Dataset.Events
+    transaction_fields = set(DATASETS[Dataset.Transactions].keys()) - set(
+        DATASETS[Dataset.Events].keys()
+    )
     condition_fieldset = transaction_fields
 
     if aliased_conditions:
         # Release and user are also excluded as they are present on both
         # datasets and don't trigger usage of transactions.
         condition_fieldset = (
-            set(DATASET_FIELDS[TRANSACTIONS])
-            - set(DATASET_FIELDS[EVENTS])
+            set(DATASET_FIELDS[Dataset.Transactions])
+            - set(DATASET_FIELDS[Dataset.Events])
             - set(["release", "user"])
         )
 
     for condition in query_args.get("conditions") or []:
         if isinstance(condition[0], six.string_types) and condition[0] in condition_fieldset:
-            return TRANSACTIONS
+            return Dataset.Transactions
         if condition == ["event.type", "=", "transaction"] or condition == [
             "type",
             "=",
             "transaction",
         ]:
-            return TRANSACTIONS
+            return Dataset.Transactions
 
     for field in query_args.get("selected_columns") or []:
         if isinstance(field, six.string_types) and field in transaction_fields:
-            return TRANSACTIONS
+            return Dataset.Transactions
 
     for field in query_args.get("aggregations") or []:
         if len(field) != 3:
             continue
         if isinstance(field[1], six.string_types) and field[1] in transaction_fields:
-            return TRANSACTIONS
+            return Dataset.Transactions
         if isinstance(field[1], (list, tuple)):
             is_transaction = [column for column in field[1] if column in transaction_fields]
             if is_transaction:
-                return TRANSACTIONS
+                return Dataset.Transactions
 
     for field in query_args.get("groupby") or []:
         if field in transaction_fields:
-            return TRANSACTIONS
+            return Dataset.Transactions
 
     return dataset
 
@@ -447,7 +455,7 @@ def get_function_index(column_expr, depth=0):
         return None
 
 
-def parse_columns_in_functions(col, context=None, index=None, dataset="events"):
+def parse_columns_in_functions(col, context=None, index=None, dataset=Dataset.Events):
     """
     Checks expressions for arguments that should be considered a column while
     ignoring strings that represent clickhouse function names
@@ -495,7 +503,7 @@ def get_arrayjoin(column):
         return match.groups()[0]
 
 
-def valid_orderby(orderby, custom_fields=None, dataset="events"):
+def valid_orderby(orderby, custom_fields=None, dataset=Dataset.Events):
     """
     Check if a field can be used in sorting. We don't allow
     sorting on fields that would be aliased as tag[foo] because those
@@ -699,7 +707,7 @@ def _prepare_query_params(query_params):
 
     query_params.kwargs.update(
         {
-            "dataset": query_params.dataset,
+            "dataset": query_params.dataset.value,
             "from_date": start.isoformat(),
             "to_date": end.isoformat(),
             "groupby": query_params.groupby,
@@ -757,7 +765,7 @@ class SnubaQueryParams(object):
         **kwargs
     ):
         # TODO: instead of having events be the default, make dataset required.
-        self.dataset = dataset or "events"
+        self.dataset = dataset or Dataset.Events
         self.start = start or datetime.utcfromtimestamp(0)  # will be clamped to project retention
         self.end = end or datetime.utcnow()
         self.groupby = groupby or []
@@ -949,7 +957,7 @@ def constrain_column_to_dataset(col, dataset, value=None):
         return col
     # Special case for the type condition as we only want
     # to drop it when we are querying transactions.
-    if dataset == TRANSACTIONS and col == "type" and value == "transaction":
+    if dataset == Dataset.Transactions and col == "type" and value == "transaction":
         return None
     if not col or QUOTED_LITERAL_RE.match(col):
         return col
@@ -983,7 +991,7 @@ def constrain_condition_to_dataset(cond, dataset):
             # Reformat 32 byte uuids to 36 byte variants.
             # The transactions dataset requires properly formatted uuid values.
             # But the rest of sentry isn't aware of that requirement.
-            if dataset == TRANSACTIONS and name == "event_id" and len(cond[2]) == 32:
+            if dataset == Dataset.Transactions and name == "event_id" and len(cond[2]) == 32:
                 cond[2] = six.text_type(uuid.UUID(cond[2]))
         elif len(cond) == 2 and cond[0] == "has":
             # first function argument is the column if function is "has"
