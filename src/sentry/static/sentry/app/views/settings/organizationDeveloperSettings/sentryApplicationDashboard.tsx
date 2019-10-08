@@ -9,7 +9,6 @@ import DateTime from 'app/components/dateTime';
 import LoadingError from 'app/components/loadingError';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {intcomma} from 'app/utils';
 import {t} from 'app/locale';
@@ -35,8 +34,15 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
 
   getEndpoints(): Array<[string, string, any] | [string, string]> {
     const {appSlug} = this.props.params;
+    // Default time range for now: 90 days ago to now
+    const now = Math.floor(new Date().getTime() / 1000);
+    const ninety_days_ago = 3600 * 24 * 90;
     return [
-      ['stats', `/sentry-apps/${appSlug}/stats/`],
+      [
+        'stats',
+        `/sentry-apps/${appSlug}/stats/`,
+        {query: {since: now - ninety_days_ago, until: now}},
+      ],
       ['errors', `/sentry-apps/${appSlug}/errors/`],
       ['app', `/sentry-apps/${appSlug}/`],
     ];
@@ -115,6 +121,11 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
     return (
       <React.Fragment>
         <h5>{t('Error Log')}</h5>
+        <p>
+          {t(
+            'This log shows the errors captured from outgoing webhook requests for the following events: issue.assigned, issue.ignored, issue.resolved'
+          )}
+        </p>
         <Panel>
           <PanelHeader>
             <TableLayout>
@@ -191,5 +202,5 @@ const TableLayout = styled('div')`
 `;
 
 const OverflowBox = styled('div')`
-  ${overflowEllipsis}
+  word-break: break-word;
 `;
