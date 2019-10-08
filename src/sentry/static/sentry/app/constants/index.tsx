@@ -177,4 +177,6 @@ export const DEPLOY_PREVIEW_CONFIG = process.env.DEPLOY_PREVIEW_CONFIG;
 export const EXPERIMENTAL_SPA = process.env.EXPERIMENTAL_SPA;
 
 // so we don't use filtered values in certain display contexts
+// TODO(kmclb): once relay is doing the scrubbing, the masking value will be dynamic,
+// so this will have to change
 export const FILTER_MASK = '[Filtered]';
