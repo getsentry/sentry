@@ -28,10 +28,10 @@ export default class AggregationRow extends React.Component<
   AggregationProps,
   AggregationState
 > {
+  state = initalState;
+
   // This is the ref of the inner react-select component
   private select: any;
-
-  state = initalState;
 
   getOptions() {
     const currentValue = getInternal(this.props.value);
