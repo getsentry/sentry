@@ -13,6 +13,8 @@ export type DraggableColumnsChildrenProps = {
     event: React.MouseEvent<SVGSVGElement, MouseEvent>,
     initialColumnIndex: number
   ) => void;
+  draggingColumnIndex: undefined | number;
+  destinationColumnIndex: undefined | number;
 };
 
 type Props = {
@@ -22,19 +24,23 @@ type Props = {
 
 type State = {
   isDragging: boolean;
-  draggingColumnIndex: undefined | number;
   left: undefined | number;
   top: undefined | number;
+
+  draggingColumnIndex: undefined | number;
+  destinationColumnIndex: undefined | number;
 };
 
 class DraggableColumns extends React.Component<Props, State> {
   state: State = {
     isDragging: false,
-    draggingColumnIndex: void 0,
 
     // initial coordinates for when the drag began
     left: void 0,
     top: void 0,
+
+    draggingColumnIndex: void 0,
+    destinationColumnIndex: void 0,
   };
 
   previousUserSelect: UserSelectValues | null = null;
@@ -91,14 +97,14 @@ class DraggableColumns extends React.Component<Props, State> {
 
       const reference = document.createElement('div');
       reference.style.height = '10px';
-      reference.style.width = `${rects.width}px`;
+      reference.style.width = `${rects.width * 0.8}px`;
       reference.style.position = 'absolute';
       reference.style.top = `${rects.top}px`;
-      reference.style.left = `${rects.left}px`;
+      reference.style.left = `${rects.left + rects.width * 0.1}px`;
       reference.style.zIndex = '9999';
       reference.style.backgroundColor = 'yellow';
 
-      document.body.appendChild(reference);
+      //   document.body.appendChild(reference);
     });
   };
 
@@ -117,21 +123,27 @@ class DraggableColumns extends React.Component<Props, State> {
 
     const gridHeadCellButtons = document.querySelectorAll('.grid-head-cell-button');
 
-    const destinationIndex = Array.from(gridHeadCellButtons).findIndex(headerElement => {
-      const rects = headerElement.getBoundingClientRect();
+    const destinationColumnIndex = Array.from(gridHeadCellButtons).findIndex(
+      headerElement => {
+        const rects = headerElement.getBoundingClientRect();
 
-      const left = event.pageX;
+        const left = event.pageX;
 
-      const thresholdStart = rects.left + rects.width * 0.25;
-      const thresholdEnd = rects.left + rects.width * 0.75;
+        const thresholdStart = rects.left;
+        const thresholdEnd = rects.left + rects.width;
 
-      return left >= thresholdStart && left <= thresholdEnd;
-    });
+        return left >= thresholdStart && left <= thresholdEnd;
+      }
+    );
 
-    if (destinationIndex >= 0) {
-      const destinationColumn = this.props.columnOrder[destinationIndex];
+    if (destinationColumnIndex >= 0) {
+      const destinationColumn = this.props.columnOrder[destinationColumnIndex];
 
       console.log('move to', destinationColumn.name);
+
+      this.setState({
+        destinationColumnIndex,
+      });
     }
   };
 
@@ -155,9 +167,10 @@ class DraggableColumns extends React.Component<Props, State> {
 
     this.setState({
       isDragging: false,
-      draggingColumnIndex: void 0,
       left: void 0,
       top: void 0,
+      draggingColumnIndex: void 0,
+      destinationColumnIndex: void 0,
     });
 
     console.log('ended');
@@ -195,6 +208,8 @@ class DraggableColumns extends React.Component<Props, State> {
   renderChildren = () => {
     const childrenProps = {
       startColumnDrag: this.startColumnDrag,
+      draggingColumnIndex: this.state.draggingColumnIndex,
+      destinationColumnIndex: this.state.destinationColumnIndex,
     };
 
     return this.props.children(childrenProps);

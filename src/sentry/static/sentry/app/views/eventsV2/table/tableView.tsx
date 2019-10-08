@@ -169,6 +169,31 @@ class TableView extends React.Component<TableViewProps> {
     return fieldRenderer(dataRow, {organization, location});
   };
 
+  generateColumnOrder = ({
+    initialColumnIndex,
+    destinationColumnIndex,
+  }: {
+    initialColumnIndex: undefined | number;
+    destinationColumnIndex: undefined | number;
+  }) => {
+    if (
+      typeof destinationColumnIndex !== 'number' ||
+      typeof initialColumnIndex !== 'number'
+    ) {
+      return this.state.columnOrder;
+    }
+
+    const nextColumnOrder = [...this.state.columnOrder];
+
+    nextColumnOrder.splice(
+      destinationColumnIndex,
+      0,
+      nextColumnOrder.splice(initialColumnIndex, 1)[0]
+    );
+
+    return nextColumnOrder;
+  };
+
   render() {
     const {organization, isLoading, error, tableData, eventView} = this.props;
 
@@ -185,14 +210,17 @@ class TableView extends React.Component<TableViewProps> {
 
     return (
       <DraggableColumns columnOrder={this.state.columnOrder}>
-        {({startColumnDrag}) => {
+        {({startColumnDrag, draggingColumnIndex, destinationColumnIndex}) => {
           return (
             <GridEditable
               isEditable
               isLoading={isLoading}
               error={error}
               data={tableData ? tableData.data : []}
-              columnOrder={this.state.columnOrder}
+              columnOrder={this.generateColumnOrder({
+                initialColumnIndex: draggingColumnIndex,
+                destinationColumnIndex,
+              })}
               columnSortBy={columnSortBy}
               grid={{
                 renderHeaderCell: this._renderGridHeaderCell as any,
