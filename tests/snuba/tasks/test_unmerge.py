@@ -13,7 +13,17 @@ from mock import patch
 
 from sentry import eventstream, tagstore
 from sentry.app import tsdb
-from sentry.models import Environment, Event, Group, GroupHash, GroupRelease, Release, UserReport
+from sentry.models import (
+    Environment,
+    Event,
+    EventAttachment,
+    File,
+    Group,
+    GroupHash,
+    GroupRelease,
+    Release,
+    UserReport,
+)
 from sentry.similarity import features, _make_index_backend
 from sentry.tasks.unmerge import (
     get_caches,
@@ -195,6 +205,14 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                 name="Log Hat",
                 email="ceo@corptron.com",
                 comments="Quack",
+            )
+
+            EventAttachment.objects.create(
+                project_id=project.id,
+                group_id=event.group.id,
+                event_id=event_id,
+                file=File.objects.create(name="hello.png", type="image/png"),
+                name="hello.png",
             )
 
             features.record([event])

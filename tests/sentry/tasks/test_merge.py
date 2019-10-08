@@ -4,7 +4,16 @@ from mock import patch
 
 from sentry.tagstore.models import GroupTagValue
 from sentry.tasks.merge import merge_groups
-from sentry.models import Event, Group, GroupEnvironment, GroupMeta, GroupRedirect, UserReport
+from sentry.models import (
+    Event,
+    EventAttachment,
+    File,
+    Group,
+    GroupEnvironment,
+    GroupMeta,
+    GroupRedirect,
+    UserReport,
+)
 from sentry.similarity import _make_index_backend
 from sentry.testutils import TestCase
 from sentry.utils import redis
@@ -174,3 +183,24 @@ class MergeGroupTest(TestCase):
         assert not Group.objects.filter(id=group1.id).exists()
 
         assert UserReport.objects.get(id=ur.id).group_id == group2.id
+
+    def test_event_attachment_merge(self):
+        project1 = self.create_project()
+        group1 = self.create_group(project1)
+        event1 = self.create_event("a" * 32, group=group1, data={"foo": "bar"})
+        project2 = self.create_project()
+        group2 = self.create_group(project2)
+        ea = EventAttachment.objects.create(
+            project_id=project1.id,
+            group_id=group1.id,
+            event_id=event1.event_id,
+            file=File.objects.create(name="hello.png", type="image/png"),
+            name="hello.png",
+        )
+
+        with self.tasks():
+            merge_groups([group1.id], group2.id)
+
+        assert not Group.objects.filter(id=group1.id).exists()
+
+        assert EventAttachment.objects.get(id=ea.id).group_id == group2.id

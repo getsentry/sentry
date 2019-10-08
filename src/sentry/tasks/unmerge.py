@@ -14,6 +14,7 @@ from sentry.models import (
     Activity,
     Environment,
     Event,
+    EventAttachment,
     EventUser,
     Group,
     GroupEnvironment,
@@ -234,6 +235,10 @@ def migrate_events(
     event_event_id_set = set(event.event_id for event in events)
 
     UserReport.objects.filter(project_id=project.id, event_id__in=event_event_id_set).update(
+        group=destination_id
+    )
+
+    EventAttachment.objects.filter(project_id=project.id, event_id__in=event_event_id_set).update(
         group=destination_id
     )
 
