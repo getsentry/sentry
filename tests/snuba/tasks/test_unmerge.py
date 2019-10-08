@@ -319,6 +319,10 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         ) == set(destination_event_ids)
 
         assert set(
+            EventAttachment.objects.filter(group_id=source.id).values_list("event_id", flat=True)
+        ) == set(destination_event_ids)
+
+        assert set(
             GroupHash.objects.filter(group_id=source.id).values_list("hash", flat=True)
         ) == set([events.keys()[0], events.keys()[1]])
 
