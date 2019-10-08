@@ -25,6 +25,12 @@ class AuthLoginTest(TestCase):
         assert resp.status_code == 200
         self.assertTemplateUsed("sentry/login.html")
 
+    def test_cannot_request_access(self):
+        resp = self.client.get(self.path)
+
+        assert resp.status_code == 200
+        assert resp.context["join_request_link"] is None
+
     def test_renders_session_expire_message(self):
         self.client.cookies["session_expired"] = "1"
         resp = self.client.get(self.path)
