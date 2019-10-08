@@ -3,6 +3,7 @@ import styled from 'react-emotion';
 
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tct} from 'app/locale';
+import routeTitleGen from 'app/utils/routeTitle';
 import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
@@ -24,7 +25,8 @@ class ProjectOwnership extends AsyncView {
   };
 
   getTitle() {
-    return t('Ownership');
+    const {project} = this.props;
+    return routeTitleGen(t('Issue Owners'), project.slug, false);
   }
 
   getEndpoints() {

@@ -20,6 +20,7 @@ import EmptyStateWarning from 'app/components/emptyStateWarning';
 import PermissionAlert from 'app/views/settings/project/permissionAlert';
 import SentryTypes from 'app/sentryTypes';
 import Tooltip from 'app/components/tooltip';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import recreateRoute from 'app/utils/recreateRoute';
 import withApi from 'app/utils/withApi';
 import {getDisplayName} from 'app/utils/environment';
@@ -248,6 +249,7 @@ class ProjectAlertRules extends AsyncView {
 
     return (
       <React.Fragment>
+        <SentryDocumentTitle title={t('Alerts Rules')} objSlug={projectId} />
         <ProjectAlertHeader projectId={projectId} />
         <PermissionAlert />
         {!!ruleList.length && this.renderResults()}

@@ -17,6 +17,7 @@ import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
 import Button from 'app/components/button';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import RuleNodeList from 'app/views/settings/projectAlerts/ruleEditor/ruleNodeList';
 import recreateRoute from 'app/utils/recreateRoute';
 import space from 'app/styles/space';
@@ -197,6 +198,7 @@ const RuleEditor = createReactClass({
   },
 
   render() {
+    const {projectId} = this.props.params;
     const {environments} = this.state;
     const environmentChoices = [
       [ALL_ENVIRONMENTS_KEY, t('All Environments')],
@@ -213,10 +215,13 @@ const RuleEditor = createReactClass({
     const environment =
       rule.environment === null ? ALL_ENVIRONMENTS_KEY : rule.environment;
 
+    const title = rule.id ? t('Edit Alert Rule') : t('New Alert Rule');
+
     return (
       <form onSubmit={this.handleSubmit} ref={node => (this.formNode = node)}>
+        <SentryDocumentTitle title={title} objSlug={projectId} />
         <Panel className="rule-detail">
-          <PanelHeader>{rule.id ? 'Edit Alert Rule' : 'New Alert Rule'}</PanelHeader>
+          <PanelHeader>{title}</PanelHeader>
           <PanelBody disablePadding={false}>
             {error && (
               <div className="alert alert-block alert-error">

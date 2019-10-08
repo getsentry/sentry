@@ -14,6 +14,18 @@ exports[`ProjectDebugFiles renders 1`] = `
     }
   }
 >
+  <SentryDocumentTitle
+    objSlug="project"
+    title="Debug Files"
+  >
+    <SideEffect(DocumentTitle)
+      title="Debug Files - project - Sentry"
+    >
+      <DocumentTitle
+        title="Debug Files - project - Sentry"
+      />
+    </SideEffect(DocumentTitle)>
+  </SentryDocumentTitle>
   <StyledSettingsPageHeading
     noTitleStyles={false}
     title="Debug Information Files"
@@ -296,6 +308,10 @@ exports[`ProjectDebugFiles renders 1`] = `
 
 exports[`ProjectDebugFiles renders empty 1`] = `
 <Fragment>
+  <SentryDocumentTitle
+    objSlug="project"
+    title="Debug Files"
+  />
   <StyledSettingsPageHeading
     noTitleStyles={false}
     title="Debug Information Files"

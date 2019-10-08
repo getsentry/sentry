@@ -4,6 +4,7 @@ import React from 'react';
 import {t} from 'app/locale';
 import GroupTombstones from 'app/views/settings/project/projectFilters/groupTombstones';
 import NavTabs from 'app/components/navTabs';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import PermissionAlert from 'app/views/settings/project/permissionAlert';
 import ProjectFiltersChart from 'app/views/settings/project/projectFilters/projectFiltersChart';
 import ProjectFiltersSettings from 'app/views/settings/project/projectFilters/projectFiltersSettings';
@@ -28,6 +29,7 @@ class ProjectFilters extends React.Component {
 
     return (
       <div>
+        <SentryDocumentTitle title={t('Inbound Filters')} objSlug={projectId} />
         <SettingsPageHeader title={t('Inbound Data Filters')} />
         <PermissionAlert />
 

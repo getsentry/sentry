@@ -14,6 +14,7 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import space from 'app/styles/space';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import formGroups from 'app/data/forms/userFeedback';
+import routeTitleGen from 'app/utils/routeTitle';
 
 type RouteParams = {
   orgId: string;
@@ -57,6 +58,11 @@ class ProjectUserFeedbackSettings extends AsyncView<Props> {
       ['keyList', `/projects/${orgId}/${projectId}/keys/`],
       ['project', `/projects/${orgId}/${projectId}/`],
     ];
+  }
+
+  getTitle(): string {
+    const {projectId} = this.props.params;
+    return routeTitleGen(t('User Feedback'), projectId, false);
   }
 
   handleClick = () => {

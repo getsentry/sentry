@@ -2,7 +2,7 @@
 
 exports[`ProjectExpectCtReports renders 1`] = `
 <SideEffect(DocumentTitle)
-  title="Sentry"
+  title="Certificate Transparency (Expect-CT) - project-slug - Sentry"
 >
   <div>
     <StyledSettingsPageHeading
