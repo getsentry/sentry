@@ -7,10 +7,11 @@ ifneq "$(wildcard /usr/local/opt/openssl/lib)" ""
 	LDFLAGS += -L/usr/local/opt/openssl/lib
 endif
 
-PIP = LDFLAGS="$(LDFLAGS)" pip
-PIP_OPTS = --no-use-pep517 --disable-pip-version-check
-WEBPACK = NODE_ENV=production ./bin/yarn webpack
-YARN = ./bin/yarn
+PIP := LDFLAGS="$(LDFLAGS)" python -m pip
+PIP_VERSION := 19.2.3
+PIP_OPTS := --no-use-pep517 --disable-pip-version-check
+WEBPACK := NODE_ENV=production ./bin/yarn webpack
+YARN := ./bin/yarn
 
 bootstrap: install-system-pkgs develop init-config run-dependent-services create-db apply-migrations
 
@@ -59,7 +60,7 @@ ensure-venv:
 	@./scripts/ensure-venv.sh
 
 ensure-latest-pip:
-	python -m pip install -U pip
+	$(PIP) install "pip==$(PIP_VERSION)"
 
 setup-git: ensure-latest-pip
 	@echo "--> Installing git hooks"
