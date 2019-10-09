@@ -406,7 +406,7 @@ def fix_south(settings):
 def monkeypatch_django_migrations():
     # This monkey patches the django 1.8 migration executor with a backported 1.9
     # executor. This improves the speed that Django builds the migration state.
-    import sentry.new_migrations.django_19_executor  # NOQA
+    import sentry.new_migrations.monkey  # NOQA
 
 
 def bind_cache_to_option_store():
