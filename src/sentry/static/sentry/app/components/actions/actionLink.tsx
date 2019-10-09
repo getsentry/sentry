@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from 'react-emotion';
 import classNames from 'classnames';
+import PropTypes from 'prop-types';
 
 import Confirm from 'app/components/confirm';
 
@@ -14,6 +15,16 @@ type ActionLinkProps = {
 } & React.HTMLAttributes<HTMLDivElement>;
 
 export default class ActionLink extends React.Component<ActionLinkProps> {
+  static propTypes = {
+    className: PropTypes.any,
+    title: PropTypes.string,
+    message: PropTypes.node,
+    disabled: PropTypes.bool,
+    onAction: PropTypes.func.isRequired,
+    shouldConfirm: PropTypes.bool,
+    confirmLabel: PropTypes.string,
+  };
+
   static defaultProps = {
     shouldConfirm: false,
     disabled: false,
@@ -58,9 +69,6 @@ export default class ActionLink extends React.Component<ActionLinkProps> {
     }
   }
 }
-
-const ActionLinkAnchor = styled('a')<{
-  disabled?: boolean;
-}>`
+const ActionLinkAnchor = styled('a')<{disabled?: boolean}>`
   pointer-events: ${p => (p.disabled ? 'none' : 'auto')};
 `;
