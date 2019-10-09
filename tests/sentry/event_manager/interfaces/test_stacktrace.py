@@ -28,6 +28,7 @@ def test_works_with_empty_filename():
     assert result == [(0, "hello world")]
 
 
+@pytest.fixture
 def make_stacktrace_snapshot(insta_snapshot):
     def inner(data):
         mgr = EventManager(data={"stacktrace": data})
@@ -48,7 +49,7 @@ def make_stacktrace_snapshot(insta_snapshot):
     return inner
 
 
-def test_basic():
+def test_basic(make_stacktrace_snapshot):
     make_stacktrace_snapshot(
         dict(
             frames=[
@@ -60,41 +61,41 @@ def test_basic():
 
 
 @pytest.mark.parametrize("input", [{"frames": [{}]}, {"frames": [{"abs_path": None}]}])
-def test_null_values_in_frames(input):
+def test_null_values_in_frames(make_stacktrace_snapshot, input):
     make_stacktrace_snapshot(input)
 
 
-def test_filename():
+def test_filename(make_stacktrace_snapshot):
     make_stacktrace_snapshot(dict(frames=[{"filename": "foo.py"}]))
 
 
-def test_filename2():
+def test_filename2(make_stacktrace_snapshot):
     make_stacktrace_snapshot(dict(frames=[{"lineno": 1, "filename": "foo.py"}]))
 
 
-def test_allows_abs_path_without_filename():
+def test_allows_abs_path_without_filename(make_stacktrace_snapshot):
     make_stacktrace_snapshot(dict(frames=[{"lineno": 1, "abs_path": "foo/bar/baz.py"}]))
 
 
-def test_coerces_url_filenames():
+def test_coerces_url_filenames(make_stacktrace_snapshot):
     make_stacktrace_snapshot(dict(frames=[{"lineno": 1, "filename": "http://foo.com/foo.js"}]))
 
 
-def test_does_not_overwrite_filename():
+def test_does_not_overwrite_filename(make_stacktrace_snapshot):
     make_stacktrace_snapshot(
         dict(frames=[{"lineno": 1, "filename": "foo.js", "abs_path": "http://foo.com/foo.js"}])
     )
 
 
-def test_ignores_results_with_empty_path():
+def test_ignores_results_with_empty_path(make_stacktrace_snapshot):
     make_stacktrace_snapshot(dict(frames=[{"lineno": 1, "filename": "http://foo.com"}]))
 
 
-def test_serialize_returns_frames():
+def test_serialize_returns_frames(make_stacktrace_snapshot):
     make_stacktrace_snapshot(dict(frames=[{"lineno": 1, "filename": "foo.py"}]))
 
 
-def test_frame_hard_limit():
+def test_frame_hard_limit(make_stacktrace_snapshot):
     hard_limit = settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT
     make_stacktrace_snapshot(
         {
@@ -111,7 +112,7 @@ def test_frame_hard_limit():
 
 
 @mock.patch("sentry.interfaces.stacktrace.Stacktrace.get_stacktrace", mock.Mock(return_value="foo"))
-def test_to_string_returns_stacktrace():
+def test_to_string_returns_stacktrace(make_stacktrace_snapshot):
     make_stacktrace_snapshot(dict(frames=[]))
 
 
@@ -121,12 +122,12 @@ def test_get_stacktrace_with_only_filename():
 
 
 @mock.patch("sentry.interfaces.stacktrace.is_newest_frame_first", mock.Mock(return_value=False))
-def test_get_stacktrace_with_module():
+def test_get_stacktrace_with_module(make_stacktrace_snapshot):
     make_stacktrace_snapshot(dict(frames=[{"module": "foo"}, {"module": "bar"}]))
 
 
 @mock.patch("sentry.interfaces.stacktrace.is_newest_frame_first", mock.Mock(return_value=False))
-def test_get_stacktrace_with_filename_and_function():
+def test_get_stacktrace_with_filename_and_function(make_stacktrace_snapshot):
     make_stacktrace_snapshot(
         dict(
             frames=[{"filename": "foo", "function": "biz"}, {"filename": "bar", "function": "baz"}]
@@ -135,7 +136,7 @@ def test_get_stacktrace_with_filename_and_function():
 
 
 @mock.patch("sentry.interfaces.stacktrace.is_newest_frame_first", mock.Mock(return_value=False))
-def test_get_stacktrace_with_filename_function_lineno_and_context():
+def test_get_stacktrace_with_filename_function_lineno_and_context(make_stacktrace_snapshot):
     make_stacktrace_snapshot(
         dict(
             frames=[
