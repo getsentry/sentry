@@ -731,7 +731,7 @@ def resolve_orderby(orderby, fields, aggregations):
     if len(validated) == len(orderby):
         return validated
 
-    raise InvalidSearchQuery("Cannot order by an field that is not selected.")
+    raise InvalidSearchQuery("Cannot order by a field that is not selected.")
 
 
 def get_aggregate_alias(match):
