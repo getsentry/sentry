@@ -407,6 +407,23 @@ class ParseSearchQueryTest(unittest.TestCase):
             ),
         ]
 
+    def test_custom_explicit_tag(self):
+        assert parse_search_query("tags[fruit]:apple release:1.2.1 tags[project_id]:123") == [
+            SearchFilter(
+                key=SearchKey(name="tags[fruit]"),
+                operator="=",
+                value=SearchValue(raw_value="apple"),
+            ),
+            SearchFilter(
+                key=SearchKey(name="release"), operator="=", value=SearchValue(raw_value="1.2.1")
+            ),
+            SearchFilter(
+                key=SearchKey(name="tags[project_id]"),
+                operator="=",
+                value=SearchValue(raw_value="123"),
+            ),
+        ]
+
     def test_has_tag(self):
         # unquoted key
         assert parse_search_query("has:release") == [
@@ -860,6 +877,22 @@ class GetSnubaQueryArgsTest(TestCase):
             [[["isNull", ["email"]], "=", 1], ["email", "!=", "foo@example.com"]]
         ]
         assert filter.filter_keys == {}
+
+    def test_implicit_and_explicit_tags(self):
+        assert get_snuba_query_args("tags[fruit]:apple") == {
+            "conditions": [[["ifNull", ["tags[fruit]", "''"]], "=", "apple"]],
+            "filter_keys": {},
+        }
+
+        assert get_snuba_query_args("fruit:apple") == {
+            "conditions": [[["ifNull", ["tags[fruit]", "''"]], "=", "apple"]],
+            "filter_keys": {},
+        }
+
+        assert get_snuba_query_args("tags[project_id]:123") == {
+            "conditions": [[["ifNull", ["tags[project_id]", "''"]], "=", "123"]],
+            "filter_keys": {},
+        }
 
     def test_no_search(self):
         filter = get_filter(

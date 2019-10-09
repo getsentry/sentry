@@ -63,21 +63,20 @@ class ChunkUploadTest(APITestCase):
         assert response.status_code == 403, response.content
 
     def test_upload(self):
-        string1 = "1 this is my testString"
-        string2 = "2 this is my testString"
-
-        checksum1 = sha1(string1).hexdigest()
-        checksum2 = sha1(string2).hexdigest()
+        data1 = "1 this is my testString"
+        data2 = "2 this is my testString"
+        checksum1 = sha1(data1).hexdigest()
+        checksum2 = sha1(data2).hexdigest()
+        blob1 = SimpleUploadedFile(checksum1, data1, content_type="multipart/form-data")
+        blob2 = SimpleUploadedFile(checksum2, data2, content_type="multipart/form-data")
 
         response = self.client.post(
             self.url,
-            data={
-                "file": [
-                    SimpleUploadedFile(checksum1, string1),
-                    SimpleUploadedFile(checksum2, string2),
-                ]
-            },
+            data={"file": [blob1, blob2]},
             HTTP_AUTHORIZATION=u"Bearer {}".format(self.token.token),
+            # this tells drf to select the MultiPartParser. We use that instead of
+            # FileUploadParser because we have our own specific file chunking mechanism
+            # in the chunk endpoint that has requirements like blob/chunk's filename = checksum.
             format="multipart",
         )
 

@@ -21,7 +21,7 @@ from sentry.search.utils import (
     InvalidQuery,
 )
 from sentry.utils.dates import to_timestamp
-from sentry.utils.snuba import DATASETS, get_snuba_column_name
+from sentry.utils.snuba import Dataset, DATASETS, get_snuba_column_name
 
 WILDCARD_CHARS = re.compile(r"[\*]")
 
@@ -91,7 +91,7 @@ search               = (boolean_term / paren_term / search_term)*
 boolean_term         = (paren_term / search_term) space? (boolean_operator space? (paren_term / search_term) space?)+
 paren_term           = space? open_paren space? (paren_term / boolean_term)+ space? closed_paren space?
 search_term          = key_val_term / quoted_raw_search / raw_search
-key_val_term         = space? (time_filter / rel_time_filter / specific_time_filter
+key_val_term         = space? (tag_filter / time_filter / rel_time_filter / specific_time_filter
                        / numeric_filter / has_filter / is_filter / basic_filter)
                        space?
 raw_search           = (!key_val_term ~r"\ *([^\ ^\n ()]+)\ *" )*
@@ -111,6 +111,7 @@ numeric_filter       = search_key sep operator? ~r"[0-9]+(?=\s|$)"
 # has filter for not null type checks
 has_filter           = negation? "has" sep (search_key / search_value)
 is_filter            = negation? "is" sep search_value
+tag_filter            = negation? "tags[" search_key "]" sep search_value
 
 search_key           = key / quoted_key
 search_value         = quoted_value / value
@@ -150,8 +151,8 @@ SEARCH_MAP = {
     # TODO(mark) figure out how to safelist aggregate functions/field aliases
     # so they can be used in conditions
 }
-SEARCH_MAP.update(**DATASETS["transactions"])
-SEARCH_MAP.update(**DATASETS["events"])
+SEARCH_MAP.update(**DATASETS[Dataset.Transactions])
+SEARCH_MAP.update(**DATASETS[Dataset.Events])
 
 no_conversion = set(["project_id", "start", "end"])
 
@@ -190,12 +191,17 @@ class SearchKey(namedtuple("SearchKey", "name")):
         snuba_name = SEARCH_MAP.get(self.name)
         if snuba_name:
             return snuba_name
-        # assume custom tag if not listed
-        return "tags[%s]" % (self.name,)
+
+        # assume custom tag if not matched above, and add tags[xxx] wrapper if not present.
+        match = TAG_KEY_RE.match(self.name)
+        if match:
+            return self.name
+        else:
+            return "tags[%s]" % (self.name,)
 
     @cached_property
     def is_tag(self):
-        return self.name not in SEARCH_MAP
+        return TAG_KEY_RE.match(self.name) or self.name not in SEARCH_MAP
 
 
 class SearchValue(namedtuple("SearchValue", "raw_value")):
@@ -455,8 +461,12 @@ class SearchVisitor(NodeVisitor):
             )
 
         operator = "=" if self.is_negated(negation) else "!="
-
         return SearchFilter(search_key, operator, SearchValue(""))
+
+    def visit_tag_filter(self, node, children):
+        (negation, _, search_key, _, sep, search_value) = children
+        operator = "!=" if self.is_negated(negation) else "="
+        return SearchFilter(SearchKey(u"tags[%s]" % (search_key.name)), operator, search_value)
 
     def visit_is_filter(self, node, children):
         raise InvalidSearchQuery('"is" queries are not supported on this search')
