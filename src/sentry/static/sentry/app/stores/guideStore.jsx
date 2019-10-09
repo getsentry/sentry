@@ -57,12 +57,18 @@ const GuideStore = Reflux.createStore({
     this.updateCurrentGuide();
   },
 
-  onChangeOrgSlug(prev, next) {
+  onChangeOrgSlug(_prev, next) {
     this.state.org = next;
     this.updateCurrentGuide();
   },
 
   onFetchSucceeded(data) {
+    // It's possible we can get empty responses (seems to be Firefox specific)
+    // Do nothing if `data` is empty
+    if (!data) {
+      return;
+    }
+
     this.state.guides = data;
     this.updateCurrentGuide();
   },
