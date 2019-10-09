@@ -162,6 +162,7 @@ class EventNodeStoreTest(TestCase):
         event = self.create_event(group=group2)
         event.data.bind_ref(invalid_event)
         event.save()
+        event.data.save()
 
         assert event.data.get_ref(event) != event.data.get_ref(invalid_event)
 
