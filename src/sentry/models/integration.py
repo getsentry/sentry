@@ -33,10 +33,10 @@ class PagerDutyServiceProject(Model):
     project = FlexibleForeignKey("sentry.Project", db_index=False, db_constraint=False)
     pagerduty_service = FlexibleForeignKey("sentry.PagerDutyService")
     # TODO(meredith): rest of these columns need to be removed
-    organization_integration = FlexibleForeignKey("sentry.OrganizationIntegration")
-    integration_key = models.CharField(max_length=255)
-    service_id = models.CharField(max_length=255)
-    service_name = models.CharField(max_length=255)
+    organization_integration = FlexibleForeignKey("sentry.OrganizationIntegration", null=True)
+    integration_key = models.CharField(max_length=255, null=True)
+    service_id = models.CharField(max_length=255, null=True)
+    service_name = models.CharField(max_length=255, null=True)
 
     class Meta:
         app_label = "sentry"
