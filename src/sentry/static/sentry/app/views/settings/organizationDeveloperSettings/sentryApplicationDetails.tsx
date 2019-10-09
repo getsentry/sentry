@@ -35,7 +35,15 @@ import {SentryApp, InternalAppApiToken, Scope} from 'app/types';
 import Tooltip from 'app/components/tooltip';
 import {SENTRY_APP_PERMISSIONS} from 'app/constants';
 
-const getResourceFromScope = (scope: Scope) => {
+type Resource = 'Project' | 'Team' | 'Release' | 'Event' | 'Organization' | 'Member';
+
+/**
+ * Finds the resource in SENTRY_APP_PERMISSIONS that contains a given scope
+ * We should always find a match unless there is a bug
+ * @param {Scope} scope
+ * @return {Resource | undefined}
+ */
+const getResourceFromScope = (scope: Scope): Resource | undefined => {
   for (const permObj of SENTRY_APP_PERMISSIONS) {
     const allChoices = Object.values(permObj.choices);
 
@@ -45,7 +53,7 @@ const getResourceFromScope = (scope: Scope) => {
     );
 
     if (allScopes.includes(scope)) {
-      return permObj.resource;
+      return permObj.resource as Resource;
     }
   }
   return undefined;
@@ -74,6 +82,11 @@ class SentryAppFormModel extends FormModel {
     }, {});
   }
 
+  /**
+   * We need to map the API response errors to the actual form fields.
+   * We do this by pulling put scopes and mapping each scope error to the correct input.
+   * @param {Object} responseJSON
+   */
   mapFormErrors(responseJSON?: any) {
     if (!responseJSON) {
       return responseJSON;
@@ -81,11 +94,15 @@ class SentryAppFormModel extends FormModel {
     const formErrors = _.omit(responseJSON, ['scopes']);
     if (responseJSON.scopes) {
       responseJSON.scopes.forEach((message: string) => {
+        //find the scope from the error message of a specific format
         const matches = message.match(/Requested permission of (\w+:\w+)/);
         if (matches) {
           const scope = matches[1];
           const resource = getResourceFromScope(scope as Scope);
-          formErrors[`${resource}--permission`] = [message];
+          //should always match but technically resource can be undefined
+          if (resource) {
+            formErrors[`${resource}--permission`] = [message];
+          }
         }
       });
     }
