@@ -51,8 +51,7 @@ class ProjectEventsEndpoint(ProjectEndpoint):
 
         data_fn = partial(
             eventstore.get_events,
-            conditions=conditions,
-            filter_keys={"project_id": [project.id]},
+            filter=eventstore.Filter(conditions=conditions, project_ids=[project.id]),
             additional_columns=cols,
             referrer="api.project-events",
         )

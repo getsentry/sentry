@@ -60,15 +60,13 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
             if requested_environments:
                 conditions.append(["environment", "IN", requested_environments])
 
-            filter_keys = {"project_id": [event.project_id], "issue": [event.group_id]}
-
-            next_event = eventstore.get_next_event_id(
-                event, conditions=conditions, filter_keys=filter_keys
+            filter = eventstore.Filter(
+                conditions=conditions, project_ids=[event.project_id], group_ids=[event.group_id]
             )
 
-            prev_event = eventstore.get_prev_event_id(
-                event, conditions=conditions, filter_keys=filter_keys
-            )
+            next_event = eventstore.get_next_event_id(event, filter=filter)
+
+            prev_event = eventstore.get_prev_event_id(event, filter=filter)
 
             next_event_id = next_event[1] if next_event else None
             prev_event_id = prev_event[1] if prev_event else None

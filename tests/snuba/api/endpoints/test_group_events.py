@@ -291,15 +291,3 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
             assert sorted(map(lambda x: x["eventID"], response.data)) == sorted(
                 [six.text_type(event.event_id)]
             )
-
-    def test_boolean_feature_flag_failure(self):
-        self.login_as(user=self.user)
-        group = self.create_group()
-
-        for query in ["title:hi OR title:hello", "title:hi AND title:hello"]:
-            url = u"/api/0/issues/{}/events/?query={}".format(group.id, query)
-            response = self.client.get(url, format="json")
-            assert response.status_code == 400
-            assert response.data == {
-                "detail": "Boolean search operator OR and AND not allowed in this search."
-            }

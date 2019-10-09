@@ -608,7 +608,9 @@ class CspReportTest(TestCase, SnubaTestCase):
         # doesn't work here because the event isn't created directly by this test.
         sleep(0.1)
         events = eventstore.get_events(
-            filter_keys={"project_id": [self.project.id]}, conditions=[["type", "=", "csp"]]
+            filter=eventstore.Filter(
+                project_ids=[self.project.id], conditions=[["type", "=", "csp"]]
+            )
         )
         assert len(events) == 1
         e = events[0]

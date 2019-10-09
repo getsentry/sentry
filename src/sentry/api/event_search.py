@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import re
-from collections import namedtuple, defaultdict
+from collections import namedtuple
 from copy import deepcopy
 from datetime import datetime
 
@@ -624,7 +624,11 @@ def convert_search_filter_to_snuba_query(search_filter):
             return condition
 
 
-def get_snuba_query_args(query=None, params=None):
+def get_filter(query=None, params=None):
+    """
+    Returns an eventstore filter given the search text provided by the user and
+    URL params
+    """
     # NOTE: this function assumes project permissions check already happened
     parsed_terms = []
     if query is not None:
@@ -637,7 +641,7 @@ def get_snuba_query_args(query=None, params=None):
     if params is not None:
         parsed_terms.extend(convert_endpoint_params(params))
 
-    kwargs = {"conditions": [], "filter_keys": defaultdict(list)}
+    kwargs = {"start": None, "end": None, "conditions": [], "project_ids": [], "group_ids": []}
 
     projects = {}
     has_project_term = any(
@@ -658,18 +662,19 @@ def get_snuba_query_args(query=None, params=None):
             elif snuba_name in ("start", "end"):
                 kwargs[snuba_name] = term.value.value
             elif snuba_name in ("project_id", "issue"):
+                if snuba_name == "issue":
+                    snuba_name = "group_ids"
+                if snuba_name == "project_id":
+                    snuba_name = "project_ids"
                 value = term.value.value
                 if isinstance(value, int):
                     value = [value]
-                kwargs["filter_keys"][snuba_name].extend(value)
+                kwargs[snuba_name].extend(value)
             else:
                 converted_filter = convert_search_filter_to_snuba_query(term)
                 kwargs["conditions"].append(converted_filter)
-        else:  # SearchBoolean
-            # TODO(lb): remove when boolean terms fully functional
-            kwargs["has_boolean_terms"] = True
-            kwargs["conditions"].append(convert_search_boolean_to_snuba_query(term))
-    return kwargs
+
+    return eventstore.Filter(**kwargs)
 
 
 FIELD_ALIASES = {

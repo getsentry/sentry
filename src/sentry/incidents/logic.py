@@ -11,7 +11,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from sentry import analytics
-from sentry.api.event_search import get_snuba_query_args
+from sentry.api.event_search import get_filter
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleExcludedProjects,
@@ -142,7 +142,7 @@ def calculate_incident_start(query, projects, groups):
     if projects:
         params["project_id"] = [p.id for p in projects]
 
-    query_args = get_snuba_query_args(query, params)
+    filter = get_filter(query, params)
     rollup = int(INCIDENT_START_ROLLUP.total_seconds())
 
     result = raw_query(
@@ -152,7 +152,10 @@ def calculate_incident_start(query, projects, groups):
         rollup=rollup,
         referrer="incidents.calculate_incident_start",
         limit=10000,
-        **query_args
+        start=filter.start,
+        end=filter.end,
+        conditions=filter.conditions,
+        filter_keys=filter.filter_keys,
     )["data"]
     # TODO: Start could be the period before the first period we find
     result = zerofill(result, params["start"], params["end"], rollup, "time")
@@ -423,7 +426,17 @@ def bulk_build_incident_query_params(incidents, start=None, end=None):
         project_ids = incident_projects[incident.id]
         if project_ids:
             params["project_id"] = project_ids
-        query_args_list.append(get_snuba_query_args(incident.query, params))
+
+        filter = get_filter(incident.query, params)
+
+        query_args_list.append(
+            {
+                "start": filter.start,
+                "end": filter.end,
+                "conditions": filter.conditions,
+                "filter_keys": filter.filter_keys,
+            }
+        )
 
     return query_args_list
 
@@ -837,7 +850,7 @@ def validate_alert_rule_query(query):
     # TODO: We should add more validation here to reject queries that include
     # fields that are invalid in alert rules. For now this will just make sure
     # the query parses correctly.
-    get_snuba_query_args(query)
+    get_filter(query)
 
 
 def get_excluded_projects_for_alert_rule(alert_rule):

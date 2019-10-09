@@ -50,7 +50,13 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                 eventstore.get_events,
                 additional_columns=cols,
                 referrer="api.organization-events",
-                **snuba_args
+                filter=eventstore.Filter(
+                    start=snuba_args["start"],
+                    end=snuba_args["end"],
+                    conditions=snuba_args["conditions"],
+                    project_ids=snuba_args["filter_keys"].get("project_id", None),
+                    group_ids=snuba_args["filter_keys"].get("issue", None),
+                ),
             )
 
         serializer = EventSerializer() if full else SimpleEventSerializer()
