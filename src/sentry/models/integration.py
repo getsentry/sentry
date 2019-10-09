@@ -20,11 +20,12 @@ class PagerDutyService(Model):
     integration_key = models.CharField(max_length=255)
     service_id = models.CharField(max_length=255)
     service_name = models.CharField(max_length=255)
+    date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_pagerdutyservice"
-        unique_together = (("service_id", "integration_key", "organization_integration"),)
+        unique_together = (("service_id", "organization_integration"),)
 
 
 class PagerDutyServiceProject(Model):
@@ -32,6 +33,7 @@ class PagerDutyServiceProject(Model):
 
     project = FlexibleForeignKey("sentry.Project", db_index=False, db_constraint=False)
     pagerduty_service = FlexibleForeignKey("sentry.PagerDutyService")
+    date_added = models.DateTimeField(default=timezone.now)
     # TODO(meredith): rest of these columns need to be removed
     organization_integration = FlexibleForeignKey("sentry.OrganizationIntegration", null=True)
     integration_key = models.CharField(max_length=255, null=True)
