@@ -7,6 +7,8 @@ from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.eventstore.snuba.backend import SnubaEventStorage
 from sentry.eventstore.base import Filter
 
+from sentry.utils.samples import load_data
+
 
 class SnubaEventStorageTest(TestCase, SnubaTestCase):
     def setUp(self):
@@ -50,17 +52,24 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
             project_id=self.project2.id,
         )
 
+        event_data = load_data("transaction")
+        event_data["timestamp"] = self.min_ago
+        event_data["event_id"] = "d" * 32
+
+        self.transaction_event = self.store_event(data=event_data, project_id=self.project2.id)
+
         self.eventstore = SnubaEventStorage()
 
     def test_get_events(self):
         events = self.eventstore.get_events(
             filter=Filter(project_ids=[self.project1.id, self.project2.id])
         )
-        assert len(events) == 3
+        assert len(events) == 4
         # Default sort is timestamp desc, event_id desc
-        assert events[0].id == "c" * 32
-        assert events[1].id == "b" * 32
-        assert events[2].id == "a" * 32
+        assert events[0].id == "d" * 32
+        assert events[1].id == "c" * 32
+        assert events[2].id == "b" * 32
+        assert events[3].id == "a" * 32
 
         # No events found
         project = self.create_project()
@@ -86,7 +95,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         assert len(event.snuba_data.keys()) == 17
 
         # Get non existent event
-        event = self.eventstore.get_event_by_id(self.project2.id, "d" * 32)
+        event = self.eventstore.get_event_by_id(self.project2.id, "e" * 32)
         assert event is None
 
     def test_get_next_prev_event_id(self):
@@ -106,3 +115,10 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         # Returns None if no event
         assert self.eventstore.get_prev_event_id(None, filter=filter) is None
         assert self.eventstore.get_next_event_id(None, filter=filter) is None
+
+    def test_get_transaction_event_by_id(self):
+        event = self.eventstore.get_event_by_id(self.project2.id, self.transaction_event.event_id)
+
+        assert event.id == "d" * 32
+        assert event.get_event_type() == "transaction"
+        assert event.project_id == self.project2.id
