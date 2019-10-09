@@ -2,19 +2,24 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 import {Location} from 'history';
+import {omit} from 'lodash';
 
 import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/links/link';
+
+type Alignments = 'left' | 'right' | undefined;
 
 type Props = {
   title: string;
   sortKey: string;
   defaultSort: string;
   location: Location;
+  align: Alignments;
 };
 
 class SortLink extends React.Component<Props> {
   static propTypes = {
+    align: PropTypes.string,
     title: PropTypes.string.isRequired,
     sortKey: PropTypes.string.isRequired,
     defaultSort: PropTypes.string.isRequired,
@@ -62,17 +67,24 @@ class SortLink extends React.Component<Props> {
   }
 
   render() {
-    const {title} = this.props;
+    const {align, title} = this.props;
     return (
-      <StyledLink to={this.getTarget()}>
+      <StyledLink align={align} to={this.getTarget()}>
         {title} {this.renderChevron()}
       </StyledLink>
     );
   }
 }
 
-const StyledLink = styled(Link)`
+type StyledLinkProps = Link['props'] & {align: Alignments};
+
+const StyledLink = styled((props: StyledLinkProps) => {
+  const forwardProps = omit(props, ['align']);
+  return <Link {...forwardProps} />;
+})`
+  display: block;
   white-space: nowrap;
+  ${(p: StyledLinkProps) => (p.align ? `text-align: ${p.align};` : '')}
 `;
 
 export default SortLink;

@@ -1045,6 +1045,19 @@ class ResolveFieldListTest(unittest.TestCase):
         ]
         assert result["groupby"] == ["title"]
 
+    def test_field_alias_duration_expansion(self):
+        fields = ["avg(transaction.duration)", "p95", "p75"]
+        result = resolve_field_list(fields, {})
+        assert result["selected_columns"] == []
+        assert result["aggregations"] == [
+            ["avg", "transaction.duration", "avg_transaction_duration"],
+            ["quantileTiming(0.95)(duration)", "", "p95"],
+            ["quantileTiming(0.75)(duration)", "", "p75"],
+            ["argMax", ["id", "timestamp"], "latest_event"],
+            ["argMax", ["project_id", "timestamp"], "projectid"],
+        ]
+        assert result["groupby"] == []
+
     def test_field_alias_expansion(self):
         fields = ["title", "last_seen", "latest_event", "project", "user", "message"]
         result = resolve_field_list(fields, {})
@@ -1110,7 +1123,7 @@ class ResolveFieldListTest(unittest.TestCase):
 
     def test_aggregate_function_invalid_column(self):
         with pytest.raises(InvalidSearchQuery) as err:
-            fields = ["p75(message)"]
+            fields = ["min(message)"]
             resolve_field_list(fields, {})
         assert "Invalid column" in six.text_type(err)
 

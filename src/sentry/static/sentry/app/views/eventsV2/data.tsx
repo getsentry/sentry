@@ -121,8 +121,15 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
   {
     name: t('Transactions'),
     data: {
-      fields: ['transaction', 'project', 'count()'],
-      fieldnames: ['transaction', 'project', 'volume'],
+      fields: [
+        'transaction',
+        'project',
+        'count()',
+        'avg(transaction.duration)',
+        'p75',
+        'p95',
+      ],
+      fieldnames: ['transaction', 'project', 'volume', 'avg', '75th', '95th'],
       sort: ['-count'],
       query: 'event.type:transaction',
     },
@@ -131,8 +138,15 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
   {
     name: t('Transactions by User'),
     data: {
-      fields: ['user', 'count()', 'count_unique(transaction)'],
-      fieldnames: ['user', 'events', 'unique transactions'],
+      fields: [
+        'user',
+        'count()',
+        'count_unique(transaction)',
+        'avg(transaction.duration)',
+        'p75',
+        'p95',
+      ],
+      fieldnames: ['user', 'events', 'unique transactions', 'avg', '75th', '95th'],
       sort: ['-count'],
       query: 'event.type:transaction',
     },
@@ -141,8 +155,8 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
   {
     name: t('Transactions by Region'),
     data: {
-      fields: ['geo.region', 'count()'],
-      fieldnames: ['Region', 'events'],
+      fields: ['geo.region', 'count()', 'avg(transaction.duration)', 'p75', 'p95'],
+      fieldnames: ['Region', 'events', 'avg', '75th', '95th'],
       sort: ['-count'],
       query: 'event.type:transaction',
     },
