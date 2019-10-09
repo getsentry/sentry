@@ -370,7 +370,7 @@ def browser(request, percy, live_server):
 def _environment(request):
     config = request.config
     # add environment details to the pytest-html plugin
-    config._environment.append(("Driver", config.option.selenium_driver))
+    config._metadata.update({"Driver": config.option.selenium_driver})
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
