@@ -70,9 +70,9 @@ export function finishTransaction(delay) {
 
 export function startRequest(id) {
   requests.add(id);
-  // if flush is active, stop it
   interruptFlush();
 }
+
 export function finishRequest(id) {
   requests.delete(id);
   interruptFlush();
@@ -84,13 +84,11 @@ export function finishRequest(id) {
 
 export function startRender(id) {
   renders.add(id);
-  // if flush is active, stop it
   interruptFlush();
 }
 
 export function finishRender(id) {
   renders.delete(id);
-  // if flush is active, stop it
   interruptFlush();
 
   if (wasInterrupted && !hasActiveRenders() && !hasActiveRequests()) {
