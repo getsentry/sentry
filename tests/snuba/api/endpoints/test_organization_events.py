@@ -534,21 +534,6 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
-    def test_boolean_feature_flag_failure(self):
-        self.login_as(user=self.user)
-        project = self.create_project()
-        url = reverse(
-            "sentry-api-0-organization-events",
-            kwargs={"organization_slug": project.organization.slug},
-        )
-
-        for query in ["title:hi OR title:hello", "title:hi AND title:hello"]:
-            response = self.client.get(url, {"query": query}, format="json")
-            assert response.status_code == 400
-            assert response.data == {
-                "detail": "Boolean search operator OR and AND not allowed in this search."
-            }
-
     def test_group_filtering(self):
         user = self.create_user()
         org = self.create_organization(owner=user)
