@@ -36,16 +36,16 @@ class Dashboard extends React.Component {
   };
 
   componentDidMount() {
-    const {organization, routes} = this.props;
+    const {organization, routes, finishProfile} = this.props;
     const isOldRoute = getRouteStringFromRoutes(routes) === '/:orgId/';
 
     if (isOldRoute) {
       browserHistory.replace(`/organizations/${organization.slug}/`);
     }
-  }
 
-  componentDidUpdate() {
-    this.props.finishProfile();
+    if (finishProfile) {
+      finishProfile();
+    }
   }
 
   componentWillUnmount() {
