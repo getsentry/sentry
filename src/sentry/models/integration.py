@@ -13,10 +13,26 @@ from sentry.db.models import (
 from sentry.signals import integration_added
 
 
+class PagerDutyService(Model):
+    __core__ = False
+
+    organization_integration = FlexibleForeignKey("sentry.OrganizationIntegration")
+    integration_key = models.CharField(max_length=255)
+    service_id = models.CharField(max_length=255)
+    service_name = models.CharField(max_length=255)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_pagerdutyservice"
+        unique_together = (("service_id", "integration_key"),)
+
+
 class PagerDutyServiceProject(Model):
     __core__ = False
 
     project = FlexibleForeignKey("sentry.Project", db_index=False, db_constraint=False)
+    pagerduty_service = FlexibleForeignKey("sentry.PagerDutyService")
+    # TODO(meredith): rest of these columns need to be removed
     organization_integration = FlexibleForeignKey("sentry.OrganizationIntegration")
     integration_key = models.CharField(max_length=255)
     service_id = models.CharField(max_length=255)
@@ -25,7 +41,7 @@ class PagerDutyServiceProject(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_pagerdutyserviceproject"
-        unique_together = (("project", "organization_integration"),)
+        unique_together = (("project", "pagerduty_service"),)
 
 
 class IntegrationExternalProject(Model):
