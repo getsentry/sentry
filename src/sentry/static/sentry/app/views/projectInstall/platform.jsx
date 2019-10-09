@@ -11,6 +11,7 @@ import Button from 'app/components/button';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import NotFound from 'app/components/errors/notFound';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import SentryTypes from 'app/sentryTypes';
 import platforms from 'app/data/platforms';
 import withApi from 'app/utils/withApi';
@@ -122,7 +123,13 @@ class ProjectInstallPlatform extends React.Component {
           ) : this.state.error ? (
             <LoadingError onRetry={this.fetchData} />
           ) : (
-            <DocumentationWrapper dangerouslySetInnerHTML={{__html: this.state.html}} />
+            <React.Fragment>
+              <SentryDocumentTitle
+                title={`${t('Configure')} ${platform.name}`}
+                objSlug={projectId}
+              />
+              <DocumentationWrapper dangerouslySetInnerHTML={{__html: this.state.html}} />
+            </React.Fragment>
           )}
 
           {this.isGettingStarted && (

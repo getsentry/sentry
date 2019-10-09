@@ -2,7 +2,7 @@
 
 exports[`ProjectCspReports renders 1`] = `
 <SideEffect(DocumentTitle)
-  title="Sentry"
+  title="Content Security Policy (CSP) - project-slug - Sentry"
 >
   <div>
     <StyledSettingsPageHeading

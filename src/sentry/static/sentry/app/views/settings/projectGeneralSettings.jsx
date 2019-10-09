@@ -30,6 +30,7 @@ import TextField from 'app/views/settings/components/forms/textField';
 import BetaTag from 'app/components/betaTag';
 import handleXhrErrorResponse from 'app/utils/handleXhrErrorResponse';
 import recreateRoute from 'app/utils/recreateRoute';
+import routeTitleGen from 'app/utils/routeTitle';
 
 class ProjectGeneralSettings extends AsyncView {
   static propTypes = {
@@ -47,7 +48,7 @@ class ProjectGeneralSettings extends AsyncView {
 
   getTitle() {
     const {projectId} = this.props.params;
-    return t('%s Settings', projectId);
+    return routeTitleGen(t('Project Settings'), projectId, false);
   }
 
   getEndpoints() {

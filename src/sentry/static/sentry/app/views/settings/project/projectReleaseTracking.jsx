@@ -17,6 +17,7 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 import getDynamicText from 'app/utils/getDynamicText';
 import withPlugins from 'app/utils/withPlugins';
+import routeTitleGen from 'app/utils/routeTitle';
 
 const TOKEN_PLACEHOLDER = 'YOUR_TOKEN';
 const WEBHOOK_PLACEHOLDER = 'YOUR_WEBHOOK_URL';
@@ -29,7 +30,8 @@ class ProjectReleaseTracking extends AsyncView {
   };
 
   getTitle() {
-    return 'Release Tracking';
+    const {projectId} = this.props.params;
+    return routeTitleGen(t('Releases'), projectId, false);
   }
 
   getEndpoints() {

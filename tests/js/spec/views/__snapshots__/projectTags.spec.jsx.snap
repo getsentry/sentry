@@ -10,10 +10,10 @@ exports[`ProjectTags renders 1`] = `
   }
 >
   <SideEffect(DocumentTitle)
-    title="Sentry"
+    title="Tags - project-slug - Sentry"
   >
     <DocumentTitle
-      title="Sentry"
+      title="Tags - project-slug - Sentry"
     >
       <StyledSettingsPageHeading
         noTitleStyles={false}

@@ -203,6 +203,7 @@ class OrganizationUpdateTest(APITestCase):
             "scrapeJavaScript": False,
             "defaultRole": "owner",
             "require2FA": True,
+            "allowJoinRequests": False,
         }
 
         # needed to set require2FA
@@ -231,6 +232,7 @@ class OrganizationUpdateTest(APITestCase):
         assert options.get("sentry:safe_fields") == ["email"]
         assert options.get("sentry:store_crash_reports") is True
         assert options.get("sentry:scrape_javascript") is False
+        assert options.get("sentry:join_requests") is False
 
         # log created
         log = AuditLogEntry.objects.get(organization=org)
@@ -249,6 +251,7 @@ class OrganizationUpdateTest(APITestCase):
         assert u"to {}".format(data["safeFields"]) in log.data["safeFields"]
         assert u"to {}".format(data["scrubIPAddresses"]) in log.data["scrubIPAddresses"]
         assert u"to {}".format(data["scrapeJavaScript"]) in log.data["scrapeJavaScript"]
+        assert u"to {}".format(data["allowJoinRequests"]) in log.data["allowJoinRequests"]
 
     def test_setting_trusted_relays_forbidden(self):
         org = self.create_organization(owner=self.user)

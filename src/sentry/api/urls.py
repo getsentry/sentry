@@ -244,6 +244,8 @@ from .endpoints.sentry_app_installation_external_requests import (
 from .endpoints.sentry_app_installations import SentryAppInstallationsEndpoint
 from .endpoints.sentry_apps import SentryAppsEndpoint
 from .endpoints.sentry_apps_stats import SentryAppsStatsEndpoint
+from .endpoints.sentry_app_stats import SentryAppStatsEndpoint
+from .endpoints.sentry_app_errors import SentryAppErrorsEndpoint
 from .endpoints.setup_wizard import SetupWizard
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from .endpoints.system_health import SystemHealthEndpoint
@@ -735,7 +737,7 @@ urlpatterns = patterns(
                     name="sentry-api-0-organization-eventsv2",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/events/(?P<project_slug>[^\/]+):(?P<event_id>(?:\d+|[A-Fa-f0-9]{32}))/$",
+                    r"^(?P<organization_slug>[^\/]+)/events/(?P<project_slug>[^\/]+):(?P<event_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
                     OrganizationEventDetailsEndpoint.as_view(),
                     name="sentry-api-0-organization-event-details",
                 ),
@@ -1442,6 +1444,16 @@ urlpatterns = patterns(
         r"^sentry-apps/(?P<sentry_app_slug>[^\/]+)/api-tokens/(?P<api_token>[^\/]+)/$",
         SentryInternalAppTokenDetailsEndpoint.as_view(),
         name="sentry-api-0-sentry-internal-app-token-details",
+    ),
+    url(
+        r"^sentry-apps/(?P<sentry_app_slug>[^\/]+)/stats/$",
+        SentryAppStatsEndpoint.as_view(),
+        name="sentry-api-0-sentry-app-stats",
+    ),
+    url(
+        r"^sentry-apps/(?P<sentry_app_slug>[^\/]+)/errors/$",
+        SentryAppErrorsEndpoint.as_view(),
+        name="sentry-api-0-sentry-app-errors",
     ),
     url(
         r"^organizations/(?P<organization_slug>[^\/]+)/sentry-app-components/$",

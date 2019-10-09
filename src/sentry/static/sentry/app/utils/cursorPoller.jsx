@@ -50,7 +50,7 @@ class CursorPoller {
         }
 
         // if theres no data, nothing changes
-        if (!data.length) {
+        if (!data || !data.length) {
           this._reqsWithoutData += 1;
           return;
         }

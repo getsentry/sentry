@@ -11,11 +11,17 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import SentryApplicationRow from 'app/views/settings/organizationDeveloperSettings/sentryApplicationRow';
 import withOrganization from 'app/utils/withOrganization';
 import {t} from 'app/locale';
+import routeTitleGen from 'app/utils/routeTitle';
 
 class OrganizationDeveloperSettings extends AsyncView {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
   };
+
+  getTitle() {
+    const {orgId} = this.props.params;
+    return routeTitleGen(t('Developer Settings'), orgId, false);
+  }
 
   getEndpoints() {
     const {orgId} = this.props.params;
@@ -42,6 +48,7 @@ class OrganizationDeveloperSettings extends AsyncView {
         organization={organization}
         onRemoveApp={this.removeApp}
         showInstallationStatus={false}
+        showAppDashboardLink={app.status === 'published'}
       />
     );
   };

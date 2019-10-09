@@ -185,7 +185,7 @@ describe('OrganizationGeneralSettings', function() {
     );
   });
 
-  it('shows require2fa switch w/ feature flag', async function() {
+  it('shows require2fa switch', async function() {
     const wrapper = mount(
       <OrganizationGeneralSettings params={{orgId: org.slug}} />,
       TestStubs.routerContext()
@@ -292,5 +292,62 @@ describe('OrganizationGeneralSettings', function() {
     expect(wrapper.find('Switch[name="require2FA"]').prop('isActive')).toBe(false);
     // eslint-disable-next-line no-console
     console.error.mockRestore();
+  });
+
+  it('renders join request switch with experiment', async function() {
+    const organization = TestStubs.Organization({
+      experiments: {JoinRequestExperiment: 1},
+    });
+    const wrapper = mount(
+      <OrganizationGeneralSettings params={{orgId: organization.slug}} />,
+      TestStubs.routerContext([{organization}])
+    );
+
+    wrapper.setState({loading: false});
+    await tick();
+    wrapper.update();
+    expect(wrapper.find('Switch[name="allowJoinRequests"]').exists()).toBe(true);
+  });
+
+  it('does not render join request switch not in experiment', async function() {
+    const organization = TestStubs.Organization({
+      experiments: {JoinRequestExperiment: -1},
+    });
+    const wrapper = mount(
+      <OrganizationGeneralSettings params={{orgId: organization.slug}} />,
+      TestStubs.routerContext([{organization}])
+    );
+
+    wrapper.setState({loading: false});
+    await tick();
+    wrapper.update();
+    expect(wrapper.find('Switch[name="allowJoinRequests"]').exists()).toBe(false);
+  });
+
+  it('does not render join request switch in experiment control', async function() {
+    const organization = TestStubs.Organization({
+      experiments: {JoinRequestExperiment: 0},
+    });
+    const wrapper = mount(
+      <OrganizationGeneralSettings params={{orgId: organization.slug}} />,
+      TestStubs.routerContext([{organization}])
+    );
+
+    wrapper.setState({loading: false});
+    await tick();
+    wrapper.update();
+    expect(wrapper.find('Switch[name="allowJoinRequests"]').exists()).toBe(false);
+  });
+
+  it('does not render join request switch without experiments', async function() {
+    const wrapper = mount(
+      <OrganizationGeneralSettings params={{orgId: org.slug}} />,
+      TestStubs.routerContext()
+    );
+
+    wrapper.setState({loading: false});
+    await tick();
+    wrapper.update();
+    expect(wrapper.find('Switch[name="allowJoinRequests"]').exists()).toBe(false);
   });
 });
