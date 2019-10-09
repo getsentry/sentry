@@ -130,7 +130,7 @@ class DiscoverQuery extends React.Component {
     queries.forEach(({constraints, ...query}) => {
       if (constraints && constraints.includes('recentReleases')) {
         // Can't create query yet because no releases
-        if (!this.props.releases) {
+        if (!(this.props.releases && this.props.releases.length)) {
           return;
         }
         const newQuery = {
@@ -138,6 +138,7 @@ class DiscoverQuery extends React.Component {
           fields: [],
           conditionFields:
             this.props.releases &&
+            this.props.releases.length > 0 &&
             createReleaseFieldCondition(this.props.releases.map(({version}) => version)),
         };
         this.queryBuilders.push(
