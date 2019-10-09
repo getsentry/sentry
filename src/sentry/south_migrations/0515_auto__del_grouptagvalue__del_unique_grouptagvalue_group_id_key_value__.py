@@ -13,16 +13,16 @@ class Migration(SchemaMigration):
 
     def forwards(self, orm):
         # Deleting model 'GroupTagValue'
-        db.delete_table('sentry_messagefiltervalue')
+        db.delete_table(u'sentry_messagefiltervalue')
 
         # Deleting model 'TagKey'
-        db.delete_table('sentry_filterkey')
+        db.delete_table(u'sentry_filterkey')
 
         # Deleting model 'GroupTagKey'
         db.delete_table(u'sentry_grouptagkey')
 
         # Deleting model 'TagValue'
-        db.delete_table('sentry_filtervalue')
+        db.delete_table(u'sentry_filtervalue')
 
         # Deleting model 'EventTag'
         db.delete_table(u'sentry_eventtag')
