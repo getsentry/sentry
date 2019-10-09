@@ -193,6 +193,9 @@ class Fixtures(object):
     def create_sentry_app_feature(self, *args, **kwargs):
         return Factories.create_sentry_app_feature(*args, **kwargs)
 
+    def create_sentry_app_webhook_error(self, *args, **kwargs):
+        return Factories.create_sentry_app_webhook_error(*args, **kwargs)
+
     def create_service_hook(self, *args, **kwargs):
         return Factories.create_service_hook(*args, **kwargs)
 
