@@ -16,6 +16,7 @@ from sentry.api.serializers.rest_framework import ListField
 from sentry.api.validators import AllowedEmailField
 from sentry.models import (
     AuditLogEntryEvent,
+    InviteStatus,
     OrganizationMember,
     OrganizationMemberTeam,
     Team,
@@ -60,7 +61,9 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
     def get(self, request, organization):
         queryset = (
             OrganizationMember.objects.filter(
-                Q(user__is_active=True) | Q(user__isnull=True), organization=organization
+                Q(user__is_active=True) | Q(user__isnull=True),
+                organization=organization,
+                invite_status=InviteStatus.APPROVED.value,
             )
             .select_related("user")
             .order_by("email", "user__email")

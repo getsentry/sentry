@@ -20,6 +20,7 @@ from sentry.models import (
     AuditLogEntryEvent,
     AuthIdentity,
     AuthProvider,
+    InviteStatus,
     OrganizationMember,
     OrganizationMemberTeam,
     Team,
@@ -32,7 +33,6 @@ ERR_INSUFFICIENT_SCOPE = "You are missing the member:admin scope."
 ERR_ONLY_OWNER = "You cannot remove the only remaining owner of the organization."
 ERR_UNINVITABLE = "You cannot send an invitation to a user who is already a full member."
 ERR_EXPIRED = "You cannot resend an expired invitation without regenerating the token."
-ERR_UNAPPROVED = "You cannot send an invitiation that requires prior approval."
 
 
 def get_allowed_roles(request, organization, member=None):
@@ -87,6 +87,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
                     Q(user__is_active=True) | Q(user__isnull=True),
                     organization=organization,
                     id=member_id,
+                    invite_status=InviteStatus.APPROVED.value,
                 )
             except ValueError:
                 raise OrganizationMember.DoesNotExist()
@@ -158,8 +159,6 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
         # XXX(dcramer): if/when this expands beyond reinvite we need to check
         # access level
         if result.get("reinvite"):
-            if not om.invite_approved:
-                return Response({"detail": ERR_UNAPPROVED}, status=400)
             if om.is_pending:
                 if result.get("regenerate"):
                     if request.access.has_scope("member:admin"):
