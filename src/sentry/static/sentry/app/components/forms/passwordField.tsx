@@ -2,7 +2,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import InputField from 'app/components/forms/inputField';
 import FormState from 'app/components/forms/state';
-import {Context} from 'app/components/forms/form';
 
 type Props = InputField['props'] & {
   hasSavedValue?: boolean;
@@ -29,11 +28,11 @@ export default class PasswordField extends InputField<Props, State> {
     prefix: '',
   };
 
-  constructor(props: Props, context: Context) {
-    super(props, context);
-
-    this.setState({editing: false});
-  }
+  state = {
+    editing: false,
+    value: '',
+    error: null,
+  };
 
   componentWillReceiveProps(nextProps: Props) {
     // close edit mode after successful save
