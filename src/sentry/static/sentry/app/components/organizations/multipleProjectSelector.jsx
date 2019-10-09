@@ -152,6 +152,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
 
     return shouldForceProject ? (
       <StyledHeaderItem
+        data-test-id="global-header-project-selector"
         icon={<StyledInlineSvg src="icon-project" />}
         locked
         lockedMessage={
@@ -196,6 +197,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
             : t('All Projects');
           return (
             <StyledHeaderItem
+              data-test-id="global-header-project-selector"
               active={hasSelected || isOpen}
               icon={<StyledInlineSvg src="icon-project" />}
               hasSelected={hasSelected}
