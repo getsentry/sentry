@@ -7,11 +7,11 @@ import {fetchSentryAppComponents} from 'app/actionCreators/sentryAppComponents';
 import {withMeta} from 'app/components/events/meta/metaProxy';
 import EventEntries from 'app/components/events/eventEntries';
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
+import GroupEventDetailsContainer from 'app/views/organizationGroupDetails/groupEventDetailsContainer';
 import GroupEventDetailsLoadingError from 'app/components/errors/groupEventDetailsLoadingError';
 import GroupSidebar from 'app/components/group/sidebar';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import MutedBox from 'app/components/mutedBox';
-import OrganizationEnvironmentsStore from 'app/stores/organizationEnvironmentsStore';
 import ResolutionBox from 'app/components/resolutionBox';
 import SentryTypes from 'app/sentryTypes';
 import fetchSentryAppInstallations from 'app/utils/fetchSentryAppInstallations';
@@ -217,15 +217,4 @@ class GroupEventDetails extends React.Component {
 
 export {GroupEventDetails};
 
-export default withApi(
-  withOrganization(
-    withGlobalSelection(props => {
-      const {selection, ...otherProps} = props;
-      const environments = OrganizationEnvironmentsStore.getActive().filter(env =>
-        selection.environments.includes(env.name)
-      );
-
-      return <GroupEventDetails {...otherProps} environments={environments} />;
-    })
-  )
-);
+export default withApi(withOrganization(withGlobalSelection(GroupEventDetailsContainer)));

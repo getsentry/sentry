@@ -1,12 +1,27 @@
 import Reflux from 'reflux';
 import {toTitleCase} from 'app/utils';
+import OrganizationEnvironmentActions from 'app/actions/environmentActions';
 
 const DEFAULT_EMPTY_ENV_NAME = '(No Environment)';
 const DEFAULT_EMPTY_ROUTING_NAME = 'none';
 
 const OrganizationEnvironmentsStore = Reflux.createStore({
   init() {
-    this.items = [];
+    this.environments = null;
+    this.error = null;
+
+    this.listenTo(
+      OrganizationEnvironmentActions.fetchEnvironments,
+      this.onFetchEnvironments
+    );
+    this.listenTo(
+      OrganizationEnvironmentActions.fetchEnvironmentsSuccess,
+      this.onFetchEnvironmentsSuccess
+    );
+    this.listenTo(
+      OrganizationEnvironmentActions.fetchEnvironmentsError,
+      this.onFetchEnvironmentsError
+    );
   },
 
   makeEnvironment(item) {
@@ -22,12 +37,26 @@ const OrganizationEnvironmentsStore = Reflux.createStore({
     };
   },
 
-  loadInitialData(environments) {
-    this.items = environments.map(this.makeEnvironment);
+  onFetchEnvironments() {
+    this.environments = null;
+    this.error = null;
+    this.trigger(this.get());
   },
 
-  getActive() {
-    return this.items;
+  onFetchEnvironmentsSuccess(environments) {
+    this.environments = environments.map(this.makeEnvironment);
+    this.error = null;
+    this.trigger(this.get());
+  },
+
+  onFetchEnvironmentsError(error) {
+    this.environments = null;
+    this.error = error;
+    this.trigger(this.get());
+  },
+
+  get() {
+    return {environments: this.environments, error: this.error};
   },
 });
 

@@ -6,7 +6,6 @@ import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 import * as Sentry from '@sentry/browser';
 
-import {fetchOrganizationEnvironments} from 'app/actionCreators/environments';
 import {openSudo} from 'app/actionCreators/modal';
 import {setActiveOrganization} from 'app/actionCreators/organizations';
 import {t} from 'app/locale';
@@ -17,7 +16,6 @@ import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import HookStore from 'app/stores/hookStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import OrganizationEnvironmentsStore from 'app/stores/organizationEnvironmentsStore';
 import ProjectActions from 'app/actions/projectActions';
 import ProjectsStore from 'app/stores/projectsStore';
 import SentryTypes from 'app/sentryTypes';
@@ -124,13 +122,10 @@ const OrganizationContext = createReactClass({
     }
 
     metric.mark('organization-details-fetch-start');
-    const promises = [
-      this.props.api.requestPromise(this.getOrganizationDetailsEndpoint()),
-      fetchOrganizationEnvironments(this.props.api, this.getOrganizationSlug()),
-    ];
 
-    Promise.all(promises)
-      .then(([data, environments]) => {
+    this.props.api
+      .requestPromise(this.getOrganizationDetailsEndpoint())
+      .then(data => {
         // Allow injection via getsentry et all
         const hooks = [];
         HookStore.get('organization:header').forEach(cb => {
@@ -157,7 +152,6 @@ const OrganizationContext = createReactClass({
         ) {
           GlobalSelectionStore.loadInitialData(data, this.props.location.query);
         }
-        OrganizationEnvironmentsStore.loadInitialData(environments);
         this.setState(
           {
             organization: data,
