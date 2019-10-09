@@ -5,7 +5,7 @@ import {TimeRangeRoot} from 'app/components/organizations/timeRangeSelector/inde
 const HeaderItemPosition = styled('div')`
   display: flex;
   flex: 1;
-  max-width: 450px;
+  width: 33%;
   height: 100%;
   min-width: 0;
 
