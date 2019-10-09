@@ -879,20 +879,17 @@ class GetSnubaQueryArgsTest(TestCase):
         assert filter.filter_keys == {}
 
     def test_implicit_and_explicit_tags(self):
-        assert get_snuba_query_args("tags[fruit]:apple") == {
-            "conditions": [[["ifNull", ["tags[fruit]", "''"]], "=", "apple"]],
-            "filter_keys": {},
-        }
+        assert get_filter("tags[fruit]:apple").conditions == [
+            [["ifNull", ["tags[fruit]", "''"]], "=", "apple"]
+        ]
 
-        assert get_snuba_query_args("fruit:apple") == {
-            "conditions": [[["ifNull", ["tags[fruit]", "''"]], "=", "apple"]],
-            "filter_keys": {},
-        }
+        assert get_filter("fruit:apple").conditions == [
+            [["ifNull", ["tags[fruit]", "''"]], "=", "apple"]
+        ]
 
-        assert get_snuba_query_args("tags[project_id]:123") == {
-            "conditions": [[["ifNull", ["tags[project_id]", "''"]], "=", "123"]],
-            "filter_keys": {},
-        }
+        assert get_filter("tags[project_id]:123").conditions == [
+            [["ifNull", ["tags[project_id]", "''"]], "=", "123"]
+        ]
 
     def test_no_search(self):
         filter = get_filter(
