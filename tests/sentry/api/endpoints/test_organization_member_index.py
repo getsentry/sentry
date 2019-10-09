@@ -143,7 +143,7 @@ class OrganizationMemberListTest(APITestCase):
                 self.url, {"email": user.email, "role": "member", "teams": [self.team.slug]}
             )
 
-        assert resp.status_code == 409
+        assert resp.status_code == 400
 
         member = OrganizationMember.objects.get(id=member.id)
 
@@ -194,7 +194,7 @@ class OrganizationMemberListTest(APITestCase):
             self.url, {"email": "eric@localhost", "role": "owner", "teams": [self.team.slug]}
         )
 
-        assert response.status_code == 403
+        assert response.status_code == 400
 
         response = self.client.post(
             self.url, {"email": "eric@localhost", "role": "manager", "teams": [self.team.slug]}
@@ -205,7 +205,7 @@ class OrganizationMemberListTest(APITestCase):
             self.url, {"email": "eric@localhost", "role": "member", "teams": [self.team.slug]}
         )
 
-        assert response.status_code == 409
+        assert response.status_code == 400
 
     def test_admin_invites(self):
         admin_user = self.create_user("admin22@localhost")
