@@ -300,7 +300,7 @@ const StyledButton = styled(
     outline: none;
   }
 
-  ${p => p.borderless && 'border-color: transparent'};
+  ${p => (p.borderless || p.priority === 'link') && 'border-color: transparent'};
 `;
 
 /**
