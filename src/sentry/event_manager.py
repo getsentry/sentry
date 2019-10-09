@@ -745,6 +745,7 @@ class EventManager(object):
         # save the event
         try:
             with transaction.atomic(using=router.db_for_write(Event)):
+                event.data.save()
                 event.save()
         except IntegrityError:
             logger.info(
