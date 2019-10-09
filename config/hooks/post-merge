@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 
 git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD | \
-    grep --quiet requirements && \
+    egrep --quiet 'requirements.*\.txt' && \
     cat <<EOF
 WARNING!
 It looks like python requirements were updated upstream.
