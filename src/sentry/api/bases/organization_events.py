@@ -30,7 +30,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         snuba_args = {
             "start": filter.start,
             "end": filter.end,
-            "conditions": filter.condtitions,
+            "conditions": filter.conditions,
             "filter_keys": filter.filter_keys,
         }
 
