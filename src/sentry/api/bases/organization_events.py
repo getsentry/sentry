@@ -21,15 +21,18 @@ class Direction(object):
 
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
     def get_snuba_query_args(self, request, organization, params):
-        snuba_args = {}
         query = request.GET.get("query")
         try:
             filter = get_filter(query, params)
         except InvalidSearchQuery as exc:
             raise OrganizationEventsError(exc.message)
 
-        for key in ("start", "end", "conditions", "filter_keys"):
-            snuba_args[key] = getattr(filter, key)
+        snuba_args = {
+            "start": filter.start,
+            "end": filter.end,
+            "conditions": filter.condtitions,
+            "filter_keys": filter.filter_keys,
+        }
 
         sort = request.GET.getlist("sort")
         if sort:
