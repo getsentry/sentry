@@ -30,8 +30,8 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
 
     def test_global_selection_header_dropdown(self):
         self.project.update(first_event=timezone.now())
-        self.page.visit_issue_list(self.org.slug, query="?query=assigned%3Ame")
-        self.browser.wait_until_test_id("empty-state")
+        self.page.visit_issue_list(self.org.slug, query="?query=assigned%3Ame&project=" + str(self.project_1.id))
+        self.browser.wait_until_test_id("awaiting-events")
 
         self.browser.click('[data-test-id="global-header-project-selector"]')
         self.browser.snapshot("globalSelectionHeader - project selector")
