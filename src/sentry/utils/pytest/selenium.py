@@ -324,9 +324,9 @@ def browser(request, percy, live_server):
             options.binary_location = chrome_path
         chromedriver_path = request.config.getoption("chromedriver_path")
         if chromedriver_path:
-            driver = webdriver.Chrome(executable_path=chromedriver_path, chrome_options=options)
+            driver = webdriver.Chrome(executable_path=chromedriver_path, options=options)
         else:
-            driver = webdriver.Chrome(chrome_options=options)
+            driver = webdriver.Chrome(options=options)
     elif driver_type == "firefox":
         driver = webdriver.Firefox()
     elif driver_type == "phantomjs":
