@@ -32,7 +32,7 @@ export default class PasswordField extends InputField<Props, State> {
   constructor(props: Props, context: Context) {
     super(props, context);
 
-    this.setState({editing: false});
+    this.state = {...this.state, editing: false};
   }
 
   componentWillReceiveProps(nextProps: Props) {
