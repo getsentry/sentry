@@ -644,7 +644,60 @@ def transform_aliases_and_query(skip_conditions=False, **kwargs):
     return result
 
 
-def _prepare_query_params(query_params):
+def _prepare_query_params_outcomes(query_params):
+    # convert to naive UTC datetimes, as Snuba only deals in UTC
+    # and this avoids offset-naive and offset-aware issues
+    start = naiveify_datetime(query_params.start)
+    end = naiveify_datetime(query_params.end)
+
+    with timer("get_snuba_map"):
+        forward, reverse = get_snuba_translators(
+            query_params.filter_keys, is_grouprelease=query_params.is_grouprelease
+        )
+
+    if "project_id" in query_params.filter_keys:
+        project_ids = list(set(query_params.filter_keys["project_id"]))
+        project = Project.objects.get(pk=project_ids[0])
+        organization_id = project.organization_id
+    elif "org_id" in query_params.filter_keys:
+        organization_id = list(set(query_params.filter_keys["org_id"]))[0]
+    else:
+        raise UnqualifiedQueryError("No project_id, nor org_id found.")
+
+    for col, keys in six.iteritems(forward(deepcopy(query_params.filter_keys))):
+        if keys:
+            if len(keys) == 1 and None in keys:
+                query_params.conditions.append((col, "IS NULL", None))
+            else:
+                query_params.conditions.append((col, "IN", keys))
+
+    retention = quotas.get_event_retention(organization=Organization(organization_id))
+    if retention:
+        start = max(start, datetime.utcnow() - timedelta(days=retention))
+        if start > end:
+            raise QueryOutsideRetentionError
+
+    if start > end:
+        raise QueryOutsideGroupActivityError
+
+    query_params.kwargs.update(
+        {
+            "dataset": query_params.dataset.value,
+            "from_date": start.isoformat(),
+            "to_date": end.isoformat(),
+            "groupby": query_params.groupby,
+            "conditions": query_params.conditions,
+            "aggregations": query_params.aggregations,
+            "granularity": query_params.rollup,  # TODO name these things the same
+        }
+    )
+    kwargs = {k: v for k, v in six.iteritems(query_params.kwargs) if v is not None}
+
+    kwargs.update(OVERRIDE_OPTIONS)
+    return kwargs, forward, reverse
+
+
+def _prepare_query_params_with_project(query_params):
     # convert to naive UTC datetimes, as Snuba only deals in UTC
     # and this avoids offset-naive and offset-aware issues
     start = naiveify_datetime(query_params.start)
@@ -721,6 +774,18 @@ def _prepare_query_params(query_params):
 
     kwargs.update(OVERRIDE_OPTIONS)
     return kwargs, forward, reverse
+
+
+DATASET_PREPARE_QUERY_MAPPING = {
+    Dataset.Events: _prepare_query_params_with_project,
+    Dataset.Transactions: _prepare_query_params_with_project,
+    Dataset.Outcomes: _prepare_query_params_outcomes,
+}
+
+
+def _prepare_query_params(query_params):
+    func = DATASET_PREPARE_QUERY_MAPPING.get(query_params.dataset)
+    return func(query_params)
 
 
 class SnubaQueryParams(object):

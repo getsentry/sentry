@@ -1,11 +1,17 @@
 from __future__ import absolute_import
 
 import collections
+from copy import deepcopy
 import six
 
 from sentry.tsdb.base import BaseTSDB, TSDBModel
-from sentry.utils import snuba
+from sentry.utils import snuba, outcomes
 from sentry.utils.dates import to_datetime
+
+
+SnubaModelSettings = collections.namedtuple(
+    "SnubaModelSettings", ["group", "aggregate", "dataset", "aggregate_function", "conditions"]
+)
 
 
 class SnubaTSDB(BaseTSDB):
@@ -21,18 +27,79 @@ class SnubaTSDB(BaseTSDB):
 
     # The ``model_columns`` are translations of TSDB models into the required
     # columns for querying snuba. Keys are ``TSDBModel`` enumeration values,
-    # values are in the form ``(groupby_column, aggregateby_column or None)``.
+    # values are ``SnubaModelSettings``s.
     # Only the models that are listed in this mapping are supported.
     model_columns = {
-        TSDBModel.project: ("project_id", None),
-        TSDBModel.group: ("issue", None),
-        TSDBModel.release: ("tags[sentry:release]", None),
-        TSDBModel.users_affected_by_group: ("issue", "tags[sentry:user]"),
-        TSDBModel.users_affected_by_project: ("project_id", "tags[sentry:user]"),
-        TSDBModel.frequent_environments_by_group: ("issue", "environment"),
-        TSDBModel.frequent_releases_by_group: ("issue", "tags[sentry:release]"),
-        TSDBModel.frequent_issues_by_project: ("project_id", "issue"),
+        TSDBModel.project: SnubaModelSettings(
+            "project_id", None, snuba.Dataset.Events, "count()", None
+        ),
+        TSDBModel.group: SnubaModelSettings("issue", None, snuba.Dataset.Events, "count()", None),
+        TSDBModel.release: SnubaModelSettings(
+            "tags[sentry:release]", None, snuba.Dataset.Events, "count()", None
+        ),
+        TSDBModel.users_affected_by_group: SnubaModelSettings(
+            "issue", "tags[sentry:user]", snuba.Dataset.Events, "count()", None
+        ),
+        TSDBModel.users_affected_by_project: SnubaModelSettings(
+            "project_id", "tags[sentry:user]", snuba.Dataset.Events, "count()", None
+        ),
+        TSDBModel.frequent_environments_by_group: SnubaModelSettings(
+            "issue", "environment", snuba.Dataset.Events, "count()", None
+        ),
+        TSDBModel.frequent_releases_by_group: SnubaModelSettings(
+            "issue", "tags[sentry:release]", snuba.Dataset.Events, "count()", None
+        ),
+        TSDBModel.frequent_issues_by_project: SnubaModelSettings(
+            "project_id", "issue", snuba.Dataset.Events, "count()", None
+        ),
     }
+
+    model_columns_being_upgraded = {
+        TSDBModel.organization_total_received: SnubaModelSettings(
+            "org_id",
+            "times_seen",
+            snuba.Dataset.Outcomes,
+            "sum",
+            [["outcome", "=", outcomes.Outcome.ACCEPTED]],
+        ),
+        TSDBModel.organization_total_rejected: SnubaModelSettings(
+            "org_id",
+            "times_seen",
+            snuba.Dataset.Outcomes,
+            "sum",
+            [["outcome", "=", outcomes.Outcome.RATE_LIMITED]],
+        ),
+        TSDBModel.organization_total_blacklisted: SnubaModelSettings(
+            "org_id",
+            "times_seen",
+            snuba.Dataset.Outcomes,
+            "sum",
+            [["outcome", "=", outcomes.Outcome.FILTERED]],
+        ),
+        TSDBModel.project_total_received: SnubaModelSettings(
+            "project_id",
+            "times_seen",
+            snuba.Dataset.Outcomes,
+            "sum",
+            [["outcome", "=", outcomes.Outcome.ACCEPTED]],
+        ),
+        TSDBModel.project_total_rejected: SnubaModelSettings(
+            "project_id",
+            "times_seen",
+            snuba.Dataset.Outcomes,
+            "sum",
+            [["outcome", "=", outcomes.Outcome.RATE_LIMITED]],
+        ),
+        TSDBModel.project_total_blacklisted: SnubaModelSettings(
+            "project_id",
+            "times_seen",
+            snuba.Dataset.Outcomes,
+            "sum",
+            [["outcome", "=", outcomes.Outcome.FILTERED]],
+        ),
+    }
+
+    all_model_columns = dict(model_columns.items() + model_columns_being_upgraded.items())
 
     def __init__(self, **options):
         super(SnubaTSDB, self).__init__(**options)
@@ -55,12 +122,13 @@ class SnubaTSDB(BaseTSDB):
         `group_on_time`: whether to add a GROUP BY clause on the 'time' field.
         `group_on_model`: whether to add a GROUP BY clause on the primary model.
         """
-        model_columns = self.model_columns.get(model)
+        model_columns = self.all_model_columns.get(model)
 
         if model_columns is None:
             raise Exception(u"Unsupported TSDBModel: {}".format(model.name))
 
-        model_group, model_aggregate = model_columns
+        model_group = model_columns.group
+        model_aggregate = model_columns.aggregate
 
         groupby = []
         if group_on_model and model_group is not None:
@@ -90,10 +158,13 @@ class SnubaTSDB(BaseTSDB):
 
         if keys:
             result = snuba.query(
+                dataset=model_columns.dataset,
                 start=start,
                 end=end,
                 groupby=groupby,
-                conditions=None,
+                conditions=deepcopy(
+                    model_columns.conditions
+                ),  # copy because we modify the conditions in snuba.query
                 filter_keys=keys_map,
                 aggregations=aggregations,
                 rollup=rollup,
@@ -150,6 +221,11 @@ class SnubaTSDB(BaseTSDB):
                         del result[rk]
 
     def get_range(self, model, keys, start, end, rollup=None, environment_ids=None):
+        model_columns = self.all_model_columns.get(model)
+
+        if model_columns is None:
+            raise Exception(u"Unsupported TSDBModel: {}".format(model.name))
+
         result = self.get_data(
             model,
             keys,
@@ -157,7 +233,7 @@ class SnubaTSDB(BaseTSDB):
             end,
             rollup,
             environment_ids,
-            aggregation="count()",
+            aggregation=model_columns.aggregate_function,
             group_on_time=True,
         )
         # convert
