@@ -15,10 +15,16 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         self.team = self.create_team(
             organization=self.org, name="Mariachi Band", members=[self.user]
         )
-        self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
-        self.other_project = self.create_project(
-            organization=self.org, teams=[self.team], name="Sumatra"
-        )
+
+        self.project_1 = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
+        self.project_2 = self.create_project(organization=self.org, teams=[self.team], name="Sumatra")
+        self.project_3 = self.create_project(organization=self.org, teams=[self.team], name="Siberian")
+
+        self.create_environment(name="development", project=self.project_1)
+        self.create_environment(name="production", project=self.project_1)
+        self.create_environment(name="visible", project=self.project_1, is_hidden=False)
+        self.create_environment(name="not visible", project=self.project_1, is_hidden=True)
+
         self.login_as(self.user)
         self.page = IssueListPage(self.browser, self.client)
 
