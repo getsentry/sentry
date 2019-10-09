@@ -183,12 +183,16 @@ class TableView extends React.Component<TableViewProps> {
       return this.state.columnOrder;
     }
 
+    if (destinationColumnIndex === initialColumnIndex) {
+      return this.state.columnOrder;
+    }
+
     const nextColumnOrder = [...this.state.columnOrder];
 
     nextColumnOrder.splice(
-      destinationColumnIndex,
+      destinationColumnIndex!,
       0,
-      nextColumnOrder.splice(initialColumnIndex, 1)[0]
+      nextColumnOrder.splice(initialColumnIndex!, 1)[0]
     );
 
     return nextColumnOrder;
