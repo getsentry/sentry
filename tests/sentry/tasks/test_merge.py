@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 from mock import patch
 
-from sentry.tagstore.models import GroupTagValue
 from sentry.tasks.merge import merge_groups
 from sentry.models import Event, Group, GroupEnvironment, GroupMeta, GroupRedirect, UserReport
 from sentry.similarity import _make_index_backend
@@ -122,9 +121,6 @@ class MergeGroupTest(TestCase):
             merge_groups([other.id], target.id)
 
         assert not Group.objects.filter(id=other.id).exists()
-        assert (
-            len(GroupTagValue.objects.filter(project_id=other.project_id, group_id=other.id)) == 0
-        )
 
     def test_merge_with_group_meta(self):
         project1 = self.create_project()

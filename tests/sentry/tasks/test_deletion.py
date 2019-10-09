@@ -6,7 +6,6 @@ from uuid import uuid4
 
 import pytest
 
-from sentry.tagstore.models import EventTag
 from sentry.constants import ObjectStatus
 from sentry.exceptions import DeleteAborted
 from sentry.models import (
@@ -197,7 +196,6 @@ class DeleteGroupTest(TestCase):
             delete_groups(object_ids=[group.id])
 
         assert not Event.objects.filter(id=event.id).exists()
-        assert not EventTag.objects.filter(event_id=event.id).exists()
         assert not GroupRedirect.objects.filter(group_id=group.id).exists()
         assert not GroupHash.objects.filter(group_id=group.id).exists()
         assert not Group.objects.filter(id=group.id).exists()
