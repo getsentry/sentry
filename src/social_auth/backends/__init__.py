@@ -247,9 +247,7 @@ class BaseAuth(object):
 
     def __init__(self, request, redirect):
         self.request = request
-        # Use request because some auth providers use POST urls with needed
-        # GET parameters on it
-        self.data = request.REQUEST
+        self.data = request.GET.update(request.POST)
         self.redirect = redirect
 
     def auth_url(self):
