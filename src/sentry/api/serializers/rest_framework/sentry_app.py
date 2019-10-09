@@ -80,9 +80,10 @@ class SentryAppSerializer(Serializer):
     verifyInstall = serializers.BooleanField(required=False, default=True)
     allowedOrigins = ListField(child=serializers.CharField(max_length=255), required=False)
 
-    def __init__(self, access, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
+        self.access = kwargs["access"]
+        del kwargs["access"]
         Serializer.__init__(self, *args, **kwargs)
-        self.access = access
 
     # an abstraction to pull fields from attrs if they are available or the sentry_app if not
     def get_current_value_wrapper(self, attrs):
@@ -123,13 +124,15 @@ class SentryAppSerializer(Serializer):
 
         validation_errors = []
         for scope in value:
-            if not self.instance.has_scope(scope):
-                if not self.access.has_scope(scope):
-                    resource = scope.partition(":")[0]
-                    validation_errors.append(
-                        "Requested permission of %s exceeds user's permission. Please contact an administrator to make the requested change."
-                        % (scope)
-                    )
+            # if the existing instance already has this scope, skip the check
+            if self.instance and self.instance.has_scope(scope):
+                continue
+            # add an error if the requester lacks permissions being requested
+            if not self.access.has_scope(scope):
+                validation_errors.append(
+                    "Requested permission of %s exceeds requester's permission. Please contact an administrator to make the requested change."
+                    % (scope)
+                )
 
         if validation_errors:
             raise ValidationError(validation_errors)
