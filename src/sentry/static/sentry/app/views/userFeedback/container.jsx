@@ -15,12 +15,8 @@ export default class UserFeedbackContainer extends React.Component {
   };
 
   render() {
-    const {
-      location: {pathname, query},
-      pageLinks,
-      children,
-      status,
-    } = this.props;
+    const {location, pageLinks, children, status} = this.props;
+    const {pathname, query} = location;
 
     const unresolvedQuery = omit(query, 'status');
     const allIssuesQuery = {...query, status: ''};
