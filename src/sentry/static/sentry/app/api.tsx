@@ -148,8 +148,6 @@ export class Client {
         delete this.activeRequests[id];
       }
 
-      finishRequest(id);
-
       if (req && req.alive) {
         // Check if API response is a 302 -- means project slug was renamed and user
         // needs to be redirected
@@ -349,6 +347,7 @@ export class Client {
         },
         complete: (jqXHR: JQueryXHR, textStatus: string) => {
           requestSpan.finish();
+          finishRequest(id);
 
           return this.wrapCallback<[JQueryXHR, string]>(id, options.complete, true)(
             jqXHR,
