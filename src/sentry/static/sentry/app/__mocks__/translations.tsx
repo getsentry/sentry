@@ -1,4 +1,4 @@
-export function getTranslations(language) {
+export function getTranslations() {
   return {
     '': {
       domain: 'the_domain',
