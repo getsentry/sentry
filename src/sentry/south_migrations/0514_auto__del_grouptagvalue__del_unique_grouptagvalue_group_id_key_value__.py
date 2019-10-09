@@ -9,29 +9,11 @@ class Migration(SchemaMigration):
 
     # Flag to indicate if this migration is too risky
     # to run online and needs to be coordinated for offline
-    is_dangerous = False
+    is_dangerous = True
 
     def forwards(self, orm):
-        # Removing unique constraint on 'EventTag', fields ['event_id', 'key_id', 'value_id']
-        db.delete_unique(u'sentry_eventtag', ['event_id', 'key_id', 'value_id'])
-
-        # Removing unique constraint on 'TagValue', fields ['project_id', 'key', 'value']
-        db.delete_unique('sentry_filtervalue', ['project_id', 'key', 'value'])
-
-        # Removing unique constraint on 'GroupTagKey', fields ['project_id', 'group_id', 'key']
-        db.delete_unique(u'sentry_grouptagkey', ['project_id', 'group_id', 'key'])
-
-        # Removing unique constraint on 'TagKey', fields ['project_id', 'key']
-        db.delete_unique('sentry_filterkey', ['project_id', 'key'])
-
-        # Removing unique constraint on 'GroupTagValue', fields ['group_id', 'key', 'value']
-        db.delete_unique('sentry_messagefiltervalue', ['group_id', 'key', 'value'])
-
         # Deleting model 'GroupTagValue'
         db.delete_table('sentry_messagefiltervalue')
-
-        # Removing index on 'GroupTagValue', fields ['project_id', 'key', 'value', 'last_seen']
-        db.delete_index('sentry_messagefiltervalue', ['project_id', 'key', 'value', 'last_seen'])
 
         # Deleting model 'TagKey'
         db.delete_table('sentry_filterkey')
@@ -42,26 +24,11 @@ class Migration(SchemaMigration):
         # Deleting model 'TagValue'
         db.delete_table('sentry_filtervalue')
 
-        # Removing index on 'TagValue', fields ['project_id', 'key', 'last_seen']
-        db.delete_index('sentry_filtervalue', ['project_id', 'key', 'last_seen'])
-
         # Deleting model 'EventTag'
         db.delete_table(u'sentry_eventtag')
 
-        # Removing index on 'EventTag', fields ['group_id', 'key_id', 'value_id']
-        db.delete_index(u'sentry_eventtag', ['group_id', 'key_id', 'value_id'])
-
 
     def backwards(self, orm):
-        # Adding index on 'EventTag', fields ['group_id', 'key_id', 'value_id']
-        db.create_index(u'sentry_eventtag', ['group_id', 'key_id', 'value_id'])
-
-        # Adding index on 'TagValue', fields ['project_id', 'key', 'last_seen']
-        db.create_index('sentry_filtervalue', ['project_id', 'key', 'last_seen'])
-
-        # Adding index on 'GroupTagValue', fields ['project_id', 'key', 'value', 'last_seen']
-        db.create_index('sentry_messagefiltervalue', ['project_id', 'key', 'value', 'last_seen'])
-
         # Adding model 'GroupTagValue'
         db.create_table('sentry_messagefiltervalue', (
             ('project_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(null=True, db_index=True)),
@@ -136,6 +103,14 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'EventTag', fields ['event_id', 'key_id', 'value_id']
         db.create_unique(u'sentry_eventtag', ['event_id', 'key_id', 'value_id'])
 
+        # Adding index on 'TagValue', fields ['project_id', 'key', 'last_seen']
+        db.create_index('sentry_filtervalue', ['project_id', 'key', 'last_seen'])
+
+        # Adding index on 'EventTag', fields ['group_id', 'key_id', 'value_id']
+        db.create_index(u'sentry_eventtag', ['group_id', 'key_id', 'value_id'])
+
+        # Adding index on 'GroupTagValue', fields ['project_id', 'key', 'value', 'last_seen']
+        db.create_index('sentry_messagefiltervalue', ['project_id', 'key', 'value', 'last_seen'])
 
     models = {
         'sentry.activity': {
