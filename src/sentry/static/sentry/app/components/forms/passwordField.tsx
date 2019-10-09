@@ -30,7 +30,7 @@ export default class PasswordField extends InputField<Props, State> {
 
   state = {
     editing: false,
-    value: '',
+    value: this.props.value || '',
     error: null,
   };
 
