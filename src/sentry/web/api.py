@@ -650,6 +650,11 @@ class EventAttachmentStoreView(StoreView):
 
         event = eventstore.get_event_by_id(project_id, event_id)
 
+        group_id = None
+
+        if event:
+            group_id = event.group_id
+
         if len(request.FILES) == 0:
             return HttpResponse(status=400)
 
@@ -664,7 +669,7 @@ class EventAttachmentStoreView(StoreView):
             EventAttachment.objects.create(
                 project_id=project_id,
                 event_id=event_id,
-                group_id=event.get("group_id", None),
+                group_id=group_id,
                 name=uploaded_file.name,
                 file=file,
             )
