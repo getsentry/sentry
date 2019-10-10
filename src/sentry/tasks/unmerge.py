@@ -5,7 +5,7 @@ from collections import defaultdict, OrderedDict
 
 from django.db import transaction
 
-from sentry import eventstore, eventstream, tagstore
+from sentry import eventstore, eventstream
 from sentry.app import tsdb
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
 from sentry.event_manager import generate_culprit
