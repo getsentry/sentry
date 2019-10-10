@@ -45,10 +45,10 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
 
             eventstream_state = eventstream.start_delete_tag(project.id, key)
 
-            deleted = tagstore.delete_tag_key(project.id, lookup_key)
+            deleted = self.delete_tag_key(project.id, lookup_key)
 
             # NOTE: By sending the `end_delete_tag` message here we are making
-            # the assumption that the `tagstore.delete_tag_key` does its work
+            # the assumption that the `delete_tag_key` does its work
             # synchronously. As of this writing the Snuba `delete_tag_key` method
             # is a no-op and this message itself is what causes the deletion to
             # be done downstream.
@@ -66,3 +66,9 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
             )
 
         return Response(status=204)
+
+    def delete_tag_key(self, project_id, key):
+        try:
+            return [tagstore.get_tag_key(project_id=project_id, key=key, environment_id=None)]
+        except tagstore.TagKeyNotFound:
+            return []

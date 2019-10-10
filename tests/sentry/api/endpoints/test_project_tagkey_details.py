@@ -76,8 +76,7 @@ class ProjectTagKeyDeleteTest(APITestCase):
         mock_eventstream.start_delete_tag.assert_called_once_with(project.id, "foo")
         mock_eventstream.end_delete_tag.assert_called_once_with(eventstream_state)
 
-    @mock.patch("sentry.tagstore.tasks.delete_tag_key")
-    def test_protected(self, mock_delete_tag_key):
+    def test_protected(self):
         project = self.create_project()
         self.store_event(
             data={"environment": "prod", "timestamp": iso_format(before_now(seconds=1))},
@@ -98,7 +97,6 @@ class ProjectTagKeyDeleteTest(APITestCase):
         response = self.client.delete(url)
 
         assert response.status_code == 403
-        assert mock_delete_tag_key.delay.call_count == 0
 
         assert (
             tagstore.get_tag_key(
