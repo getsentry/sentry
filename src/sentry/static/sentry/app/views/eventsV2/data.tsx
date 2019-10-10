@@ -11,7 +11,6 @@ import UserBadge from 'app/components/idBadge/userBadge';
 import getDynamicText from 'app/utils/getDynamicText';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import pinIcon from 'app/../images/location-pin.png';
-import space from 'app/styles/space';
 import {EventViewv1, Organization} from 'app/types';
 
 import {QueryLink} from './styles';
@@ -473,12 +472,10 @@ export const SPECIAL_FIELDS: SpecialFields = {
 export const AUTOLINK_FIELDS: string[] = ['transaction', 'title'];
 
 const Container = styled('div')`
-  padding: ${space(1)};
   ${overflowEllipsis};
 `;
 
 const NumberContainer = styled('div')`
-  padding: ${space(1)};
   text-align: right;
   ${overflowEllipsis};
 `;

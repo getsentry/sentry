@@ -3,7 +3,6 @@ import React from 'react';
 
 import {OrganizationDetailed, Event, EventAttachment} from 'app/types';
 import ConfigStore from 'app/stores/configStore';
-import MemberListStore from 'app/stores/memberListStore';
 import withOrganization from 'app/utils/withOrganization';
 import SentryTypes from 'app/sentryTypes';
 
@@ -34,17 +33,14 @@ class AttachmentUrl extends React.PureComponent<Props> {
       return true;
     }
 
-    const {availableRoles, attachmentsRole} = this.props.organization;
+    const {availableRoles, attachmentsRole, role} = this.props.organization;
     if (!Array.isArray(availableRoles)) {
       return false;
     }
 
-    const member = MemberListStore.getById(user.id);
-    const currentRole = member && member.role;
-
-    const roleIds = availableRoles.map(role => role.id);
+    const roleIds = availableRoles.map(r => r.id);
     const requiredIndex = roleIds.indexOf(attachmentsRole);
-    const currentIndex = roleIds.indexOf(currentRole);
+    const currentIndex = roleIds.indexOf(role || '');
     return currentIndex >= requiredIndex;
   }
 

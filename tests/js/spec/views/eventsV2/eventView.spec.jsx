@@ -9,6 +9,7 @@ describe('EventView.fromSavedQuery()', function() {
       range: '14d',
       start: '',
       end: '',
+      orderby: '-timestamp',
     };
     const eventView = EventView.fromSavedQuery(saved);
     expect(eventView.fields).toEqual([
@@ -19,6 +20,7 @@ describe('EventView.fromSavedQuery()', function() {
     expect(eventView.range).toEqual('14d');
     expect(eventView.start).toEqual('');
     expect(eventView.end).toEqual('');
+    expect(eventView.sorts).toEqual([{field: 'timestamp', kind: 'desc'}]);
   });
 
   it('maps equality conditions', function() {
@@ -143,5 +145,32 @@ describe('EventView.getEventsAPIPayload()', function() {
       },
     };
     expect(eventView.getEventsAPIPayload(location).query).toEqual('event.type:csp');
+  });
+});
+
+describe('EventView.toNewQuery()', function() {
+  it('outputs the right fields', function() {
+    const eventView = new EventView({
+      id: '2',
+      name: 'best query',
+      fields: [
+        {field: 'count()', title: 'count'},
+        {field: 'project.id', title: 'project'},
+      ],
+      query: 'event.type:error',
+      range: '14d',
+      start: '',
+      end: '',
+      sorts: [{field: 'timestamp', kind: 'desc'}],
+    });
+    const output = eventView.toNewQuery();
+    expect(output.fields).toEqual(['count()', 'project.id']);
+    expect(output.fieldnames).toEqual(['count', 'project']);
+    expect(output.name).toEqual(eventView.name);
+    expect(output.range).toEqual('14d');
+    expect(output.start).toEqual('');
+    expect(output.end).toEqual('');
+    expect(output.orderby).toEqual('-timestamp');
+    expect(output.id).toEqual('2');
   });
 });
