@@ -212,5 +212,3 @@ class GroupEventDetails extends React.Component {
 }
 
 export default GroupEventDetails;
-
-// export default withApi(withOrganization(withGlobalSelection(GroupEventDetailsContainer)));
