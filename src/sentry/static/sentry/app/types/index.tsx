@@ -504,4 +504,5 @@ export type MemberRole = {
   id: string;
   name: string;
   desc: string;
+  allowed?: boolean;
 };
