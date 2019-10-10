@@ -1,7 +1,7 @@
 import React from 'react';
 
-import {initializeOrg} from 'app-test/helpers/initializeOrg';
-import {mount} from 'enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import GroupSidebar from 'app/components/group/sidebar';
 
 describe('GroupSidebar', function() {
@@ -45,7 +45,7 @@ describe('GroupSidebar', function() {
       body: TestStubs.Tags(),
     });
 
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <GroupSidebar
         group={group}
         project={project}
@@ -91,7 +91,7 @@ describe('GroupSidebar', function() {
         body: [],
       });
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <GroupSidebar
           api={new MockApiClient()}
           group={group}

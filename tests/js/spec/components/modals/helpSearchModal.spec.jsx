@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount} from 'enzyme';
+import {mount} from 'sentry-test/enzyme';
 import {openHelpSearchModal} from 'app/actionCreators/modal';
 import App from 'app/views/app';
 

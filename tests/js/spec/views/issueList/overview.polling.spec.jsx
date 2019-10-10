@@ -1,7 +1,7 @@
 import React from 'react';
 
-import {initializeOrg} from 'app-test/helpers/initializeOrg';
-import {mount} from 'enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import IssueList from 'app/views/issueList/overview';
 import StreamGroup from 'app/components/stream/group';
 import TagStore from 'app/stores/tagStore';
@@ -63,7 +63,10 @@ describe('IssueList -> Polling', function() {
       },
     };
 
-    wrapper = mount(<IssueList {...newRouter} {...defaultProps} {...p} />, routerContext);
+    wrapper = mountWithTheme(
+      <IssueList {...newRouter} {...defaultProps} {...p} />,
+      routerContext
+    );
 
     await Promise.resolve();
     jest.runAllTimers();

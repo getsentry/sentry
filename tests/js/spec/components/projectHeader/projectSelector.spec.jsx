@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ProjectHeaderProjectSelector from 'app/components/projectHeader/projectSelector';
 import ProjectsStore from 'app/stores/projectsStore';
@@ -43,7 +43,7 @@ describe('ProjectHeaderProjectSelector', function() {
   });
 
   it('renders with "Select a project" when no project is selected', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProjectHeaderProjectSelector organization={mockOrg} projectId="" />,
       routerContext
     );
@@ -52,7 +52,7 @@ describe('ProjectHeaderProjectSelector', function() {
   });
 
   it('has project label when project is selected', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProjectHeaderProjectSelector organization={mockOrg} projectId="" />,
       routerContext
     );
@@ -73,7 +73,7 @@ describe('ProjectHeaderProjectSelector', function() {
 
   it('calls `router.push` when a project is selected', function() {
     const routerMock = TestStubs.router();
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProjectHeaderProjectSelector
         organization={mockOrg}
         projectId=""

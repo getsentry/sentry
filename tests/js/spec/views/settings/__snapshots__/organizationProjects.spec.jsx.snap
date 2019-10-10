@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`OrganizationProjects Should render the projects in the store 1`] = `
+exports[`OrganizationProjects should render the projects in the store 1`] = `
 <WithOrganizationMockWrapper
   location={
     Object {

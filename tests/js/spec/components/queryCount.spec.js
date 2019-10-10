@@ -1,5 +1,5 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+import {shallow} from 'sentry-test/enzyme';
 import QueryCount from 'app/components/queryCount';
 
 describe('QueryCount', function() {

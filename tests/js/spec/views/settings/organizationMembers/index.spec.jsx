@@ -2,7 +2,7 @@ import React from 'react';
 import {browserHistory} from 'react-router';
 
 import {Client} from 'app/api';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {openInviteMembersModal} from 'app/actionCreators/modal';
 import ConfigStore from 'app/stores/configStore';
 import OrganizationMembers from 'app/views/settings/organizationMembers';
@@ -115,7 +115,7 @@ describe('OrganizationMembers', function() {
       method: 'DELETE',
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationMembers
         {...defaultProps}
         params={{
@@ -150,7 +150,7 @@ describe('OrganizationMembers', function() {
       statusCode: 500,
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationMembers
         {...defaultProps}
         params={{
@@ -184,7 +184,7 @@ describe('OrganizationMembers', function() {
       method: 'DELETE',
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationMembers
         {...defaultProps}
         params={{
@@ -225,7 +225,7 @@ describe('OrganizationMembers', function() {
     });
     OrganizationsStore.add(secondOrg);
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationMembers
         {...defaultProps}
         params={{
@@ -261,7 +261,7 @@ describe('OrganizationMembers', function() {
       statusCode: 500,
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationMembers
         {...defaultProps}
         params={{
@@ -297,7 +297,7 @@ describe('OrganizationMembers', function() {
         id: '1234',
       },
     });
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationMembers
         {...defaultProps}
         params={{
@@ -323,7 +323,7 @@ describe('OrganizationMembers', function() {
       url: '/organizations/org-id/access-requests/pending-id/',
       method: 'PUT',
     });
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationMembers
         {...defaultProps}
         params={{
@@ -356,7 +356,7 @@ describe('OrganizationMembers', function() {
       url: '/organizations/org-id/access-requests/pending-id/',
       method: 'PUT',
     });
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationMembers
         {...defaultProps}
         params={{
@@ -391,7 +391,7 @@ describe('OrganizationMembers', function() {
       body: [],
     });
     const routerContext = TestStubs.routerContext();
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationMembers
         {...defaultProps}
         params={{

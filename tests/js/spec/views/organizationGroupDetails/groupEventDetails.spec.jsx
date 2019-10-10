@@ -1,8 +1,8 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {browserHistory} from 'react-router';
 
-import {initializeOrg} from 'app-test/helpers/initializeOrg';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import GroupEventDetails from 'app/views/organizationGroupDetails/groupEventDetails/groupEventDetails';
 
 describe('groupEventDetails', () => {
@@ -115,7 +115,7 @@ describe('groupEventDetails', () => {
   });
 
   it('redirects on switching to an invalid environment selection for event', async function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <GroupEventDetails
         api={new MockApiClient()}
         group={group}
@@ -136,7 +136,7 @@ describe('groupEventDetails', () => {
   });
 
   it('does not redirect when switching to a valid environment selection for event', async function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <GroupEventDetails
         api={new MockApiClient()}
         group={group}
@@ -172,7 +172,7 @@ describe('groupEventDetails', () => {
       body: event,
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <GroupEventDetails
         api={new MockApiClient()}
         group={group}
@@ -224,7 +224,7 @@ describe('groupEventDetails', () => {
         ],
       });
 
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <GroupEventDetails
           api={new MockApiClient()}
           group={group}
@@ -254,7 +254,7 @@ describe('groupEventDetails', () => {
         ],
       });
 
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <GroupEventDetails
           api={new MockApiClient()}
           group={group}
@@ -279,7 +279,7 @@ describe('groupEventDetails', () => {
         body: [],
       });
 
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <GroupEventDetails
           api={new MockApiClient()}
           group={group}
@@ -305,7 +305,7 @@ describe('groupEventDetails', () => {
         body: null,
       });
 
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <GroupEventDetails
           api={new MockApiClient()}
           group={group}
@@ -331,8 +331,8 @@ describe('groupEventDetails', () => {
     let orgIntegrationsRequest;
     let componentsRequest;
 
-    const mountWrapper = () => {
-      return mount(
+    const mountWithThemeWrapper = () => {
+      return mountWithTheme(
         <GroupEventDetails
           api={new MockApiClient()}
           group={group}
@@ -396,7 +396,7 @@ describe('groupEventDetails', () => {
         body: [unpublishedIntegration, internalIntegration],
       });
 
-      wrapper = mountWrapper();
+      wrapper = mountWithThemeWrapper();
     });
 
     it('loads Integrations', () => {

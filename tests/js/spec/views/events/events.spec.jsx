@@ -2,11 +2,11 @@ import {withRouter, browserHistory} from 'react-router';
 import React from 'react';
 
 import Events, {parseRowFromLinks} from 'app/views/events/events';
-import {chart, doZoom} from 'app-test/helpers/charts';
-import {initializeOrg} from 'app-test/helpers/initializeOrg';
+import {chart, doZoom} from 'sentry-test/charts';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
-import {mockRouterPush} from 'app-test/helpers/mockRouterPush';
-import {mount} from 'enzyme';
+import {mockRouterPush} from 'sentry-test/mockRouterPush';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import EventsContainer from 'app/views/events';
 import ProjectsStore from 'app/stores/projectsStore';
 
@@ -92,7 +92,7 @@ describe('EventsErrors', function() {
       statusCode: 500,
       body: {details: 'Error'},
     });
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <Events organization={organization} location={{query: {}}} />,
       routerContext
     );
@@ -105,7 +105,7 @@ describe('EventsErrors', function() {
   });
 
   it('renders events table', async function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <Events organization={organization} location={{query: {}}} />,
       routerContext
     );
@@ -122,10 +122,13 @@ describe('EventsErrors', function() {
       ...organization,
       features: [...organization.features, 'internal-catchall'],
     });
-    const wrapper = mount(<Events organization={newOrg} location={{query: {}}} />, {
-      ...routerContext,
-      context: {...routerContext.context, organization: newOrg},
-    });
+    const wrapper = mountWithTheme(
+      <Events organization={newOrg} location={{query: {}}} />,
+      {
+        ...routerContext,
+        context: {...routerContext.context, organization: newOrg},
+      }
+    );
     await tick();
     wrapper.update();
     expect(eventsMetaMock).toHaveBeenCalled();
@@ -135,7 +138,7 @@ describe('EventsErrors', function() {
   // This tests the component's `shouldComponentUpdate`
   // Use `search` to compare instead of `query` because that's what we check in `AsyncComponent`
   it('location.query changes updates events table', async function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <EventsWithRouter
         organization={organization}
         location={{
@@ -214,7 +217,7 @@ describe('EventsErrors', function() {
         },
       };
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <EventsContainer
           router={newRouter}
           organization={organization}
@@ -328,7 +331,7 @@ describe('EventsContainer', function() {
       body: {count: 5},
     });
 
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <EventsContainer
         router={router}
         organization={organization}
@@ -421,7 +424,7 @@ describe('EventsContainer', function() {
       headers: {'X-Sentry-Direct-Hit': '1'},
     });
 
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <Events organization={organization} location={{query: eventId}} />,
       routerContext
     );

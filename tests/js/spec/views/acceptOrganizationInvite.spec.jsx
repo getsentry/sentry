@@ -1,5 +1,5 @@
 import {browserHistory} from 'react-router';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {logout} from 'app/actionCreators/account';
 import React from 'react';
 
@@ -24,7 +24,7 @@ describe('AcceptOrganizationInvite', function() {
       existingMember: false,
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />,
       TestStubs.routerContext()
     );
@@ -56,7 +56,7 @@ describe('AcceptOrganizationInvite', function() {
       existingMember: false,
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />,
       TestStubs.routerContext()
     );
@@ -76,7 +76,7 @@ describe('AcceptOrganizationInvite', function() {
       existingMember: false,
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />,
       TestStubs.routerContext()
     );
@@ -99,7 +99,7 @@ describe('AcceptOrganizationInvite', function() {
       existingMember: true,
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />,
       TestStubs.routerContext()
     );
@@ -127,7 +127,7 @@ describe('AcceptOrganizationInvite', function() {
       existingMember: false,
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />,
       TestStubs.routerContext()
     );

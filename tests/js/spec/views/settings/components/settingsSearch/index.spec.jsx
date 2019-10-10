@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mount} from 'sentry-test/enzyme';
 
 import {SettingsSearch} from 'app/views/settings/components/settingsSearch';
 import FormSearchStore from 'app/stores/formSearchStore';

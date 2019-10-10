@@ -1,7 +1,7 @@
 import React from 'react';
 
 import * as OrgActions from 'app/actionCreators/organizations';
-import {mount, shallow} from 'enzyme';
+import {mount, shallow} from 'sentry-test/enzyme';
 import {ContextPickerModal} from 'app/components/contextPickerModal';
 
 jest.mock('jquery');

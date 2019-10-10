@@ -1,9 +1,9 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {initializeOrg} from 'app-test/helpers/initializeOrg';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import IncidentActivity from 'app/views/incidents/details/activity';
-import changeReactMentionsInput from 'app-test/helpers/changeReactMentionsInput';
+import changeReactMentionsInput from 'sentry-test/changeReactMentionsInput';
 
 describe('IncidentDetails -> Activity', function() {
   const incident = TestStubs.Incident();
@@ -25,7 +25,7 @@ describe('IncidentDetails -> Activity', function() {
   });
 
   const createWrapper = props =>
-    mount(
+    mountWithTheme(
       <IncidentActivity
         params={{incidentId: incident.identifier, orgId: organization.slug}}
         {...props}

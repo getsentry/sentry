@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mount} from 'sentry-test/enzyme';
 
 import IssueListTagFilter from 'app/views/issueList/tagFilter';
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import {shallow, mount} from 'enzyme';
+import {shallow, mount} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import OrganizationAuditLog from 'app/views/settings/organizationAuditLog';

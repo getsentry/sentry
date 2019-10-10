@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ReleaseDetails from 'app/views/releases/detail/';
 
@@ -44,7 +44,7 @@ describe('ReleaseDetails', function() {
       query: {},
     };
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ReleaseDetails location={location} params={params} setProjectNavSection={noop}>
         <div>hi</div>
       </ReleaseDetails>,

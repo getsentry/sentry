@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import AccountSecurity from 'app/views/settings/account/accountSecurity';
@@ -24,7 +24,7 @@ describe('AccountSecurity', function() {
       body: [],
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <AccountSecurityWrapper>
         <AccountSecurity />
       </AccountSecurityWrapper>,
@@ -41,7 +41,7 @@ describe('AccountSecurity', function() {
       body: [TestStubs.Authenticators().Totp({configureButton: 'Info'})],
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <AccountSecurityWrapper>
         <AccountSecurity />
       </AccountSecurityWrapper>,
@@ -83,7 +83,7 @@ describe('AccountSecurity', function() {
 
     expect(deleteMock).not.toHaveBeenCalled();
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <AccountSecurityWrapper>
         <AccountSecurity />
       </AccountSecurityWrapper>,
@@ -131,7 +131,7 @@ describe('AccountSecurity', function() {
 
     expect(deleteMock).not.toHaveBeenCalled();
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <AccountSecurityWrapper>
         <AccountSecurity />
       </AccountSecurityWrapper>,
@@ -193,7 +193,7 @@ describe('AccountSecurity', function() {
 
     expect(deleteMock).not.toHaveBeenCalled();
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <AccountSecurityWrapper>
         <AccountSecurity />
       </AccountSecurityWrapper>,
@@ -218,7 +218,7 @@ describe('AccountSecurity', function() {
       body: [TestStubs.Authenticators().Totp({isEnrolled: false})],
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <AccountSecurityWrapper>
         <AccountSecurity />
       </AccountSecurityWrapper>,
@@ -244,7 +244,7 @@ describe('AccountSecurity', function() {
       body: [TestStubs.Authenticators().Recovery({isEnrolled: false})],
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <AccountSecurityWrapper>
         <AccountSecurity />
       </AccountSecurityWrapper>,
@@ -266,7 +266,7 @@ describe('AccountSecurity', function() {
       body: [TestStubs.Authenticators().Recovery({isEnrolled: true})],
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <AccountSecurityWrapper>
         <AccountSecurity />
       </AccountSecurityWrapper>,
@@ -296,7 +296,7 @@ describe('AccountSecurity', function() {
       method: 'PUT',
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <AccountSecurityWrapper>
         <AccountSecurity />
       </AccountSecurityWrapper>,
@@ -340,7 +340,7 @@ describe('AccountSecurity', function() {
       method: 'PUT',
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <AccountSecurityWrapper>
         <AccountSecurity />
       </AccountSecurityWrapper>,
@@ -372,7 +372,7 @@ describe('AccountSecurity', function() {
       status: 204,
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <AccountSecurityWrapper>
         <AccountSecurity />
       </AccountSecurityWrapper>,
