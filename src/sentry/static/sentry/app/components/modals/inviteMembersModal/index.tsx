@@ -226,9 +226,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
           <InlineSvg src="icon-mail" size="36px" />
           {t('Invite New Members')}
         </Heading>
-        <Subtext>
-          {t('Invite new members by email invitation to join your Organization.')}
-        </Subtext>
+        <Subtext>{t('Invite new members by email to join your organization.')}</Subtext>
 
         <InviteeHeadings>
           <div>{t('Email addresses')}</div>
