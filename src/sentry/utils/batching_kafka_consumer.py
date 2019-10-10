@@ -114,6 +114,7 @@ class BatchingKafkaConsumer(object):
         queued_max_messages_kbytes=DEFAULT_QUEUED_MAX_MESSAGE_KBYTES,
         queued_min_messages=DEFAULT_QUEUED_MIN_MESSAGES,
         metrics_sample_rates=None,
+        metrics_default_tags=None,
     ):
         assert isinstance(worker, AbstractBatchWorker)
         self.worker = worker
@@ -124,6 +125,7 @@ class BatchingKafkaConsumer(object):
         self.__metrics_sample_rates = (
             metrics_sample_rates if metrics_sample_rates is not None else {}
         )
+        self.__metrics_default_tags = metrics_default_tags or {}
         self.group_id = group_id
 
         self.shutdown = False
@@ -158,6 +160,9 @@ class BatchingKafkaConsumer(object):
     def __record_timing(self, metric, value, tags=None):
         if self.__metrics is None:
             return
+
+        tags = dict(tags)
+        tags.update(self.__metrics_default_tags)
 
         return self.__metrics.timing(
             metric, value, tags=tags, sample_rate=self.__metrics_sample_rates.get(metric, 1)

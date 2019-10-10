@@ -49,6 +49,7 @@ def create_batching_kafka_consumer(topic_name, worker, **options):
         bootstrap_servers=bootstrap_servers,
         worker=worker,
         metrics=metrics,
+        metrics_default_tags={"topic": topic_name},
         **options
     )
 
