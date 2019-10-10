@@ -63,8 +63,7 @@ class DraggableColumns extends React.Component<Props, State> {
       return;
     }
 
-    // prevent the user from selecting things outside the minimap when dragging
-    // the mouse cursor outside the minimap
+    // prevent the user from selecting things when dragging a column.
 
     this.previousUserSelect = setBodyUserSelect({
       userSelect: 'none',
