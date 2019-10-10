@@ -331,10 +331,6 @@ INSTALLED_APPS = (
     "sentry.plugins.sentry_webhooks",
     "social_auth",
     "sudo",
-    "sentry.tagstore",
-    # we import the legacy tagstore to ensure models stay registered as they're still
-    # referenced in the core sentry migrations (tagstore migrations are not in their own app)
-    "sentry.tagstore.legacy",
     "sentry.eventstream",
     "sentry.auth.providers.google",
     "django.contrib.staticfiles",
