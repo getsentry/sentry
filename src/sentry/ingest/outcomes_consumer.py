@@ -94,6 +94,9 @@ class OutcomesConsumerWorker(AbstractBatchWorker):
         # remember that we sent the signal just in case the processor dies before
         mark_signal_sent(project_id=project_id, event_id=event_id)
 
+        # Return *something* so that it counts against batch size
+        return True
+
     def flush_batch(self, batch):
         pass
 

@@ -89,6 +89,9 @@ class IngestConsumerWorker(AbstractBatchWorker):
             ip=remote_addr, data=data, project=project, sender=self.process_message
         )
 
+        # Return *something* so that it counts against batch size
+        return True
+
     def flush_batch(self, batch):
         pass
 
