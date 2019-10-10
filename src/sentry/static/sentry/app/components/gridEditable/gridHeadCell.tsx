@@ -15,6 +15,7 @@ import {
 } from './styles';
 
 export type GridHeadCellProps<Column> = {
+  isColumnDragging: boolean;
   isEditing: boolean;
   isPrimary: boolean;
 
@@ -69,6 +70,13 @@ class GridHeadCell<Column> extends React.Component<
   };
 
   renderButtonHoverDraggable(children: React.ReactNode) {
+    const {isHovering} = this.state;
+    const {isEditing, isColumnDragging} = this.props;
+
+    if (!isEditing || !isHovering || isColumnDragging) {
+      return null;
+    }
+
     return (
       <React.Fragment>
         {/* Ensure that background is always at the top. The background must be
@@ -112,7 +120,6 @@ class GridHeadCell<Column> extends React.Component<
 
   render() {
     const {isEditing, children} = this.props;
-    const {isHovering} = this.state;
 
     return (
       <GridHeadCellWrapper
@@ -122,7 +129,7 @@ class GridHeadCell<Column> extends React.Component<
       >
         <GridHeadCellButton className="grid-head-cell-button" isEditing={isEditing}>
           {children}
-          {isEditing && isHovering && this.renderButtonHoverDraggable(children)}
+          {this.renderButtonHoverDraggable(children)}
         </GridHeadCellButton>
 
         {/* Keep the Resizer at the bottom to ensure that it is will always

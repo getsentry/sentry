@@ -225,10 +225,16 @@ class TableView extends React.Component<TableViewProps> {
           }
         }}
       >
-        {({startColumnDrag, draggingColumnIndex, destinationColumnIndex}) => {
+        {({
+          isColumnDragging,
+          startColumnDrag,
+          draggingColumnIndex,
+          destinationColumnIndex,
+        }) => {
           return (
             <GridEditable
               isEditable
+              isColumnDragging={isColumnDragging}
               isLoading={isLoading}
               error={error}
               data={tableData ? tableData.data : []}

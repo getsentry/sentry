@@ -11,6 +11,7 @@ import {
 import {TableColumn} from './types';
 
 export type DraggableColumnsChildrenProps = {
+  isColumnDragging: boolean;
   startColumnDrag: (
     event: React.MouseEvent<SVGSVGElement, MouseEvent>,
     initialColumnIndex: number
@@ -215,6 +216,7 @@ class DraggableColumns extends React.Component<Props, State> {
 
   renderChildren = () => {
     const childrenProps = {
+      isColumnDragging: this.state.isDragging,
       startColumnDrag: this.startColumnDrag,
       draggingColumnIndex: this.state.draggingColumnIndex,
       destinationColumnIndex: this.state.destinationColumnIndex,
