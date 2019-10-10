@@ -47,23 +47,31 @@ const decodeFields = (location: Location): Array<Field> => {
   return parsed;
 };
 
-const fromSorts = (sorts: Array<string>): Array<Sort> => {
+const parseSort = (sort: string): Sort => {
+  sort = sort.trim();
+
+  if (sort.startsWith('-')) {
+    return {
+      kind: 'desc',
+      field: sort.substring(1),
+    };
+  }
+
+  return {
+    kind: 'asc',
+    field: sort,
+  };
+};
+
+const fromSorts = (sorts: string | string[] | undefined): Array<Sort> => {
+  if (sorts === undefined) {
+    return [];
+  }
+
+  sorts = isString(sorts) ? [sorts] : sorts;
+
   return sorts.reduce((acc: Array<Sort>, sort: string) => {
-    sort = sort.trim();
-
-    if (sort.startsWith('-')) {
-      acc.push({
-        kind: 'desc',
-        field: sort.substring(1),
-      });
-      return acc;
-    }
-
-    acc.push({
-      kind: 'asc',
-      field: sort,
-    });
-
+    acc.push(parseSort(sort));
     return acc;
   }, []);
 };
@@ -89,7 +97,7 @@ const encodeSort = (sort: Sort): string => {
       return String(sort.field);
     }
     default: {
-      throw new Error('unexpected sort type');
+      throw new Error('Unexpected sort type');
     }
   }
 };
@@ -280,12 +288,13 @@ class EventView {
       start: saved.start,
       end: saved.end,
       range: saved.range,
-      sorts: [],
+      sorts: fromSorts(saved.orderby),
       tags: [],
     });
   }
 
   toNewQuery(): NewQuery {
+    const orderby = this.sorts ? encodeSorts(this.sorts)[0] : undefined;
     return {
       id: this.id,
       version: 2,
@@ -297,6 +306,7 @@ class EventView {
       range: this.range,
       fields: this.fields.map(item => item.field),
       fieldnames: this.fields.map(item => item.title),
+      orderby,
     };
   }
 
