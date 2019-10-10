@@ -132,7 +132,7 @@ def post_process_group(event, is_new, is_regression, is_new_group_environment, *
         # NOTE: we must pass through the full Event object, and not an
         # event_id since the Event object may not actually have been stored
         # in the database due to sampling.
-        from sentry.models import Project
+        from sentry.models import Project, Organization
         from sentry.models.group import get_group_with_redirect
         from sentry.rules.processor import RuleProcessor
         from sentry.tasks.servicehooks import process_service_hook
@@ -150,9 +150,12 @@ def post_process_group(event, is_new, is_regression, is_new_group_environment, *
         with configure_scope() as scope:
             scope.set_tag("project", event.project_id)
 
-        # Re-bind Project since we're pickling the whole Event object
-        # which may contain a stale Project.
+        # Re-bind Project and Org since we're pickling the whole Event object
+        # which may contain stale parent models.
         event.project = Project.objects.get_from_cache(id=event.project_id)
+        event.project.organization = Organization.objects.get_from_cache(
+            id=event.project.organization_id
+        )
 
         _capture_stats(event, is_new)
 
@@ -195,10 +198,7 @@ def post_process_group(event, is_new, is_regression, is_new_group_environment, *
 
             for plugin in plugins.for_project(event.project):
                 plugin_post_process_group(
-                    plugin_slug=plugin.slug,
-                    event=event,
-                    is_new=is_new,
-                    is_regresion=is_regression,
+                    plugin_slug=plugin.slug, event=event, is_new=is_new, is_regresion=is_regression
                 )
 
         event_processed.send_robust(
