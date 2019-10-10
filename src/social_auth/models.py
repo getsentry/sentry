@@ -7,7 +7,9 @@ import six
 from datetime import datetime, timedelta
 from django.conf import settings
 from django.db import models
-from django.db.models.loading import get_model
+from django.apps import apps
+
+get_model = apps.get_model
 
 from .fields import JSONField
 from .utils import setting
