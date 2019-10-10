@@ -668,6 +668,14 @@ function routes() {
           }
           component={errorHandler(LazyLoad)}
         />
+        <Route
+          name="Integration Dashboard"
+          path=":appSlug/dashboard"
+          componentPromise={() =>
+            import(/* webpackChunkName: "SentryApplicationDashboard" */ 'app/views/settings/organizationDeveloperSettings/sentryApplicationDashboard')
+          }
+          component={errorHandler(LazyLoad)}
+        />
       </Route>
     </React.Fragment>
   );

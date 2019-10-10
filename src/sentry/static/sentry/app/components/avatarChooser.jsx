@@ -84,7 +84,7 @@ class AvatarChooser extends React.Component {
     ev.preventDefault();
     let data = {};
     const avatarType = model && model.avatar ? model.avatar.avatarType : undefined;
-    const avatarPhoto = dataUrl ? dataUrl.split(',')[1] : null;
+    const avatarPhoto = dataUrl ? dataUrl.split(',')[1] : undefined;
 
     data = {
       avatar_photo: avatarPhoto,

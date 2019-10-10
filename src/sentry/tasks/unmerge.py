@@ -539,11 +539,12 @@ def unmerge(
         )
 
     events = eventstore.get_events(
-        filter_keys={"project_id": [project_id], "issue": [source.id]},
+        filter=eventstore.Filter(
+            project_ids=[project_id], group_ids=[source.id], conditions=conditions
+        ),
         # We need the text-only "search message" from Snuba, not the raw message
         # dict field from nodestore.
         additional_columns=[eventstore.Columns.MESSAGE],
-        conditions=conditions,
         limit=batch_size,
         referrer="unmerge",
         orderby=["-timestamp", "-event_id"],

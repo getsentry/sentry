@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 from uuid import uuid4
 
-from sentry.tagstore.models import EventTag
 from sentry.models import (
     Event,
     Group,
@@ -55,7 +54,6 @@ class DeleteGroupTest(TestCase):
             run_deletion(deletion.id)
 
         assert not Event.objects.filter(id=event.id).exists()
-        assert not EventTag.objects.filter(event_id=event.id).exists()
         assert not UserReport.objects.filter(group_id=group.id).exists()
         assert not GroupRedirect.objects.filter(group_id=group.id).exists()
         assert not GroupHash.objects.filter(group_id=group.id).exists()

@@ -56,8 +56,10 @@ class EventEntries extends React.Component {
   static propTypes = {
     // organization is not provided in the shared issue view
     organization: SentryTypes.Organization,
+    // event is not guaranteed in shared issue view
+    event: SentryTypes.Event,
+
     group: SentryTypes.Group.isRequired,
-    event: SentryTypes.Event.isRequired,
     orgId: PropTypes.string.isRequired,
     project: PropTypes.object.isRequired,
     // TODO(dcramer): ideally isShare would be replaced with simple permission
@@ -84,9 +86,11 @@ class EventEntries extends React.Component {
   }
 
   shouldComponentUpdate(nextProps) {
+    const {event, showExampleCommit} = this.props;
+
     return (
-      this.props.event.id !== nextProps.event.id ||
-      this.props.showExampleCommit !== nextProps.showExampleCommit
+      (event && nextProps.event && event.id !== nextProps.event.id) ||
+      showExampleCommit !== nextProps.showExampleCommit
     );
   }
 
