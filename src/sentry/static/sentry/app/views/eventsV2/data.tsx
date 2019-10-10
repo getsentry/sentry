@@ -11,7 +11,6 @@ import UserBadge from 'app/components/idBadge/userBadge';
 import getDynamicText from 'app/utils/getDynamicText';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import pinIcon from 'app/../images/location-pin.png';
-import space from 'app/styles/space';
 import {EventViewv1, Organization} from 'app/types';
 
 import {QueryLink} from './styles';
@@ -121,8 +120,15 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
   {
     name: t('Transactions'),
     data: {
-      fields: ['transaction', 'project', 'count()'],
-      fieldnames: ['transaction', 'project', 'volume'],
+      fields: [
+        'transaction',
+        'project',
+        'count()',
+        'avg(transaction.duration)',
+        'p75',
+        'p95',
+      ],
+      fieldnames: ['transaction', 'project', 'volume', 'avg', '75th', '95th'],
       sort: ['-count'],
       query: 'event.type:transaction',
     },
@@ -131,8 +137,15 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
   {
     name: t('Transactions by User'),
     data: {
-      fields: ['user', 'count()', 'count_unique(transaction)'],
-      fieldnames: ['user', 'events', 'unique transactions'],
+      fields: [
+        'user',
+        'count()',
+        'count_unique(transaction)',
+        'avg(transaction.duration)',
+        'p75',
+        'p95',
+      ],
+      fieldnames: ['user', 'events', 'unique transactions', 'avg', '75th', '95th'],
       sort: ['-count'],
       query: 'event.type:transaction',
     },
@@ -141,8 +154,8 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
   {
     name: t('Transactions by Region'),
     data: {
-      fields: ['geo.region', 'count()'],
-      fieldnames: ['Region', 'events'],
+      fields: ['geo.region', 'count()', 'avg(transaction.duration)', 'p75', 'p95'],
+      fieldnames: ['Region', 'events', 'avg', '75th', '95th'],
       sort: ['-count'],
       query: 'event.type:transaction',
     },
@@ -459,12 +472,10 @@ export const SPECIAL_FIELDS: SpecialFields = {
 export const AUTOLINK_FIELDS: string[] = ['transaction', 'title'];
 
 const Container = styled('div')`
-  padding: ${space(1)};
   ${overflowEllipsis};
 `;
 
 const NumberContainer = styled('div')`
-  padding: ${space(1)};
   text-align: right;
   ${overflowEllipsis};
 `;

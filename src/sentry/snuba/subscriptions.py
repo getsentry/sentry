@@ -4,7 +4,7 @@ import json
 
 from django.db import transaction
 
-from sentry.api.event_search import get_snuba_query_args
+from sentry.api.event_search import get_filter
 from sentry.snuba.models import QueryAggregations, QueryDatasets, QuerySubscription
 from sentry.utils.snuba import _snuba_pool, SnubaError
 
@@ -168,7 +168,7 @@ def _create_in_snuba(project, dataset, query, aggregation, time_window, resoluti
                 # We only care about conditions here. Filter keys only matter for
                 # filtering to project and groups. Projects are handled with an
                 # explicit param, and groups can't be queried here.
-                "conditions": get_snuba_query_args(query)["conditions"],
+                "conditions": get_filter(query).conditions,
                 "aggregates": [query_aggregation_to_snuba[aggregation]],
                 "time_window": time_window,
                 "resolution": resolution,

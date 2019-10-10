@@ -331,10 +331,6 @@ INSTALLED_APPS = (
     "sentry.plugins.sentry_webhooks",
     "social_auth",
     "sudo",
-    "sentry.tagstore",
-    # we import the legacy tagstore to ensure models stay registered as they're still
-    # referenced in the core sentry migrations (tagstore migrations are not in their own app)
-    "sentry.tagstore.legacy",
     "sentry.eventstream",
     "sentry.auth.providers.google",
     "django.contrib.staticfiles",
@@ -776,6 +772,12 @@ LOGGING = {
 # django-rest-framework
 
 REST_FRAMEWORK = {
+    "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
+    "DEFAULT_PARSER_CLASSES": [
+        "rest_framework.parsers.JSONParser",
+        "rest_framework.parsers.MultiPartParser",
+        "rest_framework.parsers.FormParser",
+    ],
     "TEST_REQUEST_DEFAULT_FORMAT": "json",
     "DEFAULT_PERMISSION_CLASSES": ("sentry.api.permissions.NoPermission",),
     "EXCEPTION_HANDLER": "sentry.api.handlers.custom_exception_handler",
@@ -1052,18 +1054,10 @@ SENTRY_NODESTORE = "sentry.nodestore.django.DjangoNodeStorage"
 SENTRY_NODESTORE_OPTIONS = {}
 
 # Tag storage backend
-_SENTRY_TAGSTORE_DEFAULT_MULTI_OPTIONS = {
-    "backends": [("sentry.tagstore.legacy.LegacyTagStorage", {})],
-    "runner": "ImmediateRunner",
-}
 SENTRY_TAGSTORE = os.environ.get(
     "SENTRY_TAGSTORE", "sentry.tagstore.snuba.SnubaCompatibilityTagStorage"
 )
-SENTRY_TAGSTORE_OPTIONS = (
-    _SENTRY_TAGSTORE_DEFAULT_MULTI_OPTIONS
-    if "SENTRY_TAGSTORE_DEFAULT_MULTI_OPTIONS" in os.environ
-    else {}
-)
+SENTRY_TAGSTORE_OPTIONS = {}
 
 # Search backend
 SENTRY_SEARCH = os.environ.get("SENTRY_SEARCH", "sentry.search.snuba.SnubaSearchBackend")
