@@ -303,7 +303,6 @@ class BaseManager(Manager):
 
 
 class EventManager(BaseManager):
-    # TODO: Remove method in favour of eventstore.bind_nodes
     def bind_nodes(self, object_list, *node_names):
         """
         For a list of Event objects, and a property name where we might find an
@@ -325,4 +324,5 @@ class EventManager(BaseManager):
 
         for item, node in object_node_list:
             data = node_results.get(node.id) or {}
-            node.bind_data(data, ref=node.get_ref(item))
+
+            node.bind_data(data, ref=node.get_ref(item), event_datetime=item.datetime)

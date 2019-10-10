@@ -8,17 +8,17 @@ from datetime import timedelta
 from django.core import mail
 from django.core.urlresolvers import reverse
 
-# from django.db import connection
 from django.http import HttpRequest
 from django.utils import timezone
 from exam import fixture
 
 from sentry import nodestore
 from sentry.db.models.fields.node import NodeIntegrityFailure
-from sentry.models import ProjectKey, Event, LostPasswordHash
+from sentry.models import ProjectKey, Event, LostPasswordHash, SnubaEvent
 from sentry.testutils import TestCase
 from sentry.utils.compat import pickle
 from sentry.utils.strings import compress
+from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
 class ProjectKeyTest(TestCase):
@@ -173,3 +173,44 @@ class EventNodeStoreTest(TestCase):
     def test_basic_ref_binding(self):
         event = self.create_event()
         assert event.data.get_ref(event) == event.project.id
+
+    def test_refuse_to_bind_if_datetime_does_not_match(self):
+        project = self.create_project()
+        event_id = "a" * 32
+        processed_event = self.store_event(
+            data={
+                "event_id": event_id,
+                "timestamp": iso_format(before_now(seconds=1)),
+                "tags": {"foo": "bar"},
+                "platform": "python",
+            },
+            project_id=project.id,
+        )
+
+        event = SnubaEvent(
+            {
+                "event_id": event_id,
+                "group_id": processed_event.group_id,
+                "project_id": project.id,
+                "timestamp": processed_event.datetime.isoformat(),
+            }
+        )
+
+        Event.objects.bind_nodes([event], "data")
+        assert event.datetime == processed_event.datetime
+
+        assert event.get_tag("foo") == "bar"
+
+        event = SnubaEvent(
+            {
+                "event_id": "a" * 32,
+                "group_id": processed_event.group_id,
+                "project_id": project.id,
+                "timestamp": (processed_event.datetime - timedelta(days=1)).isoformat(),
+            }
+        )
+
+        Event.objects.bind_nodes([event], "data")
+        # Did not bind data since timestamp doesn't match
+        assert event.data == {}
+        assert not event.get_tag("foo")

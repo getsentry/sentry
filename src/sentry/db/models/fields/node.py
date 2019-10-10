@@ -6,6 +6,8 @@ import logging
 import six
 import warnings
 from uuid import uuid4
+from datetime import datetime
+from pytz import utc
 
 from django.conf import settings
 from django.db import models
@@ -118,7 +120,7 @@ class NodeData(collections.MutableMapping):
             rv = self.field.wrapper(rv)
         return rv
 
-    def bind_data(self, data, ref=None):
+    def bind_data(self, data, ref=None, event_datetime=None):
         self.ref = data.pop("_ref", ref)
         self.ref_version = data.pop("_ref_version", None)
         if (
@@ -132,6 +134,22 @@ class NodeData(collections.MutableMapping):
             )
         if self.wrapper is not None:
             data = self.wrapper(data)
+
+        # We don't have a guarantee of unique event IDs across different days in
+        # Snuba as timestamp (rounded by day) is part of the primary key.
+        # If the timestamp does not match in nodestore, do not bind the data,
+        # otherwise it will contain details of the wrong event.
+        timestamp_from_nodestore = data.get("timestamp")
+
+        if (
+            event_datetime is not None
+            and timestamp_from_nodestore is not None
+            and datetime.fromtimestamp(timestamp_from_nodestore).replace(tzinfo=utc)
+            != event_datetime
+        ):
+            logger.error("Timestamp mismatch", extra=data)
+            data = {}
+
         self._node_data = data
 
     def bind_ref(self, instance):
