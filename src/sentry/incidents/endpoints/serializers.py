@@ -13,11 +13,18 @@ from sentry.incidents.logic import (
     AlertRuleTriggerLabelAlreadyUsedError,
     create_alert_rule,
     create_alert_rule_trigger,
+    create_alert_rule_trigger_action,
     get_excluded_projects_for_alert_rule,
     update_alert_rule,
     update_alert_rule_trigger,
+    update_alert_rule_trigger_action,
 )
-from sentry.incidents.models import AlertRule, AlertRuleThresholdType, AlertRuleTrigger
+from sentry.incidents.models import (
+    AlertRule,
+    AlertRuleThresholdType,
+    AlertRuleTrigger,
+    AlertRuleTriggerAction,
+)
 from sentry.models.project import Project
 from sentry.snuba.models import QueryAggregations
 
@@ -205,3 +212,52 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
             return update_alert_rule_trigger(instance, **validated_data)
         except AlertRuleTriggerLabelAlreadyUsedError:
             raise serializers.ValidationError("This label is already in use for this alert rule")
+
+
+class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
+    """
+    Serializer for creating/updating a trigger action. Required context:
+     - `trigger`: The trigger related to this action.
+     - `alert_rule`: The alert_rule related to this action.
+     - `organization`: The organization related to this action.
+     - `access`: An access object (from `request.access`)
+    """
+
+    class Meta:
+        model = AlertRuleTriggerAction
+        fields = ["type", "target_type", "target_identifier"]
+        extra_kwargs = {"target_identifier": {"required": True}}
+
+    def validate_type(self, type):
+        try:
+            return AlertRuleTriggerAction.Type(type)
+        except ValueError:
+            raise serializers.ValidationError(
+                "Invalid type, valid values are %s"
+                % [item.value for item in AlertRuleTriggerAction.Type]
+            )
+
+    def validate_target_type(self, target_type):
+        try:
+            return AlertRuleTriggerAction.TargetType(target_type)
+        except ValueError:
+            raise serializers.ValidationError(
+                "Invalid target_type, valid values are %s"
+                % [item.value for item in AlertRuleTriggerAction.TargetType]
+            )
+
+    def create(self, validated_data):
+        return create_alert_rule_trigger_action(trigger=self.context["trigger"], **validated_data)
+
+    def _remove_unchanged_fields(self, instance, validated_data):
+        for field_name, value in list(six.iteritems(validated_data)):
+            # Remove any fields that haven't actually changed
+            if isinstance(value, Enum):
+                value = value.value
+            if getattr(instance, field_name) == value:
+                validated_data.pop(field_name)
+        return validated_data
+
+    def update(self, instance, validated_data):
+        validated_data = self._remove_unchanged_fields(instance, validated_data)
+        return update_alert_rule_trigger_action(instance, **validated_data)
