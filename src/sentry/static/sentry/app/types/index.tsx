@@ -34,6 +34,7 @@ export type OrganizationDetailed = Organization & {
   scrubIPAddresses: boolean;
   scrapeJavaScript: boolean;
   trustedRelays: string[];
+  role?: string;
 };
 
 export type Project = {
