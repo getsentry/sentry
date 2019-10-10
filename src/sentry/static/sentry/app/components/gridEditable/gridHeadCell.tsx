@@ -87,7 +87,7 @@ class GridHeadCell<Column> extends React.Component<
             />
           }
 
-          <GridHeadCellButtonHoverButtonGroup isFlagged={FLAG_GRID_DRAGGABLE}>
+          <GridHeadCellButtonHoverButtonGroup>
             <GridHeadCellButtonHoverButton onClick={this.toggleModal}>
               <InlineSvg src="icon-edit-pencil" />
             </GridHeadCellButtonHoverButton>

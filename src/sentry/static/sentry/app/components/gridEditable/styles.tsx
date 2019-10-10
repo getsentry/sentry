@@ -195,9 +195,9 @@ export const GridHeadCellButtonHoverBackground = styled(GridHeadCellButton)`
     color: ${p => p.theme.gray1} !important;
   }
 `;
-export const GridHeadCellButtonHoverButtonGroup = styled('div')<GridEditableProps>`
-  ${p => !p.isFlagged && 'margin: 0 auto;'}
-`;
+
+export const GridHeadCellButtonHoverButtonGroup = styled('div')<GridEditableProps>``;
+
 export const GridHeadCellButtonHoverButton = styled('div')`
   display: inline-flex;
   justify-content: center;
