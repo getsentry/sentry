@@ -95,6 +95,8 @@ class DraggableColumns extends React.Component<Props, State> {
       return column.getBoundingClientRect();
     });
 
+    // TODO: remvoe this
+
     console.log('foo', foo);
     console.log('moo', moo);
 
@@ -143,10 +145,6 @@ class DraggableColumns extends React.Component<Props, State> {
     );
 
     if (destinationColumnIndex >= 0) {
-      //   const destinationColumn = this.props.columnOrder[destinationColumnIndex];
-
-      //   console.log('move to', destinationColumn.name);
-
       if (this.state.destinationColumnIndex !== destinationColumnIndex) {
         this.setState({
           destinationColumnIndex,
