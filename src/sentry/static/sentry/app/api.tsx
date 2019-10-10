@@ -265,13 +265,14 @@ export class Client {
       }
     }
 
+    // TODO(kamil): We forgot to add this to Spans interface
     const requestSpan = Sentry.startSpan({
       data: {
         request_data: data,
       },
       op: 'http',
       description: `${method} ${fullUrl}`,
-    });
+    }) as Sentry.Span;
 
     const errorObject = new Error();
 
@@ -340,7 +341,8 @@ export class Client {
           );
         },
         complete: (jqXHR: JQueryXHR, textStatus: string) => {
-          Sentry.finishSpan(requestSpan);
+          requestSpan.finish();
+
           return this.wrapCallback<[JQueryXHR, string]>(id, options.complete, true)(
             jqXHR,
             textStatus
