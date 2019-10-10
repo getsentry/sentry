@@ -1,6 +1,6 @@
 import Reflux from 'reflux';
 import {toTitleCase} from 'app/utils';
-import OrganizationEnvironmentActions from 'app/actions/environmentActions';
+import EnvironmentActions from 'app/actions/environmentActions';
 
 const DEFAULT_EMPTY_ENV_NAME = '(No Environment)';
 const DEFAULT_EMPTY_ROUTING_NAME = 'none';
@@ -10,16 +10,13 @@ const OrganizationEnvironmentsStore = Reflux.createStore({
     this.environments = null;
     this.error = null;
 
+    this.listenTo(EnvironmentActions.fetchEnvironments, this.onFetchEnvironments);
     this.listenTo(
-      OrganizationEnvironmentActions.fetchEnvironments,
-      this.onFetchEnvironments
-    );
-    this.listenTo(
-      OrganizationEnvironmentActions.fetchEnvironmentsSuccess,
+      EnvironmentActions.fetchEnvironmentsSuccess,
       this.onFetchEnvironmentsSuccess
     );
     this.listenTo(
-      OrganizationEnvironmentActions.fetchEnvironmentsError,
+      EnvironmentActions.fetchEnvironmentsError,
       this.onFetchEnvironmentsError
     );
   },

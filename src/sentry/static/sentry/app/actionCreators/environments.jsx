@@ -1,4 +1,4 @@
-import OrganizationEnvironmentActions from 'app/actions/environmentActions';
+import EnvironmentActions from 'app/actions/environmentActions';
 
 /**
  * Fetches all environments for an organization
@@ -7,13 +7,13 @@ import OrganizationEnvironmentActions from 'app/actions/environmentActions';
  */
 export async function fetchOrganizationEnvironments(api, organizationSlug) {
   let environments;
-  OrganizationEnvironmentActions.fetchEnvironments();
+  EnvironmentActions.fetchEnvironments();
   try {
     environments = await api.requestPromise(
       `/organizations/${organizationSlug}/environments/`
     );
-    OrganizationEnvironmentActions.fetchEnvironmentsSuccess(environments);
+    EnvironmentActions.fetchEnvironmentsSuccess(environments);
   } catch (err) {
-    OrganizationEnvironmentActions.fetchEnvironmentsError(err);
+    EnvironmentActions.fetchEnvironmentsError(err);
   }
 }

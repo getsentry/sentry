@@ -7,7 +7,6 @@ import {fetchSentryAppComponents} from 'app/actionCreators/sentryAppComponents';
 import {withMeta} from 'app/components/events/meta/metaProxy';
 import EventEntries from 'app/components/events/eventEntries';
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
-import GroupEventDetailsContainer from 'app/views/organizationGroupDetails/groupEventDetailsContainer';
 import GroupEventDetailsLoadingError from 'app/components/errors/groupEventDetailsLoadingError';
 import GroupSidebar from 'app/components/group/sidebar';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -15,12 +14,9 @@ import MutedBox from 'app/components/mutedBox';
 import ResolutionBox from 'app/components/resolutionBox';
 import SentryTypes from 'app/sentryTypes';
 import fetchSentryAppInstallations from 'app/utils/fetchSentryAppInstallations';
-import withApi from 'app/utils/withApi';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withOrganization from 'app/utils/withOrganization';
 
-import {fetchGroupEventAndMarkSeen, getEventEnvironment} from './utils';
-import GroupEventToolbar from './eventToolbar';
+import {fetchGroupEventAndMarkSeen, getEventEnvironment} from '../utils';
+import GroupEventToolbar from '../eventToolbar';
 
 class GroupEventDetails extends React.Component {
   static propTypes = {
@@ -215,6 +211,6 @@ class GroupEventDetails extends React.Component {
   }
 }
 
-export {GroupEventDetails};
+export default GroupEventDetails;
 
-export default withApi(withOrganization(withGlobalSelection(GroupEventDetailsContainer)));
+// export default withApi(withOrganization(withGlobalSelection(GroupEventDetailsContainer)));

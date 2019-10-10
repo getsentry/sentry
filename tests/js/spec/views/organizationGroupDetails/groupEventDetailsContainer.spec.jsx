@@ -2,11 +2,12 @@ import React from 'react';
 import {mount} from 'enzyme';
 
 import OrganizationEnvironmentsStore from 'app/stores/organizationEnvironmentsStore';
-import GroupEventDetailsContainer from 'app/views/organizationGroupDetails/groupEventDetailsContainer';
+import GroupEventDetailsContainer from 'app/views/organizationGroupDetails/groupEventDetails';
 
-jest.mock('app/views/organizationGroupDetails/groupEventDetails', () => ({
-  GroupEventDetails: () => <div>GroupEventDetails</div>,
-}));
+jest.mock(
+  'app/views/organizationGroupDetails/groupEventDetails/groupEventDetails',
+  () => () => <div>GroupEventDetails</div>
+);
 
 describe('groupEventDetailsContainer', () => {
   const org = TestStubs.Organization();
@@ -17,9 +18,9 @@ describe('groupEventDetailsContainer', () => {
   });
 
   it('fetches environments', async function() {
-    MockApiClient.addMockResponse({
+    const environmentsCall = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/environments/`,
-      body: [{id: 'id', name: 'name'}],
+      body: TestStubs.Environments(),
     });
     const wrapper = mount(
       <GroupEventDetailsContainer
@@ -35,7 +36,7 @@ describe('groupEventDetailsContainer', () => {
     wrapper.update();
     // should be loaded
     expect(wrapper.find('LoadingIndicator').exists()).toBe(false);
-    expect(wrapper.find('GroupEventDetails').exists()).toBe(true);
+    expect(wrapper.text('GroupEventDetails')).toBe('GroupEventDetails');
 
     // remounting will not rerender
     const wrapper2 = mount(
@@ -46,11 +47,12 @@ describe('groupEventDetailsContainer', () => {
       />
     );
     expect(wrapper2.find('LoadingIndicator').exists()).toBe(false);
-    expect(wrapper2.find('GroupEventDetails').exists()).toBe(true);
+    expect(wrapper.text('GroupEventDetails')).toBe('GroupEventDetails');
+    expect(environmentsCall).toHaveBeenCalledTimes(1);
   });
 
   it('displays an error', async function() {
-    MockApiClient.addMockResponse({
+    const environmentsCall = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/environments/`,
       statusCode: 400,
     });
@@ -67,5 +69,6 @@ describe('groupEventDetailsContainer', () => {
     wrapper.update();
     expect(wrapper.find('LoadingIndicator').exists()).toBe(false);
     expect(wrapper.find('LoadingError').exists()).toBe(true);
+    expect(environmentsCall).toHaveBeenCalledTimes(1);
   });
 });
