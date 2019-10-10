@@ -4,6 +4,7 @@ import logging
 import signal
 
 from sentry.utils.batching_kafka_consumer import BatchingKafkaConsumer
+from sentry.utils import metrics
 
 from django.conf import settings
 
@@ -44,7 +45,11 @@ def create_batching_kafka_consumer(topic_name, worker, **options):
         bootstrap_servers = bootstrap_servers.split(",")
 
     consumer = BatchingKafkaConsumer(
-        topics=[topic_name], bootstrap_servers=bootstrap_servers, worker=worker, **options
+        topics=[topic_name],
+        bootstrap_servers=bootstrap_servers,
+        worker=worker,
+        metrics=metrics,
+        **options
     )
 
     def handler(signum, frame):
