@@ -8,6 +8,7 @@ ifneq "$(wildcard /usr/local/opt/openssl/lib)" ""
 endif
 
 PIP := LDFLAGS="$(LDFLAGS)" python -m pip
+# Note: this has to be synced with the pip version in .travis.yml.
 PIP_VERSION := 19.2.3
 PIP_OPTS := --no-use-pep517 --disable-pip-version-check
 WEBPACK := NODE_ENV=production ./bin/yarn webpack

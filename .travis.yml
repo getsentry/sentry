@@ -26,7 +26,7 @@ env:
   global:
     - NODE_ENV=development
     # PIP_VERSION causes issues because: https://github.com/pypa/pip/issues/4528
-    - PYTHON_PIP_VERSION=19.1.1
+    - PYTHON_PIP_VERSION=19.2.3
     - PIP_USE_PEP517=off
     - PIP_DISABLE_PIP_VERSION_CHECK=on
     - PIP_QUIET=1
