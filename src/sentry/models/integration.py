@@ -34,7 +34,6 @@ class PagerDutyServiceProject(Model):
     project = FlexibleForeignKey("sentry.Project", db_index=False, db_constraint=False)
     pagerduty_service = FlexibleForeignKey("sentry.PagerDutyService")
     date_added = models.DateTimeField(default=timezone.now)
-
     organization_integration = FlexibleForeignKey("sentry.OrganizationIntegration", null=True)
     integration_key = models.CharField(max_length=255, null=True)
     service_id = models.CharField(max_length=255, null=True)
