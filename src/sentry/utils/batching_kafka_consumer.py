@@ -161,7 +161,7 @@ class BatchingKafkaConsumer(object):
         if self.__metrics is None:
             return
 
-        tags = dict(tags)
+        tags = dict(tags or ())
         tags.update(self.__metrics_default_tags)
 
         return self.__metrics.timing(
