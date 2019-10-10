@@ -13,10 +13,8 @@ from six.moves import xrange
 try:
     from confluent_kafka import Consumer, KafkaError, Producer, TopicPartition
     from sentry.eventstream.kafka.consumer import SynchronizedConsumer
-
-    has_kafka_client = True
 except ImportError:
-    has_kafka_client = False
+    pass
 
 
 @contextmanager
