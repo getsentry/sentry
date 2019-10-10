@@ -2,6 +2,7 @@ import React from 'react';
 import styled, {css} from 'react-emotion';
 
 import {t, tn, tct} from 'app/locale';
+import {MEMBER_ROLES} from 'app/constants';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import InlineSvg from 'app/components/inlineSvg';
 import Button from 'app/components/button';
@@ -242,7 +243,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
             emails={[...emails]}
             role={role}
             teams={[...teams]}
-            roleOptions={member && member.roles}
+            roleOptions={member ? member.roles : MEMBER_ROLES}
             teamOptions={organization.teams}
             inviteStatus={inviteStatus}
             onRemove={() => this.removeInviteRow(i)}

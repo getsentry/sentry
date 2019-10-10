@@ -5,6 +5,7 @@ import classNames from 'classnames';
 import * as Sentry from '@sentry/browser';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {MEMBER_ROLES} from 'app/constants';
 import {t, tct} from 'app/locale';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
@@ -19,34 +20,6 @@ import TeamSelect from 'app/views/settings/components/teamSelect';
 import replaceRouterParams from 'app/utils/replaceRouterParams';
 
 import RoleSelect from './roleSelect';
-
-// These don't have allowed and are only used for superusers. superceded by server result of allowed roles
-const STATIC_ROLE_LIST = [
-  {
-    id: 'member',
-    name: 'Member',
-    desc:
-      'Members can view and act on events, as well as view most other data within the organization.',
-  },
-  {
-    id: 'admin',
-    name: 'Admin',
-    desc:
-      "Admin privileges on any teams of which they're a member. They can create new teams and projects, as well as remove teams and projects which they already hold membership on (or all teams, if open membership is on).",
-  },
-  {
-    id: 'manager',
-    name: 'Manager',
-    desc:
-      'Gains admin access on all teams as well as the ability to add and remove members.',
-  },
-  {
-    id: 'owner',
-    name: 'Organization Owner',
-    desc:
-      'Unrestricted access to the organization, its data, and its settings. Can add, modify, and delete projects and members, as well as make billing and plan changes.',
-  },
-];
 
 class InviteMember extends React.Component {
   static propTypes = {
@@ -106,7 +79,7 @@ class InviteMember extends React.Component {
       error: error => {
         if (error.status === 404 && isSuperuser) {
           // use the static list
-          this.setState({roleList: STATIC_ROLE_LIST, loading: false});
+          this.setState({roleList: MEMBER_ROLES, loading: false});
         } else if (error.status !== 0) {
           Sentry.withScope(scope => {
             scope.setExtra('error', error);
