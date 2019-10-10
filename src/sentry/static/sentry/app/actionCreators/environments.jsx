@@ -6,10 +6,9 @@ import EnvironmentActions from 'app/actions/environmentActions';
  * @param {String} organizationSlug The organization slug
  */
 export async function fetchOrganizationEnvironments(api, organizationSlug) {
-  let environments;
   EnvironmentActions.fetchEnvironments();
   try {
-    environments = await api.requestPromise(
+    const environments = await api.requestPromise(
       `/organizations/${organizationSlug}/environments/`
     );
     EnvironmentActions.fetchEnvironmentsSuccess(environments);

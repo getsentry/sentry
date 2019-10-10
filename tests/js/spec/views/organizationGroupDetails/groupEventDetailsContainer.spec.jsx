@@ -38,10 +38,25 @@ describe('groupEventDetailsContainer', () => {
     expect(environmentsCall).toHaveBeenCalledTimes(1);
   });
 
-  it('displays an error', async function() {
+  it('displays an error on error', async function() {
     const environmentsCall = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/environments/`,
       statusCode: 400,
+    });
+    const wrapper = mount(<GroupEventDetailsContainer organization={org} />);
+    expect(wrapper.find('LoadingIndicator').exists()).toBe(true);
+    await tick();
+    await tick();
+    wrapper.update();
+    expect(wrapper.find('LoadingIndicator').exists()).toBe(false);
+    expect(wrapper.find('LoadingError').exists()).toBe(true);
+    expect(environmentsCall).toHaveBeenCalledTimes(1);
+  });
+
+  it('displays an error on falsey environment', async function() {
+    const environmentsCall = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/environments/`,
+      body: null,
     });
     const wrapper = mount(<GroupEventDetailsContainer organization={org} />);
     expect(wrapper.find('LoadingIndicator').exists()).toBe(true);
