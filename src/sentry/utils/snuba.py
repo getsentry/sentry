@@ -130,16 +130,12 @@ TRANSACTIONS_SENTRY_SNUBA_MAP = {
     "title": "transaction_name",
     "message": "transaction_name",
     "transaction": "transaction_name",
-    "transaction.name": "transaction_name",
     "transaction.op": "transaction_op",
-    "transaction_op": "transaction_op",
     "platform.name": "platform",
     "environment": "environment",
     "release": "release",
     # Time related properties
     "transaction.duration": "duration",
-    "transaction.start_time": "start_ts",
-    "transaction.end_time": "finish_ts",
     # User
     "user": "user",
     "user.id": "user_id",

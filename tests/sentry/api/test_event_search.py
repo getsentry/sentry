@@ -1342,3 +1342,30 @@ class GetReferenceEventConditionsTest(SnubaTestCase, TestCase):
             ["tags[gpu.name]", "=", "nvidia 8600"],
             ["tags[browser.name]", "=", "Firefox"],
         ]
+
+    def test_issue_field(self):
+        event = self.store_event(
+            data={
+                "message": "oh no!",
+                "timestamp": iso_format(before_now(seconds=1)),
+                "contexts": {
+                    "os": {"version": "10.14.6", "type": "os", "name": "Mac OS X"},
+                    "browser": {"type": "browser", "name": "Firefox", "version": "69"},
+                    "gpu": {"type": "gpu", "name": "nvidia 8600", "vendor": "nvidia"},
+                },
+            },
+            project_id=self.project.id,
+        )
+        self.conditions["groupby"] = ["issue.id"]
+        slug = "{}:{}".format(self.project.slug, event.event_id)
+        result = get_reference_event_conditions(self.conditions, slug)
+        assert result == [["issue", "=", event.group_id]]
+
+    @pytest.mark.xfail(reason="This requires eventstore.get_event_by_id to work with transactions")
+    def test_transcation_field(self):
+        data = load_data("transaction")
+        event = self.store_event(data=data, project_id=self.project.id)
+        self.conditions["groupby"] = ["transaction.op", "transaction.duration"]
+        slug = "{}:{}".format(self.project.slug, event.event_id)
+        result = get_reference_event_conditions(self.conditions, slug)
+        assert result == [["transaction_op", "=", "db"], ["duration", "=", 2]]
