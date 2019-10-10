@@ -5,16 +5,11 @@ import {Organization} from 'app/types';
 
 import GridEditable from 'app/components/gridEditable';
 
-import {
-  decodeColumnOrder,
-  decodeColumnSortBy,
-  getFieldRenderer,
-  setColumnStateOnLocation,
-} from '../utils';
+import {getFieldRenderer, setColumnStateOnLocation} from '../utils';
 import EventView from '../eventView';
 import SortLink from '../sortLink';
 import renderTableModalEditColumnFactory from './tableModalEditColumn';
-import {TableColumn, TableState, TableData, TableDataRow} from './types';
+import {TableColumn, TableData, TableDataRow} from './types';
 
 export type TableViewProps = {
   location: Location;
@@ -39,37 +34,7 @@ export type TableViewProps = {
  * is coupled to the `Location` object and derives its state entirely from it.
  * It implements methods to mutate the column state in `Location.query`.
  */
-class TableView extends React.Component<TableViewProps, TableState> {
-  constructor(props) {
-    super(props);
-
-    this.setState = () => {
-      throw new Error(
-        'TableView: Please do not directly mutate the state of TableView. Please read the comments on TableView.createColumn for more info.'
-      );
-    };
-  }
-
-  state = {
-    columnOrder: [],
-    columnSortBy: [],
-  } as TableState;
-
-  static getDerivedStateFromProps(props: TableViewProps): TableState {
-    // Avoid using props.location to get derived state.
-    const {eventView} = props;
-
-    return {
-      columnOrder: decodeColumnOrder({
-        field: eventView.getFieldNames(),
-        fieldnames: eventView.getFieldTitles(),
-      }),
-      columnSortBy: decodeColumnSortBy({
-        sort: eventView.getDefaultSort(),
-      }),
-    };
-  }
-
+class TableView extends React.Component<TableViewProps> {
   /**
    * The "truth" on the state of the columns is found in `Location`,
    * `createColumn`, `updateColumn`, `deleteColumn` and `moveColumn`.
@@ -81,8 +46,11 @@ class TableView extends React.Component<TableViewProps, TableState> {
    * components
    */
   _createColumn = (nextColumn: TableColumn<keyof TableDataRow>) => {
-    const {location} = this.props;
-    const {columnOrder, columnSortBy} = this.state;
+    const {location, eventView} = this.props;
+
+    const columnOrder = eventView.getColumns();
+    const columnSortBy = eventView.getSorts();
+
     const nextColumnOrder = [...columnOrder, nextColumn];
     const nextColumnSortBy = [...columnSortBy];
 
@@ -93,8 +61,9 @@ class TableView extends React.Component<TableViewProps, TableState> {
    * Please read the comment on `createColumn`
    */
   _updateColumn = (i: number, nextColumn: TableColumn<keyof TableDataRow>) => {
-    const {location} = this.props;
-    const {columnOrder, columnSortBy} = this.state;
+    const {location, eventView} = this.props;
+    const columnOrder = eventView.getColumns();
+    const columnSortBy = eventView.getSorts();
 
     if (columnOrder[i].key !== nextColumn.key) {
       throw new Error(
@@ -113,8 +82,10 @@ class TableView extends React.Component<TableViewProps, TableState> {
    * Please read the comment on `createColumn`
    */
   _deleteColumn = (i: number) => {
-    const {location} = this.props;
-    const {columnOrder, columnSortBy} = this.state;
+    const {location, eventView} = this.props;
+    const columnOrder = eventView.getColumns();
+    const columnSortBy = eventView.getSorts();
+
     const nextColumnOrder = [...columnOrder];
     const nextColumnSortBy = [...columnSortBy];
 
@@ -140,8 +111,9 @@ class TableView extends React.Component<TableViewProps, TableState> {
    * Please read the comment on `createColumn`
    */
   _moveColumn = (fromIndex: number, toIndex: number) => {
-    const {location} = this.props;
-    const {columnOrder, columnSortBy} = this.state;
+    const {location, eventView} = this.props;
+    const columnOrder = eventView.getColumns();
+    const columnSortBy = eventView.getSorts();
 
     const nextColumnOrder = [...columnOrder];
     const nextColumnSortBy = [...columnSortBy];
@@ -190,8 +162,11 @@ class TableView extends React.Component<TableViewProps, TableState> {
   };
 
   render() {
-    const {organization, isLoading, error, tableData} = this.props;
-    const {columnOrder, columnSortBy} = this.state;
+    const {organization, isLoading, error, tableData, eventView} = this.props;
+
+    const columnOrder = eventView.getColumns();
+    const columnSortBy = eventView.getSorts();
+
     const {
       renderModalBodyWithForm,
       renderModalFooter,

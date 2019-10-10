@@ -7,7 +7,14 @@ import {SavedQuery as LegacySavedQuery} from 'app/views/discover/types';
 import {SavedQuery, NewQuery} from 'app/stores/discoverSavedQueriesStore';
 
 import {AUTOLINK_FIELDS, SPECIAL_FIELDS, FIELD_FORMATTERS} from './data';
-import {MetaType, EventQuery, getAggregateAlias} from './utils';
+import {
+  MetaType,
+  EventQuery,
+  getAggregateAlias,
+  decodeColumnOrder,
+  decodeColumnSortBy,
+} from './utils';
+import {TableColumn, TableColumnSort} from './table/types';
 
 export type Sort = {
   kind: 'asc' | 'desc';
@@ -356,6 +363,19 @@ class EventView {
 
   numOfColumns(): number {
     return this.fields.length;
+  }
+
+  getColumns(): TableColumn<React.ReactText>[] {
+    return decodeColumnOrder({
+      field: this.getFieldNames(),
+      fieldnames: this.getFieldTitles(),
+    });
+  }
+
+  getSorts(): TableColumnSort<React.ReactText>[] {
+    return decodeColumnSortBy({
+      sort: this.getDefaultSort(),
+    });
   }
 
   getQuery(inputQuery: string | string[] | null | undefined): string {
