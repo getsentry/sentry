@@ -1074,3 +1074,7 @@ def delete_alert_rule_trigger_action(trigger_action):
     Deletes a AlertRuleTriggerAction
     """
     trigger_action.delete()
+
+
+def get_actions_for_trigger(trigger):
+    return AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger)

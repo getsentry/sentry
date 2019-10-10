@@ -3,9 +3,17 @@ from __future__ import absolute_import
 from exam import fixture
 
 from sentry.auth.access import from_user
-from sentry.incidents.endpoints.serializers import AlertRuleSerializer, AlertRuleTriggerSerializer
-from sentry.incidents.logic import create_alert_rule, create_alert_rule_trigger
-from sentry.incidents.models import AlertRuleThresholdType
+from sentry.incidents.endpoints.serializers import (
+    AlertRuleSerializer,
+    AlertRuleTriggerSerializer,
+    AlertRuleTriggerActionSerializer,
+)
+from sentry.incidents.logic import (
+    create_alert_rule,
+    create_alert_rule_trigger,
+    create_alert_rule_trigger_action,
+)
+from sentry.incidents.models import AlertRuleThresholdType, AlertRuleTriggerAction
 from sentry.snuba.models import QueryAggregations
 from sentry.testutils import TestCase
 
@@ -304,4 +312,113 @@ class TestAlertRuleTriggerSerializer(TestCase):
             trigger,
             {"excluded_projects": [self.other_project.slug]},
             {"excluded_projects": [self.other_project]},
+        )
+
+
+class TestAlertRuleTriggerActionSerializer(TestCase):
+    @fixture
+    def other_project(self):
+        return self.create_project()
+
+    @fixture
+    def alert_rule(self):
+        return self.create_alert_rule(projects=[self.project, self.other_project])
+
+    @fixture
+    def trigger(self):
+        return create_alert_rule_trigger(
+            self.alert_rule, "hello", AlertRuleThresholdType.ABOVE, 100, 20
+        )
+
+    @fixture
+    def valid_params(self):
+        return {
+            "type": AlertRuleTriggerAction.Type.EMAIL.value,
+            "target_type": AlertRuleTriggerAction.TargetType.SPECIFIC.value,
+            "target_identifier": "test@test.com",
+        }
+
+    @fixture
+    def access(self):
+        return from_user(self.user, self.organization)
+
+    @fixture
+    def context(self):
+        return {
+            "organization": self.organization,
+            "access": self.access,
+            "alert_rule": self.alert_rule,
+            "trigger": self.trigger,
+        }
+
+    def run_fail_validation_test(self, params, errors):
+        base_params = self.valid_params.copy()
+        base_params.update(params)
+        serializer = AlertRuleTriggerActionSerializer(context=self.context, data=base_params)
+        assert not serializer.is_valid()
+        assert serializer.errors == errors
+
+    def test_validation_no_params(self):
+        serializer = AlertRuleTriggerActionSerializer(context=self.context, data={})
+        assert not serializer.is_valid()
+        field_is_required = ["This field is required."]
+        assert serializer.errors == {
+            "type": field_is_required,
+            "targetType": field_is_required,
+            "targetIdentifier": field_is_required,
+        }
+
+    def test_type(self):
+        invalid_values = [
+            "Invalid type, valid values are %s"
+            % [item.value for item in AlertRuleTriggerAction.Type]
+        ]
+        self.run_fail_validation_test({"type": "a"}, {"type": ["A valid integer is required."]})
+        self.run_fail_validation_test({"type": 50}, {"type": invalid_values})
+
+    def test_target_type(self):
+        invalid_values = [
+            "Invalid target_type, valid values are %s"
+            % [item.value for item in AlertRuleTriggerAction.TargetType]
+        ]
+        self.run_fail_validation_test(
+            {"target_type": "a"}, {"targetType": ["A valid integer is required."]}
+        )
+        self.run_fail_validation_test({"targetType": 50}, {"targetType": invalid_values})
+
+    def _run_changed_fields_test(self, trigger, params, expected):
+        serializer = AlertRuleTriggerActionSerializer(
+            context=self.context, instance=trigger, data=params, partial=True
+        )
+        assert serializer.is_valid(), serializer.errors
+        assert serializer._remove_unchanged_fields(trigger, serializer.validated_data) == expected
+
+    def test_remove_unchanged_fields(self):
+        type = AlertRuleTriggerAction.Type.EMAIL
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+        identifier = "hello"
+        action = create_alert_rule_trigger_action(self.trigger, type, target_type, identifier)
+
+        self._run_changed_fields_test(
+            action,
+            {"type": type.value, "target_type": target_type.value, "target_identifier": identifier},
+            {},
+        )
+
+        self._run_changed_fields_test(action, {"type": type.value}, {})
+        self._run_changed_fields_test(
+            action,
+            {"type": AlertRuleTriggerAction.Type.SLACK.value},
+            {"type": AlertRuleTriggerAction.Type.SLACK},
+        )
+        self._run_changed_fields_test(action, {"target_type": target_type.value}, {})
+        self._run_changed_fields_test(
+            action,
+            {"target_type": AlertRuleTriggerAction.TargetType.USER.value},
+            {"target_type": AlertRuleTriggerAction.TargetType.USER},
+        )
+
+        self._run_changed_fields_test(action, {"target_identifier": identifier}, {})
+        self._run_changed_fields_test(
+            action, {"target_identifier": "bye"}, {"target_identifier": "bye"}
         )
