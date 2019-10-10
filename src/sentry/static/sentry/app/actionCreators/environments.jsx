@@ -11,6 +11,12 @@ export async function fetchOrganizationEnvironments(api, organizationSlug) {
     const environments = await api.requestPromise(
       `/organizations/${organizationSlug}/environments/`
     );
+    if (!environments) {
+      EnvironmentActions.fetchEnvironmentsError(
+        new Error('retrieved environments is falsey')
+      );
+      return;
+    }
     EnvironmentActions.fetchEnvironmentsSuccess(environments);
   } catch (err) {
     EnvironmentActions.fetchEnvironmentsError(err);
