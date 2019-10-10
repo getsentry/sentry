@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import logging
 import signal
 
-from batching_kafka_consumer import BatchingKafkaConsumer
+from sentry.utils.batching_kafka_consumer import BatchingKafkaConsumer
 
 from django.conf import settings
 

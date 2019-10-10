@@ -19,7 +19,7 @@ from __future__ import absolute_import
 
 import logging
 
-from batching_kafka_consumer import AbstractBatchWorker
+from sentry.utils.batching_kafka_consumer import AbstractBatchWorker
 
 from django.conf import settings
 from django.core.cache import cache
