@@ -112,7 +112,7 @@ def test_outcome_consumer_ignores_outcomes_already_handled(
     # run the outcome consumer
     with task_runner():
         i = 0
-        while not is_signal_sent(project_id=project_id, event_id=last_event_id) and i < 1000:
+        while not is_signal_sent(project_id=project_id, event_id=last_event_id) and i < 60:
             consumer._run_once()
             i += 1
 
@@ -164,7 +164,7 @@ def test_outcome_consumer_ignores_invalid_outcomes(
     # run the outcome consumer
     with task_runner():
         i = 0
-        while len(event_filtered_sink) < 2 and i < 1000:
+        while len(event_filtered_sink) < 2 and i < 60:
             consumer._run_once()
             i += 1
 
@@ -215,7 +215,7 @@ def test_outcome_consumer_remembers_handled_outcomes(
     # run the outcome consumer
     with task_runner():
         i = 0
-        while not event_filtered_sink and i < 1000:
+        while not event_filtered_sink and i < 60:
             consumer._run_once()
             i += 1
 
@@ -265,7 +265,7 @@ def test_outcome_consumer_handles_filtered_outcomes(
     # run the outcome consumer
     with task_runner():
         i = 0
-        while len(event_filtered_sink) < 2 and i < 1000:
+        while len(event_filtered_sink) < 2 and i < 60:
             consumer._run_once()
             i += 1
 
@@ -315,7 +315,7 @@ def test_outcome_consumer_handles_rate_limited_outcomes(
     # run the outcome consumer
     with task_runner():
         i = 0
-        while len(event_dropped_sink) < 2 and i < 1000:
+        while len(event_dropped_sink) < 2 and i < 60:
             consumer._run_once()
             i += 1
 

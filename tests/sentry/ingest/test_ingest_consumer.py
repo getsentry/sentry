@@ -102,7 +102,7 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
 
     with task_runner():
         i = 0
-        while Event.objects.count() < 3 and i < 1000:
+        while Event.objects.count() < 3 and i < 60:
             consumer._run_once()
             i += 1
 
