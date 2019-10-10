@@ -251,7 +251,6 @@ class OrganizationMembersView extends AsyncView {
           </TextContainer>
           <Button
             priority="primary"
-            size="small"
             disabled={!canAddMembers}
             title={
               !canAddMembers
@@ -259,8 +258,6 @@ class OrganizationMembersView extends AsyncView {
                 : undefined
             }
             onClick={openInviteMembersModal}
-            icon="icon-circle-add"
-            data-test-id="invite-member"
           >
             {t('Invite Members')}
           </Button>
@@ -319,12 +316,12 @@ class OrganizationMembersView extends AsyncView {
 }
 
 const StyledPanel = styled(Panel)`
-  padding: ${space(3)};
+  padding: 18px;
   margin-top: -14px;
   margin-bottom: 40px;
   background: none;
   display: grid;
-  grid-template-columns: max-content auto 135px;
+  grid-template-columns: max-content auto 140px;
   grid-gap: ${space(3)};
   align-items: center;
   align-content: center;
