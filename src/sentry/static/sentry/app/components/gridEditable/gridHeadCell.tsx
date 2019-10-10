@@ -2,7 +2,7 @@ import React from 'react';
 
 import InlineSvg from 'app/components/inlineSvg';
 
-import {FLAG_GRID_RESIZABLE, FLAG_GRID_DRAGGABLE} from './flags';
+import {FLAG_GRID_RESIZABLE} from './flags';
 import {
   GridHeadCell as GridHeadCellWrapper,
   GridHeadCellButton,
@@ -77,7 +77,7 @@ class GridHeadCell<Column> extends React.Component<
         <GridHeadCellButtonHoverBackground>{children}</GridHeadCellButtonHoverBackground>
 
         <GridHeadCellButtonHover>
-          {FLAG_GRID_DRAGGABLE && (
+          {
             <GridHeadCellButtonHoverDraggable
               src="icon-grabbable"
               onMouseDown={(event: React.MouseEvent<SVGSVGElement, MouseEvent>) => {
@@ -85,7 +85,7 @@ class GridHeadCell<Column> extends React.Component<
                 this.props.actions.onDragStart(event, fromColumn);
               }}
             />
-          )}
+          }
 
           <GridHeadCellButtonHoverButtonGroup isFlagged={FLAG_GRID_DRAGGABLE}>
             <GridHeadCellButtonHoverButton onClick={this.toggleModal}>
@@ -96,7 +96,7 @@ class GridHeadCell<Column> extends React.Component<
             </GridHeadCellButtonHoverButton>
           </GridHeadCellButtonHoverButtonGroup>
 
-          {FLAG_GRID_DRAGGABLE && (
+          {
             <GridHeadCellButtonHoverDraggable
               src="icon-grabbable"
               onMouseDown={(event: React.MouseEvent<SVGSVGElement, MouseEvent>) => {
@@ -104,7 +104,7 @@ class GridHeadCell<Column> extends React.Component<
                 this.props.actions.onDragStart(event, fromColumn);
               }}
             />
-          )}
+          }
         </GridHeadCellButtonHover>
       </React.Fragment>
     );
