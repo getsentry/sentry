@@ -90,6 +90,13 @@ class Browser(object):
         """
         return self.element_exists('[data-test-id="%s"]' % (selector))
 
+    def element_exists_by_aria_label(self, selector):
+        """
+        Check if an element exists on the page using the aria-label attribute.
+        This method will not wait for the element.
+        """
+        return self.element_exists('[aria-label="%s"]' % (selector))
+
     def click(self, selector):
         self.element(selector).click()
 

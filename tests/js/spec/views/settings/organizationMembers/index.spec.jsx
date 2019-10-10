@@ -34,7 +34,7 @@ describe('OrganizationMembers', function() {
     location: {query: {}},
   };
   const organization = TestStubs.Organization({
-    access: ['member:admin', 'org:admin', 'org:write'],
+    access: ['member:admin', 'org:admin', 'member:write'],
     status: {
       id: 'active',
     },
@@ -304,7 +304,7 @@ describe('OrganizationMembers', function() {
           orgId: 'org-id',
         }}
       />,
-      TestStubs.routerContext()
+      TestStubs.routerContext([{organization}])
     );
 
     expect(inviteMock).not.toHaveBeenCalled();

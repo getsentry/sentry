@@ -227,7 +227,7 @@ class OrganizationMembersView extends AsyncView {
     const {organization} = this.context;
     const {orgId} = params || {};
     const {name: orgName, access} = organization;
-    const canAddMembers = access.indexOf('org:write') > -1;
+    const canAddMembers = access.indexOf('member:write') > -1;
     const canRemove = access.indexOf('member:admin') > -1;
     const currentUser = ConfigStore.get('user');
     // Find out if current user is the only owner
