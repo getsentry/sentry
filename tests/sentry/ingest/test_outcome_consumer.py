@@ -13,6 +13,9 @@ from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
+# Poll this amount of times (for 0.1 sec each) at most to wait for messages
+MAX_POLL_ITERATIONS = 100
+
 
 def _get_event_id(base_event_id):
     return "{:032}".format(int(base_event_id))
@@ -112,7 +115,10 @@ def test_outcome_consumer_ignores_outcomes_already_handled(
     # run the outcome consumer
     with task_runner():
         i = 0
-        while not is_signal_sent(project_id=project_id, event_id=last_event_id) and i < 60:
+        while (
+            not is_signal_sent(project_id=project_id, event_id=last_event_id)
+            and i < MAX_POLL_ITERATIONS
+        ):
             consumer._run_once()
             i += 1
 
@@ -164,7 +170,7 @@ def test_outcome_consumer_ignores_invalid_outcomes(
     # run the outcome consumer
     with task_runner():
         i = 0
-        while len(event_filtered_sink) < 2 and i < 60:
+        while len(event_filtered_sink) < 2 and i < MAX_POLL_ITERATIONS:
             consumer._run_once()
             i += 1
 
@@ -215,7 +221,7 @@ def test_outcome_consumer_remembers_handled_outcomes(
     # run the outcome consumer
     with task_runner():
         i = 0
-        while not event_filtered_sink and i < 60:
+        while not event_filtered_sink and i < MAX_POLL_ITERATIONS:
             consumer._run_once()
             i += 1
 
@@ -265,7 +271,7 @@ def test_outcome_consumer_handles_filtered_outcomes(
     # run the outcome consumer
     with task_runner():
         i = 0
-        while len(event_filtered_sink) < 2 and i < 60:
+        while len(event_filtered_sink) < 2 and i < MAX_POLL_ITERATIONS:
             consumer._run_once()
             i += 1
 
@@ -315,7 +321,7 @@ def test_outcome_consumer_handles_rate_limited_outcomes(
     # run the outcome consumer
     with task_runner():
         i = 0
-        while len(event_dropped_sink) < 2 and i < 60:
+        while len(event_dropped_sink) < 2 and i < MAX_POLL_ITERATIONS:
             consumer._run_once()
             i += 1
 

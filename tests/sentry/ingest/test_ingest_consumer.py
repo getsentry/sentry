@@ -16,6 +16,9 @@ from sentry.testutils.factories import Factories
 
 logger = logging.getLogger(__name__)
 
+# Poll this amount of times (for 0.1 sec each) at most to wait for messages
+MAX_POLL_ITERATIONS = 100
+
 
 def _get_test_message(project):
     """
@@ -102,7 +105,7 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
 
     with task_runner():
         i = 0
-        while Event.objects.count() < 3 and i < 60:
+        while Event.objects.count() < 3 and i < MAX_POLL_ITERATIONS:
             consumer._run_once()
             i += 1
 
