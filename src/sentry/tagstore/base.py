@@ -58,6 +58,7 @@ class TagStorage(Service):
             "get_tag_value_paginator_for_projects",
             "get_group_tag_value_iter",
             "get_group_tag_value_qs",
+            "get_group_seen_values_for_environments",
         ]
     )
 
@@ -439,5 +440,10 @@ class TagStorage(Service):
 
     def delay_index_event_tags(
         self, organization_id, project_id, group_id, environment_id, event_id, tags, date_added
+    ):
+        raise NotImplementedError
+
+    def get_group_seen_values_for_environments(
+        self, project_ids, group_id_list, environment_ids, start=None, end=None
     ):
         raise NotImplementedError
