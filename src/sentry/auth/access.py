@@ -80,6 +80,7 @@ class BaseAccess(object):
     has_global_access = False
     scopes = frozenset()
     permissions = frozenset()
+    role = None
 
     def has_permission(self, permission):
         """
