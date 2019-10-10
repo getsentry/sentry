@@ -55,16 +55,16 @@ describe('Sidebar > Discover2Item', function() {
     DiscoverSavedQueriesStore.reset();
   });
 
-  it('renders a menu', async function() {
+  it('renders no menu when closed', async function() {
     const wrapper = makeWrapper({organization, client});
     // Wait for reflux
     await tick();
 
     const menu = wrapper.find('AutoComplete');
-    expect(menu).toHaveLength(1);
+    expect(menu).toHaveLength(0);
   });
 
-  it('opens the menu', async function() {
+  it('opens the menu on mouseEnter', async function() {
     const wrapper = makeWrapper({organization, client});
     // Wait for reflux
     await tick();
