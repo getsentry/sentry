@@ -11,7 +11,6 @@ jest.mock(
 
 describe('groupEventDetailsContainer', () => {
   const org = TestStubs.Organization();
-  const globalSelection = TestStubs.GlobalSelection();
 
   beforeEach(() => {
     OrganizationEnvironmentsStore.init();
@@ -22,13 +21,7 @@ describe('groupEventDetailsContainer', () => {
       url: `/organizations/${org.slug}/environments/`,
       body: TestStubs.Environments(),
     });
-    const wrapper = mount(
-      <GroupEventDetailsContainer
-        api={new MockApiClient()}
-        organization={org}
-        selection={globalSelection}
-      />
-    );
+    const wrapper = mount(<GroupEventDetailsContainer organization={org} />);
     // should be in loading state
     expect(wrapper.find('LoadingIndicator').exists()).toBe(true);
     await tick();
@@ -39,13 +32,7 @@ describe('groupEventDetailsContainer', () => {
     expect(wrapper.text('GroupEventDetails')).toBe('GroupEventDetails');
 
     // remounting will not rerender
-    const wrapper2 = mount(
-      <GroupEventDetailsContainer
-        api={new MockApiClient()}
-        organization={org}
-        selection={globalSelection}
-      />
-    );
+    const wrapper2 = mount(<GroupEventDetailsContainer organization={org} />);
     expect(wrapper2.find('LoadingIndicator').exists()).toBe(false);
     expect(wrapper.text('GroupEventDetails')).toBe('GroupEventDetails');
     expect(environmentsCall).toHaveBeenCalledTimes(1);
@@ -56,13 +43,7 @@ describe('groupEventDetailsContainer', () => {
       url: `/organizations/${org.slug}/environments/`,
       statusCode: 400,
     });
-    const wrapper = mount(
-      <GroupEventDetailsContainer
-        api={new MockApiClient()}
-        organization={org}
-        selection={globalSelection}
-      />
-    );
+    const wrapper = mount(<GroupEventDetailsContainer organization={org} />);
     expect(wrapper.find('LoadingIndicator').exists()).toBe(true);
     await tick();
     await tick();
