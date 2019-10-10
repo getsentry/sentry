@@ -16,6 +16,10 @@ FIELD_NAME_TO_TSDB_VALUE = {
 }
 
 
+def get_component_interaction_key(sentry_app, component_type):
+    return "%s:%s" % (sentry_app.slug, component_type)
+
+
 class SentryAppInteractionEndpoint(SentryAppBaseEndpoint, StatsMixin):
     permission_classes = (SentryAppStatsPermission,)
 
@@ -32,11 +36,21 @@ class SentryAppInteractionEndpoint(SentryAppBaseEndpoint, StatsMixin):
 
         component_interactions = tsdb.get_range(
             model=tsdb.models.sentry_app_component_interacted,
-            keys=sentry_app.components.values_list("id", flat=True),
+            keys=[
+                get_component_interaction_key(sentry_app, component.type)
+                for component in sentry_app.components.all()
+            ],
             **self._parse_args(request)
         )
 
-        return Response({"views": views, "component_interactions": component_interactions})
+        return Response(
+            {
+                "views": views,
+                "component_interactions": {
+                    k.split(":")[1]: v for k, v in component_interactions.items()
+                },
+            }
+        )
 
     def post(self, request, sentry_app):
         # Request should have identifier field stored in TSDBModel
@@ -44,11 +58,7 @@ class SentryAppInteractionEndpoint(SentryAppBaseEndpoint, StatsMixin):
 
         if tsdb_field == "sentry_app_component_interacted":
             try:
-                key = int(request.data["componentId"])
-                if key not in sentry_app.components.values_list("id", flat=True):
-                    return Response(
-                        {"detail": "Component ID does not belong to Sentry App"}, status=400
-                    )
+                key = get_component_interaction_key(sentry_app, request.data["componentType"])
             except KeyError:
                 return Response({"detail": "Sentry App Component ID required"}, status=400)
         elif tsdb_field == "sentry_app_viewed":

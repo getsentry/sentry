@@ -347,7 +347,7 @@ class SentryInternalAppTokenPermission(SentryPermission):
 class SentryAppStatsPermission(SentryPermission):
     scope_map = {
         "GET": ("org:read", "org:integrations", "org:write", "org:admin"),
-        # Anyone logged in can increment the stats?
+        # Anyone logged in can increment the stats
         "POST": ("org:read", "org:integrations", "org:write", "org:admin"),
     }
 
