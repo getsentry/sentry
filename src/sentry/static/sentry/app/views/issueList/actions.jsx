@@ -6,20 +6,24 @@ import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
-import {openCreateIncidentModal} from 'app/actionCreators/modal';
 import {t, tct, tn} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
+
+import {openCreateIncidentModal} from 'app/actionCreators/modal';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import IndicatorStore from 'app/stores/indicatorStore';
+import SelectedGroupStore from 'app/stores/selectedGroupStore';
+
 import ActionLink from 'app/components/actions/actionLink';
+import AssigneeSelector from 'app/components/assigneeSelector';
 import Checkbox from 'app/components/checkbox';
 import DropdownLink from 'app/components/dropdownLink';
 import ExternalLink from 'app/components/links/externalLink';
 import Feature from 'app/components/acl/feature';
 import IgnoreActions from 'app/components/actions/ignore';
-import IndicatorStore from 'app/stores/indicatorStore';
 import InlineSvg from 'app/components/inlineSvg';
 import MenuItem from 'app/components/menuItem';
 import ResolveActions from 'app/components/actions/resolve';
-import SelectedGroupStore from 'app/stores/selectedGroupStore';
-import SentryTypes from 'app/sentryTypes';
 import ToolbarHeader from 'app/components/toolbarHeader';
 import Tooltip from 'app/components/tooltip';
 import withApi from 'app/utils/withApi';
@@ -219,7 +223,10 @@ const IssueListActions = createReactClass({
     });
   },
 
-  handleUpdate(data) {
+  // HACK(leedongwei): Using the callback is not the best/modern way to do this
+  // but this.actionSelectedGroups is seeking for a callback too. Using an
+  // optional callback here makes it easier to close the loop on the request.
+  handleUpdate(data, callback) {
     const {selection} = this.props;
     this.actionSelectedGroups(itemIds => {
       const loadingIndicator = IndicatorStore.add(t('Saving changes..'));
@@ -245,6 +252,28 @@ const IssueListActions = createReactClass({
         {
           complete: () => {
             IndicatorStore.remove(loadingIndicator);
+
+            if (callback) {
+              callback();
+            }
+          },
+          success: () => {
+            addSuccessMessage(
+              itemIds
+                ? tn('Updated %s issue', 'Updated %s issues', itemIds.length)
+                : t('Updated all issues')
+            );
+          },
+          error: () => {
+            addErrorMessage(
+              itemIds
+                ? tn(
+                    'Failed update on %s issue',
+                    'Failed update on %s issues',
+                    itemIds.length
+                  )
+                : t('Failed update on all issues')
+            );
           },
         }
       );
@@ -340,9 +369,16 @@ const IssueListActions = createReactClass({
       realtimeActive,
       statsPeriod,
     } = this.props;
-    const issues = this.state.selectedIds;
-    const numIssues = issues.size;
-    const {allInQuerySelected, anySelected, multiSelected, pageSelected} = this.state;
+    const {
+      allInQuerySelected,
+      anySelected,
+      multiSelected,
+      selectedIds,
+      pageSelected,
+    } = this.state;
+
+    const issues = Array.from(selectedIds);
+    const numIssues = issues.length;
     const confirm = getConfirm(numIssues, allInQuerySelected, query, queryCount);
     const label = getLabel(numIssues, allInQuerySelected);
 
@@ -501,6 +537,37 @@ const IssueListActions = createReactClass({
                 </MenuItem>
                 <MenuItem divider />
                 <MenuItem noAnchor>
+                  <ActionItem
+                    className="action-bulk-assign"
+                    disabled={!anySelected}
+                    onClick={e => {
+                      if (!anySelected) {
+                        e.stopPropagation();
+                      }
+                    }}
+                  >
+                    <StyledAssigneeSelector
+                      id={issues}
+                      bulkAssign={{
+                        numIssues,
+                        update: this.handleUpdate,
+                      }}
+                      dropdownProps={{
+                        style: {
+                          top: '-8px',
+                          left: 'calc(100% + 10px)',
+                        },
+                        allowHoverToggle: true,
+                        alignMenu: 'left',
+                      }}
+                      dropdownActor={
+                        <div>{tn('Assign %s issue', 'Assign %s issues', numIssues)}</div>
+                      }
+                    />
+                  </ActionItem>
+                </MenuItem>
+                <MenuItem divider={true} />
+                <MenuItem noAnchor={true}>
                   <ActionLink
                     className="action-delete"
                     disabled={!anySelected}
@@ -538,6 +605,7 @@ const IssueListActions = createReactClass({
               </Tooltip>
             </div>
           </ActionSet>
+
           <Box w={160} mx={2} className="hidden-xs hidden-sm">
             <Flex>
               <StyledToolbarHeader>{t('Graph:')}</StyledToolbarHeader>
@@ -641,8 +709,21 @@ const ActionSet = styled(Box)`
   }
 `;
 
+// Friend of ActionLink but not a link
+const ActionItem = styled('div')`
+  display: block;
+  padding: 3px 10px;
+`;
+
 const StyledToolbarHeader = styled(ToolbarHeader)`
   flex: 1;
+`;
+const StyledAssigneeSelector = styled(AssigneeSelector)`
+  justify-content: flex-start;
+
+  > div {
+    width: 100%;
+  }
 `;
 
 const GraphToggle = styled('a')`

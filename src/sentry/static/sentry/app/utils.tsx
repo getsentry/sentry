@@ -202,7 +202,7 @@ export function sortProjects(projects: Array<Project>): Array<Project> {
   return projects.sort(projectDisplayCompare);
 }
 
-//build actorIds
+// Build actorIds
 export const buildUserId = id => `user:${id}`;
 export const buildTeamId = id => `team:${id}`;
 

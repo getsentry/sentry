@@ -11,15 +11,19 @@ class DropdownAutoComplete extends React.Component {
     // Should clicking the actor toggle visibility?
     allowActorToggle: PropTypes.bool,
 
+    // Should hovering over toggle visibility?
+    allowHoverToggle: PropTypes.bool,
+
     children: PropTypes.func,
   };
 
   static defaultProps = {
     alignMenu: 'right',
+    allowHoverToggle: false,
   };
 
   render() {
-    const {children, allowActorToggle, ...props} = this.props;
+    const {children, allowActorToggle, allowHoverToggle, ...props} = this.props;
 
     return (
       <DropdownAutoCompleteMenu {...props}>
@@ -41,6 +45,11 @@ class DropdownAutoComplete extends React.Component {
                   ? renderProps.actions.close
                   : renderProps.actions.open
               }
+              onMouseOver={() => {
+                if (allowHoverToggle) {
+                  renderProps.actions.open();
+                }
+              }}
               {...actorProps}
             >
               {children(renderProps)}
@@ -56,7 +65,7 @@ const Actor = styled('div')`
   position: relative;
   width: 100%;
   /* This is needed to be able to cover dropdown menu so that it looks like one unit */
-  ${p => p.isOpen && `z-index: ${p.theme.zIndex.dropdownAutocomplete.actor}`};
+  ${p => p.isOpen && `z-index: ${p.theme.zIndex.dropdownAutocomplete.actor};`}
 `;
 
 export default DropdownAutoComplete;

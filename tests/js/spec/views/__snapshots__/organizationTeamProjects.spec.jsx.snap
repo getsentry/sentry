@@ -91,6 +91,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                   >
                     <DropdownAutoComplete
                       alignMenu="right"
+                      allowHoverToggle={false}
                       emptyMessage="No projects"
                       items={
                         Array [
@@ -170,6 +171,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                     onKeyDown={[Function]}
                                     onMouseEnter={[Function]}
                                     onMouseLeave={[Function]}
+                                    onMouseOver={[Function]}
                                     role="button"
                                     style={
                                       Object {
@@ -179,11 +181,12 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                     tabIndex="0"
                                   >
                                     <div
-                                      className="css-12n6mek-Actor e53us8t0"
+                                      className="css-3d6z5b-Actor e53us8t0"
                                       onClick={[Function]}
                                       onKeyDown={[Function]}
                                       onMouseEnter={[Function]}
                                       onMouseLeave={[Function]}
+                                      onMouseOver={[Function]}
                                       role="button"
                                       style={
                                         Object {

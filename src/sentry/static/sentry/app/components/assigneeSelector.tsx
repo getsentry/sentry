@@ -1,53 +1,70 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import PropTypes from 'prop-types';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
+import {t, tn} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
-import {Member, User} from 'app/types';
+import {Group, Member, Project, User, Team} from 'app/types';
+import {buildUserId, buildTeamId, valueIsEqual} from 'app/utils';
 
 import {assignToUser, assignToActor, clearAssignment} from 'app/actionCreators/group';
-import {t} from 'app/locale';
-import {valueIsEqual, buildUserId, buildTeamId} from 'app/utils';
+import ConfigStore from 'app/stores/configStore';
+import GroupStore from 'app/stores/groupStore';
+import MemberListStore from 'app/stores/memberListStore';
+import ProjectsStore from 'app/stores/projectsStore';
+
 import ActorAvatar from 'app/components/avatar/actorAvatar';
 import Avatar from 'app/components/avatar';
-import ConfigStore from 'app/stores/configStore';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownBubble from 'app/components/dropdownBubble';
-import GroupStore from 'app/stores/groupStore';
 import Highlight from 'app/components/highlight';
 import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import MemberListStore from 'app/stores/memberListStore';
-import ProjectsStore from 'app/stores/projectsStore';
 import TextOverflow from 'app/components/textOverflow';
 import space from 'app/styles/space';
 
 type Props = {
-  id: string | null;
+  id: string | string[] | null;
   size: number;
   memberList?: Member[];
+
+  // Props to overwrite defaults on Dropdown child
+  dropdownProps?: DropdownAutoComplete.propTypes;
+  dropdownActor?: React.ComponentType | React.ReactNode;
+
+  // Props specific to bulk-assign issues
+  bulkAssign?: {
+    numIssues: number;
+    update: (data: {[key: string]: string}) => void;
+  };
 };
 
 type State = {
   loading: boolean;
-  assignedTo: User;
-  memberList: Member[];
+  assignedTo: User | null;
+  memberList: Member[] | null;
 };
 
 const AssigneeSelectorComponent = createReactClass<Props, State>({
   displayName: 'AssigneeSelector',
 
   propTypes: {
-    id: PropTypes.string.isRequired,
+    id: PropTypes.oneOfType([PropTypes.string, PropTypes.arrayOf(PropTypes.string)]),
     size: PropTypes.number,
+
     // Either a list of users, or null. If null, members will
     // be read from the MemberListStore. The prop is useful when the
     // store contains more/different users than you need to show
     // in an individual component, eg. Org Issue list
     memberList: PropTypes.array,
+
+    dropdownProps: PropTypes.object,
+    dropdownActor: PropTypes.node,
+
+    bulkAssign: PropTypes.object,
   },
 
   contextTypes: {
@@ -68,21 +85,32 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
   },
 
   getInitialState() {
-    const group = GroupStore.get(this.props.id);
-    const memberList = MemberListStore.loaded ? MemberListStore.getAll() : null;
-    const loading = GroupStore.hasStatus(this.props.id, 'assignTo');
-
-    return {
-      assignedTo: group && group.assignedTo,
-      memberList,
-      loading,
+    const state = {
+      loading: false,
+      assignedTo: null,
+      memberList: MemberListStore.loaded ? MemberListStore.getAll() : null,
     };
+
+    const {id} = this.props;
+    if (id) {
+      const group = GroupStore.get(id);
+      state.assignedTo = group && group.assignedTo;
+      state.loading = GroupStore.hasStatus(id, 'assignTo');
+    }
+
+    return state;
   },
 
   componentWillReceiveProps(nextProps) {
+    // Update the state only when we are assigning 1 issue
+    if (typeof this.props.id !== 'string' || typeof nextProps.id !== 'string') {
+      return;
+    }
+
     const loading = GroupStore.hasStatus(nextProps.id, 'assignTo');
-    if (nextProps.id !== this.props.id || loading !== this.state.loading) {
-      const group = GroupStore.get(this.props.id);
+
+    if (loading !== this.state.loading || nextProps.id !== this.props.id) {
+      const group = GroupStore.get(nextProps.id);
       this.setState({
         loading,
         assignedTo: group && group.assignedTo,
@@ -92,6 +120,10 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
 
   shouldComponentUpdate(nextProps, nextState) {
     if (nextState.loading !== this.state.loading) {
+      return true;
+    }
+
+    if (nextProps.id && !valueIsEqual(this.props.id, nextProps.id)) {
       return true;
     }
 
@@ -119,26 +151,48 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
   },
 
   assignableTeams() {
-    const group = GroupStore.get(this.props.id);
+    if (!this.props.id) {
+      return [];
+    }
 
-    return (
-      ProjectsStore.getBySlug(group.project.slug) || {
-        teams: [],
+    const groupIds: string[] =
+      typeof this.props.id === 'string' ? [this.props.id] : this.props.id;
+
+    // Use this to prevent duplicates and flatten it at the end
+    const teams: {
+      [id: string]: Team;
+    } = {};
+    groupIds.forEach(id => {
+      const group: Group = GroupStore.get(id);
+      const project: Project = ProjectsStore.getBySlug(group.project.slug);
+
+      if (!project) {
+        return;
       }
-    ).teams
-      .sort((a, b) => a.slug.localeCompare(b.slug))
-      .map(team => ({
+
+      project.teams.forEach(team => {
+        teams[team.id] = team;
+      });
+    });
+
+    // Flatten Team object into array
+    return Object.keys(teams).map(id => {
+      const team = teams[id];
+
+      return {
         id: buildTeamId(team.id),
         display: `#${team.slug}`,
         email: team.id,
         team,
-      }));
+      };
+    });
   },
 
   onGroupChange(itemIds) {
-    if (!itemIds.has(this.props.id)) {
+    if (!this.props.id || !itemIds.has(this.props.id)) {
       return;
     }
+
     const group = GroupStore.get(this.props.id);
     this.setState({
       assignedTo: group && group.assignedTo,
@@ -146,33 +200,73 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
     });
   },
 
-  assignToUser(user) {
+  setAssignedToUser(user: User) {
     assignToUser({id: this.props.id, user});
     this.setState({loading: true});
   },
 
-  assignToTeam(team) {
+  setAssignedToTeam(team: Team) {
     assignToActor({actor: {id: team.id, type: 'team'}, id: this.props.id});
     this.setState({loading: true});
   },
 
+  setManyAssignedToUser(user: User) {
+    const {bulkAssign} = this.props as any;
+    const userId = buildUserId(user.id);
+
+    this.setState({loading: true});
+    bulkAssign.update({assignedTo: userId}, () => {
+      this.setState({loading: false});
+    });
+  },
+
+  setManyAssignedToTeam(team: Team) {
+    const {bulkAssign} = this.props as any;
+    const teamId = buildTeamId(team.id);
+
+    this.setState({loading: true});
+    bulkAssign.update({assignedTo: teamId}, () => {
+      this.setState({loading: false});
+    });
+  },
+
   handleAssign({value: {type, assignee}}, _state, e) {
+    // HACK(ts): Wonky type-inference from create-react-class
+    const {bulkAssign} = this.props as any;
+
     if (type === 'member') {
-      this.assignToUser(assignee);
+      if (bulkAssign) {
+        this.setManyAssignedToUser(assignee);
+      } else {
+        this.setAssignedToUser(assignee);
+      }
     }
 
     if (type === 'team') {
-      this.assignToTeam(assignee);
+      if (bulkAssign) {
+        this.setManyAssignedToTeam(assignee);
+      } else {
+        this.setAssignedToTeam(assignee);
+      }
     }
 
     e.stopPropagation();
   },
 
-  clearAssignTo(e) {
+  unsetAssignedTo(e) {
     // clears assignment
     clearAssignment(this.props.id);
     this.setState({loading: true});
     e.stopPropagation();
+  },
+
+  unsetManyAssignedTo() {
+    const {bulkAssign} = this.props as any;
+
+    this.setState({loading: true});
+    bulkAssign.update({assignedTo: ''}, () => {
+      this.setState({loading: false});
+    });
   },
 
   renderNewMemberNodes() {
@@ -187,7 +281,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
           <MenuItemWrapper
             data-test-id="assignee-option"
             key={buildUserId(member.id)}
-            onSelect={this.assignToUser.bind(this, member)}
+            onSelect={this.setAssignedToUser.bind(this, member)}
           >
             <IconContainer>
               <Avatar user={member} size={size} />
@@ -212,7 +306,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
           <MenuItemWrapper
             data-test-id="assignee-option"
             key={id}
-            onSelect={this.assignToTeam.bind(this, team)}
+            onSelect={this.setAssignedToTeam.bind(this, team)}
           >
             <IconContainer>
               <Avatar team={team} size={size} />
@@ -236,8 +330,28 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
     ];
   },
 
+  renderDropdownButton({getActorProps}) {
+    // HACK(ts): Wonky type-inference from create-react-class
+    const {dropdownActor} = this.props as any;
+    const {assignedTo} = this.state;
+
+    return dropdownActor ? (
+      dropdownActor
+    ) : (
+      <DropdownButton {...getActorProps({})}>
+        {assignedTo ? (
+          <ActorAvatar actor={assignedTo} className="avatar" size={24} />
+        ) : (
+          <IconUser src="icon-user" />
+        )}
+        <StyledChevron src="icon-chevron-down" />
+      </DropdownButton>
+    );
+  },
+
   render() {
-    const {className} = this.props;
+    // HACK(ts): Wonky type-inference from create-react-class
+    const {className, bulkAssign, dropdownProps} = this.props as any;
     const {organization} = this.context;
     const {loading, assignedTo} = this.state;
     const canInvite = ConfigStore.get('invitesEnabled');
@@ -268,17 +382,26 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
             searchPlaceholder={t('Filter teams and people')}
             menuWithArrow
             emptyHidesInput
+            allowHoverToggle={false}
             menuHeader={
-              assignedTo && (
+              (bulkAssign || assignedTo) && (
                 <MenuItemWrapper
                   data-test-id="clear-assignee"
-                  onClick={this.clearAssignTo}
+                  onClick={bulkAssign ? this.unsetManyAssignedTo : this.unsetAssignedTo}
                   py={0}
                 >
                   <IconContainer>
                     <ClearAssigneeIcon />
                   </IconContainer>
-                  <Label>{t('Clear Assignee')}</Label>
+                  <Label>
+                    {bulkAssign
+                      ? tn(
+                          'Unassign %s issue',
+                          'Unassign %s issues',
+                          bulkAssign.numIssues
+                        )
+                      : t('Clear Assignee')}
+                  </Label>
                 </MenuItemWrapper>
               )
             }
@@ -301,19 +424,9 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
                 </InviteMemberLink>
               )
             }
+            {...dropdownProps}
           >
-            {({getActorProps}) => {
-              return (
-                <DropdownButton {...getActorProps({})}>
-                  {assignedTo ? (
-                    <ActorAvatar actor={assignedTo} className="avatar" size={24} />
-                  ) : (
-                    <IconUser src="icon-user" />
-                  )}
-                  <StyledChevron src="icon-chevron-down" />
-                </DropdownButton>
-              );
-            }}
+            {this.props.children ? this.props.children : this.renderDropdownButton}
           </DropdownAutoComplete>
         )}
       </div>
@@ -395,6 +508,7 @@ const MenuItemWrapper = styled('div')<{
 `;
 
 const InviteMemberLink = styled(Link)`
+  padding: 0 !important; /* Due to inconsistent styles when used as a child of <li> */
   color: ${p => p.theme.textColor};
 `;
 

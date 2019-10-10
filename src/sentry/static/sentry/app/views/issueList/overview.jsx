@@ -10,7 +10,7 @@ import qs from 'query-string';
 
 import {Client} from 'app/api';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
-import {Panel, PanelBody} from 'app/components/panels';
+import {t} from 'app/locale';
 import {analytics} from 'app/utils/analytics';
 import {defined} from 'app/utils';
 import {
@@ -18,26 +18,28 @@ import {
   fetchSavedSearches,
   resetSavedSearches,
 } from 'app/actionCreators/savedSearches';
-import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
-import {fetchOrgMembers, indexMembersByProject} from 'app/actionCreators/members';
-import {fetchOrganizationTags, fetchTagValues} from 'app/actionCreators/tags';
 import {getUtcDateString} from 'app/utils/dates';
-import {t} from 'app/locale';
 import CursorPoller from 'app/utils/cursorPoller';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import ErrorRobot from 'app/components/errorRobot';
-import GroupStore from 'app/stores/groupStore';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import Pagination from 'app/components/pagination';
-import ProcessingIssueList from 'app/components/stream/processingIssueList';
-import SelectedGroupStore from 'app/stores/selectedGroupStore';
-import SentryTypes from 'app/sentryTypes';
-import StreamGroup from 'app/components/stream/group';
-import StreamManager from 'app/utils/streamManager';
-import TagStore from 'app/stores/tagStore';
 import parseApiError from 'app/utils/parseApiError';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
+import StreamManager from 'app/utils/streamManager';
+
+import SentryTypes from 'app/sentryTypes';
+import GroupStore from 'app/stores/groupStore';
+import SelectedGroupStore from 'app/stores/selectedGroupStore';
+import TagStore from 'app/stores/tagStore';
+import {fetchOrgMembers, indexMembersByProject} from 'app/actionCreators/members';
+import {fetchOrganizationTags, fetchTagValues} from 'app/actionCreators/tags';
+
+import EmptyStateWarning from 'app/components/emptyStateWarning';
+import ErrorRobot from 'app/components/errorRobot';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
+import Pagination from 'app/components/pagination';
+import ProcessingIssueList from 'app/components/stream/processingIssueList';
+import StreamGroup from 'app/components/stream/group';
+import {Panel, PanelBody} from 'app/components/panels';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withSavedSearches from 'app/utils/withSavedSearches';
