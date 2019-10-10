@@ -61,6 +61,7 @@ from sentry.models import (
     EventAttachment,
     UserReport,
     PlatformExternalIssue,
+    SentryAppWebhookError,
 )
 from sentry.models.integrationfeature import Feature, IntegrationFeature
 from sentry.snuba.models import QueryAggregations
@@ -825,6 +826,36 @@ class Factories(object):
             integration_feature.update(user_description=description)
 
         return integration_feature
+
+    @staticmethod
+    def create_sentry_app_webhook_error(sentry_app=None, organization=None, event_type=None):
+        if not sentry_app:
+            sentry_app = Factories.create_sentry_app()
+        if not organization:
+            organization = Factories.create_organization()
+        if not event_type:
+            event_type = "issue.assigned"
+
+        request_body = {}
+        request_headers = {
+            "Request-ID": "c2f0ab98bd2a4f8eba6a67a91c43c7c8",
+            "Sentry-Hook-Signature": "656e2aad9b01327fcd9860deff06fe1f55ddca9655eba05aa92ff4f96f5c1a42",
+            "Content-Type": "application/json",
+            "Sentry-Hook-Resource": "issue",
+            "Sentry-Hook-Timestamp": "1569455694",
+        }
+        error = SentryAppWebhookError.objects.create(
+            sentry_app=sentry_app,
+            organization=organization,
+            request_body=request_body,
+            request_headers=request_headers,
+            event_type=event_type,
+            webhook_url="https://example.com/webhook",
+            response_body="This is an error",
+            response_code=400,
+        )
+
+        return error
 
     @staticmethod
     def create_userreport(group, project=None, event_id=None, **kwargs):

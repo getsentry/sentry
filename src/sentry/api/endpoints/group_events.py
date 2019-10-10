@@ -8,10 +8,10 @@ from rest_framework.response import Response
 from functools import partial
 
 
-from sentry import eventstore, features
+from sentry import eventstore
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
-from sentry.api.event_search import get_snuba_query_args
+from sentry.api.event_search import get_filter
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.events import get_direct_hit_response
@@ -86,17 +86,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
             params["environment"] = [env.name for env in environments]
 
         full = request.GET.get("full", False)
-        snuba_args = get_snuba_query_args(request.GET.get("query", None), params)
-
-        # TODO(lb): remove once boolean search is fully functional
-        if snuba_args:
-            has_boolean_op_flag = features.has(
-                "organizations:boolean-search", group.project.organization, actor=request.user
-            )
-            if snuba_args.pop("has_boolean_terms", False) and not has_boolean_op_flag:
-                raise GroupEventsError(
-                    "Boolean search operator OR and AND not allowed in this search."
-                )
+        snuba_filter = get_filter(request.GET.get("query", None), params)
 
         snuba_cols = None if full else eventstore.full_columns
 
@@ -104,7 +94,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
             eventstore.get_events,
             additional_columns=snuba_cols,
             referrer="api.group-events",
-            **snuba_args
+            filter=snuba_filter,
         )
 
         serializer = EventSerializer() if full else SimpleEventSerializer()

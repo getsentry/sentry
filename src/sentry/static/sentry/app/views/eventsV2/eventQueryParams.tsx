@@ -34,15 +34,15 @@ export const AGGREGATIONS = {
     type: ['timestamp', 'duration'],
     isSortable: true,
   },
-  /*
   sum: {
-    type: 'duration',
+    type: ['transaction.duration'],
     isSortable: true,
   },
   avg: {
-    type: 'duration',
+    type: ['duration'],
     isSortable: true,
   },
+  /*
   cidr: {
     type: 'string',
     isSortable: true,
@@ -126,5 +126,11 @@ export const FIELDS = {
   contexts: 'string',
   'contexts.key': 'string',
   'contexts.value': 'string',
+
+  'transaction.duration': 'duration',
+  'transaction.op': 'string',
+  // duration aliases
+  p75: 'number',
+  p95: 'number',
 };
 export type Field = keyof typeof FIELDS | '';
