@@ -42,7 +42,7 @@ const OrganizationEnvironmentsStore = Reflux.createStore({
 
   onFetchEnvironmentsSuccess(environments) {
     if (!environments) {
-      this.onFetchEnvironmentsError(Error('retrieved environments is falsey'));
+      this.onFetchEnvironmentsError(new Error('retrieved environments is falsey'));
       return;
     }
     this.environments = environments.map(this.makeEnvironment);
