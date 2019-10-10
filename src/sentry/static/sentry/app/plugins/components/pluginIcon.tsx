@@ -23,6 +23,7 @@ import pushover from 'app/../images/integrations/pushover-logo.png';
 import redmine from 'app/../images/integrations/redmine-logo.png';
 import rookout from 'app/../images/integrations/rookout-logo.png';
 import slack from 'app/../images/integrations/slack-logo.png';
+import split from 'app/../images/integrations/split-logo.png';
 import taiga from 'app/../images/integrations/taiga-logo.png';
 import teamwork from 'app/../images/integrations/teamwork-logo.png';
 import trello from 'app/../images/integrations/trello-logo.png';
@@ -64,6 +65,7 @@ export const ICON_PATHS = {
   redmine,
   rookout,
   slack,
+  split,
   taiga,
   teamwork,
   trello,
