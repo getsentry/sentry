@@ -247,9 +247,10 @@ class BaseAuth(object):
 
     def __init__(self, request, redirect):
         self.request = request
-        # Use request because some auth providers use POST urls with needed
-        # GET parameters on it
-        self.data = request.REQUEST
+        # TODO(python3): use {**x, **y} syntax once 2.7 support is dropped
+        data = request.GET.copy()
+        data.update(request.POST)
+        self.data = data
         self.redirect = redirect
 
     def auth_url(self):
