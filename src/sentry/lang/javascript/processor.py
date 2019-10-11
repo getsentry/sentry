@@ -488,7 +488,13 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         # build list of frames that we can actually grab source for
         frames = []
         for info in self.stacktrace_infos:
-            frames.extend([f for f in info.stacktrace["frames"] if f.get("lineno") is not None])
+            frames.extend(
+                [
+                    f
+                    for f in info.stacktrace["frames"]
+                    if f is not None and f.get("lineno") is not None
+                ]
+            )
         return frames
 
     def preprocess_step(self, processing_task):
