@@ -23,7 +23,7 @@ describe('IssueListActions', function() {
         });
 
         SelectedGroupStore.records = {};
-        SelectedGroupStore.add([1, 2, 3]);
+        SelectedGroupStore.add(['1', '2', '3']);
         wrapper = mountWithTheme(
           <IssueListActions
             api={new MockApiClient()}
@@ -37,7 +37,7 @@ describe('IssueListActions', function() {
               environments: [],
               datetime: {start: null, end: null, period: null, utc: true},
             }}
-            groupIds={[1, 2, 3]}
+            groupIds={['1', '2', '3']}
             onRealtimeChange={function() {}}
             onSelectStatsPeriod={function() {}}
             realtimeActive={false}
@@ -104,7 +104,7 @@ describe('IssueListActions', function() {
     describe('Total results < bulk limit', function() {
       beforeAll(function() {
         SelectedGroupStore.records = {};
-        SelectedGroupStore.add([1, 2, 3]);
+        SelectedGroupStore.add(['1', '2', '3']);
         wrapper = mountWithTheme(
           <IssueListActions
             api={new MockApiClient()}
@@ -118,7 +118,7 @@ describe('IssueListActions', function() {
               environments: [],
               datetime: {start: null, end: null, period: null, utc: true},
             }}
-            groupIds={[1, 2, 3]}
+            groupIds={['1', '2', '3']}
             onRealtimeChange={function() {}}
             onSelectStatsPeriod={function() {}}
             realtimeActive={false}
@@ -169,7 +169,7 @@ describe('IssueListActions', function() {
     describe('Selected on page', function() {
       beforeAll(function() {
         SelectedGroupStore.records = {};
-        SelectedGroupStore.add([1, 2, 3]);
+        SelectedGroupStore.add(['1', '2', '3']);
         wrapper = mountWithTheme(
           <IssueListActions
             api={new MockApiClient()}
@@ -183,7 +183,7 @@ describe('IssueListActions', function() {
               environments: [],
               datetime: {start: null, end: null, period: null, utc: true},
             }}
-            groupIds={[1, 2, 3, 6, 9]}
+            groupIds={['1', '2', '3', '6', '9']}
             onRealtimeChange={function() {}}
             onSelectStatsPeriod={function() {}}
             realtimeActive={false}
@@ -200,7 +200,7 @@ describe('IssueListActions', function() {
         });
         jest
           .spyOn(SelectedGroupStore, 'getSelectedIds')
-          .mockImplementation(() => new Set([3, 6, 9]));
+          .mockImplementation(() => new Set(['3', '6', '9']));
 
         wrapper.setState({allInQuerySelected: false, anySelected: true});
         wrapper
@@ -211,7 +211,7 @@ describe('IssueListActions', function() {
           expect.anything(),
           expect.objectContaining({
             query: {
-              id: [3, 6, 9],
+              id: ['3', '6', '9'],
               project: [1],
             },
             data: {status: 'resolved'},
@@ -239,7 +239,7 @@ describe('IssueListActions', function() {
             environments: [],
             datetime: {start: null, end: null, period: null, utc: true},
           }}
-          groupIds={[1, 2, 3]}
+          groupIds={['1', '2', '3']}
           onRealtimeChange={function() {}}
           onSelectStatsPeriod={function() {}}
           realtimeActive={false}
@@ -273,13 +273,13 @@ describe('IssueListActions', function() {
       it('should invoke the callback with an array of selected items and deselect all', function() {
         jest
           .spyOn(SelectedGroupStore, 'getSelectedIds')
-          .mockImplementation(() => new Set([1, 2, 3]));
+          .mockImplementation(() => new Set(['1', '2', '3']));
 
         actions.state.allInQuerySelected = false;
         const callback = jest.fn();
         actions.actionSelectedGroups(callback);
 
-        expect(callback).toHaveBeenCalledWith([1, 2, 3]);
+        expect(callback).toHaveBeenCalledWith(['1', '2', '3']);
         expect(callback).toHaveBeenCalledTimes(1);
         expect(SelectedGroupStore.deselectAll).toHaveBeenCalledTimes(1);
       });
@@ -293,7 +293,7 @@ describe('IssueListActions', function() {
           api={new MockApiClient()}
           query=""
           orgId="1337"
-          groupIds={[1, 2, 3]}
+          groupIds={['1', '2', '3']}
           selection={{
             projects: [],
             environments: [],
