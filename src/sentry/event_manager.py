@@ -15,7 +15,7 @@ from django.db.models import Func
 from django.utils import timezone
 from django.utils.encoding import force_text
 
-from sentry import buffer, eventtypes, eventstream, tagstore, tsdb
+from sentry import buffer, eventtypes, eventstream, options, tagstore, tsdb
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS,
@@ -464,6 +464,9 @@ class EventManager(object):
         return trim(message.strip(), settings.SENTRY_MAX_MESSAGE_LENGTH)
 
     def save(self, project_id, raw=False, assume_normalized=False):
+
+        CHECK_DUPLICATES = options.get("store.check-duplicates")
+
         # Normalize if needed
         if not self._normalized:
             if not assume_normalized:
@@ -476,6 +479,30 @@ class EventManager(object):
         project._organization_cache = Organization.objects.get_from_cache(
             id=project.organization_id
         )
+
+        if CHECK_DUPLICATES:
+            # Check to make sure we're not about to do a bunch of work that's
+            # already been done if we've processed an event with this ID. (This
+            # isn't a perfect solution -- this doesn't handle ``EventMapping`` and
+            # there's a race condition between here and when the event is actually
+            # saved, but it's an improvement. See GH-7677.)
+            try:
+                event = Event.objects.get(project_id=project.id, event_id=data["event_id"])
+            except Event.DoesNotExist:
+                pass
+            else:
+                # Make sure we cache on the project before returning
+                event._project_cache = project
+                logger.info(
+                    "duplicate.found",
+                    exc_info=True,
+                    extra={
+                        "event_uuid": data["event_id"],
+                        "project_id": project.id,
+                        "model": Event.__name__,
+                    },
+                )
+                return event
 
         # Pull out the culprit
         culprit = self.get_culprit()
@@ -734,6 +761,9 @@ class EventManager(object):
                     "model": Event.__name__,
                 },
             )
+
+            if CHECK_DUPLICATES:
+                return event
 
         tagstore.delay_index_event_tags(
             organization_id=project.organization_id,
