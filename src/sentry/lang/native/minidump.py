@@ -64,7 +64,7 @@ def merge_attached_event(mpack_event, data):
 
     try:
         event = unpack(mpack_event)
-    except (ValueError, UnpackException, ExtraData) as e:
+    except (TypeError, ValueError, UnpackException, ExtraData) as e:
         minidumps_logger.exception(e)
         return
 
@@ -85,7 +85,7 @@ def merge_attached_breadcrumbs(mpack_breadcrumbs, data):
     try:
         unpacker = Unpacker(mpack_breadcrumbs)
         breadcrumbs = list(unpacker)
-    except (ValueError, UnpackException, ExtraData) as e:
+    except (TypeError, ValueError, UnpackException, ExtraData) as e:
         minidumps_logger.exception(e)
         return
 
