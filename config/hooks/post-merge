@@ -4,34 +4,38 @@ red="$(tput setaf 1)"
 bold="$(tput bold)"
 reset="$(tput sgr0)"
 
-update_python=git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD | \
-    egrep --quiet 'requirements.*\.txt'
-update_js=git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD | \
-    egrep --quiet 'yarn.lock'
-update_migrations=git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD | \
-    egrep --quiet 'south_migrations'
+update_python="$(git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD | \
+  egrep --quiet 'requirements.*\.txt' && echo true)"
+update_js="$(git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD | \
+  egrep --quiet 'yarn.lock' && echo true)"
+update_migrations="$(git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD | \
+  egrep --quiet 'south_migrations' && echo true)"
 
 has_message=$update_python||$update_js||$update_migrations
 
 if [ "$has_message" = true ] ; then
   echo ""
+  cat <<EOF
+ [${red}${bold}!!${reset}] ${red}It looks like some dependencies have changed that will require your intervention${reset}
+
+EOF
 fi
 
 if [ "$update_python" = true ] ; then
   cat <<EOF
-[${red}${bold}!!!${reset}] ${red}Run "${bold}make install-sentry-dev${reset}${red}" to refresh your dev environment (python dependencies were updated)${reset}
+ [  ] ${red}"${bold}make install-sentry-dev${reset}${red}" to refresh your python virtual environment${reset}
 EOF
 fi
 
 if [ "$update_js" = true ] ; then
   cat <<EOF
-[${red}${bold}!!!${reset}] ${red}Run "${bold}yarn${reset}${red}" to update your js dependencies (yarn.lock was updated)${reset}
+ [  ] ${red}"${bold}yarn${reset}${red}" to update your javascript dependencies${reset}
 EOF
 fi
 
 if [ "$update_migrations" = true ] ; then
   cat <<EOF
-[${red}${bold}!!!${reset}] ${red}Run "${bold}sentry upgrade${reset}${red}" to run database migrations (new migrations were added)${reset}
+ [  ] ${red}"${bold}sentry upgrade${reset}${red}" to run database migrations${reset}
 EOF
 fi
 
