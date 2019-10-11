@@ -464,6 +464,24 @@ class EventManager(object):
         return trim(message.strip(), settings.SENTRY_MAX_MESSAGE_LENGTH)
 
     def save(self, project_id, raw=False, assume_normalized=False):
+        """
+        We re-insert events with duplicate IDs into Snuba, which is responsible
+        for deduplicating events. Since deduplication in Snuba is on the primary
+        key (based on event ID, project ID and day), events with same IDs are only
+        deduplicated if their timestamps fall on the same day. The latest event
+        always wins and overwrites the value of events received earlier in that day.
+
+        Since we increment counters and frequencies here before events get inserted
+        to eventstream these numbers may be larger than the total number of
+        events if we receive duplicate event IDs that fall on the same day
+        (that do not hit cache first).
+
+        Note that if "store.check-duplicates" is set to True, we instead check for
+        the event in Postgres first and do not proceed to update counters or
+        insert the event into the eventstream if the event ID is found in the
+        database. This option is intended to be temporary, whilst we move towards
+        the previously described last write wins approach.
+        """
 
         CHECK_DUPLICATES = options.get("store.check-duplicates")
 
