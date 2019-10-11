@@ -48,7 +48,10 @@ describe('ContextPickerModal', function() {
     const api = MockApiClient.addMockResponse({
       url: `/organizations/${org2.slug}/`,
     });
-    const wrapper = mount(getComponent({organizations: [org2]}));
+    const wrapper = mount(
+      getComponent({organizations: [org2]}),
+      TestStubs.routerContext()
+    );
 
     wrapper.update();
     expect(spy).toHaveBeenCalledWith('org2', {
@@ -63,7 +66,10 @@ describe('ContextPickerModal', function() {
     const api = MockApiClient.addMockResponse({
       url: `/organizations/${org2.slug}/`,
     });
-    const wrapper = mount(getComponent({organizations: [org2]}));
+    const wrapper = mount(
+      getComponent({organizations: [org2]}),
+      TestStubs.routerContext()
+    );
 
     expect(spy).toHaveBeenCalledWith('org2', {
       setActive: true,
@@ -87,7 +93,8 @@ describe('ContextPickerModal', function() {
         needProject: true,
         nextPath: '/test/:orgId/path/:projectId/',
         organizations: [org2],
-      })
+      }),
+      TestStubs.routerContext()
     );
 
     expect(spy).toHaveBeenCalledWith('org2', {
@@ -102,7 +109,7 @@ describe('ContextPickerModal', function() {
   });
 
   it('selects an org and calls `onFinish` with URL with organization slug', function() {
-    const wrapper = mount(getComponent({}));
+    const wrapper = mount(getComponent({}), TestStubs.routerContext());
     const mock = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/`,
     });
@@ -164,7 +171,8 @@ describe('ContextPickerModal', function() {
             projects: [project2],
           },
         ],
-      })
+      }),
+      TestStubs.routerContext()
     );
 
     // Should not have anything selected

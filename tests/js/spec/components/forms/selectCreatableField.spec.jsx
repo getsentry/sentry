@@ -6,7 +6,8 @@ import {Form, SelectCreatableField} from 'app/components/forms';
 describe('SelectCreatableField', function() {
   it('can add user input into select field when using options', function() {
     const wrapper = mount(
-      <SelectCreatableField options={[{value: 'foo', label: 'Foo'}]} name="fieldName" />
+      <SelectCreatableField options={[{value: 'foo', label: 'Foo'}]} name="fieldName" />,
+      TestStubs.routerContext()
     );
 
     wrapper
@@ -32,7 +33,10 @@ describe('SelectCreatableField', function() {
   });
 
   it('can add user input into select field when using choices', function() {
-    const wrapper = mount(<SelectCreatableField choices={['foo']} name="fieldName" />);
+    const wrapper = mount(
+      <SelectCreatableField choices={['foo']} name="fieldName" />,
+      TestStubs.routerContext()
+    );
 
     wrapper
       .find('input[id="id-fieldName"]')
@@ -58,7 +62,8 @@ describe('SelectCreatableField', function() {
 
   it('can add user input into select field when using paired choices', function() {
     const wrapper = mount(
-      <SelectCreatableField choices={[['foo', 'foo']]} name="fieldName" />
+      <SelectCreatableField choices={[['foo', 'foo']]} name="fieldName" />,
+      TestStubs.routerContext()
     );
 
     wrapper
@@ -89,7 +94,7 @@ describe('SelectCreatableField', function() {
       <Form onSubmit={submitMock}>
         <SelectCreatableField choices={[['foo', 'foo']]} name="fieldName" />
       </Form>,
-      {}
+      TestStubs.routerContext()
     );
 
     wrapper
