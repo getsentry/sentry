@@ -36,6 +36,7 @@ function startTransaction() {
         sampled: true,
       })
     );
+    scope.setTag('ui.nav', 'navigation');
   });
 
   // Timeout a transaction if no other spans get started
@@ -125,6 +126,7 @@ export function setTransactionName(name) {
     }
 
     span.transaction = firstPageLoad ? `PageLoad: ${name}` : name;
+    scope.setTag('ui.route', name);
   });
 }
 
@@ -140,6 +142,7 @@ export function startApm() {
         sampled: true,
       })
     );
+    scope.setTag('ui.nav', 'pageload');
   });
   startTransaction();
   Router.browserHistory.listen(() => startTransaction());
