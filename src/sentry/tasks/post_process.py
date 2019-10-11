@@ -161,7 +161,9 @@ def post_process_group(event, is_new, is_regression, is_new_group_environment, *
 
         if event.group_id:
             # we process snoozes before rules as it might create a regression
-            has_reappeared = process_snoozes(event.group)
+            # but not if it's new because you can't immediately snooze a new group
+            if not is_new:
+                has_reappeared = process_snoozes(event.group)
 
             handle_owner_assignment(event.project, event.group, event)
 
