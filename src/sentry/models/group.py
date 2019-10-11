@@ -371,7 +371,7 @@ class Group(Model):
 
         if status == GroupStatus.IGNORED:
             try:
-                snooze = GroupSnooze.objects.get(group=self)
+                snooze = GroupSnooze.objects.get_from_cache(group=self)
             except GroupSnooze.DoesNotExist:
                 pass
             else:
