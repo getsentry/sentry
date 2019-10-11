@@ -1,5 +1,4 @@
 import {Box} from 'grid-emotion';
-import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
@@ -24,23 +23,22 @@ class ProjectCard extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
     project: SentryTypes.Project.isRequired,
-    params: PropTypes.object,
     hasProjectAccess: PropTypes.bool,
   };
 
   componentDidMount() {
-    const {project, params} = this.props;
+    const {organization, project} = this.props;
 
     this.api = new Client();
 
     // fetch project stats
     loadStatsForProject(this.api, project.id, {
-      orgId: params.orgId,
+      orgId: organization.slug,
     });
   }
 
   render() {
-    const {organization, project, hasProjectAccess, params} = this.props;
+    const {organization, project, hasProjectAccess} = this.props;
     const {id, firstEvent, stats, slug} = project;
 
     return (
@@ -53,7 +51,9 @@ class ProjectCard extends React.Component {
                 avatarSize={18}
                 displayName={
                   hasProjectAccess ? (
-                    <Link to={`/organizations/${params.orgId}/issues/?project=${id}`}>
+                    <Link
+                      to={`/organizations/${organization.slug}/issues/?project=${id}`}
+                    >
                       <strong>{slug}</strong>
                     </Link>
                   ) : (
@@ -155,4 +155,4 @@ const StyledIdBadge = styled(IdBadge)`
 `;
 
 export {ProjectCard};
-export default withRouter(withOrganization(ProjectCardContainer));
+export default withOrganization(ProjectCardContainer);

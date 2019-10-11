@@ -13,6 +13,8 @@ import {uniqueId} from 'app/utils/guid';
 import GroupActions from 'app/actions/groupActions';
 import createRequestError from 'app/utils/requestError/createRequestError';
 
+import {startRequest, finishRequest} from 'app/utils/apm';
+
 export class Request {
   alive: boolean;
   xhr: JQueryXHR;
@@ -251,6 +253,9 @@ export class Client {
     const id: string = uniqueId();
     metric.mark(`api-request-start-${id}`);
 
+    // notify apm utils that a request has started
+    startRequest(id);
+
     let fullUrl: string;
     if (path.indexOf(this.baseUrl) === -1) {
       fullUrl = this.baseUrl + path;
@@ -342,6 +347,7 @@ export class Client {
         },
         complete: (jqXHR: JQueryXHR, textStatus: string) => {
           requestSpan.finish();
+          finishRequest(id);
 
           return this.wrapCallback<[JQueryXHR, string]>(id, options.complete, true)(
             jqXHR,
