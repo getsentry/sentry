@@ -84,7 +84,7 @@ class SentryAppFormModel extends FormModel {
 
   /**
    * We need to map the API response errors to the actual form fields.
-   * We do this by pulling put scopes and mapping each scope error to the correct input.
+   * We do this by pulling out scopes and mapping each scope error to the correct input.
    * @param {Object} responseJSON
    */
   mapFormErrors(responseJSON?: any) {
