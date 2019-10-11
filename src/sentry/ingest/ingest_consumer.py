@@ -57,13 +57,13 @@ class IngestConsumerWorker(AbstractBatchWorker):
                 event_id,
                 project_id,
             )
-            return  # message already processed do not reprocess
+            return True  # message already processed do not reprocess
 
         try:
             project = Project.objects.get_from_cache(id=project_id)
         except Project.DoesNotExist:
             logger.error("Project for ingested event does not exist: %s", project_id)
-            return
+            return True
 
         # Parse the JSON payload. This is required to compute the cache key and
         # call process_event. The payload will be put into Kafka raw, to avoid

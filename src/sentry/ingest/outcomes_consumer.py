@@ -65,21 +65,21 @@ class OutcomesConsumerWorker(AbstractBatchWorker):
 
         project_id = int(msg.get("project_id", 0))
         if project_id == 0:
-            return  # no project. this is valid, so ignore silently.
+            return True  # no project. this is valid, so ignore silently.
 
         outcome = int(msg.get("outcome", -1))
         if outcome not in (Outcome.FILTERED, Outcome.RATE_LIMITED):
-            return  # nothing to do here
+            return True  # nothing to do here
 
         event_id = msg.get("event_id")
         if is_signal_sent(project_id=project_id, event_id=event_id):
-            return  # message already processed nothing left to do
+            return True  # message already processed nothing left to do
 
         try:
             project = Project.objects.get_from_cache(id=project_id)
         except Project.DoesNotExist:
             logger.error("OutcomesConsumer could not find project with id: %s", project_id)
-            return
+            return True
 
         reason = msg.get("reason")
         remote_addr = msg.get("remote_addr")
