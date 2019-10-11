@@ -9,14 +9,15 @@ import pytest
 from django.conf import settings
 
 from sentry.event_manager import EventManager
-from sentry.ingest.ingest_consumer import ConsumerType, run_ingest_consumer
+from sentry.ingest.ingest_consumer import ConsumerType, get_ingest_consumer
 from sentry.models.event import Event
 from sentry.utils import json
 from sentry.testutils.factories import Factories
 
-from .ingest_utils import requires_kafka
-
 logger = logging.getLogger(__name__)
+
+# Poll this amount of times (for 0.1 sec each) at most to wait for messages
+MAX_POLL_ITERATIONS = 100
 
 
 def _get_test_message(project):
@@ -75,11 +76,10 @@ def _shutdown_requested(max_secs, num_events):
 
 
 @pytest.mark.django_db
-@requires_kafka
 def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
-    task_runner, kafka_producer, kafka_admin
+    task_runner, kafka_producer, kafka_admin, requires_kafka
 ):
-    consumer_group = "test-consumer"
+    group_id = "test-consumer"
     topic_event_name = ConsumerType.get_topic_name(ConsumerType.Events)
 
     admin = kafka_admin(settings)
@@ -95,15 +95,19 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
         event_ids.add(event_id)
         producer.produce(topic_event_name, message)
 
+    consumer = get_ingest_consumer(
+        max_batch_size=2,
+        max_batch_time=5000,
+        group_id=group_id,
+        consumer_type=ConsumerType.Events,
+        auto_offset_reset="earliest",
+    )
+
     with task_runner():
-        run_ingest_consumer(
-            commit_batch_size=2,
-            consumer_group=consumer_group,
-            consumer_type=ConsumerType.Events,
-            max_fetch_time_seconds=0.1,
-            initial_offset_reset="earliest",
-            is_shutdown_requested=_shutdown_requested(max_secs=10, num_events=3),
-        )
+        i = 0
+        while Event.objects.count() < 3 and i < MAX_POLL_ITERATIONS:
+            consumer._run_once()
+            i += 1
 
     # check that we got the messages
     assert Event.objects.count() == 3
