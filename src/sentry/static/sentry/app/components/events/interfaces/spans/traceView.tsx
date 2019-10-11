@@ -16,6 +16,7 @@ type TraceContextType = {
   type?: 'trace';
   span_id?: string;
   trace_id?: string;
+  parent_span_id?: string;
 };
 
 type PropType = {
