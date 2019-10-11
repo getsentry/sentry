@@ -43,3 +43,4 @@ coverage.xml
 junit.xml
 *.codestyle.xml
 package-lock.json
+.webpack.meta

@@ -5,6 +5,7 @@ const fs = require('fs');
 
 const {CleanWebpackPlugin} = require('clean-webpack-plugin'); // installed via npm
 const webpack = require('webpack');
+const LastBuiltPlugin = require('./build-utils/last-built-plugin');
 const OptionalLocaleChunkPlugin = require('./build-utils/optional-locale-chunk-plugin');
 const IntegrationDocsFetchPlugin = require('./build-utils/integration-docs-fetch-plugin');
 const ExtractTextPlugin = require('mini-css-extract-plugin');
@@ -372,6 +373,10 @@ if (IS_TEST || IS_STORYBOOK) {
   const plugin = new IntegrationDocsFetchPlugin({basePath: __dirname});
   appConfig.plugins.push(plugin);
   appConfig.resolve.alias['integration-docs-platforms'] = plugin.modulePath;
+}
+
+if (!IS_PRODUCTION) {
+  appConfig.plugins.push(new LastBuiltPlugin({basePath: __dirname}));
 }
 
 // Dev only! Hot module reloading
