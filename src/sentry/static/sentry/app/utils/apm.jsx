@@ -9,20 +9,20 @@ function startTransaction() {
   // times. This would result in losing the start of the transaction.
   Sentry.configureScope(scope => {
     if (firstPageLoad) {
-      firstPageLoad = false;
-    } else {
-      const prevTransactionSpan = scope.getSpan();
-      // If there is a transaction we set the name to the route
-      if (prevTransactionSpan && prevTransactionSpan.timestamp === undefined) {
-        prevTransactionSpan.finish();
-      }
-      scope.setSpan(
-        Sentry.startSpan({
-          op: 'navigation',
-          sampled: true,
-        })
-      );
+      return;
     }
+
+    const prevTransactionSpan = scope.getSpan();
+    // If there is a transaction we set the name to the route
+    if (prevTransactionSpan && prevTransactionSpan.timestamp === undefined) {
+      prevTransactionSpan.finish();
+    }
+    scope.setSpan(
+      Sentry.startSpan({
+        op: 'navigation',
+        sampled: true,
+      })
+    );
   });
 
   finishTransaction(5000);
@@ -63,6 +63,7 @@ export function finishTransaction(delay) {
       const span = scope.getSpan();
       if (span) {
         span.finish();
+        firstPageLoad = false;
       }
     });
   }, delay || 5000);
@@ -107,4 +108,16 @@ export function startApm() {
   });
   startTransaction();
   Router.browserHistory.listen(() => startTransaction());
+}
+
+export function setTransactionName(name) {
+  Sentry.configureScope(scope => {
+    const span = scope.getSpan();
+
+    if (!span) {
+      return;
+    }
+
+    span.transaction = firstPageLoad ? `PageLoad: ${name}` : name;
+  });
 }
