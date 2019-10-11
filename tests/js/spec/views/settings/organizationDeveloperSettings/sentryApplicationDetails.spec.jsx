@@ -433,7 +433,7 @@ describe('Sentry Application Details', function() {
       await tick();
       wrapper.update();
 
-      expect(wrapper.find('div.form-field-error-reason').text()).toEqual(
+      expect(wrapper.find('div FormFieldErrorReason').text()).toEqual(
         "Requested permission of member:admin exceeds requester's permission. Please contact an administrator to make the requested change."
       );
     });

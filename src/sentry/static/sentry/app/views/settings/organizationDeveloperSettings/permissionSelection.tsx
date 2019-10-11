@@ -160,7 +160,6 @@ export default class PermissionSelection extends React.Component<Props, State> {
               defaultValue={value}
               disabled={this.props.appPublished}
               disabledReason={t('Cannot update permissions on a published integration')}
-              className="permission-selection"
             />
           );
         })}

@@ -410,11 +410,7 @@ class FormField extends React.Component {
                     if (!shouldShowErrorMessage) {
                       return null;
                     }
-                    return (
-                      <FormFieldErrorReason className="form-field-error-reason">
-                        {error}
-                      </FormFieldErrorReason>
-                    );
+                    return <FormFieldErrorReason>{error}</FormFieldErrorReason>;
                   }}
                 </Observer>
               }
