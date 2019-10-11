@@ -1,12 +1,14 @@
 from __future__ import absolute_import
 
+import random
+
 from datetime import datetime
 from django.conf import settings
 from enum import IntEnum
 import six
 import time
 
-from sentry import tsdb
+from sentry import tsdb, options
 from sentry.utils import json, metrics
 from sentry.utils.data_filters import FILTER_STAT_KEYS_TO_VALUES
 from sentry.utils.dates import to_datetime
@@ -25,6 +27,11 @@ class Outcome(IntEnum):
 
 outcomes = settings.KAFKA_TOPICS[settings.KAFKA_OUTCOMES]
 outcomes_publisher = None
+
+
+def decide_signals_in_consumer():
+    rate = options.get("outcomes.signals-in-consumer-sample-rate")
+    return rate and rate > random.random()
 
 
 def track_outcome(org_id, project_id, key_id, outcome, reason=None, timestamp=None, event_id=None):
