@@ -251,6 +251,7 @@ class OrganizationMembersView extends AsyncView {
           </TextContainer>
           <Button
             priority="primary"
+            size="small"
             disabled={!canAddMembers}
             title={
               !canAddMembers
@@ -321,7 +322,7 @@ const StyledPanel = styled(Panel)`
   margin-bottom: 40px;
   background: none;
   display: grid;
-  grid-template-columns: max-content auto 140px;
+  grid-template-columns: max-content auto max-content;
   grid-gap: ${space(3)};
   align-items: center;
   align-content: center;
