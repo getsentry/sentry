@@ -153,7 +153,7 @@ def post_process_group(event, is_new, is_regression, is_new_group_environment, *
         # Re-bind Project and Org since we're pickling the whole Event object
         # which may contain stale parent models.
         event.project = Project.objects.get_from_cache(id=event.project_id)
-        event.project.organization = Organization.objects.get_from_cache(
+        event.project._organization_cache = Organization.objects.get_from_cache(
             id=event.project.organization_id
         )
 
