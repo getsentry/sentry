@@ -549,7 +549,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.store",
     "sentry.tasks.unmerge",
     "sentry.tasks.servicehooks",
-    "sentry.tagstore.tasks",
     "sentry.tasks.assemble",
     "sentry.tasks.integrations",
     "sentry.tasks.files",
@@ -568,7 +567,6 @@ CELERY_QUEUES = [
     Queue("digests.delivery", routing_key="digests.delivery"),
     Queue("digests.scheduling", routing_key="digests.scheduling"),
     Queue("email", routing_key="email"),
-    Queue("events.index_event_tags", routing_key="events.index_event_tags"),
     Queue("events.preprocess_event", routing_key="events.preprocess_event"),
     Queue(
         "events.reprocessing.preprocess_event", routing_key="events.reprocessing.preprocess_event"
@@ -1054,9 +1052,7 @@ SENTRY_NODESTORE = "sentry.nodestore.django.DjangoNodeStorage"
 SENTRY_NODESTORE_OPTIONS = {}
 
 # Tag storage backend
-SENTRY_TAGSTORE = os.environ.get(
-    "SENTRY_TAGSTORE", "sentry.tagstore.snuba.SnubaCompatibilityTagStorage"
-)
+SENTRY_TAGSTORE = os.environ.get("SENTRY_TAGSTORE", "sentry.tagstore.snuba.SnubaTagStorage")
 SENTRY_TAGSTORE_OPTIONS = {}
 
 # Search backend

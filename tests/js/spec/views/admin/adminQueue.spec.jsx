@@ -39,7 +39,6 @@ describe('AdminQueue', function() {
           'sentry.tasks.email.process_inbound_email',
           'sentry.tasks.email.send_email',
           'sentry.tasks.email_unlink_notifications',
-          'sentry.tasks.index_event_tags',
           'sentry.tasks.merge.merge_group',
           'sentry.tasks.merge.rehash_group_events',
           'sentry.tasks.post_process.plugin_post_process_group',

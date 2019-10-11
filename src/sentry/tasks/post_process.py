@@ -248,33 +248,3 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
         expected_errors=(PluginError,),
         **kwargs
     )
-
-
-@instrumented_task(
-    name="sentry.tasks.index_event_tags",
-    queue="events.index_event_tags",
-    default_retry_delay=60 * 5,
-    max_retries=None,
-)
-def index_event_tags(
-    organization_id, project_id, event_id, tags, group_id, environment_id, date_added=None, **kwargs
-):
-    from sentry import tagstore
-
-    with configure_scope() as scope:
-        scope.set_tag("project", project_id)
-
-    create_event_tags_kwargs = {}
-    if date_added is not None:
-        create_event_tags_kwargs["date_added"] = date_added
-
-    metrics.timing("tagstore.tags_per_event", len(tags), tags={"organization_id": organization_id})
-
-    tagstore.create_event_tags(
-        project_id=project_id,
-        group_id=group_id,
-        environment_id=environment_id,
-        event_id=event_id,
-        tags=tags,
-        **create_event_tags_kwargs
-    )
