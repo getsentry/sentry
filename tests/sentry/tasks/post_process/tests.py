@@ -91,11 +91,19 @@ class PostProcessGroupTest(TestCase):
         event = self.create_event(group=group)
         snooze = GroupSnooze.objects.create(group=group, until=timezone.now() - timedelta(hours=1))
 
+        # Check for has_reappeared=False if is_new=True
         post_process_group(
             event=event, is_new=True, is_regression=False, is_new_group_environment=True
         )
 
-        mock_processor.assert_called_with(event, True, False, True, True)
+        mock_processor.assert_called_with(event, True, False, True, False)
+
+        # Check for has_reappeared=True if is_new=False
+        post_process_group(
+            event=event, is_new=False, is_regression=False, is_new_group_environment=True
+        )
+
+        mock_processor.assert_called_with(event, False, False, True, True)
 
         assert not GroupSnooze.objects.filter(id=snooze.id).exists()
 
