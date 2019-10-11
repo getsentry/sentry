@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import os
+
 import pytest
 import six
 from confluent_kafka.admin import AdminClient
@@ -56,3 +58,11 @@ def kafka_admin(request):
         return _KafkaAdminWrapper(request, settings)
 
     return inner
+
+
+@pytest.fixture
+def requires_kafka():
+    pytest.importorskip("confluent_kafka")
+
+    if "SENTRY_KAFKA_HOSTS" not in os.environ:
+        pytest.xfail("test requires SENTRY_KAFKA_HOSTS environment variable which is not set")

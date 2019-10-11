@@ -356,47 +356,71 @@ def query_subscription_consumer(**options):
     subscriber.run()
 
 
+def batching_kafka_options(group):
+    """
+    Expose batching_kafka_consumer options as CLI args.
+
+    TODO(markus): Probably want to have this as part of batching_kafka_consumer
+    as this is duplicated effort between Snuba and Sentry.
+    """
+
+    def inner(f):
+        f = click.option(
+            "--consumer-group",
+            "group_id",
+            default=group,
+            help="Kafka consumer group for the outcomes consumer. ",
+        )(f)
+
+        f = click.option(
+            "--max-batch-size",
+            "max_batch_size",
+            default=100,
+            type=int,
+            help="How many messages to process before committing offsets.",
+        )(f)
+
+        f = click.option(
+            "--max-batch-time-ms",
+            "max_batch_time",
+            default=1000,
+            type=int,
+            help="How long to batch for before committing offsets.",
+        )(f)
+
+        f = click.option(
+            "--auto-offset-reset",
+            "auto_offset_reset",
+            default="latest",
+            type=click.Choice(["earliest", "latest", "error"]),
+            help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
+        )(f)
+
+        return f
+
+    return inner
+
+
 @run.command("ingest-consumer")
 @log_options()
 @click.option(
     "--consumer-type",
     default=None,
+    required=True,
     help="Specify which type of consumer to create, i.e. from which topic to consume messages.",
     type=click.Choice(["events", "transactions", "attachments"]),
 )
-@click.option(
-    "--group", default="ingest-consumer", help="Kafka consumer group for the ingest consumer. "
-)
-@click.option(
-    "--commit-batch-size",
-    default=100,
-    type=int,
-    help="How many messages to process before committing offsets.",
-)
-@click.option(
-    "--max-fetch-time-ms",
-    default=100,
-    type=int,
-    help="Timeout (in milliseconds) for a consume operation. Max time the kafka consumer will wait "
-    "before returning the available messages in the topic.",
-)
-@click.option(
-    "--initial-offset-reset",
-    default="latest",
-    type=click.Choice(["earliest", "latest", "error"]),
-    help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
-)
+@batching_kafka_options("ingest-consumer")
 @configuration
-def ingest_consumer(**options):
+def ingest_consumer(consumer_type, **options):
     """
     Runs an "ingest consumer" task.
 
     The "ingest consumer" tasks read events from a kafka topic (coming from Relay) and schedules
     process event celery tasks for them
     """
-    from sentry.ingest.ingest_consumer import ConsumerType, run_ingest_consumer
+    from sentry.ingest.ingest_consumer import ConsumerType, get_ingest_consumer
 
-    consumer_type = options["consumer_type"]
     if consumer_type == "events":
         consumer_type = ConsumerType.Events
     elif consumer_type == "transactions":
@@ -404,41 +428,12 @@ def ingest_consumer(**options):
     elif consumer_type == "attachments":
         consumer_type = ConsumerType.Attachments
 
-    max_fetch_time_seconds = options["max_fetch_time_ms"] / 1000.0
-
-    run_ingest_consumer(
-        commit_batch_size=options["commit_batch_size"],
-        consumer_group=options["group"],
-        consumer_type=consumer_type,
-        max_fetch_time_seconds=max_fetch_time_seconds,
-        initial_offset_reset=options["initial_offset_reset"],
-    )
+    get_ingest_consumer(consumer_type=consumer_type, **options).run()
 
 
 @run.command("outcomes-consumer")
 @log_options()
-@click.option(
-    "--group", default="outcomes-consumer", help="Kafka consumer group for the outcomes consumer. "
-)
-@click.option(
-    "--commit-batch-size",
-    default=100,
-    type=int,
-    help="How many messages to process before committing offsets.",
-)
-@click.option(
-    "--max-fetch-time-ms",
-    default=100,
-    type=int,
-    help="Timeout (in milliseconds) for a consume operation. Max time the kafka consumer will wait "
-    "before returning the available messages in the topic.",
-)
-@click.option(
-    "--initial-offset-reset",
-    default="latest",
-    type=click.Choice(["earliest", "latest", "error"]),
-    help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
-)
+@batching_kafka_options("outcomes-consumer")
 @configuration
 def outcome_consumer(**options):
     """
@@ -447,13 +442,6 @@ def outcome_consumer(**options):
     The "outcomes consumer" tasks read outcomes from a kafka topic and sends
     signals for some of them.
     """
-    from sentry.ingest.outcomes_consumer import run_outcomes_consumer
+    from sentry.ingest.outcomes_consumer import get_outcomes_consumer
 
-    max_fetch_time_seconds = options["max_fetch_time_ms"] / 1000.0
-
-    run_outcomes_consumer(
-        commit_batch_size=options["commit_batch_size"],
-        consumer_group=options["group"],
-        max_fetch_time_seconds=max_fetch_time_seconds,
-        initial_offset_reset=options["initial_offset_reset"],
-    )
+    get_outcomes_consumer(**options).run()

@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import functools
 import os
 import subprocess
 import uuid
@@ -14,10 +13,8 @@ from six.moves import xrange
 try:
     from confluent_kafka import Consumer, KafkaError, Producer, TopicPartition
     from sentry.eventstream.kafka.consumer import SynchronizedConsumer
-
-    has_kafka_client = True
 except ImportError:
-    has_kafka_client = False
+    pass
 
 
 @contextmanager
@@ -45,22 +42,7 @@ def create_topic(partitions=1, replication_factor=1):
         subprocess.check_call(command + ["--delete", "--topic", topic])
 
 
-def requires_kafka(function):
-    @functools.wraps(function)
-    def wrapper(*args, **kwargs):
-        if not has_kafka_client:
-            return pytest.xfail("test requires confluent_kafka which is not installed")
-        if "SENTRY_KAFKA_HOSTS" not in os.environ:
-            return pytest.xfail(
-                "test requires SENTRY_KAFKA_HOSTS environment variable which is not set"
-            )
-        return function(*args, **kwargs)
-
-    return wrapper
-
-
-@requires_kafka
-def test_consumer_start_from_partition_start():
+def test_consumer_start_from_partition_start(requires_kafka):
     synchronize_commit_group = "consumer-{}".format(uuid.uuid1().hex)
 
     messages_delivered = defaultdict(list)
@@ -146,8 +128,7 @@ def test_consumer_start_from_partition_start():
         assert consumer.poll(1) is None
 
 
-@requires_kafka
-def test_consumer_start_from_committed_offset():
+def test_consumer_start_from_committed_offset(requires_kafka):
     consumer_group = "consumer-{}".format(uuid.uuid1().hex)
     synchronize_commit_group = "consumer-{}".format(uuid.uuid1().hex)
 
@@ -248,8 +229,7 @@ def test_consumer_start_from_committed_offset():
         assert consumer.poll(1) is None
 
 
-@requires_kafka
-def test_consumer_rebalance_from_partition_start():
+def test_consumer_rebalance_from_partition_start(requires_kafka):
     consumer_group = "consumer-{}".format(uuid.uuid1().hex)
     synchronize_commit_group = "consumer-{}".format(uuid.uuid1().hex)
 
@@ -370,8 +350,7 @@ def test_consumer_rebalance_from_partition_start():
             assert consumer.poll(1) is None
 
 
-@requires_kafka
-def test_consumer_rebalance_from_committed_offset():
+def test_consumer_rebalance_from_committed_offset(requires_kafka):
     consumer_group = "consumer-{}".format(uuid.uuid1().hex)
     synchronize_commit_group = "consumer-{}".format(uuid.uuid1().hex)
 
@@ -534,12 +513,11 @@ def collect_messages_recieved(count):
     return messages_recieved_constraint
 
 
-@requires_kafka
 @pytest.mark.xfail(
     reason="assignment during rebalance requires partition rollback to last committed offset",
     run=False,
 )
-def test_consumer_rebalance_from_uncommitted_offset():
+def test_consumer_rebalance_from_uncommitted_offset(requires_kafka):
     consumer_group = "consumer-{}".format(uuid.uuid1().hex)
     synchronize_commit_group = "consumer-{}".format(uuid.uuid1().hex)
 
