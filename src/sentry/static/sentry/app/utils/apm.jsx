@@ -2,6 +2,14 @@ import * as Router from 'react-router';
 import * as Sentry from '@sentry/browser';
 
 let firstPageLoad = true;
+let flushTransactionTimeout = undefined;
+let wasInterrupted = false;
+
+const TRANSACTION_TIMEOUT = 5000;
+const requests = new Set([]);
+const renders = new Set([]);
+const hasActiveRequests = () => requests.size > 0;
+const hasActiveRenders = () => renders.size > 0;
 
 function startTransaction() {
   // We do set the transaction name in the router but we want to start it here
@@ -12,11 +20,16 @@ function startTransaction() {
       return;
     }
 
+    // If there's a previous span open, finish it
+    // TODO(apm): I think this is wrong, we probably only want to finish the spans
+    // that we start in this function and in `startApm()`
+    //
+    // i.e. it could close out a span of an API request
     const prevTransactionSpan = scope.getSpan();
-    // If there is a transaction we set the name to the route
-    if (prevTransactionSpan && prevTransactionSpan.timestamp === undefined) {
+    if (prevTransactionSpan) {
       prevTransactionSpan.finish();
     }
+
     scope.setSpan(
       Sentry.startSpan({
         op: 'navigation',
@@ -25,16 +38,9 @@ function startTransaction() {
     );
   });
 
-  finishTransaction(5000);
+  // Timeout a transaction if no other spans get started
+  finishTransaction(TRANSACTION_TIMEOUT);
 }
-
-const requests = new Set([]);
-const renders = new Set([]);
-let flushTransactionTimeout = undefined;
-let wasInterrupted = false;
-
-const hasActiveRequests = () => requests.size > 0;
-const hasActiveRenders = () => renders.size > 0;
 
 /**
  * Postpone finishing the root span until all renders and requests are finished
@@ -53,7 +59,7 @@ function interruptFlush() {
   wasInterrupted = true;
 }
 
-export function finishTransaction(delay) {
+export function finishTransaction(delay = TRANSACTION_TIMEOUT) {
   if (flushTransactionTimeout || (hasActiveRenders() || hasActiveRequests())) {
     interruptFlush();
   }
@@ -66,28 +72,38 @@ export function finishTransaction(delay) {
         firstPageLoad = false;
       }
     });
-  }, delay || 5000);
+  }, delay);
 }
 
+/**
+ * These `start-` functions attempt to track the state of "actions".
+ *
+ * They interrupt the transaction flush (which times out), and
+ * requires the related `finish-` function to be called.
+ */
 export function startRequest(id) {
   requests.add(id);
   interruptFlush();
 }
+export function startRender(id) {
+  renders.add(id);
+  interruptFlush();
+}
 
+/**
+ * These `finish-` functions clean up the "active" state of an ongoing "action".
+ * If there are no other "actions" and we have interrupted a flush, we should
+ * finish the transaction
+ */
 export function finishRequest(id) {
   requests.delete(id);
+  // TODO(apm): Is this necessary? flush should be interrupted already from start()
   interruptFlush();
 
   if (wasInterrupted && !hasActiveRenders() && !hasActiveRequests()) {
     finishTransaction(1);
   }
 }
-
-export function startRender(id) {
-  renders.add(id);
-  interruptFlush();
-}
-
 export function finishRender(id) {
   renders.delete(id);
   interruptFlush();
@@ -97,6 +113,25 @@ export function finishRender(id) {
   }
 }
 
+/**
+ * Sets the transaction name
+ */
+export function setTransactionName(name) {
+  Sentry.configureScope(scope => {
+    const span = scope.getSpan();
+
+    if (!span) {
+      return;
+    }
+
+    span.transaction = firstPageLoad ? `PageLoad: ${name}` : name;
+  });
+}
+
+/**
+ * This is called only when our application is initialized. Creates a root span
+ * and creates a router listener to create a new root span as user navigates.
+ */
 export function startApm() {
   Sentry.configureScope(scope => {
     scope.setSpan(
@@ -108,16 +143,4 @@ export function startApm() {
   });
   startTransaction();
   Router.browserHistory.listen(() => startTransaction());
-}
-
-export function setTransactionName(name) {
-  Sentry.configureScope(scope => {
-    const span = scope.getSpan();
-
-    if (!span) {
-      return;
-    }
-
-    span.transaction = firstPageLoad ? `PageLoad: ${name}` : name;
-  });
 }
