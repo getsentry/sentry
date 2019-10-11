@@ -68,7 +68,7 @@ from sentry.utils import json, metrics
 from sentry.utils.data_filters import FilterStatKeys
 from sentry.utils.data_scrubber import SensitiveDataFilter
 from sentry.utils.http import is_valid_origin, get_origins, is_same_domain, origin_from_request
-from sentry.utils.outcomes import Outcome, track_outcome
+from sentry.utils.outcomes import Outcome, track_outcome, decide_signals_in_consumer
 from sentry.utils.pubsub import QueuedPublisherService, KafkaPublisher
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import configure_scope
@@ -201,10 +201,13 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments,
     event_id = data["event_id"]
 
     if should_filter:
-        # Mark that the event_filtered signal is sent. Do this before emitting
-        # the outcome to avoid a potential race between OutcomesConsumer and
-        # `event_filtered.send_robust` below.
-        mark_signal_sent(project_config.project_id, event_id)
+        signals_in_consumer = decide_signals_in_consumer()
+
+        if not signals_in_consumer:
+            # Mark that the event_filtered signal is sent. Do this before emitting
+            # the outcome to avoid a potential race between OutcomesConsumer and
+            # `event_filtered.send_robust` below.
+            mark_signal_sent(project_config.project_id, event_id)
 
         track_outcome(
             project_config.organization_id,
@@ -215,7 +218,10 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments,
             event_id=event_id,
         )
         metrics.incr("events.blacklisted", tags={"reason": filter_reason}, skip_internal=False)
-        event_filtered.send_robust(ip=remote_addr, project=project, sender=process_event)
+
+        if not signals_in_consumer:
+            event_filtered.send_robust(ip=remote_addr, project=project, sender=process_event)
+
         raise APIForbidden("Event dropped due to filter: %s" % (filter_reason,))
 
     # TODO: improve this API (e.g. make RateLimit act on __ne__)
@@ -231,10 +237,13 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments,
         if rate_limit is None:
             api_logger.debug("Dropped event due to error with rate limiter")
 
-        # Mark that the event_dropped signal is sent. Do this before emitting
-        # the outcome to avoid a potential race between OutcomesConsumer and
-        # `event_dropped.send_robust` below.
-        mark_signal_sent(project_config.project_id, event_id)
+        signals_in_consumer = decide_signals_in_consumer()
+
+        if not signals_in_consumer:
+            # Mark that the event_dropped signal is sent. Do this before emitting
+            # the outcome to avoid a potential race between OutcomesConsumer and
+            # `event_dropped.send_robust` below.
+            mark_signal_sent(project_config.project_id, event_id)
 
         reason = rate_limit.reason_code if rate_limit else None
         track_outcome(
@@ -246,9 +255,11 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments,
             event_id=event_id,
         )
         metrics.incr("events.dropped", tags={"reason": reason or "unknown"}, skip_internal=False)
-        event_dropped.send_robust(
-            ip=remote_addr, project=project, reason_code=reason, sender=process_event
-        )
+        if not signals_in_consumer:
+            event_dropped.send_robust(
+                ip=remote_addr, project=project, reason_code=reason, sender=process_event
+            )
+
         if rate_limit is not None:
             raise APIRateLimited(rate_limit.retry_after)
 
