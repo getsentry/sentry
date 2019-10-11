@@ -13,6 +13,7 @@ from django.template.defaultfilters import slugify
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.views.generic import View
+from django.db import IntegrityError
 from loremipsum import Generator
 from random import Random
 
@@ -227,7 +228,7 @@ def alert(request):
 
     data = dict(load_data(platform))
     data["message"] = group.message
-    data["event_id"] = uuid.uuid4().hex
+    data["event_id"] = "44f1419e73884cd2b45c79918f4b6dc4"
     data.pop("logentry", None)
     data["environment"] = "prod"
     data["tags"] = [
@@ -243,7 +244,10 @@ def alert(request):
     event = event_manager.save(project.id)
     # Prevent Percy screenshot from constantly changing
     event.datetime = datetime(2017, 9, 6, 0, 0)
-    event.save()
+    try:
+        event.save()
+    except IntegrityError:
+        pass
     event_type = event_manager.get_event_type()
 
     group.message = event_manager.get_search_message()
