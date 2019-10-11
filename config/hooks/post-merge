@@ -4,9 +4,37 @@ red="$(tput setaf 1)"
 bold="$(tput bold)"
 reset="$(tput sgr0)"
 
-git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD | \
-    egrep --quiet 'requirements.*\.txt' && \
-    cat <<EOF
-${red}${bold}WARNING! It looks like python requirements were updated upstream.${reset}
-You'll want to run "make install-sentry-dev" to refresh your virtual environment.
+update_python=git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD | \
+    egrep --quiet 'requirements.*\.txt'
+update_js=git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD | \
+    egrep --quiet 'yarn.lock'
+update_migrations=git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD | \
+    egrep --quiet 'south_migrations'
+
+has_message=$update_python||$update_js||$update_migrations
+
+if [ "$has_message" = true ] ; then
+  echo ""
+fi
+
+if [ "$update_python" = true ] ; then
+  cat <<EOF
+[${red}${bold}!!!${reset}] ${red}Run "${bold}make install-sentry-dev${reset}${red}" to refresh your dev environment (python dependencies were updated)${reset}
 EOF
+fi
+
+if [ "$update_js" = true ] ; then
+  cat <<EOF
+[${red}${bold}!!!${reset}] ${red}Run "${bold}yarn${reset}${red}" to update your js dependencies (yarn.lock was updated)${reset}
+EOF
+fi
+
+if [ "$update_migrations" = true ] ; then
+  cat <<EOF
+[${red}${bold}!!!${reset}] ${red}Run "${bold}sentry upgrade${reset}${red}" to run database migrations (new migrations were added)${reset}
+EOF
+fi
+
+if [ "$has_message" = true ] ; then
+  echo ""
+fi
