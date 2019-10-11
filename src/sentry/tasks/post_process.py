@@ -104,7 +104,13 @@ def handle_owner_assignment(project, group, event):
     from sentry.models import GroupAssignee, ProjectOwnership
 
     # Is the issue already assigned to a team or user?
-    if group.assignee_set.exists():
+    key = "assignee_exists:1:%s" % (group.id)
+    assignee_exists = cache.get(key)
+    if assignee_exists is None:
+        assignee_exists = group.assignee_set.exists()
+        # Cache for an hour if it's assigned. We don't need to move that fast.
+        cache.set(key, assignee_exists, 3600 if assignee_exists else 60)
+    if assignee_exists:
         return
 
     owner = ProjectOwnership.get_autoassign_owner(group.project_id, event.data)
@@ -132,7 +138,7 @@ def post_process_group(event, is_new, is_regression, is_new_group_environment, *
         # NOTE: we must pass through the full Event object, and not an
         # event_id since the Event object may not actually have been stored
         # in the database due to sampling.
-        from sentry.models import Project
+        from sentry.models import Project, Organization
         from sentry.models.group import get_group_with_redirect
         from sentry.rules.processor import RuleProcessor
         from sentry.tasks.servicehooks import process_service_hook
@@ -150,9 +156,12 @@ def post_process_group(event, is_new, is_regression, is_new_group_environment, *
         with configure_scope() as scope:
             scope.set_tag("project", event.project_id)
 
-        # Re-bind Project since we're pickling the whole Event object
-        # which may contain a stale Project.
+        # Re-bind Project and Org since we're pickling the whole Event object
+        # which may contain stale parent models.
         event.project = Project.objects.get_from_cache(id=event.project_id)
+        event.project._organization_cache = Organization.objects.get_from_cache(
+            id=event.project.organization_id
+        )
 
         _capture_stats(event, is_new)
 
@@ -195,10 +204,7 @@ def post_process_group(event, is_new, is_regression, is_new_group_environment, *
 
             for plugin in plugins.for_project(event.project):
                 plugin_post_process_group(
-                    plugin_slug=plugin.slug,
-                    event=event,
-                    is_new=is_new,
-                    is_regresion=is_regression,
+                    plugin_slug=plugin.slug, event=event, is_new=is_new, is_regresion=is_regression
                 )
 
         event_processed.send_robust(
@@ -247,34 +253,4 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
         group=event.group,
         expected_errors=(PluginError,),
         **kwargs
-    )
-
-
-@instrumented_task(
-    name="sentry.tasks.index_event_tags",
-    queue="events.index_event_tags",
-    default_retry_delay=60 * 5,
-    max_retries=None,
-)
-def index_event_tags(
-    organization_id, project_id, event_id, tags, group_id, environment_id, date_added=None, **kwargs
-):
-    from sentry import tagstore
-
-    with configure_scope() as scope:
-        scope.set_tag("project", project_id)
-
-    create_event_tags_kwargs = {}
-    if date_added is not None:
-        create_event_tags_kwargs["date_added"] = date_added
-
-    metrics.timing("tagstore.tags_per_event", len(tags), tags={"organization_id": organization_id})
-
-    tagstore.create_event_tags(
-        project_id=project_id,
-        group_id=group_id,
-        environment_id=environment_id,
-        event_id=event_id,
-        tags=tags,
-        **create_event_tags_kwargs
     )

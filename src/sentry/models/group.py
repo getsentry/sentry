@@ -223,29 +223,6 @@ class GroupManager(BaseManager):
 
         return Group.objects.filter(id__in=group_ids)
 
-    def add_tags(self, group, environment, tags):
-        project_id = group.project_id
-        date = group.last_seen
-
-        for tag_item in tags:
-            if len(tag_item) == 2:
-                (key, value), data = tag_item, None
-            else:
-                key, value, data = tag_item
-
-            tagstore.incr_tag_value_times_seen(
-                project_id, environment.id, key, value, extra={"last_seen": date, "data": data}
-            )
-
-            tagstore.incr_group_tag_value_times_seen(
-                project_id,
-                group.id,
-                environment.id,
-                key,
-                value,
-                extra={"project_id": project_id, "last_seen": date},
-            )
-
     def get_groups_by_external_issue(self, integration, external_issue_key):
         from sentry.models import ExternalIssue, GroupLink
 
@@ -371,7 +348,7 @@ class Group(Model):
 
         if status == GroupStatus.IGNORED:
             try:
-                snooze = GroupSnooze.objects.get(group=self)
+                snooze = GroupSnooze.objects.get_from_cache(group=self)
             except GroupSnooze.DoesNotExist:
                 pass
             else:

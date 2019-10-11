@@ -3,6 +3,7 @@ import React from 'react';
 
 import Avatar from 'app/components/avatar';
 import DeviceName from 'app/components/deviceName';
+import {removeFilterMaskedEntries} from 'app/components/events/interfaces/utils';
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 import {objectIsEmpty} from 'app/utils';
@@ -25,7 +26,7 @@ class NoSummary extends React.Component {
     return (
       <div className="context-item">
         <span className="context-item-icon" />
-        <h3>{this.props.title}</h3>
+        <h3 data-test-id="no-summary-title">{this.props.title}</h3>
       </div>
     );
   }
@@ -103,13 +104,13 @@ export class OsSummary extends React.Component {
   }
 }
 
-class UserSummary extends React.Component {
+export class UserSummary extends React.Component {
   static propTypes = {
     data: PropTypes.object.isRequired,
   };
 
   render() {
-    const user = this.props.data;
+    const user = removeFilterMaskedEntries(this.props.data);
 
     if (objectIsEmpty(user)) {
       return <NoSummary title={t('Unknown User')} />;
@@ -130,7 +131,7 @@ class UserSummary extends React.Component {
         ) : (
           <span className="context-item-icon" />
         )}
-        <h3>{userTitle}</h3>
+        <h3 data-test-id="user-title">{userTitle}</h3>
         {user.id && user.id !== userTitle ? (
           <p>
             <strong>{t('ID:')}</strong> {user.id}

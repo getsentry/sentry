@@ -15,7 +15,7 @@ from django.db.models import Func
 from django.utils import timezone
 from django.utils.encoding import force_text
 
-from sentry import buffer, eventtypes, eventstream, options, tagstore, tsdb
+from sentry import buffer, eventtypes, eventstream, options, tsdb
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS,
@@ -783,16 +783,6 @@ class EventManager(object):
             if CHECK_DUPLICATES:
                 return event
 
-        tagstore.delay_index_event_tags(
-            organization_id=project.organization_id,
-            project_id=project.id,
-            group_id=group.id if group else None,
-            environment_id=environment.id,
-            event_id=event.id,
-            tags=event.tags,
-            date_added=event.datetime,
-        )
-
         if event_user:
             counters = [
                 (tsdb.models.users_affected_by_project, project.id, (event_user.tag_value,))
@@ -822,15 +812,6 @@ class EventManager(object):
                         "environment_id": environment.id,
                     },
                 )
-
-        if group:
-            safe_execute(
-                Group.objects.add_tags,
-                group,
-                environment,
-                event.get_tags(),
-                _with_transaction=False,
-            )
 
         if not raw:
             if not project.first_event:
