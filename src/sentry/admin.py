@@ -290,7 +290,7 @@ class UserAdmin(admin.ModelAdmin):
             "adminForm": adminForm,
             "form_url": form_url,
             "form": form,
-            "is_popup": "_popup" in request.REQUEST,
+            "is_popup": "_popup" in request.GET,
             "add": True,
             "change": False,
             "has_delete_permission": False,

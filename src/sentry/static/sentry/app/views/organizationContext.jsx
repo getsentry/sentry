@@ -2,15 +2,15 @@ import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
+import * as Sentry from '@sentry/browser';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
-import * as Sentry from '@sentry/browser';
 
+import {metric} from 'app/utils/analytics';
 import {openSudo} from 'app/actionCreators/modal';
 import {setActiveOrganization} from 'app/actionCreators/organizations';
 import {t} from 'app/locale';
 import Alert from 'app/components/alert';
-import withApi from 'app/utils/withApi';
 import ConfigStore from 'app/stores/configStore';
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import HookStore from 'app/stores/hookStore';
@@ -21,10 +21,11 @@ import ProjectsStore from 'app/stores/projectsStore';
 import SentryTypes from 'app/sentryTypes';
 import Sidebar from 'app/components/sidebar';
 import TeamStore from 'app/stores/teamStore';
-import space from 'app/styles/space';
-import withOrganizations from 'app/utils/withOrganizations';
-import {metric} from 'app/utils/analytics';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
+import profiler from 'app/utils/profiler';
+import space from 'app/styles/space';
+import withApi from 'app/utils/withApi';
+import withOrganizations from 'app/utils/withOrganizations';
 
 const ERROR_TYPES = {
   ORG_NOT_FOUND: 'ORG_NOT_FOUND',
@@ -40,6 +41,7 @@ const OrganizationContext = createReactClass({
     useLastOrganization: PropTypes.bool,
     organizationsLoading: PropTypes.bool,
     organizations: PropTypes.arrayOf(SentryTypes.Organization),
+    finishProfile: PropTypes.func,
   },
 
   childContextTypes: {
@@ -86,6 +88,10 @@ const OrganizationContext = createReactClass({
       (this.props.location.state === 'refresh' && prevProps.location.state !== 'refresh')
     ) {
       this.remountComponent();
+    }
+
+    if (this.state.organization && this.props.finishProfile) {
+      this.props.finishProfile();
     }
   },
 
@@ -271,7 +277,7 @@ const OrganizationContext = createReactClass({
   },
 });
 
-export default withApi(withOrganizations(OrganizationContext));
+export default withApi(withOrganizations(profiler()(OrganizationContext)));
 export {OrganizationContext};
 
 const ErrorWrapper = styled('div')`

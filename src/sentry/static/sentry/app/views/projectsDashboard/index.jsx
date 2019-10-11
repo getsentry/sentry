@@ -16,6 +16,7 @@ import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 import SentryTypes from 'app/sentryTypes';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
+import profiler from 'app/utils/profiler';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
@@ -31,16 +32,22 @@ class Dashboard extends React.Component {
     teams: PropTypes.array,
     projects: PropTypes.array,
     organization: SentryTypes.Organization,
+    finishProfile: PropTypes.func,
   };
 
   componentDidMount() {
-    const {organization, routes} = this.props;
+    const {organization, routes, finishProfile} = this.props;
     const isOldRoute = getRouteStringFromRoutes(routes) === '/:orgId/';
 
     if (isOldRoute) {
       browserHistory.replace(`/organizations/${organization.slug}/`);
     }
+
+    if (finishProfile) {
+      finishProfile();
+    }
   }
+
   componentWillUnmount() {
     ProjectsStatsStore.reset();
   }
@@ -143,4 +150,6 @@ const ProjectsHeader = styled('div')`
 `;
 
 export {Dashboard};
-export default withTeams(withProjects(withOrganization(OrganizationDashboard)));
+export default withTeams(
+  withProjects(withOrganization(profiler()(OrganizationDashboard)))
+);

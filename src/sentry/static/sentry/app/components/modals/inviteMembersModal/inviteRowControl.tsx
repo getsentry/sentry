@@ -1,7 +1,7 @@
 import React from 'react';
 
 import {t} from 'app/locale';
-import {Team} from 'app/types';
+import {Team, MemberRole} from 'app/types';
 import Button from 'app/components/button';
 import SelectControl from 'app/components/forms/selectControl';
 
@@ -16,7 +16,7 @@ type Props = {
   emails: string[];
   role: string;
   teams: string[];
-  roleOptions: string[];
+  roleOptions: MemberRole[];
   teamOptions: Team[];
   inviteStatus: InviteStatus;
   onRemove: () => void;

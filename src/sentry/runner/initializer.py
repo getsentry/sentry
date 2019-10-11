@@ -406,7 +406,7 @@ def fix_south(settings):
 def monkeypatch_django_migrations():
     # This monkey patches the django 1.8 migration executor with a backported 1.9
     # executor. This improves the speed that Django builds the migration state.
-    import sentry.new_migrations.django_19_executor  # NOQA
+    import sentry.new_migrations.monkey  # NOQA
 
 
 def bind_cache_to_option_store():
@@ -584,18 +584,9 @@ def validate_snuba():
     if not settings.DEBUG:
         return
 
-    has_any_snuba_required_backends = (
-        settings.SENTRY_SEARCH == "sentry.search.snuba.SnubaSearchBackend"
-        or settings.SENTRY_TAGSTORE == "sentry.tagstore.snuba.SnubaCompatibilityTagStorage"
-        or
-        # TODO(mattrobenolt): Remove ServiceDelegator check
-        settings.SENTRY_TSDB
-        in ("sentry.tsdb.redissnuba.RedisSnubaTSDB", "sentry.utils.services.ServiceDelegator")
-    )
-
     has_all_snuba_required_backends = (
         settings.SENTRY_SEARCH == "sentry.search.snuba.SnubaSearchBackend"
-        and settings.SENTRY_TAGSTORE == "sentry.tagstore.snuba.SnubaCompatibilityTagStorage"
+        and settings.SENTRY_TAGSTORE == "sentry.tagstore.snuba.SnubaTagStorage"
         and
         # TODO(mattrobenolt): Remove ServiceDelegator check
         settings.SENTRY_TSDB
@@ -636,7 +627,7 @@ See: https://github.com/getsentry/snuba#sentry--snuba
         )
         raise ConfigurationError("Cannot continue without Snuba configured.")
 
-    if has_any_snuba_required_backends and not eventstream_is_snuba:
+    if not eventstream_is_snuba:
         from .importer import ConfigurationError
 
         show_big_error(

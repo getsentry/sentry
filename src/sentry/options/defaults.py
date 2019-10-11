@@ -172,5 +172,7 @@ register("post-process.error-hook-sample-rate", default=0.0)  # unused
 # Transaction events
 # True => kill switch to disable ingestion of transaction events for internal project.
 register("transaction-events.force-disable-internal-project", default=False)
+
+# Moving signals and TSDB into outcomes consumer
 register("outcomes.signals-in-consumer-sample-rate", default=0.0)
 register("outcomes.tsdb-in-consumer-sample-rate", default=0.0)
