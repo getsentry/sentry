@@ -2,6 +2,7 @@ import {isEmpty, isString} from 'lodash';
 import * as Sentry from '@sentry/browser';
 import queryString from 'query-string';
 
+import {FILTER_MASK} from 'app/constants';
 import {defined} from 'app/utils';
 
 export function escapeQuotes(v) {
@@ -122,4 +123,15 @@ export function objectToSortedTupleArray(obj) {
 
       return keyA < keyB ? -1 : 1;
     });
+}
+
+// for context summaries and avatars
+export function removeFilterMaskedEntries(rawData) {
+  const cleanedData = {};
+  for (const key of Object.getOwnPropertyNames(rawData)) {
+    if (rawData[key] !== FILTER_MASK) {
+      cleanedData[key] = rawData[key];
+    }
+  }
+  return cleanedData;
 }
