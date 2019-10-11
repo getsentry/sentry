@@ -28,11 +28,36 @@ function startTransaction() {
   finishTransaction(5000);
 }
 
+const requests = new Set([]);
+const renders = new Set([]);
 let flushTransactionTimeout = undefined;
-function finishTransaction(delay) {
-  if (flushTransactionTimeout) {
-    clearTimeout(flushTransactionTimeout);
+let wasInterrupted = false;
+
+const hasActiveRequests = () => requests.size > 0;
+const hasActiveRenders = () => renders.size > 0;
+
+/**
+ * Postpone finishing the root span until all renders and requests are finished
+ *
+ * TODO(apm): We probably want a hard limit for root span, e.g. it's possible we have long
+ * API requests combined with renders that could create a very long root span.
+ *
+ * TODO(apm): Handle polling requests?
+ */
+function interruptFlush() {
+  if (!flushTransactionTimeout) {
+    return;
   }
+
+  clearTimeout(flushTransactionTimeout);
+  wasInterrupted = true;
+}
+
+export function finishTransaction(delay) {
+  if (flushTransactionTimeout || (hasActiveRenders() || hasActiveRequests())) {
+    interruptFlush();
+  }
+
   flushTransactionTimeout = setTimeout(() => {
     Sentry.configureScope(scope => {
       const span = scope.getSpan();
@@ -41,6 +66,34 @@ function finishTransaction(delay) {
       }
     });
   }, delay || 5000);
+}
+
+export function startRequest(id) {
+  requests.add(id);
+  interruptFlush();
+}
+
+export function finishRequest(id) {
+  requests.delete(id);
+  interruptFlush();
+
+  if (wasInterrupted && !hasActiveRenders() && !hasActiveRequests()) {
+    finishTransaction(1);
+  }
+}
+
+export function startRender(id) {
+  renders.add(id);
+  interruptFlush();
+}
+
+export function finishRender(id) {
+  renders.delete(id);
+  interruptFlush();
+
+  if (wasInterrupted && !hasActiveRenders() && !hasActiveRequests()) {
+    finishTransaction(1);
+  }
 }
 
 export function startApm() {
