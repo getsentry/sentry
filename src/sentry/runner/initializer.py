@@ -584,18 +584,9 @@ def validate_snuba():
     if not settings.DEBUG:
         return
 
-    has_any_snuba_required_backends = (
-        settings.SENTRY_SEARCH == "sentry.search.snuba.SnubaSearchBackend"
-        or settings.SENTRY_TAGSTORE == "sentry.tagstore.snuba.SnubaCompatibilityTagStorage"
-        or
-        # TODO(mattrobenolt): Remove ServiceDelegator check
-        settings.SENTRY_TSDB
-        in ("sentry.tsdb.redissnuba.RedisSnubaTSDB", "sentry.utils.services.ServiceDelegator")
-    )
-
     has_all_snuba_required_backends = (
         settings.SENTRY_SEARCH == "sentry.search.snuba.SnubaSearchBackend"
-        and settings.SENTRY_TAGSTORE == "sentry.tagstore.snuba.SnubaCompatibilityTagStorage"
+        and settings.SENTRY_TAGSTORE == "sentry.tagstore.snuba.SnubaTagStorage"
         and
         # TODO(mattrobenolt): Remove ServiceDelegator check
         settings.SENTRY_TSDB
@@ -636,7 +627,7 @@ See: https://github.com/getsentry/snuba#sentry--snuba
         )
         raise ConfigurationError("Cannot continue without Snuba configured.")
 
-    if has_any_snuba_required_backends and not eventstream_is_snuba:
+    if not eventstream_is_snuba:
         from .importer import ConfigurationError
 
         show_big_error(
