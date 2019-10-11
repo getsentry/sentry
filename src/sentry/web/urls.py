@@ -53,11 +53,11 @@ def init_all_applications():
     """
     Forces import of all applications to ensure code is registered.
     """
-    from django.db.models import get_apps, get_models
+    from django.apps import apps
 
-    for app in get_apps():
+    for app in apps.get_app_configs():
         try:
-            get_models(app)
+            apps.get_models(app)
         except Exception:
             continue
 

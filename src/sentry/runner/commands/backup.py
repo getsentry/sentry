@@ -3,6 +3,8 @@ from __future__ import absolute_import, print_function
 import click
 from sentry.runner.decorators import configuration
 
+from django.apps import apps
+
 
 @click.command(name="import")
 @click.argument("src", type=click.File("rb"))
@@ -21,8 +23,6 @@ def sort_dependencies(app_list):
     Similar to Django's except that we discard the important of natural keys
     when sorting dependencies (i.e. it works without them).
     """
-    from django.apps import apps
-
     # Process the list of models, and get the list of dependencies
     model_dependencies = []
     models = set()
@@ -36,7 +36,7 @@ def sort_dependencies(app_list):
             if hasattr(model, "natural_key"):
                 deps = getattr(model.natural_key, "dependencies", [])
                 if deps:
-                    deps = [apps.get_model(*d.split('.')) for d in deps]
+                    deps = [apps.get_model(*d.split(".")) for d in deps]
             else:
                 deps = []
 
@@ -114,11 +114,10 @@ def export(dest, silent, indent, exclude):
     else:
         exclude = exclude.lower().split(",")
 
-    from django.db.models import get_apps
     from django.core import serializers
 
     def yield_objects():
-        app_list = [(a, None) for a in get_apps()]
+        app_list = [(a, None) for a in apps.get_app_configs()]
 
         # Collate the objects to be serialized.
         for model in sort_dependencies(app_list):
