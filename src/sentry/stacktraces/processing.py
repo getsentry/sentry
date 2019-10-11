@@ -394,7 +394,7 @@ def get_crash_frame_from_event_data(data, frame_filter=None):
     if not frames:
         threads = get_path(data, "threads", "values")
         if threads and len(threads) == 1:
-            frames = get_path(threads, 0)
+            frames = get_path(threads, 0, "stacktrace", "frames")
 
     default = None
     for frame in reversed(frames or ()):
