@@ -1398,7 +1398,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                           >
                             <span
                               className="Select-multi-value-wrapper"
-                              id="react-select-4--value"
+                              id="react-select-5--value"
                             >
                               <div
                                 className="Select-placeholder"
@@ -1406,7 +1406,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                                 Select a Team
                               </div>
                               <AutosizeInput
-                                aria-activedescendant="react-select-4--value"
+                                aria-activedescendant="react-select-5--value"
                                 aria-expanded="false"
                                 aria-haspopup="false"
                                 aria-owns=""
@@ -1429,7 +1429,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                                   }
                                 >
                                   <input
-                                    aria-activedescendant="react-select-4--value"
+                                    aria-activedescendant="react-select-5--value"
                                     aria-expanded="false"
                                     aria-haspopup="false"
                                     aria-owns=""
@@ -2374,7 +2374,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                           >
                             <span
                               className="Select-multi-value-wrapper"
-                              id="react-select-3--value"
+                              id="react-select-4--value"
                             >
                               <div
                                 className="Select-placeholder"
@@ -2382,7 +2382,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                                 Select a Team
                               </div>
                               <AutosizeInput
-                                aria-activedescendant="react-select-3--value"
+                                aria-activedescendant="react-select-4--value"
                                 aria-expanded="false"
                                 aria-haspopup="false"
                                 aria-owns=""
@@ -2405,7 +2405,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                                   }
                                 >
                                   <input
-                                    aria-activedescendant="react-select-3--value"
+                                    aria-activedescendant="react-select-4--value"
                                     aria-expanded="false"
                                     aria-haspopup="false"
                                     aria-owns=""
@@ -4050,7 +4050,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                           >
                             <span
                               className="Select-multi-value-wrapper"
-                              id="react-select-2--value"
+                              id="react-select-3--value"
                             >
                               <div
                                 className="Select-placeholder"
@@ -4058,7 +4058,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                                 Select a Team
                               </div>
                               <AutosizeInput
-                                aria-activedescendant="react-select-2--value"
+                                aria-activedescendant="react-select-3--value"
                                 aria-expanded="false"
                                 aria-haspopup="false"
                                 aria-owns=""
@@ -4081,7 +4081,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                                   }
                                 >
                                   <input
-                                    aria-activedescendant="react-select-2--value"
+                                    aria-activedescendant="react-select-3--value"
                                     aria-expanded="false"
                                     aria-haspopup="false"
                                     aria-owns=""
