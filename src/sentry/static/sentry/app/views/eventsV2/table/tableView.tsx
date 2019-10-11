@@ -75,7 +75,11 @@ class TableView extends React.Component<TableViewProps> {
     const nextColumnSortBy = [...columnSortBy];
     nextColumnOrder[i] = nextColumn;
 
-    setColumnStateOnLocation(location, nextColumnOrder, nextColumnSortBy);
+    history.pushState({}, 'omg', '?woah=true');
+
+    if ((window as any).FOOOOOO) {
+      setColumnStateOnLocation(location, nextColumnOrder, nextColumnSortBy);
+    }
   };
 
   /**
