@@ -447,7 +447,7 @@ def get_connection(fail_silently=False):
     )
 
 
-def send_mail(subject, message, from_email, recipient_list, fail_silently=False):
+def send_mail(subject, message, from_email, recipient_list, fail_silently=False, **kwargs):
     """
     Wrapper that forces sending mail through our connection.
     """
@@ -457,6 +457,7 @@ def send_mail(subject, message, from_email, recipient_list, fail_silently=False)
         from_email,
         recipient_list,
         connection=get_connection(fail_silently=fail_silently),
+        **kwargs
     )
 
 
