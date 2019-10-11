@@ -216,10 +216,15 @@ def process_snoozes(group):
     """
     from sentry.models import GroupSnooze, GroupStatus
 
-    try:
-        snooze = GroupSnooze.objects.get_from_cache(group=group)
-    except GroupSnooze.DoesNotExist:
-        return False
+    key = "postprocess_gs:1:%s" % (group.id)
+    snooze = cache.get(key)
+    if not snooze:
+        try:
+            snooze = GroupSnooze.objects.get(group=group)
+            cache.set(key, snooze, 3600)
+        except GroupSnooze.DoesNotExist:
+            cache.set(key, 0, 60)
+            return False
 
     if not snooze.is_valid(group, test_rates=True):
         snooze.delete()
