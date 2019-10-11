@@ -525,6 +525,7 @@ CELERY_CREATE_MISSING_QUEUES = True
 CELERY_REDIRECT_STDOUTS = False
 CELERYD_HIJACK_ROOT_LOGGER = False
 CELERY_IMPORTS = (
+    "sentry.discover.tasks",
     "sentry.incidents.tasks",
     "sentry.tasks.auth",
     "sentry.tasks.auto_resolve_issues",
