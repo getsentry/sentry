@@ -12,9 +12,10 @@ import TraceViewHeader from './header';
 import * as CursorGuideHandler from './cursorGuideHandler';
 
 type TraceContextType = {
-  type: 'trace';
-  span_id: string;
-  trace_id: string;
+  op?: string;
+  type?: 'trace';
+  span_id?: string;
+  trace_id?: string;
 };
 
 type PropType = {
@@ -54,9 +55,11 @@ class TraceView extends React.Component<PropType> {
     const traceContext = this.getTraceContext();
     const traceID = (traceContext && traceContext.trace_id) || '';
     const rootSpanID = (traceContext && traceContext.span_id) || '';
+    const rootSpanOpName = (traceContext && traceContext.op) || 'transaction';
 
     if (!spanEntry || spans.length <= 0) {
       return {
+        op: rootSpanOpName,
         childSpans: {},
         traceStartTimestamp: event.startTimestamp,
         traceEndTimestamp: event.endTimestamp,
@@ -69,6 +72,7 @@ class TraceView extends React.Component<PropType> {
     // we reduce spans to become an object mapping span ids to their children
 
     const init: ParsedTraceType = {
+      op: rootSpanOpName,
       childSpans: {},
       traceStartTimestamp: event.startTimestamp,
       traceEndTimestamp: event.endTimestamp,

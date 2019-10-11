@@ -151,7 +151,7 @@ class SpanTree extends React.Component<PropType> {
       span_id: trace.rootSpanID,
       start_timestamp: trace.traceStartTimestamp,
       timestamp: trace.traceEndTimestamp,
-      op: 'transaction',
+      op: trace.op,
       data: {},
     };
 
