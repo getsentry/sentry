@@ -144,8 +144,8 @@ class NodeData(collections.MutableMapping):
         if (
             event_datetime is not None
             and timestamp_from_nodestore is not None
-            and datetime.fromtimestamp(timestamp_from_nodestore).replace(tzinfo=utc)
-            != event_datetime
+            and event_datetime.date()
+            != datetime.fromtimestamp(timestamp_from_nodestore).replace(tzinfo=utc).date()
         ):
             logger.error("Timestamp mismatch", extra=data)
             data = {}

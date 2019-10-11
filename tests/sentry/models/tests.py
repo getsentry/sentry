@@ -201,6 +201,21 @@ class EventNodeStoreTest(TestCase):
 
         assert event.get_tag("foo") == "bar"
 
+        # Binds an event from the same day with different timestamp
+        event = SnubaEvent(
+            {
+                "event_id": "a" * 32,
+                "group_id": processed_event.group_id,
+                "project_id": project.id,
+                "timestamp": (processed_event.datetime - timedelta(seconds=2)).isoformat(),
+            }
+        )
+
+        Event.objects.bind_nodes([event], "data")
+        assert event.datetime != processed_event.datetime
+        assert event.get_tag("foo") == "bar"
+
+        # Do not bind event from a different day
         event = SnubaEvent(
             {
                 "event_id": "a" * 32,
@@ -211,6 +226,5 @@ class EventNodeStoreTest(TestCase):
         )
 
         Event.objects.bind_nodes([event], "data")
-        # Did not bind data since timestamp doesn't match
         assert event.data == {}
         assert not event.get_tag("foo")
