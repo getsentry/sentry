@@ -734,7 +734,6 @@ class EventManager(object):
                     "model": Event.__name__,
                 },
             )
-            return event
 
         tagstore.delay_index_event_tags(
             organization_id=project.organization_id,
