@@ -1,7 +1,3 @@
-from __future__ import absolute_import, print_function
+from __future__ import absolute_import
 
-from sentry.plugins import register
-
-from .plugin import JavascriptPlugin
-
-register(JavascriptPlugin)
+default_app_config = "sentry.lang.javascript.apps.LangJavascriptAppConfig"
