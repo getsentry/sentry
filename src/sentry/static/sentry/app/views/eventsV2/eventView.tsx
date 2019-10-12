@@ -346,7 +346,7 @@ class EventView {
     });
   }
 
-  getFieldNames(): string[] {
+  getFields(): string[] {
     return this.fields.map(field => {
       return field.field;
     });
@@ -367,7 +367,7 @@ class EventView {
 
   getColumns(): TableColumn<React.ReactText>[] {
     return decodeColumnOrder({
-      field: this.getFieldNames(),
+      field: this.getFields(),
       fieldnames: this.getFieldTitles(),
     });
   }
@@ -430,12 +430,12 @@ class EventView {
       'sort',
     ]);
 
-    const fieldNames = this.getFieldNames();
+    const fields = this.getFields();
 
-    const defaultSort = fieldNames.length > 0 ? [fieldNames[0]] : undefined;
+    const defaultSort = fields.length > 0 ? [fields[0]] : undefined;
 
     const eventQuery: EventQuery = Object.assign(picked, {
-      field: [...new Set(fieldNames)],
+      field: [...new Set(fields)],
       sort: picked.sort ? picked.sort : defaultSort,
       per_page: DEFAULT_PER_PAGE,
       query: this.getQuery(query.query),

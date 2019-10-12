@@ -44,7 +44,7 @@ const ROUND_BRACKETS_PATTERN = /[\(\)]/;
  */
 export function hasAggregateField(eventView: EventView): boolean {
   return eventView
-    .getFieldNames()
+    .getFields()
     .some(
       field => AGGREGATE_ALIASES.includes(field as any) || field.match(AGGREGATE_PATTERN)
     );

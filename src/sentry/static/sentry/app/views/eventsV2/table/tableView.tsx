@@ -164,8 +164,7 @@ class TableView extends React.Component<TableViewProps> {
       return dataRow[column.key];
     }
     const hasLinkField = eventView.hasAutolinkField();
-    const forceLink =
-      !hasLinkField && eventView.getFieldNames().indexOf(column.field) === 0;
+    const forceLink = !hasLinkField && eventView.getFields().indexOf(column.field) === 0;
 
     const fieldRenderer = getFieldRenderer(String(column.key), tableData.meta, forceLink);
     return fieldRenderer(dataRow, {organization, location});
