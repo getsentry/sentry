@@ -340,7 +340,7 @@ class EventView {
     return this.fields.length > 0;
   }
 
-  getFieldTitles(): string[] {
+  getFieldNames(): string[] {
     return this.fields.map(field => {
       return field.title;
     });
@@ -368,7 +368,7 @@ class EventView {
   getColumns(): TableColumn<React.ReactText>[] {
     return decodeColumnOrder({
       field: this.getFields(),
-      fieldnames: this.getFieldTitles(),
+      fieldnames: this.getFieldNames(),
     });
   }
 
