@@ -156,8 +156,14 @@ class TableView extends React.Component<TableViewProps, TableState> {
       return column.name;
     }
 
-    // TODO(leedongwei): Deprecate eventView and use state.columnSortBy
+    const sortKey = eventView.getSortKey(column.field, tableData.meta);
+
+    if (sortKey === null) {
+      return <span>{column.name}</span>;
+    }
+
     const defaultSort = eventView.getDefaultSort() || eventView.fields[0].field;
+
     const align = ['integer', 'number', 'duration'].includes(column.type)
       ? 'right'
       : 'left';
@@ -166,7 +172,7 @@ class TableView extends React.Component<TableViewProps, TableState> {
       <SortLink
         align={align}
         defaultSort={defaultSort}
-        sortKey={`${column.key}`}
+        sortKey={sortKey}
         title={column.name}
         location={location}
       />
