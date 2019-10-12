@@ -30,8 +30,12 @@ class BlankJSONFieldTestModel(models.Model):
         app_label = "sentry"
 
 
+def default():
+    return {"x": 2}
+
+
 class CallableDefaultModel(models.Model):
-    json = JSONField(default=lambda: {"x": 2})
+    json = JSONField(default=default)
 
     class Meta:
         app_label = "sentry"
