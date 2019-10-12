@@ -127,8 +127,10 @@ def pytest_configure(config):
     patcher = mock.patch("socket.getfqdn", return_value="localhost")
     patcher.start()
 
-    if not settings.SOUTH_TESTS_MIGRATE:
-        settings.INSTALLED_APPS = tuple(i for i in settings.INSTALLED_APPS if i != "south")
+    if not settings.MIGRATIONS_TEST_MIGRATE:
+        # TODO: In Django 1.9 the value can be set to `None` rather than a nonexistent
+        # module.
+        settings.MIGRATION_MODULES["sentry"] = "sentry.migrations_not_used_in_tests"
 
     from sentry.runner.initializer import (
         bind_cache_to_option_store,
