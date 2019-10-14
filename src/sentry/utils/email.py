@@ -16,7 +16,7 @@ import lxml
 import toronado
 from django.conf import settings
 from django.core.mail import get_connection as _get_connection
-from django.core.mail import send_mail as _send_mail
+from django.core.mail import EmailMessage
 from django.core.mail import EmailMultiAlternatives
 from django.core.mail.backends.base import BaseEmailBackend
 from django.core.signing import BadSignature, Signer
@@ -450,8 +450,9 @@ def get_connection(fail_silently=False):
 def send_mail(subject, message, from_email, recipient_list, fail_silently=False, **kwargs):
     """
     Wrapper that forces sending mail through our connection.
+    Uses EmailMessage class which has more options than the simple send_mail
     """
-    return _send_mail(
+    email = EmailMessage(
         subject,
         message,
         from_email,
@@ -459,6 +460,7 @@ def send_mail(subject, message, from_email, recipient_list, fail_silently=False,
         connection=get_connection(fail_silently=fail_silently),
         **kwargs
     )
+    return email.send(fail_silently=fail_silently)
 
 
 def is_smtp_enabled(backend=None):

@@ -43,7 +43,7 @@ class SentryAppPublishRequestTest(APITestCase):
             message,
             "root@localhost",
             ["partners@sentry.io"],
-            fail_silently=False,
+            reply_to=[request.user.email],
         )
 
     @mock.patch("sentry.utils.email.send_mail")

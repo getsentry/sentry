@@ -3,6 +3,7 @@
  */
 
 import {t} from 'app/locale';
+import {Scope} from 'app/types';
 
 export const API_SCOPES = [
   'project:read',
@@ -13,11 +14,13 @@ export const API_SCOPES = [
   'team:write',
   'team:admin',
   'event:read',
+  'event:write',
   'event:admin',
   'org:read',
   'org:write',
   'org:admin',
   'member:read',
+  'member:write',
   'member:admin',
 ] as const;
 
@@ -62,10 +65,26 @@ export const MEMBER_ROLES = [
   },
 ];
 
+export type PermissionChoice = {
+  label: 'No Access' | 'Read' | 'Read & Write' | 'Admin';
+  scopes: Scope[];
+};
+type PermissionObj = {
+  resource: 'Project' | 'Team' | 'Release' | 'Event' | 'Organization' | 'Member';
+  help: string;
+  label?: string;
+  choices: {
+    'no-access': PermissionChoice;
+    read?: PermissionChoice;
+    write?: PermissionChoice;
+    admin: PermissionChoice;
+  };
+};
+
 // We expose permissions for Sentry Apps in a more resource-centric way.
 // All of the API_SCOPES from above should be represented in a more
 // User-friendly way here.
-export const SENTRY_APP_PERMISSIONS = [
+export const SENTRY_APP_PERMISSIONS: PermissionObj[] = [
   {
     resource: 'Project',
     help: 'Projects, Tags, Debug Files, and Feedback',
