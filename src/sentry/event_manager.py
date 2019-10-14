@@ -495,6 +495,7 @@ class EventManager(object):
                 extra={
                     "event_uuid": data["event_id"],
                     "project_id": project.id,
+                    "platform": data.get("platform"),
                     "model": Event.__name__,
                 },
             )
