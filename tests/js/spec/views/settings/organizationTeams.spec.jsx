@@ -1,7 +1,7 @@
 import React from 'react';
 
-import {initializeOrg} from 'app-test/helpers/initializeOrg';
-import {mount} from 'enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {openCreateTeamModal} from 'app/actionCreators/modal';
 import OrganizationTeams from 'app/views/settings/organizationTeams/organizationTeams';
 import recreateRoute from 'app/utils/recreateRoute';
@@ -29,7 +29,7 @@ describe('OrganizationTeams', function() {
     const teams = [TestStubs.Team()];
 
     const createWrapper = props =>
-      mount(
+      mountWithTheme(
         <OrganizationTeams
           params={{orgId: organization.slug, projectId: project.slug}}
           routes={[]}
@@ -78,7 +78,7 @@ describe('OrganizationTeams', function() {
       },
     });
     const createWrapper = props =>
-      mount(
+      mountWithTheme(
         <OrganizationTeams
           params={{orgId: organization.slug, projectId: project.slug}}
           routes={[]}

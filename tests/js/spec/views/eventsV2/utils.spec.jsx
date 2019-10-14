@@ -1,7 +1,7 @@
-import {mount} from 'enzyme';
+import {mount, mountWithTheme} from 'sentry-test/enzyme';
 import {browserHistory} from 'react-router';
 
-import {initializeOrg} from 'app-test/helpers/initializeOrg';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   getFieldRenderer,
   getAggregateAlias,
@@ -177,7 +177,7 @@ describe('getFieldRenderer', function() {
   it('can render project as an avatar', function() {
     const renderer = getFieldRenderer('project', {'project.name': 'string'});
     expect(renderer).toBeInstanceOf(Function);
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       renderer(data, {location, organization}),
       context.routerContext
     );

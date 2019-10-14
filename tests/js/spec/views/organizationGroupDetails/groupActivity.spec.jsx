@@ -1,8 +1,8 @@
 import React from 'react';
 
 import {GroupActivity} from 'app/views/organizationGroupDetails/groupActivity';
-import {initializeOrg} from 'app-test/helpers/initializeOrg';
-import {mount} from 'enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import ConfigStore from 'app/stores/configStore';
 import GroupStore from 'app/stores/groupStore';
 import NoteInput from 'app/components/activity/note/input';
@@ -36,7 +36,7 @@ describe('GroupActivity', function() {
   afterEach(function() {});
 
   it('renders a NoteInput', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <GroupActivity
         api={new MockApiClient()}
         group={group}
@@ -56,7 +56,7 @@ describe('GroupActivity', function() {
         url: '/issues/1337/comments/note-1/',
         method: 'DELETE',
       });
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <GroupActivity
           api={new MockApiClient()}
           group={group}

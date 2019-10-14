@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import TodoList from 'app/components/onboardingWizard/todoList';
 
@@ -8,7 +8,10 @@ describe('TodoList', function() {
 
   it('does not render `upload source maps` task with no projects', function() {
     const organization = TestStubs.Organization();
-    const wrapper = mount(<TodoList organization={organization} />, routerContext);
+    const wrapper = mountWithTheme(
+      <TodoList organization={organization} />,
+      routerContext
+    );
     expect(wrapper.find('h4[data-test-id=7]').exists()).toBe(false);
   });
 
@@ -16,7 +19,10 @@ describe('TodoList', function() {
     const organization = TestStubs.Organization({
       projects: [{platform: 'python'}],
     });
-    const wrapper = mount(<TodoList organization={organization} />, routerContext);
+    const wrapper = mountWithTheme(
+      <TodoList organization={organization} />,
+      routerContext
+    );
     expect(wrapper.find('h4[data-test-id=7]').exists()).toBe(false);
   });
 
@@ -24,7 +30,10 @@ describe('TodoList', function() {
     const organization = TestStubs.Organization({
       projects: [{platform: 'javascript-react'}],
     });
-    const wrapper = mount(<TodoList organization={organization} />, routerContext);
+    const wrapper = mountWithTheme(
+      <TodoList organization={organization} />,
+      routerContext
+    );
     expect(wrapper.find('h4[data-test-id=7]').text()).toBe('Upload source maps');
   });
 });

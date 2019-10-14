@@ -339,7 +339,7 @@ const appConfig = {
       // Aliasing this for getsentry's build, otherwise `less/select2` will not be able
       // to be resolved
       less: path.join(staticPrefix, 'less'),
-      'app-test': path.join(__dirname, 'tests', 'js'),
+      'sentry-test': path.join(__dirname, 'tests', 'js', 'sentry-test'),
       'sentry-locale': path.join(__dirname, 'src', 'sentry', 'locale'),
     },
 

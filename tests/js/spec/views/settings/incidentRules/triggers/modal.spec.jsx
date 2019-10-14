@@ -1,8 +1,8 @@
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import React from 'react';
 
-import {initializeOrg} from 'app-test/helpers/initializeOrg';
-import {selectByLabel} from 'app-test/helpers/select';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {selectByLabel} from 'sentry-test/select';
 import TriggersModal from 'app/views/settings/incidentRules/triggers/modal';
 
 describe('Incident Rules -> Triggers Modal', function() {
@@ -10,7 +10,7 @@ describe('Incident Rules -> Triggers Modal', function() {
   const rule = TestStubs.IncidentRule();
   let statsMock;
   const createWrapper = props =>
-    mount(
+    mountWithTheme(
       <TriggersModal
         organization={organization}
         projects={[project, TestStubs.Project({slug: 'project-2', id: '3'})]}

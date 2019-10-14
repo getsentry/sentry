@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import SuggestedOwners from 'app/components/group/suggestedOwners';
 import MemberListStore from 'app/stores/memberListStore';
 import {Client} from 'app/api';
@@ -49,7 +49,7 @@ describe('SuggestedOwners', function() {
       },
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <SuggestedOwners project={project} group={group} event={event} />,
       routerContext
     );
@@ -92,7 +92,7 @@ describe('SuggestedOwners', function() {
       },
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <SuggestedOwners project={project} group={TestStubs.Group()} event={event} />,
       routerContext
     );
@@ -119,7 +119,7 @@ describe('SuggestedOwners', function() {
       },
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <SuggestedOwners project={project} group={group} event={event} />,
       routerContext
     );

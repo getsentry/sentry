@@ -1,7 +1,7 @@
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import React from 'react';
 
-import {initializeOrg} from 'app-test/helpers/initializeOrg';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import IncidentRulesList from 'app/views/settings/incidentRules/list';
 
 describe('Incident Rules List', function() {
@@ -12,7 +12,7 @@ describe('Incident Rules List', function() {
       url: `/organizations/${organization.slug}/alert-rules/`,
       body: [rule],
     });
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <IncidentRulesList
         params={{orgId: organization.slug}}
         organization={organization}

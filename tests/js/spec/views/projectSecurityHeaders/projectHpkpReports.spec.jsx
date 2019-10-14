@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {shallow} from 'enzyme';
+import {shallow} from 'sentry-test/enzyme';
 import ProjectHpkpReports from 'app/views/settings/projectSecurityHeaders/hpkp';
 
 describe('ProjectHpkpReports', function() {

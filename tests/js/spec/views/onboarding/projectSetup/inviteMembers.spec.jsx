@@ -1,7 +1,7 @@
 import React from 'react';
 
-import {mount} from 'enzyme';
-import {selectByValue} from 'app-test/helpers/select';
+import {mountWithTheme} from 'sentry-test/enzyme';
+import {selectByValue} from 'sentry-test/select';
 import ConfigStore from 'app/stores/configStore';
 import InviteMembers from 'app/views/onboarding/projectSetup/inviteMembers';
 
@@ -21,7 +21,7 @@ describe('InviteMembers', function() {
   });
 
   it('displays an example email using their domain', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <InviteMembers project={project} organization={org} />,
       TestStubs.routerContext()
     );
@@ -38,7 +38,7 @@ describe('InviteMembers', function() {
       body: {email: 'rick@morty.com'},
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <InviteMembers project={project} organization={org} />,
       TestStubs.routerContext()
     );

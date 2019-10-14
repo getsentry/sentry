@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import IssueListSavedSearchSelector from 'app/views/issueList/savedSearchSelector';
 
@@ -26,7 +26,7 @@ describe('IssueListSavedSearchSelector', function() {
         isGlobal: false,
       },
     ];
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <IssueListSavedSearchSelector
         organization={organization}
         savedSearchList={savedSearchList}

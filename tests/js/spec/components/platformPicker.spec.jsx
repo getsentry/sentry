@@ -1,5 +1,5 @@
 import React from 'react';
-import {shallow, mount} from 'enzyme';
+import {shallow, mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import PlatformPicker from 'app/components/platformPicker';
@@ -71,7 +71,10 @@ describe('PlatformPicker', function() {
         ...baseProps,
       };
 
-      const wrapper = mount(<PlatformPicker {...props} />, TestStubs.routerContext());
+      const wrapper = mountWithTheme(
+        <PlatformPicker {...props} />,
+        TestStubs.routerContext()
+      );
 
       const testListLink = wrapper
         .find('ListLink')
@@ -90,7 +93,10 @@ describe('PlatformPicker', function() {
         setPlatform: jest.fn(),
       };
 
-      const wrapper = mount(<PlatformPicker {...props} />, TestStubs.routerContext());
+      const wrapper = mountWithTheme(
+        <PlatformPicker {...props} />,
+        TestStubs.routerContext()
+      );
 
       wrapper.find('ClearButton').simulate('click');
       expect(props.setPlatform).toHaveBeenCalledWith('');
