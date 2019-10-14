@@ -3,6 +3,7 @@ import {browserHistory} from 'react-router';
 
 import {Client} from 'app/api';
 import {mount} from 'enzyme';
+import {openInviteMembersModal} from 'app/actionCreators/modal';
 import ConfigStore from 'app/stores/configStore';
 import OrganizationMembers from 'app/views/settings/organizationMembers';
 import OrganizationsStore from 'app/stores/organizationsStore';
@@ -10,6 +11,9 @@ import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 
 jest.mock('app/api');
 jest.mock('app/actionCreators/indicator');
+jest.mock('app/actionCreators/modal', () => ({
+  openInviteMembersModal: jest.fn(),
+}));
 
 describe('OrganizationMembers', function() {
   const members = TestStubs.Members();
@@ -30,7 +34,7 @@ describe('OrganizationMembers', function() {
     location: {query: {}},
   };
   const organization = TestStubs.Organization({
-    access: ['member:admin', 'org:admin'],
+    access: ['member:admin', 'org:admin', 'member:write'],
     status: {
       id: 'active',
     },
@@ -85,6 +89,24 @@ describe('OrganizationMembers', function() {
     });
     browserHistory.push.mockReset();
     OrganizationsStore.load([organization]);
+  });
+
+  it('can invite member with access', function() {
+    const wrapper = mount(
+      <OrganizationMembers
+        {...defaultProps}
+        params={{
+          orgId: 'org-id',
+        }}
+      />,
+      TestStubs.routerContext([{organization}])
+    );
+
+    const inviteButton = wrapper.find('StyledButton[aria-label="Invite Members"]');
+    expect(inviteButton.prop('disabled')).toBe(false);
+    inviteButton.simulate('click');
+
+    expect(openInviteMembersModal).toHaveBeenCalled();
   });
 
   it('can remove a member', async function() {
@@ -282,7 +304,7 @@ describe('OrganizationMembers', function() {
           orgId: 'org-id',
         }}
       />,
-      TestStubs.routerContext()
+      TestStubs.routerContext([{organization}])
     );
 
     expect(inviteMock).not.toHaveBeenCalled();

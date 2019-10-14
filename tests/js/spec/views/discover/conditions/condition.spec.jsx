@@ -20,7 +20,8 @@ describe('Condition', function() {
       ];
       data.forEach(function(condition) {
         const wrapper = mount(
-          <Condition value={condition.value} onChange={jest.fn()} columns={[]} />
+          <Condition value={condition.value} onChange={jest.fn()} columns={[]} />,
+          TestStubs.routerContext()
         );
         expect(wrapper.text()).toBe(condition.expectedText);
       });
@@ -37,7 +38,8 @@ describe('Condition', function() {
         {name: 'error.type', type: 'string'},
       ];
       wrapper = mount(
-        <Condition value={[null, null, null]} onChange={jest.fn()} columns={columns} />
+        <Condition value={[null, null, null]} onChange={jest.fn()} columns={columns} />,
+        TestStubs.routerContext()
       );
     });
 
@@ -93,7 +95,12 @@ describe('Condition', function() {
       focusSpy = jest.spyOn(Condition.prototype, 'focus');
       const columns = [{name: 'col1', type: 'string'}, {name: 'col2', type: 'number'}];
       wrapper = mount(
-        <Condition value={[null, null, null]} onChange={onChangeMock} columns={columns} />
+        <Condition
+          value={[null, null, null]}
+          onChange={onChangeMock}
+          columns={columns}
+        />,
+        TestStubs.routerContext()
       );
     });
 
@@ -127,7 +134,12 @@ describe('Condition', function() {
     beforeEach(function() {
       const columns = [{name: 'col1', type: 'string'}, {name: 'col2', type: 'number'}];
       wrapper = mount(
-        <Condition value={[null, null, null]} onChange={onChangeMock} columns={columns} />
+        <Condition
+          value={[null, null, null]}
+          onChange={onChangeMock}
+          columns={columns}
+        />,
+        TestStubs.routerContext()
       );
     });
     it('valid condition', function() {
