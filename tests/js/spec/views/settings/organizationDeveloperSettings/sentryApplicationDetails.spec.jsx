@@ -422,7 +422,7 @@ describe('Sentry Application Details', function() {
         body: [],
       });
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
         TestStubs.routerContext()
       );
