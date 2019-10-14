@@ -852,6 +852,36 @@ class SnubaTestCase(BaseTestCase):
         )
 
 
+@pytest.mark.snuba
+@requires_snuba
+class OutcomesSnubaTest(TestCase):
+    def setUp(self):
+        super(OutcomesSnubaTest, self).setUp()
+        assert requests.post(settings.SENTRY_SNUBA + "/tests/outcomes/drop").status_code == 200
+
+    def __format(self, org_id, project_id, outcome, timestamp):
+        return {
+            "project_id": project_id,
+            "timestamp": timestamp.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+            "org_id": org_id,
+            "reason": None,
+            "key_id": 1,
+            "outcome": outcome,
+        }
+
+    def store_outcomes(self, org_id, project_id, outcome, timestamp, num_times):
+        outcomes = []
+        for _ in range(num_times):
+            outcomes.append(self.__format(org_id, project_id, outcome, timestamp))
+
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + "/tests/outcomes/insert", data=json.dumps(outcomes)
+            ).status_code
+            == 200
+        )
+
+
 class IntegrationRepositoryTestCase(APITestCase):
     def setUp(self):
         super(IntegrationRepositoryTestCase, self).setUp()
