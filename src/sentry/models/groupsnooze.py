@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from datetime import timedelta
 
 from django.db import models
+from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
 from sentry.db.models import (
@@ -13,6 +14,7 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
+from sentry.utils.cache import cache
 
 
 class GroupSnooze(Model):
@@ -48,6 +50,10 @@ class GroupSnooze(Model):
         app_label = "sentry"
 
     __repr__ = sane_repr("group_id")
+
+    @classmethod
+    def get_cache_key(cls, group_id):
+        return "groupsnooze_group_id:1:%s" % (group_id)
 
     def is_valid(self, group=None, test_rates=False):
         if group is None:
@@ -103,3 +109,17 @@ class GroupSnooze(Model):
             return False
 
         return True
+
+
+post_save.connect(
+    lambda instance, **kwargs: cache.set(
+        GroupSnooze.get_cache_key(instance.group_id), instance, 3600
+    ),
+    sender=GroupSnooze,
+    weak=False,
+)
+post_delete.connect(
+    lambda instance, **kwargs: cache.set(GroupSnooze.get_cache_key(instance.group_id), False, 3600),
+    sender=GroupSnooze,
+    weak=False,
+)
