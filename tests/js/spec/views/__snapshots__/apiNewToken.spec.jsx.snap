@@ -104,6 +104,10 @@ exports[`ApiNewToken render() renders 1`] = `
               "event:read",
             ],
             Array [
+              "event:write",
+              "event:write",
+            ],
+            Array [
               "event:admin",
               "event:admin",
             ],
@@ -122,6 +126,10 @@ exports[`ApiNewToken render() renders 1`] = `
             Array [
               "member:read",
               "member:read",
+            ],
+            Array [
+              "member:write",
+              "member:write",
             ],
             Array [
               "member:admin",
