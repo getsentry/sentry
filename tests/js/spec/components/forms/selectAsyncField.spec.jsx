@@ -20,7 +20,10 @@ describe('SelectAsyncField', function() {
   });
 
   it('supports autocomplete arguments from an integration', async function() {
-    const wrapper = mount(<SelectAsyncField url="/foo/bar/" name="fieldName" />);
+    const wrapper = mount(
+      <SelectAsyncField url="/foo/bar/" name="fieldName" />,
+      TestStubs.routerContext()
+    );
 
     wrapper.find('input[id="id-fieldName"]').simulate('change', {target: {value: 'baz'}});
 
@@ -44,7 +47,7 @@ describe('SelectAsyncField', function() {
       <Form onSubmit={submitMock}>
         <SelectAsyncField url="/foo/bar/" name="fieldName" />
       </Form>,
-      {}
+      TestStubs.routerContext()
     );
 
     wrapper.find('input[id="id-fieldName"]').simulate('change', {target: {value: 'baz'}});

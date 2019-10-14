@@ -153,8 +153,13 @@ register("store.projects-normalize-in-rust-percent-opt-in", default=0.0)  # unus
 # From 0.0 to 1.0: Randomly disable normalization code in interfaces when loading from db
 register("store.empty-interface-sample-rate", default=0.0)
 
+# if this is turned to `True` sentry will behave like relay would do with
+# regards to filter responses.
+register("store.lie-about-filter-status", default=False)
+
 # Check postgres for duplicates before saving an event
 register("store.check-duplicates", default=True, flags=FLAG_PRIORITIZE_DISK)
+
 
 # Symbolicator refactors
 # - Disabling minidump stackwalking in endpoints

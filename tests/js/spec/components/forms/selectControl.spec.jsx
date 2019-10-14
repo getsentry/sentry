@@ -59,7 +59,8 @@ describe('SelectControl', function() {
         choices={[[{id: 'foo', name: 'Foo'}, Foo], [{id: 'bar', name: 'Bar'}, Bar]]}
         name="fieldName"
         onChange={mock}
-      />
+      />,
+      TestStubs.routerContext()
     );
     expect(wrapper.find('StyledSelect').prop('options')).toEqual([
       {value: {id: 'foo', name: 'Foo'}, label: Foo},
