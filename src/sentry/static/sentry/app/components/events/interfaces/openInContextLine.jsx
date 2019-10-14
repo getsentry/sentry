@@ -32,21 +32,22 @@ class OpenInContextLine extends React.Component {
     return addQueryParamsToExistingUrl(component.schema.url, queryParams);
   }
 
-  recordInteraction(component) {
-    recordInteraction(component.sentryApp, 'sentry_app_component_interacted', {
-      componentType: component.type,
-    });
-  }
-
   renderOpenInLink = component => {
     const url = this.getUrl(component);
     const {slug} = component.sentryApp;
+
+    const recordStacktraceLinkInteraction = () => {
+      recordInteraction(component.sentryApp, 'sentry_app_component_interacted', {
+        componentType: 'stacktrace-link',
+      });
+    };
+
     return (
       <OpenInLink
         key={component.uuid}
         data-test-id={`stacktrace-link-${slug}`}
         href={url}
-        onClick={() => this.recordInteraction(component)}
+        onClick={recordStacktraceLinkInteraction}
       >
         <OpenInIcon slug={slug} />
         <OpenInName>{t(`${component.sentryApp.name}`)}</OpenInName>
