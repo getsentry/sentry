@@ -128,7 +128,7 @@ const decodeTags = (location: Location): Array<string> => {
 
 const decodeQuery = (location: Location): string | undefined => {
   if (!location.query || !location.query.query) {
-    return void 0;
+    return undefined;
   }
 
   const queryParameter = location.query.query;
@@ -138,7 +138,7 @@ const decodeQuery = (location: Location): string | undefined => {
       ? queryParameter[0]
       : isString(queryParameter)
       ? queryParameter
-      : void 0;
+      : undefined;
 
   return isString(query) ? query.trim() : undefined;
 };
@@ -156,15 +156,15 @@ const decodeScalar = (
   value: string[] | string | undefined | null
 ): string | undefined => {
   if (!value) {
-    return void 0;
+    return undefined;
   }
   const unwrapped =
     Array.isArray(value) && value.length > 0
       ? value[0]
       : isString(value)
       ? value
-      : void 0;
-  return isString(unwrapped) ? unwrapped : void 0;
+      : undefined;
+  return isString(unwrapped) ? unwrapped : undefined;
 };
 
 function isLegacySavedQuery(
@@ -430,7 +430,7 @@ class EventView {
 
   getDefaultSort(): string | undefined {
     if (this.sorts.length <= 0) {
-      return void 0;
+      return undefined;
     }
 
     return encodeSort(this.sorts[0]);
