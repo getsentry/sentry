@@ -12,7 +12,8 @@ describe('SelectField', function() {
         options={[{label: 'a', value: 'a'}, {label: 'b', value: 'b'}]}
         name="fieldName"
         value="a"
-      />
+      />,
+      TestStubs.routerContext()
     );
     expect(wrapper).toMatchSnapshot();
   });
@@ -59,7 +60,8 @@ describe('SelectField', function() {
           options={[{label: 'a', value: 'a'}, {label: 'b', value: 'b'}]}
           name="fieldName"
         />
-      </Form>
+      </Form>,
+      TestStubs.routerContext()
     );
     selectByValue(wrapper, 'a', {name: 'fieldName'});
     wrapper.find('Form').simulate('submit');
@@ -80,7 +82,8 @@ describe('SelectField', function() {
             options={[{label: 'a', value: 'a'}, {label: 'b', value: 'b'}]}
             name="fieldName"
           />
-        </Form>
+        </Form>,
+        TestStubs.routerContext()
       );
       selectByValue(wrapper, 'a', {name: 'fieldName'});
       wrapper.find('Form').simulate('submit');

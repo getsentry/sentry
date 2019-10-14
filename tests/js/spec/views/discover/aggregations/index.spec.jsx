@@ -11,7 +11,8 @@ describe('Aggregations', function() {
     const columns = [{name: 'col1', type: 'string'}, {name: 'col2', type: 'number'}];
     const value = [];
     wrapper = mount(
-      <Aggregations columns={columns} onChange={onChangeMock} value={value} />
+      <Aggregations columns={columns} onChange={onChangeMock} value={value} />,
+      TestStubs.routerContext()
     );
   });
   describe('render()', function() {

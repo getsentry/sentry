@@ -165,6 +165,10 @@ const StyledSelect = styled(React.forwardRef(forwardRef))`
     vertical-align: middle;
   }
 
+  .Select-menu-outer {
+    z-index: ${p => p.theme.zIndex.dropdown};
+  }
+
   ${({noMenu}) =>
     noMenu &&
     css`

@@ -25,7 +25,8 @@ describe('Aggregation', function() {
 
       data.forEach(async function(item) {
         const wrapper = mount(
-          <Aggregation value={item.value} onChange={jest.fn()} columns={[]} />
+          <Aggregation value={item.value} onChange={jest.fn()} columns={[]} />,
+          TestStubs.routerContext()
         );
         expect(wrapper.text()).toBe(item.expectedTextValue);
       });
@@ -41,7 +42,8 @@ describe('Aggregation', function() {
         {name: 'error.type', type: 'string'},
       ];
       wrapper = mount(
-        <Aggregation value={[null, null, null]} onChange={jest.fn()} columns={cols} />
+        <Aggregation value={[null, null, null]} onChange={jest.fn()} columns={cols} />,
+        TestStubs.routerContext()
       );
     });
 
@@ -76,7 +78,8 @@ describe('Aggregation', function() {
       focusSpy = jest.spyOn(Aggregation.prototype, 'focus');
 
       wrapper = mount(
-        <Aggregation value={[null, null, null]} onChange={jest.fn()} columns={cols} />
+        <Aggregation value={[null, null, null]} onChange={jest.fn()} columns={cols} />,
+        TestStubs.routerContext()
       );
     });
 

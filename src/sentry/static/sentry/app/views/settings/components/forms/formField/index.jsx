@@ -28,7 +28,7 @@ const FormFieldErrorReason = styled('div')`
   font-size: 12px;
   border-radius: 3px;
   box-shadow: 0 0 0 1px rgba(64, 11, 54, 0.15), 0 4px 20px 0 rgba(64, 11, 54, 0.36);
-  z-index: 10000;
+  z-index: ${p => p.theme.zIndex.errorMessage};
   animation: ${slideInUp} 200ms ease-in-out forwards;
 
   &:before,

@@ -228,6 +228,7 @@ const theme = {
   // Try to keep these ordered plz
   zIndex: {
     header: 1000,
+    errorMessage: 1000,
     dropdown: 1001,
 
     dropdownAutocomplete: {

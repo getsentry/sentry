@@ -11,8 +11,8 @@ describe('IssueListTagFilter', function() {
     MockApiClient.clearMockResponses();
     project = TestStubs.ProjectDetails();
 
-    tagValueLoader = (key, search) => {
-      return new Promise(function(resolve, reject) {
+    tagValueLoader = () => {
+      return new Promise(function(resolve) {
         const data = [
           {
             count: 0,
@@ -38,7 +38,8 @@ describe('IssueListTagFilter', function() {
         value=""
         onSelect={selectMock}
         tagValueLoader={tagValueLoader}
-      />
+      />,
+      TestStubs.routerContext()
     );
 
     wrapper.find('input').simulate('focus');
@@ -62,7 +63,8 @@ describe('IssueListTagFilter', function() {
         value=""
         onSelect={selectMock}
         tagValueLoader={tagValueLoader}
-      />
+      />,
+      TestStubs.routerContext()
     );
 
     wrapper.find('input').simulate('focus');

@@ -11,7 +11,8 @@ describe('Conditions', function() {
     const columns = [{name: 'col1', type: 'string'}, {name: 'col2', type: 'number'}];
     const value = [];
     wrapper = mount(
-      <Conditions columns={columns} onChange={onChangeMock} value={value} />
+      <Conditions columns={columns} onChange={onChangeMock} value={value} />,
+      TestStubs.routerContext()
     );
   });
   describe('render()', function() {
