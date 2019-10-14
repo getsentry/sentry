@@ -11,11 +11,17 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import TeamSelect from 'app/views/settings/components/teamSelect';
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
+import routeTitleGen from 'app/utils/routeTitle';
 
 class ProjectTeams extends AsyncView {
   getEndpoints() {
     const {orgId, projectId} = this.props.params;
     return [['projectTeams', `/projects/${orgId}/${projectId}/teams/`]];
+  }
+
+  getTitle() {
+    const {projectId} = this.props.params;
+    return routeTitleGen(t('Project Teams'), projectId, false);
   }
 
   canCreateTeam = () => {

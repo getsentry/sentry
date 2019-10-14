@@ -20,7 +20,9 @@ from uuid import uuid4
 
 from sentry.event_manager import EventManager
 from sentry.constants import SentryAppStatus
+from sentry.incidents.logic import create_alert_rule
 from sentry.incidents.models import (
+    AlertRuleThresholdType,
     Incident,
     IncidentGroup,
     IncidentProject,
@@ -59,8 +61,10 @@ from sentry.models import (
     EventAttachment,
     UserReport,
     PlatformExternalIssue,
+    SentryAppWebhookError,
 )
 from sentry.models.integrationfeature import Feature, IntegrationFeature
+from sentry.snuba.models import QueryAggregations
 from sentry.utils import json
 from sentry.utils.canonical import CanonicalKeyDict
 
@@ -824,6 +828,36 @@ class Factories(object):
         return integration_feature
 
     @staticmethod
+    def create_sentry_app_webhook_error(sentry_app=None, organization=None, event_type=None):
+        if not sentry_app:
+            sentry_app = Factories.create_sentry_app()
+        if not organization:
+            organization = Factories.create_organization()
+        if not event_type:
+            event_type = "issue.assigned"
+
+        request_body = {}
+        request_headers = {
+            "Request-ID": "c2f0ab98bd2a4f8eba6a67a91c43c7c8",
+            "Sentry-Hook-Signature": "656e2aad9b01327fcd9860deff06fe1f55ddca9655eba05aa92ff4f96f5c1a42",
+            "Content-Type": "application/json",
+            "Sentry-Hook-Resource": "issue",
+            "Sentry-Hook-Timestamp": "1569455694",
+        }
+        error = SentryAppWebhookError.objects.create(
+            sentry_app=sentry_app,
+            organization=organization,
+            request_body=request_body,
+            request_headers=request_headers,
+            event_type=event_type,
+            webhook_url="https://example.com/webhook",
+            response_body="This is an error",
+            response_code=400,
+        )
+
+        return error
+
+    @staticmethod
     def create_userreport(group, project=None, event_id=None, **kwargs):
         return UserReport.objects.create(
             group=group,
@@ -892,4 +926,37 @@ class Factories(object):
     def create_incident_activity(incident, type, comment=None, user=None):
         return IncidentActivity.objects.create(
             incident=incident, type=type, comment=comment, user=user
+        )
+
+    @staticmethod
+    def create_alert_rule(
+        organization,
+        projects,
+        name=None,
+        threshold_type=AlertRuleThresholdType.ABOVE,
+        query="level:error",
+        aggregation=QueryAggregations.TOTAL,
+        time_window=10,
+        alert_threshold=100,
+        resolve_threshold=10,
+        threshold_period=1,
+        include_all_projects=False,
+        excluded_projects=None,
+    ):
+        if not name:
+            name = petname.Generate(2, " ", letters=10).title()
+
+        return create_alert_rule(
+            organization,
+            projects,
+            name,
+            threshold_type,
+            query,
+            aggregation,
+            time_window,
+            alert_threshold,
+            resolve_threshold,
+            threshold_period,
+            include_all_projects=include_all_projects,
+            excluded_projects=excluded_projects,
         )

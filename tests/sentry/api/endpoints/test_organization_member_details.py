@@ -10,6 +10,7 @@ from mock import patch
 from sentry.models import (
     Authenticator,
     AuthProvider,
+    InviteStatus,
     Organization,
     OrganizationMember,
     OrganizationMemberTeam,
@@ -57,7 +58,7 @@ class UpdateOrganizationMemberTest(APITestCase):
         mock_send_invite_email.assert_called_once_with()
 
     @patch("sentry.models.OrganizationMember.send_invite_email")
-    def test_member_no_regenerate_invite_pending_member(self, mock_send_invite_email):
+    def test_member_cannot_regenerate_pending_invite(self, mock_send_invite_email):
         self.login_as(user=self.user)
 
         organization = self.create_organization(name="foo", owner=self.user)
@@ -83,7 +84,7 @@ class UpdateOrganizationMemberTest(APITestCase):
         assert not mock_send_invite_email.mock_calls
 
     @patch("sentry.models.OrganizationMember.send_invite_email")
-    def test_regenerate_invite_pending_member(self, mock_send_invite_email):
+    def test_admin_can_regenerate_pending_invite(self, mock_send_invite_email):
         self.login_as(user=self.user)
 
         organization = self.create_organization(name="foo", owner=self.user)
@@ -154,6 +155,44 @@ class UpdateOrganizationMemberTest(APITestCase):
         member = OrganizationMember.objects.get(pk=member.id)
         assert member.token_expired is False
 
+    @patch("sentry.models.OrganizationMember.send_invite_email")
+    def test_cannot_reinvite_unapproved_invite(self, mock_send_invite_email):
+        self.login_as(self.user)
+
+        organization = self.create_organization(name="foo", owner=self.user)
+        member = self.create_member(
+            organization=organization,
+            email="foo@example.com",
+            role="member",
+            invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
+        )
+
+        path = reverse(
+            "sentry-api-0-organization-member-details", args=[organization.slug, member.id]
+        )
+
+        resp = self.client.put(path, data={"reinvite": 1})
+        assert resp.status_code == 404
+
+    @patch("sentry.models.OrganizationMember.send_invite_email")
+    def test_cannot_regenerate_unapproved_invite(self, mock_send_invite_email):
+        self.login_as(user=self.user)
+
+        organization = self.create_organization(name="foo", owner=self.user)
+        member = self.create_member(
+            organization=organization,
+            email="foo@example.com",
+            role="member",
+            invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
+        )
+
+        path = reverse(
+            "sentry-api-0-organization-member-details", args=[organization.slug, member.id]
+        )
+
+        resp = self.client.put(path, data={"reinvite": 1, "regenerate": 1})
+        assert resp.status_code == 404
+
     def test_reinvite_sso_link(self):
         self.login_as(user=self.user)
 
@@ -174,19 +213,16 @@ class UpdateOrganizationMemberTest(APITestCase):
         assert resp.status_code == 200
         assert len(mail.outbox) == 1
 
-    # Normal users can not see invite link
-    def test_get_member_invite_link_for_admin(self):
+    def test_admin_can_get_invite_link(self):
         self.login_as(user=self.user)
 
         organization = self.create_organization(name="foo", owner=self.user)
 
-        # User that will be pending
-        pending_member_om = self.create_member(
+        pending_om = self.create_member(
             user=None, email="bar@example.com", organization=organization, role="member", teams=[]
         )
         path = reverse(
-            "sentry-api-0-organization-member-details",
-            args=[organization.slug, pending_member_om.id],
+            "sentry-api-0-organization-member-details", args=[organization.slug, pending_om.id]
         )
 
         self.login_as(self.user)
@@ -194,16 +230,14 @@ class UpdateOrganizationMemberTest(APITestCase):
         resp = self.client.get(path)
 
         assert resp.status_code == 200
-        assert resp.data["invite_link"] != ""
+        assert resp.data["invite_link"] == pending_om.get_invite_link()
 
-    # Normal users can not see invite link
-    def test_get_member_no_invite_link(self):
+    def test_member_cannot_get_invite_link(self):
         self.login_as(user=self.user)
 
         organization = self.create_organization(name="foo", owner=self.user)
 
-        # User that will be pending
-        pending_member_om = self.create_member(
+        pending_om = self.create_member(
             user=None, email="bar@example.com", organization=organization, role="member", teams=[]
         )
 
@@ -211,8 +245,7 @@ class UpdateOrganizationMemberTest(APITestCase):
         self.create_member(organization=organization, user=member, role="member")
 
         path = reverse(
-            "sentry-api-0-organization-member-details",
-            args=[organization.slug, pending_member_om.id],
+            "sentry-api-0-organization-member-details", args=[organization.slug, pending_om.id]
         )
 
         self.login_as(member)
@@ -684,6 +717,34 @@ class DeleteOrganizationMemberTest(APITestCase):
 
         assert OrganizationMember.objects.filter(id=member_om.id).exists()
 
+    def test_cannot_delete_unapproved_invite(self):
+        organization = self.create_organization(name="test", owner=self.user)
+        self.login_as(self.user)
+
+        join_request = self.create_member(
+            organization=organization,
+            email="test@gmail.com",
+            invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
+        )
+
+        invite_request = self.create_member(
+            organization=organization,
+            email="test2@gmail.com",
+            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+        )
+
+        path = reverse(
+            "sentry-api-0-organization-member-details", args=[organization.slug, join_request.id]
+        )
+        resp = self.client.delete(path)
+        assert resp.status_code == 404
+
+        path = reverse(
+            "sentry-api-0-organization-member-details", args=[organization.slug, invite_request.id]
+        )
+        resp = self.client.delete(path)
+        assert resp.status_code == 404
+
 
 class GetOrganizationMemberTest(APITestCase):
     def test_me(self):
@@ -723,5 +784,33 @@ class GetOrganizationMemberTest(APITestCase):
             "sentry-api-0-organization-member-details", args=[organization.slug, "trash"]
         )
         self.login_as(user)
+        resp = self.client.get(path)
+        assert resp.status_code == 404
+
+    def test_cannot_get_unapproved_invite(self):
+        organization = self.create_organization(name="test", owner=self.user)
+        self.login_as(self.user)
+
+        join_request = self.create_member(
+            organization=organization,
+            email="test@gmail.com",
+            invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
+        )
+
+        invite_request = self.create_member(
+            organization=organization,
+            email="test2@gmail.com",
+            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+        )
+
+        path = reverse(
+            "sentry-api-0-organization-member-details", args=[organization.slug, join_request.id]
+        )
+        resp = self.client.get(path)
+        assert resp.status_code == 404
+
+        path = reverse(
+            "sentry-api-0-organization-member-details", args=[organization.slug, invite_request.id]
+        )
         resp = self.client.get(path)
         assert resp.status_code == 404

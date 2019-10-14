@@ -2,22 +2,20 @@ from __future__ import absolute_import
 
 import responses
 import six
-from datetime import timedelta
 import copy
-
-from django.utils import timezone
 
 from sentry.integrations.exceptions import IntegrationError
 from sentry.models import ExternalIssue
 from sentry.utils.http import absolute_uri
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
+from sentry.testutils.helpers.datetime import iso_format, before_now
 from .testutils import GitLabTestCase
 
 
 class GitlabIssuesTest(GitLabTestCase):
     def setUp(self):
         super(GitlabIssuesTest, self).setUp()
-        min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+        min_ago = iso_format(before_now(minutes=1))
         event = self.store_event(
             data={
                 "event_id": "a" * 32,

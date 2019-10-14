@@ -14,7 +14,6 @@ from sentry import ratelimits
 
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
-from sentry.api.content_negotiation import ConditionalContentNegotiation
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import KNOWN_DIF_FORMATS
@@ -52,8 +51,6 @@ def upload_from_request(request, project):
 class DebugFilesEndpoint(ProjectEndpoint):
     doc_section = DocSection.PROJECTS
     permission_classes = (ProjectReleasePermission,)
-
-    content_negotiation_class = ConditionalContentNegotiation
 
     def download(self, debug_file_id, project):
         rate_limited = ratelimits.is_limited(

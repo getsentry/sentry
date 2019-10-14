@@ -119,6 +119,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             "clientId": self.published_app.application.client_id,
             "clientSecret": self.published_app.application.client_secret,
             "overview": self.published_app.overview,
+            "allowedOrigins": [],
             "schema": {},
             "owner": {"id": self.org.id, "slug": self.org.slug},
         }
@@ -187,7 +188,8 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             },
             format="json",
         )
-        assert response.status_code == 500
+        assert response.status_code == 400
+        assert response.data["detail"] == "Cannot update permissions on a published integration."
 
     def test_cannot_update_non_owned_apps(self):
         self.login_as(user=self.user)
@@ -301,6 +303,22 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         assert response.data == {
             "webhookUrl": ["webhookUrl required if alert rule action is enabled"]
         }
+
+    def test_set_allowed_origins(self):
+        self.login_as(user=self.user)
+        response = self.client.put(
+            self.url, data={"allowedOrigins": ["google.com", "sentry.io"]}, format="json"
+        )
+        assert response.status_code == 200
+        assert self.published_app.application.get_allowed_origins() == ["google.com", "sentry.io"]
+
+    def test_allowed_origins_with_star(self):
+        self.login_as(user=self.user)
+        response = self.client.put(
+            self.url, data={"allowedOrigins": ["*.google.com"]}, format="json"
+        )
+        assert response.status_code == 400
+        assert response.data == {"allowedOrigins": ["'*' not allowed in origin"]}
 
 
 class DeleteSentryAppDetailsTest(SentryAppDetailsTest):

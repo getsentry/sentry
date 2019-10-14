@@ -1,6 +1,5 @@
 import {Box, Flex} from 'grid-emotion';
 import {Link} from 'react-router';
-import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -25,6 +24,7 @@ import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import recreateRoute from 'app/utils/recreateRoute';
+import routeTitleGen from 'app/utils/routeTitle';
 
 class KeyRow extends React.Component {
   static propTypes = {
@@ -158,7 +158,7 @@ class KeyRow extends React.Component {
           </Flex>
         </PanelHeader>
 
-        <ClippedBox clipHeight={300} defaultClipped={true} btnText={t('Expand')}>
+        <ClippedBox clipHeight={300} defaultClipped btnText={t('Expand')}>
           <PanelBody>
             <ProjectKeyCredentials projectId={`${data.projectId}`} data={data} />
           </PanelBody>
@@ -180,7 +180,8 @@ export default class ProjectKeys extends AsyncView {
   };
 
   getTitle() {
-    return t('Client Keys');
+    const {projectId} = this.props.params;
+    return routeTitleGen(t('Client Keys'), projectId, false);
   }
 
   getEndpoints() {
@@ -274,39 +275,37 @@ export default class ProjectKeys extends AsyncView {
     const isEmpty = !this.state.keyList.length;
 
     return (
-      <DocumentTitle title={t('Client Keys')}>
-        <div className="ref-keys">
-          <SettingsPageHeader
-            title={t('Client Keys')}
-            action={
-              access.has('project:write') ? (
-                <Button
-                  onClick={this.handleCreateKey}
-                  size="small"
-                  priority="primary"
-                  icon="icon-circle-add"
-                >
-                  {t('Generate New Key')}
-                </Button>
-              ) : null
+      <div className="ref-keys">
+        <SettingsPageHeader
+          title={t('Client Keys')}
+          action={
+            access.has('project:write') ? (
+              <Button
+                onClick={this.handleCreateKey}
+                size="small"
+                priority="primary"
+                icon="icon-circle-add"
+              >
+                {t('Generate New Key')}
+              </Button>
+            ) : null
+          }
+        />
+        <TextBlock>
+          {tct(
+            `To send data to Sentry you will need to configure an SDK with a client key
+          (usually referred to as the [code:SENTRY_DSN] value). For more
+          information on integrating Sentry with your application take a look at our
+          [link:documentation].`,
+            {
+              link: <ExternalLink href="https://docs.sentry.io/" />,
+              code: <code />,
             }
-          />
-          <TextBlock>
-            {tct(
-              `To send data to Sentry you will need to configure an SDK with a client key
-            (usually referred to as the [code:SENTRY_DSN] value). For more
-            information on integrating Sentry with your application take a look at our
-            [link:documentation].`,
-              {
-                link: <ExternalLink href="https://docs.sentry.io/" />,
-                code: <code />,
-              }
-            )}
-          </TextBlock>
+          )}
+        </TextBlock>
 
-          {isEmpty ? this.renderEmpty() : this.renderResults()}
-        </div>
-      </DocumentTitle>
+        {isEmpty ? this.renderEmpty() : this.renderResults()}
+      </div>
     );
   }
 }

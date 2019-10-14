@@ -2,10 +2,10 @@
 
 exports[`ProjectTeamsSettings render() renders 1`] = `
 <SideEffect(DocumentTitle)
-  title="Ownership - Sentry"
+  title="Issue Owners - project-slug - Sentry"
 >
   <div>
-    <SettingsPageHeading
+    <StyledSettingsPageHeading
       noTitleStyles={false}
       title="Issue Owners"
     />

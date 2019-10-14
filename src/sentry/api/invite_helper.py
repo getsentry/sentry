@@ -1,28 +1,104 @@
 from __future__ import absolute_import
 
+from six.moves.urllib.parse import urlencode, parse_qsl
 from django.utils.crypto import constant_time_compare
 from django.core.urlresolvers import reverse
-from sentry.utils import metrics
 
+from sentry.utils import metrics
+from sentry.utils.audit import create_audit_entry
 from sentry.models import AuditLogEntryEvent, Authenticator, OrganizationMember
 from sentry.signals import member_joined
 
-PENDING_INVITE = "pending-invite"
+INVITE_COOKIE = "pending-invite"
 COOKIE_MAX_AGE = 60 * 60 * 24 * 7  # 7 days
 
 
+def add_invite_cookie(request, response, member_id, token):
+    url = reverse("sentry-accept-invite", args=[member_id, token])
+    response.set_cookie(
+        INVITE_COOKIE,
+        urlencode({"memberId": member_id, "token": token, "url": url}),
+        max_age=COOKIE_MAX_AGE,
+    )
+
+
+def remove_invite_cookie(request, response):
+    if INVITE_COOKIE in request.COOKIES:
+        response.delete_cookie(INVITE_COOKIE)
+
+
+def get_invite_cookie(request):
+    if INVITE_COOKIE not in request.COOKIES:
+        return None
+
+    # memberId should be coerced back to an integer
+    invite_data = dict(parse_qsl(request.COOKIES.get(INVITE_COOKIE)))
+    invite_data["memberId"] = int(invite_data["memberId"])
+
+    return invite_data
+
+
 class ApiInviteHelper(object):
-    def __init__(self, instance, request, member_id, token, logger=None):
+    @classmethod
+    def from_cookie_or_email(cls, request, organization, email, instance=None, logger=None):
+        """
+        Initializes the ApiInviteHelper by locating the pending organization
+        member via the currently set pending invite cookie, or via the passed
+        email if no cookie is currently set.
+        """
+        pending_invite = get_invite_cookie(request)
+
+        try:
+            if pending_invite is not None:
+                om = OrganizationMember.objects.get(
+                    id=pending_invite["memberId"], token=pending_invite["token"]
+                )
+            else:
+                om = OrganizationMember.objects.get(
+                    email=email, organization=organization, user=None
+                )
+        except OrganizationMember.DoesNotExist:
+            # Unable to locate the pending organization member. Cannot setup
+            # the invite helper.
+            return None
+
+        return cls(
+            request=request, member_id=om.id, token=om.token, instance=instance, logger=logger
+        )
+
+    @classmethod
+    def from_cookie(cls, request, instance=None, logger=None):
+        org_invite = get_invite_cookie(request)
+
+        if not org_invite:
+            return None
+
+        try:
+            return ApiInviteHelper(
+                request=request,
+                member_id=org_invite["memberId"],
+                token=org_invite["token"],
+                instance=instance,
+                logger=logger,
+            )
+        except OrganizationMember.DoesNotExist:
+            if logger:
+                logger.error("Invalid pending invite cookie", exc_info=True)
+            return None
+
+    def __init__(self, request, member_id, token, instance=None, logger=None):
         self.request = request
-        self.instance = instance
         self.member_id = member_id
         self.token = token
+        self.instance = instance
         self.logger = logger
-        self.om = self.get_organization_member()
+        self.om = self.organization_member
 
     def handle_success(self):
         member_joined.send_robust(
-            member=self.om, organization=self.om.organization, sender=self.instance
+            member=self.om,
+            organization=self.om.organization,
+            sender=self.instance if self.instance else self,
         )
 
     def handle_member_already_exists(self):
@@ -32,7 +108,8 @@ class ApiInviteHelper(object):
                 extra={"organization_id": self.om.organization.id, "user_id": self.request.user.id},
             )
 
-    def get_organization_member(self):
+    @property
+    def organization_member(self):
         return OrganizationMember.objects.select_related("organization").get(pk=self.member_id)
 
     @property
@@ -41,6 +118,8 @@ class ApiInviteHelper(object):
 
     @property
     def valid_token(self):
+        if self.token is None:
+            return False
         if self.om.token_expired:
             return False
         return constant_time_compare(self.om.token or self.om.legacy_token, self.token)
@@ -68,38 +147,34 @@ class ApiInviteHelper(object):
     def valid_request(self):
         return (
             self.member_pending
+            and self.om.invite_approved
             and self.valid_token
             and self.user_authenticated
             and not self.needs_2fa
         )
 
-    def accept_invite(self):
+    def accept_invite(self, user=None):
         om = self.om
+
+        if user is None:
+            user = self.request.user
 
         if self.member_already_exists:
             self.handle_member_already_exists()
             om.delete()
         else:
-            om.set_user(self.request.user)
+            om.set_user(user)
             om.save()
 
-            self.instance.create_audit_entry(
+            create_audit_entry(
                 self.request,
+                actor=user,
                 organization=om.organization,
                 target_object=om.id,
-                target_user=self.request.user,
+                target_user=user,
                 event=AuditLogEntryEvent.MEMBER_ACCEPT,
                 data=om.get_audit_log_data(),
             )
 
             self.handle_success()
             metrics.incr("organization.invite-accepted", sample_rate=1.0)
-
-    def add_invite_cookie(self, request, response, member_id, token):
-        url = reverse("sentry-accept-invite", args=[member_id, token])
-        response.set_cookie(PENDING_INVITE, url, max_age=COOKIE_MAX_AGE)
-
-    def remove_invite_cookie(self, response):
-        if PENDING_INVITE in self.request.COOKIES:
-            response.delete_cookie(PENDING_INVITE)
-        return response

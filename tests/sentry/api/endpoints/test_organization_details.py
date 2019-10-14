@@ -38,6 +38,7 @@ class OrganizationDetailsTest(APITestCase):
         assert response.data["onboardingTasks"] == []
         assert response.status_code == 200, response.content
         assert response.data["id"] == six.text_type(org.id)
+        assert response.data["role"] == "owner"
         assert len(response.data["teams"]) == 0
         assert len(response.data["projects"]) == 0
 
@@ -69,7 +70,7 @@ class OrganizationDetailsTest(APITestCase):
 
         # TODO(dcramer): we need to pare this down -- lots of duplicate queries
         # for membership data
-        with self.assertNumQueries(35, using="default"):
+        with self.assertNumQueries(36, using="default"):
             from django.db import connections
 
             response = self.client.get(url, format="json")
@@ -203,6 +204,7 @@ class OrganizationUpdateTest(APITestCase):
             "scrapeJavaScript": False,
             "defaultRole": "owner",
             "require2FA": True,
+            "allowJoinRequests": False,
         }
 
         # needed to set require2FA
@@ -231,6 +233,7 @@ class OrganizationUpdateTest(APITestCase):
         assert options.get("sentry:safe_fields") == ["email"]
         assert options.get("sentry:store_crash_reports") is True
         assert options.get("sentry:scrape_javascript") is False
+        assert options.get("sentry:join_requests") is False
 
         # log created
         log = AuditLogEntry.objects.get(organization=org)
@@ -249,6 +252,7 @@ class OrganizationUpdateTest(APITestCase):
         assert u"to {}".format(data["safeFields"]) in log.data["safeFields"]
         assert u"to {}".format(data["scrubIPAddresses"]) in log.data["scrubIPAddresses"]
         assert u"to {}".format(data["scrapeJavaScript"]) in log.data["scrapeJavaScript"]
+        assert u"to {}".format(data["allowJoinRequests"]) in log.data["allowJoinRequests"]
 
     def test_setting_trusted_relays_forbidden(self):
         org = self.create_organization(owner=self.user)

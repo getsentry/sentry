@@ -9,9 +9,11 @@ from six import BytesIO
 from django.core.urlresolvers import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 
+from sentry import eventstore
 from sentry.testutils import TransactionTestCase
 from sentry.models import File, ProjectDebugFile
-from sentry import eventstore
+from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.utils import json
 
 from tests.symbolicator import get_fixture_path, insta_snapshot_stacktrace_data
 
@@ -51,12 +53,13 @@ REAL_RESOLVING_EVENT_DATA = {
             }
         ]
     },
+    "timestamp": iso_format(before_now(seconds=1)),
 }
 
 
 class ResolvingIntegrationTestBase(object):
-    def get_event(self):
-        return eventstore.get_events(filter_keys={"project_id": [self.project.id]})[0]
+    def get_event(self, event_id):
+        return eventstore.get_event_by_id(self.project.id, event_id)
 
     def test_real_resolving(self):
         url = reverse(
@@ -89,7 +92,7 @@ class ResolvingIntegrationTestBase(object):
         resp = self._postWithHeader(dict(project=self.project.id, **REAL_RESOLVING_EVENT_DATA))
         assert resp.status_code == 200
 
-        event = self.get_event()
+        event = self.get_event(json.loads(resp.content)["id"])
 
         assert event.data["culprit"] == "main"
         insta_snapshot_stacktrace_data(self, event.data)
@@ -145,12 +148,13 @@ class ResolvingIntegrationTestBase(object):
                 "value": u"Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE",
             },
             "platform": "native",
+            "timestamp": iso_format(before_now(seconds=1)),
         }
 
         resp = self._postWithHeader(event_data)
         assert resp.status_code == 200
 
-        event = self.get_event()
+        event = self.get_event(json.loads(resp.content)["id"])
         assert event.data["culprit"] == "main"
         insta_snapshot_stacktrace_data(self, event.data)
 
@@ -160,7 +164,7 @@ class ResolvingIntegrationTestBase(object):
         resp = self._postWithHeader(dict(project=self.project.id, **REAL_RESOLVING_EVENT_DATA))
         assert resp.status_code == 200
 
-        event = self.get_event()
+        event = self.get_event(json.loads(resp.content)["id"])
         assert event.data["culprit"] == "unknown"
         insta_snapshot_stacktrace_data(self, event.data)
 
@@ -173,7 +177,7 @@ class ResolvingIntegrationTestBase(object):
         resp = self._postWithHeader(payload)
         assert resp.status_code == 200
 
-        event = self.get_event()
+        event = self.get_event(json.loads(resp.content)["id"])
         assert event.data["culprit"] == "unknown"
         insta_snapshot_stacktrace_data(self, event.data)
 

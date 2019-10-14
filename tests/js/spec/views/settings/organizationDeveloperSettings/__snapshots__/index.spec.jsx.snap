@@ -72,114 +72,96 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
     }
   >
     <SideEffect(DocumentTitle)
-      title="Sentry"
+      title="Developer Settings - org-slug - Sentry"
     >
       <DocumentTitle
-        title="Sentry"
+        title="Developer Settings - org-slug - Sentry"
       >
         <div>
-          <SettingsPageHeading
+          <StyledSettingsPageHeading
             noTitleStyles={false}
             title="Developer Settings"
           >
-            <Wrapper>
+            <SettingsPageHeading
+              className="css-1fvvoq2-StyledSettingsPageHeading e1uay4fd4"
+              noTitleStyles={false}
+              title="Developer Settings"
+            >
               <div
-                className="css-1r5ylk7-Wrapper e1kblvez2"
+                className="css-1fvvoq2-StyledSettingsPageHeading e1uay4fd4"
               >
-                <Flex
-                  align="center"
-                >
-                  <Base
-                    align="center"
-                    className="css-5ipae5"
+                <TitleAndActions>
+                  <div
+                    className="css-b5tiyd-TitleAndActions e1uay4fd0"
                   >
-                    <div
-                      className="css-5ipae5"
-                      is={null}
+                    <Title
+                      styled={false}
                     >
-                      <Title
-                        styled={false}
+                      <div
+                        className="css-2kvddg-Title e1uay4fd1"
                       >
-                        <Base
-                          className="css-1ky52ze-Title e1kblvez0"
-                        >
-                          <div
-                            className="css-1ky52ze-Title e1kblvez0"
-                            is={null}
+                        <HeaderTitle>
+                          <h4
+                            className="css-1w8ttcn-HeaderTitle eqkydle2"
                           >
-                            <HeaderTitle>
-                              <h4
-                                className="css-1w8ttcn-HeaderTitle e6lvex72"
-                              >
-                                Developer Settings
-                              </h4>
-                            </HeaderTitle>
-                          </div>
-                        </Base>
-                      </Title>
-                    </div>
-                  </Base>
-                </Flex>
+                            Developer Settings
+                          </h4>
+                        </HeaderTitle>
+                      </div>
+                    </Title>
+                  </div>
+                </TitleAndActions>
               </div>
-            </Wrapper>
-          </SettingsPageHeading>
+            </SettingsPageHeading>
+          </StyledSettingsPageHeading>
           <AlertLink
+            href="https://docs.sentry.io/workflow/integrations/integration-platform/"
             priority="warning"
-            to="https://docs.sentry.io/workflow/integrations/integration-platform/"
           >
             <StyledLink
+              href="https://docs.sentry.io/workflow/integrations/integration-platform/"
               priority="warning"
-              to="https://docs.sentry.io/workflow/integrations/integration-platform/"
             >
               <Link
                 className="css-1925ci1-StyledLink e1fthm6j0"
+                href="https://docs.sentry.io/workflow/integrations/integration-platform/"
                 priority="warning"
-                to="https://docs.sentry.io/workflow/integrations/integration-platform/"
               >
-                <Link
+                <a
                   className="css-1925ci1-StyledLink e1fthm6j0"
-                  onlyActiveOnIndex={false}
+                  href="https://docs.sentry.io/workflow/integrations/integration-platform/"
                   priority="warning"
-                  style={Object {}}
-                  to="https://docs.sentry.io/workflow/integrations/integration-platform/"
                 >
-                  <a
-                    className="css-1925ci1-StyledLink e1fthm6j0"
-                    onClick={[Function]}
-                    priority="warning"
-                    style={Object {}}
+                  <AlertLinkText>
+                    <div
+                      className="css-19z7wog-AlertLinkText e1fthm6j1"
+                    >
+                      Have questions about the Integration Platform? Learn more about it in our docs.
+                    </div>
+                  </AlertLinkText>
+                  <InlineSvg
+                    size="1em"
+                    src="icon-chevron-right"
                   >
-                    <AlertLinkText>
-                      <div
-                        className="css-19z7wog-AlertLinkText e1fthm6j1"
-                      >
-                        Have questions about the Integration Platform? Learn more about it in our docs.
-                      </div>
-                    </AlertLinkText>
-                    <InlineSvg
+                    <ForwardRef
+                      className="css-qmmkxg-InlineSvg enyz4ql0"
                       size="1em"
                       src="icon-chevron-right"
                     >
-                      <ForwardRef
+                      <svg
                         className="css-qmmkxg-InlineSvg enyz4ql0"
-                        size="1em"
-                        src="icon-chevron-right"
+                        height="1em"
+                        viewBox={Object {}}
+                        width="1em"
                       >
-                        <svg
-                          className="css-qmmkxg-InlineSvg enyz4ql0"
-                          height="1em"
-                          viewBox={Object {}}
-                          width="1em"
-                        >
-                          <use
-                            href="#test"
-                            xlinkHref="#test"
-                          />
-                        </svg>
-                      </ForwardRef>
-                    </InlineSvg>
-                  </a>
-                </Link>
+                        <use
+                          href="#test"
+                          xlinkHref="#test"
+                        />
+                      </svg>
+                    </ForwardRef>
+                  </InlineSvg>
+                </a>
               </Link>
             </StyledLink>
           </AlertLink>
@@ -336,29 +318,24 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                     className="css-a4ya23-textStyles"
                   >
                     <EmptyMessage>
-                      <Wrapper
-                        data-test-id="empty-message"
+                      <Component
+                        className="css-11r4vxm-EmptyMessage e1h3yfdx4"
                       >
                         <div
-                          className="css-ev9qm0-Wrapper eh488yo0"
+                          className="css-11r4vxm-EmptyMessage e1h3yfdx4"
                           data-test-id="empty-message"
                         >
                           <Description
                             noMargin={true}
                           >
-                            <Component
-                              className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
-                              noMargin={true}
+                            <div
+                              className="css-pwn5v-TextBlock-Description-MarginStyles e1h3yfdx0"
                             >
-                              <div
-                                className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
-                              >
-                                No public integrations have been created yet.
-                              </div>
-                            </Component>
+                              No public integrations have been created yet.
+                            </div>
                           </Description>
                         </div>
-                      </Wrapper>
+                      </Component>
                     </EmptyMessage>
                   </div>
                 </PanelBody>
@@ -518,29 +495,24 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                     className="css-a4ya23-textStyles"
                   >
                     <EmptyMessage>
-                      <Wrapper
-                        data-test-id="empty-message"
+                      <Component
+                        className="css-11r4vxm-EmptyMessage e1h3yfdx4"
                       >
                         <div
-                          className="css-ev9qm0-Wrapper eh488yo0"
+                          className="css-11r4vxm-EmptyMessage e1h3yfdx4"
                           data-test-id="empty-message"
                         >
                           <Description
                             noMargin={true}
                           >
-                            <Component
-                              className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
-                              noMargin={true}
+                            <div
+                              className="css-pwn5v-TextBlock-Description-MarginStyles e1h3yfdx0"
                             >
-                              <div
-                                className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
-                              >
-                                No internal integrations have been created yet.
-                              </div>
-                            </Component>
+                              No internal integrations have been created yet.
+                            </div>
                           </Description>
                         </div>
-                      </Wrapper>
+                      </Component>
                     </EmptyMessage>
                   </div>
                 </PanelBody>

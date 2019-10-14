@@ -22,7 +22,8 @@ storiesOf('UI|Modals', module).add(
                 <Button onClick={closeModal}>Close</Button>
               </Body>
             </div>
-          ))}
+          ))
+        }
       >
         Open
       </Button>

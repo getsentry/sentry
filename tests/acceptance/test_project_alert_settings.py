@@ -38,6 +38,11 @@ class ProjectAlertSettingsTest(AcceptanceTestCase):
         self.browser.click(".ref-plugin-enable-webhooks")
         self.browser.wait_until(".ref-plugin-config-webhooks")
         self.browser.wait_until_not(".loading-indicator")
+
+        # flakey Toast animation being snapshotted by percy
+        # click it to clear it before snapshotting
+        self.browser.click_when_visible('[data-test-id="toast-success"]')
+        self.browser.wait_until_not('[data-test-id="toast-success"]')
         self.browser.snapshot("project alert settings webhooks enabled")
 
     def test_rules_load(self):

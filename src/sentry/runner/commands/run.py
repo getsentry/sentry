@@ -354,3 +354,94 @@ def query_subscription_consumer(**options):
     signal.signal(signal.SIGINT, handler)
 
     subscriber.run()
+
+
+def batching_kafka_options(group):
+    """
+    Expose batching_kafka_consumer options as CLI args.
+
+    TODO(markus): Probably want to have this as part of batching_kafka_consumer
+    as this is duplicated effort between Snuba and Sentry.
+    """
+
+    def inner(f):
+        f = click.option(
+            "--consumer-group",
+            "group_id",
+            default=group,
+            help="Kafka consumer group for the outcomes consumer. ",
+        )(f)
+
+        f = click.option(
+            "--max-batch-size",
+            "max_batch_size",
+            default=100,
+            type=int,
+            help="How many messages to process before committing offsets.",
+        )(f)
+
+        f = click.option(
+            "--max-batch-time-ms",
+            "max_batch_time",
+            default=1000,
+            type=int,
+            help="How long to batch for before committing offsets.",
+        )(f)
+
+        f = click.option(
+            "--auto-offset-reset",
+            "auto_offset_reset",
+            default="latest",
+            type=click.Choice(["earliest", "latest", "error"]),
+            help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
+        )(f)
+
+        return f
+
+    return inner
+
+
+@run.command("ingest-consumer")
+@log_options()
+@click.option(
+    "--consumer-type",
+    default=None,
+    required=True,
+    help="Specify which type of consumer to create, i.e. from which topic to consume messages.",
+    type=click.Choice(["events", "transactions", "attachments"]),
+)
+@batching_kafka_options("ingest-consumer")
+@configuration
+def ingest_consumer(consumer_type, **options):
+    """
+    Runs an "ingest consumer" task.
+
+    The "ingest consumer" tasks read events from a kafka topic (coming from Relay) and schedules
+    process event celery tasks for them
+    """
+    from sentry.ingest.ingest_consumer import ConsumerType, get_ingest_consumer
+
+    if consumer_type == "events":
+        consumer_type = ConsumerType.Events
+    elif consumer_type == "transactions":
+        consumer_type = ConsumerType.Transactions
+    elif consumer_type == "attachments":
+        consumer_type = ConsumerType.Attachments
+
+    get_ingest_consumer(consumer_type=consumer_type, **options).run()
+
+
+@run.command("outcomes-consumer")
+@log_options()
+@batching_kafka_options("outcomes-consumer")
+@configuration
+def outcome_consumer(**options):
+    """
+    Runs an "outcomes consumer" task.
+
+    The "outcomes consumer" tasks read outcomes from a kafka topic and sends
+    signals for some of them.
+    """
+    from sentry.ingest.outcomes_consumer import get_outcomes_consumer
+
+    get_outcomes_consumer(**options).run()

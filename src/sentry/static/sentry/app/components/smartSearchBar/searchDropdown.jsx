@@ -80,7 +80,7 @@ class SearchDropdown extends React.PureComponent {
       <StyledSearchDropdown className={className}>
         {loading ? (
           <LoadingWrapper key="loading" data-test-id="search-autocomplete-loading">
-            <LoadingIndicator mini={true} />
+            <LoadingIndicator mini />
           </LoadingWrapper>
         ) : (
           <SearchItemsList>

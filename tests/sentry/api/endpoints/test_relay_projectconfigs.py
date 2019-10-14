@@ -80,7 +80,12 @@ class RelayQueryGetProjectConfigTest(APITestCase):
 
         cfg = safe.get_path(result, "configs", six.text_type(self.project.id))
         assert safe.get_path(cfg, "disabled") is False
-        assert safe.get_path(cfg, "publicKeys", self.projectkey.public_key) is True
+
+        public_key, = cfg["publicKeys"]
+        assert public_key["publicKey"] == self.projectkey.public_key
+        assert public_key["isEnabled"]
+        assert "quotas" in public_key
+
         assert safe.get_path(cfg, "slug") == self.project.slug
         last_change = safe.get_path(cfg, "lastChange")
         assert self._date_regex.match(last_change) is not None
@@ -140,7 +145,11 @@ class RelayQueryGetProjectConfigTest(APITestCase):
 
         cfg = safe.get_path(result, "configs", six.text_type(self.project.id))
         assert safe.get_path(cfg, "disabled") is False
-        assert safe.get_path(cfg, "publicKeys", self.projectkey.public_key) is True
+        public_key, = cfg["publicKeys"]
+        assert public_key["publicKey"] == self.projectkey.public_key
+        assert public_key["isEnabled"]
+        assert "quotas" not in public_key
+
         assert safe.get_path(cfg, "slug") == self.project.slug
         last_change = safe.get_path(cfg, "lastChange")
         assert self._date_regex.match(last_change) is not None

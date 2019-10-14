@@ -54,13 +54,13 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
     }
   >
     <SideEffect(DocumentTitle)
-      title="Organization Name Projects - Sentry"
+      title="Projects - org-slug - Sentry"
     >
       <DocumentTitle
-        title="Organization Name Projects - Sentry"
+        title="Projects - org-slug - Sentry"
       >
         <div>
-          <SettingsPageHeading
+          <StyledSettingsPageHeading
             action={
               <Button
                 align="center"
@@ -76,56 +76,71 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
             noTitleStyles={false}
             title="Projects"
           >
-            <Wrapper>
-              <div
-                className="css-1r5ylk7-Wrapper e1kblvez2"
-              >
-                <Flex
+            <SettingsPageHeading
+              action={
+                <Button
                   align="center"
+                  disabled={false}
+                  icon="icon-circle-add"
+                  priority="primary"
+                  size="small"
+                  to="/organizations/org-slug/projects/new/"
                 >
-                  <Base
-                    align="center"
-                    className="css-5ipae5"
+                  Create Project
+                </Button>
+              }
+              className="css-1fvvoq2-StyledSettingsPageHeading e1uay4fd4"
+              noTitleStyles={false}
+              title="Projects"
+            >
+              <div
+                className="css-1fvvoq2-StyledSettingsPageHeading e1uay4fd4"
+              >
+                <TitleAndActions>
+                  <div
+                    className="css-b5tiyd-TitleAndActions e1uay4fd0"
                   >
-                    <div
-                      className="css-5ipae5"
-                      is={null}
+                    <Title
+                      styled={false}
                     >
-                      <Title
-                        styled={false}
+                      <div
+                        className="css-2kvddg-Title e1uay4fd1"
                       >
-                        <Base
-                          className="css-1ky52ze-Title e1kblvez0"
-                        >
-                          <div
-                            className="css-1ky52ze-Title e1kblvez0"
-                            is={null}
+                        <HeaderTitle>
+                          <h4
+                            className="css-1w8ttcn-HeaderTitle eqkydle2"
                           >
-                            <HeaderTitle>
-                              <h4
-                                className="css-1w8ttcn-HeaderTitle e6lvex72"
-                              >
-                                Projects
-                              </h4>
-                            </HeaderTitle>
-                          </div>
-                        </Base>
-                      </Title>
-                      <Action>
-                        <div
-                          className="css-18luhfc-Action e1kblvez1"
+                            Projects
+                          </h4>
+                        </HeaderTitle>
+                      </div>
+                    </Title>
+                    <Action>
+                      <div
+                        className="css-18luhfc-Action e1uay4fd3"
+                      >
+                        <Button
+                          align="center"
+                          disabled={false}
+                          icon="icon-circle-add"
+                          priority="primary"
+                          size="small"
+                          to="/organizations/org-slug/projects/new/"
                         >
-                          <Button
-                            align="center"
+                          <StyledButton
+                            aria-disabled={false}
+                            aria-label="Create Project"
                             disabled={false}
-                            icon="icon-circle-add"
+                            onClick={[Function]}
                             priority="primary"
+                            role="button"
                             size="small"
                             to="/organizations/org-slug/projects/new/"
                           >
-                            <StyledButton
+                            <ForwardRef
                               aria-disabled={false}
                               aria-label="Create Project"
+                              className="css-1lua553-StyledButton-getColors edwq9my0"
                               disabled={false}
                               onClick={[Function]}
                               priority="primary"
@@ -133,106 +148,94 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                               size="small"
                               to="/organizations/org-slug/projects/new/"
                             >
-                              <ForwardRef
+                              <Link
                                 aria-disabled={false}
                                 aria-label="Create Project"
                                 className="css-1lua553-StyledButton-getColors edwq9my0"
-                                disabled={false}
                                 onClick={[Function]}
-                                priority="primary"
+                                onlyActiveOnIndex={false}
                                 role="button"
                                 size="small"
+                                style={Object {}}
                                 to="/organizations/org-slug/projects/new/"
                               >
-                                <Link
+                                <a
                                   aria-disabled={false}
                                   aria-label="Create Project"
                                   className="css-1lua553-StyledButton-getColors edwq9my0"
                                   onClick={[Function]}
-                                  onlyActiveOnIndex={false}
                                   role="button"
                                   size="small"
                                   style={Object {}}
-                                  to="/organizations/org-slug/projects/new/"
                                 >
-                                  <a
-                                    aria-disabled={false}
-                                    aria-label="Create Project"
-                                    className="css-1lua553-StyledButton-getColors edwq9my0"
-                                    onClick={[Function]}
-                                    role="button"
+                                  <ButtonLabel
+                                    align="center"
+                                    priority="primary"
                                     size="small"
-                                    style={Object {}}
                                   >
-                                    <ButtonLabel
+                                    <Component
                                       align="center"
+                                      className="css-1h693nz-ButtonLabel edwq9my1"
                                       priority="primary"
                                       size="small"
                                     >
-                                      <Component
-                                        align="center"
+                                      <span
                                         className="css-1h693nz-ButtonLabel edwq9my1"
-                                        priority="primary"
-                                        size="small"
                                       >
-                                        <span
-                                          className="css-1h693nz-ButtonLabel edwq9my1"
+                                        <Icon
+                                          hasChildren={true}
+                                          size="small"
                                         >
-                                          <Icon
+                                          <Component
+                                            className="css-1vdnsie-Icon edwq9my2"
                                             hasChildren={true}
                                             size="small"
                                           >
-                                            <Component
+                                            <span
                                               className="css-1vdnsie-Icon edwq9my2"
-                                              hasChildren={true}
                                               size="small"
                                             >
-                                              <span
-                                                className="css-1vdnsie-Icon edwq9my2"
-                                                size="small"
+                                              <StyledInlineSvg
+                                                size="12px"
+                                                src="icon-circle-add"
                                               >
-                                                <StyledInlineSvg
+                                                <ForwardRef
+                                                  className="css-52zz4j-InlineSvg-StyledInlineSvg edwq9my3"
                                                   size="12px"
                                                   src="icon-circle-add"
                                                 >
-                                                  <ForwardRef
+                                                  <svg
                                                     className="css-52zz4j-InlineSvg-StyledInlineSvg edwq9my3"
-                                                    size="12px"
-                                                    src="icon-circle-add"
+                                                    height="12px"
+                                                    viewBox={Object {}}
+                                                    width="12px"
                                                   >
-                                                    <svg
-                                                      className="css-52zz4j-InlineSvg-StyledInlineSvg edwq9my3"
-                                                      height="12px"
-                                                      viewBox={Object {}}
-                                                      width="12px"
-                                                    >
-                                                      <use
-                                                        href="#test"
-                                                        xlinkHref="#test"
-                                                      />
-                                                    </svg>
-                                                  </ForwardRef>
-                                                </StyledInlineSvg>
-                                              </span>
-                                            </Component>
-                                          </Icon>
-                                          Create Project
-                                        </span>
-                                      </Component>
-                                    </ButtonLabel>
-                                  </a>
-                                </Link>
-                              </ForwardRef>
-                            </StyledButton>
-                          </Button>
-                        </div>
-                      </Action>
-                    </div>
-                  </Base>
-                </Flex>
+                                                    <use
+                                                      href="#test"
+                                                      xlinkHref="#test"
+                                                    />
+                                                  </svg>
+                                                </ForwardRef>
+                                              </StyledInlineSvg>
+                                            </span>
+                                          </Component>
+                                        </Icon>
+                                        Create Project
+                                      </span>
+                                    </Component>
+                                  </ButtonLabel>
+                                </a>
+                              </Link>
+                            </ForwardRef>
+                          </StyledButton>
+                        </Button>
+                      </div>
+                    </Action>
+                  </div>
+                </TitleAndActions>
               </div>
-            </Wrapper>
-          </SettingsPageHeading>
+            </SettingsPageHeading>
+          </StyledSettingsPageHeading>
           <Panel>
             <Component
               className="css-10qfvek-Panel e119nu470"

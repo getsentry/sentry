@@ -7,12 +7,13 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
 class GroupEventsTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super(GroupEventsTest, self).setUp()
-        self.min_ago = timezone.now() - timedelta(minutes=1)
+        self.min_ago = before_now(minutes=1)
 
     def test_simple(self):
         self.login_as(user=self.user)
@@ -146,7 +147,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
             events[name] = self.store_event(
                 data={
                     "fingerprint": ["put-me-in-group1"],
-                    "timestamp": self.min_ago.isoformat()[:19],
+                    "timestamp": iso_format(self.min_ago),
                     "environment": name,
                 },
                 project_id=self.project.id,
@@ -268,7 +269,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
                 "fingerprint": ["group_1"],
                 "event_id": "a" * 32,
                 "message": "foo",
-                "timestamp": self.min_ago.isoformat()[:19],
+                "timestamp": iso_format(self.min_ago),
             },
             project_id=self.project.id,
         )
@@ -277,7 +278,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
                 "fingerprint": ["group_2"],
                 "event_id": "b" * 32,
                 "message": "group2",
-                "timestamp": self.min_ago.isoformat()[:19],
+                "timestamp": iso_format(self.min_ago),
             },
             project_id=self.project.id,
         )
@@ -290,15 +291,3 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
             assert sorted(map(lambda x: x["eventID"], response.data)) == sorted(
                 [six.text_type(event.event_id)]
             )
-
-    def test_boolean_feature_flag_failure(self):
-        self.login_as(user=self.user)
-        group = self.create_group()
-
-        for query in ["title:hi OR title:hello", "title:hi AND title:hello"]:
-            url = u"/api/0/issues/{}/events/?query={}".format(group.id, query)
-            response = self.client.get(url, format="json")
-            assert response.status_code == 400
-            assert response.data == {
-                "detail": "Boolean search operator OR and AND not allowed in this search."
-            }

@@ -46,7 +46,7 @@ class GroupActivityItem extends React.Component {
           author,
           version: (
             <CommitLink
-              inline={true}
+              inline
               commitId={data.commit && data.commit.id}
               repository={data.commit && data.commit.repository}
             />
@@ -57,7 +57,7 @@ class GroupActivityItem extends React.Component {
           author,
           version: (
             <PullRequestLink
-              inline={true}
+              inline
               pullRequest={data.pullRequest}
               repository={data.pullRequest && data.pullRequest.repository}
             />

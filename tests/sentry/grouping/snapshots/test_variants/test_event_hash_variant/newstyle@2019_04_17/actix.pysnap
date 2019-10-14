@@ -1,10 +1,10 @@
 ---
-created: '2019-04-26T19:30:17.379327Z'
+created: '2019-09-26T13:46:40.468198Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: '3abe7858e37e8eb76c484efa7c7ba121'
+  hash: '703d3dd9cb763e3f5037f659d27da947'
   component:
     app*
       exception*
@@ -15,27 +15,27 @@ app:
           frame*
             function*
               u'__pthread_body'
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
               u'thread.rs'
             function*
               u'std::sys::unix::thread::Thread::new::thread_start'
-          frame*
+          frame (marked out of app by grouping enhancement rule (family:native function:alloc::* -app))
             filename*
               u'boxed.rs'
             function*
-              u'<F as alloc::boxed::FnBox<T>>::call_box'
-          frame (non app frame)
+              u'alloc::boxed::FnBox<T>::call_box'
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
               u'mod.rs'
             function*
               u'std::thread::Builder::spawn_unchecked::{{closure}}'
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
               u'panic.rs'
             function*
               u'std::panic::catch_unwind'
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
               u'panicking.rs'
             function*
@@ -45,22 +45,22 @@ app:
               u'lib.rs'
             function*
               u'___rust_maybe_catch_panic'
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
               u'panicking.rs'
             function*
               u'std::panicking::try::do_call'
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
               u'panic.rs'
             function*
-              u'<std::panic::AssertUnwindSafe<T> as core::ops::function::FnOnce<T>>::call_once'
-          frame (non app frame)
+              u'std::panic::AssertUnwindSafe<T>::call_once'
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
               u'mod.rs'
             function*
               u'std::thread::Builder::spawn_unchecked::{{closure}}::{{closure}}'
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
               u'backtrace.rs'
             function*
@@ -85,16 +85,16 @@ app:
               u'lib.rs'
             function*
               u'tokio_reactor::with_default'
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
               u'local.rs'
             function*
-              u'<std::thread::local::LocalKey<T>>::with'
-          frame (non app frame)
+              u'std::thread::local::LocalKey<T>::with'
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
               u'local.rs'
             function*
-              u'<std::thread::local::LocalKey<T>>::try_with'
+              u'std::thread::local::LocalKey<T>::try_with'
           frame*
             filename*
               u'lib.rs'
@@ -110,16 +110,16 @@ app:
               u'clock.rs'
             function*
               u'tokio_timer::clock::clock::with_default'
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
               u'local.rs'
             function*
-              u'<std::thread::local::LocalKey<T>>::with'
-          frame (non app frame)
+              u'std::thread::local::LocalKey<T>::with'
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
               u'local.rs'
             function*
-              u'<std::thread::local::LocalKey<T>>::try_with'
+              u'std::thread::local::LocalKey<T>::try_with'
           frame*
             filename*
               u'clock.rs'
@@ -135,16 +135,16 @@ app:
               u'handle.rs'
             function*
               u'tokio_timer::timer::handle::with_default'
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
               u'local.rs'
             function*
-              u'<std::thread::local::LocalKey<T>>::with'
-          frame (non app frame)
+              u'std::thread::local::LocalKey<T>::with'
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
               u'local.rs'
             function*
-              u'<std::thread::local::LocalKey<T>>::try_with'
+              u'std::thread::local::LocalKey<T>::try_with'
           frame*
             filename*
               u'handle.rs'
@@ -160,16 +160,16 @@ app:
               u'global.rs'
             function*
               u'tokio_executor::global::with_default'
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
               u'local.rs'
             function*
-              u'<std::thread::local::LocalKey<T>>::with'
-          frame (non app frame)
+              u'std::thread::local::LocalKey<T>::with'
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
               u'local.rs'
             function*
-              u'<std::thread::local::LocalKey<T>>::try_with'
+              u'std::thread::local::LocalKey<T>::try_with'
           frame*
             filename*
               u'global.rs'
@@ -189,37 +189,37 @@ app:
             filename*
               u'lib.rs'
             function*
-              u'<tokio_current_thread::Entered<T>>::block_on'
+              u'tokio_current_thread::Entered<T>::block_on'
           frame*
             filename*
               u'lib.rs'
             function*
-              u'<tokio_current_thread::Entered<T>>::tick'
+              u'tokio_current_thread::Entered<T>::tick'
           frame*
             filename*
               u'scheduler.rs'
             function*
-              u'<tokio_current_thread::scheduler::Scheduler<T>>::tick'
+              u'tokio_current_thread::scheduler::Scheduler<T>::tick'
           frame*
             filename*
               u'lib.rs'
             function*
-              u'<tokio_current_thread::Borrow<T>>::enter'
-          frame (non app frame)
+              u'tokio_current_thread::Borrow<T>::enter'
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
               u'local.rs'
             function*
-              u'<std::thread::local::LocalKey<T>>::with'
-          frame (non app frame)
+              u'std::thread::local::LocalKey<T>::with'
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
               u'local.rs'
             function*
-              u'<std::thread::local::LocalKey<T>>::try_with'
+              u'std::thread::local::LocalKey<T>::try_with'
           frame*
             filename*
               u'lib.rs'
             function*
-              u'<tokio_current_thread::Borrow<T>>::enter::{{closure}}'
+              u'tokio_current_thread::Borrow<T>::enter::{{closure}}'
           frame*
             filename*
               u'lib.rs'
@@ -229,32 +229,32 @@ app:
             filename*
               u'lib.rs'
             function*
-              u'<tokio_current_thread::Borrow<T>>::enter::{{closure}}::{{closure}}'
+              u'tokio_current_thread::Borrow<T>::enter::{{closure}}::{{closure}}'
           frame*
             filename*
               u'scheduler.rs'
             function*
-              u'<tokio_current_thread::scheduler::Scheduler<T>>::tick::{{closure}}'
+              u'tokio_current_thread::scheduler::Scheduler<T>::tick::{{closure}}'
           frame*
             filename*
               u'scheduler.rs'
             function*
-              u'<tokio_current_thread::scheduler::Scheduled<T>>::tick'
+              u'tokio_current_thread::scheduler::Scheduled<T>::tick'
           frame*
             filename*
               u'mod.rs'
             function*
-              u'<futures::task_impl::Spawn<T>>::poll_future_notify'
+              u'futures::task_impl::Spawn<T>::poll_future_notify'
           frame*
             filename*
               u'mod.rs'
             function*
-              u'<futures::task_impl::Spawn<T>>::poll_fn_notify'
+              u'futures::task_impl::Spawn<T>::poll_fn_notify'
           frame*
             filename*
               u'mod.rs'
             function*
-              u'<futures::task_impl::Spawn<T>>::enter'
+              u'futures::task_impl::Spawn<T>::enter'
           frame*
             filename*
               u'mod.rs'
@@ -264,92 +264,92 @@ app:
             filename*
               u'mod.rs'
             function*
-              u'<futures::task_impl::Spawn<T>>::enter::{{closure}}'
+              u'futures::task_impl::Spawn<T>::enter::{{closure}}'
           frame*
             filename*
               u'mod.rs'
             function*
-              u'<futures::task_impl::Spawn<T>>::poll_future_notify::{{closure}}'
-          frame (non app frame)
+              u'futures::task_impl::Spawn<T>::poll_future_notify::{{closure}}'
+          frame (marked out of app by grouping enhancement rule (family:native function:alloc::* -app))
             filename*
               u'mod.rs'
             function*
-              u'<alloc::boxed::Box<T> as futures::future::Future>::poll'
+              u'alloc::boxed::Box<T>::poll'
           frame*
             filename*
               u'then.rs'
             function*
-              u'<futures::future::then::Then<T> as futures::future::Future>::poll'
+              u'futures::future::then::Then<T>::poll'
           frame*
             filename*
               u'chain.rs'
             function*
-              u'<futures::future::chain::Chain<T>>::poll'
+              u'futures::future::chain::Chain<T>::poll'
           frame*
             filename*
               u'either.rs'
             function*
-              u'<futures::future::either::Either<T> as futures::future::Future>::poll'
+              u'futures::future::either::Either<T>::poll'
           frame (ignored due to recursion)
             filename*
               u'either.rs'
             function*
-              u'<futures::future::either::Either<T> as futures::future::Future>::poll'
+              u'futures::future::either::Either<T>::poll'
           frame*
             filename*
               u'acceptor.rs'
             function*
-              u'<actix_web::server::acceptor::ServerMessageAcceptorServiceFut<T> as futures::future::Future>::poll'
+              u'actix_web::server::acceptor::ServerMessageAcceptorServiceFut<T>::poll'
           frame*
             filename*
               u'and_then.rs'
             function*
-              u'<actix_net::service::and_then::AndThenFuture<T> as futures::future::Future>::poll'
+              u'actix_net::service::and_then::AndThenFuture<T>::poll'
           frame*
             filename*
               u'map_err.rs'
             function*
-              u'<actix_net::service::map_err::MapErrFuture<T> as futures::future::Future>::poll'
+              u'actix_net::service::map_err::MapErrFuture<T>::poll'
           frame*
             filename*
               u'channel.rs'
             function*
-              u'<actix_web::server::channel::HttpChannel<T> as futures::future::Future>::poll'
+              u'actix_web::server::channel::HttpChannel<T>::poll'
           frame*
             filename*
               u'channel.rs'
             function*
-              u'<actix_web::server::channel::HttpChannel<T> as futures::future::Future>::poll'
+              u'actix_web::server::channel::HttpChannel<T>::poll'
           frame*
             filename*
               u'h1.rs'
             function*
-              u'<actix_web::server::h1::Http1Dispatcher<T>>::poll'
+              u'actix_web::server::h1::Http1Dispatcher<T>::poll'
           frame*
             filename*
               u'h1.rs'
             function*
-              u'<actix_web::server::h1::Http1Dispatcher<T>>::poll_handler'
+              u'actix_web::server::h1::Http1Dispatcher<T>::poll_handler'
           frame*
             filename*
               u'h1.rs'
             function*
-              u'<actix_web::server::h1::Http1Dispatcher<T>>::poll_io'
+              u'actix_web::server::h1::Http1Dispatcher<T>::poll_io'
           frame*
             filename*
               u'h1.rs'
             function*
-              u'<actix_web::server::h1::Http1Dispatcher<T>>::parse'
+              u'actix_web::server::h1::Http1Dispatcher<T>::parse'
           frame*
             filename*
               u'pipeline.rs'
             function*
-              u'<actix_web::pipeline::Pipeline<T> as actix_web::server::handler::HttpHandlerTask>::poll_io'
+              u'actix_web::pipeline::Pipeline<T>::poll_io'
           frame*
             filename*
               u'<::log::macros::log macros>'
             function*
-              u'<actix_web::pipeline::ProcessResponse<T>>::poll_io'
+              u'actix_web::pipeline::ProcessResponse<T>::poll_io'
           frame*
             filename*
               u'lib.rs'
@@ -359,7 +359,7 @@ app:
             filename*
               u'log.rs'
             function*
-              u'<sentry::integrations::log::Logger as log::Log>::log'
+              u'sentry::integrations::log::Logger::log'
           frame (non app frame)
             filename*
               u'hub.rs'
@@ -370,16 +370,16 @@ app:
               u'hub.rs'
             function*
               u'sentry::hub::Hub::with'
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
               u'local.rs'
             function*
-              u'<std::thread::local::LocalKey<T>>::with'
-          frame (non app frame)
+              u'std::thread::local::LocalKey<T>::with'
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
               u'local.rs'
             function*
-              u'<std::thread::local::LocalKey<T>>::try_with'
+              u'std::thread::local::LocalKey<T>::try_with'
           frame (non app frame)
             filename*
               u'hub.rs'
@@ -396,7 +396,7 @@ app:
           u'Error occurred during request handling, status: <int> Internal Server Error Something went really wrong here'
 --------------------------------------------------------------------------
 system:
-  hash: '7f12fecf89ac9e64cdfa36b08e634681'
+  hash: '1df163ce3be65319df4fcc9cb34b60c1'
   component:
     system*
       exception*
@@ -412,11 +412,11 @@ system:
               u'thread.rs'
             function*
               u'std::sys::unix::thread::Thread::new::thread_start'
-          frame*
+          frame* (marked out of app by grouping enhancement rule (family:native function:alloc::* -app))
             filename*
               u'boxed.rs'
             function*
-              u'<F as alloc::boxed::FnBox<T>>::call_box'
+              u'alloc::boxed::FnBox<T>::call_box'
           frame*
             filename*
               u'mod.rs'
@@ -446,7 +446,7 @@ system:
             filename*
               u'panic.rs'
             function*
-              u'<std::panic::AssertUnwindSafe<T> as core::ops::function::FnOnce<T>>::call_once'
+              u'std::panic::AssertUnwindSafe<T>::call_once'
           frame*
             filename*
               u'mod.rs'
@@ -481,12 +481,12 @@ system:
             filename*
               u'local.rs'
             function*
-              u'<std::thread::local::LocalKey<T>>::with'
+              u'std::thread::local::LocalKey<T>::with'
           frame*
             filename*
               u'local.rs'
             function*
-              u'<std::thread::local::LocalKey<T>>::try_with'
+              u'std::thread::local::LocalKey<T>::try_with'
           frame*
             filename*
               u'lib.rs'
@@ -506,12 +506,12 @@ system:
             filename*
               u'local.rs'
             function*
-              u'<std::thread::local::LocalKey<T>>::with'
+              u'std::thread::local::LocalKey<T>::with'
           frame*
             filename*
               u'local.rs'
             function*
-              u'<std::thread::local::LocalKey<T>>::try_with'
+              u'std::thread::local::LocalKey<T>::try_with'
           frame*
             filename*
               u'clock.rs'
@@ -531,12 +531,12 @@ system:
             filename*
               u'local.rs'
             function*
-              u'<std::thread::local::LocalKey<T>>::with'
+              u'std::thread::local::LocalKey<T>::with'
           frame*
             filename*
               u'local.rs'
             function*
-              u'<std::thread::local::LocalKey<T>>::try_with'
+              u'std::thread::local::LocalKey<T>::try_with'
           frame*
             filename*
               u'handle.rs'
@@ -556,12 +556,12 @@ system:
             filename*
               u'local.rs'
             function*
-              u'<std::thread::local::LocalKey<T>>::with'
+              u'std::thread::local::LocalKey<T>::with'
           frame*
             filename*
               u'local.rs'
             function*
-              u'<std::thread::local::LocalKey<T>>::try_with'
+              u'std::thread::local::LocalKey<T>::try_with'
           frame*
             filename*
               u'global.rs'
@@ -581,37 +581,37 @@ system:
             filename*
               u'lib.rs'
             function*
-              u'<tokio_current_thread::Entered<T>>::block_on'
+              u'tokio_current_thread::Entered<T>::block_on'
           frame*
             filename*
               u'lib.rs'
             function*
-              u'<tokio_current_thread::Entered<T>>::tick'
+              u'tokio_current_thread::Entered<T>::tick'
           frame*
             filename*
               u'scheduler.rs'
             function*
-              u'<tokio_current_thread::scheduler::Scheduler<T>>::tick'
+              u'tokio_current_thread::scheduler::Scheduler<T>::tick'
           frame*
             filename*
               u'lib.rs'
             function*
-              u'<tokio_current_thread::Borrow<T>>::enter'
+              u'tokio_current_thread::Borrow<T>::enter'
           frame*
             filename*
               u'local.rs'
             function*
-              u'<std::thread::local::LocalKey<T>>::with'
+              u'std::thread::local::LocalKey<T>::with'
           frame*
             filename*
               u'local.rs'
             function*
-              u'<std::thread::local::LocalKey<T>>::try_with'
+              u'std::thread::local::LocalKey<T>::try_with'
           frame*
             filename*
               u'lib.rs'
             function*
-              u'<tokio_current_thread::Borrow<T>>::enter::{{closure}}'
+              u'tokio_current_thread::Borrow<T>::enter::{{closure}}'
           frame*
             filename*
               u'lib.rs'
@@ -621,32 +621,32 @@ system:
             filename*
               u'lib.rs'
             function*
-              u'<tokio_current_thread::Borrow<T>>::enter::{{closure}}::{{closure}}'
+              u'tokio_current_thread::Borrow<T>::enter::{{closure}}::{{closure}}'
           frame*
             filename*
               u'scheduler.rs'
             function*
-              u'<tokio_current_thread::scheduler::Scheduler<T>>::tick::{{closure}}'
+              u'tokio_current_thread::scheduler::Scheduler<T>::tick::{{closure}}'
           frame*
             filename*
               u'scheduler.rs'
             function*
-              u'<tokio_current_thread::scheduler::Scheduled<T>>::tick'
+              u'tokio_current_thread::scheduler::Scheduled<T>::tick'
           frame*
             filename*
               u'mod.rs'
             function*
-              u'<futures::task_impl::Spawn<T>>::poll_future_notify'
+              u'futures::task_impl::Spawn<T>::poll_future_notify'
           frame*
             filename*
               u'mod.rs'
             function*
-              u'<futures::task_impl::Spawn<T>>::poll_fn_notify'
+              u'futures::task_impl::Spawn<T>::poll_fn_notify'
           frame*
             filename*
               u'mod.rs'
             function*
-              u'<futures::task_impl::Spawn<T>>::enter'
+              u'futures::task_impl::Spawn<T>::enter'
           frame*
             filename*
               u'mod.rs'
@@ -656,92 +656,92 @@ system:
             filename*
               u'mod.rs'
             function*
-              u'<futures::task_impl::Spawn<T>>::enter::{{closure}}'
+              u'futures::task_impl::Spawn<T>::enter::{{closure}}'
           frame*
             filename*
               u'mod.rs'
             function*
-              u'<futures::task_impl::Spawn<T>>::poll_future_notify::{{closure}}'
+              u'futures::task_impl::Spawn<T>::poll_future_notify::{{closure}}'
           frame*
             filename*
               u'mod.rs'
             function*
-              u'<alloc::boxed::Box<T> as futures::future::Future>::poll'
+              u'alloc::boxed::Box<T>::poll'
           frame*
             filename*
               u'then.rs'
             function*
-              u'<futures::future::then::Then<T> as futures::future::Future>::poll'
+              u'futures::future::then::Then<T>::poll'
           frame*
             filename*
               u'chain.rs'
             function*
-              u'<futures::future::chain::Chain<T>>::poll'
+              u'futures::future::chain::Chain<T>::poll'
           frame*
             filename*
               u'either.rs'
             function*
-              u'<futures::future::either::Either<T> as futures::future::Future>::poll'
+              u'futures::future::either::Either<T>::poll'
           frame (ignored due to recursion)
             filename*
               u'either.rs'
             function*
-              u'<futures::future::either::Either<T> as futures::future::Future>::poll'
+              u'futures::future::either::Either<T>::poll'
           frame*
             filename*
               u'acceptor.rs'
             function*
-              u'<actix_web::server::acceptor::ServerMessageAcceptorServiceFut<T> as futures::future::Future>::poll'
+              u'actix_web::server::acceptor::ServerMessageAcceptorServiceFut<T>::poll'
           frame*
             filename*
               u'and_then.rs'
             function*
-              u'<actix_net::service::and_then::AndThenFuture<T> as futures::future::Future>::poll'
+              u'actix_net::service::and_then::AndThenFuture<T>::poll'
           frame*
             filename*
               u'map_err.rs'
             function*
-              u'<actix_net::service::map_err::MapErrFuture<T> as futures::future::Future>::poll'
+              u'actix_net::service::map_err::MapErrFuture<T>::poll'
           frame*
             filename*
               u'channel.rs'
             function*
-              u'<actix_web::server::channel::HttpChannel<T> as futures::future::Future>::poll'
+              u'actix_web::server::channel::HttpChannel<T>::poll'
           frame*
             filename*
               u'channel.rs'
             function*
-              u'<actix_web::server::channel::HttpChannel<T> as futures::future::Future>::poll'
+              u'actix_web::server::channel::HttpChannel<T>::poll'
           frame*
             filename*
               u'h1.rs'
             function*
-              u'<actix_web::server::h1::Http1Dispatcher<T>>::poll'
+              u'actix_web::server::h1::Http1Dispatcher<T>::poll'
           frame*
             filename*
               u'h1.rs'
             function*
-              u'<actix_web::server::h1::Http1Dispatcher<T>>::poll_handler'
+              u'actix_web::server::h1::Http1Dispatcher<T>::poll_handler'
           frame*
             filename*
               u'h1.rs'
             function*
-              u'<actix_web::server::h1::Http1Dispatcher<T>>::poll_io'
+              u'actix_web::server::h1::Http1Dispatcher<T>::poll_io'
           frame*
             filename*
               u'h1.rs'
             function*
-              u'<actix_web::server::h1::Http1Dispatcher<T>>::parse'
+              u'actix_web::server::h1::Http1Dispatcher<T>::parse'
           frame*
             filename*
               u'pipeline.rs'
             function*
-              u'<actix_web::pipeline::Pipeline<T> as actix_web::server::handler::HttpHandlerTask>::poll_io'
+              u'actix_web::pipeline::Pipeline<T>::poll_io'
           frame*
             filename*
               u'<::log::macros::log macros>'
             function*
-              u'<actix_web::pipeline::ProcessResponse<T>>::poll_io'
+              u'actix_web::pipeline::ProcessResponse<T>::poll_io'
           frame*
             filename*
               u'lib.rs'
@@ -751,7 +751,7 @@ system:
             filename*
               u'log.rs'
             function*
-              u'<sentry::integrations::log::Logger as log::Log>::log'
+              u'sentry::integrations::log::Logger::log'
           frame*
             filename*
               u'hub.rs'
@@ -766,12 +766,12 @@ system:
             filename*
               u'local.rs'
             function*
-              u'<std::thread::local::LocalKey<T>>::with'
+              u'std::thread::local::LocalKey<T>::with'
           frame*
             filename*
               u'local.rs'
             function*
-              u'<std::thread::local::LocalKey<T>>::try_with'
+              u'std::thread::local::LocalKey<T>::try_with'
           frame*
             filename*
               u'hub.rs'

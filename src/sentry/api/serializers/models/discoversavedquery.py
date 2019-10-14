@@ -21,6 +21,7 @@ class DiscoverSavedQuerySerializer(Serializer):
             "end",
             "orderby",
             "limit",
+            "version",
         ]
 
         data = {

@@ -8,6 +8,7 @@ import {fields} from 'app/data/forms/projectDebugFiles';
 import {t} from 'app/locale';
 import Access from 'app/components/acl/access';
 import AsyncComponent from 'app/components/asyncComponent';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import Form from 'app/views/settings/components/forms/form';
@@ -49,6 +50,10 @@ function getFeatureTooltip(feature) {
     case 'unwind':
       return t(
         'Stack unwinding information improves the quality of stack traces extracted from minidumps'
+      );
+    case 'sources':
+      return t(
+        'Source code information allows Sentry to display source code context for stack frames'
       );
     default:
       return null;
@@ -216,11 +221,14 @@ class ProjectDebugSymbols extends AsyncComponent {
     const access = new Set(organization.access);
 
     const fieldProps = {
+      organization,
       builtinSymbolSources: this.state.builtinSymbolSources,
     };
 
     return (
       <React.Fragment>
+        <SentryDocumentTitle objSlug={projectId} title={t('Debug Files')} />
+
         <SettingsPageHeader title={t('Debug Information Files')} />
 
         <TextBlock>

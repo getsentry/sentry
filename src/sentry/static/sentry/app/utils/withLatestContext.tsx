@@ -10,12 +10,36 @@ import getDisplayName from 'app/utils/getDisplayName';
 import withOrganizations from 'app/utils/withOrganizations';
 import {Project, Organization} from 'app/types';
 
-const withLatestContext = <P extends object>(WrappedComponent: React.ComponentType<P>) =>
+type InjectedLatestContextProps = {
+  organizations?: Organization[];
+  organization?: Organization;
+  project?: Project;
+  lastRoute?: string;
+};
+
+type WithPluginProps = {
+  organization?: Organization;
+  organizations: Organization[];
+};
+
+type State = {
+  latestContext: Omit<InjectedLatestContextProps, 'organizations'>;
+};
+
+const withLatestContext = <P extends InjectedLatestContextProps>(
+  WrappedComponent: React.ComponentType<P>
+) =>
   withOrganizations(
-    createReactClass({
+    createReactClass<
+      Omit<P, keyof InjectedLatestContextProps> &
+        Partial<InjectedLatestContextProps> &
+        WithPluginProps,
+      State
+    >({
       displayName: `withLatestContext(${getDisplayName(WrappedComponent)})`,
       propTypes: {
-        organizations: PropTypes.arrayOf(SentryTypes.Organization),
+        organization: SentryTypes.Organization,
+        organizations: PropTypes.arrayOf(SentryTypes.Organization).isRequired,
       },
       mixins: [Reflux.connect(LatestContextStore, 'latestContext')],
 
@@ -46,10 +70,10 @@ const withLatestContext = <P extends object>(WrappedComponent: React.ComponentTy
         return (
           <WrappedComponent
             organizations={organizations as Organization[]}
-            organization={latestOrganization as Organization}
             project={project as Project}
             lastRoute={lastRoute as string}
             {...this.props as P}
+            organization={(this.props.organization || latestOrganization) as Organization}
           />
         );
       },

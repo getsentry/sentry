@@ -5,7 +5,7 @@ exports[`AccountAuthorizations renders empty 1`] = `
   title="Approved Applications - Sentry"
 >
   <div>
-    <SettingsPageHeading
+    <StyledSettingsPageHeading
       noTitleStyles={false}
       title="Authorized Applications"
     />

@@ -21,6 +21,7 @@ import withOrganization from 'app/utils/withOrganization';
 
 import Events from './events';
 import EventDetails from './eventDetails';
+import EventsSaveQueryButton from './saveQueryButton';
 import {getFirstQueryString} from './utils';
 import {ALL_VIEWS} from './data';
 import EventView from './eventView';
@@ -44,21 +45,17 @@ class EventsV2 extends React.Component<Props> {
 
     const list = ALL_VIEWS.map((eventViewv1, index) => {
       const eventView = EventView.fromEventViewv1(eventViewv1);
-
-      const name = eventViewv1.name;
-
       const to = {
         pathname: location.pathname,
         query: {
           ...location.query,
-          name,
           ...eventView.generateQueryStringObject(),
         },
       };
 
       return (
         <LinkContainer key={index}>
-          <Link to={to}>{name}</Link>
+          <Link to={to}>{eventView.name}</Link>
         </LinkContainer>
       );
     });
@@ -91,7 +88,6 @@ class EventsV2 extends React.Component<Props> {
       .reverse()
       .join(' - ');
     const pageTitle = this.getEventViewName().join(' \u2014 ');
-
     return (
       <Feature features={['events-v2']} organization={organization} renderDisabled>
         <DocumentTitle title={`${documentTitle} - ${organization.slug} - Sentry`}>
@@ -103,6 +99,14 @@ class EventsV2 extends React.Component<Props> {
                   <PageHeading>
                     {pageTitle} <BetaTag />
                   </PageHeading>
+                  {hasQuery && (
+                    <EventsSaveQueryButton
+                      isEditing={!!location.query.edit}
+                      location={location}
+                      organization={organization}
+                      eventView={eventView}
+                    />
+                  )}
                 </PageHeader>
                 {!hasQuery && this.renderQueryList()}
                 {hasQuery && (

@@ -1,8 +1,10 @@
 from __future__ import absolute_import, print_function
 
-import time
-import jsonschema
 import logging
+import time
+
+import ipaddress
+import jsonschema
 import six
 
 from datetime import datetime, timedelta
@@ -13,7 +15,7 @@ from django.db.models import Func
 from django.utils import timezone
 from django.utils.encoding import force_text
 
-from sentry import buffer, eventtypes, eventstream, features, tagstore, tsdb
+from sentry import buffer, eventtypes, eventstream, tsdb
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS,
@@ -100,22 +102,6 @@ def get_tag(data, key):
             return v
 
 
-def count_limit(count):
-    # TODO: could we do something like num_to_store = max(math.sqrt(100*count)+59, 200) ?
-    # ~ 150 * ((log(n) - 1.5) ^ 2 - 0.25)
-    for amount, sample_rate in settings.SENTRY_SAMPLE_RATES:
-        if count <= amount:
-            return sample_rate
-    return settings.SENTRY_MAX_SAMPLE_RATE
-
-
-def time_limit(silence):  # ~ 3600 per hour
-    for amount, sample_rate in settings.SENTRY_SAMPLE_TIMES:
-        if silence >= amount:
-            return sample_rate
-    return settings.SENTRY_MAX_SAMPLE_TIME
-
-
 def validate_and_set_timestamp(data, timestamp):
     """
     Helper function for event processors/enhancers to avoid setting broken timestamps.
@@ -152,26 +138,6 @@ def parse_client_as_sdk(value):
         except ValueError:
             return {}
     return {"name": name, "version": version}
-
-
-if not settings.SENTRY_SAMPLE_DATA:
-
-    def should_sample(current_datetime, last_seen, times_seen):
-        return False
-
-
-else:
-
-    def should_sample(current_datetime, last_seen, times_seen):
-        silence = current_datetime - last_seen
-
-        if times_seen % count_limit(times_seen) == 0:
-            return False
-
-        if times_seen % time_limit(silence) == 0:
-            return False
-
-        return True
 
 
 def plugin_is_regression(group, event):
@@ -687,7 +653,7 @@ class EventManager(object):
                 kwargs["first_release"] = release
 
             try:
-                group, is_new, is_regression, is_sample = self._save_aggregate(
+                group, is_new, is_regression = self._save_aggregate(
                     event=event, hashes=hashes, release=release, **kwargs
                 )
             except HashDiscarded:
@@ -706,7 +672,6 @@ class EventManager(object):
             group = None
             is_new = False
             is_regression = False
-            is_sample = False
             event_saved.send_robust(project=project, event_size=event.size, sender=EventManager)
 
         # store a reference to the group id to guarantee validation of isolation
@@ -777,33 +742,22 @@ class EventManager(object):
                 group=group, environment=environment
             )
 
-        # save the event unless its been sampled
-        if not is_sample:
-            try:
-                with transaction.atomic(using=router.db_for_write(Event)):
-                    event.save()
-            except IntegrityError:
-                logger.info(
-                    "duplicate.found",
-                    exc_info=True,
-                    extra={
-                        "event_uuid": event_id,
-                        "project_id": project.id,
-                        "group_id": group.id if group else None,
-                        "model": Event.__name__,
-                    },
-                )
-                return event
-
-            tagstore.delay_index_event_tags(
-                organization_id=project.organization_id,
-                project_id=project.id,
-                group_id=group.id if group else None,
-                environment_id=environment.id,
-                event_id=event.id,
-                tags=event.tags,
-                date_added=event.datetime,
+        # save the event
+        try:
+            with transaction.atomic(using=router.db_for_write(Event)):
+                event.save()
+        except IntegrityError:
+            logger.info(
+                "duplicate.found",
+                exc_info=True,
+                extra={
+                    "event_uuid": event_id,
+                    "project_id": project.id,
+                    "group_id": group.id if group else None,
+                    "model": Event.__name__,
+                },
             )
+            return event
 
         if event_user:
             counters = [
@@ -835,15 +789,6 @@ class EventManager(object):
                     },
                 )
 
-        if group:
-            safe_execute(
-                Group.objects.add_tags,
-                group,
-                environment,
-                event.get_tags(),
-                _with_transaction=False,
-            )
-
         if not raw:
             if not project.first_event:
                 project.update(first_event=date)
@@ -853,7 +798,6 @@ class EventManager(object):
             group=group,
             event=event,
             is_new=is_new,
-            is_sample=is_sample,
             is_regression=is_regression,
             is_new_group_environment=is_new_group_environment,
             primary_hash=hashes[0],
@@ -865,13 +809,9 @@ class EventManager(object):
             skip_consume=raw,
         )
 
-        metrics.timing(
-            "events.latency",
-            received_timestamp - recorded_timestamp,
-            tags={"project_id": project.id},
-        )
+        metrics.timing("events.latency", received_timestamp - recorded_timestamp)
 
-        metrics.timing("events.size.data.post_save", event.size, tags={"project_id": project.id})
+        metrics.timing("events.size.data.post_save", event.size)
 
         return event
 
@@ -880,12 +820,20 @@ class EventManager(object):
         if not user_data:
             return
 
+        ip_address = user_data.get("ip_address")
+
+        if ip_address:
+            try:
+                ipaddress.ip_address(six.text_type(ip_address))
+            except ValueError:
+                ip_address = None
+
         euser = EventUser(
             project_id=project.id,
             ident=user_data.get("id"),
             email=user_data.get("email"),
             username=user_data.get("username"),
-            ip_address=user_data.get("ip_address"),
+            ip_address=ip_address,
             name=user_data.get("name"),
         )
         euser.set_hash()
@@ -964,6 +912,8 @@ class EventManager(object):
 
             group_is_new = False
 
+        group._project_cache = project
+
         # If all hashes are brand new we treat this event as new
         is_new = False
         new_hashes = [h for h in all_hashes if h.group_id is None]
@@ -984,14 +934,6 @@ class EventManager(object):
             if group_is_new and len(new_hashes) == len(all_hashes):
                 is_new = True
 
-        # XXX(dcramer): it's important this gets called **before** the aggregate
-        # is processed as otherwise values like last_seen will get mutated
-        can_sample = features.has("projects:sample-events", project=project) and should_sample(
-            event.data.get("received") or float(event.datetime.strftime("%s")),
-            group.data.get("last_received") or float(group.last_seen.strftime("%s")),
-            group.times_seen,
-        )
-
         if not is_new:
             is_regression = self._process_existing_aggregate(
                 group=group, event=event, data=kwargs, release=release
@@ -999,13 +941,7 @@ class EventManager(object):
         else:
             is_regression = False
 
-        # Determine if we've sampled enough data to store this event
-        if is_new or is_regression:
-            is_sample = False
-        else:
-            is_sample = can_sample
-
-        return group, is_new, is_regression, is_sample
+        return group, is_new, is_regression
 
     def _handle_regression(self, group, event, release):
         if not group.is_resolved():
@@ -1078,7 +1014,7 @@ class EventManager(object):
 
         if is_regression:
             activity = Activity.objects.create(
-                project=group.project,
+                project_id=group.project_id,
                 group=group,
                 type=Activity.SET_REGRESSION,
                 data={"version": release.version if release else ""},

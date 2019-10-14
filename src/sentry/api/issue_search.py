@@ -12,7 +12,12 @@ from sentry.api.event_search import (
     SearchVisitor,
 )
 from sentry.constants import STATUS_CHOICES
-from sentry.search.utils import parse_actor_value, parse_user_value, parse_release
+from sentry.search.utils import (
+    parse_actor_value,
+    parse_user_value,
+    parse_release,
+    parse_status_value,
+)
 
 
 class IssueSearchVisitor(SearchVisitor):
@@ -92,12 +97,20 @@ def convert_release_value(value, projects, user, environments):
     return parse_release(value, projects, environments)
 
 
+def convert_status_value(value, projects, user, environments):
+    try:
+        return parse_status_value(value)
+    except ValueError:
+        raise InvalidSearchQuery(u"invalid status value of '{}'".format(value))
+
+
 value_converters = {
     "assigned_to": convert_actor_value,
     "bookmarked_by": convert_user_value,
     "subscribed_by": convert_user_value,
     "first_release": convert_release_value,
     "release": convert_release_value,
+    "status": convert_status_value,
 }
 
 

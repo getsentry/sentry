@@ -20,7 +20,7 @@ import {Panel} from 'app/components/panels';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import theme from 'app/utils/theme';
-import {Event, Organization} from 'app/types';
+import {Event, Organization, GlobalSelection} from 'app/types';
 
 import {MODAL_QUERY_KEYS, PIN_ICON} from './data';
 import EventView from './eventView';
@@ -136,8 +136,7 @@ type ModalLineGraphProps = {
   location: Location;
   currentEvent: Event;
   eventView: EventView;
-  // TODO(ts): adjust
-  selection: any;
+  selection: GlobalSelection;
 };
 
 /**
@@ -180,10 +179,11 @@ const ModalLineGraph = (props: ModalLineGraphProps) => {
         period={selection.datetime.period}
         project={selection.projects}
         environment={selection.environments}
-        start={selection.datetime.start}
-        end={selection.datetime.end}
+        // TODO(ts): adjust. Expects date, got strings
+        start={selection.datetime.start as any}
+        end={selection.datetime.end as any}
         interval={interval}
-        showLoading={true}
+        showLoading
         query={queryString}
         field={eventView.getFieldNames()}
         referenceEvent={referenceEvent}

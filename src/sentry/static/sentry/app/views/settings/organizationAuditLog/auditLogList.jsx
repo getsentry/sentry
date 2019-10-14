@@ -69,7 +69,7 @@ class AuditLogList extends React.Component {
           value={eventType}
           style={{width: 250}}
           options={options}
-          clearable={false}
+          clearable
         />
       </form>
     );

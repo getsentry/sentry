@@ -52,8 +52,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
         snuba_eventstream._send(self.project.id, "insert", (payload1, payload2))
 
     @patch("sentry.eventstream.insert")
-    @patch("sentry.tagstore.delay_index_event_tags")
-    def test(self, mock_delay_index_event_tags, mock_eventstream_insert):
+    def test(self, mock_eventstream_insert):
         now = datetime.utcnow()
 
         def _get_event_count():
@@ -77,19 +76,15 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
             "is_new_group_environment": True,
             "is_new": True,
             "is_regression": False,
-            "is_sample": False,
             "primary_hash": "acbd18db4cc2f85cedef654fccc4a4d8",
             "skip_consume": False,
         }
-
-        assert mock_delay_index_event_tags.call_count == 1
 
         self.__produce_event(*insert_args, **insert_kwargs)
         assert _get_event_count() == 1
 
     @patch("sentry.eventstream.insert")
-    @patch("sentry.tagstore.delay_index_event_tags")
-    def test_issueless(self, mock_delay_index_event_tags, mock_eventstream_insert):
+    def test_issueless(self, mock_eventstream_insert):
         now = datetime.utcnow()
         event = self.__build_event(now)
 
@@ -101,7 +96,6 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
             "is_new_group_environment": True,
             "is_new": True,
             "is_regression": False,
-            "is_sample": False,
             "primary_hash": "acbd18db4cc2f85cedef654fccc4a4d8",
             "skip_consume": False,
         }

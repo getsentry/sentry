@@ -31,6 +31,7 @@ module.exports = {
             additionalLibraries: [/app\/sentryTypes$/],
           },
         ],
+        ['babel-plugin-add-react-displayname'],
       ],
     },
     development: {

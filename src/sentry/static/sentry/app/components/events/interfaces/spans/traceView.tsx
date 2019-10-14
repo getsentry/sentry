@@ -8,13 +8,15 @@ import DragManager, {DragManagerChildrenProps} from './dragManager';
 import SpanTree from './spanTree';
 import {SpanType, SpanEntry, SentryTransactionEvent, ParsedTraceType} from './types';
 import {isValidSpanID} from './utils';
-import TraceViewMinimap from './minimap';
+import TraceViewHeader from './header';
 import * as CursorGuideHandler from './cursorGuideHandler';
 
 type TraceContextType = {
-  type: 'trace';
-  span_id: string;
-  trace_id: string;
+  op?: string;
+  type?: 'trace';
+  span_id?: string;
+  trace_id?: string;
+  parent_span_id?: string;
 };
 
 type PropType = {
@@ -24,9 +26,9 @@ type PropType = {
 class TraceView extends React.Component<PropType> {
   minimapInteractiveRef = React.createRef<HTMLDivElement>();
 
-  renderMinimap = (dragProps: DragManagerChildrenProps, parsedTrace: ParsedTraceType) => {
+  renderHeader = (dragProps: DragManagerChildrenProps, parsedTrace: ParsedTraceType) => {
     return (
-      <TraceViewMinimap
+      <TraceViewHeader
         minimapInteractiveRef={this.minimapInteractiveRef}
         dragProps={dragProps}
         trace={parsedTrace}
@@ -54,9 +56,11 @@ class TraceView extends React.Component<PropType> {
     const traceContext = this.getTraceContext();
     const traceID = (traceContext && traceContext.trace_id) || '';
     const rootSpanID = (traceContext && traceContext.span_id) || '';
+    const rootSpanOpName = (traceContext && traceContext.op) || 'transaction';
 
     if (!spanEntry || spans.length <= 0) {
       return {
+        op: rootSpanOpName,
         childSpans: {},
         traceStartTimestamp: event.startTimestamp,
         traceEndTimestamp: event.endTimestamp,
@@ -69,6 +73,7 @@ class TraceView extends React.Component<PropType> {
     // we reduce spans to become an object mapping span ids to their children
 
     const init: ParsedTraceType = {
+      op: rootSpanOpName,
       childSpans: {},
       traceStartTimestamp: event.startTimestamp,
       traceEndTimestamp: event.endTimestamp,
@@ -157,7 +162,7 @@ class TraceView extends React.Component<PropType> {
               dragProps={dragProps}
               trace={parsedTrace}
             >
-              {this.renderMinimap(dragProps, parsedTrace)}
+              {this.renderHeader(dragProps, parsedTrace)}
               <SpanTree trace={parsedTrace} dragProps={dragProps} />
             </CursorGuideHandler.Provider>
           );

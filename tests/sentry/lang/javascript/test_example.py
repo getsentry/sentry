@@ -5,11 +5,10 @@ from __future__ import absolute_import
 import os
 import json
 import responses
-from datetime import timedelta
-from django.utils import timezone
 
 from sentry import eventstore
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
 def get_fixture_path(name):
@@ -44,7 +43,7 @@ class ExampleTestCase(TestCase):
         )
         responses.add(responses.GET, "http://example.com/index.html", body="Not Found", status=404)
 
-        min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+        min_ago = iso_format(before_now(minutes=1))
 
         data = {
             "timestamp": min_ago,
@@ -64,8 +63,9 @@ class ExampleTestCase(TestCase):
 
         resp = self._postWithHeader(data)
         assert resp.status_code == 200
+        event_id = json.loads(resp.content)["id"]
 
-        event = eventstore.get_events(filter_keys={"project_id": [self.project.id]})[0]
+        event = eventstore.get_event_by_id(self.project.id, event_id)
 
         exception = event.interfaces["exception"]
         frame_list = exception.values[0].stacktrace.frames

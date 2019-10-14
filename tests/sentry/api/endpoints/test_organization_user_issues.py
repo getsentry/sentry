@@ -2,16 +2,14 @@ from __future__ import absolute_import
 
 import six
 
-from datetime import timedelta
 from django.core.urlresolvers import reverse
-from django.utils import timezone
 
-from sentry import tagstore
 from sentry.models import EventUser, OrganizationMemberTeam
-from sentry.testutils import APITestCase
+from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
-class OrganizationUserIssuesTest(APITestCase):
+class OrganizationUserIssuesTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super(OrganizationUserIssuesTest, self).setUp()
         self.org = self.create_organization()
@@ -21,36 +19,42 @@ class OrganizationUserIssuesTest(APITestCase):
         self.team2 = self.create_team(organization=self.org)
         self.project1 = self.create_project(teams=[self.team1])
         self.project2 = self.create_project(teams=[self.team2])
-        self.group1 = self.create_group(
-            project=self.project1, last_seen=timezone.now() - timedelta(minutes=1)
-        )
-        self.group2 = self.create_group(project=self.project2)
 
-        self.euser1 = EventUser.objects.create(email="foo@example.com", project_id=self.project1.id)
-        self.euser2 = EventUser.objects.create(email="bar@example.com", project_id=self.project1.id)
-        self.euser3 = EventUser.objects.create(email="foo@example.com", project_id=self.project2.id)
+        event1 = self.store_event(
+            data={
+                "fingerprint": ["group1"],
+                "timestamp": iso_format(before_now(seconds=3)),
+                "user": {"email": "foo@example.com"},
+            },
+            project_id=self.project1.id,
+        )
 
-        tagstore.create_group_tag_value(
-            key="sentry:user",
-            value=self.euser1.tag_value,
-            group_id=self.group1.id,
+        event2 = self.store_event(
+            data={
+                "fingerprint": ["group2"],
+                "timestamp": iso_format(before_now(seconds=2)),
+                "user": {"email": "bar@example.com"},
+            },
             project_id=self.project1.id,
-            environment_id=None,
         )
-        tagstore.create_group_tag_value(
-            key="sentry:user",
-            value=self.euser2.tag_value,
-            group_id=self.group1.id,
-            project_id=self.project1.id,
-            environment_id=None,
-        )
-        tagstore.create_group_tag_value(
-            key="sentry:user",
-            value=self.euser3.tag_value,
-            group_id=self.group2.id,
+
+        event3 = self.store_event(
+            data={
+                "fingerprint": ["group3"],
+                "timestamp": iso_format(before_now(seconds=1)),
+                "user": {"email": "foo@example.com"},
+            },
             project_id=self.project2.id,
-            environment_id=None,
         )
+
+        self.group1 = event1.group
+        self.group2 = event2.group
+        self.group3 = event3.group
+
+        self.euser1 = EventUser.objects.get(email="foo@example.com", project_id=self.project1.id)
+        self.euser2 = EventUser.objects.get(email="bar@example.com", project_id=self.project1.id)
+        self.euser3 = EventUser.objects.get(email="foo@example.com", project_id=self.project2.id)
+
         self.path = reverse(
             "sentry-api-0-organization-user-issues", args=[self.org.slug, self.euser1.id]
         )
@@ -86,5 +90,5 @@ class OrganizationUserIssuesTest(APITestCase):
         # now result should include results from team2/project2
         assert response.status_code == 200
         assert len(response.data) == 2
-        assert response.data[0]["id"] == six.text_type(self.group2.id)
+        assert response.data[0]["id"] == six.text_type(self.group3.id)
         assert response.data[1]["id"] == six.text_type(self.group1.id)

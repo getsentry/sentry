@@ -26,8 +26,10 @@ class DiscoverSavedQueryBase(APITestCase, SnubaTestCase):
 
 
 class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
+    feature_name = "organizations:discover"
+
     def test_get(self):
-        with self.feature("organizations:discover"):
+        with self.feature(self.feature_name):
             url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
             response = self.client.get(url)
 
@@ -40,7 +42,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         assert response.data[0]["limit"] == 10
 
     def test_post(self):
-        with self.feature("organizations:discover"):
+        with self.feature(self.feature_name):
             url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
             response = self.client.post(
                 url,
@@ -63,7 +65,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         assert not hasattr(response.data, "end")
 
     def test_post_invalid_projects(self):
-        with self.feature("organizations:discover"):
+        with self.feature(self.feature_name):
             url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
             response = self.client.post(
                 url,
@@ -81,7 +83,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         assert response.status_code == 403, response.content
 
     def test_post_cannot_use_version_two_fields(self):
-        with self.feature("organizations:discover"):
+        with self.feature(self.feature_name):
             url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
             response = self.client.post(
                 url,
@@ -102,8 +104,10 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
 
 
 class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
+    feature_name = "organizations:events-v2"
+
     def test_post_invalid_conditions(self):
-        with self.feature("organizations:discover"):
+        with self.feature(self.feature_name):
             url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
             response = self.client.post(
                 url,
@@ -120,7 +124,7 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
         assert "cannot use the conditions attribute(s)" in response.content
 
     def test_post_require_selected_fields(self):
-        with self.feature("organizations:discover"):
+        with self.feature(self.feature_name):
             url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
             response = self.client.post(
                 url,
@@ -136,7 +140,7 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
         assert "include at least one field" in response.content
 
     def test_post_fieldnames_length_mismatch(self):
-        with self.feature("organizations:discover"):
+        with self.feature(self.feature_name):
             url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
             response = self.client.post(
                 url,
@@ -153,7 +157,7 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
         assert "equal number of field names and fields" in response.content
 
     def test_post_success(self):
-        with self.feature("organizations:discover"):
+        with self.feature(self.feature_name):
             url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
             response = self.client.post(
                 url,
@@ -177,7 +181,7 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
         assert data["query"] == "event.type:error browser.name:Firefox"
 
     def test_post_success_no_fieldnames(self):
-        with self.feature("organizations:discover"):
+        with self.feature(self.feature_name):
             url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
             response = self.client.post(
                 url,

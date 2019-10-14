@@ -1,10 +1,7 @@
 from __future__ import absolute_import
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 __all__ = ["iso_format", "before_now"]
-
-
-from django.utils import timezone
 
 
 def iso_format(date):
@@ -12,4 +9,4 @@ def iso_format(date):
 
 
 def before_now(**kwargs):
-    return timezone.now() - timedelta(**kwargs)
+    return datetime.utcnow() - timedelta(**kwargs)

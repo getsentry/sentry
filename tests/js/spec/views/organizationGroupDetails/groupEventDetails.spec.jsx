@@ -3,8 +3,7 @@ import {mount} from 'enzyme';
 import {browserHistory} from 'react-router';
 
 import {initializeOrg} from 'app-test/helpers/initializeOrg';
-import {GroupEventDetails} from 'app/views/organizationGroupDetails/groupEventDetails';
-import HookStore from 'app/stores/hookStore';
+import GroupEventDetails from 'app/views/organizationGroupDetails/groupEventDetails/groupEventDetails';
 
 describe('groupEventDetails', () => {
   let org;
@@ -214,19 +213,7 @@ describe('groupEventDetails', () => {
   });
 
   describe('EventCauseEmpty', () => {
-    let hookFn;
-
-    beforeEach(function() {
-      hookFn = jest.fn(() => null);
-      HookStore.hooks['component:event-cause-empty'] = [hookFn];
-    });
-
-    afterEach(function() {
-      // clear HookStore
-      HookStore.init();
-    });
-
-    it('calls event cause empty state hook', async function() {
+    it('renders empty state', async function() {
       MockApiClient.addMockResponse({
         url: `/projects/${org.slug}/${project.slug}/releases/completion/`,
         body: [
@@ -252,9 +239,8 @@ describe('groupEventDetails', () => {
       await tick();
       wrapper.update();
 
-      expect(hookFn).toHaveBeenCalledWith({organization: org, project});
       expect(wrapper.find('EventCause').exists()).toBe(false);
-      expect(wrapper.find('EventCauseEmpty').exists()).toBe(false);
+      expect(wrapper.find('EventCauseEmpty').exists()).toBe(true);
     });
 
     it('renders suspect commit', async function() {
@@ -284,7 +270,6 @@ describe('groupEventDetails', () => {
       wrapper.update();
 
       expect(wrapper.find('EventCause').exists()).toBe(true);
-      expect(hookFn).not.toHaveBeenCalled();
       expect(wrapper.find('EventCauseEmpty').exists()).toBe(false);
     });
 
@@ -311,7 +296,6 @@ describe('groupEventDetails', () => {
       wrapper.update();
 
       expect(wrapper.find('EventCause').exists()).toBe(true);
-      expect(hookFn).not.toHaveBeenCalled();
       expect(wrapper.find('EventCauseEmpty').exists()).toBe(false);
     });
 
@@ -337,7 +321,6 @@ describe('groupEventDetails', () => {
       wrapper.update();
 
       expect(wrapper.find('EventCause').exists()).toBe(true);
-      expect(hookFn).not.toHaveBeenCalled();
       expect(wrapper.find('EventCauseEmpty').exists()).toBe(false);
     });
   });

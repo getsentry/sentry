@@ -194,6 +194,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                     >
                                       <DropdownButton
                                         isOpen={false}
+                                        showChevron={true}
                                         size="xsmall"
                                       >
                                         <StyledButton

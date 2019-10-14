@@ -1,4 +1,12 @@
 import {SpanEntry} from 'app/components/events/interfaces/spans/types';
+import {API_SCOPES} from 'app/constants';
+import {Field} from 'app/views/settings/components/forms/type';
+
+export type ObjectStatus =
+  | 'active'
+  | 'disabled'
+  | 'pending_deletion'
+  | 'deletion_in_progress';
 
 export type Organization = {
   id: string;
@@ -6,6 +14,7 @@ export type Organization = {
   projects: Project[];
   access: string[];
   features: string[];
+  teams: Team[];
 };
 
 export type OrganizationDetailed = Organization & {
@@ -25,6 +34,7 @@ export type OrganizationDetailed = Organization & {
   scrubIPAddresses: boolean;
   scrapeJavaScript: boolean;
   trustedRelays: string[];
+  role?: string;
 };
 
 export type Project = {
@@ -35,6 +45,7 @@ export type Project = {
   features: string[];
 
   isBookmarked: boolean;
+  hasUserReports?: boolean;
 };
 
 export type Team = {
@@ -73,6 +84,35 @@ type EntryType = {
 
 export type EventTag = {key: string; value: string};
 
+type EventUser = {
+  username?: string;
+  name?: string;
+  ip_address?: string;
+  email?: string;
+  id?: string;
+};
+
+type RuntimeContext = {
+  type: 'runtime';
+  version: number;
+  build?: string;
+  name?: string;
+};
+
+type TraceContext = {
+  type: 'trace';
+  op: string;
+  description: string;
+  parent_span_id: string;
+  span_id: string;
+  trace_id: string;
+};
+
+type EventContexts = {
+  runtime?: RuntimeContext;
+  trace?: TraceContext;
+};
+
 type SentryEventBase = {
   id: string;
   eventID: string;
@@ -80,6 +120,8 @@ type SentryEventBase = {
   title: string;
   culprit: string;
   metadata: EventMetadata;
+  contexts: EventContexts;
+  user: EventUser;
   message: string;
   platform?: string;
   dateCreated?: string;
@@ -118,9 +160,37 @@ export type EventsStats = {
 };
 
 export type User = {
-  id: string;
-  name: string;
   username: string;
+  lastLogin: string;
+  isSuperuser: boolean;
+  emails: {
+    is_verified: boolean;
+    id: string;
+    email: string;
+  }[];
+  isManaged: boolean;
+  lastActive: string;
+  isStaff: boolean;
+  identities: any[];
+  id: string;
+  isActive: boolean;
+  has2fa: boolean;
+  canReset2fa: boolean;
+  name: string;
+  avatarUrl: string;
+  authenticators: Authenticator[];
+  dateJoined: string;
+  options: {
+    timezone: string;
+    stacktraceOrder: number;
+    language: string;
+    clock24Hours: boolean;
+  };
+  flags: {newsletter_consent_prompt: boolean};
+  avatar: {avatarUuid: string | null; avatarType: 'letter_avatar' | 'upload'};
+  ip_address: string;
+  hasPasswordAuth: boolean;
+  permissions: string[];
   email: string;
 };
 
@@ -135,12 +205,32 @@ export type Environment = {};
 // TODO(ts): This type is incomplete
 export type SavedSearch = {};
 
-// TODO(ts): This type is incomplete
-export type Plugin = {};
+export type Plugin = {
+  id: string;
+  name: string;
+  slug: string;
+  shortName: string;
+  type: string;
+  canDisable: boolean;
+  isTestable: boolean;
+  hasConfiguration: boolean;
+  metadata: any; // TODO(ts)
+  contexts: any[]; // TODO(ts)
+  status: string;
+  assets: any[]; // TODO(ts)
+  doc: string;
+  enabled?: boolean;
+  version?: string;
+  author?: {name: string; url: string};
+  isHidden: boolean;
+  description?: string;
+  resourceLinks?: Array<{title: string; url: string}>;
+};
 
 export type GlobalSelection = {
   projects: number[];
   environments: string[];
+  forceUrlSync?: boolean;
   datetime: {
     start: string;
     end: string;
@@ -165,39 +255,7 @@ export type Config = {
   urlPrefix: string;
   needsUpgrade: boolean;
   supportEmail: string;
-  user: {
-    username: string;
-    lastLogin: string;
-    isSuperuser: boolean;
-    emails: {
-      is_verified: boolean;
-      id: string;
-      email: string;
-    }[];
-    isManaged: boolean;
-    lastActive: string;
-    isStaff: boolean;
-    identities: any[];
-    id: string;
-    isActive: boolean;
-    has2fa: boolean;
-    canReset2fa: boolean;
-    name: string;
-    avatarUrl: string;
-    authenticators: Authenticator[];
-    dateJoined: string;
-    options: {
-      timezone: string;
-      stacktraceOrder: number;
-      language: string;
-      clock24Hours: boolean;
-    };
-    flags: {newsletter_consent_prompt: boolean};
-    avatar: {avatarUuid: string | null; avatarType: 'letter_avatar' | 'upload'};
-    hasPasswordAuth: boolean;
-    permissions: string[];
-    email: string;
-  };
+  user: User;
 
   invitesEnabled: boolean;
   privacyUrl: string | null;
@@ -283,11 +341,26 @@ export type Group = {
   userReportCount: number;
 };
 
+export type Member = {
+  id: string;
+  user: User;
+  name: string;
+  email: string;
+  pending: boolean | undefined;
+  role: string;
+  roleName: string;
+  flags: {
+    'sso:linked': boolean;
+    'sso:invalid': boolean;
+  };
+  dateCreated: string;
+};
+
 export type EventViewv1 = {
   name: string;
   data: {
     fields: string[];
-    columnNames: string[];
+    fieldnames: string[];
     sort: string[];
     query?: string;
   };
@@ -303,4 +376,133 @@ export type Repository = {
   provider: {id: string; name: string};
   status: string;
   url: string;
+};
+
+export type IntegrationProvider = {
+  key: string;
+  name: string;
+  canAdd: boolean;
+  canDisable: boolean;
+  features: string[];
+  aspects: any; //TODO(ts)
+  setupDialog: object; //TODO(ts)
+  metadata: any; //TODO(ts)
+};
+
+export type WebhookEvent = 'issue' | 'error';
+
+export type Scope = typeof API_SCOPES[number];
+
+export type SentryApp = {
+  status: 'unpublished' | 'published' | 'internal';
+  scopes: Scope[];
+  isAlertable: boolean;
+  verifyInstall: boolean;
+  slug: string;
+  name: string;
+  uuid: string;
+  author: string;
+  events: WebhookEvent[];
+  schema: {
+    elements?: object[]; //TODO(ts)
+  };
+  //possible null params
+  webhookUrl: string | null;
+  redirectUrl: string | null;
+  overview: string | null;
+  //optional params below
+  clientId?: string;
+  clientSecret?: string;
+  owner?: {
+    id: number;
+    slug: string;
+  };
+};
+
+export type Integration = {
+  id: string;
+  name: string;
+  icon: string;
+  domainName: string;
+  accountType: string;
+  status: ObjectStatus;
+  provider: IntegrationProvider;
+  configOrganization: Field[];
+  //TODO(ts): This includes the initial data that is passed into the integration's configuration form
+  configData: object;
+};
+
+export type IntegrationExternalIssue = {
+  id: string;
+  key: string;
+  url: string;
+  title: string;
+  description: string;
+  displayName: string;
+};
+
+export type GroupIntegration = Integration & {
+  externalIssues: IntegrationExternalIssue[];
+};
+
+export type SentryAppInstallation = {
+  app: {
+    uuid: string;
+    slug: string;
+  };
+  organization: {
+    slug: string;
+  };
+  uuid: string;
+  status: 'installed' | 'pending';
+  code?: string;
+};
+
+export type PermissionValue = 'no-access' | 'read' | 'write' | 'admin';
+
+export type Permissions = {
+  Event: PermissionValue;
+  Member: PermissionValue;
+  Organization: PermissionValue;
+  Project: PermissionValue;
+  Release: PermissionValue;
+  Team: PermissionValue;
+};
+
+//See src/sentry/api/serializers/models/apitoken.py for the differences based on application
+type BaseApiToken = {
+  id: string;
+  scopes: Scope[];
+  expiresAt: string;
+  dateCreated: string;
+  state: string;
+};
+
+//We include the token for API tokens used for internal apps
+export type InternalAppApiToken = BaseApiToken & {
+  application: null;
+  token: string;
+  refreshToken: string;
+};
+
+export type UserReport = {
+  id: string;
+  eventID: string;
+  issue: Group;
+};
+
+export type Commit = {
+  id: string;
+  key: string;
+  message: string;
+  dateCreated: string;
+  repository?: Repository;
+  author?: User;
+};
+
+export type MemberRole = {
+  id: string;
+  name: string;
+  desc: string;
+  allowed?: boolean;
 };

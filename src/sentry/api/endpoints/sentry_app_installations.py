@@ -49,11 +49,15 @@ class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        install = Creator.run(
-            organization=organization,
-            slug=serializer.validated_data.get("slug"),
-            user=request.user,
-            request=request,
-        )
+        # check for an exiting installation and return that if it exists
+        slug = serializer.validated_data.get("slug")
+        try:
+            install = SentryAppInstallation.objects.get(
+                sentry_app__slug=slug, organization=organization
+            )
+        except SentryAppInstallation.DoesNotExist:
+            install = Creator.run(
+                organization=organization, slug=slug, user=request.user, request=request
+            )
 
         return Response(serialize(install))

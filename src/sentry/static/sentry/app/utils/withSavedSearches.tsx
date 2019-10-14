@@ -6,14 +6,30 @@ import SavedSearchesStore from 'app/stores/savedSearchesStore';
 import getDisplayName from 'app/utils/getDisplayName';
 import {SavedSearch} from 'app/types';
 
+type InjectedSavedSearchesProps = {
+  savedSearches: SavedSearch[];
+  savedSearchLoading: boolean;
+  savedSearch: SavedSearch | null;
+};
+
+type State = {
+  SavedSearchs: SavedSearch;
+  isLoading: boolean;
+};
+
 /**
  * Currently wraps component with organization from context
  */
-
-const withSavedSearches = <P extends object>(WrappedComponent: React.ComponentType<P>) =>
-  createReactClass({
+const withSavedSearches = <P extends InjectedSavedSearchesProps>(
+  WrappedComponent: React.ComponentType<P>
+) =>
+  createReactClass<
+    Omit<P, keyof InjectedSavedSearchesProps> & Partial<InjectedSavedSearchesProps>,
+    State
+  >({
     displayName: `withSavedSearches(${getDisplayName(WrappedComponent)})`,
     mixins: [Reflux.listenTo(SavedSearchesStore, 'onUpdate')],
+
     getInitialState() {
       return SavedSearchesStore.get();
     },
@@ -55,5 +71,4 @@ const withSavedSearches = <P extends object>(WrappedComponent: React.ComponentTy
       );
     },
   });
-
 export default withSavedSearches;

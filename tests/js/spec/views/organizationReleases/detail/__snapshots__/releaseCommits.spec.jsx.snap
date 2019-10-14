@@ -139,7 +139,7 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                       >
                         <AvatarWrapper>
                           <div
-                            className="css-wh8qge-AvatarWrapper ez7y0rd0"
+                            className="css-wh8qge-AvatarWrapper eyce8w20"
                           >
                             <Avatar
                               hasTooltip={false}
@@ -237,7 +237,7 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                       }
                                     >
                                       <span
-                                        className="avatar css-3f9bmx-StyledBaseAvatar e1z0ohzl0"
+                                        className="avatar css-3f9bmx-StyledBaseAvatar e147uwb0"
                                         style={
                                           Object {
                                             "height": "36px",
@@ -250,12 +250,14 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                           identifier="example@sentry.io"
                                           round={true}
                                         >
-                                          <Svg
+                                          <Component
+                                            className="css-vyy37i-LetterAvatar e12lgfev0"
+                                            displayName="Foo Bar"
+                                            identifier="example@sentry.io"
                                             round={true}
-                                            viewBox="0 0 120 120"
                                           >
                                             <svg
-                                              className="css-1r4mnb9-Svg e1knxa8x0"
+                                              className="css-vyy37i-LetterAvatar e12lgfev0"
                                               viewBox="0 0 120 120"
                                             >
                                               <rect
@@ -282,7 +284,7 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                                 FB
                                               </text>
                                             </svg>
-                                          </Svg>
+                                          </Component>
                                         </LetterAvatar>
                                       </span>
                                     </StyledBaseAvatar>
@@ -294,18 +296,18 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                         </AvatarWrapper>
                         <CommitMessage>
                           <div
-                            className="css-bm0kt8-CommitMessage ez7y0rd1"
+                            className="css-bm0kt8-CommitMessage eyce8w21"
                           >
                             <Message>
                               <div
-                                className="css-q4dmcs-TextOverflow-Message ez7y0rd2"
+                                className="css-q4dmcs-TextOverflow-Message eyce8w22"
                               >
                                 (improve) Add Links to Spike-Protection Email (#2408)
                               </div>
                             </Message>
                             <Meta>
                               <p
-                                className="css-10csi2f-Meta ez7y0rd3"
+                                className="css-10csi2f-Meta eyce8w23"
                               >
                                 <span
                                   key="4"
@@ -511,7 +513,7 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                       >
                         <AvatarWrapper>
                           <div
-                            className="css-wh8qge-AvatarWrapper ez7y0rd0"
+                            className="css-wh8qge-AvatarWrapper eyce8w20"
                           >
                             <Avatar
                               hasTooltip={false}
@@ -609,7 +611,7 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                       }
                                     >
                                       <span
-                                        className="avatar css-3f9bmx-StyledBaseAvatar e1z0ohzl0"
+                                        className="avatar css-3f9bmx-StyledBaseAvatar e147uwb0"
                                         style={
                                           Object {
                                             "height": "36px",
@@ -622,12 +624,14 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                           identifier="example@sentry.io"
                                           round={true}
                                         >
-                                          <Svg
+                                          <Component
+                                            className="css-vyy37i-LetterAvatar e12lgfev0"
+                                            displayName="Foo Bar"
+                                            identifier="example@sentry.io"
                                             round={true}
-                                            viewBox="0 0 120 120"
                                           >
                                             <svg
-                                              className="css-1r4mnb9-Svg e1knxa8x0"
+                                              className="css-vyy37i-LetterAvatar e12lgfev0"
                                               viewBox="0 0 120 120"
                                             >
                                               <rect
@@ -654,7 +658,7 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                                 FB
                                               </text>
                                             </svg>
-                                          </Svg>
+                                          </Component>
                                         </LetterAvatar>
                                       </span>
                                     </StyledBaseAvatar>
@@ -666,18 +670,18 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                         </AvatarWrapper>
                         <CommitMessage>
                           <div
-                            className="css-bm0kt8-CommitMessage ez7y0rd1"
+                            className="css-bm0kt8-CommitMessage eyce8w21"
                           >
                             <Message>
                               <div
-                                className="css-q4dmcs-TextOverflow-Message ez7y0rd2"
+                                className="css-q4dmcs-TextOverflow-Message eyce8w22"
                               >
                                 (improve) Add Links to Spike-Protection Email (#2408)
                               </div>
                             </Message>
                             <Meta>
                               <p
-                                className="css-10csi2f-Meta ez7y0rd3"
+                                className="css-10csi2f-Meta eyce8w23"
                               >
                                 <span
                                   key="4"

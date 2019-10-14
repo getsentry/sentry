@@ -283,3 +283,41 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             [{"count": 1}],
             [{"count": 1}],
         ]
+
+    def test_transaction_events(self):
+        prototype = {
+            "type": "transaction",
+            "transaction": "api.issue.delete",
+            "spans": [],
+            "contexts": {"trace": {"trace_id": "a" * 32, "span_id": "a" * 16}},
+            "tags": {"important": "yes"},
+        }
+        fixtures = (
+            ("d" * 32, before_now(minutes=32)),
+            ("e" * 32, before_now(hours=1, minutes=2)),
+            ("f" * 32, before_now(hours=1, minutes=35)),
+        )
+        for fixture in fixtures:
+            data = prototype.copy()
+            data["event_id"] = fixture[0]
+            data["timestamp"] = iso_format(fixture[1])
+            data["start_timestamp"] = iso_format(fixture[1] - timedelta(seconds=1))
+            self.store_event(data=data, project_id=self.project.id)
+
+        with self.feature("organizations:events-v2"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "end": iso_format(before_now()),
+                    "start": iso_format(before_now(hours=2)),
+                    "query": "event.type:transaction",
+                    "interval": "30m",
+                    "yAxis": "count()",
+                },
+            )
+        assert response.status_code == 200, response.content
+        items = [item for time, item in response.data["data"] if item]
+        # We could get more results depending on where the 30 min
+        # windows land.
+        assert len(items) >= 3

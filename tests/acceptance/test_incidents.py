@@ -1,17 +1,17 @@
 from __future__ import absolute_import
 
-from datetime import datetime, timedelta
 from django.utils import timezone
 import pytz
 from mock import patch
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.incidents.logic import create_incident
 from sentry.incidents.models import IncidentType
 
 FEATURE_NAME = "organizations:incidents"
 
-event_time = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
+event_time = before_now(days=3).replace(tzinfo=pytz.utc)
 
 
 class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
@@ -39,6 +39,7 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
             self.browser.wait_until_not(".loading-indicator")
+            self.browser.wait_until_test_id("incident-sparkline")
             self.browser.snapshot("incidents - list")
 
             details_url = u'[href="/organizations/{}/incidents/{}/'.format(
@@ -54,12 +55,12 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_open_create_incident_modal(self, mock_now):
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
+        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
         self.store_event(
             data={
                 "event_id": "a" * 32,
                 "message": "oh no",
-                "timestamp": event_time.isoformat()[:19],
+                "timestamp": iso_format(event_time),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,

@@ -61,7 +61,9 @@ class ReleaseSerializer(serializers.Serializer):
 
 
 class ReleaseWithVersionSerializer(ReleaseSerializer):
-    version = serializers.CharField(max_length=MAX_VERSION_LENGTH, required=True)
+    version = serializers.CharField(
+        max_length=MAX_VERSION_LENGTH, trim_whitespace=False, required=True
+    )
     owner = UserField(required=False)
 
     def validate_version(self, value):

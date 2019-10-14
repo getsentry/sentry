@@ -6,7 +6,7 @@ from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsE
 from sentry.api.paginator import SequencePaginator
 from sentry.api.serializers import serialize
 from sentry.tagstore.base import TAG_KEY_RE
-from sentry.tagstore.snuba.backend import SnubaTagStorage
+from sentry import tagstore
 
 
 class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
@@ -21,9 +21,6 @@ class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
         except NoProjects:
             paginator = SequencePaginator([])
         else:
-            # TODO(jess): update this when snuba tagstore is the primary backend for us
-            tagstore = SnubaTagStorage()
-
             paginator = tagstore.get_tag_value_paginator_for_projects(
                 filter_params["project_id"],
                 filter_params.get("environment"),

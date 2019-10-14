@@ -14,6 +14,7 @@ import ReportUri, {
 } from 'app/views/settings/projectSecurityHeaders/reportUri';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import formGroups from 'app/data/forms/cspReports';
+import routeTitleGen from 'app/utils/routeTitle';
 
 export default class ProjectCspReports extends AsyncView {
   static propTypes = {
@@ -31,6 +32,11 @@ export default class ProjectCspReports extends AsyncView {
       ['keyList', `/projects/${orgId}/${projectId}/keys/`],
       ['project', `/projects/${orgId}/${projectId}/`],
     ];
+  }
+
+  getTitle() {
+    const {projectId} = this.props.params;
+    return routeTitleGen(t('Content Security Policy (CSP)'), projectId, false);
   }
 
   getInstructions() {

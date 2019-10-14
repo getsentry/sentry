@@ -125,7 +125,7 @@ const SharedGroupDetails = createReactClass({
                         event={evt}
                         orgId={group.project.organization.slug}
                         project={group.project}
-                        isShare={true}
+                        isShare
                       />
                     </div>
                   </div>

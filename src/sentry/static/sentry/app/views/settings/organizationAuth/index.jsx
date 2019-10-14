@@ -4,6 +4,7 @@ import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import IndicatorStore from 'app/stores/indicatorStore';
 import SentryTypes from 'app/sentryTypes';
+import routeTitleGen from 'app/utils/routeTitle';
 
 import OrganizationAuthList from './organizationAuthList';
 
@@ -30,8 +31,7 @@ class OrganizationAuth extends AsyncView {
   }
 
   getTitle() {
-    const org = this.context.organization;
-    return `${org.name} - Auth Settings`;
+    return routeTitleGen(t('Auth Settings'), this.context.organization.slug, false);
   }
 
   handleSendReminders = provider => {

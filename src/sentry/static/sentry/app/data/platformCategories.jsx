@@ -33,6 +33,8 @@ const frontend = [
 const mobile = ['cocoa-objc', 'cocoa-swift', 'java-android', 'cordova', 'react-native'];
 
 const backend = [
+  'csharp',
+  'elixir',
   'go',
   'go-http',
   'java-appengine',
@@ -41,11 +43,11 @@ const backend = [
   'java-log4j2',
   'java-logback',
   'java-logging',
+  'native',
   'node',
   'node-express',
   'node-koa',
   'node-connect',
-  'csharp',
   'php',
   'php-laravel',
   'php-monolog',
@@ -65,10 +67,9 @@ const backend = [
   'ruby-rails',
   'ruby-rack',
   'rust',
-  'elixir',
 ];
 
-const desktop = ['cocoa', 'csharp', 'java', 'electron', 'minidump'];
+const desktop = ['cocoa', 'csharp', 'java', 'electron', 'minidump', 'native'];
 
 const categoryList = [
   {id: 'popular', name: t('Popular'), platforms: popular},

@@ -188,7 +188,7 @@ class TeamProjects extends React.Component {
     return (
       <React.Fragment>
         <Panel>
-          <PanelHeader hasButtons={true}>
+          <PanelHeader hasButtons>
             <div>{t('Projects')}</div>
             <div style={{textTransform: 'none'}}>
               {!access.has('org:write') ? (

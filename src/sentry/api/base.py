@@ -13,8 +13,6 @@ from enum import Enum
 from pytz import utc
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.exceptions import ParseError
-from rest_framework.parsers import JSONParser
-from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from simplejson import JSONDecodeError
@@ -28,6 +26,7 @@ from sentry.utils.http import absolute_uri, is_valid_origin
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.sdk import capture_exception
 from sentry.utils import json
+from sentry.web.api import allow_cors_options
 
 
 from .authentication import ApiKeyAuthentication, TokenAuthentication
@@ -59,9 +58,8 @@ class DocSection(Enum):
 
 
 class Endpoint(APIView):
+    # Note: the available renderer and parser classes can be found in conf/server.py.
     authentication_classes = DEFAULT_AUTHENTICATION
-    renderer_classes = (JSONRenderer,)
-    parser_classes = (JSONParser,)
     permission_classes = (NoPermission,)
 
     def build_cursor_link(self, request, name, cursor):
@@ -145,6 +143,7 @@ class Endpoint(APIView):
         return rv
 
     @csrf_exempt
+    @allow_cors_options
     def dispatch(self, request, *args, **kwargs):
         """
         Identical to rest framework's dispatch except we add the ability

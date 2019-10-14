@@ -162,7 +162,7 @@ exports[`RuleBuilder renders 1`] = `
                 value="path"
               >
                 <SelectControl
-                  className="css-j6zs66-StyledSelectControl e1qrhqd00"
+                  className="css-gr8jfe-StyledSelectControl e1qrhqd00"
                   clearable={false}
                   disabled={false}
                   height={36}
@@ -188,7 +188,7 @@ exports[`RuleBuilder renders 1`] = `
                   <StyledSelect
                     arrowRenderer={[Function]}
                     backspaceRemoves={false}
-                    className="css-j6zs66-StyledSelectControl e1qrhqd00"
+                    className="css-gr8jfe-StyledSelectControl e1qrhqd00"
                     clearable={false}
                     deleteRemoves={false}
                     disabled={false}
@@ -215,7 +215,7 @@ exports[`RuleBuilder renders 1`] = `
                     <ForwardRef(SelectPicker)
                       arrowRenderer={[Function]}
                       backspaceRemoves={false}
-                      className="e1qrhqd00 css-95hpmx-StyledSelect-StyledSelectControl eho28m20"
+                      className="e1qrhqd00 css-1j7c7e2-StyledSelect-StyledSelectControl eho28m20"
                       clearable={false}
                       deleteRemoves={false}
                       disabled={false}
@@ -242,7 +242,7 @@ exports[`RuleBuilder renders 1`] = `
                       <SelectPicker
                         arrowRenderer={[Function]}
                         backspaceRemoves={false}
-                        className="e1qrhqd00 css-95hpmx-StyledSelect-StyledSelectControl eho28m20"
+                        className="e1qrhqd00 css-1j7c7e2-StyledSelect-StyledSelectControl eho28m20"
                         clearable={false}
                         deleteRemoves={false}
                         disabled={false}
@@ -272,7 +272,7 @@ exports[`RuleBuilder renders 1`] = `
                           autosize={true}
                           backspaceRemoves={false}
                           backspaceToRemoveMessage="Press backspace to remove {label}"
-                          className="e1qrhqd00 css-95hpmx-StyledSelect-StyledSelectControl eho28m20"
+                          className="e1qrhqd00 css-1j7c7e2-StyledSelect-StyledSelectControl eho28m20"
                           clearAllText="Clear all"
                           clearRenderer={[Function]}
                           clearValueText="Clear value"
@@ -332,7 +332,7 @@ exports[`RuleBuilder renders 1`] = `
                           valueKey="value"
                         >
                           <div
-                            className="Select e1qrhqd00 css-95hpmx-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
+                            className="Select e1qrhqd00 css-1j7c7e2-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
                           >
                             <input
                               disabled={false}
@@ -613,7 +613,7 @@ exports[`RuleBuilder renders 1`] = `
                       async={true}
                       backspaceRemoves={true}
                       cache={false}
-                      className="css-1dke465-StyledSelect eho28m20"
+                      className="css-1qogr7d-StyledSelect eho28m20"
                       clearable={true}
                       defaultOptions={true}
                       deleteRemoves={true}
@@ -633,7 +633,7 @@ exports[`RuleBuilder renders 1`] = `
                         async={true}
                         backspaceRemoves={true}
                         cache={false}
-                        className="css-1dke465-StyledSelect eho28m20"
+                        className="css-1qogr7d-StyledSelect eho28m20"
                         clearable={true}
                         defaultOptions={true}
                         deleteRemoves={true}
@@ -654,7 +654,7 @@ exports[`RuleBuilder renders 1`] = `
                           autoload={true}
                           backspaceRemoves={true}
                           cache={false}
-                          className="css-1dke465-StyledSelect eho28m20"
+                          className="css-1qogr7d-StyledSelect eho28m20"
                           clearable={true}
                           defaultOptions={true}
                           deleteRemoves={true}
@@ -681,7 +681,7 @@ exports[`RuleBuilder renders 1`] = `
                             backspaceRemoves={true}
                             backspaceToRemoveMessage="Press backspace to remove {label}"
                             cache={false}
-                            className="css-1dke465-StyledSelect eho28m20"
+                            className="css-1qogr7d-StyledSelect eho28m20"
                             clearAllText="Clear all"
                             clearRenderer={[Function]}
                             clearValueText="Clear value"
@@ -871,7 +871,7 @@ exports[`RuleBuilder renders 1`] = `
                             valueKey="value"
                           >
                             <div
-                              className="Select css-1dke465-StyledSelect eho28m20 is-clearable is-searchable Select--multi"
+                              className="Select css-1qogr7d-StyledSelect eho28m20 is-clearable is-searchable Select--multi"
                             >
                               <div
                                 className="Select-control"
@@ -1417,7 +1417,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                 value="path"
               >
                 <SelectControl
-                  className="css-j6zs66-StyledSelectControl e1qrhqd00"
+                  className="css-gr8jfe-StyledSelectControl e1qrhqd00"
                   clearable={false}
                   disabled={false}
                   height={36}
@@ -1443,7 +1443,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                   <StyledSelect
                     arrowRenderer={[Function]}
                     backspaceRemoves={false}
-                    className="css-j6zs66-StyledSelectControl e1qrhqd00"
+                    className="css-gr8jfe-StyledSelectControl e1qrhqd00"
                     clearable={false}
                     deleteRemoves={false}
                     disabled={false}
@@ -1470,7 +1470,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                     <ForwardRef(SelectPicker)
                       arrowRenderer={[Function]}
                       backspaceRemoves={false}
-                      className="e1qrhqd00 css-95hpmx-StyledSelect-StyledSelectControl eho28m20"
+                      className="e1qrhqd00 css-1j7c7e2-StyledSelect-StyledSelectControl eho28m20"
                       clearable={false}
                       deleteRemoves={false}
                       disabled={false}
@@ -1497,7 +1497,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                       <SelectPicker
                         arrowRenderer={[Function]}
                         backspaceRemoves={false}
-                        className="e1qrhqd00 css-95hpmx-StyledSelect-StyledSelectControl eho28m20"
+                        className="e1qrhqd00 css-1j7c7e2-StyledSelect-StyledSelectControl eho28m20"
                         clearable={false}
                         deleteRemoves={false}
                         disabled={false}
@@ -1527,7 +1527,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                           autosize={true}
                           backspaceRemoves={false}
                           backspaceToRemoveMessage="Press backspace to remove {label}"
-                          className="e1qrhqd00 css-95hpmx-StyledSelect-StyledSelectControl eho28m20"
+                          className="e1qrhqd00 css-1j7c7e2-StyledSelect-StyledSelectControl eho28m20"
                           clearAllText="Clear all"
                           clearRenderer={[Function]}
                           clearValueText="Clear value"
@@ -1587,7 +1587,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                           valueKey="value"
                         >
                           <div
-                            className="Select e1qrhqd00 css-95hpmx-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
+                            className="Select e1qrhqd00 css-1j7c7e2-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
                           >
                             <input
                               disabled={false}
@@ -2020,7 +2020,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                       async={true}
                       backspaceRemoves={true}
                       cache={false}
-                      className="css-1dke465-StyledSelect eho28m20"
+                      className="css-1qogr7d-StyledSelect eho28m20"
                       clearable={true}
                       defaultOptions={true}
                       deleteRemoves={true}
@@ -2078,7 +2078,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                         async={true}
                         backspaceRemoves={true}
                         cache={false}
-                        className="css-1dke465-StyledSelect eho28m20"
+                        className="css-1qogr7d-StyledSelect eho28m20"
                         clearable={true}
                         defaultOptions={true}
                         deleteRemoves={true}
@@ -2137,7 +2137,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                           autoload={true}
                           backspaceRemoves={true}
                           cache={false}
-                          className="css-1dke465-StyledSelect eho28m20"
+                          className="css-1qogr7d-StyledSelect eho28m20"
                           clearable={true}
                           defaultOptions={true}
                           deleteRemoves={true}
@@ -2202,7 +2202,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                             backspaceRemoves={true}
                             backspaceToRemoveMessage="Press backspace to remove {label}"
                             cache={false}
-                            className="css-1dke465-StyledSelect eho28m20"
+                            className="css-1qogr7d-StyledSelect eho28m20"
                             clearAllText="Clear all"
                             clearRenderer={[Function]}
                             clearValueText="Clear value"
@@ -2430,7 +2430,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                             valueKey="value"
                           >
                             <div
-                              className="Select css-1dke465-StyledSelect eho28m20 has-value is-clearable is-focused is-searchable Select--multi"
+                              className="Select css-1qogr7d-StyledSelect eho28m20 has-value is-clearable is-focused is-searchable Select--multi"
                             >
                               <div
                                 className="Select-control"
@@ -2606,7 +2606,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                                             }
                                                           >
                                                             <span
-                                                              className="avatar css-3f9bmx-StyledBaseAvatar e1z0ohzl0"
+                                                              className="avatar css-3f9bmx-StyledBaseAvatar e147uwb0"
                                                               style={
                                                                 Object {
                                                                   "height": "28px",
@@ -2619,12 +2619,14 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                                                 identifier="janedoe@example.com"
                                                                 round={true}
                                                               >
-                                                                <Svg
+                                                                <Component
+                                                                  className="css-vyy37i-LetterAvatar e12lgfev0"
+                                                                  displayName="Jane Doe"
+                                                                  identifier="janedoe@example.com"
                                                                   round={true}
-                                                                  viewBox="0 0 120 120"
                                                                 >
                                                                   <svg
-                                                                    className="css-1r4mnb9-Svg e1knxa8x0"
+                                                                    className="css-vyy37i-LetterAvatar e12lgfev0"
                                                                     viewBox="0 0 120 120"
                                                                   >
                                                                     <rect
@@ -2651,7 +2653,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                                                       JD
                                                                     </text>
                                                                   </svg>
-                                                                </Svg>
+                                                                </Component>
                                                               </LetterAvatar>
                                                             </span>
                                                           </StyledBaseAvatar>

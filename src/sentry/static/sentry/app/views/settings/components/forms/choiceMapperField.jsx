@@ -221,7 +221,7 @@ export default class ChoiceMapper extends React.Component {
     return (
       <InputField
         {...this.props}
-        inline={model => !this.hasValue(model.getValue(this.props.name))}
+        inline={({model}) => !this.hasValue(model.getValue(this.props.name))}
         field={this.renderField}
       />
     );

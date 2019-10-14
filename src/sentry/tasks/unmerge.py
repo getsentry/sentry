@@ -5,7 +5,7 @@ from collections import defaultdict, OrderedDict
 
 from django.db import transaction
 
-from sentry import eventstream, tagstore
+from sentry import eventstore, eventstream
 from sentry.app import tsdb
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
 from sentry.event_manager import generate_culprit
@@ -214,20 +214,14 @@ def migrate_events(
         destination = Group.objects.get(id=destination_id)
         destination.update(**get_group_backfill_attributes(caches, destination, events))
 
-    event_id_set = set(event.id for event in events)
-
-    Event.objects.filter(project_id=project.id, id__in=event_id_set).update(group_id=destination_id)
+    event_id_set = set(event.event_id for event in events)
 
     for event in events:
         event.group = destination
 
-    tagstore.update_group_for_events(
-        project_id=project.id, event_ids=event_id_set, destination_id=destination_id
-    )
+    event_id_set = set(event.event_id for event in events)
 
-    event_event_id_set = set(event.event_id for event in events)
-
-    UserReport.objects.filter(project_id=project.id, event_id__in=event_event_id_set).update(
+    UserReport.objects.filter(project_id=project.id, event_id__in=event_id_set).update(
         group=destination_id
     )
 
@@ -235,9 +229,6 @@ def migrate_events(
 
 
 def truncate_denormalizations(group):
-    tagstore.delete_all_group_tag_keys(group.project_id, group.id)
-    tagstore.delete_all_group_tag_values(group.project_id, group.id)
-
     GroupRelease.objects.filter(group_id=group.id).delete()
 
     # XXX: This can cause a race condition with the ``FirstSeenEventCondition``
@@ -307,43 +298,6 @@ def collect_tag_data(events):
                 values[value] = (1, event.datetime, event.datetime)
 
     return results
-
-
-def repair_tag_data(caches, project, events):
-    for (group_id, env_name), keys in collect_tag_data(events).items():
-        environment = caches["Environment"](project.organization_id, env_name)
-        for key, values in keys.items():
-            tagstore.get_or_create_group_tag_key(
-                project_id=project.id, group_id=group_id, environment_id=environment.id, key=key
-            )
-
-            # XXX: `{first,last}_seen` columns don't totally replicate the
-            # ingestion logic (but actually represent a more accurate value.)
-            # See GH-5289 for more details.
-            for value, (times_seen, first_seen, last_seen) in values.items():
-                _, created = tagstore.get_or_create_group_tag_value(
-                    project_id=project.id,
-                    group_id=group_id,
-                    environment_id=environment.id,
-                    key=key,
-                    value=value,
-                    defaults={
-                        "first_seen": first_seen,
-                        "last_seen": last_seen,
-                        "times_seen": times_seen,
-                    },
-                )
-
-                if not created:
-                    tagstore.incr_group_tag_value_times_seen(
-                        project_id=project.id,
-                        group_id=group_id,
-                        environment_id=environment.id,
-                        key=key,
-                        value=value,
-                        count=times_seen,
-                        extra={"first_seen": first_seen},
-                    )
 
 
 def get_environment_name(event):
@@ -457,7 +411,6 @@ def repair_tsdb_data(caches, project, events):
 
 def repair_denormalizations(caches, project, events):
     repair_group_environment_data(caches, project, events)
-    repair_tag_data(caches, project, events)
     repair_group_release_data(caches, project, events)
     repair_tsdb_data(caches, project, events)
 
@@ -495,7 +448,7 @@ def unmerge(
     destination_id,
     fingerprints,
     actor_id,
-    cursor=None,
+    last_event=None,
     batch_size=500,
     source_fields_reset=False,
     eventstream_state=None,
@@ -510,7 +463,7 @@ def unmerge(
     # On the first iteration of this loop, we clear out all of the
     # denormalizations from the source group so that we can have a clean slate
     # for the new, repaired data.
-    if cursor is None:
+    if last_event is None:
         fingerprints = lock_hashes(project_id, source_id, fingerprints)
         truncate_denormalizations(source)
 
@@ -518,20 +471,47 @@ def unmerge(
 
     project = caches["Project"](project_id)
 
-    # We fetch the events in descending order by their primary key to get the
-    # best approximation of the most recently received events.
-    queryset = Event.objects.filter(project_id=project_id, group_id=source_id).order_by("-id")
+    # We process events sorted in descending order by -timestamp, -event_id. We need
+    # to include event_id as well as timestamp in the ordering criteria since:
+    #
+    # - Event timestamps are rounded to the second so multiple events are likely
+    # to have the same timestamp.
+    #
+    # - When sorting by timestamp alone, Snuba may not give us a deterministic
+    # order for events with the same timestamp.
+    #
+    # - We need to ensure that we do not skip any events between batches. If we
+    # only sorted by timestamp < last_event.timestamp it would be possible to
+    # have missed an event with the same timestamp as the last item in the
+    # previous batch.
 
-    if cursor is not None:
-        queryset = queryset.filter(id__lt=cursor)
+    conditions = []
+    if last_event is not None:
+        conditions.extend(
+            [
+                ["timestamp", "<=", last_event["timestamp"]],
+                [
+                    ["timestamp", "<", last_event["timestamp"]],
+                    ["event_id", "<", last_event["event_id"]],
+                ],
+            ]
+        )
 
-    events = list(queryset[:batch_size])
+    events = eventstore.get_events(
+        filter=eventstore.Filter(
+            project_ids=[project_id], group_ids=[source.id], conditions=conditions
+        ),
+        # We need the text-only "search message" from Snuba, not the raw message
+        # dict field from nodestore.
+        additional_columns=[eventstore.Columns.MESSAGE],
+        limit=batch_size,
+        referrer="unmerge",
+        orderby=["-timestamp", "-event_id"],
+    )
 
     # If there are no more events to process, we're done with the migration.
     if not events:
-        tagstore.update_group_tag_key_values_seen(project_id, [source_id, destination_id])
         unlock_hashes(project_id, fingerprints)
-
         logger.warning("Unmerge complete (eventstream state: %s)", eventstream_state)
         if eventstream_state:
             eventstream.end_unmerge(eventstream_state)
@@ -574,7 +554,7 @@ def unmerge(
         destination_id,
         fingerprints,
         actor_id,
-        cursor=events[-1].id,
+        last_event={"timestamp": events[-1].timestamp, "event_id": events[-1].event_id},
         batch_size=batch_size,
         source_fields_reset=source_fields_reset,
         eventstream_state=eventstream_state,

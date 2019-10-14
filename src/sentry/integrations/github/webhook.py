@@ -56,7 +56,7 @@ class Webhook(object):
                 "github.missing-integration",
                 extra={
                     "action": event.get("action"),
-                    "repository": event.get("repository")["full_name"],
+                    "repository": event.get("repository", {}).get("full_name", None),
                     "external_id": six.text_type(external_id),
                 },
             )
@@ -72,13 +72,29 @@ class Webhook(object):
                 external_id=six.text_type(event["repository"]["id"]),
             )
             for repo in repos:
-                # We need to track GitHub's "full_name" which is the repository slug.
-                # This is needed to access the API since `external_id` isn't sufficient.
-                if repo.config.get("name") != event["repository"]["full_name"]:
-                    repo.config["name"] = event["repository"]["full_name"]
-                    repo.save()
-
                 self._handle(integration, event, orgs[repo.organization_id], repo)
+
+    def update_repo_data(self, repo, event):
+        """
+        Given a webhook payload, update stored repo data if needed.
+
+        Assumes a 'repository' key in event payload, with certain subkeys.
+        Rework this if that stops being a safe assumption.
+        """
+
+        name_from_event = event["repository"]["full_name"]
+        url_from_event = event["repository"]["html_url"]
+
+        if (
+            repo.name != name_from_event
+            or repo.config.get("name") != name_from_event
+            or repo.url != url_from_event
+        ):
+            repo.update(
+                name=name_from_event,
+                url=url_from_event,
+                config=dict(repo.config, name=name_from_event),
+            )
 
 
 class InstallationEventWebhook(Webhook):
@@ -111,6 +127,16 @@ class InstallationEventWebhook(Webhook):
     def _handle_delete(self, event, integration):
 
         organizations = integration.organizations.all()
+
+        logger.info(
+            "InstallationEventWebhook._handle_delete",
+            extra={
+                "external_id": event["installation"]["id"],
+                "integration_id": integration.id,
+                "organization_id_list": organizations.values_list("id", flat=True),
+            },
+        )
+
         integration.update(status=ObjectStatus.DISABLED)
 
         Repository.objects.filter(
@@ -142,6 +168,9 @@ class PushEventWebhook(Webhook):
         return GitHubRepositoryProvider.should_ignore_commit(commit["message"])
 
     def _handle(self, integration, event, organization, repo, host=None):
+        # while we're here, make sure repo data is up to date
+        self.update_repo_data(repo, event)
+
         authors = {}
         client = integration.get_installation(organization_id=organization.id).get_client()
         gh_username_cache = {}
@@ -284,6 +313,9 @@ class PullRequestEventWebhook(Webhook):
         return options.get("github-app.id")
 
     def _handle(self, integration, event, organization, repo, host=None):
+        # while we're here, make sure repo data is up to date
+        self.update_repo_data(repo, event)
+
         pull_request = event["pull_request"]
         number = pull_request["number"]
         title = pull_request["title"]

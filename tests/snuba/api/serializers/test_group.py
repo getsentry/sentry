@@ -29,14 +29,15 @@ from sentry.models import (
     UserOptionValue,
 )
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
 class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super(GroupSerializerSnubaTest, self).setUp()
-        self.min_ago = timezone.now() - timedelta(minutes=1)
-        self.day_ago = timezone.now() - timedelta(days=1)
-        self.week_ago = timezone.now() - timedelta(days=7)
+        self.min_ago = before_now(minutes=1)
+        self.day_ago = before_now(days=1)
+        self.week_ago = before_now(days=7)
 
     def test_permalink(self):
         group = self.create_group(title="Oh no")
@@ -282,9 +283,9 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         events = []
 
         for event_id, env, user_id, timestamp in [
-            ("a" * 32, environment, 1, self.min_ago.isoformat()[:19]),
-            ("b" * 32, environment, 2, self.min_ago.isoformat()[:19]),
-            ("c" * 32, environment2, 3, self.week_ago.isoformat()[:19]),
+            ("a" * 32, environment, 1, iso_format(self.min_ago)),
+            ("b" * 32, environment, 2, iso_format(self.min_ago)),
+            ("c" * 32, environment2, 3, iso_format(self.week_ago)),
         ]:
             events.append(
                 self.store_event(
@@ -326,9 +327,9 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         )
         assert result["count"] == "3"
         # result is rounded down to nearest second
-        assert result["lastSeen"] == self.min_ago - timedelta(microseconds=self.min_ago.microsecond)
-        assert result["firstSeen"] == group_env.first_seen
-        assert group_env2.first_seen > group_env.first_seen
+        assert iso_format(result["lastSeen"]) == iso_format(self.min_ago)
+        assert iso_format(result["firstSeen"]) == iso_format(group_env.first_seen)
+        assert iso_format(group_env2.first_seen) > iso_format(group_env.first_seen)
         assert result["userCount"] == 3
 
         # test userCount, count, lastSeen filtering correctly by time
@@ -342,10 +343,8 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
             ),
         )
         assert result["userCount"] == 1
-        assert result["lastSeen"] == self.week_ago - timedelta(
-            microseconds=self.week_ago.microsecond
-        )
-        assert result["firstSeen"] == group_env.first_seen
+        assert iso_format(result["lastSeen"]) == iso_format(self.week_ago)
+        assert iso_format(result["firstSeen"]) == iso_format(group_env.first_seen)
         assert result["count"] == "1"
 
 

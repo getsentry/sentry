@@ -10,7 +10,17 @@ export const zIndex = {
 
 export const SPAN_ROW_HEIGHT = 25;
 
-export const SpanRow = styled('div')`
+type SpanRowProps = {
+  visible?: boolean;
+  showBorder?: boolean;
+};
+
+type SpanRowAndDivProps = Omit<React.HTMLProps<HTMLDivElement>, keyof SpanRowProps> &
+  SpanRowProps;
+
+export const SpanRow = styled.div<SpanRowAndDivProps>`
+  display: ${p => (p.visible ? 'block' : 'none')};
+  border-top: ${p => (p.showBorder ? `1px solid  ${p.theme.gray1}` : null)};
   position: relative;
   overflow: hidden;
 
@@ -31,6 +41,8 @@ export const SpanRow = styled('div')`
 `;
 
 export const SpanRowMessage = styled(SpanRow)`
+  display: block;
+
   cursor: auto;
 
   color: #4a3e56;

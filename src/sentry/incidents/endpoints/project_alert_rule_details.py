@@ -22,7 +22,10 @@ class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
 
     def put(self, request, project, alert_rule):
         serializer = DrfAlertRuleSerializer(
-            context={"project": project}, instance=alert_rule, data=request.data, partial=True
+            context={"organization": project.organization, "access": request.access},
+            instance=alert_rule,
+            data=request.data,
+            partial=True,
         )
 
         if serializer.is_valid():

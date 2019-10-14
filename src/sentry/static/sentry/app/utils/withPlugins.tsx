@@ -3,28 +3,37 @@ import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 
 import {defined} from 'app/utils';
+import {Organization, Project, Plugin} from 'app/types';
 import {fetchPlugins} from 'app/actionCreators/plugins';
 import getDisplayName from 'app/utils/getDisplayName';
 import PluginsStore from 'app/stores/pluginsStore';
 import SentryTypes from 'app/sentryTypes';
-
 import withOrganization from 'app/utils/withOrganization';
 import withProject from 'app/utils/withProject';
-import {Plugin} from 'app/types';
+
+type WithPluginProps = {
+  organization: Organization;
+  project: Project;
+};
+
+type InjectedPluginProps = {
+  plugins: Plugin[];
+};
 
 /**
  * Higher order component that fetches list of plugins and
  * passes PluginsStore to component as `plugins`
  */
-
-const withPlugins = <P extends object>(WrappedComponent: React.ComponentType<P>) =>
+const withPlugins = <P extends InjectedPluginProps>(
+  WrappedComponent: React.ComponentType<P>
+) =>
   withOrganization(
     withProject(
-      createReactClass({
+      createReactClass<Omit<P, keyof InjectedPluginProps> & WithPluginProps, {}>({
         displayName: `withPlugins(${getDisplayName(WrappedComponent)})`,
         propTypes: {
-          organization: SentryTypes.Organization,
-          project: SentryTypes.Project,
+          organization: SentryTypes.Organization.isRequired,
+          project: SentryTypes.Project.isRequired,
         },
         mixins: [Reflux.connect(PluginsStore, 'store')],
 

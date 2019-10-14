@@ -1,15 +1,13 @@
 from __future__ import absolute_import
 
-from collections import defaultdict
 from mock import patch
 
-from sentry import tagstore
-from sentry.tagstore.models import GroupTagValue
 from sentry.tasks.merge import merge_groups
 from sentry.models import Event, Group, GroupEnvironment, GroupMeta, GroupRedirect, UserReport
 from sentry.similarity import _make_index_backend
 from sentry.testutils import TestCase
 from sentry.utils import redis
+from sentry.testutils.helpers.datetime import iso_format, before_now
 
 # Use the default redis client as a cluster client in the similarity index
 index = _make_index_backend(redis.clusters.get("default").get_local_client(0))
@@ -96,81 +94,33 @@ class MergeGroupTest(TestCase):
 
     def test_merge_updates_tag_values_seen(self):
         project = self.create_project()
-        target, other = [self.create_group(project) for _ in range(0, 2)]
-
-        data = {
-            "sentry:user": {"id:1": {target: 2}, "id:2": {other: 3}, "id:3": {target: 1, other: 2}},
-            "key": {"foo": {other: 3}},
-        }
-
-        input_group_tag_keys = defaultdict(int)  # [(group, key)] = values_seen
-        input_group_tag_values = defaultdict(int)  # [(group, key, value)] = times_seen
-        output_group_tag_keys = defaultdict(int)  # [key] = values_seen
-        output_group_tag_values = defaultdict(int)  # [(key, value)] = times_seen
-
-        for key, values in data.items():
-            output_group_tag_keys[key] = len(values)
-
-            for value, groups in values.items():
-                for group, count in groups.items():
-                    input_group_tag_keys[(group, key)] += 1
-                    input_group_tag_values[(group, key, value)] += count
-                    output_group_tag_values[(key, value)] += count
-
-        for ((group, key), values_seen) in input_group_tag_keys.items():
-            tagstore.create_group_tag_key(
-                project_id=project.id,
-                group_id=group.id,
-                environment_id=self.environment.id,
-                key=key,
-                values_seen=values_seen,
-            )
-
-        for ((group, key, value), times_seen) in input_group_tag_values.items():
-            tagstore.create_group_tag_value(
-                project_id=project.id,
-                group_id=group.id,
-                environment_id=self.environment.id,
-                key=key,
-                value=value,
-                times_seen=times_seen,
-            )
+        event1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": iso_format(before_now(seconds=1)),
+                "fingerprint": ["group-1"],
+                "tags": {"foo": "bar"},
+                "environment": self.environment.name,
+            },
+            project_id=project.id,
+        )
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "timestamp": iso_format(before_now(seconds=1)),
+                "fingerprint": ["group-2"],
+                "tags": {"foo": "bar"},
+                "environment": self.environment.name,
+            },
+            project_id=project.id,
+        )
+        target = event1.group
+        other = event2.group
 
         with self.tasks():
             merge_groups([other.id], target.id)
 
         assert not Group.objects.filter(id=other.id).exists()
-        assert (
-            len(
-                tagstore.get_group_tag_keys(
-                    other.project_id, other.id, environment_ids=[self.environment.id]
-                )
-            )
-            == 0
-        )
-        assert (
-            len(GroupTagValue.objects.filter(project_id=other.project_id, group_id=other.id)) == 0
-        )
-
-        for key, values_seen in output_group_tag_keys.items():
-            assert (
-                tagstore.get_group_tag_key(
-                    target.project_id, target.id, environment_id=self.environment.id, key=key
-                ).values_seen
-                == values_seen
-            )
-
-        for (key, value), times_seen in output_group_tag_values.items():
-            assert (
-                tagstore.get_group_tag_value(
-                    project_id=target.project_id,
-                    group_id=target.id,
-                    environment_id=self.environment.id,
-                    key=key,
-                    value=value,
-                ).times_seen
-                == times_seen
-            )
 
     def test_merge_with_group_meta(self):
         project1 = self.create_project()

@@ -7,16 +7,18 @@ ifneq "$(wildcard /usr/local/opt/openssl/lib)" ""
 	LDFLAGS += -L/usr/local/opt/openssl/lib
 endif
 
-PIP = LDFLAGS="$(LDFLAGS)" pip
-PIP_OPTS = --no-use-pep517 --disable-pip-version-check
-WEBPACK = NODE_ENV=production ./bin/yarn webpack
-YARN = ./bin/yarn
+PIP := LDFLAGS="$(LDFLAGS)" python -m pip
+# Note: this has to be synced with the pip version in .travis.yml.
+PIP_VERSION := 19.2.3
+PIP_OPTS := --no-use-pep517 --disable-pip-version-check
+WEBPACK := NODE_ENV=production ./bin/yarn webpack
+YARN := ./bin/yarn
 
 bootstrap: install-system-pkgs develop init-config run-dependent-services create-db apply-migrations
 
-develop: setup-git ensure-venv ensure-latest-pip develop-only
+develop: ensure-venv setup-git develop-only
 
-develop-only: update-submodules install-yarn-pkgs install-sentry-dev
+develop-only: ensure-venv update-submodules install-yarn-pkgs install-sentry-dev
 
 init-config:
 	sentry init --dev
@@ -26,21 +28,17 @@ run-dependent-services:
 
 test: develop lint test-js test-python test-cli
 
-ensure-venv:
-	@./scripts/ensure-venv.sh
-
-ensure-latest-pip:
-	python -m pip install -U pip
-
 build: locale
 
 drop-db:
 	@echo "--> Dropping existing 'sentry' database"
-	dropdb -h 127.0.0.1 -U postgres sentry || true
+	docker exec $$(docker ps --filter 'name=sentry_postgres' --format '{{.ID}}') \
+		dropdb -U postgres sentry || true
 
 create-db:
 	@echo "--> Creating 'sentry' database"
-	createdb -h 127.0.0.1 -U postgres -E utf-8 sentry || true
+	docker exec $$(docker ps --filter 'name=sentry_postgres' --format '{{.ID}}') \
+		createdb -U postgres -E utf-8 sentry || true
 
 apply-migrations:
 	@echo "--> Applying migrations"
@@ -59,7 +57,13 @@ clean:
 	rm -rf build/ dist/ src/sentry/assets.json
 	@echo ""
 
-setup-git:
+ensure-venv:
+	@./scripts/ensure-venv.sh
+
+ensure-latest-pip:
+	$(PIP) install "pip==$(PIP_VERSION)"
+
+setup-git: ensure-latest-pip
 	@echo "--> Installing git hooks"
 	git config branch.autosetuprebase always
 	git config core.ignorecase false
@@ -94,7 +98,7 @@ install-yarn-pkgs:
 
 install-sentry-dev:
 	@echo "--> Installing Sentry (for development)"
-	$(PIP) install -e ".[dev,tests,optional]" $(PIP_OPTS)
+	$(PIP) install -e ".[dev,optional]" $(PIP_OPTS)
 
 build-js-po: node-version-check
 	mkdir -p build

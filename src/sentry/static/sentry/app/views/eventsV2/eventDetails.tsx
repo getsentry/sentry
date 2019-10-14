@@ -10,7 +10,6 @@ import SentryTypes from 'app/sentryTypes';
 import AsyncComponent from 'app/components/asyncComponent';
 import ModalDialog from 'app/components/modalDialog';
 import NotFound from 'app/components/errors/notFound';
-import withApi from 'app/utils/withApi';
 import theme from 'app/utils/theme';
 import space from 'app/styles/space';
 import {Organization, Event} from 'app/types';
@@ -27,7 +26,7 @@ const slugValidator = function(
   const value = props[propName];
   // Accept slugs that look like:
   // * project-slug:deadbeef
-  if (value && typeof value === 'string' && !/^(?:[^:]+):(?:[a-f0-9]+)$/.test(value)) {
+  if (value && typeof value === 'string' && !/^(?:[^:]+):(?:[a-f0-9-]+)$/.test(value)) {
     return new Error(`Invalid value for ${propName} provided to ${componentName}.`);
   }
   return null;
@@ -127,4 +126,4 @@ class EventDetails extends AsyncComponent<Props, State & AsyncComponent['state']
   }
 }
 
-export default withApi(EventDetails);
+export default EventDetails;

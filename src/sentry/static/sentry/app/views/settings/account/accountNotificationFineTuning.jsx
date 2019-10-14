@@ -89,7 +89,7 @@ const isGroupedByProject = type => ['alerts', 'workflow', 'email'].indexOf(type)
 function groupByOrganization(projects) {
   return projects.reduce((acc, project) => {
     const orgSlug = project.organization.slug;
-    if (acc[orgSlug]) {
+    if (acc.hasOwnProperty(orgSlug)) {
       acc[orgSlug].projects.push(project);
     } else {
       acc[orgSlug] = {
@@ -280,26 +280,26 @@ export default class AccountNotificationFineTuning extends AsyncView {
               />
             </Form>
           )}
-        <Form
-          saveOnBlur
-          apiMethod="PUT"
-          apiEndpoint={`/users/me/notifications/${this.props.params.fineTuneType}/`}
-          initialData={this.state.fineTuneData}
-        >
-          <Panel>
-            <PanelBody>
-              <PanelHeader hasButtons={isProject}>
-                <Box flex="1">{isProject ? t('Projects') : t('Organizations')}</Box>
-                <Box>
-                  {isProject &&
-                    this.renderSearchInput({
-                      placeholder: t('Search Projects'),
-                      url,
-                      stateKey,
-                    })}
-                </Box>
-              </PanelHeader>
+        <Panel>
+          <PanelBody>
+            <PanelHeader hasButtons={isProject}>
+              <Box flex="1">{isProject ? t('Projects') : t('Organizations')}</Box>
+              <Box>
+                {isProject &&
+                  this.renderSearchInput({
+                    placeholder: t('Search Projects'),
+                    url,
+                    stateKey,
+                  })}
+              </Box>
+            </PanelHeader>
 
+            <Form
+              saveOnBlur
+              apiMethod="PUT"
+              apiEndpoint={`/users/me/notifications/${this.props.params.fineTuneType}/`}
+              initialData={this.state.fineTuneData}
+            >
               {isProject && hasProjects && (
                 <AccountNotificationsByProject
                   projects={this.state.projects}
@@ -314,9 +314,9 @@ export default class AccountNotificationFineTuning extends AsyncView {
               {!isProject && (
                 <AccountNotificationsByOrganizationContainer field={field} />
               )}
-            </PanelBody>
-          </Panel>
-        </Form>
+            </Form>
+          </PanelBody>
+        </Panel>
 
         {this.state.projects && (
           <Pagination pageLinks={this.state.projectsPageLinks} {...this.props} />

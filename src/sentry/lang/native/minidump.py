@@ -5,9 +5,7 @@ import logging
 import dateutil.parser as dp
 from msgpack import unpack, Unpacker, UnpackException, ExtraData
 
-from sentry.attachments import attachment_cache
-from sentry.coreapi import cache_key_for_event
-from sentry.utils.safe import setdefault_path
+from sentry.utils.safe import get_path, setdefault_path
 
 minidumps_logger = logging.getLogger("sentry.minidumps")
 
@@ -19,6 +17,12 @@ MAX_MSGPACK_EVENT_SIZE_BYTES = 100000
 
 
 def write_minidump_placeholder(data):
+    """
+    Writes a placeholder to indicate that this event has an associated minidump.
+
+    This will indicate to the ingestion pipeline that this event will need to be
+    processed. The payload can be checked via ``is_minidump_event``.
+    """
     # Minidump events must be native platform.
     data["platform"] = "native"
 
@@ -39,14 +43,28 @@ def write_minidump_placeholder(data):
     data["exception"] = {"values": [exception]}
 
 
+def is_minidump_event(data):
+    """
+    Checks whether an event indicates that it has an associated minidump.
+
+    This requires the event to have a special marker payload. It is written by
+    ``write_minidump_placeholder``.
+    """
+    exceptions = get_path(data, "exception", "values", filter=True)
+    return get_path(exceptions, 0, "mechanism", "type") == "minidump"
+
+
 def merge_attached_event(mpack_event, data):
-    # Merge msgpack serialized event.
-    if mpack_event.size > MAX_MSGPACK_EVENT_SIZE_BYTES:
+    """
+    Merges an event payload attached in the ``__sentry-event`` attachment.
+    """
+    size = mpack_event.size
+    if size == 0 or size > MAX_MSGPACK_EVENT_SIZE_BYTES:
         return
 
     try:
         event = unpack(mpack_event)
-    except (UnpackException, ExtraData) as e:
+    except (TypeError, ValueError, UnpackException, ExtraData) as e:
         minidumps_logger.exception(e)
         return
 
@@ -57,14 +75,17 @@ def merge_attached_event(mpack_event, data):
 
 
 def merge_attached_breadcrumbs(mpack_breadcrumbs, data):
-    # Merge msgpack breadcrumb file.
-    if mpack_breadcrumbs.size > MAX_MSGPACK_BREADCRUMB_SIZE_BYTES:
+    """
+    Merges breadcrumbs attached in the ``__sentry-breadcrumbs`` attachment(s).
+    """
+    size = mpack_breadcrumbs.size
+    if size == 0 or size > MAX_MSGPACK_BREADCRUMB_SIZE_BYTES:
         return
 
     try:
         unpacker = Unpacker(mpack_breadcrumbs)
         breadcrumbs = list(unpacker)
-    except (UnpackException, ExtraData) as e:
+    except (TypeError, ValueError, UnpackException, ExtraData) as e:
         minidumps_logger.exception(e)
         return
 
@@ -105,9 +126,3 @@ def merge_attached_breadcrumbs(mpack_breadcrumbs, data):
         data["breadcrumbs"] = current_crumbs + breadcrumbs
 
     data["breadcrumbs"] = data["breadcrumbs"][-cap:]
-
-
-def get_attached_minidump(data):
-    cache_key = cache_key_for_event(data)
-    attachments = attachment_cache.get(cache_key) or []
-    return next((a for a in attachments if a.type == MINIDUMP_ATTACHMENT_TYPE), None)

@@ -98,7 +98,7 @@ describe('Issues Similar View', function() {
     await tick();
     wrapper.update();
     wrapper.find('[data-test-id="merge"] a').simulate('click');
-    wrapper.find('Button[data-test-id="confirm-modal"]').simulate('click');
+    wrapper.find('Button[data-test-id="confirm-button"]').simulate('click');
 
     await tick();
     wrapper.update();

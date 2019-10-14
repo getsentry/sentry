@@ -131,7 +131,7 @@ class SentryAppExternalIssueActions extends React.Component {
         <Modal.Header closeButton>
           <Modal.Title>{tct('[name] Issue', {name})}</Modal.Title>
         </Modal.Header>
-        <NavTabs underlined={true}>
+        <NavTabs underlined>
           <li className={action === 'create' ? 'active create' : 'create'}>
             <a onClick={this.showCreate}>{t('Create')}</a>
           </li>

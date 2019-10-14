@@ -149,7 +149,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
       withMargins={true}
     >
       <h1
-        className="css-14dms5l-PageHeading e1f8hk460"
+        className="css-14dms5l-PageHeading e1bz0f4q0"
       >
         Create a new Project
       </h1>
@@ -1307,7 +1307,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                   <ForwardRef(SelectPicker)
                     arrowRenderer={[Function]}
                     backspaceRemoves={false}
-                    className="css-xabluc-StyledSelect eho28m20"
+                    className="css-dj2cmi-StyledSelect eho28m20"
                     clearable={false}
                     deleteRemoves={false}
                     height={36}
@@ -1321,7 +1321,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                     <SelectPicker
                       arrowRenderer={[Function]}
                       backspaceRemoves={false}
-                      className="css-xabluc-StyledSelect eho28m20"
+                      className="css-dj2cmi-StyledSelect eho28m20"
                       clearable={false}
                       deleteRemoves={false}
                       forwardedRef={null}
@@ -1338,7 +1338,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                         autosize={true}
                         backspaceRemoves={false}
                         backspaceToRemoveMessage="Press backspace to remove {label}"
-                        className="css-xabluc-StyledSelect eho28m20"
+                        className="css-dj2cmi-StyledSelect eho28m20"
                         clearAllText="Clear all"
                         clearRenderer={[Function]}
                         clearValueText="Clear value"
@@ -1386,7 +1386,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                         valueKey="value"
                       >
                         <div
-                          className="Select css-xabluc-StyledSelect eho28m20 is-searchable Select--single"
+                          className="Select css-dj2cmi-StyledSelect eho28m20 is-searchable Select--single"
                         >
                           <div
                             className="Select-control"
@@ -1723,7 +1723,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
       withMargins={true}
     >
       <h1
-        className="css-14dms5l-PageHeading e1f8hk460"
+        className="css-14dms5l-PageHeading e1bz0f4q0"
       >
         Create a new Project
       </h1>
@@ -2283,7 +2283,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                   <ForwardRef(SelectPicker)
                     arrowRenderer={[Function]}
                     backspaceRemoves={false}
-                    className="css-xabluc-StyledSelect eho28m20"
+                    className="css-dj2cmi-StyledSelect eho28m20"
                     clearable={false}
                     deleteRemoves={false}
                     height={36}
@@ -2297,7 +2297,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                     <SelectPicker
                       arrowRenderer={[Function]}
                       backspaceRemoves={false}
-                      className="css-xabluc-StyledSelect eho28m20"
+                      className="css-dj2cmi-StyledSelect eho28m20"
                       clearable={false}
                       deleteRemoves={false}
                       forwardedRef={null}
@@ -2314,7 +2314,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                         autosize={true}
                         backspaceRemoves={false}
                         backspaceToRemoveMessage="Press backspace to remove {label}"
-                        className="css-xabluc-StyledSelect eho28m20"
+                        className="css-dj2cmi-StyledSelect eho28m20"
                         clearAllText="Clear all"
                         clearRenderer={[Function]}
                         clearValueText="Clear value"
@@ -2362,7 +2362,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                         valueKey="value"
                       >
                         <div
-                          className="Select css-xabluc-StyledSelect eho28m20 is-searchable Select--single"
+                          className="Select css-dj2cmi-StyledSelect eho28m20 is-searchable Select--single"
                         >
                           <div
                             className="Select-control"
@@ -2699,7 +2699,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
       withMargins={true}
     >
       <h1
-        className="css-14dms5l-PageHeading e1f8hk460"
+        className="css-14dms5l-PageHeading e1bz0f4q0"
       >
         Create a new Project
       </h1>
@@ -3959,7 +3959,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                   <ForwardRef(SelectPicker)
                     arrowRenderer={[Function]}
                     backspaceRemoves={false}
-                    className="css-xabluc-StyledSelect eho28m20"
+                    className="css-dj2cmi-StyledSelect eho28m20"
                     clearable={false}
                     deleteRemoves={false}
                     height={36}
@@ -3973,7 +3973,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                     <SelectPicker
                       arrowRenderer={[Function]}
                       backspaceRemoves={false}
-                      className="css-xabluc-StyledSelect eho28m20"
+                      className="css-dj2cmi-StyledSelect eho28m20"
                       clearable={false}
                       deleteRemoves={false}
                       forwardedRef={null}
@@ -3990,7 +3990,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                         autosize={true}
                         backspaceRemoves={false}
                         backspaceToRemoveMessage="Press backspace to remove {label}"
-                        className="css-xabluc-StyledSelect eho28m20"
+                        className="css-dj2cmi-StyledSelect eho28m20"
                         clearAllText="Clear all"
                         clearRenderer={[Function]}
                         clearValueText="Clear value"
@@ -4038,7 +4038,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                         valueKey="value"
                       >
                         <div
-                          className="Select css-xabluc-StyledSelect eho28m20 is-searchable Select--single"
+                          className="Select css-dj2cmi-StyledSelect eho28m20 is-searchable Select--single"
                         >
                           <div
                             className="Select-control"

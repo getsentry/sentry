@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {Link} from 'react-router';
 import {Box, Flex} from 'grid-emotion';
+import {isEqual} from 'lodash';
 
 import SentryTypes from 'app/sentryTypes';
 import Count from 'app/components/count';
@@ -14,12 +14,14 @@ import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import Alert from 'app/components/alert';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+import GlobalSelectionLink from 'app/components/globalSelectionLink';
 
 class GroupTags extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
     group: SentryTypes.Group.isRequired,
     api: PropTypes.object.isRequired,
+    environments: PropTypes.arrayOf(PropTypes.string).isRequired,
   };
 
   constructor() {
@@ -35,14 +37,20 @@ class GroupTags extends React.Component {
     this.fetchData();
   }
 
+  componentDidUpdate(prevProps) {
+    if (!isEqual(prevProps.environments, this.props.environments)) {
+      this.fetchData();
+    }
+  }
+
   fetchData = () => {
-    const {api, group} = this.props;
+    const {api, group, environments} = this.props;
     this.setState({
       loading: true,
       error: false,
     });
-
-    api.request('/issues/' + group.id + '/tags/', {
+    api.request(`/issues/${group.id}/tags/`, {
+      query: {environment: environments},
       success: data => {
         this.setState({
           tagList: data,
@@ -83,7 +91,7 @@ class GroupTags extends React.Component {
           const query = tagValue.query || `${tag.key}:"${tagValue.value}"`;
           return (
             <li key={tagValueIdx} data-test-id={tag.key}>
-              <Link
+              <GlobalSelectionLink
                 className="tag-bar"
                 to={{
                   pathname: `${baseUrl}${group.id}/events/`,
@@ -97,7 +105,7 @@ class GroupTags extends React.Component {
                 <span className="tag-bar-count">
                   <Count value={tagValue.count} />
                 </span>
-              </Link>
+              </GlobalSelectionLink>
             </li>
           );
         });
@@ -108,12 +116,12 @@ class GroupTags extends React.Component {
               <PanelHeader hasButtons style={{textTransform: 'none'}}>
                 <div style={{fontSize: 16}}>{tag.key}</div>
                 <Flex>
-                  <Link
+                  <GlobalSelectionLink
                     className="btn btn-default btn-sm"
                     to={`${baseUrl}${group.id}/tags/${tag.key}/`}
                   >
                     {t('More Details')}
-                  </Link>
+                  </GlobalSelectionLink>
                 </Flex>
               </PanelHeader>
               <PanelBody disablePadding={false}>

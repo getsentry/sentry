@@ -1,12 +1,15 @@
 import React from 'react';
 import styled from 'react-emotion';
 import {get} from 'lodash';
+import color from 'color';
 import 'intersection-observer'; // this is a polyfill
 
 import {t} from 'app/locale';
+import {defined, OmitHtmlDivProps} from 'app/utils';
 import space from 'app/styles/space';
 import Count from 'app/components/count';
 import Tooltip from 'app/components/tooltip';
+import InlineSvg from 'app/components/inlineSvg';
 
 import {
   toPercent,
@@ -19,7 +22,7 @@ import {
   MINIMAP_CONTAINER_HEIGHT,
   MINIMAP_SPAN_BAR_HEIGHT,
   NUM_OF_SPANS_FIT_IN_MINI_MAP,
-} from './minimap';
+} from './header';
 import {SPAN_ROW_HEIGHT, SpanRow, zIndex} from './styles';
 import * as DividerHandlerManager from './dividerHandlerManager';
 import * as CursorGuideHandler from './cursorGuideHandler';
@@ -136,6 +139,28 @@ const INTERSECTION_THRESHOLDS: Array<number> = [
 const TOGGLE_BUTTON_MARGIN_RIGHT = 8;
 const TOGGLE_BUTTON_MAX_WIDTH = 40;
 const TOGGLE_BORDER_BOX = TOGGLE_BUTTON_MAX_WIDTH + TOGGLE_BUTTON_MARGIN_RIGHT;
+const MARGIN_LEFT = 8;
+
+const getDurationDisplay = ({
+  width,
+  left,
+}: {
+  width: undefined | number;
+  left: undefined | number;
+}) => {
+  const spaceNeeded = 0.3;
+
+  if (left === undefined || width === undefined) {
+    return 'inset';
+  }
+  if (left + width < 1 - spaceNeeded) {
+    return 'right';
+  }
+  if (left > spaceNeeded) {
+    return 'left';
+  }
+  return 'inset';
+};
 
 type SpanBarProps = {
   trace: Readonly<ParsedTraceType>;
@@ -143,9 +168,12 @@ type SpanBarProps = {
   spanBarColour: string;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   treeDepth: number;
+  continuingTreeDepths: Array<number>;
   showSpanTree: boolean;
   numOfSpanChildren: number;
   spanNumber: number;
+  isLast?: boolean;
+  isRoot?: boolean;
   toggleSpanTree: () => void;
 };
 
@@ -183,8 +211,8 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
 
   getBounds = (): {
     warning: undefined | string;
-    left: undefined | string;
-    width: undefined | string;
+    left: undefined | number;
+    width: undefined | number;
     isSpanVisibleInView: boolean;
   } => {
     const {span, generateBounds} = this.props;
@@ -214,24 +242,24 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       case 'TIMESTAMPS_EQUAL': {
         return {
           warning: t('The start and end timestamps are equal'),
-          left: toPercent(bounds.start),
-          width: `${bounds.width}px`,
+          left: bounds.start,
+          width: 0.00001,
           isSpanVisibleInView: bounds.isSpanVisibleInView,
         };
       }
       case 'TIMESTAMPS_REVERSED': {
         return {
           warning: t('The start and end timestamps are reversed'),
-          left: toPercent(bounds.start),
-          width: toPercent(bounds.end - bounds.start),
+          left: bounds.start,
+          width: bounds.end - bounds.start,
           isSpanVisibleInView: bounds.isSpanVisibleInView,
         };
       }
       case 'TIMESTAMPS_STABLE': {
         return {
           warning: void 0,
-          left: toPercent(bounds.start),
-          width: toPercent(bounds.end - bounds.start),
+          left: bounds.start,
+          width: bounds.end - bounds.start,
           isSpanVisibleInView: bounds.isSpanVisibleInView,
         };
       }
@@ -242,17 +270,41 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     }
   };
 
+  renderSpanTreeConnector = ({hasToggler}: {hasToggler: boolean}) => {
+    const {isLast, isRoot, treeDepth, continuingTreeDepths, span} = this.props;
+    if (isRoot) {
+      return null;
+    }
+
+    const connectorBars: Array<React.ReactNode> = continuingTreeDepths.map(depth => {
+      const left = ((treeDepth - depth) * (TOGGLE_BORDER_BOX / 2) + 1) * -1;
+      return <ConnectorBar style={{left}} key={`${span.span_id}-${depth}`} />;
+    });
+
+    return (
+      <SpanTreeConnector isLast={isLast} hasToggler={hasToggler}>
+        {connectorBars}
+      </SpanTreeConnector>
+    );
+  };
+
   renderSpanTreeToggler = ({left}: {left: number}) => {
     const {numOfSpanChildren} = this.props;
 
-    const chevron = this.props.showSpanTree ? <ChevronOpen /> : <ChevronClosed />;
+    const chevronSrc = this.props.showSpanTree ? 'icon-chevron-up' : 'icon-chevron-down';
+    const chevron = <Chevron src={chevronSrc} />;
 
     if (numOfSpanChildren <= 0) {
-      return <SpanTreeTogglerContainer style={{left: `${left}px`}} />;
+      return (
+        <SpanTreeTogglerContainer style={{left: `${left}px`}}>
+          {this.renderSpanTreeConnector({hasToggler: false})}
+        </SpanTreeTogglerContainer>
+      );
     }
 
     return (
-      <SpanTreeTogglerContainer style={{left: `${left}px`}}>
+      <SpanTreeTogglerContainer style={{left: `${left}px`}} hasToggler>
+        {this.renderSpanTreeConnector({hasToggler: true})}
         <SpanTreeToggler
           isExpanded={this.props.showSpanTree}
           onClick={event => {
@@ -278,7 +330,6 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     const op = span.op ? <strong>{`${span.op} \u2014 `}</strong> : '';
     const description = get(span, 'description', span.span_id);
 
-    const MARGIN_LEFT = 8;
     const left = treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
 
     return (
@@ -531,7 +582,6 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           left: toPercent(dividerPosition),
           display: 'none',
         }}
-        hovering={true}
         onClick={event => {
           // the ghost divider line should not be interactive.
           // we prevent the propagation of the clicks from this component to prevent
@@ -549,7 +599,6 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           style={{
             left: toPercent(dividerPosition),
           }}
-          hovering={false}
           onMouseEnter={() => {
             dividerHandlerChildrenProps.setHover(true);
           }}
@@ -576,20 +625,16 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     }
 
     return (
-      <WarningTextWrapper>
-        <Tooltip title={warningText}>
-          <span style={{marginLeft: '8px', lineHeight: 0, height: '15px'}}>
-            <WarningIcon />
-          </span>
-        </Tooltip>
-      </WarningTextWrapper>
+      <Tooltip title={warningText}>
+        <WarningIcon src="icon-circle-exclamation" />
+      </Tooltip>
     );
   };
 
   renderHeader = (
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
   ) => {
-    const {span, spanBarColour} = this.props;
+    const {span, spanBarColour, spanNumber} = this.props;
 
     const startTimestamp: number = span.start_timestamp;
     const endTimestamp: number = span.timestamp;
@@ -602,39 +647,43 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
 
     const {dividerPosition} = dividerHandlerChildrenProps;
 
-    const displaySpanBar = bounds.left && bounds.width;
+    const displaySpanBar = defined(bounds.left) && defined(bounds.width);
+
+    const durationDisplay = getDurationDisplay(bounds);
 
     return (
       <SpanRowCellContainer>
         <SpanRowCell
+          showDetail={this.state.showDetail}
           style={{
             left: 0,
             width: toPercent(dividerPosition),
-            backgroundColor: this.state.showDetail ? '#F0ECF3' : void 0,
           }}
         >
           {this.renderTitle()}
         </SpanRowCell>
         <SpanRowCell
+          showDetail={this.state.showDetail}
+          showStriping={spanNumber % 2 !== 0}
           style={{
             left: toPercent(dividerPosition),
             width: toPercent(1 - dividerPosition),
-            backgroundColor: this.state.showDetail ? '#F0ECF3' : void 0,
           }}
         >
           {displaySpanBar && (
             <SpanBarRectangle
               style={{
                 backgroundColor: spanBarColour,
-                left: bounds.left,
-                width: bounds.width,
+                left: toPercent(bounds.left || 0),
+                width: toPercent(bounds.width || 0),
               }}
-            />
+            >
+              <DurationPill durationDisplay={durationDisplay}>
+                {durationString}
+                {this.renderWarningText({warningText: bounds.warning})}
+              </DurationPill>
+            </SpanBarRectangle>
           )}
-          <Duration>
-            <DurationPill>{durationString}</DurationPill>
-          </Duration>
-          {this.renderWarningText({warningText: bounds.warning})}
           {this.renderCursorGuide()}
         </SpanRowCell>
         {this.renderDivider(dividerHandlerChildrenProps)}
@@ -650,12 +699,8 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     return (
       <SpanRow
         innerRef={this.spanRowDOMRef}
-        style={{
-          display: isSpanVisibleInView ? 'block' : 'none',
-
-          // TODO: this is a border-top; this needs polishing from a real CSS ninja
-          boxShadow: this.state.showDetail ? '0 -1px 0 #d1cad8' : void 0,
-        }}
+        visible={isSpanVisibleInView}
+        showBorder={this.state.showDetail}
         onClick={() => {
           this.toggleDisplayDetail();
         }}
@@ -673,17 +718,48 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   }
 }
 
+const getBackgroundColor = ({
+  showStriping,
+  showDetail,
+  theme,
+}: {
+  showStriping?: boolean;
+  showDetail?: boolean;
+  theme: any;
+}) => {
+  if (!theme) {
+    return 'white';
+  }
+
+  if (showDetail) {
+    return theme.offWhite2;
+  }
+  return showStriping ? theme.offWhite : 'white';
+};
+
+type SpanRowCellProps = OmitHtmlDivProps<{
+  showStriping?: boolean;
+  showDetail?: boolean;
+}>;
+
+const SpanRowCell = styled('div')<SpanRowCellProps>`
+  position: absolute;
+  padding: ${space(0.5)} 1px;
+  height: 100%;
+  overflow: hidden;
+  background-color: ${p => getBackgroundColor(p)};
+`;
+
 const SpanRowCellContainer = styled('div')`
   position: relative;
   height: ${SPAN_ROW_HEIGHT}px;
-`;
 
-const SpanRowCell = styled('div')`
-  position: absolute;
-
-  height: ${SPAN_ROW_HEIGHT}px;
-
-  overflow: hidden;
+  &:hover ${SpanRowCell} {
+    background-color: ${p =>
+      color(p.theme.offWhite2)
+        .alpha(0.4)
+        .string()};
+  }
 `;
 
 const CursorGuide = styled('div')`
@@ -694,244 +770,196 @@ const CursorGuide = styled('div')`
 
   transform: translateX(-50%);
 
-  height: ${SPAN_ROW_HEIGHT}px;
+  height: 100%;
 `;
 
 export const DividerLine = styled('div')`
   position: absolute;
-  height: ${SPAN_ROW_HEIGHT}px;
-
+  height: 100%;
+  width: 1px;
   transform: translateX(-50%);
+
+  /* increase hit target */
+  border-width: 0 5px;
+  border-color: rgba(0, 0, 0, 0);
+  border-style: solid;
+  box-sizing: content-box;
+  background-clip: content-box;
 
   background-color: #cdc7d5;
   z-index: ${zIndex.dividerLine};
 
   &.hovering {
-    width: 4px !important;
+    width: 3px;
     cursor: col-resize;
   }
-
-  ${({hovering}: {hovering: boolean}) => {
-    if (!hovering) {
-      return 'width: 2px;';
-    }
-
-    return `
-      width: 4px;
-      cursor: col-resize;
-      `;
-  }};
 `;
 
 const SpanBarTitleContainer = styled('div')`
   display: flex;
   align-items: center;
-
-  height: ${SPAN_ROW_HEIGHT}px;
+  height: 100%;
   position: absolute;
   left: 0;
   top: 0;
   width: 100%;
+  user-select: none;
 `;
 
 const SpanBarTitle = styled('div')`
   position: relative;
-  top: 0;
-
-  height: ${SPAN_ROW_HEIGHT}px;
-  line-height: ${SPAN_ROW_HEIGHT}px;
-
-  color: #4a3e56;
-  font-size: 12px;
-
-  user-select: none;
-
+  height: 100%;
+  color: ${p => p.theme.gray4};
+  font-size: ${p => p.theme.fontSizeSmall};
   white-space: nowrap;
-
   display: flex;
+  flex: 1;
   align-items: center;
 `;
 
-const SpanTreeTogglerContainer = styled('div')`
+type TogglerTypes = OmitHtmlDivProps<{
+  hasToggler?: boolean;
+  isLast?: boolean;
+}>;
+
+const SpanTreeTogglerContainer = styled('div')<TogglerTypes>`
   position: relative;
-  top: 0;
-
   height: 15px;
-
-  max-width: 40px;
-  width: 40px;
-  min-width: 40px;
-
-  margin-right: 8px;
-
+  width: ${p => (p.hasToggler ? '44px' : '16px')};
+  min-width: ${p => (p.hasToggler ? '44px' : '16px')}; /* annoying flex thing */
+  margin-right: ${space(1)};
   z-index: ${zIndex.spanTreeToggler};
-
-  user-select: none;
-
   display: flex;
   justify-content: flex-end;
 `;
 
-const SpanTreeToggler = styled('div')`
-  position: relative;
+// one-off to get the perfect heirarchy
+const spanTreeColor = '#D5CEDB';
 
-  white-space: nowrap;
+const SpanTreeConnector = styled('div')<TogglerTypes>`
+  height: ${p => (p.isLast ? '85%' : '175%')};
+  border-left: 1px solid ${spanTreeColor};
+  position: absolute;
+  left: 4px;
+  top: -5px;
 
-  height: 15px;
-  min-width: 25px;
-
-  padding-left: 4px;
-  padding-right: 4px;
-
-  display: flex;
-  flex-wrap: nowrap;
-  align-items: center;
-  align-content: center;
-  justify-content: center;
-
-  > span {
-    flex-grow: 999;
+  &:before {
+    content: '';
+    width: ${p => (p.hasToggler ? '3px' : '8px')};
+    position: absolute;
+    height: 1px;
+    top: ${p => (p.isLast ? '100%' : '50%')};
+    transform: translateY(-50%);
+    background: ${spanTreeColor};
   }
 
-  transition: all 0.15s ease-in-out;
-
-  border-radius: 99px;
-
-  ${({isExpanded}: {isExpanded: boolean}) => {
-    if (!isExpanded) {
-      return `
-      background: #6e5f7d;
-      border: 1px solid #452650;
-      color: #ffffff;
-      & svg path {
-        stroke: #ffffff;
-      }
-
-      &:hover {
-        background: #fbfaf9;
-        border: 1px solid #6e5f7d;
-        color: #6e5f7d;
-        & svg path {
-          stroke: #452650;
-        }
-      }
-      `;
-    }
-
-    return `
-      background: #fbfaf9;
-      border: 1px solid #6e5f7d;
-      color: #6e5f7d;
-
-      &:hover {
-        background: #6e5f7d;
-        border: 1px solid #452650;
-        color: #ffffff;
-        & svg path {
-          stroke: #ffffff;
-        }
-      }
-    `;
-  }};
-
-  font-size: 9px;
-  line-height: 0;
+  &:after {
+    content: '';
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    /* border radius stops working at 3px */
+    transform: scale(0.5) translateY(-100%);
+    left: ${p => (p.hasToggler ? '1px' : '6px')};
+    top: ${p => (p.isLast ? '100%' : '50%')};
+    position: absolute;
+    background: ${spanTreeColor};
+  }
 `;
 
-const Duration = styled('div')`
+const ConnectorBar = styled('div')`
+  height: 250%;
+  border-left: 1px solid ${spanTreeColor};
+  top: -5px;
   position: absolute;
-  right: 0;
-  top: 0;
-  height: ${SPAN_ROW_HEIGHT}px;
-  line-height: ${SPAN_ROW_HEIGHT}px;
+`;
 
-  color: #9585a3;
-  font-size: 12px;
-  padding-right: ${space(1)};
+const getTogglerTheme = ({isExpanded, theme}) => {
+  const buttonTheme = isExpanded ? theme.button.default : theme.button.primary;
+  const activeButtonTheme = isExpanded ? theme.button.primary : theme.button.default;
 
-  user-select: none;
+  return `
+    background: ${buttonTheme.background};
+    border: 1px solid ${buttonTheme.border};
+    color: ${buttonTheme.color};
 
+    &:hover {
+      background: ${activeButtonTheme.background};
+      border: 1px solid ${activeButtonTheme.border};
+      color: ${activeButtonTheme.color};
+    }
+  `;
+};
+
+type SpanTreeTogglerAndDivProps = OmitHtmlDivProps<{
+  isExpanded: boolean;
+}>;
+
+const SpanTreeToggler = styled('div')<SpanTreeTogglerAndDivProps>`
+  white-space: nowrap;
+  height: 15px;
+  min-width: 25px;
+  padding: 0 4px;
   display: flex;
   align-items: center;
+  justify-content: center;
+  border-radius: 99px;
+  transition: all 0.15s ease-in-out;
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  line-height: 0;
+
+  ${p => getTogglerTheme(p)}
 `;
 
+const getDurationPillAlignment = ({durationDisplay}) => {
+  switch (durationDisplay) {
+    case 'left':
+      return `right: calc(100% + ${space(0.5)});`;
+    case 'right':
+      return `left: calc(100% + ${space(0.75)});`;
+    default:
+      return `
+        right: ${space(0.75)};
+        color: #fff;
+      `;
+  }
+};
+
 const DurationPill = styled('div')`
-  height: ${SPAN_ROW_HEIGHT - 10}px;
-  line-height: ${SPAN_ROW_HEIGHT - 10}px;
+  position: absolute;
 
-  border-radius: 99px;
+  color: ${p => p.theme.gray2};
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  top: 50%;
+  transform: translateY(-50%);
 
-  padding-left: 10px;
-  padding-right: 10px;
+  ${getDurationPillAlignment}
 
-  background-color: rgba(255, 255, 255, 0.6);
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+    font-size: 10px;
+  }
 `;
 
 const SpanBarRectangle = styled('div')`
   position: relative;
-  min-height: ${SPAN_ROW_HEIGHT - 4}px;
-  height: ${SPAN_ROW_HEIGHT - 4}px;
-  max-height: ${SPAN_ROW_HEIGHT - 4}px;
+  height: 100%;
 
   min-width: 1px;
-
-  margin-top: 2px;
-  margin-bottom: 2px;
-  border-radius: 3px;
-
-  overflow: hidden;
-
   user-select: none;
 
   transition: border-color 0.15s ease-in-out;
-  border: 1px solid rgba(0, 0, 0, 0);
+  border-right: 1px solid rgba(0, 0, 0, 0);
 `;
 
-const ChevronOpen = props => (
-  <svg width={5} height={4} fill="none" {...props}>
-    <path
-      d="M.5 1.25l2 2 2-2"
-      stroke="#6E5F7D"
-      strokeWidth={0.75}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
+const WarningIcon = styled(InlineSvg)`
+  margin-left: ${space(0.25)};
+`;
 
-const ChevronClosed = props => (
-  <svg width={3} height={6} fill="none" {...props}>
-    <path
-      d="M.5 5.25l2-2-2-2"
-      stroke="#6E5F7D"
-      strokeWidth={0.75}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
-
-const WarningIcon = props => (
-  <svg width={15} height={15} fill="none" {...props}>
-    <path
-      fillRule="evenodd"
-      clipRule="evenodd"
-      d="M7.012 4.463v3.825a.638.638 0 001.275 0V4.463a.637.637 0 10-1.275 0zM7.65 10.2a.637.637 0 100 1.275.637.637 0 000-1.275z"
-      fill="#493A05"
-    />
-    <rect x={0.5} y={0.5} width={14} height={14} rx={7} stroke="#493A05" />
-  </svg>
-);
-
-const WarningTextWrapper = styled('div')`
-  height: ${SPAN_ROW_HEIGHT}px;
-
-  position: absolute;
-  left: 0;
-  top: 0;
-
-  display: flex;
-  align-items: center;
+const Chevron = styled(InlineSvg)`
+  width: 7px;
 `;
 
 export default SpanBar;

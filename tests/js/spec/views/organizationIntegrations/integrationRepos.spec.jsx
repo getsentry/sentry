@@ -13,6 +13,28 @@ describe('IntegrationRepos', function() {
   const integration = TestStubs.GitHubIntegration();
   const routerContext = TestStubs.routerContext();
 
+  describe('Getting repositories', function() {
+    it('handles broken integrations', function() {
+      Client.addMockResponse({
+        url: `/organizations/${org.slug}/integrations/1/repos/`,
+        statusCode: 400,
+        body: {detail: 'Invalid grant'},
+      });
+      Client.addMockResponse({
+        url: `/organizations/${org.slug}/repos/`,
+        method: 'GET',
+        body: [],
+      });
+
+      const wrapper = mount(
+        <IntegrationRepos integration={integration} />,
+        routerContext
+      );
+      expect(wrapper.find('PanelBody')).toHaveLength(0);
+      expect(wrapper.find('Alert')).toHaveLength(1);
+    });
+  });
+
   describe('Adding repositories', function() {
     it('can save successfully', async function() {
       const addRepo = Client.addMockResponse({

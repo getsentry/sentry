@@ -2,27 +2,29 @@ import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
+import * as Sentry from '@sentry/browser';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
-import {fetchOrganizationEnvironments} from 'app/actionCreators/environments';
+import {metric} from 'app/utils/analytics';
 import {openSudo} from 'app/actionCreators/modal';
 import {setActiveOrganization} from 'app/actionCreators/organizations';
 import {t} from 'app/locale';
 import Alert from 'app/components/alert';
-import withApi from 'app/utils/withApi';
 import ConfigStore from 'app/stores/configStore';
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import HookStore from 'app/stores/hookStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import OrganizationEnvironmentsStore from 'app/stores/organizationEnvironmentsStore';
 import ProjectActions from 'app/actions/projectActions';
 import ProjectsStore from 'app/stores/projectsStore';
 import SentryTypes from 'app/sentryTypes';
 import Sidebar from 'app/components/sidebar';
 import TeamStore from 'app/stores/teamStore';
+import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
+import profiler from 'app/utils/profiler';
 import space from 'app/styles/space';
+import withApi from 'app/utils/withApi';
 import withOrganizations from 'app/utils/withOrganizations';
 
 const ERROR_TYPES = {
@@ -39,6 +41,7 @@ const OrganizationContext = createReactClass({
     useLastOrganization: PropTypes.bool,
     organizationsLoading: PropTypes.bool,
     organizations: PropTypes.arrayOf(SentryTypes.Organization),
+    finishProfile: PropTypes.func,
   },
 
   childContextTypes: {
@@ -86,6 +89,10 @@ const OrganizationContext = createReactClass({
     ) {
       this.remountComponent();
     }
+
+    if (this.state.organization && this.props.finishProfile) {
+      this.props.finishProfile();
+    }
   },
 
   componentWillUnmount() {
@@ -96,7 +103,7 @@ const OrganizationContext = createReactClass({
     this.setState(this.getInitialState(), this.fetchData);
   },
 
-  onProjectCreation(project) {
+  onProjectCreation() {
     // If a new project was created, we need to re-fetch the
     // org details endpoint, which will propagate re-rendering
     // for the entire component tree
@@ -120,13 +127,11 @@ const OrganizationContext = createReactClass({
       return;
     }
 
-    const promises = [
-      this.props.api.requestPromise(this.getOrganizationDetailsEndpoint()),
-      fetchOrganizationEnvironments(this.props.api, this.getOrganizationSlug()),
-    ];
+    metric.mark('organization-details-fetch-start');
 
-    Promise.all(promises)
-      .then(([data, environments]) => {
+    this.props.api
+      .requestPromise(this.getOrganizationDetailsEndpoint())
+      .then(data => {
         // Allow injection via getsentry et all
         const hooks = [];
         HookStore.get('organization:header').forEach(cb => {
@@ -134,6 +139,11 @@ const OrganizationContext = createReactClass({
         });
 
         setActiveOrganization(data);
+
+        // Configure scope to have organization tag
+        Sentry.configureScope(scope => {
+          scope.setTag('organization', data.id);
+        });
 
         TeamStore.loadInitialData(data.teams);
         ProjectsStore.loadInitialData(data.projects);
@@ -148,15 +158,27 @@ const OrganizationContext = createReactClass({
         ) {
           GlobalSelectionStore.loadInitialData(data, this.props.location.query);
         }
-        OrganizationEnvironmentsStore.loadInitialData(environments);
-
-        this.setState({
-          organization: data,
-          loading: false,
-          error: false,
-          errorType: null,
-          hooks,
-        });
+        this.setState(
+          {
+            organization: data,
+            loading: false,
+            error: false,
+            errorType: null,
+            hooks,
+          },
+          () => {
+            // Take a measurement for when organization details are done loading and the new state is applied
+            metric.measure({
+              name: 'app.component.perf',
+              start: 'organization-details-fetch-start',
+              data: {
+                name: 'org-details',
+                route: getRouteStringFromRoutes(this.props.routes),
+                organization_id: parseInt(data.id, 10),
+              },
+            });
+          }
+        );
       })
       .catch(err => {
         let errorType = null;
@@ -228,7 +250,7 @@ const OrganizationContext = createReactClass({
   render() {
     if (this.state.loading) {
       return (
-        <LoadingIndicator triangle={true}>
+        <LoadingIndicator triangle>
           {t('Loading data for your organization.')}
         </LoadingIndicator>
       );
@@ -255,7 +277,7 @@ const OrganizationContext = createReactClass({
   },
 });
 
-export default withApi(withOrganizations(OrganizationContext));
+export default withApi(withOrganizations(profiler()(OrganizationContext)));
 export {OrganizationContext};
 
 const ErrorWrapper = styled('div')`

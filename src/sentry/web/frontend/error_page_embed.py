@@ -17,7 +17,7 @@ from sentry.models import Event, ProjectKey, ProjectOption, UserReport
 from sentry.web.helpers import render_to_response
 from sentry.signals import user_feedback_received
 from sentry.utils import json
-from sentry.utils.http import is_valid_origin, origin_from_request
+from sentry.utils.http import absolute_uri, is_valid_origin, origin_from_request
 from sentry.utils.validators import normalize_event_id
 
 GENERIC_ERROR = _("An unknown error occurred while submitting your report. Please try again.")
@@ -208,7 +208,9 @@ class ErrorPageEmbedView(View):
         )
 
         context = {
-            "endpoint": mark_safe("*/" + json.dumps(request.build_absolute_uri()) + ";/*"),
+            "endpoint": mark_safe(
+                "*/" + json.dumps(absolute_uri(request.get_full_path())) + ";/*"
+            ),
             "template": mark_safe("*/" + json.dumps(template) + ";/*"),
             "strings": json.dumps_htmlsafe(
                 {

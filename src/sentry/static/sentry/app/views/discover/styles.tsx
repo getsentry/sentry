@@ -62,7 +62,7 @@ export const ResultViewActions = styled('div')`
   }
 `;
 
-export const ResultViewButtons = styled(NavTabs)`
+export const ResultViewButtons = styled(NavTabs)<NavTabs['props']>`
   margin-bottom: 0;
 
   @media (max-width: ${theme.breakpoints[1]}) {
@@ -158,9 +158,7 @@ export const LoadingContainer = styled('div')`
   height: 100%;
 `;
 
-export const SidebarTabs = styled((props: any) => (
-  <NavTabs {...props} underlined={true} />
-))`
+export const SidebarTabs = styled((props: any) => <NavTabs {...props} underlined />)`
   padding: ${space(3)} ${space(3)} 0;
   margin: 0;
 `;

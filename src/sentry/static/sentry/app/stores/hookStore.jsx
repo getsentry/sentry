@@ -25,7 +25,6 @@ const validHookNames = new Set([
   'component:org-members-view',
   'component:header-date-range',
   'component:header-selector-items',
-  'component:event-cause-empty',
 
   // Additional settings
   'settings:organization-navigation',
@@ -61,6 +60,7 @@ const validHookNames = new Set([
   'feature-disabled:discover-page',
   'feature-disabled:discover-sidebar-item',
   'feature-disabled:project-selector-checkbox',
+  'feature-disabled:custom-symbol-sources',
 ]);
 
 /**

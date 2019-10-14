@@ -97,7 +97,6 @@ class DiscoverQueryEndpoint(OrganizationEndpoint):
             )
 
     def post(self, request, organization):
-
         if not features.has("organizations:discover", organization, actor=request.user):
             return Response(status=404)
 

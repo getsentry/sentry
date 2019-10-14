@@ -5,6 +5,7 @@ import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import marked from 'marked';
 
+import Alert from 'app/components/alert';
 import {Panel, PanelAlert, PanelHeader} from 'app/components/panels';
 import {
   changeProjectSlug,
@@ -26,8 +27,10 @@ import ProjectsStore from 'app/stores/projectsStore';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import TextField from 'app/views/settings/components/forms/textField';
+import BetaTag from 'app/components/betaTag';
 import handleXhrErrorResponse from 'app/utils/handleXhrErrorResponse';
 import recreateRoute from 'app/utils/recreateRoute';
+import routeTitleGen from 'app/utils/routeTitle';
 
 class ProjectGeneralSettings extends AsyncView {
   static propTypes = {
@@ -45,7 +48,7 @@ class ProjectGeneralSettings extends AsyncView {
 
   getTitle() {
     const {projectId} = this.props.params;
-    return t('%s Settings', projectId);
+    return routeTitleGen(t('Project Settings'), projectId, false);
   }
 
   getEndpoints() {
@@ -101,6 +104,7 @@ class ProjectGeneralSettings extends AsyncView {
     }
 
     let updateNotes = '';
+    let riskLevel = 0;
     const newData = {};
 
     this.state.groupingConfigs.forEach(({id, latest, changelog}) => {
@@ -117,21 +121,53 @@ class ProjectGeneralSettings extends AsyncView {
       }
     });
 
-    if (Object.keys(newData).length === 0) {
-      return null;
+    // legacy to newstyle is a risky update
+    if (
+      this.state.data.groupingConfig.match(/^legacy:/) &&
+      newData.groupingConfig &&
+      newData.groupingConfig.match(/^newstyle:/)
+    ) {
+      riskLevel = 2;
     }
+
+    let riskNote;
+    let alertType;
+    switch (riskLevel) {
+      case 0:
+        riskNote = t('This upgrade has the chance to create some new issues.');
+        alertType = 'info';
+        break;
+      case 1:
+        riskNote = t('This upgrade will create some new issues.');
+        alertType = 'warning';
+        break;
+      case 2:
+        riskNote = (
+          <strong>
+            {t(
+              'The new grouping strategy is incompatible with the current and will create entirely new issues.'
+            )}
+          </strong>
+        );
+        alertType = 'error';
+        break;
+      default:
+    }
+
+    const noUpdates = Object.keys(newData).length === 0;
 
     return (
       <Field
         label={t('Upgrade Grouping Strategy')}
         help={tct(
-          'This project uses an old grouping strategy and an update is possible.[linebreak]Doing so will cause new events to group differently.',
+          'If the project uses an old grouping strategy an update is possible.[linebreak]Doing so will cause new events to group differently.',
           {
             linebreak: <br />,
           }
         )}
       >
         <Confirm
+          disabled={noUpdates}
           onConfirm={() => {
             addLoadingMessage(t('Changing grouping...'));
             this.api
@@ -145,35 +181,36 @@ class ProjectGeneralSettings extends AsyncView {
                 this.fetchData();
               }, handleXhrErrorResponse('Unable to upgrade config'));
           }}
-          priority="danger"
+          priority={riskLevel >= 2 ? 'danger' : 'primary'}
           title={t('Upgrade grouping strategy?')}
           confirmText={t('Upgrade')}
           message={
             <div>
               <TextBlock>
-                <strong>
-                  {t(
-                    'This will upgrade grouping and cause new events to group differently.'
-                  )}
-                </strong>
+                <strong>{t('Upgrade Grouping Strategy')}</strong>
               </TextBlock>
               <TextBlock>
                 {t(
-                  'From this moment onwards new events are likely to generate new groups.'
+                  'You can upgrade the grouping strategy to the latest but this is an irreversible operation.'
                 )}
-                <br />
-                <br />
+              </TextBlock>
+              <TextBlock>
                 <strong>{t('New Behavior')}</strong>
                 <div dangerouslySetInnerHTML={{__html: marked(updateNotes)}} />
+              </TextBlock>
+              <TextBlock>
+                <Alert type={alertType}>{riskNote}</Alert>
               </TextBlock>
             </div>
           }
         >
           <div>
             <Button
+              disabled={noUpdates}
+              title={noUpdates ? t('You are already on the latest version') : null}
               className="ref-upgrade-grouping-strategy"
               type="button"
-              priority="primary"
+              priority={riskLevel >= 2 ? 'danger' : 'primary'}
             >
               {t('Update Grouping Strategy')}
             </Button>
@@ -287,7 +324,7 @@ class ProjectGeneralSettings extends AsyncView {
                   <Form
                     hideFooter
                     onFieldChange={this.handleTransferFieldChange}
-                    onSubmit={(data, onSuccess, onError, e) => {
+                    onSubmit={(_data, _onSuccess, _onError, e) => {
                       e.stopPropagation();
                       confirm();
                     }}
@@ -384,7 +421,11 @@ class ProjectGeneralSettings extends AsyncView {
             jsonFormProps.features.has('tweak-grouping-config')) && (
             <JsonForm
               {...jsonFormProps}
-              title={t('Grouping Settings')}
+              title={
+                <React.Fragment>
+                  {t('Grouping Settings')} <BetaTag />
+                </React.Fragment>
+              }
               fields={[
                 fields.groupingConfig,
                 fields.groupingEnhancementsBase,
@@ -392,7 +433,7 @@ class ProjectGeneralSettings extends AsyncView {
                 fields.fingerprintingRules,
               ]}
               renderHeader={() => (
-                <>
+                <React.Fragment>
                   <PanelAlert type="warning">
                     <TextBlock noMargin>
                       {t(
@@ -402,7 +443,7 @@ class ProjectGeneralSettings extends AsyncView {
                   </PanelAlert>
                   {jsonFormProps.features.has('tweak-grouping-config') &&
                     this.renderUpgradeGrouping()}
-                </>
+                </React.Fragment>
               )}
             />
           )}
@@ -469,7 +510,7 @@ class ProjectGeneralSettings extends AsyncView {
 
 const ProjectGeneralSettingsContainer = createReactClass({
   mixins: [Reflux.listenTo(ProjectsStore, 'onProjectsUpdate')],
-  onProjectsUpdate(projects) {
+  onProjectsUpdate(_projects) {
     if (!this.changedSlug) {
       return;
     }

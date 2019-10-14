@@ -1,9 +1,18 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import ReactSelect, {Async, Creatable, AsyncCreatable} from 'react-select';
-import styled from 'react-emotion';
+import styled, {css} from 'react-emotion';
 
 import convertFromSelect2Choices from 'app/utils/convertFromSelect2Choices';
+
+/**
+ * The library has `value` defined as `PropTypes.object`, but this
+ * is not the case when `multiple` is true :/
+ */
+ReactSelect.Value.propTypes = {
+  ...ReactSelect.Value.propTypes,
+  value: PropTypes.any,
+};
 
 export default class SelectControl extends React.Component {
   static propTypes = {
@@ -19,6 +28,8 @@ export default class SelectControl extends React.Component {
     multiple: PropTypes.bool,
     // multi is supported for compatibility
     multi: PropTypes.bool,
+    // disable rendering a menu
+    noMenu: PropTypes.bool,
     choices: PropTypes.oneOfType([
       PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.string, PropTypes.array])),
       PropTypes.func,
@@ -36,13 +47,20 @@ export default class SelectControl extends React.Component {
   };
 
   render() {
-    const {async, creatable, options, choices, clearable, ...props} = this.props;
+    const {async, creatable, options, choices, clearable, noMenu, ...props} = this.props;
 
     // Compatibility with old select2 API
     const choicesOrOptions =
       convertFromSelect2Choices(
         typeof choices === 'function' ? choices(this.props) : choices
       ) || options;
+
+    const noMenuProps = {
+      arrowRenderer: () => null,
+      menuRenderer: () => null,
+      openOnClick: false,
+      menuContainerStyle: {display: 'none'},
+    };
 
     // "-Removes" props should match `clearable` unless explicitly defined in props
     // rest props should be after "-Removes" so that it can be overridden
@@ -54,6 +72,8 @@ export default class SelectControl extends React.Component {
         clearable={clearable}
         backspaceRemoves={clearable}
         deleteRemoves={clearable}
+        noMenu={noMenu}
+        {...(noMenu ? noMenuProps : {})}
         {...props}
         multi={this.props.multiple || this.props.multi}
         options={choicesOrOptions}
@@ -89,19 +109,33 @@ forwardRef.displayName = 'SelectPicker';
 const StyledSelect = styled(React.forwardRef(forwardRef))`
   font-size: 15px;
 
-  .Select-control,
+  .Select-control {
+    border: 1px solid ${p => p.theme.borderDark};
+    height: ${p => p.height}px;
+    overflow: visible;
+  }
+
+  &.Select.is-focused > .Select-control {
+    border: 1px solid ${p => p.theme.borderDark};
+    border-color: ${p => p.theme.gray};
+    box-shadow: rgba(209, 202, 216, 0.5) 0 0 0 3px;
+  }
+
   &.Select.is-focused:not(.is-open) > .Select-control {
     height: ${p => p.height}px;
     overflow: visible;
-    border: 1px solid ${p => p.theme.borderDark};
-    box-shadow: inset ${p => p.theme.dropShadowLight};
   }
+
   .Select-input {
     height: ${p => p.height}px;
     input {
       line-height: ${p => p.height}px;
       padding: 0 0;
     }
+  }
+
+  &.Select--multi .Select-value {
+    margin-top: 6px;
   }
 
   .Select-placeholder,
@@ -127,9 +161,15 @@ const StyledSelect = styled(React.forwardRef(forwardRef))`
     }
   }
 
-  /* stylelint-disable-next-line no-descending-specificity */
-  &.Select.is-focused:not(.is-open) > .Select-control {
-    border-color: ${p => p.theme.gray};
-    box-shadow: rgba(209, 202, 216, 0.5) 0 0 0 3px;
+  .Select-clear {
+    vertical-align: middle;
   }
+
+  ${({noMenu}) =>
+    noMenu &&
+    css`
+      &.Select.is-focused.is-open > .Select-control {
+        border-radius: 4px;
+      }
+    `}
 `;

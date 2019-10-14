@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 import {debounce} from 'lodash';
 
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
@@ -9,11 +10,14 @@ import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ConfigStore from 'app/stores/configStore';
+import InlineSvg from 'app/components/inlineSvg';
 import Pagination from 'app/components/pagination';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import recreateRoute from 'app/utils/recreateRoute';
+import space from 'app/styles/space';
+import routeTitleGen from 'app/utils/routeTitle';
 import {redirectToRemainingOrganization} from 'app/actionCreators/organizations';
+import {openInviteMembersModal} from 'app/actionCreators/modal';
 
 import OrganizationAccessRequests from './organizationAccessRequests';
 import OrganizationMemberRow from './organizationMemberRow';
@@ -77,8 +81,8 @@ class OrganizationMembersView extends AsyncView {
   }
 
   getTitle() {
-    const org = this.context.organization;
-    return `${org.name} Members`;
+    const orgId = this.context.organization.slug;
+    return routeTitleGen(t('Members'), orgId, false);
   }
 
   removeMember = id => {
@@ -133,7 +137,7 @@ class OrganizationMembersView extends AsyncView {
 
   handleDeny = id => this.approveOrDeny(false, id);
 
-  handleRemove = ({id, name}, e) => {
+  handleRemove = ({id, name}) => {
     const {organization} = this.context;
     const {slug: orgName} = organization;
 
@@ -155,7 +159,7 @@ class OrganizationMembersView extends AsyncView {
     );
   };
 
-  handleLeave = ({id}, e) => {
+  handleLeave = ({id}) => {
     const {organization} = this.context;
     const {slug: orgName} = organization;
 
@@ -186,7 +190,7 @@ class OrganizationMembersView extends AsyncView {
     this.api.request(`/organizations/${this.props.params.orgId}/members/${id}/`, {
       method: 'PUT',
       data: {reinvite: 1},
-      success: data =>
+      success: () =>
         this.setState(state => ({
           invited: state.invited.set(id, 'success'),
         })),
@@ -223,7 +227,7 @@ class OrganizationMembersView extends AsyncView {
     const {organization} = this.context;
     const {orgId} = params || {};
     const {name: orgName, access} = organization;
-    const canAddMembers = access.indexOf('org:write') > -1;
+    const canAddMembers = access.indexOf('member:write') > -1;
     const canRemove = access.indexOf('member:admin') > -1;
     const currentUser = ConfigStore.get('user');
     // Find out if current user is the only owner
@@ -235,26 +239,30 @@ class OrganizationMembersView extends AsyncView {
 
     return (
       <div>
-        <SettingsPageHeader
-          title="Members"
-          action={
-            <Button
-              priority="primary"
-              size="small"
-              disabled={!canAddMembers}
-              title={
-                !canAddMembers
-                  ? t('You do not have enough permission to add new members')
-                  : undefined
-              }
-              to={recreateRoute('new/', {routes, params})}
-              icon="icon-circle-add"
-              data-test-id="invite-member"
-            >
-              {t('Invite Member')}
-            </Button>
-          }
-        />
+        <SettingsPageHeader title="Members" />
+
+        <StyledPanel>
+          <InlineSvg src="icon-mail" size="36px" />
+          <TextContainer>
+            <Heading>{t('Invite new members')}</Heading>
+            <SubText>
+              {t('Invite new members by email to join your organization.')}
+            </SubText>
+          </TextContainer>
+          <Button
+            priority="primary"
+            size="small"
+            disabled={!canAddMembers}
+            title={
+              !canAddMembers
+                ? t('You do not have enough permission to add new members')
+                : undefined
+            }
+            onClick={openInviteMembersModal}
+          >
+            {t('Invite Members')}
+          </Button>
+        </StyledPanel>
 
         <OrganizationAccessRequests
           onApprove={this.handleApprove}
@@ -307,5 +315,34 @@ class OrganizationMembersView extends AsyncView {
     );
   }
 }
+
+const StyledPanel = styled(Panel)`
+  padding: 18px;
+  margin-top: -14px;
+  margin-bottom: 40px;
+  background: none;
+  display: grid;
+  grid-template-columns: max-content auto max-content;
+  grid-gap: ${space(3)};
+  align-items: center;
+  align-content: center;
+`;
+
+const TextContainer = styled('div')`
+  display: inline-grid;
+  grid-gap: ${space(1)};
+`;
+
+const Heading = styled('h1')`
+  margin: 0;
+  font-weight: 400;
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+`;
+
+const SubText = styled('p')`
+  margin: 0;
+  color: ${p => p.theme.gray3};
+  font-size: 15px;
+`;
 
 export default OrganizationMembersView;

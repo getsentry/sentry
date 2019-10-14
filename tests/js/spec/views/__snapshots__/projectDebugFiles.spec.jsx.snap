@@ -14,76 +14,71 @@ exports[`ProjectDebugFiles renders 1`] = `
     }
   }
 >
-  <SettingsPageHeading
+  <SentryDocumentTitle
+    objSlug="project"
+    title="Debug Files"
+  >
+    <SideEffect(DocumentTitle)
+      title="Debug Files - project - Sentry"
+    >
+      <DocumentTitle
+        title="Debug Files - project - Sentry"
+      />
+    </SideEffect(DocumentTitle)>
+  </SentryDocumentTitle>
+  <StyledSettingsPageHeading
     noTitleStyles={false}
     title="Debug Information Files"
   >
-    <Wrapper>
-      <div
-        className="css-1r5ylk7-Wrapper e1kblvez2"
-      >
-        <Flex
-          align="center"
-        >
-          <Base
-            align="center"
-            className="css-5ipae5"
-          >
-            <div
-              className="css-5ipae5"
-              is={null}
-            >
-              <Title
-                styled={false}
-              >
-                <Base
-                  className="css-1ky52ze-Title e1kblvez0"
-                >
-                  <div
-                    className="css-1ky52ze-Title e1kblvez0"
-                    is={null}
-                  >
-                    <HeaderTitle>
-                      <h4
-                        className="css-1w8ttcn-HeaderTitle e6lvex72"
-                      >
-                        Debug Information Files
-                      </h4>
-                    </HeaderTitle>
-                  </div>
-                </Base>
-              </Title>
-            </div>
-          </Base>
-        </Flex>
-      </div>
-    </Wrapper>
-  </SettingsPageHeading>
-  <TextBlock>
-    <Component
-      className="css-1geyb25-TextBlock ec8ep340"
+    <SettingsPageHeading
+      className="css-1fvvoq2-StyledSettingsPageHeading e1uay4fd4"
+      noTitleStyles={false}
+      title="Debug Information Files"
     >
       <div
-        className="css-1geyb25-TextBlock ec8ep340"
+        className="css-1fvvoq2-StyledSettingsPageHeading e1uay4fd4"
       >
-        
+        <TitleAndActions>
+          <div
+            className="css-b5tiyd-TitleAndActions e1uay4fd0"
+          >
+            <Title
+              styled={false}
+            >
+              <div
+                className="css-2kvddg-Title e1uay4fd1"
+              >
+                <HeaderTitle>
+                  <h4
+                    className="css-1w8ttcn-HeaderTitle eqkydle2"
+                  >
+                    Debug Information Files
+                  </h4>
+                </HeaderTitle>
+              </div>
+            </Title>
+          </div>
+        </TitleAndActions>
+      </div>
+    </SettingsPageHeading>
+  </StyledSettingsPageHeading>
+  <TextBlock>
+    <div
+      className="css-1geyb25-TextBlock e1x1lar10"
+    >
+      
             Debug information files are used to convert addresses and minified
             function names from native crash reports into function names and
             locations.
           
-      </div>
-    </Component>
+    </div>
   </TextBlock>
   <TextBlock>
-    <Component
-      className="css-1geyb25-TextBlock ec8ep340"
+    <div
+      className="css-1geyb25-TextBlock e1x1lar10"
     >
-      <div
-        className="css-1geyb25-TextBlock ec8ep340"
-      >
-        This list contains all uploaded debug information files:
-      </div>
-    </Component>
+      This list contains all uploaded debug information files:
+    </div>
   </TextBlock>
   <Panel>
     <Component
@@ -313,7 +308,11 @@ exports[`ProjectDebugFiles renders 1`] = `
 
 exports[`ProjectDebugFiles renders empty 1`] = `
 <Fragment>
-  <SettingsPageHeading
+  <SentryDocumentTitle
+    objSlug="project"
+    title="Debug Files"
+  />
+  <StyledSettingsPageHeading
     noTitleStyles={false}
     title="Debug Information Files"
   />

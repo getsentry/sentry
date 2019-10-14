@@ -41,13 +41,13 @@ export default class OrganizationCreate extends AsyncView {
           apiEndpoint="/organizations/"
           apiMethod="POST"
           onSubmitSuccess={this.onSubmitSuccess}
-          requireChanges={true}
+          requireChanges
         >
           <TextField
             name="name"
             label={t('Organization Name')}
             placeholder={t('e.g. My Company')}
-            required={true}
+            required
           />
 
           {termsUrl && privacyUrl && (
@@ -60,7 +60,7 @@ export default class OrganizationCreate extends AsyncView {
                   privacyLink: <a href={privacyUrl} />,
                 }
               )}
-              required={true}
+              required
             />
           )}
         </ApiForm>

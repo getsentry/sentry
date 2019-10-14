@@ -361,7 +361,7 @@ export default class Discover extends React.Component<Props, State> {
 
     return (
       <React.Fragment>
-        <SidebarTabs underlined={true}>
+        <SidebarTabs underlined>
           {views.map(({id, title}) => (
             <li key={id} className={view === id ? 'active' : ''}>
               <a onClick={() => this.toggleSidebar(id)}>{title}</a>
@@ -441,7 +441,7 @@ export default class Discover extends React.Component<Props, State> {
         <DiscoverGlobalSelectionHeader
           organization={organization}
           projects={currentQuery.projects}
-          hasCustomRouting={true}
+          hasCustomRouting
           relative={currentQuery.range}
           start={start}
           end={end}

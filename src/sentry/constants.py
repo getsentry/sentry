@@ -273,6 +273,9 @@ OK_PLUGIN_SAVED = _("Configuration for the {name} integration has been saved.")
 
 WARN_SESSION_EXPIRED = "Your session has expired."  # TODO: translate this
 
+# If this value changes, also change it in src/sentry/static/sentry/app/constants/index.tsx
+# TODO(kmclb): once relay is doing the filtering, this will change, at minimum to become
+# "DEFAULT_FILTER_MASK" or some such, since the mask value will be dynamic
 FILTER_MASK = "[Filtered]"
 
 # Maximum length of a symbol
@@ -286,6 +289,7 @@ KNOWN_DIF_FORMATS = {
     "application/x-dosexec": "pe",
     "application/x-ms-pdb": "pdb",
     "text/x-proguard+plain": "proguard",
+    "application/x-sentry-bundle+zip": "sourcebundle",
 }
 
 NATIVE_UNKNOWN_STRING = "<unknown>"

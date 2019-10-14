@@ -34,11 +34,6 @@ BITBUCKET_IPS = [u"34.198.203.127", u"34.198.178.64", u"34.198.32.85"]
 PROVIDER_NAME = "integrations:bitbucket"
 
 
-class Webhook(object):
-    def __call__(self, organization, event):
-        raise NotImplementedError
-
-
 def parse_raw_user_email(raw):
     # captures content between angle brackets
     match = re.search("(?<=<).*(?=>$)", raw)
@@ -50,6 +45,38 @@ def parse_raw_user_email(raw):
 def parse_raw_user_name(raw):
     # captures content before angle bracket
     return raw.split("<")[0].strip()
+
+
+class Webhook(object):
+    def __call__(self, organization, event):
+        raise NotImplementedError
+
+    def update_repo_data(self, repo, event):
+        """
+        Given a webhook payload, update stored repo data if needed.
+
+        NB: Assumes event['repository']['full_name'] is defined. Rework this if
+        that stops being a safe assumption.
+        """
+
+        name_from_event = event["repository"]["full_name"]
+        # build the URL manually since it doesn't come back from the API in
+        # the form that we need
+        # see https://confluence.atlassian.com/bitbucket/event-payloads-740262817.html#EventPayloads-entity_repository
+        # and click on 'Repository property' underneath the table for example data
+        # (all entries are from the `api` subdomain, rather than bitbucket.org)
+        url_from_event = u"https://bitbucket.org/{}".format(name_from_event)
+
+        if (
+            repo.name != name_from_event
+            or repo.config.get("name") != name_from_event
+            or repo.url != url_from_event
+        ):
+            repo.update(
+                name=name_from_event,
+                url=url_from_event,
+                config=dict(repo.config, name=name_from_event),
+            )
 
 
 class PushEventWebhook(Webhook):
@@ -66,9 +93,8 @@ class PushEventWebhook(Webhook):
         except Repository.DoesNotExist:
             raise Http404()
 
-        if repo.config.get("name") != event["repository"]["full_name"]:
-            repo.config["name"] = event["repository"]["full_name"]
-            repo.save()
+        # while we're here, make sure repo data is up to date
+        self.update_repo_data(repo, event)
 
         for change in event["push"]["changes"]:
             for commit in change.get("commits", []):

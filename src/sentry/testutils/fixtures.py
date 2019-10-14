@@ -193,6 +193,9 @@ class Fixtures(object):
     def create_sentry_app_feature(self, *args, **kwargs):
         return Factories.create_sentry_app_feature(*args, **kwargs)
 
+    def create_sentry_app_webhook_error(self, *args, **kwargs):
+        return Factories.create_sentry_app_webhook_error(*args, **kwargs)
+
     def create_service_hook(self, *args, **kwargs):
         return Factories.create_service_hook(*args, **kwargs)
 
@@ -219,6 +222,13 @@ class Fixtures(object):
         return self.create_incident_activity(
             incident, type=IncidentActivityType.COMMENT.value, *args, **kwargs
         )
+
+    def create_alert_rule(self, organization=None, projects=None, *args, **kwargs):
+        if not organization:
+            organization = self.organization
+        if projects is None:
+            projects = [self.project]
+        return Factories.create_alert_rule(organization, projects, *args, **kwargs)
 
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot):

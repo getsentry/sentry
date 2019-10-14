@@ -18,7 +18,7 @@ type ButtonElement = HTMLButtonElement & HTMLAnchorElement & any;
 
 type Props = {
   priority?: 'default' | 'primary' | 'danger' | 'link' | 'success';
-  size?: 'zero' | 'micro' | 'small' | 'xsmall' | 'large';
+  size?: 'zero' | 'micro' | 'small' | 'xsmall' | 'xxsmall' | 'large';
   align?: 'center' | 'left' | 'right';
   disabled?: boolean;
   busy?: boolean;
@@ -40,7 +40,7 @@ type Url = ButtonProps['to'] | ButtonProps['href'];
 class Button extends React.Component<ButtonProps, {}> {
   static propTypes: any = {
     priority: PropTypes.oneOf(['default', 'primary', 'danger', 'link', 'success']),
-    size: PropTypes.oneOf(['zero', 'micro', 'small', 'xsmall', 'large']),
+    size: PropTypes.oneOf(['zero', 'micro', 'small', 'xxsmall', 'xsmall', 'large']),
     disabled: PropTypes.bool,
     busy: PropTypes.bool,
     /**
@@ -192,6 +192,7 @@ const getFontSize = ({size, theme}: StyledButtonProps) => {
   switch (size) {
     case 'micro':
     case 'xsmall':
+    case 'xxsmall':
     case 'small':
       return theme.fontSizeSmall;
     case 'large':
@@ -299,7 +300,7 @@ const StyledButton = styled(
     outline: none;
   }
 
-  ${p => p.borderless && 'border-color: transparent'};
+  ${p => (p.borderless || p.priority === 'link') && 'border-color: transparent'};
 `;
 
 /**
@@ -314,6 +315,8 @@ const getLabelPadding = ({size, priority, borderless}: StyledButtonProps) => {
     case 'micro':
     case 'zero':
       return '0';
+    case 'xxsmall':
+      return borderless ? '1px 2px' : '2px 4px';
     case 'xsmall':
       return borderless ? '4px 6px' : '6px 10px';
     case 'small':

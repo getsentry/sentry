@@ -10,6 +10,7 @@ from sentry.utils.safe import setdefault_path
 _windecl_hash = re.compile(r"^@?(.*?)@[0-9]+$")
 _rust_hash = re.compile(r"::h[a-z0-9]{16}$")
 _cpp_trailer_re = re.compile(r"(\bconst\b|&)$")
+_rust_blanket_re = re.compile(r"^([A-Z] as )")
 _lambda_re = re.compile(
     r"""(?x)
     # gcc
@@ -26,7 +27,12 @@ _lambda_re = re.compile(
     (?:
         \$_\d+\b
     )
-"""
+    """
+)
+_anon_namespace_re = re.compile(
+    r"""(?x)
+    \?A0x[a-f0-9]{8}::
+    """
 )
 
 
@@ -121,6 +127,7 @@ def trim_function_name(function, platform, normalize_lambdas=True):
         .replace("operator<", u"operator⟨")
         .replace("operator()", u"operator◯")
         .replace(" -> ", u" ⟿ ")
+        .replace("`anonymous namespace'", u"〔anonymousnamespace〕")
     )
 
     # normalize C++ lambdas.  This is necessary because different
@@ -132,6 +139,14 @@ def trim_function_name(function, platform, normalize_lambdas=True):
     # function it was declared.
     if normalize_lambdas:
         function = _lambda_re.sub("lambda", function)
+
+    # Normalize MSVC anonymous namespaces from inline functions.  For inline
+    # functions, the compiler inconsistently renders anonymous namespaces with
+    # their hash.  For regular functions,  "`anonymous namespace'" is used.
+    # The regular expression matches the trailing "::" to avoid accidental
+    # replacement in mangled function names.
+    if normalize_lambdas:
+        function = _anon_namespace_re.sub(u"〔anonymousnamespace〕::", function)
 
     # Remove the arguments if there is one.
     def process_args(value, start):
@@ -145,14 +160,28 @@ def trim_function_name(function, platform, normalize_lambdas=True):
     # Resolve generic types, but special case rust which uses things like
     # <Foo as Bar>::baz to denote traits.
     def process_generics(value, start):
-        # Rust special case
-        if start == 0:
-            return "<%s>" % replace_enclosed_string(value, "<", ">", process_generics)
-        return "<T>"
+        # Special case for lambdas
+        if value == "lambda" or _lambda_re.match(value):
+            return "<%s>" % value
+
+        if start > 0:
+            return "<T>"
+
+        # Rust special cases
+        value = _rust_blanket_re.sub("", value)  # prefer trait for blanket impls
+        value = replace_enclosed_string(value, "<", ">", process_generics)
+        return value.split(" as ", 1)[0]
 
     function = replace_enclosed_string(function, "<", ">", process_generics)
 
     tokens = split_func_tokens(function)
+
+    # MSVC demangles generic operator functions with a space between the
+    # function name and the generics. Ensure that those two components both end
+    # up in the function name.
+    if len(tokens) > 1 and tokens[-1] == "<T>":
+        tokens.pop()
+        tokens[-1] += " <T>"
 
     # find the token which is the function name.  Since we chopped of C++
     # trailers there are only two cases we care about: the token left to
@@ -170,7 +199,12 @@ def trim_function_name(function, platform, normalize_lambdas=True):
             func_token = None
 
     if func_token:
-        function = func_token.replace(u"⟨", "<").replace(u"◯", "()").replace(u" ⟿ ", " -> ")
+        function = (
+            func_token.replace(u"⟨", "<")
+            .replace(u"◯", "()")
+            .replace(u" ⟿ ", " -> ")
+            .replace(u"〔anonymousnamespace〕", "`anonymous namespace'")
+        )
 
     # This really should never happen
     else:

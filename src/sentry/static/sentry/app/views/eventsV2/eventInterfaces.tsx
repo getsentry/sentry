@@ -4,7 +4,9 @@ import PropTypes from 'prop-types';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import {INTERFACES} from 'app/components/events/eventEntries';
+
 import ErrorBoundary from 'app/components/errorBoundary';
+import EventContexts from 'app/components/events/contexts';
 import EventDataSection from 'app/components/events/eventDataSection';
 import EventDevice from 'app/components/events/device';
 import EventExtraData from 'app/components/events/extraData';
@@ -14,7 +16,8 @@ import {objectIsEmpty, toTitleCase} from 'app/utils';
 import {Event} from 'app/types';
 
 const OTHER_SECTIONS = {
-  context: EventExtraData,
+  contexts: EventContexts,
+  extra: EventExtraData,
   packages: EventPackageData,
   device: EventDevice,
 };
@@ -105,7 +108,7 @@ class EventInterfaces extends React.Component<
 
     return (
       <React.Fragment>
-        <NavTabs underlined={true}>
+        <NavTabs underlined>
           {event.entries.map(entry => {
             if (!INTERFACES.hasOwnProperty(entry.type)) {
               return null;
@@ -127,7 +130,11 @@ class EventInterfaces extends React.Component<
             );
           })}
           {Object.keys(OTHER_SECTIONS).map(section => {
-            if (objectIsEmpty(event[section])) {
+            if (
+              objectIsEmpty(event[section]) ||
+              (section === 'contexts' &&
+                (objectIsEmpty(event.contexts) && objectIsEmpty(event.user)))
+            ) {
               return null;
             }
             const classname = section === activeTab ? 'active' : undefined;

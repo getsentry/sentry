@@ -42,7 +42,7 @@ describe('Discover', function() {
           params={{savedQueryId: savedQuery.id}}
           updateSavedQueryData={jest.fn()}
           toggleEditMode={jest.fn()}
-          isLoading={true}
+          isLoading
         />,
         TestStubs.routerContext([{organization}])
       );
@@ -69,7 +69,7 @@ describe('Discover', function() {
           organization={organization}
           updateSavedQueryData={jest.fn()}
           toggleEditMode={jest.fn()}
-          isLoading={true}
+          isLoading
         />,
         TestStubs.routerContext([{organization}])
       );

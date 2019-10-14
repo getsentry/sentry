@@ -117,7 +117,7 @@ def test_to_string_returns_stacktrace(make_stacktrace_snapshot):
 
 
 @mock.patch("sentry.interfaces.stacktrace.is_newest_frame_first", mock.Mock(return_value=False))
-def test_get_stacktrace_with_only_filename():
+def test_get_stacktrace_with_only_filename(make_stacktrace_snapshot):
     make_stacktrace_snapshot(dict(frames=[{"filename": "foo"}, {"filename": "bar"}]))
 
 

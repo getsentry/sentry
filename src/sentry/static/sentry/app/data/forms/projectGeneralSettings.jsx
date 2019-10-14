@@ -11,6 +11,7 @@ import getDynamicText from 'app/utils/getDynamicText';
 import platforms from 'app/data/platforms';
 import slugify from 'app/utils/slugify';
 import space from 'app/styles/space';
+import {GroupingConfigItem} from 'app/components/events/groupingInfo';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/projects/:projectId/';
@@ -136,7 +137,14 @@ export const fields = {
       );
     },
     choices: ({groupingConfigs}) => {
-      return groupingConfigs.map(({id}) => [id.toString(), <code key={id}>{id}</code>]);
+      return groupingConfigs.map(({id, hidden}) => {
+        return [
+          id.toString(),
+          <GroupingConfigItem key={id} hidden={hidden}>
+            {id}
+          </GroupingConfigItem>,
+        ];
+      });
     },
     help: t('Sets the grouping algorithm to be used for new events.'),
     visible: ({features}) => features.has('set-grouping-config'),
@@ -206,9 +214,7 @@ export const fields = {
         </pre>
       </React.Fragment>
     ),
-    validate: ({id, form}) => {
-      return [];
-    },
+    validate: () => [],
     visible: ({features}) =>
       features.has('set-grouping-config') || features.has('tweak-grouping-config'),
   },

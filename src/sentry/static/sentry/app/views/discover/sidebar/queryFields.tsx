@@ -105,7 +105,7 @@ export default class QueryFields extends React.Component<QueryFieldsProps> {
           </SidebarLabel>
           <SelectControl
             name="fields"
-            multiple={true}
+            multiple
             placeholder={this.getSummarizePlaceholder()}
             options={fieldOptions}
             optionRenderer={this.optionRenderer}
@@ -113,7 +113,7 @@ export default class QueryFields extends React.Component<QueryFieldsProps> {
             onChange={(val: ReactSelectOption[]) =>
               onUpdateField('fields', val.map(({value}) => value))
             }
-            clearable={true}
+            clearable
             disabled={isLoading}
           />
         </Fieldset>

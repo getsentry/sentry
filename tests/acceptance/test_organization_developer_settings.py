@@ -37,7 +37,7 @@ class OrganizationDeveloperSettingsNewAcceptanceTest(AcceptanceTestCase):
 
         self.browser.wait_until(".ref-success")
 
-        assert self.browser.find_element_by_link_text("Tesla")
+        assert self.browser.find_element_by_xpath("//div[contains(text(), 'Client ID')]")
 
     def test_create_new_internal_integration(self):
         self.load_page(self.org_developer_settings_path)
@@ -45,14 +45,12 @@ class OrganizationDeveloperSettingsNewAcceptanceTest(AcceptanceTestCase):
         self.browser.click('[aria-label="New Internal Integration"]')
 
         self.browser.element('input[name="name"]').send_keys("Tesla")
-        self.browser.element('input[name="author"]').send_keys("Elon Musk")
-        self.browser.element('input[name="webhookUrl"]').send_keys("https://example.com/webhook")
 
         self.browser.click('[aria-label="Save Changes"]')
 
         self.browser.wait_until(".ref-success")
 
-        assert self.browser.find_element_by_link_text("Tesla")
+        assert self.browser.find_element_by_xpath("//button//span[contains(text(), 'New Token')]")
 
 
 class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):

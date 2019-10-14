@@ -1,6 +1,3 @@
-/**
- * Lists 2fa devices + password change form
- */
 import {Box, Flex} from 'grid-emotion';
 import React from 'react';
 import styled from 'react-emotion';
@@ -23,6 +20,9 @@ import RemoveConfirm from 'app/views/settings/account/accountSecurity/components
 import PasswordForm from 'app/views/settings/account/passwordForm';
 import recreateRoute from 'app/utils/recreateRoute';
 
+/**
+ * Lists 2fa devices + password change form
+ */
 class AccountSecurity extends AsyncView {
   static PropTypes = {
     authenticators: PropTypes.arrayOf(PropTypes.object).isRequired,
@@ -68,8 +68,8 @@ class AccountSecurity extends AsyncView {
         <SettingsPageHeader
           title="Security"
           tabs={
-            <NavTabs underlined={true}>
-              <ListLink to={recreateRoute('', this.props)} index={true}>
+            <NavTabs underlined>
+              <ListLink to={recreateRoute('', this.props)} index>
                 {t('Settings')}
               </ListLink>
               <ListLink to={recreateRoute('session-history/', this.props)}>
@@ -87,8 +87,8 @@ class AccountSecurity extends AsyncView {
           <PanelHeader>{t('Sessions')}</PanelHeader>
           <PanelBody>
             <Field
-              alignRight={true}
-              flexibleControlStateSize={true}
+              alignRight
+              flexibleControlStateSize
               label={t('Sign out of all devices')}
               help={t(
                 'Signing out of all devices will sign you out of this device as well.'
@@ -162,9 +162,11 @@ class AccountSecurity extends AsyncView {
                             onConfirm={() => onDisable(auth)}
                             disabled={deleteDisabled}
                           >
-                            <Button css={{marginLeft: 6}} size="small">
-                              <span className="icon icon-trash" />
-                            </Button>
+                            <Button
+                              css={{marginLeft: 6}}
+                              size="small"
+                              icon="icon-trash"
+                            />
                           </RemoveConfirm>
                         </Tooltip>
                       )}

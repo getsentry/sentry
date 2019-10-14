@@ -20,6 +20,7 @@ from sentry.models import (
     AuditLogEntryEvent,
     AuthIdentity,
     AuthProvider,
+    InviteStatus,
     OrganizationMember,
     OrganizationMemberTeam,
     Team,
@@ -86,6 +87,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
                     Q(user__is_active=True) | Q(user__isnull=True),
                     organization=organization,
                     id=member_id,
+                    invite_status=InviteStatus.APPROVED.value,
                 )
             except ValueError:
                 raise OrganizationMember.DoesNotExist()

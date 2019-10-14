@@ -12,9 +12,11 @@ import ConfigStore from 'app/stores/configStore';
 import IdBadge from 'app/components/idBadge';
 import NoProjectMessage from 'app/components/noProjectMessage';
 import PageHeading from 'app/components/pageHeading';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 import SentryTypes from 'app/sentryTypes';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
+import profiler from 'app/utils/profiler';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
@@ -30,16 +32,22 @@ class Dashboard extends React.Component {
     teams: PropTypes.array,
     projects: PropTypes.array,
     organization: SentryTypes.Organization,
+    finishProfile: PropTypes.func,
   };
 
   componentDidMount() {
-    const {organization, routes} = this.props;
+    const {organization, routes, finishProfile} = this.props;
     const isOldRoute = getRouteStringFromRoutes(routes) === '/:orgId/';
 
     if (isOldRoute) {
       browserHistory.replace(`/organizations/${organization.slug}/`);
     }
+
+    if (finishProfile) {
+      finishProfile();
+    }
   }
+
   componentWillUnmount() {
     ProjectsStatsStore.reset();
   }
@@ -64,9 +72,12 @@ class Dashboard extends React.Component {
     if (showEmptyMessage) {
       return <NoProjectMessage organization={organization}>{null}</NoProjectMessage>;
     }
-
     return (
       <React.Fragment>
+        <SentryDocumentTitle
+          title={t('Projects Dashboard')}
+          objSlug={organization.slug}
+        />
         {projects.length > 0 && (
           <ProjectsHeader>
             <PageHeading>Projects</PageHeading>
@@ -139,4 +150,6 @@ const ProjectsHeader = styled('div')`
 `;
 
 export {Dashboard};
-export default withTeams(withProjects(withOrganization(OrganizationDashboard)));
+export default withTeams(
+  withProjects(withOrganization(profiler()(OrganizationDashboard)))
+);

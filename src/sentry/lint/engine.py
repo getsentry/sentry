@@ -307,7 +307,6 @@ def run_formatter(cmd, file_list, prompt_on_changes=True):
 
 def run(file_list=None, format=True, lint=True, js=True, py=True,
         less=True, yarn=True, test=False, parseable=False):
-    # pep8.py uses sys.argv to find setup.cfg
     old_sysargv = sys.argv
 
     try:

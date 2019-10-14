@@ -32,13 +32,14 @@ from sentry.models import (
 )
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
+from sentry.testutils.helpers.datetime import iso_format, before_now
 from six.moves.urllib.parse import quote
 
 
 class GroupListTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super(GroupListTest, self).setUp()
-        self.min_ago = timezone.now() - timedelta(minutes=1)
+        self.min_ago = before_now(minutes=1)
 
     def _parse_links(self, header):
         # links come in {url: {...attrs}}, but we need {rel: {...attrs}}
@@ -56,8 +57,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
     def test_sort_by_date_with_tag(self):
         # XXX(dcramer): this tests a case where an ambiguous column name existed
-        now = timezone.now()
-        group1 = self.create_group(checksum="a" * 32, last_seen=now - timedelta(seconds=1))
+        group1 = self.create_group(checksum="a" * 32, last_seen=before_now(seconds=1))
         self.login_as(user=self.user)
 
         response = self.client.get(
@@ -68,8 +68,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.data[0]["id"] == six.text_type(group1.id)
 
     def test_invalid_query(self):
-        now = timezone.now()
-        self.create_group(checksum="a" * 32, last_seen=now - timedelta(seconds=1))
+        self.create_group(checksum="a" * 32, last_seen=before_now(seconds=1))
         self.login_as(user=self.user)
 
         response = self.client.get(
@@ -82,14 +81,14 @@ class GroupListTest(APITestCase, SnubaTestCase):
         event1 = self.store_event(
             data={
                 "fingerprint": ["put-me-in-group-1"],
-                "timestamp": (self.min_ago - timedelta(seconds=2)).isoformat()[:19],
+                "timestamp": iso_format(self.min_ago - timedelta(seconds=2)),
             },
             project_id=self.project.id,
         )
         event2 = self.store_event(
             data={
                 "fingerprint": ["put-me-in-group-2"],
-                "timestamp": (self.min_ago - timedelta(seconds=1)).isoformat()[:19],
+                "timestamp": iso_format(self.min_ago - timedelta(seconds=1)),
             },
             project_id=self.project.id,
         )
@@ -117,9 +116,8 @@ class GroupListTest(APITestCase, SnubaTestCase):
     def test_stats_period(self):
         # TODO(dcramer): this test really only checks if validation happens
         # on statsPeriod
-        now = timezone.now()
-        self.create_group(checksum="a" * 32, last_seen=now - timedelta(seconds=1))
-        self.create_group(checksum="b" * 32, last_seen=now)
+        self.create_group(checksum="a" * 32, last_seen=before_now(seconds=1))
+        self.create_group(checksum="b" * 32, last_seen=timezone.now())
 
         self.login_as(user=self.user)
 
@@ -139,7 +137,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         self.store_event(
             data={
                 "fingerprint": ["put-me-in-group1"],
-                "timestamp": self.min_ago.isoformat()[:19],
+                "timestamp": iso_format(self.min_ago),
                 "environment": "production",
             },
             project_id=self.project.id,
@@ -147,7 +145,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         self.store_event(
             data={
                 "fingerprint": ["put-me-in-group2"],
-                "timestamp": self.min_ago.isoformat()[:19],
+                "timestamp": iso_format(self.min_ago),
                 "environment": "staging",
             },
             project_id=self.project.id,
@@ -166,9 +164,8 @@ class GroupListTest(APITestCase, SnubaTestCase):
     def test_auto_resolved(self):
         project = self.project
         project.update_option("sentry:resolve_age", 1)
-        now = timezone.now()
-        self.create_group(checksum="a" * 32, last_seen=now - timedelta(days=1))
-        group2 = self.create_group(checksum="b" * 32, last_seen=now)
+        self.create_group(checksum="a" * 32, last_seen=before_now(days=1))
+        group2 = self.create_group(checksum="b" * 32, last_seen=timezone.now())
 
         self.login_as(user=self.user)
         response = self.client.get(self.path, format="json")
@@ -181,7 +178,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         project.update_option("sentry:resolve_age", 1)
         event_id = "c" * 32
         event = self.store_event(
-            data={"event_id": event_id, "timestamp": self.min_ago.isoformat()[:19]},
+            data={"event_id": event_id, "timestamp": iso_format(self.min_ago)},
             project_id=self.project.id,
         )
         self.login_as(user=self.user)
@@ -198,7 +195,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         self.create_environment(name="test", project=project)
 
         event = self.store_event(
-            data={"environment": "test", "timestamp": self.min_ago.isoformat()[:19]},
+            data={"environment": "test", "timestamp": iso_format(self.min_ago)},
             project_id=self.project.id,
         )
 
@@ -217,7 +214,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         project = self.project
         project.update_option("sentry:resolve_age", 1)
         event = self.store_event(
-            data={"event_id": "c" * 32, "timestamp": self.min_ago.isoformat()[:19]},
+            data={"event_id": "c" * 32, "timestamp": iso_format(self.min_ago)},
             project_id=self.project.id,
         )
         self.login_as(user=self.user)
@@ -983,7 +980,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
                 data={
                     "fingerprint": ["put-me-in-group-1"],
                     "user": {"id": six.binary_type(i)},
-                    "timestamp": (self.min_ago - timedelta(seconds=i)).isoformat()[:19],
+                    "timestamp": iso_format(self.min_ago - timedelta(seconds=i)),
                 },
                 project_id=self.project.id,
             )

@@ -3,6 +3,7 @@ import React from 'react';
 import {PanelAlert} from 'app/components/panels';
 import {fields} from 'app/data/forms/projectAlerts';
 import {t} from 'app/locale';
+import routeTitleGen from 'app/utils/routeTitle';
 import Access from 'app/components/acl/access';
 import AlertLink from 'app/components/alertLink';
 import AsyncView from 'app/views/asyncView';
@@ -62,7 +63,8 @@ export default class ProjectAlertSettings extends AsyncView {
   };
 
   getTitle() {
-    return 'Project Alert Settings';
+    const {projectId} = this.props.params;
+    return routeTitleGen(t('Alerts Settings'), projectId, false);
   }
 
   renderBody() {

@@ -9,6 +9,8 @@ from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.cache import never_cache
 
+from sentry import experiments
+from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
@@ -19,6 +21,8 @@ from sentry.utils import auth, metrics
 from sentry.utils.sdk import capture_exception
 
 ERR_NO_SSO = _("The organization does not exist or does not have Single Sign-On enabled.")
+
+JOIN_REQUEST_EXPERIMENT = "JoinRequestExperiment"
 
 
 # Stores callbacks that are called to get additional template context data before the login page
@@ -76,6 +80,19 @@ class AuthLoginView(BaseView):
     def can_register(self, request):
         return bool(auth.has_user_registration() or request.session.get("can_register"))
 
+    def get_join_request_link(self, organization):
+        if not organization:
+            return None
+
+        assignment = experiments.get(org=organization, experiment_name=JOIN_REQUEST_EXPERIMENT)
+        if assignment != 1:
+            return None
+
+        if organization.get_option("sentry:join_requests") is False:
+            return None
+
+        return reverse("sentry-join-request", args=[organization.slug])
+
     def get_next_uri(self, request):
         next_uri_fallback = None
         if request.session.get("_next") is not None:
@@ -119,6 +136,16 @@ class AuthLoginView(BaseView):
             # can_register should only allow a single registration
             request.session.pop("can_register", None)
             request.session.pop("invite_email", None)
+
+            # Attempt to directly accept any pending invites
+            invite_helper = ApiInviteHelper.from_cookie(request=request, instance=self)
+
+            if invite_helper and invite_helper.valid_request:
+                invite_helper.accept_invite()
+                response = self.redirect_to_org(request)
+                remove_invite_cookie(request, response)
+
+                return response
 
             return self.redirect(auth.get_login_redirect(request))
 
@@ -167,6 +194,7 @@ class AuthLoginView(BaseView):
             "organization": organization,
             "register_form": register_form,
             "CAN_REGISTER": can_register,
+            "join_request_link": self.get_join_request_link(organization),
         }
         context.update(additional_context.run_callbacks(request))
 

@@ -207,8 +207,8 @@ class MultipleEnvironmentSelector extends React.PureComponent {
     return (
       <StyledDropdownAutoComplete
         alignMenu="left"
-        allowActorToggle={true}
-        closeOnSelect={true}
+        allowActorToggle
+        closeOnSelect
         blendCorner={false}
         searchPlaceholder={t('Filter environments')}
         onSelect={this.handleSelect}
@@ -233,7 +233,7 @@ class MultipleEnvironmentSelector extends React.PureComponent {
           label: ({inputValue}) => (
             <EnvironmentSelectorItem
               environment={env}
-              multi={true}
+              multi
               inputValue={inputValue}
               isChecked={this.state.selectedEnvs.has(env)}
               onMultiSelect={this.handleMultiSelect}
@@ -243,6 +243,7 @@ class MultipleEnvironmentSelector extends React.PureComponent {
       >
         {({isOpen, getActorProps, actions}) => (
           <StyledHeaderItem
+            data-test-id="global-header-environment-selector"
             icon={<StyledInlineSvg src="icon-window" />}
             isOpen={isOpen}
             hasSelected={value && !!value.length}

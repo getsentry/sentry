@@ -10,56 +10,47 @@ exports[`ProjectTags renders 1`] = `
   }
 >
   <SideEffect(DocumentTitle)
-    title="Sentry"
+    title="Tags - project-slug - Sentry"
   >
     <DocumentTitle
-      title="Sentry"
+      title="Tags - project-slug - Sentry"
     >
-      <SettingsPageHeading
+      <StyledSettingsPageHeading
         noTitleStyles={false}
         title="Tags"
       >
-        <Wrapper>
+        <SettingsPageHeading
+          className="css-1fvvoq2-StyledSettingsPageHeading e1uay4fd4"
+          noTitleStyles={false}
+          title="Tags"
+        >
           <div
-            className="css-1r5ylk7-Wrapper e1kblvez2"
+            className="css-1fvvoq2-StyledSettingsPageHeading e1uay4fd4"
           >
-            <Flex
-              align="center"
-            >
-              <Base
-                align="center"
-                className="css-5ipae5"
+            <TitleAndActions>
+              <div
+                className="css-b5tiyd-TitleAndActions e1uay4fd0"
               >
-                <div
-                  className="css-5ipae5"
-                  is={null}
+                <Title
+                  styled={false}
                 >
-                  <Title
-                    styled={false}
+                  <div
+                    className="css-2kvddg-Title e1uay4fd1"
                   >
-                    <Base
-                      className="css-1ky52ze-Title e1kblvez0"
-                    >
-                      <div
-                        className="css-1ky52ze-Title e1kblvez0"
-                        is={null}
+                    <HeaderTitle>
+                      <h4
+                        className="css-1w8ttcn-HeaderTitle eqkydle2"
                       >
-                        <HeaderTitle>
-                          <h4
-                            className="css-1w8ttcn-HeaderTitle e6lvex72"
-                          >
-                            Tags
-                          </h4>
-                        </HeaderTitle>
-                      </div>
-                    </Base>
-                  </Title>
-                </div>
-              </Base>
-            </Flex>
+                        Tags
+                      </h4>
+                    </HeaderTitle>
+                  </div>
+                </Title>
+              </div>
+            </TitleAndActions>
           </div>
-        </Wrapper>
-      </SettingsPageHeading>
+        </SettingsPageHeading>
+      </StyledSettingsPageHeading>
       <PermissionAlert
         access={
           Array [
@@ -181,47 +172,43 @@ exports[`ProjectTags renders 1`] = `
         </withConfig(AccessContainer)>
       </PermissionAlert>
       <TextBlock>
-        <Component
-          className="css-1geyb25-TextBlock ec8ep340"
+        <div
+          className="css-1geyb25-TextBlock e1x1lar10"
         >
-          <div
-            className="css-1geyb25-TextBlock ec8ep340"
+          <span
+            key="5"
           >
             <span
-              key="5"
+              key="0"
             >
-              <span
-                key="0"
-              >
-                Each event in Sentry may be annotated with various tags (key and value pairs).
+              Each event in Sentry may be annotated with various tags (key and value pairs).
                  Learn how to 
-              </span>
-              <ForwardRef
+            </span>
+            <ForwardRef
+              href="https://docs.sentry.io/hosted/learn/context/"
+              key="2"
+              rel="noreferrer noopener"
+              target="_blank"
+            >
+              <a
                 href="https://docs.sentry.io/hosted/learn/context/"
-                key="2"
                 rel="noreferrer noopener"
                 target="_blank"
               >
-                <a
-                  href="https://docs.sentry.io/hosted/learn/context/"
-                  rel="noreferrer noopener"
-                  target="_blank"
+                <span
+                  key="1"
                 >
-                  <span
-                    key="1"
-                  >
-                    add custom tags
-                  </span>
-                </a>
-              </ForwardRef>
-              <span
-                key="3"
-              >
-                .
-              </span>
+                  add custom tags
+                </span>
+              </a>
+            </ForwardRef>
+            <span
+              key="3"
+            >
+              .
             </span>
-          </div>
-        </Component>
+          </span>
+        </div>
       </TextBlock>
       <Panel>
         <Component

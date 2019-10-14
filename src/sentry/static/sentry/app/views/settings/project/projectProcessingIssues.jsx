@@ -5,6 +5,7 @@ import {Panel, PanelAlert} from 'app/components/panels';
 import {addLoadingMessage, removeIndicator} from 'app/actionCreators/indicator';
 import {t, tn} from 'app/locale';
 import Access from 'app/components/acl/access';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import AutoSelectText from 'app/components/autoSelectText';
 import Button from 'app/components/button';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
@@ -435,9 +436,12 @@ class ProjectProcessingIssues extends React.Component {
   };
 
   render() {
+    const {projectId} = this.props.params;
+    const title = t('Processing Issues');
     return (
       <div>
-        <SettingsPageHeader title={t('Processing Issues')} />
+        <SentryDocumentTitle title={title} objSlug={projectId} />
+        <SettingsPageHeader title={title} />
         <TextBlock>
           {t(
             `

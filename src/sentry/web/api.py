@@ -26,7 +26,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View as BaseView
 from functools import wraps
 from querystring_parser import parser
-from symbolic import ProcessMinidumpError, Unreal4Error
+from symbolic import ProcessMinidumpError, Unreal4Crash, Unreal4Error
 
 from sentry import features, options, quotas
 from sentry.attachments import CachedAttachment
@@ -44,14 +44,15 @@ from sentry.coreapi import (
     logger as api_logger,
 )
 from sentry.event_manager import EventManager
+from sentry.ingest.outcomes_consumer import mark_signal_sent
 from sentry.interfaces import schemas
 from sentry.interfaces.base import get_interface
 from sentry.lang.native.unreal import (
-    process_unreal_crash,
-    merge_apple_crash_report,
+    merge_unreal_user,
     unreal_attachment_type,
     merge_unreal_context_event,
     merge_unreal_logs_event,
+    write_applecrashreport_placeholder,
 )
 
 from sentry.lang.native.minidump import (
@@ -67,7 +68,7 @@ from sentry.utils import json, metrics
 from sentry.utils.data_filters import FilterStatKeys
 from sentry.utils.data_scrubber import SensitiveDataFilter
 from sentry.utils.http import is_valid_origin, get_origins, is_same_domain, origin_from_request
-from sentry.utils.outcomes import Outcome, track_outcome
+from sentry.utils.outcomes import Outcome, track_outcome, decide_signals_in_consumer
 from sentry.utils.pubsub import QueuedPublisherService, KafkaPublisher
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import configure_scope
@@ -120,7 +121,8 @@ def allow_cors_options(func):
         response["Allow"] = allow
         response["Access-Control-Allow-Methods"] = allow
         response["Access-Control-Allow-Headers"] = (
-            "X-Sentry-Auth, X-Requested-With, Origin, Accept, " "Content-Type, Authentication"
+            "X-Sentry-Auth, X-Requested-With, Origin, Accept, "
+            "Content-Type, Authentication, Authorization"
         )
         response["Access-Control-Expose-Headers"] = "X-Sentry-Error, Retry-After"
 
@@ -199,6 +201,14 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments,
     event_id = data["event_id"]
 
     if should_filter:
+        signals_in_consumer = decide_signals_in_consumer()
+
+        if not signals_in_consumer:
+            # Mark that the event_filtered signal is sent. Do this before emitting
+            # the outcome to avoid a potential race between OutcomesConsumer and
+            # `event_filtered.send_robust` below.
+            mark_signal_sent(project_config.project_id, event_id)
+
         track_outcome(
             project_config.organization_id,
             project_config.project_id,
@@ -208,7 +218,9 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments,
             event_id=event_id,
         )
         metrics.incr("events.blacklisted", tags={"reason": filter_reason}, skip_internal=False)
-        event_filtered.send_robust(ip=remote_addr, project=project, sender=process_event)
+
+        if not signals_in_consumer:
+            event_filtered.send_robust(ip=remote_addr, project=project, sender=process_event)
 
         # relay will no longer be able to provide information about filter
         # status so to see the impact we're adding a way to turn on relay
@@ -231,6 +243,14 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments,
         if rate_limit is None:
             api_logger.debug("Dropped event due to error with rate limiter")
 
+        signals_in_consumer = decide_signals_in_consumer()
+
+        if not signals_in_consumer:
+            # Mark that the event_dropped signal is sent. Do this before emitting
+            # the outcome to avoid a potential race between OutcomesConsumer and
+            # `event_dropped.send_robust` below.
+            mark_signal_sent(project_config.project_id, event_id)
+
         reason = rate_limit.reason_code if rate_limit else None
         track_outcome(
             project_config.organization_id,
@@ -241,9 +261,11 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments,
             event_id=event_id,
         )
         metrics.incr("events.dropped", tags={"reason": reason or "unknown"}, skip_internal=False)
-        event_dropped.send_robust(
-            ip=remote_addr, project=project, reason_code=reason, sender=process_event
-        )
+        if not signals_in_consumer:
+            event_dropped.send_robust(
+                ip=remote_addr, project=project, reason_code=reason, sender=process_event
+            )
+
         if rate_limit is not None:
             raise APIRateLimited(rate_limit.retry_after)
 
@@ -627,9 +649,7 @@ class StoreView(APIView):
             )
             raise APIForbidden("Event size exceeded 10MB after normalization.")
 
-        metrics.timing(
-            "events.size.data.post_storeendpoint", data_size, tags={"project_id": project_id}
-        )
+        metrics.timing("events.size.data.post_storeendpoint", data_size)
 
         return process_event(
             event_manager, project, key, remote_addr, helper, attachments, project_config
@@ -750,9 +770,15 @@ class MinidumpView(StoreView):
             else:
                 # Custom clients can submit longer payloads and should JSON
                 # encode event data into the optional `sentry` field.
-                extra = request.POST
+                extra = request.POST.dict()
                 json_data = extra.pop("sentry", None)
-                data = json.loads(json_data[0]) if json_data else {}
+                try:
+                    data = json.loads(json_data) if json_data else {}
+                except ValueError:
+                    data = {}
+
+            if not isinstance(data, dict):
+                data = {}
 
             # Merge additional form fields from the request with `extra` data
             # from the event payload and set defaults for processing. This is
@@ -889,6 +915,7 @@ class MinidumpView(StoreView):
 # Endpoint used by the Unreal Engine 4 (UE4) Crash Reporter.
 class UnrealView(StoreView):
     content_types = ("application/octet-stream",)
+    required_attachments = ("minidump", "applecrashreport")
 
     def _dispatch(
         self,
@@ -945,19 +972,15 @@ class UnrealView(StoreView):
             "organizations:event-attachments", project.organization, actor=request.user
         )
 
-        is_apple_crash_report = False
-
         attachments = []
-        event = {"event_id": uuid.uuid4().hex}
-        try:
-            unreal = process_unreal_crash(
-                request.body, request.GET.get("UserID"), request.GET.get("AppEnvironment"), event
-            )
+        event = {"event_id": uuid.uuid4().hex, "environment": request.GET.get("AppEnvironment")}
 
-            apple_crash_report = unreal.get_apple_crash_report()
-            if apple_crash_report:
-                merge_apple_crash_report(apple_crash_report, event)
-                is_apple_crash_report = True
+        user_id = request.GET.get("UserID")
+        if user_id:
+            merge_unreal_user(event, user_id)
+
+        try:
+            unreal = Unreal4Crash.from_bytes(request.body)
         except (ProcessMinidumpError, Unreal4Error) as e:
             minidumps_logger.exception(e)
             track_outcome(
@@ -965,27 +988,31 @@ class UnrealView(StoreView):
                 project_config.project_id,
                 None,
                 Outcome.INVALID,
-                "process_minidump_unreal",
+                "process_unreal",
             )
             raise APIError(e.message.split("\n", 1)[0])
 
         try:
             unreal_context = unreal.get_context()
-            if unreal_context is not None:
-                merge_unreal_context_event(unreal_context, event, project)
         except Unreal4Error as e:
             # we'll continue without the context data
+            unreal_context = None
             minidumps_logger.exception(e)
+        else:
+            if unreal_context is not None:
+                merge_unreal_context_event(unreal_context, event, project)
 
         try:
             unreal_logs = unreal.get_logs()
-            if unreal_logs is not None:
-                merge_unreal_logs_event(unreal_logs, event)
         except Unreal4Error as e:
             # we'll continue without the breadcrumbs
             minidumps_logger.exception(e)
+        else:
+            if unreal_logs is not None:
+                merge_unreal_logs_event(unreal_logs, event)
 
         is_minidump = False
+        is_applecrashreport = False
 
         for file in unreal.files():
             # Known attachment: msgpack event
@@ -996,13 +1023,14 @@ class UnrealView(StoreView):
                 merge_attached_breadcrumbs(file.open_stream(), event)
                 continue
 
-            if file.type == "minidump" and not is_apple_crash_report:
+            if file.type == "minidump":
                 is_minidump = True
+            if file.type == "applecrashreport":
+                is_applecrashreport = True
 
-            # Always store the minidump in attachments so we can access it during
-            # processing, regardless of the event-attachments feature. This will
-            # allow us to stack walk again with CFI once symbols are loaded.
-            if file.type == "minidump" or attachments_enabled:
+            # Always store attachments that can be processed, regardless of the
+            # event-attachments feature.
+            if file.type in self.required_attachments or attachments_enabled:
                 attachments.append(
                     CachedAttachment(
                         name=file.name,
@@ -1013,6 +1041,8 @@ class UnrealView(StoreView):
 
         if is_minidump:
             write_minidump_placeholder(event)
+        elif is_applecrashreport:
+            write_applecrashreport_placeholder(event)
 
         event_id = self.process(
             request,

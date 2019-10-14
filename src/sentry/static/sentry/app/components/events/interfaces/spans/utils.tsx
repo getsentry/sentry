@@ -1,4 +1,5 @@
 import {isString} from 'lodash';
+import {divergentColorScale, spanColors} from 'app/utils/theme';
 
 type Rect = {
   // x and y are left/top coords respectively
@@ -202,7 +203,11 @@ export const boundsGenerator = (bounds: {
           type: 'TIMESTAMPS_EQUAL',
           start,
           width: 1,
-          isSpanVisibleInView,
+          // a span bar is visible even if they're at the extreme ends of the view selection.
+          // these edge cases are:
+          // start == end == 0, and
+          // start == end == 1
+          isSpanVisibleInView: end >= 0 && start <= 1,
         };
       }
       case TimestampStatus.Reversed: {
@@ -233,32 +238,33 @@ export const getHumanDuration = (duration: number): string => {
   // note: duration is assumed to be in seconds
 
   const durationMS = duration * 1000;
-  return `${durationMS.toFixed(3)} ms`;
+  return `${durationMS.toFixed(2)}ms`;
 };
 
-const COLORS = [
-  '#7274AC',
-  '#9D85B8',
-  '#BF8CB6',
-  '#CF7CA0',
-  '#ED8898',
-  '#F6A189',
-  '#F8B26D',
-  '#F7D36E',
+const getLetterIndex = (letter: string): number => {
+  const index = 'abcdefghijklmnopqrstuvwxyz'.indexOf(letter) || 0;
+  return index === -1 ? 0 : index;
+};
 
-  // reverse fade
+const colorsAsArray = Object.keys(divergentColorScale).map(
+  key => divergentColorScale[key]
+);
 
-  '#F8B26D',
-  '#F6A189',
-  '#ED8898',
-  '#CF7CA0',
-  '#BF8CB6',
-  '#9D85B8',
-];
-export const pickSpanBarColour = (input: number): string => {
-  const index = input % COLORS.length;
+export const pickSpanBarColour = (input: string | undefined): string => {
+  // We pick the color for span bars using the first two letters of the op name.
+  // That way colors stay consistent between transactions.
 
-  return COLORS[index];
+  if (!input || input.length < 2) {
+    return divergentColorScale.blue;
+  }
+  if (spanColors[input]) {
+    return spanColors[input];
+  }
+
+  const letterIndex1 = getLetterIndex(input.slice(0, 1));
+  const letterIndex2 = getLetterIndex(input.slice(1, 2));
+
+  return colorsAsArray[(letterIndex1 + letterIndex2) % colorsAsArray.length];
 };
 
 export type UserSelectValues = {

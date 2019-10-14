@@ -7,6 +7,7 @@ from django.core.urlresolvers import reverse
 from sentry.testutils import APITestCase
 from sentry.utils import json
 from sentry.models import ApiToken
+from sentry.models.sentryapp import MASKED_VALUE
 
 
 class SentryInternalAppTokenTest(APITestCase):
@@ -83,3 +84,20 @@ class GetSentryInternalAppTokenTest(SentryInternalAppTokenTest):
 
         assert response_content[0]["id"] == six.text_type(token.id)
         assert response_content[0]["token"] == token.token
+
+    def test_token_is_masked(self):
+        user = self.create_user(email="meep@example.com")
+        self.create_member(organization=self.org, user=user)
+        # create an app with scopes higher than what a member role has
+        sentry_app = self.create_internal_integration(
+            name="AnothaOne", organization=self.org, scopes=("project:write",)
+        )
+
+        self.login_as(user)
+
+        url = reverse("sentry-api-0-sentry-internal-app-tokens", args=[sentry_app.slug])
+        response = self.client.get(url, format="json")
+        response_content = json.loads(response.content)
+
+        assert response_content[0]["token"] == MASKED_VALUE
+        assert response_content[0]["refreshToken"] == MASKED_VALUE

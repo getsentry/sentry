@@ -2,16 +2,15 @@ from __future__ import absolute_import
 
 import responses
 import six
-from datetime import timedelta
 
 from mock import patch
 from exam import fixture
 from django.test import RequestFactory
-from django.utils import timezone
 
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.models import Integration, ExternalIssue
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.utils import json
 
 
@@ -28,7 +27,7 @@ class GitHubIssueBasicTest(TestCase):
         )
         self.model.add_organization(self.organization, self.user)
         self.integration = GitHubIntegration(self.model, self.organization.id)
-        self.min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+        self.min_ago = iso_format(before_now(minutes=1))
 
     @responses.activate
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
@@ -316,7 +315,7 @@ class GitHubIssueBasicTest(TestCase):
         )
         fields = self.integration.get_link_issue_config(event.group)
         repo_field = [field for field in fields if field["name"] == "repo"][0]
-        assert repo_field["default"] is ""
+        assert repo_field["default"] == ""
         assert repo_field["choices"] == []
 
     @responses.activate

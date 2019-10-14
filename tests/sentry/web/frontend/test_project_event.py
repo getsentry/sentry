@@ -1,13 +1,12 @@
 from __future__ import absolute_import
 
-from datetime import timedelta
 from django.core.urlresolvers import reverse
-from django.utils import timezone
-from sentry.testutils import TestCase
+from sentry.testutils import TestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry import options
 
 
-class ProjectEventTest(TestCase):
+class ProjectEventTest(SnubaTestCase, TestCase):
     def setUp(self):
         super(ProjectEventTest, self).setUp()
         self.user = self.create_user()
@@ -16,7 +15,7 @@ class ProjectEventTest(TestCase):
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
         self.project = self.create_project(organization=self.org, teams=[self.team])
-        min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+        min_ago = iso_format(before_now(minutes=1))
         self.event = self.store_event(
             data={"fingerprint": ["group1"], "timestamp": min_ago}, project_id=self.project.id
         )
@@ -45,13 +44,15 @@ class ProjectEventTest(TestCase):
         assert resp.status_code == 404
 
     def test_event_not_found__event_no_group(self):
-        min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+        min_ago = iso_format(before_now(minutes=1))
         event = self.store_event(
             data={
                 "type": "transaction",
+                "transaction": "api.test",
                 "timestamp": min_ago,
                 "start_timestamp": min_ago,
                 "spans": [],
+                "contexts": {"trace": {"trace_id": "a" * 32, "span_id": "b" * 16}},
             },
             project_id=self.project.id,
         )

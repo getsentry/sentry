@@ -14,7 +14,7 @@ class EventSdk extends React.Component {
     const data = event.sdk;
 
     return (
-      <EventDataSection event={event} type="sdk" title={t('SDK')} wrapTitle={true}>
+      <EventDataSection event={event} type="sdk" title={t('SDK')} wrapTitle>
         <table className="table key-value">
           <tbody>
             <tr key="name">

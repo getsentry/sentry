@@ -58,7 +58,7 @@ class OrganizationActivity extends React.Component {
             query={{
               per_page: 100,
             }}
-            pagination={true}
+            pagination
             location={this.props.location}
           />
         </React.Fragment>

@@ -51,6 +51,7 @@ class GetOrganizationSentryAppsTest(OrganizationSentryAppsTest):
                     "clientId": self.unpublished_app.application.client_id,
                     "clientSecret": self.unpublished_app.application.client_secret,
                     "overview": self.unpublished_app.overview,
+                    "allowedOrigins": [],
                     "schema": {},
                     "owner": {"id": self.org.id, "slug": self.org.slug},
                 }

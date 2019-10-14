@@ -51,6 +51,9 @@ export const AuthConfig = PropTypes.shape({
 });
 
 export const Config = PropTypes.shape({
+  languageCode: PropTypes.string,
+  csrfCookieName: PropTypes.string,
+  lastOrganization: PropTypes.string,
   dsn: PropTypes.string,
   features: PropTypes.instanceOf(Set),
   gravatarBaseUrl: PropTypes.string,
@@ -65,12 +68,27 @@ export const Config = PropTypes.shape({
   termsUrl: PropTypes.string,
   urlPrefix: PropTypes.string,
   user: User,
+  statuspage: PropTypes.shape({
+    id: PropTypes.string,
+    api_host: PropTypes.string,
+  }),
   version: PropTypes.shape({
     current: PropTypes.string,
     build: PropTypes.string,
     latest: PropTypes.string,
     upgradeAvailable: PropTypes.bool,
   }),
+  userIdentity: PropTypes.shape({
+    ip_address: PropTypes.string,
+    email: PropTypes.string,
+    id: PropTypes.number,
+  }),
+  sentryConfig: PropTypes.shape({
+    dsn: PropTypes.string,
+    release: PropTypes.string,
+    whitelistUrls: PropTypes.arrayOf(PropTypes.string),
+  }),
+  distPrefix: PropTypes.string,
 });
 
 export const Deploy = PropTypes.shape({

@@ -17,32 +17,24 @@ class AccountSecurityWrapper extends AsyncComponent {
       return;
     }
 
-    this.setState(
-      {
-        loading: true,
-      },
-      () =>
-        this.api
-          .requestPromise(`${ENDPOINT}${auth.authId}/`, {
-            method: 'DELETE',
-          })
-          .then(this.remountComponent, () => {
-            this.setState({loading: false});
-            addErrorMessage(t('Error disabling', auth.name));
-          })
-    );
+    this.setState({loading: true});
+
+    this.api
+      .requestPromise(`${ENDPOINT}${auth.authId}/`, {method: 'DELETE'})
+      .then(this.remountComponent, () => {
+        this.setState({loading: false});
+        addErrorMessage(t('Error disabling', auth.name));
+      });
   };
 
   handleRegenerateBackupCodes = () => {
-    this.setState({loading: true}, () =>
-      this.api
-        .requestPromise(`${ENDPOINT}${this.props.params.authId}/`, {
-          method: 'PUT',
-        })
-        .then(this.remountComponent, () =>
-          this.addError(t('Error regenerating backup codes'))
-        )
-    );
+    this.setState({loading: true});
+
+    this.api
+      .requestPromise(`${ENDPOINT}${this.props.params.authId}/`, {method: 'PUT'})
+      .then(this.remountComponent, () =>
+        this.addError(t('Error regenerating backup codes'))
+      );
   };
 
   renderBody() {
@@ -54,9 +46,9 @@ class AccountSecurityWrapper extends AsyncComponent {
     const orgsRequire2fa = organizations.filter(org => org.require2FA);
     const deleteDisabled = orgsRequire2fa.length > 0 && countEnrolled === 1;
 
-    // This happens when you switch between children views
-    // And the next child view is lazy loaded, it can potentially be `null`
-    // while the code split package is being fetched
+    // This happens when you switch between children views and the next child
+    // view is lazy loaded, it can potentially be `null` while the code split
+    // package is being fetched
     if (this.props.children === null) {
       return null;
     }

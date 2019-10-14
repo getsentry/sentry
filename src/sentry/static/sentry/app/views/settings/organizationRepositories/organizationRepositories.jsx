@@ -49,7 +49,7 @@ export default class OrganizationRepositories extends React.Component {
 
         {hasItemList ? (
           <Panel>
-            <PanelHeader disablePadding={true}>
+            <PanelHeader disablePadding>
               <Flex>
                 <Box px={2}>{t('Added Repositories')}</Box>
               </Flex>
@@ -62,7 +62,7 @@ export default class OrganizationRepositories extends React.Component {
                       key={repo.id}
                       repository={repo}
                       api={api}
-                      showProvider={true}
+                      showProvider
                       orgId={orgId}
                       onRepositoryChange={onRepositoryChange}
                     />

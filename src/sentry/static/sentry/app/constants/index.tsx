@@ -19,7 +19,7 @@ export const API_SCOPES = [
   'org:admin',
   'member:read',
   'member:admin',
-];
+] as const;
 
 // Default API scopes when adding a new API token or org API token
 export const DEFAULT_API_SCOPES = [
@@ -30,6 +30,36 @@ export const DEFAULT_API_SCOPES = [
   'org:read',
   'team:read',
   'member:read',
+];
+
+// These should only be used in the case where we cannot obtain roles through
+// the members endpoint (primarily in cases where a user is admining a
+// different organization they are not a OrganizationMember of ).
+export const MEMBER_ROLES = [
+  {
+    id: 'member',
+    name: 'Member',
+    desc:
+      'Members can view and act on events, as well as view most other data within the organization.',
+  },
+  {
+    id: 'admin',
+    name: 'Admin',
+    desc:
+      "Admin privileges on any teams of which they're a member. They can create new teams and projects, as well as remove teams and projects which they already hold membership on (or all teams, if open membership is on).",
+  },
+  {
+    id: 'manager',
+    name: 'Manager',
+    desc:
+      'Gains admin access on all teams as well as the ability to add and remove members.',
+  },
+  {
+    id: 'owner',
+    name: 'Organization Owner',
+    desc:
+      'Unrestricted access to the organization, its data, and its settings. Can add, modify, and delete projects and members, as well as make billing and plan changes.',
+  },
 ];
 
 // We expose permissions for Sentry Apps in a more resource-centric way.
@@ -103,6 +133,7 @@ export const DEFAULT_DEBOUNCE_DURATION = 300;
 declare global {
   interface Window {
     csrfCookieName?: string;
+    sentryEmbedCallback?: ((embed: any) => void) | null;
   }
 }
 
@@ -174,3 +205,8 @@ export const DEPLOY_PREVIEW_CONFIG = process.env.DEPLOY_PREVIEW_CONFIG;
 // Webpack configures EXPERIMENTAL_SPA.
 // eslint-disable-next-line no-undef
 export const EXPERIMENTAL_SPA = process.env.EXPERIMENTAL_SPA;
+
+// so we don't use filtered values in certain display contexts
+// TODO(kmclb): once relay is doing the scrubbing, the masking value will be dynamic,
+// so this will have to change
+export const FILTER_MASK = '[Filtered]';

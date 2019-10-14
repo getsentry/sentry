@@ -64,7 +64,7 @@ export default class ServiceHookSettingsForm extends React.Component {
               {({value, onChange}) => (
                 <MultipleCheckbox
                   onChange={onChange}
-                  value={value.peek()}
+                  value={value}
                   choices={EVENT_CHOICES}
                 />
               )}

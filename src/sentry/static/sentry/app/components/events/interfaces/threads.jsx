@@ -271,14 +271,14 @@ class ThreadsInterface extends React.Component {
     const threadSelector = (
       <div className="pull-left btn-group">
         <DropdownLink
-          btnGroup={true}
-          caret={true}
+          btnGroup
+          caret
           className="btn btn-default btn-sm"
           title={getThreadTitle(activeThread, this.props.event, true)}
         >
           {threads.map((thread, idx) => {
             return (
-              <MenuItem key={idx} noAnchor={true}>
+              <MenuItem key={idx} noAnchor>
                 <a onClick={this.onSelectNewThread.bind(this, thread)}>
                   {getThreadTitle(thread, this.props.event, false)}
                 </a>

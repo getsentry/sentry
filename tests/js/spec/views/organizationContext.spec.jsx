@@ -22,7 +22,6 @@ describe('OrganizationContext', function() {
     projects: [TestStubs.Project()],
   });
   let getOrgMock;
-  let getEnvironmentsMock;
 
   const createWrapper = props =>
     mount(
@@ -42,10 +41,6 @@ describe('OrganizationContext', function() {
     getOrgMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/',
       body: org,
-    });
-    getEnvironmentsMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/environments/',
-      body: TestStubs.Environments(),
     });
     jest.spyOn(TeamStore, 'loadInitialData');
     jest.spyOn(ProjectsStore, 'loadInitialData');
@@ -113,7 +108,6 @@ describe('OrganizationContext', function() {
       '/organizations/org-slug/',
       expect.anything()
     );
-    expect(getEnvironmentsMock).toHaveBeenCalled();
   });
 
   it('shows loading error for non-superusers on 403s', async function() {
@@ -121,12 +115,14 @@ describe('OrganizationContext', function() {
       url: '/organizations/org-slug/',
       statusCode: 403,
     });
+    console.error = jest.fn(); // eslint-disable-line no-console
     wrapper = createWrapper();
 
     await tick();
     wrapper.update();
 
     expect(wrapper.find('LoadingError')).toHaveLength(1);
+    console.error.mockRestore(); // eslint-disable-line no-console
   });
 
   it('opens sudo modal for superusers on 403s', async function() {

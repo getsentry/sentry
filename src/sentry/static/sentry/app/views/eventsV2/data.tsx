@@ -11,7 +11,6 @@ import UserBadge from 'app/components/idBadge/userBadge';
 import getDynamicText from 'app/utils/getDynamicText';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import pinIcon from 'app/../images/location-pin.png';
-import space from 'app/styles/space';
 import {EventViewv1, Organization} from 'app/types';
 
 import {QueryLink} from './styles';
@@ -24,7 +23,7 @@ export const DEFAULT_EVENT_VIEW_V1: Readonly<EventViewv1> = {
   name: t('All Events'),
   data: {
     fields: ['title', 'event.type', 'project', 'user', 'timestamp'],
-    columnNames: ['title', 'type', 'project', 'user', 'time'],
+    fieldnames: ['title', 'type', 'project', 'user', 'time'],
     sort: ['-timestamp'],
   },
   tags: ['event.type', 'release', 'project.name', 'user.email', 'user.ip', 'environment'],
@@ -36,7 +35,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     name: t('Project Summary'),
     data: {
       fields: ['project', 'count()', 'count_unique(issue.id)'],
-      columnNames: ['project', 'events', 'unique errors'],
+      fieldnames: ['project', 'events', 'unique errors'],
       sort: ['-count'],
       query: 'event.type:error',
     },
@@ -46,7 +45,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     name: t('Errors'),
     data: {
       fields: ['title', 'count()', 'count_unique(user)', 'project', 'last_seen'],
-      columnNames: ['error', 'events', 'users', 'project', 'last seen'],
+      fieldnames: ['error', 'events', 'users', 'project', 'last seen'],
       sort: ['-count', '-title'],
       query: 'event.type:error',
     },
@@ -56,7 +55,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     name: t('Errors by URL'),
     data: {
       fields: ['url', 'count()', 'count_unique(issue.id)'],
-      columnNames: ['URL', 'events', 'unique errors'],
+      fieldnames: ['URL', 'events', 'unique errors'],
       sort: ['-count'],
       query: 'event.type:error',
     },
@@ -66,7 +65,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     name: t('Errors by User'),
     data: {
       fields: ['user', 'count()', 'count_unique(issue.id)'],
-      columnNames: ['User', 'events', 'unique errors'],
+      fieldnames: ['User', 'events', 'unique errors'],
       sort: ['-count'],
       query: 'event.type:error',
     },
@@ -76,7 +75,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     name: t('CSP'),
     data: {
       fields: ['title', 'count()', 'count_unique(user)', 'project', 'last_seen'],
-      columnNames: ['csp', 'events', 'users', 'project', 'last seen'],
+      fieldnames: ['csp', 'events', 'users', 'project', 'last seen'],
       sort: ['-count', '-title'],
       query: 'event.type:csp',
     },
@@ -92,7 +91,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     name: t('CSP Report by Directive'),
     data: {
       fields: ['effective-directive', 'count()', 'count_unique(title)'],
-      columnNames: ['directive', 'events', 'reports'],
+      fieldnames: ['directive', 'events', 'reports'],
       sort: ['-count'],
       query: 'event.type:csp',
     },
@@ -102,7 +101,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     name: t('CSP Report by Blocked URI'),
     data: {
       fields: ['blocked-uri', 'count()'],
-      columnNames: ['URI', 'events'],
+      fieldnames: ['URI', 'events'],
       sort: ['-count'],
       query: 'event.type:csp',
     },
@@ -112,7 +111,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     name: t('CSP Report by User'),
     data: {
       fields: ['user', 'count()', 'count_unique(title)'],
-      columnNames: ['User', 'events', 'reports'],
+      fieldnames: ['User', 'events', 'reports'],
       sort: ['-count'],
       query: 'event.type:csp',
     },
@@ -121,8 +120,15 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
   {
     name: t('Transactions'),
     data: {
-      fields: ['transaction', 'project', 'count()'],
-      columnNames: ['transaction', 'project', 'volume'],
+      fields: [
+        'transaction',
+        'project',
+        'count()',
+        'avg(transaction.duration)',
+        'p75',
+        'p95',
+      ],
+      fieldnames: ['transaction', 'project', 'volume', 'avg', '75th', '95th'],
       sort: ['-count'],
       query: 'event.type:transaction',
     },
@@ -131,8 +137,15 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
   {
     name: t('Transactions by User'),
     data: {
-      fields: ['user', 'count()', 'count_unique(transaction)'],
-      columnNames: ['user', 'events', 'unique transactions'],
+      fields: [
+        'user',
+        'count()',
+        'count_unique(transaction)',
+        'avg(transaction.duration)',
+        'p75',
+        'p95',
+      ],
+      fieldnames: ['user', 'events', 'unique transactions', 'avg', '75th', '95th'],
       sort: ['-count'],
       query: 'event.type:transaction',
     },
@@ -141,8 +154,8 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
   {
     name: t('Transactions by Region'),
     data: {
-      fields: ['geo.region', 'count()'],
-      columnNames: ['Region', 'events'],
+      fields: ['geo.region', 'count()', 'avg(transaction.duration)', 'p75', 'p95'],
+      fieldnames: ['Region', 'events', 'avg', '75th', '95th'],
       sort: ['-count'],
       query: 'event.type:transaction',
     },
@@ -183,17 +196,20 @@ type FieldFormatters = {
 
 export type FieldTypes = keyof FieldFormatters;
 
+const emptyValue = <span>{t('n/a')}</span>;
 /**
  * A mapping of field types to their rendering function.
  * This mapping is used when a field is not defined in SPECIAL_FIELDS
+ * and the field is not being coerced to a link.
+ *
  * This mapping should match the output sentry.utils.snuba:get_json_type
  */
 export const FIELD_FORMATTERS: FieldFormatters = {
   boolean: {
     sortField: true,
-    renderFunc: (field, data, {organization, location}) => {
+    renderFunc: (field, data, {location}) => {
       const target = {
-        pathname: `/organizations/${organization.slug}/events/`,
+        pathname: location.pathname,
         query: {
           ...location.query,
           query: `${field}:${data[field]}`,
@@ -207,7 +223,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     sortField: true,
     renderFunc: (field, data) => (
       <NumberContainer>
-        {typeof data[field] === 'number' ? <Count value={data[field]} /> : null}
+        {typeof data[field] === 'number' ? <Count value={data[field]} /> : emptyValue}
       </NumberContainer>
     ),
   },
@@ -215,7 +231,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     sortField: true,
     renderFunc: (field, data) => (
       <NumberContainer>
-        {typeof data[field] === 'number' ? <Count value={data[field]} /> : null}
+        {typeof data[field] === 'number' ? <Count value={data[field]} /> : emptyValue}
       </NumberContainer>
     ),
   },
@@ -223,29 +239,92 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     sortField: true,
     renderFunc: (field, data) => (
       <Container>
-        {data[field] ? (
-          getDynamicText({
-            value: <StyledDateTime date={data[field]} />,
-            fixed: 'timestamp',
-          })
-        ) : (
-          <span>t('n/a')</span>
-        )}
+        {data[field]
+          ? getDynamicText({
+              value: <StyledDateTime date={data[field]} />,
+              fixed: 'timestamp',
+            })
+          : emptyValue}
       </Container>
     ),
   },
   string: {
     sortField: true,
-    renderFunc: (field, data, {organization, location}) => {
+    renderFunc: (field, data, {location}) => {
       const target = {
-        pathname: `/organizations/${organization.slug}/events/`,
+        pathname: location.pathname,
         query: {
           ...location.query,
           query: `${field}:${data[field]}`,
         },
       };
-      return <QueryLink to={target}>{data[field]}</QueryLink>;
+      // Some fields have long arrays in them, only show the tail of the data.
+      const value = Array.isArray(data[field]) ? data[field].slice(-1) : data[field];
+      return <QueryLink to={target}>{value}</QueryLink>;
     },
+  },
+};
+
+const eventLink = (
+  location: Location,
+  data: EventData,
+  content: string | React.ReactNode
+): React.ReactNode => {
+  const id = data.id || data.latest_event;
+  const target = {
+    pathname: location.pathname,
+    query: {
+      ...location.query,
+      eventSlug: `${data['project.name']}:${id}`,
+    },
+  };
+  return <OverflowLink to={target}>{content}</OverflowLink>;
+};
+
+type LinkFormatter = (
+  field: string,
+  data: EventData,
+  baggage: RenderFunctionBaggage
+) => React.ReactNode;
+
+type LinkFormatters = {
+  integer: LinkFormatter;
+  number: LinkFormatter;
+  date: LinkFormatter;
+  string: LinkFormatter;
+};
+
+export const LINK_FORMATTERS: LinkFormatters = {
+  string: (field, data, {location}) => {
+    return <Container>{eventLink(location, data, data[field])}</Container>;
+  },
+  number: (field, data, {location}) => {
+    return (
+      <NumberContainer>
+        {typeof data[field] === 'number'
+          ? eventLink(location, data, <Count value={data[field]} />)
+          : emptyValue}
+      </NumberContainer>
+    );
+  },
+  integer: (field, data, {location}) => {
+    return (
+      <NumberContainer>
+        {typeof data[field] === 'number'
+          ? eventLink(location, data, <Count value={data[field]} />)
+          : emptyValue}
+      </NumberContainer>
+    );
+  },
+  date: (field, data, {location}) => {
+    let content = emptyValue;
+    if (data[field]) {
+      content = getDynamicText({
+        value: <StyledDateTime date={data[field]} />,
+        fixed: <span>timestamp</span>,
+      });
+    }
+    return <Container>{eventLink(location, data, content)}</Container>;
   },
 };
 
@@ -287,9 +366,9 @@ export const SPECIAL_FIELDS: SpecialFields = {
       };
       return (
         <Container>
-          <Link css={overflowEllipsis} to={target} aria-label={data.transaction}>
+          <OverflowLink to={target} aria-label={data.transaction}>
             {data.transaction}
-          </Link>
+          </OverflowLink>
         </Container>
       );
     },
@@ -304,9 +383,9 @@ export const SPECIAL_FIELDS: SpecialFields = {
       };
       return (
         <Container>
-          <Link css={overflowEllipsis} to={target} aria-label={data.title}>
+          <OverflowLink to={target} aria-label={data.title}>
             {data.title}
-          </Link>
+          </OverflowLink>
         </Container>
       );
     },
@@ -352,7 +431,7 @@ export const SPECIAL_FIELDS: SpecialFields = {
       };
 
       const badge = (
-        <UserBadge useLink={false} user={userObj} hideEmail={true} avatarSize={16} />
+        <UserBadge useLink={false} user={userObj} hideEmail avatarSize={16} />
       );
 
       if (!data.user) {
@@ -375,32 +454,37 @@ export const SPECIAL_FIELDS: SpecialFields = {
     renderFunc: data => {
       return (
         <Container>
-          {data.last_seen ? (
-            getDynamicText({
-              value: <StyledDateTime date={data.last_seen} />,
-              fixed: 'time',
-            })
-          ) : (
-            <span>n/a</span>
-          )}
+          {data.last_seen
+            ? getDynamicText({
+                value: <StyledDateTime date={data.last_seen} />,
+                fixed: 'time',
+              })
+            : emptyValue}
         </Container>
       );
     },
   },
 };
 
+/**
+ * List of fields that have links auto-generated
+ */
+export const AUTOLINK_FIELDS: string[] = ['transaction', 'title'];
+
 const Container = styled('div')`
-  padding: ${space(1)};
   ${overflowEllipsis};
 `;
 
 const NumberContainer = styled('div')`
-  padding: ${space(1)};
   text-align: right;
   ${overflowEllipsis};
 `;
 
 const StyledDateTime = styled(DateTime)`
   color: ${p => p.theme.gray2};
+  ${overflowEllipsis};
+`;
+
+const OverflowLink = styled(Link)`
   ${overflowEllipsis};
 `;

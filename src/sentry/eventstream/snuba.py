@@ -80,7 +80,6 @@ class SnubaProtocolEventStream(EventStream):
         group,
         event,
         is_new,
-        is_sample,
         is_regression,
         is_new_group_environment,
         primary_hash,
@@ -121,7 +120,6 @@ class SnubaProtocolEventStream(EventStream):
                 },
                 {
                     "is_new": is_new,
-                    "is_sample": is_sample,
                     "is_regression": is_regression,
                     "is_new_group_environment": is_new_group_environment,
                     "skip_consume": skip_consume,
@@ -222,12 +220,20 @@ class SnubaEventStream(SnubaProtocolEventStream):
     def _send(self, project_id, _type, extra_data=(), asynchronous=True):
         data = (self.EVENT_PROTOCOL_VERSION, _type) + extra_data
 
+        # TODO remove this once the unified dataset is available.
+        # Inserting into both events and transactions datasets lets us
+        # simulate what is currently happening via kafka when both the events
+        # and transactions consumers are running.
+        datasets = ["events"]
+        if get_path(extra_data, 0, "data", "type") == "transaction":
+            datasets.append("transactions")
         try:
-            resp = snuba._snuba_pool.urlopen(
-                "POST", "/tests/events/eventstream", body=json.dumps(data)
-            )
-            if resp.status != 200:
-                raise snuba.SnubaError("HTTP %s response from Snuba!" % resp.status)
+            for dataset in datasets:
+                resp = snuba._snuba_pool.urlopen(
+                    "POST", "/tests/{}/eventstream".format(dataset), body=json.dumps(data)
+                )
+                if resp.status != 200:
+                    raise snuba.SnubaError("HTTP %s response from Snuba!" % resp.status)
             return resp
         except urllib3.exceptions.HTTPError as err:
             raise snuba.SnubaError(err)
@@ -240,7 +246,6 @@ class SnubaEventStream(SnubaProtocolEventStream):
         group,
         event,
         is_new,
-        is_sample,
         is_regression,
         is_new_group_environment,
         primary_hash,
@@ -250,18 +255,11 @@ class SnubaEventStream(SnubaProtocolEventStream):
             group,
             event,
             is_new,
-            is_sample,
             is_regression,
             is_new_group_environment,
             primary_hash,
             skip_consume,
         )
         self._dispatch_post_process_group_task(
-            event,
-            is_new,
-            is_sample,
-            is_regression,
-            is_new_group_environment,
-            primary_hash,
-            skip_consume,
+            event, is_new, is_regression, is_new_group_environment, primary_hash, skip_consume
         )

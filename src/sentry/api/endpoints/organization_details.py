@@ -82,6 +82,7 @@ ORG_OPTIONS = (
         org_serializers.REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
     ),
     ("trustedRelays", "sentry:trusted-relays", list, org_serializers.TRUSTED_RELAYS_DEFAULT),
+    ("allowJoinRequests", "sentry:join_requests", bool, org_serializers.JOIN_REQUESTS_DEFAULT),
 )
 
 delete_logger = logging.getLogger("sentry.deletions.api")
@@ -136,6 +137,7 @@ class OrganizationSerializer(serializers.Serializer):
     isEarlyAdopter = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
     trustedRelays = ListField(child=serializers.CharField(), required=False)
+    allowJoinRequests = serializers.BooleanField(required=False)
 
     @memoize
     def _has_legacy_rate_limits(self):
@@ -285,7 +287,7 @@ class OrganizationSerializer(serializers.Serializer):
 
         # check if fields changed
         for f, v in six.iteritems(org_tracked_field):
-            if f is not "flag_field":
+            if f != "flag_field":
                 if org.has_changed(f):
                     old_val = org.old_value(f)
                     changed_data[f] = u"from {} to {}".format(old_val, v)

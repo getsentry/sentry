@@ -1,10 +1,13 @@
 from __future__ import absolute_import
 
+from datetime import timedelta
+from django.utils import timezone
+
 from sentry.coreapi import APIError
 from sentry.constants import SentryAppStatus
 from sentry.mediators.sentry_apps import Updater
 from sentry.mediators.service_hooks.creator import expand_events
-from sentry.models import SentryAppComponent, ServiceHook
+from sentry.models import SentryAppComponent, ServiceHook, ApiToken
 from sentry.testutils import TestCase
 
 
@@ -25,10 +28,44 @@ class TestUpdater(TestCase):
         self.updater.call()
         assert self.sentry_app.name == "A New Thing"
 
+    def test_update_scopes_internal_integration(self):
+        self.create_project(organization=self.org)
+        sentry_app = self.create_internal_integration(
+            scopes=("project:read",), organization=self.org
+        )
+        updater = Updater(sentry_app=sentry_app, user=self.user)
+        updater.scopes = ("project:read", "project:write")
+        updater.call()
+        assert sentry_app.get_scopes() == ["project:read", "project:write"]
+        assert ApiToken.objects.get(application=sentry_app.application).get_scopes() == [
+            "project:read",
+            "project:write",
+        ]
+
     def test_updates_unpublished_app_scopes(self):
+        # create both expired token and not expired tokens
+        ApiToken.objects.create(
+            application=self.sentry_app.application,
+            user=self.sentry_app.proxy_user,
+            scopes=self.sentry_app.scopes,
+            scope_list=self.sentry_app.scope_list,
+            expires_at=(timezone.now() + timedelta(hours=1)),
+        )
+        ApiToken.objects.create(
+            application=self.sentry_app.application,
+            user=self.sentry_app.proxy_user,
+            scopes=self.sentry_app.scopes,
+            scope_list=self.sentry_app.scope_list,
+            expires_at=(timezone.now() - timedelta(hours=1)),
+        )
         self.updater.scopes = ("project:read", "project:write")
         self.updater.call()
         assert self.sentry_app.get_scopes() == ["project:read", "project:write"]
+        tokens = ApiToken.objects.filter(application=self.sentry_app.application).order_by(
+            "expires_at"
+        )
+        assert tokens[0].get_scopes() == ["project:read"]
+        assert tokens[1].get_scopes() == ["project:read", "project:write"]
 
     def test_doesnt_update_published_app_scopes(self):
         sentry_app = self.create_sentry_app(
@@ -39,6 +76,17 @@ class TestUpdater(TestCase):
 
         with self.assertRaises(APIError):
             updater.call()
+
+    def test_update_webhook_published_app(self):
+        sentry_app = self.create_sentry_app(
+            name="sentry", organization=self.org, scopes=("project:read",), published=True
+        )
+        updater = Updater(sentry_app=sentry_app, user=self.user)
+        # pass in scopes but as the same value
+        updater.scopes = ["project:read"]
+        updater.webhook_url = "http://example.com/hooks"
+        updater.call()
+        assert sentry_app.webhook_url == "http://example.com/hooks"
 
     def test_doesnt_update_app_with_invalid_event_permissions(self):
         sentry_app = self.create_sentry_app(

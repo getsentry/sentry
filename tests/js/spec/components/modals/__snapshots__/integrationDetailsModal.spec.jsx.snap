@@ -111,19 +111,19 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                 data-test-id="provider-name"
               >
                 <Component
-                  className="css-1pygq0m-ProviderName e1rf4mlr1"
+                  className="css-1pygq0m-ProviderName exuwfuv1"
                   data-test-id="provider-name"
                 >
                   <Box
-                    className="css-1pygq0m-ProviderName e1rf4mlr1"
+                    className="css-1pygq0m-ProviderName exuwfuv1"
                     data-test-id="provider-name"
                   >
                     <Base
-                      className="e1rf4mlr1 css-cswdqk-ProviderName"
+                      className="exuwfuv1 css-cswdqk-ProviderName"
                       data-test-id="provider-name"
                     >
                       <div
-                        className="e1rf4mlr1 css-cswdqk-ProviderName"
+                        className="exuwfuv1 css-cswdqk-ProviderName"
                         data-test-id="provider-name"
                         is={null}
                       >
@@ -160,7 +160,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
     }
   >
     <div
-      className="css-zqji3g-Description e1rf4mlr2"
+      className="css-zqji3g-Description exuwfuv2"
       dangerouslySetInnerHTML={
         Object {
           "__html": "<p><em>markdown</em> formatted <em>description</em></p>
@@ -264,21 +264,21 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
   </FeatureList>
   <Metadata>
     <Base
-      className="css-xm93tv-Metadata e1rf4mlr3"
+      className="css-xm93tv-Metadata exuwfuv3"
     >
       <div
-        className="css-xm93tv-Metadata e1rf4mlr3"
+        className="css-xm93tv-Metadata exuwfuv3"
         is={null}
       >
         <AuthorName
           flex={1}
         >
           <Base
-            className="css-1uwqb6n-AuthorName e1rf4mlr4"
+            className="css-1uwqb6n-AuthorName exuwfuv4"
             flex={1}
           >
             <div
-              className="css-1uwqb6n-AuthorName e1rf4mlr4"
+              className="css-1uwqb6n-AuthorName exuwfuv4"
               is={null}
             >
               By Morty
@@ -341,21 +341,17 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
         type="warning"
       >
         <StyledTextBlock>
-          <Component
+          <div
             className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
           >
-            <div
-              className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
-            >
-              <span
-                dangerouslySetInnerHTML={
-                  Object {
-                    "__html": "This is a an alert example",
-                  }
+            <span
+              dangerouslySetInnerHTML={
+                Object {
+                  "__html": "This is a an alert example",
                 }
-              />
-            </div>
-          </Component>
+              }
+            />
+          </div>
         </StyledTextBlock>
       </div>
     </AlertWrapper>

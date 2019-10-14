@@ -5,7 +5,7 @@ from rest_framework.response import Response
 import logging
 
 from sentry import features, analytics
-from sentry.api.bases.sentryapps import SentryAppBaseEndpoint
+from sentry.api.bases.sentryapps import SentryAppBaseEndpoint, catch_raised_errors
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import SentryAppSerializer
 from sentry.mediators.sentry_apps import Updater, Destroyer
@@ -17,8 +17,9 @@ logger = logging.getLogger(__name__)
 
 class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
     def get(self, request, sentry_app):
-        return Response(serialize(sentry_app, request.user))
+        return Response(serialize(sentry_app, request.user, access=request.access))
 
+    @catch_raised_errors
     def put(self, request, sentry_app):
         if self._has_hook_events(request) and not features.has(
             "organizations:integrations-event-hooks", sentry_app.owner, actor=request.user
@@ -55,9 +56,10 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                 events=result.get("events"),
                 schema=result.get("schema"),
                 overview=result.get("overview"),
+                allowed_origins=result.get("allowedOrigins"),
             )
 
-            return Response(serialize(updated_app, request.user))
+            return Response(serialize(updated_app, request.user, access=request.access))
 
         # log any errors with schema
         if "schema" in serializer.errors:

@@ -2,10 +2,10 @@
 
 exports[`ProjectHpkpReports renders 1`] = `
 <SideEffect(DocumentTitle)
-  title="Sentry"
+  title="HTTP Public Key Pinning (HPKP) - project-slug - Sentry"
 >
   <div>
-    <SettingsPageHeading
+    <StyledSettingsPageHeading
       noTitleStyles={false}
       title="HTTP Public Key Pinning"
     />

@@ -18,10 +18,12 @@
     "@babel/preset-react": "^7.0.0",
     "@babel/preset-typescript": "^7.3.3",
     "@babel/runtime": "~7.4.4",
-    "@sentry/browser": "5.6.0-beta.4",
+    "@sentry/browser": "5.7.0-beta.1",
     "@sentry/integrations": "5.6.0-beta.4",
     "@types/classnames": "^2.2.0",
-    "@types/echarts": "^4.1.10",
+    "@types/clipboard": "^2.0.1",
+    "@types/create-react-class": "^15.6.2",
+    "@types/echarts": "^4.1.11",
     "@types/jest": "^24.0.17",
     "@types/jquery": "^2.0.53",
     "@types/js-cookie": "^2.2.2",
@@ -38,6 +40,7 @@
     "algoliasearch": "^3.32.0",
     "babel-core": "^7.0.0-bridge.0",
     "babel-loader": "^8.0.0",
+    "babel-plugin-add-react-displayname": "^0.0.5",
     "babel-plugin-emotion": "9.2.11",
     "babel-plugin-lodash": "^3.3.4",
     "babel-plugin-transform-react-remove-prop-types": "^0.4.24",
@@ -53,8 +56,8 @@
     "crypto-js": "3.1.5",
     "css-loader": "^2.0.1",
     "diff": "^3.5.0",
-    "echarts": "^4.1.0",
-    "echarts-for-react": "^2.0.13",
+    "echarts": "4.2.1",
+    "echarts-for-react": "2.0.14",
     "emotion": "9.2.12",
     "emotion-theming": "9.2.9",
     "file-loader": "^3.0.1",
@@ -66,15 +69,15 @@
     "ios-device-list": "^1.1.30",
     "jed": "^1.1.0",
     "jquery": "2.2.2",
-    "js-cookie": "2.0.4",
+    "js-cookie": "2.2.1",
     "less": "^3.9.0",
     "less-loader": "^4.1.0",
     "lodash": "^4.17.11",
     "lodash-webpack-plugin": "^0.11.5",
     "marked": "0.6.2",
     "mini-css-extract-plugin": "^v0.5.0",
-    "mobx": "^3.2.2",
-    "mobx-react": "^4.2.2",
+    "mobx": "^5.13.0",
+    "mobx-react": "~5.4.4",
     "moment": "2.23.0",
     "moment-timezone": "0.5.25",
     "node-libs-browser": "0.5.3",
@@ -155,10 +158,16 @@
     "stylelint-config-styled-components": "^0.1.1",
     "tsconfig-paths-webpack-plugin": "^3.2.0",
     "typescript-styled-plugin": "^0.14.0",
-    "webpack-dev-server": "^3.1.10"
+    "webpack-dev-server": "^3.1.11"
   },
   "optionalDependencies": {
     "fsevents": "^1.1.2"
+  },
+  "resolutions": {
+    "caniuse-lite": ">=1.0.30000989",
+    "browserslist": ">=4.7.0",
+    "set-value": "^2.0.1",
+    "querystringify": ">=2.0.0"
   },
   "APIMethod": "stub",
   "proxyURL": "http://localhost:8000",
@@ -178,7 +187,7 @@
     "webpack-profile": "yarn -s webpack --profile --json > stats.json"
   },
   "volta": {
-    "node": "8.15.1",
-    "yarn": "1.16.0"
+    "node": "10.16.3",
+    "yarn": "1.17.3"
   }
 }

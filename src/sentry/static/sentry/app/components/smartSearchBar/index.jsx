@@ -25,6 +25,7 @@ import {
 import {fetchReleases} from 'app/actionCreators/releases';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import CreateSavedSearchButton from 'app/views/issueList/createSavedSearchButton';
 import InlineSvg from 'app/components/inlineSvg';
 import DropdownLink from 'app/components/dropdownLink';
@@ -262,7 +263,7 @@ class SmartSearchBar extends React.Component {
     analytics('search.searched', {
       org_id: parseInt(organization.id, 10),
       query: removeSpace(this.state.query),
-      source: savedSearchType === 0 ? 'issues' : 'events',
+      search_type: savedSearchType === 0 ? 'issues' : 'events',
       search_source: 'main_search',
     });
 
@@ -705,7 +706,7 @@ class SmartSearchBar extends React.Component {
     analytics('search.pin', {
       org_id: parseInt(organization.id, 10),
       action: !!pinnedSearch ? 'unpin' : 'pin',
-      source: savedSearchType === 0 ? 'issues' : 'events',
+      search_type: savedSearchType === 0 ? 'issues' : 'events',
       query: pinnedSearch || this.state.query,
     });
   };
@@ -907,7 +908,7 @@ class SmartSearchBar extends React.Component {
         ) : (
           input
         )}
-        <ButtonBar>
+        <StyledButtonBar>
           {this.state.query !== '' && (
             <InputButton
               type="button"
@@ -946,8 +947,8 @@ class SmartSearchBar extends React.Component {
               query={this.state.query}
               organization={organization}
               disabled={!hasQuery}
-              withTooltip={true}
-              iconOnly={true}
+              withTooltip
+              iconOnly
               buttonClassName={getInputButtonStyles({
                 collapseIntoEllipsisMenu: 2,
               })}
@@ -971,7 +972,7 @@ class SmartSearchBar extends React.Component {
 
           {(hasPinnedSearch || canCreateSavedSearch || hasSearchBuilder) && (
             <StyledDropdownLink
-              anchorRight={true}
+              anchorRight
               caret={false}
               title={
                 <EllipsisButton
@@ -1016,7 +1017,7 @@ class SmartSearchBar extends React.Component {
               )}
             </StyledDropdownLink>
           )}
-        </ButtonBar>
+        </StyledButtonBar>
       </Container>
     );
   }
@@ -1081,19 +1082,11 @@ const Container = styled('div')`
 
   position: relative;
 
-  z-index: ${p => p.theme.zIndex.dropdown};
   display: flex;
 
   .show-sidebar & {
     background: ${p => p.theme.offWhite};
   }
-`;
-
-const ButtonBar = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  margin-right: ${space(1)};
-  align-items: center;
 `;
 
 const DropdownWrapper = styled('div')`
@@ -1148,6 +1141,10 @@ const StyledDropdownLink = styled(DropdownLink)`
 
 const DropdownElement = styled('a')`
   ${getDropdownElementStyles}
+`;
+
+const StyledButtonBar = styled(ButtonBar)`
+  margin-right: ${space(1)};
 `;
 
 const MenuIcon = styled(InlineSvg)`

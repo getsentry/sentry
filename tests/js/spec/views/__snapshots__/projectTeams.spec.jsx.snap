@@ -2,10 +2,10 @@
 
 exports[`ProjectTeams renders 1`] = `
 <SideEffect(DocumentTitle)
-  title="Sentry"
+  title="Project Teams - project-slug - Sentry"
 >
   <div>
-    <SettingsPageHeading
+    <StyledSettingsPageHeading
       noTitleStyles={false}
       title="project-slug Teams"
     />

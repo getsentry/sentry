@@ -41,10 +41,10 @@ class InMemoryTSDB(BaseTSDB):
         self.validate_arguments([model], environment_ids)
 
         for environment_id in environment_ids:
-            destination = self.data[model][(destination, environment_id)]
+            dest = self.data[model][(destination, environment_id)]
             for source in sources:
                 for bucket, count in self.data[model].pop((source, environment_id), {}).items():
-                    destination[bucket] += count
+                    dest[bucket] += count
 
     def delete(self, models, keys, start=None, end=None, timestamp=None, environment_ids=None):
         environment_ids = (set(environment_ids) if environment_ids is not None else set()).union(
@@ -164,10 +164,10 @@ class InMemoryTSDB(BaseTSDB):
         self.validate_arguments([model], environment_ids)
 
         for environment_id in environment_ids:
-            destination = self.sets[model][(destination, environment_id)]
+            dest = self.sets[model][(destination, environment_id)]
             for source in sources:
                 for bucket, values in self.sets[model].pop((source, environment_id), {}).items():
-                    destination[bucket].update(values)
+                    dest[bucket].update(values)
 
     def delete_distinct_counts(
         self, models, keys, start=None, end=None, timestamp=None, environment_ids=None
@@ -288,10 +288,10 @@ class InMemoryTSDB(BaseTSDB):
         self.validate_arguments([model], environment_ids)
 
         for environment_id in environment_ids:
-            destination = self.frequencies[model][(destination, environment_id)]
+            dest = self.frequencies[model][(destination, environment_id)]
             for source in sources:
                 for bucket, counter in self.data[model].pop((source, environment_id), {}).items():
-                    destination[bucket].update(counter)
+                    dest[bucket].update(counter)
 
     def delete_frequencies(
         self, models, keys, start=None, end=None, timestamp=None, environment_ids=None

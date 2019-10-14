@@ -13,11 +13,17 @@ import PermissionAlert from 'app/views/settings/project/permissionAlert';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import Tooltip from 'app/components/tooltip';
+import routeTitleGen from 'app/utils/routeTitle';
 
 export default class ProjectTags extends AsyncView {
   getEndpoints() {
     const {projectId, orgId} = this.props.params;
     return [['tags', `/projects/${orgId}/${projectId}/tags/`]];
+  }
+
+  getTitle() {
+    const {projectId} = this.props.params;
+    return routeTitleGen(t('Tags'), projectId, false);
   }
 
   onDelete(key, idx) {

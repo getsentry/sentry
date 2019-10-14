@@ -19,8 +19,8 @@ class TeamGroupsTrendingEndpoint(TeamEndpoint, EnvironmentMixin):
         cutoff date, and then sort those by score, returning the highest scoring
         groups first.
         """
-        minutes = int(request.REQUEST.get("minutes", 15))
-        limit = min(100, int(request.REQUEST.get("limit", 10)))
+        minutes = int(request.GET.get("minutes", 15))
+        limit = min(100, int(request.GET.get("limit", 10)))
 
         project_list = Project.objects.get_for_user(user=request.user, team=team)
 

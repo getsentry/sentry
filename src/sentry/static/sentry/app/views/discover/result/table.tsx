@@ -299,9 +299,7 @@ class ResultTable extends React.Component<Props> {
             }}
           </AutoSizer>
         </Grid>
-        {!data.length && (
-          <EmptyStateWarning small={true}>{t('No results')}</EmptyStateWarning>
-        )}
+        {!data.length && <EmptyStateWarning small>{t('No results')}</EmptyStateWarning>}
       </Panel>
     );
   }

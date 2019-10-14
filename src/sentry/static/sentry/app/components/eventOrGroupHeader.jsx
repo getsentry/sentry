@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {withRouter, Link} from 'react-router';
+import {withRouter} from 'react-router';
 import styled, {css} from 'react-emotion';
 import classNames from 'classnames';
 import {capitalize} from 'lodash';
@@ -9,6 +9,7 @@ import SentryTypes from 'app/sentryTypes';
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 import Tooltip from 'app/components/tooltip';
 import {getMessage, getLocation} from 'app/utils/events';
+import GlobalSelectionLink from 'app/components/globalSelectionLink';
 
 /**
  * Displays an event or group/issue title (i.e. in Stream)
@@ -43,15 +44,22 @@ class EventOrGroupHeader extends React.Component {
     const basePath = `/organizations/${orgId}/issues/`;
 
     if (includeLink) {
+      const locationWithProject = {...this.props.location};
+      const query =
+        locationWithProject.query.project !== undefined
+          ? {
+              query: this.props.query,
+            }
+          : {query: this.props.query, _allp: 1}; //This appends _allp to the URL parameters if they have no project selected ("all" projects included in results). This is so that when we enter the issue details page and lock them to a project, we can properly take them back to the issue list page with no project selected (and not the locked project selected)
+
       props.to = {
         pathname: `${basePath}${isEvent ? groupID : id}/${
           isEvent ? `events/${data.id}/` : ''
         }`,
-        search: `${
-          this.props.query ? `?query=${window.encodeURIComponent(this.props.query)}` : ''
-        }`,
+        query,
       };
-      Wrapper = Link;
+
+      Wrapper = GlobalSelectionLink;
     } else {
       Wrapper = 'span';
     }

@@ -110,9 +110,6 @@ register("analytics.options", default={}, flags=FLAG_NOSTORE)
 
 register("cloudflare.secret-key", default="")
 
-# Tagstore
-register("tagstore.multi-sampling", default=0.0)
-
 # Slack Integration
 register("slack.client-id", flags=FLAG_PRIORITIZE_DISK)
 register("slack.client-secret", flags=FLAG_PRIORITIZE_DISK)
@@ -179,3 +176,7 @@ register("post-process.error-hook-sample-rate", default=0.0)  # unused
 # Transaction events
 # True => kill switch to disable ingestion of transaction events for internal project.
 register("transaction-events.force-disable-internal-project", default=False)
+
+# Moving signals and TSDB into outcomes consumer
+register("outcomes.signals-in-consumer-sample-rate", default=0.0)
+register("outcomes.tsdb-in-consumer-sample-rate", default=0.0)

@@ -6,7 +6,7 @@ from django.core.urlresolvers import reverse
 from django.core import mail
 
 from sentry.testutils import APITestCase
-from sentry.models import OrganizationMember, OrganizationMemberTeam
+from sentry.models import InviteStatus, OrganizationMember, OrganizationMemberTeam
 from sentry.testutils.helpers import Feature
 
 
@@ -99,6 +99,36 @@ class OrganizationMemberListTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["email"] == self.owner_user.email
 
+    def test_cannot_get_unapproved_invites(self):
+        join_request = "test@email.com"
+        invite_request = "test@gmail.com"
+
+        self.create_member(
+            organization=self.org,
+            email=join_request,
+            invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
+        )
+
+        self.create_member(
+            organization=self.org,
+            email=invite_request,
+            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+        )
+
+        response = self.client.get(self.url)
+        assert response.status_code == 200
+        assert len(response.data) == 2
+        assert response.data[0]["email"] == self.user_2.email
+        assert response.data[1]["email"] == self.owner_user.email
+
+        response = self.client.get(self.url + "?query=email:{}".format(join_request))
+        assert response.status_code == 200
+        assert response.data == []
+
+        response = self.client.get(self.url + "?query=email:{}".format(invite_request))
+        assert response.status_code == 200
+        assert response.data == []
+
     def test_owner_invites(self):
         self.login_as(user=self.owner_user)
         response = self.client.post(
@@ -143,7 +173,7 @@ class OrganizationMemberListTest(APITestCase):
                 self.url, {"email": user.email, "role": "member", "teams": [self.team.slug]}
             )
 
-        assert resp.status_code == 409
+        assert resp.status_code == 400
 
         member = OrganizationMember.objects.get(id=member.id)
 
@@ -194,7 +224,7 @@ class OrganizationMemberListTest(APITestCase):
             self.url, {"email": "eric@localhost", "role": "owner", "teams": [self.team.slug]}
         )
 
-        assert response.status_code == 403
+        assert response.status_code == 400
 
         response = self.client.post(
             self.url, {"email": "eric@localhost", "role": "manager", "teams": [self.team.slug]}
@@ -205,7 +235,7 @@ class OrganizationMemberListTest(APITestCase):
             self.url, {"email": "eric@localhost", "role": "member", "teams": [self.team.slug]}
         )
 
-        assert response.status_code == 409
+        assert response.status_code == 400
 
     def test_admin_invites(self):
         admin_user = self.create_user("admin22@localhost")
@@ -313,6 +343,7 @@ class OrganizationMemberListPostTest(APITestCase):
         assert om.email == "jane@gmail.com"
         assert om.role == "member"
         assert list(om.teams.all()) == [self.team]
+        assert om.inviter == self.owner_user
 
         mock_send_invite_email.assert_called_once_with()
 
@@ -324,6 +355,7 @@ class OrganizationMemberListPostTest(APITestCase):
         assert om.email == "jane@gmail.com"
         assert om.role == "member"
         assert list(om.teams.all()) == []
+        assert om.inviter == self.owner_user
 
     @patch.object(OrganizationMember, "send_invite_email")
     def test_no_email(self, mock_send_invite_email):
@@ -340,5 +372,6 @@ class OrganizationMemberListPostTest(APITestCase):
         assert om.email == "jane@gmail.com"
         assert om.role == "member"
         assert list(om.teams.all()) == [self.team]
+        assert om.inviter == self.owner_user
 
         assert not mock_send_invite_email.mock_calls

@@ -113,7 +113,7 @@ class PluginActions extends React.Component {
           <Modal.Header closeButton>
             <Modal.Title>{`${plugin.name || plugin.title} Issue`}</Modal.Title>
           </Modal.Header>
-          <NavTabs underlined={true}>
+          <NavTabs underlined>
             <li className={actionType === 'create' ? 'active' : ''}>
               <a onClick={() => this.handleClick('create')}>{t('Create')}</a>
             </li>

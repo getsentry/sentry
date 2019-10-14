@@ -480,7 +480,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.content
         assert response.data["detail"] == "No fields provided"
 
-    def test_condition_on_aggregate_fails(self):
+    def test_condition_on_aggregate_misses(self):
         self.login_as(user=self.user)
         project = self.create_project()
         self.store_event(

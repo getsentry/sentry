@@ -5,7 +5,7 @@ exports[`AccountSubscriptions renders empty 1`] = `
   title="Subscriptions - Sentry"
 >
   <div>
-    <SettingsPageHeading
+    <StyledSettingsPageHeading
       noTitleStyles={false}
       title="Subscriptions"
     />
@@ -45,72 +45,55 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
       title="Subscriptions - Sentry"
     >
       <div>
-        <SettingsPageHeading
+        <StyledSettingsPageHeading
           noTitleStyles={false}
           title="Subscriptions"
         >
-          <Wrapper>
-            <div
-              className="css-1r5ylk7-Wrapper e1kblvez2"
-            >
-              <Flex
-                align="center"
-              >
-                <Base
-                  align="center"
-                  className="css-5ipae5"
-                >
-                  <div
-                    className="css-5ipae5"
-                    is={null}
-                  >
-                    <Title
-                      styled={false}
-                    >
-                      <Base
-                        className="css-1ky52ze-Title e1kblvez0"
-                      >
-                        <div
-                          className="css-1ky52ze-Title e1kblvez0"
-                          is={null}
-                        >
-                          <HeaderTitle>
-                            <h4
-                              className="css-u1l4am-HeaderTitle e6lvex72"
-                            >
-                              Subscriptions
-                            </h4>
-                          </HeaderTitle>
-                        </div>
-                      </Base>
-                    </Title>
-                  </div>
-                </Base>
-              </Flex>
-            </div>
-          </Wrapper>
-        </SettingsPageHeading>
-        <TextBlock>
-          <Component
-            className="css-1geyb25-TextBlock ec8ep340"
+          <SettingsPageHeading
+            className="css-1fvvoq2-StyledSettingsPageHeading e1uay4fd4"
+            noTitleStyles={false}
+            title="Subscriptions"
           >
             <div
-              className="css-1geyb25-TextBlock ec8ep340"
+              className="css-1fvvoq2-StyledSettingsPageHeading e1uay4fd4"
             >
-              Sentry is committed to respecting your inbox. Our goal is to provide useful content and resources that make fixing errors less painful. Enjoyable even.
+              <TitleAndActions>
+                <div
+                  className="css-b5tiyd-TitleAndActions e1uay4fd0"
+                >
+                  <Title
+                    styled={false}
+                  >
+                    <div
+                      className="css-2kvddg-Title e1uay4fd1"
+                    >
+                      <HeaderTitle>
+                        <h4
+                          className="css-u1l4am-HeaderTitle eqkydle2"
+                        >
+                          Subscriptions
+                        </h4>
+                      </HeaderTitle>
+                    </div>
+                  </Title>
+                </div>
+              </TitleAndActions>
             </div>
-          </Component>
+          </SettingsPageHeading>
+        </StyledSettingsPageHeading>
+        <TextBlock>
+          <div
+            className="css-1geyb25-TextBlock e1x1lar10"
+          >
+            Sentry is committed to respecting your inbox. Our goal is to provide useful content and resources that make fixing errors less painful. Enjoyable even.
+          </div>
         </TextBlock>
         <TextBlock>
-          <Component
-            className="css-1geyb25-TextBlock ec8ep340"
+          <div
+            className="css-1geyb25-TextBlock e1x1lar10"
           >
-            <div
-              className="css-1geyb25-TextBlock ec8ep340"
-            >
-              As part of our compliance with the EU’s General Data Protection Regulation (GDPR), starting on 25 May 2018, we’ll only email you according to the marketing categories to which you’ve explicitly opted-in.
-            </div>
-          </Component>
+            As part of our compliance with the EU’s General Data Protection Regulation (GDPR), starting on 25 May 2018, we’ll only email you according to the marketing categories to which you’ve explicitly opted-in.
+          </div>
         </TextBlock>
         <Panel>
           <Component
@@ -373,32 +356,24 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
           </Component>
         </Panel>
         <TextBlock>
-          <Component
-            className="css-1geyb25-TextBlock ec8ep340"
+          <div
+            className="css-1geyb25-TextBlock e1x1lar10"
           >
-            <div
-              className="css-1geyb25-TextBlock ec8ep340"
-            >
-              We’re applying GDPR consent and privacy policies to all Sentry contacts, regardless of location. You’ll be able to manage your subscriptions here and from an Unsubscribe link in the footer of all marketing emails.
-            </div>
-          </Component>
+            We’re applying GDPR consent and privacy policies to all Sentry contacts, regardless of location. You’ll be able to manage your subscriptions here and from an Unsubscribe link in the footer of all marketing emails.
+          </div>
         </TextBlock>
         <TextBlock>
-          <Component
-            className="css-1geyb25-TextBlock ec8ep340"
+          <div
+            className="css-1geyb25-TextBlock e1x1lar10"
           >
-            <div
-              className="css-1geyb25-TextBlock ec8ep340"
+            Please contact 
+            <a
+              href="mailto:learn@sentry.io"
             >
-              Please contact 
-              <a
-                href="mailto:learn@sentry.io"
-              >
-                learn@sentry.io
-              </a>
-               with any questions or suggestions.
-            </div>
-          </Component>
+              learn@sentry.io
+            </a>
+             with any questions or suggestions.
+          </div>
         </TextBlock>
       </div>
     </DocumentTitle>

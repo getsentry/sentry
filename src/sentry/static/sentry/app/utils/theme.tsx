@@ -5,9 +5,11 @@ import CHART_PALETTE from 'app/constants/chartPalette';
 const colors = {
   // Colors
   offWhite: '#FAF9FB',
+  offWhiteLight: '#F2F0F5',
   offWhite2: '#E7E1EC',
-  whiteDark: '#fbfbfc',
+
   white: '#FFFFFF',
+  whiteDark: '#fbfbfc',
   foreground: '#493E54',
 
   gray1: '#BDB4C7',
@@ -72,6 +74,43 @@ const colors = {
 
   background: '#fff',
   placeholderBackground: '#f5f5f5',
+};
+
+// from the Sentry design system: most useful for showing a transition
+// from one extreme, through a neutral middle, to an opposite extreme.
+export const divergentColorScale = {
+  blue: '#444674',
+  maroon: '#955389',
+  magenta: '#C15584',
+  salmon: '#E65D73',
+  purple: '#694E86',
+  orange: '#F27A58',
+  marigold: '#F6983B',
+  yellow: '#F2B712',
+  softBlue: '#535577',
+  softMaroon: '#805567',
+  softMagenta: '#99628F',
+  softSalmon: '#96545E',
+  softPurple: '#6B597E',
+  softOrange: '#D17D65',
+  softMarigold: '#E4944E',
+  softYellow: '#EDC658',
+  darkOrange: '#98361B',
+  darkBlue: '#1E1F33',
+  darkMaroon: '#382947',
+  darkMagenta: '#522E4B',
+  darkSalmon: '#833054',
+  darkPurple: '#AF2C41',
+  darkMarigold: '#C36609',
+  darkYellow: '#E2B22E',
+};
+
+// you can link span operation types to specific colors here
+export const spanColors = {
+  default: divergentColorScale.blue,
+  transaction: divergentColorScale.softBlue,
+  db: divergentColorScale.magenta,
+  http: divergentColorScale.marigold,
 };
 
 const warning = {
@@ -218,6 +257,7 @@ const theme = {
   },
 
   grid: 8,
+  fontSizeExtraSmall: '11px',
   fontSizeSmall: '12px',
   fontSizeMedium: '14px',
   fontSizeLarge: '16px',

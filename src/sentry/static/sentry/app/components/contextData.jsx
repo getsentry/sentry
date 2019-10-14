@@ -1,6 +1,9 @@
 import $ from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
+
+import classNames from 'classnames';
+
 import _ from 'lodash';
 
 import {isUrl} from 'app/utils';
@@ -73,6 +76,7 @@ function analyzeStringForRepr(value) {
 class ContextData extends React.Component {
   static propTypes = {
     data: PropTypes.any,
+    preserveQuotes: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -86,6 +90,8 @@ class ContextData extends React.Component {
         .toggleClass('val-toggle-open');
       evt.preventDefault();
     }
+
+    const {preserveQuotes} = this.props;
 
     function makeToggle(highUp, childCount, children) {
       if (childCount === 0) {
@@ -122,7 +128,7 @@ class ContextData extends React.Component {
               (valueInfo.isMultiLine ? ' val-string-multiline' : '')
             }
           >
-            {valueInfo.repr}
+            {preserveQuotes ? `"${valueInfo.repr}"` : valueInfo.repr}
           </span>,
         ];
 
@@ -169,7 +175,7 @@ class ContextData extends React.Component {
           children.push(
             <span className="val-dict-pair" key={key}>
               <span className="val-dict-key">
-                <span className="val-string">{key}</span>
+                <span className="val-string">{preserveQuotes ? `"${key}"` : key}</span>
               </span>
               <span className="val-dict-col">{': '}</span>
               <span className="val-dict-value">
@@ -205,19 +211,13 @@ class ContextData extends React.Component {
   };
 
   render() {
-    // XXX(dcramer): babel does not support this yet
-    // let {data, className, ...other} = this.props;
-    const data = this.props.data;
-    const className = this.props.className;
-    const other = {};
-    for (const key in this.props) {
-      if (key !== 'data' && key !== 'className') {
-        other[key] = this.props[key];
-      }
-    }
-    other.className = 'val ' + (className || '');
+    const {data, className, preserveQuotes: _preserveQuotes, ...other} = this.props;
 
-    return <pre {...other}>{this.renderValue(data)}</pre>;
+    return (
+      <pre className={classNames('val', className || '')} {...other}>
+        {this.renderValue(data)}
+      </pre>
+    );
   }
 }
 

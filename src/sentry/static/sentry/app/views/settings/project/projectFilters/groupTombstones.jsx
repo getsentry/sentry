@@ -28,7 +28,7 @@ class GroupTombstoneRow extends React.Component {
         <StyledBox>
           <EventOrGroupHeader
             includeLink={false}
-            hideIcons={true}
+            hideIcons
             className="truncate"
             data={data}
           />

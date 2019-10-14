@@ -72,9 +72,12 @@ class SymbolicatorMinidumpIntegrationTest(TransactionTestCase):
                     f, {"sentry[logger]": "test-logger", "some_file": attachment}
                 )
                 assert resp.status_code == 200
+                event_id = resp.content
 
-        event = eventstore.get_events(filter_keys={"project_id": [self.project.id]})[0]
+        event = eventstore.get_event_by_id(self.project.id, event_id)
         insta_snapshot_stacktrace_data(self, event.data)
+        assert event.data.get("logger") == "test-logger"
+        # assert event.data.get("extra") == {"foo": "bar"}
 
         attachments = sorted(
             EventAttachment.objects.filter(event_id=event.event_id), key=lambda x: x.name
@@ -89,6 +92,40 @@ class SymbolicatorMinidumpIntegrationTest(TransactionTestCase):
         assert minidump.file.type == "event.minidump"
         assert minidump.file.checksum == "74bb01c850e8d65d3ffbc5bad5cabc4668fce247"
 
+    def test_full_minidump_json_extra(self):
+        self.project.update_option("sentry:store_crash_reports", True)
+        self.upload_symbols()
+
+        with self.feature("organizations:event-attachments"):
+            with open(get_fixture_path("windows.dmp"), "rb") as f:
+                resp = self._postMinidumpWithHeader(
+                    f, {"sentry": '{"logger":"test-logger"}', "foo": "bar"}
+                )
+                assert resp.status_code == 200
+                event_id = resp.content
+
+        event = eventstore.get_event_by_id(self.project.id, event_id)
+        assert event.data.get("logger") == "test-logger"
+        assert event.data.get("extra") == {"foo": "bar"}
+        # Other assertions are performed by `test_full_minidump`
+
+    def test_full_minidump_invalid_extra(self):
+        self.project.update_option("sentry:store_crash_reports", True)
+        self.upload_symbols()
+
+        with self.feature("organizations:event-attachments"):
+            with open(get_fixture_path("windows.dmp"), "rb") as f:
+                resp = self._postMinidumpWithHeader(
+                    f, {"sentry": "{{{{", "foo": "bar"}  # invalid sentry JSON
+                )
+                assert resp.status_code == 200
+                event_id = resp.content
+
+        event = eventstore.get_event_by_id(self.project.id, event_id)
+        assert not event.data.get("logger")
+        assert event.data.get("extra") == {"foo": "bar"}
+        # Other assertions are performed by `test_full_minidump`
+
     def test_raw_minidump(self):
         self.project.update_option("sentry:store_crash_reports", True)
         self.upload_symbols()
@@ -98,8 +135,9 @@ class SymbolicatorMinidumpIntegrationTest(TransactionTestCase):
                 # Send as raw request body instead of multipart/form-data
                 resp = self._postMinidumpWithHeader(f, raw=True)
                 assert resp.status_code == 200
+                event_id = resp.content
 
-        event = eventstore.get_events(filter_keys={"project_id": [self.project.id]})[0]
+        event = eventstore.get_event_by_id(self.project.id, event_id)
         insta_snapshot_stacktrace_data(self, event.data)
 
     def test_missing_dsym(self):
@@ -107,7 +145,8 @@ class SymbolicatorMinidumpIntegrationTest(TransactionTestCase):
             with open(get_fixture_path("windows.dmp"), "rb") as f:
                 resp = self._postMinidumpWithHeader(f, {"sentry[logger]": "test-logger"})
                 assert resp.status_code == 200
+                event_id = resp.content
 
-        event = eventstore.get_events(filter_keys={"project_id": [self.project.id]})[0]
+        event = eventstore.get_event_by_id(self.project.id, event_id)
         insta_snapshot_stacktrace_data(self, event.data)
         assert not EventAttachment.objects.filter(event_id=event.event_id)

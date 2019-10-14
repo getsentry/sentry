@@ -250,7 +250,7 @@ describe('EventsV2 > EventDetails', function() {
     // the view to re-render
     expect(tagLink.props().to).toEqual({
       pathname: '/organizations/org-slug/events/',
-      query: {query: 'browser:"Firefox"'},
+      query: {query: 'browser:Firefox'},
     });
   });
 
@@ -286,7 +286,7 @@ describe('EventsV2 > EventDetails', function() {
     // the view to re-render
     expect(tagLink.props().to).toEqual({
       pathname: '/organizations/org-slug/events/',
-      query: {query: 'Dumpster browser:"Firefox"'},
+      query: {query: 'Dumpster browser:Firefox'},
     });
   });
 });

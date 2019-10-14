@@ -15,6 +15,7 @@ import StackedBarChart from 'app/components/stackedBarChart';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 
 class DataForwardingStats extends AsyncComponent {
   getEndpoints() {
@@ -35,10 +36,12 @@ class DataForwardingStats extends AsyncComponent {
   }
 
   renderBody() {
+    const {projectId} = this.props.params;
     const stats = this.state.stats.map(p => ({x: p[0], y: [p[1]]}));
 
     return (
       <Panel>
+        <SentryDocumentTitle title={t('Data Forwarding')} objSlug={projectId} />
         <PanelHeader>{t('Forwarded events in the last 30 days (by day)')}</PanelHeader>
         <PanelBody>
           {stats.length > 0 && stats[0][0] ? (

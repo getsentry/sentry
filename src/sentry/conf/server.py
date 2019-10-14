@@ -331,10 +331,6 @@ INSTALLED_APPS = (
     "sentry.plugins.sentry_webhooks",
     "social_auth",
     "sudo",
-    "sentry.tagstore",
-    # we import the legacy tagstore to ensure models stay registered as they're still
-    # referenced in the core sentry migrations (tagstore migrations are not in their own app)
-    "sentry.tagstore.legacy",
     "sentry.eventstream",
     "sentry.auth.providers.google",
     "django.contrib.staticfiles",
@@ -553,7 +549,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.store",
     "sentry.tasks.unmerge",
     "sentry.tasks.servicehooks",
-    "sentry.tagstore.tasks",
     "sentry.tasks.assemble",
     "sentry.tasks.integrations",
     "sentry.tasks.files",
@@ -572,7 +567,6 @@ CELERY_QUEUES = [
     Queue("digests.delivery", routing_key="digests.delivery"),
     Queue("digests.scheduling", routing_key="digests.scheduling"),
     Queue("email", routing_key="email"),
-    Queue("events.index_event_tags", routing_key="events.index_event_tags"),
     Queue("events.preprocess_event", routing_key="events.preprocess_event"),
     Queue(
         "events.reprocessing.preprocess_event", routing_key="events.reprocessing.preprocess_event"
@@ -776,6 +770,12 @@ LOGGING = {
 # django-rest-framework
 
 REST_FRAMEWORK = {
+    "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
+    "DEFAULT_PARSER_CLASSES": [
+        "rest_framework.parsers.JSONParser",
+        "rest_framework.parsers.MultiPartParser",
+        "rest_framework.parsers.FormParser",
+    ],
     "TEST_REQUEST_DEFAULT_FORMAT": "json",
     "DEFAULT_PERMISSION_CLASSES": ("sentry.api.permissions.NoPermission",),
     "EXCEPTION_HANDLER": "sentry.api.handlers.custom_exception_handler",
@@ -818,8 +818,10 @@ SENTRY_FEATURES = {
     "organizations:discover": False,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": False,
+    # Allow organizations to configure built-in symbol sources.
+    "organizations:symbol-sources": True,
     # Allow organizations to configure custom external symbol sources.
-    "organizations:symbol-sources": False,
+    "organizations:custom-symbol-sources": True,
     # Enable the events stream interface.
     "organizations:events": False,
     # Enable events v2 instead of the events stream
@@ -829,7 +831,7 @@ SENTRY_FEATURES = {
     # Turns on grouping info.
     "organizations:grouping-info": False,
     # Lets organizations upgrade grouping configs and tweak them
-    "organizations:tweak-grouping-config": False,
+    "organizations:tweak-grouping-config": True,
     # Lets organizations manage grouping configs
     "organizations:set-grouping-config": False,
     # Enable incidents feature
@@ -879,7 +881,7 @@ SENTRY_FEATURES = {
     # Enable functionality for rate-limiting events on projects.
     "projects:rate-limits": True,
     # Enable functionality for sampling of events on projects.
-    "projects:sample-events": True,
+    "projects:sample-events": False,
     # Enable functionality to trigger service hooks upon event ingestion.
     "projects:servicehooks": False,
     # Use Kafka (instead of Celery) for ingestion pipeline.
@@ -930,23 +932,6 @@ SENTRY_MONITOR_API_ROOT = None
 SENTRY_CELERYBEAT_MONITORS = {
     # 'scheduled-name': 'monitor_guid',
 }
-
-# Only store a portion of all messages per unique group.
-SENTRY_SAMPLE_DATA = True
-
-# The following values control the sampling rates
-SENTRY_SAMPLE_RATES = (
-    # up until N events, store 1 in M
-    (50, 1),
-    (1000, 2),
-    (10000, 10),
-    (100000, 50),
-    (1000000, 300),
-    (10000000, 2000),
-)
-SENTRY_MAX_SAMPLE_RATE = 10000
-SENTRY_SAMPLE_TIMES = ((3600, 1), (360, 10), (60, 60))
-SENTRY_MAX_SAMPLE_TIME = 10000
 
 # Web Service
 SENTRY_WEB_HOST = "localhost"
@@ -1067,19 +1052,8 @@ SENTRY_NODESTORE = "sentry.nodestore.django.DjangoNodeStorage"
 SENTRY_NODESTORE_OPTIONS = {}
 
 # Tag storage backend
-_SENTRY_TAGSTORE_DEFAULT_MULTI_OPTIONS = {
-    "backends": [
-        ("sentry.tagstore.legacy.LegacyTagStorage", {}),
-        ("sentry.tagstore.v2.V2TagStorage", {}),
-    ],
-    "runner": "ImmediateRunner",
-}
-SENTRY_TAGSTORE = os.environ.get("SENTRY_TAGSTORE", "sentry.tagstore.legacy.LegacyTagStorage")
-SENTRY_TAGSTORE_OPTIONS = (
-    _SENTRY_TAGSTORE_DEFAULT_MULTI_OPTIONS
-    if "SENTRY_TAGSTORE_DEFAULT_MULTI_OPTIONS" in os.environ
-    else {}
-)
+SENTRY_TAGSTORE = os.environ.get("SENTRY_TAGSTORE", "sentry.tagstore.snuba.SnubaTagStorage")
+SENTRY_TAGSTORE_OPTIONS = {}
 
 # Search backend
 SENTRY_SEARCH = os.environ.get("SENTRY_SEARCH", "sentry.search.snuba.SnubaSearchBackend")
@@ -1543,7 +1517,7 @@ SENTRY_BUILTIN_SOURCES = {
         "id": "sentry:microsoft",
         "name": "Microsoft",
         "layout": {"type": "symstore"},
-        "filters": {"filetypes": ["pdb", "pe"], "path_patterns": ["?:/windows/**"]},
+        "filters": {"filetypes": ["pdb", "pe"]},
         "url": "https://msdl.microsoft.com/download/symbols/",
         "is_public": True,
     },
@@ -1674,6 +1648,9 @@ KAFKA_CLUSTERS = {
 KAFKA_EVENTS = "events"
 KAFKA_OUTCOMES = "outcomes"
 KAFKA_SNUBA_QUERY_SUBSCRIPTIONS = "snuba-query-subscriptions"
+KAFKA_INGEST_EVENTS = "ingest-events"
+KAFKA_INGEST_ATTACHMENTS = "ingest-attachments"
+KAFKA_INGEST_TRANSACTIONS = "ingest-transactions"
 
 KAFKA_TOPICS = {
     KAFKA_EVENTS: {"cluster": "default", "topic": KAFKA_EVENTS},
@@ -1682,6 +1659,12 @@ KAFKA_TOPICS = {
         "cluster": "default",
         "topic": KAFKA_SNUBA_QUERY_SUBSCRIPTIONS,
     },
+    # Topic for receiving simple events (error events without attachments) from Relay
+    KAFKA_INGEST_EVENTS: {"cluster": "default", "topic": KAFKA_INGEST_EVENTS},
+    # Topic for receiving 'complex' events (error events with attachments) from Relay
+    KAFKA_INGEST_ATTACHMENTS: {"cluster": "default", "topic": KAFKA_INGEST_ATTACHMENTS},
+    # Topic for receiving transaction events (APM events) from Relay
+    KAFKA_INGEST_TRANSACTIONS: {"cluster": "default", "topic": KAFKA_INGEST_TRANSACTIONS},
 }
 
 # Enable this to use the legacy Slack Workspace Token apps. You will likely

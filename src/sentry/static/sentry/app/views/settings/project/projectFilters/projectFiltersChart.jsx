@@ -12,6 +12,7 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import StackedBarChart from 'app/components/stackedBarChart';
+import formatAbbreviatedNumber from 'app/utils/formatAbbreviatedNumber';
 
 const ProjectFiltersChart = createReactClass({
   displayName: 'ProjectFiltersChart',
@@ -133,7 +134,7 @@ const ProjectFiltersChart = createReactClass({
     return timeMoment.format('LL');
   },
 
-  renderTooltip(point, pointIdx, chart) {
+  renderTooltip(point) {
     const timeLabel = this.timeLabelAsDay(point);
     let totalY = 0;
     for (let i = 0; i < point.y.length; i++) {
@@ -160,7 +161,8 @@ const ProjectFiltersChart = createReactClass({
                   {dataPoint.label}{' '}
                 </dd>
                 <dd style={{textAlign: 'right', position: 'relative'}}>
-                  {point.y[i]} {tn('event', 'events', point.y[i])}
+                  {formatAbbreviatedNumber(point.y[i])}{' '}
+                  {tn('event', 'events', point.y[i])}
                 </dd>
               </dl>
             )

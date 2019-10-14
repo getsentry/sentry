@@ -33,6 +33,10 @@ describe('Sidebar', function() {
       url: '/broadcasts/',
       method: 'PUT',
     });
+    apiMocks.savedQueries = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/discover/saved/`,
+      body: [],
+    });
   });
 
   it('renders', function() {

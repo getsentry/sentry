@@ -1,10 +1,7 @@
 from __future__ import absolute_import
 
-from datetime import timedelta
-
 import six
 from django.core.urlresolvers import reverse
-from django.utils import timezone
 from exam import patcher
 from freezegun import freeze_time
 
@@ -23,6 +20,7 @@ from sentry.incidents.tasks import (
 )
 from sentry.models import Commit, Repository
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.utils.linksign import generate_signed_link
 from sentry.utils.http import absolute_uri
 
@@ -146,7 +144,7 @@ class CalculateIncidentSuspectsTest(TestCase):
         release = self.create_release(project=self.project, version="v12")
         event = self.store_event(
             data={
-                "timestamp": (timezone.now() - timedelta(minutes=1)).isoformat()[:19],
+                "timestamp": iso_format(before_now(minutes=1)),
                 "fingerprint": ["group-1"],
                 "message": "Kaboom!",
                 "platform": "python",

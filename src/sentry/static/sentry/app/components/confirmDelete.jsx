@@ -63,7 +63,7 @@ class ConfirmDelete extends React.PureComponent {
             <Alert type="error">{message}</Alert>
             <Field
               p={0}
-              flexibleControlStateSize={true}
+              flexibleControlStateSize
               inline={false}
               label={
                 <div>

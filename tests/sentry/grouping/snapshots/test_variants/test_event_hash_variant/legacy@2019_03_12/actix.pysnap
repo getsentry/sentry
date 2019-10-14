@@ -1,10 +1,10 @@
 ---
-created: '2019-09-03T07:26:07.084393Z'
+created: '2019-09-26T13:46:37.308539Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: 'c9dc61e20bb252c9ec1e28a75f015132'
+  hash: '0b1576b98e87afe7e4de476f6f290c65'
   component:
     app*
       exception*
@@ -15,35 +15,35 @@ app:
           frame
             function (function name is not used if module or filename are available)
               u'__pthread_body'
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
               u'thread.rs'
             function*
               u'std::sys::unix::thread::Thread::new::thread_start'
             lineno (function takes precedence)
               24
-          frame*
+          frame (marked out of app by grouping enhancement rule (family:native function:alloc::* -app))
             filename*
               u'boxed.rs'
             function*
               u'<F as alloc::boxed::FnBox<A>>::call_box'
             lineno (function takes precedence)
               673
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
               u'mod.rs'
             function*
               u'std::thread::Builder::spawn_unchecked::{{closure}}'
             lineno (function takes precedence)
               476
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
               u'panic.rs'
             function*
               u'std::panic::catch_unwind'
             lineno (function takes precedence)
               398
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
               u'panicking.rs'
             function*
@@ -57,28 +57,28 @@ app:
               u'___rust_maybe_catch_panic'
             lineno (function takes precedence)
               102
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
               u'panicking.rs'
             function*
               u'std::panicking::try::do_call'
             lineno (function takes precedence)
               310
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
               u'panic.rs'
             function*
               u'<std::panic::AssertUnwindSafe<F> as core::ops::function::FnOnce<()>>::call_once'
             lineno (function takes precedence)
               319
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
               u'mod.rs'
             function*
               u'std::thread::Builder::spawn_unchecked::{{closure}}::{{closure}}'
             lineno (function takes precedence)
               477
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
               u'backtrace.rs'
             function*
@@ -113,14 +113,14 @@ app:
               u'tokio_reactor::with_default'
             lineno (function takes precedence)
               212
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
               u'local.rs'
             function*
               u'<std::thread::local::LocalKey<T>>::with'
             lineno (function takes precedence)
               255
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
               u'local.rs'
             function*
@@ -148,14 +148,14 @@ app:
               u'tokio_timer::clock::clock::with_default'
             lineno (function takes precedence)
               124
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
               u'local.rs'
             function*
               u'<std::thread::local::LocalKey<T>>::with'
             lineno (function takes precedence)
               255
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
               u'local.rs'
             function*
@@ -183,14 +183,14 @@ app:
               u'tokio_timer::timer::handle::with_default'
             lineno (function takes precedence)
               81
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
               u'local.rs'
             function*
               u'<std::thread::local::LocalKey<T>>::with'
             lineno (function takes precedence)
               255
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
               u'local.rs'
             function*
@@ -218,14 +218,14 @@ app:
               u'tokio_executor::global::with_default'
             lineno (function takes precedence)
               162
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
               u'local.rs'
             function*
               u'<std::thread::local::LocalKey<T>>::with'
             lineno (function takes precedence)
               255
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
               u'local.rs'
             function*
@@ -281,14 +281,14 @@ app:
               u"<tokio_current_thread::Borrow<'a, U>>::enter"
             lineno (function takes precedence)
               776
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
               u'local.rs'
             function*
               u'<std::thread::local::LocalKey<T>>::with'
             lineno (function takes precedence)
               255
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
               u'local.rs'
             function*
@@ -372,7 +372,7 @@ app:
               u'<futures::task_impl::Spawn<T>>::poll_future_notify::{{closure}}'
             lineno (function takes precedence)
               326
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:alloc::* -app))
             filename*
               u'mod.rs'
             function*
@@ -512,14 +512,14 @@ app:
               u'sentry::hub::Hub::with'
             lineno (function takes precedence)
               190
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
               u'local.rs'
             function*
               u'<std::thread::local::LocalKey<T>>::with'
             lineno (function takes precedence)
               255
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             filename*
               u'local.rs'
             function*
@@ -564,7 +564,7 @@ system:
               u'std::sys::unix::thread::Thread::new::thread_start'
             lineno (function takes precedence)
               24
-          frame*
+          frame* (marked out of app by grouping enhancement rule (family:native function:alloc::* -app))
             filename*
               u'boxed.rs'
             function*

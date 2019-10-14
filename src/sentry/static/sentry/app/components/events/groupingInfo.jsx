@@ -6,6 +6,7 @@ import AsyncComponent from 'app/components/asyncComponent';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
 import Tooltip from 'app/components/tooltip';
+import BetaTag from 'app/components/betaTag';
 
 import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
@@ -13,6 +14,13 @@ import {t} from 'app/locale';
 import KeyValueList from 'app/components/events/interfaces/keyValueList';
 
 import withOrganization from 'app/utils/withOrganization';
+
+export const GroupingConfigItem = styled(
+  ({hidden: _hidden, active: _active, ...props}) => <code {...props} />
+)`
+  ${p => (p.hidden ? 'opacity: 0.5;' : '')}
+  ${p => (p.active ? 'font-weight: bold;' : '')}
+`;
 
 const GroupVariantList = styled('ul')`
   padding: 0;
@@ -22,7 +30,9 @@ const GroupVariantList = styled('ul')`
   line-height: 18px;
 `;
 
-const GroupVariantListItem = styled(({contributes, ...props}) => <li {...props} />)`
+const GroupVariantListItem = styled(({contributes: _contributes, ...props}) => (
+  <li {...props} />
+))`
   padding: 15px 0 20px 0;
   margin-top: 15px;
   ${p => (p.contributes ? '' : 'color:' + p.theme.gray6)};
@@ -51,7 +61,9 @@ const GroupingComponentListItem = styled('li')`
   margin: 2px 0 1px 13px;
 `;
 
-const GroupingComponentWrapper = styled(({contributes, ...props}) => <div {...props} />)`
+const GroupingComponentWrapper = styled(({contributes: _contributes, ...props}) => (
+  <div {...props} />
+))`
   ${p => (p.contributes ? '' : 'color:' + p.theme.gray6)};
 `;
 
@@ -217,7 +229,7 @@ class GroupingConfigSelect extends AsyncComponent {
     props.value = configId;
 
     function renderIdLabel(id) {
-      return <code>{eventConfigId === id ? <strong>{id}</strong> : id}</code>;
+      return <GroupingConfigItem active={eventConfigId === id}>{id}</GroupingConfigItem>;
     }
 
     return (
@@ -225,12 +237,14 @@ class GroupingConfigSelect extends AsyncComponent {
         {...props}
         alignMenu="left"
         selectedItem={configId}
-        items={this.state.data.map(item => {
-          return {
-            value: item.id,
-            label: renderIdLabel(item.id),
-          };
-        })}
+        items={this.state.data
+          .filter(item => !item.hidden || item.id === eventConfigId)
+          .map(item => {
+            return {
+              value: item.id,
+              label: renderIdLabel(item.id),
+            };
+          })}
       >
         {({isOpen}) => (
           <Tooltip title="Click here to experiment with other grouping configs">
@@ -250,6 +264,7 @@ class EventGroupingInfo extends AsyncComponent {
     organization: SentryTypes.Organization.isRequired,
     projectId: PropTypes.string.isRequired,
     event: SentryTypes.Event.isRequired,
+    showSelector: PropTypes.bool,
   };
 
   getEndpoints() {
@@ -325,19 +340,21 @@ class EventGroupingInfo extends AsyncComponent {
     return (
       <GroupVariantList>
         <div style={{float: 'right'}}>
-          <GroupingConfigSelect
-            name="groupingConfig"
-            eventConfigId={eventConfigId}
-            configId={configId}
-            onSelect={selection => {
-              this.setState(
-                {
-                  configOverride: selection.value,
-                },
-                () => this.reloadData()
-              );
-            }}
-          />
+          {this.props.showSelector && (
+            <GroupingConfigSelect
+              name="groupingConfig"
+              eventConfigId={eventConfigId}
+              configId={configId}
+              onSelect={selection => {
+                this.setState(
+                  {
+                    configOverride: selection.value,
+                  },
+                  () => this.reloadData()
+                );
+              }}
+            />
+          )}
         </div>
         {variants.map(variant => (
           <GroupVariant variant={variant} key={variant.key} />
@@ -356,7 +373,7 @@ class EventGroupingInfo extends AsyncComponent {
       >
         <div className="box-header">
           <a className="pull-right grouping-info-toggle" onClick={this.toggle}>
-            {isOpen ? t('Hide Details') : t('Show Details')}
+            {isOpen ? t('Hide Details') : t('Show Details')} <BetaTag />
           </a>
           <h3>
             {t('Event Grouping Information')}

@@ -112,7 +112,7 @@ class AcceptOrganizationInvite extends AsyncView<AsyncView['props'], State> {
               priority="primary"
               href={this.makeNextUrl(`/auth/login/${inviteDetails.orgSlug}/`)}
             >
-              {t('Login with %s', inviteDetails.ssoProvider)}
+              {t('Join with %s', inviteDetails.ssoProvider)}
             </Button>
           ) : (
             <Button

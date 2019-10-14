@@ -139,7 +139,7 @@ class ProjectKeyCredentials extends React.Component {
         )}
 
         {showPublicKey && (
-          <Field label={t('Public Key')} inline={true} flexibleControlStateSize>
+          <Field label={t('Public Key')} inline flexibleControlStateSize>
             <TextCopyInput>
               {getDynamicText({
                 value: data.public,
@@ -150,7 +150,7 @@ class ProjectKeyCredentials extends React.Component {
         )}
 
         {showSecretKey && (
-          <Field label={t('Secret Key')} inline={true} flexibleControlStateSize>
+          <Field label={t('Secret Key')} inline flexibleControlStateSize>
             <TextCopyInput>
               {getDynamicText({
                 value: data.secret,
@@ -161,7 +161,7 @@ class ProjectKeyCredentials extends React.Component {
         )}
 
         {showProjectId && (
-          <Field label={t('Project ID')} inline={true} flexibleControlStateSize>
+          <Field label={t('Project ID')} inline flexibleControlStateSize>
             <TextCopyInput>
               {getDynamicText({
                 value: projectId,

@@ -25,7 +25,19 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
   routes={Array []}
 >
   <div>
-    <SettingsPageHeading
+    <SentryDocumentTitle
+      objSlug="project-slug"
+      title="Environments"
+    >
+      <SideEffect(DocumentTitle)
+        title="Environments - project-slug - Sentry"
+      >
+        <DocumentTitle
+          title="Environments - project-slug - Sentry"
+        />
+      </SideEffect(DocumentTitle)>
+    </SentryDocumentTitle>
+    <StyledSettingsPageHeading
       noTitleStyles={false}
       tabs={
         <NavTabs
@@ -51,110 +63,79 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
       }
       title="Manage Environments"
     >
-      <Wrapper>
-        <div
-          className="css-1r5ylk7-Wrapper e1kblvez2"
-        >
-          <Flex
-            align="center"
+      <SettingsPageHeading
+        className="css-1fvvoq2-StyledSettingsPageHeading e1uay4fd4"
+        noTitleStyles={false}
+        tabs={
+          <NavTabs
+            underlined={true}
           >
-            <Base
-              align="center"
-              className="css-5ipae5"
+            <ListLink
+              activeClassName="active"
+              index={true}
+              isActive={[Function]}
+              to="/org-slug/project-slug/settings/environments/"
             >
-              <div
-                className="css-5ipae5"
-                is={null}
-              >
-                <Title
-                  styled={false}
-                  tabs={
-                    <NavTabs
-                      underlined={true}
-                    >
-                      <ListLink
-                        activeClassName="active"
-                        index={true}
-                        isActive={[Function]}
-                        to="/org-slug/project-slug/settings/environments/"
-                      >
-                        Environments
-                      </ListLink>
-                      <ListLink
-                        activeClassName="active"
-                        index={true}
-                        isActive={[Function]}
-                        to="/org-slug/project-slug/settings/environments/hidden/"
-                      >
-                        Hidden
-                      </ListLink>
-                    </NavTabs>
-                  }
-                >
-                  <Base
-                    className="css-zs9eah-Title e1kblvez0"
-                    tabs={
-                      <NavTabs
-                        underlined={true}
-                      >
-                        <ListLink
-                          activeClassName="active"
-                          index={true}
-                          isActive={[Function]}
-                          to="/org-slug/project-slug/settings/environments/"
-                        >
-                          Environments
-                        </ListLink>
-                        <ListLink
-                          activeClassName="active"
-                          index={true}
-                          isActive={[Function]}
-                          to="/org-slug/project-slug/settings/environments/hidden/"
-                        >
-                          Hidden
-                        </ListLink>
-                      </NavTabs>
-                    }
+              Environments
+            </ListLink>
+            <ListLink
+              activeClassName="active"
+              index={true}
+              isActive={[Function]}
+              to="/org-slug/project-slug/settings/environments/hidden/"
+            >
+              Hidden
+            </ListLink>
+          </NavTabs>
+        }
+        title="Manage Environments"
+      >
+        <div
+          className="css-1fvvoq2-StyledSettingsPageHeading e1uay4fd4"
+        >
+          <TitleAndActions>
+            <div
+              className="css-b5tiyd-TitleAndActions e1uay4fd0"
+            >
+              <Title
+                styled={false}
+                tabs={
+                  <NavTabs
+                    underlined={true}
                   >
-                    <div
-                      className="css-zs9eah-Title e1kblvez0"
-                      is={null}
-                      tabs={
-                        <NavTabs
-                          underlined={true}
-                        >
-                          <ListLink
-                            activeClassName="active"
-                            index={true}
-                            isActive={[Function]}
-                            to="/org-slug/project-slug/settings/environments/"
-                          >
-                            Environments
-                          </ListLink>
-                          <ListLink
-                            activeClassName="active"
-                            index={true}
-                            isActive={[Function]}
-                            to="/org-slug/project-slug/settings/environments/hidden/"
-                          >
-                            Hidden
-                          </ListLink>
-                        </NavTabs>
-                      }
+                    <ListLink
+                      activeClassName="active"
+                      index={true}
+                      isActive={[Function]}
+                      to="/org-slug/project-slug/settings/environments/"
                     >
-                      <HeaderTitle>
-                        <h4
-                          className="css-1w8ttcn-HeaderTitle e6lvex72"
-                        >
-                          Manage Environments
-                        </h4>
-                      </HeaderTitle>
-                    </div>
-                  </Base>
-                </Title>
-              </div>
-            </Base>
-          </Flex>
+                      Environments
+                    </ListLink>
+                    <ListLink
+                      activeClassName="active"
+                      index={true}
+                      isActive={[Function]}
+                      to="/org-slug/project-slug/settings/environments/hidden/"
+                    >
+                      Hidden
+                    </ListLink>
+                  </NavTabs>
+                }
+              >
+                <div
+                  className="css-wjm92z-Title e1uay4fd1"
+                >
+                  <HeaderTitle>
+                    <h4
+                      className="css-1w8ttcn-HeaderTitle eqkydle2"
+                    >
+                      Manage Environments
+                    </h4>
+                  </HeaderTitle>
+                </div>
+              </Title>
+            </div>
+          </TitleAndActions>
           <div>
             <NavTabs
               underlined={true}
@@ -212,8 +193,8 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
             </NavTabs>
           </div>
         </div>
-      </Wrapper>
-    </SettingsPageHeading>
+      </SettingsPageHeading>
+    </StyledSettingsPageHeading>
     <PermissionAlert
       access={
         Array [
@@ -374,29 +355,24 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
               className="css-a4ya23-textStyles"
             >
               <EmptyMessage>
-                <Wrapper
-                  data-test-id="empty-message"
+                <Component
+                  className="css-11r4vxm-EmptyMessage e1h3yfdx4"
                 >
                   <div
-                    className="css-ev9qm0-Wrapper eh488yo0"
+                    className="css-11r4vxm-EmptyMessage e1h3yfdx4"
                     data-test-id="empty-message"
                   >
                     <Description
                       noMargin={true}
                     >
-                      <Component
-                        className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
-                        noMargin={true}
+                      <div
+                        className="css-pwn5v-TextBlock-Description-MarginStyles e1h3yfdx0"
                       >
-                        <div
-                          className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
-                        >
-                          You don't have any environments yet.
-                        </div>
-                      </Component>
+                        You don't have any environments yet.
+                      </div>
                     </Description>
                   </div>
-                </Wrapper>
+                </Component>
               </EmptyMessage>
             </div>
           </PanelBody>
@@ -432,7 +408,19 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
   routes={Array []}
 >
   <div>
-    <SettingsPageHeading
+    <SentryDocumentTitle
+      objSlug="project-slug"
+      title="Environments"
+    >
+      <SideEffect(DocumentTitle)
+        title="Environments - project-slug - Sentry"
+      >
+        <DocumentTitle
+          title="Environments - project-slug - Sentry"
+        />
+      </SideEffect(DocumentTitle)>
+    </SentryDocumentTitle>
+    <StyledSettingsPageHeading
       noTitleStyles={false}
       tabs={
         <NavTabs
@@ -458,110 +446,79 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
       }
       title="Manage Environments"
     >
-      <Wrapper>
-        <div
-          className="css-1r5ylk7-Wrapper e1kblvez2"
-        >
-          <Flex
-            align="center"
+      <SettingsPageHeading
+        className="css-1fvvoq2-StyledSettingsPageHeading e1uay4fd4"
+        noTitleStyles={false}
+        tabs={
+          <NavTabs
+            underlined={true}
           >
-            <Base
-              align="center"
-              className="css-5ipae5"
+            <ListLink
+              activeClassName="active"
+              index={true}
+              isActive={[Function]}
+              to="/org-slug/project-slug/settings/environments/"
             >
-              <div
-                className="css-5ipae5"
-                is={null}
-              >
-                <Title
-                  styled={false}
-                  tabs={
-                    <NavTabs
-                      underlined={true}
-                    >
-                      <ListLink
-                        activeClassName="active"
-                        index={true}
-                        isActive={[Function]}
-                        to="/org-slug/project-slug/settings/environments/"
-                      >
-                        Environments
-                      </ListLink>
-                      <ListLink
-                        activeClassName="active"
-                        index={true}
-                        isActive={[Function]}
-                        to="/org-slug/project-slug/settings/environments/hidden/"
-                      >
-                        Hidden
-                      </ListLink>
-                    </NavTabs>
-                  }
-                >
-                  <Base
-                    className="css-zs9eah-Title e1kblvez0"
-                    tabs={
-                      <NavTabs
-                        underlined={true}
-                      >
-                        <ListLink
-                          activeClassName="active"
-                          index={true}
-                          isActive={[Function]}
-                          to="/org-slug/project-slug/settings/environments/"
-                        >
-                          Environments
-                        </ListLink>
-                        <ListLink
-                          activeClassName="active"
-                          index={true}
-                          isActive={[Function]}
-                          to="/org-slug/project-slug/settings/environments/hidden/"
-                        >
-                          Hidden
-                        </ListLink>
-                      </NavTabs>
-                    }
+              Environments
+            </ListLink>
+            <ListLink
+              activeClassName="active"
+              index={true}
+              isActive={[Function]}
+              to="/org-slug/project-slug/settings/environments/hidden/"
+            >
+              Hidden
+            </ListLink>
+          </NavTabs>
+        }
+        title="Manage Environments"
+      >
+        <div
+          className="css-1fvvoq2-StyledSettingsPageHeading e1uay4fd4"
+        >
+          <TitleAndActions>
+            <div
+              className="css-b5tiyd-TitleAndActions e1uay4fd0"
+            >
+              <Title
+                styled={false}
+                tabs={
+                  <NavTabs
+                    underlined={true}
                   >
-                    <div
-                      className="css-zs9eah-Title e1kblvez0"
-                      is={null}
-                      tabs={
-                        <NavTabs
-                          underlined={true}
-                        >
-                          <ListLink
-                            activeClassName="active"
-                            index={true}
-                            isActive={[Function]}
-                            to="/org-slug/project-slug/settings/environments/"
-                          >
-                            Environments
-                          </ListLink>
-                          <ListLink
-                            activeClassName="active"
-                            index={true}
-                            isActive={[Function]}
-                            to="/org-slug/project-slug/settings/environments/hidden/"
-                          >
-                            Hidden
-                          </ListLink>
-                        </NavTabs>
-                      }
+                    <ListLink
+                      activeClassName="active"
+                      index={true}
+                      isActive={[Function]}
+                      to="/org-slug/project-slug/settings/environments/"
                     >
-                      <HeaderTitle>
-                        <h4
-                          className="css-1w8ttcn-HeaderTitle e6lvex72"
-                        >
-                          Manage Environments
-                        </h4>
-                      </HeaderTitle>
-                    </div>
-                  </Base>
-                </Title>
-              </div>
-            </Base>
-          </Flex>
+                      Environments
+                    </ListLink>
+                    <ListLink
+                      activeClassName="active"
+                      index={true}
+                      isActive={[Function]}
+                      to="/org-slug/project-slug/settings/environments/hidden/"
+                    >
+                      Hidden
+                    </ListLink>
+                  </NavTabs>
+                }
+              >
+                <div
+                  className="css-wjm92z-Title e1uay4fd1"
+                >
+                  <HeaderTitle>
+                    <h4
+                      className="css-1w8ttcn-HeaderTitle eqkydle2"
+                    >
+                      Manage Environments
+                    </h4>
+                  </HeaderTitle>
+                </div>
+              </Title>
+            </div>
+          </TitleAndActions>
           <div>
             <NavTabs
               underlined={true}
@@ -619,8 +576,8 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
             </NavTabs>
           </div>
         </div>
-      </Wrapper>
-    </SettingsPageHeading>
+      </SettingsPageHeading>
+    </StyledSettingsPageHeading>
     <PermissionAlert
       access={
         Array [
@@ -781,29 +738,24 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
               className="css-a4ya23-textStyles"
             >
               <EmptyMessage>
-                <Wrapper
-                  data-test-id="empty-message"
+                <Component
+                  className="css-11r4vxm-EmptyMessage e1h3yfdx4"
                 >
                   <div
-                    className="css-ev9qm0-Wrapper eh488yo0"
+                    className="css-11r4vxm-EmptyMessage e1h3yfdx4"
                     data-test-id="empty-message"
                   >
                     <Description
                       noMargin={true}
                     >
-                      <Component
-                        className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
-                        noMargin={true}
+                      <div
+                        className="css-pwn5v-TextBlock-Description-MarginStyles e1h3yfdx0"
                       >
-                        <div
-                          className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
-                        >
-                          You don't have any hidden environments.
-                        </div>
-                      </Component>
+                        You don't have any hidden environments.
+                      </div>
                     </Description>
                   </div>
-                </Wrapper>
+                </Component>
               </EmptyMessage>
             </div>
           </PanelBody>
@@ -839,7 +791,19 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
   routes={Array []}
 >
   <div>
-    <SettingsPageHeading
+    <SentryDocumentTitle
+      objSlug="project-slug"
+      title="Environments"
+    >
+      <SideEffect(DocumentTitle)
+        title="Environments - project-slug - Sentry"
+      >
+        <DocumentTitle
+          title="Environments - project-slug - Sentry"
+        />
+      </SideEffect(DocumentTitle)>
+    </SentryDocumentTitle>
+    <StyledSettingsPageHeading
       noTitleStyles={false}
       tabs={
         <NavTabs
@@ -865,110 +829,79 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
       }
       title="Manage Environments"
     >
-      <Wrapper>
-        <div
-          className="css-1r5ylk7-Wrapper e1kblvez2"
-        >
-          <Flex
-            align="center"
+      <SettingsPageHeading
+        className="css-1fvvoq2-StyledSettingsPageHeading e1uay4fd4"
+        noTitleStyles={false}
+        tabs={
+          <NavTabs
+            underlined={true}
           >
-            <Base
-              align="center"
-              className="css-5ipae5"
+            <ListLink
+              activeClassName="active"
+              index={true}
+              isActive={[Function]}
+              to="/org-slug/project-slug/settings/environments/"
             >
-              <div
-                className="css-5ipae5"
-                is={null}
-              >
-                <Title
-                  styled={false}
-                  tabs={
-                    <NavTabs
-                      underlined={true}
-                    >
-                      <ListLink
-                        activeClassName="active"
-                        index={true}
-                        isActive={[Function]}
-                        to="/org-slug/project-slug/settings/environments/"
-                      >
-                        Environments
-                      </ListLink>
-                      <ListLink
-                        activeClassName="active"
-                        index={true}
-                        isActive={[Function]}
-                        to="/org-slug/project-slug/settings/environments/hidden/"
-                      >
-                        Hidden
-                      </ListLink>
-                    </NavTabs>
-                  }
-                >
-                  <Base
-                    className="css-zs9eah-Title e1kblvez0"
-                    tabs={
-                      <NavTabs
-                        underlined={true}
-                      >
-                        <ListLink
-                          activeClassName="active"
-                          index={true}
-                          isActive={[Function]}
-                          to="/org-slug/project-slug/settings/environments/"
-                        >
-                          Environments
-                        </ListLink>
-                        <ListLink
-                          activeClassName="active"
-                          index={true}
-                          isActive={[Function]}
-                          to="/org-slug/project-slug/settings/environments/hidden/"
-                        >
-                          Hidden
-                        </ListLink>
-                      </NavTabs>
-                    }
+              Environments
+            </ListLink>
+            <ListLink
+              activeClassName="active"
+              index={true}
+              isActive={[Function]}
+              to="/org-slug/project-slug/settings/environments/hidden/"
+            >
+              Hidden
+            </ListLink>
+          </NavTabs>
+        }
+        title="Manage Environments"
+      >
+        <div
+          className="css-1fvvoq2-StyledSettingsPageHeading e1uay4fd4"
+        >
+          <TitleAndActions>
+            <div
+              className="css-b5tiyd-TitleAndActions e1uay4fd0"
+            >
+              <Title
+                styled={false}
+                tabs={
+                  <NavTabs
+                    underlined={true}
                   >
-                    <div
-                      className="css-zs9eah-Title e1kblvez0"
-                      is={null}
-                      tabs={
-                        <NavTabs
-                          underlined={true}
-                        >
-                          <ListLink
-                            activeClassName="active"
-                            index={true}
-                            isActive={[Function]}
-                            to="/org-slug/project-slug/settings/environments/"
-                          >
-                            Environments
-                          </ListLink>
-                          <ListLink
-                            activeClassName="active"
-                            index={true}
-                            isActive={[Function]}
-                            to="/org-slug/project-slug/settings/environments/hidden/"
-                          >
-                            Hidden
-                          </ListLink>
-                        </NavTabs>
-                      }
+                    <ListLink
+                      activeClassName="active"
+                      index={true}
+                      isActive={[Function]}
+                      to="/org-slug/project-slug/settings/environments/"
                     >
-                      <HeaderTitle>
-                        <h4
-                          className="css-1w8ttcn-HeaderTitle e6lvex72"
-                        >
-                          Manage Environments
-                        </h4>
-                      </HeaderTitle>
-                    </div>
-                  </Base>
-                </Title>
-              </div>
-            </Base>
-          </Flex>
+                      Environments
+                    </ListLink>
+                    <ListLink
+                      activeClassName="active"
+                      index={true}
+                      isActive={[Function]}
+                      to="/org-slug/project-slug/settings/environments/hidden/"
+                    >
+                      Hidden
+                    </ListLink>
+                  </NavTabs>
+                }
+              >
+                <div
+                  className="css-wjm92z-Title e1uay4fd1"
+                >
+                  <HeaderTitle>
+                    <h4
+                      className="css-1w8ttcn-HeaderTitle eqkydle2"
+                    >
+                      Manage Environments
+                    </h4>
+                  </HeaderTitle>
+                </div>
+              </Title>
+            </div>
+          </TitleAndActions>
           <div>
             <NavTabs
               underlined={true}
@@ -1026,8 +959,8 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
             </NavTabs>
           </div>
         </div>
-      </Wrapper>
-    </SettingsPageHeading>
+      </SettingsPageHeading>
+    </StyledSettingsPageHeading>
     <PermissionAlert
       access={
         Array [

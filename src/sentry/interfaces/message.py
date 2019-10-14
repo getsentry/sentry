@@ -4,7 +4,8 @@ __all__ = ("Message",)
 
 import six
 
-from sentry.interfaces.base import Interface, prune_empty_keys
+from sentry.interfaces.base import Interface
+from sentry.utils.json import prune_empty_keys
 from sentry.utils import json
 
 

@@ -8,7 +8,7 @@ import {Event, EventTag, Group} from 'app/types';
 
 import EventDataSection from 'app/components/events/eventDataSection';
 import DeviceName from 'app/components/deviceName';
-import {isUrl} from 'app/utils';
+import {isUrl, generateQueryWithTag} from 'app/utils';
 import {t} from 'app/locale';
 import Pills from 'app/components/pills';
 import Pill from 'app/components/pill';
@@ -32,18 +32,7 @@ class EventTags extends React.Component<EventTagsProps> {
 
   renderPill(tag: EventTag, streamPath: string, releasesPath: string) {
     const {orgId, projectId, location} = this.props;
-    const query = {...location.query};
-
-    switch (tag.key) {
-      case 'environment':
-        query.environment = tag.value;
-        break;
-      case 'project':
-        query.project = tag.value;
-        break;
-      default:
-        query.query = `${query.query} ${tag.key}:${tag.value}`;
-    }
+    const query = generateQueryWithTag(location.query, tag);
 
     const locationSearch = `?${queryString.stringify(query)}`;
 

@@ -164,7 +164,6 @@ Sequence = SequenceType()
 _type_mapping = {
     bool: Bool,
     int: Int,
-    long: Int,  # noqa: B311
     float: Float,
     six.binary_type: String,
     six.text_type: String,
@@ -172,6 +171,10 @@ _type_mapping = {
     tuple: Sequence,
     list: Sequence,
 }
+try:
+    _type_mapping[long] = Int  # noqa: B311
+except NameError:  # long was removed in Python 3
+    pass
 
 
 def type_from_value(value):

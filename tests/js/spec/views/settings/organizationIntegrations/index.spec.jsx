@@ -111,6 +111,7 @@ describe('OrganizationIntegrations', () => {
       installedSentryApp = TestStubs.SentryApp({
         name: 'An Integration',
         slug: 'an-integration',
+        status: 'published',
       });
 
       sentryAppInstall = TestStubs.SentryAppInstallation({
@@ -146,12 +147,12 @@ describe('OrganizationIntegrations', () => {
 
     it('places installed Integrations above uninstalled ones', () => {
       // Installed apps are shown at the top of the list
-      const installed = wrapper.find('SentryAppInstallations').at(0);
-      expect(installed.find('Status').prop('enabled')).toBe(true);
+      const installed = wrapper.find('SentryAppInstallationDetail').at(0);
+      expect(installed.find('StatusIndicator').prop('status')).toBe('Installed');
 
       // Uninstalled are shown lower.
-      const uninstalled = wrapper.find('SentryAppInstallations').at(1);
-      expect(uninstalled.find('Status').prop('enabled')).toBeFalsy();
+      const uninstalled = wrapper.find('SentryAppInstallationDetail').at(1);
+      expect(uninstalled.find('StatusIndicator').prop('status')).toBe('Not Installed');
     });
 
     it('sorts Sentry App Integrations among Integrations, alphabetically', () => {
@@ -259,7 +260,49 @@ describe('OrganizationIntegrations', () => {
           <OrganizationIntegrations organization={org} params={params} />,
           routerContext
         );
-        expect(wrapper.find('SentryAppInstallations').length).toBe(1);
+        expect(wrapper.find('SentryAppInstallationDetail').length).toBe(1);
+      });
+    });
+
+    describe('pending applications', () => {
+      it('renders the pending status', () => {
+        const installedSentryApp = TestStubs.SentryApp({
+          name: 'An Integration',
+          slug: 'an-integration',
+        });
+
+        const sentryAppInstall = TestStubs.SentryAppInstallation({
+          organization: {
+            slug: org.slug,
+          },
+          app: {
+            slug: installedSentryApp.slug,
+            uuid: installedSentryApp.uuid,
+          },
+          status: 'pending',
+        });
+
+        Client.addMockResponse({
+          url: `/organizations/${org.slug}/sentry-apps/`,
+          body: [installedSentryApp],
+        });
+
+        Client.addMockResponse({
+          url: '/sentry-apps/',
+          body: [installedSentryApp],
+        });
+
+        Client.addMockResponse({
+          url: `/organizations/${org.slug}/sentry-app-installations/`,
+          body: [sentryAppInstall],
+        });
+
+        wrapper = mount(
+          <OrganizationIntegrations organization={org} params={params} />,
+          routerContext
+        );
+        const pending = wrapper.find('SentryAppInstallationDetail').at(0);
+        expect(pending.find('StatusIndicator').prop('status')).toBe('Pending');
       });
     });
 
@@ -274,6 +317,22 @@ describe('OrganizationIntegrations', () => {
           url: '/sentry-apps/',
           body: [],
         });
+
+        const internalAppInstall = TestStubs.SentryAppInstallation({
+          organization: {
+            slug: org.slug,
+          },
+          app: {
+            slug: internalApp.slug,
+            uuid: internalApp.uuid,
+          },
+        });
+
+        Client.addMockResponse({
+          url: `/organizations/${org.slug}/sentry-app-installations/`,
+          body: [internalAppInstall],
+        });
+
         wrapper = mount(
           <OrganizationIntegrations organization={org} params={params} />,
           routerContext
@@ -281,6 +340,8 @@ describe('OrganizationIntegrations', () => {
         expect(
           wrapper.find('Panel [data-test-id="internal-integration-row"]').exists()
         ).toBe(true);
+        const appRow = wrapper.find('SentryApplicationRow').at(0);
+        expect(appRow.find('StatusIndicator').prop('status')).toBe('Installed');
       });
 
       it('removes an internal app', async function() {
@@ -303,7 +364,7 @@ describe('OrganizationIntegrations', () => {
           <OrganizationIntegrations organization={org} params={params} />,
           routerContext
         );
-        wrapper.instance().onRemoveInternalApp(internalApp);
+        wrapper.instance().handleRemoveInternalSentryApp(internalApp);
         await tick();
         wrapper.update();
         expect(wrapper.instance().state.orgOwnedApps).toHaveLength(0);

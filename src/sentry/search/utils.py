@@ -31,6 +31,14 @@ def get_user_tag(projects, key, value):
     return euser.tag_value
 
 
+def parse_status_value(value):
+    if value in STATUS_CHOICES:
+        return STATUS_CHOICES[value]
+    if value in STATUS_CHOICES.values():
+        return value
+    raise ValueError("Invalid status value")
+
+
 def parse_datetime_range(value):
     try:
         flag, count, interval = value[0], int(value[1:-1]), value[-1]

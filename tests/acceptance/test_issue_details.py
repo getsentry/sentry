@@ -6,7 +6,6 @@ import pytz
 from datetime import datetime, timedelta
 from django.conf import settings
 from django.utils import timezone
-from mock import patch
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.utils.samples import load_data
@@ -53,14 +52,9 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         self.browser.get(u"/organizations/{}/issues/{}/".format(self.org.slug, groupid))
         self.wait_until_loaded()
 
-    @patch("django.utils.timezone.now")
-    def test_python_event(self, mock_now):
-        # Event needs to be in the past.
-        mock_now.return_value = event_time
+    def test_python_event(self):
         event = self.create_sample_event(platform="python", time=event_time)
 
-        # Move time forward so our event is within range
-        mock_now.return_value = now
         self.visit_issue(event.group.id)
 
         # Wait for tag bars to load
@@ -154,6 +148,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         self.browser.wait_until(".entries")
         self.browser.wait_until_test_id("linked-issues")
         self.browser.wait_until_test_id("loaded-device-name")
+        self.browser.wait_until_test_id("loaded-event-cause-empty")
 
     def dismiss_assistant(self):
         # Forward session cookie to django client.

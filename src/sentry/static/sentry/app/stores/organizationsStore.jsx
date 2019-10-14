@@ -55,7 +55,7 @@ const OrganizationsStore = Reflux.createStore({
       }
     });
     if (!match) {
-      this.items.push(item);
+      this.items = [...this.items, item];
     }
     this.trigger(this.items);
   },

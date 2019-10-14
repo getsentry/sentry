@@ -107,7 +107,7 @@ describe('OrganizationMemberRow', function() {
     });
 
     it('has "Resend Invite" button only if `canAddMembers` is true', function() {
-      const wrapper = shallow(<OrganizationMemberRow {...props} canAddMembers={true} />);
+      const wrapper = shallow(<OrganizationMemberRow {...props} canAddMembers />);
 
       expect(findWithText(wrapper.find('strong'), 'Invited')).toHaveLength(1);
 
@@ -115,12 +115,12 @@ describe('OrganizationMemberRow', function() {
     });
 
     it('has the right inviting states', function() {
-      let wrapper = shallow(<OrganizationMemberRow {...props} canAddMembers={true} />);
+      let wrapper = shallow(<OrganizationMemberRow {...props} canAddMembers />);
 
       expect(wrapper.find('ResendInviteButton')).toHaveLength(1);
 
       wrapper = shallow(
-        <OrganizationMemberRow {...props} canAddMembers={true} status="loading" />
+        <OrganizationMemberRow {...props} canAddMembers status="loading" />
       );
 
       // Should have loader
@@ -129,7 +129,7 @@ describe('OrganizationMemberRow', function() {
       expect(wrapper.find('ResendInviteButton')).toHaveLength(0);
 
       wrapper = shallow(
-        <OrganizationMemberRow {...props} canAddMembers={true} status="success" />
+        <OrganizationMemberRow {...props} canAddMembers status="success" />
       );
 
       // Should have loader
@@ -202,7 +202,7 @@ describe('OrganizationMemberRow', function() {
       const wrapper = shallow(
         <OrganizationMemberRow
           {...props}
-          canAddMembers={true}
+          canAddMembers
           member={{
             ...member,
           }}
@@ -243,7 +243,7 @@ describe('OrganizationMemberRow', function() {
     };
 
     it('has button to leave organization and no button to remove', function() {
-      const wrapper = shallow(<OrganizationMemberRow {...props} memberCanLeave={true} />);
+      const wrapper = shallow(<OrganizationMemberRow {...props} memberCanLeave />);
       expect(findWithText(wrapper.find('Button'), 'Leave')).toHaveLength(1);
       expect(findWithText(wrapper.find('Button'), 'Remove')).toHaveLength(0);
     });
@@ -268,7 +268,7 @@ describe('OrganizationMemberRow', function() {
     };
 
     it('does not have Leave button', function() {
-      const wrapper = shallow(<OrganizationMemberRow {...props} memberCanLeave={true} />);
+      const wrapper = shallow(<OrganizationMemberRow {...props} memberCanLeave />);
 
       expect(findWithText(wrapper.find('Button'), 'Leave')).toHaveLength(0);
     });
@@ -281,9 +281,7 @@ describe('OrganizationMemberRow', function() {
     });
 
     it('has Remove button when `canRemoveMembers` is true', function() {
-      const wrapper = shallow(
-        <OrganizationMemberRow {...props} canRemoveMembers={true} />
-      );
+      const wrapper = shallow(<OrganizationMemberRow {...props} canRemoveMembers />);
 
       const removeButton = findWithText(wrapper.find('Button'), 'Remove');
       expect(removeButton).toHaveLength(1);

@@ -4,14 +4,13 @@ from __future__ import absolute_import
 
 import json
 import mock
-from datetime import timedelta
 
-from django.utils import timezone
 from social_auth.models import UserSocialAuth
 
 from sentry.models import GroupMeta, User
 from sentry.plugins import IssueTrackingPlugin2, plugins
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
 class TestPluginWithFields(IssueTrackingPlugin2):
@@ -83,7 +82,7 @@ class IssuePlugin2GroupActionTest(TestCase):
         super(IssuePlugin2GroupActionTest, self).setUp()
         self.project = self.create_project()
         self.plugin_instance = plugins.get(slug="issuetrackingplugin2")
-        min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+        min_ago = iso_format(before_now(minutes=1))
         self.event = self.store_event(
             data={"timestamp": min_ago, "fingerprint": ["group-1"]}, project_id=self.project.id
         )

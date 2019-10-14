@@ -73,7 +73,6 @@ def get_requirements(env):
 
 install_requires = get_requirements("base")
 dev_requires = get_requirements("dev")
-tests_require = get_requirements("test")
 optional_requires = get_requirements("optional")
 
 # override django version in requirements file if DJANGO_VERSION is set
@@ -139,7 +138,6 @@ setup(
     extras_require={
         "dev": dev_requires,
         "postgres": [],
-        "tests": tests_require,
         "optional": optional_requires,
     },
     cmdclass=cmdclass,

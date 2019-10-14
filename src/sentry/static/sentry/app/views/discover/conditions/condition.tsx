@@ -142,7 +142,8 @@ export default class ConditionRow extends React.Component<
 
   inputRenderer = (props: ConditionProps) => {
     const onChange = (evt: any) => {
-      if (evt.target.value === '') {
+      if (evt.target && evt.target.value === '') {
+        evt.persist();
         // React select won't trigger an onChange event when a value is completely
         // cleared, so we'll force this before calling onChange
         this.setState({inputValue: evt.target.value}, () => {
@@ -219,9 +220,9 @@ export default class ConditionRow extends React.Component<
           filterOptions={this.filterOptions}
           onChange={this.handleChange}
           onOpen={this.handleOpen}
-          closeOnSelect={true}
-          openOnFocus={true}
-          autoBlur={true}
+          closeOnSelect
+          openOnFocus
+          autoBlur
           clearable={false}
           backspaceRemoves={false}
           deleteRemoves={false}
@@ -230,7 +231,7 @@ export default class ConditionRow extends React.Component<
           valueComponent={this.valueComponent}
           onInputChange={this.handleInputChange}
           onBlur={this.handleBlur}
-          creatable={true}
+          creatable
           promptTextCreator={(text: string) => text}
           shouldKeyDownEventCreateNewOption={this.shouldKeyDownEventCreateNewOption}
           disabled={this.props.disabled}

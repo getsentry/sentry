@@ -2,6 +2,7 @@ import React from 'react';
 
 import {fetchPlugins, enablePlugin, disablePlugin} from 'app/actionCreators/plugins';
 import {t} from 'app/locale';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import PermissionAlert from 'app/views/settings/project/permissionAlert';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -30,10 +31,14 @@ class ProjectPluginsContainer extends React.Component {
 
   render() {
     const {loading, error, plugins} = this.props.plugins || {};
+    const {orgId} = this.props.params;
+
+    const title = t('Legacy Integrations');
 
     return (
       <React.Fragment>
-        <SettingsPageHeader title={t('Legacy Integrations')} />
+        <SentryDocumentTitle title={title} objSlug={orgId} />
+        <SettingsPageHeader title={title} />
         <PermissionAlert />
 
         <ProjectPlugins

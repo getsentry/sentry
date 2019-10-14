@@ -49,7 +49,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
             project_id=project.id,
         )
 
-    def test_snuba(self):
+    def test_simple(self):
         url = reverse(
             "sentry-api-0-project-event-details",
             kwargs={

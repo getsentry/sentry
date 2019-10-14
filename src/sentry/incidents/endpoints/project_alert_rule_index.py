@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from copy import deepcopy
+
 from rest_framework import status
 from rest_framework.response import Response
 
@@ -36,7 +38,12 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
         if not features.has("organizations:incidents", project.organization, actor=request.user):
             raise ResourceDoesNotExist
 
-        serializer = AlertRuleSerializer(context={"project": project}, data=request.data)
+        data = deepcopy(request.data)
+        data["projects"] = [project.slug]
+
+        serializer = AlertRuleSerializer(
+            context={"organization": project.organization, "access": request.access}, data=data
+        )
 
         if serializer.is_valid():
             alert_rule = serializer.save()

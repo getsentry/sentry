@@ -10,7 +10,7 @@
   "exception": {
     "values": [
       {
-        "value": "Wed Apr 17 22:31:45 2019: foobar.bazblafasel@example.invalid logged in (error 42) time spent 1234.33 --- correlation id 88ee7c66-29a9-4a4a-bc26-c72d76c5de14, checksum da39a3ee5e6b4b0d3255bfef95601890afd80709 (md5 d41d8cd98f00b204e9800998ecf8427e); payload timestamp 2019-04-17T20:29:05Z (submitted from 127.0.0.1 via 2001:0db8:85a3:0000:0000:8a2e:0370:7334 via ::1)",
+        "value": "Wed Apr 17 22:31:45 2019: foobar.bazblafasel@example.invalid logged in (error 42) time spent 1234.33 --- correlation id 88ee7c66-29a9-4a4a-bc26-c72d76c5de14, checksum da39a3ee5e6b4b0d3255bfef95601890afd80709 (md5 d41d8cd98f00b204e9800998ecf8427e); payload timestamp 2019-04-17T20:29:05Z (submitted from 127.0.0.1 via 2001:0db8:85a3:0000:0000:8a2e:0370:7334 via ::1) at offset 0xfeedbeef",
         "type": "Error"
       }
     ]

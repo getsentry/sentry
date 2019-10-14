@@ -2,7 +2,7 @@
 
 exports[`InviteMember should render loading 1`] = `
 <div>
-  <SettingsPageHeading
+  <StyledSettingsPageHeading
     noTitleStyles={false}
     title="Add Member to Organization"
   />
@@ -77,61 +77,48 @@ exports[`InviteMember should render roles when available and allowed, and handle
   }
 >
   <div>
-    <SettingsPageHeading
+    <StyledSettingsPageHeading
       noTitleStyles={false}
       title="Add Member to Organization"
     >
-      <Wrapper>
-        <div
-          className="css-1r5ylk7-Wrapper e1kblvez2"
-        >
-          <Flex
-            align="center"
-          >
-            <Base
-              align="center"
-              className="css-5ipae5"
-            >
-              <div
-                className="css-5ipae5"
-                is={null}
-              >
-                <Title
-                  styled={false}
-                >
-                  <Base
-                    className="css-1ky52ze-Title e1kblvez0"
-                  >
-                    <div
-                      className="css-1ky52ze-Title e1kblvez0"
-                      is={null}
-                    >
-                      <HeaderTitle>
-                        <h4
-                          className="css-1w8ttcn-HeaderTitle e6lvex72"
-                        >
-                          Add Member to Organization
-                        </h4>
-                      </HeaderTitle>
-                    </div>
-                  </Base>
-                </Title>
-              </div>
-            </Base>
-          </Flex>
-        </div>
-      </Wrapper>
-    </SettingsPageHeading>
-    <TextBlock>
-      <Component
-        className="css-1geyb25-TextBlock ec8ep340"
+      <SettingsPageHeading
+        className="css-1fvvoq2-StyledSettingsPageHeading e1uay4fd4"
+        noTitleStyles={false}
+        title="Add Member to Organization"
       >
         <div
-          className="css-1geyb25-TextBlock ec8ep340"
+          className="css-1fvvoq2-StyledSettingsPageHeading e1uay4fd4"
         >
-          Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one. Multiple emails delimited by commas.
+          <TitleAndActions>
+            <div
+              className="css-b5tiyd-TitleAndActions e1uay4fd0"
+            >
+              <Title
+                styled={false}
+              >
+                <div
+                  className="css-2kvddg-Title e1uay4fd1"
+                >
+                  <HeaderTitle>
+                    <h4
+                      className="css-1w8ttcn-HeaderTitle eqkydle2"
+                    >
+                      Add Member to Organization
+                    </h4>
+                  </HeaderTitle>
+                </div>
+              </Title>
+            </div>
+          </TitleAndActions>
         </div>
-      </Component>
+      </SettingsPageHeading>
+    </StyledSettingsPageHeading>
+    <TextBlock>
+      <div
+        className="css-1geyb25-TextBlock e1x1lar10"
+      >
+        Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one. Multiple emails delimited by commas.
+      </div>
     </TextBlock>
     <div>
       <div
@@ -253,17 +240,12 @@ exports[`InviteMember should render roles when available and allowed, and handle
                       >
                         <Label>
                           <label
-                            className="css-r8kahz-Label e1y9x5r70"
+                            className="css-1oswpsn-Label e1noblkb0"
                           >
                             <Radio
                               checked={false}
                               id="1"
                               readOnly={true}
-                              style={
-                                Object {
-                                  "margin": 0,
-                                }
-                              }
                               value="member"
                             >
                               <input
@@ -271,11 +253,6 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                 className="radio-select"
                                 id="1"
                                 readOnly={true}
-                                style={
-                                  Object {
-                                    "margin": 0,
-                                  }
-                                }
                                 type="radio"
                                 value="member"
                               />
@@ -290,21 +267,17 @@ exports[`InviteMember should render roles when available and allowed, and handle
                             >
                               member
                               <TextBlock
-                                className="css-gx0lhm"
+                                noMargin={true}
                               >
-                                <Component
-                                  className="css-1ai2po6-TextBlock ec8ep340"
+                                <div
+                                  className="css-h0npum-TextBlock e1x1lar10"
                                 >
                                   <div
-                                    className="css-1ai2po6-TextBlock ec8ep340"
+                                    className="help-block"
                                   >
-                                    <div
-                                      className="help-block"
-                                    >
-                                      a normal member
-                                    </div>
+                                    a normal member
                                   </div>
-                                </Component>
+                                </div>
                               </TextBlock>
                             </div>
                           </label>
@@ -330,17 +303,12 @@ exports[`InviteMember should render roles when available and allowed, and handle
                       >
                         <Label>
                           <label
-                            className="css-r8kahz-Label e1y9x5r70"
+                            className="css-1oswpsn-Label e1noblkb0"
                           >
                             <Radio
                               checked={false}
                               id="2"
                               readOnly={true}
-                              style={
-                                Object {
-                                  "margin": 0,
-                                }
-                              }
                               value="bar"
                             >
                               <input
@@ -348,11 +316,6 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                 className="radio-select"
                                 id="2"
                                 readOnly={true}
-                                style={
-                                  Object {
-                                    "margin": 0,
-                                  }
-                                }
                                 type="radio"
                                 value="bar"
                               />
@@ -367,21 +330,17 @@ exports[`InviteMember should render roles when available and allowed, and handle
                             >
                               bar
                               <TextBlock
-                                className="css-gx0lhm"
+                                noMargin={true}
                               >
-                                <Component
-                                  className="css-1ai2po6-TextBlock ec8ep340"
+                                <div
+                                  className="css-h0npum-TextBlock e1x1lar10"
                                 >
                                   <div
-                                    className="css-1ai2po6-TextBlock ec8ep340"
+                                    className="help-block"
                                   >
-                                    <div
-                                      className="help-block"
-                                    >
-                                      another role
-                                    </div>
+                                    another role
                                   </div>
-                                </Component>
+                                </div>
                               </TextBlock>
                             </div>
                           </label>
@@ -600,6 +559,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                               aria-label="Add Team"
                                               disabled={true}
                                               isOpen={false}
+                                              showChevron={true}
                                               size="xsmall"
                                             >
                                               <StyledButton
@@ -723,29 +683,24 @@ exports[`InviteMember should render roles when available and allowed, and handle
                     className="css-a4ya23-textStyles"
                   >
                     <EmptyMessage>
-                      <Wrapper
-                        data-test-id="empty-message"
+                      <Component
+                        className="css-11r4vxm-EmptyMessage e1h3yfdx4"
                       >
                         <div
-                          className="css-ev9qm0-Wrapper eh488yo0"
+                          className="css-11r4vxm-EmptyMessage e1h3yfdx4"
                           data-test-id="empty-message"
                         >
                           <Description
                             noMargin={true}
                           >
-                            <Component
-                              className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
-                              noMargin={true}
+                            <div
+                              className="css-pwn5v-TextBlock-Description-MarginStyles e1h3yfdx0"
                             >
-                              <div
-                                className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
-                              >
-                                No Teams assigned
-                              </div>
-                            </Component>
+                              No Teams assigned
+                            </div>
                           </Description>
                         </div>
-                      </Wrapper>
+                      </Component>
                     </EmptyMessage>
                   </div>
                 </PanelBody>

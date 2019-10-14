@@ -1,9 +1,10 @@
 from __future__ import absolute_import
 
+import random
+
 from datetime import datetime
 from django.conf import settings
 from enum import IntEnum
-import random
 import six
 import time
 
@@ -26,6 +27,11 @@ class Outcome(IntEnum):
 
 outcomes = settings.KAFKA_TOPICS[settings.KAFKA_OUTCOMES]
 outcomes_publisher = None
+
+
+def decide_signals_in_consumer():
+    rate = options.get("outcomes.signals-in-consumer-sample-rate")
+    return rate and rate > random.random()
 
 
 def track_outcome(org_id, project_id, key_id, outcome, reason=None, timestamp=None, event_id=None):
@@ -89,21 +95,20 @@ def track_outcome(org_id, project_id, key_id, outcome, reason=None, timestamp=No
         tsdb.incr_multi(increment_list, timestamp=timestamp)
 
     # Send a snuba metrics payload.
-    if random.random() <= options.get("snuba.track-outcomes-sample-rate"):
-        outcomes_publisher.publish(
-            outcomes["topic"],
-            json.dumps(
-                {
-                    "timestamp": timestamp,
-                    "org_id": org_id,
-                    "project_id": project_id,
-                    "key_id": key_id,
-                    "outcome": outcome.value,
-                    "reason": reason,
-                    "event_id": event_id,
-                }
-            ),
-        )
+    outcomes_publisher.publish(
+        outcomes["topic"],
+        json.dumps(
+            {
+                "timestamp": timestamp,
+                "org_id": org_id,
+                "project_id": project_id,
+                "key_id": key_id,
+                "outcome": outcome.value,
+                "reason": reason,
+                "event_id": event_id,
+            }
+        ),
+    )
 
     metrics.incr(
         "events.outcomes",

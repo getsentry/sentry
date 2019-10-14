@@ -14,6 +14,9 @@ from sentry.web.frontend.debug.debug_trigger_error import DebugTriggerErrorView
 from sentry.web.frontend.debug.debug_error_embed import DebugErrorPageEmbedView
 from sentry.web.frontend.debug.debug_incident_activity_email import DebugIncidentActivityEmailView
 from sentry.web.frontend.debug.debug_invalid_identity_email import DebugInvalidIdentityEmailView
+from sentry.web.frontend.debug.debug_organization_join_request import (
+    DebugOrganizationJoinRequestEmailView,
+)
 from sentry.web.frontend.debug.debug_mfa_added_email import DebugMfaAddedEmailView
 from sentry.web.frontend.debug.debug_mfa_removed_email import DebugMfaRemovedEmailView
 from sentry.web.frontend.debug.debug_new_release_email import DebugNewReleaseEmailView
@@ -75,6 +78,7 @@ urlpatterns = patterns(
         DebugResolvedInReleaseUpcomingEmailView.as_view(),
     ),
     url(r"^debug/mail/request-access/$", sentry.web.frontend.debug.mail.request_access),
+    url(r"^debug/mail/join-request/$", DebugOrganizationJoinRequestEmailView.as_view()),
     url(r"^debug/mail/access-approved/$", sentry.web.frontend.debug.mail.access_approved),
     url(r"^debug/mail/invitation/$", sentry.web.frontend.debug.mail.invitation),
     url(r"^debug/mail/invalid-identity/$", DebugInvalidIdentityEmailView.as_view()),

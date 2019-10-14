@@ -2,16 +2,17 @@ from __future__ import absolute_import
 
 import pytz
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from django.utils import timezone
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 from tests.acceptance.page_objects.issue_list import IssueListPage
 
 from mock import patch
 
 
-event_time = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
+event_time = before_now(days=3).replace(tzinfo=pytz.utc)
 
 
 class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
@@ -34,7 +35,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
             data={
                 "event_id": "a" * 32,
                 "message": "oh no",
-                "timestamp": event_time.isoformat()[:19],
+                "timestamp": iso_format(event_time),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -43,7 +44,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
             data={
                 "event_id": "b" * 32,
                 "message": "oh snap",
-                "timestamp": event_time.isoformat()[:19],
+                "timestamp": iso_format(event_time),
                 "fingerprint": ["group-2"],
             },
             project_id=self.project.id,

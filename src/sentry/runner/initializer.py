@@ -266,6 +266,7 @@ def initialize_app(config, skip_service_validation=False):
 
     if "south" in settings.INSTALLED_APPS:
         fix_south(settings)
+    monkeypatch_django_migrations()
 
     apply_legacy_settings(settings)
 
@@ -400,6 +401,12 @@ def fix_south(settings):
         if value["ENGINE"] != "sentry.db.postgres":
             continue
         settings.SOUTH_DATABASE_ADAPTERS[key] = "south.db.postgresql_psycopg2"
+
+
+def monkeypatch_django_migrations():
+    # This monkey patches the django 1.8 migration executor with a backported 1.9
+    # executor. This improves the speed that Django builds the migration state.
+    import sentry.new_migrations.monkey  # NOQA
 
 
 def bind_cache_to_option_store():
@@ -577,18 +584,9 @@ def validate_snuba():
     if not settings.DEBUG:
         return
 
-    has_any_snuba_required_backends = (
-        settings.SENTRY_SEARCH == "sentry.search.snuba.SnubaSearchBackend"
-        or settings.SENTRY_TAGSTORE == "sentry.tagstore.snuba.SnubaCompatibilityTagStorage"
-        or
-        # TODO(mattrobenolt): Remove ServiceDelegator check
-        settings.SENTRY_TSDB
-        in ("sentry.tsdb.redissnuba.RedisSnubaTSDB", "sentry.utils.services.ServiceDelegator")
-    )
-
     has_all_snuba_required_backends = (
         settings.SENTRY_SEARCH == "sentry.search.snuba.SnubaSearchBackend"
-        and settings.SENTRY_TAGSTORE == "sentry.tagstore.snuba.SnubaCompatibilityTagStorage"
+        and settings.SENTRY_TAGSTORE == "sentry.tagstore.snuba.SnubaTagStorage"
         and
         # TODO(mattrobenolt): Remove ServiceDelegator check
         settings.SENTRY_TSDB
@@ -629,7 +627,7 @@ See: https://github.com/getsentry/snuba#sentry--snuba
         )
         raise ConfigurationError("Cannot continue without Snuba configured.")
 
-    if has_any_snuba_required_backends and not eventstream_is_snuba:
+    if not eventstream_is_snuba:
         from .importer import ConfigurationError
 
         show_big_error(

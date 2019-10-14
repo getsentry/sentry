@@ -1,18 +1,20 @@
 from __future__ import absolute_import
 
 import six
-from datetime import timedelta
-from django.utils import timezone
 
 from sentry.testutils import TestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.eventstore.snuba.backend import SnubaEventStorage
+from sentry.eventstore.base import Filter
+
+from sentry.utils.samples import load_data
 
 
 class SnubaEventStorageTest(TestCase, SnubaTestCase):
     def setUp(self):
         super(SnubaEventStorageTest, self).setUp()
-        self.min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
-        self.two_min_ago = (timezone.now() - timedelta(minutes=2)).isoformat()[:19]
+        self.min_ago = iso_format(before_now(minutes=1))
+        self.two_min_ago = iso_format(before_now(minutes=2))
         self.project1 = self.create_project()
         self.project2 = self.create_project()
 
@@ -50,21 +52,28 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
             project_id=self.project2.id,
         )
 
+        event_data = load_data("transaction")
+        event_data["timestamp"] = self.min_ago
+        event_data["event_id"] = "d" * 32
+
+        self.transaction_event = self.store_event(data=event_data, project_id=self.project2.id)
+
         self.eventstore = SnubaEventStorage()
 
     def test_get_events(self):
         events = self.eventstore.get_events(
-            filter_keys={"project_id": [self.project1.id, self.project2.id]}
+            filter=Filter(project_ids=[self.project1.id, self.project2.id])
         )
-        assert len(events) == 3
+        assert len(events) == 4
         # Default sort is timestamp desc, event_id desc
-        assert events[0].id == "c" * 32
-        assert events[1].id == "b" * 32
-        assert events[2].id == "a" * 32
+        assert events[0].id == "d" * 32
+        assert events[1].id == "c" * 32
+        assert events[2].id == "b" * 32
+        assert events[3].id == "a" * 32
 
         # No events found
         project = self.create_project()
-        events = self.eventstore.get_events(filter_keys={"project_id": [project.id]})
+        events = self.eventstore.get_events(filter=Filter(project_ids=[project.id]))
         assert events == []
 
     def test_get_event_by_id(self):
@@ -86,17 +95,17 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         assert len(event.snuba_data.keys()) == 17
 
         # Get non existent event
-        event = self.eventstore.get_event_by_id(self.project2.id, "d" * 32)
+        event = self.eventstore.get_event_by_id(self.project2.id, "e" * 32)
         assert event is None
 
     def test_get_next_prev_event_id(self):
         event = self.eventstore.get_event_by_id(self.project2.id, "b" * 32)
 
-        filter_keys = {"project_id": [self.project1.id, self.project2.id]}
+        filter = Filter(project_ids=[self.project1.id, self.project2.id])
 
-        prev_event = self.eventstore.get_prev_event_id(event, filter_keys=filter_keys)
+        prev_event = self.eventstore.get_prev_event_id(event, filter=filter)
 
-        next_event = self.eventstore.get_next_event_id(event, filter_keys=filter_keys)
+        next_event = self.eventstore.get_next_event_id(event, filter=filter)
 
         assert prev_event == (six.text_type(self.project1.id), "a" * 32)
 
@@ -104,5 +113,12 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         assert next_event == (six.text_type(self.project2.id), "c" * 32)
 
         # Returns None if no event
-        assert self.eventstore.get_prev_event_id(None, filter_keys=filter_keys) is None
-        assert self.eventstore.get_next_event_id(None, filter_keys=filter_keys) is None
+        assert self.eventstore.get_prev_event_id(None, filter=filter) is None
+        assert self.eventstore.get_next_event_id(None, filter=filter) is None
+
+    def test_get_transaction_event_by_id(self):
+        event = self.eventstore.get_event_by_id(self.project2.id, self.transaction_event.event_id)
+
+        assert event.id == "d" * 32
+        assert event.get_event_type() == "transaction"
+        assert event.project_id == self.project2.id

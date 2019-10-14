@@ -77,8 +77,9 @@ class SymbolicatorUnrealIntegrationTest(TransactionTestCase):
             with open(filename, "rb") as f:
                 resp = self._postUnrealWithHeader(f.read())
                 assert resp.status_code == 200
+                event_id = resp.content
 
-        event = eventstore.get_events(filter_keys={"project_id": [self.project.id]})[0]
+        event = eventstore.get_event_by_id(self.project.id, event_id)
 
         self.insta_snapshot(
             {
@@ -140,5 +141,5 @@ class SymbolicatorUnrealIntegrationTest(TransactionTestCase):
         assert info.file.checksum == "279b27ac5d0e6792d088e0662ce1a18413b772bc"
 
         assert minidump.name == "minidump.dmp"
-        assert minidump.file.type == "event.minidump"
+        assert minidump.file.type == "event.applecrashreport"
         assert minidump.file.checksum == "728d0f4b09cf5a7942da3893b6db79ac842b701a"

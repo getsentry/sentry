@@ -10,6 +10,7 @@ import ReportUri, {
   getSecurityDsn,
 } from 'app/views/settings/projectSecurityHeaders/reportUri';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import routeTitleGen from 'app/utils/routeTitle';
 
 export default class ProjectExpectCtReports extends AsyncView {
   static propTypes = {
@@ -24,6 +25,11 @@ export default class ProjectExpectCtReports extends AsyncView {
   getEndpoints() {
     const {orgId, projectId} = this.props.params;
     return [['keyList', `/projects/${orgId}/${projectId}/keys/`]];
+  }
+
+  getTitle() {
+    const {projectId} = this.props.params;
+    return routeTitleGen(t('Certificate Transparency (Expect-CT)'), projectId, false);
   }
 
   getInstructions() {

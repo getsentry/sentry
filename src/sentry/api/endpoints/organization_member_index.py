@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 import six
 
-from django.db import transaction, IntegrityError
+from django.db import transaction
 from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.response import Response
@@ -16,6 +16,7 @@ from sentry.api.serializers.rest_framework import ListField
 from sentry.api.validators import AllowedEmailField
 from sentry.models import (
     AuditLogEntryEvent,
+    InviteStatus,
     OrganizationMember,
     OrganizationMemberTeam,
     Team,
@@ -25,6 +26,18 @@ from sentry.search.utils import tokenize_query
 from sentry.signals import member_invited
 from .organization_member_details import get_allowed_roles
 from sentry.utils.retries import TimedRetryPolicy
+
+
+@transaction.atomic
+def save_team_assignments(organization_member, teams):
+    # teams may be empty
+    OrganizationMemberTeam.objects.filter(organizationmember=organization_member).delete()
+    OrganizationMemberTeam.objects.bulk_create(
+        [
+            OrganizationMemberTeam(team=team, organizationmember=organization_member)
+            for team in teams
+        ]
+    )
 
 
 class MemberPermission(OrganizationPermission):
@@ -39,28 +52,50 @@ class MemberPermission(OrganizationPermission):
 class OrganizationMemberSerializer(serializers.Serializer):
     email = AllowedEmailField(max_length=75, required=True)
     role = serializers.ChoiceField(choices=roles.get_choices(), required=True)
-    teams = ListField(required=False, allow_null=False)
+    teams = ListField(required=False, allow_null=False, default=[])
     sendInvite = serializers.BooleanField(required=False, default=True, write_only=True)
+
+    def validate_email(self, email):
+        if OrganizationMember.objects.filter(
+            Q(email=email)
+            | Q(
+                organization=self.context["organization"],
+                user__email__iexact=email,
+                user__is_active=True,
+            )
+        ).exists():
+            raise serializers.ValidationError("The user %s is already a member" % email)
+
+        return email
+
+    def validate_teams(self, teams):
+        valid_teams = list(
+            Team.objects.filter(
+                organization=self.context["organization"], status=TeamStatus.VISIBLE, slug__in=teams
+            )
+        )
+
+        if len(valid_teams) != len(teams):
+            raise serializers.ValidationError("Invalid teams")
+
+        return valid_teams
+
+    def validate_role(self, role):
+        if role not in {r.id for r in self.context["allowed_roles"]}:
+            raise serializers.ValidationError("You do not have permission to invite that role.")
+
+        return role
 
 
 class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
     permission_classes = (MemberPermission,)
 
-    @transaction.atomic
-    def save_team_assignments(self, organization_member, teams):
-        # teams may be empty
-        OrganizationMemberTeam.objects.filter(organizationmember=organization_member).delete()
-        OrganizationMemberTeam.objects.bulk_create(
-            [
-                OrganizationMemberTeam(team=team, organizationmember=organization_member)
-                for team in teams
-            ]
-        )
-
     def get(self, request, organization):
         queryset = (
             OrganizationMember.objects.filter(
-                Q(user__is_active=True) | Q(user__isnull=True), organization=organization
+                Q(user__is_active=True) | Q(user__isnull=True),
+                organization=organization,
+                invite_status=InviteStatus.APPROVED.value,
             )
             .select_related("user")
             .order_by("email", "user__email")
@@ -114,71 +149,47 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
 
         :auth: required
         """
-        # TODO: If the member already exists, should this still update the role and team?
-        # For now, it doesn't, but simply returns the existing object
-
         if not features.has("organizations:invite-members", organization, actor=request.user):
             return Response(
                 {"organization": "Your organization is not allowed to invite members"}, status=403
             )
 
-        serializer = OrganizationMemberSerializer(data=request.data)
+        _, allowed_roles = get_allowed_roles(request, organization)
+
+        serializer = OrganizationMemberSerializer(
+            data=request.data,
+            context={"organization": organization, "allowed_roles": allowed_roles},
+        )
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
         result = serializer.validated_data
 
-        _, allowed_roles = get_allowed_roles(request, organization)
-
-        # ensure listed teams are real teams
-        if result.get("teams"):
-            teams = list(
-                Team.objects.filter(
-                    organization=organization, status=TeamStatus.VISIBLE, slug__in=result["teams"]
-                )
-            )
-            if len(set(result["teams"])) != len(teams):
-                return Response({"teams": "Invalid team"}, 400)
-        else:
-            teams = []
-
-        if not result["role"] in {r.id for r in allowed_roles}:
-            return Response({"role": "You do not have permission to invite that role."}, 403)
-
-        # This is needed because `email` field is case sensitive, but from a user perspective,
-        # Sentry treats email as case-insensitive (Eric@example.com equals eric@example.com).
-
-        existing = OrganizationMember.objects.filter(
-            organization=organization, user__email__iexact=result["email"], user__is_active=True
-        ).exists()
-
-        if existing:
-            return Response({"email": "The user %s is already a member" % result["email"]}, 409)
-
         om = OrganizationMember(
-            organization=organization, email=result["email"], role=result["role"]
+            organization=organization,
+            email=result["email"],
+            role=result["role"],
+            inviter=request.user,
         )
 
         if settings.SENTRY_ENABLE_INVITES:
             om.token = om.generate_token()
 
-        try:
-            with transaction.atomic():
-                om.save()
-        except IntegrityError:
-            return Response({"email": "The user %s is already a member" % result["email"]}, 409)
+        with transaction.atomic():
+            om.save()
 
-        if teams:
+        if result["teams"]:
             lock = locks.get(u"org:member:{}".format(om.id), duration=5)
             with TimedRetryPolicy(10)(lock.acquire):
-                self.save_team_assignments(om, teams)
+                save_team_assignments(om, result["teams"])
 
         if settings.SENTRY_ENABLE_INVITES and result.get("sendInvite"):
             om.send_invite_email()
             member_invited.send_robust(
                 member=om, user=request.user, sender=self, referrer=request.data.get("referrer")
             )
+
         self.create_audit_entry(
             request=request,
             organization_id=organization.id,

@@ -11,6 +11,7 @@ import CspInterface from 'app/components/events/interfaces/csp';
 import DebugMetaInterface from 'app/components/events/interfaces/debugmeta';
 import EventAttachments from 'app/components/events/eventAttachments';
 import EventCause from 'app/components/events/eventCause';
+import EventCauseEmpty from 'app/components/events/eventCauseEmpty';
 import EventContextSummary from 'app/components/events/contextSummary';
 import EventContexts from 'app/components/events/contexts';
 import EventDataSection from 'app/components/events/eventDataSection';
@@ -25,7 +26,6 @@ import EventTags from 'app/components/events/eventTags';
 import EventUserFeedback from 'app/components/events/userFeedback';
 import ExceptionInterface from 'app/components/events/interfaces/exception';
 import GenericInterface from 'app/components/events/interfaces/generic';
-import Hook from 'app/components/hook';
 import MessageInterface from 'app/components/events/interfaces/message';
 import RequestInterface from 'app/components/events/interfaces/request';
 import SentryTypes from 'app/sentryTypes';
@@ -56,8 +56,10 @@ class EventEntries extends React.Component {
   static propTypes = {
     // organization is not provided in the shared issue view
     organization: SentryTypes.Organization,
+    // event is not guaranteed in shared issue view
+    event: SentryTypes.Event,
+
     group: SentryTypes.Group.isRequired,
-    event: SentryTypes.Event.isRequired,
     orgId: PropTypes.string.isRequired,
     project: PropTypes.object.isRequired,
     // TODO(dcramer): ideally isShare would be replaced with simple permission
@@ -84,9 +86,11 @@ class EventEntries extends React.Component {
   }
 
   shouldComponentUpdate(nextProps) {
+    const {event, showExampleCommit} = this.props;
+
     return (
-      this.props.event.id !== nextProps.event.id ||
-      this.props.showExampleCommit !== nextProps.showExampleCommit
+      (event && nextProps.event && event.id !== nextProps.event.id) ||
+      showExampleCommit !== nextProps.showExampleCommit
     );
   }
 
@@ -179,11 +183,7 @@ class EventEntries extends React.Component {
         {!objectIsEmpty(event.errors) && <EventErrors event={event} />}{' '}
         {!isShare &&
           (showExampleCommit ? (
-            <Hook
-              name="component:event-cause-empty"
-              organization={organization}
-              project={project}
-            />
+            <EventCauseEmpty organization={organization} project={project} />
           ) : (
             <EventCause event={event} orgId={orgId} projectId={project.slug} />
           ))}
@@ -216,7 +216,11 @@ class EventEntries extends React.Component {
           <EventSdkUpdates event={event} />
         )}
         {!isShare && features.has('grouping-info') && (
-          <EventGroupingInfo projectId={project.slug} event={event} />
+          <EventGroupingInfo
+            projectId={project.slug}
+            event={event}
+            showSelector={features.has('set-grouping-config')}
+          />
         )}
       </div>
     );

@@ -45,7 +45,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             queryset=queryset,
             order_by="-date_added",
             paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda x: serialize(x, request.user, access=request.access),
         )
 
     def post(self, request, organization):
@@ -63,6 +63,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             "events": request.json_body.get("events", []),
             "schema": request.json_body.get("schema", {}),
             "overview": request.json_body.get("overview"),
+            "allowedOrigins": request.json_body.get("allowedOrigins", []),
         }
 
         if self._has_hook_events(request) and not features.has(
@@ -85,11 +86,12 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             data["webhook_url"] = data["webhookUrl"]
             data["is_alertable"] = data["isAlertable"]
             data["verify_install"] = data["verifyInstall"]
+            data["allowed_origins"] = data["allowedOrigins"]
 
             creator = InternalCreator if data.get("isInternal") else Creator
             sentry_app = creator.run(request=request, **data)
 
-            return Response(serialize(sentry_app), status=201)
+            return Response(serialize(sentry_app, access=request.access), status=201)
 
         # log any errors with schema
         if "schema" in serializer.errors:

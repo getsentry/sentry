@@ -5,6 +5,7 @@ from __future__ import absolute_import
 
 import logging
 import os
+import sys
 import pytest
 
 from datetime import datetime
@@ -88,6 +89,13 @@ class Browser(object):
         This method will not wait for the element.
         """
         return self.element_exists('[data-test-id="%s"]' % (selector))
+
+    def element_exists_by_aria_label(self, selector):
+        """
+        Check if an element exists on the page using the aria-label attribute.
+        This method will not wait for the element.
+        """
+        return self.element_exists('[aria-label="%s"]' % (selector))
 
     def click(self, selector):
         self.element(selector).click()
@@ -216,15 +224,22 @@ class Browser(object):
         max_age=None,
         secure=None,
     ):
+        domain = domain or self.domain
+        # Recent changes to Chrome no longer allow us to explicitly set a cookie domain
+        # to be localhost. If no domain is specified, the cookie will be created on
+        # the host of the current url that the browser has visited.
+        if domain == "localhost":
+            domain = None
         cookie = {
             "name": name,
             "value": value,
             "expires": expires,
             "path": path,
-            "domain": domain or self.domain,
             "max-age": max_age,
             "secure": secure,
         }
+        if domain:
+            cookie["domain"] = domain
 
         # XXX(dcramer): the cookie store must be initialized via a URL
         if not self._has_initialized_cookie_store:
@@ -316,9 +331,9 @@ def browser(request, percy, live_server):
             options.binary_location = chrome_path
         chromedriver_path = request.config.getoption("chromedriver_path")
         if chromedriver_path:
-            driver = webdriver.Chrome(executable_path=chromedriver_path, chrome_options=options)
+            driver = webdriver.Chrome(executable_path=chromedriver_path, options=options)
         else:
-            driver = webdriver.Chrome(chrome_options=options)
+            driver = webdriver.Chrome(options=options)
     elif driver_type == "firefox":
         driver = webdriver.Firefox()
     elif driver_type == "phantomjs":
@@ -332,6 +347,11 @@ def browser(request, percy, live_server):
     driver.set_window_size(window_width, window_height)
 
     def fin():
+        # dump console log to stdout, will be shown when test fails
+        for entry in driver.get_log("browser"):
+            sys.stderr.write("[browser console] ")
+            sys.stderr.write(repr(entry))
+            sys.stderr.write("\n")
         # Teardown Selenium.
         try:
             driver.quit()
@@ -357,7 +377,7 @@ def browser(request, percy, live_server):
 def _environment(request):
     config = request.config
     # add environment details to the pytest-html plugin
-    config._environment.append(("Driver", config.option.selenium_driver))
+    config._metadata.update({"Driver": config.option.selenium_driver})
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)

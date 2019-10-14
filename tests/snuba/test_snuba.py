@@ -8,6 +8,7 @@ import uuid
 from django.utils import timezone
 
 from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.utils import snuba
 
 
@@ -99,7 +100,7 @@ class SnubaTest(TestCase, SnubaTestCase):
 
 class BulkRawQueryTest(TestCase, SnubaTestCase):
     def test_simple(self):
-        one_min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+        one_min_ago = iso_format(before_now(minutes=1))
         event_1 = self.store_event(
             data={"fingerprint": ["group-1"], "message": "hello", "timestamp": one_min_ago},
             project_id=self.project.id,

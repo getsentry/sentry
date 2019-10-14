@@ -73,6 +73,10 @@ storiesOf('UI|Buttons', module)
           </Item>
 
           <Item>
+            <Button size="xxsmall">Extra Extra Small</Button>
+          </Item>
+
+          <Item>
             <Button size="xsmall">Extra Small</Button>
           </Item>
 
@@ -113,6 +117,24 @@ storiesOf('UI|Buttons', module)
             </Item>
             <Item>
               <Button size="micro" icon="icon-trash" />
+            </Item>
+            <Item>
+              <Button size="zero" icon="icon-trash" />
+            </Item>
+            <Item>
+              <Button size="xxsmall" icon="icon-trash" />
+            </Item>
+            <Item>
+              <Button size="xsmall" icon="icon-trash" />
+            </Item>
+            <Item>
+              <Button size="small" icon="icon-trash" />
+            </Item>
+            <Item>
+              <Button icon="icon-trash" />
+            </Item>
+            <Item>
+              <Button size="large" icon="icon-trash" />
             </Item>
           </div>
         </Section>

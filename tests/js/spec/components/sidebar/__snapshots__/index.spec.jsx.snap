@@ -271,6 +271,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                 className="css-6su6fj"
                 hasTooltip={false}
                 letterId="org-slug"
+                round={false}
                 size={36}
                 style={Object {}}
                 title="org slug"
@@ -287,6 +288,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                   <StyledBaseAvatar
                     className="avatar css-6su6fj"
                     loaded={true}
+                    round={false}
                     style={
                       Object {
                         "height": "36px",
@@ -295,7 +297,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                     }
                   >
                     <span
-                      className="avatar css-1ezk8y8-StyledBaseAvatar e1z0ohzl0"
+                      className="avatar css-1ezk8y8-StyledBaseAvatar e147uwb0"
                       style={
                         Object {
                           "height": "36px",
@@ -306,12 +308,16 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                       <LetterAvatar
                         displayName="org slug"
                         identifier="org-slug"
+                        round={false}
                       >
-                        <Svg
-                          viewBox="0 0 120 120"
+                        <Component
+                          className="css-1k35his-LetterAvatar e12lgfev0"
+                          displayName="org slug"
+                          identifier="org-slug"
+                          round={false}
                         >
                           <svg
-                            className="css-123ijso-Svg e1knxa8x0"
+                            className="css-1k35his-LetterAvatar e12lgfev0"
                             viewBox="0 0 120 120"
                           >
                             <rect
@@ -338,7 +344,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                               OS
                             </text>
                           </svg>
-                        </Svg>
+                        </Component>
                       </LetterAvatar>
                     </span>
                   </StyledBaseAvatar>
@@ -765,7 +771,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                                         }
                                       >
                                         <span
-                                          className="avatar ev46mzr4 css-wxw9er-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
+                                          className="avatar ev46mzr4 css-wxw9er-StyledBaseAvatar-StyledAvatar e147uwb0"
                                           style={
                                             Object {
                                               "height": "32px",
@@ -778,12 +784,14 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                                             identifier="foo@example.com"
                                             round={true}
                                           >
-                                            <Svg
+                                            <Component
+                                              className="css-vyy37i-LetterAvatar e12lgfev0"
+                                              displayName="Foo Bar"
+                                              identifier="foo@example.com"
                                               round={true}
-                                              viewBox="0 0 120 120"
                                             >
                                               <svg
-                                                className="css-1r4mnb9-Svg e1knxa8x0"
+                                                className="css-vyy37i-LetterAvatar e12lgfev0"
                                                 viewBox="0 0 120 120"
                                               >
                                                 <rect
@@ -810,7 +818,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                                                   FB
                                                 </text>
                                               </svg>
-                                            </Svg>
+                                            </Component>
                                           </LetterAvatar>
                                         </span>
                                       </StyledBaseAvatar>
@@ -1664,7 +1672,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                             <ForwardRef
                                               aria-disabled={false}
                                               aria-label="Go to Support"
-                                              className="css-6x2oxd-StyledButton-getColors edwq9my0"
+                                              className="css-budrs3-StyledButton-getColors edwq9my0"
                                               disabled={false}
                                               onClick={[Function]}
                                               priority="link"
@@ -1674,7 +1682,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                               <Link
                                                 aria-disabled={false}
                                                 aria-label="Go to Support"
-                                                className="css-6x2oxd-StyledButton-getColors edwq9my0"
+                                                className="css-budrs3-StyledButton-getColors edwq9my0"
                                                 onClick={[Function]}
                                                 onlyActiveOnIndex={false}
                                                 role="button"
@@ -1684,7 +1692,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                 <a
                                                   aria-disabled={false}
                                                   aria-label="Go to Support"
-                                                  className="css-6x2oxd-StyledButton-getColors edwq9my0"
+                                                  className="css-budrs3-StyledButton-getColors edwq9my0"
                                                   onClick={[Function]}
                                                   role="button"
                                                   style={Object {}}
@@ -1979,7 +1987,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                             <ForwardRef
                                               aria-disabled={false}
                                               aria-label="Go to Support"
-                                              className="css-6x2oxd-StyledButton-getColors edwq9my0"
+                                              className="css-budrs3-StyledButton-getColors edwq9my0"
                                               disabled={false}
                                               onClick={[Function]}
                                               priority="link"
@@ -1989,7 +1997,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                               <Link
                                                 aria-disabled={false}
                                                 aria-label="Go to Support"
-                                                className="css-6x2oxd-StyledButton-getColors edwq9my0"
+                                                className="css-budrs3-StyledButton-getColors edwq9my0"
                                                 onClick={[Function]}
                                                 onlyActiveOnIndex={false}
                                                 role="button"
@@ -1999,7 +2007,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                 <a
                                                   aria-disabled={false}
                                                   aria-label="Go to Support"
-                                                  className="css-6x2oxd-StyledButton-getColors edwq9my0"
+                                                  className="css-budrs3-StyledButton-getColors edwq9my0"
                                                   onClick={[Function]}
                                                   role="button"
                                                   style={Object {}}
@@ -2292,7 +2300,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                             <ForwardRef
                                               aria-disabled={false}
                                               aria-label="Go to Support"
-                                              className="css-6x2oxd-StyledButton-getColors edwq9my0"
+                                              className="css-budrs3-StyledButton-getColors edwq9my0"
                                               disabled={false}
                                               onClick={[Function]}
                                               priority="link"
@@ -2302,7 +2310,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                               <Link
                                                 aria-disabled={false}
                                                 aria-label="Go to Support"
-                                                className="css-6x2oxd-StyledButton-getColors edwq9my0"
+                                                className="css-budrs3-StyledButton-getColors edwq9my0"
                                                 onClick={[Function]}
                                                 onlyActiveOnIndex={false}
                                                 role="button"
@@ -2312,7 +2320,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                 <a
                                                   aria-disabled={false}
                                                   aria-label="Go to Support"
-                                                  className="css-6x2oxd-StyledButton-getColors edwq9my0"
+                                                  className="css-budrs3-StyledButton-getColors edwq9my0"
                                                   onClick={[Function]}
                                                   role="button"
                                                   style={Object {}}
@@ -2609,7 +2617,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                             <ForwardRef
                                               aria-disabled={false}
                                               aria-label="Go to Support"
-                                              className="css-6x2oxd-StyledButton-getColors edwq9my0"
+                                              className="css-budrs3-StyledButton-getColors edwq9my0"
                                               disabled={false}
                                               onClick={[Function]}
                                               priority="link"
@@ -2619,7 +2627,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                               <Link
                                                 aria-disabled={false}
                                                 aria-label="Go to Support"
-                                                className="css-6x2oxd-StyledButton-getColors edwq9my0"
+                                                className="css-budrs3-StyledButton-getColors edwq9my0"
                                                 onClick={[Function]}
                                                 onlyActiveOnIndex={false}
                                                 role="button"
@@ -2629,7 +2637,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                 <a
                                                   aria-disabled={false}
                                                   aria-label="Go to Support"
-                                                  className="css-6x2oxd-StyledButton-getColors edwq9my0"
+                                                  className="css-budrs3-StyledButton-getColors edwq9my0"
                                                   onClick={[Function]}
                                                   role="button"
                                                   style={Object {}}
@@ -2928,7 +2936,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                             <ForwardRef
                                               aria-disabled={false}
                                               aria-label="Go to Support"
-                                              className="css-6x2oxd-StyledButton-getColors edwq9my0"
+                                              className="css-budrs3-StyledButton-getColors edwq9my0"
                                               disabled={false}
                                               onClick={[Function]}
                                               priority="link"
@@ -2938,7 +2946,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                               <Link
                                                 aria-disabled={false}
                                                 aria-label="Go to Support"
-                                                className="css-6x2oxd-StyledButton-getColors edwq9my0"
+                                                className="css-budrs3-StyledButton-getColors edwq9my0"
                                                 onClick={[Function]}
                                                 onlyActiveOnIndex={false}
                                                 role="button"
@@ -2948,7 +2956,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                 <a
                                                   aria-disabled={false}
                                                   aria-label="Go to Support"
-                                                  className="css-6x2oxd-StyledButton-getColors edwq9my0"
+                                                  className="css-budrs3-StyledButton-getColors edwq9my0"
                                                   onClick={[Function]}
                                                   role="button"
                                                   style={Object {}}
@@ -3247,7 +3255,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                             <ForwardRef
                                               aria-disabled={false}
                                               aria-label="Go to Support"
-                                              className="css-6x2oxd-StyledButton-getColors edwq9my0"
+                                              className="css-budrs3-StyledButton-getColors edwq9my0"
                                               disabled={false}
                                               onClick={[Function]}
                                               priority="link"
@@ -3257,7 +3265,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                               <Link
                                                 aria-disabled={false}
                                                 aria-label="Go to Support"
-                                                className="css-6x2oxd-StyledButton-getColors edwq9my0"
+                                                className="css-budrs3-StyledButton-getColors edwq9my0"
                                                 onClick={[Function]}
                                                 onlyActiveOnIndex={false}
                                                 role="button"
@@ -3267,7 +3275,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                 <a
                                                   aria-disabled={false}
                                                   aria-label="Go to Support"
-                                                  className="css-6x2oxd-StyledButton-getColors edwq9my0"
+                                                  className="css-budrs3-StyledButton-getColors edwq9my0"
                                                   onClick={[Function]}
                                                   role="button"
                                                   style={Object {}}
@@ -3548,7 +3556,7 @@ exports[`Sidebar renders without org and router 1`] = `
                                         }
                                       >
                                         <span
-                                          className="avatar ev46mzr4 css-wxw9er-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
+                                          className="avatar ev46mzr4 css-wxw9er-StyledBaseAvatar-StyledAvatar e147uwb0"
                                           style={
                                             Object {
                                               "height": "32px",
@@ -3561,12 +3569,14 @@ exports[`Sidebar renders without org and router 1`] = `
                                             identifier="foo@example.com"
                                             round={true}
                                           >
-                                            <Svg
+                                            <Component
+                                              className="css-vyy37i-LetterAvatar e12lgfev0"
+                                              displayName="Foo Bar"
+                                              identifier="foo@example.com"
                                               round={true}
-                                              viewBox="0 0 120 120"
                                             >
                                               <svg
-                                                className="css-1r4mnb9-Svg e1knxa8x0"
+                                                className="css-vyy37i-LetterAvatar e12lgfev0"
                                                 viewBox="0 0 120 120"
                                               >
                                                 <rect
@@ -3593,7 +3603,7 @@ exports[`Sidebar renders without org and router 1`] = `
                                                   FB
                                                 </text>
                                               </svg>
-                                            </Svg>
+                                            </Component>
                                           </LetterAvatar>
                                         </span>
                                       </StyledBaseAvatar>
