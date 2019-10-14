@@ -17,7 +17,10 @@ signals to getSentry for these outcomes.
 """
 from __future__ import absolute_import
 
+import atexit
 import logging
+import multiprocessing.dummy
+import multiprocessing as _multiprocessing
 
 from sentry.utils.batching_kafka_consumer import AbstractBatchWorker
 
@@ -59,56 +62,68 @@ def is_signal_sent(project_id, event_id):
     return cache.get(key, None) is not None
 
 
+def _process_message(message):
+    msg = json.loads(message)
+
+    project_id = int(msg.get("project_id", 0))
+    if project_id == 0:
+        return  # no project. this is valid, so ignore silently.
+
+    outcome = int(msg.get("outcome", -1))
+    if outcome not in (Outcome.FILTERED, Outcome.RATE_LIMITED):
+        return  # nothing to do here
+
+    event_id = msg.get("event_id")
+    if is_signal_sent(project_id=project_id, event_id=event_id):
+        return  # message already processed nothing left to do
+
+    try:
+        project = Project.objects.get_from_cache(id=project_id)
+    except Project.DoesNotExist:
+        logger.error("OutcomesConsumer could not find project with id: %s", project_id)
+        return
+
+    reason = msg.get("reason")
+    remote_addr = msg.get("remote_addr")
+
+    if outcome == Outcome.FILTERED:
+        event_filtered.send_robust(ip=remote_addr, project=project, sender=OutcomesConsumerWorker)
+    elif outcome == Outcome.RATE_LIMITED:
+        event_dropped.send_robust(
+            ip=remote_addr, project=project, reason_code=reason, sender=OutcomesConsumerWorker
+        )
+
+    # remember that we sent the signal just in case the processor dies before
+    mark_signal_sent(project_id=project_id, event_id=event_id)
+
+
 class OutcomesConsumerWorker(AbstractBatchWorker):
+    def __init__(self, multiprocessing, concurrency):
+        if multiprocessing:
+            self.pool = _multiprocessing.Pool(concurrency)
+        else:
+            self.pool = _multiprocessing.dummy.Pool(concurrency)
+
+        atexit.register(self.pool.close)
+
     def process_message(self, message):
-        msg = json.loads(message.value())
-
-        project_id = int(msg.get("project_id", 0))
-        if project_id == 0:
-            return True  # no project. this is valid, so ignore silently.
-
-        outcome = int(msg.get("outcome", -1))
-        if outcome not in (Outcome.FILTERED, Outcome.RATE_LIMITED):
-            return True  # nothing to do here
-
-        event_id = msg.get("event_id")
-        if is_signal_sent(project_id=project_id, event_id=event_id):
-            return True  # message already processed nothing left to do
-
-        try:
-            project = Project.objects.get_from_cache(id=project_id)
-        except Project.DoesNotExist:
-            logger.error("OutcomesConsumer could not find project with id: %s", project_id)
-            return True
-
-        reason = msg.get("reason")
-        remote_addr = msg.get("remote_addr")
-
-        if outcome == Outcome.FILTERED:
-            event_filtered.send_robust(ip=remote_addr, project=project, sender=self.process_message)
-        elif outcome == Outcome.RATE_LIMITED:
-            event_dropped.send_robust(
-                ip=remote_addr, project=project, reason_code=reason, sender=self.process_message
-            )
-
-        # remember that we sent the signal just in case the processor dies before
-        mark_signal_sent(project_id=project_id, event_id=event_id)
-
-        # Return *something* so that it counts against batch size
-        return True
+        return message.value()
 
     def flush_batch(self, batch):
-        pass
+        for _ in self.pool.imap_unordered(_process_message, batch, chunksize=100):
+            pass
 
     def shutdown(self):
         pass
 
 
-def get_outcomes_consumer(**options):
+def get_outcomes_consumer(multiprocessing=False, concurrency=None, **options):
     """
     Handles outcome requests coming via a kafka queue from Relay.
     """
 
     return create_batching_kafka_consumer(
-        topic_name=settings.KAFKA_OUTCOMES, worker=OutcomesConsumerWorker(), **options
+        topic_name=settings.KAFKA_OUTCOMES,
+        worker=OutcomesConsumerWorker(multiprocessing=multiprocessing, concurrency=concurrency),
+        **options
     )
