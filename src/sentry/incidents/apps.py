@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from django.apps import AppConfig
 
 
-class IncidentsAppConfig(AppConfig):
+class Config(AppConfig):
     name = "sentry.incidents"
 
     def ready(self):

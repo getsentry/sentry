@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from django.apps import AppConfig
 
 
-class LangJavascriptAppConfig(AppConfig):
+class Config(AppConfig):
     name = "sentry.lang.javascript"
 
     def ready(self):
