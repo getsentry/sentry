@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import Condition from 'app/views/discover/conditions/condition';
 
@@ -19,7 +19,7 @@ describe('Condition', function() {
         },
       ];
       data.forEach(function(condition) {
-        const wrapper = mount(
+        const wrapper = mountWithTheme(
           <Condition value={condition.value} onChange={jest.fn()} columns={[]} />,
           TestStubs.routerContext()
         );
@@ -37,7 +37,7 @@ describe('Condition', function() {
         {name: 'col3', type: 'datetime'},
         {name: 'error.type', type: 'string'},
       ];
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <Condition value={[null, null, null]} onChange={jest.fn()} columns={columns} />,
         TestStubs.routerContext()
       );
@@ -94,7 +94,7 @@ describe('Condition', function() {
     beforeEach(function() {
       focusSpy = jest.spyOn(Condition.prototype, 'focus');
       const columns = [{name: 'col1', type: 'string'}, {name: 'col2', type: 'number'}];
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <Condition
           value={[null, null, null]}
           onChange={onChangeMock}
@@ -133,7 +133,7 @@ describe('Condition', function() {
     const onChangeMock = jest.fn();
     beforeEach(function() {
       const columns = [{name: 'col1', type: 'string'}, {name: 'col2', type: 'number'}];
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <Condition
           value={[null, null, null]}
           onChange={onChangeMock}

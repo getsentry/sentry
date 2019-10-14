@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Form, SelectAsyncField} from 'app/components/forms';
 
@@ -20,7 +20,7 @@ describe('SelectAsyncField', function() {
   });
 
   it('supports autocomplete arguments from an integration', async function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <SelectAsyncField url="/foo/bar/" name="fieldName" />,
       TestStubs.routerContext()
     );
@@ -43,7 +43,7 @@ describe('SelectAsyncField', function() {
 
   it('with Form context', async function() {
     const submitMock = jest.fn();
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <Form onSubmit={submitMock}>
         <SelectAsyncField url="/foo/bar/" name="fieldName" />
       </Form>,

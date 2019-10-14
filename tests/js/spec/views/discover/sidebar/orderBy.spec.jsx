@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import Orderby from 'app/views/discover/sidebar/orderby';
 
@@ -11,7 +11,7 @@ describe('orderBy', function() {
     onChangeMock = jest.fn();
     columns = [{value: 'timestamp', label: 'timestamp'}, {value: 'id', label: 'id'}];
 
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <Orderby value="-timestamp" columns={columns} onChange={onChangeMock} />,
       TestStubs.routerContext([{organization}])
     );
