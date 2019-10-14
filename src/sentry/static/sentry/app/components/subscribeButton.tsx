@@ -6,7 +6,14 @@ import Button from 'app/components/button';
 
 import {t} from 'app/locale';
 
-export default class SubscribeButton extends React.Component {
+type Props = {
+  onClick: (e: React.MouseEvent) => void;
+  disabled?: boolean;
+  isSubscribed?: boolean;
+  size?: 'zero' | 'micro' | 'small' | 'xsmall' | 'xxsmall' | 'large';
+};
+
+export default class SubscribeButton extends React.Component<Props> {
   static propTypes = {
     isSubscribed: PropTypes.bool,
     onClick: PropTypes.func.isRequired,
@@ -33,7 +40,7 @@ const Content = styled('span')`
   align-items: center;
 `;
 
-const SignalIcon = styled('span')`
+const SignalIcon = styled('span')<{isSubscribed?: boolean}>`
   font-size: 1.2em;
   margin-right: 5px;
   ${p => p.isSubscribed && `color: ${p.theme.blue}`};
