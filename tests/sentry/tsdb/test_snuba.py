@@ -55,6 +55,8 @@ class SnubaTSDBTest(OutcomesSnubaTest):
                     assert count == 0
 
     def test_project_outcomes(self):
+        from time import sleep
+
         for tsdb_model, outcome in [
             (TSDBModel.organization_total_received, Outcome.ACCEPTED),
             (TSDBModel.organization_total_rejected, Outcome.RATE_LIMITED),
@@ -66,6 +68,8 @@ class SnubaTSDBTest(OutcomesSnubaTest):
             self.store_outcomes(
                 self.organization.id, self.project.id, outcome.value, self.one_day_later, 4
             )
+
+            sleep(2)
 
             response = self.db.get_range(
                 tsdb_model, [self.project.id], self.start_time, self.now, 3600, None
