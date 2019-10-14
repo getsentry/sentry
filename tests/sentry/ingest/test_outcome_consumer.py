@@ -109,7 +109,7 @@ def test_outcome_consumer_ignores_outcomes_already_handled(
     event_dropped.connect(event_dropped_receiver)
 
     consumer = get_outcomes_consumer(
-        max_batch_size=2, max_batch_time=100, group_id=group_id, auto_offset_reset="earliest"
+        max_batch_size=1, max_batch_time=100, group_id=group_id, auto_offset_reset="earliest"
     )
 
     # run the outcome consumer
@@ -164,7 +164,7 @@ def test_outcome_consumer_ignores_invalid_outcomes(
     event_dropped.connect(event_dropped_receiver)
 
     consumer = get_outcomes_consumer(
-        max_batch_size=4, max_batch_time=100, group_id=group_id, auto_offset_reset="earliest"
+        max_batch_size=1, max_batch_time=100, group_id=group_id, auto_offset_reset="earliest"
     )
 
     # run the outcome consumer
@@ -215,7 +215,7 @@ def test_outcome_consumer_remembers_handled_outcomes(
     event_dropped.connect(event_dropped_receiver)
 
     consumer = get_outcomes_consumer(
-        max_batch_size=2, max_batch_time=100, group_id=group_id, auto_offset_reset="earliest"
+        max_batch_size=1, max_batch_time=100, group_id=group_id, auto_offset_reset="earliest"
     )
 
     # run the outcome consumer
@@ -265,7 +265,7 @@ def test_outcome_consumer_handles_filtered_outcomes(
     event_dropped.connect(event_dropped_receiver)
 
     consumer = get_outcomes_consumer(
-        max_batch_size=2, max_batch_time=100, group_id=group_id, auto_offset_reset="earliest"
+        max_batch_size=1, max_batch_time=100, group_id=group_id, auto_offset_reset="earliest"
     )
 
     # run the outcome consumer
@@ -277,7 +277,7 @@ def test_outcome_consumer_handles_filtered_outcomes(
 
     # verify that the appropriate filters were called
     assert len(event_filtered_sink) == 2
-    assert event_filtered_sink == ["127.33.44.1", "127.33.44.2"]
+    assert set(event_filtered_sink) == set(["127.33.44.1", "127.33.44.2"])
     assert len(event_dropped_sink) == 0
 
 
@@ -315,7 +315,7 @@ def test_outcome_consumer_handles_rate_limited_outcomes(
     event_dropped.connect(event_dropped_receiver)
 
     consumer = get_outcomes_consumer(
-        max_batch_size=2, max_batch_time=100, group_id=group_id, auto_offset_reset="earliest"
+        max_batch_size=1, max_batch_time=100, group_id=group_id, auto_offset_reset="earliest"
     )
 
     # run the outcome consumer
@@ -328,4 +328,6 @@ def test_outcome_consumer_handles_rate_limited_outcomes(
     # verify that the appropriate filters were called
     assert len(event_filtered_sink) == 0
     assert len(event_dropped_sink) == 2
-    assert event_dropped_sink == [("127.33.44.1", "reason_1"), ("127.33.44.2", "reason_2")]
+    assert set(event_dropped_sink) == set(
+        [("127.33.44.1", "reason_1"), ("127.33.44.2", "reason_2")]
+    )
