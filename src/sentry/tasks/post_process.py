@@ -167,7 +167,8 @@ def post_process_group(event, is_new, is_regression, is_new_group_environment, *
 
         if event.group_id:
             # we process snoozes before rules as it might create a regression
-            has_reappeared = process_snoozes(event.group)
+            # but not if it's new because you can't immediately snooze a new group
+            has_reappeared = False if is_new else process_snoozes(event.group)
 
             handle_owner_assignment(event.project, event.group, event)
 
@@ -222,9 +223,16 @@ def process_snoozes(group):
     """
     from sentry.models import GroupSnooze, GroupStatus
 
-    try:
-        snooze = GroupSnooze.objects.get_from_cache(group=group)
-    except GroupSnooze.DoesNotExist:
+    key = GroupSnooze.get_cache_key(group.id)
+    snooze = cache.get(key)
+    if snooze is None:
+        try:
+            snooze = GroupSnooze.objects.get(group=group)
+        except GroupSnooze.DoesNotExist:
+            snooze = False
+        # This cache is also set in post_save|delete.
+        cache.set(key, snooze, 3600)
+    if not snooze:
         return False
 
     if not snooze.is_valid(group, test_rates=True):
