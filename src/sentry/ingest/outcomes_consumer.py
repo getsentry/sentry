@@ -100,9 +100,9 @@ def _process_message(message):
 class OutcomesConsumerWorker(AbstractBatchWorker):
     def __init__(self, multiprocessing, concurrency):
         if multiprocessing:
-            self.pool = _multiprocessing.Pool()
+            self.pool = _multiprocessing.Pool(concurrency)
         else:
-            self.pool = _multiprocessing.dummy.Pool()
+            self.pool = _multiprocessing.dummy.Pool(concurrency)
 
         atexit.register(self.pool.close)
 
