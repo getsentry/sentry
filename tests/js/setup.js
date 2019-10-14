@@ -59,7 +59,7 @@ jest.mock('app/translations');
 jest.mock('app/api');
 jest.mock('app/utils/domId');
 jest.mock('app/utils/withOrganization');
-jest.mock('scroll-to-element', () => {});
+jest.mock('scroll-to-element', () => jest.fn());
 jest.mock('react-router', () => {
   const ReactRouter = require.requireActual('react-router');
   return {
