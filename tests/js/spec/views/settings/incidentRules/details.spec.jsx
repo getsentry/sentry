@@ -8,6 +8,10 @@ import GlobalModal from 'app/components/globalModal';
 describe('Incident Rules Details', function() {
   beforeAll(function() {
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       body: [],
     });
@@ -40,6 +44,13 @@ describe('Incident Rules Details', function() {
         TestStubs.IncidentTrigger({
           ...options.data,
         }),
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/alert-rules/${
+        rule.id
+      }/triggers/123/actions/`,
+      body: [],
     });
 
     const wrapper = mountWithTheme(

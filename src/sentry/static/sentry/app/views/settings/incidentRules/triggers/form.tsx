@@ -5,20 +5,25 @@ import React from 'react';
 import {Client} from 'app/api';
 import {Config, Organization, Project} from 'app/types';
 import {addErrorMessage} from 'app/actionCreators/indicator';
+import {fetchOrgMembers} from 'app/actionCreators/members';
+import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex';
 import {t} from 'app/locale';
+import ActionsPanel from 'app/views/settings/incidentRules/triggers/actionsPanel';
+import AsyncComponent from 'app/components/asyncComponent';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import withApi from 'app/utils/withApi';
 import withConfig from 'app/utils/withConfig';
-
-import TriggersChart from './chart';
 
 import {
   AlertRuleThreshold,
   AlertRuleThresholdType,
   IncidentRule,
   Trigger,
+  Action,
+  TargetType,
 } from '../types';
+import TriggersChart from './chart';
 
 type AlertRuleThresholdKey = {
   [AlertRuleThreshold.INCIDENT]: 'alertThreshold';
@@ -200,101 +205,218 @@ class TriggerForm extends React.Component<Props, State> {
     const {alertThreshold, resolveThreshold, isInverted} = this.state;
 
     return (
-      <React.Fragment>
-        <JsonForm
-          renderHeader={() => (
-            <TriggersChart
-              api={api}
-              config={config}
-              organization={organization}
-              projects={projects}
-              rule={rule}
-              isInverted={isInverted}
-              alertThreshold={alertThreshold}
-              resolveThreshold={resolveThreshold}
-              timeWindow={rule.timeWindow}
-              onChangeIncidentThreshold={this.handleChangeIncidentThreshold}
-              onChangeResolutionThreshold={this.handleChangeResolutionThreshold}
-            />
-          )}
-          fields={[
-            {
-              name: 'label',
-              type: 'text',
-              label: t('Label'),
-              help: t('This will prefix alerts created by this trigger'),
-              placeholder: t('SEV-0'),
-              required: true,
-            },
-            {
-              name: 'alertThreshold',
-              type: 'range',
-              label: t('Incident Boundary'),
-              help: !isInverted
-                ? t('Anything trending above this limit will trigger an Incident')
-                : t('Anything trending below this limit will trigger an Incident'),
-              onChange: this.handleChangeIncidentThresholdInput,
-              showCustomInput: true,
-              required: true,
-              min: 1,
-            },
-            {
-              name: 'resolveThreshold',
-              type: 'range',
-              label: t('Resolution Boundary'),
-              help: !isInverted
-                ? t('Anything trending below this limit will resolve an Incident')
-                : t('Anything trending above this limit will resolve an Incident'),
-              onChange: this.handleChangeResolutionThresholdInput,
-              showCustomInput: true,
-              placeholder: resolveThreshold === null ? t('Off') : '',
-              min: 1,
-            },
-            {
-              name: 'thresholdType',
-              type: 'boolean',
-              label: t('Reverse the Boundaries'),
-              defaultValue: AlertRuleThresholdType.ABOVE,
-              help: t('This is a metric that needs to stay above a certain threshold'),
-              onChange: this.handleChangeThresholdType,
-            },
-          ]}
-        />
-      </React.Fragment>
+      <JsonForm
+        renderHeader={() => (
+          <TriggersChart
+            api={api}
+            config={config}
+            organization={organization}
+            projects={projects}
+            rule={rule}
+            isInverted={isInverted}
+            alertThreshold={alertThreshold}
+            resolveThreshold={resolveThreshold}
+            timeWindow={rule.timeWindow}
+            onChangeIncidentThreshold={this.handleChangeIncidentThreshold}
+            onChangeResolutionThreshold={this.handleChangeResolutionThreshold}
+          />
+        )}
+        fields={[
+          {
+            name: 'label',
+            type: 'text',
+            label: t('Label'),
+            help: t('This will prefix alerts created by this trigger'),
+            placeholder: t('SEV-0'),
+            required: true,
+          },
+          {
+            name: 'alertThreshold',
+            type: 'range',
+            label: t('Incident Boundary'),
+            help: !isInverted
+              ? t('Anything trending above this limit will trigger an Incident')
+              : t('Anything trending below this limit will trigger an Incident'),
+            onChange: this.handleChangeIncidentThresholdInput,
+            showCustomInput: true,
+            required: true,
+            min: 1,
+          },
+          {
+            name: 'resolveThreshold',
+            type: 'range',
+            label: t('Resolution Boundary'),
+            help: !isInverted
+              ? t('Anything trending below this limit will resolve an Incident')
+              : t('Anything trending above this limit will resolve an Incident'),
+            onChange: this.handleChangeResolutionThresholdInput,
+            showCustomInput: true,
+            placeholder: resolveThreshold === null ? t('Off') : '',
+            min: 1,
+          },
+          {
+            name: 'thresholdType',
+            type: 'boolean',
+            label: t('Reverse the Boundaries'),
+            defaultValue: AlertRuleThresholdType.ABOVE,
+            help: t('This is a metric that needs to stay above a certain threshold'),
+            onChange: this.handleChangeThresholdType,
+          },
+        ]}
+      />
     );
   }
 }
 
 type TriggerFormContainerProps = {
   orgId: string;
+  organization: Organization;
+  projects: Project[];
 } & React.ComponentProps<typeof TriggerForm> & {
     onSubmitSuccess?: Form['props']['onSubmitSuccess'];
   };
 
-function TriggerFormContainer({
-  orgId,
-  onSubmitSuccess,
-  rule,
-  trigger,
-  ...props
-}: TriggerFormContainerProps) {
-  return (
-    <Form
-      apiMethod={trigger ? 'PUT' : 'POST'}
-      apiEndpoint={`/organizations/${orgId}/alert-rules/${rule.id}/triggers/${
-        trigger ? `${trigger.id}/` : ''
-      }`}
-      initialData={{
-        thresholdType: AlertRuleThresholdType.ABOVE,
-        ...trigger,
-      }}
-      saveOnBlur={false}
-      onSubmitSuccess={onSubmitSuccess}
-      submitLabel={trigger ? t('Update Trigger') : t('Create Trigger')}
-    >
-      <TriggerForm rule={rule} trigger={trigger} {...props} />
-    </Form>
-  );
+type TriggerFormContainerState = {
+  actions: Action[];
+};
+
+class TriggerFormContainer extends AsyncComponent<
+  TriggerFormContainerProps & AsyncComponent['props'],
+  TriggerFormContainerState & AsyncComponent['state']
+> {
+  constructor(props, context) {
+    super(props, context);
+    this.state = {
+      ...this.state,
+      actions: [],
+    };
+  }
+
+  componentDidMount() {
+    const {orgId} = this.props;
+
+    fetchOrgMembers(this.api, orgId);
+  }
+
+  getEndpoints(): [string, string][] {
+    const {orgId, rule, trigger} = this.props;
+
+    if (!trigger) {
+      return [];
+    }
+
+    return [
+      [
+        'actions',
+        `/organizations/${orgId}/alert-rules/${rule.id}/triggers/${trigger.id}/actions/`,
+      ],
+    ];
+  }
+
+  handleAddAction = (value: Action['type']) => {
+    this.setState(state => ({
+      ...state,
+      actions: [
+        ...state.actions,
+        {
+          type: value,
+          targetType: TargetType.USER,
+          targetIdentifier: null,
+        },
+      ],
+    }));
+  };
+
+  handleChangeAction = (index: number, action: Action): void => {
+    const {api, orgId, rule, trigger} = this.props;
+    this.setState(state => {
+      addOrUpdateAction(api, orgId, rule, action, trigger);
+
+      return {
+        actions: replaceAtArrayIndex(state.actions, index, action),
+      };
+    });
+  };
+
+  renderLoading() {
+    return this.renderBody();
+  }
+
+  renderBody() {
+    const {
+      orgId,
+      onSubmitSuccess,
+      rule,
+      trigger,
+      organization,
+      projects,
+      ...props
+    } = this.props;
+
+    return (
+      <Form
+        apiMethod={trigger ? 'PUT' : 'POST'}
+        apiEndpoint={`/organizations/${orgId}/alert-rules/${rule.id}/triggers/${
+          trigger ? `${trigger.id}/` : ''
+        }`}
+        initialData={{
+          thresholdType: AlertRuleThresholdType.ABOVE,
+          ...trigger,
+        }}
+        saveOnBlur={false}
+        onSubmitSuccess={onSubmitSuccess}
+        submitLabel={trigger ? t('Update Trigger') : t('Create Trigger')}
+      >
+        <TriggerForm
+          rule={rule}
+          trigger={trigger}
+          organization={organization}
+          projects={projects}
+          {...props}
+        />
+        <ActionsPanel
+          loading={this.state.loading}
+          error={this.state.error}
+          organization={organization}
+          projects={projects}
+          rule={rule}
+          trigger={trigger}
+          actions={this.state.actions}
+          onChange={this.handleChangeAction}
+          onAdd={this.handleAddAction}
+        />
+      </Form>
+    );
+  }
 }
 
 export default withConfig(withApi(TriggerFormContainer));
+
+function addOrUpdateAction(
+  api: Client,
+  orgId: string,
+  rule: IncidentRule,
+  action: Action,
+  trigger?: Trigger
+): Promise<any> {
+  // Don't do anything if we are not editing
+  if (!trigger) {
+    return Promise.resolve(null);
+  }
+
+  if (!action.targetIdentifier || typeof action.targetType === 'undefined') {
+    return Promise.resolve(null);
+  }
+
+  const method = action.id ? 'PUT' : 'POST';
+
+  return api.requestPromise(
+    `/organizations/${orgId}/alert-rules/${rule.id}/triggers/${trigger.id}/actions/${
+      action.id ? `${action.id}/` : ''
+    }`,
+    {
+      method,
+      data: action,
+    }
+  );
+}
