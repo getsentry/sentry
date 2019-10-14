@@ -223,6 +223,21 @@ const Container = styled.div`
   margin: 0 auto;
 `;
 
+const Header = styled('header')`
+  background: #fff;
+  padding: ${space(4)} 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
+
+  ${Container} {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    align-items: center;
+  }
+`;
+
 const LogoSvg = styled(InlineSvg)`
   width: 130px;
   height: 30px;
