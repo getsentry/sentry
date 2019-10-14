@@ -5,7 +5,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import SentryApplicationDetails from 'app/views/settings/organizationDeveloperSettings/sentryApplicationDetails';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import PermissionsObserver from 'app/views/settings/organizationDeveloperSettings/permissionsObserver';
-import {selectByValue} from '../../../../helpers/select';
+import {selectByValue} from 'sentry-test/select';
 
 describe('Sentry Application Details', function() {
   let org;

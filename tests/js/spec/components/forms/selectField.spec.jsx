@@ -1,9 +1,8 @@
-import React from 'react';
 import {mount, shallow} from 'sentry-test/enzyme';
+import {selectByValue} from 'sentry-test/select';
+import React from 'react';
 
 import {Form, SelectField} from 'app/components/forms';
-
-import {selectByValue} from '../../../helpers/select';
 
 describe('SelectField', function() {
   it('renders without form context', function() {

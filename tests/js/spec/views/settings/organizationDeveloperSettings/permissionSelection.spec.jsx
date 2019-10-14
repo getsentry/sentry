@@ -3,7 +3,7 @@ import React from 'react';
 import {mount} from 'sentry-test/enzyme';
 import FormModel from 'app/views/settings/components/forms/model';
 import PermissionSelection from 'app/views/settings/organizationDeveloperSettings/permissionSelection';
-import {selectByValue, openMenu} from './../../../../helpers/select';
+import {selectByValue, openMenu} from 'sentry-test/select';
 
 describe('PermissionSelection', () => {
   let wrapper;

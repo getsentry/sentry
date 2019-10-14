@@ -1,8 +1,8 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {openInviteMembersModal} from 'app/actionCreators/modal';
 import ConfigStore from 'app/stores/configStore';
 import OrganizationMembers from 'app/views/settings/organizationMembers';
@@ -92,7 +92,7 @@ describe('OrganizationMembers', function() {
   });
 
   it('can invite member with access', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationMembers
         {...defaultProps}
         params={{
