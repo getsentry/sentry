@@ -439,6 +439,12 @@ def ingest_consumer(consumer_type, **options):
     default=False,
     help="Use threads vs processes for concurrency. Per default it's threads.",
 )
+@click.option(
+    "--concurrency",
+    type=int,
+    default=None,
+    help="Spawn this many threads/processes to process outcomes. Defaults to number of CPUs.",
+)
 @configuration
 def outcome_consumer(**options):
     """

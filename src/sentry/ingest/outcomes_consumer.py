@@ -98,7 +98,7 @@ def _process_message(message):
 
 
 class OutcomesConsumerWorker(AbstractBatchWorker):
-    def __init__(self, multiprocessing):
+    def __init__(self, multiprocessing, concurrency):
         if multiprocessing:
             self.pool = _multiprocessing.Pool()
         else:
@@ -117,13 +117,13 @@ class OutcomesConsumerWorker(AbstractBatchWorker):
         pass
 
 
-def get_outcomes_consumer(multiprocessing=False, **options):
+def get_outcomes_consumer(multiprocessing=False, concurrency=None, **options):
     """
     Handles outcome requests coming via a kafka queue from Relay.
     """
 
     return create_batching_kafka_consumer(
         topic_name=settings.KAFKA_OUTCOMES,
-        worker=OutcomesConsumerWorker(multiprocessing=multiprocessing),
+        worker=OutcomesConsumerWorker(multiprocessing=multiprocessing, concurrency=concurrency),
         **options
     )
