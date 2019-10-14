@@ -280,7 +280,7 @@ class Group(Model):
     data = GzippedDictField(blank=True, null=True)
     short_id = BoundedBigIntegerField(null=True)
 
-    objects = GroupManager()
+    objects = GroupManager(cache_fields=("id",))
 
     class Meta:
         app_label = "sentry"
