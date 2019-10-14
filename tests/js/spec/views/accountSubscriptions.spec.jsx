@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {shallow, mount} from 'enzyme';
+import {shallow, mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import AccountSubscriptions from 'app/views/settings/account/accountSubscriptions';
@@ -39,7 +39,7 @@ describe('AccountSubscriptions', function() {
       method: 'PUT',
     });
 
-    const wrapper = mount(<AccountSubscriptions />, {
+    const wrapper = mountWithTheme(<AccountSubscriptions />, {
       context: {
         router: TestStubs.router(),
       },

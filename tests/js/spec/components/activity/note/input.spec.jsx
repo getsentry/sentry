@@ -1,7 +1,7 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
-import changeReactMentionsInput from 'app-test/helpers/changeReactMentionsInput';
+import changeReactMentionsInput from 'sentry-test/changeReactMentionsInput';
 
 import NoteInput from 'app/components/activity/note/input';
 
@@ -16,12 +16,15 @@ describe('NoteInput', function() {
     };
 
     it('renders', function() {
-      mount(<NoteInput {...props} />, routerContext);
+      mountWithTheme(<NoteInput {...props} />, routerContext);
     });
 
     it('submits when meta + enter is pressed', function() {
       const onCreate = jest.fn();
-      const wrapper = mount(<NoteInput {...props} onCreate={onCreate} />, routerContext);
+      const wrapper = mountWithTheme(
+        <NoteInput {...props} onCreate={onCreate} />,
+        routerContext
+      );
 
       const input = wrapper.find('textarea');
 
@@ -31,7 +34,10 @@ describe('NoteInput', function() {
 
     it('submits when ctrl + enter is pressed', function() {
       const onCreate = jest.fn();
-      const wrapper = mount(<NoteInput {...props} onCreate={onCreate} />, routerContext);
+      const wrapper = mountWithTheme(
+        <NoteInput {...props} onCreate={onCreate} />,
+        routerContext
+      );
 
       const input = wrapper.find('textarea');
 
@@ -41,7 +47,7 @@ describe('NoteInput', function() {
 
     it('handles errors', async function() {
       const errorJSON = {detail: {message: '', code: 401, extra: ''}};
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <NoteInput {...props} error={!!errorJSON} errorJSON={errorJSON} />,
         routerContext
       );
@@ -64,7 +70,7 @@ describe('NoteInput', function() {
     };
 
     const createWrapper = props => {
-      return mount(<NoteInput {...defaultProps} {...props} />, routerContext);
+      return mountWithTheme(<NoteInput {...defaultProps} {...props} />, routerContext);
     };
 
     it('edits existing message', async function() {

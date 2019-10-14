@@ -1,5 +1,5 @@
 import React from 'react';
-import {shallow, mount} from 'enzyme';
+import {shallow, mountWithTheme} from 'sentry-test/enzyme';
 
 import {Dashboard} from 'app/views/projectsDashboard';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
@@ -25,7 +25,7 @@ jest.mock('lodash/debounce', () => {
   return mockDebounce;
 });
 
-describe('OrganizationDashboard', function() {
+describe('ProjectsDashboard', function() {
   const org = TestStubs.Organization();
   const routerContext = TestStubs.routerContext([
     {router: TestStubs.router({params: {orgId: org.slug}})},
@@ -48,7 +48,7 @@ describe('OrganizationDashboard', function() {
 
   describe('empty state', function() {
     it('renders with no projects', function() {
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <Dashboard
           teams={teams}
           projects={[]}
@@ -65,7 +65,7 @@ describe('OrganizationDashboard', function() {
     it('renders with 1 project, with no first event', function() {
       const projects = [TestStubs.Project({teams})];
 
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <Dashboard
           teams={teams}
           projects={projects}
@@ -168,7 +168,7 @@ describe('OrganizationDashboard', function() {
       });
 
       jest.useFakeTimers();
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <Dashboard
           teams={teams}
           projects={projects}
@@ -243,7 +243,7 @@ describe('OrganizationDashboard', function() {
         })),
       });
 
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <Dashboard
           teams={teams}
           projects={projects}

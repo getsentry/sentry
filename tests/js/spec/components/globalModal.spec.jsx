@@ -1,5 +1,5 @@
 import React from 'react';
-import {shallow, mount} from 'enzyme';
+import {shallow, mount} from 'sentry-test/enzyme';
 import GlobalModal from 'app/components/globalModal';
 import {openModal, closeModal} from 'app/actionCreators/modal';
 

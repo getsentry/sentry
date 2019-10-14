@@ -1,5 +1,5 @@
 import React from 'react';
-import {shallow, mount} from 'enzyme';
+import {shallow, mountWithTheme} from 'sentry-test/enzyme';
 import _ from 'lodash';
 import {InviteMember} from 'app/views/settings/organizationMembers/inviteMember';
 import ConfigStore from 'app/stores/configStore';
@@ -78,7 +78,7 @@ describe('InviteMember', function() {
     const team = organization.teams.slice(0, 1);
     organization.teams = team;
 
-    const wrapper = mount(<InviteMember {...baseProps} />, context);
+    const wrapper = mountWithTheme(<InviteMember {...baseProps} />, context);
 
     expect(wrapper.state('selectedTeams').size).toBe(1);
     expect(wrapper.state('selectedTeams').has(team[0].slug)).toBe(true);
@@ -115,7 +115,7 @@ describe('InviteMember', function() {
     });
 
     const pushMock = jest.fn();
-    let wrapper = mount(
+    let wrapper = mountWithTheme(
       <InviteMember
         router={{
           push: pushMock,
@@ -131,7 +131,7 @@ describe('InviteMember', function() {
     expect(pushMock).toHaveBeenCalledWith('/settings/testOrg/members/');
     expect(wrapper.state('loading')).toBe(false);
 
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <InviteMember
         router={{
           push: pushMock,
@@ -167,7 +167,7 @@ describe('InviteMember', function() {
 
     const mock = MockApiClient.addMockResponse(inviteRequest);
 
-    const wrapper = mount(<InviteMember {...baseProps} />, baseContext);
+    const wrapper = mountWithTheme(<InviteMember {...baseProps} />, baseContext);
 
     expect(wrapper.state('loading')).toBe(false);
 
@@ -210,7 +210,7 @@ describe('InviteMember', function() {
 
     const mock = MockApiClient.addMockResponse(inviteRequest);
 
-    const wrapper = mount(<InviteMember {...baseProps} />, baseContext);
+    const wrapper = mountWithTheme(<InviteMember {...baseProps} />, baseContext);
 
     let node = wrapper.find('RoleSelect PanelItem').first();
     node.props().onClick();
@@ -250,7 +250,7 @@ describe('InviteMember', function() {
       statusCode: 200,
     });
 
-    const wrapper = mount(<InviteMember {...baseProps} />, baseContext);
+    const wrapper = mountWithTheme(<InviteMember {...baseProps} />, baseContext);
     // Wait for team list to load
     await tick();
 
@@ -302,7 +302,7 @@ describe('InviteMember', function() {
       method: 'POST',
       statusCode: 200,
     });
-    const wrapper = mount(<InviteMember {...baseProps} />, baseContext);
+    const wrapper = mountWithTheme(<InviteMember {...baseProps} />, baseContext);
 
     // Wait for team list to fetch.
     await wrapper.update();

@@ -1,7 +1,7 @@
 import React from 'react';
 
 import {createProject} from 'app/actionCreators/projects';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import OnboardingPlatform from 'app/views/onboarding/platform';
 import TeamStore from 'app/stores/teamStore';
 
@@ -11,7 +11,7 @@ describe('OnboardingWelcome', function() {
   it('calls onUpdate when setting the platform', function() {
     const onUpdate = jest.fn();
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OnboardingPlatform active onUpdate={onUpdate} />,
       TestStubs.routerContext()
     );
@@ -28,7 +28,7 @@ describe('OnboardingWelcome', function() {
     const onUpdate = jest.fn();
     const onReturnToStep = jest.fn();
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OnboardingPlatform
         platform="csharp"
         onUpdate={onUpdate}
@@ -48,7 +48,7 @@ describe('OnboardingWelcome', function() {
   it('creates a project when no project exists', async function() {
     const onComplete = jest.fn();
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OnboardingPlatform active onComplete={onComplete} />,
       TestStubs.routerContext()
     );
@@ -86,7 +86,7 @@ describe('OnboardingWelcome', function() {
     createProject.mockReset();
     const onComplete = jest.fn();
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OnboardingPlatform
         active
         project={{id: '1', slug: 'test'}}

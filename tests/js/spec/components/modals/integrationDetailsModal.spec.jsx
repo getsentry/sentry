@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import IntegrationDetailsModal from 'app/components/modals/integrationDetailsModal';
 import HookStore from 'app/stores/hookStore';
 
@@ -13,7 +13,7 @@ describe('IntegrationDetailsModal', function() {
     const onClose = jest.fn();
     const provider = TestStubs.GitHubIntegrationProvider();
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <IntegrationDetailsModal
         provider={provider}
         closeModal={onClose}
@@ -35,7 +35,7 @@ describe('IntegrationDetailsModal', function() {
     const onClose = jest.fn();
     const provider = TestStubs.JiraIntegrationProvider();
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <IntegrationDetailsModal
         provider={provider}
         closeModal={onClose}
@@ -62,7 +62,7 @@ describe('IntegrationDetailsModal', function() {
 
     const provider = TestStubs.GitHubIntegrationProvider();
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <IntegrationDetailsModal
         provider={provider}
         onAddIntegration={integrationAdded}

@@ -2,8 +2,8 @@ import {browserHistory} from 'react-router';
 import {clonedeep} from 'lodash';
 import React from 'react';
 
-import {initializeOrg} from 'app-test/helpers/initializeOrg';
-import {mount, shallow} from 'enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 import ErrorRobot from 'app/components/errorRobot';
 import GroupStore from 'app/stores/groupStore';
 import IssueListWithStores, {IssueList} from 'app/views/issueList/overview';
@@ -157,7 +157,7 @@ describe('IssueList,', function() {
         },
       };
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <IssueListWithStores {...newRouter} {...defaultProps} {...p} />,
         routerContext
       );

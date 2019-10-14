@@ -1,5 +1,5 @@
 import React from 'react';
-import {shallow, mount} from 'enzyme';
+import {shallow, mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import {SmartSearchBar, addSpace, removeSpace} from 'app/components/smartSearchBar';
@@ -252,7 +252,7 @@ describe('SmartSearchBar', function() {
   describe('onKeyUp()', function() {
     describe('escape', function() {
       it('blurs the input', function() {
-        const wrapper = mount(
+        const wrapper = mountWithTheme(
           <SmartSearchBar organization={organization} supportedTags={supportedTags} />,
           options
         );
@@ -271,7 +271,7 @@ describe('SmartSearchBar', function() {
   describe('render()', function() {
     it('invokes onSearch() when submitting the form', function() {
       const stubbedOnSearch = jest.fn();
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <SmartSearchBar
           onSearch={stubbedOnSearch}
           organization={organization}
@@ -296,7 +296,7 @@ describe('SmartSearchBar', function() {
         supportedTags,
         onSearch: jest.fn(),
       };
-      const wrapper = mount(<SmartSearchBar {...props} />, options);
+      const wrapper = mountWithTheme(<SmartSearchBar {...props} />, options);
 
       wrapper.find('button[aria-label="Clear search"]').simulate('click');
 
@@ -306,7 +306,7 @@ describe('SmartSearchBar', function() {
 
     it('invokes onSearch() on submit in hasPinnedSearch mode', function() {
       const stubbedOnSearch = jest.fn();
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <SmartSearchBar
           onSearch={stubbedOnSearch}
           organization={organization}
@@ -330,7 +330,7 @@ describe('SmartSearchBar', function() {
       organization,
       supportedTags,
     };
-    const wrapper = mount(<SmartSearchBar {...props} />, options);
+    const wrapper = mountWithTheme(<SmartSearchBar {...props} />, options);
     expect(wrapper.state('query')).toEqual('');
   });
 
@@ -344,7 +344,7 @@ describe('SmartSearchBar', function() {
         organization,
         supportedTags,
       };
-      const searchBar = mount(<SmartSearchBar {...props} />, options).instance();
+      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
       searchBar.updateAutoCompleteItems();
       expect(searchBar.state.searchTerm).toEqual('');
       expect(searchBar.state.searchItems).toEqual([]);
@@ -358,7 +358,7 @@ describe('SmartSearchBar', function() {
         supportedTags,
       };
       jest.useRealTimers();
-      const wrapper = mount(<SmartSearchBar {...props} />, options);
+      const wrapper = mountWithTheme(<SmartSearchBar {...props} />, options);
       const searchBar = wrapper.instance();
       searchBar.updateAutoCompleteItems();
       await tick();
@@ -377,7 +377,7 @@ describe('SmartSearchBar', function() {
         supportedTags,
       };
       jest.useRealTimers();
-      const wrapper = mount(<SmartSearchBar {...props} />, options);
+      const wrapper = mountWithTheme(<SmartSearchBar {...props} />, options);
       const searchBar = wrapper.instance();
       searchBar.updateAutoCompleteItems();
       await tick();
@@ -396,7 +396,7 @@ describe('SmartSearchBar', function() {
         supportedTags,
       };
       jest.useRealTimers();
-      const wrapper = mount(<SmartSearchBar {...props} />, options);
+      const wrapper = mountWithTheme(<SmartSearchBar {...props} />, options);
       const searchBar = wrapper.instance();
       searchBar.getCursorPosition = jest.fn();
       searchBar.getCursorPosition.mockReturnValue(15); // end of line
@@ -416,7 +416,7 @@ describe('SmartSearchBar', function() {
         organization,
         supportedTags,
       };
-      const searchBar = mount(<SmartSearchBar {...props} />, options).instance();
+      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
       searchBar.updateAutoCompleteItems();
       jest.advanceTimersByTime(301);
       expect(environmentTagValuesMock).not.toHaveBeenCalled();
@@ -433,7 +433,7 @@ describe('SmartSearchBar', function() {
         organization,
         supportedTags,
       };
-      const searchBar = mount(
+      const searchBar = mountWithTheme(
         <SmartSearchBar {...props} api={new Client()} />,
         options
       ).instance();
@@ -455,7 +455,7 @@ describe('SmartSearchBar', function() {
         supportedTags,
       };
 
-      const searchBar = mount(
+      const searchBar = mountWithTheme(
         <SmartSearchBar {...props} api={new Client()} />,
         options
       ).instance();
@@ -496,7 +496,7 @@ describe('SmartSearchBar', function() {
     });
 
     it('does not pin when query is empty', async function() {
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <SmartSearchBar
           api={new Client()}
           organization={organization}
@@ -514,7 +514,7 @@ describe('SmartSearchBar', function() {
     });
 
     it('adds pins', async function() {
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <SmartSearchBar
           api={new Client()}
           organization={organization}
@@ -534,7 +534,7 @@ describe('SmartSearchBar', function() {
 
     it('removes pins', async function() {
       const pinnedSearch = TestStubs.Search({isPinned: true});
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <SmartSearchBar
           api={new Client()}
           organization={organization}

@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import IncidentsContainer from 'app/views/incidents';
 
@@ -7,7 +7,7 @@ describe('IncidentsContainer', function() {
   describe('no access without feature flag', function() {
     it('display no access message', function() {
       const organization = TestStubs.Organization({projects: [TestStubs.Project()]});
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <IncidentsContainer />,
         TestStubs.routerContext([{organization}])
       );

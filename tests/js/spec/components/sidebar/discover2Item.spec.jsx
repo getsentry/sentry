@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {browserHistory} from 'react-router';
 
 import {Client} from 'app/api';
@@ -7,7 +7,7 @@ import Discover2Item from 'app/components/sidebar/discover2Item';
 import DiscoverSavedQueriesStore from 'app/stores/discoverSavedQueriesStore';
 
 const makeWrapper = props =>
-  mount(
+  mountWithTheme(
     <Discover2Item {...props} label="Discover" icon="icon-search" />,
     TestStubs.routerContext()
   );

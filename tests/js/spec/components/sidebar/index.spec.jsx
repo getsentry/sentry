@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount, shallow} from 'enzyme';
+import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 import ServiceIncidentStore from 'app/stores/serviceIncidentStore';
 import ConfigStore from 'app/stores/configStore';
 import SidebarContainer, {Sidebar} from 'app/components/sidebar';
@@ -13,7 +13,7 @@ describe('Sidebar', function() {
   const apiMocks = {};
 
   const createWrapper = props =>
-    mount(
+    mountWithTheme(
       <Sidebar
         organization={organization}
         user={user}
@@ -63,7 +63,7 @@ describe('Sidebar', function() {
   });
 
   it('can toggle collapsed state', async function() {
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <SidebarContainer organization={organization} user={user} router={router} />,
       routerContext
     );
@@ -86,7 +86,7 @@ describe('Sidebar', function() {
   });
 
   it('can have onboarding feature', async function() {
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <SidebarContainer
         organization={{...organization, features: ['onboarding']}}
         user={user}

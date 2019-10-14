@@ -1,7 +1,7 @@
 import React from 'react';
 
-import {initializeOrg} from 'app-test/helpers/initializeOrg';
-import {mount} from 'enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import GroupTags from 'app/views/organizationGroupDetails/groupTags';
 
 describe('GroupTags', function() {
@@ -16,7 +16,7 @@ describe('GroupTags', function() {
   });
 
   it('navigates to issue details events tab with correct query params', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <GroupTags
         group={group}
         query={{}}

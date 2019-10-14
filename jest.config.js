@@ -9,9 +9,9 @@ module.exports = {
   coverageDirectory: '.artifacts/coverage/',
   snapshotSerializers: ['enzyme-to-json/serializer'],
   moduleNameMapper: {
-    '^app-test/(.*)': '<rootDir>/tests/js/$1',
-    '\\.(css|less|png)$': '<rootDir>/tests/js/helpers/importStyleMock.js',
-    '\\.(svg)$': '<rootDir>/tests/js/helpers/svgMock.js',
+    '^sentry-test/(.*)': '<rootDir>/tests/js/sentry-test/$1',
+    '\\.(css|less|png)$': '<rootDir>/tests/js/sentry-test/importStyleMock.js',
+    '\\.(svg)$': '<rootDir>/tests/js/sentry-test/svgMock.js',
     'integration-docs-platforms':
       '<rootDir>/tests/fixtures/integration-docs/_platforms.json',
   },

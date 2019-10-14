@@ -1,4 +1,4 @@
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import PropTypes from 'prop-types';
 import React from 'react';
 
@@ -76,7 +76,7 @@ describe('ProjectKeyDetails', function() {
     });
     const routerContext = TestStubs.routerContext();
 
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <ProjectKeyDetails
         routes={[]}
         params={{

@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {browserHistory} from 'react-router';
 
 import EventSaveQueryButton from 'app/views/eventsV2/saveQueryButton';
@@ -20,7 +20,7 @@ describe('EventsV2 > SaveQueryButton', function() {
   });
 
   it('renders a button', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <EventSaveQueryButton
         organization={organization}
         location={location}
@@ -34,7 +34,7 @@ describe('EventsV2 > SaveQueryButton', function() {
   });
 
   it('renders a popover for a new query', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <EventSaveQueryButton
         organization={organization}
         location={location}
@@ -55,7 +55,7 @@ describe('EventsV2 > SaveQueryButton', function() {
   });
 
   it('renders a popover for an existing query', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <EventSaveQueryButton
         organization={organization}
         location={location}
@@ -73,7 +73,7 @@ describe('EventsV2 > SaveQueryButton', function() {
   });
 
   it('sets input value based on props', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <EventSaveQueryButton
         organization={organization}
         location={location}
@@ -115,7 +115,7 @@ describe('EventsV2 > SaveQueryButton', function() {
         fieldnames: ['title', 'total'],
       },
     });
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <EventSaveQueryButton
         organization={organization}
         location={location}
@@ -166,7 +166,7 @@ describe('EventsV2 > SaveQueryButton', function() {
       ALL_VIEWS.find(view => view.name === 'Errors')
     );
     errors.id = '1';
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <EventSaveQueryButton
         organization={organization}
         location={location}

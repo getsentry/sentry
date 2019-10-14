@@ -1,5 +1,5 @@
 import React from 'react';
-import {shallow, mount} from 'enzyme';
+import {shallow, mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import AccountIdentities from 'app/views/settings/account/accountIdentities';
@@ -53,7 +53,7 @@ describe('AccountIdentities', function() {
       ],
     });
 
-    const wrapper = mount(<AccountIdentities />, TestStubs.routerContext());
+    const wrapper = mountWithTheme(<AccountIdentities />, TestStubs.routerContext());
 
     const disconnectRequest = {
       url: `${ENDPOINT}1/`,

@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 
@@ -21,7 +21,7 @@ describe('DropdownAutoComplete', function() {
   ];
 
   it('has actor wrapper', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <DropdownAutoComplete items={items}>{() => 'Click Me!'}</DropdownAutoComplete>,
       routerContext
     );
@@ -30,7 +30,7 @@ describe('DropdownAutoComplete', function() {
   });
 
   it('opens dropdown menu when actor is clicked', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <DropdownAutoComplete items={items}>{() => 'Click Me!'}</DropdownAutoComplete>,
       routerContext
     );
@@ -42,7 +42,7 @@ describe('DropdownAutoComplete', function() {
   });
 
   it('toggles dropdown menu when actor is clicked', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <DropdownAutoComplete allowActorToggle items={items}>
         {() => 'Click Me!'}
       </DropdownAutoComplete>,

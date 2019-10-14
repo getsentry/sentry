@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ProjectSelector from 'app/components/projectSelector';
 import ProjectsStore from 'app/stores/projectsStore';
@@ -52,7 +52,7 @@ describe('ProjectSelector', function() {
   });
 
   it('should show empty message with no projects button, when no projects, and has no "project:write" access', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProjectSelector
         {...props}
         organization={{
@@ -75,7 +75,7 @@ describe('ProjectSelector', function() {
   });
 
   it('should show empty message and create project button, when no projects and has "project:write" access', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProjectSelector
         {...props}
         organization={{
@@ -98,13 +98,13 @@ describe('ProjectSelector', function() {
   });
 
   it('lists projects and has filter', function() {
-    const wrapper = mount(<ProjectSelector {...props} />, routerContext);
+    const wrapper = mountWithTheme(<ProjectSelector {...props} />, routerContext);
     openMenu(wrapper);
     expect(wrapper.find('AutoCompleteItem')).toHaveLength(2);
   });
 
   it('can filter projects by project name', function() {
-    const wrapper = mount(<ProjectSelector {...props} />, routerContext);
+    const wrapper = mountWithTheme(<ProjectSelector {...props} />, routerContext);
     openMenu(wrapper);
 
     wrapper.find('StyledInput').simulate('change', {target: {value: 'TEST'}});
@@ -115,7 +115,7 @@ describe('ProjectSelector', function() {
   });
 
   it('does not close dropdown when input is clicked', async function() {
-    const wrapper = mount(<ProjectSelector {...props} />, routerContext);
+    const wrapper = mountWithTheme(<ProjectSelector {...props} />, routerContext);
     openMenu(wrapper);
 
     wrapper.find('StyledInput').simulate('click');
@@ -125,7 +125,7 @@ describe('ProjectSelector', function() {
   });
 
   it('closes dropdown when project is selected', function() {
-    const wrapper = mount(<ProjectSelector {...props} />, routerContext);
+    const wrapper = mountWithTheme(<ProjectSelector {...props} />, routerContext);
     openMenu(wrapper);
 
     // Select first project
@@ -138,7 +138,10 @@ describe('ProjectSelector', function() {
 
   it('calls callback when project is selected', function() {
     const mock = jest.fn();
-    const wrapper = mount(<ProjectSelector {...props} onSelect={mock} />, routerContext);
+    const wrapper = mountWithTheme(
+      <ProjectSelector {...props} onSelect={mock} />,
+      routerContext
+    );
     openMenu(wrapper);
 
     // Select first project
@@ -155,7 +158,7 @@ describe('ProjectSelector', function() {
   });
 
   it('shows empty filter message when filtering has no results', function() {
-    const wrapper = mount(<ProjectSelector {...props} />, routerContext);
+    const wrapper = mountWithTheme(<ProjectSelector {...props} />, routerContext);
     openMenu(wrapper);
 
     wrapper.find('StyledInput').simulate('change', {target: {value: 'Foo'}});
@@ -164,7 +167,7 @@ describe('ProjectSelector', function() {
 
   it('does not call `onSelect` when using multi select', function() {
     const mock = jest.fn();
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProjectSelector {...props} multi onSelect={mock} />,
       routerContext
     );
@@ -182,7 +185,7 @@ describe('ProjectSelector', function() {
 
   it('calls `onMultiSelect` and render prop when using multi select as an uncontrolled component', async function() {
     const mock = jest.fn();
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProjectSelector {...props} multi onMultiSelect={mock} />,
       routerContext
     );
@@ -285,7 +288,10 @@ describe('ProjectSelector', function() {
     const project = TestStubs.Project();
     const multiProjectProps = {...props, multiProjects: [project]};
 
-    const wrapper = mount(<ProjectSelector {...multiProjectProps} />, routerContext);
+    const wrapper = mountWithTheme(
+      <ProjectSelector {...multiProjectProps} />,
+      routerContext
+    );
     openMenu(wrapper);
     expect(wrapper.find('AutoCompleteItem')).toHaveLength(1);
     expect(wrapper.text()).not.toContain("Projects I don't belong to");
@@ -300,7 +306,10 @@ describe('ProjectSelector', function() {
       nonMemberProjects: [nonMemberProject],
     };
 
-    const wrapper = mount(<ProjectSelector {...multiProjectProps} />, routerContext);
+    const wrapper = mountWithTheme(
+      <ProjectSelector {...multiProjectProps} />,
+      routerContext
+    );
     openMenu(wrapper);
     expect(wrapper.text()).toContain("Projects I don't belong to");
     expect(wrapper.find('AutoCompleteItem')).toHaveLength(2);

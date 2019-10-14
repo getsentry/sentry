@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import OrganizationApiKeysList from 'app/views/settings/organizationApiKeys/organizationApiKeysList';
 
@@ -16,7 +16,7 @@ describe('OrganizationApiKeysList', function() {
   beforeEach(function() {});
 
   it('renders', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationApiKeysList
         params={{orgId: 'org-slug'}}
         routes={routes}
@@ -28,7 +28,7 @@ describe('OrganizationApiKeysList', function() {
   });
 
   it('opens a modal when trying to delete a key', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationApiKeysList
         params={{orgId: 'org-slug'}}
         routes={routes}

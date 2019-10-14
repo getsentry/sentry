@@ -1,8 +1,8 @@
 import {browserHistory} from 'react-router';
 import React from 'react';
 
-import {initializeOrg} from 'app-test/helpers/initializeOrg';
-import {mount} from 'enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import OrganizationCrumb from 'app/views/settings/components/settingsBreadcrumb/organizationCrumb';
 
 jest.unmock('app/utils/recreateRoute');
@@ -28,7 +28,7 @@ describe('OrganizationCrumb', function() {
   };
 
   const createWrapper = props =>
-    mount(
+    mountWithTheme(
       <OrganizationCrumb
         organizations={organizations}
         organization={organization}

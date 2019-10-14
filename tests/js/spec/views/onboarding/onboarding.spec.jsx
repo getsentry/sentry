@@ -1,8 +1,8 @@
 import {browserHistory} from 'react-router';
 import React from 'react';
 
-import {initializeOrg} from 'app-test/helpers/initializeOrg';
-import {mount} from 'enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import Onboarding, {stepPropTypes} from 'app/views/onboarding/onboarding';
 import ProjectsStore from 'app/stores/projectsStore';
 
@@ -59,7 +59,10 @@ describe('Onboarding', function() {
       orgId: 'org-bar',
     };
 
-    mount(<Onboarding steps={MOCKED_STEPS} params={params} />, TestStubs.routerContext());
+    mountWithTheme(
+      <Onboarding steps={MOCKED_STEPS} params={params} />,
+      TestStubs.routerContext()
+    );
 
     expect(browserHistory.replace).toHaveBeenCalledWith('/onboarding/org-bar/step1/');
   });
@@ -70,7 +73,7 @@ describe('Onboarding', function() {
       orgId: 'org-bar',
     };
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <Onboarding steps={MOCKED_STEPS} params={params} />,
       TestStubs.routerContext()
     );
@@ -100,7 +103,7 @@ describe('Onboarding', function() {
       orgId: 'org-bar',
     };
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <Onboarding steps={MOCKED_STEPS} params={params} />,
       TestStubs.routerContext()
     );
@@ -115,7 +118,7 @@ describe('Onboarding', function() {
       orgId: 'org-bar',
     };
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <Onboarding steps={MOCKED_STEPS} params={params} />,
       TestStubs.routerContext()
     );
@@ -157,7 +160,7 @@ describe('Onboarding', function() {
       orgId: 'org-bar',
     };
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <Onboarding steps={MOCKED_STEPS} params={params} />,
       TestStubs.routerContext()
     );
@@ -186,7 +189,7 @@ describe('Onboarding', function() {
       orgId: organization.slug,
     };
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <Onboarding steps={MOCKED_STEPS} params={params} />,
       routerContext
     );

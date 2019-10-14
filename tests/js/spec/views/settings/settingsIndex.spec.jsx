@@ -1,4 +1,4 @@
-import {shallow, mount} from 'enzyme';
+import {shallow, mountWithTheme} from 'sentry-test/enzyme';
 import React from 'react';
 
 import * as OrgActions from 'app/actionCreators/organizations';
@@ -52,7 +52,7 @@ describe('SettingsIndex', function() {
         url: `/organizations/${organization.slug}/`,
       });
       ConfigStore.config.isOnPremise = false;
-      wrapper = mount(<SettingsIndex params={{}} />, TestStubs.routerContext());
+      wrapper = mountWithTheme(<SettingsIndex params={{}} />, TestStubs.routerContext());
     });
 
     it('fetches org details for SidebarDropdown', function() {

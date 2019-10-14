@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import SearchBar from 'app/views/events/searchBar';
 import TagStore from 'app/stores/tagStore';
@@ -58,8 +58,8 @@ describe('SearchBar', function() {
     MockApiClient.clearMockResponses();
   });
 
-  it('fetches organization tags on mount', async function() {
-    const wrapper = mount(<SearchBar {...props} />, options);
+  it('fetches organization tags on mountWithTheme', async function() {
+    const wrapper = mountWithTheme(<SearchBar {...props} />, options);
     await tick();
     expect(tagKeysMock).toHaveBeenCalledTimes(1);
     wrapper.update();
@@ -72,7 +72,7 @@ describe('SearchBar', function() {
   });
 
   it('searches and selects an event field value', async function() {
-    const wrapper = mount(<SearchBar {...props} />, options);
+    const wrapper = mountWithTheme(<SearchBar {...props} />, options);
     await tick();
     setQuery(wrapper, 'gpu:');
 
@@ -98,7 +98,7 @@ describe('SearchBar', function() {
   });
 
   it('does not requery for event field values if query does not change', async function() {
-    const wrapper = mount(<SearchBar {...props} />, options);
+    const wrapper = mountWithTheme(<SearchBar {...props} />, options);
     await tick();
     setQuery(wrapper, 'gpu:');
 
@@ -113,7 +113,7 @@ describe('SearchBar', function() {
   });
 
   it('removes highlight when query is empty', async function() {
-    const wrapper = mount(<SearchBar {...props} />, options);
+    const wrapper = mountWithTheme(<SearchBar {...props} />, options);
     await tick();
     setQuery(wrapper, 'gpu');
 
@@ -128,7 +128,7 @@ describe('SearchBar', function() {
   });
 
   it('ignores negation ("!") at the beginning of search term', async function() {
-    const wrapper = mount(<SearchBar {...props} />, options);
+    const wrapper = mountWithTheme(<SearchBar {...props} />, options);
     await tick();
 
     setQuery(wrapper, '!gp');
@@ -144,7 +144,7 @@ describe('SearchBar', function() {
   });
 
   it('ignores wildcard ("*") at the beginning of tag value query', async function() {
-    const wrapper = mount(<SearchBar {...props} />, options);
+    const wrapper = mountWithTheme(<SearchBar {...props} />, options);
     await tick();
 
     setQuery(wrapper, '!gpu:*');

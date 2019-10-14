@@ -1,7 +1,7 @@
 import $ from 'jquery';
 import React from 'react';
 
-import {mount} from 'enzyme';
+import {mount} from 'sentry-test/enzyme';
 import DropdownLink from 'app/components/dropdownLink';
 
 import {MENU_CLOSE_DELAY} from 'app/constants';

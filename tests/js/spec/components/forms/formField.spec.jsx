@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import TextField from 'app/views/settings/components/forms/textField';
 import Form from 'app/views/settings/components/forms/form';
@@ -15,7 +15,7 @@ describe('FormField + model', function() {
   });
 
   it('renders with Form', function() {
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <Form model={model}>
         <TextField name="fieldName" />
       </Form>,
@@ -25,7 +25,7 @@ describe('FormField + model', function() {
   });
 
   it('sets initial data in model', function() {
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <Form model={model} initialData={{fieldName: 'test'}}>
         <TextField name="fieldName" />
       </Form>,
@@ -36,7 +36,7 @@ describe('FormField + model', function() {
   });
 
   it('has `defaultValue` from field', function() {
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <Form model={model}>
         <TextField name="fieldName" defaultValue="foo" />
       </Form>,
@@ -48,7 +48,7 @@ describe('FormField + model', function() {
   });
 
   it('does not use `defaultValue` when there is initial data', function() {
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <Form model={model} initialData={{fieldName: 'test'}}>
         <TextField name="fieldName" defaultValue="foo" />
       </Form>,
@@ -60,7 +60,7 @@ describe('FormField + model', function() {
   });
 
   it('transforms `defaultValue` from field with `setValue`', function() {
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <Form model={model}>
         <TextField name="fieldName" defaultValue="foo" setValue={v => `${v}${v}`} />
       </Form>,
@@ -72,7 +72,7 @@ describe('FormField + model', function() {
   });
 
   it('sets field descriptor in model', function() {
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <Form model={model} initialData={{fieldName: 'test'}}>
         <TextField name="fieldName" required />
       </Form>,
@@ -83,7 +83,7 @@ describe('FormField + model', function() {
   });
 
   it('removes field descriptor in model on unmount', function() {
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <Form model={model} initialData={{fieldName: 'test'}}>
         <TextField name="fieldName" required />
       </Form>,

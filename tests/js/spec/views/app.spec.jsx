@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount} from 'enzyme';
+import {mount} from 'sentry-test/enzyme';
 import App from 'app/views/app';
 import ConfigStore from 'app/stores/configStore';
 

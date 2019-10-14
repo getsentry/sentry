@@ -1,8 +1,8 @@
 import React from 'react';
 
 import {Client} from 'app/api';
-import {initializeOrg} from 'app-test/helpers/initializeOrg';
-import {mount} from 'enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import TeamMembers from 'app/views/settings/organizationTeams/teamMembers';
 
 describe('TeamMembers', function() {
@@ -25,7 +25,7 @@ describe('TeamMembers', function() {
   });
 
   it('renders', async function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <TeamMembers
         params={{orgId: organization.slug, teamId: team.slug}}
         organization={organization}
@@ -46,7 +46,7 @@ describe('TeamMembers', function() {
       statusCode: 200,
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <TeamMembers
         params={{orgId: organization.slug, teamId: team.slug}}
         organization={organization}
@@ -95,7 +95,7 @@ describe('TeamMembers', function() {
       access: [],
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <TeamMembers
         params={{orgId: organization.slug, teamId: team.slug}}
         organization={organizationMember}

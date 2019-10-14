@@ -52,7 +52,7 @@ exports[`SubscriptionBox renders resource checkbox 1`] = `
           disabled={false}
         >
           <div
-            className="css-6c04tk-SubscriptionGridItem e139qogw1"
+            className="css-1dyjgup-SubscriptionGridItem e139qogw1"
             disabled={false}
           >
             <SubscriptionInfo>
@@ -65,14 +65,14 @@ exports[`SubscriptionBox renders resource checkbox 1`] = `
                 >
                   <SubscriptionTitle>
                     <div
-                      className="css-17mtfmy-SubscriptionTitle e139qogw4"
+                      className="css-bubf59-SubscriptionTitle e139qogw4"
                     >
                       issue
                     </div>
                   </SubscriptionTitle>
                   <SubscriptionDescription>
                     <div
-                      className="css-1jp4ud-SubscriptionDescription e139qogw3"
+                      className="css-1ghu3z2-SubscriptionDescription e139qogw3"
                     >
                       created, resolved, assigned
                     </div>

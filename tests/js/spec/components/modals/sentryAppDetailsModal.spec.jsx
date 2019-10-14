@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import SentryAppDetailsModal from 'app/components/modals/sentryAppDetailsModal';
 
 describe('SentryAppDetailsModal', function() {
@@ -13,7 +13,7 @@ describe('SentryAppDetailsModal', function() {
   const installButton = 'Button[data-test-id="install"]';
 
   function render() {
-    return mount(
+    return mountWithTheme(
       <SentryAppDetailsModal
         sentryApp={sentryApp}
         organization={org}

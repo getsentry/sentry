@@ -1,7 +1,7 @@
 import React from 'react';
 
-import {initializeOrg} from 'app-test/helpers/initializeOrg';
-import {mount} from 'enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import ApiApplications from 'app/views/settings/account/apiApplications';
 
 describe('ApiApplications', function() {
@@ -10,7 +10,7 @@ describe('ApiApplications', function() {
   const {router, routerContext} = initializeOrg();
 
   const createWrapper = props => {
-    wrapper = mount(<ApiApplications {...props} />, routerContext);
+    wrapper = mountWithTheme(<ApiApplications {...props} />, routerContext);
   };
 
   beforeEach(function() {

@@ -1,7 +1,7 @@
 import React from 'react';
 
 import * as OrgActions from 'app/actionCreators/organizations';
-import {mount, shallow} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {ContextPickerModal} from 'app/components/contextPickerModal';
 
 jest.mock('jquery');
@@ -37,7 +37,7 @@ describe('ContextPickerModal', function() {
   );
 
   it('renders with only org selector when no org in latest context', function() {
-    const wrapper = shallow(getComponent());
+    const wrapper = mountWithTheme(getComponent());
 
     expect(wrapper.find('StyledSelectControl[name="organization"]').exists()).toBe(true);
     expect(wrapper.find('StyledSelectControl[name="project"]').exists()).toBe(false);
@@ -48,7 +48,7 @@ describe('ContextPickerModal', function() {
     const api = MockApiClient.addMockResponse({
       url: `/organizations/${org2.slug}/`,
     });
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       getComponent({organizations: [org2]}),
       TestStubs.routerContext()
     );
@@ -66,7 +66,7 @@ describe('ContextPickerModal', function() {
     const api = MockApiClient.addMockResponse({
       url: `/organizations/${org2.slug}/`,
     });
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       getComponent({organizations: [org2]}),
       TestStubs.routerContext()
     );
@@ -87,7 +87,7 @@ describe('ContextPickerModal', function() {
     const api = MockApiClient.addMockResponse({
       url: `/organizations/${org2.slug}/`,
     });
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       getComponent({
         needOrg: true,
         needProject: true,
@@ -109,7 +109,7 @@ describe('ContextPickerModal', function() {
   });
 
   it('selects an org and calls `onFinish` with URL with organization slug', function() {
-    const wrapper = mount(getComponent({}), TestStubs.routerContext());
+    const wrapper = mountWithTheme(getComponent({}), TestStubs.routerContext());
     const mock = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/`,
     });
@@ -128,7 +128,7 @@ describe('ContextPickerModal', function() {
   });
 
   it('renders with project selector and org selector selected when org is in latest context', function() {
-    const wrapper = shallow(
+    const wrapper = mountWithTheme(
       getComponent({
         needOrg: true,
         needProject: true,
@@ -156,7 +156,7 @@ describe('ContextPickerModal', function() {
     const api = MockApiClient.addMockResponse({
       url: `/organizations/${org2.slug}/`,
     });
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       getComponent({
         needOrg: true,
         needProject: true,

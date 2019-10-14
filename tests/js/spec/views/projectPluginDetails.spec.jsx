@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ProjectPluginDetailsContainer, {
   ProjectPluginDetails,
@@ -47,7 +47,7 @@ describe('ProjectPluginDetails', function() {
       },
     });
 
-    component = mount(
+    component = mountWithTheme(
       <ProjectPluginDetailsContainer
         organization={org}
         project={project}
@@ -69,7 +69,7 @@ describe('ProjectPluginDetails', function() {
 
   it('resets plugin', function() {
     // Test component instead of container so that we can access state
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProjectPluginDetails
         organization={org}
         project={project}

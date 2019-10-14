@@ -1,7 +1,7 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {initializeOrg} from 'app-test/helpers/initializeOrg';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import IncidentRulesDetails from 'app/views/settings/incidentRules/details';
 import GlobalModal from 'app/components/globalModal';
 
@@ -36,7 +36,7 @@ describe('Incident Rules Details', function() {
         }),
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <React.Fragment>
         <GlobalModal />
         <IncidentRulesDetails

@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {EventsV2} from 'app/views/eventsV2';
 
@@ -75,7 +75,7 @@ describe('EventsV2', function() {
 
   it('renders a link list', function() {
     /* TODO(leedongwei)
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <EventsV2
         organization={TestStubs.Organization({features, projects: [TestStubs.Project()]})}
         location={{query: {}}}
@@ -91,7 +91,7 @@ describe('EventsV2', function() {
 
   it('renders a list of events', function() {
     /* TODO(leedongwei)
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <EventsV2
         organization={TestStubs.Organization({features, projects: [TestStubs.Project()]})}
         location={{query: {...generateFields()}}}
@@ -106,7 +106,7 @@ describe('EventsV2', function() {
   });
 
   it('handles no projects', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <EventsV2
         organization={TestStubs.Organization({features})}
         location={{query: {...generateFields()}}}
@@ -121,7 +121,7 @@ describe('EventsV2', function() {
 
   it('generates an active sort link based on default sort', function() {
     /* TODO(leedongwei)
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <EventsV2
         organization={TestStubs.Organization({features, projects: [TestStubs.Project()]})}
         location={{query: {...generateFields(), sort: ['-timestamp']}}}
@@ -164,7 +164,7 @@ describe('EventsV2', function() {
 
   it('generates links to modals', async function() {
     /* TODO(leedongwei)
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <EventsV2
         organization={TestStubs.Organization({features, projects: [TestStubs.Project()]})}
         location={{query: {...generateFields()}}}
@@ -186,7 +186,7 @@ describe('EventsV2', function() {
       features,
       projects: [TestStubs.Project()],
     });
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <EventsV2
         organization={organization}
         params={{orgId: organization.slug}}

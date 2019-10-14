@@ -2,7 +2,7 @@ import {Modal} from 'react-bootstrap';
 import {browserHistory} from 'react-router';
 import React from 'react';
 
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import CreateIncidentModal from 'app/components/modals/createIncidentModal';
 
 describe('CreateIncidentModal', function() {
@@ -28,7 +28,7 @@ describe('CreateIncidentModal', function() {
         identifier: '11111',
       },
     });
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <CreateIncidentModal
         Body={Modal.Body}
         Header={Modal.Header}

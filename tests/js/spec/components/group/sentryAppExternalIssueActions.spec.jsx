@@ -1,8 +1,8 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
+import {selectByValue} from 'sentry-test/select';
 
 import SentryAppExternalIssueActions from 'app/components/group/sentryAppExternalIssueActions';
-import {selectByValue} from '../../../helpers/select';
 
 describe('SentryAppExternalIssueActions', () => {
   let group;
@@ -25,7 +25,7 @@ describe('SentryAppExternalIssueActions', () => {
 
   describe('without an external issue linked', () => {
     beforeEach(() => {
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <SentryAppExternalIssueActions
           group={group}
           sentryAppInstallation={install}
@@ -146,7 +146,7 @@ describe('SentryAppExternalIssueActions', () => {
 
   describe('with an external issue linked', () => {
     beforeEach(() => {
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <SentryAppExternalIssueActions
           group={group}
           sentryAppComponent={component}

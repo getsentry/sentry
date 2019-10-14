@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mount} from 'sentry-test/enzyme';
 
 import ConfigStore from 'app/stores/configStore';
 import withConfig from 'app/utils/withConfig';

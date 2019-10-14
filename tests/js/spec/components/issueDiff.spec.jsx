@@ -1,12 +1,12 @@
 import React from 'react';
-import {mount, shallow} from 'enzyme';
+import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 import {IssueDiff} from 'app/components/issueDiff';
 import {Client} from 'app/api';
-import entries from '../../mocks/entries';
 
 jest.mock('app/api');
 
 describe('IssueDiff', function() {
+  const entries = TestStubs.Entries();
   const routerContext = TestStubs.routerContext();
   const api = new MockApiClient();
 
@@ -39,7 +39,7 @@ describe('IssueDiff', function() {
     });
 
     // Need `mount` because of componentDidMount in <IssueDiff>
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <IssueDiff
         api={api}
         baseIssueId="base"
@@ -73,7 +73,7 @@ describe('IssueDiff', function() {
     });
 
     // Need `mount` because of componentDidMount in <IssueDiff>
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <IssueDiff
         api={api}
         baseIssueId="base"

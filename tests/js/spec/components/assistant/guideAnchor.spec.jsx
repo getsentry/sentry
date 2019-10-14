@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount, shallow} from 'enzyme';
+import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import GuideActions from 'app/actions/guideActions';
 import ConfigStore from 'app/stores/configStore';
@@ -26,8 +26,8 @@ describe('GuideAnchor', function() {
         isSuperuser: true,
       },
     };
-    wrapper1 = mount(<GuideAnchor target="target 1" />, routerContext);
-    wrapper2 = mount(<GuideAnchor target="target 2" />, routerContext);
+    wrapper1 = mountWithTheme(<GuideAnchor target="target 1" />, routerContext);
+    wrapper2 = mountWithTheme(<GuideAnchor target="target 2" />, routerContext);
   });
 
   afterEach(function() {

@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {Client} from 'app/api';
-import {shallow} from 'enzyme';
+import {shallow} from 'sentry-test/enzyme';
 import AccountAuthorizations from 'app/views/settings/account/accountAuthorizations';
 
 describe('AccountAuthorizations', function() {

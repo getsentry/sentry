@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount} from 'enzyme';
+import {mount} from 'sentry-test/enzyme';
 import ChartZoom from 'app/components/charts/chartZoom';
 import ConfigStore from 'app/stores/configStore';
 

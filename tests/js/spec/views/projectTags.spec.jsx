@@ -2,7 +2,7 @@ import React from 'react';
 
 import $ from 'jquery';
 
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import ProjectTags from 'app/views/settings/projectTags';
 
 describe('ProjectTags', function() {
@@ -23,7 +23,7 @@ describe('ProjectTags', function() {
       method: 'DELETE',
     });
 
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <ProjectTags params={{orgId: org.slug, projectId: project.slug}} />,
       TestStubs.routerContext()
     );
@@ -37,7 +37,7 @@ describe('ProjectTags', function() {
       body: [],
     });
 
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <ProjectTags params={{orgId: org.slug, projectId: project.slug}} />,
       TestStubs.routerContext()
     );
@@ -50,7 +50,7 @@ describe('ProjectTags', function() {
       organization: TestStubs.Organization({access: []}),
     };
 
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <ProjectTags params={{orgId: org.slug, projectId: project.slug}} />,
       TestStubs.routerContext([context])
     );

@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import * as OrgActions from 'app/actionCreators/organizations';
 import AccountSettingsLayout from 'app/views/settings/account/accountSettingsLayout';
@@ -20,7 +20,10 @@ describe('AccountSettingsLayout', function() {
     api = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
     });
-    wrapper = mount(<AccountSettingsLayout params={{}} />, TestStubs.routerContext());
+    wrapper = mountWithTheme(
+      <AccountSettingsLayout params={{}} />,
+      TestStubs.routerContext()
+    );
   });
 
   it('fetches org details for SidebarDropdown', function() {

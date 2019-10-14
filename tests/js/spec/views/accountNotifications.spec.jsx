@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import AccountNotifications from 'app/views/settings/account/accountNotifications';
 
 describe('AccountNotifications', function() {
@@ -26,7 +26,7 @@ describe('AccountNotifications', function() {
   });
 
   it('renders with values from API', function() {
-    const wrapper = mount(<AccountNotifications />, TestStubs.routerContext());
+    const wrapper = mountWithTheme(<AccountNotifications />, TestStubs.routerContext());
 
     // "Send Me Project Alerts"
     expect(wrapper.find('Switch[name="subscribeByDefault"]').prop('isActive')).toBe(true);
@@ -53,7 +53,7 @@ describe('AccountNotifications', function() {
   });
 
   it('can change "Deploy Notifications"', function() {
-    const wrapper = mount(<AccountNotifications />, TestStubs.routerContext());
+    const wrapper = mountWithTheme(<AccountNotifications />, TestStubs.routerContext());
     const mock = MockApiClient.addMockResponse({
       url,
       method: 'PUT',

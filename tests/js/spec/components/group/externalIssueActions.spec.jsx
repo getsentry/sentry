@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ExternalIssueActions from 'app/components/group/externalIssueActions';
 
@@ -8,7 +8,7 @@ describe('ExternalIssueActions', function() {
 
   describe('with no external issues linked', function() {
     const integration = TestStubs.GitHubIntegration({externalIssues: []});
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ExternalIssueActions group={group} integration={integration} />,
       TestStubs.routerContext()
     );
@@ -57,7 +57,7 @@ describe('ExternalIssueActions', function() {
       },
     ];
     const integration = TestStubs.GitHubIntegration({externalIssues});
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ExternalIssueActions group={group} integration={integration} />,
       TestStubs.routerContext()
     );

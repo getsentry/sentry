@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import $ from 'jquery';
 import ResolveActions from 'app/components/actions/resolve';
 
@@ -9,7 +9,7 @@ describe('ResolveActions', function() {
     const spy = jest.fn();
 
     beforeEach(function() {
-      component = mount(
+      component = mountWithTheme(
         <ResolveActions
           onUpdate={spy}
           disabled
@@ -37,7 +37,7 @@ describe('ResolveActions', function() {
     const spy = jest.fn();
 
     beforeEach(function() {
-      component = mount(
+      component = mountWithTheme(
         <ResolveActions
           onUpdate={spy}
           disableDropdown
@@ -70,7 +70,7 @@ describe('ResolveActions', function() {
     let component;
     const spy = jest.fn();
     beforeEach(function() {
-      component = mount(
+      component = mountWithTheme(
         <ResolveActions
           onUpdate={spy}
           disabled
@@ -98,7 +98,7 @@ describe('ResolveActions', function() {
   describe('auto resolved', function() {
     it('cannot be unresolved manually', function() {
       const spy = jest.fn();
-      const component = mount(
+      const component = mountWithTheme(
         <ResolveActions
           onUpdate={spy}
           disabled
@@ -120,7 +120,7 @@ describe('ResolveActions', function() {
     let component;
     const spy = jest.fn();
     beforeEach(function() {
-      component = mount(
+      component = mountWithTheme(
         <ResolveActions
           onUpdate={spy}
           hasRelease={false}
@@ -148,7 +148,7 @@ describe('ResolveActions', function() {
     const spy = jest.fn();
 
     beforeEach(function() {
-      component = mount(
+      component = mountWithTheme(
         <ResolveActions
           onUpdate={spy}
           hasRelease={false}
@@ -186,7 +186,7 @@ describe('ResolveActions', function() {
       url: '/projects/org-slug/project-slug/releases/',
       body: [TestStubs.Release()],
     });
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ResolveActions
         hasRelease
         orgId="org-slug"

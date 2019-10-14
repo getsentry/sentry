@@ -1,5 +1,5 @@
 import React from 'react';
-import {shallow, mount} from 'enzyme';
+import {shallow, mountWithTheme} from 'sentry-test/enzyme';
 import Confirm from 'app/components/confirm';
 
 describe('Confirm', function() {
@@ -46,7 +46,7 @@ describe('Confirm', function() {
 
   it('clicks Confirm in modal and calls `onConfirm` callback', function() {
     const mock = jest.fn();
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <Confirm message="Are you sure?" onConfirm={mock}>
         <button>Confirm?</button>
       </Confirm>,
@@ -76,7 +76,7 @@ describe('Confirm', function() {
 
   it('can stop propagation on the event', function() {
     const mock = jest.fn();
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <Confirm message="Are you sure?" onConfirm={mock} stopPropagation>
         <button>Confirm?</button>
       </Confirm>,

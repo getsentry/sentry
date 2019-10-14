@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount, shallow} from 'enzyme';
+import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 
 import Result from 'app/views/discover/result';
 import createQueryBuilder from 'app/views/discover/queryBuilder';
@@ -149,7 +149,7 @@ describe('Result', function() {
 
     describe('Toggles Visualizations', function() {
       beforeEach(function() {
-        wrapper = mount(
+        wrapper = mountWithTheme(
           <Result
             data={data}
             organization={organization}
@@ -213,7 +213,7 @@ describe('Result', function() {
           data: null,
         },
       };
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <Result
           data={data}
           organization={organization}

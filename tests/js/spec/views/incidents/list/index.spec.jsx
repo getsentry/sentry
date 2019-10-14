@@ -1,7 +1,7 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {initializeOrg} from 'app-test/helpers/initializeOrg';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import IncidentsList from 'app/views/incidents/list';
 
@@ -11,7 +11,7 @@ describe('IncidentsList', function() {
   let wrapper;
 
   const createWrapper = async props => {
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <IncidentsList
         params={{orgId: 'org-slug'}}
         location={{query: {}, search: ''}}

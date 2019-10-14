@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import PasswordForm from 'app/views/settings/account/passwordForm';
@@ -26,7 +26,7 @@ describe('PasswordForm', function() {
       url: ENDPOINT,
       method: 'PUT',
     });
-    wrapper = mount(<PasswordForm />, routerContext);
+    wrapper = mountWithTheme(<PasswordForm />, routerContext);
   });
 
   it('has 3 text inputs', function() {

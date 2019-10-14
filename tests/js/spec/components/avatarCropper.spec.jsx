@@ -1,5 +1,5 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+import {shallow} from 'sentry-test/enzyme';
 import AvatarCropper from 'app/components/avatarCropper';
 
 describe('AvatarCropper', function() {

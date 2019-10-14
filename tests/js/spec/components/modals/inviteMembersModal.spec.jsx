@@ -1,7 +1,7 @@
 import {Modal} from 'react-bootstrap';
 import React from 'react';
 
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import InviteMembersModal from 'app/components/modals/inviteMembersModal';
 
 describe('InviteMembersModal', function() {
@@ -27,7 +27,7 @@ describe('InviteMembersModal', function() {
   });
 
   it('renders', async function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <InviteMembersModal
         Body={Modal.Body}
         Header={Modal.Header}
@@ -47,7 +47,7 @@ describe('InviteMembersModal', function() {
   });
 
   it('can add a second row', async function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <InviteMembersModal
         Body={Modal.Body}
         Header={Modal.Header}
@@ -63,7 +63,7 @@ describe('InviteMembersModal', function() {
   });
 
   it('errors on duplicate emails', async function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <InviteMembersModal
         Body={Modal.Body}
         Header={Modal.Header}
@@ -94,7 +94,7 @@ describe('InviteMembersModal', function() {
   });
 
   it('indicates the total invites on the invite button', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <InviteMembersModal
         Body={Modal.Body}
         Header={Modal.Header}
@@ -119,7 +119,7 @@ describe('InviteMembersModal', function() {
   it('can be closed', function() {
     const close = jest.fn();
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <InviteMembersModal
         Body={Modal.Body}
         Header={Modal.Header}
@@ -140,7 +140,7 @@ describe('InviteMembersModal', function() {
       method: 'POST',
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <InviteMembersModal
         Body={Modal.Body}
         Header={Modal.Header}
@@ -224,7 +224,7 @@ describe('InviteMembersModal', function() {
       statusCode: 401,
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <InviteMembersModal
         Body={Modal.Body}
         Header={Modal.Header}

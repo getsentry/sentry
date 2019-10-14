@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mount, mountWithTheme} from 'sentry-test/enzyme';
 import Tooltip from 'app/components/tooltip';
 
 describe('Tooltip', function() {
@@ -13,7 +13,7 @@ describe('Tooltip', function() {
   });
 
   it('updates title', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <Tooltip title="test">
         <span>My Button</span>
       </Tooltip>,

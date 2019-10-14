@@ -1,8 +1,8 @@
 import React from 'react';
 
-import {initializeOrg} from 'app-test/helpers/initializeOrg';
-import {mockRouterPush} from 'app-test/helpers/mockRouterPush';
-import {mount} from 'enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mockRouterPush} from 'sentry-test/mockRouterPush';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import ConfigStore from 'app/stores/configStore';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
@@ -66,7 +66,7 @@ describe('GlobalSelectionHeader', function() {
   });
 
   it('does not update router if there is custom routing', function() {
-    mount(
+    mountWithTheme(
       <GlobalSelectionHeader organization={organization} hasCustomRouting />,
       routerContext
     );
@@ -74,24 +74,27 @@ describe('GlobalSelectionHeader', function() {
   });
 
   it('does not update router if org in URL params is different than org in context/props', function() {
-    mount(<GlobalSelectionHeader organization={organization} hasCustomRouting />, {
-      ...routerContext,
-      context: {
-        ...routerContext.context,
-        router: {...routerContext.context.router, params: {orgId: 'diff-org'}},
-      },
-    });
+    mountWithTheme(
+      <GlobalSelectionHeader organization={organization} hasCustomRouting />,
+      {
+        ...routerContext,
+        context: {
+          ...routerContext.context,
+          router: {...routerContext.context.router, params: {orgId: 'diff-org'}},
+        },
+      }
+    );
     expect(router.push).not.toHaveBeenCalled();
   });
 
   it('does not replace URL with values from store when mounted with no query params', function() {
-    mount(<GlobalSelectionHeader organization={organization} />, routerContext);
+    mountWithTheme(<GlobalSelectionHeader organization={organization} />, routerContext);
 
     expect(router.replace).not.toHaveBeenCalled();
   });
 
   it('only updates GlobalSelection store when mounted with query params', async function() {
-    mount(
+    mountWithTheme(
       <GlobalSelectionHeader organization={organization} />,
       changeQuery(routerContext, {
         statsPeriod: '7d',
@@ -123,7 +126,7 @@ describe('GlobalSelectionHeader', function() {
   });
 
   it('updates GlobalSelection store when re-rendered with different query params', async function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <GlobalSelectionHeader organization={organization} />,
       changeQuery(routerContext, {
         statsPeriod: '7d',
@@ -166,7 +169,7 @@ describe('GlobalSelectionHeader', function() {
   });
 
   it('updates environments when switching projects', async function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <GlobalSelectionHeader
         organization={organization}
         projects={organization.projects}
@@ -251,7 +254,7 @@ describe('GlobalSelectionHeader', function() {
   });
 
   it('updates URL to match GlobalSelection store when re-rendered with `forceUrlSync` prop', async function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <GlobalSelectionHeader router={router} organization={organization} />,
       routerContext
     );
@@ -276,7 +279,7 @@ describe('GlobalSelectionHeader', function() {
   });
 
   it('updates GlobalSelection store with default period', async function() {
-    mount(
+    mountWithTheme(
       <GlobalSelectionHeader organization={organization} />,
       changeQuery(routerContext, {
         environment: 'prod',
@@ -308,7 +311,7 @@ describe('GlobalSelectionHeader', function() {
   });
 
   it('updates GlobalSelection store with empty date selections', async function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <GlobalSelectionHeader organization={organization} />,
       changeQuery(routerContext, {
         statsPeriod: '7d',
@@ -345,7 +348,7 @@ describe('GlobalSelectionHeader', function() {
   });
 
   it('does not update store if url params have not changed', async function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <GlobalSelectionHeader organization={organization} />,
       changeQuery(routerContext, {
         statsPeriod: '7d',
@@ -394,7 +397,7 @@ describe('GlobalSelectionHeader', function() {
       },
     });
 
-    mount(
+    mountWithTheme(
       <GlobalSelectionHeader organization={initializationObj.organization} />,
       initializationObj.routerContext
     );
@@ -415,7 +418,7 @@ describe('GlobalSelectionHeader', function() {
       },
     });
 
-    mount(
+    mountWithTheme(
       <GlobalSelectionHeader
         organization={initializationObj.organization}
         disableLoadFromStore
@@ -437,7 +440,7 @@ describe('GlobalSelectionHeader', function() {
         },
       });
 
-      mount(
+      mountWithTheme(
         <GlobalSelectionHeader organization={initializationObj.organization} />,
         initializationObj.routerContext
       );
@@ -458,7 +461,7 @@ describe('GlobalSelectionHeader', function() {
         },
       });
 
-      mount(
+      mountWithTheme(
         <GlobalSelectionHeader organization={initializationObj.organization} />,
         initializationObj.routerContext
       );
@@ -479,7 +482,7 @@ describe('GlobalSelectionHeader', function() {
       },
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <GlobalSelectionHeader
         organization={initialData.organization}
         shouldForceProject
@@ -519,7 +522,7 @@ describe('GlobalSelectionHeader', function() {
       });
 
       const createWrapper = props => {
-        wrapper = mount(
+        wrapper = mountWithTheme(
           <GlobalSelectionHeader
             params={{orgId: initialData.organization.slug}}
             organization={initialData.organization}
@@ -624,7 +627,7 @@ describe('GlobalSelectionHeader', function() {
         .mockImplementation(() => initialData.organization.projects);
 
       const createWrapper = props => {
-        wrapper = mount(
+        wrapper = mountWithTheme(
           <GlobalSelectionHeader
             params={{orgId: initialData.organization.slug}}
             organization={initialData.organization}
@@ -672,7 +675,7 @@ describe('GlobalSelectionHeader', function() {
         },
       });
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <GlobalSelectionHeader organization={initialData.organization} />,
         initialData.routerContext
       );
@@ -690,7 +693,7 @@ describe('GlobalSelectionHeader', function() {
         },
       };
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <GlobalSelectionHeader organization={initialData.organization} />,
         initialData.routerContext
       );

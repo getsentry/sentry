@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ReleaseList from 'app/views/releases/list/';
 
@@ -39,7 +39,7 @@ describe('ReleaseList', function() {
       location: {query: {per_page: 0, query: 'derp'}},
     };
 
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <ReleaseList {...props} />,
       TestStubs.routerContext([{organization}])
     );
@@ -62,7 +62,7 @@ describe('ReleaseList', function() {
       body: [],
     });
     organization.projects = [TestStubs.Project({latestRelease: 'abcdef'})];
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <ReleaseList {...props} />,
       TestStubs.routerContext([{organization}])
     );
@@ -77,7 +77,7 @@ describe('ReleaseList', function() {
     });
     organization.projects = [TestStubs.Project({latestRelease: 'abcdef'})];
     props.selection = {projects: []};
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <ReleaseList {...props} />,
       TestStubs.routerContext([{organization}])
     );
@@ -90,7 +90,7 @@ describe('ReleaseList', function() {
       url: '/organizations/org-slug/releases/',
       body: [],
     });
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <ReleaseList {...props} />,
       TestStubs.routerContext([{organization}])
     );

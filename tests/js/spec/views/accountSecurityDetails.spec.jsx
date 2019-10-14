@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import AccountSecurityDetails from 'app/views/settings/account/accountSecurity/accountSecurityDetails';
@@ -26,7 +26,7 @@ describe('AccountSecurityDetails', function() {
         url: `${ENDPOINT}15/`,
         body: TestStubs.Authenticators().Totp(),
       });
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <AccountSecurityWrapper>
           <AccountSecurityDetails />
         </AccountSecurityWrapper>,
@@ -76,7 +76,7 @@ describe('AccountSecurityDetails', function() {
         method: 'DELETE',
       });
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <AccountSecurityWrapper>
           <AccountSecurityDetails />
         </AccountSecurityWrapper>,
@@ -115,7 +115,7 @@ describe('AccountSecurityDetails', function() {
         method: 'DELETE',
       });
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <AccountSecurityWrapper>
           <AccountSecurityDetails />
         </AccountSecurityWrapper>,
@@ -152,7 +152,7 @@ describe('AccountSecurityDetails', function() {
         url: `${ENDPOINT}16/`,
         body: TestStubs.Authenticators().Recovery(),
       });
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <AccountSecurityWrapper>
           <AccountSecurityDetails />
         </AccountSecurityWrapper>,

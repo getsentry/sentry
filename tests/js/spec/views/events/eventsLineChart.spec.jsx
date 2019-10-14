@@ -2,9 +2,9 @@ import React from 'react';
 
 import {Client} from 'app/api';
 import {EventsChart} from 'app/views/events/eventsChart';
-import {mockZoomRange} from 'app-test/helpers/charts';
-import {initializeOrg} from 'app-test/helpers/initializeOrg';
-import {mount} from 'enzyme';
+import {mockZoomRange} from 'sentry-test/charts';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 describe('EventsChart > EventsLineChart', function() {
   const {router, routerContext, org} = initializeOrg();
@@ -20,7 +20,7 @@ describe('EventsChart > EventsLineChart', function() {
       },
     });
 
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <EventsChart
         api={new MockApiClient()}
         location={{query: {}}}

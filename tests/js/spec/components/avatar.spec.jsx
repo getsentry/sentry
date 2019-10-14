@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mount} from 'sentry-test/enzyme';
 import Avatar from 'app/components/avatar';
 
 jest.mock('app/stores/configStore', () => {

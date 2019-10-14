@@ -1,5 +1,5 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+import {shallow} from 'sentry-test/enzyme';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
 
 const path = 'http://some.url/';

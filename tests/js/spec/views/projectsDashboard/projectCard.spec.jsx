@@ -1,4 +1,4 @@
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import React from 'react';
 
 import {ProjectCard} from 'app/views/projectsDashboard/projectCard';
@@ -10,7 +10,7 @@ describe('ProjectCard', function() {
   let wrapper;
 
   beforeEach(function() {
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <ProjectCard
         organization={TestStubs.Organization()}
         project={TestStubs.Project({
@@ -50,7 +50,7 @@ describe('ProjectCard', function() {
       },
     ];
 
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <ProjectCard
         organization={TestStubs.Organization()}
         project={TestStubs.Project({
@@ -81,7 +81,7 @@ describe('ProjectCard', function() {
   });
 
   it('renders loading placeholder card if there are no stats', function() {
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <ProjectCard
         organization={TestStubs.Organization()}
         project={TestStubs.Project()}

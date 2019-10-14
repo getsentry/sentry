@@ -1,7 +1,7 @@
 import React from 'react';
 
-import {initializeOrg} from 'app-test/helpers/initializeOrg';
-import {mount} from 'enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mount} from 'sentry-test/enzyme';
 import GroupTagValues from 'app/views/organizationGroupDetails/groupTagValues';
 
 describe('GroupTagValues', function() {

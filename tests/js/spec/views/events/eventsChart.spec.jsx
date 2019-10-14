@@ -1,10 +1,10 @@
 import React from 'react';
 
 import {EventsChart} from 'app/views/events/eventsChart';
-import {chart, doZoom, mockZoomRange} from 'app-test/helpers/charts';
+import {chart, doZoom, mockZoomRange} from 'sentry-test/charts';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
-import {initializeOrg} from 'app-test/helpers/initializeOrg';
-import {mount} from 'enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mount} from 'sentry-test/enzyme';
 import {updateParams} from 'app/actionCreators/globalSelection';
 
 jest.mock('app/views/events/utils/eventsRequest', () => jest.fn(() => null));

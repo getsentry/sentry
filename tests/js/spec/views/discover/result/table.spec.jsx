@@ -1,5 +1,5 @@
 import React from 'react';
-import {shallow, render} from 'enzyme';
+import {shallow, render} from 'sentry-test/enzyme';
 
 import {ResultTable} from 'app/views/discover/result/table';
 

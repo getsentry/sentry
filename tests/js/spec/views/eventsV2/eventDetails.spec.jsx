@@ -1,6 +1,6 @@
 import React from 'react';
-import {mount} from 'enzyme';
-import {initializeOrg} from 'app-test/helpers/initializeOrg';
+import {mountWithTheme} from 'sentry-test/enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {browserHistory} from 'react-router';
 
 import EventDetails from 'app/views/eventsV2/eventDetails';
@@ -151,7 +151,7 @@ describe('EventsV2 > EventDetails', function() {
   });
 
   it('renders', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <EventDetails
         organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
         eventSlug="project-slug:deadbeef"
@@ -168,7 +168,7 @@ describe('EventsV2 > EventDetails', function() {
   });
 
   it('renders a 404', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <EventDetails
         organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
         eventSlug="project-slug:abad1"
@@ -182,7 +182,7 @@ describe('EventsV2 > EventDetails', function() {
   });
 
   it('renders a chart in grouped view', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <EventDetails
         organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
         eventSlug="project-slug:deadbeef"
@@ -199,7 +199,7 @@ describe('EventsV2 > EventDetails', function() {
   });
 
   it('removes eventSlug when close button is clicked', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <EventDetails
         organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
         eventSlug="project-slug:deadbeef"
@@ -231,7 +231,7 @@ describe('EventsV2 > EventDetails', function() {
         },
       },
     });
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <EventDetails
         organization={organization}
         eventSlug="project-slug:deadbeef"
@@ -267,7 +267,7 @@ describe('EventsV2 > EventDetails', function() {
         },
       },
     });
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <EventDetails
         organization={organization}
         eventSlug="project-slug:deadbeef"

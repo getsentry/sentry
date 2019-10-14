@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import BreadcrumbDropdown from 'app/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
 
@@ -13,7 +13,7 @@ describe('Settings Breadcrumb Dropdown', function() {
   const items = [{value: '1', label: 'foo'}, {value: '2', label: 'bar'}];
 
   beforeEach(function() {
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <BreadcrumbDropdown items={items} name="Test" hasMenu onSelect={selectMock} />,
       TestStubs.routerContext()
     );

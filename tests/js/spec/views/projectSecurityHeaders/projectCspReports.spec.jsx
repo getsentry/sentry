@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount, shallow} from 'enzyme';
+import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 import ProjectCspReports from 'app/views/settings/projectSecurityHeaders/csp';
 
 describe('ProjectCspReports', function() {
@@ -42,7 +42,7 @@ describe('ProjectCspReports', function() {
   });
 
   it('can enable default ignored sources', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProjectCspReports
         organization={org}
         project={project}
@@ -79,7 +79,7 @@ describe('ProjectCspReports', function() {
   });
 
   it('can set additional ignored sources', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProjectCspReports
         organization={org}
         project={project}

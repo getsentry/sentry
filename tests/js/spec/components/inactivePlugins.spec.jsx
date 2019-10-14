@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount, shallow} from 'enzyme';
+import {mount, shallow} from 'sentry-test/enzyme';
 import InactivePlugins from 'app/components/inactivePlugins';
 
 describe('InactivePlugins', function() {
