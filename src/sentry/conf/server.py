@@ -328,11 +328,12 @@ INSTALLED_APPS = (
     "sentry.plugins.sentry_mail",
     "sentry.plugins.sentry_urls",
     "sentry.plugins.sentry_useragents",
-    "sentry.plugins.sentry_webhooks",
+    "sentry.plugins.sentry_webhooks.apps.Config",
     "social_auth",
     "sudo",
-    "sentry.eventstream",
-    "sentry.auth.providers.google",
+    # TODO remove before PR; temporarily unblock
+    #    "sentry.eventstream",
+    #    "sentry.auth.providers.google",
     "django.contrib.staticfiles",
 )
 
