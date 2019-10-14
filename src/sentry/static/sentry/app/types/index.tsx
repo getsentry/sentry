@@ -46,6 +46,7 @@ export type Project = {
 
   isBookmarked: boolean;
   hasUserReports?: boolean;
+  hasAccess: boolean;
 };
 
 export type Team = {
