@@ -4,6 +4,7 @@ import styled from 'react-emotion';
 import PropTypes from 'prop-types';
 
 import {t} from 'app/locale';
+import {Organization} from 'app/types';
 import Button from 'app/components/button';
 import PageHeading from 'app/components/pageHeading';
 import Tooltip from 'app/components/tooltip';
@@ -13,17 +14,20 @@ import ConfigStore from 'app/stores/configStore';
 /* TODO: replace with I/O when finished */
 import img from '../../images/dashboard/hair-on-fire.svg';
 
-export default class NoProjectMessage extends React.Component {
+type Props = {
+  organization: Organization;
+};
+
+export default class NoProjectMessage extends React.Component<Props> {
   static propTypes = {
     /* if the user has access to any projects, we show whatever
     children are included. Otherwise we show the message */
     children: PropTypes.node,
     organization: SentryTypes.Organization,
-    className: PropTypes.string,
   };
 
   render() {
-    const {children, organization, className} = this.props;
+    const {children, organization} = this.props;
     const orgId = organization.slug;
     const canCreateProject = organization.access.includes('project:write');
     const canJoinTeam = organization.access.includes('team:read');
@@ -37,7 +41,7 @@ export default class NoProjectMessage extends React.Component {
     return hasProjects ? (
       children
     ) : (
-      <Flex flex="1" align="center" justify="center" className={className}>
+      <Flex flex="1" align="center" justify="center">
         <Wrapper>
           <img src={img} height={350} alt="Nothing to see" />
           <Content direction="column" justify="center">
