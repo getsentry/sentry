@@ -129,7 +129,7 @@ class BuildAssetsCommand(BaseBuildCommand):
         env["NODE_ENV"] = "production"
         # TODO: Our JS builds should not require 4GB heap space
         # XXX(byk): This would override any existing `NODE_OPTIONS` in the environment
-        #           which can break certain assumptions and hard to debug
+        #           which can break certain assumptions and be hard to debug
         env["NODE_OPTIONS"] = "--max-old-space-size=4096"
         self._run_yarn_command(["webpack", "--bail"], env=env)
 
