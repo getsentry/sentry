@@ -15,7 +15,7 @@ from django.utils.decorators import method_decorator
 from sentry.api import client
 from sentry.exceptions import HookValidationError
 from sentry.models import ApiKey, Project, ProjectOption
-from sentry.plugins import plugins
+from sentry.plugins.base import plugins
 from sentry.utils import json
 
 logger = logging.getLogger("sentry.webhooks")

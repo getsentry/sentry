@@ -331,8 +331,8 @@ INSTALLED_APPS = (
     "sentry.plugins.sentry_webhooks.apps.Config",
     "social_auth",
     "sudo",
+    "sentry.eventstream",
     # TODO remove before PR; temporarily unblock
-    #    "sentry.eventstream",
     #    "sentry.auth.providers.google",
     "django.contrib.staticfiles",
 )

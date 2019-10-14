@@ -172,7 +172,7 @@ def pytest_configure(config):
 
 
 def register_extensions():
-    from sentry.plugins import plugins
+    from sentry.plugins.base import plugins
     from sentry.plugins.utils import TestIssuePlugin2
 
     plugins.register(TestIssuePlugin2)

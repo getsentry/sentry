@@ -13,7 +13,7 @@ from sentry.utils.warnings import DeprecatedSettingWarning
 
 def register_plugins(settings):
     from pkg_resources import iter_entry_points
-    from sentry.plugins import plugins
+    from sentry.plugins.base import plugins
 
     # entry_points={
     #    'sentry.plugins': [
