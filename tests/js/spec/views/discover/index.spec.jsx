@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {browserHistory} from 'react-router';
 
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
@@ -31,7 +31,7 @@ describe('DiscoverContainer', function() {
           meta: [],
         },
       });
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <DiscoverContainer
           location={{query: {}, search: ''}}
           params={{}}
@@ -59,7 +59,7 @@ describe('DiscoverContainer', function() {
         datetime: {start: null, end: null, period: '14d'},
       });
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <DiscoverContainerWithStore
           location={{query: {}, search: ''}}
           params={{}}
@@ -80,7 +80,7 @@ describe('DiscoverContainer', function() {
 
     const createWrapper = async (props, withStore) => {
       const Component = withStore ? DiscoverContainerWithStore : DiscoverContainer;
-      const wrap = mount(
+      const wrap = mountWithTheme(
         <Component
           location={{query: {}, search: ''}}
           params={{savedQueryId: 1}}
@@ -274,7 +274,7 @@ describe('DiscoverContainer', function() {
   describe('no access', function() {
     it('display no access message', async function() {
       const organization = TestStubs.Organization({projects: [TestStubs.Project()]});
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <DiscoverContainer
           location={{query: {}, search: ''}}
           params={{}}

@@ -1,5 +1,5 @@
 import React from 'react';
-import {shallow, mount} from 'enzyme';
+import {shallow, mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import OrganizationAuditLog from 'app/views/settings/organizationAuditLog';
@@ -33,7 +33,7 @@ describe('OrganizationAuditLog', function() {
   });
 
   it('displays whether an action was done by a superuser', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationAuditLog location={{query: ''}} params={{orgId: org.slug}} />,
       TestStubs.routerContext()
     );

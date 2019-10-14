@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mount} from 'sentry-test/enzyme';
 
 import DiscoverSavedQueriesStore from 'app/stores/discoverSavedQueriesStore';
 import withDiscoverSavedQueries from 'app/utils/withDiscoverSavedQueries';

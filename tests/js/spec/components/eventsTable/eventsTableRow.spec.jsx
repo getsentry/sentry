@@ -1,7 +1,6 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+import {shallow} from 'sentry-test/enzyme';
 import {EventsTableRow} from 'app/components/eventsTable/eventsTableRow';
-import events from '../../../mocks/events';
 
 describe('EventsTableRow', function() {
   it('renders', function() {
@@ -10,7 +9,7 @@ describe('EventsTableRow', function() {
         organization={TestStubs.Organization()}
         tagList={[]}
         {...{orgId: 'orgId', projectId: 'projectId', groupId: 'groupId'}}
-        event={events[0]}
+        event={TestStubs.DetailedEvents()[0]}
       />
     );
     expect(wrapper).toMatchSnapshot();

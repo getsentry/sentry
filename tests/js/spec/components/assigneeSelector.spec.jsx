@@ -5,7 +5,7 @@ import {
   putSessionUserFirst,
 } from 'app/components/assigneeSelector';
 import {Client} from 'app/api';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import ConfigStore from 'app/stores/configStore';
 import GroupStore from 'app/stores/groupStore';
 import MemberListStore from 'app/stores/memberListStore';
@@ -73,7 +73,7 @@ describe('AssigneeSelector', function() {
     MemberListStore.items = null;
     MemberListStore.loaded = false;
 
-    assigneeSelector = mount(
+    assigneeSelector = mountWithTheme(
       <AssigneeSelectorComponent id={GROUP_1.id} />,
       TestStubs.routerContext()
     );
@@ -87,7 +87,7 @@ describe('AssigneeSelector', function() {
 
   describe('render with props', function() {
     it('renders members from the prop when present', async function() {
-      assigneeSelector = mount(
+      assigneeSelector = mountWithTheme(
         <AssigneeSelectorComponent id={GROUP_1.id} memberList={[USER_2, USER_3]} />,
         TestStubs.routerContext()
       );
@@ -273,7 +273,7 @@ describe('AssigneeSelector', function() {
 
     assigneeSelector.unmount();
     jest.spyOn(ConfigStore, 'get').mockImplementation(() => true);
-    assigneeSelector = mount(
+    assigneeSelector = mountWithTheme(
       <AssigneeSelectorComponent id={GROUP_1.id} />,
       routerContext
     );
@@ -292,7 +292,7 @@ describe('AssigneeSelector', function() {
 
     // Remove org:write access permission and make sure invite member button is not shown.
     assigneeSelector.unmount();
-    assigneeSelector = mount(
+    assigneeSelector = mountWithTheme(
       <AssigneeSelectorComponent id={GROUP_1.id} />,
       TestStubs.routerContext([{organization: TestStubs.Organization({access: []})}])
     );

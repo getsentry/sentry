@@ -1,8 +1,8 @@
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import React from 'react';
 
-import {initializeOrg} from 'app-test/helpers/initializeOrg';
-import {mockRouterPush} from 'app-test/helpers/mockRouterPush';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mockRouterPush} from 'sentry-test/mockRouterPush';
 
 import Dashboard from 'app/views/dashboards/dashboard';
 import OrganizationDashboardContainer from 'app/views/dashboards';
@@ -29,7 +29,7 @@ describe('OrganizationDashboard', function() {
   const org = organization;
 
   const createWrapper = props => {
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <OrganizationDashboardContainer>
         <Dashboard {...props} />
       </OrganizationDashboardContainer>,

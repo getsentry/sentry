@@ -1,7 +1,7 @@
 import React from 'react';
 import _ from 'lodash';
 
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import SentryAppExternalInstallation from 'app/views/sentryAppExternalInstallation';
 
@@ -47,7 +47,7 @@ describe('SentryAppExternalInstallation', () => {
     });
 
     getMountedComponent = () =>
-      mount(
+      mountWithTheme(
         <SentryAppExternalInstallation params={{sentryAppSlug: sentryApp.slug}} />,
         TestStubs.routerContext()
       );

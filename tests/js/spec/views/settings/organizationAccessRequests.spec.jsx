@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount, shallow} from 'enzyme';
+import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 
 import OrganizationAccessRequests from 'app/views/settings/organizationMembers/organizationAccessRequests';
 
@@ -48,7 +48,7 @@ describe('OrganizationAccessRequests', function() {
 
   it('can approve', function() {
     const mock = jest.fn();
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationAccessRequests
         params={{apiKey: 1, orgId: 'org-slug'}}
         accessRequestBusy={new Map()}
@@ -84,7 +84,7 @@ describe('OrganizationAccessRequests', function() {
 
   it('can deny', function() {
     const mock = jest.fn();
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationAccessRequests
         params={{apiKey: 1, orgId: 'org-slug'}}
         accessRequestBusy={new Map()}

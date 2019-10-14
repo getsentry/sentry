@@ -1,30 +1,30 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import {shallow} from 'enzyme';
+import {shallow} from 'sentry-test/enzyme';
 
 import {GroupMergedView} from 'app/views/organizationGroupDetails/groupMerged';
 import {Client} from 'app/api';
-import events from 'app-test/mocks/events';
 
 jest.mock('app/api');
 
-const mockData = {
-  merged: [
-    {
-      latestEvent: events[0],
-      state: 'unlocked',
-      id: '2c4887696f708c476a81ce4e834c4b02',
-    },
-    {
-      latestEvent: events[1],
-      state: 'unlocked',
-      id: 'e05da55328a860b21f62e371f0a7507d',
-    },
-  ],
-};
-
 describe('Issues -> Merged View', function() {
+  const events = TestStubs.DetailedEvents();
+  const mockData = {
+    merged: [
+      {
+        latestEvent: events[0],
+        state: 'unlocked',
+        id: '2c4887696f708c476a81ce4e834c4b02',
+      },
+      {
+        latestEvent: events[1],
+        state: 'unlocked',
+        id: 'e05da55328a860b21f62e371f0a7507d',
+      },
+    ],
+  };
+
   const context = {
     group: {
       id: 'id',

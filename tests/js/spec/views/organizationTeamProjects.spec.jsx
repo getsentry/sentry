@@ -1,11 +1,11 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 
 import {TeamProjects as OrganizationTeamProjects} from 'app/views/settings/organizationTeams/teamProjects';
 
-import {initializeOrg} from 'app-test/helpers/initializeOrg';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 
 describe('OrganizationTeamProjects', function() {
   let team;
@@ -60,7 +60,7 @@ describe('OrganizationTeamProjects', function() {
   });
 
   it('fetches linked and unlinked projects', async function() {
-    mount(
+    mountWithTheme(
       <OrganizationTeamProjects
         api={new MockApiClient()}
         organization={organization}
@@ -77,7 +77,7 @@ describe('OrganizationTeamProjects', function() {
   });
 
   it('Should render', async function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationTeamProjects
         api={new MockApiClient()}
         organization={organization}
@@ -100,7 +100,7 @@ describe('OrganizationTeamProjects', function() {
   });
 
   it('Should allow bookmarking', async function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationTeamProjects
         api={new MockApiClient()}
         organization={organization}
@@ -127,7 +127,7 @@ describe('OrganizationTeamProjects', function() {
   });
 
   it('Should allow adding and removing projects', async function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationTeamProjects
         api={new MockApiClient()}
         organization={organization}
@@ -161,7 +161,7 @@ describe('OrganizationTeamProjects', function() {
   });
 
   it('handles filtering unlinked projects', async function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationTeamProjects
         api={new MockApiClient()}
         organization={organization}

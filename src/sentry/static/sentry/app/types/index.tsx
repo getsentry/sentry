@@ -46,6 +46,7 @@ export type Project = {
 
   isBookmarked: boolean;
   hasUserReports?: boolean;
+  hasAccess: boolean;
 };
 
 export type Team = {
@@ -190,7 +191,7 @@ export type User = {
   avatar: {avatarUuid: string | null; avatarType: 'letter_avatar' | 'upload'};
   ip_address: string;
   hasPasswordAuth: boolean;
-  permissions: string[];
+  permissions: Set<string>;
   email: string;
 };
 
@@ -250,7 +251,7 @@ type Authenticator = {
 export type Config = {
   languageCode: string;
   csrfCookieName: string;
-  features: string[];
+  features: Set<string>;
   singleOrganization: boolean;
   urlPrefix: string;
   needsUpgrade: boolean;

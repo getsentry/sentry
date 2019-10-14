@@ -1,11 +1,11 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Form, SelectCreatableField} from 'app/components/forms';
 
 describe('SelectCreatableField', function() {
   it('can add user input into select field when using options', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <SelectCreatableField options={[{value: 'foo', label: 'Foo'}]} name="fieldName" />,
       TestStubs.routerContext()
     );
@@ -33,7 +33,7 @@ describe('SelectCreatableField', function() {
   });
 
   it('can add user input into select field when using choices', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <SelectCreatableField choices={['foo']} name="fieldName" />,
       TestStubs.routerContext()
     );
@@ -61,7 +61,7 @@ describe('SelectCreatableField', function() {
   });
 
   it('can add user input into select field when using paired choices', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <SelectCreatableField choices={[['foo', 'foo']]} name="fieldName" />,
       TestStubs.routerContext()
     );
@@ -90,7 +90,7 @@ describe('SelectCreatableField', function() {
 
   it('with Form context', function() {
     const submitMock = jest.fn();
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <Form onSubmit={submitMock}>
         <SelectCreatableField choices={[['foo', 'foo']]} name="fieldName" />
       </Form>,
