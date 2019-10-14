@@ -10,21 +10,6 @@ import pytest
 _service_status = {}
 
 
-def riak_is_available():
-    if "riak" in _service_status:
-        return _service_status["riak"]
-    try:
-        socket.create_connection(("127.0.0.1", 8098), 1.0)
-    except socket.error:
-        _service_status["riak"] = False
-    else:
-        _service_status["riak"] = True
-    return _service_status["riak"]
-
-
-requires_riak = pytest.mark.skipif(not riak_is_available(), reason="requires riak server running")
-
-
 def cassandra_is_available():
     if "cassandra" in _service_status:
         return _service_status["cassandra"]
