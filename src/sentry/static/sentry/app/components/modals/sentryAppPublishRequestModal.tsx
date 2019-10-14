@@ -14,7 +14,7 @@ import space from 'app/styles/space';
 import {SENTRY_APP_PERMISSIONS, PermissionChoice} from 'app/constants';
 
 /**
- * Given an array of scopes, return
+ * Given an array of scopes, return the choices the user has picked for each option
  * @param scopes {Array}
  */
 const getPermissionSelectionsFromScopes = (scopes: Scope[]) => {
