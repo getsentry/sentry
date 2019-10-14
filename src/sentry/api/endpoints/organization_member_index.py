@@ -57,12 +57,8 @@ class OrganizationMemberSerializer(serializers.Serializer):
 
     def validate_email(self, email):
         if OrganizationMember.objects.filter(
-            Q(email=email)
-            | Q(
-                organization=self.context["organization"],
-                user__email__iexact=email,
-                user__is_active=True,
-            )
+            Q(email=email) | Q(user__email__iexact=email, user__is_active=True),
+            organization=self.context["organization"],
         ).exists():
             raise serializers.ValidationError("The user %s is already a member" % email)
 

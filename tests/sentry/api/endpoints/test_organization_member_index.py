@@ -180,6 +180,22 @@ class OrganizationMemberListTest(APITestCase):
         assert member.email is None
         assert member.role == "member"
 
+    def test_can_invite_with_invites_to_other_orgs(self):
+        email = "test@gmail.com"
+        org = self.create_organization(slug="diff-org")
+        OrganizationMember.objects.create(email=email, organization=org)
+
+        with self.settings(SENTRY_ENABLE_INVITES=True), self.tasks():
+            resp = self.client.post(
+                self.url, {"email": email, "role": "member", "teams": [self.team.slug]}
+            )
+
+        assert resp.status_code == 201
+
+        member = OrganizationMember.objects.get(organization=self.org, email=email)
+        assert len(mail.outbox) == 1
+        assert member.role == "member"
+
     def test_valid_for_direct_add(self):
         self.login_as(user=self.owner_user)
 
