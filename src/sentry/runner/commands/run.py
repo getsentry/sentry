@@ -434,6 +434,11 @@ def ingest_consumer(consumer_type, **options):
 @run.command("outcomes-consumer")
 @log_options()
 @batching_kafka_options("outcomes-consumer")
+@click.option(
+    "--multiprocessing/--multithreading",
+    default=False,
+    help="Use threads vs processes for concurrency. Per default it's threads.",
+)
 @configuration
 def outcome_consumer(**options):
     """
