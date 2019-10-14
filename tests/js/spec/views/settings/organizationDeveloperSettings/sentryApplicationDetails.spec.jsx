@@ -395,4 +395,47 @@ describe('Sentry Application Details', function() {
       );
     });
   });
+
+  describe('Editing an existing public Sentry App with a scope error', () => {
+    beforeEach(() => {
+      sentryApp = TestStubs.SentryApp();
+
+      editAppRequest = Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/`,
+        method: 'PUT',
+        statusCode: 400,
+        body: {
+          scopes: [
+            "Requested permission of member:write exceeds requester's permission. Please contact an administrator to make the requested change.",
+            "Requested permission of member:admin exceeds requester's permission. Please contact an administrator to make the requested change.",
+          ],
+        },
+      });
+
+      Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/`,
+        body: sentryApp,
+      });
+
+      Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/api-tokens/`,
+        body: [],
+      });
+
+      wrapper = mount(
+        <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
+        TestStubs.routerContext()
+      );
+    });
+
+    it('renders the error', async () => {
+      wrapper.find('form').simulate('submit');
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('div FormFieldErrorReason').text()).toEqual(
+        "Requested permission of member:admin exceeds requester's permission. Please contact an administrator to make the requested change."
+      );
+    });
+  });
 });
