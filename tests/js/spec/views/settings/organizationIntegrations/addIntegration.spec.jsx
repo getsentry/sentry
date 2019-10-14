@@ -1,7 +1,7 @@
 /*global global*/
 import React from 'react';
 
-import {mount} from 'enzyme';
+import {mount} from 'sentry-test/enzyme';
 import AddIntegration from 'app/views/organizationIntegrations/addIntegration';
 
 describe('AddIntegration', function() {

@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import OrganizationProjectsContainer from 'app/views/settings/organizationProjects';
@@ -36,8 +36,8 @@ describe('OrganizationProjects', function() {
     Client.clearMockResponses();
   });
 
-  it('Should render the projects in the store', function() {
-    const wrapper = mount(
+  it('should render the projects in the store', function() {
+    const wrapper = mountWithTheme(
       <OrganizationProjectsContainer params={{orgId: org.slug}} location={{query: {}}} />,
       routerContext
     );
@@ -61,7 +61,7 @@ describe('OrganizationProjects', function() {
       url: `/organizations/${org.slug}/projects/`,
       body: [],
     });
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationProjectsContainer location={{query: {}}} params={{orgId: org.slug}} />,
       routerContext
     );

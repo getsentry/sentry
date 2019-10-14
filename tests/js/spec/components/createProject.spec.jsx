@@ -1,5 +1,5 @@
 import React from 'react';
-import {shallow, mount} from 'enzyme';
+import {shallow, mountWithTheme} from 'sentry-test/enzyme';
 
 import {CreateProject} from 'app/components/createProject';
 import {openCreateTeamModal} from 'app/actionCreators/modal';
@@ -45,7 +45,7 @@ describe('CreateProject', function() {
       ...baseProps,
     };
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <CreateProject {...props} />,
       TestStubs.routerContext([
         {
@@ -67,7 +67,7 @@ describe('CreateProject', function() {
       ...baseProps,
     };
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <CreateProject {...props} />,
       TestStubs.routerContext([
         {
@@ -104,7 +104,7 @@ describe('CreateProject', function() {
       ...baseProps,
     };
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <CreateProject {...props} />,
       TestStubs.routerContext([
         {
@@ -128,7 +128,7 @@ describe('CreateProject', function() {
       ...baseProps,
     };
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <CreateProject {...props} />,
       TestStubs.routerContext([
         {

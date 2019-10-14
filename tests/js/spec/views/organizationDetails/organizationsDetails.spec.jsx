@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import OrganizationDetails from 'app/views/organizationDetails';
 
@@ -29,7 +29,7 @@ describe('OrganizationDetails', function() {
             },
           }),
         });
-        const tree = mount(
+        const tree = mountWithTheme(
           <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} routes={[]} />,
           TestStubs.routerContext()
         );
@@ -55,7 +55,7 @@ describe('OrganizationDetails', function() {
             },
           }),
         });
-        const tree = mount(
+        const tree = mountWithTheme(
           <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} routes={[]} />,
           TestStubs.routerContext()
         );
@@ -87,7 +87,7 @@ describe('OrganizationDetails', function() {
       });
 
       it('should render a deletion in progress prompt', async function() {
-        const tree = mount(
+        const tree = mountWithTheme(
           <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} routes={[]} />,
           TestStubs.routerContext()
         );

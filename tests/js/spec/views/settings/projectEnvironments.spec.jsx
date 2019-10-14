@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ProjectEnvironments from 'app/views/settings/project/projectEnvironments';
 import recreateRoute from 'app/utils/recreateRoute';
@@ -12,7 +12,7 @@ function mountComponent(isHidden) {
   const org = TestStubs.Organization();
   const project = TestStubs.Project();
   const pathname = isHidden ? 'environments/hidden/' : 'environments/';
-  return mount(
+  return mountWithTheme(
     <ProjectEnvironments
       params={{
         orgId: org.slug,

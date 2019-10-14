@@ -1,10 +1,10 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mount} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import {Tags} from 'app/views/eventsV2/tags';
 import EventView from 'app/views/eventsV2/eventView';
-import {initializeOrg} from 'app-test/helpers/initializeOrg';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 
 describe('Tags', function() {
   const org = TestStubs.Organization();

@@ -1,4 +1,4 @@
-import {mount} from 'enzyme';
+import {mount} from 'sentry-test/enzyme';
 import React from 'react';
 
 import BookmarkStar from 'app/components/projects/bookmarkStar';

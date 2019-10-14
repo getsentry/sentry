@@ -1,40 +1,40 @@
 import {browserHistory} from 'react-router';
 import React from 'react';
 
-import {mount, shallow} from 'enzyme';
+import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 
 import GroupSimilar from 'app/views/organizationGroupDetails/groupSimilar';
-import issues from 'app-test/mocks/issues';
-
-const project = TestStubs.Project({
-  features: ['similarity-view'],
-});
-
-const routerContext = TestStubs.routerContext([
-  {
-    router: {
-      ...TestStubs.router(),
-      params: {orgId: 'org-slug', projectId: 'project-slug', groupId: 'group-id'},
-    },
-  },
-]);
-
-const scores = [
-  {'exception:stacktrace:pairs': 0.375},
-  {'exception:stacktrace:pairs': 0.01264},
-  {'exception:stacktrace:pairs': 0.875},
-  {
-    'exception:stacktrace:application-chunks': 0.000235,
-    'exception:stacktrace:pairs': 0.001488,
-  },
-];
-
-const mockData = {
-  similar: issues.map((issue, i) => [issue, scores[i]]),
-};
 
 describe('Issues Similar View', function() {
   let mock;
+
+  const project = TestStubs.Project({
+    features: ['similarity-view'],
+  });
+
+  const routerContext = TestStubs.routerContext([
+    {
+      router: {
+        ...TestStubs.router(),
+        params: {orgId: 'org-slug', projectId: 'project-slug', groupId: 'group-id'},
+      },
+    },
+  ]);
+
+  const scores = [
+    {'exception:stacktrace:pairs': 0.375},
+    {'exception:stacktrace:pairs': 0.01264},
+    {'exception:stacktrace:pairs': 0.875},
+    {
+      'exception:stacktrace:application-chunks': 0.000235,
+      'exception:stacktrace:pairs': 0.001488,
+    },
+  ];
+
+  const mockData = {
+    similar: TestStubs.Groups().map((issue, i) => [issue, scores[i]]),
+  };
+
   beforeEach(function() {
     mock = MockApiClient.addMockResponse({
       url: '/issues/group-id/similar/?limit=50',
@@ -52,7 +52,7 @@ describe('Issues Similar View', function() {
   });
 
   it('renders with mocked data', async function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <GroupSimilar
         project={project}
         query=""
@@ -70,7 +70,7 @@ describe('Issues Similar View', function() {
   });
 
   it('can merge and redirect to new parent', async function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <GroupSimilar
         project={project}
         params={{orgId: 'org-slug', projectId: 'project-slug', groupId: 'group-id'}}

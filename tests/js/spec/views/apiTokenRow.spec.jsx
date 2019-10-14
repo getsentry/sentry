@@ -1,5 +1,5 @@
 import React from 'react';
-import {shallow, mount} from 'enzyme';
+import {shallow, mountWithTheme} from 'sentry-test/enzyme';
 import ApiTokenRow from 'app/views/settings/account/apiTokenRow';
 
 describe('ApiTokenRow', function() {
@@ -15,7 +15,7 @@ describe('ApiTokenRow', function() {
 
   it('calls onRemove callback when trash can is clicked', function() {
     const cb = jest.fn();
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ApiTokenRow onRemove={cb} token={TestStubs.ApiToken()} />,
       TestStubs.routerContext()
     );

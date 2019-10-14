@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import ProjectKeys from 'app/views/settings/project/projectKeys';
 
 describe('ProjectKeys', function() {
@@ -26,7 +26,7 @@ describe('ProjectKeys', function() {
     });
     const routerContext = TestStubs.routerContext();
 
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <ProjectKeys routes={[]} params={{orgId: org.slug, projectId: project.slug}} />,
       {
         ...routerContext,
@@ -50,7 +50,7 @@ describe('ProjectKeys', function() {
       body: [],
     });
 
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <ProjectKeys routes={[]} params={{orgId: org.slug, projectId: project.slug}} />,
       TestStubs.routerContext()
     );

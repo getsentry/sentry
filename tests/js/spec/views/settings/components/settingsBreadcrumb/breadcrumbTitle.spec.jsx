@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount} from 'enzyme';
+import {mount} from 'sentry-test/enzyme';
 import BreadcrumbTitle from 'app/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import Crumb from 'app/views/settings/components/settingsBreadcrumb/crumb';
 import SettingsBreadcrumb from 'app/views/settings/components/settingsBreadcrumb';

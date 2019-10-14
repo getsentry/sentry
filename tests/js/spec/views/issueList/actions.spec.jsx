@@ -1,8 +1,8 @@
 import React from 'react';
-import {mount, shallow} from 'enzyme';
+import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 
 import {IssueListActions} from 'app/views/issueList/actions';
-import {initializeOrg} from 'app-test/helpers/initializeOrg';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 
 describe('IssueListActions', function() {
@@ -24,7 +24,7 @@ describe('IssueListActions', function() {
 
         SelectedGroupStore.records = {};
         SelectedGroupStore.add([1, 2, 3]);
-        wrapper = mount(
+        wrapper = mountWithTheme(
           <IssueListActions
             api={new MockApiClient()}
             allResultsVisible={false}
@@ -105,7 +105,7 @@ describe('IssueListActions', function() {
       beforeAll(function() {
         SelectedGroupStore.records = {};
         SelectedGroupStore.add([1, 2, 3]);
-        wrapper = mount(
+        wrapper = mountWithTheme(
           <IssueListActions
             api={new MockApiClient()}
             allResultsVisible={false}
@@ -170,7 +170,7 @@ describe('IssueListActions', function() {
       beforeAll(function() {
         SelectedGroupStore.records = {};
         SelectedGroupStore.add([1, 2, 3]);
-        wrapper = mount(
+        wrapper = mountWithTheme(
           <IssueListActions
             api={new MockApiClient()}
             allResultsVisible
@@ -288,7 +288,7 @@ describe('IssueListActions', function() {
 
   describe('missing projectId prop', function() {
     beforeEach(function() {
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <IssueListActions
           api={new MockApiClient()}
           query=""

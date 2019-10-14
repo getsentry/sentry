@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {Client} from 'app/api';
 import {ErrorRobot} from 'app/components/errorRobot';
 
@@ -18,7 +18,7 @@ describe('ErrorRobot', function() {
   describe('with a project', function() {
     let wrapper;
     beforeEach(function() {
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <ErrorRobot
           api={new MockApiClient()}
           org={TestStubs.Organization()}
@@ -46,7 +46,7 @@ describe('ErrorRobot', function() {
     let wrapper;
 
     beforeEach(function() {
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <ErrorRobot api={new MockApiClient()} org={TestStubs.Organization()} />,
         TestStubs.routerContext()
       );

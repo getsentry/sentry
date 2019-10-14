@@ -1,6 +1,6 @@
 /*global global*/
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import {
@@ -97,7 +97,7 @@ describe('OrganizationIntegrations', () => {
       body: [],
     });
 
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <OrganizationIntegrations organization={org} params={params} />,
       routerContext
     );
@@ -139,7 +139,7 @@ describe('OrganizationIntegrations', () => {
         body: [sentryAppInstall],
       });
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <OrganizationIntegrations organization={org} params={params} />,
         routerContext
       );
@@ -198,7 +198,7 @@ describe('OrganizationIntegrations', () => {
           body: [sentryApp],
         });
 
-        mount(
+        mountWithTheme(
           <OrganizationIntegrations organization={org} params={params} />,
           routerContext
         );
@@ -214,7 +214,7 @@ describe('OrganizationIntegrations', () => {
           body: [sentryApp],
         });
 
-        wrapper = mount(
+        wrapper = mountWithTheme(
           <OrganizationIntegrations organization={org} params={params} />,
           routerContext
         );
@@ -256,7 +256,7 @@ describe('OrganizationIntegrations', () => {
           url: '/sentry-apps/',
           body: [publishedApp],
         });
-        wrapper = mount(
+        wrapper = mountWithTheme(
           <OrganizationIntegrations organization={org} params={params} />,
           routerContext
         );
@@ -297,7 +297,7 @@ describe('OrganizationIntegrations', () => {
           body: [sentryAppInstall],
         });
 
-        wrapper = mount(
+        wrapper = mountWithTheme(
           <OrganizationIntegrations organization={org} params={params} />,
           routerContext
         );
@@ -333,7 +333,7 @@ describe('OrganizationIntegrations', () => {
           body: [internalAppInstall],
         });
 
-        wrapper = mount(
+        wrapper = mountWithTheme(
           <OrganizationIntegrations organization={org} params={params} />,
           routerContext
         );
@@ -360,7 +360,7 @@ describe('OrganizationIntegrations', () => {
           statusCode: 200,
         });
 
-        wrapper = mount(
+        wrapper = mountWithTheme(
           <OrganizationIntegrations organization={org} params={params} />,
           routerContext
         );
@@ -380,7 +380,7 @@ describe('OrganizationIntegrations', () => {
           body: [githubIntegration, jiraIntegration],
         });
 
-        wrapper = mount(
+        wrapper = mountWithTheme(
           <OrganizationIntegrations organization={org} params={params} />,
           routerContext
         );
@@ -464,7 +464,7 @@ describe('OrganizationIntegrations', () => {
           ],
         });
 
-        wrapper = mount(
+        wrapper = mountWithTheme(
           <OrganizationIntegrations organization={org} params={params} />,
           routerContext
         );

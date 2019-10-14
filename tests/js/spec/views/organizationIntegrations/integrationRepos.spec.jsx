@@ -1,7 +1,7 @@
 import React from 'react';
 
 import {Client} from 'app/api';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import IntegrationRepos from 'app/views/organizationIntegrations/integrationRepos';
 
 describe('IntegrationRepos', function() {
@@ -26,7 +26,7 @@ describe('IntegrationRepos', function() {
         body: [],
       });
 
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <IntegrationRepos integration={integration} />,
         routerContext
       );
@@ -54,7 +54,7 @@ describe('IntegrationRepos', function() {
         body: [],
       });
 
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <IntegrationRepos integration={integration} />,
         routerContext
       );
@@ -105,7 +105,7 @@ describe('IntegrationRepos', function() {
         body: [],
       });
 
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <IntegrationRepos integration={integration} />,
         routerContext
       );
@@ -143,7 +143,7 @@ describe('IntegrationRepos', function() {
         url: `/organizations/${org.slug}/repos/4/`,
         body: {},
       });
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <IntegrationRepos integration={integration} />,
         routerContext
       );
@@ -176,7 +176,7 @@ describe('IntegrationRepos', function() {
         url: `/organizations/${org.slug}/repos/4/`,
         body: {},
       });
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <IntegrationRepos integration={integration} />,
         routerContext
       );

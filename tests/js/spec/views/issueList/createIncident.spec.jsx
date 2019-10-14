@@ -1,8 +1,8 @@
 import {browserHistory} from 'react-router';
 import React from 'react';
 
-import {initializeOrg} from 'app-test/helpers/initializeOrg';
-import {mount} from 'enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import GlobalModal from 'app/components/globalModal';
 import IssueListWithStores from 'app/views/issueList/overview';
 import TagStore from 'app/stores/tagStore';
@@ -48,7 +48,7 @@ describe('IssueList --> Create Incident', function() {
       },
     };
 
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <div>
         <GlobalModal />
         <IssueListWithStores {...newRouter} {...defaultProps} {...p} />
