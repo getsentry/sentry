@@ -265,15 +265,18 @@ export function decodeColumnOrder(
 
   return columnsRaw.map(col => {
     const column: TableColumn<React.ReactText> = {...TEMPLATE_TABLE_COLUMN};
-    const aggregationField = col.aggregationField
-      .split(ROUND_BRACKETS_PATTERN)
-      .filter(Boolean);
 
-    if (aggregationField.length === 2) {
+    // "field" will be split into ["field"]
+    // "agg()" will be split into ["agg", "", ""]
+    // "agg(field)" will be split to ["agg", "field", ""]
+    // Any column without brackets are assumed to be a field
+    const aggregationField = col.aggregationField.split(ROUND_BRACKETS_PATTERN);
+
+    if (aggregationField.length === 1) {
+      column.field = aggregationField[0] as Field;
+    } else {
       column.aggregation = aggregationField[0] as Aggregation;
       column.field = aggregationField[1] as Field;
-    } else if (aggregationField.length === 1) {
-      column.field = aggregationField[0] as Field;
     }
 
     column.key = col.aggregationField;
