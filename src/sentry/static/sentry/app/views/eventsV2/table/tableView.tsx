@@ -46,9 +46,13 @@ class TableView extends React.Component<TableViewProps> {
    * components
    */
   _createColumn = (nextColumn: TableColumn<keyof TableDataRow>) => {
-    const {location, eventView} = this.props;
+    const {location, eventView, tableData} = this.props;
 
-    const columnOrder = eventView.getColumns();
+    if (!tableData) {
+      return;
+    }
+
+    const columnOrder = eventView.getColumns(tableData.meta);
     const columnSortBy = eventView.getSorts();
 
     const nextColumnOrder = [...columnOrder, nextColumn];
@@ -61,8 +65,13 @@ class TableView extends React.Component<TableViewProps> {
    * Please read the comment on `createColumn`
    */
   _updateColumn = (i: number, nextColumn: TableColumn<keyof TableDataRow>) => {
-    const {location, eventView} = this.props;
-    const columnOrder = eventView.getColumns();
+    const {location, eventView, tableData} = this.props;
+
+    if (!tableData) {
+      return;
+    }
+
+    const columnOrder = eventView.getColumns(tableData.meta);
     const columnSortBy = eventView.getSorts();
 
     if (columnOrder[i].key !== nextColumn.key) {
@@ -86,8 +95,13 @@ class TableView extends React.Component<TableViewProps> {
    * Please read the comment on `createColumn`
    */
   _deleteColumn = (i: number) => {
-    const {location, eventView} = this.props;
-    const columnOrder = eventView.getColumns();
+    const {location, eventView, tableData} = this.props;
+
+    if (!tableData) {
+      return;
+    }
+
+    const columnOrder = eventView.getColumns(tableData.meta);
     const columnSortBy = eventView.getSorts();
 
     const nextColumnOrder = [...columnOrder];
@@ -115,8 +129,13 @@ class TableView extends React.Component<TableViewProps> {
    * Please read the comment on `createColumn`
    */
   _moveColumn = (fromIndex: number, toIndex: number) => {
-    const {location, eventView} = this.props;
-    const columnOrder = eventView.getColumns();
+    const {location, eventView, tableData} = this.props;
+
+    if (!tableData) {
+      return;
+    }
+
+    const columnOrder = eventView.getColumns(tableData.meta);
     const columnSortBy = eventView.getSorts();
 
     const nextColumnOrder = [...columnOrder];
@@ -139,6 +158,8 @@ class TableView extends React.Component<TableViewProps> {
     }
 
     const defaultSort = eventView.getDefaultSort() || eventView.fields[0].field;
+
+    console.log('column', column);
 
     const align = ['integer', 'number', 'duration'].includes(column.type)
       ? 'right'
@@ -173,7 +194,13 @@ class TableView extends React.Component<TableViewProps> {
   render() {
     const {organization, isLoading, error, tableData, eventView} = this.props;
 
-    const columnOrder = eventView.getColumns();
+    console.log('fields', eventView.fields);
+
+    if (tableData) {
+      console.log('meta', tableData.meta);
+    }
+
+    const columnOrder = !tableData ? [] : eventView.getColumns(tableData.meta);
     const columnSortBy = eventView.getSorts();
 
     const {

@@ -359,10 +359,11 @@ class EventView {
     return this.fields.length;
   }
 
-  getColumns(): TableColumn<React.ReactText>[] {
+  getColumns(tableDataMeta: MetaType): TableColumn<React.ReactText>[] {
     return decodeColumnOrder({
       field: this.getFields(),
       fieldnames: this.getFieldNames(),
+      meta: tableDataMeta,
     });
   }
 
@@ -453,14 +454,15 @@ class EventView {
     return encodeSort(this.sorts[0]);
   }
 
-  getSortKey(fieldname: string, meta: MetaType): string | null {
+  getSortKey(fieldname: string, tableDataMeta: MetaType): string | null {
     const column = getAggregateAlias(fieldname);
     if (SPECIAL_FIELDS.hasOwnProperty(column)) {
       return SPECIAL_FIELDS[column as keyof typeof SPECIAL_FIELDS].sortField;
     }
 
-    if (FIELD_FORMATTERS.hasOwnProperty(meta[column])) {
-      return FIELD_FORMATTERS[meta[column] as keyof typeof FIELD_FORMATTERS].sortField
+    if (FIELD_FORMATTERS.hasOwnProperty(tableDataMeta[column])) {
+      return FIELD_FORMATTERS[tableDataMeta[column] as keyof typeof FIELD_FORMATTERS]
+        .sortField
         ? column
         : null;
     }
