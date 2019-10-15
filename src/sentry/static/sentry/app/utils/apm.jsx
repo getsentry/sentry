@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/browser';
 let firstPageLoad = true;
 let flushTransactionTimeout = undefined;
 let wasInterrupted = false;
+let currentTransactionSpan = null;
 
 const TRANSACTION_TIMEOUT = 5000;
 const requests = new Set([]);
@@ -20,22 +21,16 @@ function startTransaction() {
       return;
     }
 
-    // If there's a previous span open, finish it
-    // TODO(apm): I think this is wrong, we probably only want to finish the spans
-    // that we start in this function and in `startApm()`
-    //
-    // i.e. it could close out a span of an API request
-    const prevTransactionSpan = scope.getSpan();
-    if (prevTransactionSpan) {
-      prevTransactionSpan.finish();
+    // If there's a previous transaction span open, finish it
+    if (currentTransactionSpan) {
+      currentTransactionSpan.finish();
     }
 
-    scope.setSpan(
-      Sentry.startSpan({
-        op: 'navigation',
-        sampled: true,
-      })
-    );
+    currentTransactionSpan = Sentry.startSpan({
+      op: 'navigation',
+      sampled: true,
+    });
+    scope.setSpan(currentTransactionSpan);
     scope.setTag('ui.nav', 'navigation');
   });
 
@@ -136,12 +131,11 @@ export function setTransactionName(name) {
  */
 export function startApm() {
   Sentry.configureScope(scope => {
-    scope.setSpan(
-      Sentry.startSpan({
-        op: 'pageload',
-        sampled: true,
-      })
-    );
+    currentTransactionSpan = Sentry.startSpan({
+      op: 'pageload',
+      sampled: true,
+    });
+    scope.setSpan(currentTransactionSpan);
     scope.setTag('ui.nav', 'pageload');
   });
   startTransaction();
