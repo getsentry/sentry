@@ -1,4 +1,4 @@
-import {mount, shallow, render} from 'enzyme';
+import {mount, shallow, render} from 'enzyme'; // eslint-disable-line no-restricted-imports
 import {ThemeProvider} from 'emotion-theming';
 import React from 'react';
 

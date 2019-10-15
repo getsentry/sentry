@@ -49,6 +49,8 @@ class SearchResult extends React.Component {
         'doc',
         'faq',
       ]),
+
+      resultIcon: PropTypes.node,
       title: PropTypes.node,
       description: PropTypes.node,
       model: PropTypes.oneOfType([

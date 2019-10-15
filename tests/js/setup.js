@@ -1,7 +1,7 @@
 /* global __dirname */
 import jQuery from 'jquery';
 import Adapter from 'enzyme-adapter-react-16';
-import Enzyme from 'enzyme';
+import Enzyme from 'enzyme'; // eslint-disable-line no-restricted-imports
 import MockDate from 'mockdate';
 import PropTypes from 'prop-types';
 import fromEntries from 'object.fromentries';
