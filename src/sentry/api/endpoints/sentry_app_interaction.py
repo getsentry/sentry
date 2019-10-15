@@ -10,10 +10,7 @@ from sentry.api.bases import SentryAppBaseEndpoint, SentryAppStatsPermission
 
 logger = logging.getLogger(__name__)
 
-FIELD_NAME_TO_TSDB_VALUE = {
-    "sentry_app_viewed": tsdb.models.sentry_app_viewed,
-    "sentry_app_component_interacted": tsdb.models.sentry_app_component_interacted,
-}
+TSDB_MODELS = [tsdb.models.sentry_app_viewed, tsdb.models.sentry_app_component_interacted]
 
 
 def get_component_interaction_key(sentry_app, component_type):
@@ -56,17 +53,19 @@ class SentryAppInteractionEndpoint(SentryAppBaseEndpoint, StatsMixin):
         # Request should have identifier field stored in TSDBModel
         tsdb_field = request.data.get("tsdbField")
 
-        if tsdb_field == "sentry_app_component_interacted":
+        model = getattr(tsdb.models, tsdb_field, None)
+        if model is None or model not in TSDB_MODELS:
+            return Response({"detail": "Invalid TSDB field name"}, status=400)
+
+        if model == tsdb.models.sentry_app_component_interacted:
             try:
                 key = get_component_interaction_key(sentry_app, request.data["componentType"])
             except KeyError:
-                return Response({"detail": "Sentry App Component ID required"}, status=400)
-        elif tsdb_field == "sentry_app_viewed":
+                return Response({"detail": "Sentry App component type required"}, status=400)
+        elif model == tsdb.models.sentry_app_viewed:
             key = sentry_app.id
-        else:
-            return Response({"detail": "Invalid TSDB field name"}, status=400)
 
         # Timestamp is automatically created
-        tsdb.incr(FIELD_NAME_TO_TSDB_VALUE[tsdb_field], key)
+        tsdb.incr(model, key)
 
         return Response({}, status=201)
