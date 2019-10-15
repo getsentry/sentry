@@ -104,7 +104,7 @@ requires_snuba = (
     "organizations:discover",
     "organizations:events",
     "organizations:events-v2",
-    "organizations:transction-events",
+    "organizations:transaction-events",
     "organizations:global-views",
     "organizations:incidents",
 )
