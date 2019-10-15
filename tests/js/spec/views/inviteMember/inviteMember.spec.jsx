@@ -54,7 +54,10 @@ describe('InviteMember', function() {
   });
 
   it('should render loading', function() {
-    const wrapper = shallow(<InviteMember {...baseProps} />, baseContext);
+    const wrapper = shallow(<InviteMember {...baseProps} />, {
+      ...baseContext,
+      disableLifecycleMethods: true,
+    });
     expect(wrapper).toMatchSnapshot();
   });
 
@@ -90,7 +93,10 @@ describe('InviteMember', function() {
       invitesEnabled: false,
     }));
 
-    const wrapper = shallow(<InviteMember {...baseProps} />, baseContext);
+    const wrapper = shallow(<InviteMember {...baseProps} />, {
+      ...baseContext,
+      disableLifecycleMethods: true,
+    });
     wrapper.setState({
       loading: false,
     });

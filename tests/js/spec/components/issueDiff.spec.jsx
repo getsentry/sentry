@@ -13,6 +13,7 @@ describe('IssueDiff', function() {
   it('is loading when initially rendering', function() {
     const wrapper = shallow(
       <IssueDiff
+        api={api}
         baseIssueId="base"
         targetIssueId="target"
         orgId="org-slug"
