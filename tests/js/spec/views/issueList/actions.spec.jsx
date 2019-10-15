@@ -3,11 +3,14 @@ import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 
 import {IssueListActions} from 'app/views/issueList/actions';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+
+import MemberListStore from 'app/stores/memberListStore';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 
 describe('IssueListActions', function() {
   let actions;
   let wrapper;
+  let apiMock, storeMock;
 
   beforeEach(function() {});
 
@@ -47,6 +50,10 @@ describe('IssueListActions', function() {
         );
       });
 
+      afterEach(function() {
+        MockApiClient.clearMockResponses();
+      });
+
       it('after checking "Select all" checkbox, displays bulk select message', async function() {
         wrapper.find('ActionsCheckbox Checkbox').simulate('change');
         expect(wrapper.find('.stream-select-all-notice')).toMatchSnapshot();
@@ -75,7 +82,7 @@ describe('IssueListActions', function() {
       });
 
       it('bulk resolves', async function() {
-        const apiMock = MockApiClient.addMockResponse({
+        apiMock = MockApiClient.addMockResponse({
           url: '/organizations/1337/issues/',
           method: 'PUT',
         });
@@ -128,6 +135,10 @@ describe('IssueListActions', function() {
         );
       });
 
+      afterEach(function() {
+        MockApiClient.clearMockResponses();
+      });
+
       it('after checking "Select all" checkbox, displays bulk select message', async function() {
         wrapper.find('ActionsCheckbox Checkbox').simulate('change');
         expect(wrapper.find('.stream-select-all-notice')).toMatchSnapshot();
@@ -135,21 +146,21 @@ describe('IssueListActions', function() {
 
       it('can bulk select', function() {
         wrapper.find('.stream-select-all-notice a').simulate('click');
-
         expect(wrapper.find('.stream-select-all-notice')).toMatchSnapshot();
       });
 
       it('bulk resolves', async function() {
-        const apiMock = MockApiClient.addMockResponse({
+        apiMock = MockApiClient.addMockResponse({
           url: '/organizations/1337/issues/',
           method: 'PUT',
         });
+
         wrapper
           .find('ResolveActions ActionLink')
           .first()
           .simulate('click');
-
         expect(wrapper.find('ModalDialog')).toMatchSnapshot();
+
         wrapper.find('Button[priority="primary"]').simulate('click');
         expect(apiMock).toHaveBeenCalledWith(
           expect.anything(),
@@ -170,6 +181,17 @@ describe('IssueListActions', function() {
       beforeAll(function() {
         SelectedGroupStore.records = {};
         SelectedGroupStore.add(['1', '2', '3']);
+
+        MemberListStore.loadInitialData([
+          TestStubs.User({
+            id: '1',
+            name: 'Jane Doe',
+            email: 'janedoe@example.com',
+          }),
+        ]);
+      });
+
+      beforeEach(function() {
         wrapper = mountWithTheme(
           <IssueListActions
             api={new MockApiClient()}
@@ -191,22 +213,33 @@ describe('IssueListActions', function() {
           />,
           TestStubs.routerContext()
         );
-      });
 
-      it('resolves selected items', function() {
-        const apiMock = MockApiClient.addMockResponse({
+        wrapper.setState({
+          allInQuerySelected: false,
+          anySelected: true,
+          multiSelected: true,
+        });
+
+        apiMock = MockApiClient.addMockResponse({
           url: '/organizations/1337/issues/',
           method: 'PUT',
         });
-        jest
+        storeMock = jest
           .spyOn(SelectedGroupStore, 'getSelectedIds')
           .mockImplementation(() => new Set(['3', '6', '9']));
+      });
 
-        wrapper.setState({allInQuerySelected: false, anySelected: true});
+      afterEach(function() {
+        MockApiClient.clearMockResponses();
+        storeMock.mockRestore();
+      });
+
+      it('sets selected items to resolved', function() {
         wrapper
           .find('ResolveActions ActionLink')
           .first()
           .simulate('click');
+
         expect(apiMock).toHaveBeenCalledWith(
           expect.anything(),
           expect.objectContaining({
@@ -215,6 +248,105 @@ describe('IssueListActions', function() {
               project: [1],
             },
             data: {status: 'resolved'},
+          })
+        );
+      });
+
+      it('sets selected items to ignored', function() {
+        wrapper
+          .find('IgnoreActions ActionLink')
+          .first()
+          .simulate('click');
+
+        expect(apiMock).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            query: {
+              id: ['3', '6', '9'],
+              project: [1],
+            },
+            data: {status: 'ignored'},
+          })
+        );
+      });
+
+      it('merges selected items', function() {
+        wrapper
+          .find('ActionLink.action-merge')
+          .first()
+          .simulate('click');
+
+        // Let the modal open
+        wrapper.update();
+
+        wrapper
+          .find('ActionLink.action-merge Modal Button')
+          .at(1) // 0: "Cancel", 1: "Merge"
+          .simulate('click');
+
+        expect(apiMock).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            query: {
+              id: ['3', '6', '9'],
+              project: [1],
+            },
+            data: {merge: 1},
+          })
+        );
+      });
+
+      it('sets selected items to bookmarked', function() {
+        test.todo('Modal does not want to show');
+        /*
+        wrapper
+          .find('ActionLink.action-bookmark')
+          .first()
+          .simulate('click');
+
+        // Let the modal open
+        wrapper.update();
+
+        wrapper
+          .find('ActionLink.action-bookmark Modal Button')
+          .at(1) // 0: "Cancel", 1: "Merge"
+          .simulate('click');
+
+        expect(apiMock).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            query: {
+              id: ['3', '6', '9'],
+              project: [1],
+            },
+            data: {isBookmarked: 'true'},
+          })
+        );
+        */
+      });
+
+      it('sets selected items to assigned', function() {
+        wrapper
+          .find('ActionItem.action-bulk-assign AssigneeSelector Actor')
+          .first()
+          .simulate('mouseover');
+
+        // Let the dropdown open
+        wrapper.update();
+
+        wrapper
+          .find('ActionItem.action-bulk-assign AutoCompleteItem')
+          .first()
+          .simulate('click');
+
+        expect(apiMock).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            query: {
+              id: ['3', '6', '9'],
+              project: [1],
+            },
+            data: {assignedTo: 'user:1'},
           })
         );
       });

@@ -342,6 +342,7 @@ const IssueListActions = createReactClass({
 
   shouldConfirm(action) {
     const selectedItems = SelectedGroupStore.getSelectedIds();
+
     switch (action) {
       case 'resolve':
       case 'unresolve':
@@ -428,15 +429,15 @@ const IssueListActions = createReactClass({
                 {t('Merge')}
               </ActionLink>
             </div>
-            <div className="btn-group hidden-xs">
+            <div className="btn-group hidden-md hidden-sm hidden-xs">
               <ActionLink
-                className="btn btn-default btn-sm action-bookmark hidden-md hidden-sm hidden-xs"
+                className="btn btn-default btn-sm action-bookmark"
+                disabled={!anySelected}
                 onAction={() => this.handleUpdate({isBookmarked: true})}
                 shouldConfirm={this.shouldConfirm('bookmark')}
                 message={confirm('bookmark', false)}
                 confirmLabel={label('bookmark')}
                 title={t('Add to Bookmarks')}
-                disabled={!anySelected}
               >
                 <i aria-hidden="true" className="icon-star-solid" />
               </ActionLink>

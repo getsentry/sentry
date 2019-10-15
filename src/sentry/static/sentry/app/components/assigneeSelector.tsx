@@ -164,8 +164,11 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
     } = {};
     groupIds.forEach(id => {
       const group: Group = GroupStore.get(id);
-      const project: Project = ProjectsStore.getBySlug(group.project.slug);
+      if (!group) {
+        return;
+      }
 
+      const project: Project = ProjectsStore.getBySlug(group.project.slug);
       if (!project) {
         return;
       }
