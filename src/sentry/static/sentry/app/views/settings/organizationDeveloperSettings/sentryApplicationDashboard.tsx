@@ -3,7 +3,7 @@ import styled from 'react-emotion';
 
 import AsyncView from 'app/views/asyncView';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import StackedBarChart from 'app/components/stackedBarChart';
+import BarChart from 'app/components/charts/barChart';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import DateTime from 'app/components/dateTime';
 import LoadingError from 'app/components/loadingError';
@@ -94,24 +94,42 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
 
   renderInstallCharts() {
     const {install_stats, uninstall_stats} = this.state.stats;
-    const points = install_stats.map((point, idx) => ({
-      x: point[0],
-      y: [point[1], uninstall_stats[idx][1]],
-    }));
+
+    const installSeries = {
+      data: install_stats.map(point => ({
+        name: point[0] * 1000,
+        value: point[1],
+      })),
+      seriesName: 'installed',
+    };
+    const uninstallSeries = {
+      data: uninstall_stats.map(point => ({
+        name: point[0] * 1000,
+        value: point[1],
+      })),
+      seriesName: 'uninstalled',
+    };
 
     return (
       <Panel>
         <PanelHeader>{t('Installations/Uninstallations over Time')}</PanelHeader>
-
-        <StackedBarChart
-          points={points}
-          height={150}
-          className="standard-barchart b-a-0 m-b-0"
-          barClasses={['accepted', 'rate-limited']}
-          minHeights={[2, 0, 0]}
-          gap={0.25}
-          tooltip={this.renderTooltip}
-        />
+        <ChartWrapper>
+          <BarChart
+            series={[installSeries, uninstallSeries]}
+            height={150}
+            stacked={true}
+            isGroupedByDate={true}
+            legend={{
+              show: true,
+              orient: 'horizontal',
+              data: ['installed', 'uninstalled'],
+              itemWidth: 15,
+            }}
+            yAxis={{type: 'value', minInterval: 1, max: 'dataMax'}}
+            xAxis={{type: 'time'}}
+            grid={{left: space(4), right: space(4)}}
+          />
+        </ChartWrapper>
       </Panel>
     );
   }
@@ -203,4 +221,8 @@ const TableLayout = styled('div')`
 
 const OverflowBox = styled('div')`
   word-break: break-word;
+`;
+
+const ChartWrapper = styled('div')`
+  padding-top: ${space(3)};
 `;
