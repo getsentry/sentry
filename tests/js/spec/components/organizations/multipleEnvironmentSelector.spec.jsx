@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import MultipleEnvironmentSelector from 'app/components/organizations/multipleEnvironmentSelector';
 
 describe('MultipleEnvironmentSelector', function() {
@@ -33,7 +33,7 @@ describe('MultipleEnvironmentSelector', function() {
   beforeEach(function() {
     onChange.mockReset();
     onUpdate.mockReset();
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <MultipleEnvironmentSelector
         organization={organization}
         selectedProjects={selectedProjects}

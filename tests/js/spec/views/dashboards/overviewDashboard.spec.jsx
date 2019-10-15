@@ -1,8 +1,8 @@
 import React from 'react';
 
-import {initializeOrg} from 'app-test/helpers/initializeOrg';
-import {mockRouterPush} from 'app-test/helpers/mockRouterPush';
-import {mount} from 'enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mockRouterPush} from 'sentry-test/mockRouterPush';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import DashboardsContainer from 'app/views/dashboards';
 import OverviewDashboard from 'app/views/dashboards/overviewDashboard';
 
@@ -29,7 +29,7 @@ describe('OverviewDashboard', function() {
   const org = organization;
 
   const createWrapper = props => {
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <DashboardsContainer>
         <OverviewDashboard params={{orgId: organization.slug}} {...props} />
       </DashboardsContainer>,

@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import Aggregations from 'app/views/discover/aggregations';
 
@@ -10,8 +10,9 @@ describe('Aggregations', function() {
     onChangeMock = jest.fn();
     const columns = [{name: 'col1', type: 'string'}, {name: 'col2', type: 'number'}];
     const value = [];
-    wrapper = mount(
-      <Aggregations columns={columns} onChange={onChangeMock} value={value} />
+    wrapper = mountWithTheme(
+      <Aggregations columns={columns} onChange={onChangeMock} value={value} />,
+      TestStubs.routerContext()
     );
   });
   describe('render()', function() {

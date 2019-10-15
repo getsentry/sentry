@@ -1,8 +1,9 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
-import {mount} from 'enzyme';
+import {openInviteMembersModal} from 'app/actionCreators/modal';
 import ConfigStore from 'app/stores/configStore';
 import OrganizationMembers from 'app/views/settings/organizationMembers';
 import OrganizationsStore from 'app/stores/organizationsStore';
@@ -10,6 +11,9 @@ import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 
 jest.mock('app/api');
 jest.mock('app/actionCreators/indicator');
+jest.mock('app/actionCreators/modal', () => ({
+  openInviteMembersModal: jest.fn(),
+}));
 
 describe('OrganizationMembers', function() {
   const members = TestStubs.Members();
@@ -30,7 +34,7 @@ describe('OrganizationMembers', function() {
     location: {query: {}},
   };
   const organization = TestStubs.Organization({
-    access: ['member:admin', 'org:admin'],
+    access: ['member:admin', 'org:admin', 'member:write'],
     status: {
       id: 'active',
     },
@@ -87,13 +91,31 @@ describe('OrganizationMembers', function() {
     OrganizationsStore.load([organization]);
   });
 
+  it('can invite member with access', function() {
+    const wrapper = mountWithTheme(
+      <OrganizationMembers
+        {...defaultProps}
+        params={{
+          orgId: 'org-id',
+        }}
+      />,
+      TestStubs.routerContext([{organization}])
+    );
+
+    const inviteButton = wrapper.find('StyledButton[aria-label="Invite Members"]');
+    expect(inviteButton.prop('disabled')).toBe(false);
+    inviteButton.simulate('click');
+
+    expect(openInviteMembersModal).toHaveBeenCalled();
+  });
+
   it('can remove a member', async function() {
     const deleteMock = MockApiClient.addMockResponse({
       url: `/organizations/org-id/members/${members[0].id}/`,
       method: 'DELETE',
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationMembers
         {...defaultProps}
         params={{
@@ -128,7 +150,7 @@ describe('OrganizationMembers', function() {
       statusCode: 500,
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationMembers
         {...defaultProps}
         params={{
@@ -162,7 +184,7 @@ describe('OrganizationMembers', function() {
       method: 'DELETE',
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationMembers
         {...defaultProps}
         params={{
@@ -203,7 +225,7 @@ describe('OrganizationMembers', function() {
     });
     OrganizationsStore.add(secondOrg);
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationMembers
         {...defaultProps}
         params={{
@@ -239,7 +261,7 @@ describe('OrganizationMembers', function() {
       statusCode: 500,
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationMembers
         {...defaultProps}
         params={{
@@ -275,14 +297,14 @@ describe('OrganizationMembers', function() {
         id: '1234',
       },
     });
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationMembers
         {...defaultProps}
         params={{
           orgId: 'org-id',
         }}
       />,
-      TestStubs.routerContext()
+      TestStubs.routerContext([{organization}])
     );
 
     expect(inviteMock).not.toHaveBeenCalled();
@@ -301,7 +323,7 @@ describe('OrganizationMembers', function() {
       url: '/organizations/org-id/access-requests/pending-id/',
       method: 'PUT',
     });
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationMembers
         {...defaultProps}
         params={{
@@ -334,7 +356,7 @@ describe('OrganizationMembers', function() {
       url: '/organizations/org-id/access-requests/pending-id/',
       method: 'PUT',
     });
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationMembers
         {...defaultProps}
         params={{
@@ -369,7 +391,7 @@ describe('OrganizationMembers', function() {
       body: [],
     });
     const routerContext = TestStubs.routerContext();
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationMembers
         {...defaultProps}
         params={{

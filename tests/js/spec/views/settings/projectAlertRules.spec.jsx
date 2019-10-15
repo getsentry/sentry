@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ProjectAlertRules from 'app/views/settings/projectAlerts/projectAlertRules';
 
@@ -23,7 +23,7 @@ describe('projectAlertRules', function() {
   });
 
   it('deletes', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProjectAlertRules routes={[]} params={{orgId: 'org1', projectId: 'project1'}} />,
       TestStubs.routerContext()
     );
@@ -35,7 +35,7 @@ describe('projectAlertRules', function() {
   });
 
   it('has disabled edit rule button without access', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProjectAlertRules routes={[]} params={{orgId: 'org1', projectId: 'project1'}} />,
       TestStubs.routerContext([{organization: TestStubs.Organization({access: []})}])
     );

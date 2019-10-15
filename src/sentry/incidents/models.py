@@ -368,3 +368,41 @@ class AlertRuleTriggerExclusion(Model):
         app_label = "sentry"
         db_table = "sentry_alertruletriggerexclusion"
         unique_together = (("alert_rule_trigger", "query_subscription"),)
+
+
+class AlertRuleTriggerAction(Model):
+    """
+    This model represents an action that occurs when a trigger is fired. This is
+    typically some sort of notification.
+    """
+
+    __core__ = True
+
+    # Which sort of action to take
+    class Type(Enum):
+        EMAIL = 0
+        PAGERDUTY = 1
+        SLACK = 2
+
+    class TargetType(Enum):
+        # A direct reference, like an email address, Slack channel or PagerDuty service
+        SPECIFIC = 0
+        # A specific user. This could be used to grab the user's email address.
+        USER = 1
+        # A specific team. This could be used to send an email to everyone associated
+        # with a team.
+        TEAM = 2
+
+    alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger")
+    integration = FlexibleForeignKey("sentry.Integration", null=True)
+    type = models.SmallIntegerField()
+    target_type = models.SmallIntegerField()
+    # Identifier used to perform the action on a given target
+    target_identifier = models.TextField(null=True)
+    # Human readable name to display in the UI
+    target_display = models.TextField(null=True)
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_alertruletriggeraction"

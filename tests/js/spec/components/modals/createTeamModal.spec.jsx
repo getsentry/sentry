@@ -2,7 +2,7 @@ import {Modal} from 'react-bootstrap';
 import React from 'react';
 
 import {createTeam} from 'app/actionCreators/teams';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import CreateTeamModal from 'app/components/modals/createTeamModal';
 
 jest.mock('app/actionCreators/teams', () => ({
@@ -23,7 +23,7 @@ describe('CreateTeamModal', function() {
   afterEach(function() {});
 
   it('calls createTeam action creator on submit', async function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <CreateTeamModal
         Body={Modal.Body}
         Header={Modal.Header}

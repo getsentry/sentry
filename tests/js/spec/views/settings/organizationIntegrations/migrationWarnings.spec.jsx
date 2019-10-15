@@ -2,7 +2,7 @@
 import React from 'react';
 
 import {Client} from 'app/api';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import MigrationWarnings from 'app/views/organizationIntegrations/migrationWarnings';
 
 jest.mock('app/actionCreators/modal', () => ({
@@ -41,7 +41,7 @@ describe('MigrationWarnings', function() {
       ],
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <MigrationWarnings
         orgId={org.slug}
         providers={[githubProvider, jiraProvider]}

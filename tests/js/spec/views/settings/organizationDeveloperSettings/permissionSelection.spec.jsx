@@ -1,9 +1,9 @@
 import React from 'react';
 
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import FormModel from 'app/views/settings/components/forms/model';
 import PermissionSelection from 'app/views/settings/organizationDeveloperSettings/permissionSelection';
-import {selectByValue, openMenu} from './../../../../helpers/select';
+import {selectByValue, openMenu} from 'sentry-test/select';
 
 describe('PermissionSelection', () => {
   let wrapper;
@@ -11,7 +11,7 @@ describe('PermissionSelection', () => {
 
   beforeEach(() => {
     onChange = jest.fn();
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <PermissionSelection
         permissions={{
           Event: 'no-access',
@@ -22,12 +22,7 @@ describe('PermissionSelection', () => {
         }}
         onChange={onChange}
       />,
-      {
-        context: {
-          router: TestStubs.routerContext(),
-          form: new FormModel(),
-        },
-      }
+      TestStubs.routerContext([{form: new FormModel()}])
     );
   });
 

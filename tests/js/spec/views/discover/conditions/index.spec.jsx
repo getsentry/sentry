@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import Conditions from 'app/views/discover/conditions';
 
@@ -10,8 +10,9 @@ describe('Conditions', function() {
     onChangeMock = jest.fn();
     const columns = [{name: 'col1', type: 'string'}, {name: 'col2', type: 'number'}];
     const value = [];
-    wrapper = mount(
-      <Conditions columns={columns} onChange={onChangeMock} value={value} />
+    wrapper = mountWithTheme(
+      <Conditions columns={columns} onChange={onChangeMock} value={value} />,
+      TestStubs.routerContext()
     );
   });
   describe('render()', function() {

@@ -1,6 +1,6 @@
 import React from 'react';
 import moment from 'moment';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import EventCauseEmpty from 'app/components/events/eventCauseEmpty';
 import {trackAdhocEvent, trackAnalyticsEvent} from 'app/utils/analytics';
@@ -32,7 +32,7 @@ describe('EventCauseEmpty', function() {
   });
 
   it('renders', async function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <EventCauseEmpty organization={organization} project={project} />,
       routerContext
     );
@@ -51,7 +51,7 @@ describe('EventCauseEmpty', function() {
   });
 
   it('can be snoozed', async function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <EventCauseEmpty organization={organization} project={project} />,
       routerContext
     );
@@ -99,7 +99,7 @@ describe('EventCauseEmpty', function() {
       body: {data: {snoozed_ts}},
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <EventCauseEmpty organization={organization} project={project} />,
       routerContext
     );
@@ -121,7 +121,7 @@ describe('EventCauseEmpty', function() {
       body: {data: {snoozed_ts}},
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <EventCauseEmpty organization={organization} project={project} />,
       routerContext
     );
@@ -133,7 +133,7 @@ describe('EventCauseEmpty', function() {
   });
 
   it('can be dismissed', async function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <EventCauseEmpty organization={organization} project={project} />,
       routerContext
     );
@@ -177,7 +177,7 @@ describe('EventCauseEmpty', function() {
       body: {data: {dismissed_ts: moment().unix()}},
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <EventCauseEmpty organization={organization} project={project} />,
       routerContext
     );
@@ -189,7 +189,7 @@ describe('EventCauseEmpty', function() {
   });
 
   it('can capture analytics on docs click', async function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <EventCauseEmpty organization={organization} project={project} />,
       routerContext
     );

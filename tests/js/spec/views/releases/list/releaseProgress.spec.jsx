@@ -1,6 +1,6 @@
 import React from 'react';
 import moment from 'moment';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {ReleaseProgress} from 'app/views/releases/list/releaseProgress';
 
@@ -46,7 +46,7 @@ describe('ReleaseProgress', function() {
         {step: 'deploy', complete: true},
       ],
     });
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <ReleaseProgress organization={organization} project={project} />,
       routerContext
     );
@@ -55,7 +55,7 @@ describe('ReleaseProgress', function() {
   });
 
   it('renders with next step suggestion', function() {
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <ReleaseProgress organization={organization} project={project} />,
       routerContext
     );
@@ -70,7 +70,7 @@ describe('ReleaseProgress', function() {
   });
 
   it('hides when snoozed', function() {
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <ReleaseProgress organization={organization} project={project} />,
       routerContext
     );
@@ -114,7 +114,7 @@ describe('ReleaseProgress', function() {
       body: {data: {snoozed_ts}},
     });
 
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <ReleaseProgress organization={organization} project={project} />,
       routerContext
     );
@@ -133,7 +133,7 @@ describe('ReleaseProgress', function() {
       body: {data: {snoozed_ts}},
     });
 
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <ReleaseProgress organization={organization} project={project} />,
       routerContext
     );
@@ -142,7 +142,7 @@ describe('ReleaseProgress', function() {
   });
 
   it('hides when dismissed', function() {
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <ReleaseProgress organization={organization} project={project} />,
       routerContext
     );
@@ -175,7 +175,7 @@ describe('ReleaseProgress', function() {
       body: {data: {dismissed_ts: moment().unix()}},
     });
 
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <ReleaseProgress organization={organization} project={project} />,
       routerContext
     );

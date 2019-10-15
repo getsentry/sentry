@@ -1,7 +1,7 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mount} from 'sentry-test/enzyme';
 
-import {initializeOrg} from 'app-test/helpers/initializeOrg';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import OrganizationActivity from 'app/views/organizationActivity';
 
 describe('OrganizationUserFeedback', function() {
