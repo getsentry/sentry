@@ -74,14 +74,14 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
 
         assert integration.external_id == self.account_slug
         assert integration.name == "Test App"
-        assert integration.metadata["services"] == {
-            "PD12345": {
+        assert integration.metadata["services"] == [
+            {
                 "integration_key": "key1",
                 "name": "Super Cool Service",
                 "id": "PD12345",
                 "type": "service",
-            }
-        }
+            },
+        ]
         oi = OrganizationIntegration.objects.get(
             integration=integration, organization=self.organization
         )

@@ -48,13 +48,13 @@ class PagerDutyIntegration(IntegrationInstallation):
         from sentry.models import Project
 
         projects = Project.objects.filter(
-            organization_id__in=self.model.organizations.values_list("id", flat=True)
+            organization_id=self.org_integration.organization_id,
         )
         items = []
         for p in projects:
             items.append({"value": p.id, "label": p.name})
 
-        service_options = [(s.service_id, s.service_name,) for s in self.services]
+        service_options = [(s.id, s.service_name,) for s in self.services]
 
         fields = [
             {
@@ -86,15 +86,15 @@ class PagerDutyIntegration(IntegrationInstallation):
         if "project_mapping" in data:
             project_ids_and_services = data.pop("project_mapping")
 
-            PagerDutyServiceProject.objects.filter(
-                pagerduty_service__in=PagerDutyService.objects.filter(organization_integration=self.org_integration),
-            ).delete()
-
             with transaction.atomic():
+                PagerDutyServiceProject.objects.filter(
+                    pagerduty_service__in=PagerDutyService.objects.filter(organization_integration=self.org_integration),
+                ).delete()
+
                 for p_id, s in project_ids_and_services.items():
                     # create the record in the table
                     project = Project.objects.get(pk=p_id)
-                    service = PagerDutyService.objects.get(service_id=s["service"])
+                    service = PagerDutyService.objects.get(id=s["service"])
                     PagerDutyServiceProject.objects.create(
                         project=project,
                         pagerduty_service=service,
@@ -102,13 +102,15 @@ class PagerDutyIntegration(IntegrationInstallation):
 
     def get_config_data(self):
         config = self.org_integration.config
-        project_mappings = PagerDutyService.objects.filter(
-            organization_integration_id=self.org_integration.id,
+        project_mappings = PagerDutyServiceProject.objects.filter(
+            pagerduty_service__in=PagerDutyService.objects.filter(
+                organization_integration_id=self.org_integration.id,
+            ),
         )
         data = {}
         for pm in project_mappings:
             data[pm.project_id] = {
-                "service": pm.service_id,
+                "service": pm.pagerduty_service.id,
             }
         config = {}
         config["project_mapping"] = data
