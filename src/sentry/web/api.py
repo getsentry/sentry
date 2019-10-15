@@ -288,7 +288,7 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments,
 
     if random.random() < options.get("store.sample-rust-data-scrubber", 0.0):
         rust_scrubbed_data = safe_execute(
-            semaphore.scrub_event, datascrubbing_settings, data, _with_transaction=False
+            semaphore.scrub_event, datascrubbing_settings, dict(data), _with_transaction=False
         )
     else:
         rust_scrubbed_data = None
