@@ -28,6 +28,7 @@ class PagerDutyClient(ApiClient):
     def send_trigger(self, data):
         # not sure if this will only been events for now
         if isinstance(data, EventCommon):
+            source = data.transaction or data.culprit or '<unknown>'
             group = data.group
             payload = {
                 "routing_key": self.integration_key,
@@ -38,13 +39,11 @@ class PagerDutyClient(ApiClient):
                     # should it be the group title instead ?
                     "summary": data.message,
                     "severity": "error",
-                    # TODO(meredith): figure out the best value here: server_name? culprit if it exists? transaction tag?
-                    "source": "",
-                    # TODO(meredith): add more info in custom details
-                    "custom_details": {
-                        "event_id": data.event_id,
-                    }
-                }
+                    "source": source,
+                    "component": group.project.slug,
+                    "custom_details": data.as_dict(),
+                },
+                "links": [{"href": group.get_absolute_url(), "text": "Issue Details"}]
             }
         self.request(payload)
 
