@@ -143,7 +143,7 @@
     "enzyme-adapter-react-16": "1.14.0",
     "enzyme-to-json": "3.4.0",
     "eslint": "5.11.1",
-    "eslint-config-sentry-app": "1.21.0",
+    "eslint-config-sentry-app": "1.22.0",
     "jest": "24.1.0",
     "jest-canvas-mock": "^2.1.0",
     "jest-junit": "^3.4.1",
