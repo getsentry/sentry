@@ -16,7 +16,6 @@ class ProjectOwnershipTestCase(TestCase):
 
     def test_get_owners_basic(self):
         rule_a = Rule(Matcher("path", "*.py"), [Owner("team", self.team.slug)])
-
         rule_b = Rule(Matcher("path", "src/*"), [Owner("user", self.user.email)])
 
         ProjectOwnership.objects.create(
@@ -55,7 +54,9 @@ class ProjectOwnershipTestCase(TestCase):
         ) == (ProjectOwnership.Everyone, None)
 
         # When fallthrough = False, we don't implicitly assign to Everyone
-        ProjectOwnership.objects.filter(project_id=self.project.id).update(fallthrough=False)
+        owner = ProjectOwnership.objects.get(project_id=self.project.id)
+        owner.fallthrough = False
+        owner.save()
 
         assert ProjectOwnership.get_owners(
             self.project.id, {"stacktrace": {"frames": [{"filename": "xxxx"}]}}

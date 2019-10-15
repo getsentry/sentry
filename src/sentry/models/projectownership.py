@@ -7,7 +7,7 @@ from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 
-from sentry.db.models import Model, sane_repr
+from sentry.db.models import BaseManager, Model, sane_repr
 from sentry.db.models.fields import FlexibleForeignKey, JSONField
 from sentry.ownership.grammar import load_schema
 from functools import reduce
@@ -15,6 +15,8 @@ from functools import reduce
 
 class ProjectOwnership(Model):
     __core__ = True
+
+    objects = BaseManager(cache_fields=["project_id", "pk"])
 
     project = FlexibleForeignKey("sentry.Project", unique=True)
     raw = models.TextField(null=True)
@@ -46,7 +48,7 @@ class ProjectOwnership(Model):
         no owners.
         """
         try:
-            ownership = cls.objects.get(project_id=project_id)
+            ownership = cls.objects.get_from_cache(project_id=project_id)
         except cls.DoesNotExist:
             ownership = cls(project_id=project_id)
 
@@ -65,7 +67,7 @@ class ProjectOwnership(Model):
         Will return None if there are no owners, or a list of owners.
         """
         try:
-            ownership = cls.objects.get(project_id=project_id)
+            ownership = cls.objects.get_from_cache(project_id=project_id)
         except cls.DoesNotExist:
             return None
         if not ownership.auto_assignment:
