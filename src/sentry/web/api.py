@@ -27,6 +27,7 @@ from django.views.generic.base import View as BaseView
 from functools import wraps
 from querystring_parser import parser
 from symbolic import ProcessMinidumpError, Unreal4Crash, Unreal4Error
+import semaphore
 
 from sentry import features, options, quotas
 from sentry.attachments import CachedAttachment
@@ -222,6 +223,12 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments,
         if not signals_in_consumer:
             event_filtered.send_robust(ip=remote_addr, project=project, sender=process_event)
 
+        # relay will no longer be able to provide information about filter
+        # status so to see the impact we're adding a way to turn on relay
+        # like behavior here.
+        if options.get("store.lie-about-filter-status"):
+            return event_id
+
         raise APIForbidden("Event dropped due to filter: %s" % (filter_reason,))
 
     # TODO: improve this API (e.g. make RateLimit act on __ne__)
@@ -285,21 +292,32 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments,
 
     scrub_data = datascrubbing_settings.get("scrubData")
 
-    if scrub_data:
-        # We filter data immediately before it ever gets into the queue
-        sensitive_fields = datascrubbing_settings.get("sensitiveFields")
+    if random.random() < options.get("store.sample-rust-data-scrubber", 0.0):
+        rust_scrubbed_data = safe_execute(
+            semaphore.scrub_event, datascrubbing_settings, dict(data), _with_transaction=False
+        )
+    else:
+        rust_scrubbed_data = None
 
-        exclude_fields = datascrubbing_settings.get("excludeFields")
+    if rust_scrubbed_data and options.get("store.use-rust-data-scrubber", False):
+        data = rust_scrubbed_data
+        data["_rust_data_scrubbed"] = True  # TODO: Remove after sampling
+    else:
+        if scrub_data:
+            # We filter data immediately before it ever gets into the queue
+            sensitive_fields = datascrubbing_settings.get("sensitiveFields")
+            exclude_fields = datascrubbing_settings.get("excludeFields")
+            scrub_defaults = datascrubbing_settings.get("scrubDefaults")
 
-        scrub_defaults = datascrubbing_settings.get("scrubDefaults")
+            SensitiveDataFilter(
+                fields=sensitive_fields,
+                include_defaults=scrub_defaults,
+                exclude_fields=exclude_fields,
+            ).apply(data)
 
-        SensitiveDataFilter(
-            fields=sensitive_fields, include_defaults=scrub_defaults, exclude_fields=exclude_fields
-        ).apply(data)
-
-    if scrub_ip_address:
-        # We filter data immediately before it ever gets into the queue
-        helper.ensure_does_not_have_ip(data)
+        if scrub_ip_address:
+            # We filter data immediately before it ever gets into the queue
+            helper.ensure_does_not_have_ip(data)
 
     # mutates data (strips a lot of context if not queued)
     helper.insert_data_to_database(data, start_time=start_time, attachments=attachments)

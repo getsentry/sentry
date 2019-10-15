@@ -1,5 +1,4 @@
 /* global __dirname */
-import {channel, createBroadcast} from 'emotion-theming';
 import jQuery from 'jquery';
 import Adapter from 'enzyme-adapter-react-16';
 import Enzyme from 'enzyme';
@@ -8,11 +7,10 @@ import PropTypes from 'prop-types';
 import fromEntries from 'object.fromentries';
 
 import ConfigStore from 'app/stores/configStore';
-import theme from 'app/utils/theme';
 
-import {loadFixtures} from './helpers/loadFixtures';
+import {loadFixtures} from './sentry-test/loadFixtures';
 
-export * from './helpers/select';
+export * from './sentry-test/select';
 
 // We need this polyfill for testing only because
 // typescript handles it for main application
@@ -31,15 +29,10 @@ const constantDate = new Date(1508208080000); //National Pasta Day
 MockDate.set(constantDate);
 
 /**
- * emotion setup for theme provider in context
- */
-const broadcast = createBroadcast(theme);
-
-/**
  * Load all files in `tests/js/fixtures/*` as a module.
  * These will then be added to the `TestStubs` global below
  */
-const fixturesPath = `${__dirname}/fixtures`;
+const fixturesPath = `${__dirname}/sentry-test/fixtures`;
 const fixtures = loadFixtures(fixturesPath);
 
 /**
@@ -59,7 +52,7 @@ jest.mock('app/translations');
 jest.mock('app/api');
 jest.mock('app/utils/domId');
 jest.mock('app/utils/withOrganization');
-jest.mock('scroll-to-element', () => {});
+jest.mock('scroll-to-element', () => jest.fn());
 jest.mock('react-router', () => {
   const ReactRouter = require.requireActual('react-router');
   return {
@@ -196,10 +189,6 @@ window.TestStubs = {
 
   routerContext: ([context, childContextTypes] = []) => ({
     context: {
-      [channel]: {
-        subscribe: broadcast.subscribe,
-        unsubscribe: broadcast.unsubscribe,
-      },
       location: TestStubs.location(),
       router: TestStubs.router(),
       organization: fixtures.Organization(),
@@ -207,7 +196,6 @@ window.TestStubs = {
       ...context,
     },
     childContextTypes: {
-      [channel]: PropTypes.object,
       router: PropTypes.object,
       location: PropTypes.object,
       organization: PropTypes.object,

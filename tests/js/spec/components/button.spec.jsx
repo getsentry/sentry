@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount, shallow} from 'enzyme';
+import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 import Button from 'app/components/button';
 
 describe('Button', function() {
@@ -40,7 +40,7 @@ describe('Button', function() {
 
   it('calls `onClick` callback', function() {
     const spy = jest.fn();
-    const component = mount(<Button onClick={spy} />, routerContext);
+    const component = mountWithTheme(<Button onClick={spy} />, routerContext);
     component.simulate('click');
 
     expect(spy).toHaveBeenCalled();
@@ -48,7 +48,7 @@ describe('Button', function() {
 
   it('does not call `onClick` on disabled buttons', function() {
     const spy = jest.fn();
-    const component = mount(<Button onClick={spy} disabled />, routerContext);
+    const component = mountWithTheme(<Button onClick={spy} disabled />, routerContext);
     component.simulate('click');
 
     expect(spy).not.toHaveBeenCalled();

@@ -1,10 +1,10 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {browserHistory} from 'react-router';
 
 import ProjectAlertRuleDetails from 'app/views/settings/projectAlerts/projectAlertRuleDetails';
 
-import {selectByValue} from 'app-test/helpers/select';
+import {selectByValue} from 'sentry-test/select';
 
 jest.mock('jquery');
 jest.unmock('app/utils/recreateRoute');
@@ -75,7 +75,7 @@ describe('ProjectAlertRuleDetails', function() {
         body: TestStubs.ProjectAlertRule(),
       });
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <ProjectAlertRuleDetails
           routes={projectAlertRuleDetailsRoutes}
           params={{orgId: 'org-slug', projectId: 'project-slug'}}
@@ -128,7 +128,7 @@ describe('ProjectAlertRuleDetails', function() {
         body: TestStubs.ProjectAlertRule(),
       });
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <ProjectAlertRuleDetails
           routes={projectAlertRuleDetailsRoutes}
           params={{orgId: 'org-slug', projectId: 'project-slug', ruleId: '1'}}

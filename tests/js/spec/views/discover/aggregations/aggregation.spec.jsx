@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import Aggregation from 'app/views/discover/aggregations/aggregation';
 
@@ -24,8 +24,9 @@ describe('Aggregation', function() {
       ];
 
       data.forEach(async function(item) {
-        const wrapper = mount(
-          <Aggregation value={item.value} onChange={jest.fn()} columns={[]} />
+        const wrapper = mountWithTheme(
+          <Aggregation value={item.value} onChange={jest.fn()} columns={[]} />,
+          TestStubs.routerContext()
         );
         expect(wrapper.text()).toBe(item.expectedTextValue);
       });
@@ -40,8 +41,9 @@ describe('Aggregation', function() {
         {name: 'col2', type: 'number'},
         {name: 'error.type', type: 'string'},
       ];
-      wrapper = mount(
-        <Aggregation value={[null, null, null]} onChange={jest.fn()} columns={cols} />
+      wrapper = mountWithTheme(
+        <Aggregation value={[null, null, null]} onChange={jest.fn()} columns={cols} />,
+        TestStubs.routerContext()
       );
     });
 
@@ -75,8 +77,9 @@ describe('Aggregation', function() {
       const cols = [{name: 'col1', type: 'string'}, {name: 'col2', type: 'number'}];
       focusSpy = jest.spyOn(Aggregation.prototype, 'focus');
 
-      wrapper = mount(
-        <Aggregation value={[null, null, null]} onChange={jest.fn()} columns={cols} />
+      wrapper = mountWithTheme(
+        <Aggregation value={[null, null, null]} onChange={jest.fn()} columns={cols} />,
+        TestStubs.routerContext()
       );
     });
 

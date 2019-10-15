@@ -1,12 +1,12 @@
 import {browserHistory} from 'react-router';
 import React from 'react';
 
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import ProjectContext from 'app/views/projects/projectContext';
 import ProjectGeneralSettings from 'app/views/settings/projectGeneralSettings';
 import ProjectsStore from 'app/stores/projectsStore';
 
-import {selectByValue} from 'app-test/helpers/select';
+import {selectByValue} from 'sentry-test/select';
 
 jest.mock('jquery');
 
@@ -64,7 +64,7 @@ describe('projectGeneralSettings', function() {
   });
 
   it('renders form fields', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
       TestStubs.routerContext()
     );
@@ -102,7 +102,7 @@ describe('projectGeneralSettings', function() {
   it('disables field when equivalent org setting is true', function() {
     routerContext.context.organization.dataScrubber = true;
     routerContext.context.organization.scrubIPAddresses = false;
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
       routerContext
     );
@@ -116,7 +116,7 @@ describe('projectGeneralSettings', function() {
 
   it('disables scrapeJavaScript when equivalent org setting is false', function() {
     routerContext.context.organization.scrapeJavaScript = false;
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
       routerContext
     );
@@ -130,7 +130,7 @@ describe('projectGeneralSettings', function() {
       method: 'DELETE',
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
       TestStubs.routerContext()
     );
@@ -154,7 +154,7 @@ describe('projectGeneralSettings', function() {
       method: 'POST',
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
       TestStubs.routerContext()
     );
@@ -185,7 +185,7 @@ describe('projectGeneralSettings', function() {
 
   it('displays transfer/remove message for non-admins', function() {
     routerContext.context.organization.access = ['org:read'];
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
       routerContext
     );
@@ -200,7 +200,7 @@ describe('projectGeneralSettings', function() {
 
   it('disables the form for users without write permissions', function() {
     routerContext.context.organization.access = ['org:read'];
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
       routerContext
     );
@@ -227,7 +227,7 @@ describe('projectGeneralSettings', function() {
         platform: 'javascript',
       },
     });
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProjectContext orgId={org.slug} projectId={project.slug}>
         <ProjectGeneralSettings
           routes={[]}
@@ -265,7 +265,7 @@ describe('projectGeneralSettings', function() {
         slug: 'new-project',
       },
     });
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProjectContext orgId={org.slug} projectId={project.slug}>
         <ProjectGeneralSettings
           routes={[]}
@@ -332,7 +332,7 @@ describe('projectGeneralSettings', function() {
           slug: 'new-project',
         },
       });
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <ProjectContext orgId={org.slug} projectId={project.slug}>
           <ProjectGeneralSettings
             routes={[]}

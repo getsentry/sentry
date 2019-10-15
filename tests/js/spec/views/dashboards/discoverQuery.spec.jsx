@@ -1,8 +1,8 @@
-import {mount} from 'enzyme';
+import {mount} from 'sentry-test/enzyme';
 import React from 'react';
 
-import {initializeOrg} from 'app-test/helpers/initializeOrg';
-import {mockRouterPush} from 'app-test/helpers/mockRouterPush';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mockRouterPush} from 'sentry-test/mockRouterPush';
 
 import DiscoverQuery from 'app/views/dashboards/discoverQuery';
 

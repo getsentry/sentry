@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mount} from 'sentry-test/enzyme';
 import DropdownMenu from 'app/components/dropdownMenu';
 
 jest.useFakeTimers();

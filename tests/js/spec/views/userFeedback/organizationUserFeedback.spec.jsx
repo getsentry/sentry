@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {OrganizationUserFeedback} from 'app/views/userFeedback/organizationUserFeedback';
 
 describe('OrganizationUserFeedback', function() {
@@ -45,7 +45,10 @@ describe('OrganizationUserFeedback', function() {
         orgId: organization.slug,
       },
     };
-    const wrapper = mount(<OrganizationUserFeedback {...params} />, routerContext);
+    const wrapper = mountWithTheme(
+      <OrganizationUserFeedback {...params} />,
+      routerContext
+    );
 
     expect(wrapper.find('CompactIssue')).toHaveLength(1);
   });
@@ -60,7 +63,10 @@ describe('OrganizationUserFeedback', function() {
         orgId: organization.slug,
       },
     };
-    const wrapper = mount(<OrganizationUserFeedback {...params} />, routerContext);
+    const wrapper = mountWithTheme(
+      <OrganizationUserFeedback {...params} />,
+      routerContext
+    );
 
     expect(wrapper.find('NoProjectMessage').exists()).toBe(true);
     expect(wrapper.find('UserFeedbackEmpty').exists()).toBe(false);
@@ -81,7 +87,10 @@ describe('OrganizationUserFeedback', function() {
         orgId: organization.slug,
       },
     };
-    const wrapper = mount(<OrganizationUserFeedback {...params} />, routerContext);
+    const wrapper = mountWithTheme(
+      <OrganizationUserFeedback {...params} />,
+      routerContext
+    );
 
     expect(wrapper.find('UserFeedbackEmpty').prop('projectIds')).toEqual([]);
   });
@@ -101,7 +110,10 @@ describe('OrganizationUserFeedback', function() {
         orgId: organization.slug,
       },
     };
-    const wrapper = mount(<OrganizationUserFeedback {...params} />, routerContext);
+    const wrapper = mountWithTheme(
+      <OrganizationUserFeedback {...params} />,
+      routerContext
+    );
 
     expect(wrapper.find('UserFeedbackEmpty').prop('projectIds')).toEqual(['112']);
   });
@@ -121,7 +133,10 @@ describe('OrganizationUserFeedback', function() {
         orgId: organization.slug,
       },
     };
-    const wrapper = mount(<OrganizationUserFeedback {...params} />, routerContext);
+    const wrapper = mountWithTheme(
+      <OrganizationUserFeedback {...params} />,
+      routerContext
+    );
 
     expect(wrapper.find('UserFeedbackEmpty').prop('projectIds')).toEqual(['112', '113']);
   });
