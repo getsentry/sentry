@@ -4,7 +4,7 @@ from south.db import db
 from south.v2 import DataMigration
 from django.db import connection, models, IntegrityError, transaction
 
-from sentry.plugins import plugins
+from sentry.plugins.base import plugins
 from sentry.plugins import IssueTrackingPlugin, NotificationPlugin
 
 

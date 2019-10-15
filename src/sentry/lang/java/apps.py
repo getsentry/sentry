@@ -8,6 +8,6 @@ class Config(AppConfig):
 
     def ready(self):
         from .plugin import JavaPlugin
-        from sentry.plugins import register
+        from sentry.plugins.base import register
 
         register(JavaPlugin)

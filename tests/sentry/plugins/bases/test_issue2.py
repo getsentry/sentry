@@ -8,7 +8,8 @@ import mock
 from social_auth.models import UserSocialAuth
 
 from sentry.models import GroupMeta, User
-from sentry.plugins import IssueTrackingPlugin2, plugins
+from sentry.plugins.base import plugins
+from sentry.plugins.bases import IssueTrackingPlugin2
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 

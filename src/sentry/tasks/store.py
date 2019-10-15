@@ -44,7 +44,7 @@ class RetrySymbolication(Exception):
 
 def should_process(data):
     """Quick check if processing is needed at all."""
-    from sentry.plugins import plugins
+    from sentry.plugins.base import plugins
 
     for plugin in plugins.all(version=2):
         processors = safe_execute(
@@ -156,7 +156,7 @@ def retry_process_event(process_task_name, task_kwargs, **kwargs):
 
 
 def _do_process_event(cache_key, start_time, event_id, process_task, data=None):
-    from sentry.plugins import plugins
+    from sentry.plugins.base import plugins
 
     if data is None:
         data = default_cache.get(cache_key)
