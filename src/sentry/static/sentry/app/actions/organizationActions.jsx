@@ -1,3 +1,8 @@
 import Reflux from 'reflux';
 
-export default Reflux.createActions(['update']);
+export default Reflux.createActions([
+  'fetchOrg',
+  'fetchOrgSuccess',
+  'fetchOrgError',
+  'update',
+]);
