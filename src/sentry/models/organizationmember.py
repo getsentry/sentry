@@ -37,6 +37,13 @@ class InviteStatus(Enum):
     REQUESTED_TO_JOIN = 2
 
 
+invite_status_names = {
+    InviteStatus.APPROVED.value: "approved",
+    InviteStatus.REQUESTED_TO_BE_INVITED.value: "requested_to_be_invited",
+    InviteStatus.REQUESTED_TO_JOIN.value: "requested_to_join",
+}
+
+
 class OrganizationMemberTeam(BaseModel):
     """
     Identifies relationships between organization members and the teams they are on.
@@ -314,6 +321,7 @@ class OrganizationMember(Model):
             "teams_slugs": [t["slug"] for t in teams],
             "has_global_access": self.has_global_access,
             "role": self.role,
+            "invite_status": invite_status_names[self.invite_status],
         }
 
     def get_teams(self):

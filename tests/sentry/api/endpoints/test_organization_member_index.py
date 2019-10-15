@@ -5,9 +5,56 @@ from mock import patch
 from django.core.urlresolvers import reverse
 from django.core import mail
 
-from sentry.testutils import APITestCase
+from sentry import roles
+from sentry.api.endpoints.organization_member_index import OrganizationMemberSerializer
+from sentry.testutils import APITestCase, TestCase
 from sentry.models import InviteStatus, OrganizationMember, OrganizationMemberTeam
 from sentry.testutils.helpers import Feature
+
+
+class OrganizationMemberSerializerTest(TestCase):
+    def test_valid(self):
+        context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
+        data = {"email": "eric@localhost", "role": "member", "teams": [self.team.slug]}
+
+        serializer = OrganizationMemberSerializer(context=context, data=data)
+        assert serializer.is_valid()
+
+    def test_gets_teams_objects(self):
+        context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
+        data = {"email": "eric@localhost", "role": "member", "teams": [self.team.slug]}
+
+        serializer = OrganizationMemberSerializer(context=context, data=data)
+        assert serializer.is_valid()
+        assert serializer.validated_data["teams"][0] == self.team
+
+    def test_invalid_email(self):
+        context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
+        data = {"email": self.user.email, "role": "member", "teams": []}
+
+        serializer = OrganizationMemberSerializer(context=context, data=data)
+        assert not serializer.is_valid()
+        assert serializer.errors == {
+            "email": ["The user %s is already a member" % (self.user.email,)]
+        }
+
+    def test_invalid_team_invites(self):
+        context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
+        data = {"email": "eric@localhost", "role": "member", "teams": ["faketeam"]}
+
+        serializer = OrganizationMemberSerializer(context=context, data=data)
+
+        assert not serializer.is_valid()
+        assert serializer.errors == {"teams": ["Invalid teams"]}
+
+    def test_invalid_role(self):
+        context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
+        data = {"email": "eric@localhost", "role": "owner", "teams": []}
+
+        serializer = OrganizationMemberSerializer(context=context, data=data)
+
+        assert not serializer.is_valid()
+        assert serializer.errors == {"role": ["You do not have permission to invite that role."]}
 
 
 class OrganizationMemberListTest(APITestCase):
@@ -321,14 +368,6 @@ class OrganizationMemberListTest(APITestCase):
 
         assert response.status_code == 201
         assert response.data["email"] == "eric@localhost"
-
-    def test_invalid_team_invites(self):
-        self.login_as(user=self.owner_user)
-        response = self.client.post(
-            self.url, {"email": "eric@localhost", "role": "owner", "teams": ["faketeam"]}
-        )
-
-        assert response.status_code == 400
 
 
 class OrganizationMemberListPostTest(APITestCase):

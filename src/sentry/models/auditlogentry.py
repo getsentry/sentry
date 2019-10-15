@@ -94,6 +94,8 @@ class AuditLogEntryEvent(object):
     INTERNAL_INTEGRATION_ADD_TOKEN = 135
     INTERNAL_INTEGRATION_REMOVE_TOKEN = 136
 
+    INVITE_REQUEST_ADD = 140
+
 
 class AuditLogEntry(Model):
     __core__ = False
@@ -174,6 +176,7 @@ class AuditLogEntry(Model):
             (AuditLogEntryEvent.TRIAL_STARTED, "trial.started"),
             (AuditLogEntryEvent.PLAN_CHANGED, "plan.changed"),
             (AuditLogEntryEvent.PLAN_CANCELLED, "plan.cancelled"),
+            (AuditLogEntryEvent.INVITE_REQUEST_ADD, "invite-request.create"),
         )
     )
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
@@ -372,5 +375,7 @@ class AuditLogEntry(Model):
             return "created a token for internal integration %s" % (self.data["sentry_app"])
         elif self.event == AuditLogEntryEvent.INTERNAL_INTEGRATION_REMOVE_TOKEN:
             return "revoked a token for internal integration %s" % (self.data["sentry_app"])
+        elif self.event == AuditLogEntryEvent.INVITE_REQUEST_ADD:
+            return "request added to invite %s" % (self.data["email"],)
 
         return ""

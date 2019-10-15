@@ -17,6 +17,7 @@ type Props = {
   role: string;
   teams: string[];
   roleOptions: MemberRole[];
+  roleDisabledUnallowed: boolean;
   teamOptions: Team[];
   inviteStatus: InviteStatus;
   onRemove: () => void;
@@ -34,6 +35,7 @@ const InviteRowControl = ({
   role,
   teams,
   roleOptions,
+  roleDisabledUnallowed,
   teamOptions,
   inviteStatus,
   onRemove,
@@ -65,6 +67,7 @@ const InviteRowControl = ({
         disabled={disabled}
         value={role}
         roles={roleOptions}
+        disableUnallowed={roleDisabledUnallowed}
         onChange={onChangeRole}
       />
     </div>

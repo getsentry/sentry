@@ -117,8 +117,8 @@ from .endpoints.organization_issues_new import OrganizationIssuesNewEndpoint
 from .endpoints.organization_issues_resolved_in_release import (
     OrganizationIssuesResolvedInReleaseEndpoint,
 )
-from .endpoints.organization_member_details import OrganizationMemberDetailsEndpoint
 from .endpoints.organization_member_index import OrganizationMemberIndexEndpoint
+from .endpoints.organization_member_details import OrganizationMemberDetailsEndpoint
 from .endpoints.organization_member_issues_assigned import OrganizationMemberIssuesAssignedEndpoint
 from .endpoints.organization_member_issues_bookmarked import (
     OrganizationMemberIssuesBookmarkedEndpoint,
@@ -128,6 +128,8 @@ from .endpoints.organization_member_team_details import OrganizationMemberTeamDe
 from .endpoints.organization_member_unreleased_commits import (
     OrganizationMemberUnreleasedCommitsEndpoint,
 )
+from .endpoints.organization_invite_request_index import OrganizationInviteRequestIndexEndpoint
+from .endpoints.organization_invite_request_details import OrganizationInviteRequestDetailsEndpoint
 from .endpoints.organization_monitors import OrganizationMonitorsEndpoint
 from .endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskEndpoint
 from .endpoints.organization_pinned_searches import OrganizationPinnedSearchEndpoint
@@ -783,6 +785,16 @@ urlpatterns = patterns(
                     r"^(?P<organization_slug>[^\/]+)/members/$",
                     OrganizationMemberIndexEndpoint.as_view(),
                     name="sentry-api-0-organization-member-index",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/invite-requests/$",
+                    OrganizationInviteRequestIndexEndpoint.as_view(),
+                    name="sentry-api-0-organization-invite-request-index",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/invite-requests/(?P<member_id>[^\/]+)/$",
+                    OrganizationInviteRequestDetailsEndpoint.as_view(),
+                    name="sentry-api-0-organization-invite-request-detail",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/monitors/$",
