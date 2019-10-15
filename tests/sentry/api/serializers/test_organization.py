@@ -29,7 +29,6 @@ class OrganizationSerializerTest(TestCase):
                 "invite-members",
                 "sso-saml2",
                 "sso-basic",
-                "sentry10",
                 "symbol-sources",
                 "custom-symbol-sources",
                 "tweak-grouping-config",
