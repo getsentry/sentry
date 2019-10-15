@@ -33,6 +33,7 @@ class OrganizationMemberSerializer(Serializer):
                 "sso:invalid": bool(getattr(obj.flags, "sso:invalid")),
             },
             "dateCreated": obj.date_added,
+            "invite_status": obj.get_invite_status_name(),
         }
         return d
 

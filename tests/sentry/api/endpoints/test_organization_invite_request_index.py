@@ -6,6 +6,40 @@ from sentry.testutils import APITestCase
 from sentry.models import OrganizationMember, OrganizationMemberTeam, InviteStatus
 
 
+class OrganizationInviteRequestListTest(APITestCase):
+    def setUp(self):
+        self.org = self.create_organization(owner=self.user)
+
+        self.invite_request = self.create_member(
+            email="test@example.com",
+            organization=self.org,
+            role="member",
+            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+        )
+        self.request_to_join = self.create_member(
+            email="example@gmail.com",
+            organization=self.org,
+            role="member",
+            invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
+        )
+
+    def test_simple(self):
+        self.login_as(user=self.user)
+        url = reverse(
+            "sentry-api-0-organization-invite-request-index",
+            kwargs={"organization_slug": self.org.slug},
+        )
+
+        resp = self.client.get(url)
+        assert resp.status_code == 200
+
+        assert len(resp.data) == 2
+        assert resp.data[0]["email"] == self.invite_request.email
+        assert resp.data[0]["invite_status"] == "requested_to_be_invited"
+        assert resp.data[1]["email"] == self.request_to_join.email
+        assert resp.data[1]["invite_status"] == "requested_to_join"
+
+
 class OrganizationInviteRequestCreateTest(APITestCase):
     def setUp(self):
         self.user = self.create_user("foo@localhost")
