@@ -342,6 +342,33 @@ describe('decodeColumnOrderAndColumnSortBy', function() {
       order: 'desc',
     });
   });
+
+  it('can decode elements with aggregate functions but no fields', function() {
+    const location = {
+      query: {
+        field: ['a()'],
+        fieldnames: ['ant()'],
+        sort: ['-a()'],
+      },
+    };
+    const table = decodeColumnOrderAndColumnSortBy(location);
+
+    expect(Array.isArray(table.columnOrder)).toBeTruthy();
+    expect(Array.isArray(table.columnSortBy)).toBeTruthy();
+    expect(table.columnOrder).toHaveLength(1);
+    expect(table.columnSortBy).toHaveLength(1);
+
+    expect(table.columnOrder[0]).toMatchObject({
+      key: 'a()',
+      name: 'ant()',
+      aggregation: 'a',
+      field: '',
+    });
+    expect(table.columnSortBy[0]).toMatchObject({
+      key: 'a()',
+      order: 'desc',
+    });
+  });
 });
 
 describe('encodeColumnOrderAndColumnSortBy', function() {
@@ -446,20 +473,6 @@ describe('setColumnStateOnLocation', function() {
       },
     },
   };
-  let browserHistoryPush;
-
-  beforeAll(() => {
-    browserHistoryPush = browserHistory.push;
-    browserHistory.push = jest.fn();
-  });
-
-  afterAll(() => {
-    browserHistory.push = browserHistoryPush;
-  });
-
-  beforeEach(() => {
-    browserHistory.push.mockClear();
-  });
 
   it('will copy Location object correctly', function() {
     setColumnStateOnLocation(location, [], []);
