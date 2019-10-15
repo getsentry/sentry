@@ -30,7 +30,7 @@ from django.core.cache import cache
 from sentry.models.project import Project
 from sentry.signals import event_filtered, event_dropped
 from sentry.utils.kafka import create_batching_kafka_consumer
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome
 
 logger = logging.getLogger(__name__)
@@ -96,6 +96,13 @@ def _process_message(message):
     # remember that we sent the signal just in case the processor dies before
     mark_signal_sent(project_id=project_id, event_id=event_id)
 
+    metrics.incr("outcomes_consumer.signal_sent", tags={"reason": reason, "outcome": outcome})
+
+
+def _process_message_with_timer(message):
+    with metrics.timer("outcomes_consumer.process_message"):
+        return _process_message(message)
+
 
 class OutcomesConsumerWorker(AbstractBatchWorker):
     def __init__(self, multiprocessing, concurrency):
@@ -110,7 +117,7 @@ class OutcomesConsumerWorker(AbstractBatchWorker):
         return message.value()
 
     def flush_batch(self, batch):
-        for _ in self.pool.imap_unordered(_process_message, batch, chunksize=100):
+        for _ in self.pool.imap_unordered(_process_message_with_timer, batch, chunksize=100):
             pass
 
     def shutdown(self):
