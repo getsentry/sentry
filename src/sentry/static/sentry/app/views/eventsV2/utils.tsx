@@ -234,14 +234,6 @@ const TEMPLATE_TABLE_COLUMN: TableColumn<React.ReactText> = {
   isPrimary: false,
 };
 
-export function decodeColumnOrderAndColumnSortBy(location: Location): TableState {
-  const {query} = location;
-  return {
-    columnOrder: query ? decodeColumnOrder(query) : [],
-    columnSortBy: query ? decodeColumnSortBy(query) : [],
-  };
-}
-
 export function decodeColumnOrder(
   query: QueryWithColumnState
 ): TableColumn<React.ReactText>[] {
