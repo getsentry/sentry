@@ -373,9 +373,16 @@ class EventView {
   }
 
   getSorts(): TableColumnSort<React.ReactText>[] {
-    return decodeColumnSortBy({
+    const __sorts = decodeColumnSortBy({
       sort: this.getDefaultSort(),
     });
+
+    console.log({
+      sorts: this.sorts,
+      __sorts,
+    });
+
+    return __sorts;
   }
 
   getQuery(inputQuery: string | string[] | null | undefined): string {
