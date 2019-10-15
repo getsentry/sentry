@@ -2,12 +2,14 @@ from __future__ import absolute_import
 
 from datetime import datetime
 from mock import patch
+import pytest
 import pytz
 
 from sentry.models import GroupRelease, Release
 from sentry.testutils import TestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.utils.snuba import (
+    _prepare_query_params,
     get_snuba_translators,
     zerofill,
     get_json_type,
@@ -15,6 +17,8 @@ from sentry.utils.snuba import (
     detect_dataset,
     transform_aliases_and_query,
     Dataset,
+    SnubaQueryParams,
+    UnqualifiedQueryError,
 )
 
 
@@ -607,3 +611,44 @@ class DetectDatasetTest(TestCase):
 
         query = {"aggregations": [["uniq", "transaction.name", "uniq_transaction"]]}
         assert detect_dataset(query) == Dataset.Transactions
+
+
+class PrepareQueryParamsTest(TestCase):
+    def test_events_dataset_with_project_id(self):
+        query_params = SnubaQueryParams(
+            dataset=Dataset.Events, filter_keys={"project_id": [self.project.id]}
+        )
+
+        kwargs, _, _ = _prepare_query_params(query_params)
+        assert "project" in kwargs
+        assert kwargs["project"] == [self.project.id]
+
+    def test_transactions_dataset_with_project_id(self):
+        query_params = SnubaQueryParams(
+            dataset=Dataset.Transactions, filter_keys={"project_id": [self.project.id]}
+        )
+
+        kwargs, _, _ = _prepare_query_params(query_params)
+        assert "project" in kwargs
+        assert kwargs["project"] == [self.project.id]
+
+    def test_outcomes_dataset_with_org_id(self):
+        query_params = SnubaQueryParams(
+            dataset=Dataset.Outcomes, filter_keys={"org_id": [self.organization.id]}
+        )
+
+        kwargs, _, _ = _prepare_query_params(query_params)
+        assert "organization" in kwargs
+        assert kwargs["organization"] == self.organization.id
+
+    def test_outcomes_dataset_with_no_org_id_given(self):
+        query_params = SnubaQueryParams(dataset=Dataset.Outcomes)
+
+        with pytest.raises(UnqualifiedQueryError):
+            _prepare_query_params(query_params)
+
+    def test_invalid_dataset_provided(self):
+        query_params = SnubaQueryParams(dataset="invalid_dataset")
+
+        with pytest.raises(UnqualifiedQueryError):
+            _prepare_query_params(query_params)
