@@ -15,6 +15,8 @@ def pytest_configure(config):
     """
 
     # Do not build in CI because tests are run w/ `make test-acceptance` which builds assets
+    # Can also skip with the env var `SKIP_ACCEPTANCE_UI_BUILD`
+    # `CI` is a default env var on Travis CI (see: https://docs.travis-ci.com/user/environment-variables/#default-environment-variables)
     if os.environ.get("CI") or os.environ.get("SKIP_ACCEPTANCE_UI_BUILD"):
         return
 
