@@ -11,7 +11,6 @@ const OrganizationStore = Reflux.createStore({
     this.reset();
     this.listenTo(OrganizationActions.update, this.onUpdate);
     this.listenTo(OrganizationActions.fetchOrg, this.reset);
-    this.listenTo(OrganizationActions.fetchOrgSuccess, this.onUpdate);
     this.listenTo(OrganizationActions.fetchOrgError, this.onFetchOrgError);
   },
 
