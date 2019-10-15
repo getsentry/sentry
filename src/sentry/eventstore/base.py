@@ -10,6 +10,7 @@ class Columns(Enum):
     # TODO add all the other columns.
     EVENT_ID = "event_id"
     GROUP_ID = "group_id"
+    ISSUE = "issue"
     PROJECT_ID = "project_id"
     TIMESTAMP = "timestamp"
     CULPRIT = "culprit"
