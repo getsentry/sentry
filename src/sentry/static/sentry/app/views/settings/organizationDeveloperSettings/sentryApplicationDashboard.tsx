@@ -10,8 +10,7 @@ import LoadingError from 'app/components/loadingError';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 import space from 'app/styles/space';
-import {intcomma} from 'app/utils';
-import {t, tn} from 'app/locale';
+import {t} from 'app/locale';
 import {SentryApp} from 'app/types';
 
 type Props = AsyncView['props'];
@@ -72,26 +71,6 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
     );
   }
 
-  renderTooltip(point, _pointIdx, chart) {
-    const timeLabel = chart.getTimeLabel(point);
-    const [installed, uninstalled] = point.y;
-
-    return (
-      <div style={{width: '150px'}}>
-        <div className="time-label">{timeLabel}</div>
-        <div className="value-label">
-          {intcomma(installed)} {tn('install', 'installs', installed)}
-          {uninstalled > 0 && (
-            <React.Fragment>
-              <br />
-              {intcomma(uninstalled)} {tn('uninstall', 'uninstalls', uninstalled)}
-            </React.Fragment>
-          )}
-        </div>
-      </div>
-    );
-  }
-
   renderInstallCharts() {
     const {install_stats, uninstall_stats} = this.state.stats;
 
@@ -100,19 +79,19 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
         name: point[0] * 1000,
         value: point[1],
       })),
-      seriesName: 'installed',
+      seriesName: t('installed'),
     };
     const uninstallSeries = {
       data: uninstall_stats.map(point => ({
         name: point[0] * 1000,
         value: point[1],
       })),
-      seriesName: 'uninstalled',
+      seriesName: t('uninstalled'),
     };
 
     return (
       <Panel>
-        <PanelHeader>{t('Installations/Uninstallations over Time')}</PanelHeader>
+        <PanelHeader>{t('Installations/Uninstallations over Last 90 Days')}</PanelHeader>
         <ChartWrapper>
           <BarChart
             series={[installSeries, uninstallSeries]}
