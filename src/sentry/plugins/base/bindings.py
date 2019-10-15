@@ -32,9 +32,9 @@ class RepositoryProviderManager(ProviderManager):
 
 
 class IntegrationRepositoryProviderManager(ProviderManager):
-    from sentry.plugins.providers import repository
+    from sentry.plugins.providers import integration_repository
 
-    type = repository.IntegrationRepositoryProvider
+    type = integration_repository.IntegrationRepositoryProvider
 
 
 class BindingManager(object):

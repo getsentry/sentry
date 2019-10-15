@@ -11,7 +11,7 @@ from rest_framework import serializers
 from sentry.exceptions import PluginError
 from sentry.utils.forms import form_to_config
 
-from .providers import ProviderMixin
+from .providers.base import ProviderMixin
 from .validators import DEFAULT_VALIDATORS
 
 VALIDATOR_ERRORS = (forms.ValidationError, serializers.ValidationError, PluginError)

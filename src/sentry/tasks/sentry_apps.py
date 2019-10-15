@@ -10,7 +10,8 @@ from sentry.http import safe_urlopen, safe_urlread
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
-from sentry.api.serializers import serialize, AppPlatformEvent
+from sentry.api.serializers.base import serialize
+from sentry.api.serializers.models import AppPlatformEvent
 from sentry.models import (
     SentryAppInstallation,
     EventCommon,

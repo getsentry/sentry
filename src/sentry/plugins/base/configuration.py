@@ -14,14 +14,14 @@ from django.http import Http404
 from requests.exceptions import HTTPError
 
 from sentry import options
-from sentry.api import client
+import sentry.api
 from sentry.api.serializers import serialize
 from sentry.models import ProjectOption
 from sentry.utils import json
 
 
 def react_plugin_config(plugin, project, request):
-    response = client.get(
+    response = sentry.api.client.get(
         u"/projects/{}/{}/plugins/{}/".format(project.organization.slug, project.slug, plugin.slug),
         request=request,
     )

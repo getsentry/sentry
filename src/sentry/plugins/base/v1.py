@@ -9,7 +9,7 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from threading import local
 
-from sentry.auth import access
+import sentry.auth
 from sentry.plugins import HIDDEN_PLUGINS
 from sentry.plugins.config import PluginConfigMixin
 from sentry.plugins.status import PluginStatusMixin
@@ -323,7 +323,7 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
         event = group.get_latest_event() or Event()
         event.group = group
 
-        request.access = access.from_request(request, group.organization)
+        request.access = sentry.auth.access.from_request(request, group.organization)
 
         return response.respond(
             request,

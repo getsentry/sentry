@@ -15,7 +15,7 @@ from django.views.generic import View
 from django.utils import timezone
 from simplejson import JSONDecodeError
 from sentry.models import Commit, CommitAuthor, Organization, Repository
-from sentry.plugins.providers import IntegrationRepositoryProvider
+from sentry.plugins.providers.integration_repository import IntegrationRepositoryProvider
 from sentry.utils import json
 
 logger = logging.getLogger("sentry.webhooks")

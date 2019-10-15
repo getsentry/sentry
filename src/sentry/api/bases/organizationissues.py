@@ -3,7 +3,8 @@ from __future__ import absolute_import
 from rest_framework.response import Response
 
 from sentry.api.base import EnvironmentMixin
-from sentry.api.serializers import serialize, StreamGroupSerializer
+from sentry.api.serializers import serialize
+from sentry.api.serializers.models import StreamGroupSerializer
 from sentry.api.paginator import OffsetPaginator
 from sentry.models import Group, GroupStatus, OrganizationMemberTeam, Project, ProjectStatus
 
