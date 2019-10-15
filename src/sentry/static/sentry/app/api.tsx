@@ -253,9 +253,6 @@ export class Client {
     const id: string = uniqueId();
     metric.mark(`api-request-start-${id}`);
 
-    // notify apm utils that a request has started
-    startRequest(id);
-
     let fullUrl: string;
     if (path.indexOf(this.baseUrl) === -1) {
       fullUrl = this.baseUrl + path;
@@ -278,6 +275,9 @@ export class Client {
       op: 'http',
       description: `${method} ${fullUrl}`,
     }) as Sentry.Span;
+
+    // notify apm utils that a request has started
+    startRequest(id);
 
     const errorObject = new Error();
 
