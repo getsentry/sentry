@@ -211,6 +211,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
   },
 
   setManyAssignedToUser(user: User) {
+    // TODO(ts): Wonky type-inference from create-react-class
     const {bulkAssign} = this.props as any;
     const userId = buildUserId(user.id);
 
@@ -221,6 +222,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
   },
 
   setManyAssignedToTeam(team: Team) {
+    // TODO(ts): Wonky type-inference from create-react-class
     const {bulkAssign} = this.props as any;
     const teamId = buildTeamId(team.id);
 
@@ -231,7 +233,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
   },
 
   handleAssign({value: {type, assignee}}, _state, e) {
-    // HACK(ts): Wonky type-inference from create-react-class
+    // TODO(ts): Wonky type-inference from create-react-class
     const {bulkAssign} = this.props as any;
 
     if (type === 'member') {
@@ -261,6 +263,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
   },
 
   unsetManyAssignedTo() {
+    // TODO(ts): Wonky type-inference from create-react-class
     const {bulkAssign} = this.props as any;
 
     this.setState({loading: true});
@@ -331,7 +334,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
   },
 
   renderDropdownButton({getActorProps}) {
-    // HACK(ts): Wonky type-inference from create-react-class
+    // TODO(ts): Wonky type-inference from create-react-class
     const {dropdownActor} = this.props as any;
     const {assignedTo} = this.state;
 
@@ -350,7 +353,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
   },
 
   render() {
-    // HACK(ts): Wonky type-inference from create-react-class
+    // TODO(ts): Wonky type-inference from create-react-class
     const {className, bulkAssign, dropdownProps} = this.props as any;
     const {organization} = this.context;
     const {loading, assignedTo} = this.state;
