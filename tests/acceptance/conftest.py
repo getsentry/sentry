@@ -25,7 +25,7 @@ def pytest_configure(config):
             data = json.load(f)
 
             # If built within last hour, do not build again
-            last_built = int(time.time()) - data["built"] / 1000
+            last_built = int(time.time()) - data["built"]
 
             if last_built <= 3600:
                 print (  # noqa: B314

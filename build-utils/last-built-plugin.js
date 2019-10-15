@@ -13,7 +13,8 @@ class LastBuiltPlugin {
       fs.writeFile(
         path.join(this.basePath, '.webpack.meta'),
         JSON.stringify({
-          built: new Date(new Date().toUTCString()).getTime(),
+          // in seconds
+          built: Math.floor(new Date(new Date().toUTCString()).getTime() / 1000),
         }),
         callback
       );
