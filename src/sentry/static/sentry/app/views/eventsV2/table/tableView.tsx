@@ -156,7 +156,7 @@ class TableView extends React.Component<TableViewProps, TableState> {
       return column.name;
     }
 
-    const sortKey = eventView.getSortKey(column.field, tableData.meta);
+    const sortKey = eventView.getSortKey(String(column.key), tableData.meta);
 
     if (sortKey === null) {
       return <span>{column.name}</span>;
