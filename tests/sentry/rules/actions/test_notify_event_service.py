@@ -19,7 +19,7 @@ class NotifyEventServiceActionTest(RuleTestCase):
 
         rule = self.get_rule(data={"service": "mail"})
 
-        with patch("sentry.plugins.plugins.get") as get_plugin:
+        with patch("sentry.plugins.base.plugins.get") as get_plugin:
             get_plugin.return_value = plugin
 
             results = list(rule.after(event=event, state=self.get_state()))
@@ -53,7 +53,7 @@ class NotifyEventServiceActionTest(RuleTestCase):
 
         rule = self.get_rule(data={"service": "notify"})
 
-        with patch("sentry.plugins.plugins.get") as get_plugin:
+        with patch("sentry.plugins.base.plugins.get") as get_plugin:
             get_plugin.return_value = plugin
 
             results = list(rule.after(event=event, state=self.get_state()))
