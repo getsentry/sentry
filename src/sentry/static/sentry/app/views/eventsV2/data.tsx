@@ -29,6 +29,53 @@ export const DEFAULT_EVENT_VIEW_V1: Readonly<EventViewv1> = {
   tags: ['event.type', 'release', 'project.name', 'user.email', 'user.ip', 'environment'],
 };
 
+export const TRANSACTION_VIEWS: Readonly<Array<EventViewv1>> = [
+  {
+    name: t('Transactions'),
+    data: {
+      fields: [
+        'transaction',
+        'project',
+        'count()',
+        'avg(transaction.duration)',
+        'p75',
+        'p95',
+      ],
+      fieldnames: ['transaction', 'project', 'volume', 'avg', '75th', '95th'],
+      sort: ['-count'],
+      query: 'event.type:transaction',
+    },
+    tags: ['release', 'project.name', 'user.email', 'user.ip', 'environment'],
+  },
+  {
+    name: t('Transactions by User'),
+    data: {
+      fields: [
+        'user',
+        'count()',
+        'count_unique(transaction)',
+        'avg(transaction.duration)',
+        'p75',
+        'p95',
+      ],
+      fieldnames: ['user', 'events', 'unique transactions', 'avg', '75th', '95th'],
+      sort: ['-count'],
+      query: 'event.type:transaction',
+    },
+    tags: ['release', 'project.name', 'user.email', 'user.ip', 'environment'],
+  },
+  {
+    name: t('Transactions by Region'),
+    data: {
+      fields: ['geo.region', 'count()', 'avg(transaction.duration)', 'p75', 'p95'],
+      fieldnames: ['Region', 'events', 'avg', '75th', '95th'],
+      sort: ['-count'],
+      query: 'event.type:transaction',
+    },
+    tags: ['release', 'project.name', 'user.email', 'user.ip'],
+  },
+];
+
 export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
   DEFAULT_EVENT_VIEW_V1,
   {
@@ -116,50 +163,6 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
       query: 'event.type:csp',
     },
     tags: ['project.name', 'blocked-uri', 'browser.name', 'os.name'],
-  },
-  {
-    name: t('Transactions'),
-    data: {
-      fields: [
-        'transaction',
-        'project',
-        'count()',
-        'avg(transaction.duration)',
-        'p75',
-        'p95',
-      ],
-      fieldnames: ['transaction', 'project', 'volume', 'avg', '75th', '95th'],
-      sort: ['-count'],
-      query: 'event.type:transaction',
-    },
-    tags: ['release', 'project.name', 'user.email', 'user.ip', 'environment'],
-  },
-  {
-    name: t('Transactions by User'),
-    data: {
-      fields: [
-        'user',
-        'count()',
-        'count_unique(transaction)',
-        'avg(transaction.duration)',
-        'p75',
-        'p95',
-      ],
-      fieldnames: ['user', 'events', 'unique transactions', 'avg', '75th', '95th'],
-      sort: ['-count'],
-      query: 'event.type:transaction',
-    },
-    tags: ['release', 'project.name', 'user.email', 'user.ip', 'environment'],
-  },
-  {
-    name: t('Transactions by Region'),
-    data: {
-      fields: ['geo.region', 'count()', 'avg(transaction.duration)', 'p75', 'p95'],
-      fieldnames: ['Region', 'events', 'avg', '75th', '95th'],
-      sort: ['-count'],
-      query: 'event.type:transaction',
-    },
-    tags: ['release', 'project.name', 'user.email', 'user.ip'],
   },
 ];
 
