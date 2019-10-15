@@ -260,7 +260,7 @@ describe('decodeColumnOrderAndColumnSortBy', function() {
     const location = {
       query: {
         field: 'a',
-        alias: 'ant',
+        fieldnames: 'ant',
         sort: 'a',
       },
     };
@@ -287,7 +287,7 @@ describe('decodeColumnOrderAndColumnSortBy', function() {
     const location = {
       query: {
         field: ['a', 'b'],
-        alias: ['ant', 'bee'],
+        fieldnames: ['ant', 'bee'],
         sort: ['-a'],
       },
     };
@@ -320,7 +320,7 @@ describe('decodeColumnOrderAndColumnSortBy', function() {
     const location = {
       query: {
         field: ['a(b)'],
-        alias: ['antbee'],
+        fieldnames: ['antbee'],
         sort: ['-a(b)'],
       },
     };
@@ -353,10 +353,10 @@ describe('encodeColumnOrderAndColumnSortBy', function() {
 
     const query = encodeColumnOrderAndColumnSortBy(table);
 
-    expect(Array.isArray(query.alias)).toBeTruthy();
+    expect(Array.isArray(query.fieldnames)).toBeTruthy();
     expect(Array.isArray(query.field)).toBeTruthy();
     expect(Array.isArray(query.sort)).toBeTruthy();
-    expect(query.alias).toHaveLength(0);
+    expect(query.fieldnames).toHaveLength(0);
     expect(query.field).toHaveLength(0);
     expect(query.sort).toHaveLength(0);
   });
@@ -390,13 +390,13 @@ describe('encodeColumnOrderAndColumnSortBy', function() {
     };
 
     const query = encodeColumnOrderAndColumnSortBy(table);
-    expect(Array.isArray(query.alias)).toBeTruthy();
+    expect(Array.isArray(query.fieldnames)).toBeTruthy();
     expect(Array.isArray(query.field)).toBeTruthy();
     expect(Array.isArray(query.sort)).toBeTruthy();
 
-    expect(query.alias).toHaveLength(2);
-    expect(query.alias[0]).toBe('ant');
-    expect(query.alias[1]).toBe('antbee');
+    expect(query.fieldnames).toHaveLength(2);
+    expect(query.fieldnames[0]).toBe('ant');
+    expect(query.fieldnames[1]).toBe('antbee');
 
     expect(query.field).toHaveLength(2);
     expect(query.field[0]).toBe('a');
@@ -421,12 +421,12 @@ describe('encodeColumnOrderAndColumnSortBy', function() {
     };
 
     const query = encodeColumnOrderAndColumnSortBy(table);
-    expect(Array.isArray(query.alias)).toBeTruthy();
+    expect(Array.isArray(query.fieldnames)).toBeTruthy();
     expect(Array.isArray(query.field)).toBeTruthy();
     expect(Array.isArray(query.sort)).toBeTruthy();
 
-    expect(query.alias).toHaveLength(1);
-    expect(query.alias[0]).toBe('antbee');
+    expect(query.fieldnames).toHaveLength(1);
+    expect(query.fieldnames[0]).toBe('antbee');
 
     expect(query.field).toHaveLength(1);
     expect(query.field[0]).toBe('a(b)');
@@ -507,7 +507,7 @@ describe('setColumnStateOnLocation', function() {
     expect(browserHistory.push).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({
-          alias: expect.arrayContaining(['ant']),
+          fieldnames: expect.arrayContaining(['ant']),
           field: expect.arrayContaining(['a']),
           sort: expect.arrayContaining(['a']),
         }),
