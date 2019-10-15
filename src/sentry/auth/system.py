@@ -4,7 +4,6 @@ import ipaddress
 import six
 
 from django.conf import settings
-from django.contrib.auth.models import AnonymousUser
 from django.utils.crypto import constant_time_compare
 from uuid import uuid4
 
@@ -66,6 +65,7 @@ class SystemToken(object):
 
     @memoize
     def user(self):
+        from django.contrib.auth.models import AnonymousUser
         user = AnonymousUser()
         user.is_active = True
         return user

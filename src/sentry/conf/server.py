@@ -315,7 +315,7 @@ INSTALLED_APPS = (
     "rest_framework",
     "sentry",
     "sentry.analytics",
-    "sentry.api.serializers.apps.Config",
+#    "sentry.api.serializers.apps.Config",
     "sentry.incidents.apps.Config",
     "sentry.discover",
     "sentry.analytics.events",
@@ -332,9 +332,10 @@ INSTALLED_APPS = (
     "sentry.plugins.sentry_webhooks.apps.Config",
     "social_auth",
     "sudo",
-    "sentry.eventstream",
+#   core issue with this and sentry.api is the init in sentry.auth
+#    "sentry.eventstream",
     # TODO remove before PR; temporarily unblock
-    #    "sentry.auth.providers.google",
+    "sentry.auth.providers.google",
     "django.contrib.staticfiles",
 )
 
