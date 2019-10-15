@@ -6,12 +6,13 @@ from datetime import datetime, timedelta
 from sentry.testutils.cases import OutcomesSnubaTest
 from sentry.tsdb.base import TSDBModel
 from sentry.tsdb.snuba import SnubaTSDB
+from sentry.utils.dates import to_timestamp
 from sentry.utils.outcomes import Outcome
 
 
-def to_epoch_time(value):
+def floor_to_hour_epoch(value):
     value = value.replace(minute=0, second=0, microsecond=0)
-    return int((value - datetime(1970, 1, 1, tzinfo=pytz.utc)).total_seconds())
+    return int(to_timestamp(value))
 
 
 class SnubaTSDBTest(OutcomesSnubaTest):
@@ -21,9 +22,7 @@ class SnubaTSDBTest(OutcomesSnubaTest):
 
         # Set up the times
         self.now = datetime.now(pytz.utc)
-        self.skew_days = 7
-        self.skew = timedelta(days=self.skew_days)
-        self.start_time = self.now - self.skew
+        self.start_time = self.now - timedelta(days=7)
         self.one_day_later = self.start_time + timedelta(days=1)
 
     def test_organization_outcomes(self):
@@ -49,11 +48,14 @@ class SnubaTSDBTest(OutcomesSnubaTest):
             assert self.organization.id in response.keys()
             response_dict = {k: v for (k, v) in response[self.organization.id]}
 
-            assert response_dict[to_epoch_time(self.start_time)] == 3
-            assert response_dict[to_epoch_time(self.one_day_later)] == 4
+            assert response_dict[floor_to_hour_epoch(self.start_time)] == 3
+            assert response_dict[floor_to_hour_epoch(self.one_day_later)] == 4
 
             for time, count in response[self.organization.id]:
-                if time not in [to_epoch_time(self.start_time), to_epoch_time(self.one_day_later)]:
+                if time not in [
+                    floor_to_hour_epoch(self.start_time),
+                    floor_to_hour_epoch(self.one_day_later),
+                ]:
                     assert count == 0
 
     def test_project_outcomes(self):
@@ -79,9 +81,12 @@ class SnubaTSDBTest(OutcomesSnubaTest):
             assert self.project.id in response.keys()
             response_dict = {k: v for (k, v) in response[self.project.id]}
 
-            assert response_dict[to_epoch_time(self.start_time)] == 3
-            assert response_dict[to_epoch_time(self.one_day_later)] == 4
+            assert response_dict[floor_to_hour_epoch(self.start_time)] == 3
+            assert response_dict[floor_to_hour_epoch(self.one_day_later)] == 4
 
             for time, count in response[self.project.id]:
-                if time not in [to_epoch_time(self.start_time), to_epoch_time(self.one_day_later)]:
+                if time not in [
+                    floor_to_hour_epoch(self.start_time),
+                    floor_to_hour_epoch(self.one_day_later),
+                ]:
                     assert count == 0
