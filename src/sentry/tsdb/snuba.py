@@ -10,7 +10,12 @@ from sentry.utils.dates import to_datetime
 
 
 SnubaModelSettings = collections.namedtuple(
-    "SnubaModelSettings", ["groupby", "aggregate", "dataset", "aggregate_function", "conditions"]
+    # `groupby` - the column in Snuba that we want to put in the group by statement
+    # `aggregate` - the column in Snuba that we want to run the aggregate function on
+    # `dataset` - the dataset in Snuba that we want to query
+    # `conditions` - any additional model specific conditions we want to pass in the query
+    "SnubaModelSettings",
+    ["groupby", "aggregate", "dataset", "conditions"],
 )
 
 
@@ -30,27 +35,25 @@ class SnubaTSDB(BaseTSDB):
     # values are ``SnubaModelSettings``s.
     # Only the models that are listed in this mapping are supported.
     model_columns = {
-        TSDBModel.project: SnubaModelSettings(
-            "project_id", None, snuba.Dataset.Events, "count()", None
-        ),
-        TSDBModel.group: SnubaModelSettings("issue", None, snuba.Dataset.Events, "count()", None),
+        TSDBModel.project: SnubaModelSettings("project_id", None, snuba.Dataset.Events, None),
+        TSDBModel.group: SnubaModelSettings("issue", None, snuba.Dataset.Events, None),
         TSDBModel.release: SnubaModelSettings(
-            "tags[sentry:release]", None, snuba.Dataset.Events, "count()", None
+            "tags[sentry:release]", None, snuba.Dataset.Events, None
         ),
         TSDBModel.users_affected_by_group: SnubaModelSettings(
-            "issue", "tags[sentry:user]", snuba.Dataset.Events, "count()", None
+            "issue", "tags[sentry:user]", snuba.Dataset.Events, None
         ),
         TSDBModel.users_affected_by_project: SnubaModelSettings(
-            "project_id", "tags[sentry:user]", snuba.Dataset.Events, "count()", None
+            "project_id", "tags[sentry:user]", snuba.Dataset.Events, None
         ),
         TSDBModel.frequent_environments_by_group: SnubaModelSettings(
-            "issue", "environment", snuba.Dataset.Events, "count()", None
+            "issue", "environment", snuba.Dataset.Events, None
         ),
         TSDBModel.frequent_releases_by_group: SnubaModelSettings(
-            "issue", "tags[sentry:release]", snuba.Dataset.Events, "count()", None
+            "issue", "tags[sentry:release]", snuba.Dataset.Events, None
         ),
         TSDBModel.frequent_issues_by_project: SnubaModelSettings(
-            "project_id", "issue", snuba.Dataset.Events, "count()", None
+            "project_id", "issue", snuba.Dataset.Events, None
         ),
     }
 
@@ -59,42 +62,36 @@ class SnubaTSDB(BaseTSDB):
             "org_id",
             "times_seen",
             snuba.Dataset.Outcomes,
-            "sum",
             [["outcome", "=", outcomes.Outcome.ACCEPTED]],
         ),
         TSDBModel.organization_total_rejected: SnubaModelSettings(
             "org_id",
             "times_seen",
             snuba.Dataset.Outcomes,
-            "sum",
             [["outcome", "=", outcomes.Outcome.RATE_LIMITED]],
         ),
         TSDBModel.organization_total_blacklisted: SnubaModelSettings(
             "org_id",
             "times_seen",
             snuba.Dataset.Outcomes,
-            "sum",
             [["outcome", "=", outcomes.Outcome.FILTERED]],
         ),
         TSDBModel.project_total_received: SnubaModelSettings(
             "project_id",
             "times_seen",
             snuba.Dataset.Outcomes,
-            "sum",
             [["outcome", "=", outcomes.Outcome.ACCEPTED]],
         ),
         TSDBModel.project_total_rejected: SnubaModelSettings(
             "project_id",
             "times_seen",
             snuba.Dataset.Outcomes,
-            "sum",
             [["outcome", "=", outcomes.Outcome.RATE_LIMITED]],
         ),
         TSDBModel.project_total_blacklisted: SnubaModelSettings(
             "project_id",
             "times_seen",
             snuba.Dataset.Outcomes,
-            "sum",
             [["outcome", "=", outcomes.Outcome.FILTERED]],
         ),
     }
@@ -226,6 +223,11 @@ class SnubaTSDB(BaseTSDB):
         if model_columns is None:
             raise Exception(u"Unsupported TSDBModel: {}".format(model.name))
 
+        if model_columns.dataset == snuba.Dataset.Outcomes:
+            aggregate_function = "sum"
+        else:
+            aggregate_function = "count()"
+
         result = self.get_data(
             model,
             keys,
@@ -233,7 +235,7 @@ class SnubaTSDB(BaseTSDB):
             end,
             rollup,
             environment_ids,
-            aggregation=model_columns.aggregate_function,
+            aggregation=aggregate_function,
             group_on_time=True,
         )
         # convert
