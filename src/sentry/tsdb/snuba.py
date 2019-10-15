@@ -10,7 +10,7 @@ from sentry.utils.dates import to_datetime
 
 
 SnubaModelSettings = collections.namedtuple(
-    "SnubaModelSettings", ["group", "aggregate", "dataset", "aggregate_function", "conditions"]
+    "SnubaModelSettings", ["groupby", "aggregate", "dataset", "aggregate_function", "conditions"]
 )
 
 
@@ -127,7 +127,7 @@ class SnubaTSDB(BaseTSDB):
         if model_columns is None:
             raise Exception(u"Unsupported TSDBModel: {}".format(model.name))
 
-        model_group = model_columns.group
+        model_group = model_columns.groupby
         model_aggregate = model_columns.aggregate
 
         groupby = []

@@ -644,6 +644,10 @@ def transform_aliases_and_query(skip_conditions=False, **kwargs):
 
 
 def get_query_params_to_update_for_projects(query_params):
+    """
+    Get the project ID and query params that need to be updated for project
+    based datasets, before we send the query to Snuba.
+    """
     if "project_id" in query_params.filter_keys:
         # If we are given a set of project ids, use those directly.
         project_ids = list(set(query_params.filter_keys["project_id"]))
@@ -669,6 +673,10 @@ def get_query_params_to_update_for_projects(query_params):
 
 
 def get_query_params_to_update_for_organizations(query_params):
+    """
+    Get the organization ID and query params that need to be updated for organization
+    based datasets, before we send the query to Snuba.
+    """
     if "org_id" in query_params.filter_keys:
         organization_ids = list(set(query_params.filter_keys["org_id"]))
         if len(organization_ids) != 1:

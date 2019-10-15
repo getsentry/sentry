@@ -40,10 +40,12 @@ class SnubaTSDBTest(OutcomesSnubaTest):
                 self.organization.id, self.project.id, outcome.value, self.one_day_later, 4
             )
 
+            # Query SnubaTSDB
             response = self.db.get_range(
                 tsdb_model, [self.organization.id], self.start_time, self.now, 3600, None
             )
 
+            # Assert that the response has values set for the times we expect, and nothing more
             assert self.organization.id in response.keys()
             response_dict = {k: v for (k, v) in response[self.organization.id]}
 
@@ -60,6 +62,7 @@ class SnubaTSDBTest(OutcomesSnubaTest):
             (TSDBModel.project_total_rejected, Outcome.RATE_LIMITED),
             (TSDBModel.project_total_blacklisted, Outcome.FILTERED),
         ]:
+            # Create all the outcomes we will be querying
             self.store_outcomes(
                 self.organization.id, self.project.id, outcome.value, self.start_time, 3
             )
@@ -67,10 +70,12 @@ class SnubaTSDBTest(OutcomesSnubaTest):
                 self.organization.id, self.project.id, outcome.value, self.one_day_later, 4
             )
 
+            # Query SnubaTSDB
             response = self.db.get_range(
                 tsdb_model, [self.project.id], self.start_time, self.now, 3600, None
             )
 
+            # Assert that the response has values set for the times we expect, and nothing more
             assert self.project.id in response.keys()
             response_dict = {k: v for (k, v) in response[self.project.id]}
 
