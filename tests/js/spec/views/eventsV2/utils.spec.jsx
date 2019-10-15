@@ -1,10 +1,14 @@
 import {mount, mountWithTheme} from 'sentry-test/enzyme';
+import {browserHistory} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   getFieldRenderer,
   getAggregateAlias,
   getEventTagSearchUrl,
+  decodeColumnOrderAndColumnSortBy,
+  encodeColumnOrderAndColumnSortBy,
+  setColumnStateOnLocation,
 } from 'app/views/eventsV2/utils';
 
 describe('eventTagSearchUrl()', function() {
@@ -238,5 +242,276 @@ describe('getFieldRenderer', function() {
       },
     });
     expect(link.find('StyledDateTime').props().date).toEqual(data.createdAt);
+  });
+});
+
+describe('decodeColumnOrderAndColumnSortBy', function() {
+  it('can decode 0 elements', function() {
+    const location = {query: {}};
+    const table = decodeColumnOrderAndColumnSortBy(location);
+
+    expect(Array.isArray(table.columnOrder)).toBeTruthy();
+    expect(Array.isArray(table.columnSortBy)).toBeTruthy();
+    expect(table.columnOrder).toHaveLength(0);
+    expect(table.columnSortBy).toHaveLength(0);
+  });
+
+  it('can decode 1 element (typed as a string)', function() {
+    const location = {
+      query: {
+        field: 'a',
+        fieldnames: 'ant',
+        sort: 'a',
+      },
+    };
+    const table = decodeColumnOrderAndColumnSortBy(location);
+
+    expect(Array.isArray(table.columnOrder)).toBeTruthy();
+    expect(Array.isArray(table.columnSortBy)).toBeTruthy();
+    expect(table.columnOrder).toHaveLength(1);
+    expect(table.columnSortBy).toHaveLength(1);
+
+    expect(table.columnOrder[0]).toMatchObject({
+      key: 'a',
+      name: 'ant',
+      aggregation: '',
+      field: 'a',
+    });
+    expect(table.columnSortBy[0]).toMatchObject({
+      key: 'a',
+      order: 'asc',
+    });
+  });
+
+  it('can decode 2+ element (typed as an array)', function() {
+    const location = {
+      query: {
+        field: ['a', 'b'],
+        fieldnames: ['ant', 'bee'],
+        sort: ['-a'],
+      },
+    };
+    const table = decodeColumnOrderAndColumnSortBy(location);
+
+    expect(Array.isArray(table.columnOrder)).toBeTruthy();
+    expect(Array.isArray(table.columnSortBy)).toBeTruthy();
+    expect(table.columnOrder).toHaveLength(2);
+    expect(table.columnSortBy).toHaveLength(1);
+
+    expect(table.columnOrder[0]).toMatchObject({
+      key: 'a',
+      name: 'ant',
+      aggregation: '',
+      field: 'a',
+    });
+    expect(table.columnOrder[1]).toMatchObject({
+      key: 'b',
+      name: 'bee',
+      aggregation: '',
+      field: 'b',
+    });
+    expect(table.columnSortBy[0]).toMatchObject({
+      key: 'a',
+      order: 'desc',
+    });
+  });
+
+  it('can decode elements with aggregate functions', function() {
+    const location = {
+      query: {
+        field: ['a(b)'],
+        fieldnames: ['antbee'],
+        sort: ['-a(b)'],
+      },
+    };
+    const table = decodeColumnOrderAndColumnSortBy(location);
+
+    expect(Array.isArray(table.columnOrder)).toBeTruthy();
+    expect(Array.isArray(table.columnSortBy)).toBeTruthy();
+    expect(table.columnOrder).toHaveLength(1);
+    expect(table.columnSortBy).toHaveLength(1);
+
+    expect(table.columnOrder[0]).toMatchObject({
+      key: 'a(b)',
+      name: 'antbee',
+      aggregation: 'a',
+      field: 'b',
+    });
+    expect(table.columnSortBy[0]).toMatchObject({
+      key: 'a(b)',
+      order: 'desc',
+    });
+  });
+});
+
+describe('encodeColumnOrderAndColumnSortBy', function() {
+  it('can encode 0 elements', function() {
+    const table = {
+      columnOrder: [],
+      columnSortBy: [],
+    };
+
+    const query = encodeColumnOrderAndColumnSortBy(table);
+
+    expect(Array.isArray(query.fieldnames)).toBeTruthy();
+    expect(Array.isArray(query.field)).toBeTruthy();
+    expect(Array.isArray(query.sort)).toBeTruthy();
+    expect(query.fieldnames).toHaveLength(0);
+    expect(query.field).toHaveLength(0);
+    expect(query.sort).toHaveLength(0);
+  });
+
+  it('can encode an array of elements', function() {
+    const table = {
+      columnOrder: [
+        {
+          key: 'a',
+          name: 'ant',
+          aggregation: '',
+          field: 'a',
+        },
+        {
+          key: 'a(b)',
+          name: 'antbee',
+          aggregation: 'a',
+          field: 'b',
+        },
+      ],
+      columnSortBy: [
+        {
+          key: 'a',
+          order: 'asc',
+        },
+        {
+          key: 'a(b)',
+          order: 'desc',
+        },
+      ],
+    };
+
+    const query = encodeColumnOrderAndColumnSortBy(table);
+    expect(Array.isArray(query.fieldnames)).toBeTruthy();
+    expect(Array.isArray(query.field)).toBeTruthy();
+    expect(Array.isArray(query.sort)).toBeTruthy();
+
+    expect(query.fieldnames).toHaveLength(2);
+    expect(query.fieldnames[0]).toBe('ant');
+    expect(query.fieldnames[1]).toBe('antbee');
+
+    expect(query.field).toHaveLength(2);
+    expect(query.field[0]).toBe('a');
+    expect(query.field[1]).toBe('a(b)');
+
+    expect(query.sort).toHaveLength(2);
+    expect(query.sort[0]).toBe('a');
+    expect(query.sort[1]).toBe('-a(b)');
+  });
+
+  it('will build field using "aggregate(field)" when encoding', function() {
+    const table = {
+      columnOrder: [
+        {
+          key: 'someKey',
+          name: 'antbee',
+          aggregation: 'a',
+          field: 'b',
+        },
+      ],
+      columnSortBy: [],
+    };
+
+    const query = encodeColumnOrderAndColumnSortBy(table);
+    expect(Array.isArray(query.fieldnames)).toBeTruthy();
+    expect(Array.isArray(query.field)).toBeTruthy();
+    expect(Array.isArray(query.sort)).toBeTruthy();
+
+    expect(query.fieldnames).toHaveLength(1);
+    expect(query.fieldnames[0]).toBe('antbee');
+
+    expect(query.field).toHaveLength(1);
+    expect(query.field[0]).toBe('a(b)');
+  });
+});
+
+describe('setColumnStateOnLocation', function() {
+  const location = {
+    boba: {
+      fett: 'no',
+      tea: 'yes',
+    },
+    query: {
+      star: {
+        trek: 'maybe',
+        wars: 'perhaps',
+      },
+    },
+  };
+  let browserHistoryPush;
+
+  beforeAll(() => {
+    browserHistoryPush = browserHistory.push;
+    browserHistory.push = jest.fn();
+  });
+
+  afterAll(() => {
+    browserHistory.push = browserHistoryPush;
+  });
+
+  beforeEach(() => {
+    browserHistory.push.mockClear();
+  });
+
+  it('will copy Location object correctly', function() {
+    setColumnStateOnLocation(location, [], []);
+
+    expect(browserHistory.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        boba: expect.objectContaining({
+          fett: expect.any(String),
+          tea: expect.any(String),
+        }),
+        query: expect.objectContaining({
+          star: expect.objectContaining({
+            trek: expect.any(String),
+            wars: expect.any(String),
+          }),
+        }),
+      })
+    );
+  });
+
+  it('will remove extraneous columnSortBy elements', function() {
+    const table = {
+      columnOrder: [
+        {
+          key: 'a',
+          name: 'ant',
+          aggregation: '',
+          field: 'a',
+        },
+      ],
+      columnSortBy: [
+        {
+          key: 'a',
+          order: 'asc',
+        },
+        {
+          key: 'a(b)',
+          order: 'desc',
+        },
+      ],
+    };
+
+    setColumnStateOnLocation(location, table.columnOrder, table.columnSortBy);
+
+    expect(browserHistory.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          fieldnames: expect.arrayContaining(['ant']),
+          field: expect.arrayContaining(['a']),
+          sort: expect.arrayContaining(['a']),
+        }),
+      })
+    );
   });
 });
