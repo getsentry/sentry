@@ -60,7 +60,7 @@ def register_plugins(settings):
 
 
 def init_plugin(plugin):
-    from sentry.plugins import bindings
+    from sentry.plugins.base import bindings
 
     plugin.setup(bindings)
 

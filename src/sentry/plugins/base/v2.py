@@ -437,7 +437,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         """
         Return an implementation of ``ReleaseHook``.
 
-        >>> from sentry.plugins import ReleaseHook
+        >>> from sentry.plugins.interfaces.releasehook import ReleaseHook
         >>>
         >>> class MyReleaseHook(ReleaseHook):
         >>>     def handle(self, request):

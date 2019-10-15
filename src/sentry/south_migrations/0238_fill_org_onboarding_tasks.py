@@ -5,7 +5,8 @@ from south.v2 import DataMigration
 from django.db import connection, models, IntegrityError, transaction
 
 from sentry.plugins.base import plugins
-from sentry.plugins import IssueTrackingPlugin, NotificationPlugin
+from sentry.plugins.bases import IssueTrackingPlugin
+from sentry.plugins.bases.notify import NotificationPlugin
 
 
 class Migration(DataMigration):
