@@ -61,13 +61,11 @@ export function finishTransaction(delay = TRANSACTION_TIMEOUT) {
   }
 
   flushTransactionTimeout = setTimeout(() => {
-    Sentry.configureScope(scope => {
-      const span = scope.getSpan();
-      if (span) {
-        span.finish();
-        firstPageLoad = false;
-      }
-    });
+    if (currentTransactionSpan) {
+      currentTransactionSpan.finish();
+      currentTransactionSpan = null;
+      firstPageLoad = false;
+    }
   }, delay);
 }
 
