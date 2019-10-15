@@ -223,6 +223,12 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments,
         if not signals_in_consumer:
             event_filtered.send_robust(ip=remote_addr, project=project, sender=process_event)
 
+        # relay will no longer be able to provide information about filter
+        # status so to see the impact we're adding a way to turn on relay
+        # like behavior here.
+        if options.get("store.lie-about-filter-status"):
+            return event_id
+
         raise APIForbidden("Event dropped due to filter: %s" % (filter_reason,))
 
     # TODO: improve this API (e.g. make RateLimit act on __ne__)
