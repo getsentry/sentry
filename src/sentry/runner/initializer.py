@@ -202,7 +202,7 @@ def configure_structlog():
     Make structlog comply with all of our options.
     """
     from django.conf import settings
-    import logging
+    import logging.config
     import structlog
     from sentry import options
     from sentry.logging import LoggingFormat
