@@ -6,7 +6,7 @@ from sentry.plugins import providers
 from sentry.models import Integration
 
 
-class GitlabRepositoryProvider(providers.IntegrationRepositoryProvider):
+class GitlabRepositoryProvider(providers.integration_repository.IntegrationRepositoryProvider):
     name = "Gitlab"
 
     def get_installation(self, integration_id, organization_id):

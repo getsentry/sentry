@@ -206,7 +206,7 @@ def register_extensions():
     integrations.register(VstsExtensionIntegrationProvider)
 
     from sentry.plugins import bindings
-    from sentry.plugins.providers.dummy import DummyRepositoryProvider
+    from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
 
     bindings.add("repository.provider", DummyRepositoryProvider, id="dummy")
     bindings.add(

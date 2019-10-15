@@ -6,7 +6,7 @@ from sentry.models import Integration
 from sentry.integrations.exceptions import IntegrationError
 
 
-class ExampleRepositoryProvider(providers.IntegrationRepositoryProvider):
+class ExampleRepositoryProvider(providers.integration_repository.IntegrationRepositoryProvider):
     name = "Example"
 
     def compare_commits(self, repo, start_sha, end_sha):

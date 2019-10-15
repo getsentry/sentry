@@ -315,6 +315,7 @@ INSTALLED_APPS = (
     "rest_framework",
     "sentry",
     "sentry.analytics",
+    "sentry.api.serializers.apps.Config",
     "sentry.incidents.apps.Config",
     "sentry.discover",
     "sentry.analytics.events",

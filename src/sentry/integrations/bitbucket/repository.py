@@ -13,7 +13,7 @@ from sentry.models.apitoken import generate_token
 from .webhook import parse_raw_user_email, parse_raw_user_name
 
 
-class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
+class BitbucketRepositoryProvider(providers.integration_repository.IntegrationRepositoryProvider):
     name = "Bitbucket"
 
     def get_installation(self, integration_id, organization_id):

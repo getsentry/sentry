@@ -1,12 +1,12 @@
 from __future__ import absolute_import
 
-from django.contrib.auth.models import AnonymousUser
-
 registry = {}
 
 
 def serialize(objects, user=None, serializer=None, **kwargs):
     if user is None:
+        from django.contrib.auth.models import AnonymousUser
+
         user = AnonymousUser()
 
     if not objects:

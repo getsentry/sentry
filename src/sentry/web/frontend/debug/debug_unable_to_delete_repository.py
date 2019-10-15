@@ -5,7 +5,7 @@ import types
 from django.views.generic import View
 
 from sentry.models import Repository
-from sentry.plugins.providers.dummy import DummyRepositoryProvider
+from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
 
 from .mail import MailPreview
 

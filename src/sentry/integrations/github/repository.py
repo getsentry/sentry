@@ -10,7 +10,7 @@ from sentry.plugins import providers
 WEBHOOK_EVENTS = ["push", "pull_request"]
 
 
-class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
+class GitHubRepositoryProvider(providers.integration_repository.IntegrationRepositoryProvider):
     name = "GitHub"
     logger = logging.getLogger("sentry.plugins.github")
     repo_provider = "github"

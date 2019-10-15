@@ -2,8 +2,6 @@ from __future__ import absolute_import, print_function
 
 import six
 
-from sentry.plugins import providers
-
 
 class ProviderManager(object):
     type = None
@@ -28,11 +26,15 @@ class ProviderManager(object):
 
 
 class RepositoryProviderManager(ProviderManager):
-    type = providers.RepositoryProvider
+    from sentry.plugins.providers import repository
+
+    type = repository.RepositoryProvider
 
 
 class IntegrationRepositoryProviderManager(ProviderManager):
-    type = providers.IntegrationRepositoryProvider
+    from sentry.plugins.providers import repository
+
+    type = repository.IntegrationRepositoryProvider
 
 
 class BindingManager(object):
