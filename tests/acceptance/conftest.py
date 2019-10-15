@@ -15,7 +15,7 @@ def pytest_configure(config):
     """
 
     # Do not build in CI because tests are run w/ `make test-acceptance` which builds assets
-    if os.environ.get("CI") or os.environ.get("SKIP_UI_BUILD"):
+    if os.environ.get("CI") or os.environ.get("SKIP_ACCEPTANCE_UI_BUILD"):
         return
 
     try:
