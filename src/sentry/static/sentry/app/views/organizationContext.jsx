@@ -26,10 +26,6 @@ import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withOrganizations from 'app/utils/withOrganizations';
 
-const ERROR_TYPES = {
-  ORG_NOT_FOUND: 'ORG_NOT_FOUND',
-};
-
 const OrganizationContext = createReactClass({
   displayName: 'OrganizationContext',
 
