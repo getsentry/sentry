@@ -7,13 +7,7 @@ import {SavedQuery as LegacySavedQuery} from 'app/views/discover/types';
 import {SavedQuery, NewQuery} from 'app/stores/discoverSavedQueriesStore';
 
 import {AUTOLINK_FIELDS, SPECIAL_FIELDS, FIELD_FORMATTERS} from './data';
-import {
-  MetaType,
-  EventQuery,
-  getAggregateAlias,
-  decodeColumnOrder,
-  decodeColumnSortBy,
-} from './utils';
+import {MetaType, EventQuery, getAggregateAlias, decodeColumnOrder} from './utils';
 import {TableColumn, TableColumnSort} from './table/types';
 
 export type Sort = {
@@ -373,16 +367,12 @@ class EventView {
   }
 
   getSorts(): TableColumnSort<React.ReactText>[] {
-    const __sorts = decodeColumnSortBy({
-      sort: this.getDefaultSort(),
+    return this.sorts.map(sort => {
+      return {
+        key: sort.field,
+        order: sort.kind,
+      } as TableColumnSort<string>;
     });
-
-    console.log({
-      sorts: this.sorts,
-      __sorts,
-    });
-
-    return __sorts;
   }
 
   getQuery(inputQuery: string | string[] | null | undefined): string {

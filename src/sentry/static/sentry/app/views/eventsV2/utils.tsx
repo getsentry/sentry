@@ -283,25 +283,6 @@ export function decodeColumnOrder(
   });
 }
 
-export function decodeColumnSortBy(
-  query: QueryWithColumnState
-): TableColumnSort<React.ReactText>[] {
-  const {sort} = query;
-
-  // Linter forced the ternary into a single line ¯\_(ツ)_/¯
-  const keys: string[] =
-    typeof sort === 'string' ? [sort] : Array.isArray(sort) ? sort : [];
-
-  return keys.map(key => {
-    const hasLeadingDash = key[0] === '-';
-
-    return {
-      key: hasLeadingDash ? key.substring(1) : key,
-      order: hasLeadingDash ? 'desc' : 'asc',
-    } as TableColumnSort<string>;
-  });
-}
-
 export function encodeColumnOrderAndColumnSortBy(
   tableState: TableState
 ): QueryWithColumnState {
