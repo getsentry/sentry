@@ -78,6 +78,8 @@ describe('OrganizationContext', function() {
     expect(wrapper.state('error')).toBe(null);
     expect(wrapper.state('organization')).toEqual(org);
 
+    expect(TeamStore.loadInitialData).toHaveBeenCalledWith(org.teams);
+    expect(ProjectsStore.loadInitialData).toHaveBeenCalledWith(org.projects);
     expect(OrganizationActionCreator.fetchOrganizationDetails).toHaveBeenCalledWith(
       api,
       'org-slug',

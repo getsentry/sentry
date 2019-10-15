@@ -18,13 +18,10 @@ describe('OrganizationActionCreator', function() {
 
   beforeEach(function() {
     MockApiClient.clearMockResponses();
-    // getOrgMock = MockApiClient.addMockResponse({
-    //   url: '/organizations/org-slug',
-    // });
     jest.spyOn(TeamStore, 'loadInitialData');
     jest.spyOn(ProjectsStore, 'loadInitialData');
     jest.spyOn(OrganizationActions, 'fetchOrg');
-    jest.spyOn(OrganizationActions, 'fetchOrgSuccess');
+    jest.spyOn(OrganizationActions, 'update');
     jest.spyOn(OrganizationActions, 'fetchOrgError');
     jest.spyOn(OrganizationsActionCreator, 'setActiveOrganization');
   });
@@ -48,7 +45,7 @@ describe('OrganizationActionCreator', function() {
       `/organizations/${detailedOrg.slug}/`,
       expect.anything()
     );
-    expect(OrganizationActions.fetchOrgSuccess).toHaveBeenCalledWith(detailedOrg);
+    expect(OrganizationActions.update).toHaveBeenCalledWith(detailedOrg);
     expect(OrganizationsActionCreator.setActiveOrganization).toHaveBeenCalled();
 
     expect(TeamStore.loadInitialData).toHaveBeenCalledWith(detailedOrg.teams);
@@ -69,7 +66,7 @@ describe('OrganizationActionCreator', function() {
       `/organizations/${lightOrg.slug}/`,
       expect.anything()
     );
-    expect(OrganizationActions.fetchOrgSuccess).toHaveBeenCalledWith(lightOrg);
+    expect(OrganizationActions.update).toHaveBeenCalledWith(lightOrg);
     expect(OrganizationsActionCreator.setActiveOrganization).toHaveBeenCalled();
 
     expect(TeamStore.loadInitialData).not.toHaveBeenCalled();

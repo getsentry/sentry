@@ -18,7 +18,7 @@ describe('OrganizationStore', function() {
 
   it('updates correctly', async function() {
     const organization = TestStubs.Organization();
-    OrganizationActions.fetchOrgSuccess(organization);
+    OrganizationActions.update(organization);
     await tick();
     expect(OrganizationStore.get()).toMatchObject({
       loading: false,
@@ -29,7 +29,7 @@ describe('OrganizationStore', function() {
 
     // updates
     organization.slug = 'a new slug';
-    OrganizationActions.fetchOrgSuccess(organization);
+    OrganizationActions.update(organization);
     await tick();
     expect(OrganizationStore.get()).toMatchObject({
       loading: false,

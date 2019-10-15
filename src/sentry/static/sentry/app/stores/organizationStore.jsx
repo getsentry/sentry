@@ -10,7 +10,7 @@ const OrganizationStore = Reflux.createStore({
   init() {
     this.reset();
     this.listenTo(OrganizationActions.update, this.onUpdate);
-    this.listenTo(OrganizationActions.fetchOrg, this.onFetchOrg);
+    this.listenTo(OrganizationActions.fetchOrg, this.reset);
     this.listenTo(OrganizationActions.fetchOrgSuccess, this.onUpdate);
     this.listenTo(OrganizationActions.fetchOrgError, this.onFetchOrgError);
   },
@@ -28,10 +28,6 @@ const OrganizationStore = Reflux.createStore({
     this.errorType = null;
     this.organization = {...this.organization, ...updatedOrg};
     this.trigger(this.get());
-  },
-
-  onFetchOrg() {
-    this.reset();
   },
 
   onFetchOrgError(err) {

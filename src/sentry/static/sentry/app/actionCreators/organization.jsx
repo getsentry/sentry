@@ -22,7 +22,7 @@ export async function fetchOrganizationDetails(api, slug, detailed) {
       OrganizationActions.fetchOrgError(new Error('retrieved organization is falsey'));
       return;
     }
-    OrganizationActions.fetchOrgSuccess(org);
+    OrganizationActions.update(org);
     setActiveOrganization(org);
     if (detailed) {
       TeamStore.loadInitialData(org.teams);
