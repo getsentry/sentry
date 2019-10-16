@@ -22,6 +22,16 @@ export type Field = {
   // width: number;
 };
 
+const generateFieldAsString = (props: {aggregation: string; field: string}): string => {
+  const {aggregation, field} = props;
+
+  const hasAggregation = aggregation.length > 0;
+
+  const fieldAsString = hasAggregation ? `${aggregation}(${field})` : field;
+
+  return fieldAsString;
+};
+
 const decodeFields = (location: Location): Array<Field> => {
   const {query} = location;
 
@@ -389,9 +399,8 @@ class EventView {
     const field = newColumn.field.trim();
 
     const aggregation = newColumn.aggregation.trim();
-    const hasAggregation = aggregation.length > 0;
 
-    const fieldAsString = hasAggregation ? `${aggregation}(${field})` : field;
+    const fieldAsString = generateFieldAsString({field, aggregation});
 
     const name = newColumn.name.trim();
     const hasName = name.length > 0;
