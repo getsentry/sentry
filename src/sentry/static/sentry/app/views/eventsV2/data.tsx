@@ -17,7 +17,7 @@ import {QueryLink} from './styles';
 
 export const MODAL_QUERY_KEYS = ['eventSlug'] as const;
 export const PIN_ICON = `image://${pinIcon}`;
-export const AGGREGATE_ALIASES = ['last_seen', 'latest_event'] as const;
+export const AGGREGATE_ALIASES = ['p95', 'p75', 'last_seen', 'latest_event'] as const;
 
 export const DEFAULT_EVENT_VIEW_V1: Readonly<EventViewv1> = {
   name: t('All Events'),

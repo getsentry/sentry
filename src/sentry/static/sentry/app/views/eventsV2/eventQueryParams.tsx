@@ -137,3 +137,13 @@ export const FIELDS = {
   p95: 'number',
 };
 export type Field = keyof typeof FIELDS | '';
+
+// This list should be removed with the tranaction-events feature flag.
+export const TRACING_FIELDS = [
+  'avg',
+  'sum',
+  'transaction.duration',
+  'transaction.op',
+  'p95',
+  'p75',
+];
