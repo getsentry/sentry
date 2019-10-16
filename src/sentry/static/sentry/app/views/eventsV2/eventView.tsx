@@ -81,7 +81,10 @@ const fromSorts = (sorts: string | string[] | undefined): Array<Sort> => {
 
   sorts = isString(sorts) ? [sorts] : sorts;
 
-  return sorts.reduce((acc: Array<Sort>, sort: string) => {
+  // NOTE: sets are iterated in insertion order
+  const uniqueSorts = [...new Set(sorts)];
+
+  return uniqueSorts.reduce((acc: Array<Sort>, sort: string) => {
     acc.push(parseSort(sort));
     return acc;
   }, []);
