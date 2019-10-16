@@ -96,8 +96,8 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
           <BarChart
             series={[installSeries, uninstallSeries]}
             height={150}
-            stacked={true}
-            isGroupedByDate={true}
+            stacked
+            isGroupedByDate
             legend={{
               show: true,
               orient: 'horizontal',
