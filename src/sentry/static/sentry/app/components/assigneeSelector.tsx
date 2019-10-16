@@ -514,8 +514,13 @@ const MenuItemWrapper = styled('div')<{
 `;
 
 const InviteMemberLink = styled(Link)`
-  padding: 0 !important; /* Due to inconsistent styles when used as a child of <li> */
+  padding: 0;
   color: ${p => p.theme.textColor};
+
+  /* Due to inconsistent styles when used as a child of <li> */
+  .dropdown-menu > li & {
+    padding: 0;
+  }
 `;
 
 const Label = styled(TextOverflow)`
