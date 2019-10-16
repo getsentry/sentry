@@ -67,13 +67,21 @@ class TableView extends React.Component<TableViewProps> {
    * Please read the comment on `createColumn`
    */
   _updateColumn = (columnIndex: number, nextColumn: TableColumn<keyof TableDataRow>) => {
-    const {location, eventView} = this.props;
+    const {location, eventView, tableData} = this.props;
 
-    const nextEventView = eventView.updateColumn(columnIndex, {
-      aggregation: String(nextColumn.aggregation),
-      field: String(nextColumn.field),
-      fieldname: nextColumn.name,
-    });
+    if (!tableData) {
+      return;
+    }
+
+    const nextEventView = eventView.updateColumn(
+      columnIndex,
+      {
+        aggregation: String(nextColumn.aggregation),
+        field: String(nextColumn.field),
+        fieldname: nextColumn.name,
+      },
+      tableData.meta
+    );
 
     pushEventViewToLocation({
       location,

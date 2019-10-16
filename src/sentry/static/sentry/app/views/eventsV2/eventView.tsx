@@ -482,7 +482,8 @@ class EventView {
       aggregation: string;
       field: string;
       fieldname: string;
-    }
+    },
+    tableDataMeta: MetaType
   ): EventView {
     const {field, aggregation, fieldname} = updatedColumn;
 
@@ -508,6 +509,57 @@ class EventView {
     fields[columnIndex] = updatedField;
 
     newEventView.fields = fields;
+
+    // if the updated column is one of the sorted columns, we may need to remove
+    // it from the list of sorts
+
+    const needleSortIndex = this.sorts.findIndex(sort => {
+      return isSortEqualToField(sort, columnToBeUpdated, tableDataMeta);
+    });
+
+    if (needleSortIndex >= 0) {
+      const needleSort = this.sorts[needleSortIndex];
+
+      const numOfColumns = this.fields.reduce((sum, field) => {
+        if (isSortEqualToField(needleSort, field, tableDataMeta)) {
+          return sum + 1;
+        }
+
+        return sum;
+      }, 0);
+
+      // do not bother deleting the sort key if there are more than one columns
+      // of it in the table.
+
+      if (numOfColumns <= 1) {
+        const sorts = [...newEventView.sorts];
+        sorts.splice(needleSortIndex, 1);
+        newEventView.sorts = [...new Set(sorts)];
+      }
+
+      if (newEventView.sorts.length <= 0 && newEventView.fields.length > 0) {
+        // establish a default sort by finding the first sortable field
+
+        if (isFieldSortable(updatedField, tableDataMeta)) {
+          // use the current updated field as the sort key
+          const sort = fieldToSort(updatedField, tableDataMeta)!;
+
+          // preserve the sort kind
+          sort.kind = needleSort.kind;
+
+          newEventView.sorts = [sort];
+        } else {
+          const sortableFieldIndex = newEventView.fields.findIndex(field => {
+            return isFieldSortable(field, tableDataMeta);
+          });
+          if (sortableFieldIndex >= 0) {
+            const fieldToBeSorted = newEventView.fields[sortableFieldIndex];
+            const sort = fieldToSort(fieldToBeSorted, tableDataMeta)!;
+            newEventView.sorts = [sort];
+          }
+        }
+      }
+    }
 
     // updating column is considered an entirely new query that is not yet saved
     newEventView.id = void 0;
