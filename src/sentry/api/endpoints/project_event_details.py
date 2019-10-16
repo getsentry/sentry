@@ -4,6 +4,7 @@ from datetime import datetime
 from rest_framework.response import Response
 
 from sentry import eventstore
+from sentry.utils import snuba
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import DetailedEventSerializer, serialize
@@ -64,9 +65,13 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
                 conditions=conditions, project_ids=[event.project_id], group_ids=[event.group_id]
             )
 
-            next_event = eventstore.get_next_event_id(event, filter=filter)
+            next_event = eventstore.get_next_event_id(
+                event, filter=filter, dataset=snuba.Dataset.Events
+            )
 
-            prev_event = eventstore.get_prev_event_id(event, filter=filter)
+            prev_event = eventstore.get_prev_event_id(
+                event, filter=filter, dataset=snuba.Dataset.Events
+            )
 
             next_event_id = next_event[1] if next_event else None
             prev_event_id = prev_event[1] if prev_event else None

@@ -153,7 +153,7 @@ class EventStorage(Service):
         Columns.USERNAME,
     ]
 
-    def get_events(self, filter, additional_columns, orderby, limit, offset, referrer):
+    def get_events(self, filter, additional_columns, orderby, limit, offset, dataset, referrer):
         """
         Fetches a list of events given a set of criteria.
 
@@ -163,11 +163,12 @@ class EventStorage(Service):
         orderby (Sequence[str]): List of fields to order by - default ['-time', '-event_id']
         limit (int): Query limit - default 100
         offset (int): Query offset - default 0
+        dataset (Dataset): Dataset - default None
         referrer (string): Referrer - default "eventstore.get_events"
         """
         raise NotImplementedError
 
-    def get_event_by_id(self, project_id, event_id, additional_columns):
+    def get_event_by_id(self, project_id, event_id, additional_columns, dataset):
         """
         Gets a single event given a project_id and event_id.
 
@@ -175,10 +176,11 @@ class EventStorage(Service):
         project_id (int): Project ID
         event_id (str): Event ID
         additional_columns: (Sequence[Column]) - List of addition columns to fetch - default None
+        dataset (Dataset): Dataset - default None
         """
         raise NotImplementedError
 
-    def get_next_event_id(self, event, filter):
+    def get_next_event_id(self, event, filter, dataset):
         """
         Gets the next event given a current event and some conditions/filters.
         Returns a tuple of (project_id, event_id)
@@ -186,10 +188,11 @@ class EventStorage(Service):
         Arguments:
         event (Event): Event object
         filter (Filter): Filter
+        dataset (Dataset): Dataset - default None
         """
         raise NotImplementedError
 
-    def get_prev_event_id(self, event, filter):
+    def get_prev_event_id(self, event, filter, dataset):
         """
         Gets the previous event given a current event and some conditions/filters.
         Returns a tuple of (project_id, event_id)
@@ -197,10 +200,11 @@ class EventStorage(Service):
         Arguments:
         event (Event): Event object
         filter (Filter): Filter
+        dataset (Dataset): Dataset - default None
         """
         raise NotImplementedError
 
-    def get_earliest_event_id(self, event, filter):
+    def get_earliest_event_id(self, event, filter, dataset):
         """
         Gets the earliest event given a current event and some conditions/filters.
         Returns a tuple of (project_id, event_id)
@@ -208,10 +212,11 @@ class EventStorage(Service):
         Arguments:
         event (Event): Event object
         filter (Filter): Filter
+        dataset (Dataset): Dataset - default None
         """
         raise NotImplementedError
 
-    def get_latest_event_id(self, event, filter):
+    def get_latest_event_id(self, event, filter, dataset):
         """
         Gets the latest event given a current event and some conditions/filters.
         Returns a tuple of (project_id, event_id)
@@ -219,6 +224,7 @@ class EventStorage(Service):
         Arguments:
         event (Event): Event object
         filter (Filter): Filter
+        dataset (Dataset): Dataset - default None
         """
         raise NotImplementedError
 

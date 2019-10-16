@@ -7,6 +7,7 @@ from sentry.api.event_search import get_reference_event_conditions
 from sentry import eventstore, features
 from sentry.models.project import Project
 from sentry.api.serializers import serialize
+from sentry.utils import snuba
 
 
 class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
@@ -40,51 +41,61 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
         event_slug = u"{}:{}".format(project.slug, event_id)
         snuba_args["conditions"].extend(get_reference_event_conditions(snuba_args, event_slug))
 
+        dataset = snuba.detect_dataset(snuba_args, aliased_conditions=True)
+
         data = serialize(event)
-        data["nextEventID"] = self.next_event_id(snuba_args, event)
-        data["previousEventID"] = self.prev_event_id(snuba_args, event)
-        data["oldestEventID"] = self.oldest_event_id(snuba_args, event)
-        data["latestEventID"] = self.latest_event_id(snuba_args, event)
+        data["nextEventID"] = self.next_event_id(snuba_args, event, dataset=dataset)
+        data["previousEventID"] = self.prev_event_id(snuba_args, event, dataset=dataset)
+        data["oldestEventID"] = self.oldest_event_id(snuba_args, event, dataset=dataset)
+        data["latestEventID"] = self.latest_event_id(snuba_args, event, dataset=dataset)
         data["projectSlug"] = project_slug
 
         return Response(data)
 
-    def next_event_id(self, snuba_args, event):
+    def next_event_id(self, snuba_args, event, dataset):
         """
         Returns the next event ID if there is a subsequent event matching the
         conditions provided. Ignores the project_id.
         """
-        next_event = eventstore.get_next_event_id(event, filter=self._get_filter(snuba_args))
+        next_event = eventstore.get_next_event_id(
+            event, filter=self._get_filter(snuba_args), dataset=dataset
+        )
 
         if next_event:
             return next_event[1]
 
-    def prev_event_id(self, snuba_args, event):
+    def prev_event_id(self, snuba_args, event, dataset):
         """
         Returns the previous event ID if there is a previous event matching the
         conditions provided. Ignores the project_id.
         """
-        prev_event = eventstore.get_prev_event_id(event, filter=self._get_filter(snuba_args))
+        prev_event = eventstore.get_prev_event_id(
+            event, filter=self._get_filter(snuba_args), dataset=dataset
+        )
 
         if prev_event:
             return prev_event[1]
 
-    def latest_event_id(self, snuba_args, event):
+    def latest_event_id(self, snuba_args, event, dataset):
         """
         Returns the latest event ID if there is a newer event matching the
         conditions provided
         """
-        latest_event = eventstore.get_latest_event_id(event, filter=self._get_filter(snuba_args))
+        latest_event = eventstore.get_latest_event_id(
+            event, filter=self._get_filter(snuba_args), dataset=dataset
+        )
 
         if latest_event:
             return latest_event[1]
 
-    def oldest_event_id(self, snuba_args, event):
+    def oldest_event_id(self, snuba_args, event, dataset):
         """
         Returns the oldest event ID if there is a subsequent event matching the
         conditions provided
         """
-        oldest_event = eventstore.get_earliest_event_id(event, filter=self._get_filter(snuba_args))
+        oldest_event = eventstore.get_earliest_event_id(
+            event, filter=self._get_filter(snuba_args), dataset=dataset
+        )
 
         if oldest_event:
             return oldest_event[1]
