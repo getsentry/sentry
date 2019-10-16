@@ -529,6 +529,9 @@ class EventView {
     fields.splice(columnIndex, 1);
     newEventView.fields = fields;
 
+    // deleting a column is considered an entirely new query that is not yet saved
+    newEventView.id = void 0;
+
     // if the deleted column is one of the sorted columns, we need to remove
     // it from the list of sorts
 
@@ -588,6 +591,9 @@ class EventView {
     fields.splice(toIndex, 0, fields.splice(fromIndex, 1)[0]);
 
     newEventView.fields = fields;
+
+    // moving columns is considered an entirely new query that is not yet saved
+    newEventView.id = void 0;
 
     return newEventView;
   }
