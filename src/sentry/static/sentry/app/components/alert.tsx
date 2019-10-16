@@ -9,7 +9,7 @@ import TextBlock from 'app/views/settings/components/text/textBlock';
 import isPropValid from '@emotion/is-prop-valid';
 import space from 'app/styles/space';
 
-const StyledInlineSvg = styled(InlineSvg)`
+const StyledInlineSvg = styled(InlineSvg)<{size?: string}>`
   margin-right: calc(${p => p.size} / 2);
 `;
 
@@ -22,7 +22,7 @@ const getAlertColorStyles = ({backgroundLight, border, iconColor}) => `
   }
 `;
 
-const getSystemAlertColorStyles = ({backgroundLight, border, iconColor}) => `
+const getSystemAlertColorStyles = ({border, iconColor}) => `
   border: 0;
   border-radius: 0;
   border-bottom: 1px solid ${color(border)
@@ -54,7 +54,7 @@ const alertStyles = ({theme, type, system, alignTop}) => css`
   ${system && getSystemAlertColorStyles(theme.alert[type])};
 `;
 
-const AlertWrapper = styled('div', {shouldForwardProp: isPropValid})`
+const AlertWrapper: any = styled('div', {shouldForwardProp: isPropValid})`
   ${alertStyles}
 `;
 
@@ -65,7 +65,17 @@ const StyledTextBlock = styled(TextBlock)`
   align-self: center;
 `;
 
-const Alert = ({type, icon, iconSize, children, className, ...props}) => {
+type AlertProps = {
+  type?: string;
+  icon?: string;
+  iconSize?: string;
+  children: React.ReactNode;
+  className?: string;
+  alignTop?: boolean;
+  system?: boolean;
+};
+
+const Alert = ({type, icon, iconSize, children, className, ...props}: AlertProps) => {
   let refClass;
 
   if (type) {

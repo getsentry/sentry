@@ -337,12 +337,12 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
       type="warning"
     >
       <div
-        className="ref-warning css-osoqhl-AlertWrapper-alertStyles e1xb5l7j1"
+        className="ref-warning css-osoqhl-AlertWrapper-alertStyles ejthpj81"
         type="warning"
       >
         <StyledTextBlock>
           <div
-            className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
+            className="css-1h3n7tg-TextBlock-StyledTextBlock ejthpj82"
           >
             <span
               dangerouslySetInnerHTML={

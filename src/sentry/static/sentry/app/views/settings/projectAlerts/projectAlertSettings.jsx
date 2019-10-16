@@ -5,7 +5,7 @@ import {fields} from 'app/data/forms/projectAlerts';
 import {t} from 'app/locale';
 import routeTitleGen from 'app/utils/routeTitle';
 import Access from 'app/components/acl/access';
-import AlertLink from 'app/components/alertLink';
+import AlertLink from 'app/components/links/alertLink';
 import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';

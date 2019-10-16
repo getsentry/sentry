@@ -123,18 +123,18 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
               priority="warning"
             >
               <Link
-                className="css-1925ci1-StyledLink e1fthm6j0"
+                className="css-1925ci1-StyledLink eg4del90"
                 href="https://docs.sentry.io/workflow/integrations/integration-platform/"
                 priority="warning"
               >
                 <a
-                  className="css-1925ci1-StyledLink e1fthm6j0"
+                  className="css-1925ci1-StyledLink eg4del90"
                   href="https://docs.sentry.io/workflow/integrations/integration-platform/"
                   priority="warning"
                 >
                   <AlertLinkText>
                     <div
-                      className="css-19z7wog-AlertLinkText e1fthm6j1"
+                      className="css-19z7wog-AlertLinkText eg4del91"
                     >
                       Have questions about the Integration Platform? Learn more about it in our docs.
                     </div>

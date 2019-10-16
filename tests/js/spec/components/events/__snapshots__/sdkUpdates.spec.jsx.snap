@@ -44,7 +44,7 @@ exports[`EventSdkUpdates renders a suggestion to update the sdk and then enable 
         type="info"
       >
         <div
-          className="ref-info css-tnorzn-AlertWrapper-alertStyles e1xb5l7j1"
+          className="ref-info css-tnorzn-AlertWrapper-alertStyles ejthpj81"
           type="info"
         >
           <StyledInlineSvg
@@ -52,12 +52,12 @@ exports[`EventSdkUpdates renders a suggestion to update the sdk and then enable 
             src="icon-upgrade"
           >
             <ForwardRef
-              className="css-1kox7bj-InlineSvg-StyledInlineSvg e1xb5l7j0"
+              className="css-1kox7bj-InlineSvg-StyledInlineSvg ejthpj80"
               size="24px"
               src="icon-upgrade"
             >
               <svg
-                className="css-1kox7bj-InlineSvg-StyledInlineSvg e1xb5l7j0"
+                className="css-1kox7bj-InlineSvg-StyledInlineSvg ejthpj80"
                 height="24px"
                 viewBox={Object {}}
                 width="24px"
@@ -71,7 +71,7 @@ exports[`EventSdkUpdates renders a suggestion to update the sdk and then enable 
           </StyledInlineSvg>
           <StyledTextBlock>
             <div
-              className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
+              className="css-1h3n7tg-TextBlock-StyledTextBlock ejthpj82"
             >
               We recommend you 
               <EventSdkUpdateSuggestion

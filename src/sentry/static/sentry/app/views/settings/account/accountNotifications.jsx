@@ -4,7 +4,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {t} from 'app/locale';
-import AlertLink from 'app/components/alertLink';
+import AlertLink from 'app/components/links/alertLink';
 import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
 import InlineSvg from 'app/components/inlineSvg';

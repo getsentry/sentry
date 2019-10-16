@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {t, tct} from 'app/locale';
-import AlertLink from 'app/components/alertLink';
+import AlertLink from 'app/components/links/alertLink';
 import Button from 'app/components/button';
 import HeroIcon from 'app/components/heroIcon';
 import RepositoryRow from 'app/components/repositoryRow';

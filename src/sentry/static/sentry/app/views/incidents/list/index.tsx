@@ -9,7 +9,7 @@ import styled from 'react-emotion';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {t, tct} from 'app/locale';
-import AlertLink from 'app/components/alertLink';
+import AlertLink from 'app/components/links/alertLink';
 import AsyncComponent from 'app/components/asyncComponent';
 import BetaTag from 'app/components/betaTag';
 import Button from 'app/components/button';

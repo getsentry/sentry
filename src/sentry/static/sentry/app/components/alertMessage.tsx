@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
@@ -32,24 +31,25 @@ const StyledCloseButton = styled('button')`
   }
 `;
 
-export default class AlertMessage extends React.PureComponent {
-  static propTypes = {
-    alert: PropTypes.shape({
-      id: PropTypes.string,
-      message: PropTypes.node.isRequired,
-      type: PropTypes.oneOf(['success', 'error', 'warning', 'info']),
-      url: PropTypes.string,
-    }),
-    system: PropTypes.bool,
+type Props = {
+  alert: {
+    id?: string;
+    message: React.ReactNode;
+    type?: 'success' | 'info' | 'warning' | 'error';
+    url?: string;
   };
+  system: boolean;
+};
 
+export default class AlertMessage extends React.PureComponent<Props> {
   closeAlert = () => {
     AlertActions.closeAlert(this.props.alert);
   };
 
   render = () => {
     const {alert, system} = this.props;
-    let icon;
+
+    let icon: string;
 
     if (alert.type === 'success') {
       icon = 'icon-circle-check';

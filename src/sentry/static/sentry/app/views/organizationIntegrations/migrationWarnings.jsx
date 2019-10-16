@@ -4,7 +4,7 @@ import {groupBy} from 'lodash';
 
 import {tct} from 'app/locale';
 import AddIntegration from 'app/views/organizationIntegrations/addIntegration';
-import AlertLink from 'app/components/alertLink';
+import AlertLink from 'app/components/links/alertLink';
 import AsyncComponent from 'app/components/asyncComponent';
 
 export default class MigrationWarnings extends AsyncComponent {

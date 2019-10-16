@@ -7,7 +7,7 @@ import AsyncComponent from 'app/components/asyncComponent';
 import ExternalIssueActions from 'app/components/group/externalIssueActions';
 import SentryAppExternalIssueActions from 'app/components/group/sentryAppExternalIssueActions';
 import IssueSyncListElement from 'app/components/issueSyncListElement';
-import AlertLink from 'app/components/alertLink';
+import AlertLink from 'app/components/links/alertLink';
 import SentryTypes from 'app/sentryTypes';
 import PluginActions from 'app/components/group/pluginActions';
 import {Box} from 'grid-emotion';
@@ -89,7 +89,7 @@ class ExternalIssueList extends AsyncComponent {
           ExternalIssueStore.load(data);
           this.setState({externalIssues: data});
         })
-        .catch(error => {
+        .catch(_error => {
           return;
         });
     }

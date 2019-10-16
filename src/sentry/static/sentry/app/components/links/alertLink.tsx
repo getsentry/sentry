@@ -6,7 +6,13 @@ import Link from 'app/components/links/link';
 import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
 
-export default class AlertLink extends React.Component {
+type Props = Link['props'] & {
+  icon: string;
+  priority?: 'info' | 'warning' | 'success' | 'error' | 'muted';
+  size?: 'small' | 'normal';
+};
+
+export default class AlertLink extends React.Component<Props> {
   static propTypes = {
     to: PropTypes.string,
     href: PropTypes.string,
@@ -32,7 +38,7 @@ export default class AlertLink extends React.Component {
   }
 }
 
-const StyledLink = styled(Link)`
+const StyledLink = styled(Link)<{priority: string; size?: string}>`
   display: flex;
   align-items: center;
   background-color: ${p => p.theme.alert[p.priority].backgroundLight};
@@ -57,6 +63,6 @@ const AlertLinkText = styled('div')`
   flex-grow: 1;
 `;
 
-const StyledInlineSvg = styled(InlineSvg)`
+const StyledInlineSvg = styled(InlineSvg)<{spacingSize: string}>`
   margin-right: ${p => (p.spacingSize === 'small' ? space(1) : space(1.5))};
 `;

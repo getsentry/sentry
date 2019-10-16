@@ -4,7 +4,7 @@ import React from 'react';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
-import AlertLink from 'app/components/alertLink';
+import AlertLink from 'app/components/links/alertLink';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import Form from 'app/views/settings/components/forms/form';
@@ -96,7 +96,7 @@ class AccountEmails extends AsyncView {
     return 'Emails';
   }
 
-  handleSubmitSuccess = (change, model, id) => {
+  handleSubmitSuccess = (_change, model, id) => {
     model.setValue(id, '');
     this.remountComponent();
   };
