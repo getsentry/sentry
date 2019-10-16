@@ -384,6 +384,33 @@ class EventView {
       end: this.end,
     });
   }
+
+  createColumn(newColumn: {aggregation: string; field: string; name: string}): EventView {
+    const field = newColumn.field.trim();
+
+    const aggregation = newColumn.aggregation.trim();
+    const hasAggregation = aggregation.length > 0;
+
+    const fieldAsString = hasAggregation ? `${aggregation}(${field})` : field;
+
+    const name = newColumn.name.trim();
+    const hasName = name.length > 0;
+
+    const newField: Field = {
+      field: fieldAsString,
+      title: hasName ? name : fieldAsString,
+    };
+
+    const newEventView = this.clone();
+
+    // adding a new column is considered an entirely new query that is not yet saved
+    newEventView.id = void 0;
+
+    newEventView.fields = [...newEventView.fields, newField];
+
+    return newEventView;
+  }
+
   getSorts(): TableColumnSort<React.ReactText>[] {
     return this.sorts.map(sort => {
       return {
@@ -393,6 +420,7 @@ class EventView {
     });
   }
 
+  // returns query input for the search
   getQuery(inputQuery: string | string[] | null | undefined): string {
     const queryParts: string[] = [];
 
