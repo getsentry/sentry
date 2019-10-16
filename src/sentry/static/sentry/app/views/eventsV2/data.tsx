@@ -119,7 +119,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     tags: ['user.id', 'project.name', 'url'],
   },
   {
-    name: t('CSP'),
+    name: t('Content Security Policy (CSP)'),
     data: {
       fields: ['title', 'count()', 'count_unique(user)', 'project', 'last_seen'],
       fieldnames: ['csp', 'events', 'users', 'project', 'last seen'],
@@ -135,7 +135,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     ],
   },
   {
-    name: t('CSP Report by Directive'),
+    name: t('Content Security Policy (CSP) Report by Directive'),
     data: {
       fields: ['effective-directive', 'count()', 'count_unique(title)'],
       fieldnames: ['directive', 'events', 'reports'],
@@ -145,7 +145,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     tags: ['project.name', 'blocked-uri', 'browser.name', 'os.name'],
   },
   {
-    name: t('CSP Report by Blocked URI'),
+    name: t('Content Security Policy (CSP) Report by Blocked URI'),
     data: {
       fields: ['blocked-uri', 'count()'],
       fieldnames: ['URI', 'events'],
@@ -155,7 +155,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     tags: ['project.name', 'blocked-uri', 'browser.name', 'os.name'],
   },
   {
-    name: t('CSP Report by User'),
+    name: t('Content Security Policy (CSP) Report by User'),
     data: {
       fields: ['user', 'count()', 'count_unique(title)'],
       fieldnames: ['User', 'events', 'reports'],
