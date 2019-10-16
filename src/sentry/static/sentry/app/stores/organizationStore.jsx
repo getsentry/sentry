@@ -1,10 +1,7 @@
 import Reflux from 'reflux';
 
 import OrganizationActions from 'app/actions/organizationActions';
-
-const ERROR_TYPES = {
-  ORG_NOT_FOUND: 'ORG_NOT_FOUND',
-};
+import {ORGANIZATION_FETCH_ERROR_TYPES} from 'app/constants';
 
 const OrganizationStore = Reflux.createStore({
   init() {
@@ -35,7 +32,7 @@ const OrganizationStore = Reflux.createStore({
 
     switch (err.statusText) {
       case 'NOT FOUND':
-        this.errorType = ERROR_TYPES.ORG_NOT_FOUND;
+        this.errorType = ORGANIZATION_FETCH_ERROR_TYPES.ORG_NOT_FOUND;
         break;
       default:
     }
@@ -53,7 +50,5 @@ const OrganizationStore = Reflux.createStore({
     };
   },
 });
-
-export {ERROR_TYPES};
 
 export default OrganizationStore;

@@ -6,6 +6,7 @@ import * as Sentry from '@sentry/browser';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
+import {ORGANIZATION_FETCH_ERROR_TYPES} from 'app/constants';
 import {fetchOrganizationDetails} from 'app/actionCreators/organization';
 import {metric} from 'app/utils/analytics';
 import {openSudo} from 'app/actionCreators/modal';
@@ -16,7 +17,7 @@ import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import HookStore from 'app/stores/hookStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import OrganizationStore, {ERROR_TYPES} from 'app/stores/organizationStore';
+import OrganizationStore from 'app/stores/organizationStore';
 import ProjectActions from 'app/actions/projectActions';
 import SentryTypes from 'app/sentryTypes';
 import Sidebar from 'app/components/sidebar';
@@ -206,7 +207,7 @@ const OrganizationContext = createReactClass({
     let errorComponent;
 
     switch (this.state.errorType) {
-      case ERROR_TYPES.ORG_NOT_FOUND:
+      case ORGANIZATION_FETCH_ERROR_TYPES.ORG_NOT_FOUND:
         errorComponent = (
           <Alert type="error">
             {t('The organization you were looking for was not found.')}
