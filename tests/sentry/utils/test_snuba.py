@@ -620,7 +620,6 @@ class PrepareQueryParamsTest(TestCase):
         )
 
         kwargs, _, _ = _prepare_query_params(query_params)
-        assert "project" in kwargs
         assert kwargs["project"] == [self.project.id]
 
     def test_transactions_dataset_with_project_id(self):
@@ -629,7 +628,6 @@ class PrepareQueryParamsTest(TestCase):
         )
 
         kwargs, _, _ = _prepare_query_params(query_params)
-        assert "project" in kwargs
         assert kwargs["project"] == [self.project.id]
 
     def test_outcomes_dataset_with_org_id(self):
@@ -638,7 +636,6 @@ class PrepareQueryParamsTest(TestCase):
         )
 
         kwargs, _, _ = _prepare_query_params(query_params)
-        assert "organization" in kwargs
         assert kwargs["organization"] == self.organization.id
 
     def test_outcomes_dataset_with_no_org_id_given(self):
