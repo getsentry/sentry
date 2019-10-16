@@ -146,8 +146,6 @@ class TableView extends React.Component<TableViewProps> {
 
     const defaultSort = eventView.getDefaultSort() || eventView.fields[0].field;
 
-    console.log('column', column);
-
     const alignedTypes: ColumnValueType[] = ['number', 'duration'];
     let align: 'right' | 'left' = alignedTypes.includes(column.type) ? 'right' : 'left';
 
@@ -190,13 +188,7 @@ class TableView extends React.Component<TableViewProps> {
   render() {
     const {organization, isLoading, error, tableData, eventView} = this.props;
 
-    console.log('fields', eventView.fields);
-
-    if (tableData) {
-      console.log('meta', tableData.meta);
-    }
-
-    const columnOrder = !tableData ? [] : eventView.getColumns();
+    const columnOrder = eventView.getColumns();
     const columnSortBy = eventView.getSorts();
 
     const {
