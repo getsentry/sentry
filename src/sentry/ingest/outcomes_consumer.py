@@ -17,6 +17,8 @@ signals to getSentry for these outcomes.
 """
 from __future__ import absolute_import
 
+import datetime
+import time
 import atexit
 import logging
 import multiprocessing.dummy
@@ -32,6 +34,7 @@ from sentry.signals import event_filtered, event_dropped
 from sentry.utils.kafka import create_batching_kafka_consumer
 from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome
+from sentry.utils.dates import to_datetime
 
 logger = logging.getLogger(__name__)
 
@@ -95,6 +98,13 @@ def _process_message(message):
 
     # remember that we sent the signal just in case the processor dies before
     mark_signal_sent(project_id=project_id, event_id=event_id)
+
+    timestamp = msg.get("timestamp")
+    if timestamp is not None:
+        delta = to_datetime(time.time()) - datetime.datetime.strptime(
+            timestamp, "%Y-%m-%dT%H:%M:%S.%fZ"
+        )
+        metrics.timing("outcomes_consumer.timestamp_lag", delta.total_seconds())
 
     metrics.incr("outcomes_consumer.signal_sent", tags={"reason": reason, "outcome": outcome})
 
