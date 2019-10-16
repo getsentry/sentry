@@ -5,7 +5,7 @@ from django.conf import settings
 from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry import roles
+from sentry import roles, features
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize, OrganizationMemberWithTeamsSerializer
@@ -118,6 +118,14 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationEndpoint):
             result = serializer.validated_data
 
             if result.get("approve"):
+                if not features.has(
+                    "organizations:invite-members", organization, actor=request.user
+                ):
+                    return Response(
+                        {"organization": "Your organization is not allowed to invite members"},
+                        status=403,
+                    )
+
                 if not member.invite_approved:
                     member.approve_invite()
                     member.save()

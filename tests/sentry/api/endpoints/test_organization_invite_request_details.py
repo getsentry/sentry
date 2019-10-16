@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from mock import patch
 from django.core.urlresolvers import reverse
 
-from sentry.testutils import APITestCase
 from sentry.models import (
     AuditLogEntry,
     AuditLogEntryEvent,
@@ -11,6 +10,8 @@ from sentry.models import (
     OrganizationMemberTeam,
     InviteStatus,
 )
+from sentry.testutils import APITestCase
+from sentry.testutils.helpers import Feature
 
 
 class OrganizationInviteRequestDetailsTest(APITestCase):
@@ -158,7 +159,20 @@ class OrganizationInviteRequestDetailsTest(APITestCase):
         assert mock_invite_email.call_count == 0
 
     @patch.object(OrganizationMember, "send_invite_email")
-    def test_email_not_sent_with_invite_setting_disabled(self, mock_invite_email):
+    def test_approve_requires_invite_members_feature(self, mock_invite_email):
+        self.login_as(user=self.user)
+
+        with Feature({"organizations:invite-members": False}):
+            url = reverse(
+                "sentry-api-0-organization-invite-request-detail",
+                kwargs={"organization_slug": self.org.slug, "member_id": self.invite_request.id},
+            )
+
+            resp = self.client.put(url, data={"approve": 1})
+            assert resp.status_code == 403
+
+    @patch.object(OrganizationMember, "send_invite_email")
+    def test_email_not_sent_without_invites_enabled(self, mock_invite_email):
         self.login_as(user=self.user)
 
         url = reverse(
