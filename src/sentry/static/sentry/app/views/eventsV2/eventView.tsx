@@ -6,19 +6,20 @@ import {EventViewv1} from 'app/types';
 import {SavedQuery as LegacySavedQuery} from 'app/views/discover/types';
 import {SavedQuery, NewQuery} from 'app/stores/discoverSavedQueriesStore';
 
-import {AUTOLINK_FIELDS} from './data';
-import {
-  MetaType,
-  EventQuery,
-  getAggregateAlias,
-  decodeColumnOrder,
-  getSortKey,
-} from './utils';
+import {AUTOLINK_FIELDS, SPECIAL_FIELDS, FIELD_FORMATTERS} from './data';
+import {MetaType, EventQuery, getAggregateAlias, decodeColumnOrder} from './utils';
 import {TableColumn, TableColumnSort} from './table/types';
 
 export type Sort = {
   kind: 'asc' | 'desc';
   field: string;
+};
+
+const reverseSort = (sort: Sort): Sort => {
+  return {
+    kind: sort.kind === 'desc' ? 'asc' : 'desc',
+    field: sort.field,
+  };
 };
 
 export type Field = {
@@ -33,16 +34,41 @@ const isSortEqualToField = (
   field: Field,
   tableDataMeta: MetaType
 ): boolean => {
-  const sortKey = getSortKey(field.field, tableDataMeta);
+  const sortKey = getSortKeyFromField(field, tableDataMeta);
   return sort.field === sortKey;
 };
 
-const fieldToSort = (field: Field): Sort => {
+const fieldToSort = (field: Field, tableDataMeta: MetaType): Sort | undefined => {
+  const sortKey = getSortKeyFromField(field, tableDataMeta);
+
+  if (!sortKey) {
+    return void 0;
+  }
+
   return {
     kind: 'desc',
-    field: getAggregateAlias(field.field),
+    field: sortKey,
   };
 };
+
+export function getSortKeyFromField(
+  field: Field,
+  tableDataMeta: MetaType
+): string | null {
+  const column = getAggregateAlias(field.field);
+  if (SPECIAL_FIELDS.hasOwnProperty(column)) {
+    return SPECIAL_FIELDS[column as keyof typeof SPECIAL_FIELDS].sortField;
+  }
+
+  if (FIELD_FORMATTERS.hasOwnProperty(tableDataMeta[column])) {
+    return FIELD_FORMATTERS[tableDataMeta[column] as keyof typeof FIELD_FORMATTERS]
+      .sortField
+      ? column
+      : null;
+  }
+
+  return null;
+}
 
 const generateFieldAsString = (props: {aggregation: string; field: string}): string => {
   const {aggregation, field} = props;
@@ -531,9 +557,17 @@ class EventView {
         newEventView.sorts = [...new Set(sorts)];
 
         if (newEventView.sorts.length <= 0 && newEventView.fields.length > 0) {
-          // establish a default sort
-          const fieldToBeSorted = newEventView.fields[0];
-          newEventView.sorts = [fieldToSort(fieldToBeSorted)];
+          // establish a default sort by finding the first sortable field
+
+          const sortableFieldIndex = newEventView.fields.findIndex(field => {
+            return !!getSortKeyFromField(field, tableDataMeta);
+          });
+
+          if (sortableFieldIndex >= 0) {
+            const fieldToBeSorted = newEventView.fields[sortableFieldIndex];
+            const sort = fieldToSort(fieldToBeSorted, tableDataMeta)!;
+            newEventView.sorts = [sort];
+          }
         }
       }
     }
@@ -637,12 +671,49 @@ class EventView {
     return eventQuery;
   }
 
-  getDefaultSort(): string | undefined {
-    if (this.sorts.length <= 0) {
-      return undefined;
+  isFieldSorted(field: Field, tableDataMeta: MetaType): Sort | undefined {
+    const needle = this.sorts.find(sort => {
+      return isSortEqualToField(sort, field, tableDataMeta);
+    });
+
+    return needle;
+  }
+
+  sortOnField(field: Field, tableDataMeta: MetaType): EventView {
+    const sortKey = getSortKeyFromField(field, tableDataMeta);
+
+    // check if field can be sorted
+    if (typeof sortKey !== 'string') {
+      return this;
     }
 
-    return encodeSort(this.sorts[0]);
+    const needleIndex = this.sorts.findIndex(sort => {
+      return isSortEqualToField(sort, field, tableDataMeta);
+    });
+
+    if (needleIndex >= 0) {
+      const newEventView = this.clone();
+
+      const currentSort = this.sorts[needleIndex];
+
+      const sorts = [...newEventView.sorts];
+      sorts[needleIndex] = reverseSort(currentSort);
+
+      newEventView.sorts = sorts;
+
+      return newEventView;
+    }
+
+    // field is currently not sorted; so, we sort on it
+
+    const newEventView = this.clone();
+
+    // invariant: this is not falsey, since sortKey exists
+    const sort = fieldToSort(field, tableDataMeta)!;
+
+    newEventView.sorts = [sort];
+
+    return newEventView;
   }
 }
 

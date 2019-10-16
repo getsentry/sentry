@@ -5,13 +5,8 @@ import {Organization} from 'app/types';
 
 import GridEditable from 'app/components/gridEditable';
 
-import {
-  getFieldRenderer,
-  getAggregateAlias,
-  pushEventViewToLocation,
-  getSortKey,
-} from '../utils';
-import EventView from '../eventView';
+import {getFieldRenderer, getAggregateAlias, pushEventViewToLocation} from '../utils';
+import EventView, {getSortKeyFromField} from '../eventView';
 import SortLink from '../sortLink';
 import renderTableModalEditColumnFactory from './tableModalEditColumn';
 import {TableColumn, TableData, TableDataRow} from './types';
@@ -121,28 +116,29 @@ class TableView extends React.Component<TableViewProps> {
     });
   };
 
-  _renderGridHeaderCell = (column: TableColumn<keyof TableDataRow>): React.ReactNode => {
+  _renderGridHeaderCell = (
+    column: TableColumn<keyof TableDataRow>,
+    columnIndex: number
+  ): React.ReactNode => {
     const {eventView, location, tableData} = this.props;
     if (!tableData) {
       return column.name;
     }
 
-    const columnField = String(column.key);
+    const field = eventView.fields[columnIndex];
 
-    const sortKey = getSortKey(columnField, tableData.meta);
+    const sortKey = getSortKeyFromField(field, tableData.meta);
 
     if (sortKey === null) {
       return <span>{column.name}</span>;
     }
-
-    const defaultSort = eventView.getDefaultSort() || eventView.fields[0].field;
 
     const alignedTypes: ColumnValueType[] = ['number', 'duration'];
     let align: 'right' | 'left' = alignedTypes.includes(column.type) ? 'right' : 'left';
 
     // TODO(alberto): clean this
     if (column.type === 'never' || column.type === '*') {
-      const maybeType = tableData.meta[getAggregateAlias(columnField)];
+      const maybeType = tableData.meta[getAggregateAlias(field.field)];
 
       if (maybeType === 'integer' || maybeType === 'number') {
         align = 'right';
@@ -152,10 +148,10 @@ class TableView extends React.Component<TableViewProps> {
     return (
       <SortLink
         align={align}
-        defaultSort={defaultSort}
-        sortKey={sortKey}
-        title={column.name}
+        field={field}
         location={location}
+        eventView={eventView}
+        tableDataMeta={tableData.meta}
       />
     );
   };
