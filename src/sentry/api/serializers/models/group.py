@@ -142,7 +142,7 @@ class GroupSerializerBase(Serializer):
         return results
 
     def get_attrs(self, item_list, user):
-        from sentry.plugins.base import plugins
+        from sentry.plugins import plugins
 
         GroupMeta.objects.populate_cache(item_list)
 

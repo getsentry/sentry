@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from django import template
 
-from sentry.plugins.base import Annotation, plugins
+from sentry.plugins import Annotation, plugins
 from sentry.utils.safe import safe_execute
 
 register = template.Library()

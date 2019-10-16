@@ -8,7 +8,7 @@ from django.utils.html import format_html
 from social_auth.models import UserSocialAuth
 
 from sentry.models import Activity, Event, GroupMeta
-from sentry.plugins.base.v1 import Plugin
+from sentry.plugins import Plugin
 from sentry.signals import issue_tracker_used
 from sentry.utils.auth import get_auth_providers
 from sentry.utils.http import absolute_uri

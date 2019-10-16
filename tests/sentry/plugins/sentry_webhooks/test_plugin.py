@@ -10,7 +10,7 @@ from exam import fixture
 
 from sentry.exceptions import PluginError
 from sentry.models import Rule
-from sentry.plugins.base import Notification
+from sentry.plugins import Notification
 from sentry.plugins.sentry_webhooks.plugin import validate_urls, WebHooksPlugin, WebHooksOptionsForm
 from sentry.testutils import TestCase
 

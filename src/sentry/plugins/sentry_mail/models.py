@@ -15,6 +15,7 @@ from sentry import options
 from sentry.models import ProjectOwnership, User
 
 from sentry.digests.utilities import get_digest_metadata, get_personalized_digests
+from sentry.plugins import register
 from sentry.plugins.base.structs import Notification
 from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.utils import metrics
@@ -421,3 +422,5 @@ class MailPlugin(NotificationPlugin):
 
 # Legacy compatibility
 MailProcessor = MailPlugin
+
+register(MailPlugin)
