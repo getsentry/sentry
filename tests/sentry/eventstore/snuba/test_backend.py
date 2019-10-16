@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import six
+import pytest
 
 from sentry.testutils import TestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
@@ -133,29 +134,21 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         assert event.get_event_type() == "transaction"
         assert event.project_id == self.project2.id
 
+    @pytest.mark.skip(reason="Not yet implemented")
     def test_transaction_get_next_prev_event_id(self):
-
         filter = Filter(
             project_ids=[self.project1.id, self.project2.id],
             conditions=[["type", "=", "transaction"]],
         )
 
         event = self.eventstore.get_event_by_id(self.project2.id, "e" * 32)
-
         prev_event = self.eventstore.get_prev_event_id(event, filter=filter)
-
         next_event = self.eventstore.get_next_event_id(event, filter=filter)
-
         assert prev_event == (six.text_type(self.project2.id), "d" * 32)
-
         assert next_event is None
 
         event = self.eventstore.get_event_by_id(self.project2.id, "d" * 32)
-
         prev_event = self.eventstore.get_prev_event_id(event, filter=filter)
-
         next_event = self.eventstore.get_next_event_id(event, filter=filter)
-
         assert prev_event is None
-
         assert next_event == (six.text_type(self.project2.id), "e" * 32)
