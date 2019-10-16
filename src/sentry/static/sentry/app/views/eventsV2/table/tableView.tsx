@@ -107,14 +107,13 @@ class TableView extends React.Component<TableViewProps> {
   _moveColumn = (fromIndex: number, toIndex: number) => {
     const {location, eventView} = this.props;
 
-    const columnOrder = eventView.getColumns();
-    const columnSortBy = eventView.getSorts();
+    const nextEventView = eventView.moveColumn({fromIndex, toIndex});
 
-    const nextColumnOrder = [...columnOrder];
-    const nextColumnSortBy = [...columnSortBy];
-    nextColumnOrder.splice(toIndex, 0, nextColumnOrder.splice(fromIndex, 1)[0]);
-
-    setColumnStateOnLocation(location, nextColumnOrder, nextColumnSortBy);
+    pushEventViewToLocation({
+      location,
+      currentEventView: eventView,
+      nextEventView,
+    });
   };
 
   _renderGridHeaderCell = (column: TableColumn<keyof TableDataRow>): React.ReactNode => {

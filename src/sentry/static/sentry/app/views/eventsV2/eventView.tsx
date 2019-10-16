@@ -531,6 +531,22 @@ class EventView {
     return newEventView;
   }
 
+  moveColumn({fromIndex, toIndex}: {fromIndex: number; toIndex: number}): EventView {
+    if (fromIndex === toIndex) {
+      return this;
+    }
+
+    const newEventView = this.clone();
+
+    const fields = [...newEventView.fields];
+
+    fields.splice(toIndex, 0, fields.splice(fromIndex, 1)[0]);
+
+    newEventView.fields = fields;
+
+    return newEventView;
+  }
+
   getSorts(): TableColumnSort<React.ReactText>[] {
     return this.sorts.map(sort => {
       return {
