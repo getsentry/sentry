@@ -64,10 +64,7 @@ class Table extends React.PureComponent<TableProps, TableState> {
 
       browserHistory.replace({
         pathname: location.pathname,
-        query: {
-          ...location.query,
-          ...nextEventView.generateQueryStringObject(),
-        },
+        query: nextEventView.generateQueryStringObject(),
       });
       return;
     }
