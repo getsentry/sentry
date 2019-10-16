@@ -8,8 +8,7 @@ import mock
 from social_auth.models import UserSocialAuth
 
 from sentry.models import GroupMeta, User
-from sentry.plugins.base import plugins
-from sentry.plugins.bases import IssueTrackingPlugin2
+from sentry.plugins import IssueTrackingPlugin2, plugins
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 
@@ -89,7 +88,7 @@ class IssuePlugin2GroupActionTest(TestCase):
         )
         self.group = self.event.group
 
-    @mock.patch("sentry.plugins.bases.IssueTrackingPlugin2.is_configured", return_value=True)
+    @mock.patch("sentry.plugins.IssueTrackingPlugin2.is_configured", return_value=True)
     def test_get_create(self, *args):
         self.login_as(user=self.user)
         url = "/api/0/issues/%s/plugins/issuetrackingplugin2/create/" % self.group.id
@@ -100,8 +99,8 @@ class IssuePlugin2GroupActionTest(TestCase):
         assert "title" in field_names
         assert "description" in field_names
 
-    @mock.patch("sentry.plugins.bases.IssueTrackingPlugin2.create_issue")
-    @mock.patch("sentry.plugins.bases.IssueTrackingPlugin2.is_configured", return_value=True)
+    @mock.patch("sentry.plugins.IssueTrackingPlugin2.create_issue")
+    @mock.patch("sentry.plugins.IssueTrackingPlugin2.is_configured", return_value=True)
     def test_post_create_invalid(self, *args):
         self.login_as(user=self.user)
         url = "/api/0/issues/%s/plugins/issuetrackingplugin2/create/" % self.group.id
@@ -110,9 +109,9 @@ class IssuePlugin2GroupActionTest(TestCase):
         assert response.status_code == 400
         assert content["error_type"] == "validation"
 
-    @mock.patch("sentry.plugins.bases.IssueTrackingPlugin2.create_issue", return_value=1)
-    @mock.patch("sentry.plugins.bases.IssueTrackingPlugin2.is_configured", return_value=True)
-    @mock.patch("sentry.plugins.bases.IssueTrackingPlugin2.get_issue_url", return_value="")
+    @mock.patch("sentry.plugins.IssueTrackingPlugin2.create_issue", return_value=1)
+    @mock.patch("sentry.plugins.IssueTrackingPlugin2.is_configured", return_value=True)
+    @mock.patch("sentry.plugins.IssueTrackingPlugin2.get_issue_url", return_value="")
     def test_post_create_valid(self, *args):
         self.login_as(user=self.user)
         url = "/api/0/issues/%s/plugins/issuetrackingplugin2/create/" % self.group.id
@@ -123,21 +122,21 @@ class IssuePlugin2GroupActionTest(TestCase):
         assert response.status_code == 200
         assert "issue_url" in content
 
-    @mock.patch("sentry.plugins.bases.IssueTrackingPlugin2.is_configured", return_value=True)
+    @mock.patch("sentry.plugins.IssueTrackingPlugin2.is_configured", return_value=True)
     def test_get_link(self, *args):
         self.login_as(user=self.user)
         url = "/api/0/issues/%s/plugins/issuetrackingplugin2/link/" % self.group.id
         response = self.client.get(url, format="json")
         assert response.status_code == 200
 
-    @mock.patch("sentry.plugins.bases.IssueTrackingPlugin2.is_configured", return_value=True)
+    @mock.patch("sentry.plugins.IssueTrackingPlugin2.is_configured", return_value=True)
     def test_get_unlink_invalid(self, *args):
         self.login_as(user=self.user)
         url = "/api/0/issues/%s/plugins/issuetrackingplugin2/unlink/" % self.group.id
         response = self.client.get(url, format="json")
         assert response.status_code == 400
 
-    @mock.patch("sentry.plugins.bases.IssueTrackingPlugin2.is_configured", return_value=True)
+    @mock.patch("sentry.plugins.IssueTrackingPlugin2.is_configured", return_value=True)
     def test_get_unlink_valid(self, *args):
         self.login_as(user=self.user)
         id_ = "%s:tid" % self.plugin_instance.get_conf_key()
@@ -148,7 +147,7 @@ class IssuePlugin2GroupActionTest(TestCase):
         GroupMeta.objects.populate_cache([self.group])
         assert GroupMeta.objects.get_value(self.group, id_, None) is None
 
-    @mock.patch("sentry.plugins.bases.IssueTrackingPlugin2.is_configured", return_value=True)
+    @mock.patch("sentry.plugins.IssueTrackingPlugin2.is_configured", return_value=True)
     def test_no_group_events(self, *args):
         self.login_as(user=self.user)
         group = self.create_group(project=self.project)

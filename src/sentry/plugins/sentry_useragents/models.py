@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from ua_parser.user_agent_parser import Parse
 
 import sentry
+from sentry.plugins import register
 from sentry.plugins.bases.tag import TagPlugin
 
 
@@ -66,6 +67,9 @@ class BrowserPlugin(UserAgentPlugin):
         return tag
 
 
+register(BrowserPlugin)
+
+
 class OsPlugin(UserAgentPlugin):
     """
     Automatically adds the 'os' tag from events containing interface data
@@ -90,6 +94,9 @@ class OsPlugin(UserAgentPlugin):
         return tag
 
 
+register(OsPlugin)
+
+
 class DevicePlugin(UserAgentPlugin):
     """
     Automatically adds the 'device' tag from events containing interface data
@@ -102,3 +109,6 @@ class DevicePlugin(UserAgentPlugin):
 
     def get_tag_from_ua(self, ua):
         return ua["device"]["family"]
+
+
+register(DevicePlugin)
