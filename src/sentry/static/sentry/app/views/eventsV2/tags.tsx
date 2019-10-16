@@ -51,14 +51,19 @@ class Tags extends React.Component<Props, State> {
     this.fetchData();
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: Props) {
     // Do not update if we are just opening/closing the modal
     const locationHasChanged = !isEqual(
       omit(prevProps.location.query, MODAL_QUERY_KEYS),
       omit(this.props.location.query, MODAL_QUERY_KEYS)
     );
 
-    if (locationHasChanged) {
+    const tagsChanged = !isEqual(
+      new Set(this.props.eventView.tags),
+      new Set(prevProps.eventView.tags)
+    );
+
+    if (locationHasChanged && tagsChanged) {
       this.fetchData();
     }
   }
