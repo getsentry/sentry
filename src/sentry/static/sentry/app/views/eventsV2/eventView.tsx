@@ -529,7 +529,7 @@ class EventView {
     newEventView.fields = fields;
 
     // if the deleted column is one of the sorted columns, we need to remove
-    // it from the sorted
+    // it from the list of sorts
 
     const columnToBeDeleted = this.fields[columnIndex];
 
