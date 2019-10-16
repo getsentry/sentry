@@ -424,6 +424,42 @@ class EventView {
     return newEventView;
   }
 
+  updateColumn(
+    columnIndex: number,
+    updatedColumn: {
+      aggregation: string;
+      field: string;
+      fieldname: string;
+    }
+  ): EventView {
+    const {field, aggregation, fieldname} = updatedColumn;
+
+    const columnToBeUpdated = this.fields[columnIndex];
+
+    const fieldAsString = generateFieldAsString({field, aggregation});
+
+    const updateField = columnToBeUpdated.field !== fieldAsString;
+    const updateFieldName = columnToBeUpdated.title !== fieldname;
+
+    if (!updateField && !updateFieldName) {
+      return this;
+    }
+
+    const newEventView = this.clone();
+
+    const updatedField: Field = {
+      field: fieldAsString,
+      title: fieldname,
+    };
+
+    const fields = [...newEventView.fields];
+    fields[columnIndex] = updatedField;
+
+    newEventView.fields = fields;
+
+    return newEventView;
+  }
+
   getSorts(): TableColumnSort<React.ReactText>[] {
     return this.sorts.map(sort => {
       return {

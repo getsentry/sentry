@@ -70,27 +70,20 @@ class TableView extends React.Component<TableViewProps> {
   /**
    * Please read the comment on `createColumn`
    */
-  _updateColumn = (i: number, nextColumn: TableColumn<keyof TableDataRow>) => {
+  _updateColumn = (columnIndex: number, nextColumn: TableColumn<keyof TableDataRow>) => {
     const {location, eventView} = this.props;
 
-    const columnOrder = eventView.getColumns();
-    const columnSortBy = eventView.getSorts();
+    const nextEventView = eventView.updateColumn(columnIndex, {
+      aggregation: String(nextColumn.aggregation),
+      field: String(nextColumn.field),
+      fieldname: nextColumn.name,
+    });
 
-    if (columnOrder[i].key !== nextColumn.key) {
-      throw new Error(
-        'TableView.updateColumn: nextColumn does not have the same key as prevColumn'
-      );
-    }
-
-    const nextColumnOrder = [...columnOrder];
-    const nextColumnSortBy = [...columnSortBy];
-    nextColumnOrder[i] = nextColumn;
-
-    history.pushState({}, 'omg', '?woah=true');
-
-    if ((window as any).FOOOOOO) {
-      setColumnStateOnLocation(location, nextColumnOrder, nextColumnSortBy);
-    }
+    pushEventViewToLocation({
+      location,
+      currentEventView: eventView,
+      nextEventView,
+    });
   };
 
   /**
