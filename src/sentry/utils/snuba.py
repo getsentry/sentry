@@ -667,6 +667,7 @@ def get_query_params_to_update_for_projects(query_params):
             "No project_id filter, or none could be inferred from other filters."
         )
 
+    # any project will do, as they should all be from the same organization
     organization_id = Project.objects.get(pk=project_ids[0]).organization_id
 
     return organization_id, {"project": project_ids}
@@ -710,14 +711,16 @@ def _prepare_query_params(query_params):
 
     if query_params.dataset in [Dataset.Events, Dataset.Transactions]:
         (organization_id, params_to_update) = get_query_params_to_update_for_projects(query_params)
-        query_params.kwargs.update(params_to_update)
     elif query_params.dataset == Dataset.Outcomes:
         (organization_id, params_to_update) = get_query_params_to_update_for_organizations(
             query_params
         )
-        query_params.kwargs.update(params_to_update)
     else:
-        raise UnqualifiedQueryError("No organization found for querying")
+        raise UnqualifiedQueryError(
+            "No strategy found for getting an organization for the given dataset."
+        )
+
+    query_params.kwargs.update(params_to_update)
 
     for col, keys in six.iteritems(forward(deepcopy(query_params.filter_keys))):
         if keys:
@@ -726,7 +729,6 @@ def _prepare_query_params(query_params):
             else:
                 query_params.conditions.append((col, "IN", keys))
 
-    # any project will do, as they should all be from the same organization
     retention = quotas.get_event_retention(organization=Organization(organization_id))
     if retention:
         start = max(start, datetime.utcnow() - timedelta(days=retention))
