@@ -684,9 +684,7 @@ def get_query_params_to_update_for_organizations(query_params):
             raise UnqualifiedQueryError("Multiple organization_ids found. Only one allowed.")
         organization_id = organization_ids[0]
     elif "project_id" in query_params.filter_keys:
-        project_ids = list(set(query_params.filter_keys["project_id"]))
-        project = Project.objects.get(pk=project_ids[0])
-        organization_id = project.organization_id
+        organization_id, _ = get_query_params_to_update_for_projects(query_params)
     else:
         organization_id = None
 
