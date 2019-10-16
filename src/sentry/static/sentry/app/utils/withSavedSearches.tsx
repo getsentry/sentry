@@ -28,7 +28,7 @@ const withSavedSearches = <P extends InjectedSavedSearchesProps>(
     State
   >({
     displayName: `withSavedSearches(${getDisplayName(WrappedComponent)})`,
-    mixins: [Reflux.listenTo(SavedSearchesStore, 'onUpdate')],
+    mixins: [Reflux.listenTo(SavedSearchesStore, 'onUpdate') as any],
 
     getInitialState() {
       return SavedSearchesStore.get();

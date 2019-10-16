@@ -30,7 +30,7 @@ const withProjects = <P extends InjectedProjectsProps>(
       organization: SentryTypes.Organization,
       project: SentryTypes.Project,
     },
-    mixins: [Reflux.listenTo(ProjectsStore, 'onProjectUpdate')],
+    mixins: [Reflux.listenTo(ProjectsStore, 'onProjectUpdate') as any],
     getInitialState() {
       return {
         projects: ProjectsStore.getAll() as Project[],
