@@ -2,11 +2,9 @@ steps:
 # Build the main getsentry/sentry image
 - name: 'gcr.io/cloud-builders/docker'
   args: [ 'build', '--build-arg', 'SOURCE_COMMIT=$COMMIT_SHA', '-t', 'gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA', '-t', 'gcr.io/$PROJECT_ID/sentry:$SHORT_SHA', '-t', 'gcr.io/$PROJECT_ID/sentry:latest', '-f', './docker/Dockerfile', '.' ]
-  timeout: 1200s
 # Derive the -onbuild variant
 - name: 'gcr.io/cloud-builders/docker'
   args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA-onbuild', '-t', 'gcr.io/$PROJECT_ID/sentry:$SHORT_SHA-onbuild', '-t', 'gcr.io/$PROJECT_ID/sentry:latest-onbuild', '-f', './docker/onbuild/Dockerfile', '.' ]
-  timeout: 300s
 # Smoke tests
 - name: 'gcr.io/cloud-builders/docker'
   args: ['config', 'get', 'system.secret-key']
@@ -14,6 +12,7 @@ steps:
     - SENTRY_SKIP_BACKEND_VALIDATION=1
     - SENTRY_SECRET_KEY=abc
     - SENTRY_REDIS_HOST=localhost
+timeout: 1200s
 images:
 - 'gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA-onbuild'
