@@ -10,6 +10,7 @@ import EventView from '../eventView';
 import SortLink from '../sortLink';
 import renderTableModalEditColumnFactory from './tableModalEditColumn';
 import {TableColumn, TableData, TableDataRow} from './types';
+import {ColumnValueType} from '../eventQueryParams';
 
 export type TableViewProps = {
   location: Location;
@@ -161,9 +162,8 @@ class TableView extends React.Component<TableViewProps> {
 
     console.log('column', column);
 
-    const align = ['integer', 'number', 'duration'].includes(column.type)
-      ? 'right'
-      : 'left';
+    const alignedTypes: ColumnValueType[] = ['number', 'duration'];
+    const align = alignedTypes.includes(column.type) ? 'right' : 'left';
 
     return (
       <SortLink
