@@ -6,7 +6,7 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA-onbuild', '-t', 'gcr.io/$PROJECT_ID/sentry:$SHORT_SHA-onbuild', '-t', 'gcr.io/$PROJECT_ID/sentry:latest-onbuild', '-f', './docker/onbuild/Dockerfile', '.' ]
 # Smoke tests
-- name: 'gcr.io/cloud-builders/docker'
+- name: 'gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA'
   args: ['config', 'get', 'system.secret-key']
   env:
     - SENTRY_SKIP_BACKEND_VALIDATION=1
