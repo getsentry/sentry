@@ -10,7 +10,7 @@ type Props = {
   onClick: (e: React.MouseEvent) => void;
   disabled?: boolean;
   isSubscribed?: boolean;
-  size?: 'zero' | 'micro' | 'small' | 'xsmall' | 'xxsmall' | 'large';
+  size?: Button['props']['size'];
 };
 
 export default class SubscribeButton extends React.Component<Props> {
