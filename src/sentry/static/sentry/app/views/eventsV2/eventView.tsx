@@ -18,8 +18,17 @@ type LocationQuery = {
   utc?: string | string[];
   statsPeriod?: string | string[];
   cursor?: string | string[];
-  sort?: string | string[];
 };
+
+const EXTERNAL_QUERY_STRING_KEYS: Readonly<Array<keyof LocationQuery>> = [
+  'project',
+  'environment',
+  'start',
+  'end',
+  'utc',
+  'statsPeriod',
+  'cursor',
+];
 
 export type Sort = {
   kind: 'asc' | 'desc';
@@ -283,9 +292,9 @@ class EventView {
   tags: Readonly<string[]>;
   query: string | undefined;
   project: Readonly<number[]>;
-  range: string | undefined;
   start: string | undefined;
   end: string | undefined;
+  statsPeriod: string | undefined;
 
   constructor(props: {
     id: string | undefined;
@@ -295,9 +304,9 @@ class EventView {
     tags: Readonly<string[]>;
     query?: string | undefined;
     project: Readonly<number[]>;
-    range: string | undefined;
     start: string | undefined;
     end: string | undefined;
+    statsPeriod: string | undefined;
   }) {
     this.id = props.id;
     this.name = props.name;
@@ -306,9 +315,9 @@ class EventView {
     this.tags = props.tags;
     this.query = props.query;
     this.project = props.project;
-    this.range = props.range;
     this.start = props.start;
     this.end = props.end;
+    this.statsPeriod = props.statsPeriod;
   }
 
   static fromLocation(location: Location): EventView {
@@ -322,7 +331,7 @@ class EventView {
       project: decodeProjects(location),
       start: decodeScalar(location.query.start),
       end: decodeScalar(location.query.end),
-      range: decodeScalar(location.query.range),
+      statsPeriod: decodeScalar(location.query.statsPeriod),
     });
   }
 
@@ -342,9 +351,9 @@ class EventView {
       query: eventViewV1.data.query,
       project: [],
       id: undefined,
-      range: undefined,
       start: undefined,
       end: undefined,
+      statsPeriod: undefined,
     });
   }
 
@@ -370,9 +379,9 @@ class EventView {
       project: saved.projects,
       start: saved.start,
       end: saved.end,
-      range: saved.range,
       sorts: fromSorts(saved.orderby),
       tags: [],
+      statsPeriod: saved.range,
     });
   }
 
@@ -386,7 +395,7 @@ class EventView {
       projects: this.project,
       start: this.start,
       end: this.end,
-      range: this.range,
+      range: this.statsPeriod,
       fields: this.fields.map(item => item.field),
       fieldnames: this.fields.map(item => item.title),
       orderby,
@@ -402,8 +411,8 @@ class EventView {
       tag: this.tags,
       query: this.query,
     };
-    const conditionalFields = ['name', 'project', 'start', 'end', 'range'];
-    for (const field of conditionalFields) {
+
+    for (const field of EXTERNAL_QUERY_STRING_KEYS) {
       if (this[field] && this[field].length) {
         output[field] = this[field];
       }
@@ -461,9 +470,9 @@ class EventView {
       tags: this.tags,
       query: this.query,
       project: this.project,
-      range: this.range,
       start: this.start,
       end: this.end,
+      statsPeriod: this.statsPeriod,
     });
   }
 
@@ -826,15 +835,7 @@ export const isAPIPayloadSimilar = (
 export function pickRelevantLocationQueryStrings(location: Location): LocationQuery {
   const query = location.query || {};
 
-  const picked = pick<LocationQuery>(query || {}, [
-    'project',
-    'environment',
-    'start',
-    'end',
-    'utc',
-    'statsPeriod',
-    'cursor',
-  ]);
+  const picked = pick<LocationQuery>(query || {}, EXTERNAL_QUERY_STRING_KEYS);
 
   return picked;
 }
