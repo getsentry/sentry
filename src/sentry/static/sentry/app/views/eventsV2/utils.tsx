@@ -301,7 +301,7 @@ function encodeColumnFieldName(tableState: TableState): string[] {
 
 function encodeColumnField(tableState: TableState): string[] {
   return tableState.columnOrder.map(col =>
-    col.aggregation ? `${col.aggregation}(${col.field})` : col.field
+    col.aggregation ? `${col.aggregation}(${col.field})` : String(col.field)
   );
 }
 
