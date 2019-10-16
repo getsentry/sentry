@@ -1,4 +1,5 @@
 import {invertBy, groupBy, pick} from 'lodash';
+import {Permissions} from 'app/types';
 
 const PERMISSION_LEVELS = {
   read: 0,
@@ -15,7 +16,7 @@ const HUMAN_RESOURCE_NAMES = {
   member: 'Member',
 };
 
-const DEFAULT_RESOURCE_PERMISSIONS = {
+const DEFAULT_RESOURCE_PERMISSIONS: Permissions = {
   Project: 'no-access',
   Team: 'no-access',
   Release: 'no-access',
@@ -26,16 +27,21 @@ const DEFAULT_RESOURCE_PERMISSIONS = {
 
 const PROJECT_RELEASES = 'project:releases';
 
+type PermissionLevelResources = {
+  read: string[];
+  write: string[];
+  admin: string[];
+};
 /**
  * Numerical value of the scope where Admin is higher than Write,
  * which is higher than Read. Used to sort scopes by access.
  */
-const permissionLevel = scope => {
+const permissionLevel = (scope: string): number => {
   const permission = scope.split(':')[1];
   return PERMISSION_LEVELS[permission];
 };
 
-const compareScopes = (a, b) => {
+const compareScopes = (a: string, b: string) => {
   return permissionLevel(a) - permissionLevel(b);
 };
 
@@ -49,7 +55,7 @@ const compareScopes = (a, b) => {
  *    this would return:
  *      ['project:write', 'team:admin']
  */
-function topScopes(scopeList) {
+function topScopes(scopeList: string[]) {
   return Object.values(groupBy(scopeList, scope => scope.split(':')[0]))
     .map(scopes => scopes.sort(compareScopes))
     .map(scopes => scopes.pop());
@@ -71,7 +77,7 @@ function topScopes(scopeList) {
  *      ...
  *    }
  */
-function toResourcePermissions(scopes) {
+function toResourcePermissions(scopes: string[]): Permissions {
   const permissions = {...DEFAULT_RESOURCE_PERMISSIONS};
   let filteredScopes = [...scopes];
   // The scope for releases is `project:releases`, but instead of displaying
@@ -79,12 +85,14 @@ function toResourcePermissions(scopes) {
   // row for Releases.
   if (scopes.includes(PROJECT_RELEASES)) {
     permissions.Release = 'admin';
-    filteredScopes = scopes.filter(scope => scope !== PROJECT_RELEASES); // remove project:releases
+    filteredScopes = scopes.filter((scope: string) => scope !== PROJECT_RELEASES); // remove project:releases
   }
 
-  topScopes(filteredScopes).forEach(scope => {
-    const [resource, permission] = scope.split(':');
-    permissions[HUMAN_RESOURCE_NAMES[resource]] = permission;
+  topScopes(filteredScopes).forEach((scope: string | undefined) => {
+    if (scope) {
+      const [resource, permission] = scope.split(':');
+      permissions[HUMAN_RESOURCE_NAMES[resource]] = permission;
+    }
   });
 
   return permissions;
@@ -107,7 +115,7 @@ function toResourcePermissions(scopes) {
  *      admin: ['Release']
  *    }
  */
-function toPermissions(scopes) {
+function toPermissions(scopes: string[]): PermissionLevelResources {
   const defaultPermissions = {read: [], write: [], admin: []};
   const resourcePermissions = toResourcePermissions(scopes);
 
