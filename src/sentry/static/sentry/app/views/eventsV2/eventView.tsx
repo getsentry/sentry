@@ -359,11 +359,10 @@ class EventView {
     return this.fields.length;
   }
 
-  getColumns(tableDataMeta: MetaType): TableColumn<React.ReactText>[] {
+  getColumns(): TableColumn<React.ReactText>[] {
     return decodeColumnOrder({
       field: this.getFields(),
       fieldnames: this.getFieldNames(),
-      meta: tableDataMeta,
     });
   }
 

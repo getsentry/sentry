@@ -237,9 +237,8 @@ const TEMPLATE_TABLE_COLUMN: TableColumn<React.ReactText> = {
 export function decodeColumnOrder(props: {
   fieldnames: string[];
   field: string[];
-  meta: MetaType;
 }): TableColumn<React.ReactText>[] {
-  const {fieldnames, field, meta} = props;
+  const {fieldnames, field} = props;
   const columnsRaw: {
     aggregationField: string;
     name: string;
@@ -274,19 +273,7 @@ export function decodeColumnOrder(props: {
     }
 
     column.key = col.aggregationField;
-    const aggregateAlias = getAggregateAlias(String(column.key));
-
-    if (SPECIAL_FIELDS.hasOwnProperty(aggregateAlias)) {
-      console.log(
-        'special field',
-        SPECIAL_FIELDS[aggregateAlias as keyof typeof SPECIAL_FIELDS]
-      );
-    }
-
-    console.log('col type', aggregateAlias, meta[aggregateAlias]);
-
     column.name = col.name;
-
     column.type = (FIELDS[column.field] || 'never') as ColumnValueType;
 
     column.isSortable = AGGREGATIONS[column.aggregation]
