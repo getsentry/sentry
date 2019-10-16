@@ -2,6 +2,7 @@ import React from 'react';
 import {Location} from 'history';
 import {browserHistory} from 'react-router';
 import styled from 'react-emotion';
+import {isEqual} from 'lodash';
 
 import {Client} from 'app/api';
 import {Organization} from 'app/types';
@@ -74,16 +75,39 @@ class Table extends React.PureComponent<TableProps, TableState> {
     this.fetchData();
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(_prevProps: TableProps, prevState: TableState) {
     if (
-      this.props.location !== prevProps.location ||
-      this.props.location.query !== prevProps.location.query ||
-      this.props.location.query.fieldnames !== prevProps.location.query.fieldnames ||
-      this.props.location.query.field !== prevProps.location.query.field ||
-      this.props.location.query.sort !== prevProps.location.query.sort
+      !this.state.isLoading &&
+      this.shouldRefetchData(this.state.eventView, prevState.eventView)
     ) {
       this.fetchData();
     }
+  }
+
+  shouldRefetchData(thisEventView: EventView, otherEventView: EventView): boolean {
+    const commonKeys = ['query', 'range', 'start', 'end'];
+
+    for (const key of commonKeys) {
+      if (thisEventView[key] !== otherEventView[key]) {
+        return true;
+      }
+    }
+
+    if (
+      !isEqual(new Set(thisEventView.getFields()), new Set(otherEventView.getFields()))
+    ) {
+      return true;
+    }
+
+    if (!isEqual(new Set(thisEventView.sorts), new Set(otherEventView.sorts))) {
+      return true;
+    }
+
+    if (!isEqual(new Set(thisEventView.project), new Set(otherEventView.project))) {
+      return true;
+    }
+
+    return false;
   }
 
   fetchData = () => {
