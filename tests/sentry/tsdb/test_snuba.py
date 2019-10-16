@@ -24,8 +24,11 @@ class SnubaTSDBTest(OutcomesSnubaTest):
         self.now = datetime.now(pytz.utc)
         self.start_time = self.now - timedelta(days=7)
         self.one_day_later = self.start_time + timedelta(days=1)
+        self.day_before_start_time = self.start_time - timedelta(days=1)
 
     def test_organization_outcomes(self):
+        other_organization = self.create_organization()
+
         for tsdb_model, outcome in [
             (TSDBModel.organization_total_received, Outcome.ACCEPTED),
             (TSDBModel.organization_total_rejected, Outcome.RATE_LIMITED),
@@ -37,6 +40,14 @@ class SnubaTSDBTest(OutcomesSnubaTest):
             )
             self.store_outcomes(
                 self.organization.id, self.project.id, outcome.value, self.one_day_later, 4
+            )
+
+            # Also create some outcomes we shouldn't be querying
+            self.store_outcomes(
+                other_organization.id, self.project.id, outcome.value, self.one_day_later, 5
+            )
+            self.store_outcomes(
+                self.organization.id, self.project.id, outcome.value, self.day_before_start_time, 6
             )
 
             # Query SnubaTSDB
@@ -59,6 +70,8 @@ class SnubaTSDBTest(OutcomesSnubaTest):
                     assert count == 0
 
     def test_project_outcomes(self):
+        other_project = self.create_project(organization=self.organization)
+
         for tsdb_model, outcome in [
             (TSDBModel.project_total_received, Outcome.ACCEPTED),
             (TSDBModel.project_total_rejected, Outcome.RATE_LIMITED),
@@ -70,6 +83,14 @@ class SnubaTSDBTest(OutcomesSnubaTest):
             )
             self.store_outcomes(
                 self.organization.id, self.project.id, outcome.value, self.one_day_later, 4
+            )
+
+            # Also create some outcomes we shouldn't be querying
+            self.store_outcomes(
+                self.organization.id, other_project.id, outcome.value, self.one_day_later, 5
+            )
+            self.store_outcomes(
+                self.organization.id, self.project.id, outcome.value, self.day_before_start_time, 6
             )
 
             # Query SnubaTSDB
