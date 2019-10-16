@@ -226,7 +226,7 @@ class EventStorage(Service):
         """
         For a list of Event objects, and a property name where we might find an
         (unfetched) NodeData on those objects, fetch all the data blobs for
-        those NodeDatas with a single multi - get command to nodestore, and bind
+        those NodeDatas with a single multi-get command to nodestore, and bind
         the returned blobs to the NodeDatas
         """
         object_node_list = [
