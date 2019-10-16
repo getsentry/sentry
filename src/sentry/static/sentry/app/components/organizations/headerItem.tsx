@@ -8,7 +8,20 @@ import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 
-class HeaderItem extends React.Component {
+type Props = {
+  icon: React.ReactElement;
+  lockedMessage: string;
+  settingsLink: string;
+  allowClear: boolean;
+  hasChanges: boolean;
+  hasSelected: boolean;
+  isOpen: boolean;
+  locked: boolean;
+  innerRef: React.Ref<any>;
+  onClear: () => void;
+} & HTMLDivElement;
+
+class HeaderItem extends React.Component<Props> {
   static propTypes = {
     allowClear: PropTypes.bool,
     icon: PropTypes.element,
@@ -123,7 +136,9 @@ const StyledClose = styled(InlineSvg)`
   margin: -${space(1)} 0px -${space(1)} -${space(1)};
 `;
 
-const StyledChevron = styled('div')`
+const StyledChevron = styled('div')<{
+  isOpen: boolean;
+}>`
   transform: rotate(${p => (p.isOpen ? '180deg' : '0deg')});
   transition: 0.1s all;
   width: ${space(2)};
@@ -158,4 +173,6 @@ const StyledLock = styled(InlineSvg)`
   stroke-width: 1.5;
 `;
 
-export default React.forwardRef((props, ref) => <HeaderItem {...props} innerRef={ref} />);
+export default React.forwardRef((props: Props, ref: React.Ref<any>) => (
+  <HeaderItem {...props} innerRef={ref} />
+));
