@@ -35,9 +35,9 @@ class OrganizationInviteRequestListTest(APITestCase):
 
         assert len(resp.data) == 2
         assert resp.data[0]["email"] == self.invite_request.email
-        assert resp.data[0]["invite_status"] == "requested_to_be_invited"
+        assert resp.data[0]["inviteStatus"] == "requested_to_be_invited"
         assert resp.data[1]["email"] == self.request_to_join.email
-        assert resp.data[1]["invite_status"] == "requested_to_join"
+        assert resp.data[1]["inviteStatus"] == "requested_to_join"
 
 
 class OrganizationInviteRequestCreateTest(APITestCase):

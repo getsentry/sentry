@@ -47,7 +47,7 @@ class OrganizationInviteRequestDetailsTest(APITestCase):
         assert resp.status_code == 200
 
         assert resp.data["email"] == self.invite_request.email
-        assert resp.data["invite_status"] == "requested_to_be_invited"
+        assert resp.data["inviteStatus"] == "requested_to_be_invited"
         assert resp.data["teams"] == []
 
         url = reverse(
@@ -59,7 +59,7 @@ class OrganizationInviteRequestDetailsTest(APITestCase):
         assert resp.status_code == 200
 
         assert resp.data["email"] == self.request_to_join.email
-        assert resp.data["invite_status"] == "requested_to_join"
+        assert resp.data["inviteStatus"] == "requested_to_join"
         assert resp.data["teams"] == []
 
     def test_get_invalid(self):
@@ -130,7 +130,7 @@ class OrganizationInviteRequestDetailsTest(APITestCase):
 
         resp = self.client.put(url, data={"approve": 1})
         assert resp.status_code == 200
-        assert resp.data["invite_status"] == "approved"
+        assert resp.data["inviteStatus"] == "approved"
 
         assert mock_invite_email.call_count == 1
 
@@ -201,7 +201,7 @@ class OrganizationInviteRequestDetailsTest(APITestCase):
         resp = self.client.put(url, data={"role": "admin"})
         assert resp.status_code == 200
         assert resp.data["role"] == "admin"
-        assert resp.data["invite_status"] == "requested_to_be_invited"
+        assert resp.data["inviteStatus"] == "requested_to_be_invited"
 
         assert OrganizationMember.objects.filter(id=self.invite_request.id, role="admin").exists()
 
@@ -216,7 +216,7 @@ class OrganizationInviteRequestDetailsTest(APITestCase):
         resp = self.client.put(url, data={"teams": [self.team.slug]})
         assert resp.status_code == 200
         assert resp.data["teams"] == [self.team.slug]
-        assert resp.data["invite_status"] == "requested_to_be_invited"
+        assert resp.data["inviteStatus"] == "requested_to_be_invited"
 
         assert OrganizationMemberTeam.objects.filter(
             organizationmember=self.invite_request.id, team=self.team
@@ -236,7 +236,7 @@ class OrganizationInviteRequestDetailsTest(APITestCase):
         resp = self.client.put(url, data={"role": "manager"})
         assert resp.status_code == 200
         assert resp.data["role"] == "manager"
-        assert resp.data["invite_status"] == "requested_to_be_invited"
+        assert resp.data["inviteStatus"] == "requested_to_be_invited"
 
         assert OrganizationMemberTeam.objects.filter(
             organizationmember=self.invite_request.id, team=self.team
@@ -255,7 +255,7 @@ class OrganizationInviteRequestDetailsTest(APITestCase):
 
         resp = self.client.put(url, data={"teams": []})
         assert resp.status_code == 200
-        assert resp.data["invite_status"] == "requested_to_be_invited"
+        assert resp.data["inviteStatus"] == "requested_to_be_invited"
 
         assert not OrganizationMemberTeam.objects.filter(
             organizationmember=self.invite_request.id, team=self.team
@@ -273,7 +273,7 @@ class OrganizationInviteRequestDetailsTest(APITestCase):
         resp = self.client.put(url, data={"teams": [self.team.slug], "approve": 1, "role": "admin"})
         assert resp.status_code == 200
         assert resp.data["role"] == "admin"
-        assert resp.data["invite_status"] == "approved"
+        assert resp.data["inviteStatus"] == "approved"
 
         assert OrganizationMember.objects.filter(
             id=self.request_to_join.id, role="admin", invite_status=InviteStatus.APPROVED.value
