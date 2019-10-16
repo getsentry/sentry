@@ -3,6 +3,7 @@ from __future__ import absolute_import, print_function
 import base64
 import math
 
+import os
 import io
 import jsonschema
 import logging
@@ -67,7 +68,7 @@ from sentry.signals import event_accepted, event_dropped, event_filtered, event_
 from sentry.quotas.base import RateLimit
 from sentry.utils import json, metrics
 from sentry.utils.data_filters import FilterStatKeys
-from sentry.utils.data_scrubber import SensitiveDataFilter
+from sentry.utils.data_scrubber import SensitiveDataFilter, ensure_does_not_have_ip
 from sentry.utils.http import is_valid_origin, get_origins, is_same_domain, origin_from_request
 from sentry.utils.outcomes import Outcome, track_outcome, decide_signals_in_consumer
 from sentry.utils.pubsub import QueuedPublisherService, KafkaPublisher
@@ -288,18 +289,42 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments,
     config = project_config.config
     datascrubbing_settings = config.get("datascrubbingSettings") or {}
 
-    scrub_ip_address = datascrubbing_settings.get("scrubIpAddresses")
+    data = _scrub_event_data(data, datascrubbing_settings)
 
+    # mutates data (strips a lot of context if not queued)
+    helper.insert_data_to_database(data, start_time=start_time, attachments=attachments)
+
+    cache.set(cache_key, "", 60 * 60)  # Cache for 1 hour
+
+    api_logger.debug("New event received (%s)", event_id)
+
+    event_accepted.send_robust(ip=remote_addr, data=data, project=project, sender=process_event)
+
+    return event_id
+
+
+def _scrub_event_data(data, datascrubbing_settings):
+    scrub_ip_address = datascrubbing_settings.get("scrubIpAddresses")
     scrub_data = datascrubbing_settings.get("scrubData")
 
-    if random.random() < options.get("store.sample-rust-data-scrubber", 0.0):
+    if os.environ.get("SENTRY_USE_RUST_DATASCRUBBER") == "true":
+        sample_rust_scrubber = True
+        use_rust_scrubber = True
+    elif os.environ.get("SENTRY_USE_RUST_DATASCRUBBER") == "false":
+        sample_rust_scrubber = False
+        use_rust_scrubber = False
+    else:
+        sample_rust_scrubber = random.random() < options.get("store.sample-rust-data-scrubber", 0.0)
+        use_rust_scrubber = options.get("store.use-rust-data-scrubber", False)
+
+    if sample_rust_scrubber:
         rust_scrubbed_data = safe_execute(
             semaphore.scrub_event, datascrubbing_settings, dict(data), _with_transaction=False
         )
     else:
         rust_scrubbed_data = None
 
-    if rust_scrubbed_data and options.get("store.use-rust-data-scrubber", False):
+    if rust_scrubbed_data and use_rust_scrubber:
         data = rust_scrubbed_data
         data["_rust_data_scrubbed"] = True  # TODO: Remove after sampling
     else:
@@ -317,18 +342,9 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments,
 
         if scrub_ip_address:
             # We filter data immediately before it ever gets into the queue
-            helper.ensure_does_not_have_ip(data)
+            ensure_does_not_have_ip(data)
 
-    # mutates data (strips a lot of context if not queued)
-    helper.insert_data_to_database(data, start_time=start_time, attachments=attachments)
-
-    cache.set(cache_key, "", 60 * 60)  # Cache for 1 hour
-
-    api_logger.debug("New event received (%s)", event_id)
-
-    event_accepted.send_robust(ip=remote_addr, data=data, project=project, sender=process_event)
-
-    return event_id
+    return data
 
 
 class APIView(BaseView):
@@ -413,7 +429,7 @@ class APIView(BaseView):
 
             kafka_publisher.publish(
                 channel=getattr(settings, "KAFKA_RAW_EVENTS_PUBLISHER_TOPIC", "raw-store-events"),
-                value=json.dumps([meta, base64.b64encode(data)]),
+                value=json.dumps([meta, base64.b64encode(data), project_config.to_dict()]),
             )
         except Exception as e:
             logger.debug("Cannot publish event to Kafka: {}".format(e.message))

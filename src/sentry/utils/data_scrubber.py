@@ -195,3 +195,17 @@ class SensitiveDataFilter(object):
                     querybits.append(chunk)
             query = "&".join("=".join(k) for k in querybits)
             data[key] = urlunsplit((scheme, netloc, path, query, fragment))
+
+
+def ensure_does_not_have_ip(data):
+    env = get_path(data, "request", "env")
+    if env:
+        env.pop("REMOTE_ADDR", None)
+
+    user = get_path(data, "user")
+    if user:
+        user.pop("ip_address", None)
+
+    sdk = get_path(data, "sdk")
+    if sdk:
+        sdk.pop("client_ip", None)
