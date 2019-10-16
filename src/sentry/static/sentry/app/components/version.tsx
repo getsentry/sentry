@@ -3,9 +3,16 @@ import React from 'react';
 
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import Link from 'app/components/links/link';
-import withOrganization from 'app/utils/withOrganization';
 
-class Version extends React.Component {
+type Props = {
+  version: string;
+  orgId: string;
+  anchor?: boolean;
+  preserveGlobalSelection?: boolean;
+  className?: string;
+};
+
+export default class Version extends React.Component<Props> {
   static propTypes = {
     anchor: PropTypes.bool,
     version: PropTypes.string.isRequired,
@@ -44,5 +51,3 @@ class Version extends React.Component {
     );
   }
 }
-
-export default withOrganization(Version);
