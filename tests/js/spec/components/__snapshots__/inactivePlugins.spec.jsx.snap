@@ -12,93 +12,53 @@ exports[`InactivePlugins renders plugins list 1`] = `
     disablePadding={true}
     flex={false}
   >
-    <Flex
-      flex="1"
-      p={1}
-      wrap="wrap"
-    >
-      <Box
+    <Plugins>
+      <IntegrationButton
+        className="ref-plugin-enable-amazon-sqs"
         key="amazon-sqs"
-        m={1}
+        onClick={[Function]}
       >
-        <IntegrationButton
-          className="ref-plugin-enable-amazon-sqs"
-          onClick={[Function]}
-        >
-          <Flex
-            align="center"
-            justify="center"
-          >
-            <Flex
-              align="center"
-              mr={1}
-            >
-              <PluginIcon
-                pluginId="amazon-sqs"
-                size={20}
-              />
-            </Flex>
-            <TextOverflow>
-              Amazon SQS
-            </TextOverflow>
-          </Flex>
-        </IntegrationButton>
-      </Box>
-      <Box
+        <Label>
+          <StyledPluginIcon
+            pluginId="amazon-sqs"
+            size={20}
+          />
+          <TextOverflow>
+            Amazon SQS
+          </TextOverflow>
+        </Label>
+      </IntegrationButton>
+      <IntegrationButton
+        className="ref-plugin-enable-github"
         key="github"
-        m={1}
+        onClick={[Function]}
       >
-        <IntegrationButton
-          className="ref-plugin-enable-github"
-          onClick={[Function]}
-        >
-          <Flex
-            align="center"
-            justify="center"
-          >
-            <Flex
-              align="center"
-              mr={1}
-            >
-              <PluginIcon
-                pluginId="github"
-                size={20}
-              />
-            </Flex>
-            <TextOverflow>
-              GitHub
-            </TextOverflow>
-          </Flex>
-        </IntegrationButton>
-      </Box>
-      <Box
+        <Label>
+          <StyledPluginIcon
+            pluginId="github"
+            size={20}
+          />
+          <TextOverflow>
+            GitHub
+          </TextOverflow>
+        </Label>
+      </IntegrationButton>
+      <IntegrationButton
+        className="ref-plugin-enable-hidden-plugin"
         key="hidden-plugin"
-        m={1}
+        onClick={[Function]}
       >
-        <IntegrationButton
-          className="ref-plugin-enable-hidden-plugin"
-          onClick={[Function]}
-        >
-          <Flex
-            align="center"
-            justify="center"
-          >
-            <Flex
-              align="center"
-              mr={1}
-            >
-              <PluginIcon
-                pluginId="hidden-plugin"
-                size={20}
-              />
-            </Flex>
-            <TextOverflow>
-              Hidden Plugin
-            </TextOverflow>
-          </Flex>
-        </IntegrationButton>
-      </Box>
-    </Flex>
+        <Label>
+          <StyledPluginIcon
+            pluginId="hidden-plugin"
+            size={20}
+          />
+          <TextOverflow>
+            Hidden Plugin
+          </TextOverflow>
+        </Label>
+      </IntegrationButton>
+    </Plugins>
   </PanelBody>
 </Panel>
 `;
