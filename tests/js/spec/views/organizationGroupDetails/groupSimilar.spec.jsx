@@ -44,7 +44,11 @@ describe('Issues Similar View', function() {
 
   it('renders initially with loading component', function() {
     const component = shallow(
-      <GroupSimilar project={project} params={{groupId: 'group-id'}} location={{}} />,
+      <GroupSimilar
+        project={project}
+        params={{orgId: 'org-slug', groupId: 'group-id'}}
+        location={{}}
+      />,
       routerContext
     );
 

@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 from rest_framework.exceptions import PermissionDenied
 
-from sentry import eventstore
 from sentry.api.bases import OrganizationEndpoint, OrganizationEventsError
 from sentry.api.event_search import (
     get_filter,
@@ -12,11 +11,6 @@ from sentry.api.event_search import (
 )
 from sentry.models.project import Project
 from sentry.utils import snuba
-
-
-class Direction(object):
-    NEXT = 0
-    PREV = 1
 
 
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
@@ -108,72 +102,3 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             )
 
         return snuba_args
-
-    def next_event_id(self, snuba_args, event):
-        """
-        Returns the next event ID if there is a subsequent event matching the
-        conditions provided. Ignores the project_id.
-        """
-        next_event = eventstore.get_next_event_id(event, filter=self._get_filter(snuba_args))
-
-        if next_event:
-            return next_event[1]
-
-    def prev_event_id(self, snuba_args, event):
-        """
-        Returns the previous event ID if there is a previous event matching the
-        conditions provided. Ignores the project_id.
-        """
-        prev_event = eventstore.get_prev_event_id(event, filter=self._get_filter(snuba_args))
-
-        if prev_event:
-            return prev_event[1]
-
-    def _get_filter(self, snuba_args):
-        return eventstore.Filter(
-            conditions=snuba_args["conditions"],
-            start=snuba_args.get("start", None),
-            end=snuba_args.get("end", None),
-            project_ids=snuba_args["filter_keys"].get("project_id", None),
-            group_ids=snuba_args["filter_keys"].get("issue", None),
-        )
-
-    def oldest_event_id(self, snuba_args, event):
-        """
-        Returns the oldest event ID if there is a subsequent event matching the
-        conditions provided
-        """
-        return self._get_terminal_event_id(Direction.PREV, snuba_args, event)
-
-    def latest_event_id(self, snuba_args, event):
-        """
-        Returns the latest event ID if there is a newer event matching the
-        conditions provided
-        """
-        return self._get_terminal_event_id(Direction.NEXT, snuba_args, event)
-
-    def _get_terminal_event_id(self, direction, snuba_args, event):
-        if direction == Direction.NEXT:
-            time_condition = [["timestamp", ">", event.timestamp]]
-            orderby = ["-timestamp", "-event_id"]
-        else:
-            time_condition = [["timestamp", "<", event.timestamp]]
-            orderby = ["timestamp", "event_id"]
-
-        conditions = snuba_args["conditions"][:]
-        conditions.extend(time_condition)
-
-        result = snuba.dataset_query(
-            selected_columns=["event_id"],
-            start=snuba_args.get("start", None),
-            end=snuba_args.get("end", None),
-            conditions=conditions,
-            dataset=snuba.detect_dataset(snuba_args, aliased_conditions=True),
-            filter_keys=snuba_args["filter_keys"],
-            orderby=orderby,
-            limit=1,
-        )
-        if not result or "data" not in result or len(result["data"]) == 0:
-            return None
-
-        return result["data"][0]["event_id"]

@@ -1,7 +1,7 @@
 /* global __dirname */
 import jQuery from 'jquery';
 import Adapter from 'enzyme-adapter-react-16';
-import Enzyme from 'enzyme';
+import Enzyme from 'enzyme'; // eslint-disable-line no-restricted-imports
 import MockDate from 'mockdate';
 import PropTypes from 'prop-types';
 import fromEntries from 'object.fromentries';
@@ -20,7 +20,6 @@ fromEntries.shim();
  * Enzyme configuration
  */
 Enzyme.configure({adapter: new Adapter()});
-Enzyme.configure({disableLifecycleMethods: true});
 
 /**
  * Mock (current) date to alway be below
