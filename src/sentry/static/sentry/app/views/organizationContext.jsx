@@ -118,9 +118,9 @@ const OrganizationContext = createReactClass({
       return;
     }
     // fetch from the store, then fetch from the API if necessary
-    const {organization} = OrganizationStore.get();
-
+    const {organization, dirty} = OrganizationStore.get();
     if (
+      !dirty &&
       organization &&
       organization.slug === this.getOrganizationSlug() &&
       organization.projects &&

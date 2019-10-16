@@ -13,6 +13,7 @@ describe('OrganizationStore', function() {
       error: null,
       errorType: null,
       organization: null,
+      dirty: false,
     });
   });
 
@@ -25,6 +26,7 @@ describe('OrganizationStore', function() {
       error: null,
       errorType: null,
       organization,
+      dirty: false,
     });
 
     // updates
@@ -36,6 +38,7 @@ describe('OrganizationStore', function() {
       error: null,
       errorType: null,
       organization,
+      dirty: false,
     });
   });
 
@@ -48,6 +51,7 @@ describe('OrganizationStore', function() {
       error: null,
       errorType: null,
       organization,
+      dirty: false,
     });
   });
 
@@ -61,6 +65,7 @@ describe('OrganizationStore', function() {
       error,
       errorType: 'ORG_NOT_FOUND',
       organization: null,
+      dirty: false,
     });
   });
 });

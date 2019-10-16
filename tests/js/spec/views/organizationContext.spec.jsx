@@ -54,13 +54,16 @@ describe('OrganizationContext', function() {
   });
 
   afterEach(async function() {
+    wrapper.unmount();
     OrganizationStore.reset();
+    // await for store change to finish propagating
+    await tick();
+
     TeamStore.loadInitialData.mockRestore();
     ProjectsStore.loadInitialData.mockRestore();
     ConfigStore.get.mockRestore();
     GlobalSelectionStore.loadInitialData.mockRestore();
     OrganizationActionCreator.fetchOrganizationDetails.mockRestore();
-    wrapper.unmount();
   });
 
   it('renders and fetches org', async function() {

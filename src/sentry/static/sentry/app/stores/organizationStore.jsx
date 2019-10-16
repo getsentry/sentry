@@ -1,6 +1,8 @@
 import Reflux from 'reflux';
 
 import OrganizationActions from 'app/actions/organizationActions';
+import ProjectActions from 'app/actions/projectActions';
+import TeamActions from 'app/actions/teamActions';
 import {ORGANIZATION_FETCH_ERROR_TYPES} from 'app/constants';
 
 const OrganizationStore = Reflux.createStore({
@@ -9,6 +11,19 @@ const OrganizationStore = Reflux.createStore({
     this.listenTo(OrganizationActions.update, this.onUpdate);
     this.listenTo(OrganizationActions.fetchOrg, this.reset);
     this.listenTo(OrganizationActions.fetchOrgError, this.onFetchOrgError);
+
+    // mark the store as dirty if projects or teams change
+    this.listenTo(ProjectActions.createSuccess, this.onProjectOrTeamChange);
+    this.listenTo(ProjectActions.updateSuccess, this.onProjectOrTeamChange);
+    this.listenTo(ProjectActions.loadStatsSuccess, this.onProjectOrTeamChange);
+    this.listenTo(ProjectActions.changeSlug, this.onProjectOrTeamChange);
+    this.listenTo(ProjectActions.addTeamSuccess, this.onProjectOrTeamChange);
+    this.listenTo(ProjectActions.removeTeamSuccess, this.onProjectOrTeamChange);
+
+    this.listenTo(TeamActions.updateSuccess, this.onProjectOrTeamChange);
+    this.listenTo(TeamActions.fetchDetailsSuccess, this.onProjectOrTeamChange);
+    this.listenTo(TeamActions.removeTeamSuccess, this.onProjectOrTeamChange);
+    this.listenTo(TeamActions.createTeamSuccess, this.onProjectOrTeamChange);
   },
 
   reset() {
@@ -16,6 +31,8 @@ const OrganizationStore = Reflux.createStore({
     this.error = null;
     this.errorType = null;
     this.organization = null;
+    this.dirty = false;
+    this.trigger(this.get());
   },
 
   onUpdate(updatedOrg) {
@@ -23,6 +40,7 @@ const OrganizationStore = Reflux.createStore({
     this.error = null;
     this.errorType = null;
     this.organization = {...this.organization, ...updatedOrg};
+    this.dirty = false;
     this.trigger(this.get());
   },
 
@@ -38,7 +56,13 @@ const OrganizationStore = Reflux.createStore({
     }
     this.loading = false;
     this.error = err;
+    this.dirty = false;
     this.trigger(this.get());
+  },
+
+  onProjectOrTeamChange() {
+    // mark the store as dirty so the next fetch will trigger an org details refetch
+    this.dirty = true;
   },
 
   get() {
@@ -47,6 +71,7 @@ const OrganizationStore = Reflux.createStore({
       error: this.error,
       loading: this.loading,
       errorType: this.errorType,
+      dirty: this.dirty,
     };
   },
 });
