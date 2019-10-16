@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.plugins.bases import IssueTrackingPlugin2
+from sentry.plugins import IssueTrackingPlugin2
 
 
 class TestIssuePlugin2(IssueTrackingPlugin2):

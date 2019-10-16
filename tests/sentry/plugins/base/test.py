@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from django.conf.urls import url
 
-from sentry.plugins.base.v2 import Plugin2
+from sentry.plugins import Plugin2
 from sentry.plugins.base.project_api_urls import load_plugin_urls
 from sentry.plugins.base.response import JSONResponse
 from sentry.testutils import TestCase

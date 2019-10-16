@@ -3,7 +3,7 @@ Used for notifying *all* enabled plugins
 """
 from __future__ import absolute_import
 
-from sentry.plugins.base import plugins
+from sentry.plugins import plugins
 from sentry.rules.actions.base import EventAction
 from sentry.rules.actions.services import LegacyPluginService
 from sentry.utils import metrics

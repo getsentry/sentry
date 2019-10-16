@@ -41,7 +41,7 @@ class Repository(Model, PendingDeletionMixin):
         return self.provider and self.provider.startswith("integrations:")
 
     def get_provider(self):
-        from sentry.plugins.base import bindings
+        from sentry.plugins import bindings
 
         if self.has_integration_provider():
             provider_cls = bindings.get("integration-repository.provider").get(self.provider)
