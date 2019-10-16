@@ -103,7 +103,7 @@ const encodeSort = (sort: Sort): string => {
   }
 };
 
-const encodeSorts = (sorts: Array<Sort>): Array<string> => {
+const encodeSorts = (sorts: Readonly<Array<Sort>>): Array<string> => {
   return sorts.map(encodeSort);
 };
 
@@ -196,11 +196,11 @@ const queryStringFromSavedQuery = (saved: LegacySavedQuery | SavedQuery): string
 class EventView {
   id: string | undefined;
   name: string | undefined;
-  fields: Field[];
-  sorts: Sort[];
-  tags: string[];
+  fields: Readonly<Field[]>;
+  sorts: Readonly<Sort[]>;
+  tags: Readonly<string[]>;
   query: string | undefined;
-  project: number[];
+  project: Readonly<number[]>;
   range: string | undefined;
   start: string | undefined;
   end: string | undefined;
@@ -208,11 +208,11 @@ class EventView {
   constructor(props: {
     id: string | undefined;
     name: string | undefined;
-    fields: Field[];
-    sorts: Sort[];
-    tags: string[];
+    fields: Readonly<Field[]>;
+    sorts: Readonly<Sort[]>;
+    tags: Readonly<string[]>;
     query?: string | undefined;
-    project: number[];
+    project: Readonly<number[]>;
     range: string | undefined;
     start: string | undefined;
     end: string | undefined;
@@ -327,7 +327,7 @@ class EventView {
       }
     }
 
-    return cloneDeep(output);
+    return cloneDeep(output as any);
   }
 
   isValid(): boolean {
