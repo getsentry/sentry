@@ -22,7 +22,7 @@ import {
   FIELDS,
   ColumnValueType,
 } from './eventQueryParams';
-import {TableColumn, TableColumnSort, TableState} from './table/types';
+import {TableColumn} from './table/types';
 
 export type EventQuery = {
   field: Array<string>;
@@ -285,33 +285,6 @@ export function decodeColumnOrder(props: {
   });
 }
 
-// TODO: refactor this out
-export function encodeColumnOrderAndColumnSortBy(
-  tableState: TableState
-): QueryWithColumnState {
-  return {
-    fieldnames: encodeColumnFieldName(tableState),
-    field: encodeColumnField(tableState),
-    sort: encodeColumnSort(tableState),
-  };
-}
-
-function encodeColumnFieldName(tableState: TableState): string[] {
-  return tableState.columnOrder.map(col => col.name);
-}
-
-function encodeColumnField(tableState: TableState): string[] {
-  return tableState.columnOrder.map(col =>
-    col.aggregation ? `${col.aggregation}(${col.field})` : String(col.field)
-  );
-}
-
-function encodeColumnSort(tableState: TableState): string[] {
-  return tableState.columnSortBy.map(col =>
-    col.order === 'desc' ? `-${col.key}` : `${col.key}`
-  );
-}
-
 export function pushEventViewToLocation(props: {
   location: Location;
   currentEventView: EventView;
@@ -324,36 +297,5 @@ export function pushEventViewToLocation(props: {
   browserHistory.push({
     ...location,
     query: queryStringObject,
-  });
-}
-
-// TODO: refactor this out
-/**
- * The state of the columns is derived from `Location.query`. There are other
- * components mutating the state of the column (sidebar, etc) too.
- *
- * To make add/edit/remove tableColumns, we will update `Location.query` and
- * the changes will be propagated downwards to all the other components.
- */
-export function setColumnStateOnLocation(
-  location: Location,
-  nextColumnOrder: TableColumn<React.ReactText>[],
-  nextColumnSortBy: TableColumnSort<React.ReactText>[]
-) {
-  // Remove a column from columnSortBy if it is not in columnOrder
-  // EventView will throw an error if sorting by a column that isn't queried
-  nextColumnSortBy = nextColumnSortBy.filter(
-    sortBy => nextColumnOrder.findIndex(order => order.key === sortBy.key) > -1
-  );
-
-  browserHistory.push({
-    ...location,
-    query: {
-      ...location.query,
-      ...encodeColumnOrderAndColumnSortBy({
-        columnOrder: nextColumnOrder,
-        columnSortBy: nextColumnSortBy,
-      }),
-    },
   });
 }

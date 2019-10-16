@@ -5,12 +5,7 @@ import {Organization} from 'app/types';
 
 import GridEditable from 'app/components/gridEditable';
 
-import {
-  getFieldRenderer,
-  setColumnStateOnLocation,
-  getAggregateAlias,
-  pushEventViewToLocation,
-} from '../utils';
+import {getFieldRenderer, getAggregateAlias, pushEventViewToLocation} from '../utils';
 import EventView from '../eventView';
 import SortLink from '../sortLink';
 import renderTableModalEditColumnFactory from './tableModalEditColumn';
@@ -41,6 +36,7 @@ export type TableViewProps = {
  * It implements methods to mutate the column state in `Location.query`.
  */
 class TableView extends React.Component<TableViewProps> {
+  // TODO: update this docs
   /**
    * The "truth" on the state of the columns is found in `Location`,
    * `createColumn`, `updateColumn`, `deleteColumn` and `moveColumn`.
