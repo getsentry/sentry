@@ -22,6 +22,18 @@ export type Field = {
   // width: number;
 };
 
+const isSortEqualToField = (sort: Sort, field: Field): boolean => {
+  const aggregateAlias = getAggregateAlias(field.field);
+  return sort.field === aggregateAlias;
+};
+
+const fieldToSort = (field: Field): Sort => {
+  return {
+    kind: 'desc',
+    field: getAggregateAlias(field.field),
+  };
+};
+
 const generateFieldAsString = (props: {aggregation: string; field: string}): string => {
   const {aggregation, field} = props;
 
@@ -465,6 +477,56 @@ class EventView {
 
     return newEventView;
   }
+
+  deleteColumn(columnIndex: number): EventView {
+    // Disallow delete of last column, and check for out-of-bounds
+    if (this.fields.length <= 1 || this.fields.length <= columnIndex || columnIndex < 0) {
+      return this;
+    }
+
+    // delete the column
+
+    const newEventView = this.clone();
+
+    const fields = [...newEventView.fields];
+    fields.splice(columnIndex, 1);
+    newEventView.fields = fields;
+
+    // if the deleted column is one of the sorted columns, we need to remove
+    // it from the sorted
+
+    const columnToBeDeleted = this.fields[columnIndex];
+
+    const needleSortIndex = this.sorts.findIndex(sort => {
+      return isSortEqualToField(sort, columnToBeDeleted);
+    });
+
+    if (needleSortIndex >= 0) {
+      const needleSort = this.sorts[needleSortIndex];
+
+      const numOfColumns = this.fields.reduce((sum, field) => {
+        if (isSortEqualToField(needleSort, field)) {
+          return sum + 1;
+        }
+
+        return sum;
+      }, 0);
+
+      // do not bother deleting the sort key if there are more than one columns
+      // of it in the table.
+
+      if (numOfColumns <= 1) {
+        const sorts = [...newEventView.sorts];
+        sorts.splice(needleSortIndex, 1);
+        newEventView.sorts = [...new Set(sorts)];
+
+        if (newEventView.sorts.length <= 0 && newEventView.fields.length > 0) {
+          // establish a default sort
+          const fieldToBeSorted = newEventView.fields[0];
+          newEventView.sorts = [fieldToSort(fieldToBeSorted)];
+        }
+      }
+    }
 
     return newEventView;
   }

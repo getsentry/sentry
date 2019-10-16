@@ -89,31 +89,16 @@ class TableView extends React.Component<TableViewProps> {
   /**
    * Please read the comment on `createColumn`
    */
-  _deleteColumn = (i: number) => {
+  _deleteColumn = (columnIndex: number) => {
     const {location, eventView} = this.props;
 
-    const columnOrder = eventView.getColumns();
-    const columnSortBy = eventView.getSorts();
+    const nextEventView = eventView.deleteColumn(columnIndex);
 
-    const nextColumnOrder = [...columnOrder];
-    const nextColumnSortBy = [...columnSortBy];
-
-    // Disallow delete of last column and check for out-of-bounds
-    if (columnOrder.length === 1 || nextColumnOrder.length <= i) {
-      return;
-    }
-
-    // Remove column from columnOrder
-    const deletedColumn = nextColumnOrder.splice(i, 1)[0];
-
-    // Remove column from columnSortBy (if it is there)
-    // EventView will throw an error if sorting by a column that isn't displayed
-    const j = nextColumnSortBy.findIndex(c => c.key === deletedColumn.key);
-    if (j >= 0) {
-      nextColumnSortBy.splice(j, 1);
-    }
-
-    setColumnStateOnLocation(location, nextColumnOrder, nextColumnSortBy);
+    pushEventViewToLocation({
+      location,
+      currentEventView: eventView,
+      nextEventView,
+    });
   };
 
   /**
