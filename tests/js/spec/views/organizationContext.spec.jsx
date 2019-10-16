@@ -94,6 +94,7 @@ describe('OrganizationContext', function() {
   it('fetches new org when router params change', async function() {
     wrapper = createWrapper();
     await tick();
+    await tick();
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/new-slug/',
       body: org,
