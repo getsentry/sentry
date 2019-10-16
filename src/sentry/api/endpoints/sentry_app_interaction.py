@@ -11,6 +11,7 @@ from sentry.api.bases import SentryAppBaseEndpoint, SentryAppStatsPermission
 logger = logging.getLogger(__name__)
 
 TSDB_MODELS = [tsdb.models.sentry_app_viewed, tsdb.models.sentry_app_component_interacted]
+COMPONENT_TYPES = ["stacktrace-link", "issue-link"]
 
 
 def get_component_interaction_key(sentry_app, component_type):
@@ -50,18 +51,36 @@ class SentryAppInteractionEndpoint(SentryAppBaseEndpoint, StatsMixin):
         )
 
     def post(self, request, sentry_app):
+        """
+        Increment a TSDB metric relating to Sentry App interactions
+
+        :param string tsdbField         the name of the TSDB model to increment
+        :param string componentType     required for 'sentry_app_component_interacted' metric
+        """
         # Request should have identifier field stored in TSDBModel
         tsdb_field = request.data.get("tsdbField")
 
         model = getattr(tsdb.models, tsdb_field, None)
         if model is None or model not in TSDB_MODELS:
-            return Response({"detail": "Invalid TSDB field name"}, status=400)
+            return Response(
+                {
+                    "detail": "The tsdbField must be one of: sentry_app_viewed, sentry_app_component_interacted"
+                },
+                status=400,
+            )
 
         if model == tsdb.models.sentry_app_component_interacted:
-            try:
-                key = get_component_interaction_key(sentry_app, request.data["componentType"])
-            except KeyError:
-                return Response({"detail": "Sentry App component type required"}, status=400)
+            component_type = request.data.get("componentType", None)
+            if component_type is None or component_type not in COMPONENT_TYPES:
+                return Response(
+                    {
+                        "detail": "The field componentType is required and must be one of %s"
+                        % (COMPONENT_TYPES)
+                    },
+                    status=400,
+                )
+
+            key = get_component_interaction_key(sentry_app, request.data["componentType"])
         elif model == tsdb.models.sentry_app_viewed:
             key = sentry_app.id
 
