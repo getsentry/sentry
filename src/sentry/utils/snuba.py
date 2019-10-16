@@ -400,12 +400,16 @@ def detect_dataset(query_args, aliased_conditions=False):
     for field in query_args.get("aggregations") or []:
         if len(field) != 3:
             continue
+        # Check field or fields
         if isinstance(field[1], six.string_types) and field[1] in transaction_fields:
             return Dataset.Transactions
         if isinstance(field[1], (list, tuple)):
             is_transaction = [column for column in field[1] if column in transaction_fields]
             if is_transaction:
                 return Dataset.Transactions
+        # Check for transaction only field aliases
+        if isinstance(field[2], six.string_types) and field[2] in ("p95", "p75"):
+            return Dataset.Transactions
 
     for field in query_args.get("groupby") or []:
         if field in transaction_fields:
