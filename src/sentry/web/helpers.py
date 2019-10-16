@@ -17,7 +17,7 @@ logger = logging.getLogger("sentry")
 
 def get_default_context(request, existing_context=None, team=None):
     from sentry import options
-    from sentry.plugins import plugins
+    from sentry.plugins.base import plugins
 
     context = {
         "URL_PREFIX": options.get("system.url-prefix"),
