@@ -6,7 +6,7 @@ import {Organization} from 'app/types';
 import GridEditable from 'app/components/gridEditable';
 
 import {getFieldRenderer, getAggregateAlias, pushEventViewToLocation} from '../utils';
-import EventView, {getSortKeyFromField} from '../eventView';
+import EventView from '../eventView';
 import SortLink from '../sortLink';
 import renderTableModalEditColumnFactory from './tableModalEditColumn';
 import {TableColumn, TableData, TableDataRow} from './types';
@@ -126,12 +126,6 @@ class TableView extends React.Component<TableViewProps> {
     }
 
     const field = eventView.fields[columnIndex];
-
-    const sortKey = getSortKeyFromField(field, tableData.meta);
-
-    if (sortKey === null) {
-      return <span>{column.name}</span>;
-    }
 
     const alignedTypes: ColumnValueType[] = ['number', 'duration'];
     let align: 'right' | 'left' = alignedTypes.includes(column.type) ? 'right' : 'left';

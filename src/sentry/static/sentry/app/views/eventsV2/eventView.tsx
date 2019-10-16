@@ -51,10 +51,7 @@ const fieldToSort = (field: Field, tableDataMeta: MetaType): Sort | undefined =>
   };
 };
 
-export function getSortKeyFromField(
-  field: Field,
-  tableDataMeta: MetaType
-): string | null {
+function getSortKeyFromField(field: Field, tableDataMeta: MetaType): string | null {
   const column = getAggregateAlias(field.field);
   if (SPECIAL_FIELDS.hasOwnProperty(column)) {
     return SPECIAL_FIELDS[column as keyof typeof SPECIAL_FIELDS].sortField;
@@ -68,6 +65,10 @@ export function getSortKeyFromField(
   }
 
   return null;
+}
+
+export function isFieldSortable(field: Field, tableDataMeta: MetaType): boolean {
+  return !!getSortKeyFromField(field, tableDataMeta);
 }
 
 const generateFieldAsString = (props: {aggregation: string; field: string}): string => {
@@ -560,7 +561,7 @@ class EventView {
           // establish a default sort by finding the first sortable field
 
           const sortableFieldIndex = newEventView.fields.findIndex(field => {
-            return !!getSortKeyFromField(field, tableDataMeta);
+            return isFieldSortable(field, tableDataMeta);
           });
 
           if (sortableFieldIndex >= 0) {
@@ -680,10 +681,8 @@ class EventView {
   }
 
   sortOnField(field: Field, tableDataMeta: MetaType): EventView {
-    const sortKey = getSortKeyFromField(field, tableDataMeta);
-
     // check if field can be sorted
-    if (typeof sortKey !== 'string') {
+    if (!isFieldSortable(field, tableDataMeta)) {
       return this;
     }
 

@@ -7,7 +7,7 @@ import {omit} from 'lodash';
 import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/links/link';
 
-import EventView, {Field, Sort} from './eventView';
+import EventView, {Field, Sort, isFieldSortable} from './eventView';
 import {MetaType} from './utils';
 
 type Alignments = 'left' | 'right' | undefined;
@@ -62,7 +62,12 @@ class SortLink extends React.Component<Props> {
   }
 
   render() {
-    const {align, field} = this.props;
+    const {align, field, tableDataMeta} = this.props;
+
+    if (!isFieldSortable(field, tableDataMeta)) {
+      return <span>{field.title}</span>;
+    }
+
     return (
       <StyledLink align={align} to={this.getTarget()}>
         {field.title} {this.renderChevron()}
