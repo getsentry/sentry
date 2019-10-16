@@ -99,12 +99,7 @@ class SeenInfo extends React.Component {
               projectId={projectId}
               version={release.version}
             >
-              <Version
-                orgId={orgId}
-                projectId={projectId}
-                version={release.version}
-                className="truncate"
-              />
+              <Version orgId={orgId} version={release.version} className="truncate" />
             </VersionHoverCard>
           </dd>
         ) : !this.props.hasRelease ? (

@@ -17,6 +17,8 @@ signals to getSentry for these outcomes.
 """
 from __future__ import absolute_import
 
+import datetime
+import time
 import atexit
 import logging
 import multiprocessing.dummy
@@ -30,8 +32,9 @@ from django.core.cache import cache
 from sentry.models.project import Project
 from sentry.signals import event_filtered, event_dropped
 from sentry.utils.kafka import create_batching_kafka_consumer
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome
+from sentry.utils.dates import to_datetime
 
 logger = logging.getLogger(__name__)
 
@@ -96,34 +99,44 @@ def _process_message(message):
     # remember that we sent the signal just in case the processor dies before
     mark_signal_sent(project_id=project_id, event_id=event_id)
 
+    timestamp = msg.get("timestamp")
+    if timestamp is not None:
+        delta = to_datetime(time.time()) - datetime.datetime.strptime(
+            timestamp, "%Y-%m-%dT%H:%M:%S.%fZ"
+        )
+        metrics.timing("outcomes_consumer.timestamp_lag", delta.total_seconds())
+
+    metrics.incr("outcomes_consumer.signal_sent", tags={"reason": reason, "outcome": outcome})
+
+
+def _process_message_with_timer(message):
+    with metrics.timer("outcomes_consumer.process_message"):
+        return _process_message(message)
+
 
 class OutcomesConsumerWorker(AbstractBatchWorker):
-    def __init__(self, multiprocessing, concurrency):
-        if multiprocessing:
-            self.pool = _multiprocessing.Pool(concurrency)
-        else:
-            self.pool = _multiprocessing.dummy.Pool(concurrency)
-
+    def __init__(self, concurrency):
+        self.pool = _multiprocessing.dummy.Pool(concurrency)
         atexit.register(self.pool.close)
 
     def process_message(self, message):
         return message.value()
 
     def flush_batch(self, batch):
-        for _ in self.pool.imap_unordered(_process_message, batch, chunksize=100):
+        for _ in self.pool.imap_unordered(_process_message_with_timer, batch, chunksize=100):
             pass
 
     def shutdown(self):
         pass
 
 
-def get_outcomes_consumer(multiprocessing=False, concurrency=None, **options):
+def get_outcomes_consumer(concurrency=None, **options):
     """
     Handles outcome requests coming via a kafka queue from Relay.
     """
 
     return create_batching_kafka_consumer(
         topic_name=settings.KAFKA_OUTCOMES,
-        worker=OutcomesConsumerWorker(multiprocessing=multiprocessing, concurrency=concurrency),
+        worker=OutcomesConsumerWorker(concurrency=concurrency),
         **options
     )

@@ -19,11 +19,10 @@ export default class ResolutionBox extends React.Component {
   static propTypes = {
     statusDetails: PropTypes.object.isRequired,
     orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
   };
 
   renderReason = () => {
-    const {orgId, projectId, statusDetails} = this.props;
+    const {orgId, statusDetails} = this.props;
     const actor = statusDetails.actor ? (
       <strong>
         <Avatar user={statusDetails.actor} size={20} className="avatar" />
@@ -40,23 +39,11 @@ export default class ResolutionBox extends React.Component {
     } else if (statusDetails.inRelease && statusDetails.actor) {
       return tct('[actor] marked this issue as resolved in version [version].', {
         actor,
-        version: (
-          <Version
-            version={statusDetails.inRelease}
-            orgId={orgId}
-            projectId={projectId}
-          />
-        ),
+        version: <Version version={statusDetails.inRelease} orgId={orgId} />,
       });
     } else if (statusDetails.inRelease) {
       return tct('This issue has been marked as resolved in version [version].', {
-        version: (
-          <Version
-            version={statusDetails.inRelease}
-            orgId={orgId}
-            projectId={projectId}
-          />
-        ),
+        version: <Version version={statusDetails.inRelease} orgId={orgId} />,
       });
     } else if (!!statusDetails.inCommit) {
       return tct('This issue has been marked as resolved by [commit]', {
