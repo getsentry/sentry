@@ -460,6 +460,12 @@ class EventView {
 
     newEventView.fields = fields;
 
+    // updating column is considered an entirely new query that is not yet saved
+    newEventView.id = void 0;
+
+    return newEventView;
+  }
+
     return newEventView;
   }
 
