@@ -395,14 +395,18 @@ class EventView {
     });
   }
 
-  createColumn(newColumn: {aggregation: string; field: string; name: string}): EventView {
+  createColumn(newColumn: {
+    aggregation: string;
+    field: string;
+    fieldname: string;
+  }): EventView {
     const field = newColumn.field.trim();
 
     const aggregation = newColumn.aggregation.trim();
 
     const fieldAsString = generateFieldAsString({field, aggregation});
 
-    const name = newColumn.name.trim();
+    const name = newColumn.fieldname.trim();
     const hasName = name.length > 0;
 
     const newField: Field = {

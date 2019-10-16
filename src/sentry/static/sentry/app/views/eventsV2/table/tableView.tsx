@@ -57,7 +57,7 @@ class TableView extends React.Component<TableViewProps> {
     const nextEventView = eventView.createColumn({
       aggregation: String(nextColumn.aggregation),
       field: String(nextColumn.field),
-      name: nextColumn.name,
+      fieldname: nextColumn.name,
     });
 
     pushEventViewToLocation({
