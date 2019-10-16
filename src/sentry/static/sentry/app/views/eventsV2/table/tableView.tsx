@@ -6,7 +6,7 @@ import {Organization} from 'app/types';
 import GridEditable from 'app/components/gridEditable';
 
 import {getFieldRenderer, getAggregateAlias, pushEventViewToLocation} from '../utils';
-import EventView from '../eventView';
+import EventView, {pickRelevantLocationQueryStrings} from '../eventView';
 import SortLink from '../sortLink';
 import renderTableModalEditColumnFactory from './tableModalEditColumn';
 import {TableColumn, TableData, TableDataRow} from './types';
@@ -60,6 +60,7 @@ class TableView extends React.Component<TableViewProps> {
       location,
       currentEventView: eventView,
       nextEventView,
+      extraQuery: pickRelevantLocationQueryStrings(location),
     });
   };
 
@@ -87,6 +88,7 @@ class TableView extends React.Component<TableViewProps> {
       location,
       currentEventView: eventView,
       nextEventView,
+      extraQuery: pickRelevantLocationQueryStrings(location),
     });
   };
 
@@ -106,6 +108,7 @@ class TableView extends React.Component<TableViewProps> {
       location,
       currentEventView: eventView,
       nextEventView,
+      extraQuery: pickRelevantLocationQueryStrings(location),
     });
   };
 
@@ -121,6 +124,7 @@ class TableView extends React.Component<TableViewProps> {
       location,
       currentEventView: eventView,
       nextEventView,
+      extraQuery: pickRelevantLocationQueryStrings(location),
     });
   };
 

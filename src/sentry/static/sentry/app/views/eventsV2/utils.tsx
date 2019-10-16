@@ -289,13 +289,19 @@ export function pushEventViewToLocation(props: {
   location: Location;
   currentEventView: EventView;
   nextEventView: EventView;
+  extraQuery?: Query;
 }) {
   const {location, nextEventView} = props;
+
+  const extraQuery = props.extraQuery || {};
 
   const queryStringObject = nextEventView.generateQueryStringObject();
 
   browserHistory.push({
     ...location,
-    query: queryStringObject,
+    query: {
+      ...extraQuery,
+      ...queryStringObject,
+    },
   });
 }

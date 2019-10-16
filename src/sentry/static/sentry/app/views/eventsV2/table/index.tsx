@@ -2,7 +2,6 @@ import React from 'react';
 import {Location} from 'history';
 import {browserHistory} from 'react-router';
 import styled from 'react-emotion';
-import {isEqual} from 'lodash';
 
 import {Client} from 'app/api';
 import {Organization} from 'app/types';
@@ -11,7 +10,7 @@ import withApi from 'app/utils/withApi';
 import Pagination from 'app/components/pagination';
 
 import {DEFAULT_EVENT_VIEW_V1} from '../data';
-import EventView from '../eventView';
+import EventView, {isAPIPayloadSimilar} from '../eventView';
 import TableView from './tableView';
 import {TableData} from './types';
 
@@ -72,40 +71,18 @@ class Table extends React.PureComponent<TableProps, TableState> {
     this.fetchData();
   }
 
-  componentDidUpdate(_prevProps: TableProps, prevState: TableState) {
-    if (
-      !this.state.isLoading &&
-      this.shouldRefetchData(this.state.eventView, prevState.eventView)
-    ) {
+  componentDidUpdate(prevProps: TableProps, prevState: TableState) {
+    if (!this.state.isLoading && this.shouldRefetchData(prevProps, prevState)) {
       this.fetchData();
     }
   }
 
-  shouldRefetchData(thisEventView: EventView, otherEventView: EventView): boolean {
-    const commonKeys = ['query', 'range', 'start', 'end'];
+  shouldRefetchData = (prevProps: TableProps, prevState: TableState): boolean => {
+    const thisAPIPayload = this.state.eventView.getEventsAPIPayload(this.props.location);
+    const otherAPIPayload = prevState.eventView.getEventsAPIPayload(prevProps.location);
 
-    for (const key of commonKeys) {
-      if (thisEventView[key] !== otherEventView[key]) {
-        return true;
-      }
-    }
-
-    if (
-      !isEqual(new Set(thisEventView.getFields()), new Set(otherEventView.getFields()))
-    ) {
-      return true;
-    }
-
-    if (!isEqual(new Set(thisEventView.sorts), new Set(otherEventView.sorts))) {
-      return true;
-    }
-
-    if (!isEqual(new Set(thisEventView.project), new Set(otherEventView.project))) {
-      return true;
-    }
-
-    return false;
-  }
+    return !isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
+  };
 
   fetchData = () => {
     const {organization, location} = this.props;

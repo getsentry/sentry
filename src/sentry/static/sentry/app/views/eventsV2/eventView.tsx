@@ -1,5 +1,5 @@
 import {Location, Query} from 'history';
-import {isString, cloneDeep, pick} from 'lodash';
+import {isString, cloneDeep, pick, isEqual} from 'lodash';
 
 import {DEFAULT_PER_PAGE} from 'app/constants';
 import {EventViewv1} from 'app/types';
@@ -9,6 +9,17 @@ import {SavedQuery, NewQuery} from 'app/stores/discoverSavedQueriesStore';
 import {AUTOLINK_FIELDS, SPECIAL_FIELDS, FIELD_FORMATTERS} from './data';
 import {MetaType, EventQuery, getAggregateAlias, decodeColumnOrder} from './utils';
 import {TableColumn, TableColumnSort} from './table/types';
+
+type LocationQuery = {
+  project?: string | string[];
+  environment?: string | string[];
+  start?: string | string[];
+  end?: string | string[];
+  utc?: string | string[];
+  statsPeriod?: string | string[];
+  cursor?: string | string[];
+  sort?: string | string[];
+};
 
 export type Sort = {
   kind: 'asc' | 'desc';
@@ -696,29 +707,10 @@ class EventView {
   }
 
   // Takes an EventView instance and converts it into the format required for the events API
-  getEventsAPIPayload(location: Location): EventQuery {
+  getEventsAPIPayload(location: Location): EventQuery & LocationQuery {
     const query = location.query || {};
 
-    type LocationQuery = {
-      project?: string;
-      environment?: string;
-      start?: string;
-      end?: string;
-      utc?: string;
-      statsPeriod?: string;
-      cursor?: string;
-      sort?: string;
-    };
-
-    const picked = pick<LocationQuery>(query || {}, [
-      'project',
-      'environment',
-      'start',
-      'end',
-      'utc',
-      'statsPeriod',
-      'cursor',
-    ]);
+    const picked = pickRelevantLocationQueryStrings(location);
 
     const sortKeys = this.fields
       .map(field => {
@@ -741,7 +733,7 @@ class EventView {
 
     const fields = this.getFields();
 
-    const eventQuery: EventQuery = Object.assign(picked, {
+    const eventQuery: EventQuery & LocationQuery = Object.assign(picked, {
       field: [...new Set(fields)],
       sort: sort.length ? sort : defaultSort,
       per_page: DEFAULT_PER_PAGE,
@@ -797,6 +789,50 @@ class EventView {
 
     return newEventView;
   }
+}
+
+export const isAPIPayloadSimilar = (
+  current: EventQuery & LocationQuery,
+  other: EventQuery & LocationQuery
+): boolean => {
+  const currentKeys = new Set(Object.keys(current));
+  const otherKeys = new Set(Object.keys(other));
+
+  if (!isEqual(currentKeys, otherKeys)) {
+    return false;
+  }
+
+  for (const key of currentKeys) {
+    const currentValue = current[key];
+    const currentTarget = Array.isArray(currentValue)
+      ? new Set(currentValue)
+      : currentValue;
+
+    const otherValue = other[key];
+    const otherTarget = Array.isArray(otherValue) ? new Set(otherValue) : otherValue;
+
+    if (!isEqual(currentTarget, otherTarget)) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+export function pickRelevantLocationQueryStrings(location: Location): LocationQuery {
+  const query = location.query || {};
+
+  const picked = pick<LocationQuery>(query || {}, [
+    'project',
+    'environment',
+    'start',
+    'end',
+    'utc',
+    'statsPeriod',
+    'cursor',
+  ]);
+
+  return picked;
 }
 
 export default EventView;
