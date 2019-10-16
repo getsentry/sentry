@@ -8,7 +8,12 @@ export type ColumnValueType =
   | 'never'; // Matches to nothing
 
 // Refer to src/sentry/utils/snuba.py
-export const AGGREGATIONS = {
+export const AGGREGATIONS: {
+  [key: string]: {
+    type: '*' | ColumnValueType[];
+    isSortable: boolean;
+  };
+} = {
   count: {
     type: '*',
     isSortable: true,
@@ -36,7 +41,7 @@ export const AGGREGATIONS = {
     isSortable: true,
   },
   sum: {
-    type: ['transaction.duration'],
+    type: ['duration'],
     isSortable: true,
   },
   avg: {
