@@ -5,7 +5,7 @@ import {Organization} from 'app/types';
 
 import GridEditable from 'app/components/gridEditable';
 
-import {getFieldRenderer, setColumnStateOnLocation} from '../utils';
+import {getFieldRenderer, setColumnStateOnLocation, getAggregateAlias} from '../utils';
 import EventView from '../eventView';
 import SortLink from '../sortLink';
 import renderTableModalEditColumnFactory from './tableModalEditColumn';
@@ -136,7 +136,9 @@ class TableView extends React.Component<TableViewProps> {
       return column.name;
     }
 
-    const sortKey = eventView.getSortKey(String(column.key), tableData.meta);
+    const columnField = String(column.key);
+
+    const sortKey = eventView.getSortKey(columnField, tableData.meta);
 
     if (sortKey === null) {
       return <span>{column.name}</span>;
@@ -147,7 +149,16 @@ class TableView extends React.Component<TableViewProps> {
     console.log('column', column);
 
     const alignedTypes: ColumnValueType[] = ['number', 'duration'];
-    const align = alignedTypes.includes(column.type) ? 'right' : 'left';
+    let align: 'right' | 'left' = alignedTypes.includes(column.type) ? 'right' : 'left';
+
+    // TODO(alberto): clean this
+    if (column.type === 'never' || column.type === '*') {
+      const maybeType = tableData.meta[getAggregateAlias(columnField)];
+
+      if (maybeType === 'integer' || maybeType === 'number') {
+        align = 'right';
+      }
+    }
 
     return (
       <SortLink
