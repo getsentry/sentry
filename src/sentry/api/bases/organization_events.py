@@ -13,11 +13,6 @@ from sentry.models.project import Project
 from sentry.utils import snuba
 
 
-class Direction(object):
-    NEXT = 0
-    PREV = 1
-
-
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
     def get_snuba_query_args(self, request, organization, params):
         query = request.GET.get("query")

@@ -1,18 +1,12 @@
 from __future__ import absolute_import
 
 from rest_framework.response import Response
-from enum import Enum
 
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
 from sentry.api.event_search import get_reference_event_conditions
 from sentry import eventstore, features
 from sentry.models.project import Project
 from sentry.api.serializers import serialize
-
-
-class EventOrdering(Enum):
-    LATEST = 0
-    OLDEST = 1
 
 
 class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
