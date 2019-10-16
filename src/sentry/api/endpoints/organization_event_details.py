@@ -75,16 +75,6 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
         if prev_event:
             return prev_event[1]
 
-    def oldest_event_id(self, snuba_args, event):
-        """
-        Returns the oldest event ID if there is a subsequent event matching the
-        conditions provided
-        """
-        oldest_event = eventstore.get_oldest_event_id(event, filter=self._get_filter(snuba_args))
-
-        if oldest_event:
-            return oldest_event[1]
-
     def latest_event_id(self, snuba_args, event):
         """
         Returns the latest event ID if there is a newer event matching the
@@ -94,6 +84,16 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
 
         if latest_event:
             return latest_event[1]
+
+    def oldest_event_id(self, snuba_args, event):
+        """
+        Returns the oldest event ID if there is a subsequent event matching the
+        conditions provided
+        """
+        oldest_event = eventstore.get_oldest_event_id(event, filter=self._get_filter(snuba_args))
+
+        if oldest_event:
+            return oldest_event[1]
 
     def _get_filter(self, snuba_args):
         return eventstore.Filter(
