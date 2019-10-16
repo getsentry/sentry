@@ -51,6 +51,15 @@ const fieldToSort = (field: Field, tableDataMeta: MetaType): Sort | undefined =>
   };
 };
 
+function getSortKeyFromFieldWithoutMeta(field: Field): string | null {
+  const column = getAggregateAlias(field.field);
+  if (SPECIAL_FIELDS.hasOwnProperty(column)) {
+    return SPECIAL_FIELDS[column as keyof typeof SPECIAL_FIELDS].sortField;
+  }
+
+  return column;
+}
+
 function getSortKeyFromField(field: Field, tableDataMeta: MetaType): string | null {
   const column = getAggregateAlias(field.field);
   if (SPECIAL_FIELDS.hasOwnProperty(column)) {
@@ -709,16 +718,32 @@ class EventView {
       'utc',
       'statsPeriod',
       'cursor',
-      'sort',
     ]);
+
+    const sortKeys = this.fields
+      .map(field => {
+        return getSortKeyFromFieldWithoutMeta(field);
+      })
+      .filter(
+        (sortKey): sortKey is string => {
+          return !!sortKey;
+        }
+      );
+    const sortKeysSet = new Set(sortKeys);
+    const sort = this.sorts
+      .map(sort => {
+        return sort.field;
+      })
+      .filter(sortKey => {
+        return sortKeysSet.has(sortKey);
+      });
+    const defaultSort = sortKeys[0];
 
     const fields = this.getFields();
 
-    const defaultSort = fields.length > 0 ? [fields[0]] : undefined;
-
     const eventQuery: EventQuery = Object.assign(picked, {
       field: [...new Set(fields)],
-      sort: picked.sort ? picked.sort : defaultSort,
+      sort: sort.length ? sort : defaultSort,
       per_page: DEFAULT_PER_PAGE,
       query: this.getQuery(query.query),
     });
