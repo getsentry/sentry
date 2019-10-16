@@ -4,6 +4,7 @@ export type ColumnValueType =
   | 'number'
   | 'duration'
   | 'timestamp'
+  | 'boolean'
   | 'never'; // Matches to nothing
 
 // Refer to src/sentry/utils/snuba.py
@@ -57,11 +58,11 @@ export type Aggregation = keyof typeof AGGREGATIONS | '';
 /**
  * Refer to src/sentry/utils/snuba.py, search for SENTRY_SNUBA_MAP
  */
-export const FIELDS = {
+export const FIELDS: {[key: string]: ColumnValueType} = {
   id: 'string',
 
   title: 'string',
-  project: 'name',
+  project: 'string',
   environment: 'string',
   release: 'string',
   'issue.id': 'string',
