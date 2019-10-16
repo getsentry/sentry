@@ -124,6 +124,7 @@ class EventStorage(Service):
         "get_prev_event_id",
         "get_next_event_id",
         "get_oldest_event_id",
+        "get_latest_event_id",
         "bind_nodes",
     )
 
