@@ -14,19 +14,33 @@ from sentry.signals import member_invited
 
 from .organization_member_index import OrganizationMemberSerializer, save_team_assignments
 
+ERR_CANNOT_INVITE = "Your organization is not allowed to invite members."
+ERR_INSUFFICIENT_ROLE_UPDATE = "You do not have permission to update this invite request."
+ERR_INSUFFICIENT_ROLE_DELETE = "You do not have permission to delete this invite request."
+ERR_JOIN_REQUESTS_DISABLED = "Your organization does not allow join requests."
+
 
 class InviteRequestSerializer(serializers.Serializer):
     approve = serializers.BooleanField(required=False, write_only=True)
 
     def validate_approve(self, approve):
         request = self.context["request"]
+        organization = self.context["organization"]
+        member = self.context["member"]
+
+        if not features.has("organizations:invite-members", organization, actor=request.user):
+            raise serializers.ValidationError(ERR_CANNOT_INVITE)
 
         if not request.access.has_scope("member:admin") and not request.access.has_scope(
             "member:write"
         ):
-            raise serializers.ValidationError(
-                "You do not have permission to approve this invite request."
-            )
+            raise serializers.ValidationError(ERR_INSUFFICIENT_ROLE_UPDATE)
+
+        if (
+            organization.get_option("sentry:join_requests") is False
+            and member.invite_status == InviteStatus.REQUESTED_TO_JOIN.value
+        ):
+            raise serializers.ValidationError(ERR_JOIN_REQUESTS_DISABLED)
 
         return approve
 
@@ -88,9 +102,7 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationEndpoint):
             and not request.access.has_scope("member:admin")
             and not request.access.has_scope("member:write")
         ):
-            return Response(
-                {"detail": "You do not have permission to update this invite request."}, status=403
-            )
+            return Response({"detail": ERR_INSUFFICIENT_ROLE_UPDATE}, status=403)
 
         serializer = OrganizationMemberSerializer(
             data=request.data,
@@ -110,7 +122,10 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationEndpoint):
             save_team_assignments(member, result["teams"])
 
         if "approve" in request.data:
-            serializer = InviteRequestSerializer(data=request.data, context={"request": request})
+            serializer = InviteRequestSerializer(
+                data=request.data,
+                context={"request": request, "organization": organization, "member": member},
+            )
 
             if not serializer.is_valid():
                 return Response(status=400)
@@ -118,14 +133,6 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationEndpoint):
             result = serializer.validated_data
 
             if result.get("approve"):
-                if not features.has(
-                    "organizations:invite-members", organization, actor=request.user
-                ):
-                    return Response(
-                        {"organization": "Your organization is not allowed to invite members"},
-                        status=403,
-                    )
-
                 if not member.invite_approved:
                     member.approve_invite()
                     member.save()
@@ -170,9 +177,7 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationEndpoint):
             raise ResourceDoesNotExist
 
         if member.inviter != request.user and not request.access.has_scope("member:write"):
-            return Response(
-                {"detail": "You do not have permission to delete this invite request."}, status=403
-            )
+            return Response({"detail": ERR_INSUFFICIENT_ROLE_DELETE}, status=403)
 
         member.delete()
 

@@ -1,15 +1,20 @@
 from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
+from exam import fixture
 
 from sentry.testutils import APITestCase
 from sentry.models import OrganizationMember, OrganizationMemberTeam, InviteStatus
 
 
 class OrganizationInviteRequestListTest(APITestCase):
-    def setUp(self):
-        self.org = self.create_organization(owner=self.user)
+    endpoint = "sentry-api-0-organization-invite-request-index"
 
+    @fixture
+    def org(self):
+        return self.create_organization(owner=self.user)
+
+    def setUp(self):
         self.invite_request = self.create_member(
             email="test@example.com",
             organization=self.org,
@@ -25,14 +30,9 @@ class OrganizationInviteRequestListTest(APITestCase):
 
     def test_simple(self):
         self.login_as(user=self.user)
-        url = reverse(
-            "sentry-api-0-organization-invite-request-index",
-            kwargs={"organization_slug": self.org.slug},
-        )
+        resp = self.get_response(self.org.slug)
 
-        resp = self.client.get(url)
         assert resp.status_code == 200
-
         assert len(resp.data) == 2
         assert resp.data[0]["email"] == self.invite_request.email
         assert resp.data[0]["inviteStatus"] == "requested_to_be_invited"
