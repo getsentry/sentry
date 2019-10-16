@@ -29,94 +29,7 @@ export const DEFAULT_EVENT_VIEW_V1: Readonly<EventViewv1> = {
   tags: ['event.type', 'release', 'project.name', 'user.email', 'user.ip', 'environment'],
 };
 
-export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
-  DEFAULT_EVENT_VIEW_V1,
-  {
-    name: t('Project Summary'),
-    data: {
-      fields: ['project', 'count()', 'count_unique(issue.id)'],
-      fieldnames: ['project', 'events', 'unique errors'],
-      sort: ['-count'],
-      query: 'event.type:error',
-    },
-    tags: ['error.type', 'project.name'],
-  },
-  {
-    name: t('Errors'),
-    data: {
-      fields: ['title', 'count()', 'count_unique(user)', 'project', 'last_seen'],
-      fieldnames: ['error', 'events', 'users', 'project', 'last seen'],
-      sort: ['-count', '-title'],
-      query: 'event.type:error',
-    },
-    tags: ['project.name'],
-  },
-  {
-    name: t('Errors by URL'),
-    data: {
-      fields: ['url', 'count()', 'count_unique(issue.id)'],
-      fieldnames: ['URL', 'events', 'unique errors'],
-      sort: ['-count'],
-      query: 'event.type:error',
-    },
-    tags: ['error.type', 'project.name', 'url'],
-  },
-  {
-    name: t('Errors by User'),
-    data: {
-      fields: ['user', 'count()', 'count_unique(issue.id)'],
-      fieldnames: ['User', 'events', 'unique errors'],
-      sort: ['-count'],
-      query: 'event.type:error',
-    },
-    tags: ['user.id', 'project.name', 'url'],
-  },
-  {
-    name: t('CSP'),
-    data: {
-      fields: ['title', 'count()', 'count_unique(user)', 'project', 'last_seen'],
-      fieldnames: ['csp', 'events', 'users', 'project', 'last seen'],
-      sort: ['-count', '-title'],
-      query: 'event.type:csp',
-    },
-    tags: [
-      'project.name',
-      'blocked-uri',
-      'browser.name',
-      'os.name',
-      'effective-directive',
-    ],
-  },
-  {
-    name: t('CSP Report by Directive'),
-    data: {
-      fields: ['effective-directive', 'count()', 'count_unique(title)'],
-      fieldnames: ['directive', 'events', 'reports'],
-      sort: ['-count'],
-      query: 'event.type:csp',
-    },
-    tags: ['project.name', 'blocked-uri', 'browser.name', 'os.name'],
-  },
-  {
-    name: t('CSP Report by Blocked URI'),
-    data: {
-      fields: ['blocked-uri', 'count()'],
-      fieldnames: ['URI', 'events'],
-      sort: ['-count'],
-      query: 'event.type:csp',
-    },
-    tags: ['project.name', 'blocked-uri', 'browser.name', 'os.name'],
-  },
-  {
-    name: t('CSP Report by User'),
-    data: {
-      fields: ['user', 'count()', 'count_unique(title)'],
-      fieldnames: ['User', 'events', 'reports'],
-      sort: ['-count'],
-      query: 'event.type:csp',
-    },
-    tags: ['project.name', 'blocked-uri', 'browser.name', 'os.name'],
-  },
+export const TRANSACTION_VIEWS: Readonly<Array<EventViewv1>> = [
   {
     name: t('Transactions'),
     data: {
@@ -160,6 +73,96 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
       query: 'event.type:transaction',
     },
     tags: ['release', 'project.name', 'user.email', 'user.ip'],
+  },
+];
+
+export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
+  DEFAULT_EVENT_VIEW_V1,
+  {
+    name: t('Project Summary'),
+    data: {
+      fields: ['project', 'count()', 'count_unique(issue.id)'],
+      fieldnames: ['project', 'events', 'unique errors'],
+      sort: ['-count'],
+      query: 'event.type:error',
+    },
+    tags: ['error.type', 'project.name'],
+  },
+  {
+    name: t('Errors'),
+    data: {
+      fields: ['title', 'count()', 'count_unique(user)', 'project', 'last_seen'],
+      fieldnames: ['error', 'events', 'users', 'project', 'last seen'],
+      sort: ['-count', '-title'],
+      query: 'event.type:error',
+    },
+    tags: ['project.name'],
+  },
+  {
+    name: t('Errors by URL'),
+    data: {
+      fields: ['url', 'count()', 'count_unique(issue.id)'],
+      fieldnames: ['URL', 'events', 'unique errors'],
+      sort: ['-count'],
+      query: 'event.type:error',
+    },
+    tags: ['error.type', 'project.name', 'url'],
+  },
+  {
+    name: t('Errors by User'),
+    data: {
+      fields: ['user', 'count()', 'count_unique(issue.id)'],
+      fieldnames: ['User', 'events', 'unique errors'],
+      sort: ['-count'],
+      query: 'event.type:error',
+    },
+    tags: ['user.id', 'project.name', 'url'],
+  },
+  {
+    name: t('Content Security Policy (CSP)'),
+    data: {
+      fields: ['title', 'count()', 'count_unique(user)', 'project', 'last_seen'],
+      fieldnames: ['csp', 'events', 'users', 'project', 'last seen'],
+      sort: ['-count', '-title'],
+      query: 'event.type:csp',
+    },
+    tags: [
+      'project.name',
+      'blocked-uri',
+      'browser.name',
+      'os.name',
+      'effective-directive',
+    ],
+  },
+  {
+    name: t('Content Security Policy (CSP) Report by Directive'),
+    data: {
+      fields: ['effective-directive', 'count()', 'count_unique(title)'],
+      fieldnames: ['directive', 'events', 'reports'],
+      sort: ['-count'],
+      query: 'event.type:csp',
+    },
+    tags: ['project.name', 'blocked-uri', 'browser.name', 'os.name'],
+  },
+  {
+    name: t('Content Security Policy (CSP) Report by Blocked URI'),
+    data: {
+      fields: ['blocked-uri', 'count()'],
+      fieldnames: ['URI', 'events'],
+      sort: ['-count'],
+      query: 'event.type:csp',
+    },
+    tags: ['project.name', 'blocked-uri', 'browser.name', 'os.name'],
+  },
+  {
+    name: t('Content Security Policy (CSP) Report by User'),
+    data: {
+      fields: ['user', 'count()', 'count_unique(title)'],
+      fieldnames: ['User', 'events', 'reports'],
+      sort: ['-count'],
+      query: 'event.type:csp',
+    },
+    tags: ['project.name', 'blocked-uri', 'browser.name', 'os.name'],
   },
 ];
 
