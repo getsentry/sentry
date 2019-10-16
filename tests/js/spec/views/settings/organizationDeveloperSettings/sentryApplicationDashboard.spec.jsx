@@ -85,13 +85,19 @@ describe('Sentry Application Dashboard', function() {
     });
 
     it('shows the installation stats in a graph', () => {
-      const chart = wrapper.find('StackedBarChart');
-      const bars = chart.find('[data-test-id="chart-column"]');
+      const chart = wrapper.find('BarChart');
+      const chartSeries = chart.props().series;
+
       expect(chart.exists()).toBeTruthy();
-      // There are only 2 bars because there is only 1 timepoint in the mock response
-      expect(bars).toHaveLength(2);
-      expect(bars.find('.accepted')).toHaveLength(1);
-      expect(bars.find('.rate-limited')).toHaveLength(1);
+      expect(chartSeries).toHaveLength(2);
+      expect(chartSeries).toContainEqual({
+        data: [{name: 1569783600 * 1000, value: NUM_INSTALLS}],
+        seriesName: 'installed',
+      });
+      expect(chartSeries).toContainEqual({
+        data: [{name: 1569783600 * 1000, value: NUM_UNINSTALLS}],
+        seriesName: 'uninstalled',
+      });
     });
 
     it('shows the error log', () => {

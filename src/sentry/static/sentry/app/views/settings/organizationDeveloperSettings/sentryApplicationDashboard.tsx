@@ -3,7 +3,6 @@ import styled from 'react-emotion';
 
 import AsyncView from 'app/views/asyncView';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import StackedBarChart from 'app/components/stackedBarChart';
 import LineChart from 'app/components/charts/lineChart';
 
 import {
@@ -13,13 +12,13 @@ import {
   PanelFooter,
   PanelItem,
 } from 'app/components/panels';
+import BarChart from 'app/components/charts/barChart';
 import DateTime from 'app/components/dateTime';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 import space from 'app/styles/space';
-import {intcomma} from 'app/utils';
-import {t, tn} from 'app/locale';
 import {SentryApp, SentryAppWebhookError} from 'app/types';
+import {t} from 'app/locale';
 
 type Props = AsyncView['props'];
 
@@ -86,46 +85,44 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
     );
   }
 
-  renderTooltip(point, _pointIdx, chart) {
-    const timeLabel = chart.getTimeLabel(point);
-    const [installed, uninstalled] = point.y;
-
-    return (
-      <div style={{width: '150px'}}>
-        <div className="time-label">{timeLabel}</div>
-        <div className="value-label">
-          {intcomma(installed)} {tn('install', 'installs', installed)}
-          {uninstalled > 0 && (
-            <React.Fragment>
-              <br />
-              {intcomma(uninstalled)} {tn('uninstall', 'uninstalls', uninstalled)}
-            </React.Fragment>
-          )}
-        </div>
-      </div>
-    );
-  }
-
   renderInstallCharts() {
     const {install_stats, uninstall_stats} = this.state.stats;
-    const points = install_stats.map((point, idx) => ({
-      x: point[0],
-      y: [point[1], uninstall_stats[idx][1]],
-    }));
+
+    const installSeries = {
+      data: install_stats.map(point => ({
+        name: point[0] * 1000,
+        value: point[1],
+      })),
+      seriesName: t('installed'),
+    };
+    const uninstallSeries = {
+      data: uninstall_stats.map(point => ({
+        name: point[0] * 1000,
+        value: point[1],
+      })),
+      seriesName: t('uninstalled'),
+    };
 
     return (
       <Panel>
-        <PanelHeader>{t('Installations/Uninstallations over Time')}</PanelHeader>
-
-        <StackedBarChart
-          points={points}
-          height={150}
-          className="standard-barchart b-a-0 m-b-0"
-          barClasses={['accepted', 'rate-limited']}
-          minHeights={[2, 0, 0]}
-          gap={0.25}
-          tooltip={this.renderTooltip}
-        />
+        <PanelHeader>{t('Installations/Uninstallations over Last 90 Days')}</PanelHeader>
+        <ChartWrapper>
+          <BarChart
+            series={[installSeries, uninstallSeries]}
+            height={150}
+            stacked
+            isGroupedByDate
+            legend={{
+              show: true,
+              orient: 'horizontal',
+              data: ['installed', 'uninstalled'],
+              itemWidth: 15,
+            }}
+            yAxis={{type: 'value', minInterval: 1, max: 'dataMax'}}
+            xAxis={{type: 'time'}}
+            grid={{left: space(4), right: space(4)}}
+          />
+        </ChartWrapper>
       </Panel>
     );
   }
@@ -284,4 +281,8 @@ const OverflowBox = styled('div')`
 
 const StyledFooter = styled('div')`
   padding: ${space(1.5)};
+`;
+
+const ChartWrapper = styled('div')`
+  padding-top: ${space(3)};
 `;
