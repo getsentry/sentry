@@ -366,6 +366,24 @@ class EventView {
     });
   }
 
+  clone(): EventView {
+    // NOTE: We rely on usage of Readonly from TypeScript to ensure we do not mutate
+    //       the attributes of EventView directly. This enables us to quickly
+    //       clone new instances of EventView.
+
+    return new EventView({
+      id: this.id,
+      name: this.name,
+      fields: this.fields,
+      sorts: this.sorts,
+      tags: this.tags,
+      query: this.query,
+      project: this.project,
+      range: this.range,
+      start: this.start,
+      end: this.end,
+    });
+  }
   getSorts(): TableColumnSort<React.ReactText>[] {
     return this.sorts.map(sort => {
       return {
