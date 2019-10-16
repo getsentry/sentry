@@ -723,11 +723,11 @@ class EventView {
       );
     const sortKeysSet = new Set(sortKeys);
     const sort = this.sorts
-      .map(sort => {
-        return sort.field;
+      .filter(sort => {
+        return sortKeysSet.has(sort.field);
       })
-      .filter(sortKey => {
-        return sortKeysSet.has(sortKey);
+      .map(sort => {
+        return encodeSort(sort);
       });
     const defaultSort = sortKeys[0];
 
