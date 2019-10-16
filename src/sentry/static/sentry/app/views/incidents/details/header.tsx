@@ -27,7 +27,7 @@ type Props = {
   hasIncidentDetailsError: boolean;
   // Can be undefined when loading
   incident?: Incident;
-  onSubscriptionChange: (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => void;
+  onSubscriptionChange: (event: React.MouseEvent) => void;
   onStatusChange: (eventKey: any) => void;
   params: Params;
 };
