@@ -12,7 +12,6 @@ import re
 import six
 import time
 import urllib3
-import uuid
 
 from concurrent.futures import ThreadPoolExecutor
 from django.conf import settings
@@ -984,11 +983,6 @@ def constrain_condition_to_dataset(cond, dataset):
             if name is None:
                 return None
             cond[0] = name
-            # Reformat 32 byte uuids to 36 byte variants.
-            # The transactions dataset requires properly formatted uuid values.
-            # But the rest of sentry isn't aware of that requirement.
-            if dataset == Dataset.Transactions and name == "event_id" and len(cond[2]) == 32:
-                cond[2] = six.text_type(uuid.UUID(cond[2]))
         elif len(cond) == 2 and cond[0] == "has":
             # first function argument is the column if function is "has"
             cond[1][0] = constrain_column_to_dataset(cond[1][0], dataset)
