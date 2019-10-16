@@ -285,6 +285,7 @@ export function decodeColumnOrder(props: {
   });
 }
 
+// TODO: refactor this out
 export function encodeColumnOrderAndColumnSortBy(
   tableState: TableState
 ): QueryWithColumnState {
@@ -311,6 +312,22 @@ function encodeColumnSort(tableState: TableState): string[] {
   );
 }
 
+export function pushEventViewToLocation(props: {
+  location: Location;
+  currentEventView: EventView;
+  nextEventView: EventView;
+}) {
+  const {location, nextEventView} = props;
+
+  const queryStringObject = nextEventView.generateQueryStringObject();
+
+  browserHistory.push({
+    ...location,
+    query: queryStringObject,
+  });
+}
+
+// TODO: refactor this out
 /**
  * The state of the columns is derived from `Location.query`. There are other
  * components mutating the state of the column (sidebar, etc) too.

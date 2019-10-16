@@ -5,7 +5,12 @@ import {Organization} from 'app/types';
 
 import GridEditable from 'app/components/gridEditable';
 
-import {getFieldRenderer, setColumnStateOnLocation, getAggregateAlias} from '../utils';
+import {
+  getFieldRenderer,
+  setColumnStateOnLocation,
+  getAggregateAlias,
+  pushEventViewToLocation,
+} from '../utils';
 import EventView from '../eventView';
 import SortLink from '../sortLink';
 import renderTableModalEditColumnFactory from './tableModalEditColumn';
@@ -49,13 +54,17 @@ class TableView extends React.Component<TableViewProps> {
   _createColumn = (nextColumn: TableColumn<keyof TableDataRow>) => {
     const {location, eventView} = this.props;
 
-    const columnOrder = eventView.getColumns();
-    const columnSortBy = eventView.getSorts();
+    const nextEventView = eventView.createColumn({
+      aggregation: String(nextColumn.aggregation),
+      field: String(nextColumn.field),
+      name: nextColumn.name,
+    });
 
-    const nextColumnOrder = [...columnOrder, nextColumn];
-    const nextColumnSortBy = [...columnSortBy];
-
-    setColumnStateOnLocation(location, nextColumnOrder, nextColumnSortBy);
+    pushEventViewToLocation({
+      location,
+      currentEventView: eventView,
+      nextEventView,
+    });
   };
 
   /**
