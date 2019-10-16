@@ -5,7 +5,7 @@ steps:
   timeout: 1200s
 # Derive the -onbuild variant
 - name: 'gcr.io/cloud-builders/docker'
-  args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA-onbuild', '-t', 'gcr.io/$PROJECT_ID/sentry:$SHORT_SHA-onbuild',, '-t', 'gcr.io/$PROJECT_ID/sentry:latest-onbuild', '-f', './docker/onbuild/Dockerfile', '.' ]
+  args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA-onbuild', '-t', 'gcr.io/$PROJECT_ID/sentry:$SHORT_SHA-onbuild', '-t', 'gcr.io/$PROJECT_ID/sentry:latest-onbuild', '-f', './docker/onbuild/Dockerfile', '.' ]
   timeout: 300s
 # Smoke tests
 - name: 'gcr.io/cloud-builders/docker'
