@@ -436,7 +436,8 @@ def _do_save_event(
     from sentry.event_manager import HashDiscarded, EventManager
     from sentry import quotas
     from sentry.models import ProjectKey
-    from sentry.utils.outcomes import Outcome, track_outcome, mark_signal_sent
+    from sentry.utils.outcomes import Outcome, track_outcome
+    from sentry.ingest.outcomes_consumer import mark_signal_sent
 
     if cache_key and data is None:
         data = default_cache.get(cache_key)
