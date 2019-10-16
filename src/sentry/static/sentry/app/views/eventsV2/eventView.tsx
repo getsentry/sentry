@@ -694,6 +694,22 @@ class EventView {
     return queryParts.join(' ');
   }
 
+  getTagsAPIPayload(
+    location: Location
+  ): Exclude<EventQuery & LocationQuery, 'sort' | 'cursor'> {
+    const payload = this.getEventsAPIPayload(location);
+
+    if (payload['sort']) {
+      delete payload['sort'];
+    }
+
+    if (payload['cursor']) {
+      delete payload['cursor'];
+    }
+
+    return payload;
+  }
+
   // Takes an EventView instance and converts it into the format required for the events API
   getEventsAPIPayload(location: Location): EventQuery & LocationQuery {
     const query = location.query || {};

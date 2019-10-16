@@ -62,8 +62,8 @@ class Tags extends React.Component<Props, State> {
   }
 
   shouldRefetchData = (prevProps: Props): boolean => {
-    const thisAPIPayload = this.props.eventView.getEventsAPIPayload(this.props.location);
-    const otherAPIPayload = prevProps.eventView.getEventsAPIPayload(prevProps.location);
+    const thisAPIPayload = this.props.eventView.getTagsAPIPayload(this.props.location);
+    const otherAPIPayload = prevProps.eventView.getTagsAPIPayload(prevProps.location);
 
     return !isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
   };
@@ -79,7 +79,7 @@ class Tags extends React.Component<Props, State> {
           api,
           organization.slug,
           tag,
-          eventView.getEventsAPIPayload(location)
+          eventView.getTagsAPIPayload(location)
         );
 
         this.setState(state => ({tags: {...state.tags, [tag]: val}}));
