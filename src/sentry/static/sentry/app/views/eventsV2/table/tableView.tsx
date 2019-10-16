@@ -5,7 +5,12 @@ import {Organization} from 'app/types';
 
 import GridEditable from 'app/components/gridEditable';
 
-import {getFieldRenderer, getAggregateAlias, pushEventViewToLocation} from '../utils';
+import {
+  getFieldRenderer,
+  getAggregateAlias,
+  pushEventViewToLocation,
+  getSortKey,
+} from '../utils';
 import EventView from '../eventView';
 import SortLink from '../sortLink';
 import renderTableModalEditColumnFactory from './tableModalEditColumn';
@@ -86,9 +91,13 @@ class TableView extends React.Component<TableViewProps> {
    * Please read the comment on `createColumn`
    */
   _deleteColumn = (columnIndex: number) => {
-    const {location, eventView} = this.props;
+    const {location, eventView, tableData} = this.props;
 
-    const nextEventView = eventView.deleteColumn(columnIndex);
+    if (!tableData) {
+      return;
+    }
+
+    const nextEventView = eventView.deleteColumn(columnIndex, tableData.meta);
 
     pushEventViewToLocation({
       location,
@@ -120,7 +129,7 @@ class TableView extends React.Component<TableViewProps> {
 
     const columnField = String(column.key);
 
-    const sortKey = eventView.getSortKey(columnField, tableData.meta);
+    const sortKey = getSortKey(columnField, tableData.meta);
 
     if (sortKey === null) {
       return <span>{column.name}</span>;

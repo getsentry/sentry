@@ -299,3 +299,22 @@ export function pushEventViewToLocation(props: {
     query: queryStringObject,
   });
 }
+
+export function getSortKey(
+  fieldAsString: string,
+  tableDataMeta: MetaType
+): string | null {
+  const column = getAggregateAlias(fieldAsString);
+  if (SPECIAL_FIELDS.hasOwnProperty(column)) {
+    return SPECIAL_FIELDS[column as keyof typeof SPECIAL_FIELDS].sortField;
+  }
+
+  if (FIELD_FORMATTERS.hasOwnProperty(tableDataMeta[column])) {
+    return FIELD_FORMATTERS[tableDataMeta[column] as keyof typeof FIELD_FORMATTERS]
+      .sortField
+      ? column
+      : null;
+  }
+
+  return null;
+}

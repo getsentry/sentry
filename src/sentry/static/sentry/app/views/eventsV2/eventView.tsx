@@ -6,8 +6,14 @@ import {EventViewv1} from 'app/types';
 import {SavedQuery as LegacySavedQuery} from 'app/views/discover/types';
 import {SavedQuery, NewQuery} from 'app/stores/discoverSavedQueriesStore';
 
-import {AUTOLINK_FIELDS, SPECIAL_FIELDS, FIELD_FORMATTERS} from './data';
-import {MetaType, EventQuery, getAggregateAlias, decodeColumnOrder} from './utils';
+import {AUTOLINK_FIELDS} from './data';
+import {
+  MetaType,
+  EventQuery,
+  getAggregateAlias,
+  decodeColumnOrder,
+  getSortKey,
+} from './utils';
 import {TableColumn, TableColumnSort} from './table/types';
 
 export type Sort = {
@@ -22,9 +28,13 @@ export type Field = {
   // width: number;
 };
 
-const isSortEqualToField = (sort: Sort, field: Field): boolean => {
-  const aggregateAlias = getAggregateAlias(field.field);
-  return sort.field === aggregateAlias;
+const isSortEqualToField = (
+  sort: Sort,
+  field: Field,
+  tableDataMeta: MetaType
+): boolean => {
+  const sortKey = getSortKey(field.field, tableDataMeta);
+  return sort.field === sortKey;
 };
 
 const fieldToSort = (field: Field): Sort => {
@@ -478,7 +488,7 @@ class EventView {
     return newEventView;
   }
 
-  deleteColumn(columnIndex: number): EventView {
+  deleteColumn(columnIndex: number, tableDataMeta: MetaType): EventView {
     // Disallow delete of last column, and check for out-of-bounds
     if (this.fields.length <= 1 || this.fields.length <= columnIndex || columnIndex < 0) {
       return this;
@@ -498,14 +508,14 @@ class EventView {
     const columnToBeDeleted = this.fields[columnIndex];
 
     const needleSortIndex = this.sorts.findIndex(sort => {
-      return isSortEqualToField(sort, columnToBeDeleted);
+      return isSortEqualToField(sort, columnToBeDeleted, tableDataMeta);
     });
 
     if (needleSortIndex >= 0) {
       const needleSort = this.sorts[needleSortIndex];
 
       const numOfColumns = this.fields.reduce((sum, field) => {
-        if (isSortEqualToField(needleSort, field)) {
+        if (isSortEqualToField(needleSort, field, tableDataMeta)) {
           return sum + 1;
         }
 
@@ -633,22 +643,6 @@ class EventView {
     }
 
     return encodeSort(this.sorts[0]);
-  }
-
-  getSortKey(fieldname: string, tableDataMeta: MetaType): string | null {
-    const column = getAggregateAlias(fieldname);
-    if (SPECIAL_FIELDS.hasOwnProperty(column)) {
-      return SPECIAL_FIELDS[column as keyof typeof SPECIAL_FIELDS].sortField;
-    }
-
-    if (FIELD_FORMATTERS.hasOwnProperty(tableDataMeta[column])) {
-      return FIELD_FORMATTERS[tableDataMeta[column] as keyof typeof FIELD_FORMATTERS]
-        .sortField
-        ? column
-        : null;
-    }
-
-    return null;
   }
 }
 
