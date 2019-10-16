@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from django.db.models import Q
 from django.conf import settings
-from rest_framework import serializers
+from rest_framework import serializers, status
 from rest_framework.response import Response
 
 from sentry import roles, features
@@ -74,7 +74,10 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationEndpoint):
         except OrganizationMember.DoesNotExist:
             raise ResourceDoesNotExist
 
-        return Response(serialize(member, serializer=OrganizationMemberWithTeamsSerializer()))
+        return Response(
+            serialize(member, serializer=OrganizationMemberWithTeamsSerializer()),
+            status=status.HTTP_200_OK,
+        )
 
     def put(self, request, organization, member_id):
         """
@@ -102,7 +105,9 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationEndpoint):
             and not request.access.has_scope("member:admin")
             and not request.access.has_scope("member:write")
         ):
-            return Response({"detail": ERR_INSUFFICIENT_ROLE_UPDATE}, status=403)
+            return Response(
+                {"detail": ERR_INSUFFICIENT_ROLE_UPDATE}, status=status.HTTP_403_FORBIDDEN
+            )
 
         serializer = OrganizationMemberSerializer(
             data=request.data,
@@ -111,7 +116,7 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationEndpoint):
         )
 
         if not serializer.is_valid():
-            return Response(status=400)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         result = serializer.validated_data
 
@@ -128,7 +133,7 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationEndpoint):
             )
 
             if not serializer.is_valid():
-                return Response(status=400)
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
             result = serializer.validated_data
 
@@ -156,7 +161,10 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationEndpoint):
                         else AuditLogEntryEvent.MEMBER_ADD,
                     )
 
-        return Response(serialize(member, serializer=OrganizationMemberWithTeamsSerializer()))
+        return Response(
+            serialize(member, serializer=OrganizationMemberWithTeamsSerializer()),
+            status=status.HTTP_200_OK,
+        )
 
     def delete(self, request, organization, member_id):
         """
@@ -177,7 +185,9 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationEndpoint):
             raise ResourceDoesNotExist
 
         if member.inviter != request.user and not request.access.has_scope("member:write"):
-            return Response({"detail": ERR_INSUFFICIENT_ROLE_DELETE}, status=403)
+            return Response(
+                {"detail": ERR_INSUFFICIENT_ROLE_DELETE}, status=status.HTTP_403_FORBIDDEN
+            )
 
         member.delete()
 
@@ -189,4 +199,4 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationEndpoint):
             event=AuditLogEntryEvent.INVITE_REQUEST_REMOVE,
         )
 
-        return Response(status=204)
+        return Response(status=status.HTTP_204_NO_CONTENT)
