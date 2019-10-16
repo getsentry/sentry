@@ -23,7 +23,7 @@ import Events from './events';
 import EventDetails from './eventDetails';
 import EventsSaveQueryButton from './saveQueryButton';
 import {getFirstQueryString} from './utils';
-import {ALL_VIEWS} from './data';
+import {ALL_VIEWS, TRANSACTION_VIEWS} from './data';
 import EventView from './eventView';
 
 type Props = {
@@ -41,9 +41,13 @@ class EventsV2 extends React.Component<Props> {
   };
 
   renderQueryList() {
-    const {location} = this.props;
+    const {location, organization} = this.props;
+    let views = ALL_VIEWS;
+    if (organization.features.includes('transaction-events')) {
+      views = [...ALL_VIEWS, ...TRANSACTION_VIEWS];
+    }
 
-    const list = ALL_VIEWS.map((eventViewv1, index) => {
+    const list = views.map((eventViewv1, index) => {
       const eventView = EventView.fromEventViewv1(eventViewv1);
       const to = {
         pathname: location.pathname,
