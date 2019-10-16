@@ -296,9 +296,10 @@ describe('IssueListActions', function() {
         );
       });
 
-      it('sets selected items to bookmarked', function() {
-        test.todo('Modal does not want to show');
-        /*
+      it('sets selected items to bookmarked', async function() {
+        // Load the SelectedGroupStore
+        await tick();
+
         wrapper
           .find('ActionLink.action-bookmark')
           .first()
@@ -319,10 +320,9 @@ describe('IssueListActions', function() {
               id: ['3', '6', '9'],
               project: [1],
             },
-            data: {isBookmarked: 'true'},
+            data: {isBookmarked: true},
           })
         );
-        */
       });
 
       it('sets selected items to assigned', function() {
