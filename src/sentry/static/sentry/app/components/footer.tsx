@@ -39,7 +39,7 @@ const Footer = () => {
             })}
           </div>
         )}
-        <a href="/" tabIndex="-1" className="icon-sentry-logo" />
+        <a href="/" tabIndex={-1} className="icon-sentry-logo" />
         <Hook name="footer" />
       </div>
     </footer>
