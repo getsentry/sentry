@@ -1,7 +1,7 @@
+import {mountWithTheme} from 'sentry-test/enzyme';
 import React from 'react';
 
-import {initializeOrg} from 'app-test/helpers/initializeOrg';
-import {mount} from 'enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import IncidentDetails from 'app/views/incidents/details';
 import ProjectsStore from 'app/stores/projectsStore';
 
@@ -16,7 +16,7 @@ describe('IncidentDetails', function() {
   let activitiesList;
 
   const createWrapper = props =>
-    mount(<IncidentDetails params={params} {...props} />, routerContext);
+    mountWithTheme(<IncidentDetails params={params} {...props} />, routerContext);
 
   beforeAll(function() {
     ProjectsStore.loadInitialData([project]);

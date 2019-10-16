@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import UserFeedbackEmpty from 'app/views/userFeedback/userFeedbackEmpty';
 
 describe('UserFeedbackEmpty', function() {
@@ -10,12 +10,12 @@ describe('UserFeedbackEmpty', function() {
 
   it('renders empty', function() {
     const organization = TestStubs.Organization();
-    mount(<UserFeedbackEmpty organization={organization} />, routerContext);
+    mountWithTheme(<UserFeedbackEmpty organization={organization} />, routerContext);
   });
 
   it('renders landing for project with no user feedback', function() {
     const organization = TestStubs.Organization({projects: [TestStubs.Project()]});
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <UserFeedbackEmpty organization={organization} />,
       routerContext
     );
@@ -27,7 +27,7 @@ describe('UserFeedbackEmpty', function() {
     const organization = TestStubs.Organization({
       projects: [projectWithReports],
     });
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <UserFeedbackEmpty organization={organization} />,
       routerContext
     );
@@ -39,7 +39,7 @@ describe('UserFeedbackEmpty', function() {
     const organization = TestStubs.Organization({
       projects: [TestStubs.Project(), TestStubs.Project({hasUserReports: true})],
     });
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <UserFeedbackEmpty organization={organization} />,
       routerContext
     );
@@ -51,7 +51,7 @@ describe('UserFeedbackEmpty', function() {
     const organization = TestStubs.Organization({
       projects: [project, projectWithReports],
     });
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <UserFeedbackEmpty
         organization={organization}
         projectIds={[projectWithReports.id]}
@@ -66,7 +66,7 @@ describe('UserFeedbackEmpty', function() {
     const organization = TestStubs.Organization({
       projects: [project, projectWithReports],
     });
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <UserFeedbackEmpty organization={organization} projectIds={[project.id]} />,
       routerContext
     );
@@ -78,7 +78,7 @@ describe('UserFeedbackEmpty', function() {
     const organization = TestStubs.Organization({
       projects: [project, projectWithReports],
     });
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <UserFeedbackEmpty
         organization={organization}
         projectIds={[project.id, projectWithReports.id]}
@@ -94,7 +94,7 @@ describe('UserFeedbackEmpty', function() {
     const organization = TestStubs.Organization({
       projects: [project, projectWithoutReports],
     });
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <UserFeedbackEmpty
         organization={organization}
         projectIds={[project.id, projectWithoutReports.id]}

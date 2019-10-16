@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
 
 import OpenInContextLine from 'app/components/events/interfaces/openInContextLine';
@@ -46,7 +46,7 @@ describe('OpenInContextLine', function() {
 
   describe('with stacktrace-link component', function() {
     it('renders multiple buttons', function() {
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <OpenInContextLine filename={filename} lineNo={lineNo} components={components} />,
         TestStubs.routerContext()
       );

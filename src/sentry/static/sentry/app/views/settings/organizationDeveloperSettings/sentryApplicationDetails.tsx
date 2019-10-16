@@ -31,8 +31,33 @@ import {
   addSentryAppToken,
   removeSentryAppToken,
 } from 'app/actionCreators/sentryAppTokens';
-import {SentryApp, InternalAppApiToken} from 'app/types';
+import {SentryApp, InternalAppApiToken, Scope} from 'app/types';
 import Tooltip from 'app/components/tooltip';
+import {SENTRY_APP_PERMISSIONS} from 'app/constants';
+
+type Resource = 'Project' | 'Team' | 'Release' | 'Event' | 'Organization' | 'Member';
+
+/**
+ * Finds the resource in SENTRY_APP_PERMISSIONS that contains a given scope
+ * We should always find a match unless there is a bug
+ * @param {Scope} scope
+ * @return {Resource | undefined}
+ */
+const getResourceFromScope = (scope: Scope): Resource | undefined => {
+  for (const permObj of SENTRY_APP_PERMISSIONS) {
+    const allChoices = Object.values(permObj.choices);
+
+    const allScopes = allChoices.reduce(
+      (_allScopes: string[], choice) => _allScopes.concat(_.get(choice, 'scopes', [])),
+      []
+    );
+
+    if (allScopes.includes(scope)) {
+      return permObj.resource as Resource;
+    }
+  }
+  return undefined;
+};
 
 class SentryAppFormModel extends FormModel {
   /**
@@ -55,6 +80,33 @@ class SentryAppFormModel extends FormModel {
       }
       return data;
     }, {});
+  }
+
+  /**
+   * We need to map the API response errors to the actual form fields.
+   * We do this by pulling out scopes and mapping each scope error to the correct input.
+   * @param {Object} responseJSON
+   */
+  mapFormErrors(responseJSON?: any) {
+    if (!responseJSON) {
+      return responseJSON;
+    }
+    const formErrors = _.omit(responseJSON, ['scopes']);
+    if (responseJSON.scopes) {
+      responseJSON.scopes.forEach((message: string) => {
+        //find the scope from the error message of a specific format
+        const matches = message.match(/Requested permission of (\w+:\w+)/);
+        if (matches) {
+          const scope = matches[1];
+          const resource = getResourceFromScope(scope as Scope);
+          //should always match but technically resource can be undefined
+          if (resource) {
+            formErrors[`${resource}--permission`] = [message];
+          }
+        }
+      });
+    }
+    return formErrors;
   }
 }
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import MemberListStore from 'app/stores/memberListStore';
 import TeamStore from 'app/stores/teamStore';
@@ -71,7 +71,7 @@ describe('RuleBuilder', function() {
   afterEach(function() {});
 
   it('renders', async function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <RuleBuilder project={project} organization={organization} onAddRule={handleAdd} />,
       TestStubs.routerContext()
     );
@@ -105,7 +105,7 @@ describe('RuleBuilder', function() {
   });
 
   it('renders with suggestions', async function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <RuleBuilder
         project={project}
         organization={organization}

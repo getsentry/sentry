@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 import React from 'react';
 
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import ConfigStore from 'app/stores/configStore';
 import Discover from 'app/views/discover/discover';
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
@@ -33,7 +33,7 @@ describe('Discover', function() {
 
     it('auto-runs saved query after tags are loaded', async function() {
       const savedQuery = TestStubs.DiscoverSavedQuery();
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <Discover
           location={{query: {}}}
           queryBuilder={queryBuilder}
@@ -58,7 +58,7 @@ describe('Discover', function() {
     });
 
     it('auto-runs when there is a query string after tags are loaded', async function() {
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <Discover
           location={{
             query: {},
@@ -85,7 +85,7 @@ describe('Discover', function() {
     });
 
     it('does not auto run when there is no query string', async function() {
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <Discover
           location={{
             query: {},
@@ -107,7 +107,7 @@ describe('Discover', function() {
 
   describe('componentWillRecieveProps()', function() {
     it('handles navigating to saved query', function() {
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <Discover
           queryBuilder={queryBuilder}
           organization={organization}
@@ -133,7 +133,7 @@ describe('Discover', function() {
     });
 
     it('handles navigating to new date', async function() {
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <Discover
           queryBuilder={queryBuilder}
           organization={organization}
@@ -182,7 +182,7 @@ describe('Discover', function() {
         body: {timing: {}, data: [], meta: []},
       });
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <Discover
           queryBuilder={queryBuilder}
           organization={organization}
@@ -244,7 +244,7 @@ describe('Discover', function() {
       queryBuilder.fetch = jest.fn(() => Promise.resolve(mockResponse));
       queryBuilder.fetchWithoutLimit = jest.fn(() => Promise.resolve(mockResponse));
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <Discover
           params={{}}
           location={{query: {}, search: ''}}
@@ -316,7 +316,7 @@ describe('Discover', function() {
 
   describe('saveQuery()', function() {
     it('can be saved', function() {
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <Discover
           params={{}}
           location={{query: {}, search: ''}}
@@ -361,7 +361,7 @@ describe('Discover', function() {
         queryBuilder.fetch = jest.fn(() => Promise.resolve(mockResponse));
         queryBuilder.reset = jest.fn(queryBuilder.reset);
 
-        wrapper = mount(
+        wrapper = mountWithTheme(
           <Discover
             queryBuilder={queryBuilder}
             organization={organization}
@@ -442,7 +442,7 @@ describe('Discover', function() {
     let wrapper, deleteMock, updateMock;
     beforeEach(function() {
       const savedQuery = TestStubs.DiscoverSavedQuery();
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <Discover
           queryBuilder={queryBuilder}
           organization={organization}
@@ -529,7 +529,7 @@ describe('Discover', function() {
     let wrapper;
 
     beforeEach(function() {
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <Discover
           queryBuilder={queryBuilder}
           organization={organization}
@@ -584,7 +584,7 @@ describe('Discover', function() {
         });
       });
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <Discover
           queryBuilder={queryBuilder}
           organization={organization}
@@ -636,7 +636,7 @@ describe('Discover', function() {
 
       const routerContext = TestStubs.routerContext([{organization}]);
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <Discover
           queryBuilder={queryBuilder}
           params={{}}

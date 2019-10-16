@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {saveOnBlurUndoMessage} from 'app/actionCreators/indicator';
 import OrganizationSettingsForm from 'app/views/settings/organizationGeneralSettings/organizationSettingsForm';
@@ -26,7 +26,7 @@ describe('OrganizationSettingsForm', function() {
       },
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationSettingsForm
         location={TestStubs.location()}
         orgId={organization.id}
@@ -91,7 +91,7 @@ describe('OrganizationSettingsForm', function() {
       method: 'PUT',
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationSettingsForm
         location={TestStubs.location()}
         orgId={organization.slug}

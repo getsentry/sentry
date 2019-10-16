@@ -1,5 +1,5 @@
 import React from 'react';
-import {shallow, mount} from 'enzyme';
+import {shallow, mountWithTheme} from 'sentry-test/enzyme';
 
 import OrganizationAuthList from 'app/views/settings/organizationAuth/organizationAuthList';
 
@@ -29,7 +29,7 @@ describe('OrganizationAuthList', function() {
   });
 
   it('renders for members', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationAuthList
         orgId="org-slug"
         onSendReminders={() => {}}

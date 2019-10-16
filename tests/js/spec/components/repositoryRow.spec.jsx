@@ -1,7 +1,7 @@
 import React from 'react';
 
 import {Client} from 'app/api';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import RepositoryRow from 'app/components/repositoryRow';
 
 describe('RepositoryRow', function() {
@@ -22,7 +22,7 @@ describe('RepositoryRow', function() {
     const routerContext = TestStubs.routerContext([{organization}]);
 
     it('displays provider information', function() {
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <RepositoryRow repository={repository} api={api} orgId={organization.slug} />,
         routerContext
       );
@@ -37,7 +37,7 @@ describe('RepositoryRow', function() {
     });
 
     it('displays cancel pending button', function() {
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <RepositoryRow repository={pendingRepo} api={api} orgId={organization.slug} />,
         routerContext
       );
@@ -60,7 +60,7 @@ describe('RepositoryRow', function() {
     const routerContext = TestStubs.routerContext([{organization}]);
 
     it('displays disabled trash', function() {
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <RepositoryRow repository={repository} api={api} orgId={organization.slug} />,
         routerContext
       );
@@ -71,7 +71,7 @@ describe('RepositoryRow', function() {
     });
 
     it('displays disabled cancel', function() {
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <RepositoryRow repository={pendingRepo} api={api} orgId={organization.slug} />,
         routerContext
       );
@@ -97,7 +97,7 @@ describe('RepositoryRow', function() {
         body: {},
       });
 
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <RepositoryRow repository={repository} api={api} orgId={organization.slug} />,
         routerContext
       );
@@ -126,7 +126,7 @@ describe('RepositoryRow', function() {
         body: {},
       });
 
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <RepositoryRow repository={pendingRepo} api={api} orgId={organization.slug} />,
         routerContext
       );

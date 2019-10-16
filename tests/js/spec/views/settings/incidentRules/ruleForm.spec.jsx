@@ -1,14 +1,14 @@
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import React from 'react';
 
-import {initializeOrg} from 'app-test/helpers/initializeOrg';
-import {selectByLabel} from 'app-test/helpers/select';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {selectByLabel} from 'sentry-test/select';
 import {RuleFormContainer} from 'app/views/settings/incidentRules/ruleForm';
 
 describe('Incident Rules Form', function() {
   const {organization, project, routerContext} = initializeOrg();
   const createWrapper = props =>
-    mount(
+    mountWithTheme(
       <RuleFormContainer
         organization={organization}
         orgId={organization.slug}

@@ -1,12 +1,14 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+import {shallow} from 'sentry-test/enzyme';
 
 import {RangeField} from 'app/components/forms';
 
 describe('RangeField', function() {
   describe('render()', function() {
     it('renders', function() {
-      const wrapper = shallow(<RangeField name="fieldName" />);
+      const wrapper = shallow(<RangeField name="fieldName" />, {
+        disableLifecycleMethods: true,
+      });
       expect(wrapper).toMatchSnapshot();
     });
 
@@ -19,18 +21,22 @@ describe('RangeField', function() {
           step={1}
           snap={false}
           allowedValues={[1, 2, 3]}
-        />
+        />,
+        {disableLifecycleMethods: true}
       );
       expect(wrapper).toMatchSnapshot();
     });
 
     it('renders with value', function() {
-      const wrapper = shallow(<RangeField name="fieldName" value={2} />);
+      const wrapper = shallow(<RangeField name="fieldName" value={2} />, {
+        disableLifecycleMethods: true,
+      });
       expect(wrapper).toMatchSnapshot();
     });
 
     it('renders with form context', function() {
       const wrapper = shallow(<RangeField name="fieldName" />, {
+        disableLifecycleMethods: true,
         context: {
           form: {
             data: {
@@ -45,6 +51,7 @@ describe('RangeField', function() {
 
     it('renders with value=0 in form context', function() {
       const wrapper = shallow(<RangeField name="fieldName" />, {
+        disableLifecycleMethods: true,
         context: {
           form: {
             data: {

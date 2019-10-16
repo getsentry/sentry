@@ -2,7 +2,6 @@ import $ from 'jquery';
 import {ThemeProvider} from 'emotion-theming';
 import {browserHistory} from 'react-router';
 import {get, isEqual} from 'lodash';
-import {getCurrentHub} from '@sentry/browser';
 import {injectGlobal} from 'emotion';
 import Cookies from 'js-cookie';
 import PropTypes from 'prop-types';
@@ -13,6 +12,7 @@ import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'app/constants';
 import {displayDeployPreviewAlert} from 'app/actionCreators/deployPreview';
 import {fetchGuides} from 'app/actionCreators/guides';
 import {openCommandPalette} from 'app/actionCreators/modal';
+import {setTransactionName} from 'app/utils/apm';
 import {t} from 'app/locale';
 import AlertActions from 'app/actions/alertActions';
 import Alerts from 'app/components/alerts';
@@ -179,14 +179,7 @@ class App extends React.Component {
 
   updateTracing() {
     const route = getRouteStringFromRoutes(this.props.routes);
-    const scope = getCurrentHub().getScope();
-    if (scope) {
-      const transactionSpan = scope.getSpan();
-      // If there is a transaction we set the name to the route
-      if (transactionSpan) {
-        transactionSpan.transaction = route;
-      }
-    }
+    setTransactionName(route);
   }
 
   handleConfigStoreChange(config) {

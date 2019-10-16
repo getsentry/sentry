@@ -51,13 +51,16 @@ export const AGGREGATIONS = {
 };
 export type Aggregation = keyof typeof AGGREGATIONS | '';
 
+// TODO(leedongwei)
+// Add line-breaks to these fields that'll show on TableModalEditColumn. It's
+// hella dense at the moment.
 /**
  * Refer to src/sentry/utils/snuba.py, search for SENTRY_SNUBA_MAP
  */
 export const FIELDS = {
-  title: 'string',
   id: 'string',
 
+  title: 'string',
   project: 'name',
   environment: 'string',
   release: 'string',

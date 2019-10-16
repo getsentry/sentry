@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import CreateSavedSearchButton from 'app/views/issueList/createSavedSearchButton';
 
@@ -10,7 +10,7 @@ describe('CreateSavedSearchButton', function() {
     organization = TestStubs.Organization({
       access: ['org:write'],
     });
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <CreateSavedSearchButton
         organization={organization}
         query="is:unresolved assigned:lyn@sentry.io"

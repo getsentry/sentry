@@ -1,8 +1,6 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+import {shallow} from 'sentry-test/enzyme';
 import EventsTable from 'app/components/eventsTable/eventsTable';
-
-import events from '../../../mocks/events';
 
 describe('EventsTable', function() {
   beforeEach(function() {});
@@ -16,7 +14,7 @@ describe('EventsTable', function() {
         orgId="orgId"
         projectId="projectId"
         groupId="groupId"
-        events={events}
+        events={TestStubs.DetailedEvents()}
       />
     );
     expect(wrapper).toMatchSnapshot();

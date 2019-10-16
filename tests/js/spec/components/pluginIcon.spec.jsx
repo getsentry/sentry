@@ -1,7 +1,7 @@
 /* eslint-disable jest/no-disabled-tests */
 
 import React from 'react';
-import {shallow} from 'enzyme';
+import {shallow} from 'sentry-test/enzyme';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 
 // For some reason jest only respects the last mocked, so we can't test

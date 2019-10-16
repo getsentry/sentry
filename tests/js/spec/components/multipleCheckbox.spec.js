@@ -1,5 +1,5 @@
 import React from 'react';
-import {shallow, mount} from 'enzyme';
+import {shallow, mount} from 'sentry-test/enzyme';
 import MultipleCheckbox from 'app/views/settings/components/forms/controls/multipleCheckbox';
 
 describe('MultipleCheckbox', function() {

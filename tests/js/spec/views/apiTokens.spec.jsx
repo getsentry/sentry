@@ -1,5 +1,5 @@
 import React from 'react';
-import {shallow, mount} from 'enzyme';
+import {shallow, mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import ApiTokens from 'app/views/settings/account/apiTokens';
@@ -47,7 +47,7 @@ describe('ApiTokens', function() {
 
     expect(mock).not.toHaveBeenCalled();
 
-    const wrapper = mount(<ApiTokens />, routerContext);
+    const wrapper = mountWithTheme(<ApiTokens />, routerContext);
 
     wrapper.find('.ref-delete-api-token').simulate('click');
 

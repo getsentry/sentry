@@ -172,6 +172,10 @@ register("symbolicator.minidump-refactor-random-sampling", default=0.0)  # unuse
 register("store.normalize-after-processing", default=0.0)  # unused
 register("store.disable-trim-in-renormalization", default=0.0)  # unused
 
+# Data scrubbing in Rust
+register("store.sample-rust-data-scrubber", default=0.0)  # unused
+register("store.use-rust-data-scrubber", default=False)  # unused
+
 # Post Process Error Hook Sampling
 register("post-process.use-error-hook-sampling", default=False)  # unused
 # From 0.0 to 1.0: Randomly enqueue process_resource_change task
