@@ -19,28 +19,28 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import space from 'app/styles/space';
 import {intcomma} from 'app/utils';
 import {t, tn} from 'app/locale';
-import {SentryApp} from 'app/types';
+import {SentryApp, SentryAppWebhookError} from 'app/types';
 
 type Props = AsyncView['props'];
 
 type State = AsyncView['state'] & {
-  stats: any;
-  errors: any;
-  interactions: any;
+  stats: {
+    total_uninstalls: number;
+    total_installs: number;
+    install_stats: [number, number][];
+    uninstall_stats: [number, number][];
+  };
+  errors: SentryAppWebhookError[];
+  interactions: {
+    component_interactions: {
+      [key: string]: [number, number][];
+    };
+    views: [number, number][];
+  };
   app: SentryApp | null;
 };
 
 export default class SentryApplicationDashboard extends AsyncView<Props, State> {
-  getDefaultState(): State {
-    return {
-      ...super.getDefaultState(),
-      stats: {},
-      errors: [],
-      interactions: {},
-      app: null,
-    };
-  }
-
   getEndpoints(): Array<[string, string, any] | [string, string]> {
     const {appSlug} = this.props.params;
     // Default time range for now: 90 days ago to now
@@ -229,7 +229,7 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
 
 type InteractionsChartProps = {
   data: {
-    [key: string]: number[];
+    [key: string]: [number, number][];
   };
 };
 const InteractionsChart = ({data}: InteractionsChartProps) => {
