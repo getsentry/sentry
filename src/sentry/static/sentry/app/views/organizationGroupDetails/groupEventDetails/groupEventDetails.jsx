@@ -173,7 +173,6 @@ class GroupEventDetails extends React.Component {
                   <ResolutionBox
                     statusDetails={group.statusDetails}
                     orgId={organization.slug}
-                    projectId={project.slug}
                   />
                 )}
               </div>
