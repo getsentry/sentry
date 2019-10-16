@@ -84,7 +84,7 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
         Returns the oldest event ID if there is a subsequent event matching the
         conditions provided
         """
-        oldest_event = eventstore.get_oldest_event_id(event, filter=self._get_filter(snuba_args))
+        oldest_event = eventstore.get_earliest_event_id(event, filter=self._get_filter(snuba_args))
 
         if oldest_event:
             return oldest_event[1]

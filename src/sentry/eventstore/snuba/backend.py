@@ -74,7 +74,7 @@ class SnubaEventStorage(EventStorage):
             return SnubaEvent(result["data"][0])
         return None
 
-    def get_oldest_event_id(self, event, filter):
+    def get_earliest_event_id(self, event, filter):
         time_condition = [["timestamp", "<", event.timestamp]]
         orderby = ["timestamp", "event_id"]
 

@@ -131,7 +131,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         # Returns a latest/oldest event
         event = self.eventstore.get_event_by_id(self.project2.id, "b" * 32)
         filter = Filter(project_ids=[self.project1.id, self.project2.id])
-        oldest_event = self.eventstore.get_oldest_event_id(event, filter=filter)
+        oldest_event = self.eventstore.get_earliest_event_id(event, filter=filter)
         latest_event = self.eventstore.get_latest_event_id(event, filter=filter)
         assert oldest_event == (six.text_type(self.project1.id), "a" * 32)
         assert latest_event == (six.text_type(self.project2.id), "e" * 32)
@@ -139,7 +139,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         # Returns none when no latest/oldest event that meets conditions
         event = self.eventstore.get_event_by_id(self.project2.id, "b" * 32)
         filter = Filter(project_ids=[self.project1.id], group_ids=[self.event2.group_id])
-        oldest_event = self.eventstore.get_oldest_event_id(event, filter=filter)
+        oldest_event = self.eventstore.get_earliest_event_id(event, filter=filter)
         latest_event = self.eventstore.get_latest_event_id(event, filter=filter)
         assert oldest_event is None
         assert latest_event is None
