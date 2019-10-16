@@ -82,40 +82,46 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props> {
 
   renderPermissions() {
     const permissions = this.permissions;
-    return (
-      <React.Fragment>
-        <Title>Permissions</Title>
-        {permissions.read.length > 0 && (
-          <Permission>
-            <Indicator />
-            <Text key="read">
-              <strong>{t('Read')}</strong>
-              {t(' access to %s resources', permissions.read.join(', '))}
-            </Text>
-          </Permission>
-        )}
-        {permissions.write.length > 0 && (
-          <Permission>
-            <Indicator />
-            <Text key="write">
-              <strong>{t('Read')}</strong>
-              {t(' and ')}
-              <strong>{t('write')}</strong>
-              {t(' access to %s resources', permissions.write.join(', '))}
-            </Text>
-          </Permission>
-        )}
-        {permissions.admin.length > 0 && (
-          <Permission>
-            <Indicator />
-            <Text key="admin">
-              <strong>{t('Admin')}</strong>
-              {t(' access to %s resources', permissions.admin.join(', '))}
-            </Text>
-          </Permission>
-        )}
-      </React.Fragment>
-    );
+    if (
+      Object.keys(permissions).filter(scope => permissions[scope].length > 0).length > 0
+    ) {
+      return (
+        <React.Fragment>
+          <Title>Permissions</Title>
+          {permissions.read.length > 0 && (
+            <Permission>
+              <Indicator />
+              <Text key="read">
+                <strong>{t('Read')}</strong>
+                {t(' access to %s resources', permissions.read.join(', '))}
+              </Text>
+            </Permission>
+          )}
+          {permissions.write.length > 0 && (
+            <Permission>
+              <Indicator />
+              <Text key="write">
+                <strong>{t('Read')}</strong>
+                {t(' and ')}
+                <strong>{t('write')}</strong>
+                {t(' access to %s resources', permissions.write.join(', '))}
+              </Text>
+            </Permission>
+          )}
+          {permissions.admin.length > 0 && (
+            <Permission>
+              <Indicator />
+              <Text key="admin">
+                <strong>{t('Admin')}</strong>
+                {t(' access to %s resources', permissions.admin.join(', '))}
+              </Text>
+            </Permission>
+          )}
+        </React.Fragment>
+      );
+    } else {
+      return null;
+    }
   }
 
   renderBody() {
