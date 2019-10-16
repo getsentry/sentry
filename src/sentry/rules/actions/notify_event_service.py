@@ -5,7 +5,7 @@ from __future__ import absolute_import
 
 from django import forms
 
-from sentry.plugins import plugins
+from sentry.plugins.base import plugins
 from sentry.rules.actions.base import EventAction
 from sentry.rules.actions.services import PluginService, SentryAppService
 from sentry.models import SentryApp

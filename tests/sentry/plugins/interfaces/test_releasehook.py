@@ -4,7 +4,7 @@ __all__ = ["ReleaseHook"]
 
 from sentry.exceptions import HookValidationError
 from sentry.models import Commit, Release, ReleaseProject
-from sentry.plugins import ReleaseHook
+from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.testutils import TestCase
 
 

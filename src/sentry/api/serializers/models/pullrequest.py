@@ -44,7 +44,7 @@ class PullRequestSerializer(Serializer):
         return result
 
     def _external_url(self, repository, pull):
-        from sentry.plugins import bindings
+        from sentry.plugins.base import bindings
 
         provider_id = repository.provider
         if not provider_id or not provider_id.startswith("integrations:"):

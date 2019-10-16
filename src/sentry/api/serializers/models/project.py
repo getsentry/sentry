@@ -505,7 +505,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
         return attrs
 
     def serialize(self, obj, attrs, user):
-        from sentry.plugins import plugins
+        from sentry.plugins.base import plugins
 
         def get_value_with_default(key):
             value = attrs["options"].get(key)

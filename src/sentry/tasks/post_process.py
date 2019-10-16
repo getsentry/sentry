@@ -10,7 +10,7 @@ from sentry.models import EventDict
 from sentry.utils import snuba
 from sentry.utils.cache import cache
 from sentry.exceptions import PluginError
-from sentry.plugins import plugins
+from sentry.plugins.base import plugins
 from sentry.signals import event_processed
 from sentry.tasks.sentry_apps import process_resource_change_bound
 from sentry.tasks.base import instrumented_task

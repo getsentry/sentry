@@ -31,7 +31,7 @@ from sentry.models import (
     UserReport,
 )
 from sentry.ownership.grammar import Owner, Matcher, dump_schema
-from sentry.plugins import Notification
+from sentry.plugins.base import Notification
 from sentry.plugins.sentry_mail.activity.base import ActivityEmail
 from sentry.plugins.sentry_mail.models import MailPlugin
 from sentry.testutils import TestCase

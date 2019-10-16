@@ -6,7 +6,7 @@ from datetime import timedelta
 from django.utils import timezone
 
 from sentry.models import GroupRuleStatus, Rule
-from sentry.plugins import plugins
+from sentry.plugins.base import plugins
 from sentry.testutils import TestCase
 from sentry.rules.processor import EventCompatibilityProxy, RuleProcessor
 
