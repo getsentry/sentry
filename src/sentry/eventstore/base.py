@@ -123,6 +123,7 @@ class EventStorage(Service):
         "get_events",
         "get_prev_event_id",
         "get_next_event_id",
+        "get_oldest_event_id",
         "bind_nodes",
     )
 
@@ -198,11 +199,33 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
+    def get_oldest_event_id(self, event, filter):
+        """
+        Gets the earliest event given a current event and some conditions/filters.
+        Returns a tuple of (project_id, event_id)
+
+        Arguments:
+        event (Event): Event object
+        filter (Filter): Filter
+        """
+        raise NotImplementedError
+
+    def get_latest_event_id(self, event, filter):
+        """
+        Gets the latest event given a current event and some conditions/filters.
+        Returns a tuple of (project_id, event_id)
+
+        Arguments:
+        event (Event): Event object
+        filter (Filter): Filter
+        """
+        raise NotImplementedError
+
     def bind_nodes(self, object_list, node_name="data"):
         """
         For a list of Event objects, and a property name where we might find an
         (unfetched) NodeData on those objects, fetch all the data blobs for
-        those NodeDatas with a single multi-get command to nodestore, and bind
+        those NodeDatas with a single multi - get command to nodestore, and bind
         the returned blobs to the NodeDatas
         """
         object_node_list = [

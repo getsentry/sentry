@@ -143,37 +143,17 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         Returns the oldest event ID if there is a subsequent event matching the
         conditions provided
         """
-        return self._get_terminal_event_id(Direction.PREV, snuba_args, event)
+        oldest_event = eventstore.get_oldest_event_id(event, filter=self._get_filter(snuba_args))
+
+        if oldest_event:
+            return oldest_event[1]
 
     def latest_event_id(self, snuba_args, event):
         """
         Returns the latest event ID if there is a newer event matching the
         conditions provided
         """
-        return self._get_terminal_event_id(Direction.NEXT, snuba_args, event)
+        latest_event = eventstore.get_latest_event_id(event, filter=self._get_filter(snuba_args))
 
-    def _get_terminal_event_id(self, direction, snuba_args, event):
-        if direction == Direction.NEXT:
-            time_condition = [["timestamp", ">", event.timestamp]]
-            orderby = ["-timestamp", "-event_id"]
-        else:
-            time_condition = [["timestamp", "<", event.timestamp]]
-            orderby = ["timestamp", "event_id"]
-
-        conditions = snuba_args["conditions"][:]
-        conditions.extend(time_condition)
-
-        result = snuba.dataset_query(
-            selected_columns=["event_id"],
-            start=snuba_args.get("start", None),
-            end=snuba_args.get("end", None),
-            conditions=conditions,
-            dataset=snuba.detect_dataset(snuba_args, aliased_conditions=True),
-            filter_keys=snuba_args["filter_keys"],
-            orderby=orderby,
-            limit=1,
-        )
-        if not result or "data" not in result or len(result["data"]) == 0:
-            return None
-
-        return result["data"][0]["event_id"]
+        if latest_event:
+            return latest_event[1]
