@@ -322,9 +322,9 @@ const SentryAppDetails = styled(Flex)`
   font-size: 0.8em;
 `;
 
-const SentryAppName = styled('div')`
+const SentryAppName = styled('div')<{hideStatus: boolean}>`
   font-weight: bold;
-  margin-top: ${(p: {hideStatus: boolean}) => (p.hideStatus ? '10px' : '0px')};
+  margin-top: ${p => (p.hideStatus ? '10px' : '0px')};
 `;
 
 const StyledLink = styled(Link)`
