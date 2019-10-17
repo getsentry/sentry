@@ -4,7 +4,6 @@ import {Link} from 'react-router';
 import {capitalize, omit} from 'lodash';
 import styled from 'react-emotion';
 import PropTypes from 'prop-types';
-import {withTheme} from 'emotion-theming';
 
 import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
@@ -19,6 +18,7 @@ import PluginIcon from 'app/plugins/components/pluginIcon';
 import {openSentryAppDetailsModal, openModal} from 'app/actionCreators/modal';
 import SentryAppPublishRequestModal from 'app/components/modals/sentryAppPublishRequestModal';
 import {Organization, SentryApp, SentryAppInstallation} from 'app/types';
+import theme from 'app/utils/theme';
 
 const INSTALLED = 'Installed';
 const NOT_INSTALLED = 'Not Installed';
@@ -347,18 +347,16 @@ const color = {
 
 type StatusIndicatorProps = {status: string; theme?: any; isInternal: boolean};
 
-const StatusIndicator = styled(
-  withTheme(({status, ...props}: StatusIndicatorProps) => {
-    //need to omit isInternal
-    const propsToPass = omit(props, ['isInternal']);
-    return (
-      <Flex align="center">
-        <CircleIndicator size={6} color={props.theme[color[status]]} />
-        <div {...propsToPass}>{t(`${status}`)}</div>
-      </Flex>
-    );
-  })
-)`
+const StatusIndicator = styled(({status, ...props}: StatusIndicatorProps) => {
+  //need to omit isInternal
+  const propsToPass = omit(props, ['isInternal']);
+  return (
+    <Flex align="center">
+      <CircleIndicator size={6} color={theme[color[status]]} />
+      <div {...propsToPass}>{t(`${status}`)}</div>
+    </Flex>
+  );
+})`
   color: ${(props: StatusIndicatorProps) => props.theme[color[props.status]]};
   margin-left: ${space(0.5)};
   font-weight: light;
