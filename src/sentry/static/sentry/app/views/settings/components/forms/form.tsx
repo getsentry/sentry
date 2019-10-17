@@ -49,6 +49,11 @@ type Props = {
   ) => void;
 } & Pick<FormOptions, 'onSubmitSuccess' | 'onSubmitError' | 'onFieldChange'>;
 
+type Context = {
+  saveOnBlur: boolean;
+  form: FormModel;
+};
+
 export default class Form extends React.Component<Props> {
   static propTypes = {
     cancelLabel: PropTypes.string,
@@ -78,6 +83,11 @@ export default class Form extends React.Component<Props> {
     'data-test-id': PropTypes.string,
   };
 
+  static childContextTypes = {
+    saveOnBlur: PropTypes.bool.isRequired,
+    form: PropTypes.object.isRequired,
+  };
+
   static defaultProps = {
     cancelLabel: t('Cancel'),
     submitLabel: t('Save Changes'),
@@ -89,12 +99,7 @@ export default class Form extends React.Component<Props> {
     saveOnBlur: false,
   };
 
-  static childContextTypes = {
-    saveOnBlur: PropTypes.bool.isRequired,
-    form: PropTypes.object.isRequired,
-  };
-
-  constructor(props, context) {
+  constructor(props: Props, context: Context) {
     super(props, context);
     const {
       saveOnBlur,

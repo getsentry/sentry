@@ -136,7 +136,7 @@ class FormModel {
    *
    * Also resets snapshots
    */
-  setInitialData(initialData: Object) {
+  setInitialData(initialData?: object) {
     this.fields.replace(initialData || {});
     this.initialData = this.fields.toJSON() || {};
 
