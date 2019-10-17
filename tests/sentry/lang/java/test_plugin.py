@@ -8,6 +8,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 
 from sentry import eventstore
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils import json
 
 
@@ -85,6 +86,7 @@ class BasicResolvingIntegrationTest(TestCase):
                     }
                 ]
             },
+            "timestamp": iso_format(before_now(seconds=1)),
         }
 
         # We do a preflight post, because there are many queries polluting the array
@@ -177,6 +179,7 @@ class BasicResolvingIntegrationTest(TestCase):
                     }
                 ]
             },
+            "timestamp": iso_format(before_now(seconds=1)),
         }
 
         resp = self._postWithHeader(event_data)
