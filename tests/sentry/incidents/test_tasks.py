@@ -114,6 +114,7 @@ class TestBuildActivityContext(BaseIncidentActivityTest, TestCase):
             kwargs={"incident_id": incident.id},
         )
 
+    @freeze_time()
     def test_simple(self):
         activity = create_incident_activity(
             self.incident, IncidentActivityType.COMMENT, user=self.user, comment="hello"
