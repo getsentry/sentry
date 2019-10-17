@@ -58,6 +58,7 @@ export type ComponentHooks = {
  */
 export type CustomizationHooks = {
   'integrations:feature-gates': IntegrationsFeatureGatesHook;
+  'member-invite-modal:customization': InviteModalCustomizationHook;
 };
 
 /**
@@ -348,3 +349,40 @@ type IntegrationsFeatureGatesHook = () => {
    */
   FeatureList: React.ComponentType<IntegrationFeatureListProps>;
 };
+
+/**
+ * Invite Modal customization allows for a render-prop component to add
+ * additional react elements into the modal, and add invite-send middleware.
+ */
+type InviteModalCustomizationHook = () => React.ComponentType<{
+  /**
+   * The organization that members will be invited to.
+   */
+  organization: Organization;
+  /**
+   * Indicates if clicking 'send invites' will immediately send invites, or
+   * would just create invite requests.
+   */
+  willInvite: boolean;
+  /**
+   * When the children's sendInvites renderProp is called, this will also be
+   * triggered.
+   */
+  onSendInvites: () => void;
+  children: (opts: {
+    /**
+     * Additional react elements to render in the header of the modal, just
+     * under the description.
+     */
+    headerInfo?: React.ReactNode;
+    /**
+     * Indicates that the modal's send invites button should be enabled and
+     * invites may currently be sent.
+     */
+    canSend: boolean;
+    /**
+     * Trigger sending invites
+     */
+    sendInvites: () => void;
+  }) => React.ReactElement;
+}>;
