@@ -26,8 +26,6 @@ class SnubaEventStorage(EventStorage):
         orderby=DEFAULT_ORDERBY,
         limit=DEFAULT_LIMIT,
         offset=DEFAULT_OFFSET,
-        # TODO: Switch default to none when transactions are supported
-        dataset=snuba.Dataset.Events,
         referrer="eventstore.get_events",
     ):
         """
@@ -47,7 +45,7 @@ class SnubaEventStorage(EventStorage):
             orderby=orderby,
             limit=limit,
             offset=offset,
-            dataset=dataset,
+            dataset=filter.dataset,
             referrer=referrer,
         )
 
