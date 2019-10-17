@@ -67,4 +67,20 @@ describe('groupEventDetailsContainer', () => {
     expect(wrapper.find('LoadingError').exists()).toBe(true);
     expect(environmentsCall).toHaveBeenCalledTimes(1);
   });
+
+  it('unsubscribes on unmount', async function() {
+    const unsubscribeMock = jest.fn();
+    jest
+      .spyOn(OrganizationEnvironmentsStore, 'listen')
+      .mockImplementation(() => unsubscribeMock);
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/environments/`,
+      body: TestStubs.Environments(),
+    });
+    const wrapper = mount(<GroupEventDetailsContainer organization={org} />);
+    expect(wrapper.find('LoadingIndicator').exists()).toBe(true);
+    wrapper.unmount();
+    expect(unsubscribeMock).toHaveBeenCalled();
+  });
 });
