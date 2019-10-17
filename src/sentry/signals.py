@@ -62,7 +62,7 @@ event_processed = BetterSignal(providing_args=["project", "event"])
 event_saved = BetterSignal(providing_args=["project"])
 
 # Organization Onboarding Signals
-project_created = BetterSignal(providing_args=["project", "user"])
+project_created = BetterSignal(providing_args=["project", "user", "default_rules"])
 first_event_pending = BetterSignal(providing_args=["project", "user"])
 first_event_received = BetterSignal(providing_args=["project", "event"])
 member_invited = BetterSignal(providing_args=["member", "user"])

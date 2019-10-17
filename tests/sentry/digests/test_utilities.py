@@ -32,7 +32,7 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
         )
 
     def test_get_event_from_groups_in_digest(self):
-        project = self.create_project()
+        project = self.create_project(fire_project_created=True)
         rule = project.rule_set.all()[0]
 
         events = [
@@ -160,7 +160,9 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         self.team2 = self.create_team()
         self.team3 = self.create_team()
 
-        self.project = self.create_project(teams=[self.team1, self.team2, self.team3])
+        self.project = self.create_project(
+            teams=[self.team1, self.team2, self.team3], fire_project_created=True
+        )
 
         self.create_member(user=self.user1, organization=self.organization, teams=[self.team1])
         self.create_member(user=self.user2, organization=self.organization, teams=[self.team2])
@@ -266,7 +268,7 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
 
     def test_team_without_members(self):
         team = self.create_team()
-        project = self.create_project(teams=[team])
+        project = self.create_project(teams=[team], fire_project_created=True)
         ProjectOwnership.objects.create(
             project_id=project.id,
             schema=dump_schema([Rule(Matcher("path", "*.cpp"), [Owner("team", team.slug)])]),
