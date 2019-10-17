@@ -12,35 +12,41 @@ from sentry.api.serializers import serialize, OrganizationMemberWithTeamsSeriali
 from sentry.models import AuditLogEntryEvent, InviteStatus, OrganizationMember
 from sentry.signals import member_invited
 
+from .organization_member_details import get_allowed_roles
 from .organization_member_index import OrganizationMemberSerializer, save_team_assignments
 
 ERR_CANNOT_INVITE = "Your organization is not allowed to invite members."
-ERR_INSUFFICIENT_ROLE_UPDATE = "You do not have permission to update this invite request."
-ERR_INSUFFICIENT_ROLE_DELETE = "You do not have permission to delete this invite request."
-ERR_JOIN_REQUESTS_DISABLED = "Your organization does not allow join requests."
+ERR_INSUFFICIENT_ROLE = "You do not have permission to invite that role."
+ERR_INSUFFICIENT_SCOPE = "You are missing the member:write and/or member:admin scope."
+ERR_JOIN_REQUESTS_DISABLED = "Your organization does not allow requests to join."
 
 
-class InviteRequestSerializer(serializers.Serializer):
-    approve = serializers.BooleanField(required=False, write_only=True)
+class ApproveInviteRequestSerializer(serializers.Serializer):
+    approve = serializers.BooleanField(required=True, write_only=True)
 
     def validate_approve(self, approve):
         request = self.context["request"]
         organization = self.context["organization"]
         member = self.context["member"]
+        allowed_roles = self.context["allowed_roles"]
 
         if not features.has("organizations:invite-members", organization, actor=request.user):
             raise serializers.ValidationError(ERR_CANNOT_INVITE)
-
-        if not request.access.has_scope("member:admin") and not request.access.has_scope(
-            "member:write"
-        ):
-            raise serializers.ValidationError(ERR_INSUFFICIENT_ROLE_UPDATE)
 
         if (
             organization.get_option("sentry:join_requests") is False
             and member.invite_status == InviteStatus.REQUESTED_TO_JOIN.value
         ):
             raise serializers.ValidationError(ERR_JOIN_REQUESTS_DISABLED)
+
+        if not request.access.has_scope("member:admin") and not request.access.has_scope(
+            "member:write"
+        ):
+            raise serializers.ValidationError(ERR_INSUFFICIENT_SCOPE)
+
+        # members cannot invite roles higher than their own
+        if member.role not in {r.id for r in allowed_roles}:
+            raise serializers.ValidationError(ERR_INSUFFICIENT_ROLE)
 
         return approve
 
@@ -101,13 +107,11 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationEndpoint):
             raise ResourceDoesNotExist
 
         if (
-            member.inviter != request.user
+            member.inviter_id != request.user.id
             and not request.access.has_scope("member:admin")
             and not request.access.has_scope("member:write")
         ):
-            return Response(
-                {"detail": ERR_INSUFFICIENT_ROLE_UPDATE}, status=status.HTTP_403_FORBIDDEN
-            )
+            return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=status.HTTP_403_FORBIDDEN)
 
         serializer = OrganizationMemberSerializer(
             data=request.data,
@@ -127,9 +131,16 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationEndpoint):
             save_team_assignments(member, result["teams"])
 
         if "approve" in request.data:
-            serializer = InviteRequestSerializer(
+            _, allowed_roles = get_allowed_roles(request, organization)
+
+            serializer = ApproveInviteRequestSerializer(
                 data=request.data,
-                context={"request": request, "organization": organization, "member": member},
+                context={
+                    "request": request,
+                    "organization": organization,
+                    "member": member,
+                    "allowed_roles": allowed_roles,
+                },
             )
 
             if not serializer.is_valid():
@@ -137,29 +148,28 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationEndpoint):
 
             result = serializer.validated_data
 
-            if result.get("approve"):
-                if not member.invite_approved:
-                    member.approve_invite()
-                    member.save()
+            if result.get("approve") and not member.invite_approved:
+                member.approve_invite()
+                member.save()
 
-                    if settings.SENTRY_ENABLE_INVITES:
-                        member.send_invite_email()
-                        member_invited.send_robust(
-                            member=member,
-                            user=request.user,
-                            sender=self,
-                            referrer=request.data.get("referrer"),
-                        )
-
-                    self.create_audit_entry(
-                        request=request,
-                        organization_id=organization.id,
-                        target_object=member.id,
-                        data=member.get_audit_log_data(),
-                        event=AuditLogEntryEvent.MEMBER_INVITE
-                        if settings.SENTRY_ENABLE_INVITES
-                        else AuditLogEntryEvent.MEMBER_ADD,
+                if settings.SENTRY_ENABLE_INVITES:
+                    member.send_invite_email()
+                    member_invited.send_robust(
+                        member=member,
+                        user=request.user,
+                        sender=self,
+                        referrer=request.data.get("referrer"),
                     )
+
+                self.create_audit_entry(
+                    request=request,
+                    organization_id=organization.id,
+                    target_object=member.id,
+                    data=member.get_audit_log_data(),
+                    event=AuditLogEntryEvent.MEMBER_INVITE
+                    if settings.SENTRY_ENABLE_INVITES
+                    else AuditLogEntryEvent.MEMBER_ADD,
+                )
 
         return Response(
             serialize(member, serializer=OrganizationMemberWithTeamsSerializer()),
@@ -184,10 +194,8 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationEndpoint):
         except OrganizationMember.DoesNotExist:
             raise ResourceDoesNotExist
 
-        if member.inviter != request.user and not request.access.has_scope("member:write"):
-            return Response(
-                {"detail": ERR_INSUFFICIENT_ROLE_DELETE}, status=status.HTTP_403_FORBIDDEN
-            )
+        if member.inviter_id != request.user.id and not request.access.has_scope("member:admin"):
+            return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=status.HTTP_403_FORBIDDEN)
 
         member.delete()
 

@@ -31,11 +31,15 @@ class InviteRequestBase(APITestCase):
         return self.create_member(organization=self.org, user=self.create_user(), role="member")
 
     @fixture
+    def manager(self):
+        return self.create_member(organization=self.org, user=self.create_user(), role="manager")
+
+    @fixture
     def invite_request(self):
         return self.create_member(
             email="test@example.com",
             organization=self.org,
-            role="member",
+            role="owner",
             invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
         )
 
@@ -280,3 +284,28 @@ class OrganizaitonInviteRequestApproveTest(InviteRequestBase):
         ).exists()
 
         assert mock_invite_email.call_count == 1
+
+    @patch.object(OrganizationMember, "send_invite_email")
+    def test_manager_cannot_approve_owner(self, mock_invite_email):
+        self.login_as(user=self.manager.user)
+        resp = self.get_response(self.org.slug, self.invite_request.id, approve=1)
+
+        assert resp.status_code == 400
+        assert OrganizationMember.objects.filter(
+            id=self.invite_request.id,
+            role="owner",
+            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+        ).exists()
+        assert mock_invite_email.call_count == 0
+
+    def test_manager_can_approve_manager(self):
+        self.login_as(user=self.manager.user)
+        invite_request = self.create_member(
+            email="hello@example.com",
+            organization=self.org,
+            role="manager",
+            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+        )
+        resp = self.get_response(self.org.slug, invite_request.id, approve=1)
+
+        assert resp.status_code == 200
