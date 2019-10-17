@@ -13,7 +13,7 @@ const HeaderItemPosition = styled('div')<{
   ${p =>
     p.isSpacer &&
     `
-    @media(max-width: 1024px) {
+    @media(max-width: ${p.theme.breakpoints[1]}) {
       display: none;
     }
   `}
