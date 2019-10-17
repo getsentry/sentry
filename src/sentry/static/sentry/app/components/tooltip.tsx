@@ -23,7 +23,9 @@ type State = {
 
 // Using an inline-block solves the container being smaller
 // than the elements it is wrapping
-const Container = styled('span')<{containerDisplayMode?: React.CSSProperties['display']}>`
+const Container = styled('span')<{
+  containerDisplayMode?: React.CSSProperties['display'];
+}>`
   ${p => p.containerDisplayMode && `display: ${p.containerDisplayMode}`};
 `;
 
@@ -129,7 +131,7 @@ class Tooltip extends React.Component<Props, State> {
   };
 
   renderTrigger(children: React.ReactElement, ref: React.Ref<HTMLElement>) {
-    const propList: Partial<React.ComponentProps<typeof Container>> = {
+    const propList: {[key: string]: any} = {
       'aria-describedby': this.tooltipId,
       onFocus: this.handleOpen,
       onBlur: this.handleClose,
