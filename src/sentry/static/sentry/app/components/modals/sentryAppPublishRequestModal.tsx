@@ -5,12 +5,39 @@ import React from 'react';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import _ from 'lodash';
 
-import {SentryApp} from 'app/types';
+import {SentryApp, Scope} from 'app/types';
 import {t} from 'app/locale';
 import Form from 'app/views/settings/components/forms/form';
 import FormModel from 'app/views/settings/components/forms/model';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import space from 'app/styles/space';
+import {SENTRY_APP_PERMISSIONS, PermissionChoice} from 'app/constants';
+
+/**
+ * Given an array of scopes, return the choices the user has picked for each option
+ * @param scopes {Array}
+ */
+const getPermissionSelectionsFromScopes = (scopes: Scope[]) => {
+  const permissions: string[] = [];
+  for (const permObj of SENTRY_APP_PERMISSIONS) {
+    let highestChoice: PermissionChoice | undefined;
+    for (const perm in permObj.choices) {
+      const choice = permObj.choices[perm];
+      const intersection = _.intersection(choice.scopes, scopes);
+      if (intersection.length > 0 && intersection.length === choice.scopes.length) {
+        if (!highestChoice || intersection.length > highestChoice.scopes.length) {
+          highestChoice = choice;
+        }
+      }
+    }
+    if (highestChoice) {
+      //we can remove the read part of "Read & Write"
+      const label = highestChoice.label.replace('Read & Write', 'Write');
+      permissions.push(`${permObj.resource} ${label}`);
+    }
+  }
+  return permissions;
+};
 
 class PublishRequestFormModel extends FormModel {
   getTransformedData() {
@@ -41,18 +68,20 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
 
   get formFields() {
     const {app} = this.props;
-    //replace the : with a . so we can reserve the colon for the question
-    const scopes = app.scopes.map(scope => scope.replace(/:/, '-'));
-    const scopeQuestionBaseText =
-      'Please justify why you are requesting each of the following scopes: ';
-    const scopeQuestionPlainText = `${scopeQuestionBaseText}${scopes.join(', ')}.`;
+    const permissions = getPermissionSelectionsFromScopes(app.scopes);
 
-    const scopeLabel = (
+    const permissionQuestionBaseText =
+      'Please justify why you are requesting each of the following permissions: ';
+    const permissionQuestionPlainText = `${permissionQuestionBaseText}${permissions.join(
+      ', '
+    )}.`;
+
+    const permissionLabel = (
       <React.Fragment>
-        {scopeQuestionBaseText}
-        {scopes.map((scope, i) => (
-          <React.Fragment key={scope}>
-            {i > 0 && ', '} <code>{scope}</code>
+        {permissionQuestionBaseText}
+        {permissions.map((permission, i) => (
+          <React.Fragment key={permission}>
+            {i > 0 && ', '} <code>{permission}</code>
           </React.Fragment>
         ))}
         .
@@ -80,21 +109,26 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
       {
         type: 'textarea',
         required: true,
-        label: scopeLabel,
-        autosize: true,
-        rows: 1,
-        inline: false,
-        meta: scopeQuestionPlainText,
-      },
-      {
-        type: 'textarea',
-        required: true,
         label: 'Do you operate the web service your integration communicates with?',
         autosize: true,
         rows: 1,
         inline: false,
       },
     ];
+
+    //Only add the permissions question if there are perms to add
+    if (permissions.length > 0) {
+      baseFields.push({
+        type: 'textarea',
+        required: true,
+        label: permissionLabel,
+        autosize: true,
+        rows: 1,
+        inline: false,
+        meta: permissionQuestionPlainText,
+      });
+    }
+
     //dynamically generate the name based off the index
     return baseFields.map((field, index) =>
       Object.assign({name: `question${index}`}, field)

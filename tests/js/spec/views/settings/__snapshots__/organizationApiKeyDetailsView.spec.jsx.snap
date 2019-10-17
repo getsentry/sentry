@@ -202,6 +202,10 @@ exports[`OrganizationApiKeyDetails renders 1`] = `
                       "event:read",
                     ],
                     Array [
+                      "event:write",
+                      "event:write",
+                    ],
+                    Array [
                       "event:admin",
                       "event:admin",
                     ],
@@ -220,6 +224,10 @@ exports[`OrganizationApiKeyDetails renders 1`] = `
                     Array [
                       "member:read",
                       "member:read",
+                    ],
+                    Array [
+                      "member:write",
+                      "member:write",
                     ],
                     Array [
                       "member:admin",
@@ -366,6 +374,19 @@ exports[`OrganizationApiKeyDetails renders 1`] = `
                     </label>
                     <label
                       className="checkbox"
+                      key="event:write"
+                    >
+                      <input
+                        checked={false}
+                        disabled={false}
+                        onChange={[Function]}
+                        type="checkbox"
+                        value="event:write"
+                      />
+                      event:write
+                    </label>
+                    <label
+                      className="checkbox"
                       key="event:admin"
                     >
                       <input
@@ -428,6 +449,19 @@ exports[`OrganizationApiKeyDetails renders 1`] = `
                         value="member:read"
                       />
                       member:read
+                    </label>
+                    <label
+                      className="checkbox"
+                      key="member:write"
+                    >
+                      <input
+                        checked={false}
+                        disabled={false}
+                        onChange={[Function]}
+                        type="checkbox"
+                        value="member:write"
+                      />
+                      member:write
                     </label>
                     <label
                       className="checkbox"

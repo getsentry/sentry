@@ -7,7 +7,16 @@ import App from 'app/views/app';
 
 describe('Organization Developer Settings', function() {
   const org = TestStubs.Organization();
-  const sentryApp = TestStubs.SentryApp();
+  const sentryApp = TestStubs.SentryApp({
+    scopes: [
+      'team:read',
+      'project:releases',
+      'event:read',
+      'event:write',
+      'org:read',
+      'org:write',
+    ],
+  });
   const routerContext = TestStubs.routerContext();
 
   const publishButtonSelector = 'StyledButton[icon="icon-upgrade"]';
@@ -151,12 +160,12 @@ describe('Organization Developer Settings', function() {
               {
                 answer: 'Answer 2',
                 question:
-                  'Please justify why you are requesting each of the following scopes: project-read.',
+                  'Do you operate the web service your integration communicates with?',
               },
               {
                 answer: 'Answer 3',
                 question:
-                  'Do you operate the web service your integration communicates with?',
+                  'Please justify why you are requesting each of the following permissions: Team Read, Release Admin, Event Write, Organization Write.',
               },
             ],
           },
