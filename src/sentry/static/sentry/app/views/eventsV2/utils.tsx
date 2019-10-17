@@ -239,24 +239,10 @@ export function decodeColumnOrder(props: {
   field: string[];
 }): TableColumn<React.ReactText>[] {
   const {fieldnames, field} = props;
-  const columnsRaw: {
-    aggregationField: string;
-    name: string;
-  }[] = [];
 
-  if (typeof fieldnames === 'string' && typeof field === 'string') {
-    columnsRaw.push({aggregationField: field, name: fieldnames});
-  } else if (
-    Array.isArray(fieldnames) &&
-    Array.isArray(field) &&
-    fieldnames.length === field.length
-  ) {
-    field.forEach((f, i) => {
-      columnsRaw.push({aggregationField: f, name: fieldnames[i]});
-    });
-  }
+  return field.map((f: string, index: number) => {
+    const col = {aggregationField: f, name: fieldnames[index]};
 
-  return columnsRaw.map(col => {
     const column: TableColumn<React.ReactText> = {...TEMPLATE_TABLE_COLUMN};
 
     // "field" will be split into ["field"]
