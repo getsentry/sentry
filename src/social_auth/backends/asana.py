@@ -22,7 +22,7 @@ class AsanaBackend(OAuthBackend):
     EXTRA_DATA = [
         ("email", "email"),
         ("name", "full_name"),
-        ("id", "id"),
+        ("gid", "id"),
         ("refresh_token", "refresh_token"),
     ]
 
@@ -31,7 +31,7 @@ class AsanaBackend(OAuthBackend):
 
         return {
             "email": response.get("email"),
-            "id": response.get("id"),
+            "id": response.get("gid"),
             "full_name": response.get("name"),
         }
 
