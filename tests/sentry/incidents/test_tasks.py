@@ -2,11 +2,19 @@ from __future__ import absolute_import
 
 import six
 from django.core.urlresolvers import reverse
-from exam import patcher
+from exam import fixture, patcher
 from freezegun import freeze_time
+from mock import Mock, patch
 
-from sentry.incidents.logic import create_incident_activity, subscribe_to_incident
+from sentry.incidents.logic import (
+    create_alert_rule_trigger,
+    create_alert_rule_trigger_action,
+    create_incident_activity,
+    subscribe_to_incident,
+)
 from sentry.incidents.models import (
+    AlertRuleThresholdType,
+    AlertRuleTriggerAction,
     IncidentActivityType,
     IncidentStatus,
     IncidentSubscription,
@@ -16,6 +24,7 @@ from sentry.incidents.tasks import (
     build_activity_context,
     calculate_incident_suspects,
     generate_incident_activity_email,
+    handle_trigger_action,
     send_subscriber_notifications,
 )
 from sentry.models import Commit, Repository
@@ -175,3 +184,43 @@ class CalculateIncidentSuspectsTest(TestCase):
         incident = self.create_incident(self.organization, groups=[group])
         calculate_incident_suspects(incident.id)
         assert IncidentSuspectCommit.objects.filter(incident=incident, commit=commit).exists()
+
+
+class HandleTriggerActionTest(TestCase):
+    metrics = patcher("sentry.incidents.tasks.metrics")
+
+    @fixture
+    def alert_rule(self):
+        return self.create_alert_rule()
+
+    @fixture
+    def trigger(self):
+        return create_alert_rule_trigger(self.alert_rule, "", AlertRuleThresholdType.ABOVE, 100)
+
+    @fixture
+    def action(self):
+        return create_alert_rule_trigger_action(
+            self.trigger, AlertRuleTriggerAction.Type.EMAIL, AlertRuleTriggerAction.TargetType.USER
+        )
+
+    def test_missing_trigger_action(self):
+        with self.tasks():
+            handle_trigger_action.delay(1000, 1001, "hello")
+        self.metrics.incr.assert_called_once_with("incidents.alert_rules.skipping_missing_action")
+
+    def test_missing_incident(self):
+        with self.tasks():
+            handle_trigger_action.delay(self.action.id, 1001, "hello")
+        self.metrics.incr.assert_called_once_with("incidents.alert_rules.skipping_missing_incident")
+
+    def test(self):
+        with patch.object(AlertRuleTriggerAction, "handlers", new={}):
+            mock_handler = Mock()
+            AlertRuleTriggerAction.register_type_handler(AlertRuleTriggerAction.Type.EMAIL)(
+                mock_handler
+            )
+            incident = self.create_incident()
+            with self.tasks():
+                handle_trigger_action.delay(self.action.id, incident.id, "fire")
+            mock_handler.assert_called_once_with(self.action, incident)
+            mock_handler.return_value.fire.assert_called_once_with()

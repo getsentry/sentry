@@ -4,14 +4,25 @@ import json
 from copy import deepcopy
 from uuid import uuid4
 
+import six
 from confluent_kafka import Producer
 from django.conf import settings
 from django.test.utils import override_settings
 from exam import fixture
 
-from sentry.incidents.logic import create_alert_rule, create_alert_rule_trigger
+from sentry.incidents.logic import (
+    create_alert_rule,
+    create_alert_rule_trigger,
+    create_alert_rule_trigger_action,
+)
 from sentry.snuba.subscriptions import query_aggregation_to_snuba
-from sentry.incidents.models import AlertRuleThresholdType, Incident, IncidentStatus, IncidentType
+from sentry.incidents.models import (
+    AlertRuleThresholdType,
+    AlertRuleTriggerAction,
+    Incident,
+    IncidentStatus,
+    IncidentType,
+)
 from sentry.incidents.tasks import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.snuba.models import QueryAggregations
 from sentry.snuba.query_subscription_consumer import QuerySubscriptionConsumer, subscriber_registry
@@ -52,8 +63,14 @@ class HandleSnubaQueryUpdateTest(TestCase):
             resolve_threshold=10,
             threshold_period=1,
         )
-        create_alert_rule_trigger(
+        trigger = create_alert_rule_trigger(
             rule, "hi", AlertRuleThresholdType.ABOVE, 100, resolve_threshold=10
+        )
+        create_alert_rule_trigger_action(
+            trigger,
+            AlertRuleTriggerAction.Type.EMAIL,
+            AlertRuleTriggerAction.TargetType.USER,
+            six.text_type(self.user.id),
         )
         return rule
 
@@ -113,5 +130,6 @@ class HandleSnubaQueryUpdateTest(TestCase):
             ).exists()
 
         consumer = QuerySubscriptionConsumer("hi", topic=self.topic)
-        with self.assertChanges(active_incident_exists, before=False, after=True):
+        with self.assertChanges(active_incident_exists, before=False, after=True), self.tasks():
+            # TODO: Need to check that the email gets sent once we hook that up
             consumer.run()

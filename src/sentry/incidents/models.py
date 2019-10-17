@@ -8,7 +8,9 @@ from enum import Enum
 from sentry.db.models import FlexibleForeignKey, Model, UUIDField
 from sentry.db.models import ArrayField, sane_repr
 from sentry.db.models.manager import BaseManager
+from sentry.models import Team, User
 from sentry.snuba.models import QueryAggregations
+from sentry.utils import metrics
 from sentry.utils.retries import TimedRetryPolicy
 
 
@@ -378,6 +380,8 @@ class AlertRuleTriggerAction(Model):
 
     __core__ = True
 
+    handlers = {}
+
     # Which sort of action to take
     class Type(Enum):
         EMAIL = 0
@@ -406,3 +410,55 @@ class AlertRuleTriggerAction(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_alertruletriggeraction"
+
+    @property
+    def target(self):
+        if self.target_type == self.TargetType.USER.value:
+            try:
+                return User.objects.get(id=int(self.target_identifier))
+            except User.DoesNotExist:
+                pass
+        elif self.target_type == self.TargetType.TEAM.value:
+            try:
+                return Team.objects.get(id=int(self.target_identifier))
+            except Team.DoesNotExist:
+                pass
+        elif self.target_type == self.TargetType.SPECIFIC.value:
+            # TODO: This is only for email. We should have a way of validating that it's
+            # ok to contact this email.
+            return self.target_identifier
+
+    def build_handler(self, incident):
+        type = AlertRuleTriggerAction.Type(self.type)
+        if type in self.handlers:
+            return self.handlers[type](self, incident)
+        else:
+            metrics.incr("alert_rule_trigger.unhandled_type.{}".format(self.type))
+
+    def fire(self, incident):
+        handler = self.build_handler(incident)
+        if handler:
+            return handler.fire()
+
+    def resolve(self, incident):
+        handler = self.build_handler(incident)
+        if handler:
+            return handler.resolve()
+
+    @classmethod
+    def register_type_handler(cls, type):
+        """
+        Registers a handler for a given target_type.
+        :param type: The `Type` to handle.
+        :param handler: A subclass of `ActionHandler` that accepts the
+        `AlertRuleTriggerAction` and `Incident`.
+        """
+
+        def inner(handler):
+            if type not in cls.handlers:
+                cls.handlers[type] = handler
+            else:
+                raise Exception(u"Handler already registered for type %s" % type)
+            return handler
+
+        return inner
