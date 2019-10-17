@@ -476,7 +476,7 @@ class EventView {
     });
   }
 
-  createColumn(newColumn: {
+  withNewColumn(newColumn: {
     aggregation: string;
     field: string;
     fieldname: string;
@@ -502,7 +502,7 @@ class EventView {
     return newEventView;
   }
 
-  updateColumn(
+  withUpdatedColumn(
     columnIndex: number,
     updatedColumn: {
       aggregation: string;
@@ -590,8 +590,8 @@ class EventView {
     return newEventView;
   }
 
-  deleteColumn(columnIndex: number, tableDataMeta: MetaType): EventView {
-    // Disallow delete of last column, and check for out-of-bounds
+  withDeletedColumn(columnIndex: number, tableDataMeta: MetaType): EventView {
+    // Disallow removal of last column, and check for out-of-bounds
     if (this.fields.length <= 1 || this.fields.length <= columnIndex || columnIndex < 0) {
       return this;
     }
@@ -651,7 +651,7 @@ class EventView {
     return newEventView;
   }
 
-  moveColumn({fromIndex, toIndex}: {fromIndex: number; toIndex: number}): EventView {
+  withMovedColumn({fromIndex, toIndex}: {fromIndex: number; toIndex: number}): EventView {
     if (fromIndex === toIndex) {
       return this;
     }

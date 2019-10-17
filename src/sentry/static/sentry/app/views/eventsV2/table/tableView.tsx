@@ -50,7 +50,7 @@ class TableView extends React.Component<TableViewProps> {
   _createColumn = (nextColumn: TableColumn<keyof TableDataRow>) => {
     const {location, eventView} = this.props;
 
-    const nextEventView = eventView.createColumn({
+    const nextEventView = eventView.withNewColumn({
       aggregation: String(nextColumn.aggregation),
       field: String(nextColumn.field),
       fieldname: nextColumn.name,
@@ -74,7 +74,7 @@ class TableView extends React.Component<TableViewProps> {
       return;
     }
 
-    const nextEventView = eventView.updateColumn(
+    const nextEventView = eventView.withUpdatedColumn(
       columnIndex,
       {
         aggregation: String(nextColumn.aggregation),
@@ -102,7 +102,7 @@ class TableView extends React.Component<TableViewProps> {
       return;
     }
 
-    const nextEventView = eventView.deleteColumn(columnIndex, tableData.meta);
+    const nextEventView = eventView.withDeletedColumn(columnIndex, tableData.meta);
 
     pushEventViewToLocation({
       location,
@@ -118,7 +118,7 @@ class TableView extends React.Component<TableViewProps> {
   _moveColumn = (fromIndex: number, toIndex: number) => {
     const {location, eventView} = this.props;
 
-    const nextEventView = eventView.moveColumn({fromIndex, toIndex});
+    const nextEventView = eventView.withMovedColumn({fromIndex, toIndex});
 
     pushEventViewToLocation({
       location,
