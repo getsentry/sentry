@@ -220,7 +220,7 @@ class FormModel {
       return '';
     }
 
-    return this.fields.get(id) as FieldValue;
+    return this.fields.get(id);
   }
 
   getTransformedValue(id: string) {

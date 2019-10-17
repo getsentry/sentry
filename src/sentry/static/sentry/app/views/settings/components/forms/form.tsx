@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import {APIRequestMethod} from 'app/api';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import FormModel, {
@@ -11,10 +12,10 @@ import FormModel, {
 } from 'app/views/settings/components/forms/model';
 import Panel from 'app/components/panels/panel';
 
-type Data = {[key: string]: FieldValue};
+type Data = {};
 
 type Props = {
-  apiMethod: string;
+  apiMethod: APIRequestMethod;
   apiEndpoint: string;
   children: React.ReactNode;
 
@@ -24,16 +25,14 @@ type Props = {
   submitLabel?: string;
   submitPriority?: Button['props']['priority'];
   footerClass?: string;
-  footerStyle?: object;
+  footerStyle?: React.CSSProperties;
   extraButton?: React.ReactNode;
-  initialData?: {};
+  initialData?: Data;
   // Require changes before able to submit form
   requireChanges?: boolean;
   // Reset form when there are errors; after submit
   resetOnError?: boolean;
-  // Hide Footer
   hideFooter?: boolean;
-  // Allow undo
   allowUndo?: boolean;
   // Save field on control blur
   saveOnBlur?: boolean;
@@ -69,9 +68,7 @@ export default class Form extends React.Component<Props> {
     requireChanges: PropTypes.bool,
     // Reset form when there are errors, after submit
     resetOnError: PropTypes.bool,
-    // Hide Footer
     hideFooter: PropTypes.bool,
-    // Allow undo
     allowUndo: PropTypes.bool,
     // Save field on control blur
     saveOnBlur: PropTypes.bool,
