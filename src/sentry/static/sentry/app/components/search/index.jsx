@@ -1,4 +1,3 @@
-import {Flex} from 'grid-emotion';
 import {debounce} from 'lodash';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
@@ -19,6 +18,7 @@ import SearchResult from 'app/components/search/searchResult';
 import SearchResultWrapper from 'app/components/search/searchResultWrapper';
 import SearchSources from 'app/components/search/sources';
 import replaceRouterParams from 'app/utils/replaceRouterParams';
+import space from 'app/styles/space';
 
 // "Omni" search
 class Search extends React.Component {
@@ -178,9 +178,9 @@ class Search extends React.Component {
           getItemProps,
           isOpen,
           inputValue,
-          selectedItem,
+          selectedItem: _selectedItem,
           highlightedIndex,
-          onChange,
+          onChange: _onChange,
         }) => {
           const searchQuery = inputValue.toLowerCase().trim();
           const isValidSearch = inputValue.length >= minSearch;
@@ -203,9 +203,9 @@ class Search extends React.Component {
                   {({isLoading, results, hasAnyResults}) => (
                     <DropdownBox css={dropdownStyle}>
                       {isLoading && (
-                        <Flex justify="center" align="center" p={1}>
+                        <LoadingWrapper>
                           <LoadingIndicator mini hideMessage relative />
-                        </Flex>
+                        </LoadingWrapper>
                       )}
                       {!isLoading &&
                         results.slice(0, maxResults).map((resultObj, index) => {
@@ -253,4 +253,11 @@ const EmptyItem = styled(SearchResultWrapper)`
   text-align: center;
   padding: 16px;
   opacity: 0.5;
+`;
+
+const LoadingWrapper = styled('div')`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: ${space(1)};
 `;
