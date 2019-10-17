@@ -11,8 +11,6 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import space from 'app/styles/space';
 
-import {addSuccessMessage} from '../../../actionCreators/indicator';
-
 class AuthorizationRow extends React.Component {
   static propTypes = {
     authorization: PropTypes.object.isRequired,
