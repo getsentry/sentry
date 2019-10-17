@@ -859,9 +859,9 @@ class GetSnubaQueryArgsTest(TestCase):
         )
 
         assert filter.conditions == [
-            ["email", "=", "foo@example.com"],
-            ["tags[sentry:release]", "=", "1.2.1"],
-            [["ifNull", ["tags[fruit]", "''"]], "=", "apple"],
+            ["user.email", "=", "foo@example.com"],
+            ["release", "=", "1.2.1"],
+            [["ifNull", ["fruit", "''"]], "=", "apple"],
             [["positionCaseInsensitive", ["message", "'hello'"]], "!=", 0],
         ]
         assert filter.start == datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
@@ -874,7 +874,7 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_negation(self):
         filter = get_filter("!user.email:foo@example.com")
         assert filter.conditions == [
-            [[["isNull", ["email"]], "=", 1], ["email", "!=", "foo@example.com"]]
+            [[["isNull", ["user.email"]], "=", 1], ["user.email", "!=", "foo@example.com"]]
         ]
         assert filter.filter_keys == {}
 
@@ -883,9 +883,7 @@ class GetSnubaQueryArgsTest(TestCase):
             [["ifNull", ["tags[fruit]", "''"]], "=", "apple"]
         ]
 
-        assert get_filter("fruit:apple").conditions == [
-            [["ifNull", ["tags[fruit]", "''"]], "=", "apple"]
-        ]
+        assert get_filter("fruit:apple").conditions == [[["ifNull", ["fruit", "''"]], "=", "apple"]]
 
         assert get_filter("tags[project_id]:123").conditions == [
             [["ifNull", ["tags[project_id]", "''"]], "=", "123"]
@@ -907,8 +905,8 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_wildcard(self):
         filter = get_filter("release:3.1.* user.email:*@example.com")
         assert filter.conditions == [
-            [["match", ["tags[sentry:release]", "'(?i)^3\\.1\\..*$'"]], "=", 1],
-            [["match", ["email", "'(?i)^.*\\@example\\.com$'"]], "=", 1],
+            [["match", ["release", "'(?i)^3\\.1\\..*$'"]], "=", 1],
+            [["match", ["user.email", "'(?i)^.*\\@example\\.com$'"]], "=", 1],
         ]
         assert filter.filter_keys == {}
 
@@ -916,34 +914,30 @@ class GetSnubaQueryArgsTest(TestCase):
         filter = get_filter("!release:3.1.* user.email:*@example.com")
         assert filter.conditions == [
             [
-                [["isNull", ["tags[sentry:release]"]], "=", 1],
-                [["match", ["tags[sentry:release]", "'(?i)^3\\.1\\..*$'"]], "!=", 1],
+                [["isNull", ["release"]], "=", 1],
+                [["match", ["release", "'(?i)^3\\.1\\..*$'"]], "!=", 1],
             ],
-            [["match", ["email", "'(?i)^.*\\@example\\.com$'"]], "=", 1],
+            [["match", ["user.email", "'(?i)^.*\\@example\\.com$'"]], "=", 1],
         ]
         assert filter.filter_keys == {}
 
     def test_escaped_wildcard(self):
         assert get_filter("release:3.1.\\* user.email:\\*@example.com").conditions == [
-            [["match", ["tags[sentry:release]", "'(?i)^3\\.1\\.\\*$'"]], "=", 1],
-            [["match", ["email", "'(?i)^\*\\@example\\.com$'"]], "=", 1],
+            [["match", ["release", "'(?i)^3\\.1\\.\\*$'"]], "=", 1],
+            [["match", ["user.email", "'(?i)^\*\\@example\\.com$'"]], "=", 1],
         ]
         assert get_filter("release:\\\\\\*").conditions == [
-            [["match", ["tags[sentry:release]", "'(?i)^\\\\\\*$'"]], "=", 1]
+            [["match", ["release", "'(?i)^\\\\\\*$'"]], "=", 1]
         ]
         assert get_filter("release:\\\\*").conditions == [
-            [["match", ["tags[sentry:release]", "'(?i)^\\\\.*$'"]], "=", 1]
+            [["match", ["release", "'(?i)^\\\\.*$'"]], "=", 1]
         ]
 
     def test_has(self):
-        assert get_filter("has:release").conditions == [
-            [["isNull", ["tags[sentry:release]"]], "!=", 1]
-        ]
+        assert get_filter("has:release").conditions == [[["isNull", ["release"]], "!=", 1]]
 
     def test_not_has(self):
-        assert get_filter("!has:release").conditions == [
-            [["isNull", ["tags[sentry:release]"]], "=", 1]
-        ]
+        assert get_filter("!has:release").conditions == [[["isNull", ["release"]], "=", 1]]
 
     def test_message_negative(self):
         assert get_filter('!message:"post_process.process_error HTTPError 403"').conditions == [
@@ -973,7 +967,7 @@ class GetSnubaQueryArgsTest(TestCase):
         assert filter.group_ids == [1, 2, 3]
 
         filter = get_filter("issue.id:1 user.email:foo@example.com")
-        assert filter.conditions == [["email", "=", "foo@example.com"]]
+        assert filter.conditions == [["user.email", "=", "foo@example.com"]]
         assert filter.filter_keys == {"issue": [1]}
         assert filter.group_ids == [1]
 
