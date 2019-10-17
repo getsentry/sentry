@@ -25,7 +25,7 @@ const withConfig = <P extends InjectedConfigProps>(
     State
   >({
     displayName: `withConfig(${getDisplayName(WrappedComponent)})`,
-    mixins: [Reflux.listenTo(ConfigStore, 'onUpdate')],
+    mixins: [Reflux.listenTo(ConfigStore, 'onUpdate') as any],
 
     getInitialState() {
       return {config: ConfigStore.getConfig()};

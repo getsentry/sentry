@@ -64,4 +64,5 @@ const ConfigStore = Reflux.createStore({
   },
 });
 
-export default ConfigStore;
+// TODO(ts): This should be properly typed
+export default ConfigStore as any;
