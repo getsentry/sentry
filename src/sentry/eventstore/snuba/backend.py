@@ -55,12 +55,7 @@ class SnubaEventStorage(EventStorage):
         return []
 
     def get_event_by_id(
-        self,
-        project_id,
-        event_id,
-        additional_columns=None,
-        # TODO: Switch default to none when transactions are supported
-        dataset=snuba.Dataset.Events,
+        self, project_id, event_id, additional_columns=None, dataset=snuba.Dataset.Events
     ):
         """
         Get an event given a project ID and event ID
