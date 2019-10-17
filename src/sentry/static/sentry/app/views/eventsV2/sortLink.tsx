@@ -29,11 +29,11 @@ class SortLink extends React.Component<Props> {
     tableDataMeta: PropTypes.object.isRequired,
   };
 
-  isCurrentColumnSorted = (): Sort | undefined => {
+  isCurrentColumnSorted(): Sort | undefined {
     const {eventView, field, tableDataMeta} = this.props;
 
     return eventView.isFieldSorted(field, tableDataMeta);
-  };
+  }
 
   getTarget() {
     const {location, field, eventView, tableDataMeta} = this.props;
