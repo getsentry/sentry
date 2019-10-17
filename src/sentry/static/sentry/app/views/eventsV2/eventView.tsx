@@ -546,8 +546,8 @@ class EventView {
     if (needleSortIndex >= 0) {
       const needleSort = this.sorts[needleSortIndex];
 
-      const numOfColumns = this.fields.reduce((sum, field) => {
-        if (isSortEqualToField(needleSort, field, tableDataMeta)) {
+      const numOfColumns = this.fields.reduce((sum, currentField) => {
+        if (isSortEqualToField(needleSort, currentField, tableDataMeta)) {
           return sum + 1;
         }
 
@@ -575,8 +575,8 @@ class EventView {
 
           newEventView.sorts = [sort];
         } else {
-          const sortableFieldIndex = newEventView.fields.findIndex(field => {
-            return isFieldSortable(field, tableDataMeta);
+          const sortableFieldIndex = newEventView.fields.findIndex(currentField => {
+            return isFieldSortable(currentField, tableDataMeta);
           });
           if (sortableFieldIndex >= 0) {
             const fieldToBeSorted = newEventView.fields[sortableFieldIndex];
@@ -708,12 +708,12 @@ class EventView {
   ): Exclude<EventQuery & LocationQuery, 'sort' | 'cursor'> {
     const payload = this.getEventsAPIPayload(location);
 
-    if (payload['sort']) {
-      delete payload['sort'];
+    if (payload.sort) {
+      delete payload.sort;
     }
 
-    if (payload['cursor']) {
-      delete payload['cursor'];
+    if (payload.cursor) {
+      delete payload.cursor;
     }
 
     return payload;
@@ -739,11 +739,11 @@ class EventView {
         }
       );
     const sort = this.sorts
-      .filter(sort => {
-        return sortKeys.includes(sort.field);
+      .filter(currentSort => {
+        return sortKeys.includes(currentSort.field);
       })
-      .map(sort => {
-        return encodeSort(sort);
+      .map(currentSort => {
+        return encodeSort(currentSort);
       });
 
     // generate event query
