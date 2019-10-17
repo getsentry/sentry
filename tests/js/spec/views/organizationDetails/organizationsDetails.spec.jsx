@@ -2,9 +2,11 @@ import React from 'react';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import OrganizationDetails from 'app/views/organizationDetails';
+import OrganizationStore from 'app/stores/organizationStore';
 
 describe('OrganizationDetails', function() {
   beforeEach(function() {
+    OrganizationStore.reset();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/broadcasts/',
@@ -42,7 +44,6 @@ describe('OrganizationDetails', function() {
         );
         expect(tree.find('button[aria-label="Restore Organization"]')).toHaveLength(1);
       });
-
       it('should render a restoration prompt without action for members', async function() {
         MockApiClient.addMockResponse({
           url: '/organizations/org-slug/',
