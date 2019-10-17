@@ -65,7 +65,7 @@ class SortLink extends React.Component<Props> {
     const {align, field, tableDataMeta} = this.props;
 
     if (!isFieldSortable(field, tableDataMeta)) {
-      return <span>{field.title}</span>;
+      return <StyledNonLink align={align}>{field.title}</StyledNonLink>;
     }
 
     return (
@@ -85,6 +85,11 @@ const StyledLink = styled((props: StyledLinkProps) => {
   display: block;
   white-space: nowrap;
   ${(p: StyledLinkProps) => (p.align ? `text-align: ${p.align};` : '')}
+`;
+
+const StyledNonLink = styled('div')<{align: Alignments}>`
+  white-space: nowrap;
+  ${(p: {align: Alignments}) => (p.align ? `text-align: ${p.align};` : '')}
 `;
 
 export default SortLink;
