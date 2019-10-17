@@ -5,6 +5,8 @@ import six
 import threading
 import weakref
 
+from contextlib import contextmanager
+
 from django.conf import settings
 from django.db import router
 from django.db.models import Model
@@ -21,6 +23,11 @@ from .query import create_or_update
 __all__ = ("BaseManager",)
 
 logger = logging.getLogger("sentry")
+
+
+_local_cache = local()
+_local_cache_generation = 0
+_local_cache_is_process_global = False
 
 
 def __prep_value(model, key, value):
@@ -73,6 +80,39 @@ class BaseManager(Manager):
         self.cache_version = kwargs.pop("cache_version", None)
         self.__local_cache = threading.local()
         super(BaseManager, self).__init__(*args, **kwargs)
+
+    @contextmanager
+    def local_cache(self, process_global=False):
+        global _local_cache_is_process_global, _local_cache_generation
+        if process_global:
+            if _local_cache_is_process_global:
+                raise RuntimeError('nested use of process global local cache')
+            _local_cache_is_process_global = True
+            yield
+            _local_cache_is_process_global = False
+            _local_cache_generation += 1
+            return
+
+        old = _local_cache.cache
+        _local_cache.cache = {}
+        _local_cache.generation = _local_cache_generation
+        try:
+            yield
+        finally:
+            _local_cache.cache = old
+
+    def _get_local_cache(self):
+        if not _local_cache_is_process_global:
+            return getattr(_local_cache, 'cache', None)
+
+        gen = _local_cache_generation
+        cache_gen = getattr(_local_cache, 'generation', None)
+
+        if cache_gen != gen or not hasattr(_local_cache, 'cache'):
+            _local_cache.cache = {}
+            _local_cache.generation = gen
+
+        return _local_cache.cache
 
     def _get_cache(self):
         if not hasattr(self.__local_cache, "value"):
@@ -243,18 +283,28 @@ class BaseManager(Manager):
 
         if key in self.cache_fields or key == pk_name:
             cache_key = self.__get_lookup_cache_key(**{key: value})
+            local_cache = self._get_local_cache()
+            if local_cache is not None:
+                result = local_cache.get(cache_key)
+                if result is not None:
+                    return result
 
             retval = cache.get(cache_key, version=self.cache_version)
             if retval is None:
                 result = self.get(**kwargs)
                 # Ensure we're pushing it into the cache
                 self.__post_save(instance=result)
+                if local_cache is not None:
+                    local_cache[cache_key] = result
                 return result
 
             # If we didn't look up by pk we need to hit the reffed
             # key
             if key != pk_name:
-                return self.get_from_cache(**{pk_name: retval})
+                result = self.get_from_cache(**{pk_name: retval})
+                if local_cache is not None:
+                    local_cache[cache_key] = result
+                return result
 
             if not isinstance(retval, self.model):
                 if settings.DEBUG:
