@@ -14,7 +14,7 @@ from sentry.models import (
     UserReport,
 )
 from sentry import nodestore
-from sentry.deletions import GroupNodeDeletionTask
+from sentry.deletions.defaults.group import GroupNodeDeletionTask
 from sentry.tasks.deletion import run_deletion
 
 from sentry.testutils import TestCase, SnubaTestCase

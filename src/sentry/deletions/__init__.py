@@ -24,7 +24,6 @@ as Event, so it can more efficiently bulk delete rows.
 from __future__ import absolute_import
 
 from .base import BulkModelDeletionTask, ModelDeletionTask, ModelRelation  # NOQA
-from .defaults.group import GroupNodeDeletionTask  # NOQA
 from .manager import DeletionTaskManager
 
 default_manager = DeletionTaskManager(default_task=ModelDeletionTask)
