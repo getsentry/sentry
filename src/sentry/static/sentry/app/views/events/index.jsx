@@ -43,7 +43,11 @@ class EventsContainer extends React.Component {
     const {organization, location, children} = this.props;
 
     return (
-      <Feature features={['events']} hookName="events-page" renderDisabled>
+      <Feature
+        features={['events']}
+        hookName="feature-disabled:events-page"
+        renderDisabled
+      >
         <GlobalSelectionHeader
           organization={organization}
           resetParamsOnChange={['cursor']}
