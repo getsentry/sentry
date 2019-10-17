@@ -1,4 +1,3 @@
-import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -12,6 +11,7 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import RepoLabel from 'app/components/repoLabel';
 import TimeSince from 'app/components/timeSince';
+import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 
 class VersionHoverCard extends React.Component {
@@ -87,16 +87,17 @@ class VersionHoverCard extends React.Component {
     const {orgId} = this.props;
     return {
       body: (
-        <Box p={2} className="align-center">
-          <h5>Releases are better with commit data!</h5>
+        <ConnectRepo>
+          <h5>{t('Releases are better with commit data!')}</h5>
           <p>
-            Connect a repository to see commit info, files changed, and authors involved
-            in future releases.
+            {t(
+              'Connect a repository to see commit info, files changed, and authors involved in future releases.'
+            )}
           </p>
           <Button href={`/organizations/${orgId}/repos/`} priority="primary">
-            Connect a repository
+            {t('Connect a repository')}
           </Button>
-        </Box>
+        </ConnectRepo>
       ),
     };
   }
@@ -191,6 +192,11 @@ class VersionHoverCard extends React.Component {
 export {VersionHoverCard};
 
 export default withApi(VersionHoverCard);
+
+const ConnectRepo = styled('div')`
+  padding: ${space(2)};
+  text-align: center;
+`;
 
 const VersionRepoLabel = styled(RepoLabel)`
   width: 86px;
