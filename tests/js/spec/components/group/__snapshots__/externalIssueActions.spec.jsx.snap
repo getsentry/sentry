@@ -193,7 +193,7 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
                     onClick={[Function]}
                   >
                     <a
-                      className="css-1g8yzea-IntegrationLink euat0et2"
+                      className="css-17up6h5-IntegrationLink euat0et2"
                       onClick={[Function]}
                     >
                       Link GitHub Issue
