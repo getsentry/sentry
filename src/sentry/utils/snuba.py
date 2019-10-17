@@ -178,8 +178,7 @@ class SnubaError(Exception):
 
 class UnqualifiedQueryError(SnubaError):
     """
-    Exception raised when no project_id qualifications were provided in the
-    query or could be derived from other filter criteria.
+    Exception raised when a required qualification was not satisfied in the query.
     """
 
 
@@ -644,17 +643,11 @@ def transform_aliases_and_query(skip_conditions=False, **kwargs):
     return result
 
 
-def _prepare_query_params(query_params):
-    # convert to naive UTC datetimes, as Snuba only deals in UTC
-    # and this avoids offset-naive and offset-aware issues
-    start = naiveify_datetime(query_params.start)
-    end = naiveify_datetime(query_params.end)
-
-    with timer("get_snuba_map"):
-        forward, reverse = get_snuba_translators(
-            query_params.filter_keys, is_grouprelease=query_params.is_grouprelease
-        )
-
+def get_query_params_to_update_for_projects(query_params):
+    """
+    Get the project ID and query params that need to be updated for project
+    based datasets, before we send the query to Snuba.
+    """
     if "project_id" in query_params.filter_keys:
         # If we are given a set of project ids, use those directly.
         project_ids = list(set(query_params.filter_keys["project_id"]))
@@ -669,6 +662,64 @@ def _prepare_query_params(query_params):
     else:
         project_ids = []
 
+    if not project_ids:
+        raise UnqualifiedQueryError(
+            "No project_id filter, or none could be inferred from other filters."
+        )
+
+    # any project will do, as they should all be from the same organization
+    organization_id = Project.objects.get(pk=project_ids[0]).organization_id
+
+    return organization_id, {"project": project_ids}
+
+
+def get_query_params_to_update_for_organizations(query_params):
+    """
+    Get the organization ID and query params that need to be updated for organization
+    based datasets, before we send the query to Snuba.
+    """
+    if "org_id" in query_params.filter_keys:
+        organization_ids = list(set(query_params.filter_keys["org_id"]))
+        if len(organization_ids) != 1:
+            raise UnqualifiedQueryError("Multiple organization_ids found. Only one allowed.")
+        organization_id = organization_ids[0]
+    elif "project_id" in query_params.filter_keys:
+        organization_id, _ = get_query_params_to_update_for_projects(query_params)
+    else:
+        organization_id = None
+
+    if not organization_id:
+        raise UnqualifiedQueryError(
+            "No organization_id filter, or none could be inferred from other filters."
+        )
+
+    return organization_id, {"organization": organization_id}
+
+
+def _prepare_query_params(query_params):
+    # convert to naive UTC datetimes, as Snuba only deals in UTC
+    # and this avoids offset-naive and offset-aware issues
+    start = naiveify_datetime(query_params.start)
+    end = naiveify_datetime(query_params.end)
+
+    with timer("get_snuba_map"):
+        forward, reverse = get_snuba_translators(
+            query_params.filter_keys, is_grouprelease=query_params.is_grouprelease
+        )
+
+    if query_params.dataset in [Dataset.Events, Dataset.Transactions]:
+        (organization_id, params_to_update) = get_query_params_to_update_for_projects(query_params)
+    elif query_params.dataset == Dataset.Outcomes:
+        (organization_id, params_to_update) = get_query_params_to_update_for_organizations(
+            query_params
+        )
+    else:
+        raise UnqualifiedQueryError(
+            "No strategy found for getting an organization for the given dataset."
+        )
+
+    query_params.kwargs.update(params_to_update)
+
     for col, keys in six.iteritems(forward(deepcopy(query_params.filter_keys))):
         if keys:
             if len(keys) == 1 and None in keys:
@@ -676,14 +727,7 @@ def _prepare_query_params(query_params):
             else:
                 query_params.conditions.append((col, "IN", keys))
 
-    if not project_ids:
-        raise UnqualifiedQueryError(
-            "No project_id filter, or none could be inferred from other filters."
-        )
-
-    # any project will do, as they should all be from the same organization
-    project = Project.objects.get(pk=project_ids[0])
-    retention = quotas.get_event_retention(organization=Organization(project.organization_id))
+    retention = quotas.get_event_retention(organization=Organization(organization_id))
     if retention:
         start = max(start, datetime.utcnow() - timedelta(days=retention))
         if start > end:
@@ -713,7 +757,6 @@ def _prepare_query_params(query_params):
             "groupby": query_params.groupby,
             "conditions": query_params.conditions,
             "aggregations": query_params.aggregations,
-            "project": project_ids,
             "granularity": query_params.rollup,  # TODO name these things the same
         }
     )
