@@ -230,26 +230,30 @@ type InteractionsChartProps = {
   };
 };
 const InteractionsChart = ({data}: InteractionsChartProps) => {
-  const elementInteractionsSeries = Object.keys(data).map((elementType: string) => {
-    const seriesData = data[elementType].map(point => ({
+  const elementInteractionsSeries = Object.keys(data).map((key: string) => {
+    const seriesData = data[key].map(point => ({
       value: point[1],
       name: point[0] * 1000,
     }));
     return {
-      seriesName: elementType,
+      seriesName: key,
       data: seriesData,
     };
   });
 
   return (
-    <LineChart
-      isGroupedByDate
-      series={elementInteractionsSeries}
-      grid={{
-        left: '30px',
-        right: '30px',
-      }}
-    />
+    <ChartWrapper>
+      <LineChart
+        isGroupedByDate
+        series={elementInteractionsSeries}
+        grid={{left: space(4), right: space(4)}}
+        legend={{
+          show: true,
+          orient: 'horizontal',
+          data: Object.keys(data),
+        }}
+      />
+    </ChartWrapper>
   );
 };
 
