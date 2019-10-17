@@ -491,32 +491,6 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
         )
 
     @patch("sentry.utils.snuba.raw_query")
-    def test_condition_reformat_event_id_condition(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "id"}, {"name": "duration"}],
-            "data": [{"event_id": "a" * 32, "duration": 200}],
-        }
-        transform_aliases_and_query(
-            skip_conditions=True,
-            selected_columns=["id", "transaction.duration"],
-            conditions=[["id", "=", "a" * 32]],
-            filter_keys={"project_id": [self.project.id]},
-        )
-        mock_query.assert_called_with(
-            selected_columns=["event_id", "duration"],
-            conditions=[["event_id", "=", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"]],
-            filter_keys={"project_id": [self.project.id]},
-            dataset=Dataset.Transactions,
-            aggregations=None,
-            arrayjoin=None,
-            end=None,
-            start=None,
-            having=None,
-            orderby=None,
-            groupby=None,
-        )
-
-    @patch("sentry.utils.snuba.raw_query")
     def test_condition_reformat_nested_conditions(self, mock_query):
         mock_query.return_value = {
             "meta": [{"name": "id"}, {"name": "duration"}],
