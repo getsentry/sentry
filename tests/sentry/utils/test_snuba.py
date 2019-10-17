@@ -286,10 +286,10 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
     """
 
     @patch("sentry.utils.snuba.raw_query")
-    def test_selected_columns_aliasing(self, mock_query):
+    def test_selected_columns_aliasing_in_function(self, mock_query):
         mock_query.return_value = {
-            "meta": [{"name": "transaction_name"}, {"name": "duration"}],
-            "data": [{"transaction_name": "api.do_things", "duration": 200}],
+            "meta": [{"name": "transaction"}, {"name": "duration"}],
+            "data": [{"transaction": "api.do_things", "duration": 200}],
         }
         transform_aliases_and_query(
             selected_columns=["transaction", "transaction.duration"],
@@ -303,6 +303,37 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
             selected_columns=["transaction_name", "duration"],
             aggregations=[
                 ["argMax", ["event_id", "duration"], "longest"],
+                ["uniq", "transaction_name", "uniq_transaction"],
+            ],
+            filter_keys={"project_id": [self.project.id]},
+            dataset=Dataset.Transactions,
+            arrayjoin=None,
+            end=None,
+            start=None,
+            conditions=None,
+            groupby=None,
+            having=None,
+            orderby=None,
+        )
+
+    @patch("sentry.utils.snuba.raw_query")
+    def test_selected_columns_opaque_string(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "p95"}],
+            "data": [{"transaction": "api.do_things", "p95": 200}],
+        }
+        transform_aliases_and_query(
+            selected_columns=["transaction"],
+            aggregations=[
+                ["quantileTiming(0.95)(duration)", "", "p95"],
+                ["uniq", "transaction", "uniq_transaction"],
+            ],
+            filter_keys={"project_id": [self.project.id]},
+        )
+        mock_query.assert_called_with(
+            selected_columns=["transaction_name"],
+            aggregations=[
+                ["quantileTiming(0.95)(duration)", "", "p95"],
                 ["uniq", "transaction_name", "uniq_transaction"],
             ],
             filter_keys={"project_id": [self.project.id]},
