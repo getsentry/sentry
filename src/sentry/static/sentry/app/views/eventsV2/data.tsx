@@ -348,6 +348,7 @@ type SpecialFields = {
   project: SpecialField;
   user: SpecialField;
   last_seen: SpecialField;
+  'issue.id': SpecialField;
 };
 
 /**
@@ -356,6 +357,19 @@ type SpecialFields = {
  * displays with a custom render function.
  */
 export const SPECIAL_FIELDS: SpecialFields = {
+  'issue.id': {
+    sortField: 'issue.id',
+    renderFunc: (data, {organization}) => {
+      const target = `/organizations/${organization.slug}/issues/${data['issue.id']}/`;
+      return (
+        <Container>
+          <OverflowLink to={target} aria-label={data['issue.id']}>
+            {data['issue.id']}
+          </OverflowLink>
+        </Container>
+      );
+    },
+  },
   transaction: {
     sortField: 'transaction',
     renderFunc: (data, {location}) => {
