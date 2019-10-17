@@ -1,11 +1,22 @@
 from __future__ import absolute_import
 
 import collections
+from copy import deepcopy
 import six
 
 from sentry.tsdb.base import BaseTSDB, TSDBModel
-from sentry.utils import snuba
+from sentry.utils import snuba, outcomes
 from sentry.utils.dates import to_datetime
+
+
+SnubaModelQuerySettings = collections.namedtuple(
+    # `dataset` - the dataset in Snuba that we want to query
+    # `groupby` - the column in Snuba that we want to put in the group by statement
+    # `aggregate` - the column in Snuba that we want to run the aggregate function on
+    # `conditions` - any additional model specific conditions we want to pass in the query
+    "SnubaModelSettings",
+    ["dataset", "groupby", "aggregate", "conditions"],
+)
 
 
 class SnubaTSDB(BaseTSDB):
@@ -19,20 +30,83 @@ class SnubaTSDB(BaseTSDB):
     will return empty results for unsupported models.
     """
 
-    # The ``model_columns`` are translations of TSDB models into the required
-    # columns for querying snuba. Keys are ``TSDBModel`` enumeration values,
-    # values are in the form ``(groupby_column, aggregateby_column or None)``.
-    # Only the models that are listed in this mapping are supported.
-    model_columns = {
-        TSDBModel.project: ("project_id", None),
-        TSDBModel.group: ("issue", None),
-        TSDBModel.release: ("tags[sentry:release]", None),
-        TSDBModel.users_affected_by_group: ("issue", "tags[sentry:user]"),
-        TSDBModel.users_affected_by_project: ("project_id", "tags[sentry:user]"),
-        TSDBModel.frequent_environments_by_group: ("issue", "environment"),
-        TSDBModel.frequent_releases_by_group: ("issue", "tags[sentry:release]"),
-        TSDBModel.frequent_issues_by_project: ("project_id", "issue"),
+    # The ``model_query_settings`` and ``model_being_upgraded_query_settings`` are translations of
+    # TSDB models into required settings for querying snuba. Queries for ``model_columns``
+    # directly hit snuba, while queries for ``model_columns_being_upgraded`` hit
+    # redis in the main thread and snuba in a background thread.
+    model_query_settings = {
+        TSDBModel.project: SnubaModelQuerySettings(snuba.Dataset.Events, "project_id", None, None),
+        TSDBModel.group: SnubaModelQuerySettings(snuba.Dataset.Events, "issue", None, None),
+        TSDBModel.release: SnubaModelQuerySettings(
+            snuba.Dataset.Events, "tags[sentry:release]", None, None
+        ),
+        TSDBModel.users_affected_by_group: SnubaModelQuerySettings(
+            snuba.Dataset.Events, "issue", "tags[sentry:user]", None
+        ),
+        TSDBModel.users_affected_by_project: SnubaModelQuerySettings(
+            snuba.Dataset.Events, "project_id", "tags[sentry:user]", None
+        ),
+        TSDBModel.frequent_environments_by_group: SnubaModelQuerySettings(
+            snuba.Dataset.Events, "issue", "environment", None
+        ),
+        TSDBModel.frequent_releases_by_group: SnubaModelQuerySettings(
+            snuba.Dataset.Events, "issue", "tags[sentry:release]", None
+        ),
+        TSDBModel.frequent_issues_by_project: SnubaModelQuerySettings(
+            snuba.Dataset.Events, "project_id", "issue", None
+        ),
     }
+
+    # In getsentry/getsentry:tsdb.py, we check ``model_columns`` to see if a request
+    # should go to snuba. So, for now, for backwards compatibility, alias
+    # ``model_columns`` to ``model_query_settings``.
+    # TODO(manu): use model_query_settings instead of model_columns in getsentry
+    model_columns = model_query_settings
+
+    # ``model_columns_being_upgraded`` are models that currently use Redis but are being
+    # transitioned to use Snuba.
+    model_being_upgraded_query_settings = {
+        TSDBModel.organization_total_received: SnubaModelQuerySettings(
+            snuba.Dataset.Outcomes,
+            "org_id",
+            "times_seen",
+            [["outcome", "=", outcomes.Outcome.ACCEPTED]],
+        ),
+        TSDBModel.organization_total_rejected: SnubaModelQuerySettings(
+            snuba.Dataset.Outcomes,
+            "org_id",
+            "times_seen",
+            [["outcome", "=", outcomes.Outcome.RATE_LIMITED]],
+        ),
+        TSDBModel.organization_total_blacklisted: SnubaModelQuerySettings(
+            snuba.Dataset.Outcomes,
+            "org_id",
+            "times_seen",
+            [["outcome", "=", outcomes.Outcome.FILTERED]],
+        ),
+        TSDBModel.project_total_received: SnubaModelQuerySettings(
+            snuba.Dataset.Outcomes,
+            "project_id",
+            "times_seen",
+            [["outcome", "=", outcomes.Outcome.ACCEPTED]],
+        ),
+        TSDBModel.project_total_rejected: SnubaModelQuerySettings(
+            snuba.Dataset.Outcomes,
+            "project_id",
+            "times_seen",
+            [["outcome", "=", outcomes.Outcome.RATE_LIMITED]],
+        ),
+        TSDBModel.project_total_blacklisted: SnubaModelQuerySettings(
+            snuba.Dataset.Outcomes,
+            "project_id",
+            "times_seen",
+            [["outcome", "=", outcomes.Outcome.FILTERED]],
+        ),
+    }
+
+    all_model_query_settings = dict(
+        model_columns.items() + model_being_upgraded_query_settings.items()
+    )
 
     def __init__(self, **options):
         super(SnubaTSDB, self).__init__(**options)
@@ -55,12 +129,13 @@ class SnubaTSDB(BaseTSDB):
         `group_on_time`: whether to add a GROUP BY clause on the 'time' field.
         `group_on_model`: whether to add a GROUP BY clause on the primary model.
         """
-        model_columns = self.model_columns.get(model)
+        model_query_settings = self.all_model_query_settings.get(model)
 
-        if model_columns is None:
+        if model_query_settings is None:
             raise Exception(u"Unsupported TSDBModel: {}".format(model.name))
 
-        model_group, model_aggregate = model_columns
+        model_group = model_query_settings.groupby
+        model_aggregate = model_query_settings.aggregate
 
         groupby = []
         if group_on_model and model_group is not None:
@@ -73,7 +148,8 @@ class SnubaTSDB(BaseTSDB):
             groupby.append(model_aggregate)
             model_aggregate = None
 
-        keys_map = dict(zip(model_columns, self.flatten_keys(keys)))
+        columns = (model_query_settings.groupby, model_query_settings.aggregate)
+        keys_map = dict(zip(columns, self.flatten_keys(keys)))
         keys_map = {k: v for k, v in six.iteritems(keys_map) if k is not None and v is not None}
         if environment_ids is not None:
             keys_map["environment"] = environment_ids
@@ -90,10 +166,13 @@ class SnubaTSDB(BaseTSDB):
 
         if keys:
             result = snuba.query(
+                dataset=model_query_settings.dataset,
                 start=start,
                 end=end,
                 groupby=groupby,
-                conditions=None,
+                conditions=deepcopy(
+                    model_query_settings.conditions
+                ),  # copy because we modify the conditions in snuba.query
                 filter_keys=keys_map,
                 aggregations=aggregations,
                 rollup=rollup,
@@ -150,6 +229,15 @@ class SnubaTSDB(BaseTSDB):
                         del result[rk]
 
     def get_range(self, model, keys, start, end, rollup=None, environment_ids=None):
+        model_query_settings = self.all_model_query_settings.get(model)
+
+        assert model_query_settings is not None, u"Unsupported TSDBModel: {}".format(model.name)
+
+        if model_query_settings.dataset == snuba.Dataset.Outcomes:
+            aggregate_function = "sum"
+        else:
+            aggregate_function = "count()"
+
         result = self.get_data(
             model,
             keys,
@@ -157,7 +245,7 @@ class SnubaTSDB(BaseTSDB):
             end,
             rollup,
             environment_ids,
-            aggregation="count()",
+            aggregation=aggregate_function,
             group_on_time=True,
         )
         # convert
