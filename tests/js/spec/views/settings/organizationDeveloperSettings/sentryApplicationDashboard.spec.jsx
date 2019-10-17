@@ -212,7 +212,7 @@ describe('Sentry Application Dashboard', function() {
 
     it('does not show the installation stats or graph', () => {
       expect(wrapper.exists('StatsSection')).toBeFalsy();
-      expect(wrapper.exists('StackedBarChart')).toBeFalsy();
+      expect(wrapper.exists('BarChart')).toBeFalsy();
     });
 
     it('shows the error log', () => {
