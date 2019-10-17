@@ -830,7 +830,7 @@ SENTRY_FEATURES = {
     # Enable multi project selection
     "organizations:global-views": False,
     # Turns on grouping info.
-    "organizations:grouping-info": False,
+    "organizations:grouping-info": True,
     # Lets organizations upgrade grouping configs and tweak them
     "organizations:tweak-grouping-config": True,
     # Lets organizations manage grouping configs
