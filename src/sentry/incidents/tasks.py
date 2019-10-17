@@ -13,6 +13,7 @@ from sentry.exceptions import DeleteAborted
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleStatus,
+    AlertRuleTriggerAction,
     Incident,
     IncidentActivity,
     IncidentActivityType,
@@ -24,6 +25,7 @@ from sentry.tasks.base import instrumented_task, retry
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 from sentry.utils.linksign import generate_signed_link
+from sentry.utils import metrics
 from sentry.utils.retries import TimedRetryPolicy
 
 INCIDENTS_SNUBA_SUBSCRIPTION_TYPE = "incidents"
@@ -171,3 +173,24 @@ def handle_snuba_query_update(subscription_update, subscription):
     from sentry.incidents.subscription_processor import SubscriptionProcessor
 
     SubscriptionProcessor(subscription).process_update(subscription_update)
+
+
+@instrumented_task(
+    name="sentry.incidents.tasks.handle_trigger_action",
+    queue="incidents",
+    default_retry_delay=60,
+    max_retries=5,
+)
+def handle_trigger_action(action_id, incident_id, method):
+    try:
+        action = AlertRuleTriggerAction.objects.get(id=action_id)
+    except AlertRuleTriggerAction.DoesNotExist:
+        metrics.incr("incidents.alert_rules.skipping_missing_action")
+        return
+    try:
+        incident = Incident.objects.get(id=incident_id)
+    except Incident.DoesNotExist:
+        metrics.incr("incidents.alert_rules.skipping_missing_incident")
+        return
+
+    getattr(action, method)(incident)
