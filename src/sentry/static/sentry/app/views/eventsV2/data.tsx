@@ -17,7 +17,7 @@ import {QueryLink} from './styles';
 
 export const MODAL_QUERY_KEYS = ['eventSlug'] as const;
 export const PIN_ICON = `image://${pinIcon}`;
-export const AGGREGATE_ALIASES = ['last_seen', 'latest_event'] as const;
+export const AGGREGATE_ALIASES = ['p95', 'p75', 'last_seen', 'latest_event'] as const;
 
 export const DEFAULT_EVENT_VIEW_V1: Readonly<EventViewv1> = {
   name: t('All Events'),
@@ -348,6 +348,7 @@ type SpecialFields = {
   project: SpecialField;
   user: SpecialField;
   last_seen: SpecialField;
+  'issue.id': SpecialField;
 };
 
 /**
@@ -356,6 +357,19 @@ type SpecialFields = {
  * displays with a custom render function.
  */
 export const SPECIAL_FIELDS: SpecialFields = {
+  'issue.id': {
+    sortField: 'issue.id',
+    renderFunc: (data, {organization}) => {
+      const target = `/organizations/${organization.slug}/issues/${data['issue.id']}/`;
+      return (
+        <Container>
+          <OverflowLink to={target} aria-label={data['issue.id']}>
+            {data['issue.id']}
+          </OverflowLink>
+        </Container>
+      );
+    },
+  },
   transaction: {
     sortField: 'transaction',
     renderFunc: (data, {location}) => {

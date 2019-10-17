@@ -163,6 +163,7 @@ class Sidebar extends React.Component {
       'events',
       'releases',
       'user-feedback',
+      'eventsv2',
     ].map(route => `/organizations/${this.props.organization.slug}/${route}/`);
 
     // Only keep the querystring if the current route matches one of the above
