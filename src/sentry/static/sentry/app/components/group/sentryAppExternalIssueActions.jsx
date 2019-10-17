@@ -51,9 +51,13 @@ class SentryAppExternalIssueActions extends React.Component {
     if (!this.state.externalIssue) {
       const {sentryAppComponent} = this.props;
 
-      recordInteraction(sentryAppComponent.sentryApp, 'sentry_app_component_interacted', {
-        componentType: 'issue-link',
-      });
+      recordInteraction(
+        sentryAppComponent.sentryApp.slug,
+        'sentry_app_component_interacted',
+        {
+          componentType: 'issue-link',
+        }
+      );
       this.setState({showModal: true});
     }
   };

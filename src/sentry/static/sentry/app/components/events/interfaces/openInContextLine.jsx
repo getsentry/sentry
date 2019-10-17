@@ -37,7 +37,7 @@ class OpenInContextLine extends React.Component {
     const {slug} = component.sentryApp;
 
     const recordStacktraceLinkInteraction = () => {
-      recordInteraction(component.sentryApp, 'sentry_app_component_interacted', {
+      recordInteraction(slug, 'sentry_app_component_interacted', {
         componentType: 'stacktrace-link',
       });
     };
