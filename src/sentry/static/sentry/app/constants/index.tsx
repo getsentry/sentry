@@ -210,3 +210,8 @@ export const EXPERIMENTAL_SPA = process.env.EXPERIMENTAL_SPA;
 // TODO(kmclb): once relay is doing the scrubbing, the masking value will be dynamic,
 // so this will have to change
 export const FILTER_MASK = '[Filtered]';
+
+// Errors that may occur during the fetching of organization details
+export const ORGANIZATION_FETCH_ERROR_TYPES = {
+  ORG_NOT_FOUND: 'ORG_NOT_FOUND',
+};
