@@ -190,12 +190,12 @@ class TableView extends React.Component<TableViewProps, TableState> {
   };
 
   render() {
-    const {isLoading, error, tableData} = this.props;
+    const {organization, isLoading, error, tableData} = this.props;
     const {columnOrder, columnSortBy} = this.state;
     const {
       renderModalBodyWithForm,
       renderModalFooter,
-    } = renderTableModalEditColumnFactory({
+    } = renderTableModalEditColumnFactory(organization, {
       createColumn: this._createColumn,
       updateColumn: this._updateColumn,
     });

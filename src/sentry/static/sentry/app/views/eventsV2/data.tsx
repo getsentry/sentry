@@ -17,7 +17,7 @@ import {QueryLink} from './styles';
 
 export const MODAL_QUERY_KEYS = ['eventSlug'] as const;
 export const PIN_ICON = `image://${pinIcon}`;
-export const AGGREGATE_ALIASES = ['last_seen', 'latest_event'] as const;
+export const AGGREGATE_ALIASES = ['p95', 'p75', 'last_seen', 'latest_event'] as const;
 
 export const DEFAULT_EVENT_VIEW_V1: Readonly<EventViewv1> = {
   name: t('All Events'),
@@ -28,6 +28,53 @@ export const DEFAULT_EVENT_VIEW_V1: Readonly<EventViewv1> = {
   },
   tags: ['event.type', 'release', 'project.name', 'user.email', 'user.ip', 'environment'],
 };
+
+export const TRANSACTION_VIEWS: Readonly<Array<EventViewv1>> = [
+  {
+    name: t('Transactions'),
+    data: {
+      fields: [
+        'transaction',
+        'project',
+        'count()',
+        'avg(transaction.duration)',
+        'p75',
+        'p95',
+      ],
+      fieldnames: ['transaction', 'project', 'volume', 'avg', '75th', '95th'],
+      sort: ['-count'],
+      query: 'event.type:transaction',
+    },
+    tags: ['release', 'project.name', 'user.email', 'user.ip', 'environment'],
+  },
+  {
+    name: t('Transactions by User'),
+    data: {
+      fields: [
+        'user',
+        'count()',
+        'count_unique(transaction)',
+        'avg(transaction.duration)',
+        'p75',
+        'p95',
+      ],
+      fieldnames: ['user', 'events', 'unique transactions', 'avg', '75th', '95th'],
+      sort: ['-count'],
+      query: 'event.type:transaction',
+    },
+    tags: ['release', 'project.name', 'user.email', 'user.ip', 'environment'],
+  },
+  {
+    name: t('Transactions by Region'),
+    data: {
+      fields: ['geo.region', 'count()', 'avg(transaction.duration)', 'p75', 'p95'],
+      fieldnames: ['Region', 'events', 'avg', '75th', '95th'],
+      sort: ['-count'],
+      query: 'event.type:transaction',
+    },
+    tags: ['release', 'project.name', 'user.email', 'user.ip'],
+  },
+];
 
 export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
   DEFAULT_EVENT_VIEW_V1,
@@ -72,7 +119,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     tags: ['user.id', 'project.name', 'url'],
   },
   {
-    name: t('CSP'),
+    name: t('Content Security Policy (CSP)'),
     data: {
       fields: ['title', 'count()', 'count_unique(user)', 'project', 'last_seen'],
       fieldnames: ['csp', 'events', 'users', 'project', 'last seen'],
@@ -88,7 +135,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     ],
   },
   {
-    name: t('CSP Report by Directive'),
+    name: t('Content Security Policy (CSP) Report by Directive'),
     data: {
       fields: ['effective-directive', 'count()', 'count_unique(title)'],
       fieldnames: ['directive', 'events', 'reports'],
@@ -98,7 +145,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     tags: ['project.name', 'blocked-uri', 'browser.name', 'os.name'],
   },
   {
-    name: t('CSP Report by Blocked URI'),
+    name: t('Content Security Policy (CSP) Report by Blocked URI'),
     data: {
       fields: ['blocked-uri', 'count()'],
       fieldnames: ['URI', 'events'],
@@ -108,7 +155,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     tags: ['project.name', 'blocked-uri', 'browser.name', 'os.name'],
   },
   {
-    name: t('CSP Report by User'),
+    name: t('Content Security Policy (CSP) Report by User'),
     data: {
       fields: ['user', 'count()', 'count_unique(title)'],
       fieldnames: ['User', 'events', 'reports'],
@@ -116,50 +163,6 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
       query: 'event.type:csp',
     },
     tags: ['project.name', 'blocked-uri', 'browser.name', 'os.name'],
-  },
-  {
-    name: t('Transactions'),
-    data: {
-      fields: [
-        'transaction',
-        'project',
-        'count()',
-        'avg(transaction.duration)',
-        'p75',
-        'p95',
-      ],
-      fieldnames: ['transaction', 'project', 'volume', 'avg', '75th', '95th'],
-      sort: ['-count'],
-      query: 'event.type:transaction',
-    },
-    tags: ['release', 'project.name', 'user.email', 'user.ip', 'environment'],
-  },
-  {
-    name: t('Transactions by User'),
-    data: {
-      fields: [
-        'user',
-        'count()',
-        'count_unique(transaction)',
-        'avg(transaction.duration)',
-        'p75',
-        'p95',
-      ],
-      fieldnames: ['user', 'events', 'unique transactions', 'avg', '75th', '95th'],
-      sort: ['-count'],
-      query: 'event.type:transaction',
-    },
-    tags: ['release', 'project.name', 'user.email', 'user.ip', 'environment'],
-  },
-  {
-    name: t('Transactions by Region'),
-    data: {
-      fields: ['geo.region', 'count()', 'avg(transaction.duration)', 'p75', 'p95'],
-      fieldnames: ['Region', 'events', 'avg', '75th', '95th'],
-      sort: ['-count'],
-      query: 'event.type:transaction',
-    },
-    tags: ['release', 'project.name', 'user.email', 'user.ip'],
   },
 ];
 
@@ -345,6 +348,7 @@ type SpecialFields = {
   project: SpecialField;
   user: SpecialField;
   last_seen: SpecialField;
+  'issue.id': SpecialField;
 };
 
 /**
@@ -353,6 +357,19 @@ type SpecialFields = {
  * displays with a custom render function.
  */
 export const SPECIAL_FIELDS: SpecialFields = {
+  'issue.id': {
+    sortField: 'issue.id',
+    renderFunc: (data, {organization}) => {
+      const target = `/organizations/${organization.slug}/issues/${data['issue.id']}/`;
+      return (
+        <Container>
+          <OverflowLink to={target} aria-label={data['issue.id']}>
+            {data['issue.id']}
+          </OverflowLink>
+        </Container>
+      );
+    },
+  },
   transaction: {
     sortField: 'transaction',
     renderFunc: (data, {location}) => {

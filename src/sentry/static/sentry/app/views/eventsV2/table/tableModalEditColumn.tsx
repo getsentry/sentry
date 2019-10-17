@@ -4,9 +4,16 @@ import styled from 'react-emotion';
 import {t} from 'app/locale';
 import {Form, SelectField, TextField} from 'app/components/forms';
 import InlineSvg from 'app/components/inlineSvg';
+import {Organization} from 'app/types';
 import space from 'app/styles/space';
 
-import {AGGREGATIONS, FIELDS, Aggregation, Field} from '../eventQueryParams';
+import {
+  AGGREGATIONS,
+  FIELDS,
+  TRACING_FIELDS,
+  Aggregation,
+  Field,
+} from '../eventQueryParams';
 import {TableColumn} from './types';
 
 type ModalActions = {
@@ -14,7 +21,10 @@ type ModalActions = {
   updateColumn: (indexColumnOrder: number, column: TableColumn<ReactText>) => void;
 };
 
-export function renderTableModalEditColumnFactory(actions: ModalActions) {
+export function renderTableModalEditColumnFactory(
+  organization: Organization,
+  actions: ModalActions
+) {
   return {
     renderModalBodyWithForm: (
       indexColumnOrder?: number,
@@ -24,6 +34,7 @@ export function renderTableModalEditColumnFactory(actions: ModalActions) {
     ) => {
       return (
         <TableModalEditColumnBodyForm
+          organization={organization}
           indexColumnOrder={indexColumnOrder}
           column={column}
           actions={{
@@ -42,6 +53,7 @@ export function renderTableModalEditColumnFactory(actions: ModalActions) {
 export default renderTableModalEditColumnFactory;
 
 type TableModalEditColumnFormProps = {
+  organization: Organization;
   indexColumnOrder?: number;
   column?: TableColumn<ReactText>;
 
@@ -61,22 +73,24 @@ class TableModalEditColumnBodyForm extends React.Component<
 > {
   state = {
     aggregations: filterAggregationByField(
+      this.props.organization,
       this.props.column ? this.props.column.field : ''
     ),
     fields: filterFieldByAggregation(
+      this.props.organization,
       this.props.column ? this.props.column.aggregation : ''
     ),
   };
 
   onChangeAggregation = (value: Aggregation) => {
     this.setState({
-      fields: filterFieldByAggregation(value),
+      fields: filterFieldByAggregation(this.props.organization, value),
     });
   };
 
   onChangeField = (value: Field) => {
     this.setState({
-      aggregations: filterAggregationByField(value),
+      aggregations: filterAggregationByField(this.props.organization, value),
     });
   };
 
@@ -164,16 +178,20 @@ const TableModalEditColumnFooter = () => (
   </FooterContent>
 );
 
-function filterAggregationByField(f?: Field): Aggregation[] {
+function filterAggregationByField(organization: Organization, f?: Field): Aggregation[] {
+  let functionList = Object.keys(AGGREGATIONS);
+  if (!organization.features.includes('transaction-events')) {
+    functionList = functionList.filter(item => !TRACING_FIELDS.includes(item));
+  }
   if (!f || !FIELDS[f]) {
-    return Object.keys(AGGREGATIONS) as Aggregation[];
+    return functionList as Aggregation[];
   }
 
   if (FIELDS[f] === 'never') {
     return [];
   }
 
-  return Object.keys(AGGREGATIONS).reduce(
+  return functionList.reduce(
     (accumulator, a) => {
       if (
         AGGREGATIONS[a].type.includes(FIELDS[f]) ||
@@ -189,12 +207,17 @@ function filterAggregationByField(f?: Field): Aggregation[] {
   );
 }
 
-function filterFieldByAggregation(a?: Aggregation): Field[] {
-  if (!a || !AGGREGATIONS[a]) {
-    return Object.keys(FIELDS) as Field[];
+function filterFieldByAggregation(organization: Organization, a?: Aggregation): Field[] {
+  let fieldList = Object.keys(FIELDS);
+  if (!organization.features.includes('transaction-events')) {
+    fieldList = fieldList.filter(item => !TRACING_FIELDS.includes(item));
   }
 
-  return Object.keys(FIELDS).reduce(
+  if (!a || !AGGREGATIONS[a]) {
+    return fieldList as Field[];
+  }
+
+  return fieldList.reduce(
     (accumulator, f) => {
       if (!FIELDS[f] || FIELDS[f] === 'never') {
         return accumulator;

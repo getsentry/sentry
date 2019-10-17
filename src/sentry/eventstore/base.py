@@ -10,6 +10,7 @@ class Columns(Enum):
     # TODO add all the other columns.
     EVENT_ID = "event_id"
     GROUP_ID = "group_id"
+    ISSUE = "issue"
     PROJECT_ID = "project_id"
     TIMESTAMP = "timestamp"
     CULPRIT = "culprit"
@@ -122,6 +123,8 @@ class EventStorage(Service):
         "get_events",
         "get_prev_event_id",
         "get_next_event_id",
+        "get_earliest_event_id",
+        "get_latest_event_id",
         "bind_nodes",
     )
 
@@ -189,6 +192,28 @@ class EventStorage(Service):
     def get_prev_event_id(self, event, filter):
         """
         Gets the previous event given a current event and some conditions/filters.
+        Returns a tuple of (project_id, event_id)
+
+        Arguments:
+        event (Event): Event object
+        filter (Filter): Filter
+        """
+        raise NotImplementedError
+
+    def get_earliest_event_id(self, event, filter):
+        """
+        Gets the earliest event given a current event and some conditions/filters.
+        Returns a tuple of (project_id, event_id)
+
+        Arguments:
+        event (Event): Event object
+        filter (Filter): Filter
+        """
+        raise NotImplementedError
+
+    def get_latest_event_id(self, event, filter):
+        """
+        Gets the latest event given a current event and some conditions/filters.
         Returns a tuple of (project_id, event_id)
 
         Arguments:

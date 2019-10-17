@@ -1,19 +1,28 @@
 import React from 'react';
-import PropTypes from 'prop-types';
-
+import styled from 'react-emotion';
 import classNames from 'classnames';
+import PropTypes from 'prop-types';
 
 import Confirm from 'app/components/confirm';
 
-export default class ActionLink extends React.Component {
+type ActionLinkProps = {
+  title: string;
+  message: React.ReactNode;
+  disabled?: boolean;
+  onAction: () => void;
+  shouldConfirm?: boolean;
+  confirmLabel?: string;
+} & React.HTMLAttributes<HTMLDivElement>;
+
+export default class ActionLink extends React.Component<ActionLinkProps> {
   static propTypes = {
-    shouldConfirm: PropTypes.bool,
-    message: PropTypes.node,
     className: PropTypes.any,
-    onAction: PropTypes.func.isRequired,
     title: PropTypes.string,
-    confirmLabel: PropTypes.string,
+    message: PropTypes.node,
     disabled: PropTypes.bool,
+    onAction: PropTypes.func.isRequired,
+    shouldConfirm: PropTypes.bool,
+    confirmLabel: PropTypes.string,
   };
 
   static defaultProps = {
@@ -47,7 +56,7 @@ export default class ActionLink extends React.Component {
       );
     } else {
       return (
-        <a
+        <ActionLinkAnchor
           data-test-id={testId}
           aria-label={title}
           className={classNames(className, {disabled})}
@@ -55,8 +64,11 @@ export default class ActionLink extends React.Component {
           disabled={disabled}
         >
           {children}
-        </a>
+        </ActionLinkAnchor>
       );
     }
   }
 }
+const ActionLinkAnchor = styled('a')<{disabled?: boolean}>`
+  pointer-events: ${p => (p.disabled ? 'none' : 'auto')};
+`;

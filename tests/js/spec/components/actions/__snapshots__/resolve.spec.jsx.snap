@@ -487,14 +487,21 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                                   onAction={[Function]}
                                   shouldConfirm={false}
                                 >
-                                  <a
+                                  <ActionLinkAnchor
                                     className=""
                                     data-test-id="action-link"
                                     disabled={false}
                                     onClick={[Function]}
                                   >
-                                    Another version…
-                                  </a>
+                                    <a
+                                      className="css-19ecu88-ActionLinkAnchor ehtyk0g0"
+                                      data-test-id="action-link"
+                                      disabled={false}
+                                      onClick={[Function]}
+                                    >
+                                      Another version…
+                                    </a>
+                                  </ActionLinkAnchor>
                                 </ActionLink>
                               </span>
                             </Container>
@@ -605,23 +612,31 @@ exports[`ResolveActions without confirmation renders 1`] = `
           shouldConfirm={false}
           title="Resolve"
         >
-          <a
+          <ActionLinkAnchor
             aria-label="Resolve"
             className="btn btn-default btn-sm"
             data-test-id="action-link-resolve"
             disabled={false}
             onClick={[Function]}
           >
-            <span
-              className="icon-checkmark hidden-xs"
-              style={
-                Object {
-                  "marginRight": 5,
+            <a
+              aria-label="Resolve"
+              className="btn btn-default btn-sm css-19ecu88-ActionLinkAnchor ehtyk0g0"
+              data-test-id="action-link-resolve"
+              disabled={false}
+              onClick={[Function]}
+            >
+              <span
+                className="icon-checkmark hidden-xs"
+                style={
+                  Object {
+                    "marginRight": 5,
+                  }
                 }
-              }
-            />
-            Resolve
-          </a>
+              />
+              Resolve
+            </a>
+          </ActionLinkAnchor>
         </ActionLink>
         <DropdownLink
           alwaysRenderMenu={true}
@@ -717,14 +732,21 @@ exports[`ResolveActions without confirmation renders 1`] = `
                                   onAction={[Function]}
                                   shouldConfirm={false}
                                 >
-                                  <a
+                                  <ActionLinkAnchor
                                     className=""
                                     data-test-id="action-link"
                                     disabled={false}
                                     onClick={[Function]}
                                   >
-                                    The next release
-                                  </a>
+                                    <a
+                                      className="css-19ecu88-ActionLinkAnchor ehtyk0g0"
+                                      data-test-id="action-link"
+                                      disabled={false}
+                                      onClick={[Function]}
+                                    >
+                                      The next release
+                                    </a>
+                                  </ActionLinkAnchor>
                                 </ActionLink>
                               </span>
                             </Container>
@@ -765,14 +787,21 @@ exports[`ResolveActions without confirmation renders 1`] = `
                                   onAction={[Function]}
                                   shouldConfirm={false}
                                 >
-                                  <a
+                                  <ActionLinkAnchor
                                     className=""
                                     data-test-id="action-link"
                                     disabled={false}
                                     onClick={[Function]}
                                   >
-                                    The current release
-                                  </a>
+                                    <a
+                                      className="css-19ecu88-ActionLinkAnchor ehtyk0g0"
+                                      data-test-id="action-link"
+                                      disabled={false}
+                                      onClick={[Function]}
+                                    >
+                                      The current release
+                                    </a>
+                                  </ActionLinkAnchor>
                                 </ActionLink>
                               </span>
                             </Container>
@@ -813,14 +842,21 @@ exports[`ResolveActions without confirmation renders 1`] = `
                                   onAction={[Function]}
                                   shouldConfirm={false}
                                 >
-                                  <a
+                                  <ActionLinkAnchor
                                     className=""
                                     data-test-id="action-link"
                                     disabled={false}
                                     onClick={[Function]}
                                   >
-                                    Another version…
-                                  </a>
+                                    <a
+                                      className="css-19ecu88-ActionLinkAnchor ehtyk0g0"
+                                      data-test-id="action-link"
+                                      disabled={false}
+                                      onClick={[Function]}
+                                    >
+                                      Another version…
+                                    </a>
+                                  </ActionLinkAnchor>
                                 </ActionLink>
                               </span>
                             </Container>

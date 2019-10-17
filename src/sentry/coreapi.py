@@ -24,7 +24,6 @@ from sentry.utils import json
 from sentry.utils.auth import parse_auth_header
 from sentry.utils.http import origin_from_request
 from sentry.utils.strings import decompress
-from sentry.utils.safe import get_path
 from sentry.utils.sdk import configure_scope
 from sentry.utils.canonical import CANONICAL_TYPES
 
@@ -138,19 +137,6 @@ class ClientApiHelper(object):
 
     def project_id_from_auth(self, auth):
         return self.project_key_from_auth(auth).project_id
-
-    def ensure_does_not_have_ip(self, data):
-        env = get_path(data, "request", "env")
-        if env:
-            env.pop("REMOTE_ADDR", None)
-
-        user = get_path(data, "user")
-        if user:
-            user.pop("ip_address", None)
-
-        sdk = get_path(data, "sdk")
-        if sdk:
-            sdk.pop("client_ip", None)
 
     def insert_data_to_database(
         self, data, start_time=None, from_reprocessing=False, attachments=None

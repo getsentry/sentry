@@ -247,6 +247,7 @@ def _do_process_event(cache_key, start_time, event_id, process_task, data=None):
         try:
             if issues and create_failed_event(
                 cache_key,
+                data,
                 project_id,
                 list(issues.values()),
                 event_id=event_id,
@@ -320,11 +321,16 @@ def delete_raw_event(project_id, event_id, allow_hint_clear=False):
 
 
 def create_failed_event(
-    cache_key, project_id, issues, event_id, start_time=None, reprocessing_rev=None
+    cache_key, data, project_id, issues, event_id, start_time=None, reprocessing_rev=None
 ):
     """If processing failed we put the original data from the cache into a
     raw event.  Returns `True` if a failed event was inserted
     """
+    # We can only create failed events for events that can potentially
+    # create failed events.
+    if not reprocessing.event_supports_reprocessing(data):
+        return False
+
     reprocessing_active = ProjectOption.objects.get_value(
         project_id, "sentry:reprocessing_active", REPROCESSING_DEFAULT
     )
@@ -431,6 +437,7 @@ def _do_save_event(
     from sentry import quotas
     from sentry.models import ProjectKey
     from sentry.utils.outcomes import Outcome, track_outcome
+    from sentry.ingest.outcomes_consumer import mark_signal_sent
 
     if cache_key and data is None:
         data = default_cache.get(cache_key)
@@ -451,7 +458,11 @@ def _do_save_event(
         key_id = int(key_id)
     timestamp = to_datetime(start_time) if start_time is not None else None
 
-    delete_raw_event(project_id, event_id, allow_hint_clear=True)
+    # We only need to delete raw events for events that support
+    # reprocessing.  If the data cannot be found we want to assume
+    # that we need to delete the raw event.
+    if not data or reprocessing.event_supports_reprocessing(data):
+        delete_raw_event(project_id, event_id, allow_hint_clear=True)
 
     # This covers two cases: where data is None because we did not manage
     # to fetch it from the default cache or the empty dictionary was
@@ -507,6 +518,12 @@ def _do_save_event(
             pass
 
         quotas.refund(project, key=project_key, timestamp=start_time)
+        # There is no signal supposed to be sent for this particular
+        # outcome-reason combination. Prevent the outcome consumer from
+        # emitting it for now.
+        #
+        # XXX(markus): Revisit decision about signals once outcomes consumer is stable.
+        mark_signal_sent(event_id, project_id)
         track_outcome(
             project.organization_id,
             project_id,
