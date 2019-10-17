@@ -1,3 +1,4 @@
+import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -86,7 +87,7 @@ class AccountAuthorizations extends AsyncView {
         <SettingsPageHeader title="Authorized Applications" />
         <Description>
           {tct('You can manage your own applications via the [link:API dashboard].', {
-            link: <a href="/settings/account/api/" />,
+            link: <Link to="/settings/account/api/" />,
           })}
         </Description>
 
