@@ -134,8 +134,9 @@ const OrganizationContext = createReactClass({
 
   loadOrganization(orgData) {
     const {organization, error} = orgData;
+    const hooks = [];
+
     if (organization && !error) {
-      const hooks = [];
       HookStore.get('organization:header').forEach(cb => {
         hooks.push(cb(organization));
       });
@@ -168,7 +169,8 @@ const OrganizationContext = createReactClass({
         });
       }
     }
-    this.setState(orgData, () => {
+
+    this.setState({...orgData, hooks}, () => {
       // Take a measurement for when organization details are done loading and the new state is applied
       if (organization) {
         metric.measure({
