@@ -15,13 +15,11 @@ const OrganizationStore = Reflux.createStore({
     // mark the store as dirty if projects or teams change
     this.listenTo(ProjectActions.createSuccess, this.onProjectOrTeamChange);
     this.listenTo(ProjectActions.updateSuccess, this.onProjectOrTeamChange);
-    this.listenTo(ProjectActions.loadStatsSuccess, this.onProjectOrTeamChange);
     this.listenTo(ProjectActions.changeSlug, this.onProjectOrTeamChange);
     this.listenTo(ProjectActions.addTeamSuccess, this.onProjectOrTeamChange);
     this.listenTo(ProjectActions.removeTeamSuccess, this.onProjectOrTeamChange);
 
     this.listenTo(TeamActions.updateSuccess, this.onProjectOrTeamChange);
-    this.listenTo(TeamActions.fetchDetailsSuccess, this.onProjectOrTeamChange);
     this.listenTo(TeamActions.removeTeamSuccess, this.onProjectOrTeamChange);
     this.listenTo(TeamActions.createTeamSuccess, this.onProjectOrTeamChange);
   },
