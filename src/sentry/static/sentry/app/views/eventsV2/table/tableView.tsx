@@ -58,7 +58,6 @@ class TableView extends React.Component<TableViewProps> {
 
     pushEventViewToLocation({
       location,
-      currentEventView: eventView,
       nextEventView,
       extraQuery: pickRelevantLocationQueryStrings(location),
     });
@@ -86,7 +85,6 @@ class TableView extends React.Component<TableViewProps> {
 
     pushEventViewToLocation({
       location,
-      currentEventView: eventView,
       nextEventView,
       extraQuery: pickRelevantLocationQueryStrings(location),
     });
@@ -106,7 +104,6 @@ class TableView extends React.Component<TableViewProps> {
 
     pushEventViewToLocation({
       location,
-      currentEventView: eventView,
       nextEventView,
       extraQuery: pickRelevantLocationQueryStrings(location),
     });
@@ -122,7 +119,6 @@ class TableView extends React.Component<TableViewProps> {
 
     pushEventViewToLocation({
       location,
-      currentEventView: eventView,
       nextEventView,
       extraQuery: pickRelevantLocationQueryStrings(location),
     });

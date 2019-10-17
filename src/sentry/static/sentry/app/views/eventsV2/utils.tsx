@@ -287,7 +287,6 @@ export function decodeColumnOrder(props: {
 
 export function pushEventViewToLocation(props: {
   location: Location;
-  currentEventView: EventView;
   nextEventView: EventView;
   extraQuery?: Query;
 }) {
