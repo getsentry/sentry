@@ -986,7 +986,7 @@ def constrain_condition_to_dataset(cond, dataset):
         cond[index + 1] = func_args
         return cond
     # No function name found
-    if isinstance(cond, (list, tuple)):
+    if isinstance(cond, (list, tuple)) and len(cond):
         # Condition is [col, operator, value]
         if isinstance(cond[0], six.string_types) and len(cond) == 3:
             # Map column name to current dataset removing
