@@ -1257,13 +1257,13 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
         if "time" in row
         else row,
     )
-    # Extra reverse translator for bucketed_start column.
+    # Extra reverse translator for bucketed_end column.
     reverse = compose(
         reverse,
         lambda row: replace(
-            row, "bucketed_start", int(to_timestamp(parse_datetime(row["bucketed_start"])))
+            row, "bucketed_end", int(to_timestamp(parse_datetime(row["bucketed_end"])))
         )
-        if "bucketed_start" in row
+        if "bucketed_end" in row
         else row,
     )
 
