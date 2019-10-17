@@ -2248,6 +2248,11 @@
     "@types/prop-types" "*"
     csstype "^2.2.0"
 
+"@types/reflux@0.4.1":
+  version "0.4.1"
+  resolved "https://registry.yarnpkg.com/@types/reflux/-/reflux-0.4.1.tgz#1f91d5ede2172c535107e9f79755bda70234f9c1"
+  integrity sha1-H5HV7eIXLFNRB+n3l1W9pwI0+cE=
+
 "@types/tapable@*":
   version "1.0.4"
   resolved "https://registry.yarnpkg.com/@types/tapable/-/tapable-1.0.4.tgz#b4ffc7dc97b498c969b360a41eee247f82616370"

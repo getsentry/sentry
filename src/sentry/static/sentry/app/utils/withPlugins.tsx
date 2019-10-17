@@ -35,7 +35,7 @@ const withPlugins = <P extends InjectedPluginProps>(
           organization: SentryTypes.Organization.isRequired,
           project: SentryTypes.Project.isRequired,
         },
-        mixins: [Reflux.connect(PluginsStore, 'store')],
+        mixins: [Reflux.connect(PluginsStore, 'store') as any],
 
         componentDidMount() {
           this.fetchPlugins();

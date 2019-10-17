@@ -55,8 +55,8 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
   },
 
   mixins: [
-    Reflux.listenTo(GroupStore, 'onGroupChange'),
-    Reflux.connect(MemberListStore, 'memberList'),
+    Reflux.listenTo(GroupStore, 'onGroupChange') as any,
+    Reflux.connect(MemberListStore, 'memberList') as any,
   ],
 
   getDefaultProps() {

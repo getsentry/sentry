@@ -28,7 +28,7 @@ const withDiscoverSavedQueries = <P extends InjectedDiscoverSavedQueriesProps>(
     State
   >({
     displayName: `withDiscoverSavedQuery(${getDisplayName(WrappedComponent)})`,
-    mixins: [Reflux.listenTo(DiscoverSavedQueriesStore, 'onUpdate')],
+    mixins: [Reflux.listenTo(DiscoverSavedQueriesStore, 'onUpdate') as any],
 
     getInitialState() {
       return {

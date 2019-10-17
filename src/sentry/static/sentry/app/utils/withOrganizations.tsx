@@ -23,7 +23,7 @@ const withOrganizations = <P extends InjectedOrganizationsProps>(
     State
   >({
     displayName: `withOrganizations(${getDisplayName(WrappedComponent)})`,
-    mixins: [Reflux.connect(OrganizationsStore, 'organizations')],
+    mixins: [Reflux.connect(OrganizationsStore, 'organizations') as any],
 
     render() {
       return (

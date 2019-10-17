@@ -41,7 +41,7 @@ const withLatestContext = <P extends InjectedLatestContextProps>(
         organization: SentryTypes.Organization,
         organizations: PropTypes.arrayOf(SentryTypes.Organization).isRequired,
       },
-      mixins: [Reflux.connect(LatestContextStore, 'latestContext')],
+      mixins: [Reflux.connect(LatestContextStore, 'latestContext') as any],
 
       render() {
         const {organizations} = this.props;
