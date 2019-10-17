@@ -56,8 +56,6 @@ class ProjectOwnership(Model):
         """
         cache_key = cls.get_cache_key(project_id)
         ownership = cache.get(cache_key)
-        if ownership:
-            return ownership
         if ownership is None:
             try:
                 ownership = cls.objects.get(project_id=project_id)
