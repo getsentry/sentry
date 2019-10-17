@@ -1139,7 +1139,7 @@ exports[`ProjectTags renders 1`] = `
                                           >
                                             <span
                                               aria-describedby="tooltip-123456"
-                                              className="css-1m3e0hg-Container eowlwvy0"
+                                              className="css-1vf31z4-Container eowlwvy0"
                                               onBlur={[Function]}
                                               onFocus={[Function]}
                                               onMouseEnter={[Function]}
@@ -1393,7 +1393,7 @@ exports[`ProjectTags renders 1`] = `
                                           >
                                             <span
                                               aria-describedby="tooltip-123456"
-                                              className="css-1m3e0hg-Container eowlwvy0"
+                                              className="css-1vf31z4-Container eowlwvy0"
                                               onBlur={[Function]}
                                               onFocus={[Function]}
                                               onMouseEnter={[Function]}

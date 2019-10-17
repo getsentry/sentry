@@ -318,10 +318,9 @@ class ResultTable extends React.Component<Props> {
 export {ResultTable};
 export default withOrganization(ResultTable);
 
-const Grid = styled('div')`
-  height: ${(p: {visibleRows: number}) =>
-    p.visibleRows * TABLE_ROW_HEIGHT_WITH_BORDER +
-    2}px; /* cell height + cell border + top and bottom Panel border */
+const Grid = styled('div')<{visibleRows: number}>`
+  /* cell height + cell border + top and bottom Panel border */
+  height: ${p => `${p.visibleRows * TABLE_ROW_HEIGHT_WITH_BORDER + 2}px`};
   overflow: hidden;
 
   .ReactVirtualized__Grid {
@@ -329,9 +328,10 @@ const Grid = styled('div')`
   }
 ` as any;
 
-const Cell = styled('div')`
-  ${(p: any) => !p.isOddRow && `background-color: ${p.theme.whiteDark};`} ${p =>
-    `text-align: ${p.align};`} overflow: scroll;
+const Cell = styled('div')<{isOddRow: boolean; align: 'right' | 'left'}>`
+  ${p => !p.isOddRow && `background-color: ${p.theme.whiteDark};`};
+  ${p => `text-align: ${p.align};`};
+  overflow: scroll;
   font-size: 14px;
   line-height: ${TABLE_ROW_HEIGHT}px;
   padding: 0 10px;
