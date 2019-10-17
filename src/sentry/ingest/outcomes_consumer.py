@@ -30,6 +30,7 @@ from django.conf import settings
 from django.core.cache import cache
 
 from sentry.models.project import Project
+from sentry.db.models.manager import BaseManager
 from sentry.signals import event_filtered, event_dropped
 from sentry.utils.kafka import create_batching_kafka_consumer
 from sentry.utils import json, metrics
@@ -123,8 +124,9 @@ class OutcomesConsumerWorker(AbstractBatchWorker):
         return message.value()
 
     def flush_batch(self, batch):
-        for _ in self.pool.imap_unordered(_process_message_with_timer, batch, chunksize=100):
-            pass
+        with BaseManager.local_cache():
+            for _ in self.pool.imap_unordered(_process_message_with_timer, batch, chunksize=100):
+                pass
 
     def shutdown(self):
         pass
