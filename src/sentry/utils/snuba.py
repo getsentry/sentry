@@ -1021,12 +1021,23 @@ def constrain_condition_to_dataset(cond, dataset):
     We have the dataset context here, so we need to re-scope conditions to the
     current dataset.
     """
+    index = get_function_index(cond)
+    if index is not None:
+        func_args = cond[index + 1]
+        for (i, arg) in enumerate(func_args):
+            # Nested function
+            if isinstance(arg, (list, tuple)):
+                func_args[i] = constrain_condition_to_dataset(arg, dataset)
+            else:
+                func_args[i] = constrain_column_to_dataset(arg, dataset)
+        cond[index + 1] = func_args
+        return cond
+    # No function name found
     if isinstance(cond, (list, tuple)) and len(cond):
-        if isinstance(cond[0], (list, tuple)):
-            # Nested condition or function expressions
-            cond = [constrain_condition_to_dataset(c, dataset) for c in cond]
-        elif len(cond) == 3:
-            # map column name
+        # Condition is [col, operator, value]
+        if isinstance(cond[0], six.string_types) and len(cond) == 3:
+            # Map column name to current dataset removing
+            # invalid conditions based on the dataset.
             name = constrain_column_to_dataset(cond[0], dataset, cond[2])
             if name is None:
                 return None
@@ -1036,14 +1047,16 @@ def constrain_condition_to_dataset(cond, dataset):
             # But the rest of sentry isn't aware of that requirement.
             if dataset == Dataset.Transactions and name == "event_id" and len(cond[2]) == 32:
                 cond[2] = six.text_type(uuid.UUID(cond[2]))
-        elif len(cond) == 2 and cond[0] == "has":
-            # first function argument is the column if function is "has"
-            cond[1][0] = constrain_column_to_dataset(cond[1][0], dataset)
-        elif len(cond) == 2 and SAFE_FUNCTION_RE.match(cond[0]):
-            # Function call with column name arguments.
-            if isinstance(cond[1], list):
-                cond[1] = [constrain_column_to_dataset(item, dataset) for item in cond[1]]
-    return cond
+
+            return cond
+        if isinstance(cond[0], (list, tuple)):
+            if get_function_index(cond[0]) is not None:
+                cond[0] = constrain_condition_to_dataset(cond[0], dataset)
+                return cond
+            else:
+                # Nested conditions
+                return [constrain_condition_to_dataset(item, dataset) for item in cond]
+    raise ValueError("Unexpected condition format %s" % cond)
 
 
 def dataset_query(

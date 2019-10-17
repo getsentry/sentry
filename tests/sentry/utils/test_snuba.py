@@ -423,6 +423,7 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
             selected_columns=["transaction"],
             conditions=[
                 ["type", "=", "transaction"],
+                ["match", [["ifNull", ["tags[user_email]", ""]], "'(?i)^.*\@sentry\.io$'"]],
                 [["positionCaseInsensitive", ["message", "'recent-searches'"]], "!=", 0],
             ],
             aggregations=[["count", "", "count"]],
@@ -431,7 +432,8 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
         mock_query.assert_called_with(
             selected_columns=["transaction_name"],
             conditions=[
-                [["positionCaseInsensitive", ["transaction_name", "'recent-searches'"]], "!=", 0]
+                ["match", [["ifNull", ["tags[user_email]", ""]], "'(?i)^.*\@sentry\.io$'"]],
+                [["positionCaseInsensitive", ["transaction_name", "'recent-searches'"]], "!=", 0],
             ],
             aggregations=[["count", "", "count"]],
             filter_keys={"project_id": [self.project.id]},
