@@ -723,7 +723,11 @@ class EventView {
   getEventsAPIPayload(location: Location): EventQuery & LocationQuery {
     const query = location.query || {};
 
+    // pick only the query strings that we care about
+
     const picked = pickRelevantLocationQueryStrings(location);
+
+    // only include sort keys that are included in the fields
 
     const sortKeys = this.fields
       .map(field => {
@@ -734,15 +738,17 @@ class EventView {
           return !!sortKey;
         }
       );
-    const sortKeysSet = new Set(sortKeys);
     const sort = this.sorts
       .filter(sort => {
-        return sortKeysSet.has(sort.field);
+        return sortKeys.includes(sort.field);
       })
       .map(sort => {
         return encodeSort(sort);
       });
-    const defaultSort = sortKeys[0];
+
+    // generate event query
+
+    const defaultSort = sortKeys.length >= 1 ? sortKeys[0] : void 0;
 
     const fields = this.getFields();
 
