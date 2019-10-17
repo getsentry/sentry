@@ -66,9 +66,7 @@ def is_signal_sent(project_id, event_id):
     return cache.get(key, None) is not None
 
 
-def _process_message(message):
-    msg = json.loads(message)
-
+def _process_message(msg):
     project_id = int(msg.get("project_id", 0))
     if project_id == 0:
         return  # no project. this is valid, so ignore silently.
@@ -121,9 +119,11 @@ class OutcomesConsumerWorker(AbstractBatchWorker):
         atexit.register(self.pool.close)
 
     def process_message(self, message):
-        return message.value()
+        return json.loads(message.value())
 
     def flush_batch(self, batch):
+        batch.sort(key=lambda msg: msg.get("project_id", 0) or 0)
+
         with BaseManager.local_cache():
             for _ in self.pool.imap_unordered(_process_message_with_timer, batch, chunksize=100):
                 pass
