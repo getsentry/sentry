@@ -1,4 +1,3 @@
-import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -19,10 +18,35 @@ const getBorder = p =>
       };`
     : '';
 
-const TagTextStyled = styled(({priority, size, border, inline, ...props}) => (
-  <Box {...props} />
-))`
+const Tag = ({
+  children,
+  icon,
+  priority: _priority,
+  size: _size,
+  border: _border,
+  ...props
+}) => (
+  <div {...props}>
+    {icon && <StyledInlineSvg src={icon} size="12px" />}
+    {children}
+  </div>
+);
+
+Tag.propTypes = {
+  priority: PropTypes.string,
+  size: PropTypes.string,
+  border: PropTypes.bool,
+  icon: PropTypes.string,
+  inline: PropTypes.bool,
+};
+
+const StyledInlineSvg = styled(InlineSvg)`
+  margin-right: 4px;
+`;
+
+const StyledTag = styled(Tag)`
   display: inline-flex;
+  box-sizing: border-box;
   padding: ${p => (p.size === 'small' ? '0.1em 0.4em 0.2em' : '0.35em 0.8em 0.4em')};
   font-size: 75%;
   line-height: 1;
@@ -39,23 +63,4 @@ const TagTextStyled = styled(({priority, size, border, inline, ...props}) => (
   ${p => getMarginLeft(p)};
 `;
 
-const Tag = ({children, icon, priority, size, border, ...props}) => (
-  <TagTextStyled priority={priority} size={size} border={border} {...props}>
-    {icon && <StyledInlineSvg src={icon} size="12px" />}
-    {children}
-  </TagTextStyled>
-);
-
-Tag.propTypes = {
-  priority: PropTypes.string,
-  size: PropTypes.string,
-  border: PropTypes.bool,
-  icon: PropTypes.string,
-  inline: PropTypes.bool,
-};
-
-const StyledInlineSvg = styled(InlineSvg)`
-  margin-right: 4px;
-`;
-
-export default Tag;
+export default StyledTag;
