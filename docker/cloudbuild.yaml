@@ -36,11 +36,12 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: 'bash'
   args:
+  - '-e'
   - '-c'
-  - >
+  - |
     if [ "$BRANCH_NAME" == "master" ]; then
       docker push us.gcr.io/$PROJECT_ID/sentry:latest
-      && docker push us.gcr.io/$PROJECT_ID/sentry:latest-onbuild;
+      docker push us.gcr.io/$PROJECT_ID/sentry:latest-onbuild
     fi
 timeout: 1200s
 images:
