@@ -25,7 +25,7 @@ __all__ = ("BaseManager",)
 logger = logging.getLogger("sentry")
 
 
-_local_cache = local()
+_local_cache = threading.local()
 _local_cache_generation = 0
 _local_cache_enabled = False
 
@@ -81,12 +81,13 @@ class BaseManager(Manager):
         self.__local_cache = threading.local()
         super(BaseManager, self).__init__(*args, **kwargs)
 
+    @staticmethod
     @contextmanager
-    def local_cache(self):
+    def local_cache():
         """Enables local caching for the entire process."""
         global _local_cache_enabled, _local_cache_generation
         if _local_cache_enabled:
-            raise RuntimeError('nested use of process global local cache')
+            raise RuntimeError("nested use of process global local cache")
         _local_cache_enabled = True
         try:
             yield
@@ -99,9 +100,9 @@ class BaseManager(Manager):
             return
 
         gen = _local_cache_generation
-        cache_gen = getattr(_local_cache, 'generation', None)
+        cache_gen = getattr(_local_cache, "generation", None)
 
-        if cache_gen != gen or not hasattr(_local_cache, 'cache'):
+        if cache_gen != gen or not hasattr(_local_cache, "cache"):
             _local_cache.cache = {}
             _local_cache.generation = gen
 
