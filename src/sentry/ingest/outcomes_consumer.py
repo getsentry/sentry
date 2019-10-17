@@ -101,7 +101,7 @@ def _process_message(message):
 
     timestamp = msg.get("timestamp")
     if timestamp is not None:
-        delta = to_datetime(time.time()) - datetime.datetime.strptime(
+        delta = to_datetime(time.time()).replace(tzinfo=None) - datetime.datetime.strptime(
             timestamp, "%Y-%m-%dT%H:%M:%S.%fZ"
         )
         metrics.timing("outcomes_consumer.timestamp_lag", delta.total_seconds())
