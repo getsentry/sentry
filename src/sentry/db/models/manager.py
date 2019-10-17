@@ -27,7 +27,7 @@ logger = logging.getLogger("sentry")
 
 _local_cache = local()
 _local_cache_generation = 0
-_local_cache_is_process_global = False
+_local_cache_enabled = False
 
 
 def __prep_value(model, key, value):
@@ -82,28 +82,21 @@ class BaseManager(Manager):
         super(BaseManager, self).__init__(*args, **kwargs)
 
     @contextmanager
-    def local_cache(self, process_global=False):
-        global _local_cache_is_process_global, _local_cache_generation
-        if process_global:
-            if _local_cache_is_process_global:
-                raise RuntimeError('nested use of process global local cache')
-            _local_cache_is_process_global = True
-            yield
-            _local_cache_is_process_global = False
-            _local_cache_generation += 1
-            return
-
-        old = _local_cache.cache
-        _local_cache.cache = {}
-        _local_cache.generation = _local_cache_generation
+    def local_cache(self):
+        """Enables local caching for the entire process."""
+        global _local_cache_enabled, _local_cache_generation
+        if _local_cache_enabled:
+            raise RuntimeError('nested use of process global local cache')
+        _local_cache_enabled = True
         try:
             yield
         finally:
-            _local_cache.cache = old
+            _local_cache_enabled = False
+            _local_cache_generation += 1
 
     def _get_local_cache(self):
-        if not _local_cache_is_process_global:
-            return getattr(_local_cache, 'cache', None)
+        if not _local_cache_enabled:
+            return
 
         gen = _local_cache_generation
         cache_gen = getattr(_local_cache, 'generation', None)

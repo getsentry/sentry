@@ -124,7 +124,7 @@ class OutcomesConsumerWorker(AbstractBatchWorker):
         return message.value()
 
     def flush_batch(self, batch):
-        with BaseModel.objects.local_cache(process_global=True):
+        with BaseModel.objects.local_cache():
             for _ in self.pool.imap_unordered(_process_message_with_timer, batch, chunksize=100):
                 pass
 
