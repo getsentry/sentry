@@ -41,70 +41,65 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
         event_slug = u"{}:{}".format(project.slug, event_id)
         snuba_args["conditions"].extend(get_reference_event_conditions(snuba_args, event_slug))
 
-        dataset = snuba.detect_dataset(snuba_args, aliased_conditions=True)
+        filter = self._get_filter(snuba_args)
 
         data = serialize(event)
-        data["nextEventID"] = self.next_event_id(snuba_args, event, dataset=dataset)
-        data["previousEventID"] = self.prev_event_id(snuba_args, event, dataset=dataset)
-        data["oldestEventID"] = self.oldest_event_id(snuba_args, event, dataset=dataset)
-        data["latestEventID"] = self.latest_event_id(snuba_args, event, dataset=dataset)
+        data["nextEventID"] = self.next_event_id(event, filter=filter)
+        data["previousEventID"] = self.prev_event_id(event, filter=filter)
+        data["oldestEventID"] = self.oldest_event_id(event, filter=filter)
+        data["latestEventID"] = self.latest_event_id(event, filter=filter)
         data["projectSlug"] = project_slug
 
         return Response(data)
 
-    def next_event_id(self, snuba_args, event, dataset):
+    def next_event_id(self, event, filter):
         """
         Returns the next event ID if there is a subsequent event matching the
         conditions provided. Ignores the project_id.
         """
-        next_event = eventstore.get_next_event_id(
-            event, filter=self._get_filter(snuba_args), dataset=dataset
-        )
+        next_event = eventstore.get_next_event_id(event, filter=filter)
 
         if next_event:
             return next_event[1]
 
-    def prev_event_id(self, snuba_args, event, dataset):
+    def prev_event_id(self, event, filter):
         """
         Returns the previous event ID if there is a previous event matching the
         conditions provided. Ignores the project_id.
         """
-        prev_event = eventstore.get_prev_event_id(
-            event, filter=self._get_filter(snuba_args), dataset=dataset
-        )
+        prev_event = eventstore.get_prev_event_id(event, filter=filter)
 
         if prev_event:
             return prev_event[1]
 
-    def latest_event_id(self, snuba_args, event, dataset):
+    def latest_event_id(self, event, filter):
         """
         Returns the latest event ID if there is a newer event matching the
         conditions provided
         """
-        latest_event = eventstore.get_latest_event_id(
-            event, filter=self._get_filter(snuba_args), dataset=dataset
-        )
+        latest_event = eventstore.get_latest_event_id(event, filter=filter)
 
         if latest_event:
             return latest_event[1]
 
-    def oldest_event_id(self, snuba_args, event, dataset):
+    def oldest_event_id(self, event, filter):
         """
         Returns the oldest event ID if there is a subsequent event matching the
         conditions provided
         """
-        oldest_event = eventstore.get_earliest_event_id(
-            event, filter=self._get_filter(snuba_args), dataset=dataset
-        )
+        oldest_event = eventstore.get_earliest_event_id(event, filter=filter)
 
         if oldest_event:
             return oldest_event[1]
 
     def _get_filter(self, snuba_args):
+        dataset = snuba.detect_dataset(snuba_args, aliased_conditions=True)
+
         return eventstore.Filter(
             conditions=snuba_args["conditions"],
             start=snuba_args.get("start", None),
             end=snuba_args.get("end", None),
             project_ids=snuba_args["filter_keys"].get("project_id", None),
             group_ids=snuba_args["filter_keys"].get("issue", None),
+            dataset=dataset,
         )

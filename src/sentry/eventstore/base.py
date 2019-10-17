@@ -88,13 +88,17 @@ class Filter(object):
         project_ids=None,
         group_ids=None,
         event_ids=None,
+        dataset=None,
     ):
+        from sentry.utils.snuba import Dataset
+
         self.start = start
         self.end = end
         self.conditions = conditions
         self.project_ids = project_ids
         self.group_ids = group_ids
         self.event_ids = event_ids
+        self.dataset = dataset or Dataset.Events
 
     @property
     def filter_keys(self):

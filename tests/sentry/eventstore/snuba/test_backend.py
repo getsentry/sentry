@@ -7,6 +7,7 @@ from sentry.testutils import TestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.eventstore.snuba.backend import SnubaEventStorage
 from sentry.eventstore.base import Filter
+from sentry.utils import snuba
 
 from sentry.utils.samples import load_data
 
@@ -127,6 +128,15 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         assert self.eventstore.get_prev_event_id(None, filter=filter) is None
         assert self.eventstore.get_next_event_id(None, filter=filter) is None
 
+        # Transactions dataset
+        event = self.eventstore.get_event_by_id(self.project2.id, "d" * 32)
+        filter = Filter(project_ids=[self.project2.id], dataset=snuba.Dataset.Transactions)
+        prev_event = self.eventstore.get_prev_event_id(event, filter=filter)
+        next_event = self.eventstore.get_next_event_id(event, filter=filter)
+        next_event = (next_event[0], next_event[1].replace("-", ""))
+        assert prev_event is None
+        assert next_event == (six.text_type(self.project2.id), "e" * 32)
+
     def test_get_latest_or_oldest_event_id(self):
         # Returns a latest/oldest event
         event = self.eventstore.get_event_by_id(self.project2.id, "b" * 32)
@@ -143,6 +153,15 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         latest_event = self.eventstore.get_latest_event_id(event, filter=filter)
         assert oldest_event is None
         assert latest_event is None
+
+        # Transactions dataset
+        event = self.eventstore.get_event_by_id(self.project2.id, "d" * 32)
+        filter = Filter(project_ids=[self.project2.id], dataset=snuba.Dataset.Transactions)
+        oldest_event = self.eventstore.get_earliest_event_id(event, filter=filter)
+        latest_event = self.eventstore.get_latest_event_id(event, filter=filter)
+        latest_event = (latest_event[0], latest_event[1].replace("-", ""))
+        assert oldest_event is None
+        assert latest_event == (six.text_type(self.project2.id), "e" * 32)
 
     def test_transaction_get_event_by_id(self):
         event = self.eventstore.get_event_by_id(self.project2.id, self.transaction_event.event_id)
