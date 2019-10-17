@@ -2,18 +2,16 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  clearIndicators,
-} from 'app/actionCreators/indicator';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import space from 'app/styles/space';
+
+import {addSuccessMessage} from '../../../actionCreators/indicator';
 
 class AuthorizationRow extends React.Component {
   static propTypes = {
@@ -65,20 +63,18 @@ class AccountAuthorizations extends AsyncView {
         data: state.data.filter(({id}) => id !== authorization.id),
       }),
       async () => {
-        addLoadingMessage();
-
         try {
           await this.api.requestPromise('/api-authorizations/', {
             method: 'DELETE',
             data: {authorization: authorization.id},
           });
 
-          clearIndicators();
+          addSuccessMessage(t('Saved changes'));
         } catch (_err) {
           this.setState({
             data: oldData,
           });
-          addErrorMessage(t('Unable to save changes. Please try again.'));
+          addErrorMessage(t('Unable to save changes, please try again'));
         }
       }
     );
@@ -129,7 +125,7 @@ class AccountAuthorizations extends AsyncView {
 export default AccountAuthorizations;
 
 const Description = styled('p')`
-  font-size: 0.9em;
+  font-size: ${p => p.theme.fontSizeRelativeSmall};
   margin-bottom: ${space(4)};
 `;
 
@@ -154,10 +150,10 @@ const ApplicationName = styled('div')`
  */
 const Url = styled('div')`
   margin-bottom: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeSmaller};
+  font-size: ${p => p.theme.fontSizeRelativeSmall};
 `;
 
 const Scopes = styled('div')`
   color: ${p => p.theme.gray2};
-  font-size: ${p => p.theme.fontSizeSmaller};
+  font-size: ${p => p.theme.fontSizeRelativeSmall};
 `;
