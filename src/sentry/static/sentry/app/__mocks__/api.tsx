@@ -118,9 +118,16 @@ class Client {
 
     if (!response || !mock) {
       // Endpoints need to be mocked
-      throw new Error(
+      const err = new Error(
         `No mocked response found for request:\n\t${options.method || 'GET'} ${url}`
       );
+
+      // Throwing an error here does not do what we want it to do....
+      // Because we are mocking an API client, we generally catch errors to show
+      // user-friendly error messages, this means in tests this error gets gobbled
+      // up and developer frustration ensues.
+      console.warn(err); // eslint-disable-line no-console
+      throw err;
     } else {
       // has mocked response
 
