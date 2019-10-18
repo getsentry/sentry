@@ -17,6 +17,7 @@ class SentryAppExternalIssueForm extends React.Component {
     api: PropTypes.object.isRequired,
     group: SentryTypes.Group.isRequired,
     sentryAppInstallation: PropTypes.object,
+    appName: PropTypes.string,
     config: PropTypes.object.isRequired,
     action: PropTypes.oneOf(['link', 'create']),
     event: SentryTypes.Event,
@@ -30,8 +31,7 @@ class SentryAppExternalIssueForm extends React.Component {
 
   onSubmitError = () => {
     const {action} = this.props;
-    const appName = this.props.sentryAppInstallation.sentryApp.name;
-    addErrorMessage(t('Unable to %s %s issue.', action, appName));
+    addErrorMessage(t('Unable to %s %s issue.', action, this.props.appName));
   };
 
   getOptions = (field, input) => {
@@ -100,7 +100,7 @@ class SentryAppExternalIssueForm extends React.Component {
         return group.title;
       case 'issue.description':
         const stacktrace = this.getStacktrace();
-        const queryParams = {referrer: this.props.sentryAppInstallation.sentryApp.name};
+        const queryParams = {referrer: this.props.appName};
         const url = addQueryParamsToExistingUrl(group.permalink, queryParams);
         const shortId = group.shortId;
         return t('Sentry Issue: [%s](%s)%s', shortId, url, stacktrace);

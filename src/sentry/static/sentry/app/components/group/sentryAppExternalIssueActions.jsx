@@ -143,6 +143,7 @@ class SentryAppExternalIssueActions extends React.Component {
           <SentryAppExternalIssueForm
             group={group}
             sentryAppInstallation={sentryAppInstallation}
+            appName={name}
             config={sentryAppComponent.schema}
             action={action}
             onSubmitSuccess={this.onSubmitSuccess}
