@@ -18,6 +18,44 @@ const generateSorts = sorts => {
   });
 };
 
+describe('EventView.fromLocation()', function() {
+  it.only('maps query strings', function() {
+    const location = {
+      query: {
+        id: '42',
+        name: 'best query',
+        field: ['count()', 'id'],
+        fieldnames: ['events', 'projects'],
+        sort: ['title', '-count'],
+        tag: ['foo', 'bar'],
+        query: 'event.type:transaction',
+        project: [123],
+        start: '2019-10-01T00:00:00',
+        end: '2019-10-02T00:00:00',
+        statsPeriod: '14d',
+        environment: 'staging',
+      },
+    };
+
+    const eventView = EventView.fromLocation(location);
+
+    expect(eventView.id).toEqual('42');
+    expect(eventView.name).toEqual('best query');
+    expect(eventView.fields).toEqual([
+      {field: 'count()', title: 'events'},
+      {field: 'id', title: 'projects'},
+    ]);
+    expect(eventView.sorts).toEqual([{field: 'count', kind: 'desc'}]);
+    expect(eventView.tags).toEqual(['foo', 'bar']);
+    expect(eventView.query).toEqual('event.type:transaction');
+    expect(eventView.project).toEqual([123]);
+    expect(eventView.start).toEqual('2019-10-01T00:00:00');
+    expect(eventView.end).toEqual('2019-10-02T00:00:00');
+    expect(eventView.statsPeriod).toEqual('14d');
+    expect(eventView.environment).toEqual('staging');
+  });
+});
+
 describe('EventView.fromSavedQuery()', function() {
   it('maps basic properties', function() {
     const saved = {
