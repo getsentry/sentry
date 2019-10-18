@@ -294,6 +294,7 @@ class EventView {
   start: string | undefined;
   end: string | undefined;
   statsPeriod: string | undefined;
+  environment: string | undefined;
 
   constructor(props: {
     id: string | undefined;
@@ -306,6 +307,7 @@ class EventView {
     start: string | undefined;
     end: string | undefined;
     statsPeriod: string | undefined;
+    environment: string | undefined;
   }) {
     this.id = props.id;
     this.name = props.name;
@@ -317,6 +319,7 @@ class EventView {
     this.start = props.start;
     this.end = props.end;
     this.statsPeriod = props.statsPeriod;
+    this.environment = props.environment;
   }
 
   static fromLocation(location: Location): EventView {
@@ -331,6 +334,7 @@ class EventView {
       start: decodeScalar(location.query.start),
       end: decodeScalar(location.query.end),
       statsPeriod: decodeScalar(location.query.statsPeriod),
+      environment: decodeScalar(location.query.environment),
     });
   }
 
@@ -353,6 +357,7 @@ class EventView {
       start: undefined,
       end: undefined,
       statsPeriod: undefined,
+      environment: undefined,
     });
   }
 
@@ -381,6 +386,7 @@ class EventView {
       sorts: fromSorts(saved.orderby),
       tags: [],
       statsPeriod: saved.range,
+      environment: (saved as SavedQuery).environment,
     });
   }
 
@@ -472,6 +478,7 @@ class EventView {
       start: this.start,
       end: this.end,
       statsPeriod: this.statsPeriod,
+      environment: this.environment,
     });
   }
 

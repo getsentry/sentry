@@ -12,24 +12,32 @@ const generateFields = fields => {
 describe('EventView.fromSavedQuery()', function() {
   it('maps basic properties', function() {
     const saved = {
+      id: 42,
       name: 'best query',
       fields: ['count()', 'id'],
-      conditions: [],
+      conditions: [['event.type', '=', 'transaction']],
+      projects: [123],
       range: '14d',
-      start: '',
-      end: '',
+      start: '2019-10-01T00:00:00',
+      end: '2019-10-02T00:00:00',
       orderby: '-timestamp',
+      environment: 'staging',
     };
     const eventView = EventView.fromSavedQuery(saved);
     expect(eventView.fields).toEqual([
       {field: 'count()', title: 'count()'},
       {field: 'id', title: 'id'},
     ]);
+    expect(eventView.id).toEqual(saved.id);
     expect(eventView.name).toEqual(saved.name);
+    expect(eventView.query).toEqual('event.type:transaction');
+    expect(eventView.project).toEqual([123]);
     expect(eventView.statsPeriod).toEqual('14d');
-    expect(eventView.start).toEqual('');
-    expect(eventView.end).toEqual('');
+    expect(eventView.start).toEqual('2019-10-01T00:00:00');
+    expect(eventView.end).toEqual('2019-10-02T00:00:00');
     expect(eventView.sorts).toEqual([{field: 'timestamp', kind: 'desc'}]);
+    expect(eventView.environment).toEqual('staging');
+    expect(eventView.tags).toEqual([]);
   });
 
   it('maps equality conditions', function() {
