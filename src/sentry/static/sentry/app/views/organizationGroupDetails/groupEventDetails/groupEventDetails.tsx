@@ -18,7 +18,7 @@ import fetchSentryAppInstallations from 'app/utils/fetchSentryAppInstallations';
 
 import {fetchGroupEventAndMarkSeen, getEventEnvironment} from '../utils';
 import GroupEventToolbar from '../eventToolbar';
-import {Group, Project, Organization, Environment, RouterProps} from 'app/types';
+import {Group, Project, Organization, Environment, RouterProps, Event} from 'app/types';
 
 type Props = RouterProps & {
   api: Client;
@@ -31,7 +31,7 @@ type Props = RouterProps & {
 type State = {
   loading: boolean;
   error: boolean;
-  event: any; //TODO(ts)
+  event: Event | null;
   eventNavLinks: string;
   releasesCompletion: any;
 };

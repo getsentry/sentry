@@ -1,8 +1,5 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
-import {Client} from 'app/api';
-import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import AsyncComponent from 'app/components/asyncComponent';
 import ExternalIssueActions from 'app/components/group/externalIssueActions';
@@ -29,12 +26,10 @@ import {
 } from 'app/types';
 
 type Props = AsyncComponent['props'] & {
-  api: Client;
   group: Group;
   project: Project;
   organization: Organization;
   event: Event;
-  orgId: string;
 };
 
 type State = AsyncComponent['state'] & {
@@ -48,12 +43,10 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
   unsubscribables: any[] = [];
 
   static propTypes = {
-    api: PropTypes.object.isRequired,
     group: SentryTypes.Group.isRequired,
     project: SentryTypes.Project.isRequired,
     organization: SentryTypes.Organization.isRequired,
     event: SentryTypes.Event,
-    orgId: PropTypes.string,
   };
 
   getEndpoints(): [string, string][] {
@@ -108,10 +101,10 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
   // control over those services.
   //
   fetchSentryAppData() {
-    const {api, group, project, organization} = this.props;
+    const {group, project, organization} = this.props;
 
     if (project && project.id && organization) {
-      api
+      this.api
         .requestPromise(`/groups/${group.id}/external-issues/`)
         .then(data => {
           ExternalIssueStore.load(data);
@@ -214,7 +207,7 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
             icon="icon-generic-box"
             priority="muted"
             size="small"
-            to={`/settings/${this.props.orgId}/integrations`}
+            to={`/settings/${this.props.organization.slug}/integrations`}
           >
             {t('Set up Issue Tracking')}
           </AlertLink>
@@ -236,4 +229,4 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
   }
 }
 
-export default withOrganization(withApi(ExternalIssueList));
+export default withOrganization(ExternalIssueList);
