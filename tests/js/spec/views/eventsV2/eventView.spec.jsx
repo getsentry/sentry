@@ -528,7 +528,24 @@ describe('EventView.withUpdatedColumn()', function() {
     environment: 'staging',
   };
 
-  const meta = {};
+  const meta = {
+    count: 'integer',
+  };
+
+  it('update a column with no changes', function() {
+    const eventView = new EventView(state);
+
+    const newColumn = {
+      aggregation: 'count',
+      field: '',
+      fieldname: 'events',
+    };
+
+    const eventView2 = eventView.withUpdatedColumn(0, newColumn, meta);
+
+    expect(eventView2 === eventView).toBeTruthy();
+    expect(eventView).toMatchObject(state);
+  });
 
   it('update a column to a field', function() {
     const eventView = new EventView(state);
@@ -597,5 +614,31 @@ describe('EventView.withUpdatedColumn()', function() {
     };
 
     expect(eventView2).toMatchObject(nextState);
+  });
+
+  describe('update a column that is sorted', function() {
+    it('updating column to a field', function() {
+      const eventView = new EventView(state);
+
+      const newColumn = {
+        aggregation: '',
+        field: 'title',
+        fieldname: 'event title',
+      };
+
+      const eventView2 = eventView.withUpdatedColumn(0, newColumn, meta);
+
+      expect(eventView2 !== eventView).toBeTruthy();
+
+      expect(eventView).toMatchObject(state);
+
+      const nextState = {
+        ...state,
+        sorts: [{field: 'title', kind: 'desc'}],
+        fields: [{field: 'title', title: 'event title'}, state.fields[1]],
+      };
+
+      expect(eventView2).toMatchObject(nextState);
+    });
   });
 });
