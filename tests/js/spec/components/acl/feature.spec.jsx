@@ -268,7 +268,7 @@ describe('Feature', function() {
     it('uses hookName if provided', function() {
       const children = <div>The Child</div>;
       const wrapper = mount(
-        <Feature features={['org-bazar']} hookName="test-hook">
+        <Feature features={['org-bazar']} hookName="feature-disabled:test-hook">
           {children}
         </Feature>,
         routerContext

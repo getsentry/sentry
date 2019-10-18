@@ -1025,7 +1025,9 @@ exports[`SharedGroupDetails renders 1`] = `
                         />
                         <Hook
                           name="footer"
-                        />
+                        >
+                          <Hook(footer) />
+                        </Hook>
                       </div>
                     </footer>
                   </Footer>
