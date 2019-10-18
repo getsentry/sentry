@@ -411,18 +411,21 @@ class EventView {
 
   toNewQuery(): NewQuery {
     const orderby = this.sorts.length > 0 ? encodeSorts(this.sorts)[0] : undefined;
+
     return {
-      id: this.id,
       version: 2,
+      id: this.id,
       name: this.name || '',
+      fields: this.getFields(),
+      fieldnames: this.getFieldNames(),
+      orderby,
+      // TODO: tags?
       query: this.query || '',
       projects: this.project,
       start: this.start,
       end: this.end,
       range: this.statsPeriod,
-      fields: this.fields.map(item => item.field),
-      fieldnames: this.fields.map(item => item.title),
-      orderby,
+      environment: this.environment,
     };
   }
 
