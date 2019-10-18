@@ -316,3 +316,19 @@ describe('EventView.getFieldNames()', function() {
     expect(eventView.getFieldNames()).toEqual(['events', 'project']);
   });
 });
+
+describe('EventView.getFields()', function() {
+  it('returns fields', function() {
+    const eventView = new EventView({
+      fields: [
+        {field: 'count()', title: 'events'},
+        {field: 'project.id', title: 'project'},
+      ],
+      sorts: [],
+      tags: [],
+      project: [],
+    });
+
+    expect(eventView.getFields()).toEqual(['count()', 'project.id']);
+  });
+});
