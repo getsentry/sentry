@@ -18,33 +18,14 @@ const getBorder = p =>
       };`
     : '';
 
-const Tag = ({
-  children,
-  icon,
-  priority: _priority,
-  size: _size,
-  border: _border,
-  ...props
-}) => (
-  <div {...props}>
-    {icon && <StyledInlineSvg src={icon} size="12px" />}
-    {children}
-  </div>
-);
-
-Tag.propTypes = {
-  priority: PropTypes.string,
-  size: PropTypes.string,
-  border: PropTypes.bool,
-  icon: PropTypes.string,
-  inline: PropTypes.bool,
-};
-
-const StyledInlineSvg = styled(InlineSvg)`
-  margin-right: 4px;
-`;
-
-const StyledTag = styled(Tag)`
+const Tag = styled(
+  ({children, icon, priority: _priority, size: _size, border: _border, ...props}) => (
+    <div {...props}>
+      {icon && <StyledInlineSvg src={icon} size="12px" />}
+      {children}
+    </div>
+  )
+)`
   display: inline-flex;
   box-sizing: border-box;
   padding: ${p => (p.size === 'small' ? '0.1em 0.4em 0.2em' : '0.35em 0.8em 0.4em')};
@@ -63,4 +44,16 @@ const StyledTag = styled(Tag)`
   ${p => getMarginLeft(p)};
 `;
 
-export default StyledTag;
+Tag.propTypes = {
+  priority: PropTypes.string,
+  size: PropTypes.string,
+  border: PropTypes.bool,
+  icon: PropTypes.string,
+  inline: PropTypes.bool,
+};
+
+const StyledInlineSvg = styled(InlineSvg)`
+  margin-right: 4px;
+`;
+
+export default Tag;

@@ -1,11 +1,22 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`Tag renders 1`] = `
-<TagTextStyled
+<Tag
   border={true}
   priority="info"
   size="small"
 >
-  Text to Copy
-</TagTextStyled>
+  <Component
+    border={true}
+    className="css-1kkbi00-Tag e6q9yfr0"
+    priority="info"
+    size="small"
+  >
+    <div
+      className="css-1kkbi00-Tag e6q9yfr0"
+    >
+      Text to Copy
+    </div>
+  </Component>
+</Tag>
 `;
