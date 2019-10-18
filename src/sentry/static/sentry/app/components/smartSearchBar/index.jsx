@@ -401,7 +401,7 @@ class SmartSearchBar extends React.Component {
 
   onKeyUp = evt => {
     // Other keys are managed at onKeyDown function
-    if (evt.key !== 'Escape' || evt.keyCode !== 27) {
+    if (evt.key !== 'Escape') {
       return;
     }
 
@@ -414,7 +414,9 @@ class SmartSearchBar extends React.Component {
         ? findSearchItemByIndex(searchItems, activeSearchItem)
         : [];
 
-      delete searchItems[groupIndex].children[childrenIndex].active;
+      if (groupIndex !== undefined && childrenIndex !== undefined) {
+        delete searchItems[groupIndex].children[childrenIndex].active;
+      }
 
       this.setState({
         activeSearchItem: -1,
