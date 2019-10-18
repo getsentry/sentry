@@ -98,16 +98,6 @@ class OrganizationInviteRequestDeleteTest(InviteRequestBase):
         assert resp.status_code == 403
         assert OrganizationMember.objects.filter(id=self.invite_request.id).exists()
 
-    def test_member_can_delete_their_invite_request(self):
-        self.login_as(user=self.member.user)
-        self.invite_request.inviter = self.member.user
-        self.invite_request.save()
-
-        resp = self.get_response(self.org.slug, self.invite_request.id)
-
-        assert resp.status_code == 204
-        assert not OrganizationMember.objects.filter(id=self.invite_request.id).exists()
-
 
 class OrganizationInviteRequestUpdateTest(InviteRequestBase):
     method = "put"
@@ -170,16 +160,6 @@ class OrganizationInviteRequestUpdateTest(InviteRequestBase):
         resp = self.get_response(self.org.slug, self.request_to_join.id, role="admin")
         assert resp.status_code == 403
 
-    def test_member_can_update_their_invite_request(self):
-        self.request_to_join.inviter = self.member.user
-        self.request_to_join.save()
-
-        self.login_as(user=self.member.user)
-        resp = self.get_response(self.org.slug, self.request_to_join.id, role="admin")
-
-        assert resp.status_code == 200
-        assert resp.data["role"] == "admin"
-
 
 class OrganizaitonInviteRequestApproveTest(InviteRequestBase):
     method = "put"
@@ -202,16 +182,14 @@ class OrganizaitonInviteRequestApproveTest(InviteRequestBase):
 
         assert audit_log.data == member.get_audit_log_data()
 
-    @patch.object(OrganizationMember, "send_invite_email")
-    def test_member_cannot_approve_invite_request(self, mock_invite_email):
+    def test_member_cannot_approve_invite_request(self):
         self.invite_request.inviter = self.member.user
         self.invite_request.save()
 
         self.login_as(user=self.member.user)
         resp = self.get_response(self.org.slug, self.invite_request.id, approve=1)
 
-        assert resp.status_code == 400
-        assert mock_invite_email.call_count == 0
+        assert resp.status_code == 403
 
     @patch.object(OrganizationMember, "send_invite_email")
     def test_approve_requires_invite_members_feature(self, mock_invite_email):

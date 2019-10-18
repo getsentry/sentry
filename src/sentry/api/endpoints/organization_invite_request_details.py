@@ -17,7 +17,6 @@ from .organization_member_index import OrganizationMemberSerializer, save_team_a
 
 ERR_CANNOT_INVITE = "Your organization is not allowed to invite members."
 ERR_INSUFFICIENT_ROLE = "You do not have permission to invite that role."
-ERR_INSUFFICIENT_SCOPE = "You are missing the member:write and/or member:admin scope."
 ERR_JOIN_REQUESTS_DISABLED = "Your organization does not allow requests to join."
 
 
@@ -39,11 +38,6 @@ class ApproveInviteRequestSerializer(serializers.Serializer):
         ):
             raise serializers.ValidationError(ERR_JOIN_REQUESTS_DISABLED)
 
-        if not request.access.has_scope("member:admin") and not request.access.has_scope(
-            "member:write"
-        ):
-            raise serializers.ValidationError(ERR_INSUFFICIENT_SCOPE)
-
         # members cannot invite roles higher than their own
         if member.role not in {r.id for r in allowed_roles}:
             raise serializers.ValidationError(ERR_INSUFFICIENT_ROLE)
@@ -54,8 +48,8 @@ class ApproveInviteRequestSerializer(serializers.Serializer):
 class InviteRequestPermissions(OrganizationPermission):
     scope_map = {
         "GET": ["member:read", "member:write", "member:admin"],
-        "PUT": ["member:read", "member:write", "member:admin"],
-        "DELETE": ["member:read", "member:admin"],
+        "PUT": ["member:write", "member:admin"],
+        "DELETE": ["member:admin"],
     }
 
 
@@ -105,13 +99,6 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationEndpoint):
             member = self._get_member(organization, member_id)
         except OrganizationMember.DoesNotExist:
             raise ResourceDoesNotExist
-
-        if (
-            member.inviter_id != request.user.id
-            and not request.access.has_scope("member:admin")
-            and not request.access.has_scope("member:write")
-        ):
-            return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=status.HTTP_403_FORBIDDEN)
 
         serializer = OrganizationMemberSerializer(
             data=request.data,
@@ -193,9 +180,6 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationEndpoint):
             member = self._get_member(organization, member_id)
         except OrganizationMember.DoesNotExist:
             raise ResourceDoesNotExist
-
-        if member.inviter_id != request.user.id and not request.access.has_scope("member:admin"):
-            return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=status.HTTP_403_FORBIDDEN)
 
         member.delete()
 
