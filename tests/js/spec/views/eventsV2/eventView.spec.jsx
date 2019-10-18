@@ -19,7 +19,7 @@ const generateSorts = sorts => {
 };
 
 describe('EventView.fromLocation()', function() {
-  it.only('maps query strings', function() {
+  it('maps query strings', function() {
     const location = {
       query: {
         id: '42',
@@ -271,5 +271,32 @@ describe('EventView.toNewQuery()', function() {
     expect(output.end).toEqual('');
     expect(output.orderby).toEqual('count');
     expect(output.id).toEqual('2');
+  });
+});
+
+describe('EventView.isValid()', function() {
+  it('event view is valid when there is at least one field', function() {
+    const eventView = new EventView({
+      fields: [
+        {field: 'count()', title: 'count'},
+        {field: 'project.id', title: 'project'},
+      ],
+      sorts: [],
+      tags: [],
+      project: [],
+    });
+
+    expect(eventView.isValid()).toBe(true);
+  });
+
+  it('event view is not valid when there are no fields', function() {
+    const eventView = new EventView({
+      fields: [],
+      sorts: [],
+      tags: [],
+      project: [],
+    });
+
+    expect(eventView.isValid()).toBe(false);
   });
 });
