@@ -245,6 +245,43 @@ describe('EventView.getEventsAPIPayload()', function() {
 
     expect(eventView.getEventsAPIPayload(location).sort).toEqual('-count');
   });
+
+  it('only includes relevant query strings', function() {
+    const eventView = new EventView({
+      fields: generateFields(['title', 'count()']),
+      sorts: generateSorts(['project', 'count']),
+      tags: [],
+      query: 'event.type:csp',
+    });
+
+    const location = {
+      query: {
+        project: '1234',
+        environment: 'staging',
+        start: 'start',
+        end: 'end',
+        utc: 'utc',
+        statsPeriod: 'statsPeriod',
+
+        // non-relevant query strings
+        bestCountry: 'canada',
+      },
+    };
+
+    expect(eventView.getEventsAPIPayload(location)).toEqual({
+      project: '1234',
+      environment: 'staging',
+      start: 'start',
+      end: 'end',
+      utc: 'utc',
+      statsPeriod: 'statsPeriod',
+
+      field: ['title', 'count()'],
+      per_page: 50,
+      query: 'event.type:csp',
+      sort: '-count',
+    });
+  });
 });
 
 describe('EventView.toNewQuery()', function() {
