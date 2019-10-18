@@ -309,9 +309,23 @@ class EventView {
     statsPeriod: string | undefined;
     environment: string | undefined;
   }) {
-    // allow only the first sort
-    const sorts =
-      Array.isArray(props.sorts) && props.sorts.length > 0 ? [props.sorts[0]] : [];
+    // only include sort keys that are included in the fields
+
+    const sortKeys = props.fields
+      .map(field => {
+        return getSortKeyFromFieldWithoutMeta(field);
+      })
+      .filter(
+        (sortKey): sortKey is string => {
+          return !!sortKey;
+        }
+      );
+
+    const sort = props.sorts.find(currentSort => {
+      return sortKeys.includes(currentSort.field);
+    });
+
+    const sorts = sort ? [sort] : [];
 
     this.id = props.id;
     this.name = props.name;
@@ -737,34 +751,14 @@ class EventView {
 
     const picked = pickRelevantLocationQueryStrings(location);
 
-    // only include sort keys that are included in the fields
-
-    const sortKeys = this.fields
-      .map(field => {
-        return getSortKeyFromFieldWithoutMeta(field);
-      })
-      .filter(
-        (sortKey): sortKey is string => {
-          return !!sortKey;
-        }
-      );
-    const sort = this.sorts
-      .filter(currentSort => {
-        return sortKeys.includes(currentSort.field);
-      })
-      .map(currentSort => {
-        return encodeSort(currentSort);
-      });
+    const sort = this.sorts.length > 0 ? encodeSort(this.sorts[0]) : undefined;
+    const fields = this.getFields();
 
     // generate event query
 
-    const defaultSort = sortKeys.length >= 1 ? sortKeys[0] : void 0;
-
-    const fields = this.getFields();
-
     const eventQuery: EventQuery & LocationQuery = Object.assign(picked, {
       field: [...new Set(fields)],
-      sort: sort.length ? sort : defaultSort,
+      sort,
       per_page: DEFAULT_PER_PAGE,
       query: this.getQuery(query.query),
     });

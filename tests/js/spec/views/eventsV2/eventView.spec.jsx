@@ -9,6 +9,15 @@ const generateFields = fields => {
   });
 };
 
+const generateSorts = sorts => {
+  return sorts.map(sortName => {
+    return {
+      field: sortName,
+      kind: 'desc',
+    };
+  });
+};
+
 describe('EventView.fromSavedQuery()', function() {
   it('maps basic properties', function() {
     const saved = {
@@ -20,7 +29,7 @@ describe('EventView.fromSavedQuery()', function() {
       range: '14d',
       start: '2019-10-01T00:00:00',
       end: '2019-10-02T00:00:00',
-      orderby: '-timestamp',
+      orderby: '-id',
       environment: 'staging',
     };
     const eventView = EventView.fromSavedQuery(saved);
@@ -35,7 +44,7 @@ describe('EventView.fromSavedQuery()', function() {
     expect(eventView.statsPeriod).toEqual('14d');
     expect(eventView.start).toEqual('2019-10-01T00:00:00');
     expect(eventView.end).toEqual('2019-10-02T00:00:00');
-    expect(eventView.sorts).toEqual([{field: 'timestamp', kind: 'desc'}]);
+    expect(eventView.sorts).toEqual([{field: 'id', kind: 'desc'}]);
     expect(eventView.environment).toEqual('staging');
     expect(eventView.tags).toEqual([]);
   });
@@ -73,7 +82,7 @@ describe('EventView.fromSavedQuery()', function() {
 describe('EventView.generateQueryStringObject()', function() {
   it('skips empty values', function() {
     const eventView = new EventView({
-      fields: ['id', 'title'],
+      fields: generateFields(['id', 'title']),
       tags: [],
       sorts: [],
       project: [],
@@ -115,6 +124,8 @@ describe('EventView.generateQueryStringObject()', function() {
     const secondQuery = eventView.generateQueryStringObject();
     expect(secondQuery.field).toEqual(['id', 'title']);
     expect(secondQuery.fieldnames).toEqual(['ID', 'Event']);
+
+    expect(query).not.toEqual(secondQuery);
   });
 });
 
@@ -165,6 +176,36 @@ describe('EventView.getEventsAPIPayload()', function() {
     };
     expect(eventView.getEventsAPIPayload(location).query).toEqual('event.type:csp');
   });
+
+  it('only includes the first sort', function() {
+    const eventView = new EventView({
+      fields: generateFields(['title', 'count()']),
+      sorts: generateSorts(['title', 'count']),
+      tags: [],
+      query: 'event.type:csp',
+    });
+
+    const location = {
+      query: {},
+    };
+
+    expect(eventView.getEventsAPIPayload(location).sort).toEqual('-title');
+  });
+
+  it('only includes sort keys that are defined in fields', function() {
+    const eventView = new EventView({
+      fields: generateFields(['title', 'count()']),
+      sorts: generateSorts(['project', 'count']),
+      tags: [],
+      query: 'event.type:csp',
+    });
+
+    const location = {
+      query: {},
+    };
+
+    expect(eventView.getEventsAPIPayload(location).sort).toEqual('-count');
+  });
 });
 
 describe('EventView.toNewQuery()', function() {
@@ -180,8 +221,9 @@ describe('EventView.toNewQuery()', function() {
       statsPeriod: '14d',
       start: '',
       end: '',
-      sorts: [{field: 'timestamp', kind: 'desc'}],
+      sorts: [{field: 'count', kind: 'asc'}],
     });
+
     const output = eventView.toNewQuery();
     expect(output.fields).toEqual(['count()', 'project.id']);
     expect(output.fieldnames).toEqual(['count', 'project']);
@@ -189,7 +231,7 @@ describe('EventView.toNewQuery()', function() {
     expect(output.range).toEqual('14d');
     expect(output.start).toEqual('');
     expect(output.end).toEqual('');
-    expect(output.orderby).toEqual('-timestamp');
+    expect(output.orderby).toEqual('count');
     expect(output.id).toEqual('2');
   });
 });
