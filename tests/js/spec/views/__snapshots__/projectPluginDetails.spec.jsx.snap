@@ -654,13 +654,13 @@ exports[`ProjectPluginDetails renders 1`] = `
                               flex={false}
                             >
                               <PanelBody
-                                className="css-1iiuju0-StyledPanelBody e1ueudyh4"
+                                className="css-1shq0zk-StyledPanelBody e1ueudyh4"
                                 direction="column"
                                 disablePadding={true}
                                 flex={false}
                               >
                                 <div
-                                  className="e1ueudyh4 css-8icd0-textStyles-StyledPanelBody"
+                                  className="e1ueudyh4 css-sykvmd-textStyles-StyledPanelBody"
                                 >
                                   <div
                                     dangerouslySetInnerHTML={
