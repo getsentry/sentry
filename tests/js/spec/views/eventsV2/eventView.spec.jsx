@@ -509,3 +509,93 @@ describe('EventView.withNewColumn()', function() {
     expect(eventView2).toMatchObject(nextState);
   });
 });
+
+describe('EventView.withUpdatedColumn()', function() {
+  const state = {
+    id: 1234,
+    name: 'best query',
+    fields: [
+      {field: 'count()', title: 'events'},
+      {field: 'project.id', title: 'project'},
+    ],
+    sorts: generateSorts(['count']),
+    tags: ['foo', 'bar'],
+    query: 'event.type:error',
+    project: [42],
+    start: '2019-10-01T00:00:00',
+    end: '2019-10-02T00:00:00',
+    statsPeriod: '14d',
+    environment: 'staging',
+  };
+
+  const meta = {};
+
+  it('update a column to a field', function() {
+    const eventView = new EventView(state);
+
+    const newColumn = {
+      aggregation: '',
+      field: 'title',
+      fieldname: 'event title',
+    };
+
+    const eventView2 = eventView.withUpdatedColumn(1, newColumn, meta);
+
+    expect(eventView2 !== eventView).toBeTruthy();
+
+    expect(eventView).toMatchObject(state);
+
+    const nextState = {
+      ...state,
+      fields: [state.fields[0], {field: 'title', title: 'event title'}],
+    };
+
+    expect(eventView2).toMatchObject(nextState);
+  });
+
+  it('update a column to an aggregate function with no arguments', function() {
+    const eventView = new EventView(state);
+
+    const newColumn = {
+      aggregation: 'count',
+      field: '',
+      fieldname: 'counts',
+    };
+
+    const eventView2 = eventView.withUpdatedColumn(1, newColumn, meta);
+
+    expect(eventView2 !== eventView).toBeTruthy();
+
+    expect(eventView).toMatchObject(state);
+
+    const nextState = {
+      ...state,
+      fields: [state.fields[0], {field: 'count()', title: 'counts'}],
+    };
+
+    expect(eventView2).toMatchObject(nextState);
+  });
+
+  it('update a column to an aggregate function with arguments', function() {
+    const eventView = new EventView(state);
+
+    const newColumn = {
+      aggregation: 'avg',
+      field: 'transaction.duration',
+      fieldname: 'average',
+    };
+
+    const eventView2 = eventView.withUpdatedColumn(1, newColumn, meta);
+
+    expect(eventView2 !== eventView).toBeTruthy();
+
+    expect(eventView).toMatchObject(state);
+
+    const nextState = {
+      ...state,
+      fields: [state.fields[0], {field: 'avg(transaction.duration)', title: 'average'}],
+    };
+
+    expect(eventView2).toMatchObject(nextState);
+  });
+});
