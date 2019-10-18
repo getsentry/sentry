@@ -300,6 +300,7 @@ describe('EventView.getEventsAPIPayload()', function() {
         end: 'end',
         utc: 'utc',
         statsPeriod: 'statsPeriod',
+        cursor: 'some cursor',
 
         // non-relevant query strings
         bestCountry: 'canada',
@@ -318,6 +319,7 @@ describe('EventView.getEventsAPIPayload()', function() {
       per_page: 50,
       query: 'event.type:csp',
       sort: '-count',
+      cursor: 'some cursor',
     });
   });
 });
