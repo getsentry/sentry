@@ -6,6 +6,7 @@ import {MEMBER_ROLES} from 'app/constants';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import InlineSvg from 'app/components/inlineSvg';
 import Button from 'app/components/button';
+import HookOrDefault from 'app/components/hookOrDefault';
 import space from 'app/styles/space';
 import AsyncComponent from 'app/components/asyncComponent';
 import {Organization} from 'app/types';
@@ -29,6 +30,14 @@ type State = AsyncComponent['state'] & {
 };
 
 const DEFAULT_ROLE = 'member';
+
+const InviteModalHook = HookOrDefault({
+  hookName: 'member-invite-modal:customization',
+  defaultComponent: ({onSendInvites, children}) =>
+    children({sendInvites: onSendInvites, canSend: true}),
+});
+
+type InviteModalRenderFunc = React.ComponentProps<typeof InviteModalHook>['children'];
 
 class InviteMembersModal extends AsyncComponent<Props, State> {
   get inviteTemplate(): InviteRow {
@@ -239,7 +248,8 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
 
     const disableInputs = sendingInvites || complete;
 
-    return (
+    // eslint-disable-next-line react/prop-types
+    const hookRenderer: InviteModalRenderFunc = ({sendInvites, canSend, headerInfo}) => (
       <React.Fragment>
         <Heading>
           <InlineSvg src="icon-mail" size="36px" />
@@ -265,6 +275,8 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
                  permissions, but we’ll send a request on your behalf!`
               )}
         </Subtext>
+
+        {headerInfo}
 
         <InviteeHeadings>
           <div>{t('Email addresses')}</div>
@@ -332,8 +344,8 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
                   size="small"
                   data-test-id="send-invites"
                   priority="primary"
-                  disabled={!this.isValidInvites || disableInputs}
-                  onClick={this.sendInvites}
+                  disabled={!canSend || !this.isValidInvites || disableInputs}
+                  onClick={sendInvites}
                 >
                   {this.inviteButtonLabel}
                 </Button>
@@ -342,6 +354,16 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
           </FooterContent>
         </Footer>
       </React.Fragment>
+    );
+
+    return (
+      <InviteModalHook
+        organization={this.props.organization}
+        willInvite={this.willInvite}
+        onSendInvites={this.sendInvites}
+      >
+        {hookRenderer}
+      </InviteModalHook>
     );
   }
 }

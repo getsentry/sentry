@@ -33,6 +33,7 @@ const validHookNames = new Set<HookName>([
   'feature-disabled:sso-saml2',
   'footer',
   'integrations:feature-gates',
+  'member-invite-modal:customization',
   'metrics:event',
   'onboarding:extra-chrome',
   'onboarding:invite-members',
