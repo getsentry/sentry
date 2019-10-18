@@ -344,6 +344,7 @@ describe('EventView.getTagsAPIPayload()', function() {
         // non-relevant query strings
         bestCountry: 'canada',
         cursor: 'some cursor',
+        sort: 'the world',
       },
     };
 
