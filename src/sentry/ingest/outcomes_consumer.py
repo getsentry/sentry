@@ -17,6 +17,8 @@ signals to getSentry for these outcomes.
 """
 from __future__ import absolute_import
 
+import six
+
 import datetime
 import time
 import atexit
@@ -55,6 +57,7 @@ def mark_signal_sent(project_id, event_id):
 
     :param project_id: :param event_id: :return:
     """
+    assert isinstance(project_id, six.integer_types)
     key = _get_signal_cache_key(project_id, event_id)
     cache.set(key, True, 3600)
 
