@@ -1282,6 +1282,46 @@ describe('isAPIPayloadSimilar', function() {
   };
 
   describe('getEventsAPIPayload', function() {
+    it('is not similar when relevant query string keys are present in the Location object', function() {
+      const thisEventView = new EventView(state);
+      const location = {
+        query: {
+          project: 'project',
+          environment: 'environment',
+          start: 'start',
+          end: 'end',
+          utc: 'utc',
+          statsPeriod: 'statsPeriod',
+          cursor: 'cursor',
+        },
+      };
+      const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
+
+      const otherLocation = {};
+      const otherAPIPayload = thisEventView.getEventsAPIPayload(otherLocation);
+
+      const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
+
+      expect(results).toBe(false);
+    });
+
+    it('is similar when irrelevant query string keys are present in the Location object', function() {
+      const thisEventView = new EventView(state);
+      const location = {
+        query: {
+          bestCountry: 'canada',
+        },
+      };
+      const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
+
+      const otherLocation = {};
+      const otherAPIPayload = thisEventView.getEventsAPIPayload(otherLocation);
+
+      const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
+
+      expect(results).toBe(true);
+    });
+
     it('is not similar on sort key sorted in opposite directions', function() {
       const thisEventView = new EventView(state);
       const location = {};
