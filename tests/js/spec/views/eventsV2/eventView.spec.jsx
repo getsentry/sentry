@@ -1,5 +1,14 @@
 import EventView from 'app/views/eventsV2/eventView';
 
+const generateFields = fields => {
+  return fields.map(field => {
+    return {
+      field,
+      title: field,
+    };
+  });
+};
+
 describe('EventView.fromSavedQuery()', function() {
   it('maps basic properties', function() {
     const saved = {
@@ -17,7 +26,7 @@ describe('EventView.fromSavedQuery()', function() {
       {field: 'id', title: 'id'},
     ]);
     expect(eventView.name).toEqual(saved.name);
-    expect(eventView.range).toEqual('14d');
+    expect(eventView.statsPeriod).toEqual('14d');
     expect(eventView.start).toEqual('');
     expect(eventView.end).toEqual('');
     expect(eventView.sorts).toEqual([{field: 'timestamp', kind: 'desc'}]);
@@ -47,7 +56,7 @@ describe('EventView.fromSavedQuery()', function() {
       {field: 'title', title: 'caption'},
     ]);
     expect(eventView.name).toEqual(saved.name);
-    expect(eventView.range).toEqual('14d');
+    expect(eventView.statsPeriod).toEqual('14d');
     expect(eventView.start).toEqual('');
     expect(eventView.end).toEqual('');
   });
@@ -60,12 +69,14 @@ describe('EventView.generateQueryStringObject()', function() {
       tags: [],
       sorts: [],
       project: [],
-      range: '',
+      environment: '',
+      statsPeriod: '',
       start: null,
       end: undefined,
     });
     const query = eventView.generateQueryStringObject();
-    expect(query.range).toBeUndefined();
+    expect(query.environment).toBeUndefined();
+    expect(query.statsPeriod).toBeUndefined();
     expect(query.start).toBeUndefined();
     expect(query.end).toBeUndefined();
     expect(query.project).toBeUndefined();
@@ -102,7 +113,7 @@ describe('EventView.generateQueryStringObject()', function() {
 describe('EventView.getEventsAPIPayload()', function() {
   it('appends any additional conditions defined for view', function() {
     const eventView = new EventView({
-      fields: ['id'],
+      fields: generateFields(['id']),
       sorts: [],
       tags: [],
       query: 'event.type:csp',
@@ -115,7 +126,7 @@ describe('EventView.getEventsAPIPayload()', function() {
 
   it('appends query conditions in location', function() {
     const eventView = new EventView({
-      fields: ['id'],
+      fields: generateFields(['id']),
       sorts: [],
       tags: [],
       query: 'event.type:csp',
@@ -133,7 +144,7 @@ describe('EventView.getEventsAPIPayload()', function() {
 
   it('does not duplicate conditions', function() {
     const eventView = new EventView({
-      fields: ['id'],
+      fields: generateFields(['id']),
       sorts: [],
       tags: [],
       query: 'event.type:csp',
@@ -158,7 +169,7 @@ describe('EventView.toNewQuery()', function() {
         {field: 'project.id', title: 'project'},
       ],
       query: 'event.type:error',
-      range: '14d',
+      statsPeriod: '14d',
       start: '',
       end: '',
       sorts: [{field: 'timestamp', kind: 'desc'}],
