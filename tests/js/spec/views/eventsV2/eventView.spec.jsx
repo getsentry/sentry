@@ -914,3 +914,38 @@ describe('EventView.getSorts()', function() {
     ]);
   });
 });
+
+describe('EventView.getQuery()', function() {
+  it('with query', function() {
+    const eventView = new EventView({
+      fields: [],
+      sorts: [],
+      tags: [],
+      project: [],
+      query: 'event.type:error',
+    });
+
+    expect(eventView.getQuery()).toEqual('event.type:error');
+    expect(eventView.getQuery(null)).toEqual('event.type:error');
+    expect(eventView.getQuery('hello')).toEqual('event.type:error hello');
+    expect(eventView.getQuery(['event.type:error', 'hello'])).toEqual(
+      'event.type:error hello'
+    );
+  });
+
+  it('without query', function() {
+    const eventView = new EventView({
+      fields: [],
+      sorts: [],
+      tags: [],
+      project: [],
+    });
+
+    expect(eventView.getQuery()).toEqual('');
+    expect(eventView.getQuery(null)).toEqual('');
+    expect(eventView.getQuery('hello')).toEqual('hello');
+    expect(eventView.getQuery(['event.type:error', 'hello'])).toEqual(
+      'event.type:error hello'
+    );
+  });
+});
