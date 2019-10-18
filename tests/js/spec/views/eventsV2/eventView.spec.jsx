@@ -849,3 +849,47 @@ describe('EventView.withDeletedColumn()', function() {
     });
   });
 });
+
+describe('EventView.withMovedColumn()', function() {
+  const state = {
+    id: 1234,
+    name: 'best query',
+    fields: [
+      {field: 'count()', title: 'events'},
+      {field: 'project.id', title: 'project'},
+    ],
+    sorts: generateSorts(['count']),
+    tags: ['foo', 'bar'],
+    query: 'event.type:error',
+    project: [42],
+    start: '2019-10-01T00:00:00',
+    end: '2019-10-02T00:00:00',
+    statsPeriod: '14d',
+    environment: 'staging',
+  };
+
+  it('returns itself when attempting to move column to the same placement', function() {
+    const eventView = new EventView(state);
+
+    const eventView2 = eventView.withMovedColumn({fromIndex: 0, toIndex: 0});
+
+    expect(eventView2 === eventView).toBeTruthy();
+    expect(eventView).toMatchObject(state);
+  });
+
+  it('move column', function() {
+    const eventView = new EventView(state);
+
+    const eventView2 = eventView.withMovedColumn({fromIndex: 0, toIndex: 1});
+
+    expect(eventView2 !== eventView).toBeTruthy();
+    expect(eventView).toMatchObject(state);
+
+    const nextState = {
+      ...state,
+      fields: [...state.fields].reverse(),
+    };
+
+    expect(eventView2).toMatchObject(nextState);
+  });
+});
