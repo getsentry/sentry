@@ -277,6 +277,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
                     "base_url": installation_data["url"],
                     "verify_ssl": installation_data["verify_ssl"],
                     "group": installation_data["group"],
+                    "include_subgroups": installation_data["include_subgroups"],
                     "error_message": e.message,
                     "error_status": e.code,
                 },
@@ -295,6 +296,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
         oauth_data = get_oauth_data(data)
         user = get_user_info(data["access_token"], state["installation_data"])
         group = self.get_group_info(data["access_token"], state["installation_data"])
+        include_subgroups = state["installation_data"]["include_subgroups"]
         scopes = sorted(GitlabIdentityProvider.oauth_scopes)
         base_url = state["installation_data"]["url"]
 
@@ -323,6 +325,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
                 "base_url": base_url,
                 "webhook_secret": secret.hexdigest(),
                 "group_id": group["id"],
+                "include_subgroups": include_subgroups,
             },
             "user_identity": {
                 "type": "gitlab",
