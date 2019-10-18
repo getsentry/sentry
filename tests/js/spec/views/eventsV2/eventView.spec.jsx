@@ -342,10 +342,11 @@ describe('EventView.getTagsAPIPayload()', function() {
 
         // non-relevant query strings
         bestCountry: 'canada',
+        cursor: 'some cursor',
       },
     };
 
-    expect(eventView.getEventsAPIPayload(location)).toEqual({
+    expect(eventView.getTagsAPIPayload(location)).toEqual({
       project: '1234',
       environment: 'staging',
       start: 'start',
@@ -356,7 +357,6 @@ describe('EventView.getTagsAPIPayload()', function() {
       field: ['title', 'count()'],
       per_page: 50,
       query: 'event.type:csp',
-      sort: '-count',
     });
   });
 });
