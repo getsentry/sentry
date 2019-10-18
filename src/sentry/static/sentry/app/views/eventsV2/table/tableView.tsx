@@ -24,28 +24,23 @@ export type TableViewProps = {
 };
 
 /**
- * `TableView` is currently in turmoil as it is containing 2 implementations
- * of the Discover V2 QueryBuilder.
  *
- * The old `TableView` is split away from `table.tsx` file as it was too long
- * and its methods have not been changed. It reads its state from `EventView`,
- * which is shared across several component.
- *
- * The new `TableView` is marked with leading _ in its method names. It
- * is coupled to the `Location` object and derives its state entirely from it.
- * It implements methods to mutate the column state in `Location.query`.
+ * The `TableView` is marked with leading _ in its method names. It consumes
+ * the EventView object given in its props to generate new EventView objects
+ * for actions such as creating new columns, updating columns, sorting columns,
+ * and re-ordering columns.
  */
 class TableView extends React.Component<TableViewProps> {
   // TODO: update this docs
   /**
-   * The "truth" on the state of the columns is found in `Location`,
-   * `createColumn`, `updateColumn`, `deleteColumn` and `moveColumn`.
-   * Syncing the state between `Location` and `TableView` may cause weird
-   * side-effects, as such the local state is not allowed to be mutated.
+   * The entire state of the table view (or event view) is co-located within
+   * the EventView object. This object is fed from the props.
    *
-   * State change should be done through  `setColumnStateOnLocation` which will
-   * update the `Location` object and changes are propagated downwards to child
-   * components
+   * Attempting to modify the state, and therefore, modifying the given EventView
+   * object given from its props, will generate new instances of EventView objects.
+   *
+   * In most cases, the new EventView object differs from the previous EventView
+   * object. The new EventView object is pushed to the location object.
    */
   _createColumn = (nextColumn: TableColumn<keyof TableDataRow>) => {
     const {location, eventView} = this.props;
@@ -64,7 +59,7 @@ class TableView extends React.Component<TableViewProps> {
   };
 
   /**
-   * Please read the comment on `createColumn`
+   * Please read the comment on `_createColumn`
    */
   _updateColumn = (columnIndex: number, nextColumn: TableColumn<keyof TableDataRow>) => {
     const {location, eventView, tableData} = this.props;
@@ -91,7 +86,7 @@ class TableView extends React.Component<TableViewProps> {
   };
 
   /**
-   * Please read the comment on `createColumn`
+   * Please read the comment on `_createColumn`
    */
   _deleteColumn = (columnIndex: number) => {
     const {location, eventView, tableData} = this.props;
@@ -110,7 +105,7 @@ class TableView extends React.Component<TableViewProps> {
   };
 
   /**
-   * Please read the comment on `createColumn`
+   * Please read the comment on `_createColumn`
    */
   _moveColumn = (fromIndex: number, toIndex: number) => {
     const {location, eventView} = this.props;
