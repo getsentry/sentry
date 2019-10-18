@@ -1,12 +1,14 @@
 from __future__ import absolute_import
 
 from django.db import transaction
+from django.db.models import Q
 from rest_framework.response import Response
 
-from sentry.app import locks
 from sentry import roles, features
+from sentry.app import locks
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
-from sentry.api.serializers import serialize
+from sentry.api.paginator import OffsetPaginator
+from sentry.api.serializers import serialize, OrganizationMemberWithTeamsSerializer
 from sentry.models import AuditLogEntryEvent, OrganizationMember, InviteStatus
 from sentry.utils.retries import TimedRetryPolicy
 
@@ -24,8 +26,21 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
     permission_classes = (InviteRequestPermissions,)
 
     def get(self, request, organization):
-        # TODO(epurkhiser): Add listing of invite requests
-        pass
+        queryset = OrganizationMember.objects.filter(
+            Q(user__isnull=True),
+            Q(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)
+            | Q(invite_status=InviteStatus.REQUESTED_TO_JOIN.value),
+            organization=organization,
+        ).order_by("invite_status", "email")
+
+        return self.paginate(
+            request=request,
+            queryset=queryset,
+            on_results=lambda x: serialize(
+                x, request.user, OrganizationMemberWithTeamsSerializer()
+            ),
+            paginator_cls=OffsetPaginator,
+        )
 
     def post(self, request, organization):
         """

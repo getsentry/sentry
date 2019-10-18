@@ -156,6 +156,15 @@ class OrganizationMember(Model):
         now = timezone.now()
         self.token_expires_at = now + timedelta(days=INVITE_DAYS_VALID)
 
+    def approve_invite(self):
+        self.invite_status = InviteStatus.APPROVED.value
+        self.regenerate_token()
+
+    def get_invite_status_name(self):
+        if self.invite_status is None:
+            return
+        return invite_status_names[self.invite_status]
+
     @property
     def invite_approved(self):
         return self.invite_status == InviteStatus.APPROVED.value
