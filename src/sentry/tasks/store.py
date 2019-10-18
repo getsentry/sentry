@@ -523,7 +523,7 @@ def _do_save_event(
         # emitting it for now.
         #
         # XXX(markus): Revisit decision about signals once outcomes consumer is stable.
-        mark_signal_sent(event_id, project_id)
+        mark_signal_sent(project_id, event_id)
         track_outcome(
             project.organization_id,
             project_id,
