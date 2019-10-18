@@ -3,34 +3,44 @@ import styled from 'react-emotion';
 
 import AsyncView from 'app/views/asyncView';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import LineChart from 'app/components/charts/lineChart';
+
+import {
+  Panel,
+  PanelBody,
+  PanelHeader,
+  PanelFooter,
+  PanelItem,
+} from 'app/components/panels';
 import BarChart from 'app/components/charts/barChart';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import DateTime from 'app/components/dateTime';
-import LoadingError from 'app/components/loadingError';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import Link from 'app/components/links/link';
 
 import space from 'app/styles/space';
+import {SentryApp, SentryAppWebhookError} from 'app/types';
 import {t} from 'app/locale';
-import {SentryApp} from 'app/types';
 
 type Props = AsyncView['props'];
 
 type State = AsyncView['state'] & {
-  stats: any;
-  errors: any;
+  stats: {
+    total_uninstalls: number;
+    total_installs: number;
+    install_stats: [number, number][];
+    uninstall_stats: [number, number][];
+  };
+  errors: SentryAppWebhookError[];
+  interactions: {
+    component_interactions: {
+      [key: string]: [number, number][];
+    };
+    views: [number, number][];
+  };
   app: SentryApp | null;
 };
 
 export default class SentryApplicationDashboard extends AsyncView<Props, State> {
-  getDefaultState(): State {
-    return {
-      ...super.getDefaultState(),
-      stats: {},
-      errors: [],
-      app: null,
-    };
-  }
-
   getEndpoints(): Array<[string, string, any] | [string, string]> {
     const {appSlug} = this.props.params;
     // Default time range for now: 90 days ago to now
@@ -43,6 +53,11 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
         {query: {since: now - ninety_days_ago, until: now}},
       ],
       ['errors', `/sentry-apps/${appSlug}/errors/`],
+      [
+        'interactions',
+        `/sentry-apps/${appSlug}/interaction/`,
+        {query: {since: now - ninety_days_ago, until: now}},
+      ],
       ['app', `/sentry-apps/${appSlug}/`],
     ];
   }
@@ -160,21 +175,102 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
     );
   }
 
+  renderIntegrationViews() {
+    const {views} = this.state.interactions;
+    const {appSlug, orgId} = this.props.params;
+
+    return (
+      <Panel>
+        <PanelHeader>{t('Integration Views')}</PanelHeader>
+        <PanelBody>
+          <InteractionsChart data={{Views: views}} />
+        </PanelBody>
+
+        <PanelFooter>
+          <StyledFooter>
+            {t('Integration views are measured through views on the ')}
+            <Link to={`/sentry-apps/${appSlug}/external-install/`}>
+              {t('external installation page')}
+            </Link>
+            {t(' and views on the Learn More/Install modal on the ')}
+            <Link to={`/settings/${orgId}/integrations/`}>{t('integrations page')}</Link>
+          </StyledFooter>
+        </PanelFooter>
+      </Panel>
+    );
+  }
+
+  renderComponentInteractions() {
+    const {component_interactions} = this.state.interactions;
+
+    return (
+      <Panel>
+        <PanelHeader>{t('Component Interactions')}</PanelHeader>
+
+        <PanelBody>
+          <InteractionsChart data={component_interactions} />
+        </PanelBody>
+
+        <PanelFooter>
+          <StyledFooter>
+            <strong>{t('stacktrace-link:')}</strong>{' '}
+            {t('Each click on the link counts as one interaction')}
+            <br />
+            <strong>{t('issue-link:')}</strong>{' '}
+            {t('Each open of the issue link modal counts as one interaction')}
+          </StyledFooter>
+        </PanelFooter>
+      </Panel>
+    );
+  }
+
   renderBody() {
-    const {app, loading} = this.state;
-    if (!loading && app && app.status !== 'published') {
-      return <LoadingError />;
-    }
+    const {app} = this.state;
 
     return (
       <div>
         {app && <SettingsPageHeader title={app.name} />}
-        {this.renderInstallData()}
+        {app && app.status === 'published' && this.renderInstallData()}
         {this.renderErrorLog()}
+        {app && app.status === 'published' && this.renderIntegrationViews()}
+        {app && app.schema.elements && this.renderComponentInteractions()}
       </div>
     );
   }
 }
+
+type InteractionsChartProps = {
+  data: {
+    [key: string]: [number, number][];
+  };
+};
+const InteractionsChart = ({data}: InteractionsChartProps) => {
+  const elementInteractionsSeries = Object.keys(data).map((key: string) => {
+    const seriesData = data[key].map(point => ({
+      value: point[1],
+      name: point[0] * 1000,
+    }));
+    return {
+      seriesName: key,
+      data: seriesData,
+    };
+  });
+
+  return (
+    <ChartWrapper>
+      <LineChart
+        isGroupedByDate
+        series={elementInteractionsSeries}
+        grid={{left: space(4), right: space(4)}}
+        legend={{
+          show: true,
+          orient: 'horizontal',
+          data: Object.keys(data),
+        }}
+      />
+    </ChartWrapper>
+  );
+};
 
 const Row = styled('div')`
   display: flex;
@@ -200,6 +296,10 @@ const TableLayout = styled('div')`
 
 const OverflowBox = styled('div')`
   word-break: break-word;
+`;
+
+const StyledFooter = styled('div')`
+  padding: ${space(1.5)};
 `;
 
 const ChartWrapper = styled('div')`

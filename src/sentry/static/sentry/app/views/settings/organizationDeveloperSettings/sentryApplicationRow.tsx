@@ -18,6 +18,7 @@ import PluginIcon from 'app/plugins/components/pluginIcon';
 import {openSentryAppDetailsModal, openModal} from 'app/actionCreators/modal';
 import SentryAppPublishRequestModal from 'app/components/modals/sentryAppPublishRequestModal';
 import {Organization, SentryApp, SentryAppInstallation} from 'app/types';
+import {recordInteraction} from 'app/utils/recordSentryAppInteraction';
 import theme from 'app/utils/theme';
 
 const INSTALLED = 'Installed';
@@ -210,6 +211,8 @@ export default class SentryApplicationRow extends React.PureComponent<Props> {
   openLearnMore = () => {
     const {app, onInstall, organization} = this.props;
     const isInstalled = !!this.isInstalled;
+
+    recordInteraction(app.slug, 'sentry_app_viewed');
 
     onInstall &&
       openSentryAppDetailsModal({

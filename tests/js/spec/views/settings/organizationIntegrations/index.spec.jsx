@@ -214,6 +214,13 @@ describe('OrganizationIntegrations', () => {
           body: [sentryApp],
         });
 
+        const sentryAppInteractionRequest = Client.addMockResponse({
+          url: `/sentry-apps/${sentryApp.slug}/interaction/`,
+          method: 'POST',
+          statusCode: 200,
+          body: {},
+        });
+
         wrapper = mountWithTheme(
           <OrganizationIntegrations organization={org} params={params} />,
           routerContext
@@ -227,6 +234,16 @@ describe('OrganizationIntegrations', () => {
           onInstall: expect.any(Function),
           organization: org,
         });
+
+        expect(sentryAppInteractionRequest).toHaveBeenCalledWith(
+          `/sentry-apps/${sentryApp.slug}/interaction/`,
+          expect.objectContaining({
+            method: 'POST',
+            data: {
+              tsdbField: 'sentry_app_viewed',
+            },
+          })
+        );
       });
 
       it('Opens the integration dialog on install', function() {
