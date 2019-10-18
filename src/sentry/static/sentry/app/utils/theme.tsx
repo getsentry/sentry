@@ -258,6 +258,10 @@ const theme = {
   },
 
   grid: 8,
+
+  // Relative font sizes
+  fontSizeRelativeSmall: '0.9em',
+
   fontSizeExtraSmall: '11px',
   fontSizeSmall: '12px',
   fontSizeMedium: '14px',

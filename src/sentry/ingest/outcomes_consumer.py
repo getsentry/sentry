@@ -17,6 +17,8 @@ signals to getSentry for these outcomes.
 """
 from __future__ import absolute_import
 
+import six
+
 import datetime
 import time
 import atexit
@@ -36,6 +38,7 @@ from sentry.utils.kafka import create_batching_kafka_consumer
 from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome
 from sentry.utils.dates import to_datetime
+from sentry.buffer.redis import batch_buffers_incr
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +57,7 @@ def mark_signal_sent(project_id, event_id):
 
     :param project_id: :param event_id: :return:
     """
+    assert isinstance(project_id, six.integer_types)
     key = _get_signal_cache_key(project_id, event_id)
     cache.set(key, True, 3600)
 
@@ -124,9 +128,12 @@ class OutcomesConsumerWorker(AbstractBatchWorker):
     def flush_batch(self, batch):
         batch.sort(key=lambda msg: msg.get("project_id", 0) or 0)
 
-        with BaseManager.local_cache():
-            for _ in self.pool.imap_unordered(_process_message_with_timer, batch, chunksize=100):
-                pass
+        with batch_buffers_incr():
+            with BaseManager.local_cache():
+                for _ in self.pool.imap_unordered(
+                    _process_message_with_timer, batch, chunksize=100
+                ):
+                    pass
 
     def shutdown(self):
         pass

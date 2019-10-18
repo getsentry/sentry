@@ -1,5 +1,4 @@
 import React from 'react';
-import {Flex} from 'grid-emotion';
 import styled from 'react-emotion';
 import PropTypes from 'prop-types';
 
@@ -41,15 +40,15 @@ export default class NoProjectMessage extends React.Component<Props> {
     return hasProjects ? (
       children
     ) : (
-      <Flex flex="1" align="center" justify="center">
-        <Wrapper>
+      <Wrapper>
+        <HeightWrapper>
           <img src={img} height={350} alt="Nothing to see" />
-          <Content direction="column" justify="center">
+          <Content>
             <StyledPageHeading>{t('Remain Calm')}</StyledPageHeading>
             <HelpMessage>
               {t('You need at least one project to use this view')}
             </HelpMessage>
-            <Flex align="center">
+            <CallToActions>
               <CallToAction>
                 <Tooltip
                   disabled={canJoinTeam}
@@ -78,10 +77,10 @@ export default class NoProjectMessage extends React.Component<Props> {
                   </Button>
                 </Tooltip>
               </CallToAction>
-            </Flex>
+            </CallToActions>
           </Content>
-        </Wrapper>
-      </Flex>
+        </HeightWrapper>
+      </Wrapper>
     );
   }
 }
@@ -102,10 +101,26 @@ const HelpMessage = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
+const Flex = styled('div')`
+  display: flex;
+`;
+
 const Wrapper = styled(Flex)`
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+`;
+
+const HeightWrapper = styled(Flex)`
   height: 350px;
 `;
 
 const Content = styled(Flex)`
+  flex-direction: column;
+  justify-content: center;
   margin-left: 40px;
+`;
+
+const CallToActions = styled(Flex)`
+  align-items: center;
 `;

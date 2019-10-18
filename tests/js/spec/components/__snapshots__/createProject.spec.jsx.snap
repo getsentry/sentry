@@ -1498,7 +1498,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                       >
                         <span
                           aria-describedby="tooltip-123456"
-                          className="css-1m3e0hg-Container eowlwvy0"
+                          className="css-1vf31z4-Container eowlwvy0"
                           onBlur={[Function]}
                           onFocus={[Function]}
                           onMouseEnter={[Function]}
@@ -2474,7 +2474,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                       >
                         <span
                           aria-describedby="tooltip-123456"
-                          className="css-1m3e0hg-Container eowlwvy0"
+                          className="css-1vf31z4-Container eowlwvy0"
                           onBlur={[Function]}
                           onFocus={[Function]}
                           onMouseEnter={[Function]}
@@ -4150,7 +4150,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                       >
                         <span
                           aria-describedby="tooltip-123456"
-                          className="css-1m3e0hg-Container eowlwvy0"
+                          className="css-1vf31z4-Container eowlwvy0"
                           onBlur={[Function]}
                           onFocus={[Function]}
                           onMouseEnter={[Function]}
