@@ -6,6 +6,7 @@ import {
   getFieldRenderer,
   getAggregateAlias,
   getEventTagSearchUrl,
+  decodeColumnOrder,
 } from 'app/views/eventsV2/utils';
 
 describe('eventTagSearchUrl()', function() {
@@ -239,5 +240,65 @@ describe('getFieldRenderer', function() {
       },
     });
     expect(link.find('StyledDateTime').props().date).toEqual(data.createdAt);
+  });
+});
+
+describe('decodeColumnOrder', function() {
+  it('can decode 0 elements', function() {
+    const results = decodeColumnOrder({
+      fieldnames: [],
+      field: [],
+    });
+
+    expect(Array.isArray(results)).toBeTruthy();
+    expect(results).toHaveLength(0);
+  });
+
+  it('can decode fields', function() {
+    const results = decodeColumnOrder({
+      field: ['title'],
+      fieldnames: ['Event title'],
+    });
+
+    expect(Array.isArray(results)).toBeTruthy();
+
+    expect(results[0]).toMatchObject({
+      key: 'title',
+      name: 'Event title',
+      aggregation: '',
+      field: 'title',
+    });
+  });
+
+  it('can decode aggregate functions with no arguments', function() {
+    const results = decodeColumnOrder({
+      field: ['count()'],
+      fieldnames: ['projects'],
+    });
+
+    expect(Array.isArray(results)).toBeTruthy();
+
+    expect(results[0]).toMatchObject({
+      key: 'count()',
+      name: 'projects',
+      aggregation: 'count',
+      field: '',
+    });
+  });
+
+  it('can decode elements with aggregate functions with arguments', function() {
+    const results = decodeColumnOrder({
+      field: ['avg(transaction.duration)'],
+      fieldnames: ['average'],
+    });
+
+    expect(Array.isArray(results)).toBeTruthy();
+
+    expect(results[0]).toMatchObject({
+      key: 'avg(transaction.duration)',
+      name: 'average',
+      aggregation: 'avg',
+      field: 'transaction.duration',
+    });
   });
 });
