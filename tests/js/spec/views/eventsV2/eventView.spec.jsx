@@ -1427,4 +1427,151 @@ describe('isAPIPayloadSimilar', function() {
       expect(results).toBe(true);
     });
   });
+
+  describe('getTagsAPIPayload', function() {
+    it('is similar on sort key sorted in opposite directions', function() {
+      const thisEventView = new EventView(state);
+      const location = {};
+      const thisAPIPayload = thisEventView.getTagsAPIPayload(location);
+
+      const otherEventView = thisEventView.sortOnField(
+        {field: 'count()', title: 'events'},
+        meta
+      );
+      const otherLocation = {};
+      const otherAPIPayload = otherEventView.getTagsAPIPayload(otherLocation);
+
+      const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
+
+      expect(results).toBe(true);
+    });
+
+    it('is not similar when a new column is added', function() {
+      const thisEventView = new EventView(state);
+      const location = {};
+      const thisAPIPayload = thisEventView.getTagsAPIPayload(location);
+
+      const newColumn = {
+        aggregation: '',
+        field: 'title',
+        fieldname: 'event title',
+      };
+
+      const otherEventView = thisEventView.withNewColumn(newColumn);
+      const otherLocation = {};
+      const otherAPIPayload = otherEventView.getTagsAPIPayload(otherLocation);
+
+      const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
+
+      expect(results).toBe(false);
+    });
+
+    it('is similar when a column is updated with no changes', function() {
+      const thisEventView = new EventView(state);
+      const location = {};
+      const thisAPIPayload = thisEventView.getTagsAPIPayload(location);
+
+      const newColumn = {
+        aggregation: 'count',
+        field: '',
+        fieldname: 'events',
+      };
+
+      const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
+      const otherLocation = {};
+      const otherAPIPayload = otherEventView.getTagsAPIPayload(otherLocation);
+
+      const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
+
+      expect(results).toBe(true);
+    });
+
+    it('is not similar when a column is updated with a replaced field', function() {
+      const thisEventView = new EventView(state);
+      const location = {};
+      const thisAPIPayload = thisEventView.getTagsAPIPayload(location);
+
+      const newColumn = {
+        aggregation: '',
+        field: 'title',
+        fieldname: 'event title',
+      };
+
+      const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
+      const otherLocation = {};
+      const otherAPIPayload = otherEventView.getTagsAPIPayload(otherLocation);
+
+      const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
+
+      expect(results).toBe(false);
+    });
+
+    it('is not similar when a column is updated with a replaced aggregation', function() {
+      const thisEventView = new EventView(state);
+      const location = {};
+      const thisAPIPayload = thisEventView.getTagsAPIPayload(location);
+
+      const newColumn = {
+        aggregation: 'avg',
+        field: '',
+        fieldname: 'events',
+      };
+
+      const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
+      const otherLocation = {};
+      const otherAPIPayload = otherEventView.getTagsAPIPayload(otherLocation);
+
+      const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
+
+      expect(results).toBe(false);
+    });
+
+    it('is similar when a column is renamed', function() {
+      const thisEventView = new EventView(state);
+      const location = {};
+      const thisAPIPayload = thisEventView.getTagsAPIPayload(location);
+
+      const newColumn = {
+        aggregation: 'count',
+        field: '',
+        fieldname: 'my events',
+      };
+
+      const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
+      const otherLocation = {};
+      const otherAPIPayload = otherEventView.getTagsAPIPayload(otherLocation);
+
+      const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
+
+      expect(results).toBe(true);
+    });
+
+    it('is not similar when a column is deleted', function() {
+      const thisEventView = new EventView(state);
+      const location = {};
+      const thisAPIPayload = thisEventView.getTagsAPIPayload(location);
+
+      const otherEventView = thisEventView.withDeletedColumn(0, meta);
+      const otherLocation = {};
+      const otherAPIPayload = otherEventView.getTagsAPIPayload(otherLocation);
+
+      const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
+
+      expect(results).toBe(false);
+    });
+
+    it('is similar when a column is moved', function() {
+      const thisEventView = new EventView(state);
+      const location = {};
+      const thisAPIPayload = thisEventView.getTagsAPIPayload(location);
+
+      const otherEventView = thisEventView.withMovedColumn({fromIndex: 0, toIndex: 1});
+      const otherLocation = {};
+      const otherAPIPayload = otherEventView.getTagsAPIPayload(otherLocation);
+
+      const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
+
+      expect(results).toBe(true);
+    });
+  });
 });
