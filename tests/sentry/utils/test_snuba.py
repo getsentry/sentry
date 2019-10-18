@@ -422,7 +422,7 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
             skip_conditions=True,
             selected_columns=["transaction"],
             conditions=[
-                ["type", "=", "transaction"],
+                ["event.type", "=", "transaction"],
                 ["match", [["ifNull", ["tags[user_email]", ""]], "'(?i)^.*\@sentry\.io$'"]],
                 [["positionCaseInsensitive", ["message", "'recent-searches'"]], "!=", 0],
             ],
@@ -455,7 +455,7 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
         transform_aliases_and_query(
             skip_conditions=True,
             selected_columns=["transaction", "transaction.duration"],
-            conditions=[["type", "=", "transaction"], ["duration", ">", 200]],
+            conditions=[["event.type", "=", "transaction"], ["duration", ">", 200]],
             groupby=["transaction.op"],
             filter_keys={"project_id": [self.project.id]},
         )
@@ -482,7 +482,11 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
         transform_aliases_and_query(
             skip_conditions=True,
             selected_columns=["transaction", "transaction.duration"],
-            conditions=[["type", "=", "transaction"], ["type", "=", "csp"], ["duration", ">", 200]],
+            conditions=[
+                ["event.type", "=", "transaction"],
+                ["type", "=", "csp"],
+                ["duration", ">", 200],
+            ],
             groupby=["transaction.op"],
             filter_keys={"project_id": [self.project.id]},
         )
@@ -531,19 +535,19 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
 class DetectDatasetTest(TestCase):
     def test_dataset_key(self):
         query = {"dataset": Dataset.Events, "conditions": [["event.type", "=", "transaction"]]}
-        assert detect_dataset(query) == Dataset.Events
+        assert detect_dataset(query) == Dataset.Transactions
 
     def test_event_type_condition(self):
-        query = {"conditions": [["type", "=", "transaction"]]}
+        query = {"conditions": [["event.type", "=", "transaction"]]}
         assert detect_dataset(query) == Dataset.Transactions
 
-        query = {"conditions": [["type", "=", "error"]]}
+        query = {"conditions": [["event.type", "=", "error"]]}
         assert detect_dataset(query) == Dataset.Events
 
-        query = {"conditions": [["type", "=", "transaction"]]}
+        query = {"conditions": [["event.type", "=", "transaction"]]}
         assert detect_dataset(query) == Dataset.Transactions
 
-        query = {"conditions": [["type", "=", "error"]]}
+        query = {"conditions": [["event.type", "=", "error"]]}
         assert detect_dataset(query) == Dataset.Events
 
     def test_conditions(self):

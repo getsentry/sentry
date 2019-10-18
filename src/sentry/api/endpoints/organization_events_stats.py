@@ -35,7 +35,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
         snuba_args = self.get_field(request, snuba_args)
 
         result = snuba.transform_aliases_and_query(
-            skip_conditions=True,
             aggregations=snuba_args.get("aggregations"),
             conditions=snuba_args.get("conditions"),
             filter_keys=snuba_args.get("filter_keys"),

@@ -840,10 +840,14 @@ def get_reference_event_conditions(snuba_args, event_slug):
     This is a key part of pagination in the event details modal and
     summary graph navigation.
     """
-    field_names = [get_snuba_column_name(field) for field in snuba_args.get("groupby", [])]
-    # translate the field names into enum columns
+    fields = snuba_args.get("groupby", [])
+    field_names = [get_snuba_column_name(field) for field in fields]
+
+    # TODO(mark) This will need to change when we want to accurately
+    # work with transaction only fields.
     columns = []
     has_tags = False
+    # translate the field names into enum columns
     for field in field_names:
         if field.startswith("tags["):
             has_tags = True
@@ -862,12 +866,12 @@ def get_reference_event_conditions(snuba_args, event_slug):
     if "tags.key" in event_data and "tags.value" in event_data:
         tags = dict(zip(event_data["tags.key"], event_data["tags.value"]))
 
-    for field in field_names:
-        match = TAG_KEY_RE.match(field)
+    for (i, field) in enumerate(fields):
+        match = TAG_KEY_RE.match(field_names[i])
         if match:
             value = tags.get(match.group(1), None)
         else:
-            value = event_data.get(field, None)
+            value = event_data.get(field_names[i], None)
             # If the value is a sequence use the first element as snuba
             # doesn't support `=` or `IN` operations on fields like exception_frames.filename
             if isinstance(value, (list, set)) and value:

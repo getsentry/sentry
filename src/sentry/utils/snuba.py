@@ -165,9 +165,11 @@ class Dataset(Enum):
 DATASETS = {Dataset.Events: SENTRY_SNUBA_MAP, Dataset.Transactions: TRANSACTIONS_SENTRY_SNUBA_MAP}
 
 # Store the internal field names to save work later on.
+# Add `group_id` to the events dataset list as we don't want to publically
+# expose that field, but it is used by eventstore and other internals.
 DATASET_FIELDS = {
-    Dataset.Events: SENTRY_SNUBA_MAP.values(),
-    Dataset.Transactions: TRANSACTIONS_SENTRY_SNUBA_MAP.values(),
+    Dataset.Events: list(SENTRY_SNUBA_MAP.values()) + ["group_id"],
+    Dataset.Transactions: list(TRANSACTIONS_SENTRY_SNUBA_MAP.values()),
 }
 
 
@@ -339,7 +341,7 @@ def get_snuba_column_name(name, dataset=Dataset.Events):
     the column is assumed to be a tag. If name is falsy or name is a quoted literal
     (e.g. "'name'"), leave unchanged.
     """
-    no_conversion = set(["project_id", "start", "end"])
+    no_conversion = set(["issue", "project_id", "start", "end"])
 
     if name in no_conversion:
         return name
@@ -518,7 +520,7 @@ def valid_orderby(orderby, custom_fields=None, dataset=Dataset.Events):
     return True
 
 
-def transform_aliases_and_query(skip_conditions=False, **kwargs):
+def transform_aliases_and_query(**kwargs):
     """
     Convert aliases in selected_columns, groupby, aggregation, conditions,
     orderby and arrayjoin fields to their internal Snuba format and post the
@@ -540,7 +542,7 @@ def transform_aliases_and_query(skip_conditions=False, **kwargs):
     rollup = kwargs.get("rollup")
     orderby = kwargs.get("orderby")
     having = kwargs.get("having", [])
-    dataset = detect_dataset(kwargs, aliased_conditions=skip_conditions)
+    dataset = detect_dataset(kwargs)
 
     if selected_columns:
         for (idx, col) in enumerate(selected_columns):
@@ -573,22 +575,9 @@ def transform_aliases_and_query(skip_conditions=False, **kwargs):
         elif isinstance(aggregation[1], (set, tuple, list)):
             aggregation[1] = [get_snuba_column_name(col, dataset) for col in aggregation[1]]
 
-    if not skip_conditions:
-        for col in filter_keys.keys():
-            name = get_snuba_column_name(col, dataset)
-            filter_keys[name] = filter_keys.pop(col)
-
-    def handle_condition(cond):
-        if isinstance(cond, (list, tuple)) and len(cond):
-            if isinstance(cond[0], (list, tuple)):
-                cond[0] = handle_condition(cond[0])
-            elif len(cond) == 3:
-                # map column name
-                cond[0] = get_snuba_column_name(cond[0], dataset)
-            elif len(cond) == 2 and cond[0] == "has":
-                # first function argument is the column if function is "has"
-                cond[1][0] = get_snuba_column_name(cond[1][0], dataset)
-        return cond
+    for col in filter_keys.keys():
+        name = get_snuba_column_name(col, dataset)
+        filter_keys[name] = filter_keys.pop(col)
 
     if conditions:
         aliased_conditions = []
@@ -596,10 +585,8 @@ def transform_aliases_and_query(skip_conditions=False, **kwargs):
             field = condition[0]
             if not isinstance(field, (list, tuple)) and field in derived_columns:
                 having.append(condition)
-            elif skip_conditions:
-                aliased_conditions.append(condition)
             else:
-                aliased_conditions.append(handle_condition(condition))
+                aliased_conditions.append(condition)
         kwargs["conditions"] = aliased_conditions
 
     if having:
@@ -999,7 +986,7 @@ def constrain_column_to_dataset(col, dataset, value=None):
         return col
     # Special case for the type condition as we only want
     # to drop it when we are querying transactions.
-    if dataset == Dataset.Transactions and col == "type" and value == "transaction":
+    if dataset == Dataset.Transactions and col == "event.type" and value == "transaction":
         return None
     if not col or QUOTED_LITERAL_RE.match(col):
         return col
@@ -1022,6 +1009,11 @@ def constrain_condition_to_dataset(cond, dataset):
     """
     index = get_function_index(cond)
     if index is not None:
+        # IN conditions are detected as a function but aren't really.
+        if cond[index] == "IN":
+            cond[0] = constrain_column_to_dataset(cond[0], dataset)
+            return cond
+
         func_args = cond[index + 1]
         for (i, arg) in enumerate(func_args):
             # Nested function
@@ -1031,6 +1023,7 @@ def constrain_condition_to_dataset(cond, dataset):
                 func_args[i] = constrain_column_to_dataset(arg, dataset)
         cond[index + 1] = func_args
         return cond
+
     # No function name found
     if isinstance(cond, (list, tuple)) and len(cond):
         # Condition is [col, operator, value]
@@ -1088,7 +1081,7 @@ def dataset_query(
     derived_columns = []
     if selected_columns:
         for (i, col) in enumerate(selected_columns):
-            if isinstance(col, list):
+            if isinstance(col, (list, tuple)):
                 derived_columns.append(col[2])
             else:
                 selected_columns[i] = constrain_column_to_dataset(col, dataset)
@@ -1105,11 +1098,14 @@ def dataset_query(
         conditions = list(filter(None, conditions))
 
     if orderby:
+        # Don't mutate in case we have a default order passed.
+        updated_order = []
         for (i, order) in enumerate(orderby):
             order_field = order.lstrip("-")
             if order_field not in derived_columns:
                 order_field = constrain_column_to_dataset(order_field, dataset)
-            orderby[i] = u"{}{}".format("-" if order.startswith("-") else "", order_field)
+            updated_order.append(u"{}{}".format("-" if order.startswith("-") else "", order_field))
+        orderby = updated_order
 
     return raw_query(
         start=start,

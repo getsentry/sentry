@@ -671,7 +671,7 @@ def snuba_search(
         orderby = ["-{}".format(sort_field), "issue"]  # ensure stable sort within the same score
         referrer = "search"
 
-    snuba_results = snuba.raw_query(
+    snuba_results = snuba.dataset_query(
         start=start,
         end=end,
         selected_columns=selected_columns,
