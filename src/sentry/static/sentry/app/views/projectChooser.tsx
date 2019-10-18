@@ -1,21 +1,27 @@
-import React from 'react';
-import {browserHistory} from 'react-router';
 import $ from 'jquery';
-import {Box} from 'grid-emotion';
+import {browserHistory} from 'react-router';
+import React from 'react';
 import styled from 'react-emotion';
 
-import getOnboardingTasks from 'app/components/onboardingWizard/getOnboardingTasks';
+import {Location} from 'history';
+import {Organization, Project} from 'app/types';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import {sortProjects} from 'app/utils';
 import {t} from 'app/locale';
 import Link from 'app/components/links/link';
-import {sortProjects} from 'app/utils';
-import theme from 'app/utils/theme';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import ProjectLabel from 'app/components/projectLabel';
 import SentryTypes from 'app/sentryTypes';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import getOnboardingTasks from 'app/components/onboardingWizard/getOnboardingTasks';
+import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 
-class ProjectChooser extends React.Component {
+type Props = {
+  organization: Organization;
+  location: Location;
+};
+
+class ProjectChooser extends React.Component<Props> {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
   };
@@ -29,9 +35,13 @@ class ProjectChooser extends React.Component {
   }
 
   get onboardingTask() {
-    const {organization} = this.props;
+    const {organization, location} = this.props;
     const tasks = getOnboardingTasks(organization);
-    return tasks.find(task => task.task === parseInt(this.props.location.query.task, 10));
+    return tasks.find(
+      task =>
+        typeof location.query.task === 'string' &&
+        task.task === parseInt(location.query.task, 10)
+    );
   }
 
   redirectNoMultipleProjects() {
@@ -57,35 +67,43 @@ class ProjectChooser extends React.Component {
       throw new Error('User arrived on project chooser without a valid task id.');
     }
     return (
-      <div className="container" css={{'padding-left': '90px', 'padding-top': '30px'}}>
+      <ProjectChooserWrapper className="container">
         <SettingsPageHeader title="Projects" />
         <Panel>
-          <PanelHeader hasButtons>{t('Projects')}</PanelHeader>
-          <PanelBody css={{width: '100%'}}>
-            {sortProjects(organization.projects).map(project => (
-              <PanelItem p={0} key={project.slug} align="center">
-                <Box p={2} flex="1">
-                  <Link
-                    to={`/${organization.slug}/${project.slug}/${task.location}`}
-                    css={{color: theme.gray3}}
-                  >
-                    <StyledProjectLabel
-                      project={project}
-                      organization={this.props.organization}
-                    />
-                  </Link>
-                </Box>
-              </PanelItem>
+          <PanelHeader>{t('Projects')}</PanelHeader>
+          <PanelBody>
+            {sortProjects(organization.projects).map((project: Project) => (
+              <PanelItemSmall key={project.slug}>
+                <StyledLink to={`/${organization.slug}/${project.slug}/${task.location}`}>
+                  <StyledProjectLabel
+                    project={project}
+                    organization={this.props.organization}
+                  />
+                </StyledLink>
+              </PanelItemSmall>
             ))}
           </PanelBody>
         </Panel>
-      </div>
+      </ProjectChooserWrapper>
     );
   }
 }
 
 const StyledProjectLabel = styled(ProjectLabel)`
   color: ${p => p.theme.blue};
+`;
+
+const ProjectChooserWrapper = styled('div')`
+  padding-top: ${space(4)};
+`;
+
+const PanelItemSmall = styled(PanelItem)`
+  padding: 0;
+`;
+
+const StyledLink = styled(Link)`
+  padding: ${space(2)};
+  flex: 1;
 `;
 
 export default withOrganization(ProjectChooser);
