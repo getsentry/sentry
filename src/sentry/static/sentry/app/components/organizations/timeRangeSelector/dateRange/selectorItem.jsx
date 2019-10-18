@@ -1,4 +1,3 @@
-import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -20,14 +19,15 @@ class SelectorItem extends React.PureComponent {
   render() {
     const {className, label} = this.props;
     return (
-      <Flex className={className} onClick={this.handleClick}>
+      <div className={className} onClick={this.handleClick}>
         <Label>{label}</Label>
-      </Flex>
+      </div>
     );
   }
 }
 
 const StyledSelectorItem = styled(SelectorItem)`
+  display: flex;
   cursor: pointer;
   white-space: nowrap;
   padding: ${space(1)};

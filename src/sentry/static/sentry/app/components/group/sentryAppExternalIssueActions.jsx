@@ -14,6 +14,7 @@ import {t, tct} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import {deleteExternalIssue} from 'app/actionCreators/platformExternalIssues';
+import {recordInteraction} from 'app/utils/recordSentryAppInteraction';
 
 class SentryAppExternalIssueActions extends React.Component {
   static propTypes = {
@@ -47,7 +48,18 @@ class SentryAppExternalIssueActions extends React.Component {
 
   showModal = () => {
     // Only show the modal when we don't have a linked issue
-    !this.state.externalIssue && this.setState({showModal: true});
+    if (!this.state.externalIssue) {
+      const {sentryAppComponent} = this.props;
+
+      recordInteraction(
+        sentryAppComponent.sentryApp.slug,
+        'sentry_app_component_interacted',
+        {
+          componentType: 'issue-link',
+        }
+      );
+      this.setState({showModal: true});
+    }
   };
 
   hideModal = () => {

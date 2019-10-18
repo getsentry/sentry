@@ -281,5 +281,5 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
                 data={"field": ["important", "count()"], "query": "transaction.duration:>2"},
             )
         assert response.status_code == 200
-        assert response.data["nextEventID"].replace("-", "") == "d" * 32
-        assert response.data["previousEventID"].replace("-", "") == "f" * 32
+        assert response.data["nextEventID"] == "d" * 32
+        assert response.data["previousEventID"] == "f" * 32

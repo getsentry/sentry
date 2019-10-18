@@ -35,11 +35,20 @@ INNER_BORDER_FRAMES = [
 FRAME_RE = re.compile(
     r"""(?xm)
     ^
-        [\ ]*                               # leading whitespace
-        (?:\d+:[\ ]*)?                      # leading frame number
-        (?P<addr>0x[a-f0-9]+)?              # instruction address
-        [\ ]-[\ ]
-        (?P<symbol>[^\r\n]+)
+        (?!stacktrace\:[\ ]stack[\ ]backtrace\:)
+
+        [\ ]*                             # leading whitespace
+        (?:\d+:[\ ]*)?                    # leading frame number
+
+        (?P<addr>0x[a-f0-9]+)?            # instruction address (osx)
+        ([\ ]?-[\ ])?                     # dash (osx), can happen without addr if inline frame
+
+        (?P<symbol>[^\r\n]+?)
+
+        ([\ ]?\(
+            (?P<addr_linux>0x[a-f0-9]+)   # instruction address (linux)
+        \))?
+
         (?:
             \r?\n
             [\ \t]+at[\ ]
@@ -132,7 +141,7 @@ def frame_from_match(match, last_addr):
     frame = {
         "function": function,
         "in_app": not matches_frame(function, SYSTEM_FRAMES),
-        "instruction_addr": match.group("addr") or last_addr,
+        "instruction_addr": match.group("addr") or match.group("addr_linux") or last_addr,
     }
 
     if symbol != function:

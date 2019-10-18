@@ -437,6 +437,7 @@ def _do_save_event(
     from sentry import quotas
     from sentry.models import ProjectKey
     from sentry.utils.outcomes import Outcome, track_outcome
+    from sentry.ingest.outcomes_consumer import mark_signal_sent
 
     if cache_key and data is None:
         data = default_cache.get(cache_key)
@@ -517,6 +518,12 @@ def _do_save_event(
             pass
 
         quotas.refund(project, key=project_key, timestamp=start_time)
+        # There is no signal supposed to be sent for this particular
+        # outcome-reason combination. Prevent the outcome consumer from
+        # emitting it for now.
+        #
+        # XXX(markus): Revisit decision about signals once outcomes consumer is stable.
+        mark_signal_sent(project_id, event_id)
         track_outcome(
             project.organization_id,
             project_id,

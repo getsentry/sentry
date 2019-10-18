@@ -395,6 +395,11 @@ export type IntegrationProvider = {
   metadata: any; //TODO(ts)
 };
 
+export type IntegrationFeature = {
+  description: React.ReactNode;
+  featureGate: string;
+};
+
 export type WebhookEvent = 'issue' | 'error';
 
 export type Scope = typeof API_SCOPES[number];
@@ -470,6 +475,29 @@ export type SentryAppInstallation = {
   uuid: string;
   status: 'installed' | 'pending';
   code?: string;
+};
+
+export type SentryAppWebhookError = {
+  webhookUrl: string;
+  app: {
+    uuid: string;
+    slug: string;
+    name: string;
+  };
+  request: {
+    body: object;
+    headers: object;
+  };
+  eventType: string;
+  date: string;
+  organization: {
+    slug: string;
+    name: string;
+  };
+  response: {
+    body: string;
+    statusCode: number;
+  };
 };
 
 export type PermissionValue = 'no-access' | 'read' | 'write' | 'admin';

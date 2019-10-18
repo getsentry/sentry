@@ -625,151 +625,112 @@ exports[`ProjectPluginDetails renders 1`] = `
                                       className="e1p8v8nv0 css-yowjp-PanelHeader-getPadding"
                                       is={null}
                                     >
-                                      <Flex
-                                        align="center"
-                                        flex="1"
-                                      >
-                                        <Base
-                                          align="center"
-                                          className="css-1yrw3fm"
-                                          flex="1"
+                                      <PluginName>
+                                        <div
+                                          className="css-1uqkybv-PluginName e1ueudyh0"
                                         >
-                                          <div
-                                            className="css-1yrw3fm"
-                                            is={null}
+                                          <StyledPluginIcon
+                                            pluginId="amazon-sqs"
+                                            size={20}
                                           >
-                                            <Flex
-                                              align="center"
-                                              mr={1}
-                                            >
-                                              <Base
-                                                align="center"
-                                                className="css-fbx8di"
-                                                mr={1}
-                                              >
-                                                <div
-                                                  className="css-fbx8di"
-                                                  is={null}
-                                                >
-                                                  <PluginIcon
-                                                    pluginId="amazon-sqs"
-                                                    size={20}
-                                                  >
-                                                    <div
-                                                      className="css-1f9d6f6-PluginIcon e7e65lm0"
-                                                      size={20}
-                                                    />
-                                                  </PluginIcon>
-                                                </div>
-                                              </Base>
-                                            </Flex>
-                                            <span>
-                                              Amazon SQS
-                                            </span>
-                                          </div>
-                                        </Base>
-                                      </Flex>
+                                            <div
+                                              className="css-1o1r3vb-PluginIcon-StyledPluginIcon e1ueudyh1"
+                                              size={20}
+                                            />
+                                          </StyledPluginIcon>
+                                          <span>
+                                            Amazon SQS
+                                          </span>
+                                        </div>
+                                      </PluginName>
                                     </div>
                                   </Base>
                                 </Flex>
                               </Component>
                             </PanelHeader>
-                            <PanelBody
+                            <StyledPanelBody
                               direction="column"
                               disablePadding={true}
-                              flex={true}
-                              pt={2}
-                              px={2}
-                              wrap="wrap"
+                              flex={false}
                             >
-                              <Flex
-                                className="css-a4ya23-textStyles"
+                              <PanelBody
+                                className="css-1shq0zk-StyledPanelBody e1ueudyh4"
                                 direction="column"
-                                pt={2}
-                                px={2}
-                                wrap="wrap"
+                                disablePadding={true}
+                                flex={false}
                               >
-                                <Base
-                                  className="css-z9mjil-textStyles"
-                                  direction="column"
-                                  pt={2}
-                                  px={2}
-                                  wrap="wrap"
+                                <div
+                                  className="e1ueudyh4 css-sykvmd-textStyles-StyledPanelBody"
                                 >
                                   <div
-                                    className="css-z9mjil-textStyles"
-                                    is={null}
-                                  >
-                                    <div
-                                      dangerouslySetInnerHTML={
-                                        Object {
-                                          "__html": undefined,
-                                        }
+                                    dangerouslySetInnerHTML={
+                                      Object {
+                                        "__html": undefined,
                                       }
-                                    />
-                                    <PluginSettings
-                                      organization={
-                                        Object {
-                                          "access": Array [
-                                            "org:read",
-                                            "org:write",
-                                            "org:admin",
-                                            "org:integrations",
-                                            "project:read",
-                                            "project:write",
-                                            "project:admin",
-                                            "team:read",
-                                            "team:write",
-                                            "team:admin",
-                                          ],
-                                          "features": Array [],
-                                          "id": "3",
-                                          "name": "Organization Name",
-                                          "onboardingTasks": Array [],
-                                          "projects": Array [],
-                                          "scrapeJavaScript": true,
-                                          "slug": "org-slug",
-                                          "status": Object {
-                                            "id": "active",
-                                            "name": "active",
-                                          },
-                                          "teams": Array [],
-                                        }
+                                    }
+                                  />
+                                  <PluginSettings
+                                    organization={
+                                      Object {
+                                        "access": Array [
+                                          "org:read",
+                                          "org:write",
+                                          "org:admin",
+                                          "org:integrations",
+                                          "project:read",
+                                          "project:write",
+                                          "project:admin",
+                                          "team:read",
+                                          "team:write",
+                                          "team:admin",
+                                        ],
+                                        "features": Array [],
+                                        "id": "3",
+                                        "name": "Organization Name",
+                                        "onboardingTasks": Array [],
+                                        "projects": Array [],
+                                        "scrapeJavaScript": true,
+                                        "slug": "org-slug",
+                                        "status": Object {
+                                          "id": "active",
+                                          "name": "active",
+                                        },
+                                        "teams": Array [],
                                       }
-                                      plugin={
-                                        DefaultPlugin {
-                                          "assets": Array [],
-                                          "author": Object {
-                                            "name": "Sentry Team",
-                                            "url": "https://github.com/getsentry/sentry",
-                                          },
-                                          "canDisable": true,
-                                          "enabled": false,
-                                          "hasConfiguration": true,
-                                          "id": "amazon-sqs",
-                                          "isHidden": false,
-                                          "name": "Amazon SQS",
-                                          "slug": "amazon-sqs",
-                                          "version": "8.23.0.dev0",
-                                        }
+                                    }
+                                    plugin={
+                                      DefaultPlugin {
+                                        "assets": Array [],
+                                        "author": Object {
+                                          "name": "Sentry Team",
+                                          "url": "https://github.com/getsentry/sentry",
+                                        },
+                                        "canDisable": true,
+                                        "enabled": false,
+                                        "hasConfiguration": true,
+                                        "id": "amazon-sqs",
+                                        "isHidden": false,
+                                        "name": "Amazon SQS",
+                                        "slug": "amazon-sqs",
+                                        "version": "8.23.0.dev0",
                                       }
-                                      project={
-                                        Object {
-                                          "environments": Array [],
-                                          "hasAccess": true,
-                                          "id": "2",
-                                          "isBookmarked": false,
-                                          "isMember": true,
-                                          "name": "Project Name",
-                                          "slug": "project-slug",
-                                          "teams": Array [],
-                                        }
+                                    }
+                                    project={
+                                      Object {
+                                        "environments": Array [],
+                                        "hasAccess": true,
+                                        "id": "2",
+                                        "isBookmarked": false,
+                                        "isMember": true,
+                                        "name": "Project Name",
+                                        "slug": "project-slug",
+                                        "teams": Array [],
                                       }
-                                    />
-                                  </div>
-                                </Base>
-                              </Flex>
-                            </PanelBody>
+                                    }
+                                  />
+                                </div>
+                              </PanelBody>
+                            </StyledPanelBody>
                           </div>
                         </Component>
                       </Panel>

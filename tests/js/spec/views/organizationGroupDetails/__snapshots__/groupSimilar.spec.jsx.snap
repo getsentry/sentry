@@ -1361,19 +1361,25 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                 }
                                               }
                                             >
-                                              <Flex
-                                                align="center"
-                                              >
-                                                <Base
-                                                  align="center"
-                                                  className="css-5ipae5"
+                                              <BaseBadgeWrapper>
+                                                <div
+                                                  className="css-td6t8v-BaseBadgeWrapper e165dl3i0"
                                                 >
-                                                  <div
-                                                    className="css-5ipae5"
-                                                    is={null}
+                                                  <StyledAvatar
+                                                    className="css-0"
+                                                    hasTooltip={false}
+                                                    hideName={true}
+                                                    project={
+                                                      Object {
+                                                        "id": "123",
+                                                        "name": "Internal",
+                                                        "slug": "project-slug",
+                                                      }
+                                                    }
+                                                    size={14}
                                                   >
-                                                    <StyledAvatar
-                                                      className="css-0"
+                                                    <Avatar
+                                                      className="css-f5iyic-StyledAvatar e165dl3i1"
                                                       hasTooltip={false}
                                                       hideName={true}
                                                       project={
@@ -1385,8 +1391,8 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                       }
                                                       size={14}
                                                     >
-                                                      <Avatar
-                                                        className="css-f5iyic-StyledAvatar e165dl3i0"
+                                                      <ProjectAvatar
+                                                        className="css-f5iyic-StyledAvatar e165dl3i1"
                                                         hasTooltip={false}
                                                         hideName={true}
                                                         project={
@@ -1398,91 +1404,72 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                         }
                                                         size={14}
                                                       >
-                                                        <ProjectAvatar
-                                                          className="css-f5iyic-StyledAvatar e165dl3i0"
+                                                        <PlatformList
+                                                          className="css-f5iyic-StyledAvatar e165dl3i1"
+                                                          consistentWidth={false}
+                                                          direction="right"
                                                           hasTooltip={false}
                                                           hideName={true}
-                                                          project={
-                                                            Object {
-                                                              "id": "123",
-                                                              "name": "Internal",
-                                                              "slug": "project-slug",
-                                                            }
-                                                          }
+                                                          max={1}
+                                                          platforms={Array []}
                                                           size={14}
                                                         >
-                                                          <PlatformList
-                                                            className="css-f5iyic-StyledAvatar e165dl3i0"
+                                                          <PlatformIcons
+                                                            className="css-f5iyic-StyledAvatar e165dl3i1"
                                                             consistentWidth={false}
                                                             direction="right"
-                                                            hasTooltip={false}
-                                                            hideName={true}
                                                             max={1}
-                                                            platforms={Array []}
                                                             size={14}
                                                           >
-                                                            <PlatformIcons
-                                                              className="css-f5iyic-StyledAvatar e165dl3i0"
-                                                              consistentWidth={false}
+                                                            <div
+                                                              className="e165dl3i1 css-7hp7lr-PlatformIcons-StyledAvatar ezvce7z0"
                                                               direction="right"
                                                               max={1}
                                                               size={14}
                                                             >
-                                                              <div
-                                                                className="e165dl3i0 css-7hp7lr-PlatformIcons-StyledAvatar ezvce7z0"
-                                                                direction="right"
-                                                                max={1}
+                                                              <StyledPlatformIcon
+                                                                platform="default"
                                                                 size={14}
                                                               >
-                                                                <StyledPlatformIcon
+                                                                <Component
+                                                                  className="css-15yyc0n-StyledPlatformIcon ezvce7z1"
                                                                   platform="default"
                                                                   size={14}
                                                                 >
-                                                                  <Component
+                                                                  <Platformicon
                                                                     className="css-15yyc0n-StyledPlatformIcon ezvce7z1"
                                                                     platform="default"
-                                                                    size={14}
+                                                                    size="14px"
                                                                   >
-                                                                    <Platformicon
+                                                                    <img
                                                                       className="css-15yyc0n-StyledPlatformIcon ezvce7z1"
-                                                                      platform="default"
-                                                                      size="14px"
-                                                                    >
-                                                                      <img
-                                                                        className="css-15yyc0n-StyledPlatformIcon ezvce7z1"
-                                                                        height="14px"
-                                                                        src={
-                                                                          Object {
-                                                                            "default": Object {
-                                                                              "id": "test",
-                                                                              "viewBox": Object {},
-                                                                            },
-                                                                          }
+                                                                      height="14px"
+                                                                      src={
+                                                                        Object {
+                                                                          "default": Object {
+                                                                            "id": "test",
+                                                                            "viewBox": Object {},
+                                                                          },
                                                                         }
-                                                                        width="14px"
-                                                                      />
-                                                                    </Platformicon>
-                                                                  </Component>
-                                                                </StyledPlatformIcon>
-                                                              </div>
-                                                            </PlatformIcons>
-                                                          </PlatformList>
-                                                        </ProjectAvatar>
-                                                      </Avatar>
-                                                    </StyledAvatar>
-                                                    <DisplayNameAndDescription>
-                                                      <Base
-                                                        className="css-1h9j57p-DisplayNameAndDescription e165dl3i1"
-                                                      >
-                                                        <div
-                                                          className="css-1h9j57p-DisplayNameAndDescription e165dl3i1"
-                                                          is={null}
-                                                        />
-                                                      </Base>
-                                                    </DisplayNameAndDescription>
-                                                  </div>
-                                                </Base>
-                                              </Flex>
+                                                                      }
+                                                                      width="14px"
+                                                                    />
+                                                                  </Platformicon>
+                                                                </Component>
+                                                              </StyledPlatformIcon>
+                                                            </div>
+                                                          </PlatformIcons>
+                                                        </PlatformList>
+                                                      </ProjectAvatar>
+                                                    </Avatar>
+                                                  </StyledAvatar>
+                                                  <DisplayNameAndDescription>
+                                                    <div
+                                                      className="css-1yzfvrt-DisplayNameAndDescription e165dl3i2"
+                                                    />
+                                                  </DisplayNameAndDescription>
+                                                </div>
+                                              </BaseBadgeWrapper>
                                             </BaseBadge>
                                           </ProjectBadge>
                                           <StyledAutoSelectText

@@ -27,7 +27,7 @@ const withGlobalSelection = <P extends InjectedGlobalSelectionProps>(
     State
   >({
     displayName: `withGlobalSelection(${getDisplayName(WrappedComponent)})`,
-    mixins: [Reflux.listenTo(GlobalSelectionStore, 'onUpdate')],
+    mixins: [Reflux.listenTo(GlobalSelectionStore, 'onUpdate') as any],
 
     getInitialState() {
       return {

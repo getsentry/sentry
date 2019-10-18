@@ -5,6 +5,7 @@ const fs = require('fs');
 
 const {CleanWebpackPlugin} = require('clean-webpack-plugin'); // installed via npm
 const webpack = require('webpack');
+const LastBuiltPlugin = require('./build-utils/last-built-plugin');
 const OptionalLocaleChunkPlugin = require('./build-utils/optional-locale-chunk-plugin');
 const IntegrationDocsFetchPlugin = require('./build-utils/integration-docs-fetch-plugin');
 const ExtractTextPlugin = require('mini-css-extract-plugin');
@@ -28,6 +29,7 @@ const SENTRY_BACKEND_PORT = env.SENTRY_BACKEND_PORT;
 const SENTRY_WEBPACK_PROXY_PORT = env.SENTRY_WEBPACK_PROXY_PORT;
 const USE_HOT_MODULE_RELOAD =
   !IS_PRODUCTION && SENTRY_BACKEND_PORT && SENTRY_WEBPACK_PROXY_PORT;
+const NO_DEV_SERVER = env.NO_DEV_SERVER;
 
 // Deploy previews are built using netlify. We can check if we're in netlifys
 // build process by checking the existance of the PULL_REQUEST env var.
@@ -285,6 +287,7 @@ const appConfig = {
       flattening: true, // used by a dependency of react-mentions
       shorthands: true,
       paths: true,
+      exotics: true,
     }),
 
     /**
@@ -373,8 +376,12 @@ if (IS_TEST || IS_STORYBOOK) {
   appConfig.resolve.alias['integration-docs-platforms'] = plugin.modulePath;
 }
 
+if (!IS_PRODUCTION) {
+  appConfig.plugins.push(new LastBuiltPlugin({basePath: __dirname}));
+}
+
 // Dev only! Hot module reloading
-if (USE_HOT_MODULE_RELOAD) {
+if (USE_HOT_MODULE_RELOAD && !NO_DEV_SERVER) {
   const backendAddress = `http://localhost:${SENTRY_BACKEND_PORT}/`;
 
   appConfig.plugins.push(new webpack.HotModuleReplacementPlugin());

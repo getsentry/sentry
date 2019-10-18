@@ -7,59 +7,54 @@ import {omit} from 'lodash';
 import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/links/link';
 
+import EventView, {Field, Sort, isFieldSortable} from './eventView';
+import {MetaType} from './utils';
+
 type Alignments = 'left' | 'right' | undefined;
 
 type Props = {
-  title: string;
-  sortKey: string;
-  defaultSort: string;
-  location: Location;
   align: Alignments;
+  field: Field;
+  location: Location;
+  eventView: EventView;
+  tableDataMeta: MetaType;
 };
 
 class SortLink extends React.Component<Props> {
   static propTypes = {
     align: PropTypes.string,
-    title: PropTypes.string.isRequired,
-    sortKey: PropTypes.string.isRequired,
-    defaultSort: PropTypes.string.isRequired,
+    field: PropTypes.object.isRequired,
     location: PropTypes.object.isRequired,
+    eventView: PropTypes.object.isRequired,
+    tableDataMeta: PropTypes.object.isRequired,
   };
 
-  getCurrentSort(): string {
-    const {defaultSort, location} = this.props;
-    return typeof location.query.sort === 'string' ? location.query.sort : defaultSort;
-  }
+  isCurrentColumnSorted(): Sort | undefined {
+    const {eventView, field, tableDataMeta} = this.props;
 
-  getSort() {
-    const {sortKey} = this.props;
-    const currentSort = this.getCurrentSort();
-
-    // Page is currently unsorted or is ascending
-    if (currentSort === `-${sortKey}`) {
-      return sortKey;
-    }
-
-    // Reverse direction
-    return `-${sortKey}`;
+    return eventView.isFieldSorted(field, tableDataMeta);
   }
 
   getTarget() {
-    const {location} = this.props;
+    const {location, field, eventView, tableDataMeta} = this.props;
+
+    const nextEventView = eventView.sortOnField(field, tableDataMeta);
+    const queryStringObject = nextEventView.generateQueryStringObject();
+
     return {
-      pathname: location.pathname,
-      query: {...location.query, sort: this.getSort()},
+      ...location,
+      query: queryStringObject,
     };
   }
 
   renderChevron() {
-    const currentSort = this.getCurrentSort();
-    const {sortKey} = this.props;
-    if (!currentSort || currentSort.indexOf(sortKey) === -1) {
+    const currentSort = this.isCurrentColumnSorted();
+
+    if (!currentSort) {
       return null;
     }
 
-    if (currentSort[0] === '-') {
+    if (currentSort.kind === 'desc') {
       return <InlineSvg src="icon-chevron-down" />;
     }
 
@@ -67,10 +62,15 @@ class SortLink extends React.Component<Props> {
   }
 
   render() {
-    const {align, title} = this.props;
+    const {align, field, tableDataMeta} = this.props;
+
+    if (!isFieldSortable(field, tableDataMeta)) {
+      return <StyledNonLink align={align}>{field.title}</StyledNonLink>;
+    }
+
     return (
       <StyledLink align={align} to={this.getTarget()}>
-        {title} {this.renderChevron()}
+        {field.title} {this.renderChevron()}
       </StyledLink>
     );
   }
@@ -85,6 +85,11 @@ const StyledLink = styled((props: StyledLinkProps) => {
   display: block;
   white-space: nowrap;
   ${(p: StyledLinkProps) => (p.align ? `text-align: ${p.align};` : '')}
+`;
+
+const StyledNonLink = styled('div')<{align: Alignments}>`
+  white-space: nowrap;
+  ${(p: {align: Alignments}) => (p.align ? `text-align: ${p.align};` : '')}
 `;
 
 export default SortLink;

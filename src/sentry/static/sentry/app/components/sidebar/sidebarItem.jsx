@@ -131,7 +131,7 @@ const getActiveStyle = ({active, theme}) => {
   `;
 };
 
-const StyledSidebarItem = styled(({active, ...props}) => <Link {...props} />)`
+const StyledSidebarItem = styled(({active: _, ...props}) => <Link {...props} />)`
   display: flex;
   color: inherit;
   position: relative;
@@ -197,10 +197,11 @@ const SidebarItemWrapper = styled('div')`
 
 const SidebarItemIcon = styled('span')`
   content: '';
-  display: inline-block;
+  display: inline-flex;
   width: 32px;
   height: 22px;
   font-size: 20px;
+  align-items: center;
 
   svg {
     display: block;
@@ -237,7 +238,7 @@ const getCollapsedBadgeStyle = ({collapsed, theme}) => {
   `;
 };
 
-const SidebarItemBadge = styled(({collapsed, ...props}) => <span {...props} />)`
+const SidebarItemBadge = styled(({collapsed: _, ...props}) => <span {...props} />)`
   display: block;
   text-align: center;
   color: ${p => p.theme.white};

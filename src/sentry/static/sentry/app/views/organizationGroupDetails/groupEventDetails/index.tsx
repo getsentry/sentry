@@ -37,7 +37,7 @@ export class GroupEventDetailsContainer extends React.Component<Props, State> {
   state = OrganizationEnvironmentsStore.get();
 
   componentDidMount() {
-    this.environmentSubscription = OrganizationEnvironmentsStore.listen(data =>
+    this.environmentUnsubscribe = OrganizationEnvironmentsStore.listen(data =>
       this.setState(data)
     );
     const {environments, error} = OrganizationEnvironmentsStore.get();
@@ -47,13 +47,13 @@ export class GroupEventDetailsContainer extends React.Component<Props, State> {
   }
 
   componentWillUnmount() {
-    if (this.environmentSubscription) {
-      this.environmentSubscription.unsubscribe();
+    if (this.environmentUnsubscribe) {
+      this.environmentUnsubscribe();
     }
   }
 
   // TODO(ts): reflux :(
-  environmentSubscription: any;
+  environmentUnsubscribe: any;
 
   render() {
     if (this.state.error) {

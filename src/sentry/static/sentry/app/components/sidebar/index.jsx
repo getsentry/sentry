@@ -163,6 +163,7 @@ class Sidebar extends React.Component {
       'events',
       'releases',
       'user-feedback',
+      'eventsv2',
     ].map(route => `/organizations/${this.props.organization.slug}/${route}/`);
 
     // Only keep the querystring if the current route matches one of the above
@@ -264,7 +265,7 @@ class Sidebar extends React.Component {
 
                   <Feature
                     features={['events']}
-                    hookName="events-sidebar-item"
+                    hookName="feature-disabled:events-sidebar-item"
                     organization={organization}
                   >
                     <SidebarItem
@@ -357,7 +358,7 @@ class Sidebar extends React.Component {
                   </Feature>
                   <Feature
                     features={['discover']}
-                    hookName="discover-sidebar-item"
+                    hookName="feature-disabled:discover-sidebar-item"
                     organization={organization}
                   >
                     <SidebarItem

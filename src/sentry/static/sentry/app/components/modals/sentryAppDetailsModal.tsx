@@ -8,7 +8,7 @@ import Button from 'app/components/button';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import HookStore from 'app/stores/hookStore';
@@ -18,6 +18,7 @@ import Tag from 'app/views/settings/components/tag';
 import {toPermissions} from 'app/utils/consolidatedScopes';
 import CircleIndicator from 'app/components/circleIndicator';
 import {SentryAppDetailsModalOptions} from 'app/actionCreators/modal';
+import {Hooks} from 'app/types/hooks';
 
 type Props = {
   closeOnInstall?: boolean;
@@ -25,7 +26,6 @@ type Props = {
 } & SentryAppDetailsModalOptions &
   AsyncComponent['props'];
 
-//TODO(TS): Add typing for feature gates
 const defaultFeatureGateComponents = {
   IntegrationFeatures: p =>
     p.children({
@@ -41,7 +41,7 @@ const defaultFeatureGateComponents = {
       ))}
     </ul>
   ),
-};
+} as ReturnType<Hooks['integrations:feature-gates']>;
 
 export default class SentryAppDetailsModal extends AsyncComponent<Props> {
   static propTypes = {
@@ -82,6 +82,12 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props> {
 
   renderPermissions() {
     const permissions = this.permissions;
+    if (
+      Object.keys(permissions).filter(scope => permissions[scope].length > 0).length === 0
+    ) {
+      return null;
+    }
+
     return (
       <React.Fragment>
         <Title>Permissions</Title>
@@ -89,8 +95,10 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props> {
           <Permission>
             <Indicator />
             <Text key="read">
-              <strong>{t('Read')}</strong>
-              {t(' access to %s resources', permissions.read.join(', '))}
+              {tct('[read] access to [resources] resources', {
+                read: <strong>Read</strong>,
+                resources: permissions.read.join(', '),
+              })}
             </Text>
           </Permission>
         )}
@@ -98,10 +106,11 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props> {
           <Permission>
             <Indicator />
             <Text key="write">
-              <strong>{t('Read')}</strong>
-              {t(' and ')}
-              <strong>{t('write')}</strong>
-              {t(' access to %s resources', permissions.write.join(', '))}
+              {tct('[read] and [write] access to [resources] resources', {
+                read: <strong>Read</strong>,
+                write: <strong>Write</strong>,
+                resources: permissions.read.join(', '),
+              })}
             </Text>
           </Permission>
         )}
@@ -109,8 +118,10 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props> {
           <Permission>
             <Indicator />
             <Text key="admin">
-              <strong>{t('Admin')}</strong>
-              {t(' access to %s resources', permissions.admin.join(', '))}
+              {tct('[admin] access to [resources] resources', {
+                admin: <strong>Admin</strong>,
+                resources: permissions.read.join(', '),
+              })}
             </Text>
           </Permission>
         )}
@@ -208,7 +219,7 @@ const Author = styled(Box)`
   color: ${p => p.theme.gray2};
 `;
 
-const DisabledNotice = styled(({reason, ...p}: {reason: string}) => (
+const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
   <Flex align="center" flex={1} {...p}>
     <InlineSvg src="icon-circle-exclamation" size="1.5em" />
     <Box ml={1}>{reason}</Box>
