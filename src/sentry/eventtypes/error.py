@@ -11,7 +11,7 @@ def get_crash_location(data):
     from sentry.stacktraces.processing import get_crash_frame_from_event_data
 
     frame = get_crash_frame_from_event_data(
-        data, frame_filter=lambda x: x and (x.get("filename") or x.get("abs_path")) or None
+        data, frame_filter=lambda x: x.get("filename") or x.get("abs_path")
     )
     if frame is not None:
         from sentry.stacktraces.functions import get_function_name_for_frame
