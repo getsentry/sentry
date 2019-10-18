@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {Project, Organization, Config} from 'app/types';
+import {FeatureDisabledHooks} from 'app/types/hooks';
 import HookStore from 'app/stores/hookStore';
 import SentryTypes from 'app/sentryTypes';
 import withConfig from 'app/utils/withConfig';
@@ -17,7 +18,7 @@ type FeatureProps = {
   features: string[];
   requireAll?: boolean;
   renderDisabled?: Function | boolean;
-  hookName?: string;
+  hookName?: keyof FeatureDisabledHooks;
   children: React.ReactNode;
 };
 
@@ -66,15 +67,13 @@ class Feature extends React.Component<FeatureProps> {
     /**
      * Specify the key to use for hookstore functionality.
      *
-     * The hookstore key that will be checked is:
-     *
-     *     feature-disabled:{hookName}
+     * The hookName should be prefixed with `feature-disabled`.
      *
      * When specified, the hookstore will be checked if the feature is
      * disabled, and the first available hook will be used as the render
      * function.
      */
-    hookName: PropTypes.string,
+    hookName: PropTypes.string as any,
 
     /**
      * If children is a function then will be treated as a render prop and
@@ -164,7 +163,7 @@ class Feature extends React.Component<FeatureProps> {
     // Override the renderDisabled function with a hook store function if there
     // is one registered for the feature.
     if (hookName) {
-      const hooks: Function[] = HookStore.get(`feature-disabled:${hookName}`);
+      const hooks = HookStore.get(hookName);
 
       if (hooks.length > 0) {
         customDisabledRender = hooks[0];

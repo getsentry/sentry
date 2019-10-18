@@ -198,7 +198,7 @@ class ProjectFiltersSettings extends AsyncComponent {
   renderCustomFilters = disabled => () => (
     <Feature
       features={['projects:custom-inbound-filters']}
-      hookName="custom-inbound-filters"
+      hookName="feature-disabled:custom-inbound-filters"
       renderDisabled={({children, ...props}) =>
         children({...props, renderDisabled: this.renderDisabledCustomFilters})
       }

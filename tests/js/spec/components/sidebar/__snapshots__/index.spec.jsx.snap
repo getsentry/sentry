@@ -478,7 +478,9 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
           "teams": Array [],
         }
       }
-    />
+    >
+      <Hook(sidebar:organization-dropdown-menu) />
+    </Hook>
     <SidebarMenuItem>
       <MenuItemLink>
         <Component
@@ -1027,7 +1029,9 @@ exports[`Sidebar SidebarHelp can toggle help menu 1`] = `
           "teams": Array [],
         }
       }
-    />
+    >
+      <Hook(sidebar:help-menu) />
+    </Hook>
     <SidebarMenuItem
       onClick={[Function]}
     >

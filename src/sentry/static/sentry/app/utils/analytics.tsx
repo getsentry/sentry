@@ -1,4 +1,5 @@
 import HookStore from 'app/stores/hookStore';
+import {Hooks} from 'app/types/hooks';
 
 /**
  * Analytics and metric tracking functionality.
@@ -26,13 +27,8 @@ import HookStore from 'app/stores/hookStore';
  *
  * Refer for the backend implementation provided through HookStore for more
  * details.
- *
- * @param {Object} options Event tracking options
- * @param {String} options.eventKey The string key of the event to track
- * @param {String} options.name The human readable string name of the event
- * @param {...Object} options.data The parameters of the event to track
  */
-export const trackAnalyticsEvent = options =>
+export const trackAnalyticsEvent: Hooks['analytics:track-event'] = options =>
   HookStore.get('analytics:track-event').forEach(cb => cb(options));
 
 /**
@@ -43,29 +39,49 @@ export const trackAnalyticsEvent = options =>
  *
  * Refer for the backend implementation provided through HookStore for a more
  * thorough explanation of when to use this.
- *
- * @param {Object} options Event tracking options
- * @param {String} options.eventKey The string key of the event to track
- * @param {...Object} options.data The parameters of the event to track
  */
-export const trackAdhocEvent = (options: {[key: string]: any}) =>
+export const trackAdhocEvent: Hooks['analytics:track-adhoc-event'] = options =>
   HookStore.get('analytics:track-adhoc-event').forEach(cb => cb(options));
 
 /**
- * @param {String} name The name of the event
- * @param {Object} data Additional event data to record
+ * Legacy analytics tracking.
+ *
+ * @deprecated Prefer `trackAnalyticsEvent` and `trackAdhocEvent`.
  */
-export const analytics = (
-  name: string,
-  data: {[key: string]: number | string | boolean}
-): void => HookStore.get('analytics:event').forEach(cb => cb(name, data));
+export const analytics: Hooks['analytics:event'] = (name, data) =>
+  HookStore.get('analytics:event').forEach(cb => cb(name, data));
+
+type RecordMetric = Hooks['metrics:event'] & {
+  mark: (name: string) => void;
+
+  measure: (opts: {
+    /**
+     * Name of the metric event
+     */
+    name?: string;
+    /**
+     * Name of starting mark
+     */
+    start?: string;
+    /**
+     * Name of ending mark
+     */
+    end?: string;
+    /**
+     * Additional data to send with metric event
+     */
+    data?: object;
+    /**
+     * Do not clean up marks and measurements when completed
+     */
+    noCleanup?: boolean;
+  }) => void;
+};
 
 /**
- * @param {String} name Metric name
- * @param {Number} value Value to record for this metric
- * @param {Object} tags An additional tags object
+ * Record metrics.
  */
-export const metric = (name: string, value: number, tags?: object): void =>
+export const metric: RecordMetric = (name, value, tags) =>
   HookStore.get('metrics:event').forEach(cb => cb(name, value, tags));
 
 // JSDOM implements window.performance but not window.performance.mark
@@ -76,7 +92,7 @@ const CAN_MARK =
   typeof window.performance.getEntriesByName === 'function' &&
   typeof window.performance.clearMeasures === 'function';
 
-metric.mark = function metricMark(name: string): void {
+metric.mark = function metricMark(name) {
   // Just ignore if browser is old enough that it doesn't support this
   if (!CAN_MARK) {
     return;
@@ -86,29 +102,10 @@ metric.mark = function metricMark(name: string): void {
 };
 
 /**
- * Performs a measurement between `start` and `end` (or now if `end` is not specified)
- * Calls `metric` with `name` and the measured time difference.
- *
- * @param {Object} options keyword args object
- * @param {String} options.name Name of the metric event
- * @param {String} options.start Name of starting mark
- * @param {String} options.end (optional) Name of ending mark
- * @param {Boolean} options.noCleanup Do not clean up marks and measurements when completed
- * @param {Object} options.data (optional) Additional data to send with metric event
+ * Performs a measurement between `start` and `end` (or now if `end` is not
+ * specified) Calls `metric` with `name` and the measured time difference.
  */
-metric.measure = function metricMeasure({
-  name,
-  start,
-  end,
-  data,
-  noCleanup,
-}: {
-  name?: string;
-  start?: string;
-  end?: string;
-  data?: object;
-  noCleanup?: boolean;
-} = {}): void {
+metric.measure = function metricMeasure({name, start, end, data, noCleanup} = {}) {
   // Just ignore if browser is old enough that it doesn't support this
   if (!CAN_MARK) {
     return;

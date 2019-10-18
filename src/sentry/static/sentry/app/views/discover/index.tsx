@@ -194,7 +194,7 @@ class DiscoverContainer extends React.Component<Props, State> {
       <DocumentTitle title={`Discover - ${organization.slug} - Sentry`}>
         <Feature
           features={['organizations:discover']}
-          hookName="discover-page"
+          hookName="feature-disabled:discover-page"
           organization={organization}
           renderDisabled={this.renderNoAccess}
         >

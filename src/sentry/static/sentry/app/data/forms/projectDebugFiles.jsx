@@ -54,7 +54,7 @@ export const fields = {
     help: ({organization}) => (
       <Feature
         features={['organizations:custom-symbol-sources']}
-        hookName="custom-symbol-sources"
+        hookName="feature-disabled:custom-symbol-sources"
         organization={organization}
         renderDisabled={p => (
           <FeatureDisabled

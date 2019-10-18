@@ -18,6 +18,7 @@ import Tag from 'app/views/settings/components/tag';
 import {toPermissions} from 'app/utils/consolidatedScopes';
 import CircleIndicator from 'app/components/circleIndicator';
 import {SentryAppDetailsModalOptions} from 'app/actionCreators/modal';
+import {Hooks} from 'app/types/hooks';
 
 type Props = {
   closeOnInstall?: boolean;
@@ -25,7 +26,6 @@ type Props = {
 } & SentryAppDetailsModalOptions &
   AsyncComponent['props'];
 
-//TODO(TS): Add typing for feature gates
 const defaultFeatureGateComponents = {
   IntegrationFeatures: p =>
     p.children({
@@ -41,7 +41,7 @@ const defaultFeatureGateComponents = {
       ))}
     </ul>
   ),
-};
+} as ReturnType<Hooks['integrations:feature-gates']>;
 
 export default class SentryAppDetailsModal extends AsyncComponent<Props> {
   static propTypes = {
@@ -219,7 +219,7 @@ const Author = styled(Box)`
   color: ${p => p.theme.gray2};
 `;
 
-const DisabledNotice = styled(({reason, ...p}: {reason: string}) => (
+const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
   <Flex align="center" flex={1} {...p}>
     <InlineSvg src="icon-circle-exclamation" size="1.5em" />
     <Box ml={1}>{reason}</Box>

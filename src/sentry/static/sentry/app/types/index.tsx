@@ -390,6 +390,11 @@ export type IntegrationProvider = {
   metadata: any; //TODO(ts)
 };
 
+export type IntegrationFeature = {
+  description: React.ReactNode;
+  featureGate: string;
+};
+
 export type WebhookEvent = 'issue' | 'error';
 
 export type Scope = typeof API_SCOPES[number];

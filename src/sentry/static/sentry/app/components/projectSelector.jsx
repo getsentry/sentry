@@ -391,7 +391,7 @@ class ProjectSelectorItem extends React.PureComponent {
           renderCheckbox={({checkbox}) => (
             <Feature
               features={['organizations:global-views']}
-              hookName="project-selector-checkbox"
+              hookName="feature-disabled:project-selector-checkbox"
               renderDisabled={renderDisabledCheckbox}
             >
               {checkbox}
