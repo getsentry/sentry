@@ -27,7 +27,6 @@ const EXTERNAL_QUERY_STRING_KEYS: Readonly<Array<keyof LocationQuery>> = [
   'end',
   'utc',
   'statsPeriod',
-  'cursor',
 ];
 
 export type Sort = {
