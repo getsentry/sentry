@@ -1,4 +1,7 @@
-import EventView, {isAPIPayloadSimilar} from 'app/views/eventsV2/eventView';
+import EventView, {
+  isAPIPayloadSimilar,
+  pickRelevantLocationQueryStrings,
+} from 'app/views/eventsV2/eventView';
 import {AUTOLINK_FIELDS} from 'app/views/eventsV2/data';
 
 const generateFields = fields => {
@@ -1613,5 +1616,38 @@ describe('isAPIPayloadSimilar', function() {
 
       expect(results).toBe(true);
     });
+  });
+});
+
+describe('pickRelevantLocationQueryStrings', function() {
+  it('picks relevant query strings', function() {
+    const location = {
+      query: {
+        project: 'project',
+        environment: 'environment',
+        start: 'start',
+        end: 'end',
+        utc: 'utc',
+        statsPeriod: 'statsPeriod',
+        cursor: 'cursor',
+
+        // irrelevant query strings
+        bestCountry: 'canada',
+      },
+    };
+
+    const actual = pickRelevantLocationQueryStrings(location);
+
+    const expected = {
+      project: 'project',
+      environment: 'environment',
+      start: 'start',
+      end: 'end',
+      utc: 'utc',
+      statsPeriod: 'statsPeriod',
+      cursor: 'cursor',
+    };
+
+    expect(actual).toEqual(expected);
   });
 });
