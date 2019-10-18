@@ -300,3 +300,19 @@ describe('EventView.isValid()', function() {
     expect(eventView.isValid()).toBe(false);
   });
 });
+
+describe('EventView.getFieldNames()', function() {
+  it('returns field names', function() {
+    const eventView = new EventView({
+      fields: [
+        {field: 'count()', title: 'events'},
+        {field: 'project.id', title: 'project'},
+      ],
+      sorts: [],
+      tags: [],
+      project: [],
+    });
+
+    expect(eventView.getFieldNames()).toEqual(['events', 'project']);
+  });
+});
