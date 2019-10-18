@@ -8,7 +8,7 @@ from django.utils import timezone
 from mock import patch
 
 from sentry.auth import manager
-from sentry.models import OrganizationMember, INVITE_DAYS_VALID
+from sentry.models import InviteStatus, OrganizationMember, INVITE_DAYS_VALID
 from sentry.testutils import TestCase
 
 
@@ -172,3 +172,17 @@ class OrganizationMemberTest(TestCase):
         )
         OrganizationMember.delete_expired(timezone.now())
         assert OrganizationMember.objects.get(id=member.id)
+
+    def test_approve_invite(self):
+        organization = self.create_organization()
+        member = OrganizationMember.objects.create(
+            organization=organization,
+            role="member",
+            email="test@example.com",
+            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+        )
+        assert not member.invite_approved
+
+        member.approve_invite()
+        assert member.invite_approved
+        member.invite_status == InviteStatus.APPROVED.value
