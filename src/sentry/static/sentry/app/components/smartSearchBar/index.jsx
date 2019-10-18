@@ -222,7 +222,7 @@ class SmartSearchBar extends React.Component {
 
       searchTerm: '',
       searchItems: [],
-      activeSearchItem: 0,
+      activeSearchItem: -1,
 
       tags: {},
 
@@ -323,9 +323,105 @@ class SmartSearchBar extends React.Component {
     callIfFunction(this.props.onChange, evt.target.value, evt);
   };
 
+  onInputClick = () => {
+    this.updateAutoCompleteItems();
+  };
+
+  onKeyDown = evt => {
+    if (!this.state.searchItems.length) {
+      return;
+    }
+
+    const {key} = evt;
+    const isSelectingDropdownItems = this.state.activeSearchItem !== -1;
+
+    if (key === 'ArrowDown' || key === 'ArrowUp') {
+      evt.preventDefault();
+
+      const {searchItems, flatSearchItems, activeSearchItem} = this.state;
+      const [groupIndex, childrenIndex] = isSelectingDropdownItems
+        ? findSearchItemByIndex(searchItems, activeSearchItem)
+        : [];
+
+      // Remove the previous 'active' property
+      if (typeof groupIndex !== 'undefined') {
+        if (
+          searchItems[groupIndex] &&
+          searchItems[groupIndex].children &&
+          searchItems[groupIndex].children[childrenIndex]
+        ) {
+          delete searchItems[groupIndex].children[childrenIndex].active;
+        }
+      }
+
+      const currIndex = isSelectingDropdownItems ? activeSearchItem : 0;
+      const totalItems = flatSearchItems.length;
+
+      // Move the selected index up/down
+      const nextActiveSearchItem =
+        key === 'ArrowUp'
+          ? (currIndex - 1 + totalItems) % totalItems
+          : isSelectingDropdownItems
+          ? (currIndex + 1) % totalItems
+          : 0;
+
+      const [nextGroupIndex, nextChildrenIndex] = findSearchItemByIndex(
+        searchItems,
+        nextActiveSearchItem
+      );
+
+      // Make sure search items exist (e.g. both groups could be empty) and
+      // attach the 'active' property to the item
+      if (searchItems[nextGroupIndex] && searchItems[nextGroupIndex].children) {
+        searchItems[nextGroupIndex].children[nextChildrenIndex] = {
+          ...searchItems[nextGroupIndex].children[nextChildrenIndex],
+          active: true,
+        };
+      }
+
+      this.setState({
+        activeSearchItem: nextActiveSearchItem,
+        searchItems: searchItems.slice(0),
+      });
+    } else if ((key === 'Tab' || key === 'Enter') && isSelectingDropdownItems) {
+      evt.preventDefault();
+
+      const {activeSearchItem, searchItems} = this.state;
+      const [groupIndex, childrenIndex] = findSearchItemByIndex(
+        searchItems,
+        activeSearchItem
+      );
+      const item = searchItems[groupIndex].children[childrenIndex];
+
+      if (item && !this.isDefaultDropdownItem(item)) {
+        this.onAutoComplete(item.value, item);
+      }
+    }
+  };
+
   onKeyUp = evt => {
-    if (evt.key === 'Escape' || evt.keyCode === 27) {
-      // blur handler should additionally hide dropdown
+    // Other keys are managed at onKeyDown function
+    if (evt.key !== 'Escape' || evt.keyCode !== 27) {
+      return;
+    }
+
+    evt.preventDefault();
+    const isSelectingDropdownItems = this.state.activeSearchItem > -1;
+
+    if (isSelectingDropdownItems) {
+      const {searchItems, activeSearchItem} = this.state;
+      const [groupIndex, childrenIndex] = isSelectingDropdownItems
+        ? findSearchItemByIndex(searchItems, activeSearchItem)
+        : [];
+
+      delete searchItems[groupIndex].children[childrenIndex].active;
+
+      this.setState({
+        activeSearchItem: -1,
+        searchItems: this.state.searchItems.slice(0),
+      });
+    } else {
+      // Blur handler should additionally hide dropdown
       this.blur();
     }
   };
@@ -503,10 +599,6 @@ class SmartSearchBar extends React.Component {
     return [];
   };
 
-  onInputClick = () => {
-    this.updateAutoCompleteItems();
-  };
-
   updateAutoCompleteItems = async () => {
     if (this.blurTimeout) {
       clearTimeout(this.blurTimeout);
@@ -630,7 +722,7 @@ class SmartSearchBar extends React.Component {
     return;
   };
 
-  isDefaultDropdownItem = item => item.type === 'default';
+  isDefaultDropdownItem = item => item && item.type === 'default';
 
   /**
    * Updates autocomplete dropdown items and autocomplete index state
@@ -709,71 +801,6 @@ class SmartSearchBar extends React.Component {
       search_type: savedSearchType === 0 ? 'issues' : 'events',
       query: pinnedSearch || this.state.query,
     });
-  };
-
-  onKeyDown = evt => {
-    if (!this.state.searchItems.length) {
-      return;
-    }
-
-    const {key} = evt;
-
-    if (key === 'ArrowDown' || key === 'ArrowUp') {
-      evt.preventDefault();
-
-      this.setState(state => {
-        const {searchItems, flatSearchItems, activeSearchItem} = state;
-        const [groupIndex, childrenIndex] =
-          findSearchItemByIndex(searchItems, activeSearchItem) || [];
-
-        if (typeof groupIndex !== 'undefined') {
-          if (
-            searchItems[groupIndex] &&
-            searchItems[groupIndex].children &&
-            searchItems[groupIndex].children[childrenIndex]
-          ) {
-            delete searchItems[groupIndex].children[childrenIndex].active;
-          }
-        }
-
-        const totalItems = flatSearchItems.length;
-
-        // Move active selection up/down
-        const nextActiveSearchItem =
-          key === 'ArrowDown'
-            ? (activeSearchItem + 1) % totalItems
-            : (activeSearchItem - 1 + totalItems) % totalItems;
-
-        const [nextGroupIndex, nextChildrenIndex] =
-          findSearchItemByIndex(searchItems, nextActiveSearchItem) || [];
-
-        // Make sure search items exist (e.g. both groups could be empty)
-        if (searchItems[nextGroupIndex] && searchItems[nextGroupIndex].children) {
-          searchItems[nextGroupIndex].children[nextChildrenIndex] = {
-            ...searchItems[nextGroupIndex].children[nextChildrenIndex],
-            active: true,
-          };
-        }
-
-        return {
-          activeSearchItem: nextActiveSearchItem,
-          searchItems: searchItems.slice(0),
-        };
-      });
-    } else if (key === 'Tab') {
-      evt.preventDefault();
-
-      const {activeSearchItem, searchItems} = this.state;
-      const [groupIndex, childrenIndex] = findSearchItemByIndex(
-        searchItems,
-        activeSearchItem
-      );
-      const item = searchItems[groupIndex].children[childrenIndex];
-
-      if (!this.isDefaultDropdownItem(item)) {
-        this.onAutoComplete(item.value, item);
-      }
-    }
   };
 
   onAutoComplete = (replaceText, item) => {
@@ -1246,14 +1273,13 @@ function createSearchGroups(
   if (searchGroup.children && !!searchGroup.children.length) {
     searchGroup.children[activeSearchItem] = {
       ...searchGroup.children[activeSearchItem],
-      active: true,
     };
   }
 
   return {
     searchItems: [searchGroup, ...(recentSearchItems ? [recentSearchGroup] : [])],
     flatSearchItems: [...searchItems, ...(recentSearchItems ? recentSearchItems : [])],
-    activeSearchItem,
+    activeSearchItem: -1,
   };
 }
 
@@ -1266,7 +1292,8 @@ function createSearchGroups(
  */
 function findSearchItemByIndex(items, index, _total) {
   let _index = index;
-  let foundSearchItem;
+  let foundSearchItem = [undefined, undefined];
+
   items.find(({children}, i) => {
     if (!children || !children.length) {
       return false;
