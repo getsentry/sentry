@@ -1065,3 +1065,53 @@ describe('EventView.getQuery()', function() {
     );
   });
 });
+
+describe('EventView.isFieldSorted()', function() {
+  const state = {
+    id: 1234,
+    name: 'best query',
+    fields: [
+      {field: 'count()', title: 'events'},
+      {field: 'project.id', title: 'project'},
+    ],
+    sorts: generateSorts(['count']),
+    tags: ['foo', 'bar'],
+    query: 'event.type:error',
+    project: [42],
+    start: '2019-10-01T00:00:00',
+    end: '2019-10-02T00:00:00',
+    statsPeriod: '14d',
+    environment: 'staging',
+  };
+
+  const meta = {count: 'integer'};
+
+  it('returns the sort when selected field is sorted', function() {
+    const eventView = new EventView(state);
+    expect(eventView).toMatchObject(state);
+
+    const field = {
+      field: 'count()',
+      title: 'events',
+    };
+
+    const actual = eventView.isFieldSorted(field, meta);
+
+    expect(actual).toEqual({
+      field: 'count',
+      kind: 'desc',
+    });
+  });
+
+  it('returns undefined when selected field is not sorted', function() {
+    const eventView = new EventView(state);
+    expect(eventView).toMatchObject(state);
+
+    const field = {
+      field: 'project.id',
+      title: 'project',
+    };
+
+    expect(eventView.isFieldSorted(field, meta)).toBe(void 0);
+  });
+});
