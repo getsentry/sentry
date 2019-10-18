@@ -46,10 +46,7 @@ class GroupNodeDeletionTask(BaseDeletionTask):
 
         self.last_event = events[-1]
 
-        node_ids = []
-        for event in events:
-            node_id = Event.generate_node_id(self.project_id, event.id)
-            node_ids.append(node_id)
+        node_ids = [Event.generate_node_id(self.project_id, event.id) for event in events]
 
         nodestore.delete_multi(node_ids)
 
