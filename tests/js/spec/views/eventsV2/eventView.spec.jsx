@@ -616,27 +616,129 @@ describe('EventView.withUpdatedColumn()', function() {
     expect(eventView2).toMatchObject(nextState);
   });
 
-  it('update a column that is sorted', function() {
-    const eventView = new EventView(state);
+  describe('update a column that is sorted', function() {
+    it('the sorted column is the only sorted column', function() {
+      const eventView = new EventView(state);
 
-    const newColumn = {
-      aggregation: '',
-      field: 'title',
-      fieldname: 'event title',
-    };
+      const newColumn = {
+        aggregation: '',
+        field: 'title',
+        fieldname: 'event title',
+      };
 
-    const eventView2 = eventView.withUpdatedColumn(0, newColumn, meta);
+      const eventView2 = eventView.withUpdatedColumn(0, newColumn, meta);
 
-    expect(eventView2 !== eventView).toBeTruthy();
+      expect(eventView2 !== eventView).toBeTruthy();
 
-    expect(eventView).toMatchObject(state);
+      expect(eventView).toMatchObject(state);
 
-    const nextState = {
-      ...state,
-      sorts: [{field: 'title', kind: 'desc'}],
-      fields: [{field: 'title', title: 'event title'}, state.fields[1]],
-    };
+      const nextState = {
+        ...state,
+        sorts: [{field: 'title', kind: 'desc'}],
+        fields: [{field: 'title', title: 'event title'}, state.fields[1]],
+      };
 
-    expect(eventView2).toMatchObject(nextState);
+      expect(eventView2).toMatchObject(nextState);
+    });
+
+    it('the sorted column occurs at least twice', function() {
+      const modifiedState = {
+        ...state,
+        fields: [...state.fields, {field: 'count()', title: 'events 2'}],
+      };
+
+      const eventView = new EventView(modifiedState);
+
+      const newColumn = {
+        aggregation: '',
+        field: 'title',
+        fieldname: 'event title',
+      };
+
+      const eventView2 = eventView.withUpdatedColumn(0, newColumn, meta);
+
+      expect(eventView2 !== eventView).toBeTruthy();
+
+      expect(eventView).toMatchObject(modifiedState);
+
+      const nextState = {
+        ...state,
+        fields: [
+          {field: 'title', title: 'event title'},
+          state.fields[1],
+          {field: 'count()', title: 'events 2'},
+        ],
+      };
+
+      expect(eventView2).toMatchObject(nextState);
+    });
+  });
+
+  describe('update a column to a non-sortable column', function() {
+    it('default to a sortable column', function() {
+      const modifiedState = {
+        ...state,
+        fields: [
+          {field: 'count()', title: 'events'},
+          {field: 'title', title: 'event title'},
+        ],
+      };
+
+      const eventView = new EventView(modifiedState);
+
+      // this column is expected to be non-sortable
+      const newColumn = {
+        aggregation: '',
+        field: 'project.id',
+        fieldname: 'project',
+      };
+
+      const eventView2 = eventView.withUpdatedColumn(0, newColumn, meta);
+
+      expect(eventView2 !== eventView).toBeTruthy();
+
+      expect(eventView).toMatchObject(modifiedState);
+
+      const nextState = {
+        ...state,
+        sorts: [{field: 'title', kind: 'desc'}],
+        fields: [
+          {field: 'project.id', title: 'project'},
+          {field: 'title', title: 'event title'},
+        ],
+      };
+
+      expect(eventView2).toMatchObject(nextState);
+    });
+
+    it('has no sort if there are no sortable columns', function() {
+      const modifiedState = {
+        ...state,
+        fields: [{field: 'count()', title: 'events'}],
+      };
+
+      const eventView = new EventView(modifiedState);
+
+      // this column is expected to be non-sortable
+      const newColumn = {
+        aggregation: '',
+        field: 'project.id',
+        fieldname: 'project',
+      };
+
+      const eventView2 = eventView.withUpdatedColumn(0, newColumn, meta);
+
+      expect(eventView2 !== eventView).toBeTruthy();
+
+      expect(eventView).toMatchObject(modifiedState);
+
+      const nextState = {
+        ...state,
+        sorts: [],
+        fields: [{field: 'project.id', title: 'project'}],
+      };
+
+      expect(eventView2).toMatchObject(nextState);
+    });
   });
 });
