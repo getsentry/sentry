@@ -135,6 +135,15 @@ class InstallationForm(forms.Form):
         ),
         widget=forms.TextInput(attrs={"placeholder": _("my-group/my-subgroup")}),
     )
+    include_subgroups = forms.BooleanField(
+        label=_("Include Subgroups"),
+        help_text=_(
+            "Include projects in subgroups of the GitLab group."
+        ),
+        widget=forms.CheckboxInput(),
+        required=False,
+        initial=False,
+    )
     verify_ssl = forms.BooleanField(
         label=_("Verify SSL"),
         help_text=_(
