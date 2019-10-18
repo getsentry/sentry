@@ -362,3 +362,32 @@ describe('EventView.hasAutolinkField()', function() {
     }
   });
 });
+
+describe('EventView.numOfColumns()', function() {
+  it('returns correct number of columns', function() {
+    // has columns
+
+    const eventView = new EventView({
+      fields: [
+        {field: 'count()', title: 'events'},
+        {field: 'project.id', title: 'project'},
+      ],
+      sorts: [],
+      tags: [],
+      project: [],
+    });
+
+    expect(eventView.numOfColumns()).toBe(2);
+
+    // has no columns
+
+    const eventView2 = new EventView({
+      fields: [],
+      sorts: [],
+      tags: [],
+      project: [],
+    });
+
+    expect(eventView2.numOfColumns()).toBe(0);
+  });
+});
