@@ -1,6 +1,7 @@
 import Reflux from 'reflux';
 
 import ProjectActions from 'app/actions/projectActions';
+import OrganizationActions from 'app/actions/organizationActions';
 import OrganizationsActions from 'app/actions/organizationsActions';
 import NavigationActions from 'app/actions/navigationActions';
 
@@ -21,6 +22,7 @@ const LatestContextStore = Reflux.createStore({
     this.listenTo(ProjectActions.updateSuccess, this.onUpdateProject);
     this.listenTo(OrganizationsActions.setActive, this.onSetActiveOrganization);
     this.listenTo(OrganizationsActions.update, this.onUpdateOrganization);
+    this.listenTo(OrganizationActions.update, this.onUpdateOrganization);
     this.listenTo(NavigationActions.setLastRoute, this.onSetLastRoute);
   },
 

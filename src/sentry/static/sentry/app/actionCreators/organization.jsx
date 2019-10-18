@@ -10,20 +10,29 @@ import ProjectsStore from 'app/stores/projectsStore';
  *
  * @param {Object} api A reference to the api client
  * @param {String} slug The organization slug
- * @param {boolean} detailed whether or not the detailed org details should be retrieved
+ * @param {boolean} detailed Whether or not the detailed org details should be
+ *                           retrieved
+ * @param {boolean} silent Should we silenty update the organization (do not
+ *                         clear the current organization in the store)
  */
-export async function fetchOrganizationDetails(api, slug, detailed) {
-  OrganizationActions.fetchOrg();
+export async function fetchOrganizationDetails(api, slug, detailed, silent) {
+  if (!silent) {
+    OrganizationActions.fetchOrg();
+  }
+
   try {
     const org = await api.requestPromise(`/organizations/${slug}/`, {
       query: {detailed: detailed ? 1 : 0},
     });
+
     if (!org) {
       OrganizationActions.fetchOrgError(new Error('retrieved organization is falsey'));
       return;
     }
+
     OrganizationActions.update(org);
     setActiveOrganization(org);
+
     if (detailed) {
       TeamStore.loadInitialData(org.teams);
       ProjectsStore.loadInitialData(org.projects);

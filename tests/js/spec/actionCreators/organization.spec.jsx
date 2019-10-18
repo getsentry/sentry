@@ -73,6 +73,27 @@ describe('OrganizationActionCreator', function() {
     expect(ProjectsStore.loadInitialData).not.toHaveBeenCalled();
   });
 
+  it('silently fetches organization details', async function() {
+    const getOrgMock = MockApiClient.addMockResponse({
+      url: `/organizations/${detailedOrg.slug}/`,
+      body: detailedOrg,
+    });
+
+    fetchOrganizationDetails(api, detailedOrg.slug, true, true);
+    await tick();
+    expect(OrganizationActions.fetchOrg).not.toHaveBeenCalled();
+
+    expect(getOrgMock).toHaveBeenCalledWith(
+      `/organizations/${detailedOrg.slug}/`,
+      expect.anything()
+    );
+    expect(OrganizationActions.update).toHaveBeenCalledWith(detailedOrg);
+    expect(OrganizationsActionCreator.setActiveOrganization).toHaveBeenCalled();
+
+    expect(TeamStore.loadInitialData).toHaveBeenCalledWith(detailedOrg.teams);
+    expect(ProjectsStore.loadInitialData).toHaveBeenCalledWith(detailedOrg.projects);
+  });
+
   it('errors out correctly', async function() {
     const getOrgMock = MockApiClient.addMockResponse({
       url: `/organizations/${detailedOrg.slug}/`,
