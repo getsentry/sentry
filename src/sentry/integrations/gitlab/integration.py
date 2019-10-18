@@ -163,9 +163,11 @@ class InstallationForm(forms.Form):
             "This can be found in the URL of your group's GitLab page. "
             "<br>"
             "For example, if your group can be found at "
-            "https://gitlab.com/my-group/my-subgroup, enter `my-group/my-subgroup`."
+            "https://gitlab.com/my-group/my-subgroup, enter `my-group/my-subgroup`. "
+            "Leave blank to integrate an entire self-managed GitLab instance."
         ),
         widget=forms.TextInput(attrs={"placeholder": _("my-group/my-subgroup")}),
+        required=False,
     )
     include_subgroups = forms.BooleanField(
         label=_("Include Subgroups"),
