@@ -1,4 +1,3 @@
-import {Flex} from 'grid-emotion';
 import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
@@ -72,7 +71,7 @@ class BaseBadge extends React.PureComponent {
     };
 
     return (
-      <Flex align="center" className={className}>
+      <BaseBadgeWrapper className={className}>
         {!hideAvatar && (
           <StyledAvatar
             css={avatarClassName}
@@ -89,10 +88,15 @@ class BaseBadge extends React.PureComponent {
           )}
           {!!description && <Description>{description}</Description>}
         </DisplayNameAndDescription>
-      </Flex>
+      </BaseBadgeWrapper>
     );
   }
 }
+
+const BaseBadgeWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+`;
 
 export default BaseBadge;
 
@@ -101,7 +105,8 @@ const StyledAvatar = styled(Avatar)`
   flex-shrink: 0;
 `;
 
-const DisplayNameAndDescription = styled(Flex)`
+const DisplayNameAndDescription = styled('div')`
+  display: flex;
   flex-direction: column;
   line-height: 1;
   overflow: hidden;
