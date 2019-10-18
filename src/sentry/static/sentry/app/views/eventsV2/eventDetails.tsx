@@ -1,21 +1,22 @@
-import React from 'react';
-import {browserHistory} from 'react-router';
-import {Location} from 'history';
 import {Params} from 'react-router/lib/Router';
-import PropTypes from 'prop-types';
+import {browserHistory} from 'react-router';
+import styled, {css} from 'react-emotion';
 import {omit} from 'lodash';
-import {css} from 'react-emotion';
+import PropTypes from 'prop-types';
+import React from 'react';
 
-import SentryTypes from 'app/sentryTypes';
+import {Location} from 'history';
+import {Organization, Event} from 'app/types';
 import AsyncComponent from 'app/components/asyncComponent';
+import LoadingMask from 'app/components/loadingMask';
 import ModalDialog from 'app/components/modalDialog';
 import NotFound from 'app/components/errors/notFound';
-import theme from 'app/utils/theme';
+import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
-import {Organization, Event} from 'app/types';
+import theme from 'app/utils/theme';
 
-import EventModalContent from './eventModalContent';
 import {EventQuery} from './utils';
+import EventModalContent from './eventModalContent';
 import EventView from './eventView';
 
 const slugValidator = function(
@@ -58,6 +59,8 @@ type State = {
 };
 
 class EventDetails extends AsyncComponent<Props, State & AsyncComponent['state']> {
+  shouldReload = true;
+
   static propTypes: any = {
     organization: SentryTypes.Organization.isRequired,
     eventSlug: slugValidator,
@@ -91,10 +94,11 @@ class EventDetails extends AsyncComponent<Props, State & AsyncComponent['state']
 
   renderBody() {
     const {organization, eventView, location} = this.props;
-    const {event} = this.state;
+    const {event, reloading} = this.state;
 
     return (
       <ModalDialog onDismiss={this.onDismiss} className={modalStyles}>
+        {reloading && <StyledLoadingMask />}
         <EventModalContent
           event={event}
           projectId={this.projectId}
@@ -127,3 +131,8 @@ class EventDetails extends AsyncComponent<Props, State & AsyncComponent['state']
 }
 
 export default EventDetails;
+
+const StyledLoadingMask = styled(LoadingMask)`
+  z-index: 999999999;
+  opacity: 0.8;
+`;
