@@ -742,3 +742,110 @@ describe('EventView.withUpdatedColumn()', function() {
     });
   });
 });
+
+describe('EventView.withDeletedColumn()', function() {
+  const state = {
+    id: 1234,
+    name: 'best query',
+    fields: [
+      {field: 'count()', title: 'events'},
+      {field: 'project.id', title: 'project'},
+    ],
+    sorts: generateSorts(['count']),
+    tags: ['foo', 'bar'],
+    query: 'event.type:error',
+    project: [42],
+    start: '2019-10-01T00:00:00',
+    end: '2019-10-02T00:00:00',
+    statsPeriod: '14d',
+    environment: 'staging',
+  };
+
+  const meta = {
+    count: 'integer',
+  };
+
+  it('returns itself when attempting to delete the last remaining column', function() {
+    const modifiedState = {
+      ...state,
+      fields: [{field: 'count()', title: 'events'}],
+    };
+
+    const eventView = new EventView(modifiedState);
+
+    const eventView2 = eventView.withDeletedColumn(0, meta);
+
+    expect(eventView2 === eventView).toBeTruthy();
+    expect(eventView).toMatchObject(modifiedState);
+  });
+
+  describe('deletes column, and use any remaining sortable column', function() {
+    it('has no remaining sortable column', function() {
+      const eventView = new EventView(state);
+
+      const eventView2 = eventView.withDeletedColumn(0, meta);
+
+      expect(eventView2 !== eventView).toBeTruthy();
+      expect(eventView).toMatchObject(state);
+
+      const nextState = {
+        ...state,
+        // we expect sorts to be empty since project.id is non-sortable
+        sorts: [],
+        fields: [state.fields[1]],
+      };
+
+      expect(eventView2).toMatchObject(nextState);
+    });
+
+    it('has a remaining sortable column', function() {
+      const modifiedState = {
+        ...state,
+        fields: [
+          {field: 'count()', title: 'events'},
+          {field: 'project.id', title: 'project'},
+          {field: 'title', title: 'event title'},
+        ],
+      };
+
+      const eventView = new EventView(modifiedState);
+
+      const eventView2 = eventView.withDeletedColumn(0, meta);
+
+      expect(eventView2 !== eventView).toBeTruthy();
+      expect(eventView).toMatchObject(modifiedState);
+
+      const nextState = {
+        ...state,
+        sorts: [{field: 'title', kind: 'desc'}],
+        fields: [
+          {field: 'project.id', title: 'project'},
+          {field: 'title', title: 'event title'},
+        ],
+      };
+
+      expect(eventView2).toMatchObject(nextState);
+    });
+
+    it('sorted column occurs at least twice', function() {
+      const modifiedState = {
+        ...state,
+        fields: [...state.fields, state.fields[0]],
+      };
+
+      const eventView = new EventView(modifiedState);
+
+      const eventView2 = eventView.withDeletedColumn(0, meta);
+
+      expect(eventView2 !== eventView).toBeTruthy();
+      expect(eventView).toMatchObject(modifiedState);
+
+      const nextState = {
+        ...state,
+        fields: [state.fields[1], state.fields[0]],
+      };
+
+      expect(eventView2).toMatchObject(nextState);
+    });
+  });
+});
