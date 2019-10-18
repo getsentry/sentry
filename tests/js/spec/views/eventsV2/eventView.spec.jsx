@@ -1115,3 +1115,76 @@ describe('EventView.isFieldSorted()', function() {
     expect(eventView.isFieldSorted(field, meta)).toBe(void 0);
   });
 });
+
+describe('EventView.sortOnField()', function() {
+  const state = {
+    id: 1234,
+    name: 'best query',
+    fields: [
+      {field: 'count()', title: 'events'},
+      {field: 'project.id', title: 'project'},
+    ],
+    sorts: generateSorts(['count']),
+    tags: ['foo', 'bar'],
+    query: 'event.type:error',
+    project: [42],
+    start: '2019-10-01T00:00:00',
+    end: '2019-10-02T00:00:00',
+    statsPeriod: '14d',
+    environment: 'staging',
+  };
+
+  const meta = {count: 'integer'};
+
+  it('returns itself when attempting to sort on un-sortable field', function() {
+    const eventView = new EventView(state);
+    expect(eventView).toMatchObject(state);
+
+    const field = state.fields[1];
+
+    const eventView2 = eventView.sortOnField(field, meta);
+
+    expect(eventView2 === eventView).toBe(true);
+  });
+
+  it('reverses the sorted field', function() {
+    const eventView = new EventView(state);
+    expect(eventView).toMatchObject(state);
+
+    const field = state.fields[0];
+
+    const eventView2 = eventView.sortOnField(field, meta);
+
+    expect(eventView2 !== eventView).toBe(true);
+
+    const nextState = {
+      ...state,
+      sorts: [{field: 'count', kind: 'asc'}],
+    };
+
+    expect(eventView2).toMatchObject(nextState);
+  });
+
+  it('sort on new field', function() {
+    const modifiedState = {
+      ...state,
+      fields: [...state.fields, {field: 'title', title: 'event title'}],
+    };
+
+    const eventView = new EventView(modifiedState);
+    expect(eventView).toMatchObject(modifiedState);
+
+    const field = modifiedState.fields[2];
+
+    const eventView2 = eventView.sortOnField(field, meta);
+
+    expect(eventView2 !== eventView).toBe(true);
+
+    const nextState = {
+      ...modifiedState,
+      sorts: [{field: 'title', kind: 'desc'}],
+    };
+
+    expect(eventView2).toMatchObject(nextState);
+  });
+});
