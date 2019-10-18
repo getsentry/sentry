@@ -198,20 +198,19 @@ const encodeSorts = (sorts: Readonly<Array<Sort>>): Array<string> => {
   return sorts.map(encodeSort);
 };
 
-const decodeTags = (location: Location): Array<string> => {
-  const {query} = location;
+const collectQueryStringByKey = (query: Query, key: string): Array<string> => {
+  const needle = query[key];
+  const collection: Array<string> = Array.isArray(needle)
+    ? needle
+    : typeof needle === 'string'
+    ? [needle]
+    : [];
 
-  if (!query || !query.tag) {
-    return [];
-  }
+  return collection.reduce((acc: Array<string>, item: string) => {
+    item = item.trim();
 
-  const tags: Array<string> = isString(query.tag) ? [query.tag] : query.tag;
-
-  return tags.reduce((acc: Array<string>, tag: string) => {
-    tag = tag.trim();
-
-    if (tag.length > 0) {
-      acc.push(tag);
+    if (item.length > 0) {
+      acc.push(item);
     }
 
     return acc;
@@ -295,7 +294,7 @@ class EventView {
   start: string | undefined;
   end: string | undefined;
   statsPeriod: string | undefined;
-  environment: string | undefined;
+  environment: string[];
 
   constructor(props: {
     id: string | undefined;
@@ -308,7 +307,7 @@ class EventView {
     start: string | undefined;
     end: string | undefined;
     statsPeriod: string | undefined;
-    environment: string | undefined;
+    environment: string[];
   }) {
     // only include sort keys that are included in the fields
 
@@ -328,7 +327,9 @@ class EventView {
 
     const sorts = sort ? [sort] : [];
 
-    this.id = props.id;
+    const id = props.id !== null && props.id !== void 0 ? String(props.id) : void 0;
+
+    this.id = id;
     this.name = props.name;
     this.fields = props.fields;
     this.sorts = sorts;
@@ -347,13 +348,13 @@ class EventView {
       name: decodeScalar(location.query.name),
       fields: decodeFields(location),
       sorts: decodeSorts(location),
-      tags: decodeTags(location),
+      tags: collectQueryStringByKey(location.query, 'tag'),
       query: decodeQuery(location),
       project: decodeProjects(location),
       start: decodeScalar(location.query.start),
       end: decodeScalar(location.query.end),
       statsPeriod: decodeScalar(location.query.statsPeriod),
-      environment: decodeScalar(location.query.environment),
+      environment: collectQueryStringByKey(location.query, 'environment'),
     });
   }
 
@@ -376,7 +377,7 @@ class EventView {
       start: undefined,
       end: undefined,
       statsPeriod: undefined,
-      environment: undefined,
+      environment: [],
     });
   }
 
@@ -405,7 +406,12 @@ class EventView {
       sorts: fromSorts(saved.orderby),
       tags: [],
       statsPeriod: saved.range,
-      environment: (saved as SavedQuery).environment,
+      environment: collectQueryStringByKey(
+        {
+          environment: (saved as SavedQuery).environment,
+        },
+        'environment'
+      ),
     });
   }
 

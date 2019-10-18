@@ -34,33 +34,32 @@ describe('EventView.fromLocation()', function() {
         start: '2019-10-01T00:00:00',
         end: '2019-10-02T00:00:00',
         statsPeriod: '14d',
-        environment: 'staging',
+        environment: ['staging'],
       },
     };
 
     const eventView = EventView.fromLocation(location);
 
-    expect(eventView.id).toEqual('42');
-    expect(eventView.name).toEqual('best query');
-    expect(eventView.fields).toEqual([
-      {field: 'count()', title: 'events'},
-      {field: 'id', title: 'projects'},
-    ]);
-    expect(eventView.sorts).toEqual([{field: 'count', kind: 'desc'}]);
-    expect(eventView.tags).toEqual(['foo', 'bar']);
-    expect(eventView.query).toEqual('event.type:transaction');
-    expect(eventView.project).toEqual([123]);
-    expect(eventView.start).toEqual('2019-10-01T00:00:00');
-    expect(eventView.end).toEqual('2019-10-02T00:00:00');
-    expect(eventView.statsPeriod).toEqual('14d');
-    expect(eventView.environment).toEqual('staging');
+    expect(eventView).toMatchObject({
+      id: '42',
+      name: 'best query',
+      fields: [{field: 'count()', title: 'events'}, {field: 'id', title: 'projects'}],
+      sorts: generateSorts(['count']),
+      tags: ['foo', 'bar'],
+      query: 'event.type:transaction',
+      project: [123],
+      start: '2019-10-01T00:00:00',
+      end: '2019-10-02T00:00:00',
+      statsPeriod: '14d',
+      environment: ['staging'],
+    });
   });
 });
 
 describe('EventView.fromSavedQuery()', function() {
   it('maps basic properties', function() {
     const saved = {
-      id: 42,
+      id: '42',
       name: 'best query',
       fields: ['count()', 'id'],
       conditions: [['event.type', '=', 'transaction']],
@@ -69,23 +68,23 @@ describe('EventView.fromSavedQuery()', function() {
       start: '2019-10-01T00:00:00',
       end: '2019-10-02T00:00:00',
       orderby: '-id',
-      environment: 'staging',
+      environment: ['staging'],
     };
     const eventView = EventView.fromSavedQuery(saved);
-    expect(eventView.fields).toEqual([
-      {field: 'count()', title: 'count()'},
-      {field: 'id', title: 'id'},
-    ]);
-    expect(eventView.id).toEqual(saved.id);
-    expect(eventView.name).toEqual(saved.name);
-    expect(eventView.query).toEqual('event.type:transaction');
-    expect(eventView.project).toEqual([123]);
-    expect(eventView.statsPeriod).toEqual('14d');
-    expect(eventView.start).toEqual('2019-10-01T00:00:00');
-    expect(eventView.end).toEqual('2019-10-02T00:00:00');
-    expect(eventView.sorts).toEqual([{field: 'id', kind: 'desc'}]);
-    expect(eventView.environment).toEqual('staging');
-    expect(eventView.tags).toEqual([]);
+
+    expect(eventView).toMatchObject({
+      id: saved.id,
+      name: saved.name,
+      fields: [{field: 'count()', title: 'count()'}, {field: 'id', title: 'id'}],
+      sorts: [{field: 'id', kind: 'desc'}],
+      tags: [],
+      query: 'event.type:transaction',
+      project: [123],
+      start: '2019-10-01T00:00:00',
+      end: '2019-10-02T00:00:00',
+      statsPeriod: '14d',
+      environment: ['staging'],
+    });
   });
 
   it('maps equality conditions', function() {
@@ -140,7 +139,7 @@ describe('EventView.generateQueryStringObject()', function() {
 
   it('generates query string object', function() {
     const state = {
-      id: 1234,
+      id: '1234',
       name: 'best query',
       fields: [
         {field: 'count()', title: 'events'},
@@ -153,13 +152,13 @@ describe('EventView.generateQueryStringObject()', function() {
       start: '2019-10-01T00:00:00',
       end: '2019-10-02T00:00:00',
       statsPeriod: '14d',
-      environment: 'staging',
+      environment: ['staging'],
     };
 
     const eventView = new EventView(state);
 
     const expected = {
-      id: 1234,
+      id: '1234',
       name: 'best query',
       field: ['count()', 'project.id'],
       fieldnames: ['events', 'project'],
@@ -170,7 +169,7 @@ describe('EventView.generateQueryStringObject()', function() {
       start: '2019-10-01T00:00:00',
       end: '2019-10-02T00:00:00',
       statsPeriod: '14d',
-      environment: 'staging',
+      environment: ['staging'],
     };
 
     expect(eventView.generateQueryStringObject()).toEqual(expected);
@@ -295,7 +294,7 @@ describe('EventView.getEventsAPIPayload()', function() {
     const location = {
       query: {
         project: '1234',
-        environment: 'staging',
+        environment: ['staging'],
         start: 'start',
         end: 'end',
         utc: 'utc',
@@ -309,7 +308,7 @@ describe('EventView.getEventsAPIPayload()', function() {
 
     expect(eventView.getEventsAPIPayload(location)).toEqual({
       project: '1234',
-      environment: 'staging',
+      environment: ['staging'],
       start: 'start',
       end: 'end',
       utc: 'utc',
@@ -336,7 +335,7 @@ describe('EventView.getTagsAPIPayload()', function() {
     const location = {
       query: {
         project: '1234',
-        environment: 'staging',
+        environment: ['staging'],
         start: 'start',
         end: 'end',
         utc: 'utc',
@@ -350,7 +349,7 @@ describe('EventView.getTagsAPIPayload()', function() {
 
     expect(eventView.getTagsAPIPayload(location)).toEqual({
       project: '1234',
-      environment: 'staging',
+      environment: ['staging'],
       start: 'start',
       end: 'end',
       utc: 'utc',
@@ -379,7 +378,7 @@ describe('EventView.toNewQuery()', function() {
       start: '2019-10-01T00:00:00',
       end: '2019-10-02T00:00:00',
       statsPeriod: '14d',
-      environment: 'staging',
+      environment: ['staging'],
     });
 
     const output = eventView.toNewQuery();
@@ -396,7 +395,7 @@ describe('EventView.toNewQuery()', function() {
       start: '2019-10-01T00:00:00',
       end: '2019-10-02T00:00:00',
       range: '14d',
-      environment: 'staging',
+      environment: ['staging'],
     };
 
     expect(output).toEqual(expected);
@@ -523,7 +522,7 @@ describe('EventView.numOfColumns()', function() {
 describe('EventView.clone()', function() {
   it('returns a unique instance', function() {
     const state = {
-      id: 1234,
+      id: '1234',
       name: 'best query',
       fields: [
         {field: 'count()', title: 'events'},
@@ -536,7 +535,7 @@ describe('EventView.clone()', function() {
       start: '2019-10-01T00:00:00',
       end: '2019-10-02T00:00:00',
       statsPeriod: '14d',
-      environment: 'staging',
+      environment: ['staging'],
     };
 
     const eventView = new EventView(state);
@@ -552,7 +551,7 @@ describe('EventView.clone()', function() {
 
 describe('EventView.withNewColumn()', function() {
   const state = {
-    id: 1234,
+    id: '1234',
     name: 'best query',
     fields: [
       {field: 'count()', title: 'events'},
@@ -565,7 +564,7 @@ describe('EventView.withNewColumn()', function() {
     start: '2019-10-01T00:00:00',
     end: '2019-10-02T00:00:00',
     statsPeriod: '14d',
-    environment: 'staging',
+    environment: ['staging'],
   };
 
   it('add a field', function() {
@@ -640,7 +639,7 @@ describe('EventView.withNewColumn()', function() {
 
 describe('EventView.withUpdatedColumn()', function() {
   const state = {
-    id: 1234,
+    id: '1234',
     name: 'best query',
     fields: [
       {field: 'count()', title: 'events'},
@@ -653,7 +652,7 @@ describe('EventView.withUpdatedColumn()', function() {
     start: '2019-10-01T00:00:00',
     end: '2019-10-02T00:00:00',
     statsPeriod: '14d',
-    environment: 'staging',
+    environment: ['staging'],
   };
 
   const meta = {
@@ -873,7 +872,7 @@ describe('EventView.withUpdatedColumn()', function() {
 
 describe('EventView.withDeletedColumn()', function() {
   const state = {
-    id: 1234,
+    id: '1234',
     name: 'best query',
     fields: [
       {field: 'count()', title: 'events'},
@@ -886,7 +885,7 @@ describe('EventView.withDeletedColumn()', function() {
     start: '2019-10-01T00:00:00',
     end: '2019-10-02T00:00:00',
     statsPeriod: '14d',
-    environment: 'staging',
+    environment: ['staging'],
   };
 
   const meta = {
@@ -980,7 +979,7 @@ describe('EventView.withDeletedColumn()', function() {
 
 describe('EventView.withMovedColumn()', function() {
   const state = {
-    id: 1234,
+    id: '1234',
     name: 'best query',
     fields: [
       {field: 'count()', title: 'events'},
@@ -993,7 +992,7 @@ describe('EventView.withMovedColumn()', function() {
     start: '2019-10-01T00:00:00',
     end: '2019-10-02T00:00:00',
     statsPeriod: '14d',
-    environment: 'staging',
+    environment: ['staging'],
   };
 
   it('returns itself when attempting to move column to the same placement', function() {
@@ -1080,7 +1079,7 @@ describe('EventView.getQuery()', function() {
 
 describe('EventView.isFieldSorted()', function() {
   const state = {
-    id: 1234,
+    id: '1234',
     name: 'best query',
     fields: [
       {field: 'count()', title: 'events'},
@@ -1093,7 +1092,7 @@ describe('EventView.isFieldSorted()', function() {
     start: '2019-10-01T00:00:00',
     end: '2019-10-02T00:00:00',
     statsPeriod: '14d',
-    environment: 'staging',
+    environment: ['staging'],
   };
 
   const meta = {count: 'integer'};
@@ -1130,7 +1129,7 @@ describe('EventView.isFieldSorted()', function() {
 
 describe('EventView.sortOnField()', function() {
   const state = {
-    id: 1234,
+    id: '1234',
     name: 'best query',
     fields: [
       {field: 'count()', title: 'events'},
@@ -1143,7 +1142,7 @@ describe('EventView.sortOnField()', function() {
     start: '2019-10-01T00:00:00',
     end: '2019-10-02T00:00:00',
     statsPeriod: '14d',
-    environment: 'staging',
+    environment: ['staging'],
   };
 
   const meta = {count: 'integer'};

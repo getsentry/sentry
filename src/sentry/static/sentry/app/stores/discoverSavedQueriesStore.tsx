@@ -15,7 +15,7 @@ export type NewQuery = {
   range?: string;
   start?: string;
   end?: string;
-  environment?: string;
+  environment?: string[] | string;
 };
 
 export type SavedQuery = NewQuery & {
