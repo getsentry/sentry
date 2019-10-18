@@ -1,20 +1,12 @@
 steps:
-# Prime the cache if available
-- name: 'gcr.io/cloud-builders/docker'
-  entrypoint: 'bash'
-  args:
-    - '-c'
-    - 'docker pull us.gcr.io/$PROJECT_ID/sentry:latest || true'
-# Build the main getsentry/sentry image
-- name: 'gcr.io/cloud-builders/docker'
+- name: 'gcr.io/kaniko-project/executor:latest'
   args: [
-    'build',
+    '--cache=true',
     '--build-arg', 'SOURCE_COMMIT=$COMMIT_SHA',
-    '--cache-from', 'us.gcr.io/$PROJECT_ID/sentry:latest',
-    '-t', 'us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA',
-    '-t', 'us.gcr.io/$PROJECT_ID/sentry:$SHORT_SHA',
-    '-t', 'us.gcr.io/$PROJECT_ID/sentry:latest',
-    '-f', './docker/Dockerfile', '.'
+    '--destination=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA',
+    '--destination=us.gcr.io/$PROJECT_ID/sentry:$SHORT_SHA',
+    '--destination=us.gcr.io/$PROJECT_ID/sentry:latest',
+    '-f', './docker/Dockerfile'
   ]
   timeout: 900s
 # Derive the -onbuild variant
