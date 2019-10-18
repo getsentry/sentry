@@ -58,7 +58,7 @@ class SentryAppInteractionEndpoint(SentryAppBaseEndpoint, StatsMixin):
         :param string componentType     required for 'sentry_app_component_interacted' metric
         """
         # Request should have identifier field stored in TSDBModel
-        tsdb_field = request.data.get("tsdbField")
+        tsdb_field = request.data.get("tsdbField", "")
 
         model = getattr(tsdb.models, tsdb_field, None)
         if model is None or model not in TSDB_MODELS:
