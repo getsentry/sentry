@@ -131,4 +131,5 @@ const DiscoverSavedQueriesStore = Reflux.createStore({
   },
 });
 
-export default DiscoverSavedQueriesStore;
+// TODO(ts): This should be properly typed
+export default DiscoverSavedQueriesStore as any;

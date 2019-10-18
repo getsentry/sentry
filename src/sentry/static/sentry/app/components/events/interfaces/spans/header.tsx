@@ -493,14 +493,14 @@ const TickLabelContainer = styled('div')`
   user-select: none;
 `;
 
-const TickText = styled('span')`
+const TickText = styled('span')<{align: TickAlignment}>`
   line-height: 1;
 
   position: absolute;
   bottom: 8px;
   white-space: nowrap;
 
-  ${({align}: {align: TickAlignment}) => {
+  ${({align}) => {
     switch (align) {
       case TickAlignment.Center: {
         return 'transform: translateX(-50%)';
@@ -549,7 +549,7 @@ const TickLabel = (props: {
   );
 };
 
-const DurationGuideBox = styled('div')`
+const DurationGuideBox = styled('div')<{alignLeft: boolean}>`
   position: absolute;
 
   background-color: ${p => p.theme.white};
@@ -567,7 +567,7 @@ const DurationGuideBox = styled('div')`
 
   white-space: nowrap;
 
-  ${({alignLeft}: {alignLeft: boolean}) => {
+  ${({alignLeft}) => {
     if (!alignLeft) {
       return null;
     }
@@ -614,7 +614,7 @@ const ViewHandleContainer = styled('div')`
   height: ${MINIMAP_HEIGHT}px;
 `;
 
-const ViewHandle = styled('div')`
+const ViewHandle = styled('div')<{isDragging: boolean}>`
   position: absolute;
   top: 0;
 
@@ -624,7 +624,7 @@ const ViewHandle = styled('div')`
 
   height: ${VIEW_HANDLE_HEIGHT}px;
 
-  ${({isDragging}: {isDragging: boolean}) => {
+  ${({isDragging}) => {
     if (isDragging) {
       return `
       width: 6px;

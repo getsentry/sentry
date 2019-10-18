@@ -17,6 +17,8 @@ signals to getSentry for these outcomes.
 """
 from __future__ import absolute_import
 
+import six
+
 import datetime
 import time
 import atexit
@@ -30,11 +32,13 @@ from django.conf import settings
 from django.core.cache import cache
 
 from sentry.models.project import Project
+from sentry.db.models.manager import BaseManager
 from sentry.signals import event_filtered, event_dropped
 from sentry.utils.kafka import create_batching_kafka_consumer
 from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome
 from sentry.utils.dates import to_datetime
+from sentry.buffer.redis import batch_buffers_incr
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +57,7 @@ def mark_signal_sent(project_id, event_id):
 
     :param project_id: :param event_id: :return:
     """
+    assert isinstance(project_id, six.integer_types)
     key = _get_signal_cache_key(project_id, event_id)
     cache.set(key, True, 3600)
 
@@ -65,9 +70,7 @@ def is_signal_sent(project_id, event_id):
     return cache.get(key, None) is not None
 
 
-def _process_message(message):
-    msg = json.loads(message)
-
+def _process_message(msg):
     project_id = int(msg.get("project_id", 0))
     if project_id == 0:
         return  # no project. this is valid, so ignore silently.
@@ -101,7 +104,7 @@ def _process_message(message):
 
     timestamp = msg.get("timestamp")
     if timestamp is not None:
-        delta = to_datetime(time.time()) - datetime.datetime.strptime(
+        delta = to_datetime(time.time()).replace(tzinfo=None) - datetime.datetime.strptime(
             timestamp, "%Y-%m-%dT%H:%M:%S.%fZ"
         )
         metrics.timing("outcomes_consumer.timestamp_lag", delta.total_seconds())
@@ -120,11 +123,17 @@ class OutcomesConsumerWorker(AbstractBatchWorker):
         atexit.register(self.pool.close)
 
     def process_message(self, message):
-        return message.value()
+        return json.loads(message.value())
 
     def flush_batch(self, batch):
-        for _ in self.pool.imap_unordered(_process_message_with_timer, batch, chunksize=100):
-            pass
+        batch.sort(key=lambda msg: msg.get("project_id", 0) or 0)
+
+        with batch_buffers_incr():
+            with BaseManager.local_cache():
+                for _ in self.pool.imap_unordered(
+                    _process_message_with_timer, batch, chunksize=100
+                ):
+                    pass
 
     def shutdown(self):
         pass

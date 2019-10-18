@@ -31,28 +31,26 @@ exports[`ConfirmDelete renders 1`] = `
           className="modal-body"
         >
           <Alert
-            alignTop={false}
             iconSize="24px"
             type="error"
           >
-            <AlertWrapper
-              alignTop={false}
-              className="ref-error"
+            <Component
+              className="css-1i4sr27-Alert-getAlertColorStyles-alertStyles ejthpj82"
+              iconSize="24px"
               type="error"
             >
               <div
-                className="ref-error css-1wei48e-AlertWrapper-alertStyles e1xb5l7j1"
-                type="error"
+                className="ref-error css-1i4sr27-Alert-getAlertColorStyles-alertStyles ejthpj82"
               >
                 <StyledTextBlock>
                   <div
-                    className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
+                    className="css-1h3n7tg-TextBlock-StyledTextBlock ejthpj81"
                   >
                     Are you sure?
                   </div>
                 </StyledTextBlock>
               </div>
-            </AlertWrapper>
+            </Component>
           </Alert>
           <Field
             alignRight={false}

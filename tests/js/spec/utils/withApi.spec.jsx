@@ -31,4 +31,14 @@ describe('withApi', function() {
 
     apiInstance.clear.mockRestore();
   });
+
+  it('does not cancels pending API requests if persistInFlight is enabled', function() {
+    const MyComponentWithApi = withApi(MyComponent, {persistInFlight: true});
+    const wrapper = mount(<MyComponentWithApi />);
+    jest.spyOn(apiInstance, 'clear');
+    wrapper.unmount();
+    expect(apiInstance.clear).not.toHaveBeenCalled();
+
+    apiInstance.clear.mockRestore();
+  });
 });

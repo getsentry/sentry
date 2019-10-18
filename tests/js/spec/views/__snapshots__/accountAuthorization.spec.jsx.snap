@@ -36,19 +36,8 @@ exports[`AccountAuthorizations renders empty 1`] = `
       </span>
     </Description>
     <Panel>
-      <PanelHeader
-        disablePadding={true}
-      >
-        <Flex
-          align="center"
-        >
-          <Box
-            flex="1"
-            px={2}
-          >
-            Approved Applications
-          </Box>
-        </Flex>
+      <PanelHeader>
+        Approved Applications
       </PanelHeader>
       <PanelBody
         direction="column"

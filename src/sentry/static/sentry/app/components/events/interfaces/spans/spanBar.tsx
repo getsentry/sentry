@@ -141,13 +141,15 @@ const TOGGLE_BUTTON_MAX_WIDTH = 40;
 const TOGGLE_BORDER_BOX = TOGGLE_BUTTON_MAX_WIDTH + TOGGLE_BUTTON_MARGIN_RIGHT;
 const MARGIN_LEFT = 8;
 
+type DurationDisplay = 'left' | 'right' | 'inset';
+
 const getDurationDisplay = ({
   width,
   left,
 }: {
   width: undefined | number;
   left: undefined | number;
-}) => {
+}): DurationDisplay => {
   const spaceNeeded = 0.3;
 
   if (left === undefined || width === undefined) {
@@ -925,7 +927,7 @@ const getDurationPillAlignment = ({durationDisplay}) => {
   }
 };
 
-const DurationPill = styled('div')`
+const DurationPill = styled('div')<{durationDisplay: DurationDisplay}>`
   position: absolute;
 
   color: ${p => p.theme.gray2};
