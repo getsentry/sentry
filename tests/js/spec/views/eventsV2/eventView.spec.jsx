@@ -364,23 +364,25 @@ describe('EventView.getTagsAPIPayload()', function() {
 });
 
 describe('EventView.toNewQuery()', function() {
+  const state = {
+    id: '1234',
+    name: 'best query',
+    fields: [
+      {field: 'count()', title: 'events'},
+      {field: 'project.id', title: 'project'},
+    ],
+    sorts: generateSorts(['count']),
+    tags: ['foo', 'bar'],
+    query: 'event.type:error',
+    project: [42],
+    start: '2019-10-01T00:00:00',
+    end: '2019-10-02T00:00:00',
+    statsPeriod: '14d',
+    environment: ['staging'],
+  };
+
   it('outputs the right fields', function() {
-    const eventView = new EventView({
-      id: '1234',
-      name: 'best query',
-      fields: [
-        {field: 'count()', title: 'events'},
-        {field: 'project.id', title: 'project'},
-      ],
-      sorts: generateSorts(['count']),
-      tags: ['foo', 'bar'],
-      query: 'event.type:error',
-      project: [42],
-      start: '2019-10-01T00:00:00',
-      end: '2019-10-02T00:00:00',
-      statsPeriod: '14d',
-      environment: ['staging'],
-    });
+    const eventView = new EventView(state);
 
     const output = eventView.toNewQuery();
 
@@ -392,6 +394,62 @@ describe('EventView.toNewQuery()', function() {
       fields: ['count()', 'project.id'],
       orderby: '-count',
       query: 'event.type:error',
+      projects: [42],
+      start: '2019-10-01T00:00:00',
+      end: '2019-10-02T00:00:00',
+      range: '14d',
+      environment: ['staging'],
+    };
+
+    expect(output).toEqual(expected);
+  });
+
+  it('omits query when query is an empty string', function() {
+    const modifiedState = {
+      ...state,
+    };
+
+    modifiedState.query = '';
+
+    const eventView = new EventView(modifiedState);
+
+    const output = eventView.toNewQuery();
+
+    const expected = {
+      version: 2,
+      id: '1234',
+      name: 'best query',
+      fieldnames: ['events', 'project'],
+      fields: ['count()', 'project.id'],
+      orderby: '-count',
+      projects: [42],
+      start: '2019-10-01T00:00:00',
+      end: '2019-10-02T00:00:00',
+      range: '14d',
+      environment: ['staging'],
+    };
+
+    expect(output).toEqual(expected);
+  });
+
+  it('omits query when query is not defined', function() {
+    const modifiedState = {
+      ...state,
+    };
+
+    delete modifiedState.query;
+
+    const eventView = new EventView(modifiedState);
+
+    const output = eventView.toNewQuery();
+
+    const expected = {
+      version: 2,
+      id: '1234',
+      name: 'best query',
+      fieldnames: ['events', 'project'],
+      fields: ['count()', 'project.id'],
+      orderby: '-count',
       projects: [42],
       start: '2019-10-01T00:00:00',
       end: '2019-10-02T00:00:00',

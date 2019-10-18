@@ -418,7 +418,7 @@ class EventView {
   toNewQuery(): NewQuery {
     const orderby = this.sorts.length > 0 ? encodeSorts(this.sorts)[0] : undefined;
 
-    return {
+    const newQuery: NewQuery = {
       version: 2,
       id: this.id,
       name: this.name || '',
@@ -433,6 +433,14 @@ class EventView {
       range: this.statsPeriod,
       environment: this.environment,
     };
+
+    if (!newQuery.query) {
+      // if query is an empty string, then it cannot be saved, so we omit it
+      // from the payload
+      delete newQuery.query;
+    }
+
+    return newQuery;
   }
 
   generateQueryStringObject(): Query {
