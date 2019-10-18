@@ -138,6 +138,44 @@ describe('EventView.generateQueryStringObject()', function() {
     expect(query.project).toBeUndefined();
   });
 
+  it('generates query string object', function() {
+    const state = {
+      id: 1234,
+      name: 'best query',
+      fields: [
+        {field: 'count()', title: 'events'},
+        {field: 'project.id', title: 'project'},
+      ],
+      sorts: generateSorts(['count']),
+      tags: ['foo', 'bar'],
+      query: 'event.type:error',
+      project: [42],
+      start: '2019-10-01T00:00:00',
+      end: '2019-10-02T00:00:00',
+      statsPeriod: '14d',
+      environment: 'staging',
+    };
+
+    const eventView = new EventView(state);
+
+    const expected = {
+      id: 1234,
+      name: 'best query',
+      field: ['count()', 'project.id'],
+      fieldnames: ['events', 'project'],
+      sort: ['-count'],
+      tag: ['foo', 'bar'],
+      query: 'event.type:error',
+      project: [42],
+      start: '2019-10-01T00:00:00',
+      end: '2019-10-02T00:00:00',
+      statsPeriod: '14d',
+      environment: 'staging',
+    };
+
+    expect(eventView.generateQueryStringObject()).toEqual(expected);
+  });
+
   it('encodes fields and fieldnames', function() {
     const eventView = new EventView({
       fields: [{field: 'id', title: 'ID'}, {field: 'title', title: 'Event'}],
@@ -246,6 +284,45 @@ describe('EventView.getEventsAPIPayload()', function() {
     expect(eventView.getEventsAPIPayload(location).sort).toEqual('-count');
   });
 
+  it('only includes relevant query strings', function() {
+    const eventView = new EventView({
+      fields: generateFields(['title', 'count()']),
+      sorts: generateSorts(['project', 'count']),
+      tags: [],
+      query: 'event.type:csp',
+    });
+
+    const location = {
+      query: {
+        project: '1234',
+        environment: 'staging',
+        start: 'start',
+        end: 'end',
+        utc: 'utc',
+        statsPeriod: 'statsPeriod',
+
+        // non-relevant query strings
+        bestCountry: 'canada',
+      },
+    };
+
+    expect(eventView.getEventsAPIPayload(location)).toEqual({
+      project: '1234',
+      environment: 'staging',
+      start: 'start',
+      end: 'end',
+      utc: 'utc',
+      statsPeriod: 'statsPeriod',
+
+      field: ['title', 'count()'],
+      per_page: 50,
+      query: 'event.type:csp',
+      sort: '-count',
+    });
+  });
+});
+
+describe('EventView.getTagsAPIPayload()', function() {
   it('only includes relevant query strings', function() {
     const eventView = new EventView({
       fields: generateFields(['title', 'count()']),

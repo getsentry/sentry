@@ -429,8 +429,9 @@ class EventView {
   generateQueryStringObject(): Query {
     const output = {
       id: this.id,
-      field: this.fields.map(item => item.field),
-      fieldnames: this.fields.map(item => item.title),
+      name: this.name,
+      field: this.getFields(),
+      fieldnames: this.getFieldNames(),
       sort: encodeSorts(this.sorts),
       tag: this.tags,
       query: this.query,
