@@ -177,9 +177,9 @@ describe('EventView.getEventsAPIPayload()', function() {
     expect(eventView.getEventsAPIPayload(location).query).toEqual('event.type:csp');
   });
 
-  it('only includes the first sort', function() {
+  it('only includes at most one sort key', function() {
     const eventView = new EventView({
-      fields: generateFields(['title', 'count()']),
+      fields: generateFields(['count()', 'title']),
       sorts: generateSorts(['title', 'count']),
       tags: [],
       query: 'event.type:csp',
