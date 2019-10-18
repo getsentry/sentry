@@ -398,6 +398,8 @@ def get_crash_frame_from_event_data(data, frame_filter=None):
 
     default = None
     for frame in reversed(frames or ()):
+        if frame is None:
+            continue
         if frame_filter is not None:
             if not frame_filter(frame):
                 continue
