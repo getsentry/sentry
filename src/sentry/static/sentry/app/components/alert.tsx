@@ -6,14 +6,35 @@ import styled from 'react-emotion';
 
 import InlineSvg from 'app/components/inlineSvg';
 import TextBlock from 'app/views/settings/components/text/textBlock';
-import isPropValid from '@emotion/is-prop-valid';
 import space from 'app/styles/space';
 
-const StyledInlineSvg = styled(InlineSvg)`
+type Props = {
+  type?: 'muted' | 'info' | 'warning' | 'success' | 'error' | 'beta';
+  iconSize?: string;
+  icon?: string;
+  alignTop?: boolean;
+  system?: boolean;
+};
+
+type AlertProps = Omit<React.HTMLProps<HTMLDivElement>, keyof Props> & Props;
+
+type AlertThemeProps = {
+  backgroundLight: string;
+  border: string;
+  iconColor: string;
+};
+
+const DEFAULT_TYPE = 'info';
+
+const StyledInlineSvg = styled(InlineSvg)<{size: string}>`
   margin-right: calc(${p => p.size} / 2);
 `;
 
-const getAlertColorStyles = ({backgroundLight, border, iconColor}) => `
+const getAlertColorStyles = ({
+  backgroundLight,
+  border,
+  iconColor,
+}: AlertThemeProps) => css`
   background: ${backgroundLight};
   border: 1px solid ${border};
 
@@ -22,19 +43,25 @@ const getAlertColorStyles = ({backgroundLight, border, iconColor}) => `
   }
 `;
 
-const getSystemAlertColorStyles = ({backgroundLight, border, iconColor}) => `
+const getSystemAlertColorStyles = ({border, iconColor}: AlertThemeProps) => css`
   border: 0;
   border-radius: 0;
-  border-bottom: 1px solid ${color(border)
-    .alpha(0.5)
-    .string()};
+  border-bottom: 1px solid
+    ${color(border)
+      .alpha(0.5)
+      .string()};
 
   ${StyledInlineSvg} {
     color: ${iconColor};
   }
 `;
 
-const alertStyles = ({theme, type, system, alignTop}) => css`
+const alertStyles = ({
+  theme,
+  type = DEFAULT_TYPE,
+  system,
+  alignTop,
+}: Props & {theme: any}) => css`
   display: flex;
   margin: 0 0 ${space(3)};
   padding: ${space(2)};
@@ -54,10 +81,6 @@ const alertStyles = ({theme, type, system, alignTop}) => css`
   ${system && getSystemAlertColorStyles(theme.alert[type])};
 `;
 
-const AlertWrapper = styled('div', {shouldForwardProp: isPropValid})`
-  ${alertStyles}
-`;
-
 const StyledTextBlock = styled(TextBlock)`
   line-height: 1.4;
   margin-bottom: 0;
@@ -65,32 +88,28 @@ const StyledTextBlock = styled(TextBlock)`
   align-self: center;
 `;
 
-const Alert = ({type, icon, iconSize, children, className, ...props}) => {
-  let refClass;
-
-  if (type) {
-    refClass = 'ref-' + type;
-  }
-
-  return (
-    <AlertWrapper type={type} {...props} className={cx(refClass, className)}>
-      {icon && <StyledInlineSvg src={icon} size={iconSize} />}
+const Alert = styled(
+  ({type, icon, iconSize, children, system, className, ...props}: AlertProps) => (
+    <div className={cx(type ? `ref-${type}` : '', className)} {...props}>
+      {icon && <StyledInlineSvg src={icon} size={iconSize!} />}
       <StyledTextBlock>{children}</StyledTextBlock>
-    </AlertWrapper>
-  );
-};
+    </div>
+  )
+)<AlertProps>`
+  ${alertStyles}
+`;
 
 Alert.propTypes = {
-  type: PropTypes.string,
-  icon: PropTypes.string,
+  type: PropTypes.oneOf(['muted', 'info', 'warning', 'success', 'error', 'beta']),
   iconSize: PropTypes.string,
+  icon: PropTypes.string,
   alignTop: PropTypes.bool,
+  system: PropTypes.bool,
 };
 
 Alert.defaultProps = {
+  type: DEFAULT_TYPE,
   iconSize: '24px',
-  type: 'info',
-  alignTop: false,
 };
 
 export {alertStyles};

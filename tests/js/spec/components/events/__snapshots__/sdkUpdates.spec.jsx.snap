@@ -32,32 +32,31 @@ exports[`EventSdkUpdates renders a suggestion to update the sdk and then enable 
     className="box"
   >
     <Alert
-      alignTop={false}
       icon="icon-upgrade"
       iconSize="24px"
       key="{\\"enables\\":[{\\"enables\\":[],\\"type\\":\\"enableIntegration\\"}],\\"newSdkVersion\\":\\"0.9.0\\",\\"sdkName\\":\\"sentry.python\\",\\"sdkUrl\\":null,\\"type\\":\\"updateSdk\\"}"
       type="info"
     >
-      <AlertWrapper
-        alignTop={false}
-        className="ref-info"
+      <Component
+        className="css-1qyfu5r-Alert-getAlertColorStyles-alertStyles ejthpj82"
+        icon="icon-upgrade"
+        iconSize="24px"
         type="info"
       >
         <div
-          className="ref-info css-tnorzn-AlertWrapper-alertStyles e1xb5l7j1"
-          type="info"
+          className="ref-info css-1qyfu5r-Alert-getAlertColorStyles-alertStyles ejthpj82"
         >
           <StyledInlineSvg
             size="24px"
             src="icon-upgrade"
           >
             <ForwardRef
-              className="css-1kox7bj-InlineSvg-StyledInlineSvg e1xb5l7j0"
+              className="css-1kox7bj-InlineSvg-StyledInlineSvg ejthpj80"
               size="24px"
               src="icon-upgrade"
             >
               <svg
-                className="css-1kox7bj-InlineSvg-StyledInlineSvg e1xb5l7j0"
+                className="css-1kox7bj-InlineSvg-StyledInlineSvg ejthpj80"
                 height="24px"
                 viewBox={Object {}}
                 width="24px"
@@ -71,7 +70,7 @@ exports[`EventSdkUpdates renders a suggestion to update the sdk and then enable 
           </StyledInlineSvg>
           <StyledTextBlock>
             <div
-              className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
+              className="css-1h3n7tg-TextBlock-StyledTextBlock ejthpj81"
             >
               We recommend you 
               <EventSdkUpdateSuggestion
@@ -184,7 +183,7 @@ exports[`EventSdkUpdates renders a suggestion to update the sdk and then enable 
             </div>
           </StyledTextBlock>
         </div>
-      </AlertWrapper>
+      </Component>
     </Alert>
   </div>
 </EventSdkUpdates>
