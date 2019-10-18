@@ -421,3 +421,91 @@ describe('EventView.clone()', function() {
     expect(eventView2).toMatchObject(state);
   });
 });
+
+describe('EventView.withNewColumn()', function() {
+  const state = {
+    id: 1234,
+    name: 'best query',
+    fields: [
+      {field: 'count()', title: 'events'},
+      {field: 'project.id', title: 'project'},
+    ],
+    sorts: generateSorts(['count']),
+    tags: ['foo', 'bar'],
+    query: 'event.type:error',
+    project: [42],
+    start: '2019-10-01T00:00:00',
+    end: '2019-10-02T00:00:00',
+    statsPeriod: '14d',
+    environment: 'staging',
+  };
+
+  it('add a field', function() {
+    const eventView = new EventView(state);
+
+    const newColumn = {
+      aggregation: '',
+      field: 'title',
+      fieldname: 'event title',
+    };
+
+    const eventView2 = eventView.withNewColumn(newColumn);
+
+    expect(eventView2 !== eventView).toBeTruthy();
+
+    expect(eventView).toMatchObject(state);
+
+    const nextState = {
+      ...state,
+      fields: [...state.fields, {field: 'title', title: 'event title'}],
+    };
+
+    expect(eventView2).toMatchObject(nextState);
+  });
+
+  it('add an aggregate function with no arguments', function() {
+    const eventView = new EventView(state);
+
+    const newColumn = {
+      aggregation: 'count',
+      field: '',
+      fieldname: 'another count column',
+    };
+
+    const eventView2 = eventView.withNewColumn(newColumn);
+
+    expect(eventView2 !== eventView).toBeTruthy();
+
+    expect(eventView).toMatchObject(state);
+
+    const nextState = {
+      ...state,
+      fields: [...state.fields, {field: 'count()', title: 'another count column'}],
+    };
+
+    expect(eventView2).toMatchObject(nextState);
+  });
+
+  it('add an aggregate function with arguments', function() {
+    const eventView = new EventView(state);
+
+    const newColumn = {
+      aggregation: 'avg',
+      field: 'transaction.duration',
+      fieldname: 'average',
+    };
+
+    const eventView2 = eventView.withNewColumn(newColumn);
+
+    expect(eventView2 !== eventView).toBeTruthy();
+
+    expect(eventView).toMatchObject(state);
+
+    const nextState = {
+      ...state,
+      fields: [...state.fields, {field: 'avg(transaction.duration)', title: 'average'}],
+    };
+
+    expect(eventView2).toMatchObject(nextState);
+  });
+});
