@@ -893,3 +893,24 @@ describe('EventView.withMovedColumn()', function() {
     expect(eventView2).toMatchObject(nextState);
   });
 });
+
+describe('EventView.getSorts()', function() {
+  it('returns fields', function() {
+    const eventView = new EventView({
+      fields: [
+        {field: 'count()', title: 'events'},
+        {field: 'project.id', title: 'project'},
+      ],
+      sorts: generateSorts(['count']),
+      tags: [],
+      project: [],
+    });
+
+    expect(eventView.getSorts()).toEqual([
+      {
+        key: 'count',
+        order: 'desc',
+      },
+    ]);
+  });
+});
