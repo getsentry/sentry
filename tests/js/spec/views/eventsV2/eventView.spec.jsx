@@ -1,4 +1,5 @@
 import EventView from 'app/views/eventsV2/eventView';
+import {AUTOLINK_FIELDS} from 'app/views/eventsV2/data';
 
 const generateFields = fields => {
   return fields.map(field => {
@@ -330,5 +331,34 @@ describe('EventView.getFields()', function() {
     });
 
     expect(eventView.getFields()).toEqual(['count()', 'project.id']);
+  });
+});
+
+describe('EventView.hasAutolinkField()', function() {
+  it('returns false when none of the fields are auto-linkable', function() {
+    const eventView = new EventView({
+      fields: [
+        {field: 'count()', title: 'events'},
+        {field: 'project.id', title: 'project'},
+      ],
+      sorts: [],
+      tags: [],
+      project: [],
+    });
+
+    expect(eventView.hasAutolinkField()).toEqual(false);
+  });
+
+  it('returns true when any of the fields are auto-linkable', function() {
+    for (const field of AUTOLINK_FIELDS) {
+      const eventView = new EventView({
+        fields: generateFields([field]),
+        sorts: [],
+        tags: [],
+        project: [],
+      });
+
+      expect(eventView.hasAutolinkField()).toEqual(true);
+    }
   });
 });
