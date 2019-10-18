@@ -13,8 +13,13 @@ import Avatar from 'app/components/avatar';
 import SentryAppDetailsModal from 'app/components/modals/sentryAppDetailsModal';
 import {installSentryApp} from 'app/actionCreators/sentryAppInstallations';
 import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
+import {recordInteraction} from 'app/utils/recordSentryAppInteraction';
 
 export default class SentryAppExternalInstallation extends AsyncView {
+  componentDidMount() {
+    recordInteraction(this.sentryAppSlug, 'sentry_app_viewed');
+  }
+
   state = {
     selectedOrgSlug: null,
     organization: null,

@@ -46,6 +46,13 @@ describe('SentryAppExternalInstallation', () => {
       body: [],
     });
 
+    MockApiClient.addMockResponse({
+      url: `/sentry-apps/${sentryApp.slug}/interaction/`,
+      method: 'POST',
+      statusCode: 200,
+      body: {},
+    });
+
     getMountedComponent = () =>
       mountWithTheme(
         <SentryAppExternalInstallation params={{sentryAppSlug: sentryApp.slug}} />,

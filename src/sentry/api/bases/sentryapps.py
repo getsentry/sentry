@@ -345,7 +345,12 @@ class SentryInternalAppTokenPermission(SentryPermission):
 
 
 class SentryAppStatsPermission(SentryPermission):
-    scope_map = {"GET": ("org:read", "org:integrations", "org:write", "org:admin")}
+    scope_map = {
+        "GET": ("org:read", "org:integrations", "org:write", "org:admin"),
+        # Anyone logged in can increment the stats, so leave the scopes empty
+        # Note: this only works for session-based auth so you cannot increment stats through API
+        "POST": (),
+    }
 
     def has_object_permission(self, request, view, sentry_app):
         if not hasattr(request, "user") or not request.user:
