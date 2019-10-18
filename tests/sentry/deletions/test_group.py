@@ -26,9 +26,11 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         GroupNodeDeletionTask.DEFAULT_CHUNK_SIZE = 1  # test chunking logic
         event_id = "a" * 32
         event_id2 = "b" * 32
+        event_id3 = "c" * 32
         project = self.create_project()
         node_id = Event.generate_node_id(project.id, event_id)
         node_id2 = Event.generate_node_id(project.id, event_id2)
+        node_id3 = Event.generate_node_id(project.id, event_id3)
 
         event = self.store_event(
             data={
@@ -45,6 +47,15 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
                 "event_id": event_id2,
                 "timestamp": iso_format(before_now(minutes=1)),
                 "fingerprint": ["group1"],
+            },
+            project_id=project.id,
+        )
+
+        self.store_event(
+            data={
+                "event_id": event_id3,
+                "timestamp": iso_format(before_now(minutes=1)),
+                "fingerprint": ["group2"],
             },
             project_id=project.id,
         )
@@ -66,6 +77,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
 
         assert nodestore.get(node_id)
         assert nodestore.get(node_id2)
+        assert nodestore.get(node_id3)
 
         with self.tasks():
             run_deletion(deletion.id)
@@ -78,3 +90,4 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
 
         assert not nodestore.get(node_id)
         assert not nodestore.get(node_id2)
+        assert nodestore.get(node_id3), "Does not remove from second group"
