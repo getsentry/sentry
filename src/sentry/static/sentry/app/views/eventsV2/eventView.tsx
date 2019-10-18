@@ -615,7 +615,7 @@ class EventView {
   }
 
   withDeletedColumn(columnIndex: number, tableDataMeta: MetaType): EventView {
-    // Disallow removal of last column, and check for out-of-bounds
+    // Disallow removal of the orphan column, and check for out-of-bounds
     if (this.fields.length <= 1 || this.fields.length <= columnIndex || columnIndex < 0) {
       return this;
     }
