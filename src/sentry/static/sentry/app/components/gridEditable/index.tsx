@@ -49,7 +49,10 @@ type GridEditableProps<DataRow, ColumnKey extends keyof DataRow> = {
    * data within it. Note that this is optional.
    */
   grid: {
-    renderHeaderCell?: (column: GridColumnOrder<ColumnKey>) => React.ReactNode;
+    renderHeaderCell?: (
+      column: GridColumnOrder<ColumnKey>,
+      columnIndex: number
+    ) => React.ReactNode;
     renderBodyCell?: (
       column: GridColumnOrder<ColumnKey>,
       dataRow: DataRow
@@ -218,12 +221,12 @@ class GridEditable<
               HTML semantics. */
           isEditable && this.renderGridHeadEditButtons()}
 
-          {columnOrder.map((column, i) => (
+          {columnOrder.map((column, columnIndex) => (
             <GridHeadCell
-              key={`${i}.${column.key}`}
+              key={`${columnIndex}.${column.key}`}
               isPrimary={column.isPrimary}
               isEditing={enableEdit}
-              indexColumnOrder={i}
+              indexColumnOrder={columnIndex}
               column={column}
               actions={{
                 moveColumn: actions.moveColumn,
@@ -231,7 +234,9 @@ class GridEditable<
                 toggleModalEditColumn: this.toggleModalEditColumn,
               }}
             >
-              {grid.renderHeaderCell ? grid.renderHeaderCell(column) : column.name}
+              {grid.renderHeaderCell
+                ? grid.renderHeaderCell(column, columnIndex)
+                : column.name}
             </GridHeadCell>
           ))}
         </GridRow>

@@ -287,6 +287,7 @@ const appConfig = {
       flattening: true, // used by a dependency of react-mentions
       shorthands: true,
       paths: true,
+      exotics: true,
     }),
 
     /**
