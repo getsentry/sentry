@@ -11,7 +11,9 @@ const fetchSentryAppInstallations = (api, orgSlug) => {
   }
 
   function fetchOwnedSentryApps() {
-    api.requestPromise(ownedSentryAppsUri).then(apps => SentryAppStore.add(...apps));
+    api
+      .requestPromise(ownedSentryAppsUri, {query: {status: 'published'}})
+      .then(apps => SentryAppStore.add(...apps));
   }
 
   function fetchInstalls() {

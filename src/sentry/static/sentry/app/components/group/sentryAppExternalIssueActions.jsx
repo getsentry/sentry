@@ -67,11 +67,11 @@ class SentryAppExternalIssueActions extends React.Component {
     const {externalIssue} = this.state;
 
     deleteExternalIssue(api, group.id, externalIssue.id)
-      .then(data => {
+      .then(_data => {
         this.setState({externalIssue: null});
         addSuccessMessage(t('Successfully unlinked issue.'));
       })
-      .catch(error => {
+      .catch(_error => {
         addErrorMessage(t('Unable to unlink issue.'));
       });
   };

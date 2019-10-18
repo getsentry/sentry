@@ -3,6 +3,7 @@ import {isEqual} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import {Client} from 'app/api';
 import {fetchSentryAppComponents} from 'app/actionCreators/sentryAppComponents';
 import {withMeta} from 'app/components/events/meta/metaProxy';
 import EventEntries from 'app/components/events/eventEntries';
@@ -17,8 +18,25 @@ import fetchSentryAppInstallations from 'app/utils/fetchSentryAppInstallations';
 
 import {fetchGroupEventAndMarkSeen, getEventEnvironment} from '../utils';
 import GroupEventToolbar from '../eventToolbar';
+import {Group, Project, Organization, Environment, RouterProps} from 'app/types';
 
-class GroupEventDetails extends React.Component {
+type Props = RouterProps & {
+  api: Client;
+  group: Group;
+  project: Project;
+  organization: Organization;
+  environments: Environment[];
+};
+
+type State = {
+  loading: boolean;
+  error: boolean;
+  event: any; //TODO(ts)
+  eventNavLinks: string;
+  releasesCompletion: any;
+};
+
+class GroupEventDetails extends React.Component<Props, State> {
   static propTypes = {
     api: PropTypes.object.isRequired,
     group: SentryTypes.Group.isRequired,
@@ -27,7 +45,7 @@ class GroupEventDetails extends React.Component {
     environments: PropTypes.arrayOf(SentryTypes.Environment).isRequired,
   };
 
-  constructor(props) {
+  constructor(props: Props) {
     super(props);
     this.state = {
       loading: true,
@@ -42,7 +60,7 @@ class GroupEventDetails extends React.Component {
     this.fetchData();
   }
 
-  componentDidUpdate(prevProps, prevState) {
+  componentDidUpdate(prevProps: Props, prevState: State) {
     const {environments, params, location} = this.props;
 
     const eventHasChanged = prevProps.params.eventId !== params.eventId;
