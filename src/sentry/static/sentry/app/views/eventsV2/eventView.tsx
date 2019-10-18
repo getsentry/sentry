@@ -764,7 +764,7 @@ class EventView {
 
   // Takes an EventView instance and converts it into the format required for the events API
   getEventsAPIPayload(location: Location): EventQuery & LocationQuery {
-    const query = location.query || {};
+    const query = (location && location.query) || {};
 
     // pick only the query strings that we care about
 
