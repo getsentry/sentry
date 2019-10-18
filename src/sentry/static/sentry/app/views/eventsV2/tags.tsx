@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
-import {isEqual, omit} from 'lodash';
+import {isEqual} from 'lodash';
 import {Location} from 'history';
 import * as Sentry from '@sentry/browser';
 
@@ -19,8 +19,7 @@ import {
   Tag,
   TagTopValue,
 } from './utils';
-import {MODAL_QUERY_KEYS} from './data';
-import EventView from './eventView';
+import EventView, {isAPIPayloadSimilar} from './eventView';
 
 type Props = {
   api: Client;
@@ -51,17 +50,23 @@ class Tags extends React.Component<Props, State> {
     this.fetchData();
   }
 
-  componentDidUpdate(prevProps) {
-    // Do not update if we are just opening/closing the modal
-    const locationHasChanged = !isEqual(
-      omit(prevProps.location.query, MODAL_QUERY_KEYS),
-      omit(this.props.location.query, MODAL_QUERY_KEYS)
+  componentDidUpdate(prevProps: Props) {
+    const tagsChanged = !isEqual(
+      new Set(this.props.eventView.tags),
+      new Set(prevProps.eventView.tags)
     );
 
-    if (locationHasChanged) {
+    if (tagsChanged || this.shouldRefetchData(prevProps)) {
       this.fetchData();
     }
   }
+
+  shouldRefetchData = (prevProps: Props): boolean => {
+    const thisAPIPayload = this.props.eventView.getTagsAPIPayload(this.props.location);
+    const otherAPIPayload = prevProps.eventView.getTagsAPIPayload(prevProps.location);
+
+    return !isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
+  };
 
   fetchData = async () => {
     const {api, organization, eventView, location} = this.props;
@@ -74,7 +79,7 @@ class Tags extends React.Component<Props, State> {
           api,
           organization.slug,
           tag,
-          eventView.getEventsAPIPayload(location)
+          eventView.getTagsAPIPayload(location)
         );
 
         this.setState(state => ({tags: {...state.tags, [tag]: val}}));

@@ -10,7 +10,7 @@ import withApi from 'app/utils/withApi';
 import Pagination from 'app/components/pagination';
 
 import {DEFAULT_EVENT_VIEW_V1} from '../data';
-import EventView from '../eventView';
+import EventView, {isAPIPayloadSimilar} from '../eventView';
 import TableView from './tableView';
 import {TableData} from './types';
 
@@ -63,10 +63,7 @@ class Table extends React.PureComponent<TableProps, TableState> {
 
       browserHistory.replace({
         pathname: location.pathname,
-        query: {
-          ...location.query,
-          ...nextEventView.generateQueryStringObject(),
-        },
+        query: nextEventView.generateQueryStringObject(),
       });
       return;
     }
@@ -74,17 +71,18 @@ class Table extends React.PureComponent<TableProps, TableState> {
     this.fetchData();
   }
 
-  componentDidUpdate(prevProps) {
-    if (
-      this.props.location !== prevProps.location ||
-      this.props.location.query !== prevProps.location.query ||
-      this.props.location.query.fieldnames !== prevProps.location.query.fieldnames ||
-      this.props.location.query.field !== prevProps.location.query.field ||
-      this.props.location.query.sort !== prevProps.location.query.sort
-    ) {
+  componentDidUpdate(prevProps: TableProps, prevState: TableState) {
+    if (!this.state.isLoading && this.shouldRefetchData(prevProps, prevState)) {
       this.fetchData();
     }
   }
+
+  shouldRefetchData = (prevProps: TableProps, prevState: TableState): boolean => {
+    const thisAPIPayload = this.state.eventView.getEventsAPIPayload(this.props.location);
+    const otherAPIPayload = prevState.eventView.getEventsAPIPayload(prevProps.location);
+
+    return !isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
+  };
 
   fetchData = () => {
     const {organization, location} = this.props;
