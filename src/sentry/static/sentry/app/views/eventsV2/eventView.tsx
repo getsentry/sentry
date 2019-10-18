@@ -309,10 +309,14 @@ class EventView {
     statsPeriod: string | undefined;
     environment: string | undefined;
   }) {
+    // allow only the first sort
+    const sorts =
+      Array.isArray(props.sorts) && props.sorts.length > 0 ? [props.sorts[0]] : [];
+
     this.id = props.id;
     this.name = props.name;
     this.fields = props.fields;
-    this.sorts = props.sorts;
+    this.sorts = sorts;
     this.tags = props.tags;
     this.query = props.query;
     this.project = props.project;
@@ -391,7 +395,7 @@ class EventView {
   }
 
   toNewQuery(): NewQuery {
-    const orderby = this.sorts ? encodeSorts(this.sorts)[0] : undefined;
+    const orderby = this.sorts.length > 0 ? encodeSorts(this.sorts)[0] : undefined;
     return {
       id: this.id,
       version: 2,
