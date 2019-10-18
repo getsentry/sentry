@@ -294,7 +294,7 @@ class EventView {
   start: string | undefined;
   end: string | undefined;
   statsPeriod: string | undefined;
-  environment: string[];
+  environment: Readonly<string[]>;
 
   constructor(props: {
     id: string | undefined;
@@ -307,7 +307,7 @@ class EventView {
     start: string | undefined;
     end: string | undefined;
     statsPeriod: string | undefined;
-    environment: string[];
+    environment: Readonly<string[]>;
   }) {
     // only include sort keys that are included in the fields
 
@@ -408,7 +408,7 @@ class EventView {
       statsPeriod: saved.range,
       environment: collectQueryStringByKey(
         {
-          environment: (saved as SavedQuery).environment,
+          environment: (saved as SavedQuery).environment as string[],
         },
         'environment'
       ),
