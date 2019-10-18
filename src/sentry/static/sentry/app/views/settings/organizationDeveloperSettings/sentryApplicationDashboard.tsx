@@ -15,6 +15,7 @@ import {
 import BarChart from 'app/components/charts/barChart';
 import DateTime from 'app/components/dateTime';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import Link from 'app/components/links/link';
 
 import space from 'app/styles/space';
 import {SentryApp, SentryAppWebhookError} from 'app/types';
@@ -176,11 +177,25 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
 
   renderIntegrationViews() {
     const {views} = this.state.interactions;
+    const {appSlug, orgId} = this.props.params;
+
     return (
       <Panel>
         <PanelHeader>{t('Integration Views')}</PanelHeader>
+        <PanelBody>
+          <InteractionsChart data={{Views: views}} />
+        </PanelBody>
 
-        <InteractionsChart data={{Views: views}} />
+        <PanelFooter>
+          <StyledFooter>
+            {t('Integration views are measured through views on the ')}
+            <Link to={`/sentry-apps/${appSlug}/external-install/`}>
+              {t('external installation page')}
+            </Link>
+            {t(' and views on the Learn More/Install modal on the ')}
+            <Link to={`/settings/${orgId}/integrations/`}>{t('integrations page')}</Link>
+          </StyledFooter>
+        </PanelFooter>
       </Panel>
     );
   }
