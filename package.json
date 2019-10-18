@@ -183,6 +183,7 @@
     "lint:css": "yarn stylelint --syntax css-in-js 'src/sentry/static/sentry/app/**/*.jsx'",
     "dev": "(yarn check --verify-tree || yarn install --check-files) && sentry devserver",
     "dev-server": "webpack-dev-server",
+    "dev-acceptance": "NO_DEV_SERVER=1 NODE_ENV=development yarn webpack --watch",
     "storybook": "start-storybook -p 9001 -c .storybook",
     "storybook-build": "build-storybook -c .storybook -o .storybook-out && sed -i -e 's/\\/sb_dll/sb_dll/g' .storybook-out/index.html",
     "snapshot": "build-storybook && PERCY_TOKEN=$STORYBOOK_PERCY_TOKEN PERCY_PROJECT=$STORYBOOK_PERCY_PROJECT percy-storybook --widths=1280",
