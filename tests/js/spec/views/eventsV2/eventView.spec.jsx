@@ -391,3 +391,33 @@ describe('EventView.numOfColumns()', function() {
     expect(eventView2.numOfColumns()).toBe(0);
   });
 });
+
+describe('EventView.clone()', function() {
+  it('returns a unique instance', function() {
+    const state = {
+      id: 1234,
+      name: 'best query',
+      fields: [
+        {field: 'count()', title: 'events'},
+        {field: 'project.id', title: 'project'},
+      ],
+      sorts: generateSorts(['count']),
+      tags: ['foo', 'bar'],
+      query: 'event.type:error',
+      project: [42],
+      start: '2019-10-01T00:00:00',
+      end: '2019-10-02T00:00:00',
+      statsPeriod: '14d',
+      environment: 'staging',
+    };
+
+    const eventView = new EventView(state);
+
+    const eventView2 = eventView.clone();
+
+    expect(eventView2 !== eventView).toBeTruthy();
+
+    expect(eventView).toMatchObject(state);
+    expect(eventView2).toMatchObject(state);
+  });
+});
