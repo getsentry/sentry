@@ -445,4 +445,4 @@ class GitlabIntegrationInstanceTest(IntegrationTestCase):
         integration = Integration.objects.get(provider=self.provider.key)
 
         installation = integration.get_installation(self.organization.id)
-        assert None == installation.get_group_id()
+        assert installation.get_group_id() is None
