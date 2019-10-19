@@ -22,8 +22,14 @@ from uuid import uuid4
 
 from sentry.event_manager import EventManager
 from sentry.constants import SentryAppStatus
-from sentry.incidents.logic import create_alert_rule
+from sentry.incidents.logic import (
+    create_alert_rule,
+    create_alert_rule_trigger,
+    create_alert_rule_trigger_action,
+)
 from sentry.incidents.models import (
+    AlertRuleThresholdType,
+    AlertRuleTriggerAction,
     Incident,
     IncidentGroup,
     IncidentProject,
@@ -960,4 +966,32 @@ class Factories(object):
             threshold_period,
             include_all_projects=include_all_projects,
             excluded_projects=excluded_projects,
+        )
+
+    @staticmethod
+    def create_alert_rule_trigger(
+        alert_rule,
+        label=None,
+        threshold_type=AlertRuleThresholdType.ABOVE,
+        alert_threshold=100,
+        resolve_threshold=10,
+    ):
+        if not label:
+            label = petname.Generate(2, " ", letters=10).title()
+
+        return create_alert_rule_trigger(
+            alert_rule, label, threshold_type, alert_threshold, resolve_threshold
+        )
+
+    @staticmethod
+    def create_alert_rule_trigger_action(
+        trigger,
+        type=AlertRuleTriggerAction.Type.EMAIL,
+        target_type=AlertRuleTriggerAction.TargetType.USER,
+        target_identifier=None,
+        target_display=None,
+        integration=None,
+    ):
+        return create_alert_rule_trigger_action(
+            trigger, type, target_type, target_identifier, target_display, integration
         )
