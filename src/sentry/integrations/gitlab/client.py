@@ -149,6 +149,7 @@ class GitLabApiClient(ApiClient):
             return {
                     "search": query,
                     "simple": simple,
+                    "order_by": "last_activity_at",
                     "include_subgroups": self.metadata.get("include_subgroups", False)
                 "page": page_number + 1,  # page starts at 1
                 "per_page": page_size,
@@ -167,8 +168,9 @@ class GitLabApiClient(ApiClient):
                 GitLabApiClientPath.projects,
                 params={
                     "search": query,
-                    "simple": simple
-                }
+                    "simple": simple,
+                    "order_by": "last_activity_at"
+                },
             )
 
     def get_project(self, project_id):
