@@ -173,7 +173,8 @@ class InstallationForm(forms.Form):
     include_subgroups = forms.BooleanField(
         label=_("Include Subgroups"),
         help_text=_(
-            "Include projects in subgroups of the GitLab group. "
+            "Include projects in subgroups of the GitLab group."
+            "<br>"
             "Not applicable when integrating an entire GitLab instance."
         ),
         widget=forms.CheckboxInput(),
