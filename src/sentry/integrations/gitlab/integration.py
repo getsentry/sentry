@@ -112,7 +112,7 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
     def get_repositories(self, query=None):
         # Note: gitlab projects are the same things as repos everywhere else
         group = self.get_group_id()
-        resp = self.get_client().search_group_projects(group, query)
+        resp = self.get_client().search_projects(group, query)
         return [{"identifier": repo["id"], "name": repo["name_with_namespace"]} for repo in resp]
 
     def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
@@ -126,7 +126,7 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
     def search_projects(self, query):
         client = self.get_client()
         group_id = self.get_group_id()
-        return client.search_group_projects(group_id, query)
+        return client.search_projects(group_id, query)
 
     def search_issues(self, project_id, query, iids):
         client = self.get_client()
