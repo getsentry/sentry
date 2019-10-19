@@ -160,7 +160,9 @@ class ProcessUpdateTest(TestCase):
             .exists()
         )
 
-    def assert_action_handler_called_with_actions(self, incident, actions):
+    def assert_action_handler_called_with_actions(self, incident, actions, project=None):
+        project = self.project if project is None else project
+
         if not actions:
             if not incident:
                 assert not self.email_action_handler.called
@@ -169,17 +171,19 @@ class ProcessUpdateTest(TestCase):
                     assert call_args[0][1] != incident
         else:
             self.email_action_handler.assert_has_calls(
-                [call(action, incident) for action in actions], any_order=True
+                [call(action, incident, project) for action in actions], any_order=True
             )
 
-    def assert_actions_fired_for_incident(self, incident, actions=None):
+    def assert_actions_fired_for_incident(self, incident, actions=None, project=None):
         actions = [] if actions is None else actions
-        self.assert_action_handler_called_with_actions(incident, actions)
+        project = self.project if project is None else project
+        self.assert_action_handler_called_with_actions(incident, actions, project)
         assert len(actions) == len(self.email_action_handler.return_value.fire.call_args_list)
 
-    def assert_actions_resolved_for_incident(self, incident, actions=None):
+    def assert_actions_resolved_for_incident(self, incident, actions=None, project=None):
+        project = self.project if project is None else project
         actions = [] if actions is None else actions
-        self.assert_action_handler_called_with_actions(incident, actions)
+        self.assert_action_handler_called_with_actions(incident, actions, project)
         assert len(actions) == len(self.email_action_handler.return_value.resolve.call_args_list)
 
     def assert_no_active_incident(self, rule, subscription=None):
@@ -476,7 +480,7 @@ class ProcessUpdateTest(TestCase):
         self.assert_action_handler_called_with_actions(incident, [])
         other_incident = self.assert_active_incident(rule, self.other_sub)
         self.assert_trigger_exists_with_status(other_incident, self.trigger, TriggerStatus.ACTIVE)
-        self.assert_actions_fired_for_incident(other_incident, [self.action])
+        self.assert_actions_fired_for_incident(other_incident, [self.action], self.other_project)
 
         # Now we want to test that resolving is isolated. Send another update through
         # for the first subscription.
@@ -512,7 +516,7 @@ class ProcessUpdateTest(TestCase):
         self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
         self.assert_no_active_incident(rule, self.other_sub)
         self.assert_trigger_exists_with_status(other_incident, self.trigger, TriggerStatus.RESOLVED)
-        self.assert_actions_resolved_for_incident(other_incident, [self.action])
+        self.assert_actions_resolved_for_incident(other_incident, [self.action], self.other_project)
 
         # This second update for the first subscription should resolve its incident now.
         processor = self.send_update(
