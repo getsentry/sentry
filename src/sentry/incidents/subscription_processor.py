@@ -246,6 +246,7 @@ class SubscriptionProcessor(object):
                 kwargs={
                     "action_id": action.id,
                     "incident_id": incident_trigger.incident_id,
+                    "project_id": self.subscription.project_id,
                     "method": method,
                 },
                 countdown=5,

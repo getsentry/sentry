@@ -425,20 +425,20 @@ class AlertRuleTriggerAction(Model):
             # ok to contact this email.
             return self.target_identifier
 
-    def build_handler(self, incident):
+    def build_handler(self, incident, project):
         type = AlertRuleTriggerAction.Type(self.type)
         if type in self.handlers:
-            return self.handlers[type](self, incident)
+            return self.handlers[type](self, incident, project)
         else:
             metrics.incr("alert_rule_trigger.unhandled_type.{}".format(self.type))
 
-    def fire(self, incident):
-        handler = self.build_handler(incident)
+    def fire(self, incident, project):
+        handler = self.build_handler(incident, project)
         if handler:
             return handler.fire()
 
-    def resolve(self, incident):
-        handler = self.build_handler(incident)
+    def resolve(self, incident, project):
+        handler = self.build_handler(incident, project)
         if handler:
             return handler.resolve()
 

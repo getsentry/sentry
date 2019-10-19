@@ -1,5 +1,7 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
+import six
+
 from sentry.models import Activity, OrganizationMember, OrganizationMemberTeam
 from sentry.incidents.models import IncidentActivityType
 
@@ -231,6 +233,24 @@ class Fixtures(object):
         if projects is None:
             projects = [self.project]
         return Factories.create_alert_rule(organization, projects, *args, **kwargs)
+
+    def create_alert_rule_trigger(self, alert_rule=None, *args, **kwargs):
+        if not alert_rule:
+            alert_rule = self.create_alert_rule()
+        return Factories.create_alert_rule_trigger(alert_rule, *args, **kwargs)
+
+    def create_alert_rule_trigger_action(
+        self, alert_rule_trigger=None, target_identifier=None, *args, **kwargs
+    ):
+        if not alert_rule_trigger:
+            alert_rule_trigger = self.create_alert_rule_trigger()
+
+        if not target_identifier:
+            target_identifier = six.text_type(self.user.id)
+
+        return Factories.create_alert_rule_trigger_action(
+            alert_rule_trigger, target_identifier=target_identifier, **kwargs
+        )
 
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot):

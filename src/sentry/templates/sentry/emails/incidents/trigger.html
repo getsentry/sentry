@@ -1,0 +1,36 @@
+{% extends "sentry/emails/activity/generic.html" %}
+
+{% load sentry_avatars %}
+{% load sentry_helpers %}
+{% load sentry_assets %}
+
+{% block activity %}
+    <h3>
+        <a href="{{ link }}">Alert Rule Trigger {{ status }} on Incident {{ incident_name }}.</a>
+    </h3>
+
+
+  {% if enhanced_privacy %}
+    <div class="notice">
+      Details about this incident alert are not shown in this email since enhanced privacy
+      controls are enabled. For more details about this incident, <a href="{{ link }}">view on Sentry.</a>
+    </div>
+
+  {% else %}
+      <table >
+        <tr>
+            <td>Rule: <a href="{{ rule_link }}">{{ rule_link }}</a></td>
+        </tr>
+        <tr>
+          <td>Aggregate: {{ aggregate }} </td>
+        </tr>
+        <tr>
+          <td>Query: {{ query }}</td>
+        </tr>
+        <tr>
+          <td>Threshold: {{ threshold }}</td>
+        </tr>
+        </tr>
+      </table>
+  {% endif %}
+{% endblock %}

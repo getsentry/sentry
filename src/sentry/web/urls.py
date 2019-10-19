@@ -674,6 +674,11 @@ urlpatterns += patterns(
         name="sentry-incident",
     ),
     url(
+        r"^settings/(?P<organization_slug>[\w_-]+)/incident-rules/(?P<alert_rule_id>\d+)/$",
+        react_page_view,
+        name="sentry-alert-rule",
+    ),
+    url(
         r"^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/issues/(?P<group_id>\d+)/tags/(?P<key>[^\/]+)/export/$",
         GroupTagExportView.as_view(),
         name="sentry-group-tag-export",
