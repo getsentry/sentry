@@ -121,21 +121,31 @@ class GitLabApiClient(ApiClient):
         """
         return self.get(GitLabApiClientPath.user)
 
-    def search_group_projects(self, group, query=None, simple=True):
-        """Get projects for a group
+    def search_projects(self, group=None, query=None, simple=True):
+        """Get projects
 
         See https://docs.gitlab.com/ee/api/groups.html#list-a-group-s-projects
+        and https://docs.gitlab.com/ee/api/projects.html#list-all-projects
         """
         # simple param returns limited fields for the project.
         # Really useful, because we often don't need most of the project information
-        return self.get(
-            GitLabApiClientPath.group_projects.format(group=group),
-            params={
-                "search": query,
-                "simple": simple,
-                "include_subgroups": self.metadata.get("include_subgroups", False),
-            },
-        )
+        if group:
+            return self.get(
+                GitLabApiClientPath.group_projects.format(group=group),
+                params={
+                    "search": query,
+                    "simple": simple,
+                    "include_subgroups": self.metadata.get("include_subgroups", False)
+                },
+            )
+        else:
+            return self.get(
+                GitLabApiClientPath.projects,
+                params={
+                    "search": query,
+                    "simple": simple
+                }
+            )
 
     def get_project(self, project_id):
         """Get project
