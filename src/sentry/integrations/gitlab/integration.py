@@ -151,7 +151,7 @@ class InstallationForm(forms.Form):
         label=_("GitLab URL"),
         help_text=_(
             "The base URL for your GitLab instance, including the host and protocol. "
-            "Do not include group path."
+            "Do not include the group path."
             "<br>"
             "If using gitlab.com, enter https://gitlab.com/"
         ),
@@ -160,18 +160,22 @@ class InstallationForm(forms.Form):
     group = forms.CharField(
         label=_("GitLab Group Path"),
         help_text=_(
-            "This can be found in the URL of your group's GitLab page. "
+            "This can be found in the URL of your group's GitLab page."
             "<br>"
-            "For example, if your group can be found at "
-            "https://gitlab.com/my-group/my-subgroup, enter `my-group/my-subgroup`. "
-            "Leave blank to integrate an entire self-managed GitLab instance."
+            "For example, if your group URL is "
+            "https://gitlab.com/my-group/my-subgroup, enter `my-group/my-subgroup`."
+            "<br>"
+            "Leave this empty to integrate an entire self-managed GitLab instance."
         ),
         widget=forms.TextInput(attrs={"placeholder": _("my-group/my-subgroup")}),
         required=False,
     )
     include_subgroups = forms.BooleanField(
         label=_("Include Subgroups"),
-        help_text=_("Include projects in subgroups of the GitLab group."),
+        help_text=_(
+            "Include projects in subgroups of the GitLab group. "
+            "Not applicable when integrating an entire GitLab instance."
+        ),
         widget=forms.CheckboxInput(),
         required=False,
         initial=False,
