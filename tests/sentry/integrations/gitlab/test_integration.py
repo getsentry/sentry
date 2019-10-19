@@ -347,7 +347,7 @@ class GitlabIntegrationInstanceTest(IntegrationTestCase):
     }
 
     def setUp(self):
-        super(GitlabIntegrationTest, self).setUp()
+        super(GitlabIntegrationInstanceTest, self).setUp()
         self.init_path_without_guide = "%s%s" % (self.init_path, "?completed_installation_guide")
 
     def assert_setup_flow(self, user_id="user_id_1"):
