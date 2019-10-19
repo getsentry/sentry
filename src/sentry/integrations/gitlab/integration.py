@@ -345,10 +345,15 @@ class GitlabIntegrationProvider(IntegrationProvider):
         }
 
         user = get_user_info(data["access_token"], state["installation_data"])
-        group = self.get_group_info(data["access_token"], state["installation_data"])
-        include_subgroups = state["installation_data"]["include_subgroups"]
         scopes = sorted(GitlabIdentityProvider.oauth_scopes)
         base_url = state["installation_data"]["url"]
+
+        if state["installation_data"]["group"]:
+            group = self.get_group_info(data["access_token"], state["installation_data"])
+            include_subgroups = state["installation_data"]["include_subgroups"]
+        else:
+            group = {}
+            include_subgroups = False
 
         hostname = urlparse(base_url).netloc
         verify_ssl = state["installation_data"]["verify_ssl"]
@@ -359,22 +364,22 @@ class GitlabIntegrationProvider(IntegrationProvider):
         secret = sha1_text("".join([hostname, state["installation_data"]["client_id"]]))
 
         integration = {
-            "name": group["full_name"],
+            "name": group.get("full_name", hostname),
             # Splice the gitlab host and project together to
             # act as unique link between a gitlab instance, group + sentry.
             # This value is embedded then in the webhook token that we
             # give to gitlab to allow us to find the integration a hook came
             # from.
-            "external_id": "{}:{}".format(hostname, group["id"]),
+            "external_id": "{}:{}".format(hostname, group.get("id", "instance")),
             "metadata": {
-                "icon": group["avatar_url"],
+                "icon": group.get("avatar_url", None),
                 "instance": hostname,
-                "domain_name": "{}/{}".format(hostname, group["full_path"]),
+                "domain_name": "{}/{}".format(hostname, group.get("full_path", "")),
                 "scopes": scopes,
                 "verify_ssl": verify_ssl,
                 "base_url": base_url,
                 "webhook_secret": secret.hexdigest(),
-                "group_id": group["id"],
+                "group_id": group.get("id", None),
                 "include_subgroups": include_subgroups,
             },
             "user_identity": {
