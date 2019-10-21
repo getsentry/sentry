@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from sentry.exceptions import PluginError
 from sentry.integrations.exceptions import ApiError
-from sentry.plugins.bases.notify import NotificationPlugin
+from sentry.plugins import NotificationPlugin
 from sentry.plugins.base.structs import Notification
 from sentry.testutils import TestCase
 from requests.exceptions import HTTPError, SSLError

@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import mock
 
-from sentry.plugins.bases.notify import NotificationPlugin
+from sentry.plugins import NotificationPlugin
 from sentry.testutils import PluginTestCase
 from sentry.models import Activity
 

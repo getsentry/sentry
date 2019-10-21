@@ -19,7 +19,7 @@ Notification = namedtuple("Notification", "event rules")
 
 
 def split_key(key):
-    from sentry.plugins.base import plugins
+    from sentry.plugins import plugins  # XXX
 
     plugin_slug, _, project_id = key.split(":", 2)
     return plugins.get(plugin_slug), Project.objects.get(pk=project_id)

@@ -325,7 +325,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
         return integration
 
     def setup(self):
-        from sentry.plugins.base import bindings
+        from sentry.plugins import bindings
 
         bindings.add(
             "integration-repository.provider", GitlabRepositoryProvider, id="integrations:gitlab"

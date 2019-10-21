@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from sentry.mediators import Mediator, Param
 from sentry.models import Repository
-from sentry.plugins.base import plugins
+from sentry.plugins import plugins
 from sentry.utils.cache import memoize
 
 
