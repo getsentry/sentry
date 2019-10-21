@@ -94,7 +94,7 @@ def create_or_update(model, using=None, **kwargs):
 
 
 def in_iexact(column, values):
-    """Operator to test if any of the given values are (case-insensitively)
+    """Operator to test if any of the given values are (case-insensitive)
        matching to values in the given column."""
     from operator import or_
 
