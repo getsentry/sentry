@@ -5,7 +5,6 @@ import {browserHistory} from 'react-router';
 import {Client} from 'app/api';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {generateQueryWithTag} from 'app/utils';
-import {Field as FieldType} from './eventView';
 
 import {
   AGGREGATE_ALIASES,
@@ -15,7 +14,7 @@ import {
   FieldTypes,
   FieldFormatterRenderFunctionPartial,
 } from './data';
-import EventView from './eventView';
+import EventView, {Field as FieldType} from './eventView';
 import {
   Aggregation,
   Field,
