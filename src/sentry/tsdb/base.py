@@ -379,13 +379,13 @@ class BaseTSDB(Service):
 
     def record(self, model, key, values, timestamp=None, environment_id=None):
         """
-        Record occurences of items in a single distinct counter.
+        Record occurrence of items in a single distinct counter.
         """
         raise NotImplementedError
 
     def record_multi(self, items, timestamp=None, environment_id=None):
         """
-        Record occurences of items in multiple distinct counters.
+        Record occurrence of items in multiple distinct counters.
         """
         for model, key, values in items:
             self.record(model, key, values, timestamp, environment_id=environment_id)

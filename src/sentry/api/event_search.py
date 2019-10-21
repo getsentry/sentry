@@ -72,7 +72,7 @@ def translate(pat):
     return "^" + res + "$"
 
 
-# Explaination of quoted string regex, courtesy of Matt
+# Explanation of quoted string regex, courtesy of Matt
 # "              // literal quote
 # (              // begin capture group
 #   (?:          // begin uncaptured group

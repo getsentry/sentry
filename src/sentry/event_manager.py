@@ -601,7 +601,7 @@ class EventManager(object):
         # normalize step before.  We now also make sure that the
         # fingerprint was set to `'{{ default }}' just in case someone
         # removed it from the payload.  The call to get_hashes will then
-        # look at `grouping_config` to pick the right paramters.
+        # look at `grouping_config` to pick the right parameters.
         data["fingerprint"] = data.get("fingerprint") or ["{{ default }}"]
         apply_server_fingerprinting(data, get_fingerprinting_config_for_project(project))
 
@@ -620,7 +620,7 @@ class EventManager(object):
         # derived attributes.  The reason for this is that we push this
         # data into kafka for snuba processing and our postprocessing
         # picks up the data right from the snuba topic.  For most usage
-        # however the data is dynamically overriden by Event.title and
+        # however the data is dynamically overridden by Event.title and
         # Event.location (See Event.as_dict)
         materialized_metadata = self.materialize_metadata()
         event_metadata = materialized_metadata["metadata"]
