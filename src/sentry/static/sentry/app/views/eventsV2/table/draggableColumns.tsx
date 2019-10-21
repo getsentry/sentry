@@ -211,14 +211,12 @@ class DraggableColumns extends React.Component<Props, State> {
       const left = `${this.state.left}px`;
 
       const ghost = (
-        <React.Fragment>
-          <GhostPlacement
-            innerRef={this.dragGhostRef}
-            style={{display: 'block', top, left}}
-          >
-            <GhostContentBox>{columnBeingDragged.name}</GhostContentBox>
-          </GhostPlacement>
-        </React.Fragment>
+        <GhostPlacement
+          innerRef={this.dragGhostRef}
+          style={{display: 'block', top, left}}
+        >
+          <GhostContentBox>{columnBeingDragged.name}</GhostContentBox>
+        </GhostPlacement>
       );
 
       return ReactDOM.createPortal(ghost, this.portal);
