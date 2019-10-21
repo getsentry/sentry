@@ -13,9 +13,11 @@ import {
   GridHeadCellButtonHoverDraggable,
   GridHeadCellResizer,
 } from './styles';
+import {GridColumnHeader} from './types';
 
 export type GridHeadCellProps<Column> = {
   isColumnDragging: boolean;
+
   isEditing: boolean;
   isPrimary: boolean;
 
@@ -42,7 +44,7 @@ export type GridHeadCellState = {
  * states that are only specific to the header. This component aims to abstract
  * the complexity of GridHeadCell away.
  */
-class GridHeadCell<Column> extends React.Component<
+class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
   GridHeadCellProps<Column>,
   GridHeadCellState
 > {
@@ -119,7 +121,7 @@ class GridHeadCell<Column> extends React.Component<
   }
 
   render() {
-    const {isEditing, children} = this.props;
+    const {isEditing, children, column} = this.props;
 
     return (
       <GridHeadCellWrapper
@@ -127,7 +129,11 @@ class GridHeadCell<Column> extends React.Component<
         onMouseMove={() => this.setHovering(true)}
         onMouseLeave={() => this.setHovering(false)}
       >
-        <GridHeadCellButton className="grid-head-cell-button" isEditing={isEditing}>
+        <GridHeadCellButton
+          isDragging={column.isDragging}
+          className="grid-head-cell-button"
+          isEditing={isEditing}
+        >
           {children}
           {this.renderButtonHoverDraggable(children)}
         </GridHeadCellButton>

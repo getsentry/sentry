@@ -229,6 +229,7 @@ const TEMPLATE_TABLE_COLUMN: TableColumn<React.ReactText> = {
   aggregation: '',
   field: '',
   eventViewField: {field: '', title: ''},
+  isDragging: false,
 
   type: 'never',
   isSortable: false,

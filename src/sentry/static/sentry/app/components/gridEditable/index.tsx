@@ -9,7 +9,13 @@ import InlineSvg from 'app/components/inlineSvg';
 import LoadingContainer from 'app/components/loading/loadingContainer';
 import ToolTip from 'app/components/tooltip';
 
-import {GridColumn, GridColumnHeader, GridColumnOrder, GridColumnSortBy} from './types';
+import {
+  GridColumn,
+  GridColumnHeader,
+  GridColumnOrder,
+  GridColumnSortBy,
+  ObjectKey,
+} from './types';
 import GridHeadCell from './gridHeadCell';
 import GridModalEditColumn from './gridModalEditColumn';
 import {
@@ -26,7 +32,7 @@ import {
   GridEditGroupButton,
 } from './styles';
 
-type GridEditableProps<DataRow, ColumnKey extends keyof DataRow> = {
+type GridEditableProps<DataRow, ColumnKey> = {
   isEditable?: boolean;
   isLoading?: boolean;
   isColumnDragging: boolean;
@@ -96,8 +102,8 @@ type GridEditableState = {
 };
 
 class GridEditable<
-  DataRow extends Object,
-  ColumnKey extends keyof DataRow
+  DataRow extends {[key: string]: any},
+  ColumnKey extends ObjectKey
 > extends React.Component<GridEditableProps<DataRow, ColumnKey>, GridEditableState> {
   static defaultProps = {
     isEditable: false,

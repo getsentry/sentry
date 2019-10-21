@@ -188,6 +188,13 @@ class TableView extends React.Component<TableViewProps> {
     }
 
     if (destinationColumnIndex === initialColumnIndex) {
+      const currentDraggingColumn: TableColumn<keyof TableDataRow> = {
+        ...columnOrder[destinationColumnIndex],
+        isDragging: true,
+      };
+
+      columnOrder[destinationColumnIndex] = currentDraggingColumn;
+
       return columnOrder;
     }
 
@@ -198,6 +205,12 @@ class TableView extends React.Component<TableViewProps> {
       0,
       nextColumnOrder.splice(initialColumnIndex, 1)[0]
     );
+
+    const currentDraggingColumn: TableColumn<keyof TableDataRow> = {
+      ...nextColumnOrder[destinationColumnIndex],
+      isDragging: true,
+    };
+    nextColumnOrder[destinationColumnIndex] = currentDraggingColumn;
 
     return nextColumnOrder;
   };

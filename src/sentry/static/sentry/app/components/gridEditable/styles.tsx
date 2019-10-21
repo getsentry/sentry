@@ -22,6 +22,7 @@ type GridEditableProps = {
   isEditing?: boolean;
   isPrimary?: boolean;
   isFlagged?: boolean;
+  isDragging?: boolean;
 };
 
 export const GridPanel = styled(Panel)`
@@ -116,7 +117,17 @@ export const GridHeadCellButton = styled('div')<GridEditableProps>`
   text-overflow: ellipsis;
   overflow: hidden;
 
-  background: ${p => (p.isEditing ? p.theme.offWhite2 : 'none')};
+  background: ${p => {
+    if (p.isDragging) {
+      return '#CEC2D8';
+    }
+
+    if (p.isEditing) {
+      return p.theme.offWhite2;
+    }
+
+    return 'none';
+  }};
 
   a {
     color: ${p => p.theme.gray2};

@@ -125,7 +125,7 @@ class DraggableColumns extends React.Component<Props, State> {
     this.setState({
       destinationColumnIndex,
     });
-  }, 25);
+  }, 100);
 
   onDragEnd = (event: MouseEvent) => {
     if (!this.state.isDragging || event.type !== 'mouseup') {
