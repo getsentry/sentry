@@ -214,10 +214,13 @@ class RedisTSDB(BaseTSDB):
         ...             (TimeSeriesModel.group, 5, {"timestamp": ...})])
         """
 
+        default_timestamp = timestamp
+        default_count = count
+
         self.validate_arguments([item[0] for item in items], [environment_id])
 
-        if timestamp is None:
-            timestamp = timezone.now()
+        if default_timestamp is None:
+            default_timestamp = timezone.now()
 
         for (cluster, durable), environment_ids in self.get_cluster_groups(
             set([None, environment_id])
@@ -227,8 +230,10 @@ class RedisTSDB(BaseTSDB):
                 manager = SuppressionWrapper(manager)
 
             with manager as client:
-                # (hash_key, hash_field, expiry) -> count
+                # (hash_key, hash_field) -> count
                 key_operations = defaultdict(lambda: 0)
+                # (hash_key) -> "max expiration encountered"
+                key_expiries = defaultdict(lambda: 0.0)
 
                 for rollup, max_values in six.iteritems(self.rollups):
                     for item in items:
@@ -238,21 +243,25 @@ class RedisTSDB(BaseTSDB):
                         else:
                             model, key, options = item
 
-                        _count = options.get("count", count)
-                        _timestamp = options.get("timestamp", timestamp)
+                        count = options.get("count", default_count)
+                        timestamp = options.get("timestamp", default_timestamp)
 
-                        expiry = self.calculate_expiry(rollup, max_values, _timestamp)
+                        expiry = self.calculate_expiry(rollup, max_values, timestamp)
 
                         for environment_id in environment_ids:
                             hash_key, hash_field = self.make_counter_key(
                                 model, rollup, timestamp, key, environment_id
                             )
 
-                            key_operations[(hash_key, hash_field, expiry)] += _count
+                            if key_expiries[hash_key] < expiry:
+                                key_expiries[hash_key] = expiry
 
-                for (hash_key, hash_field, expiry), count in six.iteritems(key_operations):
+                            key_operations[(hash_key, hash_field)] += count
+
+                for (hash_key, hash_field), count in six.iteritems(key_operations):
                     client.hincrby(hash_key, hash_field, count)
-                    client.expireat(hash_key, expiry)
+                    if key_expiries.get(hash_key):
+                        client.expireat(hash_key, key_expiries.pop(hash_key))
 
     def get_range(self, model, keys, start, end, rollup=None, environment_ids=None):
         """
