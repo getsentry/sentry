@@ -194,8 +194,17 @@ describe('IssueListSearchBar', function() {
 
       wrapper.find('input').simulate('change', {target: {value: 'is:'}});
       await tick();
-      wrapper.update();
 
+      wrapper.update();
+      expect(
+        wrapper
+          .find('SearchItem')
+          .at(0)
+          .find('li')
+          .prop('className')
+      ).not.toContain('active');
+
+      wrapper.find('input').simulate('keyDown', {key: 'ArrowDown'});
       expect(
         wrapper
           .find('SearchItem')
@@ -204,8 +213,17 @@ describe('IssueListSearchBar', function() {
           .prop('className')
       ).toContain('active');
 
-      wrapper.find('input').simulate('keyDown', {key: 'ArrowUp'});
+      wrapper.find('input').simulate('keyDown', {key: 'ArrowDown'});
+      expect(
+        wrapper
+          .find('SearchItem')
+          .at(1)
+          .find('li')
+          .prop('className')
+      ).toContain('active');
 
+      wrapper.find('input').simulate('keyDown', {key: 'ArrowUp'});
+      wrapper.find('input').simulate('keyDown', {key: 'ArrowUp'});
       expect(
         wrapper
           .find('SearchItem')

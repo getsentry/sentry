@@ -226,7 +226,7 @@ class AutoComplete extends React.Component {
     this.setState(newState);
   };
 
-  moveHighlightedIndex = (step, e) => {
+  moveHighlightedIndex = (step, _e) => {
     let newIndex = this.state.highlightedIndex + step;
 
     // when this component is in virtualized mode, only a subset of items will be passed
