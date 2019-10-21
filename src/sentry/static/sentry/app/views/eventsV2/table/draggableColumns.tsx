@@ -245,8 +245,6 @@ const GhostPlacement = styled('div')`
 `;
 
 const GhostContentBox = styled('div')`
-  background-color: white;
-
   padding: ${space(1)} ${space(1.5)};
   border-radius: ${p => p.theme.borderRadius};
 
@@ -261,15 +259,5 @@ const GhostContentBox = styled('div')`
 
   background: ${p => p.theme.offWhite2};
 `;
-
-// const MouseGuide = styled('div')`
-//   position: absolute;
-//   top: 0;
-//   bottom: 0;
-
-//   width: 1px;
-//   height: 100vh;
-//   background-color: red;
-// `;
 
 export default DraggableColumns;
