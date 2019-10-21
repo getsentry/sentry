@@ -77,42 +77,11 @@ class DraggableColumns extends React.Component<Props, State> {
     window.addEventListener('mousemove', this.onDragMove);
     window.addEventListener('mouseup', this.onDragEnd);
 
-    const columnBeingDragged = this.props.columnOrder[initialColumnIndex];
-
     this.setState({
       isDragging: true,
       draggingColumnIndex: initialColumnIndex,
       left: event.pageX,
       top: event.pageY,
-    });
-
-    console.log('dragging column', initialColumnIndex, columnBeingDragged);
-
-    // TODO: experiment, clean this up
-
-    const foo = document.querySelectorAll('.grid-head-cell-button');
-    const moo = Array.from(foo).map(column => {
-      return column.getBoundingClientRect();
-    });
-
-    // TODO: remvoe this
-
-    console.log('foo', foo);
-    console.log('moo', moo);
-
-    foo.forEach(element => {
-      const rects = element.getBoundingClientRect();
-
-      const reference = document.createElement('div');
-      reference.style.height = '10px';
-      reference.style.width = `${rects.width * 0.8}px`;
-      reference.style.position = 'absolute';
-      reference.style.top = `${rects.top}px`;
-      reference.style.left = `${rects.left + rects.width * 0.1}px`;
-      reference.style.zIndex = '9999';
-      reference.style.backgroundColor = 'yellow';
-
-      //   document.body.appendChild(reference);
     });
   };
 
