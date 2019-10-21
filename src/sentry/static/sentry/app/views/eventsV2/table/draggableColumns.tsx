@@ -199,7 +199,7 @@ class DraggableColumns extends React.Component<Props, State> {
     return this.props.children(childrenProps);
   };
 
-  renderThing = () => {
+  activeDragPlaceholder = () => {
     if (
       this.portal &&
       this.state.isDragging &&
@@ -230,7 +230,7 @@ class DraggableColumns extends React.Component<Props, State> {
   render() {
     return (
       <React.Fragment>
-        {this.renderThing()}
+        {this.activeDragPlaceholder()}
         {this.renderChildren()}
       </React.Fragment>
     );
