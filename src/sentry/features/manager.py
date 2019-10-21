@@ -4,7 +4,7 @@ __all__ = ["FeatureManager"]
 
 from django.conf import settings
 
-from sentry.plugins import plugins
+from sentry.plugins.base import plugins
 from sentry.utils.safe import safe_execute
 
 from .base import Feature

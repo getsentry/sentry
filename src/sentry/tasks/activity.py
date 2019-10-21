@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 def get_activity_notifiers(project):
     from sentry.plugins.bases.notify import NotificationPlugin
-    from sentry.plugins import plugins
+    from sentry.plugins.base import plugins
 
     results = []
     for plugin in plugins.for_project(project, version=1):
