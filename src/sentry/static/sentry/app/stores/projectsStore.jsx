@@ -7,12 +7,15 @@ import TeamActions from 'app/actions/teamActions';
 const ProjectsStore = Reflux.createStore({
   init() {
     this.reset();
-    this.listenTo(ProjectActions.createSuccess, this.onCreateSuccess);
-    this.listenTo(ProjectActions.updateSuccess, this.onUpdateSuccess);
-    this.listenTo(ProjectActions.loadStatsSuccess, this.onStatsLoadSuccess);
-    this.listenTo(ProjectActions.changeSlug, this.onChangeSlug);
+
     this.listenTo(ProjectActions.addTeamSuccess, this.onAddTeam);
+    this.listenTo(ProjectActions.changeSlug, this.onChangeSlug);
+    this.listenTo(ProjectActions.createSuccess, this.onCreateSuccess);
+    this.listenTo(ProjectActions.loadProjects, this.loadInitialData);
+    this.listenTo(ProjectActions.loadStatsSuccess, this.onStatsLoadSuccess);
     this.listenTo(ProjectActions.removeTeamSuccess, this.onRemoveTeam);
+    this.listenTo(ProjectActions.updateSuccess, this.onUpdateSuccess);
+
     this.listenTo(TeamActions.removeTeamSuccess, this.onDeleteTeam);
   },
 

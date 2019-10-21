@@ -12,6 +12,10 @@ const OrganizationStore = Reflux.createStore({
     this.listenTo(OrganizationActions.fetchOrg, this.reset);
     this.listenTo(OrganizationActions.fetchOrgError, this.onFetchOrgError);
 
+    // fill in teams and projects if they are loaded
+    this.listenTo(ProjectActions.loadProjects, this.onLoadProjects);
+    this.listenTo(TeamActions.loadTeams, this.onLoadTeams);
+
     // mark the store as dirty if projects or teams change
     this.listenTo(ProjectActions.createSuccess, this.onProjectOrTeamChange);
     this.listenTo(ProjectActions.updateSuccess, this.onProjectOrTeamChange);
@@ -61,6 +65,24 @@ const OrganizationStore = Reflux.createStore({
   onProjectOrTeamChange() {
     // mark the store as dirty so the next fetch will trigger an org details refetch
     this.dirty = true;
+  },
+
+  onLoadProjects(projects) {
+    if (this.organization) {
+      // sort projects to mimic how they are received from backend
+      projects.sort((a, b) => a.slug.localeCompare(b.slug));
+      this.organization = {...this.organization, projects};
+      this.trigger(this.get());
+    }
+  },
+
+  onLoadTeams(teams) {
+    if (this.organization) {
+      // sort teams to mimic how they are received from backend
+      teams.sort((a, b) => a.slug.localeCompare(b.slug));
+      this.organization = {...this.organization, teams};
+      this.trigger(this.get());
+    }
   },
 
   get() {
