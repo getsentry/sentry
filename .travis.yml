@@ -130,10 +130,11 @@ matrix:
         - nvm install
         - ./bin/yarn install --pure-lockfile
 
+    # Proactive linting on 3.7 during the porting process
     - python: 3.7
-      name: 'Linter for Python 3'
-      install: pip install flake8
-      script: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+      name: 'Linter (Python 3.7)'
+      install: pip install 'sentry-flake8>=0.2.0,<0.3.0'
+      script: flake8
 
     - <<: *postgres_default
       name: 'Backend [Postgres] (1/2)'
