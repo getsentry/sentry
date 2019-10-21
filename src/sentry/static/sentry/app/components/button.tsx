@@ -11,7 +11,7 @@ import Tooltip from 'app/components/tooltip';
 
 /**
  * The button can actually also be an anchor or React router Link (which seems
- * to be poorly typed as `any`). So this is a bit of a workaround to recieve
+ * to be poorly typed as `any`). So this is a bit of a workaround to receive
  * the proper html attributes.
  */
 type ButtonElement = HTMLButtonElement & HTMLAnchorElement & any;
@@ -263,7 +263,7 @@ const StyledButton = styled(
       (_value, key) => key !== 'disabled' && isPropValid(key)
     );
 
-    // Get component to use based on existance of `to` or `href` properties
+    // Get component to use based on existence of `to` or `href` properties
     // Can be react-router `Link`, `a`, or `button`
     if (prop.to) {
       return <Link ref={ref} to={prop.to} {...forwardProps} />;

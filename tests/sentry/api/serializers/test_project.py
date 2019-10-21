@@ -234,7 +234,7 @@ class ProjectSummarySerializerTest(TestCase):
         result = serialize(self.project, self.user, ProjectSummarySerializer())
         assert result["hasUserReports"] is True
 
-    def test_no_enviroments(self):
+    def test_no_environments(self):
         # remove environments and related models
         Deploy.objects.all().delete()
         Release.objects.all().delete()

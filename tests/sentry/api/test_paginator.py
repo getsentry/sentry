@@ -165,7 +165,7 @@ class DateTimePaginatorTest(TestCase):
         joined = timezone.now()
 
         # The DateTime pager only has accuracy up to 1000th of a second.
-        # Everythng can't be added within less than 10 microseconds of each
+        # Everything can't be added within less than 10 microseconds of each
         # other. This is handled by the pager (see test_rounding_offset), but
         # this case shouldn't rely on it.
         res1 = self.create_user("foo@example.com", date_joined=joined)

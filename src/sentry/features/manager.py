@@ -63,7 +63,7 @@ class FeatureManager(object):
            sentry.conf.server.SENTRY_FEATURES.
 
         Depending on the Feature class, additional arguments may need to be
-        provided to assign organiation or project context to the feature.
+        provided to assign organization or project context to the feature.
 
         >>> FeatureManager.has('organizations:feature', organization, actor=request.user)
         """

@@ -201,7 +201,7 @@ def test_deprecated_attrs(key):
     assert not data.get("errors")
 
 
-def test_returns_cannonical_dict():
+def test_returns_canonical_dict():
     from sentry.utils.canonical import CanonicalKeyDict
 
     event = make_event()

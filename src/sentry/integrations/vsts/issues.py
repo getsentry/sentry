@@ -109,7 +109,7 @@ class VstsIssueSync(IssueSyncMixin):
                 instance=self.instance,
                 project=project_id,
                 title=title,
-                # Decriptions cannot easily be seen. So, a comment will be added as well.
+                # Descriptions cannot easily be seen. So, a comment will be added as well.
                 description=markdown(description),
                 comment=markdown(description),
             )

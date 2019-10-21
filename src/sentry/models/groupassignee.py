@@ -238,7 +238,7 @@ class GroupAssignee(Model):
         if self.team:
             return u"team:{}".format(self.team_id)
 
-        raise NotImplementedError("Unkown Assignee")
+        raise NotImplementedError("Unknown Assignee")
 
     def assigned_actor(self):
         from sentry.api.fields.actor import Actor

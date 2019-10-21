@@ -572,7 +572,7 @@ class CreateInitialEventStatsSnapshotTest(TestCase, BaseIncidentsTest):
             assert [row[1] for row in event_stat_snapshot.values] == [1, 1, 2, 1]
 
 
-class GetIncidentSuscribersTest(TestCase, BaseIncidentsTest):
+class GetIncidentSubscribersTest(TestCase, BaseIncidentsTest):
     def test_simple(self):
         incident = self.create_incident()
         assert list(get_incident_subscribers(incident)) == []

@@ -74,7 +74,7 @@ class EventManagerTest(TestCase):
 
         assert event1.group_id != event2.group_id
 
-    def test_ephemral_interfaces_removed_on_save(self):
+    def test_ephemeral_interfaces_removed_on_save(self):
         manager = EventManager(make_event(platform="python"))
         manager.normalize()
         event = manager.save(1)

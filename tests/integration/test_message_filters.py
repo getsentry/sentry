@@ -53,7 +53,7 @@ class FilterTests(TestCase):
         )
         return message
 
-    def test_should_filter_browser_extensions_when_enbabled(self):
+    def test_should_filter_browser_extensions_when_enabled(self):
         self._set_filter_state(_browser_extensions_filter, "1")
         message = self._get_message_with_bad_extension()
         resp = self._postWithHeader(message)

@@ -24,7 +24,7 @@ class SharedGroupDetailsEndpoint(Endpoint, EnvironmentMixin):
 
             {method} {path}
 
-        Note: This is not the equivilant of what you'd receive with the standard
+        Note: This is not the equivalent of what you'd receive with the standard
         group details endpoint. Data is more restrictive and designed
         specifically for sharing.
 

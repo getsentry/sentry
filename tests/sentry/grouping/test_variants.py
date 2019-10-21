@@ -77,7 +77,7 @@ def test_event_hash_variant(insta_snapshot, config_name, test_name, log):
     with open(os.path.join(_fixture_path, test_name + ".json")) as f:
         input = json.load(f)
 
-    # Cutomize grouping config from the _grouping config
+    # Customize grouping config from the _grouping config
     grouping_config = get_default_grouping_config_dict(config_name)
     grouping_info = input.pop("_grouping", None) or {}
     enhancement_base = grouping_info.get("enhancement_base")
@@ -87,7 +87,7 @@ def test_event_hash_variant(insta_snapshot, config_name, test_name, log):
         e = Enhancements.from_config_string(enhancements or "", bases=enhancement_bases)
         grouping_config["enhancements"] = e.dumps()
 
-    # Noramlize the event
+    # Normalize the event
     mgr = EventManager(data=input, grouping_config=grouping_config)
     mgr.normalize()
     data = mgr.get_data()

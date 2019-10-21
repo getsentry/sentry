@@ -38,7 +38,7 @@ class BitbucketAPIPath(object):
 
 class BitbucketApiClient(ApiClient):
     """
-    The API Client for the Bitbucket Integraiton
+    The API Client for the Bitbucket Integration
 
     NOTE: repo is the fully qualified slug containing 'username/repo_slug'
     """

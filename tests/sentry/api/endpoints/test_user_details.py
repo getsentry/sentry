@@ -239,7 +239,7 @@ class UserUpdateTest(APITestCase):
 
         url = reverse("sentry-api-0-user-details", kwargs={"user_id": user2.id})
 
-        # failed authorization, user does not have permissios to delete another
+        # failed authorization, user does not have permissions to delete another
         # user
         response = self.client.delete(url, data={"hardDelete": True, "organizations": []})
         assert response.status_code == 403

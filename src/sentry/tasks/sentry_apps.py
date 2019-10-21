@@ -34,7 +34,7 @@ TASK_OPTIONS = {
     "max_retries": 3,
 }
 
-# We call some models by a different name, publically, than their class name.
+# We call some models by a different name, publicly, than their class name.
 # For example the model Group is called "Issue" in the UI. We want the Service
 # Hook events to match what we externally call these primitives.
 RESOURCE_RENAMES = {"Group": "issue"}

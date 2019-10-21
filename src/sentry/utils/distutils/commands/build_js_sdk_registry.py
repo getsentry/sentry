@@ -60,4 +60,4 @@ class BuildJsSdkRegistryCommand(BaseBuildCommand):
         try:
             sync_registry()
         except BaseException:
-            log.error("error ocurred while trying to fetch js sdk information from the registry")
+            log.error("error occurred while trying to fetch js sdk information from the registry")

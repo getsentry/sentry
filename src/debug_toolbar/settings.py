@@ -157,7 +157,7 @@ def check_middleware():
         warnings.warn(
             "Please use an explicit setup with the "
             "debug_toolbar.middleware.DebugToolbarMiddleware "
-            "after django.middleware.gzip.GZipMiddlware "
+            "after django.middleware.gzip.GZipMiddleware "
             "in MIDDLEWARE_CLASSES.",
             Warning,
         )

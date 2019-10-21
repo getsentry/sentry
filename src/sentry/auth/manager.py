@@ -8,7 +8,7 @@ from .exceptions import ProviderNotRegistered
 
 
 # Ideally this and PluginManager abstracted from the same base, but
-# InstanceManager has become convulated and wasteful
+# InstanceManager has become convoluted and wasteful
 class ProviderManager(object):
     def __init__(self):
         self.__values = {}

@@ -67,7 +67,7 @@ class OptionsManager(object):
     def set(self, key, value, coerce=True):
         """
         Set the value for an option. If the cache is unavailable the action will
-        still suceeed.
+        still succeed.
 
         >>> from sentry import options
         >>> options.set('option', 'value')
@@ -212,7 +212,7 @@ class OptionsManager(object):
 
         # Guess type based on the default value
         if type is None:
-            # the default value would be equivilent to '' if no type / default
+            # the default value would be equivalent to '' if no type / default
             # is specified and we assume six.text_type for safety
             if default_value is None:
                 default_value = u""

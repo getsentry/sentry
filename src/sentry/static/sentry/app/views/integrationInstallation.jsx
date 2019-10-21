@@ -129,7 +129,7 @@ export default class IntegrationInstallation extends AsyncView {
           <React.Fragment>
             <p>
               {tct(
-                'The following features will be availble for [organization] when installed.',
+                'The following features will be available for [organization] when installed.',
                 {organization: <strong>{organization.slug}</strong>}
               )}
             </p>

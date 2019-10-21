@@ -170,7 +170,7 @@ describe('ProjectEnvironments', function() {
       );
     });
 
-    it('does not have "All Enviroments" rows', function() {
+    it('does not have "All Environments" rows', function() {
       MockApiClient.addMockResponse({
         url: baseUrl,
         body: TestStubs.Environments(true),

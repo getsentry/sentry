@@ -55,7 +55,7 @@ class NodeData(collections.MutableMapping):
         data = dict(self.__dict__)
         # downgrade this into a normal dict in case it's a shim dict.
         # This is needed as older workers might not know about newer
-        # collection types.  For isntance we have events where this is a
+        # collection types.  For instance we have events where this is a
         # CanonicalKeyDict
         data.pop("data", None)
         data["_node_data_CANONICAL"] = isinstance(data["_node_data"], CANONICAL_TYPES)

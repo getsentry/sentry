@@ -448,7 +448,7 @@ class FormModel {
         const newValue = this.getValue(id);
         const change = {old: oldValue, new: newValue};
 
-        // Only use `allowUndo` option if explicity defined
+        // Only use `allowUndo` option if explicitly defined
         if (typeof this.options.allowUndo === 'undefined' || this.options.allowUndo) {
           saveOnBlurUndoMessage(change, this, id);
         }

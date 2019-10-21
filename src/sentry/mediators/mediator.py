@@ -15,7 +15,7 @@ from .param import Param
 
 class Mediator(object):
     """
-    Objects that encapsulte domain logic.
+    Objects that encapsulate domain logic.
 
     Mediators provide a layer between User accessible components like Endpoints
     and the database. They encapsulate the logic necessary to create domain

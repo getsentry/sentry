@@ -58,7 +58,7 @@ class ClearExpiredResolutionsTest(TestCase):
         assert Group.objects.get(id=group2.id).status == GroupStatus.UNRESOLVED
 
         # row should be updated to the in_release type, and reflect
-        # the release it was reoslved in
+        # the release it was resolved in
         resolution1 = GroupResolution.objects.get(id=resolution1.id)
         assert resolution1.status == GroupResolution.Status.resolved
         assert resolution1.release == new_release

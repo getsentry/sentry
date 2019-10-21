@@ -187,13 +187,13 @@ class IssueBasicMixin(object):
         Returns the display name of the issue.
 
         This is not required but helpful for integrations whose external issue key
-        does not match the disired display name.
+        does not match the desired display name.
         """
         return ""
 
     def get_repository_choices(self, group, **kwargs):
         """
-        Returns the default repository and a set/subset of repositories of asscoaited with the installation
+        Returns the default repository and a set/subset of repositories of associated with the installation
         """
         try:
             repos = self.get_repositories()

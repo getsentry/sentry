@@ -9,7 +9,7 @@ from .view import ConfigureView
 class MigratingIdentityId(namedtuple("MigratingIdentityId", ["id", "legacy_id"])):
     """
     MigratingIdentityId may be used in the ``id`` field of an identity
-    dictionary to facilitate migrating user identites from one identifying id
+    dictionary to facilitate migrating user identities from one identifying id
     to another.
     """
 

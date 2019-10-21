@@ -206,7 +206,7 @@ class DropdownMenu extends React.Component<Props, State> {
 
     // Wait until the current macrotask completes, in the case that the click
     // happened on a hovercard or some other element rendered outside of the
-    // dropdown, but controlled by the existance of the dropdown, we need to
+    // dropdown, but controlled by the existence of the dropdown, we need to
     // ensure any click handlers are run.
     await new Promise(resolve => setTimeout(resolve));
 

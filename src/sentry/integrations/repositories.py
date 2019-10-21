@@ -11,7 +11,7 @@ class RepositoryMixin(object):
 
     def get_repositories(self, query=None):
         """
-        Get a list of availble repositories for an installation
+        Get a list of available repositories for an installation
 
         >>> def get_repositories(self):
         >>>     return self.get_client().get_repositories()

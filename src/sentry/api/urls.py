@@ -409,7 +409,7 @@ urlpatterns = patterns(
             ]
         ),
     ),
-    # List Authentiactors
+    # List Authenticators
     url(
         r"^authenticators/$",
         AuthenticatorIndexEndpoint.as_view(),

@@ -88,7 +88,7 @@ class GroupTagExportView(ProjectView, CsvMixin, EnvironmentMixin):
             # if the environment doesn't exist then the tag can't possibly exist
             raise Http404
 
-        # validate existance as it may be deleted
+        # validate existence as it may be deleted
         try:
             tagstore.get_tag_key(project.id, environment_id, lookup_key)
         except tagstore.TagKeyNotFound:

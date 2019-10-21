@@ -28,7 +28,7 @@ def exec_(c, file):
 
     Also compatible with hashbang `#!/usr/bin/env sentry exec`
 
-    For convenience, the following preample is attached to scripts:
+    For convenience, the following example is attached to scripts:
 
     \b
       from sentry.runner import configure; configure()
@@ -106,7 +106,7 @@ def exec_(c, file):
     }
 
     # Chop off `exec` from `sys.argv` so scripts can handle
-    # this as exepcted.
+    # this as expected.
     sys.argv = sys.argv[1:]
 
     # globals context

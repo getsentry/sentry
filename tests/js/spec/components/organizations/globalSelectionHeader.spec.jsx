@@ -224,7 +224,7 @@ describe('GlobalSelectionHeader', function() {
       project: ['2', '3'],
     });
 
-    // Now change projects, first project has no enviroments
+    // Now change projects, first project has no environments
     wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
     wrapper
       .find('MultipleProjectSelector CheckboxFancy')

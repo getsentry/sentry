@@ -122,7 +122,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         report = serializer.validated_data
 
-        # XXX(dcramer): enforce case insensitivty by coercing this to a lowercase string
+        # XXX(dcramer): enforce case insensitivity by coercing this to a lowercase string
         report["event_id"] = report["event_id"].lower()
         report["project"] = project
 
