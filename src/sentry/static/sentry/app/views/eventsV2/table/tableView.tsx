@@ -176,18 +176,21 @@ class TableView extends React.Component<TableViewProps> {
     initialColumnIndex: undefined | number;
     destinationColumnIndex: undefined | number;
   }) => {
+    const {eventView} = this.props;
+    const columnOrder = eventView.getColumns();
+
     if (
       typeof destinationColumnIndex !== 'number' ||
       typeof initialColumnIndex !== 'number'
     ) {
-      return this.state.columnOrder;
+      return columnOrder;
     }
 
     if (destinationColumnIndex === initialColumnIndex) {
-      return this.state.columnOrder;
+      return columnOrder;
     }
 
-    const nextColumnOrder = [...this.state.columnOrder];
+    const nextColumnOrder = [...columnOrder];
 
     nextColumnOrder.splice(
       destinationColumnIndex!,
@@ -214,7 +217,7 @@ class TableView extends React.Component<TableViewProps> {
 
     return (
       <DraggableColumns
-        columnOrder={this.state.columnOrder}
+        columnOrder={columnOrder}
         onDragDone={({draggingColumnIndex, destinationColumnIndex}) => {
           if (
             typeof draggingColumnIndex === 'number' &&
