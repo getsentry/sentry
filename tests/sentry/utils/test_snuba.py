@@ -419,7 +419,6 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
             "data": [{"transaction_name": "api.do_things"}],
         }
         transform_aliases_and_query(
-            skip_conditions=True,
             selected_columns=["transaction"],
             conditions=[
                 ["event.type", "=", "transaction"],
@@ -447,13 +446,12 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
         )
 
     @patch("sentry.utils.snuba.raw_query")
-    def test_condition_removal_skip_conditions(self, mock_query):
+    def test_condition_removal(self, mock_query):
         mock_query.return_value = {
             "meta": [{"name": "transaction_name"}, {"name": "duration"}],
             "data": [{"transaction_name": "api.do_things", "duration": 200}],
         }
         transform_aliases_and_query(
-            skip_conditions=True,
             selected_columns=["transaction", "transaction.duration"],
             conditions=[["event.type", "=", "transaction"], ["duration", ">", 200]],
             groupby=["transaction.op"],
@@ -480,7 +478,6 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
             "data": [{"transaction_name": "api.do_things", "duration": 200}],
         }
         transform_aliases_and_query(
-            skip_conditions=True,
             selected_columns=["transaction", "transaction.duration"],
             conditions=[
                 ["event.type", "=", "transaction"],
@@ -505,13 +502,12 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
         )
 
     @patch("sentry.utils.snuba.raw_query")
-    def test_condition_transform_skip_conditions(self, mock_query):
+    def test_condition_transform(self, mock_query):
         mock_query.return_value = {
             "meta": [{"name": "transaction_name"}, {"name": "duration"}],
             "data": [{"transaction_name": "api.do_things", "duration": 200}],
         }
         transform_aliases_and_query(
-            skip_conditions=True,
             selected_columns=["transaction", "transaction.duration"],
             conditions=[["http_method", "=", "GET"]],
             groupby=["transaction.op"],
@@ -535,7 +531,7 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
 class DetectDatasetTest(TestCase):
     def test_dataset_key(self):
         query = {"dataset": Dataset.Events, "conditions": [["event.type", "=", "transaction"]]}
-        assert detect_dataset(query) == Dataset.Transactions
+        assert detect_dataset(query) == Dataset.Events
 
     def test_event_type_condition(self):
         query = {"conditions": [["event.type", "=", "transaction"]]}
