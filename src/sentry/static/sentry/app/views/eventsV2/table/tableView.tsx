@@ -119,22 +119,23 @@ class TableView extends React.Component<TableViewProps> {
     });
   };
 
-  _renderGridHeaderCell = (
-    column: TableColumn<keyof TableDataRow>,
-    columnIndex: number
-  ): React.ReactNode => {
+  _renderGridHeaderCell = (column: TableColumn<keyof TableDataRow>): React.ReactNode => {
     const {eventView, location, tableData} = this.props;
+
     if (!tableData) {
       return column.name;
     }
 
-    const field = eventView.fields[columnIndex];
+    const field = column.eventViewField;
+
+    // establish alignment based on the type
 
     const alignedTypes: ColumnValueType[] = ['number', 'duration'];
     let align: 'right' | 'left' = alignedTypes.includes(column.type) ? 'right' : 'left';
 
-    // TODO(alberto): clean this
     if (column.type === 'never' || column.type === '*') {
+      // fallback to align the column based on the table metadata
+
       const maybeType = tableData.meta[getAggregateAlias(field.field)];
 
       if (maybeType === 'integer' || maybeType === 'number') {
@@ -193,9 +194,9 @@ class TableView extends React.Component<TableViewProps> {
     const nextColumnOrder = [...columnOrder];
 
     nextColumnOrder.splice(
-      destinationColumnIndex!,
+      destinationColumnIndex,
       0,
-      nextColumnOrder.splice(initialColumnIndex!, 1)[0]
+      nextColumnOrder.splice(initialColumnIndex, 1)[0]
     );
 
     return nextColumnOrder;

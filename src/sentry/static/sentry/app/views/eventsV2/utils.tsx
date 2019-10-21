@@ -5,6 +5,7 @@ import {browserHistory} from 'react-router';
 import {Client} from 'app/api';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {generateQueryWithTag} from 'app/utils';
+import {Field as FieldType} from './eventView';
 
 import {
   AGGREGATE_ALIASES,
@@ -228,6 +229,7 @@ const TEMPLATE_TABLE_COLUMN: TableColumn<React.ReactText> = {
   name: '',
   aggregation: '',
   field: '',
+  eventViewField: {field: '', title: ''},
 
   type: 'never',
   isSortable: false,
@@ -237,8 +239,9 @@ const TEMPLATE_TABLE_COLUMN: TableColumn<React.ReactText> = {
 export function decodeColumnOrder(props: {
   fieldnames: string[];
   field: string[];
+  fields: Readonly<FieldType[]>;
 }): TableColumn<React.ReactText>[] {
-  const {fieldnames, field} = props;
+  const {fieldnames, field, fields} = props;
 
   return field.map((f: string, index: number) => {
     const col = {aggregationField: f, name: fieldnames[index]};
@@ -266,6 +269,8 @@ export function decodeColumnOrder(props: {
       ? AGGREGATIONS[column.aggregation].isSortable
       : false;
     column.isPrimary = column.field === 'title';
+
+    column.eventViewField = fields[index];
 
     return column;
   });

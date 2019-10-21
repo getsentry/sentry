@@ -496,6 +496,7 @@ class EventView {
     return decodeColumnOrder({
       field: this.getFields(),
       fieldnames: this.getFieldNames(),
+      fields: this.fields,
     });
   }
 
