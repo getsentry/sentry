@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import styled from 'react-emotion';
+import {debounce} from 'lodash';
 
 import space from 'app/styles/space';
 import {
@@ -115,12 +116,16 @@ class DraggableColumns extends React.Component<Props, State> {
 
     if (destinationColumnIndex >= 0) {
       if (this.state.destinationColumnIndex !== destinationColumnIndex) {
-        this.setState({
-          destinationColumnIndex,
-        });
+        this.setDestinationColumnIndex(destinationColumnIndex);
       }
     }
   };
+
+  setDestinationColumnIndex = debounce((destinationColumnIndex: number) => {
+    this.setState({
+      destinationColumnIndex,
+    });
+  }, 25);
 
   onDragEnd = (event: MouseEvent) => {
     if (!this.state.isDragging || event.type !== 'mouseup') {
