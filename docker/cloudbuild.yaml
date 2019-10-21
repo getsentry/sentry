@@ -4,7 +4,6 @@ steps:
     '--cache=true',
     '--build-arg', 'SOURCE_COMMIT=$COMMIT_SHA',
     '--destination=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA',
-    '--destination=us.gcr.io/$PROJECT_ID/sentry:$SHORT_SHA',
     '-f', './docker/Dockerfile'
   ]
   timeout: 900s
