@@ -172,7 +172,7 @@ def pytest_configure(config):
 
 
 def register_extensions():
-    from sentry.plugins import plugins
+    from sentry.plugins.base import plugins
     from sentry.plugins.utils import TestIssuePlugin2
 
     plugins.register(TestIssuePlugin2)
@@ -205,7 +205,7 @@ def register_extensions():
     integrations.register(VstsIntegrationProvider)
     integrations.register(VstsExtensionIntegrationProvider)
 
-    from sentry.plugins import bindings
+    from sentry.plugins.base import bindings
     from sentry.plugins.providers.dummy import DummyRepositoryProvider
 
     bindings.add("repository.provider", DummyRepositoryProvider, id="dummy")

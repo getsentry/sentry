@@ -6,7 +6,7 @@ from time import time
 
 from sentry import quotas, tsdb
 from sentry.event_manager import EventManager, HashDiscarded
-from sentry.plugins import Plugin2
+from sentry.plugins.base.v2 import Plugin2
 from sentry.tasks.store import preprocess_event, process_event, save_event
 from sentry.testutils import PluginTestCase
 from sentry.utils.dates import to_datetime

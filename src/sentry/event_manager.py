@@ -65,7 +65,7 @@ from sentry.models import (
     UserReport,
     Organization,
 )
-from sentry.plugins import plugins
+from sentry.plugins.base import plugins
 from sentry.signals import event_discarded, event_saved, first_event_received
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.utils import metrics
