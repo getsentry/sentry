@@ -29,12 +29,12 @@ export default class MultipleProjectSelector extends React.PureComponent {
     forceProject: SentryTypes.Project,
   };
 
-  static defaultProps = {
-    multi: true,
-  };
-
   static contextTypes = {
     router: PropTypes.object,
+  };
+
+  static defaultProps = {
+    multi: true,
   };
 
   constructor() {
@@ -65,13 +65,14 @@ export default class MultipleProjectSelector extends React.PureComponent {
    *
    * Should perform an "update" callback
    */
-  handleQuickSelect = (selected, checked, e) => {
+  handleQuickSelect = selected => {
     analytics('projectselector.direct_selection', {
       path: getRouteStringFromRoutes(this.context.router.routes),
       org_id: parseInt(this.props.organization.id, 10),
     });
 
-    this.props.onChange([parseInt(selected.id, 10)]);
+    const value = selected.id === null ? [] : [parseInt(selected.id, 10)];
+    this.props.onChange(value);
     this.doUpdate();
   };
 
@@ -80,7 +81,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
    *
    * Should perform an "update" callback
    */
-  handleClose = props => {
+  handleClose = () => {
     // Only update if there are changes
     if (!this.state.hasChanges) {
       return;
@@ -117,7 +118,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
   /**
    * Handler for selecting multiple items, should NOT call update
    */
-  handleMultiSelect = (selected, checked, e) => {
+  handleMultiSelect = selected => {
     const {onChange, value} = this.props;
 
     analytics('projectselector.toggle', {
@@ -125,7 +126,9 @@ export default class MultipleProjectSelector extends React.PureComponent {
       path: getRouteStringFromRoutes(this.context.router.routes),
       org_id: parseInt(this.props.organization.id, 10),
     });
-    onChange(selected.map(({id}) => parseInt(id, 10)));
+
+    selected = selected.map(({id}) => parseInt(id, 10)).filter(i => i);
+    onChange(selected);
     this.setState({hasChanges: true});
   };
 
@@ -141,7 +144,20 @@ export default class MultipleProjectSelector extends React.PureComponent {
     } = this.props;
     const selectedProjectIds = new Set(value);
 
-    const allProjects = [...projects, ...nonMemberProjects];
+    const metaOptions = [];
+    if (multi) {
+      metaOptions.unshift({
+        id: null,
+        slug: t('My Projects'),
+      });
+    }
+    if (multi && organization.features.includes('open-membership')) {
+      metaOptions.unshift({
+        id: -1,
+        slug: t('All Projects'),
+      });
+    }
+    const allProjects = [...metaOptions, ...projects, ...nonMemberProjects];
 
     const selected = allProjects.filter(project =>
       selectedProjectIds.has(parseInt(project.id, 10))
@@ -170,6 +186,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
       <StyledProjectSelector
         {...this.props}
         multi={multi}
+        metaProjectOptions={metaOptions}
         selectedProjects={selected}
         multiProjects={projects}
         onSelect={this.handleQuickSelect}
@@ -182,19 +199,11 @@ export default class MultipleProjectSelector extends React.PureComponent {
           )
         }
       >
-        {({
-          getActorProps,
-          selectedItem,
-          activeProject,
-          selectedProjects,
-          isOpen,
-          actions,
-          onBlur,
-        }) => {
+        {({getActorProps, selectedProjects, isOpen}) => {
           const hasSelected = !!selectedProjects.length;
           const title = hasSelected
             ? selectedProjects.map(({slug}) => slug).join(', ')
-            : t('All Projects');
+            : t('My Projects');
           return (
             <StyledHeaderItem
               data-test-id="global-header-project-selector"

@@ -680,6 +680,7 @@ describe('GlobalSelectionHeader', function() {
         initialData.routerContext
       );
     });
+
     it('gets member projects', function() {
       expect(wrapper.find('MultipleProjectSelector').prop('projects')).toEqual([
         memberProject,
@@ -705,6 +706,61 @@ describe('GlobalSelectionHeader', function() {
       expect(wrapper.find('MultipleProjectSelector').prop('nonMemberProjects')).toEqual([
         nonMemberProject,
       ]);
+    });
+
+    it('shows "My Projects" option', function() {
+      initialData.organization.features.push('global-views');
+      wrapper = mountWithTheme(
+        <GlobalSelectionHeader
+          organization={initialData.organization}
+          projects={initialData.organization.projects}
+        />,
+        initialData.routerContext
+      );
+
+      // open the project menu.
+      wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
+      const projectSelector = wrapper.find('MultipleProjectSelector');
+
+      // Two projects + one meta option.
+      expect(projectSelector.find('AutoCompleteItem')).toHaveLength(3);
+      expect(
+        projectSelector
+          .find('AutoCompleteItem')
+          .first()
+          .text()
+      ).toEqual('My Projects');
+    });
+
+    it('shows "All Projects" option', function() {
+      initialData.organization.features.push('global-views');
+      initialData.organization.features.push('open-membership');
+      wrapper = mountWithTheme(
+        <GlobalSelectionHeader
+          organization={initialData.organization}
+          projects={initialData.organization.projects}
+        />,
+        initialData.routerContext
+      );
+
+      // open the project menu.
+      wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
+      const projectSelector = wrapper.find('MultipleProjectSelector');
+
+      // Two projects + two meta options
+      expect(projectSelector.find('AutoCompleteItem')).toHaveLength(4);
+      expect(
+        projectSelector
+          .find('AutoCompleteItem')
+          .at(0)
+          .text()
+      ).toEqual('All Projects');
+      expect(
+        projectSelector
+          .find('AutoCompleteItem')
+          .at(1)
+          .text()
+      ).toEqual('My Projects');
     });
   });
 });

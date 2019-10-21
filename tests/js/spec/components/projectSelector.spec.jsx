@@ -47,6 +47,17 @@ describe('ProjectSelector', function() {
     children: actorRenderer,
   };
 
+  const metaProjectOptions = [
+    {
+      id: -1,
+      slug: 'All Projects',
+    },
+    {
+      id: null,
+      slug: 'My Projects',
+    },
+  ];
+
   beforeEach(function() {
     ProjectsStore.loadInitialData(mockOrg.projects);
   });
@@ -313,5 +324,59 @@ describe('ProjectSelector', function() {
     openMenu(wrapper);
     expect(wrapper.text()).toContain("Projects I don't belong to");
     expect(wrapper.find('AutoCompleteItem')).toHaveLength(2);
+  });
+
+  it('hides meta options when multi is disabled', function() {
+    const project = TestStubs.Project({id: '1'});
+    const nonMemberProject = TestStubs.Project({id: '2'});
+    const multiProjectProps = {
+      ...props,
+      multiProjects: [project],
+      nonMemberProjects: [nonMemberProject],
+      metaProjectOptions,
+      multi: false,
+    };
+
+    const wrapper = mountWithTheme(
+      <ProjectSelector {...multiProjectProps} />,
+      routerContext
+    );
+    openMenu(wrapper);
+    const text = wrapper.text();
+    expect(text).toEqual(expect.not.stringContaining(metaProjectOptions[0].slug));
+    expect(text).toEqual(expect.not.stringContaining(metaProjectOptions[1].slug));
+
+    expect(wrapper.find('AutoCompleteItem')).toHaveLength(2);
+  });
+
+  it('shows meta options when multi is enabled', function() {
+    const project = TestStubs.Project({id: '1'});
+    const nonMemberProject = TestStubs.Project({id: '2'});
+    const multiProjectProps = {
+      ...props,
+      multiProjects: [project],
+      nonMemberProjects: [nonMemberProject],
+      metaProjectOptions,
+      multi: true,
+    };
+
+    const wrapper = mountWithTheme(
+      <ProjectSelector {...multiProjectProps} />,
+      routerContext
+    );
+    openMenu(wrapper);
+
+    const text = wrapper.text();
+    expect(text).toContain(metaProjectOptions[0].slug);
+    expect(text).toContain(metaProjectOptions[1].slug);
+
+    expect(wrapper.find('AutoCompleteItem')).toHaveLength(4);
+    // Meta items should be first.
+    expect(
+      wrapper
+        .find('AutoCompleteItem')
+        .first()
+        .text()
+    ).toEqual(metaProjectOptions[0].slug);
   });
 });

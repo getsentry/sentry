@@ -120,11 +120,13 @@ class OrganizationReleases extends AsyncView {
       return null;
     }
 
-    const releaseProject = selection.projects.length
-      ? allAccessibleProjects.find(
-          project => parseInt(project.id, 10) === selection.projects[0]
-        )
-      : allAccessibleProjects[0];
+    let releaseProject = allAccessibleProjects[0];
+    // Don't look for meta values which are < 0 eg. 'All projects'
+    if (selection.projects.length && selection.projects[0] > 0) {
+      releaseProject = allAccessibleProjects.find(
+        project => parseInt(project.id, 10) === selection.projects[0]
+      );
+    }
 
     return <ReleaseProgress project={releaseProject} />;
   }

@@ -55,6 +55,10 @@ class ProjectSelector extends React.Component {
     ),
     nonMemberProjects: PropTypes.arrayOf(SentryTypes.Project),
 
+    metaProjectOptions: PropTypes.arrayOf(
+      PropTypes.shape({id: PropTypes.number, slug: PropTypes.string})
+    ),
+
     // Render a footer at the bottom of the list
     // render function that is passed an `actions` object with `close` and `open` properties.
     menuFooter: PropTypes.func,
@@ -104,7 +108,13 @@ class ProjectSelector extends React.Component {
   }
 
   getProjects() {
-    const {organization, projects, multiProjects, nonMemberProjects} = this.props;
+    const {
+      organization,
+      projects,
+      multiProjects,
+      nonMemberProjects,
+      metaProjectOptions,
+    } = this.props;
 
     if (multiProjects) {
       return [
@@ -112,6 +122,7 @@ class ProjectSelector extends React.Component {
           return [!project.isBookmarked, project.name];
         }),
         nonMemberProjects || [],
+        metaProjectOptions || [],
       ];
     }
 
@@ -210,7 +221,7 @@ class ProjectSelector extends React.Component {
     const {activeProject} = this.state;
     const access = new Set(org.access);
 
-    const [projects, nonMemberProjects] = this.getProjects();
+    const [projects, nonMemberProjects, metaOptions] = this.getProjects();
 
     const hasProjects =
       (projects && !!projects.length) ||
@@ -252,6 +263,28 @@ class ProjectSelector extends React.Component {
           },
         ]
       : [];
+
+    if (multi && projectList.length && metaOptions && metaOptions.length) {
+      const getMetaItem = project => ({
+        value: project,
+        searchKey: project.slug,
+        label: () => (
+          <GlobalSelectionHeaderRow
+            priority="secondary"
+            showCheckbox={false}
+            onCheckClick={() => null}
+            checked={false}
+          >
+            {project.slug}
+          </GlobalSelectionHeaderRow>
+        ),
+      });
+
+      projectList.unshift({
+        hideGroupLabel: true,
+        items: metaOptions.map(getMetaItem),
+      });
+    }
 
     return (
       <DropdownAutoComplete
