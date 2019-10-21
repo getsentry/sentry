@@ -26,6 +26,8 @@ type Props = {
   onSubmitSuccess: (externalIssue: PlatformExternalIssue) => void;
 };
 
+//TODO(TS): Improve typings on Field an input so we can use the type in functions without errors
+
 export class SentryAppExternalIssueForm extends React.Component<Props> {
   static propTypes: any = {
     api: PropTypes.object.isRequired,
@@ -48,7 +50,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props> {
     addErrorMessage(t('Unable to %s %s issue.', action, this.props.appName));
   };
 
-  getOptions = (field: Field, input) => {
+  getOptions = (field: Field, input: any) => {
     return new Promise(resolve => {
       this.debouncedOptionLoad(field, input, resolve);
     });
@@ -81,7 +83,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props> {
   fieldProps = field => {
     return field.uri
       ? {
-          loadOptions: input => this.getOptions(field, input),
+          loadOptions: (input: any) => this.getOptions(field, input),
           async: true,
           cache: false,
           onSelectResetsInput: false,
@@ -167,6 +169,10 @@ export class SentryAppExternalIssueForm extends React.Component<Props> {
 
         {requiredFields.map(field => {
           field.choices = field.choices || [];
+          field.inline = false;
+          field.stacked = true;
+          field.flexibleControlStateSize = true;
+          field.required = true;
 
           if (['text', 'textarea'].includes(field.type) && field.default) {
             field.defaultValue = this.getFieldDefault(field);
@@ -176,10 +182,6 @@ export class SentryAppExternalIssueForm extends React.Component<Props> {
             <FieldFromConfig
               key={`${field.name}`}
               field={field}
-              inline={false}
-              stacked
-              flexibleControlStateSize
-              required
               {...this.fieldProps(field)}
             />
           );
@@ -187,6 +189,9 @@ export class SentryAppExternalIssueForm extends React.Component<Props> {
 
         {optionalFields.map(field => {
           field.choices = field.choices || [];
+          field.inline = false;
+          field.stacked = true;
+          field.flexibleControlStateSize = true;
 
           if (['text', 'textarea'].includes(field.type) && field.default) {
             field.defaultValue = this.getFieldDefault(field);
@@ -196,9 +201,6 @@ export class SentryAppExternalIssueForm extends React.Component<Props> {
             <FieldFromConfig
               key={`${field.name}`}
               field={field}
-              inline={false}
-              stacked
-              flexibleControlStateSize
               {...this.fieldProps(field)}
             />
           );
