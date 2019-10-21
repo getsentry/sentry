@@ -1,31 +1,21 @@
 steps:
-# Prime the cache if available
-- name: 'gcr.io/cloud-builders/docker'
-  entrypoint: 'bash'
-  args:
-    - '-c'
-    - 'docker pull us.gcr.io/$PROJECT_ID/sentry:latest || true'
-# Build the main getsentry/sentry image
-- name: 'gcr.io/cloud-builders/docker'
+- name: 'gcr.io/kaniko-project/executor:latest'
   args: [
-    'build',
+    '--cache=true',
     '--build-arg', 'SOURCE_COMMIT=$COMMIT_SHA',
-    '--cache-from', 'us.gcr.io/$PROJECT_ID/sentry:latest',
-    '-t', 'us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA',
-    '-t', 'us.gcr.io/$PROJECT_ID/sentry:$SHORT_SHA',
-    '-t', 'us.gcr.io/$PROJECT_ID/sentry:latest',
-    '-f', './docker/Dockerfile', '.'
+    '--destination=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA',
+    '--destination=us.gcr.io/$PROJECT_ID/sentry:$SHORT_SHA',
+    '-f', './docker/Dockerfile'
   ]
   timeout: 900s
 # Derive the -onbuild variant
-- name: 'gcr.io/cloud-builders/docker'
+- name: 'gcr.io/kaniko-project/executor:latest'
   args: [
-    'build',
+    '--cache=true',
     '--build-arg', 'SENTRY_IMAGE=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA',
-    '-t', 'us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA-onbuild',
-    '-t', 'us.gcr.io/$PROJECT_ID/sentry:$SHORT_SHA-onbuild',
-    '-t', 'us.gcr.io/$PROJECT_ID/sentry:latest-onbuild',
-    '-f', './docker/onbuild/Dockerfile', '.'
+    '--destination=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA-onbuild',
+    '--destination=us.gcr.io/$PROJECT_ID/sentry:$SHORT_SHA-onbuild',
+    '-f', './docker/onbuild/Dockerfile'
   ]
 # Smoke tests
 - name: 'gcr.io/$PROJECT_ID/docker-compose'
@@ -59,14 +49,11 @@ steps:
   - '-c'
   - |
     if [ "$BRANCH_NAME" == "master" ]; then
+      docker tag us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA us.gcr.io/$PROJECT_ID/sentry:latest
       docker push us.gcr.io/$PROJECT_ID/sentry:latest
+      docker tag us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA-onbuild us.gcr.io/$PROJECT_ID/sentry:latest-onbuild
       docker push us.gcr.io/$PROJECT_ID/sentry:latest-onbuild
     fi
-images:
-- 'us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA'
-- 'us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA-onbuild'
-- 'us.gcr.io/$PROJECT_ID/sentry:$SHORT_SHA'
-- 'us.gcr.io/$PROJECT_ID/sentry:$SHORT_SHA-onbuild'
 timeout: 2400s
 options:
   # We need more memory for Webpack builds & e2e onpremise tests

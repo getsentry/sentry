@@ -23,7 +23,6 @@ sentry-package.json
 /coverage/
 /cover
 /build
-/dist
 /env
 /tmp
 /node_modules/
@@ -48,4 +47,3 @@ coverage.xml
 junit.xml
 *.codestyle.xml
 package-lock.json
-
