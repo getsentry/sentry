@@ -7,6 +7,7 @@ const {CleanWebpackPlugin} = require('clean-webpack-plugin'); // installed via n
 const webpack = require('webpack');
 const LastBuiltPlugin = require('./build-utils/last-built-plugin');
 const OptionalLocaleChunkPlugin = require('./build-utils/optional-locale-chunk-plugin');
+const BuildIntegrationDocs = require('./build-utils/build-integration-docs-plugin');
 const IntegrationDocsFetchPlugin = require('./build-utils/integration-docs-fetch-plugin');
 const ExtractTextPlugin = require('mini-css-extract-plugin');
 const CompressionPlugin = require('compression-webpack-plugin');
@@ -332,6 +333,11 @@ const appConfig = {
      * This removes empty js files for style only entries (e.g. sentry.less)
      */
     new FixStyleOnlyEntriesPlugin(),
+
+    /**
+     * This check if integration-docs have been built, if not, will build them
+     */
+    new BuildIntegrationDocs({basePath: __dirname}),
 
     ...localeRestrictionPlugins,
   ],
