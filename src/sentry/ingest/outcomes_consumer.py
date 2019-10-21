@@ -73,14 +73,17 @@ def is_signal_sent(project_id, event_id):
 def _process_message(msg):
     project_id = int(msg.get("project_id", 0))
     if project_id == 0:
+        metrics.incr("outcomes_consumer.skip_outcome", tags={"reason": "project_zero"})
         return  # no project. this is valid, so ignore silently.
 
     outcome = int(msg.get("outcome", -1))
     if outcome not in (Outcome.FILTERED, Outcome.RATE_LIMITED):
+        metrics.incr("outcomes_consumer.skip_outcome", tags={"reason": "wrong_outcome_type"})
         return  # nothing to do here
 
     event_id = msg.get("event_id")
     if is_signal_sent(project_id=project_id, event_id=event_id):
+        metrics.incr("outcomes_consumer.skip_outcome", tags={"reason": "is_signal_sent"})
         return  # message already processed nothing left to do
 
     try:
