@@ -38,7 +38,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
     control when or how the plugin gets instantiated, nor is it guaranteed that
     it will happen, or happen more than once.
 
-    >>> from sentry.plugins import Plugin2
+    >>> from sentry.plugins.base.v2 import Plugin2
     >>>
     >>> class MyPlugin(Plugin2):
     >>>     def get_title(self):
@@ -437,7 +437,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         """
         Return an implementation of ``ReleaseHook``.
 
-        >>> from sentry.plugins import ReleaseHook
+        >>> from sentry.plugins.interfaces.releasehook import ReleaseHook
         >>>
         >>> class MyReleaseHook(ReleaseHook):
         >>>     def handle(self, request):

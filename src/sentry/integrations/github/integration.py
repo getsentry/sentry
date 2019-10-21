@@ -218,7 +218,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
         return integration
 
     def setup(self):
-        from sentry.plugins import bindings
+        from sentry.plugins.base import bindings
 
         bindings.add(
             "integration-repository.provider", GitHubRepositoryProvider, id="integrations:github"

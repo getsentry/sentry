@@ -5,7 +5,7 @@ import pytest
 from django import forms
 
 from sentry.exceptions import PluginError
-from sentry.plugins import Plugin2
+from sentry.plugins.base.v2 import Plugin2
 from sentry.testutils import TestCase
 
 

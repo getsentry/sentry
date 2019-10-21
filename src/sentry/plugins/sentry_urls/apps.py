@@ -4,10 +4,10 @@ from django.apps import AppConfig
 
 
 class Config(AppConfig):
-    name = "sentry.lang.java"
+    name = "sentry.plugins.sentry_urls"
 
     def ready(self):
-        from .plugin import JavaPlugin
+        from .models import UrlsPlugin
         from sentry.plugins.base import register
 
-        register(JavaPlugin)
+        register(UrlsPlugin)

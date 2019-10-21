@@ -5,7 +5,7 @@ from sentry.lang.native.processing import process_applecrashreport, \
 from sentry.lang.native.minidump import is_minidump_event
 from sentry.lang.native.utils import is_native_event
 from sentry.lang.native.unreal import is_applecrashreport_event
-from sentry.plugins import Plugin2
+from sentry.plugins.base.v2 import Plugin2
 
 
 class NativePlugin(Plugin2):

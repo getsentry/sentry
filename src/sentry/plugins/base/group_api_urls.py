@@ -6,7 +6,7 @@ import re
 from django.core.urlresolvers import RegexURLResolver, RegexURLPattern
 from django.conf.urls import patterns, include, url
 
-from sentry.plugins import plugins
+from sentry.plugins.base import plugins
 
 logger = logging.getLogger("sentry.plugins")
 
