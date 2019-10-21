@@ -13,32 +13,57 @@ from sentry.models import (
     ScheduledDeletion,
     UserReport,
 )
+from sentry import nodestore
+from sentry.deletions.defaults.group import GroupNodeDeletionTask
 from sentry.tasks.deletion import run_deletion
-from sentry.testutils import TestCase
+
+from sentry.testutils import TestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
-class DeleteGroupTest(TestCase):
+class DeleteGroupTest(TestCase, SnubaTestCase):
     def test_simple(self):
-        key = "key"
-        value = "value"
-
+        GroupNodeDeletionTask.DEFAULT_CHUNK_SIZE = 1  # test chunking logic
         event_id = "a" * 32
+        event_id2 = "b" * 32
+        event_id3 = "c" * 32
         project = self.create_project()
+        node_id = Event.generate_node_id(project.id, event_id)
+        node_id2 = Event.generate_node_id(project.id, event_id2)
+        node_id3 = Event.generate_node_id(project.id, event_id3)
+
         event = self.store_event(
             data={
                 "event_id": event_id,
-                "tags": {key: value},
+                "tags": {"foo": "bar"},
                 "timestamp": iso_format(before_now(minutes=1)),
+                "fingerprint": ["group1"],
             },
             project_id=project.id,
         )
+
+        self.store_event(
+            data={
+                "event_id": event_id2,
+                "timestamp": iso_format(before_now(minutes=1)),
+                "fingerprint": ["group1"],
+            },
+            project_id=project.id,
+        )
+
+        self.store_event(
+            data={
+                "event_id": event_id3,
+                "timestamp": iso_format(before_now(minutes=1)),
+                "fingerprint": ["group2"],
+            },
+            project_id=project.id,
+        )
+
         group = event.group
         group.update(status=GroupStatus.PENDING_DELETION)
 
         project = self.create_project()
-        group = self.create_group(project=project)
-        event = self.create_event(group=group)
 
         UserReport.objects.create(group_id=group.id, project_id=event.project_id, name="Jane Doe")
 
@@ -50,6 +75,10 @@ class DeleteGroupTest(TestCase):
         deletion = ScheduledDeletion.schedule(group, days=0)
         deletion.update(in_progress=True)
 
+        assert nodestore.get(node_id)
+        assert nodestore.get(node_id2)
+        assert nodestore.get(node_id3)
+
         with self.tasks():
             run_deletion(deletion.id)
 
@@ -58,3 +87,7 @@ class DeleteGroupTest(TestCase):
         assert not GroupRedirect.objects.filter(group_id=group.id).exists()
         assert not GroupHash.objects.filter(group_id=group.id).exists()
         assert not Group.objects.filter(id=group.id).exists()
+
+        assert not nodestore.get(node_id)
+        assert not nodestore.get(node_id2)
+        assert nodestore.get(node_id3), "Does not remove from second group"
