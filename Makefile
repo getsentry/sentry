@@ -130,9 +130,11 @@ test-cli:
 	rm -r test_cli
 	@echo ""
 
-test-js: node-version-check
+test-js-build: node-version-check
 	@echo "--> Building static assets"
 	@$(WEBPACK) --profile --json > .artifacts/webpack-stats.json
+
+test-js: node-version-check
 	@echo "--> Running JavaScript tests"
 	@$(YARN) run test-ci
 	@echo ""
@@ -215,7 +217,7 @@ lint-js:
 	@echo ""
 
 
-.PHONY: develop build reset-db clean setup-git node-version-check install-yarn-pkgs install-sentry-dev build-js-po locale compile-locale merge-locale-catalogs sync-transifex update-transifex build-platform-assets test-cli test-js test-styleguide test-python test-snuba test-symbolicator test-acceptance lint lint-python lint-js publish
+.PHONY: develop build reset-db clean setup-git node-version-check install-yarn-pkgs install-sentry-dev build-js-po locale compile-locale merge-locale-catalogs sync-transifex update-transifex build-platform-assets test-cli test-js test-js-build test-styleguide test-python test-snuba test-symbolicator test-acceptance lint lint-python lint-js publish
 
 
 ############################

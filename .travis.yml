@@ -187,7 +187,7 @@ matrix:
       env: TEST_SUITE=plugins DB=postgres PERCY_TOKEN=${PLUGIN_PERCY_TOKEN}
 
     - python: 2.7
-      name: 'Frontend'
+      name: 'Frontend [test]'
       env: TEST_SUITE=js
       before_install:
         - *base_install
@@ -195,6 +195,15 @@ matrix:
         - nvm install
       install:
         - ./bin/yarn install --frozen-lockfile
+
+    - python: 2.7
+      name: 'Frontend [webpack]'
+      env: TEST_SUITE=js-build
+      before_install:
+        - find "$NODE_DIR" -type d -empty -delete
+        - nvm install
+      install:
+        - ./bin/yarn install --pure-lockfile
 
     - python: 2.7
       name: 'Command Line'
