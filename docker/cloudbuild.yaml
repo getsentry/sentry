@@ -39,13 +39,14 @@ steps:
   - '-e'
   - '-c'
   - |
-    # Only tag "latest" when on master
+    # Need to pull the image first due to Kaniko
     docker pull us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA
     echo "$$DOCKER_PASSWORD" | docker login --username=sentrybuilder --password-stdin
     docker tag us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA getsentry/sentry:$SHORT_SHA
     docker push getsentry/sentry:$SHORT_SHA
     docker tag us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA getsentry/sentry:$COMMIT_SHA
     docker push getsentry/sentry:$COMMIT_SHA
+    # Only tag "latest" when on master
     if [ "$BRANCH_NAME" == "master" ]; then
       docker tag us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA getsentry/sentry:latest
       docker push getsentry/sentry:latest
