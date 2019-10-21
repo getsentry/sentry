@@ -11,6 +11,8 @@ import {
 
 import {TableColumn} from './types';
 
+export const DRAGGABLE_COLUMN_CLASSNAME_IDENTIFIER = 'grid-head-cell-button';
+
 export type DraggableColumnsChildrenProps = {
   isColumnDragging: boolean;
   startColumnDrag: (
@@ -99,7 +101,9 @@ class DraggableColumns extends React.Component<Props, State> {
       ghostDOM.style.top = `${event.pageY}px`;
     }
 
-    const gridHeadCellButtons = document.querySelectorAll('.grid-head-cell-button');
+    const gridHeadCellButtons = document.querySelectorAll(
+      `.${DRAGGABLE_COLUMN_CLASSNAME_IDENTIFIER}`
+    );
 
     const destinationColumnIndex = Array.from(gridHeadCellButtons).findIndex(
       headerElement => {

@@ -11,7 +11,9 @@ import SortLink from '../sortLink';
 import renderTableModalEditColumnFactory from './tableModalEditColumn';
 import {TableColumn, TableData, TableDataRow} from './types';
 import {ColumnValueType} from '../eventQueryParams';
-import DraggableColumns from './draggableColumns';
+import DraggableColumns, {
+  DRAGGABLE_COLUMN_CLASSNAME_IDENTIFIER,
+} from './draggableColumns';
 
 export type TableViewProps = {
   location: Location;
@@ -252,6 +254,7 @@ class TableView extends React.Component<TableViewProps> {
             <GridEditable
               isEditable
               isColumnDragging={isColumnDragging}
+              gridHeadCellButtonProps={{className: DRAGGABLE_COLUMN_CLASSNAME_IDENTIFIER}}
               isLoading={isLoading}
               error={error}
               data={tableData ? tableData.data : []}

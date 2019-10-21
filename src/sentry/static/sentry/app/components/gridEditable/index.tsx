@@ -33,6 +33,8 @@ import {
 } from './styles';
 
 type GridEditableProps<DataRow, ColumnKey> = {
+  gridHeadCellButtonProps?: {[prop: string]: any};
+
   isEditable?: boolean;
   isLoading?: boolean;
   isColumnDragging: boolean;
@@ -240,6 +242,7 @@ class GridEditable<
               isEditing={enableEdit}
               indexColumnOrder={columnIndex}
               column={column}
+              gridHeadCellButtonProps={this.props.gridHeadCellButtonProps || {}}
               actions={{
                 moveColumnCommit: actions.moveColumnCommit,
                 onDragStart: actions.onDragStart,
