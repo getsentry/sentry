@@ -207,8 +207,14 @@ class RedisTSDB(BaseTSDB):
         Increment project ID=1 and group ID=5:
 
         >>> incr_multi([(TimeSeriesModel.project, 1), (TimeSeriesModel.group, 5)])
+
+        Increment individual timestamps:
+
+        >>> incr_multi([(TimeSeriesModel.project, 1, {"timestamp": ...}),
+        ...             (TimeSeriesModel.group, 5, {"timestamp": ...})])
         """
-        self.validate_arguments([model for model, _ in items], [environment_id])
+
+        self.validate_arguments([item[0] for item in items], [environment_id])
 
         if timestamp is None:
             timestamp = timezone.now()
@@ -221,16 +227,32 @@ class RedisTSDB(BaseTSDB):
                 manager = SuppressionWrapper(manager)
 
             with manager as client:
+                # (hash_key, hash_field, expiry) -> count
+                key_operations = defaultdict(lambda: 0)
+
                 for rollup, max_values in six.iteritems(self.rollups):
-                    for model, key in items:
+                    for item in items:
+                        if len(item) == 2:
+                            model, key = item
+                            options = {}
+                        else:
+                            model, key, options = item
+
+                        _count = options.get("count", count)
+                        _timestamp = options.get("timestamp", timestamp)
+
+                        expiry = self.calculate_expiry(rollup, max_values, _timestamp)
+
                         for environment_id in environment_ids:
                             hash_key, hash_field = self.make_counter_key(
                                 model, rollup, timestamp, key, environment_id
                             )
-                            client.hincrby(hash_key, hash_field, count)
-                            client.expireat(
-                                hash_key, self.calculate_expiry(rollup, max_values, timestamp)
-                            )
+
+                            key_operations[(hash_key, hash_field, expiry)] += _count
+
+                for (hash_key, hash_field, expiry), count in six.iteritems(key_operations):
+                    client.hincrby(hash_key, hash_field, count)
+                    client.expireat(hash_key, expiry)
 
     def get_range(self, model, keys, start, end, rollup=None, environment_ids=None):
         """
