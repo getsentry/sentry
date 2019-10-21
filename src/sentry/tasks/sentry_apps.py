@@ -307,5 +307,5 @@ def send_webhooks(installation, event, **kwargs):
         if not resp.ok:
             body = safe_urlread(resp)
             potential_error_kwargs["response_body"] = body
-            potential_error_kwargs["response_code"] = (resp.status_code,)
+            potential_error_kwargs["response_code"] = resp.status_code
             _save_webhook_error(**potential_error_kwargs)
