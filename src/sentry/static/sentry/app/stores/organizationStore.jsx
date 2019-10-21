@@ -80,7 +80,7 @@ const OrganizationStore = Reflux.createStore({
     if (this.organization) {
       // sort teams to mimic how they are received from backend
       teams.sort((a, b) => a.slug.localeCompare(b.slug));
-      this.organization = {...this.organizaiton, teams};
+      this.organization = {...this.organization, teams};
       this.trigger(this.get());
     }
   },
