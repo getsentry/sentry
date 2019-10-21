@@ -1,21 +1,22 @@
 import Reflux from 'reflux';
 
 const TeamActions = Reflux.createActions([
+  'createTeam',
+  'createTeamError',
+  'createTeamSuccess',
+  'fetchAll',
+  'fetchAllError',
+  'fetchAllSuccess',
+  'fetchDetails',
+  'fetchDetailsError',
+  'fetchDetailsSuccess',
+  'loadTeams',
+  'removeTeam',
+  'removeTeamError',
+  'removeTeamSuccess',
   'update',
   'updateError',
   'updateSuccess',
-  'fetchAll',
-  'fetchAllSuccess',
-  'fetchAllError',
-  'fetchDetails',
-  'fetchDetailsSuccess',
-  'fetchDetailsError',
-  'createTeam',
-  'createTeamSuccess',
-  'createTeamError',
-  'removeTeam',
-  'removeTeamSuccess',
-  'removeTeamError',
 ]);
 
 export default TeamActions;
