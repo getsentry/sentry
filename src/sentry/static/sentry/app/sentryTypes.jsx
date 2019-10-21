@@ -436,6 +436,27 @@ export const SentryApplication = PropTypes.shape({
   status: PropTypes.string,
 });
 
+export const SentryAppInstallation = PropTypes.shape({
+  app: PropTypes.shape({
+    uuid: PropTypes.string.isRequired,
+    slug: PropTypes.string.isRequired,
+  }).isRequired,
+  organization: PropTypes.shape({
+    slug: PropTypes.string.isRequired,
+  }).isRequired,
+  uuid: PropTypes.string.isRequired,
+  status: PropTypes.oneOf(['installed', 'pending']).isRequired,
+  code: PropTypes.string,
+});
+
+export const PlatformExternalIssue = PropTypes.shape({
+  id: PropTypes.string.isRequired,
+  groupId: PropTypes.string.isRequired,
+  serviceType: PropTypes.string.isRequired,
+  displayName: PropTypes.string.isRequired,
+  webUrl: PropTypes.string.isRequired,
+});
+
 export const SavedSearch = PropTypes.shape({
   id: PropTypes.string,
   dateCreated: PropTypes.string,
@@ -1083,6 +1104,8 @@ const SentryTypes = {
   User,
   SavedSearch,
   SentryApplication,
+  SentryAppInstallation,
+  PlatformExternalIssue,
   Widget,
 
   // echarts prop types

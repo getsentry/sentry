@@ -15,10 +15,10 @@ import MutedBox from 'app/components/mutedBox';
 import ResolutionBox from 'app/components/resolutionBox';
 import SentryTypes from 'app/sentryTypes';
 import fetchSentryAppInstallations from 'app/utils/fetchSentryAppInstallations';
+import {Group, Project, Organization, Environment, RouterProps, Event} from 'app/types';
 
 import {fetchGroupEventAndMarkSeen, getEventEnvironment} from '../utils';
 import GroupEventToolbar from '../eventToolbar';
-import {Group, Project, Organization, Environment, RouterProps, Event} from 'app/types';
 
 type Props = RouterProps & {
   api: Client;

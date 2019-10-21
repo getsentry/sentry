@@ -11,9 +11,23 @@ import {t} from 'app/locale';
 import ExternalIssueStore from 'app/stores/externalIssueStore';
 import getStacktraceBody from 'app/utils/getStacktraceBody';
 import withApi from 'app/utils/withApi';
+import {Client} from 'app/api';
+import {Group, PlatformExternalIssue, Event, SentryAppInstallation} from 'app/types';
+import {Field} from 'app/views/settings/components/forms/type';
 
-class SentryAppExternalIssueForm extends React.Component {
-  static propTypes = {
+type Props = {
+  api: Client;
+  group: Group;
+  sentryAppInstallation: SentryAppInstallation;
+  appName: string;
+  config: object;
+  action: 'create' | 'link';
+  event: Event;
+  onSubmitSuccess: (externalIssue: PlatformExternalIssue) => void;
+};
+
+export class SentryAppExternalIssueForm extends React.Component<Props> {
+  static propTypes: any = {
     api: PropTypes.object.isRequired,
     group: SentryTypes.Group.isRequired,
     sentryAppInstallation: PropTypes.object,
@@ -24,7 +38,7 @@ class SentryAppExternalIssueForm extends React.Component {
     onSubmitSuccess: PropTypes.func,
   };
 
-  onSubmitSuccess = issue => {
+  onSubmitSuccess = (issue: PlatformExternalIssue) => {
     ExternalIssueStore.add(issue);
     this.props.onSubmitSuccess(issue);
   };
@@ -34,7 +48,7 @@ class SentryAppExternalIssueForm extends React.Component {
     addErrorMessage(t('Unable to %s %s issue.', action, this.props.appName));
   };
 
-  getOptions = (field, input) => {
+  getOptions = (field: Field, input) => {
     return new Promise(resolve => {
       this.debouncedOptionLoad(field, input, resolve);
     });
@@ -115,23 +129,20 @@ class SentryAppExternalIssueForm extends React.Component {
 
     const requiredFields = config.required_fields || [];
     const optionalFields = config.optional_fields || [];
-    const metaFields = [
+    const metaFields: Field[] = [
       {
         type: 'hidden',
         name: 'action',
-        value: this.props.action,
         defaultValue: this.props.action,
       },
       {
         type: 'hidden',
         name: 'groupId',
-        value: this.props.group.id,
         defaultValue: this.props.group.id,
       },
       {
         type: 'hidden',
         name: 'uri',
-        value: config.uri,
         defaultValue: config.uri,
       },
     ];
@@ -197,5 +208,4 @@ class SentryAppExternalIssueForm extends React.Component {
   }
 }
 
-export {SentryAppExternalIssueForm};
 export default withApi(SentryAppExternalIssueForm);

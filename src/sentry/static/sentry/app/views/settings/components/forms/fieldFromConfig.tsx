@@ -23,7 +23,7 @@ type Props = {
   disabled?: boolean;
 
   // TODO(ts): Investigate further
-  access: any;
+  access?: any;
 };
 
 export default class FieldFromConfig extends React.Component<Props> {

@@ -26,4 +26,8 @@ const SentryAppInstallationStore = Reflux.createStore({
   },
 });
 
-export default SentryAppInstallationStore;
+type SentryAppInstallationStoreType = Reflux.Store & {
+  load: (items: SentryAppInstallation[]) => void;
+};
+
+export default SentryAppInstallationStore as SentryAppInstallationStoreType;
