@@ -102,17 +102,26 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
 
         queryset = queryset.filter(status=ProjectStatus.VISIBLE).distinct()
 
-        return self.paginate(
-            request=request,
-            queryset=queryset,
-            order_by=order_by,
-            on_results=lambda x: serialize(
-                x,
-                request.user,
-                ProjectSummarySerializer(
-                    environment_id=self._get_environment_id_from_request(request, organization.id),
-                    stats_period=stats_period,
+        # TODO(davidenwang): remove this after backend is paginated
+        get_all_projects = request.GET.get("all_projects") == "1"
+
+        if get_all_projects:
+            sorted_projects = sorted(list(queryset), key=lambda x: x.slug)
+            return Response(serialize(sorted_projects, request.user, ProjectSummarySerializer()))
+        else:
+            return self.paginate(
+                request=request,
+                queryset=queryset,
+                order_by=order_by,
+                on_results=lambda x: serialize(
+                    x,
+                    request.user,
+                    ProjectSummarySerializer(
+                        environment_id=self._get_environment_id_from_request(
+                            request, organization.id
+                        ),
+                        stats_period=stats_period,
+                    ),
                 ),
-            ),
-            paginator_cls=OffsetPaginator,
-        )
+                paginator_cls=OffsetPaginator,
+            )

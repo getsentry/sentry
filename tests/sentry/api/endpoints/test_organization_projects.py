@@ -149,3 +149,18 @@ class OrganizationProjectsTest(APITestCase):
             self.path, HTTP_AUTHORIZATION="Basic " + b64encode(u"{}:".format(key.key))
         )
         self.check_valid_response(response, [project])
+
+    def test_all_projects(self):
+        self.login_as(user=self.user)
+        other_team = self.create_team(organization=self.org)
+
+        projects = []
+        # Create 101 projects to verify the project list is not paginated
+        for i in range(0, 101):
+            projects.append(self.create_project(teams=[other_team]))
+        sorted_projects = sorted(list(projects), key=lambda x: x.slug)
+
+        path = u"{}?all_projects=1".format(self.path)
+        response = self.client.get(path)
+        # Verify all 101 projects are returned in sorted order
+        self.check_valid_response(response, sorted_projects)
