@@ -133,7 +133,8 @@ def track_outcome(org_id, project_id, key_id, outcome, reason=None, timestamp=No
         if increment_list:
             tsdb.incr_multi(increment_list, timestamp=timestamp)
 
-        mark_tsdb_incremented(project_id, event_id)
+        if project_id and event_id:
+            mark_tsdb_incremented(project_id, event_id)
 
     # Send a snuba metrics payload.
     outcomes_publisher.publish(
