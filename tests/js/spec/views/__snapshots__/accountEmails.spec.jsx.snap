@@ -51,7 +51,6 @@ exports[`AccountEmails renders with emails 1`] = `
       apiMethod="POST"
       cancelLabel="Cancel"
       className="form-stacked"
-      onSubmitError={[Function]}
       onSubmitSuccess={[Function]}
       requireChanges={false}
       saveOnBlur={true}

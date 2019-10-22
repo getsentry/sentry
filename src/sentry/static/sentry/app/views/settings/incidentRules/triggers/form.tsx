@@ -267,8 +267,9 @@ class TriggerForm extends React.Component<Props, State> {
 
 type TriggerFormContainerProps = {
   orgId: string;
-  onSubmitSuccess?: Function;
-} & React.ComponentProps<typeof TriggerForm>;
+} & React.ComponentProps<typeof TriggerForm> & {
+    onSubmitSuccess?: Form['props']['onSubmitSuccess'];
+  };
 
 function TriggerFormContainer({
   orgId,

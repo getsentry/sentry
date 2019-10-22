@@ -3,12 +3,58 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import {APIRequestMethod} from 'app/api';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
-import FormModel from 'app/views/settings/components/forms/model';
+import FormModel, {
+  FormOptions,
+  FieldValue,
+} from 'app/views/settings/components/forms/model';
 import Panel from 'app/components/panels/panel';
 
-export default class Form extends React.Component {
+type Data = {};
+
+type Props = {
+  apiMethod: APIRequestMethod;
+  apiEndpoint: string;
+  children: React.ReactNode;
+
+  className?: string;
+  cancelLabel?: string;
+  submitDisabled?: boolean;
+  submitLabel?: string;
+  submitPriority?: Button['props']['priority'];
+  footerClass?: string;
+  footerStyle?: React.CSSProperties;
+  extraButton?: React.ReactNode;
+  initialData?: Data;
+  // Require changes before able to submit form
+  requireChanges?: boolean;
+  // Reset form when there are errors; after submit
+  resetOnError?: boolean;
+  hideFooter?: boolean;
+  allowUndo?: boolean;
+  // Save field on control blur
+  saveOnBlur?: boolean;
+  model?: FormModel;
+  'data-test-id'?: string;
+
+  onCancel?: (e: React.MouseEvent) => void;
+  onSubmit?: (
+    data: Data,
+    onSubmitSuccess: (data: Data) => void,
+    onSubmitError: (error: any) => void,
+    e: React.FormEvent,
+    setFormSaving: FormModel['setFormSaving']
+  ) => void;
+} & Pick<FormOptions, 'onSubmitSuccess' | 'onSubmitError' | 'onFieldChange'>;
+
+type Context = {
+  saveOnBlur: boolean;
+  form: FormModel;
+};
+
+export default class Form extends React.Component<Props> {
   static propTypes = {
     cancelLabel: PropTypes.string,
     onCancel: PropTypes.func,
@@ -27,9 +73,7 @@ export default class Form extends React.Component {
     requireChanges: PropTypes.bool,
     // Reset form when there are errors, after submit
     resetOnError: PropTypes.bool,
-    // Hide Footer
     hideFooter: PropTypes.bool,
-    // Allow undo
     allowUndo: PropTypes.bool,
     // Save field on control blur
     saveOnBlur: PropTypes.bool,
@@ -37,6 +81,11 @@ export default class Form extends React.Component {
     apiMethod: PropTypes.string,
     apiEndpoint: PropTypes.string,
     'data-test-id': PropTypes.string,
+  };
+
+  static childContextTypes = {
+    saveOnBlur: PropTypes.bool.isRequired,
+    form: PropTypes.object.isRequired,
   };
 
   static defaultProps = {
@@ -48,16 +97,9 @@ export default class Form extends React.Component {
     requireChanges: false,
     allowUndo: false,
     saveOnBlur: false,
-    onSubmitSuccess: () => {},
-    onSubmitError: () => {},
   };
 
-  static childContextTypes = {
-    saveOnBlur: PropTypes.bool.isRequired,
-    form: PropTypes.object.isRequired,
-  };
-
-  constructor(props, context) {
+  constructor(props: Props, context: Context) {
     super(props, context);
     const {
       saveOnBlur,
@@ -68,11 +110,9 @@ export default class Form extends React.Component {
       onSubmitError,
       onFieldChange,
       initialData,
-      model,
       allowUndo,
     } = props;
 
-    this.model = model || new FormModel();
     this.model.setInitialData(initialData);
     this.model.setFormOptions({
       resetOnError,
@@ -95,8 +135,9 @@ export default class Form extends React.Component {
 
   componentWillUnmount() {
     this.model.reset();
-    this.model = null;
   }
+
+  model: FormModel = this.props.model || new FormModel();
 
   onSubmit = e => {
     e.preventDefault();
@@ -118,13 +159,21 @@ export default class Form extends React.Component {
   };
 
   onSubmitSuccess = data => {
+    const {onSubmitSuccess} = this.props;
     this.model.submitSuccess(data);
-    this.props.onSubmitSuccess(data, this.model);
+
+    if (onSubmitSuccess) {
+      onSubmitSuccess(data, this.model);
+    }
   };
 
   onSubmitError = error => {
+    const {onSubmitError} = this.props;
     this.model.submitError(error);
-    this.props.onSubmitError(error, this.model);
+
+    if (onSubmitError) {
+      onSubmitError(error, this.model);
+    }
   };
 
   render() {
@@ -155,7 +204,11 @@ export default class Form extends React.Component {
         <div>{children}</div>
 
         {shouldShowFooter && (
-          <StyledFooter className={footerClass} style={footerStyle}>
+          <StyledFooter
+            className={footerClass}
+            style={footerStyle}
+            saveOnBlur={saveOnBlur}
+          >
             <Observer>
               {() => (
                 <Button
@@ -195,7 +248,7 @@ export default class Form extends React.Component {
   }
 }
 
-const StyledFooter = styled('div')`
+const StyledFooter = styled('div')<{saveOnBlur?: boolean}>`
   text-align: right;
   margin-top: 25px;
   border-top: 1px solid #e9ebec;
@@ -222,3 +275,5 @@ const StyledFooter = styled('div')`
   }
   `};
 `;
+
+export {FieldValue};

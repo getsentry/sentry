@@ -36,8 +36,8 @@ exports[`FormField + model renders with Form 1`] = `
         "apiEndpoint": undefined,
         "apiMethod": undefined,
         "onFieldChange": undefined,
-        "onSubmitError": [Function],
-        "onSubmitSuccess": [Function],
+        "onSubmitError": undefined,
+        "onSubmitSuccess": undefined,
         "resetOnError": undefined,
         "saveOnBlur": false,
       },
@@ -46,8 +46,6 @@ exports[`FormField + model renders with Form 1`] = `
       ],
     }
   }
-  onSubmitError={[Function]}
-  onSubmitSuccess={[Function]}
   requireChanges={false}
   saveOnBlur={false}
   submitDisabled={false}
@@ -138,8 +136,8 @@ exports[`FormField + model renders with Form 1`] = `
                                     "apiEndpoint": undefined,
                                     "apiMethod": undefined,
                                     "onFieldChange": undefined,
-                                    "onSubmitError": [Function],
-                                    "onSubmitSuccess": [Function],
+                                    "onSubmitError": undefined,
+                                    "onSubmitSuccess": undefined,
                                     "resetOnError": undefined,
                                     "saveOnBlur": false,
                                   },
@@ -290,8 +288,8 @@ exports[`FormField + model renders with Form 1`] = `
                                                                 "apiEndpoint": undefined,
                                                                 "apiMethod": undefined,
                                                                 "onFieldChange": undefined,
-                                                                "onSubmitError": [Function],
-                                                                "onSubmitSuccess": [Function],
+                                                                "onSubmitError": undefined,
+                                                                "onSubmitSuccess": undefined,
                                                                 "resetOnError": undefined,
                                                                 "saveOnBlur": false,
                                                               },
@@ -332,9 +330,11 @@ exports[`FormField + model renders with Form 1`] = `
         </InputField>
       </TextField>
     </div>
-    <StyledFooter>
+    <StyledFooter
+      saveOnBlur={false}
+    >
       <div
-        className="css-1g4ne7-StyledFooter e1jxgbzp0"
+        className="css-1g4ne7-StyledFooter e1r1zmbj0"
       >
         <Observer>
           <Button
