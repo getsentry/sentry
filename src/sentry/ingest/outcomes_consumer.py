@@ -37,9 +37,9 @@ from sentry.utils.kafka import create_batching_kafka_consumer
 from sentry.utils import json, metrics
 from sentry.utils.outcomes import (
     Outcome,
-    mark_tsdb_incremented,
-    is_tsdb_incremented,
+    mark_tsdb_incremented_many,
     tsdb_increments_from_outcome,
+    _get_tsdb_cache_key,
 )
 from sentry.utils.dates import to_datetime, parse_timestamp
 from sentry.buffer.redis import batch_buffers_incr
@@ -123,18 +123,29 @@ def _process_signal_with_timer(message):
         return _process_signal(message)
 
 
-def _process_tsdb_batch(pool, batch):
+def _process_tsdb_batch(messages):
     tsdb_increments = []
+    messages_to_process = []
+    is_tsdb_incremented_requests = []
 
-    def _process_single_tsdb(msg):
+    for msg in messages:
         project_id = int(msg.get("project_id") or 0) or None
         event_id = msg.get("event_id")
 
-        if not project_id or not event_id:
-            return
+        if project_id and event_id:
+            messages_to_process.append(msg)
+            is_tsdb_incremented_requests.append(_get_tsdb_cache_key(project_id, event_id))
 
-        if is_tsdb_incremented(project_id, event_id):
-            return
+    is_tsdb_incremented_results = cache.get_many(is_tsdb_incremented_requests)
+
+    mark_tsdb_incremented_requests = []
+
+    for msg, should_increment in zip(messages_to_process, is_tsdb_incremented_results):
+        project_id = int(msg.get("project_id") or 0) or None
+        event_id = msg.get("event_id")
+
+        if should_increment is not None:
+            continue
 
         for model, key in tsdb_increments_from_outcome(
             org_id=int(msg.get("org_id") or 0) or None,
@@ -156,16 +167,17 @@ def _process_tsdb_batch(pool, batch):
                 )
             )
 
-        mark_tsdb_incremented(project_id, event_id)
-        metrics.incr("outcomes_consumer.tsdb_incremented")
+        mark_tsdb_incremented_requests.append((project_id, event_id))
 
-    for _ in pool.imap_unordered(_process_single_tsdb, batch, chunksize=100):
-        pass
+        metrics.incr("outcomes_consumer.tsdb_incremented")
 
     metrics.timing("outcomes_consumer.tsdb_incr_multi_size", len(tsdb_increments))
 
     if tsdb_increments:
         tsdb.incr_multi(tsdb_increments)
+
+    if mark_tsdb_incremented_requests:
+        mark_tsdb_incremented_many(mark_tsdb_incremented_requests)
 
 
 class OutcomesConsumerWorker(AbstractBatchWorker):
@@ -180,7 +192,7 @@ class OutcomesConsumerWorker(AbstractBatchWorker):
         batch.sort(key=lambda msg: msg.get("project_id", 0) or 0)
 
         with metrics.timer("outcomes_consumer.process_tsdb_batch"):
-            _process_tsdb_batch(self.pool, batch)
+            _process_tsdb_batch(batch)
 
         with metrics.timer("outcomes_consumer.process_signal_batch"):
             with batch_buffers_incr():

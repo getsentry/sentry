@@ -45,7 +45,7 @@ def _get_tsdb_cache_key(project_id, event_id):
     return "is-tsdb-incremented:{}:{}".format(project_id, event_id)
 
 
-def mark_tsdb_incremented(project_id, event_id):
+def mark_tsdb_incremented_many(items):
     """
     Remembers that TSDB was already called for an outcome.
 
@@ -55,13 +55,14 @@ def mark_tsdb_incremented(project_id, event_id):
 
     This is used by the outcomes consumer to avoid double-emission.
     """
-    key = _get_tsdb_cache_key(project_id, event_id)
-    cache.set(key, True, 3600)
+    cache.set_many(
+        dict((_get_tsdb_cache_key(project_id, event_id), True) for project_id, event_id in items),
+        3600,
+    )
 
 
-def is_tsdb_incremented(project_id, event_id):
-    key = _get_tsdb_cache_key(project_id, event_id)
-    return cache.get(key, None) is not None
+def mark_tsdb_incremented(project_id, event_id):
+    mark_tsdb_incremented_many([(project_id, event_id)])
 
 
 def tsdb_increments_from_outcome(org_id, project_id, key_id, outcome, reason):
