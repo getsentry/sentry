@@ -7,64 +7,72 @@ from sentry.utils.services import Service
 
 
 class Columns(Enum):
-    # TODO add all the other columns.
-    EVENT_ID = "event_id"
-    GROUP_ID = "group_id"
-    ISSUE = "issue"
-    PROJECT_ID = "project_id"
-    TIMESTAMP = "timestamp"
-    CULPRIT = "culprit"
-    LOCATION = "location"
-    MESSAGE = "message"
-    PLATFORM = "platform"
-    TITLE = "title"
-    TYPE = "type"
-    TAGS_KEY = "tags.key"
-    TAGS_VALUE = "tags.value"
-    EMAIL = "email"
-    IP_ADDRESS = "ip_address"
-    USER_ID = "user_id"
-    USERNAME = "username"
-    TRANSACTION = "transaction"
-    USER_ID = "user_id"
-    USER_EMAIL = "email"
-    USER_USERNAME = "username"
-    USER_IP = "ip_address"
-    SDK_NAME = "sdk_name"
-    SDK_VERSION = "sdk_version"
-    HTTP_METHOD = "http_method"
-    HTTP_REFERER = "http_referer"
-    HTTP_URL = "http_url"
-    OS_BUILD = "os_build"
-    OS_KERNEL_VERSION = "os_kernel_version"
-    DEVICE_NAME = "device_name"
-    DEVICE_BRAND = "device_brand"
-    DEVICE_LOCALE = "device_locale"
-    DEVICE_UUID = "device_uuid"
-    DEVICE_ARCH = "device_arch"
-    DEVICE_BATTERY_LEVEL = "device_battery_level"
-    DEVICE_ORIENTATION = "device_orientation"
-    DEVICE_SIMULATOR = "device_simulator"
-    DEVICE_ONLINE = "device_online"
-    DEVICE_CHARGING = "device_charging"
-    GEO_COUNTRY_CODE = "geo_country_code"
-    GEO_REGION = "geo_region"
-    GEO_CITY = "geo_city"
-    ERROR_TYPE = "exception_stacks.type"
-    ERROR_VALUE = "exception_stacks.value"
-    ERROR_MECHANISM = "exception_stacks.mechanism_type"
-    ERROR_HANDLED = "exception_stacks.mechanism_handled"
-    STACK_ABS_PATH = "exception_frames.abs_path"
-    STACK_FILENAME = "exception_frames.filename"
-    STACK_PACKAGE = "exception_frames.package"
-    STACK_MODULE = "exception_frames.module"
-    STACK_FUNCTION = "exception_frames.function"
-    STACK_IN_APP = "exception_frames.in_app"
-    STACK_COLNO = "exception_frames.colno"
-    STACK_LINENO = "exception_frames.lineno"
-    STACK_STACK_LEVEL = "exception_frames.stack_level"
-    CONTEXTS_KEY = "contexts.key"
-    CONTEXTS_VALUE = "contexts.value"
+    """
+    Value is a tuple of (internal Events name, internal Transaction name, external alias)
+    None means the column is not available in that dataset.
+    """
+
+    EVENT_ID = ("event_id", "event_id", "id")
+    GROUP_ID = ("group_id", None, "issue.id")
+    # ISSUE = ("issue", None, "issue.id")
+    PROJECT_ID = ("project_id", "project_id", "project.id")
+    TIMESTAMP = ("timestamp", "finish_ts", "timestamp")
+    TIME = ("time", "bucketed_end", "time")
+    CULPRIT = ("culprit", None, "culprit")
+    LOCATION = ("location", None, "location")
+    MESSAGE = ("message", "transaction_name", "message")
+    PLATFORM = ("platform", "platform", "platform.name")
+    ENVIRONMENT = ("environment", "environment", "environment")
+    RELEASE = ("tags[senry:release]", "release", "release")
+    TITLE = ("title", "transaction_name", "title")
+    TYPE = ("type", None, "event.type")
+    TAGS_KEY = ("tags.key", "tags.key", "tags.key")
+    TAGS_VALUE = ("tags.value", "tags.value", "tags.value")
+    TRANSACTION = ("transaction", "transaction_name", "transaction")
+    USER = ("tags[sentry:user]", "user", "user")
+    USER_ID = ("user_id", "user_id", "user.id")
+    USER_EMAIL = ("email", "user_email", "user.email")
+    USER_USERNAME = ("username", "user_name", "user.username")
+    USER_IP_ADDRESS = ("ip_address", "ip_address_v4", "user.ip")
+    SDK_NAME = ("sdk_name", None, "sdk.name")
+    SDK_VERSION = ("sdk_version", None, "sdk.version")
+    HTTP_METHOD = ("http_method", None, "http.method")
+    HTTP_REFERER = ("http_referer", None, "http.url")
+    OS_BUILD = ("os_build", None, "os.build")
+    OS_KERNEL_VERSION = ("os_kernel_version", None, "os.kernel_version")
+    DEVICE_NAME = ("device_name", None, "device.name")
+    DEVICE_BRAND = ("device_brand", None, "device.brand")
+    DEVICE_LOCALE = ("device_locale", None, "device.locale")
+    DEVICE_UUID = ("device_uuid", None, "device.uuid")
+    DEVICE_ARCH = ("device_arch", None, "device.arch")
+    DEVICE_BATTERY_LEVEL = ("device_battery_level", None, "device.battery_level")
+    DEVICE_ORIENTATION = ("device_orientation", None, "device.orientation")
+    DEVICE_SIMULATOR = ("device_simulator", None, "device.simulator")
+    DEVICE_ONLINE = ("device_online", None, "device.online")
+    DEVICE_CHARGING = ("device_charging", None, "device.charging")
+    GEO_COUNTRY_CODE = ("geo_country_code", None, "geo.country_code")
+    GEO_REGION = ("geo_region", None, "geo.region")
+    GEO_CITY = ("geo_city", None, "geo.city")
+    ERROR_TYPE = ("exception_stacks.type", None, "error.type")
+    ERROR_VALUE = ("exception_stacks.value", None, "error.value")
+    ERROR_MECHANISM = ("exception_stacks.mechanism_type", None, "error.mechanism")
+    ERROR_HANDLED = ("exception_stacks.mechanism_handled", None, "error.handled")
+    STACK_ABS_PATH = ("exception_frames.abs_path", None, "stack.abs_path")
+    STACK_FILENAME = ("exception_frames.filename", None, "stack.filename")
+    STACK_PACKAGE = ("exception_frames.package", None, "stack.package")
+    STACK_MODULE = ("exception_frames.module", None, "stack.module")
+    STACK_FUNCTION = ("exception_frames.function", None, "stack.function")
+    STACK_IN_APP = ("exception_frames.in_app", None, "stack.in_app")
+    STACK_COLNO = ("exception_frames.colno", None, "stack.colno")
+    STACK_LINENO = ("exception_frames.lineno", None, "stack.lineno")
+    STACK_STACK_LEVEL = ("exception_frames.stack_level", None, "stack.stack_level")
+    CONTEXTS_KEY = ("contexts.key", "contexts.key", "contexts.key")
+    CONTEXTS_VALUE = ("contexts.value", "contexts.value", "contexts.value")
+    # Transactions specific columns
+    TRANSACTION_TRACE_ID = (None, "trace_id", "trace_id")
+    TRANSACTION_SPAN_ID = (None, "span_id", "span_id")
+    TRANSACTION_OP = (None, "transaction_op", "transaction.op")
+    TRANSACTION_DURATION = (None, "duration", "transaction.duration")
 
 
 class Filter(object):
@@ -147,10 +155,10 @@ class EventStorage(Service):
         Columns.TAGS_KEY,
         Columns.TAGS_VALUE,
         # Required to provide snuba-only 'user' interface
-        Columns.EMAIL,
-        Columns.IP_ADDRESS,
+        Columns.USER_EMAIL,
+        Columns.USER_IP_ADDRESS,
         Columns.USER_ID,
-        Columns.USERNAME,
+        Columns.USER_USERNAME,
     ]
 
     def get_events(self, filter, additional_columns, orderby, limit, offset, referrer):

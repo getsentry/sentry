@@ -29,6 +29,7 @@ from sentry.models import (
 from sentry.net.http import connection_from_url
 from sentry.utils import metrics, json
 from sentry.utils.dates import to_timestamp
+from sentry.eventstore.base import Columns
 
 # TODO remove this when Snuba accepts more than 500 issues
 MAX_ISSUES = 500
@@ -47,111 +48,9 @@ OVERRIDE_OPTIONS = {
 # There are several cases here where we support both a top level column name and
 # a tag with the same name. Existing search patterns expect to refer to the tag,
 # so we support <real_column_name>.name to refer to the top level column name.
-SENTRY_SNUBA_MAP = {
-    # general
-    "id": "event_id",
-    "project.id": "project_id",
-    # We support platform as both tag and a real column.
-    "platform.name": "platform",
-    "message": "message",
-    "title": "title",
-    "location": "location",
-    "culprit": "culprit",
-    "issue.id": "issue",
-    "timestamp": "timestamp",
-    "time": "time",
-    "transaction": "transaction",
-    # We support type as both tag and a real column
-    "event.type": "type",
-    # user
-    "user.id": "user_id",
-    "user.email": "email",
-    "user.username": "username",
-    "user.ip": "ip_address",
-    # sdk
-    "sdk.name": "sdk_name",
-    "sdk.version": "sdk_version",
-    # http
-    "http.method": "http_method",
-    "http.url": "http_referer",
-    # os
-    "os.build": "os_build",
-    "os.kernel_version": "os_kernel_version",
-    # device
-    "device.name": "device_name",
-    "device.brand": "device_brand",
-    "device.locale": "device_locale",
-    "device.uuid": "device_uuid",
-    "device.model_id": "device_model_id",
-    "device.arch": "device_arch",
-    "device.battery_level": "device_battery_level",
-    "device.orientation": "device_orientation",
-    "device.simulator": "device_simulator",
-    "device.online": "device_online",
-    "device.charging": "device_charging",
-    # geo
-    "geo.country_code": "geo_country_code",
-    "geo.region": "geo_region",
-    "geo.city": "geo_city",
-    # error, stack
-    "error.type": "exception_stacks.type",
-    "error.value": "exception_stacks.value",
-    "error.mechanism": "exception_stacks.mechanism_type",
-    "error.handled": "exception_stacks.mechanism_handled",
-    "stack.abs_path": "exception_frames.abs_path",
-    "stack.filename": "exception_frames.filename",
-    "stack.package": "exception_frames.package",
-    "stack.module": "exception_frames.module",
-    "stack.function": "exception_frames.function",
-    "stack.in_app": "exception_frames.in_app",
-    "stack.colno": "exception_frames.colno",
-    "stack.lineno": "exception_frames.lineno",
-    "stack.stack_level": "exception_frames.stack_level",
-    # tags, contexts
-    "tags.key": "tags.key",
-    "tags.value": "tags.value",
-    "tags_key": "tags_key",
-    "tags_value": "tags_value",
-    "contexts.key": "contexts.key",
-    "contexts.value": "contexts.value",
-    # misc
-    "environment": "environment",
-    "release": "tags[sentry:release]",
-    "user": "tags[sentry:user]",
-}
-
+SENTRY_SNUBA_MAP = {col.value[2]: col.value[0] for col in Columns if col.value[0] is not None}
 TRANSACTIONS_SENTRY_SNUBA_MAP = {
-    # general
-    "id": "event_id",
-    "project.id": "project_id",
-    "trace_id": "trace_id",
-    "span_id": "span_id",
-    "title": "transaction_name",
-    "message": "transaction_name",
-    "transaction": "transaction_name",
-    "transaction.op": "transaction_op",
-    "platform.name": "platform",
-    "environment": "environment",
-    "release": "release",
-    # Time related properties
-    "transaction.duration": "duration",
-    # User
-    "user": "user",
-    "user.id": "user_id",
-    "user.email": "user_email",
-    "user.username": "user_name",
-    "user.ip": "ip_address_v4",
-    # tags, contexts
-    "tags.key": "tags.key",
-    "tags.value": "tags.value",
-    "tags_key": "tags_key",
-    "tags_value": "tags_value",
-    "contexts.key": "contexts.key",
-    "contexts.value": "contexts.value",
-    # Shim to make queries that can act on
-    # events or transactions work more smoothly.
-    "timestamp": "finish_ts",
-    "time": "bucketed_end",
+    col.value[2]: col.value[1] for col in Columns if col.value[1] is not None
 }
 
 
