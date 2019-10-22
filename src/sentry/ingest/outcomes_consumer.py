@@ -85,6 +85,9 @@ def _process_signal(msg):
         return  # nothing to do here
 
     event_id = msg.get("event_id")
+    if not event_id:
+        return
+
     if is_signal_sent(project_id=project_id, event_id=event_id):
         return  # message already processed nothing left to do
 
@@ -126,6 +129,9 @@ def _process_tsdb_batch(batch):
     for msg in batch:
         project_id = int(msg.get("project_id") or 0) or None
         event_id = msg.get("event_id")
+
+        if not project_id or not event_id:
+            continue
 
         if is_tsdb_incremented(project_id, event_id):
             continue
