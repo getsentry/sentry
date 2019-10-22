@@ -42,6 +42,13 @@ class Breadcrumb extends React.Component {
     return [...classes].join(' ');
   };
 
+  getTooltipTitle = () => {
+    const {crumb} = this.props;
+    const parsedTimestamp = moment(crumb.timestamp);
+    const timestampFormat = parsedTimestamp.milliseconds() ? 'll H:mm:ss.SSS A' : 'lll';
+    return parsedTimestamp.format(timestampFormat);
+  };
+
   renderType = () => {
     const {crumb} = this.props;
     const Renderer = CUSTOM_RENDERERS[crumb.type] || DefaultRenderer;
@@ -57,7 +64,7 @@ class Breadcrumb extends React.Component {
             <span className="icon" />
           </span>
           {defined(crumb.timestamp) ? (
-            <Tooltip title={moment(crumb.timestamp).format('lll')}>
+            <Tooltip title={this.getTooltipTitle()}>
               <span className="dt">{moment(crumb.timestamp).format('HH:mm:ss')}</span>
             </Tooltip>
           ) : (
