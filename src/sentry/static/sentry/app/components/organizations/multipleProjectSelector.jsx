@@ -16,6 +16,8 @@ const rootContainerStyles = css`
   display: flex;
 `;
 
+export const ALL_ACCESS_PROJECTS = -1;
+
 export default class MultipleProjectSelector extends React.PureComponent {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
@@ -153,7 +155,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
     }
     if (multi && organization.features.includes('open-membership')) {
       metaOptions.unshift({
-        id: -1,
+        id: ALL_ACCESS_PROJECTS,
         slug: t('All Projects'),
       });
     }
