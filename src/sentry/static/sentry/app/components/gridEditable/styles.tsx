@@ -108,7 +108,13 @@ export const GridHeadCellButton = styled('div')<GridEditableProps>`
   padding: ${space(1)} ${space(1.5)};
   border-radius: ${p => p.theme.borderRadius};
 
-  color: ${p => p.theme.gray2};
+  color: ${p => {
+    if (p.isDragging) {
+      return p.theme.offWhite2;
+    }
+
+    return p.theme.gray2;
+  }};
   font-size: 13px;
   font-weight: 600;
   line-height: 1;
@@ -119,7 +125,7 @@ export const GridHeadCellButton = styled('div')<GridEditableProps>`
 
   background: ${p => {
     if (p.isDragging) {
-      return '#CEC2D8';
+      return p.theme.gray2;
     }
 
     if (p.isEditing) {
@@ -130,16 +136,37 @@ export const GridHeadCellButton = styled('div')<GridEditableProps>`
   }};
 
   a {
-    color: ${p => p.theme.gray2};
+    color: ${p => {
+      if (p.isDragging) {
+        return p.theme.offWhite2;
+      }
+
+      return p.theme.gray2;
+    }};
   }
 
   &:hover,
   &:active {
-    color: ${p => p.theme.gray3};
+    color: ${p => {
+      if (p.isDragging) {
+        return p.theme.offWhite2;
+      }
+
+      return p.theme.gray2;
+    }};
+
     a {
-      color: ${p => p.theme.gray3};
+      color: ${p => {
+        if (p.isDragging) {
+          return p.theme.offWhite2;
+        }
+
+        return p.theme.gray2;
+      }};
     }
   }
+
+  user-select: none;
 `;
 export const GridHeadCellResizer = styled('span')<GridEditableProps>`
   position: absolute;
