@@ -4,6 +4,7 @@ import styled, {css} from 'react-emotion';
 
 import SentryTypes from 'app/sentryTypes';
 import {analytics} from 'app/utils/analytics';
+import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import {t} from 'app/locale';
 import ProjectSelector from 'app/components/projectSelector';
@@ -15,8 +16,6 @@ import MultipleSelectorSubmitRow from 'app/components/organizations/multipleSele
 const rootContainerStyles = css`
   display: flex;
 `;
-
-export const ALL_ACCESS_PROJECTS = -1;
 
 export default class MultipleProjectSelector extends React.PureComponent {
   static propTypes = {
