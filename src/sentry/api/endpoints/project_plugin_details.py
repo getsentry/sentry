@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from requests.exceptions import HTTPError
 
 from sentry.exceptions import InvalidIdentity, PluginError, PluginIdentityRequired
-from sentry.plugins.base import plugins
+from sentry.plugins import plugins
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize

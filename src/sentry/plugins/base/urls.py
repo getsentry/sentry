@@ -4,7 +4,7 @@ import re
 
 from django.conf.urls import patterns, include, url
 
-from sentry.plugins.base import plugins
+from sentry.plugins import plugins
 
 urlpatterns = patterns("")
 

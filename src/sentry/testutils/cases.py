@@ -77,7 +77,7 @@ from sentry.models import (
     WidgetDataSource,
     WidgetDataSourceTypes,
 )
-from sentry.plugins.base import plugins
+from sentry.plugins import plugins
 from sentry.rules import EventState
 from sentry.tagstore.snuba import SnubaTagStorage
 from sentry.utils import json
