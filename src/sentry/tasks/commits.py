@@ -8,7 +8,7 @@ from django.core.urlresolvers import reverse
 from sentry.exceptions import InvalidIdentity, PluginError
 from sentry.integrations.exceptions import IntegrationError
 from sentry.models import Deploy, LatestRelease, Release, ReleaseHeadCommit, Repository, User
-from sentry.plugins.base import bindings
+from sentry.plugins import bindings
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri

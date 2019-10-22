@@ -4,7 +4,7 @@ import json
 from django.utils import timezone
 
 from sentry.models import FeatureAdoption, GroupAssignee, GroupTombstone, Rule
-from sentry.plugins.bases import IssueTrackingPlugin2, NotificationPlugin
+from sentry.plugins import IssueTrackingPlugin2, NotificationPlugin
 from sentry.signals import (
     alert_rule_created,
     event_processed,

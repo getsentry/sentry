@@ -6,7 +6,7 @@ from .registry import RuleRegistry  # NOQA
 
 def init_registry():
     from sentry.constants import SENTRY_RULES
-    from sentry.plugins.base import plugins
+    from sentry.plugins import plugins
     from sentry.utils.imports import import_string
     from sentry.utils.safe import safe_execute
 

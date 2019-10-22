@@ -15,7 +15,7 @@ from sentry.models import (
     Repository,
     Project,
 )
-from sentry.plugins.base import plugins
+from sentry.plugins import plugins
 from six.moves.urllib.parse import urlparse, parse_qs
 from tests.sentry.plugins.testutils import (
     register_mock_plugins,
