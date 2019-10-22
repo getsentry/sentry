@@ -3,6 +3,7 @@ import styled from 'react-emotion';
 
 import placeholder from 'app/../images/integrations/integration-default.png';
 import sentry from 'app/../images/integrations/integration-sentry.png';
+import amixr from 'app/../images/integrations/amixr-logo.png';
 import asana from 'app/../images/integrations/asana-logo.png';
 import bitbucket from 'app/../images/integrations/bitbucket-logo.png';
 import campfire from 'app/../images/integrations/campfire-logo.png';
@@ -44,6 +45,7 @@ export const ICON_PATHS = {
   urls: sentry,
   webhooks: sentry,
 
+  amixr,
   asana,
   bitbucket,
   campfire,
