@@ -7,4 +7,6 @@ class Config(AppConfig):
     name = "sentry.incidents"
 
     def ready(self):
-        from . import receivers  # noqa
+        from . import action_handlers  # NOQA
+        from . import events  # NOQA
+        from . import receivers  # NOQA

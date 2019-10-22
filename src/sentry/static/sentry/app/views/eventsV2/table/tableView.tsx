@@ -5,16 +5,12 @@ import {Organization} from 'app/types';
 
 import GridEditable from 'app/components/gridEditable';
 
-import {
-  decodeColumnOrder,
-  decodeColumnSortBy,
-  getFieldRenderer,
-  setColumnStateOnLocation,
-} from '../utils';
-import EventView from '../eventView';
+import {getFieldRenderer, getAggregateAlias, pushEventViewToLocation} from '../utils';
+import EventView, {pickRelevantLocationQueryStrings} from '../eventView';
 import SortLink from '../sortLink';
 import renderTableModalEditColumnFactory from './tableModalEditColumn';
-import {TableColumn, TableState, TableData, TableDataRow} from './types';
+import {TableColumn, TableData, TableDataRow} from './types';
+import {ColumnValueType} from '../eventQueryParams';
 
 export type TableViewProps = {
   location: Location;
@@ -28,147 +24,131 @@ export type TableViewProps = {
 };
 
 /**
- * `TableView` is currently in turmoil as it is containing 2 implementations
- * of the Discover V2 QueryBuilder.
  *
- * The old `TableView` is split away from `table.tsx` file as it was too long
- * and its methods have not been changed. It reads its state from `EventView`,
- * which is shared across several component.
- *
- * The new `TableView` is marked with leading _ in its method names. It
- * is coupled to the `Location` object and derives its state entirely from it.
- * It implements methods to mutate the column state in `Location.query`.
+ * The `TableView` is marked with leading _ in its method names. It consumes
+ * the EventView object given in its props to generate new EventView objects
+ * for actions such as creating new columns, updating columns, sorting columns,
+ * and re-ordering columns.
  */
-class TableView extends React.Component<TableViewProps, TableState> {
-  constructor(props) {
-    super(props);
-
-    this.setState = () => {
-      throw new Error(
-        'TableView: Please do not directly mutate the state of TableView. Please read the comments on TableView.createColumn for more info.'
-      );
-    };
-  }
-
-  state = {
-    columnOrder: [],
-    columnSortBy: [],
-  } as TableState;
-
-  static getDerivedStateFromProps(props: TableViewProps): TableState {
-    // Avoid using props.location to get derived state.
-    const {eventView} = props;
-
-    return {
-      columnOrder: decodeColumnOrder({
-        field: eventView.getFieldNames(),
-        fieldnames: eventView.getFieldTitles(),
-      }),
-      columnSortBy: decodeColumnSortBy({
-        sort: eventView.getDefaultSort(),
-      }),
-    };
-  }
-
+class TableView extends React.Component<TableViewProps> {
+  // TODO: update this docs
   /**
-   * The "truth" on the state of the columns is found in `Location`,
-   * `createColumn`, `updateColumn`, `deleteColumn` and `moveColumn`.
-   * Syncing the state between `Location` and `TableView` may cause weird
-   * side-effects, as such the local state is not allowed to be mutated.
+   * The entire state of the table view (or event view) is co-located within
+   * the EventView object. This object is fed from the props.
    *
-   * State change should be done through  `setColumnStateOnLocation` which will
-   * update the `Location` object and changes are propagated downwards to child
-   * components
+   * Attempting to modify the state, and therefore, modifying the given EventView
+   * object given from its props, will generate new instances of EventView objects.
+   *
+   * In most cases, the new EventView object differs from the previous EventView
+   * object. The new EventView object is pushed to the location object.
    */
   _createColumn = (nextColumn: TableColumn<keyof TableDataRow>) => {
-    const {location} = this.props;
-    const {columnOrder, columnSortBy} = this.state;
-    const nextColumnOrder = [...columnOrder, nextColumn];
-    const nextColumnSortBy = [...columnSortBy];
+    const {location, eventView} = this.props;
 
-    setColumnStateOnLocation(location, nextColumnOrder, nextColumnSortBy);
+    const nextEventView = eventView.withNewColumn({
+      aggregation: String(nextColumn.aggregation),
+      field: String(nextColumn.field),
+      fieldname: nextColumn.name,
+    });
+
+    pushEventViewToLocation({
+      location,
+      nextEventView,
+      extraQuery: pickRelevantLocationQueryStrings(location),
+    });
   };
 
   /**
-   * Please read the comment on `createColumn`
+   * Please read the comment on `_createColumn`
    */
-  _updateColumn = (i: number, nextColumn: TableColumn<keyof TableDataRow>) => {
-    const {location} = this.props;
-    const {columnOrder, columnSortBy} = this.state;
+  _updateColumn = (columnIndex: number, nextColumn: TableColumn<keyof TableDataRow>) => {
+    const {location, eventView, tableData} = this.props;
 
-    if (columnOrder[i].key !== nextColumn.key) {
-      throw new Error(
-        'TableView.updateColumn: nextColumn does not have the same key as prevColumn'
-      );
-    }
-
-    const nextColumnOrder = [...columnOrder];
-    const nextColumnSortBy = [...columnSortBy];
-    nextColumnOrder[i] = nextColumn;
-
-    setColumnStateOnLocation(location, nextColumnOrder, nextColumnSortBy);
-  };
-
-  /**
-   * Please read the comment on `createColumn`
-   */
-  _deleteColumn = (i: number) => {
-    const {location} = this.props;
-    const {columnOrder, columnSortBy} = this.state;
-    const nextColumnOrder = [...columnOrder];
-    const nextColumnSortBy = [...columnSortBy];
-
-    // Disallow delete of last column and check for out-of-bounds
-    if (columnOrder.length === 1 || nextColumnOrder.length <= i) {
+    if (!tableData) {
       return;
     }
 
-    // Remove column from columnOrder
-    const deletedColumn = nextColumnOrder.splice(i, 1)[0];
+    const nextEventView = eventView.withUpdatedColumn(
+      columnIndex,
+      {
+        aggregation: String(nextColumn.aggregation),
+        field: String(nextColumn.field),
+        fieldname: nextColumn.name,
+      },
+      tableData.meta
+    );
 
-    // Remove column from columnSortBy (if it is there)
-    // EventView will throw an error if sorting by a column that isn't displayed
-    const j = nextColumnSortBy.findIndex(c => c.key === deletedColumn.key);
-    if (j >= 0) {
-      nextColumnSortBy.splice(j, 1);
-    }
-
-    setColumnStateOnLocation(location, nextColumnOrder, nextColumnSortBy);
+    pushEventViewToLocation({
+      location,
+      nextEventView,
+      extraQuery: pickRelevantLocationQueryStrings(location),
+    });
   };
 
   /**
-   * Please read the comment on `createColumn`
+   * Please read the comment on `_createColumn`
    */
-  _moveColumn = (fromIndex: number, toIndex: number) => {
-    const {location} = this.props;
-    const {columnOrder, columnSortBy} = this.state;
+  _deleteColumn = (columnIndex: number) => {
+    const {location, eventView, tableData} = this.props;
 
-    const nextColumnOrder = [...columnOrder];
-    const nextColumnSortBy = [...columnSortBy];
-    nextColumnOrder.splice(toIndex, 0, nextColumnOrder.splice(fromIndex, 1)[0]);
+    if (!tableData) {
+      return;
+    }
 
-    setColumnStateOnLocation(location, nextColumnOrder, nextColumnSortBy);
+    const nextEventView = eventView.withDeletedColumn(columnIndex, tableData.meta);
+
+    pushEventViewToLocation({
+      location,
+      nextEventView,
+      extraQuery: pickRelevantLocationQueryStrings(location),
+    });
   };
 
-  _renderGridHeaderCell = (column: TableColumn<keyof TableDataRow>): React.ReactNode => {
+  /**
+   * Please read the comment on `_createColumn`
+   */
+  _moveColumn = (fromIndex: number, toIndex: number) => {
+    const {location, eventView} = this.props;
+
+    const nextEventView = eventView.withMovedColumn({fromIndex, toIndex});
+
+    pushEventViewToLocation({
+      location,
+      nextEventView,
+      extraQuery: pickRelevantLocationQueryStrings(location),
+    });
+  };
+
+  _renderGridHeaderCell = (
+    column: TableColumn<keyof TableDataRow>,
+    columnIndex: number
+  ): React.ReactNode => {
     const {eventView, location, tableData} = this.props;
     if (!tableData) {
       return column.name;
     }
 
-    // TODO(leedongwei): Deprecate eventView and use state.columnSortBy
-    const defaultSort = eventView.getDefaultSort() || eventView.fields[0].field;
-    const align = ['integer', 'number', 'duration'].includes(column.type)
-      ? 'right'
-      : 'left';
+    const field = eventView.fields[columnIndex];
+
+    const alignedTypes: ColumnValueType[] = ['number', 'duration'];
+    let align: 'right' | 'left' = alignedTypes.includes(column.type) ? 'right' : 'left';
+
+    // TODO(alberto): clean this
+    if (column.type === 'never' || column.type === '*') {
+      const maybeType = tableData.meta[getAggregateAlias(field.field)];
+
+      if (maybeType === 'integer' || maybeType === 'number') {
+        align = 'right';
+      }
+    }
 
     return (
       <SortLink
         align={align}
-        defaultSort={defaultSort}
-        sortKey={`${column.key}`}
-        title={column.name}
+        field={field}
         location={location}
+        eventView={eventView}
+        tableDataMeta={tableData.meta}
       />
     );
   };
@@ -183,15 +163,18 @@ class TableView extends React.Component<TableViewProps, TableState> {
     }
     const hasLinkField = eventView.hasAutolinkField();
     const forceLink =
-      !hasLinkField && eventView.getFieldNames().indexOf(column.field) === 0;
+      !hasLinkField && eventView.getFields().indexOf(String(column.field)) === 0;
 
     const fieldRenderer = getFieldRenderer(String(column.key), tableData.meta, forceLink);
     return fieldRenderer(dataRow, {organization, location});
   };
 
   render() {
-    const {organization, isLoading, error, tableData} = this.props;
-    const {columnOrder, columnSortBy} = this.state;
+    const {organization, isLoading, error, tableData, eventView} = this.props;
+
+    const columnOrder = eventView.getColumns();
+    const columnSortBy = eventView.getSorts();
+
     const {
       renderModalBodyWithForm,
       renderModalFooter,

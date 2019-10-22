@@ -116,7 +116,7 @@ def up(project, exclude):
 
     pulled = set()
     for name, options in containers.items():
-        # HACK(mattrobenolt): special handle snuba backend becuase it needs to
+        # HACK(mattrobenolt): special handle snuba backend because it needs to
         # handle different values based on the eventstream backend
         # For snuba, we can't run the full suite of devserver, but can only
         # run the api.

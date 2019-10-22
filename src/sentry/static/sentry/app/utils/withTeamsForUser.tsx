@@ -1,8 +1,11 @@
 import React from 'react';
+import _ from 'lodash';
 
+import {Client} from 'app/api';
 import {Team, Organization} from 'app/types';
 import getDisplayName from 'app/utils/getDisplayName';
-import {Client} from 'app/api';
+import ProjectActions from 'app/actions/projectActions';
+import TeamActions from 'app/actions/teamActions';
 
 // We require these props when using this HOC
 type DependentProps = {
@@ -45,6 +48,12 @@ const withTeamsForUser = <P extends InjectedTeamsProps>(
           teams,
           loadingTeams: false,
         });
+
+        // also fill up TeamStore and ProjectStore so org context does not have
+        // to refetch org details due to lack of teams/projects
+        const projects = _.uniqBy(_.flatten(teams.map(team => team.projects)), 'id');
+        ProjectActions.loadProjects(projects);
+        TeamActions.loadTeams(teams);
       } catch (error) {
         this.setState({
           error,

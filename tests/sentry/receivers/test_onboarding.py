@@ -18,7 +18,8 @@ from sentry.signals import (
     plugin_enabled,
     issue_tracker_used,
 )
-from sentry.plugins import IssueTrackingPlugin, NotificationPlugin
+from sentry.plugins.bases import IssueTrackingPlugin
+from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.testutils import TestCase
 
 

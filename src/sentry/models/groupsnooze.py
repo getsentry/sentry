@@ -22,7 +22,7 @@ class GroupSnooze(Model):
     A snooze marks an issue as ignored until a condition is hit.
 
     - If ``until`` is set, the snooze is lifted at the given datetime.
-    - If ``count`` is set, the snooze is lifted when total occurances match.
+    - If ``count`` is set, the snooze is lifted when total occurrences match.
     - If ``window`` is set (in addition to count), the snooze is lifted when
       the rate of events matches.
     - If ``user_count`` is set, the snooze is lfited when unique users match.

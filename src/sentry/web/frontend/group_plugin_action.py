@@ -5,7 +5,7 @@ from django.shortcuts import get_object_or_404
 from sudo.utils import is_safe_url
 
 from sentry.models import Group, GroupMeta
-from sentry.plugins import plugins
+from sentry.plugins.base import plugins
 from sentry.web.frontend.base import ProjectView
 
 

@@ -11,7 +11,7 @@ from sentry.utils.safe import get_path
 def varmap(func, var, context=None, name=None):
     """
     Executes ``func(key_name, value)`` on all values
-    recurisively discovering dict and list scoped
+    recursively discovering dict and list scoped
     values.
     """
     if context is None:

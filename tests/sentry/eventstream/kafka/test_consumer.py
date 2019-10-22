@@ -586,7 +586,7 @@ def test_consumer_rebalance_from_uncommitted_offset(requires_kafka):
         message = consumer_a.poll(1)
         assert (
             message is None or message.error() is KafkaError._PARTITION_EOF
-        ), "there should be no more messages to recieve"
+        ), "there should be no more messages to receive"
 
         consumer_b = SynchronizedConsumer(
             bootstrap_servers=os.environ["SENTRY_KAFKA_HOSTS"],
@@ -614,9 +614,9 @@ def test_consumer_rebalance_from_uncommitted_offset(requires_kafka):
         message = consumer_a.poll(1)
         assert (
             message is None or message.error() is KafkaError._PARTITION_EOF
-        ), "there should be no more messages to recieve"
+        ), "there should be no more messages to receive"
 
         message = consumer_b.poll(1)
         assert (
             message is None or message.error() is KafkaError._PARTITION_EOF
-        ), "there should be no more messages to recieve"
+        ), "there should be no more messages to receive"

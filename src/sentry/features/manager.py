@@ -4,7 +4,7 @@ __all__ = ["FeatureManager"]
 
 from django.conf import settings
 
-from sentry.plugins import plugins
+from sentry.plugins.base import plugins
 from sentry.utils.safe import safe_execute
 
 from .base import Feature
@@ -63,7 +63,7 @@ class FeatureManager(object):
            sentry.conf.server.SENTRY_FEATURES.
 
         Depending on the Feature class, additional arguments may need to be
-        provided to assign organiation or project context to the feature.
+        provided to assign organization or project context to the feature.
 
         >>> FeatureManager.has('organizations:feature', organization, actor=request.user)
         """
