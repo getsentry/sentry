@@ -123,18 +123,18 @@ def _process_signal_with_timer(message):
         return _process_signal(message)
 
 
-def _process_tsdb_batch(batch):
+def _process_tsdb_batch(pool, batch):
     tsdb_increments = []
 
-    for msg in batch:
+    def _process_single_tsdb(msg):
         project_id = int(msg.get("project_id") or 0) or None
         event_id = msg.get("event_id")
 
         if not project_id or not event_id:
-            continue
+            return
 
         if is_tsdb_incremented(project_id, event_id):
-            continue
+            return
 
         for model, key in tsdb_increments_from_outcome(
             org_id=int(msg.get("org_id") or 0) or None,
@@ -143,6 +143,7 @@ def _process_tsdb_batch(batch):
             outcome=int(msg.get("outcome", -1)),
             reason=msg.get("reason") or None,
         ):
+            # Specifically list.append is threadsafe
             tsdb_increments.append(
                 (
                     model,
@@ -157,6 +158,9 @@ def _process_tsdb_batch(batch):
 
         mark_tsdb_incremented(project_id, event_id)
         metrics.incr("outcomes_consumer.tsdb_incremented")
+
+    for _ in pool.imap_unordered(_process_single_tsdb, batch, chunksize=100):
+        pass
 
     metrics.timing("outcomes_consumer.tsdb_incr_multi_size", len(tsdb_increments))
 
@@ -176,7 +180,7 @@ class OutcomesConsumerWorker(AbstractBatchWorker):
         batch.sort(key=lambda msg: msg.get("project_id", 0) or 0)
 
         with metrics.timer("outcomes_consumer.process_tsdb_batch"):
-            _process_tsdb_batch(batch)
+            _process_tsdb_batch(self.pool, batch)
 
         with metrics.timer("outcomes_consumer.process_signal_batch"):
             with batch_buffers_incr():
