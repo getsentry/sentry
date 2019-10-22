@@ -246,7 +246,7 @@ class OrganizationMembersView extends AsyncView {
           <TextContainer>
             <Heading>{t('Invite new members')}</Heading>
             <SubText>
-              {t('Invite new members by email to join your organization.')}
+              {t('Invite new members by email to join your organization')}
             </SubText>
           </TextContainer>
           <Button
@@ -320,7 +320,6 @@ const StyledPanel = styled(Panel)`
   padding: 18px;
   margin-top: -14px;
   margin-bottom: 40px;
-  background: none;
   display: grid;
   grid-template-columns: max-content auto max-content;
   grid-gap: ${space(3)};
