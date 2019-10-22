@@ -14,6 +14,7 @@ const CompressionPlugin = require('compression-webpack-plugin');
 const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
 const CopyPlugin = require('copy-webpack-plugin');
+const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 
 const babelConfig = require('./babel.config');
 
@@ -231,7 +232,7 @@ let appConfig = {
           {
             loader: 'ts-loader',
             options: {
-              transpileOnly: false,
+              transpileOnly: true,
             },
           },
         ],
@@ -319,6 +320,10 @@ let appConfig = {
     new FixStyleOnlyEntriesPlugin(),
 
     new SentryInstrumentation(),
+
+    new ForkTsCheckerWebpackPlugin({
+      tsconfig: path.resolve(__dirname, './tsconfig.json'),
+    }),
 
     ...localeRestrictionPlugins,
   ],
