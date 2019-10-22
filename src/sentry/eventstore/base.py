@@ -23,7 +23,7 @@ class Columns(Enum):
     MESSAGE = ("message", "transaction_name", "message")
     PLATFORM = ("platform", "platform", "platform.name")
     ENVIRONMENT = ("environment", "environment", "environment")
-    RELEASE = ("tags[senry:release]", "release", "release")
+    RELEASE = ("tags[sentry:release]", "release", "release")
     TITLE = ("title", "transaction_name", "title")
     TYPE = ("type", None, "event.type")
     TAGS_KEY = ("tags.key", "tags.key", "tags.key")
