@@ -10,6 +10,7 @@ class Columns(Enum):
     # TODO add all the other columns.
     EVENT_ID = "event_id"
     GROUP_ID = "group_id"
+    ISSUE = "issue"
     PROJECT_ID = "project_id"
     TIMESTAMP = "timestamp"
     CULPRIT = "culprit"
@@ -66,6 +67,54 @@ class Columns(Enum):
     CONTEXTS_VALUE = "contexts.value"
 
 
+class Filter(object):
+    """
+    A set of conditions, start/end times and project, group and event ID sets
+    used to restrict the results of a Snuba query.
+
+    start (DateTime): Start datetime - default None
+    end (DateTime): Start datetime - default None
+    conditions (Sequence[Sequence[str, str, Any]]): List of conditions to fetch - default None
+    project_ids (Sequence[int]): List of project IDs to fetch - default None
+    group_ids (Sequence[int]): List of group IDs to fetch - defualt None
+    event_ids (Sequence[int]): List of event IDs to fetch - default None
+    """
+
+    def __init__(
+        self,
+        start=None,
+        end=None,
+        conditions=None,
+        project_ids=None,
+        group_ids=None,
+        event_ids=None,
+    ):
+        self.start = start
+        self.end = end
+        self.conditions = conditions
+        self.project_ids = project_ids
+        self.group_ids = group_ids
+        self.event_ids = event_ids
+
+    @property
+    def filter_keys(self):
+        """
+        Get filter_keys value required for raw snuba query
+        """
+        filter_keys = {}
+
+        if self.project_ids:
+            filter_keys["project_id"] = self.project_ids
+
+        if self.group_ids:
+            filter_keys["issue"] = self.group_ids
+
+        if self.event_ids:
+            filter_keys["event_id"] = self.event_ids
+
+        return filter_keys
+
+
 class EventStorage(Service):
     __all__ = (
         "minimal_columns",
@@ -74,6 +123,8 @@ class EventStorage(Service):
         "get_events",
         "get_prev_event_id",
         "get_next_event_id",
+        "get_earliest_event_id",
+        "get_latest_event_id",
         "bind_nodes",
     )
 
@@ -102,60 +153,72 @@ class EventStorage(Service):
         Columns.USERNAME,
     ]
 
+    def get_events(self, filter, additional_columns, orderby, limit, offset, referrer):
+        """
+        Fetches a list of events given a set of criteria.
+
+        Arguments:
+        filter (Filter): Filter
+        additional_columns (Sequence[Column]): List of additional columns to fetch - default None
+        orderby (Sequence[str]): List of fields to order by - default ['-time', '-event_id']
+        limit (int): Query limit - default 100
+        offset (int): Query offset - default 0
+        referrer (string): Referrer - default "eventstore.get_events"
+        """
+        raise NotImplementedError
+
     def get_event_by_id(self, project_id, event_id, additional_columns):
         """
         Gets a single event given a project_id and event_id.
 
-        Keyword arguments:
+        Arguments:
         project_id (int): Project ID
         event_id (str): Event ID
         additional_columns: (Sequence[Column]) - List of addition columns to fetch - default None
         """
         raise NotImplementedError
 
-    def get_events(
-        self, start, end, additional_columns, conditions, filter_keys, orderby, limit, offset
-    ):
-        """
-        Fetches a list of events given a set of criteria.
-
-        Keyword arguments:
-        start (DateTime): Start datetime - default datetime.utcfromtimestamp(0)
-        end (DateTime): End datetime - default datetime.utcnow()
-        additional_columns (Sequence[Column]): List of additional columns to fetch - default None
-        conditions (Sequence[Sequence[str, str, Any]]): List of conditions to fetch - default None
-        filter_keys (Mapping[str, Any]): Filter keys - default None
-        orderby (Sequence[str]): List of fields to order by - default ['-time', '-event_id']
-        limit (int): Query limit - default 100
-        offset (int): Query offset - default 0
-        """
-        raise NotImplementedError
-
-    def get_next_event_id(self, event, conditions, filter_keys):
+    def get_next_event_id(self, event, filter):
         """
         Gets the next event given a current event and some conditions/filters.
         Returns a tuple of (project_id, event_id)
 
         Arguments:
         event (Event): Event object
-
-        Keyword arguments:
-        conditions (Sequence[Sequence[str, str, Any]]): List of conditions - default None
-        filter_keys (Mapping[str, Any]): Filter keys - default None
+        filter (Filter): Filter
         """
         raise NotImplementedError
 
-    def get_prev_event_id(self, event, conditions, filter_keys):
+    def get_prev_event_id(self, event, filter):
         """
         Gets the previous event given a current event and some conditions/filters.
         Returns a tuple of (project_id, event_id)
 
         Arguments:
         event (Event): Event object
+        filter (Filter): Filter
+        """
+        raise NotImplementedError
 
-        Keyword arguments:
-        conditions (Sequence[Sequence[str, str, Any]]): List of conditions - default None
-        filter_keys (Mapping[str, Any]): Filter keys - default None
+    def get_earliest_event_id(self, event, filter):
+        """
+        Gets the earliest event given a current event and some conditions/filters.
+        Returns a tuple of (project_id, event_id)
+
+        Arguments:
+        event (Event): Event object
+        filter (Filter): Filter
+        """
+        raise NotImplementedError
+
+    def get_latest_event_id(self, event, filter):
+        """
+        Gets the latest event given a current event and some conditions/filters.
+        Returns a tuple of (project_id, event_id)
+
+        Arguments:
+        event (Event): Event object
+        filter (Filter): Filter
         """
         raise NotImplementedError
 

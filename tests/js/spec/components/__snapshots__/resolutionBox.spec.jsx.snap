@@ -236,10 +236,10 @@ exports[`ResolutionBox render() handles inRelease 1`] = `
       >
         This issue has been marked as resolved in version 
       </span>
-      <WithOrganizationMockWrapper
+      <Version
+        anchor={true}
         key="1"
         orgId="org"
-        projectId="project"
         version="1.0"
       />
       <span
@@ -315,10 +315,10 @@ exports[`ResolutionBox render() handles inRelease with actor 1`] = `
       >
          marked this issue as resolved in version 
       </span>
-      <WithOrganizationMockWrapper
+      <Version
+        anchor={true}
         key="2"
         orgId="org"
-        projectId="project"
         version="1.0"
       />
       <span

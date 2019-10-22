@@ -1,7 +1,7 @@
 import React from 'react';
 
 import {t} from 'app/locale';
-import {Team} from 'app/types';
+import {Team, MemberRole} from 'app/types';
 import Button from 'app/components/button';
 import SelectControl from 'app/components/forms/selectControl';
 
@@ -16,7 +16,8 @@ type Props = {
   emails: string[];
   role: string;
   teams: string[];
-  roleOptions: string[];
+  roleOptions: MemberRole[];
+  roleDisabledUnallowed: boolean;
   teamOptions: Team[];
   inviteStatus: InviteStatus;
   onRemove: () => void;
@@ -34,6 +35,7 @@ const InviteRowControl = ({
   role,
   teams,
   roleOptions,
+  roleDisabledUnallowed,
   teamOptions,
   inviteStatus,
   onRemove,
@@ -65,6 +67,7 @@ const InviteRowControl = ({
         disabled={disabled}
         value={role}
         roles={roleOptions}
+        disableUnallowed={roleDisabledUnallowed}
         onChange={onChangeRole}
       />
     </div>

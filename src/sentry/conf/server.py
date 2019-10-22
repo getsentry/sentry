@@ -315,15 +315,15 @@ INSTALLED_APPS = (
     "rest_framework",
     "sentry",
     "sentry.analytics",
-    "sentry.incidents",
+    "sentry.incidents.apps.Config",
     "sentry.discover",
     "sentry.analytics.events",
     "sentry.nodestore",
     "sentry.search",
     "sentry.snuba",
-    "sentry.lang.java",
-    "sentry.lang.javascript",
-    "sentry.lang.native",
+    "sentry.lang.java.apps.Config",
+    "sentry.lang.javascript.apps.Config",
+    "sentry.lang.native.apps.Config",
     "sentry.plugins.sentry_interface_types",
     "sentry.plugins.sentry_mail",
     "sentry.plugins.sentry_urls",
@@ -331,10 +331,6 @@ INSTALLED_APPS = (
     "sentry.plugins.sentry_webhooks",
     "social_auth",
     "sudo",
-    "sentry.tagstore",
-    # we import the legacy tagstore to ensure models stay registered as they're still
-    # referenced in the core sentry migrations (tagstore migrations are not in their own app)
-    "sentry.tagstore.legacy",
     "sentry.eventstream",
     "sentry.auth.providers.google",
     "django.contrib.staticfiles",
@@ -529,6 +525,7 @@ CELERY_CREATE_MISSING_QUEUES = True
 CELERY_REDIRECT_STDOUTS = False
 CELERYD_HIJACK_ROOT_LOGGER = False
 CELERY_IMPORTS = (
+    "sentry.discover.tasks",
     "sentry.incidents.tasks",
     "sentry.tasks.auth",
     "sentry.tasks.auto_resolve_issues",
@@ -553,7 +550,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.store",
     "sentry.tasks.unmerge",
     "sentry.tasks.servicehooks",
-    "sentry.tagstore.tasks",
     "sentry.tasks.assemble",
     "sentry.tasks.integrations",
     "sentry.tasks.files",
@@ -572,7 +568,6 @@ CELERY_QUEUES = [
     Queue("digests.delivery", routing_key="digests.delivery"),
     Queue("digests.scheduling", routing_key="digests.scheduling"),
     Queue("email", routing_key="email"),
-    Queue("events.index_event_tags", routing_key="events.index_event_tags"),
     Queue("events.preprocess_event", routing_key="events.preprocess_event"),
     Queue(
         "events.reprocessing.preprocess_event", routing_key="events.reprocessing.preprocess_event"
@@ -860,8 +855,6 @@ SENTRY_FEATURES = {
     # Enable the relay functionality, for use with sentry semaphore. See
     # https://github.com/getsentry/semaphore.
     "organizations:relay": False,
-    # Sentry 10 - multi project interfaces.
-    "organizations:sentry10": True,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
@@ -1058,9 +1051,7 @@ SENTRY_NODESTORE = "sentry.nodestore.django.DjangoNodeStorage"
 SENTRY_NODESTORE_OPTIONS = {}
 
 # Tag storage backend
-SENTRY_TAGSTORE = os.environ.get(
-    "SENTRY_TAGSTORE", "sentry.tagstore.snuba.SnubaCompatibilityTagStorage"
-)
+SENTRY_TAGSTORE = os.environ.get("SENTRY_TAGSTORE", "sentry.tagstore.snuba.SnubaTagStorage")
 SENTRY_TAGSTORE_OPTIONS = {}
 
 # Search backend

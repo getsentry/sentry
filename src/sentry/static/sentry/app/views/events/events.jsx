@@ -1,4 +1,3 @@
-import {Flex} from 'grid-emotion';
 import {browserHistory} from 'react-router';
 import {isEqual} from 'lodash';
 import PropTypes from 'prop-types';
@@ -125,6 +124,11 @@ class Events extends AsyncView {
   onRequestSuccess({data, jqXHR}) {
     const {organization} = this.props;
 
+    // TODO: This is actually not optimal because `AsyncComponent.handleRequestSuccess`
+    // still gets called and updates state when the response may not be what the component
+    // expects.
+    //
+    // Ideally when a direct hit is found, we should not update state in `handleRequestSuccess`
     if (jqXHR.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
       const event = data[0];
       const project = organization.projects.find(p => p.id === event.projectID);
@@ -200,7 +204,7 @@ class Events extends AsyncView {
         />
 
         {!loading && !reloading && !error && (
-          <Flex align="center" justify="space-between">
+          <PaginationWrapper>
             <RowDisplay>
               {events.length ? t(`Results ${this.renderRowCounts()}`) : t('No Results')}
               {!!events.length && eventsPageLinks && (
@@ -217,12 +221,18 @@ class Events extends AsyncView {
               )}
             </RowDisplay>
             <Pagination pageLinks={eventsPageLinks} className="" />
-          </Flex>
+          </PaginationWrapper>
         )}
       </React.Fragment>
     );
   }
 }
+
+const PaginationWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
 
 const RowDisplay = styled('div')`
   color: ${p => p.theme.gray6};

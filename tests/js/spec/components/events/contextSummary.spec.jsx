@@ -1,10 +1,12 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+import {shallow, mount} from 'sentry-test/enzyme';
 
 import ContextSummary, {
   OsSummary,
   GpuSummary,
+  UserSummary,
 } from 'app/components/events/contextSummary';
+import {FILTER_MASK} from 'app/constants';
 
 const CONTEXT_USER = {
   email: 'mail@example.org',
@@ -47,7 +49,7 @@ const CONTEXT_BROWSER = {
 
 describe('ContextSummary', function() {
   describe('render()', function() {
-    it('should render nothing without contexts', () => {
+    it('renders nothing without contexts', () => {
       const event = {
         id: '',
         contexts: {},
@@ -57,7 +59,7 @@ describe('ContextSummary', function() {
       expect(wrapper).toMatchSnapshot();
     });
 
-    it('should render nothing with a single user context', () => {
+    it('renders nothing with a single user context', () => {
       const event = {
         id: '',
         user: CONTEXT_USER,
@@ -82,7 +84,7 @@ describe('ContextSummary', function() {
       expect(wrapper).toMatchSnapshot();
     });
 
-    it('should render at least three contexts', () => {
+    it('renders at least three contexts', () => {
       const event = {
         id: '',
         user: CONTEXT_USER,
@@ -95,7 +97,7 @@ describe('ContextSummary', function() {
       expect(wrapper).toMatchSnapshot();
     });
 
-    it('should render up to four contexts', () => {
+    it('renders up to four contexts', () => {
       const event = {
         id: '',
         user: CONTEXT_USER,
@@ -127,7 +129,7 @@ describe('ContextSummary', function() {
       expect(wrapper).toMatchSnapshot();
     });
 
-    it('should render client_os too', () => {
+    it('renders client_os too', () => {
       const event = {
         id: '',
         user: CONTEXT_USER,
@@ -177,7 +179,7 @@ describe('ContextSummary', function() {
 
 describe('OsSummary', function() {
   describe('render()', function() {
-    it('should render the version string', () => {
+    it('renders the version string', () => {
       const os = {
         kernel_version: '17.5.0',
         version: '10.13.4',
@@ -190,7 +192,7 @@ describe('OsSummary', function() {
       expect(wrapper).toMatchSnapshot();
     });
 
-    it('should render the kernel version when no version', () => {
+    it('renders the kernel version when no version', () => {
       const os = {
         kernel_version: '17.5.0',
         type: 'os',
@@ -202,7 +204,7 @@ describe('OsSummary', function() {
       expect(wrapper).toMatchSnapshot();
     });
 
-    it('should render unknown when no version', () => {
+    it('renders unknown when no version', () => {
       const os = {
         type: 'os',
         build: '17E199',
@@ -217,7 +219,7 @@ describe('OsSummary', function() {
 
 describe('GpuSummary', function() {
   describe('render()', function() {
-    it('should render name and vendor', () => {
+    it('renders name and vendor', () => {
       const gpu = {
         name: 'Mali-T880',
         vendor_name: 'ARM',
@@ -228,7 +230,7 @@ describe('GpuSummary', function() {
       expect(wrapper).toMatchSnapshot();
     });
 
-    it('should render unknown when no vendor', () => {
+    it('renders unknown when no vendor', () => {
       const gpu = {
         type: 'gpu',
         name: 'Apple A8 GPU',
@@ -236,6 +238,135 @@ describe('GpuSummary', function() {
 
       const wrapper = shallow(<GpuSummary data={gpu} />);
       expect(wrapper).toMatchSnapshot();
+    });
+  });
+});
+
+describe('UserSummary', function() {
+  describe('render', function() {
+    it('prefers email, then IP, then id, then username for title', function() {
+      const user1 = {
+        email: 'maisey@dogsrule.com',
+        ip_address: '12.31.20.12',
+        id: '26',
+        username: 'maiseythedog',
+        name: 'Maisey Dog',
+        data: {siblings: ['Charlie Dog'], dreamsOf: 'squirrels'},
+      };
+
+      const wrapper1 = shallow(<UserSummary data={user1} />);
+      expect(wrapper1.find('[data-test-id="user-title"]').text()).toEqual(user1.email);
+
+      const user2 = {
+        ip_address: '12.31.20.12',
+        id: '26',
+        username: 'maiseythedog',
+        name: 'Maisey Dog',
+        data: {siblings: ['Charlie Dog'], dreamsOf: 'squirrels'},
+      };
+
+      const wrapper2 = shallow(<UserSummary data={user2} />);
+      expect(wrapper2.find('[data-test-id="user-title"]').text()).toEqual(
+        user2.ip_address
+      );
+
+      const user3 = {
+        id: '26',
+        username: 'maiseythedog',
+        name: 'Maisey Dog',
+        data: {siblings: ['Charlie Dog'], dreamsOf: 'squirrels'},
+      };
+
+      const wrapper3 = shallow(<UserSummary data={user3} />);
+      expect(wrapper3.find('[data-test-id="user-title"]').text()).toEqual(user3.id);
+
+      const user4 = {
+        username: 'maiseythedog',
+        name: 'Maisey Dog',
+        data: {siblings: ['Charlie Dog'], dreamsOf: 'squirrels'},
+      };
+
+      const wrapper4 = shallow(<UserSummary data={user4} />);
+      expect(wrapper4.find('[data-test-id="user-title"]').text()).toEqual(user4.username);
+    });
+
+    it('renders NoSummary if no email, IP, id, or username', function() {
+      const user = {
+        name: 'Maisey Dog',
+        data: {siblings: ['Charlie Dog'], dreamsOf: 'squirrels'},
+      };
+
+      const wrapper = mount(<UserSummary data={user} />);
+      expect(wrapper.find('[data-test-id="user-title"]')).toHaveLength(0);
+      expect(wrapper.find('[data-test-id="no-summary-title"]').text()).toEqual(
+        'Unknown User'
+      );
+    });
+
+    it('does not use filtered values for title', function() {
+      const user1 = {
+        email: FILTER_MASK,
+      };
+
+      const wrapper1 = mount(<UserSummary data={user1} />);
+      expect(wrapper1.find('[data-test-id="user-title"]')).toHaveLength(0);
+      expect(wrapper1.find('[data-test-id="no-summary-title"]').text()).toEqual(
+        'Unknown User'
+      );
+
+      // TODO: currently, the IP filter just eliminates IP addresses rather than
+      // filtering them like other user data, so here, where you'd expect a filtered
+      // IP address, there isn't one. Add a similar entry to the above and below
+      // if/when that changes.
+
+      const user2 = {
+        id: FILTER_MASK,
+      };
+
+      const wrapper2 = mount(<UserSummary data={user2} />);
+      expect(wrapper2.find('[data-test-id="user-title"]')).toHaveLength(0);
+      expect(wrapper2.find('[data-test-id="no-summary-title"]').text()).toEqual(
+        'Unknown User'
+      );
+
+      const user3 = {
+        username: FILTER_MASK,
+      };
+
+      const wrapper3 = mount(<UserSummary data={user3} />);
+      expect(wrapper3.find('[data-test-id="user-title"]')).toHaveLength(0);
+      expect(wrapper3.find('[data-test-id="no-summary-title"]').text()).toEqual(
+        'Unknown User'
+      );
+    });
+
+    it('does not use filtered values for avatar', function() {
+      // id is never used for avatar purposes, but is enough to keep us from
+      // ending up with a NoSummary component where the UserSummary component
+      // should be
+      const user1 = {
+        id: '26',
+        name: FILTER_MASK,
+      };
+
+      const wrapper1 = mount(<UserSummary data={user1} />);
+      expect(wrapper1.find('LetterAvatar').text()).toEqual('?');
+
+      const user2 = {
+        id: '26',
+        email: FILTER_MASK,
+      };
+
+      const wrapper2 = mount(<UserSummary data={user2} />);
+      expect(wrapper2.find('LetterAvatar').text()).toEqual('?');
+
+      const user3 = {
+        id: '26',
+        username: FILTER_MASK,
+      };
+
+      const wrapper3 = mount(<UserSummary data={user3} />);
+      expect(wrapper3.find('LetterAvatar').text()).toEqual('?');
     });
   });
 });

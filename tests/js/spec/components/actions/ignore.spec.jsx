@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mount, mountWithTheme} from 'sentry-test/enzyme';
 import $ from 'jquery';
 import IgnoreActions from 'app/components/actions/ignore';
 
@@ -65,7 +65,7 @@ describe('IgnoreActions', function() {
     const spy = jest.fn();
 
     beforeEach(function() {
-      component = mount(
+      component = mountWithTheme(
         <IgnoreActions onUpdate={spy} shouldConfirm confirmMessage="Yoooooo" />,
         routerContext
       );

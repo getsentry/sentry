@@ -196,6 +196,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             }
         )
         context["access"] = access.scopes
+        if access.role is not None:
+            context["role"] = access.role
         context["pendingAccessRequests"] = OrganizationAccessRequest.objects.filter(
             team__organization=obj
         ).count()

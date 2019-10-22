@@ -26,7 +26,8 @@ env:
   global:
     - NODE_ENV=development
     # PIP_VERSION causes issues because: https://github.com/pypa/pip/issues/4528
-    - PYTHON_PIP_VERSION=19.1.1
+    # Note: this has to be synced with the pip version in the Makefile.
+    - PYTHON_PIP_VERSION=19.2.3
     - PIP_USE_PEP517=off
     - PIP_DISABLE_PIP_VERSION_CHECK=on
     - PIP_QUIET=1
@@ -134,24 +135,6 @@ matrix:
     - <<: *postgres_default
       name: 'Backend [Postgres] (2/2)'
       env: TEST_SUITE=postgres DB=postgres TOTAL_TEST_GROUPS=2 TEST_GROUP=1
-
-    - python: 2.7
-      name: 'Backend [Riak]'
-      env: TEST_SUITE=riak DB=postgres
-      services:
-        - memcached
-        - redis-server
-        - postgresql
-        - riak
-      before_install:
-        - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:19.4
-        - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
-        - docker ps -a
-      install:
-        - python setup.py install_egg_info
-        - pip install -U -e ".[dev,tests,optional]"
-      before_script:
-        - psql -c 'create database sentry;' -U postgres
 
     - <<: *acceptance_default
       name: 'Acceptance'

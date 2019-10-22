@@ -1,4 +1,4 @@
-import {mount} from 'enzyme';
+import {mount} from 'sentry-test/enzyme';
 import React from 'react';
 
 import withApi from 'app/utils/withApi';
@@ -28,6 +28,16 @@ describe('withApi', function() {
     expect(apiInstance.clear).not.toHaveBeenCalled();
     wrapper.unmount();
     expect(apiInstance.clear).toHaveBeenCalled();
+
+    apiInstance.clear.mockRestore();
+  });
+
+  it('does not cancels pending API requests if persistInFlight is enabled', function() {
+    const MyComponentWithApi = withApi(MyComponent, {persistInFlight: true});
+    const wrapper = mount(<MyComponentWithApi />);
+    jest.spyOn(apiInstance, 'clear');
+    wrapper.unmount();
+    expect(apiInstance.clear).not.toHaveBeenCalled();
 
     apiInstance.clear.mockRestore();
   });

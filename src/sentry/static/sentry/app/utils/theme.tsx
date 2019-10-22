@@ -228,6 +228,7 @@ const theme = {
   // Try to keep these ordered plz
   zIndex: {
     header: 1000,
+    errorMessage: 1000,
     dropdown: 1001,
 
     dropdownAutocomplete: {
@@ -257,6 +258,10 @@ const theme = {
   },
 
   grid: 8,
+
+  // Relative font sizes
+  fontSizeRelativeSmall: '0.9em',
+
   fontSizeExtraSmall: '11px',
   fontSizeSmall: '12px',
   fontSizeMedium: '14px',

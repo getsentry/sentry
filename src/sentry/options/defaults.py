@@ -153,6 +153,10 @@ register("store.projects-normalize-in-rust-percent-opt-in", default=0.0)  # unus
 # From 0.0 to 1.0: Randomly disable normalization code in interfaces when loading from db
 register("store.empty-interface-sample-rate", default=0.0)
 
+# if this is turned to `True` sentry will behave like relay would do with
+# regards to filter responses.
+register("store.lie-about-filter-status", default=False)
+
 # Skip nodestore save when saving an event
 register("store.save-event-skips-nodestore", default=True, flags=FLAG_PRIORITIZE_DISK)
 
@@ -167,6 +171,10 @@ register("symbolicator.minidump-refactor-random-sampling", default=0.0)  # unuse
 register("store.normalize-after-processing", default=0.0)  # unused
 register("store.disable-trim-in-renormalization", default=0.0)  # unused
 
+# Data scrubbing in Rust
+register("store.sample-rust-data-scrubber", default=0.0)  # unused
+register("store.use-rust-data-scrubber", default=False)  # unused
+
 # Post Process Error Hook Sampling
 register("post-process.use-error-hook-sampling", default=False)  # unused
 # From 0.0 to 1.0: Randomly enqueue process_resource_change task
@@ -175,3 +183,7 @@ register("post-process.error-hook-sample-rate", default=0.0)  # unused
 # Transaction events
 # True => kill switch to disable ingestion of transaction events for internal project.
 register("transaction-events.force-disable-internal-project", default=False)
+
+# Moving signals and TSDB into outcomes consumer
+register("outcomes.signals-in-consumer-sample-rate", default=0.0)
+register("outcomes.tsdb-in-consumer-sample-rate", default=0.0)

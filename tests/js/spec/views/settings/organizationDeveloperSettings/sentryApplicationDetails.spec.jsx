@@ -1,11 +1,11 @@
 import React from 'react';
 
 import {Client} from 'app/api';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import SentryApplicationDetails from 'app/views/settings/organizationDeveloperSettings/sentryApplicationDetails';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import PermissionsObserver from 'app/views/settings/organizationDeveloperSettings/permissionsObserver';
-import {selectByValue} from '../../../../helpers/select';
+import {selectByValue} from 'sentry-test/select';
 
 describe('Sentry Application Details', function() {
   let org;
@@ -35,7 +35,7 @@ describe('Sentry Application Details', function() {
         body: [],
       });
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <SentryApplicationDetails params={{orgId}} route={{path: 'new-public/'}} />,
         TestStubs.routerContext()
       );
@@ -117,7 +117,7 @@ describe('Sentry Application Details', function() {
 
   describe('Creating a new internal Sentry App', () => {
     beforeEach(() => {
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <SentryApplicationDetails params={{orgId}} route={{path: 'new-internal/'}} />,
         TestStubs.routerContext()
       );
@@ -143,7 +143,7 @@ describe('Sentry Application Details', function() {
         body: [],
       });
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
         TestStubs.routerContext()
       );
@@ -185,7 +185,7 @@ describe('Sentry Application Details', function() {
         body: [token],
       });
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
         TestStubs.routerContext()
       );
@@ -231,7 +231,7 @@ describe('Sentry Application Details', function() {
         body: [token],
       });
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
         TestStubs.routerContext()
       );
@@ -270,7 +270,7 @@ describe('Sentry Application Details', function() {
         body: [token],
       });
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
         TestStubs.routerContext()
       );
@@ -340,7 +340,7 @@ describe('Sentry Application Details', function() {
         body: [],
       });
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
         TestStubs.routerContext()
       );
@@ -392,6 +392,49 @@ describe('Sentry Application Details', function() {
           }),
           method: 'PUT',
         })
+      );
+    });
+  });
+
+  describe('Editing an existing public Sentry App with a scope error', () => {
+    beforeEach(() => {
+      sentryApp = TestStubs.SentryApp();
+
+      editAppRequest = Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/`,
+        method: 'PUT',
+        statusCode: 400,
+        body: {
+          scopes: [
+            "Requested permission of member:write exceeds requester's permission. Please contact an administrator to make the requested change.",
+            "Requested permission of member:admin exceeds requester's permission. Please contact an administrator to make the requested change.",
+          ],
+        },
+      });
+
+      Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/`,
+        body: sentryApp,
+      });
+
+      Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/api-tokens/`,
+        body: [],
+      });
+
+      wrapper = mountWithTheme(
+        <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
+        TestStubs.routerContext()
+      );
+    });
+
+    it('renders the error', async () => {
+      wrapper.find('form').simulate('submit');
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('div FormFieldErrorReason').text()).toEqual(
+        "Requested permission of member:admin exceeds requester's permission. Please contact an administrator to make the requested change."
       );
     });
   });

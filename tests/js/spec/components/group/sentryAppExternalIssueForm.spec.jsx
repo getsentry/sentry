@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {Client} from 'app/api';
 
 import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
@@ -25,7 +25,7 @@ describe('SentryAppExternalIssueForm', () => {
 
   describe('create', () => {
     beforeEach(() => {
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <SentryAppExternalIssueForm
           group={group}
           sentryAppInstallation={sentryAppInstallation}
@@ -83,7 +83,7 @@ describe('SentryAppExternalIssueForm', () => {
 
   describe('link', () => {
     beforeEach(() => {
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <SentryAppExternalIssueForm
           group={group}
           sentryAppInstallation={sentryAppInstallation}
@@ -188,7 +188,7 @@ describe('SentryAppExternalIssueForm Async Field', () => {
         },
       });
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <SentryAppExternalIssueForm
           group={group}
           sentryAppInstallation={sentryAppInstallation}

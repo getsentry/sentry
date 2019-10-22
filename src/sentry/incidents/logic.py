@@ -11,13 +11,14 @@ from django.db import transaction
 from django.utils import timezone
 
 from sentry import analytics
-from sentry.api.event_search import get_snuba_query_args
+from sentry.api.event_search import get_filter
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleExcludedProjects,
     AlertRuleQuerySubscription,
     AlertRuleStatus,
     AlertRuleTrigger,
+    AlertRuleTriggerAction,
     AlertRuleTriggerExclusion,
     Incident,
     IncidentActivity,
@@ -142,7 +143,7 @@ def calculate_incident_start(query, projects, groups):
     if projects:
         params["project_id"] = [p.id for p in projects]
 
-    query_args = get_snuba_query_args(query, params)
+    filter = get_filter(query, params)
     rollup = int(INCIDENT_START_ROLLUP.total_seconds())
 
     result = raw_query(
@@ -152,7 +153,10 @@ def calculate_incident_start(query, projects, groups):
         rollup=rollup,
         referrer="incidents.calculate_incident_start",
         limit=10000,
-        **query_args
+        start=filter.start,
+        end=filter.end,
+        conditions=filter.conditions,
+        filter_keys=filter.filter_keys,
     )["data"]
     # TODO: Start could be the period before the first period we find
     result = zerofill(result, params["start"], params["end"], rollup, "time")
@@ -423,7 +427,17 @@ def bulk_build_incident_query_params(incidents, start=None, end=None):
         project_ids = incident_projects[incident.id]
         if project_ids:
             params["project_id"] = project_ids
-        query_args_list.append(get_snuba_query_args(incident.query, params))
+
+        filter = get_filter(incident.query, params)
+
+        query_args_list.append(
+            {
+                "start": filter.start,
+                "end": filter.end,
+                "conditions": filter.conditions,
+                "filter_keys": filter.filter_keys,
+            }
+        )
 
     return query_args_list
 
@@ -837,7 +851,7 @@ def validate_alert_rule_query(query):
     # TODO: We should add more validation here to reject queries that include
     # fields that are invalid in alert rules. For now this will just make sure
     # the query parses correctly.
-    get_snuba_query_args(query)
+    get_filter(query)
 
 
 def get_excluded_projects_for_alert_rule(alert_rule):
@@ -996,3 +1010,71 @@ def get_subscriptions_from_alert_rule(alert_rule, projects):
         )
         raise ProjectsNotAssociatedWithAlertRuleError(invalid_slugs)
     return excluded_subscriptions
+
+
+def create_alert_rule_trigger_action(
+    trigger, type, target_type, target_identifier=None, target_display=None, integration=None
+):
+    """
+    Creates an AlertRuleTriggerAction
+    :param trigger: The trigger to create the action on
+    :param type: Which sort of action to take
+    :param target_type: Which type of target to send to
+    :param target_identifier: (Optional) The identifier of the target
+    :param target_display: (Optional) Human readable name for the target
+    :param integration: (Optional) The Integration related to this action.
+    :return: The created action
+    """
+    return AlertRuleTriggerAction.objects.create(
+        alert_rule_trigger=trigger,
+        type=type.value,
+        target_type=target_type.value,
+        target_identifier=target_identifier,
+        target_display=target_display,
+        integration=integration,
+    )
+
+
+def update_alert_rule_trigger_action(
+    trigger_action,
+    type=None,
+    target_type=None,
+    target_identifier=None,
+    target_display=None,
+    integration=None,
+):
+    """
+    Updates values on an AlertRuleTriggerAction
+    :param trigger_action: The trigger action to update
+    :param type: Which sort of action to take
+    :param target_type: Which type of target to send to
+    :param target_identifier: The identifier of the target
+    :param target_display: Human readable name for the target
+    :param integration: The Integration related to this action.
+    :return:
+    """
+    updated_fields = {}
+    if type is not None:
+        updated_fields["type"] = type.value
+    if target_type is not None:
+        updated_fields["target_type"] = target_type.value
+    if target_identifier is not None:
+        updated_fields["target_identifier"] = target_identifier
+    if target_display is not None:
+        updated_fields["target_display"] = target_display
+    if integration is not None:
+        updated_fields["integration"] = integration
+
+    trigger_action.update(**updated_fields)
+    return trigger_action
+
+
+def delete_alert_rule_trigger_action(trigger_action):
+    """
+    Deletes a AlertRuleTriggerAction
+    """
+    trigger_action.delete()
+
+
+def get_actions_for_trigger(trigger):
+    return AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger)

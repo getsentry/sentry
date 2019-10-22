@@ -1,22 +1,28 @@
 import {Modal} from 'react-bootstrap';
 import React from 'react';
 
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import InviteMembersModal from 'app/components/modals/inviteMembersModal';
 
 describe('InviteMembersModal', function() {
-  const org = TestStubs.Organization();
+  const org = TestStubs.Organization({access: ['member:write']});
+
+  const noWriteOrg = TestStubs.Organization({
+    access: [],
+  });
 
   const roles = [
     {
       id: 'admin',
       name: 'Admin',
       desc: 'This is the admin role',
+      allowed: true,
     },
     {
       id: 'member',
       name: 'Member',
       desc: 'This is the member role',
+      allowed: true,
     },
   ];
 
@@ -27,7 +33,7 @@ describe('InviteMembersModal', function() {
   });
 
   it('renders', async function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <InviteMembersModal
         Body={Modal.Body}
         Header={Modal.Header}
@@ -47,7 +53,7 @@ describe('InviteMembersModal', function() {
   });
 
   it('can add a second row', async function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <InviteMembersModal
         Body={Modal.Body}
         Header={Modal.Header}
@@ -63,7 +69,7 @@ describe('InviteMembersModal', function() {
   });
 
   it('errors on duplicate emails', async function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <InviteMembersModal
         Body={Modal.Body}
         Header={Modal.Header}
@@ -94,7 +100,7 @@ describe('InviteMembersModal', function() {
   });
 
   it('indicates the total invites on the invite button', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <InviteMembersModal
         Body={Modal.Body}
         Header={Modal.Header}
@@ -119,7 +125,7 @@ describe('InviteMembersModal', function() {
   it('can be closed', function() {
     const close = jest.fn();
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <InviteMembersModal
         Body={Modal.Body}
         Header={Modal.Header}
@@ -140,7 +146,7 @@ describe('InviteMembersModal', function() {
       method: 'POST',
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <InviteMembersModal
         Body={Modal.Body}
         Header={Modal.Header}
@@ -221,10 +227,10 @@ describe('InviteMembersModal', function() {
     const faildCreateMemberMock = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/members/`,
       method: 'POST',
-      statusCode: 401,
+      statusCode: 400,
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <InviteMembersModal
         Body={Modal.Body}
         Header={Modal.Header}
@@ -256,5 +262,61 @@ describe('InviteMembersModal', function() {
     expect(
       wrapper.find('SelectControl EmailLabel InlineSvg[src="icon-warning-sm"]').exists()
     ).toBe(true);
+  });
+
+  describe('member invite request mode', function() {
+    it('has adjusted wording', function() {
+      const wrapper = mountWithTheme(
+        <InviteMembersModal
+          Body={Modal.Body}
+          Header={Modal.Header}
+          Footer={Modal.Footer}
+          organization={noWriteOrg}
+        />,
+        TestStubs.routerContext()
+      );
+
+      expect(wrapper.find('Button[data-test-id="send-invites"]').text()).toBe(
+        'Send invite request'
+      );
+
+      expect(wrapper.find('Heading Tooltip').exists()).toBe(true);
+    });
+
+    it('POSTS to the invite-request endpoint', function() {
+      const createInviteRequestMock = MockApiClient.addMockResponse({
+        url: `/organizations/${org.slug}/invite-requests/`,
+        method: 'POST',
+      });
+
+      const wrapper = mountWithTheme(
+        <InviteMembersModal
+          Body={Modal.Body}
+          Header={Modal.Header}
+          Footer={Modal.Footer}
+          organization={noWriteOrg}
+        />,
+        TestStubs.routerContext()
+      );
+
+      const inviteRowProps = wrapper
+        .find('StyledInviteRow')
+        .first()
+        .props();
+
+      inviteRowProps.onChangeEmails([{value: 'test1@test.com'}]);
+      inviteRowProps.onChangeRole({value: 'admin'});
+      inviteRowProps.onChangeTeams([{value: 'team1'}]);
+      wrapper
+        .find('StyledInviteRow')
+        .first()
+        .props()
+        .onChangeEmails([{value: 'test2@test.com'}]);
+
+      wrapper.update();
+      wrapper.find('FooterContent Button[priority="primary"]').simulate('click');
+
+      expect(createInviteRequestMock).toHaveBeenCalledTimes(1);
+    });
   });
 });

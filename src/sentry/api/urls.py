@@ -117,8 +117,8 @@ from .endpoints.organization_issues_new import OrganizationIssuesNewEndpoint
 from .endpoints.organization_issues_resolved_in_release import (
     OrganizationIssuesResolvedInReleaseEndpoint,
 )
-from .endpoints.organization_member_details import OrganizationMemberDetailsEndpoint
 from .endpoints.organization_member_index import OrganizationMemberIndexEndpoint
+from .endpoints.organization_member_details import OrganizationMemberDetailsEndpoint
 from .endpoints.organization_member_issues_assigned import OrganizationMemberIssuesAssignedEndpoint
 from .endpoints.organization_member_issues_bookmarked import (
     OrganizationMemberIssuesBookmarkedEndpoint,
@@ -128,6 +128,8 @@ from .endpoints.organization_member_team_details import OrganizationMemberTeamDe
 from .endpoints.organization_member_unreleased_commits import (
     OrganizationMemberUnreleasedCommitsEndpoint,
 )
+from .endpoints.organization_invite_request_index import OrganizationInviteRequestIndexEndpoint
+from .endpoints.organization_invite_request_details import OrganizationInviteRequestDetailsEndpoint
 from .endpoints.organization_monitors import OrganizationMonitorsEndpoint
 from .endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskEndpoint
 from .endpoints.organization_pinned_searches import OrganizationPinnedSearchEndpoint
@@ -244,6 +246,9 @@ from .endpoints.sentry_app_installation_external_requests import (
 from .endpoints.sentry_app_installations import SentryAppInstallationsEndpoint
 from .endpoints.sentry_apps import SentryAppsEndpoint
 from .endpoints.sentry_apps_stats import SentryAppsStatsEndpoint
+from .endpoints.sentry_app_stats import SentryAppStatsEndpoint
+from .endpoints.sentry_app_errors import SentryAppErrorsEndpoint
+from .endpoints.sentry_app_interaction import SentryAppInteractionEndpoint
 from .endpoints.setup_wizard import SetupWizard
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from .endpoints.system_health import SystemHealthEndpoint
@@ -282,6 +287,12 @@ from sentry.incidents.endpoints.organization_alert_rule_details import (
 )
 from sentry.incidents.endpoints.organization_alert_rule_index import (
     OrganizationAlertRuleIndexEndpoint,
+)
+from sentry.incidents.endpoints.organization_alert_rule_trigger_action_details import (
+    OrganizationAlertRuleTriggerActionDetailsEndpoint,
+)
+from sentry.incidents.endpoints.organization_alert_rule_trigger_action_index import (
+    OrganizationAlertRuleTriggerActionIndexEndpoint,
 )
 from sentry.incidents.endpoints.organization_alert_rule_trigger_details import (
     OrganizationAlertRuleTriggerDetailsEndpoint,
@@ -565,6 +576,16 @@ urlpatterns = patterns(
                     OrganizationAlertRuleTriggerIndexEndpoint.as_view(),
                     name="sentry-api-0-organization-alert-rules-triggers",
                 ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/triggers/(?P<alert_rule_trigger_id>[^\/]+)/actions/(?P<alert_rule_trigger_action_id>[^\/]+)/$",
+                    OrganizationAlertRuleTriggerActionDetailsEndpoint.as_view(),
+                    name="sentry-api-0-organization-alert-rule-trigger-action-details",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/triggers/(?P<alert_rule_trigger_id>[^\/]+)/actions$",
+                    OrganizationAlertRuleTriggerActionIndexEndpoint.as_view(),
+                    name="sentry-api-0-organization-alert-rules-trigger-actions",
+                ),
                 # Incidents
                 url(
                     r"^(?P<organization_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/activity/$",
@@ -781,6 +802,16 @@ urlpatterns = patterns(
                     r"^(?P<organization_slug>[^\/]+)/members/$",
                     OrganizationMemberIndexEndpoint.as_view(),
                     name="sentry-api-0-organization-member-index",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/invite-requests/$",
+                    OrganizationInviteRequestIndexEndpoint.as_view(),
+                    name="sentry-api-0-organization-invite-request-index",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/invite-requests/(?P<member_id>[^\/]+)/$",
+                    OrganizationInviteRequestDetailsEndpoint.as_view(),
+                    name="sentry-api-0-organization-invite-request-detail",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/monitors/$",
@@ -1442,6 +1473,21 @@ urlpatterns = patterns(
         r"^sentry-apps/(?P<sentry_app_slug>[^\/]+)/api-tokens/(?P<api_token>[^\/]+)/$",
         SentryInternalAppTokenDetailsEndpoint.as_view(),
         name="sentry-api-0-sentry-internal-app-token-details",
+    ),
+    url(
+        r"^sentry-apps/(?P<sentry_app_slug>[^\/]+)/stats/$",
+        SentryAppStatsEndpoint.as_view(),
+        name="sentry-api-0-sentry-app-stats",
+    ),
+    url(
+        r"^sentry-apps/(?P<sentry_app_slug>[^\/]+)/errors/$",
+        SentryAppErrorsEndpoint.as_view(),
+        name="sentry-api-0-sentry-app-errors",
+    ),
+    url(
+        r"^sentry-apps/(?P<sentry_app_slug>[^\/]+)/interaction/$",
+        SentryAppInteractionEndpoint.as_view(),
+        name="sentry-api-0-sentry-app-interaction",
     ),
     url(
         r"^organizations/(?P<organization_slug>[^\/]+)/sentry-app-components/$",

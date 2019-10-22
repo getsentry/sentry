@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {shallow, mount} from 'enzyme';
+import {shallow, mountWithTheme} from 'sentry-test/enzyme';
 import App from 'app/views/app';
 import ProjectTeams from 'app/views/settings/project/projectTeams';
 import * as modals from 'app/actionCreators/modal';
@@ -81,7 +81,7 @@ describe('ProjectTeams', function() {
       statusCode: 200,
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProjectTeams
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
@@ -160,7 +160,7 @@ describe('ProjectTeams', function() {
       ],
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProjectTeams
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
@@ -214,7 +214,7 @@ describe('ProjectTeams', function() {
       statusCode: 200,
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProjectTeams
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
@@ -264,7 +264,7 @@ describe('ProjectTeams', function() {
       body: {slug: 'new-team'},
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <App params={{orgId: org.slug}}>
         <ProjectTeams
           params={{orgId: org.slug, projectId: project.slug}}

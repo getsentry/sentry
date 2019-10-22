@@ -1,15 +1,14 @@
-import {Box, Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import {PanelItem} from 'app/components/panels';
 import {Repository} from 'app/sentryTypes';
 import {deleteRepository, cancelDeleteRepository} from 'app/actionCreators/integrations';
 import {t} from 'app/locale';
 import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
-import SpreadLayout from 'app/components/spreadLayout';
 import space from 'app/styles/space';
 
 class RepositoryRow extends React.Component {
@@ -75,8 +74,8 @@ class RepositoryRow extends React.Component {
     return (
       <Access access={['org:admin']}>
         {({hasAccess}) => (
-          <StyledRow status={repository.status}>
-            <Flex direction="column">
+          <StyledPanelItem status={repository.status}>
+            <RepositoryTitleAndUrl>
               <RepositoryTitle>
                 <strong>{repository.name}</strong>
                 {!isActive && <small> &mdash; {this.getStatusLabel(repository)}</small>}
@@ -91,7 +90,7 @@ class RepositoryRow extends React.Component {
                   </StyledButton>
                 )}
               </RepositoryTitle>
-              <Box>
+              <div>
                 {showProvider && <small>{repository.provider.name}</small>}
                 {showProvider && repository.url && <span>&nbsp;&mdash;&nbsp;</span>}
                 {repository.url && (
@@ -99,8 +98,8 @@ class RepositoryRow extends React.Component {
                     <a href={repository.url}>{repository.url.replace('https://', '')}</a>
                   </small>
                 )}
-              </Box>
-            </Flex>
+              </div>
+            </RepositoryTitleAndUrl>
 
             <Confirm
               disabled={!hasAccess || (!isActive && repository.status !== 'disabled')}
@@ -111,17 +110,18 @@ class RepositoryRow extends React.Component {
             >
               <Button size="xsmall" icon="icon-trash" disabled={!hasAccess} />
             </Confirm>
-          </StyledRow>
+          </StyledPanelItem>
         )}
       </Access>
     );
   }
 }
 
-const StyledRow = styled(SpreadLayout)`
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+const StyledPanelItem = styled(PanelItem)`
   /* shorter top padding because of title lineheight */
   padding: ${space(1)} ${space(2)} ${space(2)};
+  justify-content: space-between;
+  align-items: center;
   flex: 1;
 
   ${p =>
@@ -140,7 +140,12 @@ const StyledButton = styled(Button)`
   margin-left: ${space(1)};
 `;
 
-const RepositoryTitle = styled(Box)`
+const RepositoryTitleAndUrl = styled('div')`
+  display: flex;
+  flex-direction: column;
+`;
+
+const RepositoryTitle = styled('div')`
   margin-bottom: ${space(1)};
   /* accomodate cancel button height */
   line-height: 26px;

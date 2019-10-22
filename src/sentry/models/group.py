@@ -137,25 +137,22 @@ class EventOrdering(Enum):
 def get_oldest_or_latest_event_for_environments(
     ordering, environments=(), issue_id=None, project_id=None
 ):
-    from sentry.utils import snuba
-    from sentry.models import SnubaEvent
-
     conditions = []
 
     if len(environments) > 0:
         conditions.append(["environment", "IN", environments])
 
-    result = snuba.raw_query(
-        selected_columns=SnubaEvent.selected_columns,
-        conditions=conditions,
-        filter_keys={"issue": [issue_id], "project_id": [project_id]},
-        orderby=ordering.value,
+    events = eventstore.get_events(
+        filter=eventstore.Filter(
+            conditions=conditions, project_ids=[project_id], group_ids=[issue_id]
+        ),
         limit=1,
+        orderby=ordering.value,
         referrer="Group.get_latest",
     )
 
-    if "error" not in result and len(result["data"]) == 1:
-        return SnubaEvent(result["data"][0])
+    if events:
+        return events[0]
 
     return None
 
@@ -212,9 +209,12 @@ class GroupManager(BaseManager):
         return Group.objects.get(id=group_id)
 
     def filter_by_event_id(self, project_ids, event_id):
+        event_ids = [event_id]
+        conditions = [["group_id", "IS NOT NULL", None]]
         data = eventstore.get_events(
-            conditions=[["group_id", "IS NOT NULL", None]],
-            filter_keys={"event_id": [event_id], "project_id": project_ids},
+            filter=eventstore.Filter(
+                event_ids=event_ids, project_ids=project_ids, conditions=conditions
+            ),
             limit=len(project_ids),
             referrer="Group.filter_by_event_id",
         )
@@ -222,29 +222,6 @@ class GroupManager(BaseManager):
         group_ids = set([evt.group_id for evt in data])
 
         return Group.objects.filter(id__in=group_ids)
-
-    def add_tags(self, group, environment, tags):
-        project_id = group.project_id
-        date = group.last_seen
-
-        for tag_item in tags:
-            if len(tag_item) == 2:
-                (key, value), data = tag_item, None
-            else:
-                key, value, data = tag_item
-
-            tagstore.incr_tag_value_times_seen(
-                project_id, environment.id, key, value, extra={"last_seen": date, "data": data}
-            )
-
-            tagstore.incr_group_tag_value_times_seen(
-                project_id,
-                group.id,
-                environment.id,
-                key,
-                value,
-                extra={"project_id": project_id, "last_seen": date},
-            )
 
     def get_groups_by_external_issue(self, integration, external_issue_key):
         from sentry.models import ExternalIssue, GroupLink
@@ -303,7 +280,7 @@ class Group(Model):
     data = GzippedDictField(blank=True, null=True)
     short_id = BoundedBigIntegerField(null=True)
 
-    objects = GroupManager()
+    objects = GroupManager(cache_fields=("id",))
 
     class Meta:
         app_label = "sentry"
@@ -371,7 +348,7 @@ class Group(Model):
 
         if status == GroupStatus.IGNORED:
             try:
-                snooze = GroupSnooze.objects.get(group=self)
+                snooze = GroupSnooze.objects.get_from_cache(group=self)
             except GroupSnooze.DoesNotExist:
                 pass
             else:

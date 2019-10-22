@@ -37,7 +37,6 @@ from sentry.models import (
     UserOption,
     UserOptionValue,
 )
-from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.tsdb.snuba import SnubaTSDB
 from sentry.utils.db import attach_foreignkey
 from sentry.utils.safe import safe_execute
@@ -559,7 +558,6 @@ class GroupSerializerSnuba(GroupSerializerBase):
         self.end = end
 
     def _get_seen_stats(self, item_list, user):
-        tagstore = SnubaTagStorage()
         project_ids = list(set([item.project_id for item in item_list]))
         group_ids = [item.id for item in item_list]
         user_counts = tagstore.get_groups_user_counts(

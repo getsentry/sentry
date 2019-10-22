@@ -37,6 +37,13 @@ class InviteStatus(Enum):
     REQUESTED_TO_JOIN = 2
 
 
+invite_status_names = {
+    InviteStatus.APPROVED.value: "approved",
+    InviteStatus.REQUESTED_TO_BE_INVITED.value: "requested_to_be_invited",
+    InviteStatus.REQUESTED_TO_JOIN.value: "requested_to_join",
+}
+
+
 class OrganizationMemberTeam(BaseModel):
     """
     Identifies relationships between organization members and the teams they are on.
@@ -148,6 +155,15 @@ class OrganizationMember(Model):
     def refresh_expires_at(self):
         now = timezone.now()
         self.token_expires_at = now + timedelta(days=INVITE_DAYS_VALID)
+
+    def approve_invite(self):
+        self.invite_status = InviteStatus.APPROVED.value
+        self.regenerate_token()
+
+    def get_invite_status_name(self):
+        if self.invite_status is None:
+            return
+        return invite_status_names[self.invite_status]
 
     @property
     def invite_approved(self):
@@ -314,6 +330,7 @@ class OrganizationMember(Model):
             "teams_slugs": [t["slug"] for t in teams],
             "has_global_access": self.has_global_access,
             "role": self.role,
+            "invite_status": invite_status_names[self.invite_status],
         }
 
     def get_teams(self):

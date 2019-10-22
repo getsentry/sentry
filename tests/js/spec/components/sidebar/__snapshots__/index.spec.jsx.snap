@@ -478,7 +478,9 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
           "teams": Array [],
         }
       }
-    />
+    >
+      <Hook(sidebar:organization-dropdown-menu) />
+    </Hook>
     <SidebarMenuItem>
       <MenuItemLink>
         <Component
@@ -1027,7 +1029,9 @@ exports[`Sidebar SidebarHelp can toggle help menu 1`] = `
           "teams": Array [],
         }
       }
-    />
+    >
+      <Hook(sidebar:help-menu) />
+    </Hook>
     <SidebarMenuItem
       onClick={[Function]}
     >
@@ -1672,7 +1676,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                             <ForwardRef
                                               aria-disabled={false}
                                               aria-label="Go to Support"
-                                              className="css-6x2oxd-StyledButton-getColors edwq9my0"
+                                              className="css-budrs3-StyledButton-getColors edwq9my0"
                                               disabled={false}
                                               onClick={[Function]}
                                               priority="link"
@@ -1682,7 +1686,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                               <Link
                                                 aria-disabled={false}
                                                 aria-label="Go to Support"
-                                                className="css-6x2oxd-StyledButton-getColors edwq9my0"
+                                                className="css-budrs3-StyledButton-getColors edwq9my0"
                                                 onClick={[Function]}
                                                 onlyActiveOnIndex={false}
                                                 role="button"
@@ -1692,7 +1696,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                 <a
                                                   aria-disabled={false}
                                                   aria-label="Go to Support"
-                                                  className="css-6x2oxd-StyledButton-getColors edwq9my0"
+                                                  className="css-budrs3-StyledButton-getColors edwq9my0"
                                                   onClick={[Function]}
                                                   role="button"
                                                   style={Object {}}
@@ -1987,7 +1991,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                             <ForwardRef
                                               aria-disabled={false}
                                               aria-label="Go to Support"
-                                              className="css-6x2oxd-StyledButton-getColors edwq9my0"
+                                              className="css-budrs3-StyledButton-getColors edwq9my0"
                                               disabled={false}
                                               onClick={[Function]}
                                               priority="link"
@@ -1997,7 +2001,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                               <Link
                                                 aria-disabled={false}
                                                 aria-label="Go to Support"
-                                                className="css-6x2oxd-StyledButton-getColors edwq9my0"
+                                                className="css-budrs3-StyledButton-getColors edwq9my0"
                                                 onClick={[Function]}
                                                 onlyActiveOnIndex={false}
                                                 role="button"
@@ -2007,7 +2011,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                 <a
                                                   aria-disabled={false}
                                                   aria-label="Go to Support"
-                                                  className="css-6x2oxd-StyledButton-getColors edwq9my0"
+                                                  className="css-budrs3-StyledButton-getColors edwq9my0"
                                                   onClick={[Function]}
                                                   role="button"
                                                   style={Object {}}
@@ -2300,7 +2304,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                             <ForwardRef
                                               aria-disabled={false}
                                               aria-label="Go to Support"
-                                              className="css-6x2oxd-StyledButton-getColors edwq9my0"
+                                              className="css-budrs3-StyledButton-getColors edwq9my0"
                                               disabled={false}
                                               onClick={[Function]}
                                               priority="link"
@@ -2310,7 +2314,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                               <Link
                                                 aria-disabled={false}
                                                 aria-label="Go to Support"
-                                                className="css-6x2oxd-StyledButton-getColors edwq9my0"
+                                                className="css-budrs3-StyledButton-getColors edwq9my0"
                                                 onClick={[Function]}
                                                 onlyActiveOnIndex={false}
                                                 role="button"
@@ -2320,7 +2324,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                 <a
                                                   aria-disabled={false}
                                                   aria-label="Go to Support"
-                                                  className="css-6x2oxd-StyledButton-getColors edwq9my0"
+                                                  className="css-budrs3-StyledButton-getColors edwq9my0"
                                                   onClick={[Function]}
                                                   role="button"
                                                   style={Object {}}
@@ -2617,7 +2621,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                             <ForwardRef
                                               aria-disabled={false}
                                               aria-label="Go to Support"
-                                              className="css-6x2oxd-StyledButton-getColors edwq9my0"
+                                              className="css-budrs3-StyledButton-getColors edwq9my0"
                                               disabled={false}
                                               onClick={[Function]}
                                               priority="link"
@@ -2627,7 +2631,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                               <Link
                                                 aria-disabled={false}
                                                 aria-label="Go to Support"
-                                                className="css-6x2oxd-StyledButton-getColors edwq9my0"
+                                                className="css-budrs3-StyledButton-getColors edwq9my0"
                                                 onClick={[Function]}
                                                 onlyActiveOnIndex={false}
                                                 role="button"
@@ -2637,7 +2641,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                 <a
                                                   aria-disabled={false}
                                                   aria-label="Go to Support"
-                                                  className="css-6x2oxd-StyledButton-getColors edwq9my0"
+                                                  className="css-budrs3-StyledButton-getColors edwq9my0"
                                                   onClick={[Function]}
                                                   role="button"
                                                   style={Object {}}
@@ -2936,7 +2940,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                             <ForwardRef
                                               aria-disabled={false}
                                               aria-label="Go to Support"
-                                              className="css-6x2oxd-StyledButton-getColors edwq9my0"
+                                              className="css-budrs3-StyledButton-getColors edwq9my0"
                                               disabled={false}
                                               onClick={[Function]}
                                               priority="link"
@@ -2946,7 +2950,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                               <Link
                                                 aria-disabled={false}
                                                 aria-label="Go to Support"
-                                                className="css-6x2oxd-StyledButton-getColors edwq9my0"
+                                                className="css-budrs3-StyledButton-getColors edwq9my0"
                                                 onClick={[Function]}
                                                 onlyActiveOnIndex={false}
                                                 role="button"
@@ -2956,7 +2960,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                 <a
                                                   aria-disabled={false}
                                                   aria-label="Go to Support"
-                                                  className="css-6x2oxd-StyledButton-getColors edwq9my0"
+                                                  className="css-budrs3-StyledButton-getColors edwq9my0"
                                                   onClick={[Function]}
                                                   role="button"
                                                   style={Object {}}
@@ -3255,7 +3259,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                             <ForwardRef
                                               aria-disabled={false}
                                               aria-label="Go to Support"
-                                              className="css-6x2oxd-StyledButton-getColors edwq9my0"
+                                              className="css-budrs3-StyledButton-getColors edwq9my0"
                                               disabled={false}
                                               onClick={[Function]}
                                               priority="link"
@@ -3265,7 +3269,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                               <Link
                                                 aria-disabled={false}
                                                 aria-label="Go to Support"
-                                                className="css-6x2oxd-StyledButton-getColors edwq9my0"
+                                                className="css-budrs3-StyledButton-getColors edwq9my0"
                                                 onClick={[Function]}
                                                 onlyActiveOnIndex={false}
                                                 role="button"
@@ -3275,7 +3279,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                 <a
                                                   aria-disabled={false}
                                                   aria-label="Go to Support"
-                                                  className="css-6x2oxd-StyledButton-getColors edwq9my0"
+                                                  className="css-budrs3-StyledButton-getColors edwq9my0"
                                                   onClick={[Function]}
                                                   role="button"
                                                   style={Object {}}

@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount, shallow} from 'enzyme';
+import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 
 import SelectControl from 'app/components/forms/selectControl';
 
@@ -54,12 +54,13 @@ describe('SelectControl', function() {
     const Foo = <div>Foo</div>;
     const Bar = <div>Bar</div>;
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <SelectControl
         choices={[[{id: 'foo', name: 'Foo'}, Foo], [{id: 'bar', name: 'Bar'}, Bar]]}
         name="fieldName"
         onChange={mock}
-      />
+      />,
+      TestStubs.routerContext()
     );
     expect(wrapper.find('StyledSelect').prop('options')).toEqual([
       {value: {id: 'foo', name: 'Foo'}, label: Foo},

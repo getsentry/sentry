@@ -38,6 +38,7 @@ class OrganizationDetailsTest(APITestCase):
         assert response.data["onboardingTasks"] == []
         assert response.status_code == 200, response.content
         assert response.data["id"] == six.text_type(org.id)
+        assert response.data["role"] == "owner"
         assert len(response.data["teams"]) == 0
         assert len(response.data["projects"]) == 0
 

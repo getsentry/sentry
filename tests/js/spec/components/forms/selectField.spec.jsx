@@ -1,18 +1,18 @@
+import {mountWithTheme, shallow} from 'sentry-test/enzyme';
+import {selectByValue} from 'sentry-test/select';
 import React from 'react';
-import {mount, shallow} from 'enzyme';
 
 import {Form, SelectField} from 'app/components/forms';
 
-import {selectByValue} from '../../../helpers/select';
-
 describe('SelectField', function() {
   it('renders without form context', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <SelectField
         options={[{label: 'a', value: 'a'}, {label: 'b', value: 'b'}]}
         name="fieldName"
         value="a"
-      />
+      />,
+      TestStubs.routerContext()
     );
     expect(wrapper).toMatchSnapshot();
   });
@@ -53,13 +53,14 @@ describe('SelectField', function() {
 
   it('can change value and submit', function() {
     const mock = jest.fn();
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <Form onSubmit={mock}>
         <SelectField
           options={[{label: 'a', value: 'a'}, {label: 'b', value: 'b'}]}
           name="fieldName"
         />
-      </Form>
+      </Form>,
+      TestStubs.routerContext()
     );
     selectByValue(wrapper, 'a', {name: 'fieldName'});
     wrapper.find('Form').simulate('submit');
@@ -73,14 +74,15 @@ describe('SelectField', function() {
   describe('Multiple', function() {
     it('selects multiple values and submits', function() {
       const mock = jest.fn();
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <Form onSubmit={mock}>
           <SelectField
             multiple
             options={[{label: 'a', value: 'a'}, {label: 'b', value: 'b'}]}
             name="fieldName"
           />
-        </Form>
+        </Form>,
+        TestStubs.routerContext()
       );
       selectByValue(wrapper, 'a', {name: 'fieldName'});
       wrapper.find('Form').simulate('submit');

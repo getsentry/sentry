@@ -4,15 +4,15 @@ exports[`ApiNewToken render() renders 1`] = `
 <SideEffect(DocumentTitle)
   title="Create API Token - Sentry"
 >
-  <NarrowLayout>
-    <h3>
-      Create New Token
-    </h3>
-    <hr />
-    <p>
+  <div>
+    <StyledSettingsPageHeading
+      noTitleStyles={false}
+      title="Create New Token"
+    />
+    <TextBlock>
       Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API.
-    </p>
-    <p>
+    </TextBlock>
+    <TextBlock>
       <span
         key="5"
       >
@@ -37,105 +37,123 @@ exports[`ApiNewToken render() renders 1`] = `
           .
         </span>
       </span>
-    </p>
-    <ApiForm
-      apiEndpoint="/api-tokens/"
-      apiMethod="POST"
-      cancelLabel="Cancel"
-      className="form-stacked api-new-token"
-      errorMessage="Unable to save your changes. Please ensure all fields are valid and try again."
-      footerClass="form-actions align-right"
-      hideErrors={false}
-      initialData={
-        Object {
-          "scopes": Array [
-            "event:admin",
-            "event:read",
-            "member:read",
-            "org:read",
-            "project:read",
-            "project:releases",
-            "team:read",
-          ],
+    </TextBlock>
+    <Panel>
+      <PanelHeader>
+        Create New Token
+      </PanelHeader>
+      <ApiForm
+        apiEndpoint="/api-tokens/"
+        apiMethod="POST"
+        footerStyle={
+          Object {
+            "marginTop": 0,
+            "paddingRight": 20,
+          }
         }
-      }
-      onCancel={[Function]}
-      onSubmitSuccess={[Function]}
-      requireChanges={false}
-      resetOnError={false}
-      submitDisabled={false}
-      submitErrorMessage="There was an error saving your changes."
-      submitLabel="Save Changes"
-      submitLoadingMessage="Saving changes.."
-    >
-      <MultipleCheckboxField
-        choices={
-          Array [
-            Array [
+        initialData={
+          Object {
+            "scopes": Array [
+              "event:admin",
+              "event:read",
+              "member:read",
+              "org:read",
               "project:read",
-              "project:read",
-            ],
-            Array [
-              "project:write",
-              "project:write",
-            ],
-            Array [
-              "project:admin",
-              "project:admin",
-            ],
-            Array [
               "project:releases",
-              "project:releases",
-            ],
-            Array [
-              "team:read",
               "team:read",
             ],
-            Array [
-              "team:write",
-              "team:write",
-            ],
-            Array [
-              "team:admin",
-              "team:admin",
-            ],
-            Array [
-              "event:read",
-              "event:read",
-            ],
-            Array [
-              "event:admin",
-              "event:admin",
-            ],
-            Array [
-              "org:read",
-              "org:read",
-            ],
-            Array [
-              "org:write",
-              "org:write",
-            ],
-            Array [
-              "org:admin",
-              "org:admin",
-            ],
-            Array [
-              "member:read",
-              "member:read",
-            ],
-            Array [
-              "member:admin",
-              "member:admin",
-            ],
-          ]
+          }
         }
-        disabled={false}
-        hideErrorMessage={false}
-        label="Scopes"
-        name="scopes"
-        required={true}
-      />
-    </ApiForm>
-  </NarrowLayout>
+        onCancel={[Function]}
+        onSubmitSuccess={[Function]}
+        submitLabel="Create Token"
+      >
+        <PanelBody
+          direction="column"
+          disablePadding={true}
+          flex={false}
+        >
+          <FormField
+            choices={
+              Array [
+                Array [
+                  "project:read",
+                  "project:read",
+                ],
+                Array [
+                  "project:write",
+                  "project:write",
+                ],
+                Array [
+                  "project:admin",
+                  "project:admin",
+                ],
+                Array [
+                  "project:releases",
+                  "project:releases",
+                ],
+                Array [
+                  "team:read",
+                  "team:read",
+                ],
+                Array [
+                  "team:write",
+                  "team:write",
+                ],
+                Array [
+                  "team:admin",
+                  "team:admin",
+                ],
+                Array [
+                  "event:read",
+                  "event:read",
+                ],
+                Array [
+                  "event:write",
+                  "event:write",
+                ],
+                Array [
+                  "event:admin",
+                  "event:admin",
+                ],
+                Array [
+                  "org:read",
+                  "org:read",
+                ],
+                Array [
+                  "org:write",
+                  "org:write",
+                ],
+                Array [
+                  "org:admin",
+                  "org:admin",
+                ],
+                Array [
+                  "member:read",
+                  "member:read",
+                ],
+                Array [
+                  "member:write",
+                  "member:write",
+                ],
+                Array [
+                  "member:admin",
+                  "member:admin",
+                ],
+              ]
+            }
+            flexibleControlStateSize={false}
+            hideErrorMessage={false}
+            inline={false}
+            label="Scopes"
+            name="scopes"
+            required={true}
+          >
+            <Component />
+          </FormField>
+        </PanelBody>
+      </ApiForm>
+    </Panel>
+  </div>
 </SideEffect(DocumentTitle)>
 `;

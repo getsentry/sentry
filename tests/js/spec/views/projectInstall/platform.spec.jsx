@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 import React from 'react';
 
-import {shallow, mount} from 'enzyme';
+import {shallow, mountWithTheme} from 'sentry-test/enzyme';
 import {ProjectInstallPlatform} from 'app/views/projectInstall/platform';
 
 describe('ProjectInstallPlatform', function() {
@@ -28,7 +28,7 @@ describe('ProjectInstallPlatform', function() {
         body: {},
       });
 
-      mount(
+      mountWithTheme(
         <ProjectInstallPlatform {...props} />,
         TestStubs.routerContext([{organization: {id: '1337'}}])
       );
@@ -86,7 +86,7 @@ describe('ProjectInstallPlatform', function() {
         body: {html: '<h1>Documentation here</h1>'},
       });
 
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <ProjectInstallPlatform {...props} />,
         TestStubs.routerContext([{organization: {id: '1337'}}])
       );

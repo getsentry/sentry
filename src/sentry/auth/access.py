@@ -80,6 +80,7 @@ class BaseAccess(object):
     has_global_access = False
     scopes = frozenset()
     permissions = frozenset()
+    role = None
 
     def has_permission(self, permission):
         """
@@ -182,6 +183,7 @@ class Access(BaseAccess):
         sso_is_valid,
         requires_sso,
         permissions=None,
+        role=None,
     ):
         self.organization_id = organization_id
         self.teams = teams
@@ -190,6 +192,8 @@ class Access(BaseAccess):
         self.scopes = scopes
         if permissions is not None:
             self.permissions = permissions
+        if role is not None:
+            self.role = role
 
         self.is_active = is_active
         self.sso_is_valid = sso_is_valid
@@ -272,6 +276,7 @@ def from_request(request, organization=None, scopes=None):
         return from_sentry_app(request.user, organization=organization)
 
     if is_active_superuser(request):
+        role = None
         # we special case superuser so that if they're a member of the org
         # they must still follow SSO checks, but they gain global access
         try:
@@ -280,6 +285,7 @@ def from_request(request, organization=None, scopes=None):
             requires_sso, sso_is_valid = False, True
         else:
             requires_sso, sso_is_valid = _sso_params(member)
+            role = member.role
 
         team_list = ()
 
@@ -294,6 +300,7 @@ def from_request(request, organization=None, scopes=None):
             requires_sso=requires_sso,
             has_global_access=True,
             permissions=UserPermission.for_user(request.user.id),
+            role=role,
         )
 
     if hasattr(request, "auth") and not request.user.is_authenticated():
@@ -373,6 +380,7 @@ def from_member(member, scopes=None):
         has_global_access=bool(member.organization.flags.allow_joinleave)
         or roles.get(member.role).is_global,
         permissions=UserPermission.for_user(member.user_id),
+        role=member.role,
     )
 
 

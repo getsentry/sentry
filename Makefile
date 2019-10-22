@@ -7,16 +7,18 @@ ifneq "$(wildcard /usr/local/opt/openssl/lib)" ""
 	LDFLAGS += -L/usr/local/opt/openssl/lib
 endif
 
-PIP = LDFLAGS="$(LDFLAGS)" pip
-PIP_OPTS = --no-use-pep517 --disable-pip-version-check
-WEBPACK = NODE_ENV=production ./bin/yarn webpack
-YARN = ./bin/yarn
+PIP := LDFLAGS="$(LDFLAGS)" python -m pip
+# Note: this has to be synced with the pip version in .travis.yml.
+PIP_VERSION := 19.2.3
+PIP_OPTS := --no-use-pep517 --disable-pip-version-check
+WEBPACK := NODE_ENV=production ./bin/yarn webpack
+YARN := ./bin/yarn
 
 bootstrap: install-system-pkgs develop init-config run-dependent-services create-db apply-migrations
 
-develop: setup-git ensure-venv ensure-latest-pip develop-only
+develop: ensure-venv setup-git develop-only
 
-develop-only: update-submodules install-yarn-pkgs install-sentry-dev
+develop-only: ensure-venv update-submodules install-yarn-pkgs install-sentry-dev
 
 init-config:
 	sentry init --dev
@@ -25,12 +27,6 @@ run-dependent-services:
 	sentry devservices up
 
 test: develop lint test-js test-python test-cli
-
-ensure-venv:
-	@./scripts/ensure-venv.sh
-
-ensure-latest-pip:
-	python -m pip install -U pip
 
 build: locale
 
@@ -61,7 +57,13 @@ clean:
 	rm -rf build/ dist/ src/sentry/assets.json
 	@echo ""
 
-setup-git:
+ensure-venv:
+	@./scripts/ensure-venv.sh
+
+ensure-latest-pip:
+	$(PIP) install "pip==$(PIP_VERSION)"
+
+setup-git: ensure-latest-pip
 	@echo "--> Installing git hooks"
 	git config branch.autosetuprebase always
 	git config core.ignorecase false
@@ -96,7 +98,7 @@ install-yarn-pkgs:
 
 install-sentry-dev:
 	@echo "--> Installing Sentry (for development)"
-	$(PIP) install -e ".[dev,tests,optional]" $(PIP_OPTS)
+	$(PIP) install -e ".[dev,optional]" $(PIP_OPTS)
 
 build-js-po: node-version-check
 	mkdir -p build
@@ -157,12 +159,6 @@ ifndef TEST_GROUP
 else
 	py.test tests/integration tests/sentry -m group_$(TEST_GROUP) --cov . --cov-report="xml:.artifacts/python.coverage.xml" --junit-xml=".artifacts/python.junit.xml" || exit 1
 endif
-	@echo ""
-
-test-riak:
-	sentry init
-	@echo "--> Running Riak tests"
-	py.test tests/sentry/nodestore/riak/backend --cov . --cov-report="xml:.artifacts/riak.coverage.xml" --junit-xml=".artifacts/riak.junit.xml" || exit 1
 	@echo ""
 
 test-snuba:
@@ -230,7 +226,7 @@ travis-noop:
 .PHONY: travis-test-lint
 travis-test-lint: lint-python lint-js
 
-.PHONY: travis-test-postgres travis-test-acceptance travis-test-snuba travis-test-symbolicator travis-test-js travis-test-cli travis-test-dist travis-test-riak
+.PHONY: travis-test-postgres travis-test-acceptance travis-test-snuba travis-test-symbolicator travis-test-js travis-test-cli travis-test-dist
 travis-test-postgres: test-python
 travis-test-acceptance: test-acceptance
 travis-test-snuba: test-snuba
@@ -244,9 +240,8 @@ travis-test-dist:
 	# See: https://github.com/travis-ci/travis-ci/issues/4704
 	SENTRY_BUILD=$(TRAVIS_COMMIT) SENTRY_LIGHT_BUILD=0 python setup.py -q sdist bdist_wheel
 	@ls -lh dist/
-travis-test-riak: test-riak
 
-.PHONY: scan-python travis-scan-postgres travis-scan-acceptance travis-scan-snuba travis-scan-symbolicator travis-scan-js travis-scan-cli travis-scan-dist travis-scan-lint travis-scan-riak
+.PHONY: scan-python travis-scan-postgres travis-scan-acceptance travis-scan-snuba travis-scan-symbolicator travis-scan-js travis-scan-cli travis-scan-dist travis-scan-lint
 scan-python:
 	@echo "--> Running Python vulnerability scanner"
 	$(PIP) install safety $(PIP_OPTS)
@@ -261,4 +256,3 @@ travis-scan-js: travis-noop
 travis-scan-cli: travis-noop
 travis-scan-dist: travis-noop
 travis-scan-lint: scan-python
-travis-scan-riak: travis-noop

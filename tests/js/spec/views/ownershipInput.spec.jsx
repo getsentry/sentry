@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import OwnerInput from 'app/views/settings/project/projectOwnership/ownerInput';
 
@@ -26,7 +26,7 @@ describe('Project Ownership Input', function() {
   });
 
   it('renders', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OwnerInput
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}

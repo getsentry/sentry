@@ -20,6 +20,7 @@ import marked, {singleLineRenderer} from 'app/utils/marked';
 import space from 'app/styles/space';
 import {IntegrationDetailsModalOptions} from 'app/actionCreators/modal';
 import {Integration} from 'app/types';
+import {Hooks} from 'app/types/hooks';
 
 type Props = {
   closeModal: () => void;
@@ -29,7 +30,6 @@ type Props = {
  * In sentry.io the features list supports rendering plan details. If the hook
  * is not registered for rendering the features list like this simply show the
  * features as a normal list.
- * TODO(TS): Add typing for feature gates
  */
 const defaultFeatureGateComponents = {
   IntegrationFeatures: p =>
@@ -46,7 +46,7 @@ const defaultFeatureGateComponents = {
       ))}
     </ul>
   ),
-};
+} as ReturnType<Hooks['integrations:feature-gates']>;
 
 class IntegrationDetailsModal extends React.Component<Props> {
   static propTypes = {
@@ -189,7 +189,7 @@ class IntegrationDetailsModal extends React.Component<Props> {
   }
 }
 
-const DisabledNotice = styled(({reason, ...p}: {reason: string}) => (
+const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
   <Flex align="center" flex={1} {...p}>
     <InlineSvg src="icon-circle-exclamation" size="1.5em" />
     <Box ml={1}>{reason}</Box>

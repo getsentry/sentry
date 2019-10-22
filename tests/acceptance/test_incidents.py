@@ -39,6 +39,7 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
             self.browser.wait_until_not(".loading-indicator")
+            self.browser.wait_until_test_id("incident-sparkline")
             self.browser.snapshot("incidents - list")
 
             details_url = u'[href="/organizations/{}/incidents/{}/'.format(

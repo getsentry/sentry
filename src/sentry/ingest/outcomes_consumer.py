@@ -17,16 +17,28 @@ signals to getSentry for these outcomes.
 """
 from __future__ import absolute_import
 
+import six
+
+import datetime
+import time
+import atexit
 import logging
+import multiprocessing.dummy
+import multiprocessing as _multiprocessing
+
+from sentry.utils.batching_kafka_consumer import AbstractBatchWorker
 
 from django.conf import settings
 from django.core.cache import cache
 
 from sentry.models.project import Project
+from sentry.db.models.manager import BaseManager
 from sentry.signals import event_filtered, event_dropped
-from sentry.utils.kafka import SimpleKafkaConsumer
-from sentry.utils import json
+from sentry.utils.kafka import create_batching_kafka_consumer
+from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome
+from sentry.utils.dates import to_datetime
+from sentry.buffer.redis import batch_buffers_incr
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +57,7 @@ def mark_signal_sent(project_id, event_id):
 
     :param project_id: :param event_id: :return:
     """
+    assert isinstance(project_id, six.integer_types)
     key = _get_signal_cache_key(project_id, event_id)
     cache.set(key, True, 3600)
 
@@ -57,75 +70,82 @@ def is_signal_sent(project_id, event_id):
     return cache.get(key, None) is not None
 
 
-class OutcomesConsumer(SimpleKafkaConsumer):
+def _process_message(msg):
+    project_id = int(msg.get("project_id", 0))
+    if project_id == 0:
+        return  # no project. this is valid, so ignore silently.
+
+    outcome = int(msg.get("outcome", -1))
+    if outcome not in (Outcome.FILTERED, Outcome.RATE_LIMITED):
+        return  # nothing to do here
+
+    event_id = msg.get("event_id")
+    if is_signal_sent(project_id=project_id, event_id=event_id):
+        return  # message already processed nothing left to do
+
+    try:
+        project = Project.objects.get_from_cache(id=project_id)
+    except Project.DoesNotExist:
+        logger.error("OutcomesConsumer could not find project with id: %s", project_id)
+        return
+
+    reason = msg.get("reason")
+    remote_addr = msg.get("remote_addr")
+
+    if outcome == Outcome.FILTERED:
+        event_filtered.send_robust(ip=remote_addr, project=project, sender=OutcomesConsumerWorker)
+    elif outcome == Outcome.RATE_LIMITED:
+        event_dropped.send_robust(
+            ip=remote_addr, project=project, reason_code=reason, sender=OutcomesConsumerWorker
+        )
+
+    # remember that we sent the signal just in case the processor dies before
+    mark_signal_sent(project_id=project_id, event_id=event_id)
+
+    timestamp = msg.get("timestamp")
+    if timestamp is not None:
+        delta = to_datetime(time.time()).replace(tzinfo=None) - datetime.datetime.strptime(
+            timestamp, "%Y-%m-%dT%H:%M:%S.%fZ"
+        )
+        metrics.timing("outcomes_consumer.timestamp_lag", delta.total_seconds())
+
+    metrics.incr("outcomes_consumer.signal_sent", tags={"reason": reason, "outcome": outcome})
+
+
+def _process_message_with_timer(message):
+    with metrics.timer("outcomes_consumer.process_message"):
+        return _process_message(message)
+
+
+class OutcomesConsumerWorker(AbstractBatchWorker):
+    def __init__(self, concurrency):
+        self.pool = _multiprocessing.dummy.Pool(concurrency)
+        atexit.register(self.pool.close)
+
     def process_message(self, message):
-        msg = json.loads(message.value())
+        return json.loads(message.value())
 
-        project_id = int(msg.get("project_id", 0))
-        if project_id == 0:
-            return  # no project. this is valid, so ignore silently.
+    def flush_batch(self, batch):
+        batch.sort(key=lambda msg: msg.get("project_id", 0) or 0)
 
-        outcome = int(msg.get("outcome", -1))
-        if outcome not in (Outcome.FILTERED, Outcome.RATE_LIMITED):
-            return  # nothing to do here
+        with batch_buffers_incr():
+            with BaseManager.local_cache():
+                for _ in self.pool.imap_unordered(
+                    _process_message_with_timer, batch, chunksize=100
+                ):
+                    pass
 
-        event_id = msg.get("event_id")
-        if is_signal_sent(project_id=project_id, event_id=event_id):
-            return  # message already processed nothing left to do
-
-        try:
-            project = Project.objects.get_from_cache(id=project_id)
-        except Project.DoesNotExist:
-            logger.error("OutcomesConsumer could not find project with id: %s", project_id)
-            return
-
-        reason = msg.get("reason")
-        remote_addr = msg.get("remote_addr")
-
-        if outcome == Outcome.FILTERED:
-            event_filtered.send_robust(ip=remote_addr, project=project, sender=self.process_message)
-        elif outcome == Outcome.RATE_LIMITED:
-            event_dropped.send_robust(
-                ip=remote_addr, project=project, reason_code=reason, sender=self.process_message
-            )
-
-        # remember that we sent the signal just in case the processor dies before
-        mark_signal_sent(project_id=project_id, event_id=event_id)
+    def shutdown(self):
+        pass
 
 
-def run_outcomes_consumer(
-    commit_batch_size,
-    consumer_group,
-    max_fetch_time_seconds,
-    initial_offset_reset,
-    is_shutdown_requested=lambda: False,
-):
+def get_outcomes_consumer(concurrency=None, **options):
     """
     Handles outcome requests coming via a kafka queue from Relay.
-
-    :param commit_batch_size: the number of message the consumer will try to process/commit in one loop
-    :param consumer_group: kafka consumer group name
-    :param max_fetch_time_seconds: the maximum number of seconds a consume operation will be blocked waiting
-        for the specified commit_batch_size number of messages to appear in the queue before it returns. At the
-        end of the specified time the consume operation will return however many messages it has ( including
-        an empty array if no new messages are available).
-    :param initial_offset_reset: offset reset policy when there's no available offset for the consumer
-    :param is_shutdown_requested: Callable[[],bool] predicate checked after each loop, if it returns
-        True the forwarder stops (by default is lambda: False). In normal operation this should be left to default.
-        For unit testing it offers a way to cleanly stop the forwarder after some particular condition is achieved.
     """
 
-    logger.debug("Starting outcomes-consumer...")
-    topic_name = settings.KAFKA_OUTCOMES
-
-    outcomes_consumer = OutcomesConsumer(
-        commit_batch_size=commit_batch_size,
-        consumer_group=consumer_group,
-        topic_name=topic_name,
-        max_fetch_time_seconds=max_fetch_time_seconds,
-        initial_offset_reset=initial_offset_reset,
+    return create_batching_kafka_consumer(
+        topic_name=settings.KAFKA_OUTCOMES,
+        worker=OutcomesConsumerWorker(concurrency=concurrency),
+        **options
     )
-
-    outcomes_consumer.run(is_shutdown_requested)
-
-    logger.debug("outcomes-consumer terminated.")

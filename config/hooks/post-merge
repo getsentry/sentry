@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+
+red="$(tput setaf 1)"
+bold="$(tput bold)"
+reset="$(tput sgr0)"
+
+files_changed_upstream="$(mktemp)"
+trap "rm -f ${files_changed_upstream}" EXIT
+
+git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD > "$files_changed_upstream"
+
+grep -E --quiet 'requirements.*\.txt' "$files_changed_upstream" && py=true
+grep -E --quiet 'yarn.lock' "$files_changed_upstream"           && js=true
+grep -E --quiet 'south_migrations' "$files_changed_upstream"    && migrations=true
+
+[[ "$py" || "$js" || "$migrations" ]] && cat <<EOF
+
+[${red}${bold}!!!${reset}] ${red}It looks like some dependencies have changed that will require your intervention.${reset}
+
+EOF
+
+[[ "$py" ]] && cat <<EOF
+    ${red}Run "${bold}make install-sentry-dev${reset}${red}" to refresh your python virtual environment${reset}
+EOF
+
+[[ "$js" ]] && cat <<EOF
+    ${red}Run "${bold}yarn${reset}${red}" to update your javascript dependencies${reset}
+EOF
+
+[[ "$migrations" ]] && cat <<EOF
+    ${red}Run "${bold}sentry upgrade${reset}${red}" to run database migrations${reset}
+EOF
+
+echo

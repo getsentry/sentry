@@ -10,7 +10,13 @@ from sentry.constants import SentryAppStatus
 from sentry.utils import json
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
-from sentry.models import SentryApp, SentryAppInstallationToken, SentryAppInstallation, ApiToken
+from sentry.models import (
+    SentryApp,
+    SentryAppInstallationToken,
+    SentryAppInstallation,
+    ApiToken,
+    OrganizationMember,
+)
 from sentry.models.sentryapp import MASKED_VALUE
 
 
@@ -517,6 +523,21 @@ class PostSentryAppsTest(SentryAppsTest):
             url, HTTP_ORIGIN="http://example.com", HTTP_AUTHORIZATION="Bearer %s" % (token.token)
         )
         assert response.status_code == 400
+
+    def test_create_integration_exceeding_scopes(self):
+        member_om = OrganizationMember.objects.get(user=self.user, organization=self.org)
+        member_om.role = "member"
+        member_om.save()
+        self.login_as(user=self.user)
+        response = self._post(events=(), scopes=("member:read", "member:write", "member:admin"))
+
+        assert response.status_code == 400
+        assert response.data == {
+            "scopes": [
+                "Requested permission of member:write exceeds requester's permission. Please contact an administrator to make the requested change.",
+                "Requested permission of member:admin exceeds requester's permission. Please contact an administrator to make the requested change.",
+            ]
+        }
 
     def _post(self, **kwargs):
         body = {

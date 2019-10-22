@@ -34,6 +34,7 @@ export type OrganizationDetailed = Organization & {
   scrubIPAddresses: boolean;
   scrapeJavaScript: boolean;
   trustedRelays: string[];
+  role?: string;
 };
 
 export type Project = {
@@ -45,6 +46,7 @@ export type Project = {
 
   isBookmarked: boolean;
   hasUserReports?: boolean;
+  hasAccess: boolean;
 };
 
 export type Team = {
@@ -189,7 +191,7 @@ export type User = {
   avatar: {avatarUuid: string | null; avatarType: 'letter_avatar' | 'upload'};
   ip_address: string;
   hasPasswordAuth: boolean;
-  permissions: string[];
+  permissions: Set<string>;
   email: string;
 };
 
@@ -249,7 +251,7 @@ type Authenticator = {
 export type Config = {
   languageCode: string;
   csrfCookieName: string;
-  features: string[];
+  features: Set<string>;
   singleOrganization: boolean;
   urlPrefix: string;
   needsUpgrade: boolean;
@@ -388,6 +390,11 @@ export type IntegrationProvider = {
   metadata: any; //TODO(ts)
 };
 
+export type IntegrationFeature = {
+  description: React.ReactNode;
+  featureGate: string;
+};
+
 export type WebhookEvent = 'issue' | 'error';
 
 export type Scope = typeof API_SCOPES[number];
@@ -457,6 +464,29 @@ export type SentryAppInstallation = {
   code?: string;
 };
 
+export type SentryAppWebhookError = {
+  webhookUrl: string;
+  app: {
+    uuid: string;
+    slug: string;
+    name: string;
+  };
+  request: {
+    body: object;
+    headers: object;
+  };
+  eventType: string;
+  date: string;
+  organization: {
+    slug: string;
+    name: string;
+  };
+  response: {
+    body: string;
+    statusCode: number;
+  };
+};
+
 export type PermissionValue = 'no-access' | 'read' | 'write' | 'admin';
 
 export type Permissions = {
@@ -503,4 +533,5 @@ export type MemberRole = {
   id: string;
   name: string;
   desc: string;
+  allowed?: boolean;
 };

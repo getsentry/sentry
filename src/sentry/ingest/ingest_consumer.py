@@ -3,6 +3,8 @@ from __future__ import absolute_import
 import logging
 import msgpack
 
+from sentry.utils.batching_kafka_consumer import AbstractBatchWorker
+
 from django.conf import settings
 from django.core.cache import cache
 
@@ -12,7 +14,7 @@ from sentry.models import Project
 from sentry.signals import event_accepted
 from sentry.tasks.store import preprocess_event
 from sentry.utils import json
-from sentry.utils.kafka import SimpleKafkaConsumer
+from sentry.utils.kafka import create_batching_kafka_consumer
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +39,7 @@ class ConsumerType(object):
         raise ValueError("Invalid consumer type", consumer_type)
 
 
-class IngestConsumer(SimpleKafkaConsumer):
+class IngestConsumerWorker(AbstractBatchWorker):
     def process_message(self, message):
         message = msgpack.unpackb(message.value(), use_list=False)
         payload = message["payload"]
@@ -55,13 +57,13 @@ class IngestConsumer(SimpleKafkaConsumer):
                 event_id,
                 project_id,
             )
-            return  # message already processed do not reprocess
+            return True  # message already processed do not reprocess
 
         try:
             project = Project.objects.get_from_cache(id=project_id)
         except Project.DoesNotExist:
             logger.error("Project for ingested event does not exist: %s", project_id)
-            return
+            return True
 
         # Parse the JSON payload. This is required to compute the cache key and
         # call process_event. The payload will be put into Kafka raw, to avoid
@@ -87,43 +89,23 @@ class IngestConsumer(SimpleKafkaConsumer):
             ip=remote_addr, data=data, project=project, sender=self.process_message
         )
 
+        # Return *something* so that it counts against batch size
+        return True
 
-def run_ingest_consumer(
-    commit_batch_size,
-    consumer_group,
-    consumer_type,
-    max_fetch_time_seconds,
-    initial_offset_reset="latest",
-    is_shutdown_requested=lambda: False,
-):
+    def flush_batch(self, batch):
+        pass
+
+    def shutdown(self):
+        pass
+
+
+def get_ingest_consumer(consumer_type, once=False, **options):
     """
     Handles events coming via a kafka queue.
 
     The events should have already been processed (normalized... ) upstream (by Relay).
-
-    :param commit_batch_size: the number of message the consumer will try to process/commit in one loop
-    :param consumer_group: kafka consumer group name
-    :param consumer_type: an enumeration defining the types of ingest messages see `ConsumerType`
-    :param max_fetch_time_seconds: the maximum number of seconds a consume operation will be blocked waiting
-        for the specified commit_batch_size number of messages to appear in the queue before it returns. At the
-        end of the specified time the consume operation will return however many messages it has ( including
-        an empty array if no new messages are available).
-    :param initial_offset_reset: offset reset policy when there's no available offset for the consumer
-    :param is_shutdown_requested: Callable[[],bool] predicate checked after each loop, if it returns
-        True the forwarder stops (by default is lambda: False). In normal operation this should be left to default.
-        For unit testing it offers a way to cleanly stop the forwarder after some particular condition is achieved.
     """
-    logger.debug("Starting ingest-consumer...")
     topic_name = ConsumerType.get_topic_name(consumer_type)
-
-    ingest_consumer = IngestConsumer(
-        commit_batch_size=commit_batch_size,
-        consumer_group=consumer_group,
-        topic_name=topic_name,
-        max_fetch_time_seconds=max_fetch_time_seconds,
-        initial_offset_reset=initial_offset_reset,
+    return create_batching_kafka_consumer(
+        topic_name=topic_name, worker=IngestConsumerWorker(), **options
     )
-
-    ingest_consumer.run(is_shutdown_requested)
-
-    logger.debug("ingest-consumer terminated.")

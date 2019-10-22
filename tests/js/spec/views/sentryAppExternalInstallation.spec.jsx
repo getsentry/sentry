@@ -1,7 +1,7 @@
 import React from 'react';
 import _ from 'lodash';
 
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import SentryAppExternalInstallation from 'app/views/sentryAppExternalInstallation';
 
@@ -46,8 +46,15 @@ describe('SentryAppExternalInstallation', () => {
       body: [],
     });
 
+    MockApiClient.addMockResponse({
+      url: `/sentry-apps/${sentryApp.slug}/interaction/`,
+      method: 'POST',
+      statusCode: 200,
+      body: {},
+    });
+
     getMountedComponent = () =>
-      mount(
+      mountWithTheme(
         <SentryAppExternalInstallation params={{sentryAppSlug: sentryApp.slug}} />,
         TestStubs.routerContext()
       );

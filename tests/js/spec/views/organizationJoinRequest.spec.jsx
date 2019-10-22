@@ -1,4 +1,4 @@
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import React from 'react';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -15,7 +15,7 @@ describe('OrganizationJoinRequest', function() {
   });
 
   it('renders', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationJoinRequest params={{orgId: org.slug}} />,
       TestStubs.routerContext()
     );
@@ -31,7 +31,7 @@ describe('OrganizationJoinRequest', function() {
       method: 'POST',
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationJoinRequest params={{orgId: org.slug}} />,
       TestStubs.routerContext()
     );
@@ -58,7 +58,7 @@ describe('OrganizationJoinRequest', function() {
       statusCode: 400,
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationJoinRequest params={{orgId: org.slug}} />,
       TestStubs.routerContext()
     );
@@ -81,7 +81,7 @@ describe('OrganizationJoinRequest', function() {
 
   it('cancels', function() {
     const spy = jest.spyOn(window.location, 'assign').mockImplementation(() => {});
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationJoinRequest params={{orgId: org.slug}} />,
       TestStubs.routerContext()
     );

@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mount, mountWithTheme} from 'sentry-test/enzyme';
 
 import Feature from 'app/components/acl/feature';
 import ConfigStore from 'app/stores/configStore';
@@ -220,7 +220,7 @@ describe('Feature', function() {
     });
 
     it('renders a default disabled component', function() {
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <Feature features={['org-baz']} renderDisabled>
           <div>The Child</div>
         </Feature>,
@@ -268,7 +268,7 @@ describe('Feature', function() {
     it('uses hookName if provided', function() {
       const children = <div>The Child</div>;
       const wrapper = mount(
-        <Feature features={['org-bazar']} hookName="test-hook">
+        <Feature features={['org-bazar']} hookName="feature-disabled:test-hook">
           {children}
         </Feature>,
         routerContext

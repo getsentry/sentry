@@ -3,7 +3,7 @@ import styled from 'react-emotion';
 import space from 'app/styles/space';
 
 export const zIndex = {
-  minimapContainer: 99999999999,
+  minimapContainer: 999999998,
   dividerLine: 999999,
   spanTreeToggler: 99999,
 };
@@ -18,7 +18,7 @@ type SpanRowProps = {
 type SpanRowAndDivProps = Omit<React.HTMLProps<HTMLDivElement>, keyof SpanRowProps> &
   SpanRowProps;
 
-export const SpanRow = styled.div<SpanRowAndDivProps>`
+export const SpanRow = styled('div')<SpanRowAndDivProps>`
   display: ${p => (p.visible ? 'block' : 'none')};
   border-top: ${p => (p.showBorder ? `1px solid  ${p.theme.gray1}` : null)};
   position: relative;

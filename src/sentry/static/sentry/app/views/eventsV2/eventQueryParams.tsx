@@ -4,10 +4,16 @@ export type ColumnValueType =
   | 'number'
   | 'duration'
   | 'timestamp'
+  | 'boolean'
   | 'never'; // Matches to nothing
 
 // Refer to src/sentry/utils/snuba.py
-export const AGGREGATIONS = {
+export const AGGREGATIONS: {
+  [key: string]: {
+    type: '*' | ColumnValueType[];
+    isSortable: boolean;
+  };
+} = {
   count: {
     type: '*',
     isSortable: true,
@@ -34,15 +40,15 @@ export const AGGREGATIONS = {
     type: ['timestamp', 'duration'],
     isSortable: true,
   },
-  /*
   sum: {
-    type: 'duration',
+    type: ['duration'],
     isSortable: true,
   },
   avg: {
-    type: 'duration',
+    type: ['duration'],
     isSortable: true,
   },
+  /*
   cidr: {
     type: 'string',
     isSortable: true,
@@ -51,14 +57,17 @@ export const AGGREGATIONS = {
 };
 export type Aggregation = keyof typeof AGGREGATIONS | '';
 
+// TODO(leedongwei)
+// Add line-breaks to these fields that'll show on TableModalEditColumn. It's
+// hella dense at the moment.
 /**
  * Refer to src/sentry/utils/snuba.py, search for SENTRY_SNUBA_MAP
  */
-export const FIELDS = {
-  title: 'string',
+export const FIELDS: {[key: string]: ColumnValueType} = {
   id: 'string',
 
-  project: 'name',
+  title: 'string',
+  project: 'string',
   environment: 'string',
   release: 'string',
   'issue.id': 'string',
@@ -126,5 +135,21 @@ export const FIELDS = {
   contexts: 'string',
   'contexts.key': 'string',
   'contexts.value': 'string',
+
+  'transaction.duration': 'duration',
+  'transaction.op': 'string',
+  // duration aliases
+  p75: 'number',
+  p95: 'number',
 };
 export type Field = keyof typeof FIELDS | '';
+
+// This list should be removed with the tranaction-events feature flag.
+export const TRACING_FIELDS = [
+  'avg',
+  'sum',
+  'transaction.duration',
+  'transaction.op',
+  'p95',
+  'p75',
+];

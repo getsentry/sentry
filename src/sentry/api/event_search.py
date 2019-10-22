@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import re
-from collections import namedtuple, defaultdict
+from collections import namedtuple
 from copy import deepcopy
 from datetime import datetime
 
@@ -91,7 +91,7 @@ search               = (boolean_term / paren_term / search_term)*
 boolean_term         = (paren_term / search_term) space? (boolean_operator space? (paren_term / search_term) space?)+
 paren_term           = space? open_paren space? (paren_term / boolean_term)+ space? closed_paren space?
 search_term          = key_val_term / quoted_raw_search / raw_search
-key_val_term         = space? (time_filter / rel_time_filter / specific_time_filter
+key_val_term         = space? (tag_filter / time_filter / rel_time_filter / specific_time_filter
                        / numeric_filter / has_filter / is_filter / basic_filter)
                        space?
 raw_search           = (!key_val_term ~r"\ *([^\ ^\n ()]+)\ *" )*
@@ -111,6 +111,7 @@ numeric_filter       = search_key sep operator? ~r"[0-9]+(?=\s|$)"
 # has filter for not null type checks
 has_filter           = negation? "has" sep (search_key / search_value)
 is_filter            = negation? "is" sep search_value
+tag_filter            = negation? "tags[" search_key "]" sep search_value
 
 search_key           = key / quoted_key
 search_value         = quoted_value / value
@@ -190,12 +191,17 @@ class SearchKey(namedtuple("SearchKey", "name")):
         snuba_name = SEARCH_MAP.get(self.name)
         if snuba_name:
             return snuba_name
-        # assume custom tag if not listed
-        return "tags[%s]" % (self.name,)
+
+        # assume custom tag if not matched above, and add tags[xxx] wrapper if not present.
+        match = TAG_KEY_RE.match(self.name)
+        if match:
+            return self.name
+        else:
+            return "tags[%s]" % (self.name,)
 
     @cached_property
     def is_tag(self):
-        return self.name not in SEARCH_MAP
+        return TAG_KEY_RE.match(self.name) or self.name not in SEARCH_MAP
 
 
 class SearchValue(namedtuple("SearchValue", "raw_value")):
@@ -455,8 +461,12 @@ class SearchVisitor(NodeVisitor):
             )
 
         operator = "=" if self.is_negated(negation) else "!="
-
         return SearchFilter(search_key, operator, SearchValue(""))
+
+    def visit_tag_filter(self, node, children):
+        (negation, _, search_key, _, sep, search_value) = children
+        operator = "!=" if self.is_negated(negation) else "="
+        return SearchFilter(SearchKey(u"tags[%s]" % (search_key.name)), operator, search_value)
 
     def visit_is_filter(self, node, children):
         raise InvalidSearchQuery('"is" queries are not supported on this search')
@@ -614,7 +624,11 @@ def convert_search_filter_to_snuba_query(search_filter):
             return condition
 
 
-def get_snuba_query_args(query=None, params=None):
+def get_filter(query=None, params=None):
+    """
+    Returns an eventstore filter given the search text provided by the user and
+    URL params
+    """
     # NOTE: this function assumes project permissions check already happened
     parsed_terms = []
     if query is not None:
@@ -627,7 +641,7 @@ def get_snuba_query_args(query=None, params=None):
     if params is not None:
         parsed_terms.extend(convert_endpoint_params(params))
 
-    kwargs = {"conditions": [], "filter_keys": defaultdict(list)}
+    kwargs = {"start": None, "end": None, "conditions": [], "project_ids": [], "group_ids": []}
 
     projects = {}
     has_project_term = any(
@@ -645,41 +659,41 @@ def get_snuba_query_args(query=None, params=None):
             if term.key.name == PROJECT_KEY:
                 condition = ["project_id", "=", projects.get(term.value.value)]
                 kwargs["conditions"].append(condition)
-
             elif snuba_name in ("start", "end"):
                 kwargs[snuba_name] = term.value.value
             elif snuba_name in ("project_id", "issue"):
+                if snuba_name == "issue":
+                    snuba_name = "group_ids"
+                if snuba_name == "project_id":
+                    snuba_name = "project_ids"
                 value = term.value.value
                 if isinstance(value, int):
                     value = [value]
-                kwargs["filter_keys"][snuba_name].extend(value)
+                kwargs[snuba_name].extend(value)
             else:
                 converted_filter = convert_search_filter_to_snuba_query(term)
                 kwargs["conditions"].append(converted_filter)
-        else:  # SearchBoolean
-            # TODO(lb): remove when boolean terms fully functional
-            kwargs["has_boolean_terms"] = True
-            kwargs["conditions"].append(convert_search_boolean_to_snuba_query(term))
-    return kwargs
+
+    return eventstore.Filter(**kwargs)
 
 
 FIELD_ALIASES = {
     "last_seen": {"aggregations": [["max", "timestamp", "last_seen"]]},
     "latest_event": {"aggregations": [["argMax", ["id", "timestamp"], "latest_event"]]},
     "project": {"fields": ["project.id"]},
-    "user": {"fields": ["user.id", "user.name", "user.username", "user.email", "user.ip"]}
-    # TODO(mark) Add rpm alias.
+    "user": {"fields": ["user.id", "user.name", "user.username", "user.email", "user.ip"]},
+    # Long term these will become more complex functions but these are
+    # field aliases.
+    "p75": {"aggregations": [["quantileTiming(0.75)(duration)", "", "p75"]]},
+    "p95": {"aggregations": [["quantileTiming(0.95)(duration)", "", "p95"]]},
 }
 
 VALID_AGGREGATES = {
     "count_unique": {"snuba_name": "uniq", "fields": "*"},
     "count": {"snuba_name": "count", "fields": "*"},
-    "min": {"snuba_name": "min", "fields": ["timestamp", "duration"]},
-    "max": {"snuba_name": "max", "fields": ["timestamp", "duration"]},
-    "sum": {"snuba_name": "sum", "fields": ["duration"]},
-    # These don't entirely work yet but are intended to be illustrative
-    "avg": {"snuba_name": "avg", "fields": ["duration"]},
-    "p75": {"snuba_name": "quantileTiming(0.75)", "fields": ["duration"]},
+    "min": {"snuba_name": "min", "fields": ["timestamp", "transaction.duration"]},
+    "max": {"snuba_name": "max", "fields": ["timestamp", "transaction.duration"]},
+    "avg": {"snuba_name": "avg", "fields": ["transaction.duration"]},
 }
 
 AGGREGATE_PATTERN = re.compile(r"^(?P<function>[^\(]+)\((?P<column>[a-z\._]*)\)$")
@@ -722,7 +736,7 @@ def resolve_orderby(orderby, fields, aggregations):
     if len(validated) == len(orderby):
         return validated
 
-    raise InvalidSearchQuery("Cannot order by an field that is not selected.")
+    raise InvalidSearchQuery("Cannot order by a field that is not selected.")
 
 
 def get_aggregate_alias(match):

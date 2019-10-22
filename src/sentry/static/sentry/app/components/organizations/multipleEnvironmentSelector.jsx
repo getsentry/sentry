@@ -243,6 +243,7 @@ class MultipleEnvironmentSelector extends React.PureComponent {
       >
         {({isOpen, getActorProps, actions}) => (
           <StyledHeaderItem
+            data-test-id="global-header-environment-selector"
             icon={<StyledInlineSvg src="icon-window" />}
             isOpen={isOpen}
             hasSelected={value && !!value.length}

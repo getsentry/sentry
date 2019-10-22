@@ -152,38 +152,41 @@ class Discover2Item extends React.Component<Props, State> {
     return (
       <nav {...navProps}>
         {sidebarItem}
-        <AutoComplete
-          inputIsActor={false}
-          itemToString={item => item.name}
-          isOpen={isOpen}
-          onSelect={this.handleSelect}
-          resetInputOnClose
-        >
-          {({getInputProps, getItemProps, inputValue, highlightedIndex}) => {
-            return (
-              <Hitbox role="menu" id={this.menuId} isOpen={isOpen}>
-                <InputContainer>
-                  <StyledLabel htmlFor={inputId}>
-                    <InlineSvg src="icon-search" size="16" />
-                  </StyledLabel>
-                  <StyledInput
-                    type="text"
-                    id={inputId}
-                    placeholder={t('Filter searches')}
-                    {...getInputProps({})}
-                  />
-                </InputContainer>
-                <Menu>
-                  {this.renderSavedQueries({
-                    getItemProps,
-                    inputValue,
-                    highlightedIndex,
-                  })}
-                </Menu>
-              </Hitbox>
-            );
-          }}
-        </AutoComplete>
+        {isOpen && (
+          <AutoComplete
+            inputIsActor={false}
+            itemToString={(item: SavedQuery) => item.name}
+            onSelect={this.handleSelect}
+            isOpen
+            closeOnSelect
+            resetInputOnClose
+          >
+            {({getInputProps, getItemProps, inputValue, highlightedIndex}) => {
+              return (
+                <Hitbox role="menu" id={this.menuId} isOpen={isOpen}>
+                  <InputContainer>
+                    <StyledLabel htmlFor={inputId}>
+                      <InlineSvg src="icon-search" size="16" />
+                    </StyledLabel>
+                    <StyledInput
+                      type="text"
+                      id={inputId}
+                      placeholder={t('Filter searches')}
+                      {...getInputProps({})}
+                    />
+                  </InputContainer>
+                  <Menu>
+                    {this.renderSavedQueries({
+                      getItemProps,
+                      inputValue,
+                      highlightedIndex,
+                    })}
+                  </Menu>
+                </Hitbox>
+              );
+            }}
+          </AutoComplete>
+        )}
       </nav>
     );
   }

@@ -7,13 +7,21 @@ import {MemberRole} from 'app/types';
 
 type Props = SelectControl['props'] & {
   roles: MemberRole[];
+  disableUnallowed: boolean;
 };
 
-const RoleSelector = ({roles, ...props}: Props) => (
+const RoleSelector = ({roles, disableUnallowed, ...props}: Props) => (
   <RoleSelectControl
-    options={roles && roles.map(r => ({value: r.id, label: r.name}))}
+    options={
+      roles &&
+      roles.map(r => ({
+        value: r.id,
+        label: r.name,
+        disabled: disableUnallowed && !r.allowed,
+      }))
+    }
     optionRenderer={option => {
-      const {name, desc} = roles.find(r => r.id === option.value);
+      const {name, desc} = roles.find(r => r.id === option.value)!;
 
       return (
         <RoleItem>

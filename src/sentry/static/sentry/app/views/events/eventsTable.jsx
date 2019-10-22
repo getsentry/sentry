@@ -51,7 +51,9 @@ class EventsTableBody extends React.PureComponent {
           </TableData>
 
           <TableData>
-            <IdBadge user={event.user} hideEmail avatarSize={16} />
+            {event && event.user && (
+              <IdBadge user={event.user} hideEmail avatarSize={16} />
+            )}
           </TableData>
 
           <TableData>

@@ -98,6 +98,7 @@ describe('DiscoverSavedQueriesStore', function() {
     });
     fetchSavedQueries(api, 'org-1');
     await tick();
+    await tick();
 
     const query = {
       id: '2',
@@ -105,6 +106,7 @@ describe('DiscoverSavedQueriesStore', function() {
       fields: ['title', 'count()'],
     };
     updateSavedQuery(api, 'org-1', query);
+    await tick();
     await tick();
 
     const state = DiscoverSavedQueriesStore.get();
@@ -130,6 +132,7 @@ describe('DiscoverSavedQueriesStore', function() {
     });
     fetchSavedQueries(api, 'org-1');
     await tick();
+    await tick();
 
     const query = {
       id: '9',
@@ -137,6 +140,7 @@ describe('DiscoverSavedQueriesStore', function() {
       fields: ['title', 'count()'],
     };
     updateSavedQuery(api, 'org-1', query);
+    await tick();
     await tick();
 
     const state = DiscoverSavedQueriesStore.get();

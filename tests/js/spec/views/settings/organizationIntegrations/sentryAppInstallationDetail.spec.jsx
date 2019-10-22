@@ -1,7 +1,7 @@
 import React from 'react';
 
 import {Client} from 'app/api';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {openSentryAppDetailsModal} from 'app/actionCreators/modal';
 import SentryAppInstallationDetail from 'app/views/organizationIntegrations/sentryAppInstallationDetail';
 
@@ -34,23 +34,32 @@ describe('Sentry App Installations', function() {
   });
 
   it('displays all Apps owned by the Org', () => {
-    wrapper = mount(<SentryAppInstallationDetail {...props} />, routerContext);
+    wrapper = mountWithTheme(<SentryAppInstallationDetail {...props} />, routerContext);
 
     expect(wrapper).toMatchSnapshot();
     expect(wrapper.find('SentryApplicationRow').prop('app').name).toBe('Sample App');
   });
 
   describe('when installing', () => {
+    let sentryAppInteractionRequest;
+
     beforeEach(() => {
       Client.addMockResponse({
         url: `/organizations/${org.slug}/sentry-app-installations/`,
         method: 'POST',
         body: install,
       });
+
+      sentryAppInteractionRequest = Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/interaction/`,
+        method: 'POST',
+        statusCode: 200,
+        body: {},
+      });
     });
 
     it('disallows installation when already installed', () => {
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <SentryAppInstallationDetail {...props} install={install} />,
         routerContext
       );
@@ -58,7 +67,7 @@ describe('Sentry App Installations', function() {
     });
 
     it('install button opens permissions modal', () => {
-      wrapper = mount(<SentryAppInstallationDetail {...props} />, routerContext);
+      wrapper = mountWithTheme(<SentryAppInstallationDetail {...props} />, routerContext);
       wrapper.find('[icon="icon-circle-add"]').simulate('click');
       expect(openSentryAppDetailsModal).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -68,11 +77,21 @@ describe('Sentry App Installations', function() {
           isInstalled: false,
         })
       );
+
+      expect(sentryAppInteractionRequest).toHaveBeenCalledWith(
+        `/sentry-apps/${sentryApp.slug}/interaction/`,
+        expect.objectContaining({
+          method: 'POST',
+          data: {
+            tsdbField: 'sentry_app_viewed',
+          },
+        })
+      );
     });
 
     it('sentry app is shown as installed', async () => {
       const app = TestStubs.SentryApp({redirectUrl: null});
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <SentryAppInstallationDetail {...props} app={app} />,
         routerContext
       );
@@ -84,7 +103,7 @@ describe('Sentry App Installations', function() {
 
     it('redirects the user to the App when a redirectUrl is set', async () => {
       window.location.assign = jest.fn();
-      wrapper = mount(<SentryAppInstallationDetail {...props} />, routerContext);
+      wrapper = mountWithTheme(<SentryAppInstallationDetail {...props} />, routerContext);
 
       wrapper.find('[icon="icon-circle-add"]').simulate('click');
       expect(openSentryAppDetailsModal).toHaveBeenCalledWith(
@@ -93,6 +112,15 @@ describe('Sentry App Installations', function() {
           organization: org,
           onInstall: expect.any(Function),
           isInstalled: false,
+        })
+      );
+      expect(sentryAppInteractionRequest).toHaveBeenCalledWith(
+        `/sentry-apps/${sentryApp.slug}/interaction/`,
+        expect.objectContaining({
+          method: 'POST',
+          data: {
+            tsdbField: 'sentry_app_viewed',
+          },
         })
       );
       wrapper.instance().handleInstall(sentryApp);
@@ -110,7 +138,7 @@ describe('Sentry App Installations', function() {
         redirectUrl: 'https://example.com/setup?hello=1',
       });
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <SentryAppInstallationDetail {...props} app={sentryAppWithQuery} />,
         routerContext
       );
@@ -135,7 +163,7 @@ describe('Sentry App Installations', function() {
         statusCode: 400,
       });
 
-      wrapper = mount(<SentryAppInstallationDetail {...props} />, routerContext);
+      wrapper = mountWithTheme(<SentryAppInstallationDetail {...props} />, routerContext);
       wrapper.instance().handleInstall(sentryApp);
       await tick();
       expect(wrapper.exists('[icon="icon-circle-add"]')).toBe(true);
@@ -151,7 +179,7 @@ describe('Sentry App Installations', function() {
         body: [],
       });
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <SentryAppInstallationDetail {...props} install={install} />,
         routerContext
       );

@@ -2,7 +2,7 @@
 
 from __future__ import absolute_import
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from uuid import uuid4
 
 import six
@@ -53,7 +53,7 @@ class IncidentActivitySerializerTest(TestCase, SnubaTestCase):
         assert result["comment"] == activity.comment
         assert result["dateCreated"] == activity.date_added
 
-    @freeze_time()
+    @freeze_time(datetime(2019, 10, 16, 12, 30, 25))
     def test_event_stats(self):
         for _ in range(2):
             self.store_event(

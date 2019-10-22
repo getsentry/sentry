@@ -1,12 +1,12 @@
 import React from 'react';
-import {shallow, render} from 'enzyme';
+import {mount, render} from 'sentry-test/enzyme';
 
 import {ResultTable} from 'app/views/discover/result/table';
 
 describe('ResultTable', function() {
   let wrapper;
   beforeEach(function() {
-    wrapper = shallow(
+    wrapper = mount(
       <ResultTable
         organization={TestStubs.Organization({
           projects: [TestStubs.Project({id: '1'})],

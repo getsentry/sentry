@@ -13,19 +13,36 @@ from sentry.db.models import (
 from sentry.signals import integration_added
 
 
-class PagerDutyServiceProject(Model):
+class PagerDutyService(Model):
     __core__ = False
 
-    project = FlexibleForeignKey("sentry.Project", db_index=False, db_constraint=False)
     organization_integration = FlexibleForeignKey("sentry.OrganizationIntegration")
     integration_key = models.CharField(max_length=255)
     service_id = models.CharField(max_length=255)
     service_name = models.CharField(max_length=255)
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_pagerdutyservice"
+        unique_together = (("service_id", "organization_integration"),)
+
+
+class PagerDutyServiceProject(Model):
+    __core__ = False
+
+    project = FlexibleForeignKey("sentry.Project", db_index=False, db_constraint=False)
+    pagerduty_service = FlexibleForeignKey("sentry.PagerDutyService")
+    organization_integration = FlexibleForeignKey("sentry.OrganizationIntegration", null=True)
+    integration_key = models.CharField(max_length=255, null=True)
+    service_id = models.CharField(max_length=255, null=True)
+    service_name = models.CharField(max_length=255, null=True)
+    date_added = models.DateTimeField(default=timezone.now, null=True)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_pagerdutyserviceproject"
-        unique_together = (("project", "organization_integration"),)
+        unique_together = (("project", "pagerduty_service"),)
 
 
 class IntegrationExternalProject(Model):

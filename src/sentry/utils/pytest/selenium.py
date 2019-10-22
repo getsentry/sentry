@@ -90,6 +90,13 @@ class Browser(object):
         """
         return self.element_exists('[data-test-id="%s"]' % (selector))
 
+    def element_exists_by_aria_label(self, selector):
+        """
+        Check if an element exists on the page using the aria-label attribute.
+        This method will not wait for the element.
+        """
+        return self.element_exists('[aria-label="%s"]' % (selector))
+
     def click(self, selector):
         self.element(selector).click()
 
@@ -324,9 +331,9 @@ def browser(request, percy, live_server):
             options.binary_location = chrome_path
         chromedriver_path = request.config.getoption("chromedriver_path")
         if chromedriver_path:
-            driver = webdriver.Chrome(executable_path=chromedriver_path, chrome_options=options)
+            driver = webdriver.Chrome(executable_path=chromedriver_path, options=options)
         else:
-            driver = webdriver.Chrome(chrome_options=options)
+            driver = webdriver.Chrome(options=options)
     elif driver_type == "firefox":
         driver = webdriver.Firefox()
     elif driver_type == "phantomjs":
@@ -370,7 +377,7 @@ def browser(request, percy, live_server):
 def _environment(request):
     config = request.config
     # add environment details to the pytest-html plugin
-    config._environment.append(("Driver", config.option.selenium_driver))
+    config._metadata.update({"Driver": config.option.selenium_driver})
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)

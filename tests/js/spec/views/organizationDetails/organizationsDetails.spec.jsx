@@ -1,10 +1,12 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import OrganizationDetails from 'app/views/organizationDetails';
+import OrganizationStore from 'app/stores/organizationStore';
 
 describe('OrganizationDetails', function() {
   beforeEach(function() {
+    OrganizationStore.reset();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/broadcasts/',
@@ -29,7 +31,7 @@ describe('OrganizationDetails', function() {
             },
           }),
         });
-        const tree = mount(
+        const tree = mountWithTheme(
           <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} routes={[]} />,
           TestStubs.routerContext()
         );
@@ -42,7 +44,6 @@ describe('OrganizationDetails', function() {
         );
         expect(tree.find('button[aria-label="Restore Organization"]')).toHaveLength(1);
       });
-
       it('should render a restoration prompt without action for members', async function() {
         MockApiClient.addMockResponse({
           url: '/organizations/org-slug/',
@@ -55,7 +56,7 @@ describe('OrganizationDetails', function() {
             },
           }),
         });
-        const tree = mount(
+        const tree = mountWithTheme(
           <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} routes={[]} />,
           TestStubs.routerContext()
         );
@@ -87,7 +88,7 @@ describe('OrganizationDetails', function() {
       });
 
       it('should render a deletion in progress prompt', async function() {
-        const tree = mount(
+        const tree = mountWithTheme(
           <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} routes={[]} />,
           TestStubs.routerContext()
         );

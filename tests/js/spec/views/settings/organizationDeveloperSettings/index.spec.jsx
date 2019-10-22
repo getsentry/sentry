@@ -1,13 +1,22 @@
 import React from 'react';
 
 import {Client} from 'app/api';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import OrganizationDeveloperSettings from 'app/views/settings/organizationDeveloperSettings/index';
 import App from 'app/views/app';
 
 describe('Organization Developer Settings', function() {
   const org = TestStubs.Organization();
-  const sentryApp = TestStubs.SentryApp();
+  const sentryApp = TestStubs.SentryApp({
+    scopes: [
+      'team:read',
+      'project:releases',
+      'event:read',
+      'event:write',
+      'org:read',
+      'org:write',
+    ],
+  });
   const routerContext = TestStubs.routerContext();
 
   const publishButtonSelector = 'StyledButton[icon="icon-upgrade"]';
@@ -22,7 +31,7 @@ describe('Organization Developer Settings', function() {
       body: [],
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
       routerContext
     );
@@ -44,7 +53,7 @@ describe('Organization Developer Settings', function() {
         body: [sentryApp],
       });
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
         routerContext
       );
@@ -117,7 +126,7 @@ describe('Organization Developer Settings', function() {
       });
 
       //mock with App to render modal
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <App>
           <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />
         </App>,
@@ -151,12 +160,12 @@ describe('Organization Developer Settings', function() {
               {
                 answer: 'Answer 2',
                 question:
-                  'Please justify why you are requesting each of the following scopes: project-read.',
+                  'Do you operate the web service your integration communicates with?',
               },
               {
                 answer: 'Answer 3',
                 question:
-                  'Do you operate the web service your integration communicates with?',
+                  'Please justify why you are requesting each of the following permissions: Team Read, Release Admin, Event Write, Organization Write.',
               },
             ],
           },
@@ -172,7 +181,7 @@ describe('Organization Developer Settings', function() {
       body: [publishedSentryApp],
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
       routerContext
     );
@@ -198,7 +207,7 @@ describe('Organization Developer Settings', function() {
       body: [internalIntegration],
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
       routerContext
     );
@@ -223,7 +232,7 @@ describe('Organization Developer Settings', function() {
       body: [sentryApp],
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationDeveloperSettings
         params={{orgId: newOrg.slug}}
         organization={newOrg}

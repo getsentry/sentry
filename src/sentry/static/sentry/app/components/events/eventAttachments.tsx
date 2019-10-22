@@ -114,8 +114,9 @@ class EventAttachments extends React.Component<Props, State> {
                           href={downloadUrl || ''}
                           disabled={!downloadUrl}
                           title={
-                            !downloadUrl &&
-                            t('Insufficient permissions to download attachments')
+                            !downloadUrl
+                              ? t('Insufficient permissions to download attachments')
+                              : undefined
                           }
                         >
                           {t('Download')}

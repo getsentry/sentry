@@ -37,7 +37,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
         # isInternal is not field of our model but it is a field of the serializer
         data = request.data.copy()
         data["isInternal"] = sentry_app.status == SentryAppStatus.INTERNAL
-        serializer = SentryAppSerializer(sentry_app, data=data, partial=True)
+        serializer = SentryAppSerializer(sentry_app, data=data, partial=True, access=request.access)
 
         if serializer.is_valid():
             result = serializer.validated_data

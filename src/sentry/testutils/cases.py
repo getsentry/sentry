@@ -79,7 +79,7 @@ from sentry.models import (
 )
 from sentry.plugins import plugins
 from sentry.rules import EventState
-from sentry.tagstore.snuba import SnubaCompatibilityTagStorage
+from sentry.tagstore.snuba import SnubaTagStorage
 from sentry.utils import json
 from sentry.utils.auth import SSO_SESSION_KEY
 
@@ -151,7 +151,8 @@ class BaseTestCase(Fixtures, Exam):
         request.META["REMOTE_ADDR"] = "127.0.0.1"
         request.META["SERVER_NAME"] = "testserver"
         request.META["SERVER_PORT"] = 80
-        request.REQUEST = {}
+        request.GET = {}
+        request.POST = {}
 
         # order matters here, session -> user -> other things
         request.session = self.session
@@ -766,24 +767,13 @@ class SnubaTestCase(BaseTestCase):
 
     def init_snuba(self):
         self.snuba_eventstream = SnubaEventStream()
-        self.snuba_tagstore = SnubaCompatibilityTagStorage()
+        self.snuba_tagstore = SnubaTagStorage()
         assert requests.post(settings.SENTRY_SNUBA + "/tests/events/drop").status_code == 200
         assert requests.post(settings.SENTRY_SNUBA + "/tests/transactions/drop").status_code == 200
 
     def store_event(self, *args, **kwargs):
         with contextlib.nested(
-            mock.patch("sentry.eventstream.insert", self.snuba_eventstream.insert),
-            mock.patch(
-                "sentry.tagstore.delay_index_event_tags", self.snuba_tagstore.delay_index_event_tags
-            ),
-            mock.patch(
-                "sentry.tagstore.incr_tag_value_times_seen",
-                self.snuba_tagstore.incr_tag_value_times_seen,
-            ),
-            mock.patch(
-                "sentry.tagstore.incr_group_tag_value_times_seen",
-                self.snuba_tagstore.incr_group_tag_value_times_seen,
-            ),
+            mock.patch("sentry.eventstream.insert", self.snuba_eventstream.insert)
         ):
             return Factories.store_event(*args, **kwargs)
 
@@ -847,6 +837,36 @@ class SnubaTestCase(BaseTestCase):
         assert (
             requests.post(
                 settings.SENTRY_SNUBA + "/tests/events/insert", data=json.dumps(events)
+            ).status_code
+            == 200
+        )
+
+
+@pytest.mark.snuba
+@requires_snuba
+class OutcomesSnubaTest(TestCase):
+    def setUp(self):
+        super(OutcomesSnubaTest, self).setUp()
+        assert requests.post(settings.SENTRY_SNUBA + "/tests/outcomes/drop").status_code == 200
+
+    def __format(self, org_id, project_id, outcome, timestamp):
+        return {
+            "project_id": project_id,
+            "timestamp": timestamp.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+            "org_id": org_id,
+            "reason": None,
+            "key_id": 1,
+            "outcome": outcome,
+        }
+
+    def store_outcomes(self, org_id, project_id, outcome, timestamp, num_times):
+        outcomes = []
+        for _ in range(num_times):
+            outcomes.append(self.__format(org_id, project_id, outcome, timestamp))
+
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + "/tests/outcomes/insert", data=json.dumps(outcomes)
             ).status_code
             == 200
         )

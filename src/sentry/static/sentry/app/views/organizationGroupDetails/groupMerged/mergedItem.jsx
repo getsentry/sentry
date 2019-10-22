@@ -19,6 +19,7 @@ const MergedItem = createReactClass({
     fingerprint: PropTypes.string.isRequired,
     disabled: PropTypes.bool,
     event: PropTypes.shape({
+      id: PropTypes.string,
       groupID: PropTypes.string,
       type: PropTypes.oneOf(['error', 'csp', 'default']),
       dateCreated: PropTypes.string,

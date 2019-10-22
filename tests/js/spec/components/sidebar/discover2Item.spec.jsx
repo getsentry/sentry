@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {browserHistory} from 'react-router';
 
 import {Client} from 'app/api';
@@ -7,7 +7,7 @@ import Discover2Item from 'app/components/sidebar/discover2Item';
 import DiscoverSavedQueriesStore from 'app/stores/discoverSavedQueriesStore';
 
 const makeWrapper = props =>
-  mount(
+  mountWithTheme(
     <Discover2Item {...props} label="Discover" icon="icon-search" />,
     TestStubs.routerContext()
   );
@@ -55,16 +55,16 @@ describe('Sidebar > Discover2Item', function() {
     DiscoverSavedQueriesStore.reset();
   });
 
-  it('renders a menu', async function() {
+  it('renders no menu when closed', async function() {
     const wrapper = makeWrapper({organization, client});
     // Wait for reflux
     await tick();
 
     const menu = wrapper.find('AutoComplete');
-    expect(menu).toHaveLength(1);
+    expect(menu).toHaveLength(0);
   });
 
-  it('opens the menu', async function() {
+  it('opens the menu on mouseEnter', async function() {
     const wrapper = makeWrapper({organization, client});
     // Wait for reflux
     await tick();

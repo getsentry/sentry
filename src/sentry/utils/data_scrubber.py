@@ -163,10 +163,10 @@ class SensitiveDataFilter(object):
                 # already been decoded by the request interface.
                 data[n] = varmap(self.sanitize, data[n])
 
-    def filter_user(self, data):
-        if not data.get("data"):
-            return
-        data["data"] = varmap(self.sanitize, data["data"])
+    def filter_user(self, user):
+        for key in user:
+            if user[key]:  # no need to scrub falsy values, as there's no data there
+                user[key] = varmap(self.sanitize, user[key], name=key)
 
     def filter_crumb(self, data):
         for key in "data", "message":
@@ -195,3 +195,17 @@ class SensitiveDataFilter(object):
                     querybits.append(chunk)
             query = "&".join("=".join(k) for k in querybits)
             data[key] = urlunsplit((scheme, netloc, path, query, fragment))
+
+
+def ensure_does_not_have_ip(data):
+    env = get_path(data, "request", "env")
+    if env:
+        env.pop("REMOTE_ADDR", None)
+
+    user = get_path(data, "user")
+    if user:
+        user.pop("ip_address", None)
+
+    sdk = get_path(data, "sdk")
+    if sdk:
+        sdk.pop("client_ip", None)
