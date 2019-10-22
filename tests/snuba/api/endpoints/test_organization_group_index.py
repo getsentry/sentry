@@ -81,6 +81,15 @@ class GroupListTest(APITestCase, SnubaTestCase):
             response = self.get_response()
             assert response.status_code == 200
 
+    def test_with_all_projects(self):
+        # ensure there are two or more projects
+        self.create_project(organization=self.project.organization)
+        self.login_as(user=self.user)
+
+        with self.feature("organizations:global-views"):
+            response = self.get_valid_response(project_id=[-1])
+            assert response.status_code == 200
+
     def test_boolean_search_feature_flag(self):
         self.login_as(user=self.user)
         response = self.get_response(sort_by="date", query="title:hello OR title:goodbye")
