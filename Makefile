@@ -256,6 +256,7 @@ travis-scan-acceptance: travis-noop
 travis-scan-snuba: travis-noop
 travis-scan-symbolicator: travis-noop
 travis-scan-js: travis-noop
+travis-scan-js-build: travis-noop
 travis-scan-cli: travis-noop
 travis-scan-lint: scan-python
 travis-scan-plugins: travis-noop
