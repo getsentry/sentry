@@ -44,8 +44,8 @@ class SentryAppExternalIssueActions extends React.Component<Props, State> {
     api: PropTypes.object.isRequired,
     group: SentryTypes.Group.isRequired,
     sentryAppComponent: PropTypes.object.isRequired,
-    sentryAppInstallation: SentryTypes.SentryAppInstallation.isRequired,
-    externalIssue: SentryTypes.PlatformExternalIssue,
+    sentryAppInstallation: PropTypes.object.isRequired,
+    externalIssue: PropTypes.object,
     event: SentryTypes.Event,
   };
 
