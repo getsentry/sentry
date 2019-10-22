@@ -142,3 +142,12 @@ class MarkInstalledSentryAppInstallationsTest(SentryAppInstallationDetailsTest):
             format="json",
         )
         assert response.status_code == 403
+
+    def test_sentry_app_installation_mark_installed_no_token(self):
+        self.url = reverse(
+            "sentry-api-0-sentry-app-installation-details", args=[self.installation.uuid]
+        )
+
+        response = self.client.put(self.url, data={"status": "installed"}, format="json")
+
+        assert response.status_code == 401
