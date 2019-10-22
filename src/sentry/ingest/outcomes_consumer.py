@@ -19,7 +19,6 @@ from __future__ import absolute_import
 
 import six
 
-import datetime
 import time
 import atexit
 import logging
@@ -36,9 +35,15 @@ from sentry.db.models.manager import BaseManager
 from sentry.signals import event_filtered, event_dropped
 from sentry.utils.kafka import create_batching_kafka_consumer
 from sentry.utils import json, metrics
-from sentry.utils.outcomes import Outcome
-from sentry.utils.dates import to_datetime
+from sentry.utils.outcomes import (
+    Outcome,
+    mark_tsdb_incremented,
+    is_tsdb_incremented,
+    tsdb_increments_from_outcome,
+)
+from sentry.utils.dates import to_datetime, parse_timestamp
 from sentry.buffer.redis import batch_buffers_incr
+from sentry import tsdb
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +75,7 @@ def is_signal_sent(project_id, event_id):
     return cache.get(key, None) is not None
 
 
-def _process_message(msg):
+def _process_signal(msg):
     project_id = int(msg.get("project_id", 0))
     if project_id == 0:
         return  # no project. this is valid, so ignore silently.
@@ -104,17 +109,53 @@ def _process_message(msg):
 
     timestamp = msg.get("timestamp")
     if timestamp is not None:
-        delta = to_datetime(time.time()).replace(tzinfo=None) - datetime.datetime.strptime(
-            timestamp, "%Y-%m-%dT%H:%M:%S.%fZ"
-        )
+        delta = to_datetime(time.time()) - parse_timestamp(timestamp)
         metrics.timing("outcomes_consumer.timestamp_lag", delta.total_seconds())
 
     metrics.incr("outcomes_consumer.signal_sent", tags={"reason": reason, "outcome": outcome})
 
 
-def _process_message_with_timer(message):
-    with metrics.timer("outcomes_consumer.process_message"):
-        return _process_message(message)
+def _process_signal_with_timer(message):
+    with metrics.timer("outcomes_consumer.process_signal"):
+        return _process_signal(message)
+
+
+def _process_tsdb_batch(batch):
+    tsdb_increments = []
+
+    for msg in batch:
+        project_id = int(msg.get("project_id") or 0) or None
+        event_id = msg.get("event_id")
+
+        if is_tsdb_incremented(project_id, event_id):
+            continue
+
+        for model, key in tsdb_increments_from_outcome(
+            org_id=int(msg.get("org_id") or 0) or None,
+            project_id=project_id,
+            key_id=int(msg.get("key_id") or 0) or None,
+            outcome=int(msg.get("outcome", -1)),
+            reason=msg.get("reason") or None,
+        ):
+            tsdb_increments.append(
+                (
+                    model,
+                    key,
+                    {
+                        "timestamp": parse_timestamp(msg["timestamp"])
+                        if msg.get("timestamp") is not None
+                        else to_datetime(time.time())
+                    },
+                )
+            )
+
+        mark_tsdb_incremented(project_id, event_id)
+        metrics.incr("outcomes_consumer.tsdb_incremented")
+
+    metrics.timing("outcomes_consumer.tsdb_incr_multi_size", len(tsdb_increments))
+
+    if tsdb_increments:
+        tsdb.incr_multi(tsdb_increments)
 
 
 class OutcomesConsumerWorker(AbstractBatchWorker):
@@ -128,12 +169,16 @@ class OutcomesConsumerWorker(AbstractBatchWorker):
     def flush_batch(self, batch):
         batch.sort(key=lambda msg: msg.get("project_id", 0) or 0)
 
-        with batch_buffers_incr():
-            with BaseManager.local_cache():
-                for _ in self.pool.imap_unordered(
-                    _process_message_with_timer, batch, chunksize=100
-                ):
-                    pass
+        with metrics.timer("outcomes_consumer.process_tsdb_batch"):
+            _process_tsdb_batch(batch)
+
+        with metrics.timer("outcomes_consumer.process_signal_batch"):
+            with batch_buffers_incr():
+                with BaseManager.local_cache():
+                    for _ in self.pool.imap_unordered(
+                        _process_signal_with_timer, batch, chunksize=100
+                    ):
+                        pass
 
     def shutdown(self):
         pass
