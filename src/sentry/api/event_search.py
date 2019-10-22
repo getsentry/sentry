@@ -561,8 +561,7 @@ def convert_search_filter_to_snuba_query(search_filter):
             env_conditions.append(["environment", operator, None])
 
         if _envs:
-            for env in _envs:
-                env_conditions.append(["environment", "=", env])
+            env_conditions.append(["environment", "IN", _envs])
 
         return env_conditions
 
