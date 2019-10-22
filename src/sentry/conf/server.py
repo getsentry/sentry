@@ -1432,6 +1432,7 @@ SENTRY_USE_X_FORWARDED_FOR = True
 
 SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.bitbucket.BitbucketIntegrationProvider",
+    "sentry.integrations.bitbucket_server.BitbucketServerIntegrationProvider",
     "sentry.integrations.slack.SlackIntegrationProvider",
     "sentry.integrations.github.GitHubIntegrationProvider",
     "sentry.integrations.github_enterprise.GitHubEnterpriseIntegrationProvider",
