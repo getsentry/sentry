@@ -15,7 +15,7 @@ from django.db.models import Func
 from django.utils import timezone
 from django.utils.encoding import force_text
 
-from sentry import buffer, eventtypes, eventstream, tagstore, tsdb
+from sentry import buffer, eventtypes, eventstream, options, tagstore, tsdb
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS,
@@ -745,7 +745,8 @@ class EventManager(object):
         # save the event
         try:
             with transaction.atomic(using=router.db_for_write(Event)):
-                event.data.save()
+                if options.get("store.save-event-skips-nodestore", True):
+                    event.data.save()
                 event.save()
         except IntegrityError:
             logger.info(
