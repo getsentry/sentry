@@ -40,7 +40,6 @@ class PagerDutyNotifyServiceForm(forms.Form):
         self.fields["service"].widget.choices = self.fields["service"].choices
 
 
-
 class PagerDutyNotifyServiceAction(EventAction):
     form_cls = PagerDutyNotifyServiceForm
     label = "Send a notification to PagerDuty account {account} and service {service}"
@@ -58,10 +57,9 @@ class PagerDutyNotifyServiceAction(EventAction):
             },
 
         }
-        initial_service =  self.get_initial_service()
+        initial_service = self.get_initial_service()
         if initial_service:
             self.form_fields["service"]["initial"] = initial_service
-
 
     def get_initial_service(self):
         try:

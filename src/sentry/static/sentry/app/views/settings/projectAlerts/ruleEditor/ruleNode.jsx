@@ -24,7 +24,7 @@ class RuleNode extends React.Component {
     let initialVal;
     if (this.props.data[name] === undefined && !!data.choices.length) {
       if (data.initial) {
-        initialVal = data.initial
+        initialVal = data.initial;
       } else {
         initialVal = data.choices[0][0];
       }
