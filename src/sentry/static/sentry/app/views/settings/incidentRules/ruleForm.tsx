@@ -159,8 +159,9 @@ type RuleFormContainerProps = {
   orgId: string;
   incidentRuleId?: string;
   saveOnBlur?: boolean;
-  onSubmitSuccess?: Function;
-} & React.ComponentProps<typeof RuleForm>;
+} & React.ComponentProps<typeof RuleForm> & {
+    onSubmitSuccess?: Form['props']['onSubmitSuccess'];
+  };
 
 function RuleFormContainer({
   orgId,
