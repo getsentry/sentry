@@ -47,7 +47,7 @@ class OnboardingWelcome extends React.Component {
           <li>{t('Choose your platform.')}</li>
           <li>
             {t(
-              `Integrate Sentry into your applicaton, invite your team, or take
+              `Integrate Sentry into your application, invite your team, or take
                a tour of Sentry.`
             )}
           </li>
