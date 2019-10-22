@@ -37,7 +37,7 @@ method_specifications = {
     "get_frequency_series": (READ, single_model_argument),
     "get_frequency_totals": (READ, single_model_argument),
     "incr": (WRITE, single_model_argument),
-    "incr_multi": (WRITE, lambda callargs: {model for model, key in callargs["items"]}),
+    "incr_multi": (WRITE, lambda callargs: {item[0] for item in callargs["items"]}),
     "merge": (WRITE, single_model_argument),
     "delete": (WRITE, multiple_model_argument),
     "record": (WRITE, single_model_argument),
