@@ -132,43 +132,46 @@ def _process_tsdb_batch(messages):
         project_id = int(msg.get("project_id") or 0) or None
         event_id = msg.get("event_id")
 
-        if project_id and event_id:
-            messages_to_process.append(msg)
-            is_tsdb_incremented_requests.append(_get_tsdb_cache_key(project_id, event_id))
+        if not project_id and not event_id:
+            continue
+
+        to_increment = [
+            (
+                model,
+                key,
+                {
+                    "timestamp": parse_timestamp(msg["timestamp"])
+                    if msg.get("timestamp") is not None
+                    else to_datetime(time.time())
+                },
+            )
+            for model, key in tsdb_increments_from_outcome(
+                org_id=int(msg.get("org_id") or 0) or None,
+                project_id=project_id,
+                key_id=int(msg.get("key_id") or 0) or None,
+                outcome=int(msg.get("outcome", -1)),
+                reason=msg.get("reason") or None,
+            )
+        ]
+
+        if not to_increment:
+            continue
+
+        messages_to_process.append((msg, to_increment))
+        is_tsdb_incremented_requests.append(_get_tsdb_cache_key(project_id, event_id))
 
     is_tsdb_incremented_results = cache.get_many(is_tsdb_incremented_requests)
 
     mark_tsdb_incremented_requests = []
 
-    for msg, should_increment in zip(messages_to_process, is_tsdb_incremented_results):
-        project_id = int(msg.get("project_id") or 0) or None
-        event_id = msg.get("event_id")
-
+    for (msg, to_increment), should_increment in zip(
+        messages_to_process, is_tsdb_incremented_results
+    ):
         if should_increment is not None:
             continue
 
-        for model, key in tsdb_increments_from_outcome(
-            org_id=int(msg.get("org_id") or 0) or None,
-            project_id=project_id,
-            key_id=int(msg.get("key_id") or 0) or None,
-            outcome=int(msg.get("outcome", -1)),
-            reason=msg.get("reason") or None,
-        ):
-            # Specifically list.append is threadsafe
-            tsdb_increments.append(
-                (
-                    model,
-                    key,
-                    {
-                        "timestamp": parse_timestamp(msg["timestamp"])
-                        if msg.get("timestamp") is not None
-                        else to_datetime(time.time())
-                    },
-                )
-            )
-
+        tsdb_increments.extend(to_increment)
         mark_tsdb_incremented_requests.append((project_id, event_id))
-
         metrics.incr("outcomes_consumer.tsdb_incremented")
 
     metrics.timing("outcomes_consumer.tsdb_incr_multi_size", len(tsdb_increments))
