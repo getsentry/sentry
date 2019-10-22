@@ -2,13 +2,18 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {Flex, Box} from 'grid-emotion';
 
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {t, tct} from 'app/locale';
-import Button from 'app/components/button';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import Button from 'app/components/button';
 import SentryTypes from 'app/sentryTypes';
+import withApi from 'app/utils/withApi';
 
 class OrganizationAccessRequests extends React.Component {
   static propTypes = {
+    api: PropTypes.object.isRequired,
+    orgId: PropTypes.string.isRequired,
+    updateRequestList: PropTypes.func.isRequired,
     requestList: PropTypes.arrayOf(
       PropTypes.shape({
         id: PropTypes.string.isRequired,
@@ -16,27 +21,59 @@ class OrganizationAccessRequests extends React.Component {
         team: SentryTypes.Team,
       })
     ),
-    accessRequestBusy: PropTypes.object,
-    onApprove: PropTypes.func.isRequired,
-    onDeny: PropTypes.func.isRequired,
   };
 
   static defaultProps = {
     requestList: [],
   };
 
+  state = {
+    accessRequestBusy: new Map(),
+  };
+
+  approveOrDeny = async (isApproved, id) => {
+    const {api, orgId, updateRequestList} = this.props;
+
+    this.setState(state => ({
+      accessRequestBusy: state.accessRequestBusy.set(id, true),
+    }));
+
+    try {
+      await api.requestPromise(`/organizations/${orgId}/access-requests/${id}/`, {
+        method: 'PUT',
+        data: {isApproved},
+      });
+      updateRequestList(id);
+      addSuccessMessage(
+        tct('Team request [action]', {action: isApproved ? 'approved' : 'denied'})
+      );
+    } catch (err) {
+      addErrorMessage(
+        tct('Error [action] team request', {
+          action: isApproved ? 'approving' : 'denying',
+        })
+      );
+      throw err;
+    }
+
+    this.setState(state => ({
+      accessRequestBusy: state.accessRequestBusy.set(id, false),
+    }));
+  };
+
   handleApprove = (id, e) => {
     e.stopPropagation();
-    this.props.onApprove(id);
+    this.approveOrDeny(true, id);
   };
 
   handleDeny = (id, e) => {
     e.stopPropagation();
-    this.props.onDeny(id);
+    this.approveOrDeny(false, id);
   };
 
   render() {
-    const {accessRequestBusy, requestList} = this.props;
+    const {requestList} = this.props;
+    const {accessRequestBusy} = this.state;
 
     if (!requestList || !requestList.length) {
       return null;
@@ -47,19 +84,19 @@ class OrganizationAccessRequests extends React.Component {
         <PanelHeader disablePadding>
           <Flex>
             <Box px={2} flex="1">
-              {t('Pending Access Requests')}
+              {t('Pending Team Requests')}
             </Box>
           </Flex>
         </PanelHeader>
 
         <PanelBody>
-          {requestList.map(({id, member, team}, i) => {
+          {requestList.map(({id, member, team}) => {
             const displayName =
               member.user &&
               (member.user.name || member.user.email || member.user.username);
             return (
               <PanelItem p={0} key={id} align="center">
-                <Box p={2} flex="1">
+                <Box p={2} flex="1" data-test-id="request-message">
                   {tct('[name] requests access to the [team] team.', {
                     name: <strong>{displayName}</strong>,
                     team: <strong>#{team.slug}</strong>,
@@ -92,4 +129,4 @@ class OrganizationAccessRequests extends React.Component {
   }
 }
 
-export default OrganizationAccessRequests;
+export default withApi(OrganizationAccessRequests);

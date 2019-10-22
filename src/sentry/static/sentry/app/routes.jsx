@@ -497,7 +497,23 @@ function routes() {
       />
 
       <Route path="members/" name="Members">
-        <IndexRoute component={OrganizationMembersView} />
+        <Route
+          componentPromise={() =>
+            import(/* webpackChunkName: "OrganizationMembersWrapper" */ 'app/views/settings/organizationMembers/organizationMembersWrapper')
+          }
+          component={errorHandler(LazyLoad)}
+        >
+          <IndexRoute component={OrganizationMembersView} />
+
+          <Route
+            path="requests/"
+            name="Requests"
+            componentPromise={() =>
+              import(/* webpackChunkName: "OrganizationRequestsView" */ 'app/views/settings/organizationMembers/organizationRequestsView')
+            }
+            component={errorHandler(LazyLoad)}
+          />
+        </Route>
 
         <Route
           path="new/"
