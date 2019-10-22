@@ -2,6 +2,7 @@ import {memoize, partition, uniqBy} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import ProjectActions from 'app/actions/projectActions';
 import SentryTypes from 'app/sentryTypes';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import withApi from 'app/utils/withApi';
@@ -29,6 +30,10 @@ class Projects extends React.Component {
 
     // Number of projects to return when not using `props.slugs`
     limit: PropTypes.number,
+
+    // Whether to fetch all the projects in the organization of which the user
+    // has access to
+    allProjects: PropTypes.bool,
   };
 
   state = {
@@ -151,14 +156,14 @@ class Projects extends React.Component {
    * results using search
    */
   loadAllProjects = async () => {
-    const {api, orgId, limit} = this.props;
+    const {api, orgId, limit, allProjects} = this.props;
 
     this.setState({
       fetching: true,
     });
 
     try {
-      const {results, hasMore} = await fetchProjects(api, orgId, {limit});
+      const {results, hasMore} = await fetchProjects(api, orgId, {limit, allProjects});
 
       this.setState({
         fetching: false,
@@ -166,6 +171,11 @@ class Projects extends React.Component {
         initiallyLoaded: true,
         hasMore,
       });
+
+      // populate the projects store if all projects were fetched
+      if (allProjects) {
+        ProjectActions.loadProjects(results);
+      }
     } catch (err) {
       console.error(err); // eslint-disable-line no-console
 
@@ -252,7 +262,7 @@ class Projects extends React.Component {
 
 export default withProjects(withApi(Projects));
 
-async function fetchProjects(api, orgId, {slugs, search, limit} = {}) {
+async function fetchProjects(api, orgId, {slugs, search, limit, allProjects} = {}) {
   const query = {};
 
   if (slugs && slugs.length) {
@@ -266,6 +276,10 @@ async function fetchProjects(api, orgId, {slugs, search, limit} = {}) {
   // "0" shouldn't be a valid value, so this check is fine
   if (limit) {
     query.per_page = limit;
+  }
+
+  if (allProjects) {
+    query.all_projects = 1;
   }
 
   let hasMore = false;
