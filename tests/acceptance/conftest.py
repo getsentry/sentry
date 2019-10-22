@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
 import os
 import json
@@ -28,7 +28,7 @@ def pytest_configure(config):
             last_built = int(time.time()) - data["built"]
 
             if last_built <= 3600:
-                print (
+                print(
                     """
 ###################
 #
@@ -46,7 +46,7 @@ def pytest_configure(config):
     except Exception:
         pass
 
-    print (
+    print(
         """
 ###################
 #
