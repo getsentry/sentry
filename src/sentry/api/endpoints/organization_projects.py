@@ -102,7 +102,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
 
         queryset = queryset.filter(status=ProjectStatus.VISIBLE).distinct()
 
-        # TODO(davidenwang): remove this after backend is paginated
+        # TODO(davidenwang): remove this after frontend requires only paginated projects
         get_all_projects = request.GET.get("all_projects") == "1"
 
         if get_all_projects:
