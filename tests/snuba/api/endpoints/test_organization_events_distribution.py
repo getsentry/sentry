@@ -497,6 +497,19 @@ class OrganizationEventsDistributionEndpointTest(SnubaTestCase, APITestCase):
             }
 
         with self.feature(self.feature_list):
+            # query by an environment
+            response = self.client.get(
+                self.url, {"key": "environment", "environment": "staging"}, format="json"
+            )
+
+            assert response.status_code == 200, response.content
+
+            assert response.data == {
+                "topValues": [{"count": 1, "name": "staging", "value": "staging"}],
+                "key": "environment",
+            }
+
+        with self.feature(self.feature_list):
             # query by multiple environments
             response = self.client.get(
                 self.url,
