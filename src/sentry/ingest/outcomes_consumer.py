@@ -132,7 +132,7 @@ def _process_tsdb_batch(messages):
         project_id = int(msg.get("project_id") or 0) or None
         event_id = msg.get("event_id")
 
-        if not project_id and not event_id:
+        if not project_id or not event_id:
             continue
 
         to_increment = [
