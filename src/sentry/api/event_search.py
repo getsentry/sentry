@@ -550,7 +550,9 @@ def convert_search_filter_to_snuba_query(search_filter):
     if snuba_name in no_conversion:
         return
     elif snuba_name == "environment":
+        # conditions added to env_conditions are OR'd
         env_conditions = []
+
         _envs = set(value if isinstance(value, (list, tuple)) else [value])
         # the "no environment" environment is null in snuba
         if "" in _envs:
@@ -559,7 +561,7 @@ def convert_search_filter_to_snuba_query(search_filter):
             env_conditions.append(["environment", operator, None])
 
         if _envs:
-            env_conditions.append(["environment", "IN", list(_envs)])
+            env_conditions.append(["environment", "IN", _envs])
 
         return env_conditions
 
