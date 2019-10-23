@@ -91,7 +91,7 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
 
     def _get_filter(self, snuba_args):
         return eventstore.Filter(
-            conditions=snuba_args["conditions"],
+            conditions=snuba_args["conditions"] + [["type", "!=", "transaction"]],
             start=snuba_args.get("start", None),
             end=snuba_args.get("end", None),
             project_ids=snuba_args["filter_keys"].get("project_id", None),

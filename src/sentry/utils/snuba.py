@@ -391,6 +391,13 @@ def detect_dataset(query_args, aliased_conditions=False):
         ]:
             return Dataset.Transactions
 
+        if condition == ["event.type", "!=", "transaction"] or condition == [
+            "type",
+            "!=",
+            "transaction",
+        ]:
+            return Dataset.Events
+
     for field in query_args.get("selected_columns") or []:
         if isinstance(field, six.string_types) and field in transaction_fields:
             return Dataset.Transactions
