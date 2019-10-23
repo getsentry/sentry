@@ -81,6 +81,7 @@ class DraggableColumns extends React.Component<Props, State> {
     this.setState({
       isDragging: true,
       draggingColumnIndex: initialColumnIndex,
+      destinationColumnIndex: initialColumnIndex,
       left: event.pageX,
       top: event.pageY,
     });
