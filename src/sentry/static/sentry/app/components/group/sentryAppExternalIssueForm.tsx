@@ -26,7 +26,7 @@ type Props = {
   onSubmitSuccess: (externalIssue: PlatformExternalIssue) => void;
 };
 
-//TODO(TS): Improve typings on Field an input so we can use the type in functions without errors
+//TODO(TS): Improve typings on Field so we can use the type in functions without errors
 
 export class SentryAppExternalIssueForm extends React.Component<Props> {
   static propTypes: any = {
@@ -50,7 +50,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props> {
     addErrorMessage(t('Unable to %s %s issue.', action, this.props.appName));
   };
 
-  getOptions = (field: Field, input: any) => {
+  getOptions = (field: Field, input: string) => {
     return new Promise(resolve => {
       this.debouncedOptionLoad(field, input, resolve);
     });
@@ -83,7 +83,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props> {
   fieldProps = field => {
     return field.uri
       ? {
-          loadOptions: (input: any) => this.getOptions(field, input),
+          loadOptions: (input: string) => this.getOptions(field, input),
           async: true,
           cache: false,
           onSelectResetsInput: false,
@@ -106,7 +106,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props> {
   }
 
   getFieldDefault(field) {
-    const {group} = this.props;
+    const {group, appName} = this.props;
     if (field.type === 'textarea') {
       field.maxRows = 10;
       field.autosize = true;
@@ -116,7 +116,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props> {
         return group.title;
       case 'issue.description':
         const stacktrace = this.getStacktrace();
-        const queryParams = {referrer: this.props.appName};
+        const queryParams = {referrer: appName};
         const url = addQueryParamsToExistingUrl(group.permalink, queryParams);
         const shortId = group.shortId;
         return t('Sentry Issue: [%s](%s)%s', shortId, url, stacktrace);
@@ -126,8 +126,8 @@ export class SentryAppExternalIssueForm extends React.Component<Props> {
   }
 
   render() {
-    const {sentryAppInstallation} = this.props;
-    const config = this.props.config[this.props.action];
+    const {sentryAppInstallation, action} = this.props;
+    const config = this.props.config[action];
 
     const requiredFields = config.required_fields || [];
     const optionalFields = config.optional_fields || [];
@@ -135,7 +135,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props> {
       {
         type: 'hidden',
         name: 'action',
-        defaultValue: this.props.action,
+        defaultValue: action,
       },
       {
         type: 'hidden',
@@ -155,7 +155,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props> {
 
     return (
       <Form
-        key={this.props.action}
+        key={action}
         apiEndpoint={`/sentry-app-installations/${
           sentryAppInstallation.uuid
         }/external-issues/`}
@@ -168,11 +168,13 @@ export class SentryAppExternalIssueForm extends React.Component<Props> {
         })}
 
         {requiredFields.map(field => {
-          field.choices = field.choices || [];
-          field.inline = false;
-          field.stacked = true;
-          field.flexibleControlStateSize = true;
-          field.required = true;
+          field = Object.assign({}, field, {
+            choices: field.choices || [],
+            inline: false,
+            stacked: true,
+            flexibleControlStateSize: true,
+            required: true,
+          });
 
           if (['text', 'textarea'].includes(field.type) && field.default) {
             field.defaultValue = this.getFieldDefault(field);
@@ -188,10 +190,12 @@ export class SentryAppExternalIssueForm extends React.Component<Props> {
         })}
 
         {optionalFields.map(field => {
-          field.choices = field.choices || [];
-          field.inline = false;
-          field.stacked = true;
-          field.flexibleControlStateSize = true;
+          field = Object.assign({}, field, {
+            choices: field.choices || [],
+            inline: false,
+            stacked: true,
+            flexibleControlStateSize: true,
+          });
 
           if (['text', 'textarea'].includes(field.type) && field.default) {
             field.defaultValue = this.getFieldDefault(field);
