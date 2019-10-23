@@ -266,9 +266,6 @@ def initialize_app(config, skip_service_validation=False):
 
     if "south" in settings.INSTALLED_APPS:
         fix_south(settings)
-    monkeypatch_django_migrations()
-
-    apply_legacy_settings(settings)
 
     # Commonly setups don't correctly configure themselves for production envs
     # so lets try to provide a bit more guidance
@@ -309,6 +306,10 @@ def initialize_app(config, skip_service_validation=False):
     if hasattr(django, "setup"):
         # support for Django 1.7+
         django.setup()
+
+    monkeypatch_django_migrations()
+
+    apply_legacy_settings(settings)
 
     bind_cache_to_option_store()
 
