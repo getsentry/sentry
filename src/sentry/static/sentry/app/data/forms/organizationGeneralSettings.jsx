@@ -233,7 +233,7 @@ const formGroups = [
         name: 'allowJoinRequests',
         type: 'boolean',
 
-        label: t('Allow Requests to Join'),
+        label: t('Allow Join Requests'),
         help: t('Allow users to request to join your organization'),
         confirm: {
           true: t(
