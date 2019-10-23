@@ -68,8 +68,8 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
 
     this.unsubscribables = [
       SentryAppInstallationStore.listen(this.onSentryAppInstallationChange, this),
-      ExternalIssueStore.listen(this.onExternalIssueChange),
-      SentryAppComponentsStore.listen(this.onSentryAppComponentsChange),
+      ExternalIssueStore.listen(this.onExternalIssueChange, this),
+      SentryAppComponentsStore.listen(this.onSentryAppComponentsChange, this),
     ];
 
     this.fetchSentryAppData();
