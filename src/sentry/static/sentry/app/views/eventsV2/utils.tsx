@@ -230,7 +230,7 @@ const TEMPLATE_TABLE_COLUMN: TableColumn<React.ReactText> = {
   name: '',
   aggregation: '',
   field: '',
-  eventViewField: {field: '', title: ''},
+  eventViewField: Object.freeze({field: '', title: ''}),
   isDragging: false,
 
   type: 'never',
