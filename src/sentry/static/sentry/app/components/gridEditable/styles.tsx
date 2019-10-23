@@ -4,7 +4,7 @@ import InlineSvg from 'app/components/inlineSvg';
 import {Panel, PanelBody} from 'app/components/panels';
 import space from 'app/styles/space';
 
-const GRID_HEADER_HEIGHT = '45px';
+export const GRID_HEADER_HEIGHT = 45;
 const GRID_EDIT_WIDTH = '35px';
 const GRID_EDIT_WIDTH_DOUBLE = '70px'; // (2 * GRID_EDIT_WIDTH)
 
@@ -94,7 +94,7 @@ export const GridHeadCell = styled('th')`
      We override this by setting min-width to be 0. */
   position: relative;
   min-width: 0;
-  height: ${GRID_HEADER_HEIGHT};
+  height: ${GRID_HEADER_HEIGHT}px;
 
   border-bottom: 1px solid ${p => p.theme.borderDark};
   background: ${p => p.theme.offWhite};
@@ -304,7 +304,7 @@ export const GridEditGroup = styled('th')`
   top: 0;
   right: 0;
   display: flex;
-  height: ${GRID_HEADER_HEIGHT};
+  height: ${GRID_HEADER_HEIGHT}px;
 
   background-color: ${p => p.theme.offWhite};
   border-bottom: 1px solid ${p => p.theme.borderDark};
@@ -314,7 +314,7 @@ export const GridEditGroup = styled('th')`
 export const GridEditGroupButton = styled('div')`
   display: block;
   width: ${GRID_EDIT_WIDTH};
-  height: ${GRID_HEADER_HEIGHT};
+  height: ${GRID_HEADER_HEIGHT}px;
 
   color: ${p => p.theme.gray2};
   font-size: 16px;
