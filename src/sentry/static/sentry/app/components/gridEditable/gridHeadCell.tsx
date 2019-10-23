@@ -122,16 +122,22 @@ class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
     );
   }
 
-  renderThing = () => {
-    const {isEditing, isLast, openModalAddColumnAt, indexColumnOrder} = this.props;
+  renderInBetween = () => {
+    const {
+      isEditing,
+      isLast,
+      openModalAddColumnAt,
+      indexColumnOrder,
+      isColumnDragging,
+    } = this.props;
 
-    if (isLast || !isEditing) {
+    if (isLast || !isEditing || isColumnDragging) {
       return null;
     }
 
     return (
       <React.Fragment>
-        <GridHeadCellResizer isEditing={isEditing} />
+        {FLAG_GRID_RESIZABLE && <GridHeadCellResizer isEditing={isEditing} />}
         <AddColumnButton
           onClick={() => {
             const insertIndex = indexColumnOrder + 1;
@@ -159,9 +165,11 @@ class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
           {this.renderButtonHoverDraggable(children)}
         </GridHeadCellButton>
 
-        {/* Keep the Resizer at the bottom to ensure that it is will always
-            float on top of everything else */
-        FLAG_GRID_RESIZABLE && this.renderThing()}
+        {/*
+          Keep the Resizer component and the add column button at the bottom
+          to ensure that it is will always
+          float on top of everything else */
+        this.renderInBetween()}
       </GridHeadCellWrapper>
     );
   }
