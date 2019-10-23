@@ -28,6 +28,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         "verify_ssl": True,
         "client_id": "client_id",
         "client_secret": "client_secret",
+        "include_subgroups": True,
     }
 
     default_group_id = 4
@@ -122,6 +123,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
             "base_url": "https://gitlab.example.com",
             "webhook_secret": "secret-token",
             "group_id": self.default_group_id,
+            "include_subgroups": True,
         }
         oi = OrganizationIntegration.objects.get(
             integration=integration, organization=self.organization

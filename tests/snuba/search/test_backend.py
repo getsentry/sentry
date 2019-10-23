@@ -1349,7 +1349,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
         assert set(results) == set([self.group1, no_tag_event.group])
 
     def test_all_fields_do_not_error(self):
-        # Just a sanity check to make sure that all fields can be succesfully
+        # Just a sanity check to make sure that all fields can be successfully
         # searched on without returning type errors and other schema related
         # issues.
         def test_query(query):

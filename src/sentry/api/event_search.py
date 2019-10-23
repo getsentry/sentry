@@ -72,7 +72,7 @@ def translate(pat):
     return "^" + res + "$"
 
 
-# Explaination of quoted string regex, courtesy of Matt
+# Explanation of quoted string regex, courtesy of Matt
 # "              // literal quote
 # (              // begin capture group
 #   (?:          // begin uncaptured group
@@ -537,7 +537,9 @@ def convert_search_filter_to_snuba_query(search_filter):
     if name in no_conversion:
         return
     elif name == "environment":
+        # conditions added to env_conditions are OR'd
         env_conditions = []
+
         _envs = set(value if isinstance(value, (list, tuple)) else [value])
         # the "no environment" environment is null in snuba
         if "" in _envs:
@@ -546,7 +548,7 @@ def convert_search_filter_to_snuba_query(search_filter):
             env_conditions.append(["environment", operator, None])
 
         if _envs:
-            env_conditions.append(["environment", "IN", list(_envs)])
+            env_conditions.append(["environment", "IN", _envs])
 
         return env_conditions
 

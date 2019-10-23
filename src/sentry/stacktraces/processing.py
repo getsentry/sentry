@@ -155,7 +155,7 @@ class StacktraceProcessor(object):
         """
 
     def preprocess_step(self, processing_task):
-        """After frames are preprocesed but before frame processing kicks in
+        """After frames are preprocessed but before frame processing kicks in
         the preprocessing step is run.  This already has access to the cache
         values on the frames.
         """

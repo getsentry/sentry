@@ -4,6 +4,8 @@ from uuid import uuid4
 
 from sentry.models import (
     Event,
+    EventAttachment,
+    File,
     Group,
     GroupAssignee,
     GroupHash,
@@ -14,7 +16,7 @@ from sentry.models import (
     UserReport,
 )
 from sentry import nodestore
-from sentry.deletions.defaults.group import GroupNodeDeletionTask
+from sentry.deletions.defaults.group import EventDataDeletionTask
 from sentry.tasks.deletion import run_deletion
 
 from sentry.testutils import TestCase, SnubaTestCase
@@ -23,7 +25,7 @@ from sentry.testutils.helpers.datetime import iso_format, before_now
 
 class DeleteGroupTest(TestCase, SnubaTestCase):
     def test_simple(self):
-        GroupNodeDeletionTask.DEFAULT_CHUNK_SIZE = 1  # test chunking logic
+        EventDataDeletionTask.DEFAULT_CHUNK_SIZE = 1  # test chunking logic
         event_id = "a" * 32
         event_id2 = "b" * 32
         event_id3 = "c" * 32
@@ -65,7 +67,18 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
 
         project = self.create_project()
 
-        UserReport.objects.create(group_id=group.id, project_id=event.project_id, name="Jane Doe")
+        UserReport.objects.create(
+            group_id=group.id, project_id=event.project_id, name="With group id"
+        )
+        UserReport.objects.create(
+            event_id=event.event_id, project_id=event.project_id, name="With event id"
+        )
+        EventAttachment.objects.create(
+            event_id=event.event_id,
+            project_id=event.project_id,
+            file=File.objects.create(name="hello.png", type="image/png"),
+            name="hello.png",
+        )
 
         GroupAssignee.objects.create(group=group, project=project, user=self.user)
         GroupHash.objects.create(project=project, group=group, hash=uuid4().hex)
@@ -84,10 +97,12 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
 
         assert not Event.objects.filter(id=event.id).exists()
         assert not UserReport.objects.filter(group_id=group.id).exists()
+        assert not UserReport.objects.filter(event_id=event.event_id).exists()
+        assert not EventAttachment.objects.filter(event_id=event.event_id).exists()
+
         assert not GroupRedirect.objects.filter(group_id=group.id).exists()
         assert not GroupHash.objects.filter(group_id=group.id).exists()
         assert not Group.objects.filter(id=group.id).exists()
-
         assert not nodestore.get(node_id)
         assert not nodestore.get(node_id2)
         assert nodestore.get(node_id3), "Does not remove from second group"

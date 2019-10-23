@@ -193,7 +193,7 @@ def chained_exception_legacy(chained_exception, config, **meta):
         return config.get_grouping_component(exceptions[0], **meta)
 
     # Case 2: try to build a new component out of the individual
-    # errors however with a trick.  In case any exeption has a
+    # errors however with a trick.  In case any exception has a
     # stacktrace we want to ignore all other exceptions.
     any_stacktraces = False
     values = []

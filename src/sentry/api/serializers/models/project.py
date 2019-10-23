@@ -335,13 +335,13 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             }
 
         # We just return the version key here so that we cut down on response size
-        latest_release_verions = {
+        latest_release_versions = {
             release.actual_project_id: {"version": release.version}
             for release in bulk_fetch_project_latest_releases(item_list)
         }
 
         for item in item_list:
-            attrs[item]["latest_release"] = latest_release_verions.get(item.id)
+            attrs[item]["latest_release"] = latest_release_versions.get(item.id)
             attrs[item]["deploys"] = deploys_by_project.get(item.id)
             attrs[item]["environments"] = environments_by_project.get(item.id, [])
             attrs[item]["has_user_reports"] = item.id in projects_with_user_reports

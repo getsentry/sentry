@@ -225,7 +225,7 @@ def login(request, user, passed_2fa=None, after_2fa=None, organization_id=None, 
     # figure out that their passwords are expired this is still the more
     # reasonable behavior.
     #
-    # We also rememebr _after_2fa here so that we can continue the flow if
+    # We also remember _after_2fa here so that we can continue the flow if
     # someone does it in the same browser.
     if user.is_password_expired:
         raise AuthUserPasswordExpired(user)

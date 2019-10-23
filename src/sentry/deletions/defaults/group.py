@@ -1,14 +1,14 @@
 from __future__ import absolute_import, print_function
 
 from sentry import eventstore, nodestore
-from sentry.models import Event
+from sentry.models import Event, EventAttachment, UserReport
 
 from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation
 
 
-class GroupNodeDeletionTask(BaseDeletionTask):
+class EventDataDeletionTask(BaseDeletionTask):
     """
-    Deletes nodestore data for group
+    Deletes nodestore data, EventAttachment and UserReports for group
     """
 
     DEFAULT_CHUNK_SIZE = 10000
@@ -17,7 +17,7 @@ class GroupNodeDeletionTask(BaseDeletionTask):
         self.group_id = group_id
         self.project_id = project_id
         self.last_event = None
-        super(GroupNodeDeletionTask, self).__init__(manager, **kwargs)
+        super(EventDataDeletionTask, self).__init__(manager, **kwargs)
 
     def chunk(self):
         conditions = []
@@ -46,9 +46,13 @@ class GroupNodeDeletionTask(BaseDeletionTask):
 
         self.last_event = events[-1]
 
-        node_ids = [Event.generate_node_id(self.project_id, event.id) for event in events]
-
+        # Remove from nodestore
+        node_ids = [Event.generate_node_id(self.project_id, event.event_id) for event in events]
         nodestore.delete_multi(node_ids)
+
+        # Remove EventAttachment and UserReport
+        EventAttachment.objects.filter(event_id=event.event_id, project_id=self.project_id).delete()
+        UserReport.objects.filter(event_id=event.event_id, project_id=self.project_id).delete()
 
         return True
 
@@ -90,7 +94,7 @@ class GroupDeletionTask(ModelDeletionTask):
             [
                 BaseRelation(
                     {"group_id": instance.id, "project_id": instance.project_id},
-                    GroupNodeDeletionTask,
+                    EventDataDeletionTask,
                 )
             ]
         )

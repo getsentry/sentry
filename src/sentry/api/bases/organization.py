@@ -31,6 +31,9 @@ class NoProjects(Exception):
     pass
 
 
+ALL_ACCESS_PROJECTS = {-1}
+
+
 class OrganizationPermission(SentryPermission):
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],
@@ -171,12 +174,16 @@ class OrganizationEndpoint(Endpoint):
         except ValueError:
             raise ParseError(detail="Invalid project parameter. Values must be numbers.")
 
-        requested_projects = project_ids.copy()
-
         user = getattr(request, "user", None)
-
         qs = Project.objects.filter(organization=organization, status=ProjectStatus.VISIBLE)
 
+        # A project_id of -1 means 'all projects I have access to'
+        # While no project_ids means 'all projects I am a member of'.
+        if project_ids == ALL_ACCESS_PROJECTS:
+            include_all_accessible = True
+            project_ids = set()
+
+        requested_projects = project_ids.copy()
         if project_ids:
             qs = qs.filter(id__in=project_ids)
 
