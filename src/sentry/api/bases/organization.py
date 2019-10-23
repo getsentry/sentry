@@ -174,7 +174,7 @@ class OrganizationEndpoint(Endpoint):
         except ValueError:
             raise ParseError(detail="Invalid project parameter. Values must be numbers.")
         return self._get_projects_by_id(
-            project_ids, request, force_global_perms, include_all_accessible
+            project_ids, request, organization, force_global_perms, include_all_accessible
         )
 
     def _get_projects_by_id(
