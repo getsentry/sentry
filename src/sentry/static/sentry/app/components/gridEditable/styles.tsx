@@ -233,8 +233,6 @@ export const GridHeadCellButtonHoverBackground = styled(GridHeadCellButton)`
   }
 `;
 
-export const GridHeadCellButtonHoverButtonGroup = styled('div')<GridEditableProps>``;
-
 export const GridHeadCellButtonHoverButton = styled('div')`
   display: inline-flex;
   justify-content: center;

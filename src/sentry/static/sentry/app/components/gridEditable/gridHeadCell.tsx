@@ -8,7 +8,6 @@ import {
   GridHeadCellButton,
   GridHeadCellButtonHover,
   GridHeadCellButtonHoverBackground,
-  GridHeadCellButtonHoverButtonGroup,
   GridHeadCellButtonHoverButton,
   GridHeadCellButtonHoverDraggable,
   GridHeadCellResizer,
@@ -96,14 +95,14 @@ class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
             }}
           />
 
-          <GridHeadCellButtonHoverButtonGroup>
+          <div>
             <GridHeadCellButtonHoverButton onClick={this.toggleModal}>
               <InlineSvg src="icon-edit-pencil" />
             </GridHeadCellButtonHoverButton>
             <GridHeadCellButtonHoverButton onClick={this.deleteColumn}>
               <InlineSvg src="icon-trash" />
             </GridHeadCellButtonHoverButton>
-          </GridHeadCellButtonHoverButtonGroup>
+          </div>
 
           <GridHeadCellButtonHoverDraggable
             src="icon-grabbable"
