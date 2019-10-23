@@ -48,7 +48,7 @@ export function getParams(params: Params): {[key: string]: string} {
     .reduce(
       (acc, [key, value]) => ({
         ...acc,
-        [key]: value as string,
+        [key]: String(value),
       }),
       {}
     );
