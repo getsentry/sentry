@@ -12,7 +12,7 @@ export type TableColumn<K> = GridColumnOrder<K> & {
   // name: string               From GridColumnHeader
   aggregation: Aggregation;
   field: Field;
-  eventViewField: FieldType;
+  eventViewField: Readonly<FieldType>;
 
   type: ColumnValueType;
   isSortable: boolean;

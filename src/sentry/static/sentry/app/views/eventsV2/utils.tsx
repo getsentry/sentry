@@ -272,7 +272,10 @@ export function decodeColumnOrder(props: {
       : false;
     column.isPrimary = column.field === 'title';
 
-    column.eventViewField = fields[index];
+    column.eventViewField = {
+      title: fields[index].title,
+      field: fields[index].field,
+    };
 
     return column;
   });
