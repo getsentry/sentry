@@ -303,9 +303,7 @@ def initialize_app(config, skip_service_validation=False):
 
     import django
 
-    if hasattr(django, "setup"):
-        # support for Django 1.7+
-        django.setup()
+    django.setup()
 
     monkeypatch_django_migrations()
 
