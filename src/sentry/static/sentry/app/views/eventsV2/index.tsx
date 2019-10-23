@@ -73,10 +73,10 @@ class EventsV2 extends React.Component<Props> {
     const name = getFirstQueryString(location.query, 'name');
 
     if (typeof name === 'string' && String(name).trim().length > 0) {
-      return [t('Events'), String(name).trim()];
+      return [t('Discover'), String(name).trim()];
     }
 
-    return [t('Events')];
+    return [t('Discover')];
   };
 
   render() {
