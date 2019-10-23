@@ -123,6 +123,11 @@ const StyledPanelItem = styled(PanelItem)`
   grid-template-columns: auto 200px max-content;
   grid-gap: ${space(1)};
   align-items: center;
+  word-break: break-all;
+
+  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+    grid-template-columns: auto 100px max-content;
+  }
 `;
 
 const UserName = styled('div')`

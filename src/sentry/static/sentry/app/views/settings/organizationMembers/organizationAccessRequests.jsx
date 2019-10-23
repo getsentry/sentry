@@ -7,6 +7,8 @@ import {t, tct} from 'app/locale';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import Button from 'app/components/button';
 import SentryTypes from 'app/sentryTypes';
+import space from 'app/styles/space';
+import styled from 'react-emotion';
 import withApi from 'app/utils/withApi';
 
 class OrganizationAccessRequests extends React.Component {
@@ -103,15 +105,14 @@ class OrganizationAccessRequests extends React.Component {
                   })}
                 </Box>
                 <Box p={2}>
-                  <Button
+                  <StyledButton
+                    priority="primary"
+                    size="small"
                     onClick={e => this.handleApprove(id, e)}
                     busy={accessRequestBusy.get(id)}
-                    priority="primary"
-                    style={{marginRight: 4}}
-                    size="small"
                   >
                     {t('Approve')}
-                  </Button>
+                  </StyledButton>
                   <Button
                     busy={accessRequestBusy.get(id)}
                     onClick={e => this.handleDeny(id, e)}
@@ -128,5 +129,9 @@ class OrganizationAccessRequests extends React.Component {
     );
   }
 }
+
+const StyledButton = styled(Button)`
+  margin-right: ${space(1)};
+`;
 
 export default withApi(OrganizationAccessRequests);

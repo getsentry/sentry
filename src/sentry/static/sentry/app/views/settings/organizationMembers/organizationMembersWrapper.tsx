@@ -185,6 +185,10 @@ const SubText = styled('p')`
 
 const StyledBadge = styled(Badge)`
   margin-left: -12px;
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    margin-left: -6px;
+  }
 `;
 
 export default OrganizationMembersWrapper;
