@@ -80,7 +80,6 @@ base_postgres: &postgres_default
     - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
     - docker ps -a
   install:
-    - python setup.py install_egg_info
     - pip install -U -e ".[dev,tests,optional]"
   before_script:
     - psql -c 'create database sentry;' -U postgres
@@ -100,7 +99,6 @@ base_acceptance: &acceptance_default
     - docker ps -a
   install:
     - ./bin/yarn install --pure-lockfile
-    - python setup.py install_egg_info
     - pip install -U -e ".[dev,tests,optional]"
     - |
       CHROME_MAJOR_VERSION="$(dpkg -s google-chrome-stable | sed -nr 's/Version: ([0-9]+).*/\1/p')"
@@ -123,7 +121,6 @@ matrix:
       name: 'Linter'
       env: TEST_SUITE=lint
       install:
-        - python setup.py install_egg_info
         - SENTRY_LIGHT_BUILD=1 pip install -U -e ".[dev,tests,optional]"
         - find "$NODE_DIR" -type d -empty -delete
         - nvm install
@@ -156,7 +153,6 @@ matrix:
         - postgresql
         - redis-server
       install:
-        - python setup.py install_egg_info
         - pip install -U -e .
       before_script:
         - psql -c 'create database sentry;' -U postgres
@@ -193,7 +189,6 @@ matrix:
         - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
         - docker ps -a
       install:
-        - python setup.py install_egg_info
         - pip install -U -e ".[dev,tests,optional]"
         - pip install confluent-kafka
       before_script:
