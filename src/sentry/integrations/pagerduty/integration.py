@@ -6,6 +6,7 @@ from django.db import transaction
 from sentry import options
 
 from sentry.utils import json
+from sentry.utils.http import absolute_uri
 from sentry.integrations import (
     IntegrationInstallation,
     IntegrationFeatures,
@@ -13,8 +14,14 @@ from sentry.integrations import (
     IntegrationProvider,
     FeatureDescription,
 )
-from sentry.models import OrganizationIntegration, PagerDutyServiceProject, PagerDutyService, Project
+from sentry.models import (
+    OrganizationIntegration,
+    PagerDutyServiceProject,
+    PagerDutyService,
+    Project,
+)
 from sentry.pipeline import PipelineView
+from .client import PagerDutyClient
 
 DESCRIPTION = """
 PagerDuty Description
@@ -41,20 +48,18 @@ metadata = IntegrationMetadata(
 
 
 class PagerDutyIntegration(IntegrationInstallation):
-    def get_client(self):
-        pass
+    def get_client(self, integration_key):
+        return PagerDutyClient(integration_key=integration_key)
 
     def get_organization_config(self):
         from sentry.models import Project
 
-        projects = Project.objects.filter(
-            organization_id=self.org_integration.organization_id,
-        )
+        projects = Project.objects.filter(organization_id=self.org_integration.organization_id)
         items = []
         for p in projects:
             items.append({"value": p.id, "label": p.name})
 
-        service_options = [(s.id, s.service_name,) for s in self.services]
+        service_options = [(s.id, s.service_name) for s in self.services]
 
         fields = [
             {
@@ -69,10 +74,7 @@ class PagerDutyIntegration(IntegrationInstallation):
                     "items": items,
                 },
                 "mappedSelectors": {
-                    "service": {
-                        "choices": service_options,
-                        "placeholder": "Select a service",
-                    }
+                    "service": {"choices": service_options, "placeholder": "Select a service"}
                 },
                 "columnLabels": {"service": "Service"},
                 "mappedColumnLabel": "Sentry Project",
@@ -88,7 +90,9 @@ class PagerDutyIntegration(IntegrationInstallation):
 
             with transaction.atomic():
                 PagerDutyServiceProject.objects.filter(
-                    pagerduty_service__in=PagerDutyService.objects.filter(organization_integration=self.org_integration),
+                    pagerduty_service__in=PagerDutyService.objects.filter(
+                        organization_integration=self.org_integration
+                    )
                 ).delete()
 
                 for p_id, s in project_ids_and_services.items():
@@ -96,31 +100,26 @@ class PagerDutyIntegration(IntegrationInstallation):
                     project = Project.objects.get(pk=p_id)
                     service = PagerDutyService.objects.get(id=s["service"])
                     PagerDutyServiceProject.objects.create(
-                        project=project,
-                        pagerduty_service=service,
+                        project=project, pagerduty_service=service
                     )
 
     def get_config_data(self):
         config = self.org_integration.config
         project_mappings = PagerDutyServiceProject.objects.filter(
             pagerduty_service__in=PagerDutyService.objects.filter(
-                organization_integration_id=self.org_integration.id,
-            ),
+                organization_integration_id=self.org_integration.id
+            )
         )
         data = {}
         for pm in project_mappings:
-            data[pm.project_id] = {
-                "service": pm.pagerduty_service.id,
-            }
+            data[pm.project_id] = {"service": pm.pagerduty_service.id}
         config = {}
         config["project_mapping"] = data
         return config
 
     @property
     def services(self):
-        services = PagerDutyService.objects.filter(
-            organization_integration=self.org_integration,
-        )
+        services = PagerDutyService.objects.filter(organization_integration=self.org_integration)
 
         return services
 
@@ -141,8 +140,7 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
         services = integration.metadata["services"]
         try:
             org_integration = OrganizationIntegration.objects.get(
-                integration=integration,
-                organization=organization,
+                integration=integration, organization=organization
             )
         except OrganizationIntegration.DoesNotExist:
             return
@@ -161,7 +159,7 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
         account = config["account"]
         # PagerDuty gives us integration keys for various things, some of which
         # are not services. For now we only care about services.
-        services = filter(lambda x: x['type'] == 'service', config['integration_keys'])
+        services = filter(lambda x: x["type"] == "service", config["integration_keys"])
 
         return {
             "name": account["name"],
@@ -173,9 +171,12 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
 class PagerDutyInstallationRedirect(PipelineView):
     def get_app_url(self):
         app_id = options.get("pagerduty.app-id")
-        setup_url = "https://meredith.ngrok.io/extensions/pagerduty/setup/"
+        setup_url = absolute_uri("/extensions/pagerduty/setup/")
 
-        return "https://app.pagerduty.com/install/integration?app_id=%s&redirect_url=%s&version=1" % (app_id, setup_url)
+        return (
+            "https://app.pagerduty.com/install/integration?app_id=%s&redirect_url=%s&version=1"
+            % (app_id, setup_url)
+        )
 
     def dispatch(self, request, pipeline):
         if "config" in request.GET:
