@@ -68,7 +68,6 @@ class DraggableColumns extends React.Component<Props, State> {
     }
 
     // prevent the user from selecting things when dragging a column.
-
     this.previousUserSelect = setBodyUserSelect({
       userSelect: 'none',
       MozUserSelect: 'none',
@@ -76,7 +75,6 @@ class DraggableColumns extends React.Component<Props, State> {
     });
 
     // attach event listeners so that the mouse cursor can drag anywhere
-
     window.addEventListener('mousemove', this.onDragMove);
     window.addEventListener('mouseup', this.onDragEnd);
 
@@ -95,7 +93,6 @@ class DraggableColumns extends React.Component<Props, State> {
 
     if (this.dragGhostRef.current) {
       // move the ghosted column title
-
       const ghostDOM = this.dragGhostRef.current;
       ghostDOM.style.left = `${event.pageX}px`;
       ghostDOM.style.top = `${event.pageY}px`;
