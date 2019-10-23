@@ -332,7 +332,7 @@ INSTALLED_APPS = (
     "social_auth",
     "sudo",
     "sentry.eventstream",
-    "sentry.auth.providers.google",
+    "sentry.auth.providers.google.apps.Config",
     "django.contrib.staticfiles",
 )
 

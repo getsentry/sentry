@@ -12,7 +12,8 @@ from six import iteritems, add_metaclass
 from six.moves.urllib.parse import urlparse
 
 from sentry import options
-from sentry.auth import Provider, AuthView
+from sentry.auth.provider import Provider
+from sentry.auth.view import AuthView
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.models import AuthProvider, Organization, OrganizationStatus
 from sentry.utils.auth import get_login_url
