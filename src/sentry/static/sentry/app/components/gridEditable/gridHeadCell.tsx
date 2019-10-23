@@ -135,7 +135,6 @@ class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
         <GridHeadCellResizer isEditing={isEditing} />
         <AddColumnButton
           onClick={() => {
-            console.log('fuck');
             const insertIndex = indexColumnOrder + 1;
             openModalAddColumnAt(insertIndex);
           }}
@@ -148,15 +147,14 @@ class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
     const {isEditing, children, column, gridHeadCellButtonProps} = this.props;
 
     return (
-      <GridHeadCellWrapper
-        onMouseEnter={() => this.setHovering(true)}
-        onMouseMove={() => this.setHovering(true)}
-        onMouseLeave={() => this.setHovering(false)}
-      >
+      <GridHeadCellWrapper>
         <GridHeadCellButton
           isDragging={column.isDragging}
-          isEditing={isEditing}
           {...gridHeadCellButtonProps}
+          isEditing={isEditing}
+          onMouseEnter={() => this.setHovering(true)}
+          onMouseMove={() => this.setHovering(true)}
+          onMouseLeave={() => this.setHovering(false)}
         >
           {children}
           {this.renderButtonHoverDraggable(children)}
