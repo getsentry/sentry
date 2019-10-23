@@ -15,7 +15,7 @@ interface Params {
   period?: string;
   statsPeriod?: string;
   utc?: string;
-  [others: string]: string | undefined;
+  [others: string]: string | string[] | undefined | null;
 }
 
 // Filters out params with null values and returns a default
@@ -24,7 +24,7 @@ interface Params {
 // Accepts `period` and `statsPeriod` but will only return `statsPeriod`
 //
 // TODO(billy): Make period parameter name consistent
-export function getParams(params: Params): {[key: string]: string} {
+export function getParams(params: Params): {[key: string]: string | string[]} {
   const {start, end, period, statsPeriod, utc, ...otherParams} = params;
 
   // `statsPeriod` takes precendence for now
@@ -48,7 +48,7 @@ export function getParams(params: Params): {[key: string]: string} {
     .reduce(
       (acc, [key, value]) => ({
         ...acc,
-        [key]: String(value),
+        [key]: value,
       }),
       {}
     );
