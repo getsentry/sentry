@@ -152,10 +152,10 @@ class DraggableColumns extends React.Component<Props, State> {
 
     this.setState({
       isDragging: false,
-      left: void 0,
-      top: void 0,
-      draggingColumnIndex: void 0,
-      destinationColumnIndex: void 0,
+      left: undefined,
+      top: undefined,
+      draggingColumnIndex: undefined,
+      destinationColumnIndex: undefined,
     });
 
     this.props.onDragDone({draggingColumnIndex, destinationColumnIndex});
