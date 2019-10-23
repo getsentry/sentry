@@ -72,6 +72,9 @@ class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
   };
 
   onDragStart = (event: React.MouseEvent<SVGSVGElement, MouseEvent>) => {
+    // hide hovers when dragging
+    this.setHovering(false);
+
     const fromColumn = this.props.indexColumnOrder;
     this.props.actions.onDragStart(event, fromColumn);
   };
