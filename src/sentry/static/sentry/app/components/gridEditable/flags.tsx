@@ -7,4 +7,3 @@
  * 3. Allow drag-to-rearrage columns
  */
 export const FLAG_GRID_RESIZABLE = false;
-export const FLAG_GRID_DRAGGABLE = false;

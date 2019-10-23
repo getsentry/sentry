@@ -21,7 +21,7 @@ type GridEditableProps = {
   isEditable?: boolean;
   isEditing?: boolean;
   isPrimary?: boolean;
-  isFlagged?: boolean;
+  isDragging?: boolean;
 };
 
 export const GridPanel = styled(Panel)`
@@ -107,7 +107,13 @@ export const GridHeadCellButton = styled('div')<GridEditableProps>`
   padding: ${space(1)} ${space(1.5)};
   border-radius: ${p => p.theme.borderRadius};
 
-  color: ${p => p.theme.gray2};
+  color: ${p => {
+    if (p.isDragging) {
+      return p.theme.offWhite2;
+    }
+
+    return p.theme.gray2;
+  }};
   font-size: 13px;
   font-weight: 600;
   line-height: 1;
@@ -116,19 +122,50 @@ export const GridHeadCellButton = styled('div')<GridEditableProps>`
   text-overflow: ellipsis;
   overflow: hidden;
 
-  background: ${p => (p.isEditing ? p.theme.offWhite2 : 'none')};
+  background: ${p => {
+    if (p.isDragging) {
+      return p.theme.gray2;
+    }
+
+    if (p.isEditing) {
+      return p.theme.offWhite2;
+    }
+
+    return 'none';
+  }};
 
   a {
-    color: ${p => p.theme.gray2};
+    color: ${p => {
+      if (p.isDragging) {
+        return p.theme.offWhite2;
+      }
+
+      return p.theme.gray2;
+    }};
   }
 
   &:hover,
   &:active {
-    color: ${p => p.theme.gray3};
+    color: ${p => {
+      if (p.isDragging) {
+        return p.theme.offWhite2;
+      }
+
+      return p.theme.gray2;
+    }};
+
     a {
-      color: ${p => p.theme.gray3};
+      color: ${p => {
+        if (p.isDragging) {
+          return p.theme.offWhite2;
+        }
+
+        return p.theme.gray2;
+      }};
     }
   }
+
+  user-select: none;
 `;
 export const GridHeadCellResizer = styled('span')<GridEditableProps>`
   position: absolute;
@@ -195,9 +232,7 @@ export const GridHeadCellButtonHoverBackground = styled(GridHeadCellButton)`
     color: ${p => p.theme.gray1} !important;
   }
 `;
-export const GridHeadCellButtonHoverButtonGroup = styled('div')<GridEditableProps>`
-  ${p => !p.isFlagged && 'margin: 0 auto;'}
-`;
+
 export const GridHeadCellButtonHoverButton = styled('div')`
   display: inline-flex;
   justify-content: center;

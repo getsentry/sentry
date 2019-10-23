@@ -2,19 +2,22 @@ import React from 'react';
 
 import InlineSvg from 'app/components/inlineSvg';
 
-import {FLAG_GRID_RESIZABLE, FLAG_GRID_DRAGGABLE} from './flags';
+import {FLAG_GRID_RESIZABLE} from './flags';
 import {
   GridHeadCell as GridHeadCellWrapper,
   GridHeadCellButton,
   GridHeadCellButtonHover,
   GridHeadCellButtonHoverBackground,
-  GridHeadCellButtonHoverButtonGroup,
   GridHeadCellButtonHoverButton,
   GridHeadCellButtonHoverDraggable,
   GridHeadCellResizer,
 } from './styles';
+import {GridColumnHeader} from './types';
 
 export type GridHeadCellProps<Column> = {
+  isColumnDragging: boolean;
+  gridHeadCellButtonProps: {[prop: string]: any};
+
   isEditing: boolean;
   isPrimary: boolean;
 
@@ -23,7 +26,11 @@ export type GridHeadCellProps<Column> = {
   children: React.ReactNode | React.ReactChild;
 
   actions: {
-    moveColumn: (indexFrom: number, indexTo: number) => void;
+    moveColumnCommit: (indexFrom: number, indexTo: number) => void;
+    onDragStart: (
+      event: React.MouseEvent<SVGSVGElement, MouseEvent>,
+      indexFrom: number
+    ) => void;
     deleteColumn: (index: number) => void;
     toggleModalEditColumn: (index?: number, column?: Column) => void;
   };
@@ -37,7 +44,7 @@ export type GridHeadCellState = {
  * states that are only specific to the header. This component aims to abstract
  * the complexity of GridHeadCell away.
  */
-class GridHeadCell<Column> extends React.Component<
+class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
   GridHeadCellProps<Column>,
   GridHeadCellState
 > {
@@ -64,7 +71,22 @@ class GridHeadCell<Column> extends React.Component<
     actions.toggleModalEditColumn(indexColumnOrder, column);
   };
 
+  onDragStart = (event: React.MouseEvent<SVGSVGElement, MouseEvent>) => {
+    // hide hovers when dragging
+    this.setHovering(false);
+
+    const fromColumn = this.props.indexColumnOrder;
+    this.props.actions.onDragStart(event, fromColumn);
+  };
+
   renderButtonHoverDraggable(children: React.ReactNode) {
+    const {isHovering} = this.state;
+    const {isEditing, isColumnDragging} = this.props;
+
+    if (!isEditing || !isHovering || isColumnDragging) {
+      return null;
+    }
+
     return (
       <React.Fragment>
         {/* Ensure that background is always at the top. The background must be
@@ -73,39 +95,45 @@ class GridHeadCell<Column> extends React.Component<
         <GridHeadCellButtonHoverBackground>{children}</GridHeadCellButtonHoverBackground>
 
         <GridHeadCellButtonHover>
-          {FLAG_GRID_DRAGGABLE && (
-            <GridHeadCellButtonHoverDraggable src="icon-grabbable" />
-          )}
+          <GridHeadCellButtonHoverDraggable
+            src="icon-grabbable"
+            onMouseDown={this.onDragStart}
+          />
 
-          <GridHeadCellButtonHoverButtonGroup isFlagged={FLAG_GRID_DRAGGABLE}>
+          <div>
             <GridHeadCellButtonHoverButton onClick={this.toggleModal}>
               <InlineSvg src="icon-edit-pencil" />
             </GridHeadCellButtonHoverButton>
             <GridHeadCellButtonHoverButton onClick={this.deleteColumn}>
               <InlineSvg src="icon-trash" />
             </GridHeadCellButtonHoverButton>
-          </GridHeadCellButtonHoverButtonGroup>
+          </div>
 
-          {FLAG_GRID_DRAGGABLE && (
-            <GridHeadCellButtonHoverDraggable src="icon-grabbable" />
-          )}
+          <GridHeadCellButtonHoverDraggable
+            src="icon-grabbable"
+            onMouseDown={this.onDragStart}
+          />
         </GridHeadCellButtonHover>
       </React.Fragment>
     );
   }
 
   render() {
-    const {isEditing, children} = this.props;
-    const {isHovering} = this.state;
+    const {isEditing, children, column, gridHeadCellButtonProps} = this.props;
 
     return (
       <GridHeadCellWrapper
         onMouseEnter={() => this.setHovering(true)}
+        onMouseMove={() => this.setHovering(true)}
         onMouseLeave={() => this.setHovering(false)}
       >
-        <GridHeadCellButton isEditing={isEditing}>
+        <GridHeadCellButton
+          isDragging={column.isDragging}
+          isEditing={isEditing}
+          {...gridHeadCellButtonProps}
+        >
           {children}
-          {isEditing && isHovering && this.renderButtonHoverDraggable(children)}
+          {this.renderButtonHoverDraggable(children)}
         </GridHeadCellButton>
 
         {/* Keep the Resizer at the bottom to ensure that it is will always

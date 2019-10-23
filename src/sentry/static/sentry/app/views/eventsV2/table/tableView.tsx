@@ -11,6 +11,9 @@ import SortLink from '../sortLink';
 import renderTableModalEditColumnFactory from './tableModalEditColumn';
 import {TableColumn, TableData, TableDataRow} from './types';
 import {ColumnValueType} from '../eventQueryParams';
+import DraggableColumns, {
+  DRAGGABLE_COLUMN_CLASSNAME_IDENTIFIER,
+} from './draggableColumns';
 
 export type TableViewProps = {
   location: Location;
@@ -31,7 +34,6 @@ export type TableViewProps = {
  * and re-ordering columns.
  */
 class TableView extends React.Component<TableViewProps> {
-  // TODO: update this docs
   /**
    * The entire state of the table view (or event view) is co-located within
    * the EventView object. This object is fed from the props.
@@ -107,7 +109,7 @@ class TableView extends React.Component<TableViewProps> {
   /**
    * Please read the comment on `_createColumn`
    */
-  _moveColumn = (fromIndex: number, toIndex: number) => {
+  _moveColumnCommit = (fromIndex: number, toIndex: number) => {
     const {location, eventView} = this.props;
 
     const nextEventView = eventView.withMovedColumn({fromIndex, toIndex});
@@ -119,22 +121,21 @@ class TableView extends React.Component<TableViewProps> {
     });
   };
 
-  _renderGridHeaderCell = (
-    column: TableColumn<keyof TableDataRow>,
-    columnIndex: number
-  ): React.ReactNode => {
+  _renderGridHeaderCell = (column: TableColumn<keyof TableDataRow>): React.ReactNode => {
     const {eventView, location, tableData} = this.props;
+
     if (!tableData) {
       return column.name;
     }
 
-    const field = eventView.fields[columnIndex];
+    const field = column.eventViewField;
 
+    // establish alignment based on the type
     const alignedTypes: ColumnValueType[] = ['number', 'duration'];
     let align: 'right' | 'left' = alignedTypes.includes(column.type) ? 'right' : 'left';
 
-    // TODO(alberto): clean this
     if (column.type === 'never' || column.type === '*') {
+      // fallback to align the column based on the table metadata
       const maybeType = tableData.meta[getAggregateAlias(field.field)];
 
       if (maybeType === 'integer' || maybeType === 'number') {
@@ -169,6 +170,51 @@ class TableView extends React.Component<TableViewProps> {
     return fieldRenderer(dataRow, {organization, location});
   };
 
+  generateColumnOrder = ({
+    initialColumnIndex,
+    destinationColumnIndex,
+  }: {
+    initialColumnIndex: undefined | number;
+    destinationColumnIndex: undefined | number;
+  }) => {
+    const {eventView} = this.props;
+    const columnOrder = eventView.getColumns();
+
+    if (
+      typeof destinationColumnIndex !== 'number' ||
+      typeof initialColumnIndex !== 'number'
+    ) {
+      return columnOrder;
+    }
+
+    if (destinationColumnIndex === initialColumnIndex) {
+      const currentDraggingColumn: TableColumn<keyof TableDataRow> = {
+        ...columnOrder[destinationColumnIndex],
+        isDragging: true,
+      };
+
+      columnOrder[destinationColumnIndex] = currentDraggingColumn;
+
+      return columnOrder;
+    }
+
+    const nextColumnOrder = [...columnOrder];
+
+    nextColumnOrder.splice(
+      destinationColumnIndex,
+      0,
+      nextColumnOrder.splice(initialColumnIndex, 1)[0]
+    );
+
+    const currentDraggingColumn: TableColumn<keyof TableDataRow> = {
+      ...nextColumnOrder[destinationColumnIndex],
+      isDragging: true,
+    };
+    nextColumnOrder[destinationColumnIndex] = currentDraggingColumn;
+
+    return nextColumnOrder;
+  };
+
   render() {
     const {organization, isLoading, error, tableData, eventView} = this.props;
 
@@ -184,26 +230,54 @@ class TableView extends React.Component<TableViewProps> {
     });
 
     return (
-      <GridEditable
-        isEditable
-        isLoading={isLoading}
-        error={error}
-        data={tableData ? tableData.data : []}
+      <DraggableColumns
         columnOrder={columnOrder}
-        columnSortBy={columnSortBy}
-        grid={{
-          renderHeaderCell: this._renderGridHeaderCell as any,
-          renderBodyCell: this._renderGridBodyCell as any,
+        onDragDone={({draggingColumnIndex, destinationColumnIndex}) => {
+          if (
+            typeof draggingColumnIndex === 'number' &&
+            typeof destinationColumnIndex === 'number' &&
+            draggingColumnIndex !== destinationColumnIndex
+          ) {
+            this._moveColumnCommit(draggingColumnIndex, destinationColumnIndex);
+          }
         }}
-        modalEditColumn={{
-          renderBodyWithForm: renderModalBodyWithForm as any,
-          renderFooter: renderModalFooter,
+      >
+        {({
+          isColumnDragging,
+          startColumnDrag,
+          draggingColumnIndex,
+          destinationColumnIndex,
+        }) => {
+          return (
+            <GridEditable
+              isEditable
+              isColumnDragging={isColumnDragging}
+              gridHeadCellButtonProps={{className: DRAGGABLE_COLUMN_CLASSNAME_IDENTIFIER}}
+              isLoading={isLoading}
+              error={error}
+              data={tableData ? tableData.data : []}
+              columnOrder={this.generateColumnOrder({
+                initialColumnIndex: draggingColumnIndex,
+                destinationColumnIndex,
+              })}
+              columnSortBy={columnSortBy}
+              grid={{
+                renderHeaderCell: this._renderGridHeaderCell as any,
+                renderBodyCell: this._renderGridBodyCell as any,
+              }}
+              modalEditColumn={{
+                renderBodyWithForm: renderModalBodyWithForm as any,
+                renderFooter: renderModalFooter,
+              }}
+              actions={{
+                deleteColumn: this._deleteColumn,
+                moveColumnCommit: this._moveColumnCommit,
+                onDragStart: startColumnDrag,
+              }}
+            />
+          );
         }}
-        actions={{
-          deleteColumn: this._deleteColumn,
-          moveColumn: this._moveColumn,
-        }}
-      />
+      </DraggableColumns>
     );
   }
 }
