@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from exam import fixture
 from mock import patch
+from django.core import mail
 
 from sentry.models import AuthProvider, InviteStatus, OrganizationOption, OrganizationMember
 from sentry.testutils import APITestCase
@@ -130,7 +131,9 @@ class OrganizationJoinRequestTest(APITestCase):
     @patch("sentry.api.endpoints.organization_join_request.logger")
     @patch("sentry.experiments.get", return_value=1)
     def test_request_to_join(self, mock_experiment, mock_log):
-        resp = self.get_response(self.org.slug, email=self.email)
+        with self.tasks():
+            resp = self.get_response(self.org.slug, email=self.email)
+
         assert resp.status_code == 204
 
         members = OrganizationMember.objects.filter(organization=self.org)
@@ -149,3 +152,5 @@ class OrganizationJoinRequestTest(APITestCase):
                 "ip_address": "127.0.0.1",
             },
         )
+
+        assert len(mail.outbox) == 1

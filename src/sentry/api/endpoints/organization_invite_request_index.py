@@ -93,4 +93,6 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
                 event=AuditLogEntryEvent.INVITE_REQUEST_ADD,
             )
 
+        om.send_request_notification_email()
+
         return Response(serialize(om), status=201)
