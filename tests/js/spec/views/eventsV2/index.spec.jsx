@@ -1,6 +1,8 @@
 import React from 'react';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
+import {initializeOrg} from 'sentry-test/initializeOrg';
+
 import {EventsV2} from 'app/views/eventsV2';
 
 const FIELDS = [
@@ -20,7 +22,7 @@ const FIELDS = [
 
 const generateFields = () => {
   return {
-    alias: FIELDS.map(i => i.title),
+    fieldnames: FIELDS.map(i => i.title),
     field: FIELDS.map(i => i.field),
   };
 };
@@ -198,5 +200,57 @@ describe('EventsV2', function() {
 
     const modal = wrapper.find('EventDetails');
     expect(modal).toHaveLength(1);
+  });
+
+  it('pagination cursor should be cleared when making a search', function() {
+    const organization = TestStubs.Organization({
+      features,
+      projects: [TestStubs.Project()],
+    });
+
+    const initialData = initializeOrg({
+      organization,
+      router: {
+        location: {query: {...generateFields(), cursor: '0%3A50%3A0'}},
+      },
+    });
+
+    const wrapper = mountWithTheme(
+      <EventsV2
+        organization={organization}
+        params={{orgId: organization.slug}}
+        location={initialData.router.location}
+        router={initialData.router}
+      />,
+      initialData.routerContext
+    );
+
+    // ensure cursor query string is initially present in the location
+
+    expect(initialData.router.location).toEqual({
+      query: {
+        ...generateFields(),
+        cursor: '0%3A50%3A0',
+      },
+    });
+
+    // perform a search
+
+    const search = wrapper.find('#smart-search-input').first();
+
+    search.simulate('change', {target: {value: 'geo:canada'}}).simulate('submit', {
+      preventDefault() {},
+    });
+
+    // cursor query string should be omitted from the query string
+
+    expect(initialData.router.push).toHaveBeenCalledWith({
+      pathname: undefined,
+      query: {
+        ...generateFields(),
+        query: 'geo:canada',
+        statsPeriod: '14d',
+      },
+    });
   });
 });
