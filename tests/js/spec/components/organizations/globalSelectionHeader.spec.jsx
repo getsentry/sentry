@@ -732,9 +732,40 @@ describe('GlobalSelectionHeader', function() {
       ).toEqual('My Projects');
     });
 
-    it('shows "All Projects" option', function() {
+    it('shows "All Projects" option based on features', function() {
       initialData.organization.features.push('global-views');
       initialData.organization.features.push('open-membership');
+      wrapper = mountWithTheme(
+        <GlobalSelectionHeader
+          organization={initialData.organization}
+          projects={initialData.organization.projects}
+        />,
+        initialData.routerContext
+      );
+
+      // open the project menu.
+      wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
+      const projectSelector = wrapper.find('MultipleProjectSelector');
+
+      // Two projects + two meta options
+      expect(projectSelector.find('AutoCompleteItem')).toHaveLength(4);
+      expect(
+        projectSelector
+          .find('AutoCompleteItem')
+          .at(0)
+          .text()
+      ).toEqual('All Projects');
+      expect(
+        projectSelector
+          .find('AutoCompleteItem')
+          .at(1)
+          .text()
+      ).toEqual('My Projects');
+    });
+
+    it('shows "All Projects" option based on role', function() {
+      initialData.organization.features.push('global-views');
+      initialData.organization.role = 'owner';
       wrapper = mountWithTheme(
         <GlobalSelectionHeader
           organization={initialData.organization}

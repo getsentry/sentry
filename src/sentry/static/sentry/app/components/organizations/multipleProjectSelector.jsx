@@ -152,7 +152,11 @@ export default class MultipleProjectSelector extends React.PureComponent {
         slug: t('My Projects'),
       });
     }
-    if (multi && organization.features.includes('open-membership')) {
+    if (
+      multi &&
+      (['owner', 'manager'].includes(organization.role) ||
+        organization.features.includes('open-membership'))
+    ) {
       metaOptions.unshift({
         id: ALL_ACCESS_PROJECTS,
         slug: t('All Projects'),
