@@ -11,11 +11,13 @@ describe('InviteRequestRow', function() {
     user: null,
     inviterName: TestStubs.User().name,
     inviteStatus: 'requested_to_be_invited',
+    roleName: 'member',
   });
 
   const joinRequest = TestStubs.Member({
     user: null,
     inviteStatus: 'requested_to_join',
+    roleName: 'member',
   });
 
   it('renders request to be invited', function() {
@@ -46,7 +48,7 @@ describe('InviteRequestRow', function() {
     );
 
     expect(wrapper.find('UserName').text()).toBe(joinRequest.email);
-    expect(wrapper.find('Tag').exists()).toBe(true);
+    expect(wrapper.find('StyledTag').exists()).toBe(true);
   });
 
   it('can approve invite request', function() {

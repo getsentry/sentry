@@ -130,6 +130,7 @@ class OrganizationRequestsView extends AsyncView<Props, State> {
               {inviteRequests.map(inviteRequest => (
                 <InviteRequestRow
                   key={inviteRequest.id}
+                  organization={this.context.organization}
                   inviteRequest={inviteRequest}
                   inviteRequestBusy={inviteRequestBusy}
                   onApprove={this.handleApprove}

@@ -1,12 +1,13 @@
-import React from 'react';
 import PropTypes from 'prop-types';
+import React from 'react';
 import styled from 'react-emotion';
 
-import {Member} from 'app/types';
+import {Member, Organization} from 'app/types';
 import {PanelItem} from 'app/components/panels';
 import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
+import HookOrDefault from 'app/components/hookOrDefault';
 import Tag from 'app/views/settings/components/tag';
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
@@ -14,31 +15,38 @@ import space from 'app/styles/space';
 type Props = {
   inviteRequest: Member;
   inviteRequestBusy: Map<string, boolean>;
+  organization: Organization;
   onApprove: (id: string, email: string) => Promise<void>;
   onDeny: (id: string, email: string) => Promise<void>;
 };
 
+const InviteModalHook = HookOrDefault({
+  hookName: 'member-invite-modal:customization',
+  defaultComponent: ({onSendInvites, children}) =>
+    children({sendInvites: onSendInvites, canSend: true}),
+});
+
+type InviteModalRenderFunc = React.ComponentProps<typeof InviteModalHook>['children'];
+
 const InviteRequestRow = ({
-  inviteRequest: {id, email, inviteStatus, inviterName},
+  inviteRequest: {id, email, inviteStatus, inviterName, roleName},
   inviteRequestBusy,
+  organization,
   onApprove,
   onDeny,
 }: Props) => {
-  return (
-    <StyledPanel>
+  // eslint-disable-next-line react/prop-types
+  const hookRenderer: InviteModalRenderFunc = ({sendInvites, canSend, headerInfo}) => (
+    <StyledPanelItem>
       <div>
-        <h5 style={{margin: '0 0 3px'}}>
+        <h5 style={{marginBottom: '3px'}}>
           <UserName>{email}</UserName>
         </h5>
         {inviteStatus === 'requested_to_be_invited' ? (
           inviterName && (
             <Tooltip
-              title={tct(
-                '[inviterName] requested to invite [email] to your organization',
-                {
-                  inviterName,
-                  email,
-                }
+              title={t(
+                'An existing member has asked to invite this user to your organization'
               )}
             >
               <Description>
@@ -47,17 +55,24 @@ const InviteRequestRow = ({
             </Tooltip>
           )
         ) : (
-          <Tooltip title={tct('[email] requested to join your organization', {email})}>
-            <Tag size="small">{t('external request')}</Tag>
+          <Tooltip title={t('This user has asked to join your organization.')}>
+            <StyledTag size="small">{t('Join request')}</StyledTag>
           </Tooltip>
         )}
       </div>
+      <div>{roleName}</div>
       <ButtonGroup>
         <Confirm
-          onConfirm={() => onApprove(id, email)}
-          message={tct('Are you sure you want to invite [email] to your organization?', {
-            email,
-          })}
+          onConfirm={sendInvites}
+          disableConfirmButton={!canSend}
+          message={
+            <div>
+              {tct('Are you sure you want to invite [email] to your organization?', {
+                email,
+              })}
+              {headerInfo}
+            </div>
+          }
         >
           <Button priority="primary" size="small" busy={inviteRequestBusy.get(id)}>
             {t('Approve')}
@@ -71,7 +86,17 @@ const InviteRequestRow = ({
           {t('Deny')}
         </Button>
       </ButtonGroup>
-    </StyledPanel>
+    </StyledPanelItem>
+  );
+
+  return (
+    <InviteModalHook
+      willInvite
+      organization={organization}
+      onSendInvites={() => onApprove(id, email)}
+    >
+      {hookRenderer}
+    </InviteModalHook>
   );
 };
 
@@ -87,9 +112,15 @@ InviteRequestRow.propTypes = {
   inviteRequestBusy: PropTypes.object,
 };
 
-const StyledPanel = styled(PanelItem)`
+const StyledTag = styled(Tag)`
+  padding: ${space(0.5)} ${space(0.75)};
+  font-size: 10px;
+  text-transform: uppercase;
+`;
+
+const StyledPanelItem = styled(PanelItem)`
   display: grid;
-  grid-template-columns: auto max-content;
+  grid-template-columns: auto 200px max-content;
   grid-gap: ${space(1)};
   align-items: center;
 `;
@@ -106,7 +137,7 @@ const Description = styled('div')`
 const ButtonGroup = styled('div')`
   display: inline-grid;
   grid-template-columns: auto auto;
-  grid-gap: ${space(0.5)};
+  grid-gap: ${space(1)};
 `;
 
 export default InviteRequestRow;
