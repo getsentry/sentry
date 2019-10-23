@@ -160,17 +160,17 @@ def _process_tsdb_batch(messages):
         if not to_increment:
             continue
 
-        messages_to_process.append((msg, to_increment))
+        messages_to_process.append((msg, project_id, event_id, to_increment))
         is_tsdb_incremented_requests.append(_get_tsdb_cache_key(project_id, event_id))
 
     is_tsdb_incremented_results = cache.get_many(is_tsdb_incremented_requests)
 
     mark_tsdb_incremented_requests = []
 
-    for (msg, to_increment), should_increment in zip(
-        messages_to_process, is_tsdb_incremented_results
+    for (msg, project_id, event_id, to_increment), cache_key in zip(
+        messages_to_process, is_tsdb_incremented_requests
     ):
-        if should_increment is not None:
+        if is_tsdb_incremented_results.get(cache_key) is not None:
             continue
 
         tsdb_increments.extend(to_increment)

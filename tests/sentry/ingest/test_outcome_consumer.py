@@ -4,12 +4,21 @@ import logging
 import pytest
 import six.moves
 
-from sentry.ingest.outcomes_consumer import get_outcomes_consumer, mark_signal_sent, is_signal_sent
+from sentry.ingest.outcomes_consumer import (
+    get_outcomes_consumer,
+    mark_signal_sent,
+    is_signal_sent,
+    _get_tsdb_cache_key,
+    mark_tsdb_incremented_many,
+)
 from sentry.signals import event_filtered, event_dropped
 from sentry.testutils.factories import Factories
 from sentry.utils.outcomes import Outcome
+from django.core.cache import cache
 from django.conf import settings
+from django.utils import timezone
 from sentry.utils import json
+from sentry import tsdb
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +38,7 @@ def _get_outcome(
     outcome=None,
     reason=None,
     remote_addr=None,
+    timestamp=None,
 ):
     message = {}
     if event_id is not None:
@@ -48,6 +58,8 @@ def _get_outcome(
         message["reason"] = reason
     if remote_addr is not None:
         message["remote_addr"] = remote_addr
+    if timestamp is not None:
+        message["timestamp"] = timestamp
 
     msg = json.dumps(message)
     return msg
@@ -331,3 +343,55 @@ def test_outcome_consumer_handles_rate_limited_outcomes(
     assert set(event_dropped_sink) == set(
         [("127.33.44.1", "reason_1"), ("127.33.44.2", "reason_2")]
     )
+
+
+@pytest.mark.django_db
+def test_tsdb(kafka_producer, task_runner, kafka_admin, requires_kafka, monkeypatch):
+    producer, project_id, topic_name = _setup_outcome_test(kafka_producer, kafka_admin)
+
+    timestamps = []
+
+    for i in range(2):
+        timestamp = timezone.now()
+        timestamps.append(timestamp)
+        producer.produce(
+            topic_name,
+            _get_outcome(
+                event_id=i,
+                project_id=project_id,
+                outcome=Outcome.RATE_LIMITED,
+                reason="go_away",
+                remote_addr="127.0.0.1",
+                timestamp=timestamp,
+            ),
+        )
+
+    # Mark first item as already processed
+    mark_tsdb_incremented_many([(project_id, _get_event_id(0))])
+    assert cache.get(_get_tsdb_cache_key(project_id, _get_event_id(0))) is not None
+    assert cache.get(_get_tsdb_cache_key(project_id, _get_event_id(1))) is None
+
+    tsdb_increments = []
+    monkeypatch.setattr("sentry.tsdb.incr_multi", tsdb_increments.append)
+
+    group_id = "test-outcome-consumer-6"
+
+    consumer = get_outcomes_consumer(
+        max_batch_size=1, max_batch_time=100, group_id=group_id, auto_offset_reset="earliest"
+    )
+
+    i = 0
+
+    while not tsdb_increments and i < MAX_POLL_ITERATIONS:
+        consumer._run_once()
+        i += 1
+
+    assert tsdb_increments == [
+        [
+            (tsdb.models.project_total_received, project_id, {"timestamp": timestamps[1]}),
+            (tsdb.models.project_total_rejected, project_id, {"timestamp": timestamps[1]}),
+        ]
+    ]
+
+    assert cache.get(_get_tsdb_cache_key(project_id, _get_event_id(0))) is not None
+    assert cache.get(_get_tsdb_cache_key(project_id, _get_event_id(1))) is not None
