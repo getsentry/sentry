@@ -5,10 +5,11 @@ exam>=0.5.1
 freezegun==0.3.11
 honcho>=1.0.0,<1.1.0
 isort>=4.3.4,<4.4.0
+# XXX(joshuarli): pip will complain about pytest needing pluggy 0.12,
+# but this is a quick fix for now to unblock ci in master.
+# See https://github.com/pytest-dev/pluggy/issues/205
+pluggy==0.11.0
 pytest==4.6.5
-# XXX(joshuarli): pytest wants importlib_metadata and should be installing it;
-# this is a quick fix and should be removed once the root issue is identified
-importlib_metadata==0.22
 pytest-cov==2.5.1
 pytest-django==3.5.1
 pytest-html==1.22.0
