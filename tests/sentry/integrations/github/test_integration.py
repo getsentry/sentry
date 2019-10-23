@@ -9,7 +9,7 @@ from six.moves.urllib.parse import urlencode, urlparse
 from sentry.constants import ObjectStatus
 from sentry.integrations.github import GitHubIntegrationProvider
 from sentry.models import Integration, OrganizationIntegration, Repository, Project
-from sentry.plugins import plugins
+from sentry.plugins.base import plugins
 from sentry.testutils import IntegrationTestCase
 from tests.sentry.plugins.testutils import register_mock_plugins, unregister_mock_plugins
 

@@ -4,10 +4,10 @@ from django.apps import AppConfig
 
 
 class Config(AppConfig):
-    name = "sentry.lang.java"
+    name = "sentry.plugins.sentry_interface_types"
 
     def ready(self):
-        from .plugin import JavaPlugin
+        from .models import InterfaceTypePlugin
         from sentry.plugins.base import register
 
-        register(JavaPlugin)
+        register(InterfaceTypePlugin)

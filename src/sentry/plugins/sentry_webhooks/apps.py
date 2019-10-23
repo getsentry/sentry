@@ -4,10 +4,10 @@ from django.apps import AppConfig
 
 
 class Config(AppConfig):
-    name = "sentry.lang.java"
+    name = "sentry.plugins.sentry_webhooks"
 
     def ready(self):
-        from .plugin import JavaPlugin
+        from .plugin import WebHooksPlugin
         from sentry.plugins.base import register
 
-        register(JavaPlugin)
+        register(WebHooksPlugin)

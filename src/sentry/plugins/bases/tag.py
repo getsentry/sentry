@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from sentry.constants import MAX_TAG_VALUE_LENGTH
-from sentry.plugins import Plugin2
+from sentry.plugins.base.v2 import Plugin2
 
 
 class TagPlugin(Plugin2):
