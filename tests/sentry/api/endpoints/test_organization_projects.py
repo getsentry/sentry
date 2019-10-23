@@ -149,3 +149,16 @@ class OrganizationProjectsTest(APITestCase):
             self.path, HTTP_AUTHORIZATION="Basic " + b64encode(u"{}:".format(key.key))
         )
         self.check_valid_response(response, [project])
+
+    def test_all_projects(self):
+        self.login_as(user=self.user)
+        other_team = self.create_team(organization=self.org)
+
+        project_bar = self.create_project(teams=[self.team], name="bar", slug="bar")
+        project_foo = self.create_project(teams=[other_team], name="foo", slug="foo")
+        project_baz = self.create_project(teams=[other_team], name="baz", slug="baz")
+        sorted_projects = [project_bar, project_baz, project_foo]
+
+        response = self.client.get(self.path + "?all_projects=1&per_page=1")
+        # Verify all projects in the org are returned in sorted order
+        self.check_valid_response(response, sorted_projects)
