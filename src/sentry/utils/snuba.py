@@ -48,9 +48,13 @@ OVERRIDE_OPTIONS = {
 # There are several cases here where we support both a top level column name and
 # a tag with the same name. Existing search patterns expect to refer to the tag,
 # so we support <real_column_name>.name to refer to the top level column name.
-SENTRY_SNUBA_MAP = {col.value[2]: col.value[0] for col in Columns if col.value[0] is not None}
+SENTRY_SNUBA_MAP = {
+    col.value.alias: col.value.event_name for col in Columns if col.value.event_name is not None
+}
 TRANSACTIONS_SENTRY_SNUBA_MAP = {
-    col.value[2]: col.value[1] for col in Columns if col.value[1] is not None
+    col.value.alias: col.value.transaction_name
+    for col in Columns
+    if col.value.transaction_name is not None
 }
 
 

@@ -146,7 +146,7 @@ class SnubaEventStorage(EventStorage):
         if additional_columns:
             columns = set(columns + additional_columns)
 
-        return [col.value[0] for col in columns]
+        return [col.value.event_name for col in columns]
 
     def __get_event_id_from_filter(self, filter=None, orderby=None):
         columns = ["event_id", "project_id"]
