@@ -4,18 +4,18 @@ import React from 'react';
 
 import {sortProjects} from 'app/utils';
 import {t} from 'app/locale';
+import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import AsyncView from 'app/views/asyncView';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import Placeholder from 'app/components/placeholder';
 import Pagination from 'app/components/pagination';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import Placeholder from 'app/components/placeholder';
 import ProjectListItem from 'app/views/settings/components/settingsProjectItem';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import withOrganization from 'app/utils/withOrganization';
 import routeTitleGen from 'app/utils/routeTitle';
+import withOrganization from 'app/utils/withOrganization';
 
 import ProjectStatsGraph from './projectStatsGraph';
 
