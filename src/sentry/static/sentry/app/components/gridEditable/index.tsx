@@ -236,6 +236,7 @@ class GridEditable<
 
           {columnOrder.map((column, columnIndex) => (
             <GridHeadCell
+              isLast={columnOrder.length - 1 === columnIndex}
               key={`${columnIndex}.${column.key}`}
               isColumnDragging={this.props.isColumnDragging}
               isPrimary={column.isPrimary}

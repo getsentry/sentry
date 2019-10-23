@@ -19,6 +19,7 @@ import {GridColumnHeader} from './types';
 export type GridHeadCellProps<Column> = {
   isColumnDragging: boolean;
   gridHeadCellButtonProps: {[prop: string]: any};
+  isLast: boolean;
 
   isEditing: boolean;
   isPrimary: boolean;
@@ -121,7 +122,11 @@ class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
   }
 
   renderThing = () => {
-    const {isEditing} = this.props;
+    const {isEditing, isLast} = this.props;
+
+    if (isLast) {
+      return null;
+    }
 
     return (
       <React.Fragment>
