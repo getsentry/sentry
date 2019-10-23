@@ -1,5 +1,4 @@
 import React from 'react';
-import styled from 'react-emotion';
 
 import InlineSvg from 'app/components/inlineSvg';
 
@@ -12,9 +11,9 @@ import {
   GridHeadCellButtonHoverButton,
   GridHeadCellButtonHoverDraggable,
   GridHeadCellResizer,
-  Z_INDEX_ADD_COLUMN,
 } from './styles';
 import {GridColumnHeader} from './types';
+import AddColumnButton from './addColumnButton';
 
 export type GridHeadCellProps<Column> = {
   isColumnDragging: boolean;
@@ -126,7 +125,7 @@ class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
   renderThing = () => {
     const {isEditing, isLast, openModalAddColumnAt, indexColumnOrder} = this.props;
 
-    if (isLast) {
+    if (isLast || !isEditing) {
       return null;
     }
 
@@ -167,22 +166,5 @@ class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
     );
   }
 }
-
-const AddColumnButton = styled('div')`
-  height: 24px;
-  width: 24px;
-
-  cursor: pointer;
-
-  border-radius: 3px;
-
-  position: absolute;
-  top: ${45 - 12}px;
-  right: -12px;
-
-  background-color: blue;
-
-  z-index: ${Z_INDEX_ADD_COLUMN};
-`;
 
 export default GridHeadCell;

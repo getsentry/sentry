@@ -169,8 +169,6 @@ export const GridHeadCellButton = styled('div')<GridEditableProps>`
   user-select: none;
 `;
 export const GridHeadCellResizer = styled('span')<GridEditableProps>`
-  outline: 1px solid red;
-
   position: absolute;
   top: 0;
   right: -2px; /* Overlap half of Resizer into the right neighbor */
