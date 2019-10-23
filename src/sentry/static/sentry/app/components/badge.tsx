@@ -4,7 +4,7 @@ import {cx} from 'react-emotion';
 
 type Props = {
   text?: string;
-  priority?: 'strong' | 'new' | 'highlight';
+  priority?: string;
   className?: string;
 };
 

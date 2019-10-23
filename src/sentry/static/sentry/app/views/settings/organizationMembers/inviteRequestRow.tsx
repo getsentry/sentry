@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 
+import {Member} from 'app/types';
 import {PanelItem} from 'app/components/panels';
 import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
@@ -10,13 +11,21 @@ import Tag from 'app/views/settings/components/tag';
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 
+type Props = {
+  orgId: string;
+  inviteRequest: Member;
+  inviteRequestBusy: Map<string, boolean>;
+  onApprove: (id: string, email: string) => Promise<void>;
+  onDeny: (id: string, email: string) => Promise<void>;
+};
+
 const InviteRequestRow = ({
   orgId,
-  inviteRequest: {id, email, inviterName, inviteStatus},
+  inviteRequest: {id, email, inviteStatus, inviterName},
   inviteRequestBusy,
   onApprove,
   onDeny,
-}) => {
+}: Props) => {
   return (
     <StyledPanel>
       <div>

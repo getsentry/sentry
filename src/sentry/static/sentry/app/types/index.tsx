@@ -361,6 +361,14 @@ export type Member = {
     'sso:invalid': boolean;
   };
   dateCreated: string;
+  inviteStatus: string;
+  inviterName: string | null;
+};
+
+export type AccessRequest = {
+  id: string;
+  team: Team;
+  member: Member;
 };
 
 export type EventViewv1 = {

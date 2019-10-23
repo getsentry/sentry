@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import {AccessRequest, Member} from 'app/types';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tct} from 'app/locale';
@@ -12,16 +13,28 @@ import SentryTypes from 'app/sentryTypes';
 import InviteRequestRow from './inviteRequestRow';
 import OrganizationAccessRequests from './organizationAccessRequests';
 
-class OrganizationRequestsView extends AsyncView {
+type Props = AsyncView['props'] & {
+  requestList: AccessRequest[];
+  inviteRequests: Member[];
+  updateInviteRequests: (id: string) => void;
+  updateRequestList: (id: string) => void;
+};
+
+type State = AsyncView['state'] & {
+  inviteRequestBusy: Map<string, boolean>;
+};
+
+class OrganizationRequestsView extends AsyncView<Props, State> {
   static propTypes = {
     params: PropTypes.object,
-    inviteRequests: PropTypes.array,
     requestList: PropTypes.array,
+    inviteRequests: PropTypes.array,
     updateInviteRequests: PropTypes.func,
     updateRequestList: PropTypes.func,
   };
 
   static contextTypes = {
+    router: PropTypes.object,
     organization: SentryTypes.Organization,
   };
 
@@ -29,8 +42,9 @@ class OrganizationRequestsView extends AsyncView {
     inviteRequests: [],
   };
 
-  state = {
+  state: State = {
     inviteRequestBusy: new Map(),
+    ...this.getDefaultState(),
   };
 
   getEndpoints() {
@@ -52,7 +66,7 @@ class OrganizationRequestsView extends AsyncView {
     );
   }
 
-  handleApprove = async (id, email) => {
+  handleApprove = async (id: string, email: string) => {
     const {
       params: {orgId},
       updateInviteRequests,
@@ -79,7 +93,7 @@ class OrganizationRequestsView extends AsyncView {
     }));
   };
 
-  handleDeny = async (id, email) => {
+  handleDeny = async (id: string, email: string) => {
     const {
       params: {orgId},
       updateInviteRequests,
@@ -94,7 +108,7 @@ class OrganizationRequestsView extends AsyncView {
         method: 'DELETE',
       });
       updateInviteRequests(id);
-      addSuccessMessage(tct('Denied invite request for [email]', {email}));
+      addSuccessMessage(tct('Invite request for [email] denied', {email}));
     } catch (err) {
       addErrorMessage(tct('Error denying invite request for [email]', {email}));
       throw err;

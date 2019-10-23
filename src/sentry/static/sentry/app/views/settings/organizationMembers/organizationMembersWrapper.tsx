@@ -16,16 +16,17 @@ import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import space from 'app/styles/space';
 
-class OrganizationMembersWrapper extends AsyncView {
-  static propTypes = {
-    routes: PropTypes.array,
-  };
+type Props = AsyncView['props'] & {
+  children?: any;
+};
 
+class OrganizationMembersWrapper extends AsyncView<Props, AsyncView['state']> {
   static contextTypes = {
+    router: PropTypes.object,
     organization: SentryTypes.Organization,
   };
 
-  getEndpoints() {
+  getEndpoints(): ([string, string, any] | [string, string])[] {
     const {orgId} = this.props.params;
     return [
       ['inviteRequests', `/organizations/${orgId}/invite-requests/`],
@@ -55,13 +56,13 @@ class OrganizationMembersWrapper extends AsyncView {
     return count ? count.toString() : null;
   }
 
-  updateRequestList = id => {
+  updateRequestList = (id: string) => {
     this.setState(state => ({
       requestList: state.requestList.filter(({id: existingId}) => existingId !== id),
     }));
   };
 
-  updateInviteRequests = id => {
+  updateInviteRequests = (id: string) => {
     this.setState(state => ({
       inviteRequests: state.inviteRequests.filter(
         ({id: existingId}) => existingId !== id
