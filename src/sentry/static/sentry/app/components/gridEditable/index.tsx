@@ -132,6 +132,10 @@ class GridEditable<
     this.setState({isEditing: !this.state.isEditing});
   };
 
+  openModalAddColumnAt = (insertIndex: number) => {
+    return this.toggleModalEditColumn(insertIndex);
+  };
+
   toggleModalEditColumn = (
     indexColumnOrder?: number,
     column?: GridColumn<ColumnKey>
@@ -236,6 +240,7 @@ class GridEditable<
 
           {columnOrder.map((column, columnIndex) => (
             <GridHeadCell
+              openModalAddColumnAt={this.openModalAddColumnAt}
               isLast={columnOrder.length - 1 === columnIndex}
               key={`${columnIndex}.${column.key}`}
               isColumnDragging={this.props.isColumnDragging}

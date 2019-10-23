@@ -18,7 +18,7 @@ import {
 import {TableColumn} from './types';
 
 type ModalActions = {
-  createColumn: (column: TableColumn<ReactText>) => void;
+  createColumn: (column: TableColumn<ReactText>, insertAt?: number) => void;
   updateColumn: (indexColumnOrder: number, column: TableColumn<ReactText>) => void;
 };
 
@@ -117,7 +117,7 @@ class TableModalEditColumnBodyForm extends React.Component<
       if (typeof indexColumnOrder === 'number' && this.props.column) {
         updateColumn(indexColumnOrder, nextColumn);
       } else {
-        createColumn(nextColumn);
+        createColumn(nextColumn, indexColumnOrder);
       }
 
       if (onSuccess) {

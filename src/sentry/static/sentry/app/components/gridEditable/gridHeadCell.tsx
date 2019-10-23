@@ -28,6 +28,8 @@ export type GridHeadCellProps<Column> = {
   column: Column;
   children: React.ReactNode | React.ReactChild;
 
+  openModalAddColumnAt: (insertIndex: number) => void;
+
   actions: {
     moveColumnCommit: (indexFrom: number, indexTo: number) => void;
     onDragStart: (
@@ -122,7 +124,7 @@ class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
   }
 
   renderThing = () => {
-    const {isEditing, isLast} = this.props;
+    const {isEditing, isLast, openModalAddColumnAt, indexColumnOrder} = this.props;
 
     if (isLast) {
       return null;
@@ -131,7 +133,13 @@ class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
     return (
       <React.Fragment>
         <GridHeadCellResizer isEditing={isEditing} />
-        <AddColumnButton />
+        <AddColumnButton
+          onClick={() => {
+            console.log('fuck');
+            const insertIndex = indexColumnOrder + 1;
+            openModalAddColumnAt(insertIndex);
+          }}
+        />
       </React.Fragment>
     );
   };
@@ -165,6 +173,8 @@ class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
 const AddColumnButton = styled('div')`
   height: 24px;
   width: 24px;
+
+  cursor: pointer;
 
   border-radius: 3px;
 
