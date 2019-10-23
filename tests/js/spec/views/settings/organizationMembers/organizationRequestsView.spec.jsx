@@ -67,11 +67,18 @@ describe('OrganizationRequestsView', function() {
       body: [accessRequest],
     });
 
+    const org = TestStubs.Organization({
+      access: ['team:write'],
+      status: {
+        id: 'active',
+      },
+    });
+
     const wrapper = mountWithTheme(
       <OrganizationMembersWrapper {...defaultProps}>
         <OrganizationRequestsView {...defaultProps} />
       </OrganizationMembersWrapper>,
-      TestStubs.routerContext([{organization}])
+      TestStubs.routerContext([{organization: org}])
     );
 
     expect(wrapper.find('NavTabs').exists()).toBe(true);
@@ -122,6 +129,65 @@ describe('OrganizationRequestsView', function() {
 
     expect(wrapper.find('Box[data-test-id="request-message"]').exists()).toBe(false);
     expect(wrapper.find('NavTabs').exists()).toBe(false);
+  });
+
+  it('does not render invite requests without experiment', function() {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/access-requests/',
+      method: 'GET',
+      body: [accessRequest],
+    });
+
+    const org = TestStubs.Organization({
+      experiments: {InviteRequestExperiment: 0},
+      access: ['member:admin', 'org:admin', 'member:write'],
+      status: {
+        id: 'active',
+      },
+    });
+
+    const wrapper = mountWithTheme(
+      <OrganizationMembersWrapper {...defaultProps}>
+        <OrganizationRequestsView {...defaultProps} />
+      </OrganizationMembersWrapper>,
+      TestStubs.routerContext([{organization: org}])
+    );
+
+    expect(wrapper.find('NavTabs').exists()).toBe(true);
+    expect(wrapper.find('Badge[text="1"]').exists()).toBe(true);
+    expect(wrapper.find('InviteRequestRow').exists()).toBe(false);
+  });
+
+  it('does not render invite requests without access', function() {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/invite-requests/',
+      method: 'GET',
+      body: [inviteRequest],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/access-requests/',
+      method: 'GET',
+      body: [accessRequest],
+    });
+
+    const org = TestStubs.Organization({
+      experiments: {InviteRequestExperiment: 1},
+      access: [],
+      status: {
+        id: 'active',
+      },
+    });
+
+    const wrapper = mountWithTheme(
+      <OrganizationMembersWrapper {...defaultProps}>
+        <OrganizationRequestsView {...defaultProps} />
+      </OrganizationMembersWrapper>,
+      TestStubs.routerContext([{organization: org}])
+    );
+
+    expect(wrapper.find('NavTabs').exists()).toBe(true);
+    expect(wrapper.find('Badge[text="1"]').exists()).toBe(true);
+    expect(wrapper.find('InviteRequestRow').exists()).toBe(false);
   });
 
   it('can approve invite request and update', async function() {

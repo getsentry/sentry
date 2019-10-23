@@ -18,6 +18,7 @@ type Props = AsyncView['props'] & {
   inviteRequests: Member[];
   updateInviteRequests: (id: string) => void;
   updateRequestList: (id: string) => void;
+  showInviteRequests: boolean;
 };
 
 type State = AsyncView['state'] & {
@@ -31,6 +32,7 @@ class OrganizationRequestsView extends AsyncView<Props, State> {
     inviteRequests: PropTypes.array,
     updateInviteRequests: PropTypes.func,
     updateRequestList: PropTypes.func,
+    showInviteRequests: PropTypes.bool,
   };
 
   static contextTypes = {
@@ -54,16 +56,6 @@ class OrganizationRequestsView extends AsyncView<Props, State> {
   getTitle() {
     const {orgId} = this.props.params;
     return routeTitleGen(t('Requests'), orgId, false);
-  }
-
-  get showInviteRequests() {
-    const {organization} = this.context;
-
-    return (
-      organization.experiments &&
-      (organization.experiments.InviteRequestExperiment === 1 ||
-        organization.experiments.JoinRequestExperiment === 1)
-    );
   }
 
   handleApprove = async (id: string, email: string) => {
@@ -123,6 +115,7 @@ class OrganizationRequestsView extends AsyncView<Props, State> {
     const {
       params: {orgId},
       requestList,
+      showInviteRequests,
       inviteRequests,
       updateRequestList,
     } = this.props;
@@ -130,14 +123,13 @@ class OrganizationRequestsView extends AsyncView<Props, State> {
 
     return (
       <React.Fragment>
-        {this.showInviteRequests && (
+        {showInviteRequests && (
           <Panel>
             <PanelHeader>{t('Pending Invite Requests')}</PanelHeader>
             <PanelBody>
               {inviteRequests.map(inviteRequest => (
                 <InviteRequestRow
                   key={inviteRequest.id}
-                  orgId={orgId}
                   inviteRequest={inviteRequest}
                   inviteRequestBusy={inviteRequestBusy}
                   onApprove={this.handleApprove}
@@ -150,6 +142,7 @@ class OrganizationRequestsView extends AsyncView<Props, State> {
             </PanelBody>
           </Panel>
         )}
+
         <OrganizationAccessRequests
           orgId={orgId}
           requestList={requestList}

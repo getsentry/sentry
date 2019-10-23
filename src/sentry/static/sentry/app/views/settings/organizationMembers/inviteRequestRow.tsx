@@ -12,7 +12,6 @@ import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 
 type Props = {
-  orgId: string;
   inviteRequest: Member;
   inviteRequestBusy: Map<string, boolean>;
   onApprove: (id: string, email: string) => Promise<void>;
@@ -20,7 +19,6 @@ type Props = {
 };
 
 const InviteRequestRow = ({
-  orgId,
   inviteRequest: {id, email, inviteStatus, inviterName},
   inviteRequestBusy,
   onApprove,
@@ -34,20 +32,31 @@ const InviteRequestRow = ({
         </h5>
         {inviteStatus === 'requested_to_be_invited' ? (
           inviterName && (
-            <Description>{tct('Requested by [inviterName]', {inviterName})}</Description>
+            <Tooltip
+              title={tct(
+                '[inviterName] requested to invite [email] to your organization',
+                {
+                  inviterName,
+                  email,
+                }
+              )}
+            >
+              <Description>
+                {tct('Requested by [inviterName]', {inviterName})}
+              </Description>
+            </Tooltip>
           )
         ) : (
-          <Tooltip title={tct('[email] requested to join [orgId].', {email, orgId})}>
-            <Tag>{t('EXTERNAL REQUEST')}</Tag>
+          <Tooltip title={tct('[email] requested to join your organization', {email})}>
+            <Tag size="small">{t('external request')}</Tag>
           </Tooltip>
         )}
       </div>
       <ButtonGroup>
         <Confirm
           onConfirm={() => onApprove(id, email)}
-          message={tct('Are you sure you want to invite [email] to [orgId]?', {
+          message={tct('Are you sure you want to invite [email] to your organization?', {
             email,
-            orgId,
           })}
         >
           <Button priority="primary" size="small" busy={inviteRequestBusy.get(id)}>
@@ -67,7 +76,6 @@ const InviteRequestRow = ({
 };
 
 InviteRequestRow.propTypes = {
-  orgId: PropTypes.string,
   inviteRequest: PropTypes.shape({
     email: PropTypes.string,
     id: PropTypes.string,

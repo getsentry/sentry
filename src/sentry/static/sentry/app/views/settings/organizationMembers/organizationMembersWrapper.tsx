@@ -39,20 +39,48 @@ class OrganizationMembersWrapper extends AsyncView<Props, AsyncView['state']> {
     return routeTitleGen(t('Members'), orgId, false);
   }
 
-  get showNavTabs() {
-    const {requestList} = this.state;
+  get hasExperiment() {
     const {organization} = this.context;
 
-    return requestList.length > 0
-      ? true
-      : organization.experiments &&
-          (organization.experiments.JoinRequestExperiment === 1 ||
-            organization.experiments.InviteRequestExperiment === 1);
+    if (!organization || !organization.experiments) {
+      return false;
+    }
+    return (
+      organization.experiments.JoinRequestExperiment === 1 ||
+      organization.experiments.InviteRequestExperiment === 1
+    );
+  }
+
+  get hasWriteAccess() {
+    const {organization} = this.context;
+    if (!organization || !organization.access) {
+      return false;
+    }
+    return organization.access.includes('member:write');
+  }
+
+  get showInviteRequests() {
+    return this.hasWriteAccess && this.hasExperiment;
+  }
+
+  get showNavTabs() {
+    const {requestList} = this.state;
+
+    // show the requests tab if there are pending team requests,
+    // or if the organization is exposed to the experiment and
+    // the user has access to approve or deny requests
+    return requestList.length > 0 || this.showInviteRequests;
   }
 
   get requestCount() {
     const {requestList, inviteRequests} = this.state;
-    const count = requestList.length + inviteRequests.length;
+    let count = requestList.length;
+
+    // if the user can't see the invite requests panel,
+    // exclude those requests from the total count
+    if (this.showInviteRequests) {
+      count += inviteRequests.length;
+    }
     return count ? count.toString() : null;
   }
 
@@ -76,10 +104,6 @@ class OrganizationMembersWrapper extends AsyncView<Props, AsyncView['state']> {
       params: {orgId},
     } = this.props;
     const {requestList, inviteRequests} = this.state;
-    const {organization} = this.context;
-    const {access} = organization;
-
-    const canAddMembers = access.indexOf('member:write') > -1;
 
     return (
       <React.Fragment>
@@ -90,20 +114,10 @@ class OrganizationMembersWrapper extends AsyncView<Props, AsyncView['state']> {
           <TextContainer>
             <Heading>{t('Invite new members')}</Heading>
             <SubText>
-              {t('Invite new members by email to join your organization.')}
+              {t('Invite new members by email to join your organization')}
             </SubText>
           </TextContainer>
-          <Button
-            priority="primary"
-            size="small"
-            disabled={!canAddMembers}
-            title={
-              !canAddMembers
-                ? t('You do not have enough permission to add new members')
-                : undefined
-            }
-            onClick={openInviteMembersModal}
-          >
+          <Button priority="primary" size="small" onClick={openInviteMembersModal}>
             {t('Invite Members')}
           </Button>
         </StyledPanel>
@@ -134,6 +148,7 @@ class OrganizationMembersWrapper extends AsyncView<Props, AsyncView['state']> {
             inviteRequests,
             updateInviteRequests: this.updateInviteRequests,
             updateRequestList: this.updateRequestList,
+            showInviteRequests: this.showInviteRequests,
           })}
       </React.Fragment>
     );
