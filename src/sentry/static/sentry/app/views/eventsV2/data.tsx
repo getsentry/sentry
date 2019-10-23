@@ -72,7 +72,7 @@ export const TRANSACTION_VIEWS: Readonly<Array<EventViewv1>> = [
       sort: ['-count'],
       query: 'event.type:transaction',
     },
-    tags: ['release', 'project.name', 'user.email', 'user.ip'],
+    tags: ['release', 'project.name', 'user.email', 'user.ip', 'environment'],
   },
 ];
 
@@ -86,7 +86,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
       sort: ['-count'],
       query: 'event.type:error',
     },
-    tags: ['error.type', 'project.name'],
+    tags: ['error.type', 'project.name', 'release', 'environment'],
   },
   {
     name: t('Errors'),
@@ -96,7 +96,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
       sort: ['-count', '-title'],
       query: 'event.type:error',
     },
-    tags: ['project.name'],
+    tags: ['project.name', 'release', 'environment'],
   },
   {
     name: t('Errors by URL'),
@@ -106,7 +106,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
       sort: ['-count'],
       query: 'event.type:error',
     },
-    tags: ['error.type', 'project.name', 'url'],
+    tags: ['error.type', 'project.name', 'url', 'release', 'environment'],
   },
   {
     name: t('Errors by User'),
@@ -116,7 +116,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
       sort: ['-count'],
       query: 'event.type:error',
     },
-    tags: ['user.id', 'project.name', 'url'],
+    tags: ['user.id', 'project.name', 'url', 'release', 'environment'],
   },
   {
     name: t('Content Security Policy (CSP)'),
@@ -132,6 +132,8 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
       'browser.name',
       'os.name',
       'effective-directive',
+      'release',
+      'environment',
     ],
   },
   {
@@ -142,7 +144,14 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
       sort: ['-count'],
       query: 'event.type:csp',
     },
-    tags: ['project.name', 'blocked-uri', 'browser.name', 'os.name'],
+    tags: [
+      'project.name',
+      'blocked-uri',
+      'browser.name',
+      'os.name',
+      'release',
+      'environment',
+    ],
   },
   {
     name: t('Content Security Policy (CSP) Report by Blocked URI'),
@@ -152,7 +161,14 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
       sort: ['-count'],
       query: 'event.type:csp',
     },
-    tags: ['project.name', 'blocked-uri', 'browser.name', 'os.name'],
+    tags: [
+      'project.name',
+      'blocked-uri',
+      'browser.name',
+      'os.name',
+      'release',
+      'environment',
+    ],
   },
   {
     name: t('Content Security Policy (CSP) Report by User'),
@@ -162,7 +178,14 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
       sort: ['-count'],
       query: 'event.type:csp',
     },
-    tags: ['project.name', 'blocked-uri', 'browser.name', 'os.name'],
+    tags: [
+      'project.name',
+      'blocked-uri',
+      'browser.name',
+      'os.name',
+      'release',
+      'environment',
+    ],
   },
 ];
 
