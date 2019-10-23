@@ -71,6 +71,11 @@ class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
     actions.toggleModalEditColumn(indexColumnOrder, column);
   };
 
+  onDragStart = (event: React.MouseEvent<SVGSVGElement, MouseEvent>) => {
+    const fromColumn = this.props.indexColumnOrder;
+    this.props.actions.onDragStart(event, fromColumn);
+  };
+
   renderButtonHoverDraggable(children: React.ReactNode) {
     const {isHovering} = this.state;
     const {isEditing, isColumnDragging} = this.props;
@@ -89,10 +94,7 @@ class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
         <GridHeadCellButtonHover>
           <GridHeadCellButtonHoverDraggable
             src="icon-grabbable"
-            onMouseDown={(event: React.MouseEvent<SVGSVGElement, MouseEvent>) => {
-              const fromColumn = this.props.indexColumnOrder;
-              this.props.actions.onDragStart(event, fromColumn);
-            }}
+            onMouseDown={this.onDragStart}
           />
 
           <div>
@@ -106,10 +108,7 @@ class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
 
           <GridHeadCellButtonHoverDraggable
             src="icon-grabbable"
-            onMouseDown={(event: React.MouseEvent<SVGSVGElement, MouseEvent>) => {
-              const fromColumn = this.props.indexColumnOrder;
-              this.props.actions.onDragStart(event, fromColumn);
-            }}
+            onMouseDown={this.onDragStart}
           />
         </GridHeadCellButtonHover>
       </React.Fragment>
