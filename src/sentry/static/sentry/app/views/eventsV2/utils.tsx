@@ -102,11 +102,9 @@ export function fetchTagDistribution(
   key: string,
   query: EventQuery
 ): Promise<Tag> {
-  // const urlParams = pick(query, Object.values(URL_PARAM));
+  const urlParams = pick(query, Object.values(URL_PARAM));
 
-  const queryOption = {...query, key};
-
-  console.log(key, queryOption);
+  const queryOption = {...urlParams, key, query: query.query};
 
   return api.requestPromise(`/organizations/${orgSlug}/events-distribution/`, {
     query: queryOption,
