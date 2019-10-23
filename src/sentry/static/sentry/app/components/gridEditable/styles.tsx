@@ -21,7 +21,6 @@ type GridEditableProps = {
   isEditable?: boolean;
   isEditing?: boolean;
   isPrimary?: boolean;
-  isFlagged?: boolean;
   isDragging?: boolean;
 };
 
