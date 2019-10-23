@@ -760,10 +760,6 @@ class EventView {
       delete payload.cursor;
     }
 
-    if (!payload.query) {
-      delete payload.query;
-    }
-
     return payload;
   }
 
