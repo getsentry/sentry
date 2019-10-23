@@ -21,6 +21,7 @@ export type TableViewProps = {
 
   eventView: EventView;
   tableData: TableData | null | undefined;
+  tagKeys: null | string[];
 };
 
 /**
@@ -170,7 +171,7 @@ class TableView extends React.Component<TableViewProps> {
   };
 
   render() {
-    const {organization, isLoading, error, tableData, eventView} = this.props;
+    const {organization, isLoading, error, tableData, tagKeys, eventView} = this.props;
 
     const columnOrder = eventView.getColumns();
     const columnSortBy = eventView.getSorts();
@@ -178,7 +179,7 @@ class TableView extends React.Component<TableViewProps> {
     const {
       renderModalBodyWithForm,
       renderModalFooter,
-    } = renderTableModalEditColumnFactory(organization, {
+    } = renderTableModalEditColumnFactory(organization, tagKeys, {
       createColumn: this._createColumn,
       updateColumn: this._updateColumn,
     });
