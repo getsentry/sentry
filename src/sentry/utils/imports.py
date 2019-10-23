@@ -4,15 +4,6 @@ import pkgutil
 import six
 
 
-MODEL_MOVES = {
-    "sentry.models.tagkey.TagKey": "sentry.tagstore.legacy.models.tagkey.TagKey",
-    "sentry.models.tagvalue.tagvalue": "sentry.tagstore.legacy.models.tagvalue.TagValue",
-    "sentry.models.grouptagkey.GroupTagKey": "sentry.tagstore.legacy.models.grouptagkey.GroupTagKey",
-    "sentry.models.grouptagvalue.GroupTagValue": "sentry.tagstore.legacy.models.grouptagvalue.GroupTagValue",
-    "sentry.models.eventtag.EventTag": "sentry.tagstore.legacy.models.eventtag.EventTag",
-}
-
-
 class ModuleProxyCache(dict):
     def __missing__(self, key):
         if "." not in key:
@@ -38,7 +29,6 @@ def import_string(path):
 
     >>> cls = import_string('sentry.models.Group')
     """
-    path = MODEL_MOVES.get(path, path)
     result = _cache[path]
     return result
 
