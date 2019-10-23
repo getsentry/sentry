@@ -75,7 +75,11 @@ class OrganizationProjects extends AsyncView {
   }
 
   renderLoading() {
-    const {projectList, projectListPageLinks} = this.state;
+    return this.renderBody();
+  }
+
+  renderBody() {
+    const {projectList, projectListPageLinks, projectStats} = this.state;
     const {organization} = this.props;
     const canCreateProjects = new Set(organization.access).has('project:admin');
 
@@ -117,7 +121,15 @@ class OrganizationProjects extends AsyncView {
                     <ProjectListItem project={project} organization={organization} />
                   </Box>
                   <Box w={3 / 12} p={2}>
-                    <Placeholder height="25px" />
+                    {projectStats ? (
+                      <ProjectStatsGraph
+                        key={project.id}
+                        project={project}
+                        stats={projectStats[project.id]}
+                      />
+                    ) : (
+                      <Placeholder height="25px" />
+                    )}
                   </Box>
                 </PanelItem>
               ))
@@ -125,68 +137,6 @@ class OrganizationProjects extends AsyncView {
               <LoadingIndicator />
             )}
             {projectList && projectList.length === 0 && (
-              <EmptyMessage>{t('No projects found.')}</EmptyMessage>
-            )}
-          </PanelBody>
-        </Panel>
-        {projectListPageLinks && (
-          <Pagination pageLinks={projectListPageLinks} {...this.props} />
-        )}
-      </div>
-    );
-  }
-
-  renderBody() {
-    const {projectList, projectListPageLinks, projectStats} = this.state;
-    const {organization} = this.props;
-    const canCreateProjects = new Set(organization.access).has('project:admin');
-
-    const action = (
-      <Button
-        priority="primary"
-        size="small"
-        disabled={!canCreateProjects}
-        title={
-          !canCreateProjects
-            ? t('You do not have permission to create projects')
-            : undefined
-        }
-        to={`/organizations/${organization.slug}/projects/new/`}
-        icon="icon-circle-add"
-      >
-        {t('Create Project')}
-      </Button>
-    );
-
-    return (
-      <div>
-        <SettingsPageHeader title="Projects" action={action} />
-        <Panel>
-          <PanelHeader hasButtons>
-            {t('Projects')}
-
-            {this.renderSearchInput({
-              updateRoute: true,
-              placeholder: t('Search Projects'),
-              className: 'search',
-            })}
-          </PanelHeader>
-          <PanelBody css={{width: '100%'}}>
-            {sortProjects(projectList).map(project => (
-              <PanelItem p={0} key={project.id} align="center">
-                <Box p={2} flex="1">
-                  <ProjectListItem project={project} organization={organization} />
-                </Box>
-                <Box w={3 / 12} p={2}>
-                  <ProjectStatsGraph
-                    key={project.id}
-                    project={project}
-                    stats={projectStats[project.id]}
-                  />
-                </Box>
-              </PanelItem>
-            ))}
-            {projectList.length === 0 && (
               <EmptyMessage>{t('No projects found.')}</EmptyMessage>
             )}
           </PanelBody>
