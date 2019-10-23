@@ -106,8 +106,8 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
         get_all_projects = request.GET.get("all_projects") == "1"
 
         if get_all_projects:
-            sorted_projects = sorted(list(queryset), key=lambda x: x.slug)
-            return Response(serialize(sorted_projects, request.user, ProjectSummarySerializer()))
+            queryset = queryset.order_by("slug")
+            return Response(serialize(list(queryset), request.user, ProjectSummarySerializer()))
         else:
             return self.paginate(
                 request=request,

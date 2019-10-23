@@ -154,13 +154,11 @@ class OrganizationProjectsTest(APITestCase):
         self.login_as(user=self.user)
         other_team = self.create_team(organization=self.org)
 
-        projects = []
-        # Create 101 projects to verify the project list is not paginated
-        for i in range(0, 101):
-            projects.append(self.create_project(teams=[other_team]))
-        sorted_projects = sorted(list(projects), key=lambda x: x.slug)
+        project_bar = self.create_project(teams=[self.team], name="bar", slug="bar")
+        project_foo = self.create_project(teams=[other_team], name="foo", slug="foo")
+        project_baz = self.create_project(teams=[other_team], name="baz", slug="baz")
+        sorted_projects = [project_bar, project_baz, project_foo]
 
-        path = u"{}?all_projects=1".format(self.path)
-        response = self.client.get(path)
-        # Verify all 101 projects are returned in sorted order
+        response = self.client.get(self.path + "?all_projects=1&per_page=1")
+        # Verify all projects in the org are returned in sorted order
         self.check_valid_response(response, sorted_projects)
