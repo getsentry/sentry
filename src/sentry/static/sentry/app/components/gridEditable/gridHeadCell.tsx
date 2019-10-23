@@ -88,15 +88,13 @@ class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
         <GridHeadCellButtonHoverBackground>{children}</GridHeadCellButtonHoverBackground>
 
         <GridHeadCellButtonHover>
-          {
-            <GridHeadCellButtonHoverDraggable
-              src="icon-grabbable"
-              onMouseDown={(event: React.MouseEvent<SVGSVGElement, MouseEvent>) => {
-                const fromColumn = this.props.indexColumnOrder;
-                this.props.actions.onDragStart(event, fromColumn);
-              }}
-            />
-          }
+          <GridHeadCellButtonHoverDraggable
+            src="icon-grabbable"
+            onMouseDown={(event: React.MouseEvent<SVGSVGElement, MouseEvent>) => {
+              const fromColumn = this.props.indexColumnOrder;
+              this.props.actions.onDragStart(event, fromColumn);
+            }}
+          />
 
           <GridHeadCellButtonHoverButtonGroup>
             <GridHeadCellButtonHoverButton onClick={this.toggleModal}>
@@ -107,15 +105,13 @@ class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
             </GridHeadCellButtonHoverButton>
           </GridHeadCellButtonHoverButtonGroup>
 
-          {
-            <GridHeadCellButtonHoverDraggable
-              src="icon-grabbable"
-              onMouseDown={(event: React.MouseEvent<SVGSVGElement, MouseEvent>) => {
-                const fromColumn = this.props.indexColumnOrder;
-                this.props.actions.onDragStart(event, fromColumn);
-              }}
-            />
-          }
+          <GridHeadCellButtonHoverDraggable
+            src="icon-grabbable"
+            onMouseDown={(event: React.MouseEvent<SVGSVGElement, MouseEvent>) => {
+              const fromColumn = this.props.indexColumnOrder;
+              this.props.actions.onDragStart(event, fromColumn);
+            }}
+          />
         </GridHeadCellButtonHover>
       </React.Fragment>
     );
