@@ -131,13 +131,11 @@ class TableView extends React.Component<TableViewProps> {
     const field = column.eventViewField;
 
     // establish alignment based on the type
-
     const alignedTypes: ColumnValueType[] = ['number', 'duration'];
     let align: 'right' | 'left' = alignedTypes.includes(column.type) ? 'right' : 'left';
 
     if (column.type === 'never' || column.type === '*') {
       // fallback to align the column based on the table metadata
-
       const maybeType = tableData.meta[getAggregateAlias(field.field)];
 
       if (maybeType === 'integer' || maybeType === 'number') {
