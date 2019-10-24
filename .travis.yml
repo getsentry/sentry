@@ -19,7 +19,7 @@ addons:
     update: true
     packages:
       - libxmlsec1-dev
-      - libgeoip-dev
+      - libmaxminddb-dev
   chrome: stable
 
 env:
