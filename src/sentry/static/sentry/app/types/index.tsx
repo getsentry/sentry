@@ -1,6 +1,8 @@
 import {SpanEntry} from 'app/components/events/interfaces/spans/types';
 import {API_SCOPES} from 'app/constants';
 import {Field} from 'app/views/settings/components/forms/type';
+import {Params} from 'react-router/lib/Router';
+import {Location} from 'history';
 
 export type ObjectStatus =
   | 'active'
@@ -201,7 +203,10 @@ export type CommitAuthor = {
 };
 
 // TODO(ts): This type is incomplete
-export type Environment = {};
+export type Environment = {
+  name: string;
+  id: string;
+};
 
 // TODO(ts): This type is incomplete
 export type SavedSearch = {};
@@ -451,6 +456,14 @@ export type GroupIntegration = Integration & {
   externalIssues: IntegrationExternalIssue[];
 };
 
+export type PlatformExternalIssue = {
+  id: string;
+  groupId: string;
+  serviceType: string;
+  displayName: string;
+  webUrl: string;
+};
+
 export type SentryAppInstallation = {
   app: {
     uuid: string;
@@ -534,4 +547,20 @@ export type MemberRole = {
   name: string;
   desc: string;
   allowed?: boolean;
+};
+
+export type SentryAppComponent = {
+  uuid: string;
+  type: 'issue-link' | 'alert-rule-action' | 'issue-media' | 'stacktrace-link';
+  schema: object;
+  sentryApp: {
+    uuid: string;
+    slug: string;
+    name: string;
+  };
+};
+
+export type RouterProps = {
+  params: Params;
+  location: Location;
 };

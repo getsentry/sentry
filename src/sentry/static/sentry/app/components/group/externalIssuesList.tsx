@@ -1,7 +1,5 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
-import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import AsyncComponent from 'app/components/asyncComponent';
 import ExternalIssueActions from 'app/components/group/externalIssueActions';
@@ -16,39 +14,62 @@ import SentryAppInstallationStore from 'app/stores/sentryAppInstallationsStore';
 import SentryAppComponentsStore from 'app/stores/sentryAppComponentsStore';
 import ExternalIssueStore from 'app/stores/externalIssueStore';
 import ErrorBoundary from 'app/components/errorBoundary';
+import {
+  Group,
+  Project,
+  Organization,
+  PlatformExternalIssue,
+  Event,
+  SentryAppComponent,
+  SentryAppInstallation,
+  GroupIntegration,
+} from 'app/types';
 
-class ExternalIssueList extends AsyncComponent {
+type Props = AsyncComponent['props'] & {
+  group: Group;
+  project: Project;
+  organization: Organization;
+  event: Event;
+};
+
+type State = AsyncComponent['state'] & {
+  components: SentryAppComponent[];
+  sentryAppInstallations: SentryAppInstallation[];
+  externalIssues: PlatformExternalIssue[];
+  integrations: GroupIntegration[];
+};
+
+class ExternalIssueList extends AsyncComponent<Props, State> {
+  unsubscribables: any[] = [];
+
   static propTypes = {
-    api: PropTypes.object.isRequired,
     group: SentryTypes.Group.isRequired,
     project: SentryTypes.Project.isRequired,
     organization: SentryTypes.Organization.isRequired,
     event: SentryTypes.Event,
-    orgId: PropTypes.string,
   };
 
-  getEndpoints() {
+  getEndpoints(): [string, string][] {
     const {group} = this.props;
     return [['integrations', `/groups/${group.id}/integrations/`]];
   }
 
-  constructor(props) {
-    super(props);
-    this.unsubscribables = [];
-    this.state = {
+  constructor(props: Props) {
+    super(props, {});
+    this.state = Object.assign({}, this.state, {
       components: [],
       sentryAppInstallations: [],
       externalIssues: [],
-    };
+    });
   }
 
   componentWillMount() {
     super.componentWillMount();
 
     this.unsubscribables = [
-      SentryAppInstallationStore.listen(this.onSentryAppInstallationChange),
-      ExternalIssueStore.listen(this.onExternalIssueChange),
-      SentryAppComponentsStore.listen(this.onSentryAppComponentsChange),
+      SentryAppInstallationStore.listen(this.onSentryAppInstallationChange, this),
+      ExternalIssueStore.listen(this.onExternalIssueChange, this),
+      SentryAppComponentsStore.listen(this.onSentryAppComponentsChange, this),
     ];
 
     this.fetchSentryAppData();
@@ -59,15 +80,15 @@ class ExternalIssueList extends AsyncComponent {
     this.unsubscribables.forEach(unsubscribe => unsubscribe());
   }
 
-  onSentryAppInstallationChange = sentryAppInstallations => {
+  onSentryAppInstallationChange = (sentryAppInstallations: SentryAppInstallation[]) => {
     this.setState({sentryAppInstallations});
   };
 
-  onExternalIssueChange = externalIssues => {
+  onExternalIssueChange = (externalIssues: PlatformExternalIssue[]) => {
     this.setState({externalIssues});
   };
 
-  onSentryAppComponentsChange = sentryAppComponents => {
+  onSentryAppComponentsChange = (sentryAppComponents: SentryAppComponent[]) => {
     const components = sentryAppComponents.filter(c => c.type === 'issue-link');
     this.setState({components});
   };
@@ -80,22 +101,22 @@ class ExternalIssueList extends AsyncComponent {
   // control over those services.
   //
   fetchSentryAppData() {
-    const {api, group, project, organization} = this.props;
+    const {group, project, organization} = this.props;
 
     if (project && project.id && organization) {
-      api
+      this.api
         .requestPromise(`/groups/${group.id}/external-issues/`)
         .then(data => {
           ExternalIssueStore.load(data);
           this.setState({externalIssues: data});
         })
-        .catch(error => {
+        .catch(_error => {
           return;
         });
     }
   }
 
-  renderIntegrationIssues(integrations = []) {
+  renderIntegrationIssues(integrations: GroupIntegration[] = []) {
     const {group} = this.props;
 
     const activeIntegrations = integrations.filter(
@@ -126,6 +147,10 @@ class ExternalIssueList extends AsyncComponent {
       const installation = sentryAppInstallations.find(
         i => i.app.uuid === sentryApp.uuid
       );
+      //should always find a match but TS complains if we don't handle this case
+      if (!installation) {
+        return null;
+      }
 
       const issue = (externalIssues || []).find(i => i.serviceType === sentryApp.slug);
 
@@ -186,7 +211,7 @@ class ExternalIssueList extends AsyncComponent {
             icon="icon-generic-box"
             priority="muted"
             size="small"
-            to={`/settings/${this.props.orgId}/integrations`}
+            to={`/settings/${this.props.organization.slug}/integrations`}
           >
             {t('Set up Issue Tracking')}
           </AlertLink>
@@ -208,4 +233,4 @@ class ExternalIssueList extends AsyncComponent {
   }
 }
 
-export default withOrganization(withApi(ExternalIssueList));
+export default withOrganization(ExternalIssueList);
