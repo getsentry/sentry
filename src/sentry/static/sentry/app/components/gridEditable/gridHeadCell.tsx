@@ -122,7 +122,17 @@ class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
     );
   }
 
-  renderInBetween = () => {
+  renderResizeGrabbable = () => {
+    if (!FLAG_GRID_RESIZABLE) {
+      return null;
+    }
+
+    const {isEditing} = this.props;
+
+    return <GridHeadCellResizer isEditing={isEditing} />;
+  };
+
+  renderAddColumnButton = () => {
     const {
       isEditing,
       isLast,
@@ -136,15 +146,12 @@ class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
     }
 
     return (
-      <React.Fragment>
-        {FLAG_GRID_RESIZABLE && <GridHeadCellResizer isEditing={isEditing} />}
-        <AddColumnButton
-          onClick={() => {
-            const insertIndex = indexColumnOrder + 1;
-            openModalAddColumnAt(insertIndex);
-          }}
-        />
-      </React.Fragment>
+      <AddColumnButton
+        onClick={() => {
+          const insertIndex = indexColumnOrder + 1;
+          openModalAddColumnAt(insertIndex);
+        }}
+      />
     );
   };
 
@@ -169,7 +176,8 @@ class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
           Keep the Resizer component and the add column button at the bottom
           to ensure that it is will always
           float on top of everything else */
-        this.renderInBetween()}
+        this.renderResizeGrabbable()}
+        {this.renderAddColumnButton()}
       </GridHeadCellWrapper>
     );
   }
