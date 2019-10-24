@@ -71,6 +71,11 @@ class PagerDutyClientTest(APITestCase):
                 "component": self.project.slug,
                 "custom_details": event.as_dict(),
             },
-            "links": [{"href": group.get_absolute_url(), "text": "Issue Details"}],
+            "links": [
+                {
+                    "href": group.get_absolute_url(params={"referrer": "pagerduty_integration"}),
+                    "text": "Issue Details",
+                }
+            ],
         }
         mock_request.assert_called_once_with("POST", "/", data=json.dumps(data))

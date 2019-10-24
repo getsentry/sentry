@@ -40,7 +40,14 @@ class PagerDutyClient(ApiClient):
                     "component": group.project.slug,
                     "custom_details": data.as_dict(),
                 },
-                "links": [{"href": group.get_absolute_url(), "text": "Issue Details"}],
+                "links": [
+                    {
+                        "href": group.get_absolute_url(
+                            params={"referrer": "pagerduty_integration"}
+                        ),
+                        "text": "Issue Details",
+                    }
+                ],
             }
         return self.post("/", data=json.dumps(payload))
 

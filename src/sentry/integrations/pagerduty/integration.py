@@ -7,7 +7,7 @@ from sentry import options
 
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
-from sentry.integrations import (
+from sentry.integrations.base import (
     IntegrationInstallation,
     IntegrationFeatures,
     IntegrationMetadata,
@@ -89,11 +89,7 @@ class PagerDutyIntegration(IntegrationInstallation):
             project_ids_and_services = data.pop("project_mapping")
 
             with transaction.atomic():
-                PagerDutyServiceProject.objects.filter(
-                    pagerduty_service__in=PagerDutyService.objects.filter(
-                        organization_integration=self.org_integration
-                    )
-                ).delete()
+                PagerDutyServiceProject.objects.filter(pagerduty_service__in=self.services).delete()
 
                 for p_id, s in project_ids_and_services.items():
                     # create the record in the table
@@ -106,13 +102,11 @@ class PagerDutyIntegration(IntegrationInstallation):
     def get_config_data(self):
         config = self.org_integration.config
         project_mappings = PagerDutyServiceProject.objects.filter(
-            pagerduty_service__in=PagerDutyService.objects.filter(
-                organization_integration_id=self.org_integration.id
-            )
+            pagerduty_service__in=self.services
         )
         data = {}
         for pm in project_mappings:
-            data[pm.project_id] = {"service": pm.pagerduty_service.id}
+            data[pm.project_id] = {"service": pm.pagerduty_service_id}
         config = {}
         config["project_mapping"] = data
         return config
@@ -174,7 +168,7 @@ class PagerDutyInstallationRedirect(PipelineView):
         setup_url = absolute_uri("/extensions/pagerduty/setup/")
 
         return (
-            "https://app.pagerduty.com/install/integration?app_id=%s&redirect_url=%s&version=1"
+            u"https://app.pagerduty.com/install/integration?app_id=%s&redirect_url=%s&version=1"
             % (app_id, setup_url)
         )
 

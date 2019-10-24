@@ -5,7 +5,7 @@ import responses
 from sentry.utils import json
 from sentry.models import Integration, PagerDutyService, GroupStatus
 from sentry.testutils.cases import RuleTestCase
-from sentry.integrations.pagerduty import PagerDutyNotifyServiceAction
+from sentry.integrations.pagerduty.notify_action import PagerDutyNotifyServiceAction
 
 # external_id is the account name in pagerduty
 EXTERNAL_ID = "example-pagerduty"

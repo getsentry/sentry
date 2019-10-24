@@ -8,7 +8,7 @@ from sentry.utils import json
 from six.moves.urllib.parse import urlencode, urlparse
 from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import IntegrationTestCase
-from sentry.integrations.pagerduty import PagerDutyIntegrationProvider
+from sentry.integrations.pagerduty.integration import PagerDutyIntegrationProvider
 
 
 class PagerDutyIntegrationTest(IntegrationTestCase):
@@ -80,7 +80,7 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
                 "name": "Super Cool Service",
                 "id": "PD12345",
                 "type": "service",
-            },
+            }
         ]
         oi = OrganizationIntegration.objects.get(
             integration=integration, organization=self.organization

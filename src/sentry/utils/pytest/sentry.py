@@ -194,7 +194,7 @@ def register_extensions():
     from sentry.integrations.slack import SlackIntegrationProvider
     from sentry.integrations.vsts import VstsIntegrationProvider
     from sentry.integrations.vsts_extension import VstsExtensionIntegrationProvider
-    from sentry.integrations.pagerduty import PagerDutyIntegrationProvider
+    from sentry.integrations.pagerduty.integration import PagerDutyIntegrationProvider
 
     integrations.register(BitbucketIntegrationProvider)
     integrations.register(ExampleIntegrationProvider)
