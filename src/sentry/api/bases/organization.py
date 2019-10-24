@@ -173,9 +173,20 @@ class OrganizationEndpoint(Endpoint):
             project_ids = set(map(int, request.GET.getlist("project")))
         except ValueError:
             raise ParseError(detail="Invalid project parameter. Values must be numbers.")
+        return self._get_projects_by_id(
+            project_ids, request, organization, force_global_perms, include_all_accessible
+        )
 
-        user = getattr(request, "user", None)
+    def _get_projects_by_id(
+        self,
+        project_ids,
+        request,
+        organization,
+        force_global_perms=False,
+        include_all_accessible=False,
+    ):
         qs = Project.objects.filter(organization=organization, status=ProjectStatus.VISIBLE)
+        user = getattr(request, "user", None)
 
         # A project_id of -1 means 'all projects I have access to'
         # While no project_ids means 'all projects I am a member of'.
