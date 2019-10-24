@@ -1,8 +1,8 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
 import {openInviteMembersModal} from 'app/actionCreators/modal';
+import {Organization} from 'app/types';
 import {Panel} from 'app/components/panels';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
@@ -12,22 +12,19 @@ import InlineSvg from 'app/components/inlineSvg';
 import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
 import routeTitleGen from 'app/utils/routeTitle';
-import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import space from 'app/styles/space';
+import withOrganization from 'app/utils/withOrganization';
 
 type Props = AsyncView['props'] & {
   children?: any;
+  organization: Organization;
 };
 
-class OrganizationMembersWrapper extends AsyncView<Props, AsyncView['state']> {
-  static contextTypes = {
-    router: PropTypes.object,
-    organization: SentryTypes.Organization,
-  };
-
-  getEndpoints(): ([string, string, any] | [string, string])[] {
+class OrganizationMembersWrapper extends AsyncView<Props> {
+  getEndpoints(): [string, string][] {
     const {orgId} = this.props.params;
+
     return [
       ['inviteRequests', `/organizations/${orgId}/invite-requests/`],
       ['requestList', `/organizations/${orgId}/access-requests/`],
@@ -40,7 +37,7 @@ class OrganizationMembersWrapper extends AsyncView<Props, AsyncView['state']> {
   }
 
   get hasExperiment() {
-    const {organization} = this.context;
+    const {organization} = this.props;
 
     if (!organization || !organization.experiments) {
       return false;
@@ -52,7 +49,7 @@ class OrganizationMembersWrapper extends AsyncView<Props, AsyncView['state']> {
   }
 
   get hasWriteAccess() {
-    const {organization} = this.context;
+    const {organization} = this.props;
     if (!organization || !organization.access) {
       return false;
     }
@@ -84,19 +81,17 @@ class OrganizationMembersWrapper extends AsyncView<Props, AsyncView['state']> {
     return count ? count.toString() : null;
   }
 
-  updateRequestList = (id: string) => {
+  updateRequestList = (id: string) =>
     this.setState(state => ({
       requestList: state.requestList.filter(({id: existingId}) => existingId !== id),
     }));
-  };
 
-  updateInviteRequests = (id: string) => {
+  updateInviteRequests = (id: string) =>
     this.setState(state => ({
       inviteRequests: state.inviteRequests.filter(
         ({id: existingId}) => existingId !== id
       ),
     }));
-  };
 
   renderBody() {
     const {
@@ -146,8 +141,8 @@ class OrganizationMembersWrapper extends AsyncView<Props, AsyncView['state']> {
           React.cloneElement(children, {
             requestList,
             inviteRequests,
-            updateInviteRequests: this.updateInviteRequests,
-            updateRequestList: this.updateRequestList,
+            onUpdateInviteRequests: this.updateInviteRequests,
+            onUpdateRequestList: this.updateRequestList,
             showInviteRequests: this.showInviteRequests,
           })}
       </React.Fragment>
@@ -191,4 +186,4 @@ const StyledBadge = styled(Badge)`
   }
 `;
 
-export default OrganizationMembersWrapper;
+export default withOrganization(OrganizationMembersWrapper);

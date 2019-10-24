@@ -60,8 +60,8 @@ describe('OrganizationMembersWrapper', function() {
 
   it('does not render requests tab', function() {
     const wrapper = mountWithTheme(
-      <OrganizationMembersWrapper {...defaultProps} />,
-      TestStubs.routerContext([{organization}])
+      <OrganizationMembersWrapper organization={organization} {...defaultProps} />,
+      TestStubs.routerContext()
     );
 
     expect(wrapper.find('NavTabs').exists()).toBe(false);
@@ -77,8 +77,8 @@ describe('OrganizationMembersWrapper', function() {
     });
 
     const wrapper = mountWithTheme(
-      <OrganizationMembersWrapper {...defaultProps} />,
-      TestStubs.routerContext([{organization: org}])
+      <OrganizationMembersWrapper organization={org} {...defaultProps} />,
+      TestStubs.routerContext()
     );
 
     expect(wrapper.find('NavTabs').exists()).toBe(false);
@@ -99,8 +99,8 @@ describe('OrganizationMembersWrapper', function() {
     });
 
     const wrapper = mountWithTheme(
-      <OrganizationMembersWrapper {...defaultProps} />,
-      TestStubs.routerContext([{organization: org}])
+      <OrganizationMembersWrapper organization={org} {...defaultProps} />,
+      TestStubs.routerContext()
     );
 
     expect(wrapper.find('NavTabs').exists()).toBe(true);
@@ -119,8 +119,8 @@ describe('OrganizationMembersWrapper', function() {
     });
 
     const wrapper = mountWithTheme(
-      <OrganizationMembersWrapper {...defaultProps} />,
-      TestStubs.routerContext([{organization: org}])
+      <OrganizationMembersWrapper organization={org} {...defaultProps} />,
+      TestStubs.routerContext()
     );
 
     expect(wrapper.find('NavTabs').exists()).toBe(true);
@@ -137,8 +137,8 @@ describe('OrganizationMembersWrapper', function() {
     });
 
     const wrapper = mountWithTheme(
-      <OrganizationMembersWrapper {...defaultProps} />,
-      TestStubs.routerContext([{organization}])
+      <OrganizationMembersWrapper organization={organization} {...defaultProps} />,
+      TestStubs.routerContext()
     );
 
     expect(wrapper.find('NavTabs').exists()).toBe(true);
@@ -165,8 +165,8 @@ describe('OrganizationMembersWrapper', function() {
     });
 
     const wrapper = mountWithTheme(
-      <OrganizationMembersWrapper {...defaultProps} />,
-      TestStubs.routerContext([{organization: org}])
+      <OrganizationMembersWrapper organization={org} {...defaultProps} />,
+      TestStubs.routerContext()
     );
 
     expect(wrapper.find('NavTabs').exists()).toBe(true);
@@ -177,8 +177,8 @@ describe('OrganizationMembersWrapper', function() {
 
   it('can invite member', function() {
     const wrapper = mountWithTheme(
-      <OrganizationMembersWrapper {...defaultProps} />,
-      TestStubs.routerContext([{organization}])
+      <OrganizationMembersWrapper organization={organization} {...defaultProps} />,
+      TestStubs.routerContext()
     );
 
     const inviteButton = wrapper.find('StyledButton[aria-label="Invite Members"]');
@@ -195,10 +195,10 @@ describe('OrganizationMembersWrapper', function() {
       body: [member],
     });
     const wrapper = mountWithTheme(
-      <OrganizationMembersWrapper {...defaultProps}>
+      <OrganizationMembersWrapper organization={organization} {...defaultProps}>
         <OrganizationMembers {...defaultProps} />
       </OrganizationMembersWrapper>,
-      TestStubs.routerContext([{organization}])
+      TestStubs.routerContext()
     );
 
     expect(wrapper.find('OrganizationMembersView').exists()).toBe(true);

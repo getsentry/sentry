@@ -1,43 +1,40 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {AccessRequest, Member} from 'app/types';
+import {AccessRequest, Member, Organization} from 'app/types';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tct} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import routeTitleGen from 'app/utils/routeTitle';
-import SentryTypes from 'app/sentryTypes';
+import withApi from 'app/utils/withApi';
+import withOrganization from 'app/utils/withOrganization';
 
 import InviteRequestRow from './inviteRequestRow';
 import OrganizationAccessRequests from './organizationAccessRequests';
 
-type Props = AsyncView['props'] & {
+type Props = {
+  api: any;
+  params: any;
+  organization: Organization;
   requestList: AccessRequest[];
   inviteRequests: Member[];
-  updateInviteRequests: (id: string) => void;
-  updateRequestList: (id: string) => void;
+  onUpdateInviteRequests: (id: string) => void;
+  onUpdateRequestList: (id: string) => void;
   showInviteRequests: boolean;
 };
 
-type State = AsyncView['state'] & {
+type State = {
   inviteRequestBusy: Map<string, boolean>;
 };
 
-class OrganizationRequestsView extends AsyncView<Props, State> {
+class OrganizationRequestsView extends React.Component<Props, State> {
   static propTypes = {
-    params: PropTypes.object,
-    requestList: PropTypes.array,
-    inviteRequests: PropTypes.array,
-    updateInviteRequests: PropTypes.func,
-    updateRequestList: PropTypes.func,
-    showInviteRequests: PropTypes.bool,
-  };
-
-  static contextTypes = {
-    router: PropTypes.object,
-    organization: SentryTypes.Organization,
+    api: PropTypes.object.isRequired,
+    requestList: PropTypes.array.isRequired,
+    inviteRequests: PropTypes.array.isRequired,
+    onUpdateInviteRequests: PropTypes.func.isRequired,
+    onUpdateRequestList: PropTypes.func.isRequired,
+    showInviteRequests: PropTypes.bool.isRequired,
   };
 
   static defaultProps = {
@@ -46,22 +43,13 @@ class OrganizationRequestsView extends AsyncView<Props, State> {
 
   state: State = {
     inviteRequestBusy: new Map(),
-    ...this.getDefaultState(),
   };
-
-  getEndpoints() {
-    return [];
-  }
-
-  getTitle() {
-    const {orgId} = this.props.params;
-    return routeTitleGen(t('Requests'), orgId, false);
-  }
 
   handleApprove = async (id: string, email: string) => {
     const {
+      api,
       params: {orgId},
-      updateInviteRequests,
+      onUpdateInviteRequests,
     } = this.props;
 
     this.setState(state => ({
@@ -69,11 +57,11 @@ class OrganizationRequestsView extends AsyncView<Props, State> {
     }));
 
     try {
-      await this.api.requestPromise(`/organizations/${orgId}/invite-requests/${id}/`, {
+      await api.requestPromise(`/organizations/${orgId}/invite-requests/${id}/`, {
         method: 'PUT',
         data: {approve: 1},
       });
-      updateInviteRequests(id);
+      onUpdateInviteRequests(id);
       addSuccessMessage(tct('[email] has been invited', {email}));
     } catch (err) {
       addErrorMessage(tct('Error inviting [email]', {email}));
@@ -87,8 +75,9 @@ class OrganizationRequestsView extends AsyncView<Props, State> {
 
   handleDeny = async (id: string, email: string) => {
     const {
+      api,
       params: {orgId},
-      updateInviteRequests,
+      onUpdateInviteRequests,
     } = this.props;
 
     this.setState(state => ({
@@ -96,10 +85,10 @@ class OrganizationRequestsView extends AsyncView<Props, State> {
     }));
 
     try {
-      await this.api.requestPromise(`/organizations/${orgId}/invite-requests/${id}/`, {
+      await api.requestPromise(`/organizations/${orgId}/invite-requests/${id}/`, {
         method: 'DELETE',
       });
-      updateInviteRequests(id);
+      onUpdateInviteRequests(id);
       addSuccessMessage(tct('Invite request for [email] denied', {email}));
     } catch (err) {
       addErrorMessage(tct('Error denying invite request for [email]', {email}));
@@ -117,7 +106,8 @@ class OrganizationRequestsView extends AsyncView<Props, State> {
       requestList,
       showInviteRequests,
       inviteRequests,
-      updateRequestList,
+      onUpdateRequestList,
+      organization,
     } = this.props;
     const {inviteRequestBusy} = this.state;
 
@@ -130,7 +120,7 @@ class OrganizationRequestsView extends AsyncView<Props, State> {
               {inviteRequests.map(inviteRequest => (
                 <InviteRequestRow
                   key={inviteRequest.id}
-                  organization={this.context.organization}
+                  organization={organization}
                   inviteRequest={inviteRequest}
                   inviteRequestBusy={inviteRequestBusy}
                   onApprove={this.handleApprove}
@@ -147,11 +137,11 @@ class OrganizationRequestsView extends AsyncView<Props, State> {
         <OrganizationAccessRequests
           orgId={orgId}
           requestList={requestList}
-          updateRequestList={updateRequestList}
+          onUpdateRequestList={onUpdateRequestList}
         />
       </React.Fragment>
     );
   }
 }
 
-export default OrganizationRequestsView;
+export default withApi(withOrganization(OrganizationRequestsView));

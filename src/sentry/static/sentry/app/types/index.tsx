@@ -17,6 +17,7 @@ export type Organization = {
   access: string[];
   features: string[];
   teams: Team[];
+  experiments: {[key: string]: number};
 };
 
 export type OrganizationDetailed = Organization & {
@@ -361,7 +362,7 @@ export type Member = {
     'sso:invalid': boolean;
   };
   dateCreated: string;
-  inviteStatus: string;
+  inviteStatus: 'approved' | 'requested_to_be_invited' | 'requested_to_join';
   inviterName: string | null;
 };
 

@@ -13,7 +13,7 @@ describe('OrganizationAccessRequests', function() {
       <OrganizationAccessRequests
         orgId={orgId}
         requestList={[]}
-        updateRequestList={() => {}}
+        onUpdateRequestList={() => {}}
       />
     );
 
@@ -25,7 +25,7 @@ describe('OrganizationAccessRequests', function() {
       <OrganizationAccessRequests
         orgId={orgId}
         requestList={requestList}
-        updateRequestList={() => {}}
+        onUpdateRequestList={() => {}}
       />
     );
 
@@ -43,7 +43,7 @@ describe('OrganizationAccessRequests', function() {
   });
 
   it('can approve', async function() {
-    const updateRequestListMock = jest.fn();
+    const onUpdateRequestListMock = jest.fn();
     const approveMock = MockApiClient.addMockResponse({
       url: `/organizations/${orgId}/access-requests/${accessRequest.id}/`,
       method: 'PUT',
@@ -53,7 +53,7 @@ describe('OrganizationAccessRequests', function() {
       <OrganizationAccessRequests
         orgId={orgId}
         requestList={requestList}
-        updateRequestList={updateRequestListMock}
+        onUpdateRequestList={onUpdateRequestListMock}
       />
     );
 
@@ -69,11 +69,11 @@ describe('OrganizationAccessRequests', function() {
         },
       })
     );
-    expect(updateRequestListMock).toHaveBeenCalledWith(accessRequest.id);
+    expect(onUpdateRequestListMock).toHaveBeenCalledWith(accessRequest.id);
   });
 
   it('can deny', async function() {
-    const updateRequestListMock = jest.fn();
+    const onUpdateRequestListMock = jest.fn();
     const denyMock = MockApiClient.addMockResponse({
       url: `/organizations/${orgId}/access-requests/${accessRequest.id}/`,
       method: 'PUT',
@@ -83,7 +83,7 @@ describe('OrganizationAccessRequests', function() {
       <OrganizationAccessRequests
         orgId={orgId}
         requestList={requestList}
-        updateRequestList={updateRequestListMock}
+        onUpdateRequestList={onUpdateRequestListMock}
       />
     );
 
@@ -99,6 +99,6 @@ describe('OrganizationAccessRequests', function() {
         },
       })
     );
-    expect(updateRequestListMock).toHaveBeenCalledWith(accessRequest.id);
+    expect(onUpdateRequestListMock).toHaveBeenCalledWith(accessRequest.id);
   });
 });

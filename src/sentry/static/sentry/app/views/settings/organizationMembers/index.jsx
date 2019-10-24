@@ -12,6 +12,7 @@ import Pagination from 'app/components/pagination';
 import routeTitleGen from 'app/utils/routeTitle';
 import SentryTypes from 'app/sentryTypes';
 import {redirectToRemainingOrganization} from 'app/actionCreators/organizations';
+import withOrganization from 'app/utils/withOrganization';
 
 import OrganizationMemberRow from './organizationMemberRow';
 
@@ -72,7 +73,7 @@ class OrganizationMembersView extends AsyncView {
   }
 
   getTitle() {
-    const orgId = this.context.organization.slug;
+    const orgId = this.props.organization.slug;
     return routeTitleGen(t('Members'), orgId, false);
   }
 
@@ -96,7 +97,7 @@ class OrganizationMembersView extends AsyncView {
   };
 
   handleRemove = ({id, name}) => {
-    const {organization} = this.context;
+    const {organization} = this.props;
     const {slug: orgName} = organization;
 
     this.removeMember(id).then(
@@ -118,7 +119,7 @@ class OrganizationMembersView extends AsyncView {
   };
 
   handleLeave = ({id}) => {
-    const {organization} = this.context;
+    const {organization} = this.props;
     const {slug: orgName} = organization;
 
     this.removeMember(id).then(
@@ -180,9 +181,8 @@ class OrganizationMembersView extends AsyncView {
   }, 200);
 
   renderBody() {
-    const {params, routes} = this.props;
+    const {params, routes, organization} = this.props;
     const {membersPageLinks, members} = this.state;
-    const {organization} = this.context;
     const {orgId} = params || {};
     const {name: orgName, access} = organization;
     const canAddMembers = access.indexOf('member:write') > -1;
@@ -242,4 +242,4 @@ class OrganizationMembersView extends AsyncView {
   }
 }
 
-export default OrganizationMembersView;
+export default withOrganization(OrganizationMembersView);

@@ -15,7 +15,7 @@ class OrganizationAccessRequests extends React.Component {
   static propTypes = {
     api: PropTypes.object.isRequired,
     orgId: PropTypes.string.isRequired,
-    updateRequestList: PropTypes.func.isRequired,
+    onUpdateRequestList: PropTypes.func.isRequired,
     requestList: PropTypes.arrayOf(
       PropTypes.shape({
         id: PropTypes.string.isRequired,
@@ -34,7 +34,7 @@ class OrganizationAccessRequests extends React.Component {
   };
 
   approveOrDeny = async (isApproved, id) => {
-    const {api, orgId, updateRequestList} = this.props;
+    const {api, orgId, onUpdateRequestList} = this.props;
 
     this.setState(state => ({
       accessRequestBusy: state.accessRequestBusy.set(id, true),
@@ -45,7 +45,7 @@ class OrganizationAccessRequests extends React.Component {
         method: 'PUT',
         data: {isApproved},
       });
-      updateRequestList(id);
+      onUpdateRequestList(id);
       addSuccessMessage(
         tct('Team request [action]', {action: isApproved ? 'approved' : 'denied'})
       );

@@ -56,7 +56,7 @@ const InviteRequestRow = ({
           )
         ) : (
           <Tooltip title={t('This user has asked to join your organization.')}>
-            <StyledTag size="small">{t('Join request')}</StyledTag>
+            <JoinRequestIndicator size="small">{t('Join request')}</JoinRequestIndicator>
           </Tooltip>
         )}
       </div>
@@ -66,12 +66,12 @@ const InviteRequestRow = ({
           onConfirm={sendInvites}
           disableConfirmButton={!canSend}
           message={
-            <div>
+            <React.Fragment>
               {tct('Are you sure you want to invite [email] to your organization?', {
                 email,
               })}
               {headerInfo}
-            </div>
+            </React.Fragment>
           }
         >
           <Button priority="primary" size="small" busy={inviteRequestBusy.get(id)}>
@@ -112,7 +112,7 @@ InviteRequestRow.propTypes = {
   inviteRequestBusy: PropTypes.object,
 };
 
-const StyledTag = styled(Tag)`
+const JoinRequestIndicator = styled(Tag)`
   padding: ${space(0.5)} ${space(0.75)};
   font-size: 10px;
   text-transform: uppercase;
@@ -131,7 +131,7 @@ const StyledPanelItem = styled(PanelItem)`
 `;
 
 const UserName = styled('div')`
-  font-size: 16px;
+  font-size: ${p => p.theme.fontSizeLarge};
 `;
 
 const Description = styled('div')`

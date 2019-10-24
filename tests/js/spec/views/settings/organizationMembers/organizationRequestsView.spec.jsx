@@ -51,10 +51,10 @@ describe('OrganizationRequestsView', function() {
 
   it('renders empty', function() {
     const wrapper = mountWithTheme(
-      <OrganizationMembersWrapper {...defaultProps}>
-        <OrganizationRequestsView {...defaultProps} />
+      <OrganizationMembersWrapper organization={organization} {...defaultProps}>
+        <OrganizationRequestsView organization={organization} {...defaultProps} />
       </OrganizationMembersWrapper>,
-      TestStubs.routerContext([{organization}])
+      TestStubs.routerContext()
     );
 
     expect(wrapper.find('PanelHeader').exists()).toBe(false);
@@ -75,10 +75,10 @@ describe('OrganizationRequestsView', function() {
     });
 
     const wrapper = mountWithTheme(
-      <OrganizationMembersWrapper {...defaultProps}>
-        <OrganizationRequestsView {...defaultProps} />
+      <OrganizationMembersWrapper organization={org} {...defaultProps}>
+        <OrganizationRequestsView organization={org} {...defaultProps} />
       </OrganizationMembersWrapper>,
-      TestStubs.routerContext([{organization: org}])
+      TestStubs.routerContext()
     );
 
     expect(wrapper.find('NavTabs').exists()).toBe(true);
@@ -107,10 +107,10 @@ describe('OrganizationRequestsView', function() {
     });
 
     const wrapper = mountWithTheme(
-      <OrganizationMembersWrapper {...defaultProps}>
-        <OrganizationRequestsView {...defaultProps} />
+      <OrganizationMembersWrapper organization={organization} {...defaultProps}>
+        <OrganizationRequestsView organization={organization} {...defaultProps} />
       </OrganizationMembersWrapper>,
-      TestStubs.routerContext([{organization}])
+      TestStubs.routerContext()
     );
 
     expect(wrapper.find('NavTabs').exists()).toBe(true);
@@ -147,10 +147,10 @@ describe('OrganizationRequestsView', function() {
     });
 
     const wrapper = mountWithTheme(
-      <OrganizationMembersWrapper {...defaultProps}>
-        <OrganizationRequestsView {...defaultProps} />
+      <OrganizationMembersWrapper organization={org} {...defaultProps}>
+        <OrganizationRequestsView organization={org} {...defaultProps} />
       </OrganizationMembersWrapper>,
-      TestStubs.routerContext([{organization: org}])
+      TestStubs.routerContext()
     );
 
     expect(wrapper.find('NavTabs').exists()).toBe(true);
@@ -179,10 +179,10 @@ describe('OrganizationRequestsView', function() {
     });
 
     const wrapper = mountWithTheme(
-      <OrganizationMembersWrapper {...defaultProps}>
-        <OrganizationRequestsView {...defaultProps} />
+      <OrganizationMembersWrapper organization={org} {...defaultProps}>
+        <OrganizationRequestsView organization={org} {...defaultProps} />
       </OrganizationMembersWrapper>,
-      TestStubs.routerContext([{organization: org}])
+      TestStubs.routerContext()
     );
 
     expect(wrapper.find('NavTabs').exists()).toBe(true);
@@ -209,10 +209,10 @@ describe('OrganizationRequestsView', function() {
     });
 
     const wrapper = mountWithTheme(
-      <OrganizationMembersWrapper {...defaultProps}>
-        <OrganizationRequestsView {...defaultProps} />
+      <OrganizationMembersWrapper organization={org} {...defaultProps}>
+        <OrganizationRequestsView organization={org} {...defaultProps} />
       </OrganizationMembersWrapper>,
-      TestStubs.routerContext([{organization: org}])
+      TestStubs.routerContext()
     );
 
     expect(wrapper.find('NavTabs').exists()).toBe(true);
@@ -256,10 +256,10 @@ describe('OrganizationRequestsView', function() {
     });
 
     const wrapper = mountWithTheme(
-      <OrganizationMembersWrapper {...defaultProps}>
-        <OrganizationRequestsView {...defaultProps} />
+      <OrganizationMembersWrapper organization={org} {...defaultProps}>
+        <OrganizationRequestsView organization={org} {...defaultProps} />
       </OrganizationMembersWrapper>,
-      TestStubs.routerContext([{organization: org}])
+      TestStubs.routerContext()
     );
 
     expect(wrapper.find('NavTabs').exists()).toBe(true);

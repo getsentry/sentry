@@ -48,7 +48,7 @@ describe('InviteRequestRow', function() {
     );
 
     expect(wrapper.find('UserName').text()).toBe(joinRequest.email);
-    expect(wrapper.find('StyledTag').exists()).toBe(true);
+    expect(wrapper.find('JoinRequestIndicator').exists()).toBe(true);
   });
 
   it('can approve invite request', function() {
