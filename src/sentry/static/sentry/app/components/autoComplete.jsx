@@ -157,7 +157,7 @@ class AutoComplete extends React.Component {
 
     // Wait until the current macrotask completes, in the case that the click
     // happened on a hovercard or some other element rendered outside of the
-    // autocomplete, but controlled by the existance of the autocomplete, we
+    // autocomplete, but controlled by the existence of the autocomplete, we
     // need to ensure any click handlers are run.
     await new Promise(resolve => setTimeout(resolve));
 
@@ -226,7 +226,7 @@ class AutoComplete extends React.Component {
     this.setState(newState);
   };
 
-  moveHighlightedIndex = (step, e) => {
+  moveHighlightedIndex = (step, _e) => {
     let newIndex = this.state.highlightedIndex + step;
 
     // when this component is in virtualized mode, only a subset of items will be passed

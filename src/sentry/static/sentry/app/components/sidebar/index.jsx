@@ -293,10 +293,10 @@ class Sidebar extends React.Component {
                           evt
                         )
                       }
-                      icon={<InlineSvg src="icon-labs" />}
-                      label={t('Events V2')}
+                      icon={<InlineSvg src="icon-telescope" />}
+                      label={t('Discover v2')}
                       to={`/organizations/${organization.slug}/eventsv2/`}
-                      id="events-v2"
+                      id="discover-v2"
                     />
                   </Feature>
 

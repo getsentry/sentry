@@ -5,7 +5,7 @@
  *   - columnKey should have the same set of values as K
  */
 
-type ObjectKey = React.ReactText;
+export type ObjectKey = React.ReactText;
 
 export type GridColumn<K = ObjectKey> = {
   key: K;
@@ -13,6 +13,7 @@ export type GridColumn<K = ObjectKey> = {
 
 export type GridColumnHeader<K = ObjectKey> = GridColumn<K> & {
   name: string;
+  isDragging: boolean;
   isPrimary?: boolean;
 };
 

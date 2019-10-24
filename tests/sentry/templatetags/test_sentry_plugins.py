@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from django.template import Context, Template
 from mock import Mock
 
-from sentry.plugins import Plugin2
+from sentry.plugins.base.v2 import Plugin2
 from sentry.testutils import PluginTestCase
 
 

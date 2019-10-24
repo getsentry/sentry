@@ -1,5 +1,13 @@
 FROM python:2.7.16-slim-buster as sdist
 
+LABEL maintainer="oss@sentry.io"
+LABEL org.opencontainers.image.title="Sentry PyPI Wheel"
+LABEL org.opencontainers.image.description="PyPI Wheel Builder for Sentry"
+LABEL org.opencontainers.image.url="https://sentry.io/"
+LABEL org.opencontainers.image.source="https://github.com/getsentry/sentry"
+LABEL org.opencontainers.image.vendor="Functional Software, Inc."
+LABEL org.opencontainers.image.authors="oss@sentry.io"
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     # Needed for GPG
     dirmngr \
@@ -60,8 +68,11 @@ RUN cd /usr/src/sentry \
     && tar -xzf "node-v$NODE_VERSION-linux-x64.tar.gz" -C /usr/local --strip-components=1 \
     && rm -r "node-v$NODE_VERSION-linux-x64.tar.gz" SHASUMS256.txt.asc
 
-ARG SOURCE_COMMIT="unknown"
-ENV SENTRY_BUILD=$SOURCE_COMMIT
+ARG SOURCE_COMMIT
+ENV SENTRY_BUILD=${SOURCE_COMMIT:-unknown}
+LABEL org.opencontainers.image.revision=$SOURCE_COMMIT
+LABEL org.opencontainers.image.licenses="https://github.com/getsentry/sentry/blob/${SOURCE_COMMIT:-master}/LICENSE"
+
 COPY . /usr/src/sentry/
 RUN export YARN_CACHE_FOLDER="$(mktemp -d)" \
     && cd /usr/src/sentry \
@@ -71,6 +82,16 @@ RUN export YARN_CACHE_FOLDER="$(mktemp -d)" \
 
 # This is the image to be run
 FROM python:2.7.16-slim-buster
+
+LABEL maintainer="oss@sentry.io"
+LABEL org.opencontainers.image.title="Sentry"
+LABEL org.opencontainers.image.description="Sentry runtime image"
+LABEL org.opencontainers.image.url="https://sentry.io/"
+LABEL org.opencontainers.image.documentation="https://github.com/getsentry/onpremise/tree/v10"
+LABEL org.opencontainers.image.source="https://github.com/getsentry/sentry"
+LABEL org.opencontainers.image.vendor="Functional Software, Inc."
+LABEL org.opencontainers.image.authors="oss@sentry.io"
+
 
 # add our user and group first to make sure their IDs get assigned consistently
 RUN groupadd -r sentry && useradd -r -m -g sentry sentry
@@ -148,3 +169,8 @@ VOLUME /var/lib/sentry/files
 
 ENTRYPOINT exec $SENTRY_CONF/docker-entrypoint.sh $0 $@
 CMD ["run", "web"]
+
+ARG SOURCE_COMMIT
+ENV SENTRY_BUILD=${SOURCE_COMMIT:-unknown}
+LABEL org.opencontainers.image.revision=$SOURCE_COMMIT
+LABEL org.opencontainers.image.licenses="https://github.com/getsentry/sentry/blob/${SOURCE_COMMIT:-master}/LICENSE"

@@ -1,32 +1,12 @@
 steps:
-# Prime the cache if available
-- name: 'gcr.io/cloud-builders/docker'
-  entrypoint: 'bash'
-  args:
-    - '-c'
-    - 'docker pull us.gcr.io/$PROJECT_ID/sentry:latest || true'
-# Build the main getsentry/sentry image
-- name: 'gcr.io/cloud-builders/docker'
+- name: 'gcr.io/kaniko-project/executor:latest'
   args: [
-    'build',
+    '--cache=true',
     '--build-arg', 'SOURCE_COMMIT=$COMMIT_SHA',
-    '--cache-from', 'us.gcr.io/$PROJECT_ID/sentry:latest',
-    '-t', 'us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA',
-    '-t', 'us.gcr.io/$PROJECT_ID/sentry:$SHORT_SHA',
-    '-t', 'us.gcr.io/$PROJECT_ID/sentry:latest',
-    '-f', './docker/Dockerfile', '.'
+    '--destination=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA',
+    '-f', './docker/Dockerfile'
   ]
   timeout: 900s
-# Derive the -onbuild variant
-- name: 'gcr.io/cloud-builders/docker'
-  args: [
-    'build',
-    '--build-arg', 'SENTRY_IMAGE=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA',
-    '-t', 'us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA-onbuild',
-    '-t', 'us.gcr.io/$PROJECT_ID/sentry:$SHORT_SHA-onbuild',
-    '-t', 'us.gcr.io/$PROJECT_ID/sentry:latest-onbuild',
-    '-f', './docker/onbuild/Dockerfile', '.'
-  ]
 # Smoke tests
 - name: 'gcr.io/$PROJECT_ID/docker-compose'
   entrypoint: 'bash'
@@ -43,31 +23,43 @@ steps:
     # TODO(byk): We may also build this part as a builder image everytime
     #            there's a push to onpremise and use that image for
     curl -L "https://github.com/getsentry/onpremise/archive/v10.tar.gz" | tar xzf - --strip-components=1
-    ./install.sh
-    docker-compose run --rm web createuser --superuser --email test@example.com --password test123TEST
     # The following trick is from https://stackoverflow.com/a/52400857/90297 with great gratuity
     echo '{"version": "3.4", "networks":{"default":{"external":{"name":"cloudbuild"}}}}' > docker-compose.override.yml
+    ./install.sh
+    docker-compose run --rm web createuser --superuser --email test@example.com --password test123TEST
     docker-compose up -d
     timeout 20 bash -c 'until $(curl -Isf -o /dev/null http://web:9000); do printf "."; sleep 0.5; done' || docker-compose logs web
     ./test.sh
   timeout: 1200s
-# Only tag "latest" when on master
 - name: 'gcr.io/cloud-builders/docker'
+  secretEnv: ['DOCKER_PASSWORD']
   entrypoint: 'bash'
   args:
   - '-e'
   - '-c'
   - |
+    # Need to pull the image first due to Kaniko
+    docker pull us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA
+    echo "$$DOCKER_PASSWORD" | docker login --username=sentrybuilder --password-stdin
+    docker tag us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA getsentry/sentry:$SHORT_SHA
+    docker push getsentry/sentry:$SHORT_SHA
+    docker tag us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA getsentry/sentry:$COMMIT_SHA
+    docker push getsentry/sentry:$COMMIT_SHA
+    # Only tag "latest" when on master
     if [ "$BRANCH_NAME" == "master" ]; then
-      docker push us.gcr.io/$PROJECT_ID/sentry:latest
-      docker push us.gcr.io/$PROJECT_ID/sentry:latest-onbuild
+      docker tag us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA getsentry/sentry:latest
+      docker push getsentry/sentry:latest
     fi
-images:
-- 'us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA'
-- 'us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA-onbuild'
-- 'us.gcr.io/$PROJECT_ID/sentry:$SHORT_SHA'
-- 'us.gcr.io/$PROJECT_ID/sentry:$SHORT_SHA-onbuild'
 timeout: 2400s
 options:
   # We need more memory for Webpack builds & e2e onpremise tests
   machineType: 'N1_HIGHCPU_8'
+secrets:
+- kmsKeyName: projects/sentryio/locations/global/keyRings/service-credentials/cryptoKeys/cloudbuild
+  secretEnv:
+    # This is a personal access token for the sentrybuilder account, encrypted using the
+    # short guide at http://bit.ly/2Pg6uw9
+    DOCKER_PASSWORD: |
+      CiQAE8gN7y3OMxn+a1kofmK4Bi8jQZtdRFj2lYYwaZHVeIIBUzMSTQA9tvn8XCv2vqj6u8CHoeSP
+      TVW9pLvSCorKoeNtOp0eb+6V1yNJW/+JC07DNO1KLbTbodbuza6jKJHU5xeAJ4kGQI78UY5Vu1Gp
+      QcMK

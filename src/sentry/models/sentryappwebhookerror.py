@@ -26,9 +26,10 @@ class SentryAppWebhookError(Model):
     # We need to store this rather than just fetch it from the related sentry app in case the URL is changed
     webhook_url = models.URLField()
 
+    # This is the body of the error response OR a description of the error (if it wasn't a HTTP response error)
     response_body = models.TextField()
 
-    response_code = models.PositiveSmallIntegerField()
+    response_code = models.PositiveSmallIntegerField(null=True)
 
     class Meta:
         app_label = "sentry"

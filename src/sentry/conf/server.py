@@ -324,15 +324,15 @@ INSTALLED_APPS = (
     "sentry.lang.java.apps.Config",
     "sentry.lang.javascript.apps.Config",
     "sentry.lang.native.apps.Config",
-    "sentry.plugins.sentry_interface_types",
-    "sentry.plugins.sentry_mail",
-    "sentry.plugins.sentry_urls",
-    "sentry.plugins.sentry_useragents",
-    "sentry.plugins.sentry_webhooks",
+    "sentry.plugins.sentry_interface_types.apps.Config",
+    "sentry.plugins.sentry_mail.apps.Config",
+    "sentry.plugins.sentry_urls.apps.Config",
+    "sentry.plugins.sentry_useragents.apps.Config",
+    "sentry.plugins.sentry_webhooks.apps.Config",
     "social_auth",
     "sudo",
     "sentry.eventstream",
-    "sentry.auth.providers.google",
+    "sentry.auth.providers.google.apps.Config",
     "django.contrib.staticfiles",
 )
 
@@ -843,7 +843,7 @@ SENTRY_FEATURES = {
     # Enable interface functionality to synchronize groups between sentry and
     # issues on external services.
     "organizations:integrations-issue-sync": True,
-    # Enable interface functionality to recieve event hooks.
+    # Enable interface functionality to receive event hooks.
     "organizations:integrations-event-hooks": False,
     # Special feature flag primarily used on the sentry.io SAAS product for
     # easily enabling features while in early development.

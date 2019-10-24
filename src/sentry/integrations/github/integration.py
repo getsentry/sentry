@@ -139,7 +139,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         client = self.get_client()
         try:
             # make sure installation has access to this specific repo
-            # use hooks endpoint since we explicity ask for those permissions
+            # use hooks endpoint since we explicitly ask for those permissions
             # when installing the app (commits can be accessed for public repos)
             # https://developer.github.com/v3/repos/hooks/#list-hooks
             client.repo_hooks(repo.config["name"])
@@ -218,7 +218,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
         return integration
 
     def setup(self):
-        from sentry.plugins import bindings
+        from sentry.plugins.base import bindings
 
         bindings.add(
             "integration-repository.provider", GitHubRepositoryProvider, id="integrations:github"

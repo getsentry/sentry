@@ -8,10 +8,11 @@ import {t} from 'app/locale';
 import FormState from 'app/components/forms/state';
 
 type Snapshot = Map<string, FieldValue>;
-type FieldValue = string | number | boolean | undefined; //is undefined valid here?
 type SaveSnapshot = (() => number) | null;
 
-type FormOptions = {
+export type FieldValue = string | number | boolean | undefined; //is undefined valid here?
+
+export type FormOptions = {
   apiEndpoint?: string;
   apiMethod?: APIRequestMethod;
   allowUndo?: boolean;
@@ -135,7 +136,7 @@ class FormModel {
    *
    * Also resets snapshots
    */
-  setInitialData(initialData: Object) {
+  setInitialData(initialData?: object) {
     this.fields.replace(initialData || {});
     this.initialData = this.fields.toJSON() || {};
 
@@ -448,7 +449,7 @@ class FormModel {
         const newValue = this.getValue(id);
         const change = {old: oldValue, new: newValue};
 
-        // Only use `allowUndo` option if explicity defined
+        // Only use `allowUndo` option if explicitly defined
         if (typeof this.options.allowUndo === 'undefined' || this.options.allowUndo) {
           saveOnBlurUndoMessage(change, this, id);
         }
