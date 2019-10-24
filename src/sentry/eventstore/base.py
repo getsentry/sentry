@@ -72,8 +72,6 @@ class Columns(Enum):
     CONTEXTS_KEY = Column("contexts.key", "contexts.key", "contexts.key")
     CONTEXTS_VALUE = Column("contexts.value", "contexts.value", "contexts.value")
     # Transactions specific columns
-    TRANSACTION_TRACE_ID = Column(None, "trace_id", "trace_id")
-    TRANSACTION_SPAN_ID = Column(None, "span_id", "span_id")
     TRANSACTION_OP = Column(None, "transaction_op", "transaction.op")
     TRANSACTION_DURATION = Column(None, "duration", "transaction.duration")
 
