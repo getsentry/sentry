@@ -51,14 +51,16 @@ class RelayProjectConfigsEndpoint(Endpoint):
             if project is None:
                 continue
 
-            project.organization = orgs.get(project.organization_id)
-            if project.organization is None:
+            organization = orgs.get(project.organization_id)
+            if organization is None:
                 continue
 
-            org_opts = org_options.get(project.organization.id) or {}
+            project.organization = organization
+            org_opts = org_options.get(organization.id) or {}
+
             project_config = config.get_project_config(
                 project, org_options=org_opts, full_config=full_config_requested
             )
-            config[six.text_type(project_id)] = project_config.to_camel_case_dict()
+            configs[six.text_type(project_id)] = project_config.to_camel_case_dict()
 
         return Response({"configs": configs}, status=200)
