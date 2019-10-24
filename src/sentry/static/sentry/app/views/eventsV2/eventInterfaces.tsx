@@ -61,9 +61,8 @@ const ActiveTab = (props: ActiveTabProps) => {
 
     return (
       <EventDataSection
-        event={event}
-        type={entry && entry.type}
-        title={entry && entry.type}
+        type={entry && entry.type ? entry.type : ''}
+        title={entry && entry.type ? entry.type : ''}
       >
         <p>{t('There was an error rendering this data.')}</p>
       </EventDataSection>

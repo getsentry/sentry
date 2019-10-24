@@ -3,7 +3,26 @@ import React from 'react';
 import {t} from 'app/locale';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 
-class EventDataSection extends React.Component {
+const defaultProps = {
+  wrapTitle: true,
+  raw: false,
+  hideGuide: false,
+  toggleRaw: (_enable: boolean) => void 0,
+};
+
+type DefaultProps = Readonly<typeof defaultProps>;
+
+type Props = {
+  className?: string;
+  title: React.ReactText;
+  type: string;
+  wrapTitle: boolean;
+  toggleRaw: Function;
+  raw: boolean;
+  hideGuide: boolean;
+} & Partial<DefaultProps>;
+
+class EventDataSection extends React.Component<Props> {
   static propTypes = {
     title: PropTypes.any,
     type: PropTypes.string.isRequired,
@@ -13,11 +32,7 @@ class EventDataSection extends React.Component {
     hideGuide: PropTypes.bool,
   };
 
-  static defaultProps = {
-    wrapTitle: true,
-    raw: false,
-    hideGuide: false,
-  };
+  static defaultProps = defaultProps;
 
   componentDidMount() {
     if (location.hash) {
