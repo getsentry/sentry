@@ -4,7 +4,6 @@ __all__ = ["FeatureManager"]
 
 from django.conf import settings
 
-from sentry.plugins import plugins
 from sentry.utils.safe import safe_execute
 
 from .base import Feature
@@ -83,6 +82,8 @@ class FeatureManager(object):
         return False
 
     def _get_plugin_value(self, feature, actor):
+        from sentry.plugins.base import plugins
+
         for plugin in plugins.all(version=2):
             handlers = safe_execute(plugin.get_feature_hooks, _with_transaction=False)
             for handler in handlers or ():

@@ -9,13 +9,22 @@ const getUtcValue = utc => {
   return utc;
 };
 
+interface Params {
+  start?: string;
+  end?: string;
+  period?: string;
+  statsPeriod?: string;
+  utc?: string;
+  [others: string]: string | string[] | undefined | null;
+}
+
 // Filters out params with null values and returns a default
 // `statsPeriod` when necessary.
 //
 // Accepts `period` and `statsPeriod` but will only return `statsPeriod`
 //
 // TODO(billy): Make period parameter name consistent
-export function getParams(params = {}) {
+export function getParams(params: Params): {[key: string]: string | string[]} {
   const {start, end, period, statsPeriod, utc, ...otherParams} = params;
 
   // `statsPeriod` takes precendence for now

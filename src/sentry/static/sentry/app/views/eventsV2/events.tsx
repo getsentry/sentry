@@ -2,6 +2,7 @@ import React from 'react';
 import styled from 'react-emotion';
 import * as ReactRouter from 'react-router';
 import {Location} from 'history';
+import {omit} from 'lodash';
 
 import {Organization} from 'app/types';
 import space from 'app/styles/space';
@@ -31,12 +32,18 @@ type EventsProps = {
 export default class Events extends React.Component<EventsProps> {
   handleSearch = query => {
     const {router, location} = this.props;
+
+    const queryParams = getParams({
+      ...(location.query || {}),
+      query,
+    });
+
+    // do not propagate pagination when making a new search
+    const searchQueryParams = omit(queryParams, 'cursor');
+
     router.push({
       pathname: location.pathname,
-      query: getParams({
-        ...(location.query || {}),
-        query,
-      }),
+      query: searchQueryParams,
     });
   };
 
