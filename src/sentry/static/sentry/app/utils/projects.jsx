@@ -171,11 +171,6 @@ class Projects extends React.Component {
         initiallyLoaded: true,
         hasMore,
       });
-
-      // populate the projects store if all projects were fetched
-      if (allProjects) {
-        ProjectActions.loadProjects(results);
-      }
     } catch (err) {
       console.error(err); // eslint-disable-line no-console
 
@@ -298,6 +293,11 @@ async function fetchProjects(api, orgId, {slugs, search, limit, allProjects} = {
     hasMore =
       paginationObject &&
       (paginationObject.next.results || paginationObject.previous.results);
+  }
+
+  // populate the projects store if all projects were fetched
+  if (allProjects) {
+    ProjectActions.loadProjects(results);
   }
 
   return {
