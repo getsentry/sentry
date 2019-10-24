@@ -880,7 +880,6 @@ exports[`SharedGroupDetails renders 1`] = `
                                   hideGuide={false}
                                   raw={false}
                                   title="Message"
-                                  toggleRaw={[Function]}
                                   type="message"
                                   wrapTitle={true}
                                 >

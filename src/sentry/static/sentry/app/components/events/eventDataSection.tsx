@@ -1,13 +1,13 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {t} from 'app/locale';
+import {callIfFunction} from 'app/utils/callIfFunction';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 
 const defaultProps = {
   wrapTitle: true,
   raw: false,
   hideGuide: false,
-  toggleRaw: (_enable: boolean) => void 0,
 };
 
 type DefaultProps = Readonly<typeof defaultProps>;
@@ -16,10 +16,7 @@ type Props = {
   className?: string;
   title: React.ReactText;
   type: string;
-  wrapTitle: boolean;
-  toggleRaw: Function;
-  raw: boolean;
-  hideGuide: boolean;
+  toggleRaw?: (enable: boolean) => void;
 } & Partial<DefaultProps>;
 
 class EventDataSection extends React.Component<Props> {
@@ -87,13 +84,13 @@ class EventDataSection extends React.Component<Props> {
               <div className="btn-group pull-right">
                 <a
                   className={(!raw ? 'active' : '') + ' btn btn-default btn-sm'}
-                  onClick={() => toggleRaw(false)}
+                  onClick={() => callIfFunction(toggleRaw, false)}
                 >
                   {t('Formatted')}
                 </a>
                 <a
                   className={(raw ? 'active' : '') + ' btn btn-default btn-sm'}
-                  onClick={() => toggleRaw(true)}
+                  onClick={() => callIfFunction(toggleRaw, true)}
                 >
                   {t('Raw')}
                 </a>
