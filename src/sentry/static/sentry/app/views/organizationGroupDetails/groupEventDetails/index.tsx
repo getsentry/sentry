@@ -1,5 +1,4 @@
 import React from 'react';
-import _ from 'lodash';
 
 import {fetchOrganizationEnvironments} from 'app/actionCreators/environments';
 import {t} from 'app/locale';
