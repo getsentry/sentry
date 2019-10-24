@@ -191,9 +191,9 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
                 url, format="json", data={"field": ["message", "count()"], "statsPeriod": "7d"}
             )
         assert response.data["eventID"] == "b" * 32
-        assert response.data["nextEventID"] == "c" * 32, "c is newer & matches message"
-        assert response.data["previousEventID"] == "2" * 32, "d is older & matches message"
-        assert response.data["oldestEventID"] == "3" * 32, "3 is oldest matching message"
+        assert response.data["nextEventID"] == "c" * 32, "c is newer & matches message + range"
+        assert response.data["previousEventID"] == "2" * 32, "d is older & matches message + range"
+        assert response.data["oldestEventID"] == "2" * 32, "3 is outside range, no match"
         assert response.data["latestEventID"] == "c" * 32, "c is newest matching message"
 
     def test_event_links_with_tag_fields(self):

@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from datetime import datetime
 import six
 from copy import deepcopy
 
@@ -95,7 +94,6 @@ class SnubaEventStorage(EventStorage):
         filter.conditions = filter.conditions or []
         filter.conditions.extend(get_before_event_condition(event))
         filter.end = event.datetime
-        filter.start = datetime.utcfromtimestamp(0)
 
         return self.__get_event_id_from_filter(filter=filter, orderby=orderby)
 
@@ -106,7 +104,6 @@ class SnubaEventStorage(EventStorage):
         filter.conditions = filter.conditions or []
         filter.conditions.extend(get_after_event_condition(event))
         filter.start = event.datetime
-        filter.end = datetime.utcnow()
 
         return self.__get_event_id_from_filter(filter=filter, orderby=orderby)
 
@@ -124,7 +121,6 @@ class SnubaEventStorage(EventStorage):
         filter.conditions = filter.conditions or []
         filter.conditions.extend(get_after_event_condition(event))
         filter.start = event.datetime
-        filter.end = datetime.utcnow()
 
         return self.__get_event_id_from_filter(filter=filter, orderby=["timestamp", "event_id"])
 
@@ -142,7 +138,6 @@ class SnubaEventStorage(EventStorage):
         filter.conditions = filter.conditions or []
         filter.conditions.extend(get_before_event_condition(event))
         filter.end = event.datetime
-        filter.start = datetime.utcfromtimestamp(0)
 
         return self.__get_event_id_from_filter(filter=filter, orderby=["-timestamp", "-event_id"])
 
