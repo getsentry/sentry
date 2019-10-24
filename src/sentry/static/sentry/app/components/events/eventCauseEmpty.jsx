@@ -58,7 +58,7 @@ class EventCauseEmpty extends React.Component {
         eventKey: 'event_cause.viewed',
         org_id: parseInt(organization.id, 10),
         project_id: parseInt(project.id, 10),
-        platform: project.platform,
+        platform: project.platform ? project.platform : '',
       });
     }
   }
@@ -108,7 +108,7 @@ class EventCauseEmpty extends React.Component {
       eventName,
       organization_id: parseInt(organization.id, 10),
       project_id: parseInt(project.id, 10),
-      platform: project.platform,
+      platform: project.platform ? project.platform : '',
     });
   }
 
