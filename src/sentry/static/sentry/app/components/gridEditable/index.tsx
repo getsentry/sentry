@@ -9,7 +9,13 @@ import InlineSvg from 'app/components/inlineSvg';
 import LoadingContainer from 'app/components/loading/loadingContainer';
 import ToolTip from 'app/components/tooltip';
 
-import {GridColumn, GridColumnHeader, GridColumnOrder, GridColumnSortBy} from './types';
+import {
+  GridColumn,
+  GridColumnHeader,
+  GridColumnOrder,
+  GridColumnSortBy,
+  ObjectKey,
+} from './types';
 import GridHeadCell from './gridHeadCell';
 import GridModalEditColumn from './gridModalEditColumn';
 import {
@@ -26,9 +32,12 @@ import {
   GridEditGroupButton,
 } from './styles';
 
-type GridEditableProps<DataRow, ColumnKey extends keyof DataRow> = {
+type GridEditableProps<DataRow, ColumnKey> = {
+  gridHeadCellButtonProps?: {[prop: string]: any};
+
   isEditable?: boolean;
   isLoading?: boolean;
+  isColumnDragging: boolean;
   error?: React.ReactNode | null;
 
   /**
@@ -80,7 +89,11 @@ type GridEditableProps<DataRow, ColumnKey extends keyof DataRow> = {
    * have to provide functions to move/delete the columns
    */
   actions: {
-    moveColumn: (indexFrom: number, indexTo: number) => void;
+    moveColumnCommit: (indexFrom: number, indexTo: number) => void;
+    onDragStart: (
+      event: React.MouseEvent<SVGSVGElement, MouseEvent>,
+      indexFrom: number
+    ) => void;
     deleteColumn: (index: number) => void;
   };
 };
@@ -91,8 +104,8 @@ type GridEditableState = {
 };
 
 class GridEditable<
-  DataRow extends Object,
-  ColumnKey extends keyof DataRow
+  DataRow extends {[key: string]: any},
+  ColumnKey extends ObjectKey
 > extends React.Component<GridEditableProps<DataRow, ColumnKey>, GridEditableState> {
   static defaultProps = {
     isEditable: false,
@@ -224,12 +237,15 @@ class GridEditable<
           {columnOrder.map((column, columnIndex) => (
             <GridHeadCell
               key={`${columnIndex}.${column.key}`}
+              isColumnDragging={this.props.isColumnDragging}
               isPrimary={column.isPrimary}
               isEditing={enableEdit}
               indexColumnOrder={columnIndex}
               column={column}
+              gridHeadCellButtonProps={this.props.gridHeadCellButtonProps || {}}
               actions={{
-                moveColumn: actions.moveColumn,
+                moveColumnCommit: actions.moveColumnCommit,
+                onDragStart: actions.onDragStart,
                 deleteColumn: actions.deleteColumn,
                 toggleModalEditColumn: this.toggleModalEditColumn,
               }}

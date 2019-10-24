@@ -546,6 +546,9 @@ class DetectDatasetTest(TestCase):
         query = {"conditions": [["event.type", "=", "error"]]}
         assert detect_dataset(query) == Dataset.Events
 
+        query = {"conditions": [["type", "!=", "transactions"]]}
+        assert detect_dataset(query) == Dataset.Events
+
     def test_conditions(self):
         query = {"conditions": [["transaction", "=", "api.do_thing"]]}
         assert detect_dataset(query) == Dataset.Events
@@ -582,7 +585,7 @@ class DetectDatasetTest(TestCase):
         query = {"aggregations": [["quantileTiming(0.95)", "transaction.duration", "p95_duration"]]}
         assert detect_dataset(query) == Dataset.Transactions
 
-        query = {"aggregations": [["uniq", "trace_id", "uniq_trace_id"]]}
+        query = {"aggregations": [["uniq", "transaction.op", "uniq_transaction_op"]]}
         assert detect_dataset(query) == Dataset.Transactions
 
 

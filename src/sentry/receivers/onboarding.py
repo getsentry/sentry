@@ -12,7 +12,9 @@ from sentry.models import (
     OrganizationOption,
     Organization,
 )
-from sentry.plugins import IssueTrackingPlugin, IssueTrackingPlugin2, NotificationPlugin
+from sentry.plugins.bases import IssueTrackingPlugin
+from sentry.plugins.bases import IssueTrackingPlugin2
+from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.signals import (
     event_processed,
     first_event_pending,

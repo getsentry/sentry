@@ -11,6 +11,7 @@
 /src/sentry/tsdb/redissnuba.py  @getsentry/owners-snuba
 /src/sentry/search/snuba/       @getsentry/owners-snuba
 /src/sentry/tagstore/snuba/     @getsentry/owners-snuba
+/src/sentry/interfaces/security.py @getsentry/owners-ingest
 
 # Security
 /src/sentry/net/  @getsentry/security

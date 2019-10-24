@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gnupg \
     # Needed for fetching stuff
     wget \
+    libarchive-tools \
     && rm -rf /var/lib/apt/lists/*
 
 # Fetch trusted keys
@@ -77,6 +78,9 @@ COPY . /usr/src/sentry/
 RUN export YARN_CACHE_FOLDER="$(mktemp -d)" \
     && cd /usr/src/sentry \
     && python setup.py bdist_wheel \
+    && wget -qO- https://github.com/getsentry/sentry-plugins/archive/master.zip | bsdtar -xvf- \
+    && cd sentry-plugins-master \
+    && PYTHONPATH=/usr/src/sentry/src python setup.py bdist_wheel -d ../dist \
     && rm -r "$YARN_CACHE_FOLDER" \
     && mv /usr/src/sentry/dist /dist
 

@@ -12,7 +12,7 @@ import zlib
 from django.conf import settings
 from os.path import splitext
 from requests.utils import get_encoding_from_headers
-from six.moves.urllib.parse import urljoin, urlsplit
+from six.moves.urllib.parse import urlsplit
 from symbolic import SourceMapView
 
 # In case SSL is unavailable (light builds) we can't import this here.
@@ -33,6 +33,7 @@ from sentry.utils.hashlib import md5_text
 from sentry.utils.http import is_valid_origin
 from sentry.utils.safe import get_path
 from sentry.utils import metrics
+from sentry.utils.urls import non_standard_url_join
 from sentry.stacktraces.processing import StacktraceProcessor
 
 from .cache import SourceCache, SourceMapCache
@@ -195,7 +196,7 @@ def discover_sourcemap(result):
                 )
             sourcemap = sourcemap[:index]
         # fix url so its absolute
-        sourcemap = urljoin(result.url, sourcemap)
+        sourcemap = non_standard_url_join(result.url, sourcemap)
 
     return sourcemap
 
@@ -603,7 +604,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             sourcemap_applied = True
 
             if token is not None:
-                abs_path = urljoin(sourcemap_url, token.src)
+                abs_path = non_standard_url_join(sourcemap_url, token.src)
 
                 logger.debug(
                     "Mapping compressed source %r to mapping in %r", frame["abs_path"], abs_path
@@ -798,7 +799,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         for src_id, source_name in sourcemap_view.iter_sources():
             source_view = sourcemap_view.get_sourceview(src_id)
             if source_view is not None:
-                self.cache.add(urljoin(sourcemap_url, source_name), source_view)
+                self.cache.add(non_standard_url_join(sourcemap_url, source_name), source_view)
 
     def populate_source_cache(self, frames):
         """
