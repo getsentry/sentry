@@ -1,5 +1,6 @@
 import React, {ReactText} from 'react';
 import styled from 'react-emotion';
+import {uniq} from 'lodash';
 
 import {t} from 'app/locale';
 import {Form, SelectField, TextField} from 'app/components/forms';
@@ -231,7 +232,7 @@ function filterFieldByAggregation(
 ): Field[] {
   let fieldList = Object.keys(FIELDS);
   if (tagKeys && tagKeys.length) {
-    fieldList = fieldList.concat(tagKeys);
+    fieldList = uniq(fieldList.concat(tagKeys));
   }
   if (!organization.features.includes('transaction-events')) {
     fieldList = fieldList.filter(item => !TRACING_FIELDS.includes(item));
