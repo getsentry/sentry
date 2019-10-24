@@ -7,8 +7,8 @@ from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.bases import OrganizationEndpoint
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.models import Project, ProjectStatus
 from sentry.utils import snuba
 from sentry import features
 
@@ -100,18 +100,11 @@ class DiscoverQueryEndpoint(OrganizationEndpoint):
         if not features.has("organizations:discover", organization, actor=request.user):
             return Response(status=404)
 
-        requested_projects = request.data["projects"]
-
-        projects = list(
-            Project.objects.filter(
-                id__in=requested_projects, organization=organization, status=ProjectStatus.VISIBLE
-            )
-        )
-
-        has_invalid_projects = len(projects) < len(requested_projects)
-
-        if has_invalid_projects or not request.access.has_projects_access(projects):
-            return Response("Invalid projects", status=403)
+        try:
+            requested_projects = set(map(int, request.data["projects"]))
+        except ValueError:
+            raise ResourceDoesNotExist()
+        projects = self._get_projects_by_id(requested_projects, request, organization)
 
         serializer = DiscoverQuerySerializer(data=request.data)
 
@@ -152,7 +145,7 @@ class DiscoverQueryEndpoint(OrganizationEndpoint):
             limit=serialized.get("limit"),
             aggregations=serialized.get("aggregations"),
             rollup=serialized.get("rollup"),
-            filter_keys={"project.id": serialized.get("projects")},
+            filter_keys={"project.id": projects_map.keys()},
             arrayjoin=serialized.get("arrayjoin"),
             request=request,
             turbo=serialized.get("turbo"),
