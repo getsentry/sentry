@@ -124,8 +124,6 @@ TRANSACTIONS_SENTRY_SNUBA_MAP = {
     # general
     "id": "event_id",
     "project.id": "project_id",
-    "trace_id": "trace_id",
-    "span_id": "span_id",
     "title": "transaction_name",
     "message": "transaction_name",
     "transaction": "transaction_name",
