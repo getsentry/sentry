@@ -9,7 +9,7 @@ import Pagination from 'app/components/pagination';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import {ALL_ACCESS_PROJECTS} from 'app/components/organizations/multipleProjectSelector';
+import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import NoProjectMessage from 'app/components/noProjectMessage';
 import AsyncView from 'app/views/asyncView';
 import withOrganization from 'app/utils/withOrganization';
