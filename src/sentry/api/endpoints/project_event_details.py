@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from copy import deepcopy
 from datetime import datetime
 from rest_framework.response import Response
 
@@ -64,9 +65,14 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
                 conditions=conditions, project_ids=[event.project_id], group_ids=[event.group_id]
             )
 
-            next_event = eventstore.get_next_event_id(event, filter=filter)
+            # Ignore any time params and search entire retention period
+            next_event_filter = deepcopy(filter)
+            next_event_filter.end = datetime.utcnow()
+            next_event = eventstore.get_next_event_id(event, filter=next_event_filter)
 
-            prev_event = eventstore.get_prev_event_id(event, filter=filter)
+            prev_event_filter = deepcopy(filter)
+            prev_event_filter.start = datetime.utcfromtimestamp(0)
+            prev_event = eventstore.get_prev_event_id(event, filter=prev_event_filter)
 
             next_event_id = next_event[1] if next_event else None
             prev_event_id = prev_event[1] if prev_event else None
