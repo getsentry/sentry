@@ -170,6 +170,7 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
 
         mock_fetch_file.return_value.body = "\n".join("hello world")
         mock_fetch_file.return_value.encoding = None
+        mock_fetch_file.return_value.headers = {}
 
         resp = self._postWithHeader(data)
         assert resp.status_code, 200
