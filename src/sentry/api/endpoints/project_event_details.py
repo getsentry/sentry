@@ -55,7 +55,7 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
 
         if event.group_id:
             requested_environments = set(request.GET.getlist("environment"))
-            conditions = []
+            conditions = [["type", "!=", "transaction"]]
 
             if requested_environments:
                 conditions.append(["environment", "IN", requested_environments])
