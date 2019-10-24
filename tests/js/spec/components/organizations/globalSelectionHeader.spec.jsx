@@ -708,7 +708,7 @@ describe('GlobalSelectionHeader', function() {
       ]);
     });
 
-    it('shows "My Projects" option', function() {
+    it('shows "My Projects" button', function() {
       initialData.organization.features.push('global-views');
       wrapper = mountWithTheme(
         <GlobalSelectionHeader
@@ -722,17 +722,18 @@ describe('GlobalSelectionHeader', function() {
       wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
       const projectSelector = wrapper.find('MultipleProjectSelector');
 
-      // Two projects + one meta option.
-      expect(projectSelector.find('AutoCompleteItem')).toHaveLength(3);
+      // Two projects
+      expect(projectSelector.find('AutoCompleteItem')).toHaveLength(2);
+      // My projects in the footer
       expect(
         projectSelector
-          .find('AutoCompleteItem')
+          .find('SelectorFooterControls Button')
           .first()
           .text()
-      ).toEqual('My Projects');
+      ).toEqual('View My Projects');
     });
 
-    it('shows "All Projects" option based on features', function() {
+    it('shows "All Projects" button based on features', function() {
       initialData.organization.features.push('global-views');
       initialData.organization.features.push('open-membership');
       wrapper = mountWithTheme(
@@ -747,23 +748,18 @@ describe('GlobalSelectionHeader', function() {
       wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
       const projectSelector = wrapper.find('MultipleProjectSelector');
 
-      // Two projects + two meta options
-      expect(projectSelector.find('AutoCompleteItem')).toHaveLength(4);
+      // Two projects
+      expect(projectSelector.find('AutoCompleteItem')).toHaveLength(2);
+      // All projects in the footer
       expect(
         projectSelector
-          .find('AutoCompleteItem')
-          .at(0)
+          .find('SelectorFooterControls Button')
+          .first()
           .text()
-      ).toEqual('All Projects');
-      expect(
-        projectSelector
-          .find('AutoCompleteItem')
-          .at(1)
-          .text()
-      ).toEqual('My Projects');
+      ).toEqual('View All Projects');
     });
 
-    it('shows "All Projects" option based on role', function() {
+    it('shows "All Projects" button based on role', function() {
       initialData.organization.features.push('global-views');
       initialData.organization.role = 'owner';
       wrapper = mountWithTheme(
@@ -778,20 +774,41 @@ describe('GlobalSelectionHeader', function() {
       wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
       const projectSelector = wrapper.find('MultipleProjectSelector');
 
-      // Two projects + two meta options
-      expect(projectSelector.find('AutoCompleteItem')).toHaveLength(4);
+      // Two projects
+      expect(projectSelector.find('AutoCompleteItem')).toHaveLength(2);
+      // All projects in the footer
       expect(
         projectSelector
-          .find('AutoCompleteItem')
-          .at(0)
+          .find('SelectorFooterControls Button')
+          .first()
           .text()
-      ).toEqual('All Projects');
+      ).toEqual('View All Projects');
+    });
+
+    it('shows "My Projects" when "all projects" is selected', async function() {
+      initialData.organization.features.push('global-views');
+      initialData.organization.role = 'owner';
+
+      wrapper = mountWithTheme(
+        <GlobalSelectionHeader
+          organization={initialData.organization}
+          projects={initialData.organization.projects}
+        />,
+        changeQuery(initialData.routerContext, {project: -1})
+      );
+      await tick();
+
+      // open the project menu.
+      wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
+      const projectSelector = wrapper.find('MultipleProjectSelector');
+
+      // My projects in the footer
       expect(
         projectSelector
-          .find('AutoCompleteItem')
-          .at(1)
+          .find('SelectorFooterControls Button')
+          .first()
           .text()
-      ).toEqual('My Projects');
+      ).toEqual('View My Projects');
     });
   });
 });

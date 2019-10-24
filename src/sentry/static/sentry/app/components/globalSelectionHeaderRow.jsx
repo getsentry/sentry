@@ -9,7 +9,6 @@ class GlobalSelectionHeaderRow extends React.Component {
   static propTypes = {
     checked: PropTypes.bool.isRequired,
     multi: PropTypes.bool,
-    showCheckbox: PropTypes.bool,
     onCheckClick: PropTypes.func.isRequired,
     children: PropTypes.node.isRequired,
 
@@ -22,32 +21,21 @@ class GlobalSelectionHeaderRow extends React.Component {
   };
 
   static defaultProps = {
-    showCheckbox: true,
     renderCheckbox: ({checkbox}) => checkbox,
     multi: true,
   };
 
   render() {
-    const {
-      checked,
-      onCheckClick,
-      multi,
-      renderCheckbox,
-      showCheckbox,
-      children,
-      ...props
-    } = this.props;
+    const {checked, onCheckClick, multi, renderCheckbox, children, ...props} = this.props;
 
     const checkbox = <CheckboxFancy disabled={!multi} checked={checked} />;
 
     return (
       <Container isChecked={checked} {...props}>
         <Content multi={multi}>{children}</Content>
-        {showCheckbox && (
-          <CheckboxHitbox onClick={multi ? onCheckClick : null}>
-            {renderCheckbox({checkbox, checked})}
-          </CheckboxHitbox>
-        )}
+        <CheckboxHitbox onClick={multi ? onCheckClick : null}>
+          {renderCheckbox({checkbox, checked})}
+        </CheckboxHitbox>
       </Container>
     );
   }
