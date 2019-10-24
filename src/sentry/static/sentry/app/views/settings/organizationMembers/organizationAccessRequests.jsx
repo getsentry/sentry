@@ -1,6 +1,5 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {Flex, Box} from 'grid-emotion';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {t, tct} from 'app/locale';
@@ -33,7 +32,7 @@ class OrganizationAccessRequests extends React.Component {
     accessRequestBusy: {},
   };
 
-  approveOrDeny = async (isApproved, id) => {
+  handleAction = async ({id, isApproved, successMessage, errorMessage}) => {
     const {api, orgId, onUpdateRequestList} = this.props;
 
     this.setState(state => ({
@@ -46,15 +45,9 @@ class OrganizationAccessRequests extends React.Component {
         data: {isApproved},
       });
       onUpdateRequestList(id);
-      addSuccessMessage(
-        tct('Team request [action]', {action: isApproved ? 'approved' : 'denied'})
-      );
+      addSuccessMessage(successMessage);
     } catch (err) {
-      addErrorMessage(
-        tct('Error [action] team request', {
-          action: isApproved ? 'approving' : 'denying',
-        })
-      );
+      addErrorMessage(errorMessage);
       throw err;
     }
 
@@ -65,12 +58,22 @@ class OrganizationAccessRequests extends React.Component {
 
   handleApprove = (id, e) => {
     e.stopPropagation();
-    this.approveOrDeny(true, id);
+    this.handleAction({
+      id,
+      isApproved: true,
+      successMessage: t('Team request approved'),
+      errorMessage: t('Error approving team request'),
+    });
   };
 
   handleDeny = (id, e) => {
     e.stopPropagation();
-    this.approveOrDeny(false, id);
+    this.handleAction({
+      id,
+      isApproved: false,
+      successMessage: t('Team request denied'),
+      errorMessage: t('Error denying team request'),
+    });
   };
 
   render() {
@@ -83,13 +86,7 @@ class OrganizationAccessRequests extends React.Component {
 
     return (
       <Panel>
-        <PanelHeader disablePadding>
-          <Flex>
-            <Box px={2} flex="1">
-              {t('Pending Team Requests')}
-            </Box>
-          </Flex>
-        </PanelHeader>
+        <PanelHeader>{t('Pending Team Requests')}</PanelHeader>
 
         <PanelBody>
           {requestList.map(({id, member, team}) => {
@@ -97,14 +94,14 @@ class OrganizationAccessRequests extends React.Component {
               member.user &&
               (member.user.name || member.user.email || member.user.username);
             return (
-              <PanelItem p={0} key={id} align="center">
-                <Box p={2} flex="1" data-test-id="request-message">
+              <StyledPanelItem key={id}>
+                <div data-test-id="request-message">
                   {tct('[name] requests access to the [team] team.', {
                     name: <strong>{displayName}</strong>,
                     team: <strong>#{team.slug}</strong>,
                   })}
-                </Box>
-                <Box p={2}>
+                </div>
+                <div>
                   <StyledButton
                     priority="primary"
                     size="small"
@@ -120,8 +117,8 @@ class OrganizationAccessRequests extends React.Component {
                   >
                     {t('Deny')}
                   </Button>
-                </Box>
-              </PanelItem>
+                </div>
+              </StyledPanelItem>
             );
           })}
         </PanelBody>
@@ -129,6 +126,13 @@ class OrganizationAccessRequests extends React.Component {
     );
   }
 }
+
+const StyledPanelItem = styled(PanelItem)`
+  display: grid;
+  grid-template-columns: auto max-content;
+  grid-gap: ${space(2)};
+  align-items: center;
+`;
 
 const StyledButton = styled(Button)`
   margin-right: ${space(1)};

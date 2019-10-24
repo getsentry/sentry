@@ -32,7 +32,7 @@ describe('OrganizationAccessRequests', function() {
     expect(wrapper.find('PanelHeader').text()).toBe('Pending Team Requests');
     expect(
       wrapper
-        .find('PanelItem')
+        .find('StyledPanelItem')
         .text()
         .includes(
           `${accessRequest.member.user.name} requests access to the #${

@@ -87,7 +87,7 @@ describe('OrganizationRequestsView', function() {
     expect(wrapper.find('OrganizationAccessRequests').exists()).toBe(true);
     expect(
       wrapper
-        .find('Box[data-test-id="request-message"]')
+        .find('[data-test-id="request-message"]')
         .text()
         .includes(accessRequest.member.user.name)
     ).toBe(true);
@@ -96,7 +96,7 @@ describe('OrganizationRequestsView', function() {
     await tick();
     wrapper.update();
 
-    expect(wrapper.find('Box[data-test-id="request-message"]').exists()).toBe(false);
+    expect(wrapper.find('[data-test-id="request-message"]').exists()).toBe(false);
     expect(wrapper.find('NavTabs').exists()).toBe(false);
   });
 
@@ -119,7 +119,7 @@ describe('OrganizationRequestsView', function() {
     expect(wrapper.find('OrganizationAccessRequests').exists()).toBe(true);
     expect(
       wrapper
-        .find('Box[data-test-id="request-message"]')
+        .find('[data-test-id="request-message"]')
         .text()
         .includes(accessRequest.member.user.name)
     ).toBe(true);
@@ -128,7 +128,7 @@ describe('OrganizationRequestsView', function() {
     await tick();
     wrapper.update();
 
-    expect(wrapper.find('Box[data-test-id="request-message"]').exists()).toBe(false);
+    expect(wrapper.find('[data-test-id="request-message"]').exists()).toBe(false);
     expect(wrapper.find('NavTabs').exists()).toBe(false);
   });
 

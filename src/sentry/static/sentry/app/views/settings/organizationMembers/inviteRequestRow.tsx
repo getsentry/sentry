@@ -120,10 +120,9 @@ const JoinRequestIndicator = styled(Tag)`
 
 const StyledPanelItem = styled(PanelItem)`
   display: grid;
-  grid-template-columns: auto 200px max-content;
-  grid-gap: ${space(1)};
+  grid-template-columns: auto 140px max-content;
+  grid-gap: ${space(2)};
   align-items: center;
-  word-break: break-all;
 
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
     grid-template-columns: auto 100px max-content;
@@ -132,6 +131,7 @@ const StyledPanelItem = styled(PanelItem)`
 
 const UserName = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
+  word-break: break-all;
 `;
 
 const Description = styled('div')`
