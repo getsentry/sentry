@@ -146,7 +146,6 @@ RUN set -x \
     && UWSGI_NEED_PLUGIN="" uwsgi --build-plugin /tmp/uwsgi-dogstatsd \
     && mkdir -p /var/lib/uwsgi \
     && mv dogstatsd_plugin.so /var/lib/uwsgi/ \
-    && uwsgi --help > /dev/null \
     && rm -rf /tmp/dist /tmp/uwsgi-dogstatsd .uwsgi_plugins_builder \
     && apt-get purge -y --auto-remove $buildDeps \
     # We install run-time dependencies strictly after
