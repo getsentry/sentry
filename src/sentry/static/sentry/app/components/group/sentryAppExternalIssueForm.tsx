@@ -46,8 +46,8 @@ export class SentryAppExternalIssueForm extends React.Component<Props> {
   };
 
   onSubmitError = () => {
-    const {action} = this.props;
-    addErrorMessage(t('Unable to %s %s issue.', action, this.props.appName));
+    const {action, appName} = this.props;
+    addErrorMessage(t('Unable to %s %s issue.', action, appName));
   };
 
   getOptions = (field: Field, input: string) => {
