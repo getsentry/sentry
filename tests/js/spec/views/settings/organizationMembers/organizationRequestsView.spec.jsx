@@ -15,6 +15,7 @@ describe('OrganizationRequestsView', function() {
   const defaultProps = {
     location: {query: {}},
     params: {orgId: organization.slug},
+    router: TestStubs.router(),
   };
 
   const accessRequest = TestStubs.AccessRequest();

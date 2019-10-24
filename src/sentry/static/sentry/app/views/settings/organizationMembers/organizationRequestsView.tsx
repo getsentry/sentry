@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import * as ReactRouter from 'react-router';
 
 import {AccessRequest, Member, Organization} from 'app/types';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
@@ -15,6 +16,7 @@ import OrganizationAccessRequests from './organizationAccessRequests';
 type Props = {
   api: any;
   params: any;
+  router: ReactRouter.InjectedRouter;
   organization: Organization;
   requestList: AccessRequest[];
   inviteRequests: Member[];
@@ -45,19 +47,35 @@ class OrganizationRequestsView extends React.Component<Props, State> {
     inviteRequestBusy: {},
   };
 
+  componentWillMount() {
+    this.handleRedirect();
+  }
+
+  componentDidUpdate() {
+    this.handleRedirect();
+  }
+
+  handleRedirect() {
+    const {router, params, requestList, showInviteRequests} = this.props;
+
+    // redirect to the members view if the user cannot see
+    // the invite requests panel and all of the team requests
+    // have been approved or denied
+    if (showInviteRequests || requestList.length) {
+      return null;
+    }
+    return router.push(`/settings/${params.orgId}/members/`);
+  }
+
   handleAction = async ({id, method, data, successMessage, errorMessage}) => {
-    const {
-      api,
-      params: {orgId},
-      onUpdateInviteRequests,
-    } = this.props;
+    const {api, params, onUpdateInviteRequests} = this.props;
 
     this.setState(state => ({
       inviteRequestBusy: {...state.inviteRequestBusy, [id]: true},
     }));
 
     try {
-      await api.requestPromise(`/organizations/${orgId}/invite-requests/${id}/`, {
+      await api.requestPromise(`/organizations/${params.orgId}/invite-requests/${id}/`, {
         method,
         data,
       });
@@ -93,7 +111,7 @@ class OrganizationRequestsView extends React.Component<Props, State> {
 
   render() {
     const {
-      params: {orgId},
+      params,
       requestList,
       showInviteRequests,
       inviteRequests,
@@ -126,7 +144,7 @@ class OrganizationRequestsView extends React.Component<Props, State> {
         )}
 
         <OrganizationAccessRequests
-          orgId={orgId}
+          orgId={params.orgId}
           requestList={requestList}
           onUpdateRequestList={onUpdateRequestList}
         />
