@@ -546,6 +546,9 @@ class DetectDatasetTest(TestCase):
         query = {"conditions": [["type", "=", "error"]]}
         assert detect_dataset(query) == Dataset.Events
 
+        query = {"conditions": [["type", "!=", "transactions"]]}
+        assert detect_dataset(query) == Dataset.Events
+
     def test_conditions(self):
         query = {"conditions": [["transaction", "=", "api.do_thing"]]}
         assert detect_dataset(query) == Dataset.Events
