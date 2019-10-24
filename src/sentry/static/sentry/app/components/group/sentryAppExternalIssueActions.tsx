@@ -1,8 +1,9 @@
-import React from 'react';
+import React, {ReactElement} from 'react';
 import PropTypes from 'prop-types';
 import Modal from 'react-bootstrap/lib/Modal';
 import styled from 'react-emotion';
 
+import {Client} from 'app/api';
 import withApi from 'app/utils/withApi';
 import InlineSvg from 'app/components/inlineSvg';
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
@@ -15,18 +16,40 @@ import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import {deleteExternalIssue} from 'app/actionCreators/platformExternalIssues';
 import {recordInteraction} from 'app/utils/recordSentryAppInteraction';
+import {
+  Group,
+  PlatformExternalIssue,
+  Event,
+  SentryAppComponent,
+  SentryAppInstallation,
+} from 'app/types';
 
-class SentryAppExternalIssueActions extends React.Component {
-  static propTypes = {
+type Props = {
+  api: Client;
+  group: Group;
+  sentryAppComponent: SentryAppComponent;
+  sentryAppInstallation: SentryAppInstallation;
+  externalIssue?: PlatformExternalIssue;
+  event: Event;
+};
+
+type State = {
+  action: 'create' | 'link';
+  externalIssue?: PlatformExternalIssue;
+  showModal: boolean;
+};
+
+class SentryAppExternalIssueActions extends React.Component<Props, State> {
+  static propTypes: any = {
     api: PropTypes.object.isRequired,
-    group: PropTypes.object.isRequired,
+    group: SentryTypes.Group.isRequired,
     sentryAppComponent: PropTypes.object.isRequired,
-    sentryAppInstallation: PropTypes.object,
+    sentryAppInstallation: PropTypes.object.isRequired,
     externalIssue: PropTypes.object,
     event: SentryTypes.Event,
   };
 
-  constructor(props) {
+  constructor(props: Props) {
     super(props);
 
     this.state = {
@@ -36,13 +59,13 @@ class SentryAppExternalIssueActions extends React.Component {
     };
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: Props) {
     if (this.props.externalIssue !== prevProps.externalIssue) {
       this.updateExternalIssue(this.props.externalIssue);
     }
   }
 
-  updateExternalIssue(externalIssue) {
+  updateExternalIssue(externalIssue?: PlatformExternalIssue) {
     this.setState({externalIssue});
   }
 
@@ -78,14 +101,15 @@ class SentryAppExternalIssueActions extends React.Component {
     const {api, group} = this.props;
     const {externalIssue} = this.state;
 
-    deleteExternalIssue(api, group.id, externalIssue.id)
-      .then(_data => {
-        this.setState({externalIssue: null});
-        addSuccessMessage(t('Successfully unlinked issue.'));
-      })
-      .catch(_error => {
-        addErrorMessage(t('Unable to unlink issue.'));
-      });
+    externalIssue &&
+      deleteExternalIssue(api, group.id, externalIssue.id)
+        .then(_data => {
+          this.setState({externalIssue: undefined});
+          addSuccessMessage(t('Successfully unlinked issue.'));
+        })
+        .catch(_error => {
+          addErrorMessage(t('Unable to unlink issue.'));
+        });
   };
 
   onAddRemoveClick = () => {
@@ -98,7 +122,7 @@ class SentryAppExternalIssueActions extends React.Component {
     }
   };
 
-  onSubmitSuccess = externalIssue => {
+  onSubmitSuccess = (externalIssue: PlatformExternalIssue) => {
     this.setState({externalIssue});
     this.hideModal();
   };
@@ -109,7 +133,7 @@ class SentryAppExternalIssueActions extends React.Component {
     const name = sentryAppComponent.sentryApp.name;
 
     let url = '#';
-    let displayName = tct('Link [name] Issue', {name});
+    let displayName: ReactElement | string = tct('Link [name] Issue', {name});
 
     if (externalIssue) {
       url = externalIssue.webUrl;
@@ -155,6 +179,7 @@ class SentryAppExternalIssueActions extends React.Component {
           <SentryAppExternalIssueForm
             group={group}
             sentryAppInstallation={sentryAppInstallation}
+            appName={name}
             config={sentryAppComponent.schema}
             action={action}
             onSubmitSuccess={this.onSubmitSuccess}
@@ -197,7 +222,7 @@ const IssueLinkContainer = styled('div')`
   margin-bottom: 16px;
 `;
 
-const AddRemoveIcon = styled(InlineSvg)`
+const AddRemoveIcon = styled(InlineSvg)<{isLinked: boolean}>`
   height: ${space(1.5)};
   color: ${p => p.theme.gray4};
   transition: 0.2s transform;

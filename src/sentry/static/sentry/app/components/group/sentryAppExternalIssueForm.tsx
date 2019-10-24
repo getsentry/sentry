@@ -11,30 +11,46 @@ import {t} from 'app/locale';
 import ExternalIssueStore from 'app/stores/externalIssueStore';
 import getStacktraceBody from 'app/utils/getStacktraceBody';
 import withApi from 'app/utils/withApi';
+import {Client} from 'app/api';
+import {Group, PlatformExternalIssue, Event, SentryAppInstallation} from 'app/types';
+import {Field} from 'app/views/settings/components/forms/type';
 
-class SentryAppExternalIssueForm extends React.Component {
-  static propTypes = {
+type Props = {
+  api: Client;
+  group: Group;
+  sentryAppInstallation: SentryAppInstallation;
+  appName: string;
+  config: object;
+  action: 'create' | 'link';
+  event: Event;
+  onSubmitSuccess: (externalIssue: PlatformExternalIssue) => void;
+};
+
+//TODO(TS): Improve typings on Field so we can use the type in functions without errors
+
+export class SentryAppExternalIssueForm extends React.Component<Props> {
+  static propTypes: any = {
     api: PropTypes.object.isRequired,
     group: SentryTypes.Group.isRequired,
     sentryAppInstallation: PropTypes.object,
+    appName: PropTypes.string,
     config: PropTypes.object.isRequired,
     action: PropTypes.oneOf(['link', 'create']),
     event: SentryTypes.Event,
     onSubmitSuccess: PropTypes.func,
   };
 
-  onSubmitSuccess = issue => {
+  onSubmitSuccess = (issue: PlatformExternalIssue) => {
     ExternalIssueStore.add(issue);
     this.props.onSubmitSuccess(issue);
   };
 
   onSubmitError = () => {
-    const {action} = this.props;
-    const appName = this.props.sentryAppInstallation.sentryApp.name;
+    const {action, appName} = this.props;
     addErrorMessage(t('Unable to %s %s issue.', action, appName));
   };
 
-  getOptions = (field, input) => {
+  getOptions = (field: Field, input: string) => {
     return new Promise(resolve => {
       this.debouncedOptionLoad(field, input, resolve);
     });
@@ -67,7 +83,7 @@ class SentryAppExternalIssueForm extends React.Component {
   fieldProps = field => {
     return field.uri
       ? {
-          loadOptions: input => this.getOptions(field, input),
+          loadOptions: (input: string) => this.getOptions(field, input),
           async: true,
           cache: false,
           onSelectResetsInput: false,
@@ -90,7 +106,7 @@ class SentryAppExternalIssueForm extends React.Component {
   }
 
   getFieldDefault(field) {
-    const {group} = this.props;
+    const {group, appName} = this.props;
     if (field.type === 'textarea') {
       field.maxRows = 10;
       field.autosize = true;
@@ -100,7 +116,7 @@ class SentryAppExternalIssueForm extends React.Component {
         return group.title;
       case 'issue.description':
         const stacktrace = this.getStacktrace();
-        const queryParams = {referrer: this.props.sentryAppInstallation.sentryApp.name};
+        const queryParams = {referrer: appName};
         const url = addQueryParamsToExistingUrl(group.permalink, queryParams);
         const shortId = group.shortId;
         return t('Sentry Issue: [%s](%s)%s', shortId, url, stacktrace);
@@ -110,28 +126,25 @@ class SentryAppExternalIssueForm extends React.Component {
   }
 
   render() {
-    const {sentryAppInstallation} = this.props;
-    const config = this.props.config[this.props.action];
+    const {sentryAppInstallation, action} = this.props;
+    const config = this.props.config[action];
 
     const requiredFields = config.required_fields || [];
     const optionalFields = config.optional_fields || [];
-    const metaFields = [
+    const metaFields: Field[] = [
       {
         type: 'hidden',
         name: 'action',
-        value: this.props.action,
-        defaultValue: this.props.action,
+        defaultValue: action,
       },
       {
         type: 'hidden',
         name: 'groupId',
-        value: this.props.group.id,
         defaultValue: this.props.group.id,
       },
       {
         type: 'hidden',
         name: 'uri',
-        value: config.uri,
         defaultValue: config.uri,
       },
     ];
@@ -142,7 +155,7 @@ class SentryAppExternalIssueForm extends React.Component {
 
     return (
       <Form
-        key={this.props.action}
+        key={action}
         apiEndpoint={`/sentry-app-installations/${
           sentryAppInstallation.uuid
         }/external-issues/`}
@@ -155,7 +168,13 @@ class SentryAppExternalIssueForm extends React.Component {
         })}
 
         {requiredFields.map(field => {
-          field.choices = field.choices || [];
+          field = Object.assign({}, field, {
+            choices: field.choices || [],
+            inline: false,
+            stacked: true,
+            flexibleControlStateSize: true,
+            required: true,
+          });
 
           if (['text', 'textarea'].includes(field.type) && field.default) {
             field.defaultValue = this.getFieldDefault(field);
@@ -165,17 +184,18 @@ class SentryAppExternalIssueForm extends React.Component {
             <FieldFromConfig
               key={`${field.name}`}
               field={field}
-              inline={false}
-              stacked
-              flexibleControlStateSize
-              required
               {...this.fieldProps(field)}
             />
           );
         })}
 
         {optionalFields.map(field => {
-          field.choices = field.choices || [];
+          field = Object.assign({}, field, {
+            choices: field.choices || [],
+            inline: false,
+            stacked: true,
+            flexibleControlStateSize: true,
+          });
 
           if (['text', 'textarea'].includes(field.type) && field.default) {
             field.defaultValue = this.getFieldDefault(field);
@@ -185,9 +205,6 @@ class SentryAppExternalIssueForm extends React.Component {
             <FieldFromConfig
               key={`${field.name}`}
               field={field}
-              inline={false}
-              stacked
-              flexibleControlStateSize
               {...this.fieldProps(field)}
             />
           );
@@ -197,5 +214,4 @@ class SentryAppExternalIssueForm extends React.Component {
   }
 }
 
-export {SentryAppExternalIssueForm};
 export default withApi(SentryAppExternalIssueForm);

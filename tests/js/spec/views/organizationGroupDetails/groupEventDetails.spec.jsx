@@ -60,6 +60,10 @@ describe('groupEventDetails', () => {
     });
 
     MockApiClient.addMockResponse({
+      url: `/groups/${group.id}/external-issues/`,
+    });
+
+    MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/releases/completion/`,
       body: [],
     });
@@ -327,8 +331,6 @@ describe('groupEventDetails', () => {
 
   describe('Platform Integrations', () => {
     let wrapper; // eslint-disable-line
-    let integrationsRequest;
-    let orgIntegrationsRequest;
     let componentsRequest;
 
     const mountWithThemeWrapper = () => {
@@ -347,7 +349,6 @@ describe('groupEventDetails', () => {
     };
 
     beforeEach(() => {
-      const integration = TestStubs.SentryApp();
       const unpublishedIntegration = TestStubs.SentryApp({status: 'unpublished'});
       const internalIntegration = TestStubs.SentryApp({status: 'internal'});
 
@@ -381,30 +382,12 @@ describe('groupEventDetails', () => {
         body: [component],
       });
 
-      integrationsRequest = MockApiClient.addMockResponse({
-        url: '/sentry-apps/',
-        body: [integration],
-      });
-
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/sentry-app-installations/`,
         body: [unpublishedInstall, internalInstall],
       });
 
-      orgIntegrationsRequest = MockApiClient.addMockResponse({
-        url: `/organizations/${org.slug}/sentry-apps/`,
-        body: [unpublishedIntegration, internalIntegration],
-      });
-
       wrapper = mountWithThemeWrapper();
-    });
-
-    it('loads Integrations', () => {
-      expect(integrationsRequest).toHaveBeenCalled();
-    });
-
-    it('loads unpublished and internal Integrations', () => {
-      expect(orgIntegrationsRequest).toHaveBeenCalled();
     });
 
     it('loads Integration UI components', () => {

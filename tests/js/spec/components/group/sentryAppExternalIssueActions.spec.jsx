@@ -14,12 +14,23 @@ describe('SentryAppExternalIssueActions', () => {
 
   beforeEach(() => {
     group = TestStubs.Group();
-    component = TestStubs.SentryAppComponent();
     sentryApp = TestStubs.SentryApp();
+    component = TestStubs.SentryAppComponent({
+      sentryApp: {
+        uuid: sentryApp.uuid,
+        slug: sentryApp.slug,
+        name: sentryApp.name,
+      },
+    });
     install = TestStubs.SentryAppInstallation({sentryApp});
     externalIssue = TestStubs.PlatformExternalIssue({
       groupId: group.id,
       serviceType: component.sentryApp.slug,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/sentry-apps/${sentryApp.slug}/interaction/`,
+      method: 'POST',
     });
   });
 
