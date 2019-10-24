@@ -30,14 +30,14 @@ class OrganizationAccessRequests extends React.Component {
   };
 
   state = {
-    accessRequestBusy: new Map(),
+    accessRequestBusy: {},
   };
 
   approveOrDeny = async (isApproved, id) => {
     const {api, orgId, onUpdateRequestList} = this.props;
 
     this.setState(state => ({
-      accessRequestBusy: state.accessRequestBusy.set(id, true),
+      accessRequestBusy: {...state.accessRequestBusy, [id]: true},
     }));
 
     try {
@@ -59,7 +59,7 @@ class OrganizationAccessRequests extends React.Component {
     }
 
     this.setState(state => ({
-      accessRequestBusy: state.accessRequestBusy.set(id, false),
+      accessRequestBusy: {...state.accessRequestBusy, [id]: false},
     }));
   };
 
@@ -109,12 +109,12 @@ class OrganizationAccessRequests extends React.Component {
                     priority="primary"
                     size="small"
                     onClick={e => this.handleApprove(id, e)}
-                    busy={accessRequestBusy.get(id)}
+                    busy={accessRequestBusy[id]}
                   >
                     {t('Approve')}
                   </StyledButton>
                   <Button
-                    busy={accessRequestBusy.get(id)}
+                    busy={accessRequestBusy[id]}
                     onClick={e => this.handleDeny(id, e)}
                     size="small"
                   >

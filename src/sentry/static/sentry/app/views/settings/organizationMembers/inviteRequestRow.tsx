@@ -14,7 +14,7 @@ import space from 'app/styles/space';
 
 type Props = {
   inviteRequest: Member;
-  inviteRequestBusy: Map<string, boolean>;
+  inviteRequestBusy: {[key: string]: boolean};
   organization: Organization;
   onApprove: (id: string, email: string) => Promise<void>;
   onDeny: (id: string, email: string) => Promise<void>;
@@ -74,13 +74,13 @@ const InviteRequestRow = ({
             </React.Fragment>
           }
         >
-          <Button priority="primary" size="small" busy={inviteRequestBusy.get(id)}>
+          <Button priority="primary" size="small" busy={inviteRequestBusy[id]}>
             {t('Approve')}
           </Button>
         </Confirm>
         <Button
           size="small"
-          busy={inviteRequestBusy.get(id)}
+          busy={inviteRequestBusy[id]}
           onClick={() => onDeny(id, email)}
         >
           {t('Deny')}

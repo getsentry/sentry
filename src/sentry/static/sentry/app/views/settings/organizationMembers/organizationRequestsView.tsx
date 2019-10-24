@@ -24,7 +24,7 @@ type Props = {
 };
 
 type State = {
-  inviteRequestBusy: Map<string, boolean>;
+  inviteRequestBusy: {[key: string]: boolean};
 };
 
 class OrganizationRequestsView extends React.Component<Props, State> {
@@ -42,10 +42,10 @@ class OrganizationRequestsView extends React.Component<Props, State> {
   };
 
   state: State = {
-    inviteRequestBusy: new Map(),
+    inviteRequestBusy: {},
   };
 
-  handleApprove = async (id: string, email: string) => {
+  handleAction = async ({id, method, data, successMessage, errorMessage}) => {
     const {
       api,
       params: {orgId},
@@ -53,52 +53,43 @@ class OrganizationRequestsView extends React.Component<Props, State> {
     } = this.props;
 
     this.setState(state => ({
-      inviteRequestBusy: state.inviteRequestBusy.set(id, true),
+      inviteRequestBusy: {...state.inviteRequestBusy, [id]: true},
     }));
 
     try {
       await api.requestPromise(`/organizations/${orgId}/invite-requests/${id}/`, {
-        method: 'PUT',
-        data: {approve: 1},
+        method,
+        data,
       });
       onUpdateInviteRequests(id);
-      addSuccessMessage(tct('[email] has been invited', {email}));
+      addSuccessMessage(successMessage);
     } catch (err) {
-      addErrorMessage(tct('Error inviting [email]', {email}));
+      addErrorMessage(errorMessage);
       throw err;
     }
 
     this.setState(state => ({
-      inviteRequestBusy: state.inviteRequestBusy.set(id, false),
+      inviteRequestBusy: {...state.inviteRequestBusy, [id]: false},
     }));
   };
 
-  handleDeny = async (id: string, email: string) => {
-    const {
-      api,
-      params: {orgId},
-      onUpdateInviteRequests,
-    } = this.props;
+  handleApprove = (id: string, email: string) =>
+    this.handleAction({
+      id,
+      method: 'PUT',
+      data: {approve: 1},
+      successMessage: tct('[email] has been invited', {email}),
+      errorMessage: tct('Error inviting [email]', {email}),
+    });
 
-    this.setState(state => ({
-      inviteRequestBusy: state.inviteRequestBusy.set(id, true),
-    }));
-
-    try {
-      await api.requestPromise(`/organizations/${orgId}/invite-requests/${id}/`, {
-        method: 'DELETE',
-      });
-      onUpdateInviteRequests(id);
-      addSuccessMessage(tct('Invite request for [email] denied', {email}));
-    } catch (err) {
-      addErrorMessage(tct('Error denying invite request for [email]', {email}));
-      throw err;
-    }
-
-    this.setState(state => ({
-      inviteRequestBusy: state.inviteRequestBusy.set(id, false),
-    }));
-  };
+  handleDeny = (id: string, email: string) =>
+    this.handleAction({
+      id,
+      method: 'DELETE',
+      data: {},
+      successMessage: tct('Invite request for [email] denied', {email}),
+      errorMessage: tct('Error denying invite request for [email]', {email}),
+    });
 
   render() {
     const {
