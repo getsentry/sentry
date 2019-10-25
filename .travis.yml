@@ -83,7 +83,6 @@ base_postgres: &postgres_default
   install:
     - python setup.py install_egg_info
     - pip install -U -e ".[dev,optional]"
-    - pip freeze
   before_script:
     - psql -c 'create database sentry;' -U postgres
 
@@ -104,7 +103,6 @@ base_acceptance: &acceptance_default
     - ./bin/yarn install --pure-lockfile
     - python setup.py install_egg_info
     - pip install -U -e ".[dev,optional]"
-    - pip freeze
     - |
       CHROME_MAJOR_VERSION="$(dpkg -s google-chrome-stable | sed -nr 's/Version: ([0-9]+).*/\1/p')"
       wget -N "https://chromedriver.storage.googleapis.com/$(curl https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_MAJOR_VERSION})/chromedriver_linux64.zip" -P ~/
@@ -221,7 +219,6 @@ matrix:
         - python setup.py install_egg_info
         - pip install -U -e ".[dev,optional]"
         - pip install confluent-kafka
-        - pip freeze
       before_script:
         - psql -c 'create database sentry;' -U postgres
 
