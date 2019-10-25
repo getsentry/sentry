@@ -20,10 +20,10 @@ const AddColumnButton = (props: Props) => {
   return (
     <Wrapper onClick={onClick}>
       <ToolTip title={t('Add Column')}>
-        <div style={{width: `${BUTTON_SIZE}px`, height: `${BUTTON_SIZE}px`}}>
+        <PlusSignWrap>
           <Vertical />
           <Horizontal />
-        </div>
+        </PlusSignWrap>
       </ToolTip>
     </Wrapper>
   );
@@ -50,6 +50,11 @@ const Wrapper = styled('div')`
   &:hover {
     background-color: ${p => p.theme.gray3};
   }
+`;
+
+const PlusSignWrap = styled('div')`
+  width: ${BUTTON_SIZE}px;
+  height: ${BUTTON_SIZE}px;
 `;
 
 const OFFSET_LONG_SIDE = (BUTTON_SIZE - PLUS_SIGN_HEIGHT) / 2;
