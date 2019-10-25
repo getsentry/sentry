@@ -20,6 +20,8 @@ import withOrganization from 'app/utils/withOrganization';
 
 import ProjectStatsGraph from './projectStatsGraph';
 
+const ITEMS_PER_PAGE = 2;
+
 class OrganizationProjects extends AsyncView {
   static propTypes = {
     organization: SentryTypes.Organization,
@@ -39,7 +41,6 @@ class OrganizationProjects extends AsyncView {
 
   getEndpoints() {
     const {orgId} = this.props.params;
-    const itemsPerPage = 50;
     return [
       [
         'projectList',
@@ -47,7 +48,7 @@ class OrganizationProjects extends AsyncView {
         {
           query: {
             query: this.props.location.query.query,
-            per_page: itemsPerPage,
+            per_page: ITEMS_PER_PAGE,
           },
         },
       ],
@@ -59,7 +60,7 @@ class OrganizationProjects extends AsyncView {
             since: new Date().getTime() / 1000 - 3600 * 24,
             stat: 'generated',
             group: 'project',
-            per_page: itemsPerPage,
+            per_page: ITEMS_PER_PAGE,
           },
         },
       ],
@@ -121,10 +122,10 @@ class OrganizationProjects extends AsyncView {
             {projectList ? (
               sortProjects(projectList).map(project => (
                 <GridPanelItem key={project.id}>
-                  <ContainerProjectListItem>
+                  <ProjectListItemWrapper>
                     <ProjectListItem project={project} organization={organization} />
-                  </ContainerProjectListItem>
-                  <ContainerProjectStatsGraph>
+                  </ProjectListItemWrapper>
+                  <ProjectStatsGraphWrapper>
                     {projectStats ? (
                       <ProjectStatsGraph
                         key={project.id}
@@ -134,7 +135,7 @@ class OrganizationProjects extends AsyncView {
                     ) : (
                       <Placeholder height="25px" />
                     )}
-                  </ContainerProjectStatsGraph>
+                  </ProjectStatsGraphWrapper>
                 </GridPanelItem>
               ))
             ) : (
@@ -161,12 +162,13 @@ const GridPanelItem = styled(PanelItem)`
   padding: 0;
 `;
 
-const ContainerProjectListItem = styled('div')`
+const ProjectListItemWrapper = styled('div')`
   padding: ${space(2)};
   flex: 1;
 `;
 
-const ContainerProjectStatsGraph = styled('div')`
+const ProjectStatsGraphWrapper = styled('div')`
   padding: ${space(2)};
   width: 25%;
+  margin-left: ${space(2)};
 `;
