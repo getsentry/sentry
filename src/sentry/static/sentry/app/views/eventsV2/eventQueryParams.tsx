@@ -142,7 +142,7 @@ export const FIELDS: {[key: string]: ColumnValueType} = {
   p75: 'number',
   p95: 'number',
 };
-export type Field = keyof typeof FIELDS | '';
+export type Field = keyof typeof FIELDS | string | '';
 
 // This list should be removed with the tranaction-events feature flag.
 export const TRACING_FIELDS = [
