@@ -385,16 +385,16 @@ exports[`OrganizationProjects should render the projects in the store 1`] = `
                       p={2}
                     >
                       <Base
-                        className="css-no3wd-PanelItem-GridPanelItem ew99cs00"
+                        className="css-1325ndv-PanelItem-GridPanelItem ew99cs00"
                         p={2}
                       >
                         <div
-                          className="css-no3wd-PanelItem-GridPanelItem ew99cs00"
+                          className="css-1325ndv-PanelItem-GridPanelItem ew99cs00"
                           is={null}
                         >
                           <ContainerProjectListItem>
                             <div
-                              className="css-11u2sgk-ContainerProjectListItem ew99cs01"
+                              className="css-s8ligm-ContainerProjectListItem ew99cs01"
                             >
                               <ProjectItem
                                 organization={
@@ -674,7 +674,7 @@ exports[`OrganizationProjects should render the projects in the store 1`] = `
                           </ContainerProjectListItem>
                           <ContainerProjectStatsGraph>
                             <div
-                              className="css-174lc2j-ContainerProjectStatsGraph ew99cs02"
+                              className="css-15yj6l1-ContainerProjectStatsGraph ew99cs02"
                             >
                               <ProjectStatsGraph
                                 key="2"
