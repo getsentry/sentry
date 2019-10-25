@@ -156,18 +156,17 @@ class OrganizationProjects extends AsyncView {
 export default withOrganization(OrganizationProjects);
 
 const GridPanelItem = styled(PanelItem)`
-  display: grid;
-  grid-template-columns: auto 25%;
+  display: flex;
   align-items: center;
   padding: 0;
 `;
 
 const ContainerProjectListItem = styled('div')`
   padding: ${space(2)};
-  grid-area: 1 / 1;
+  flex: 1;
 `;
 
 const ContainerProjectStatsGraph = styled('div')`
   padding: ${space(2)};
-  grid-area: 1 / 2;
+  width: 25%;
 `;
