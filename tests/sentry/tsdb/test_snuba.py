@@ -16,8 +16,8 @@ def floor_to_hour_epoch(value):
 
 
 def floor_to_10s_epoch(value):
-    minutes = value.second
-    floored_second = 10 * (minutes / 10)
+    seconds = value.second
+    floored_second = 10 * (seconds / 10)
 
     value = value.replace(second=floored_second, microsecond=0)
     return int(to_timestamp(value))
@@ -55,9 +55,9 @@ class SnubaTSDBTest(OutcomesSnubaTest):
 
         for tsdb_model, granularity, floor_func, start_time_count, day_later_count in [
             (TSDBModel.organization_total_received, 3600, floor_to_hour_epoch, 3 * 3, 4 * 3),
-            (TSDBModel.organization_total_received, 10, floor_to_10s_epoch, 3 * 3, 4 * 3),
             (TSDBModel.organization_total_rejected, 3600, floor_to_hour_epoch, 3, 4),
             (TSDBModel.organization_total_blacklisted, 3600, floor_to_hour_epoch, 3, 4),
+            (TSDBModel.organization_total_received, 10, floor_to_10s_epoch, 3 * 3, 4 * 3),
             (TSDBModel.organization_total_rejected, 10, floor_to_10s_epoch, 3, 4),
             (TSDBModel.organization_total_blacklisted, 10, floor_to_10s_epoch, 3, 4),
         ]:
@@ -98,9 +98,9 @@ class SnubaTSDBTest(OutcomesSnubaTest):
 
         for tsdb_model, granularity, floor_func, start_time_count, day_later_count in [
             (TSDBModel.project_total_received, 3600, floor_to_hour_epoch, 3 * 3, 4 * 3),
-            (TSDBModel.project_total_received, 10, floor_to_10s_epoch, 3 * 3, 4 * 3),
             (TSDBModel.project_total_rejected, 3600, floor_to_hour_epoch, 3, 4),
             (TSDBModel.project_total_blacklisted, 3600, floor_to_hour_epoch, 3, 4),
+            (TSDBModel.project_total_received, 10, floor_to_10s_epoch, 3 * 3, 4 * 3),
             (TSDBModel.project_total_rejected, 10, floor_to_10s_epoch, 3, 4),
             (TSDBModel.project_total_blacklisted, 10, floor_to_10s_epoch, 3, 4),
         ]:
