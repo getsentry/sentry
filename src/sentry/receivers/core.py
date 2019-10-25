@@ -34,7 +34,7 @@ def handle_db_failure(func):
     return wrapped
 
 
-def create_default_projects(app_config, verbosity, **kwargs):
+def create_default_projects(app_config, verbosity=2, **kwargs):
     if app_config and app_config.name != "sentry":
         return
 
