@@ -10,13 +10,7 @@ const HeaderItemPosition = styled('div')<{
   min-width: 0;
   height: 100%;
 
-  ${p =>
-    p.isSpacer &&
-    `
-    @media(max-width: ${p.theme.breakpoints[1]}) {
-      display: none;
-    }
-  `}
+  ${p => p.isSpacer && `@media (max-width: ${p.theme.breakpoints[1]}) { display: none; }`}
 
   ${AutoCompleteRoot}, ${TimeRangeRoot} {
     flex: 1;

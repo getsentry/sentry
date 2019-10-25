@@ -17,7 +17,7 @@ type Props = {
   hasSelected: boolean;
   isOpen: boolean;
   locked: boolean;
-  innerRef: React.Ref<any>;
+  innerRef: React.Ref<HTMLDivElement>;
   onClear: () => void;
 } & HTMLDivElement;
 
@@ -173,6 +173,6 @@ const StyledLock = styled(InlineSvg)`
   stroke-width: 1.5;
 `;
 
-export default React.forwardRef((props: Props, ref: React.Ref<any>) => (
+export default React.forwardRef((props: Props, ref: React.Ref<HTMLDivElement>) => (
   <HeaderItem {...props} innerRef={ref} />
 ));
