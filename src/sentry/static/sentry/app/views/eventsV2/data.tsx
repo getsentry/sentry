@@ -36,13 +36,13 @@ export const TRANSACTION_VIEWS: Readonly<Array<EventViewv1>> = [
       fields: [
         'transaction',
         'project',
-        'count()',
+        'count(id)',
         'avg(transaction.duration)',
         'p75',
         'p95',
       ],
       fieldnames: ['transaction', 'project', 'volume', 'avg', '75th', '95th'],
-      sort: ['-count'],
+      sort: ['-count_id'],
       query: 'event.type:transaction',
     },
     tags: ['release', 'project.name', 'user.email', 'user.ip', 'environment'],
@@ -52,14 +52,14 @@ export const TRANSACTION_VIEWS: Readonly<Array<EventViewv1>> = [
     data: {
       fields: [
         'user',
-        'count()',
+        'count(id)',
         'count_unique(transaction)',
         'avg(transaction.duration)',
         'p75',
         'p95',
       ],
       fieldnames: ['user', 'events', 'unique transactions', 'avg', '75th', '95th'],
-      sort: ['-count'],
+      sort: ['-count_id'],
       query: 'event.type:transaction',
     },
     tags: ['release', 'project.name', 'user.email', 'user.ip', 'environment'],
@@ -67,9 +67,9 @@ export const TRANSACTION_VIEWS: Readonly<Array<EventViewv1>> = [
   {
     name: t('Transactions by Region'),
     data: {
-      fields: ['geo.region', 'count()', 'avg(transaction.duration)', 'p75', 'p95'],
+      fields: ['geo.region', 'count(id)', 'avg(transaction.duration)', 'p75', 'p95'],
       fieldnames: ['Region', 'events', 'avg', '75th', '95th'],
-      sort: ['-count'],
+      sort: ['-count_id'],
       query: 'event.type:transaction',
     },
     tags: ['release', 'project.name', 'user.email', 'user.ip', 'environment'],
@@ -81,9 +81,9 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
   {
     name: t('Project Summary'),
     data: {
-      fields: ['project', 'count()', 'count_unique(issue.id)'],
+      fields: ['project', 'count(id)', 'count_unique(issue.id)'],
       fieldnames: ['project', 'events', 'unique errors'],
-      sort: ['-count'],
+      sort: ['-count_id'],
       query: 'event.type:error',
     },
     tags: ['error.type', 'project.name', 'release', 'environment'],
@@ -91,9 +91,9 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
   {
     name: t('Errors'),
     data: {
-      fields: ['title', 'count()', 'count_unique(user)', 'project', 'last_seen'],
+      fields: ['title', 'count(id)', 'count_unique(user)', 'project', 'last_seen'],
       fieldnames: ['error', 'events', 'users', 'project', 'last seen'],
-      sort: ['-count', '-title'],
+      sort: ['-count_id', '-title'],
       query: 'event.type:error',
     },
     tags: ['project.name', 'release', 'environment'],
@@ -101,9 +101,9 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
   {
     name: t('Errors by URL'),
     data: {
-      fields: ['url', 'count()', 'count_unique(issue.id)'],
+      fields: ['url', 'count(id)', 'count_unique(issue.id)'],
       fieldnames: ['URL', 'events', 'unique errors'],
-      sort: ['-count'],
+      sort: ['-count_id'],
       query: 'event.type:error',
     },
     tags: ['error.type', 'project.name', 'url', 'release', 'environment'],
@@ -111,9 +111,9 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
   {
     name: t('Errors by User'),
     data: {
-      fields: ['user', 'count()', 'count_unique(issue.id)'],
+      fields: ['user', 'count(id)', 'count_unique(issue.id)'],
       fieldnames: ['User', 'events', 'unique errors'],
-      sort: ['-count'],
+      sort: ['-count_id'],
       query: 'event.type:error',
     },
     tags: ['user.id', 'project.name', 'url', 'release', 'environment'],
@@ -121,9 +121,9 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
   {
     name: t('Content Security Policy (CSP)'),
     data: {
-      fields: ['title', 'count()', 'count_unique(user)', 'project', 'last_seen'],
+      fields: ['title', 'count(id)', 'count_unique(user)', 'project', 'last_seen'],
       fieldnames: ['csp', 'events', 'users', 'project', 'last seen'],
-      sort: ['-count', '-title'],
+      sort: ['-count_id', '-title'],
       query: 'event.type:csp',
     },
     tags: [
@@ -139,9 +139,9 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
   {
     name: t('Content Security Policy (CSP) Report by Directive'),
     data: {
-      fields: ['effective-directive', 'count()', 'count_unique(title)'],
+      fields: ['effective-directive', 'count(id)', 'count_unique(title)'],
       fieldnames: ['directive', 'events', 'reports'],
-      sort: ['-count'],
+      sort: ['-count_id'],
       query: 'event.type:csp',
     },
     tags: [
@@ -156,9 +156,9 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
   {
     name: t('Content Security Policy (CSP) Report by Blocked URI'),
     data: {
-      fields: ['blocked-uri', 'count()'],
+      fields: ['blocked-uri', 'count(id)'],
       fieldnames: ['URI', 'events'],
-      sort: ['-count'],
+      sort: ['-count_id'],
       query: 'event.type:csp',
     },
     tags: [
@@ -173,9 +173,9 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
   {
     name: t('Content Security Policy (CSP) Report by User'),
     data: {
-      fields: ['user', 'count()', 'count_unique(title)'],
+      fields: ['user', 'count(id)', 'count_unique(title)'],
       fieldnames: ['User', 'events', 'reports'],
-      sort: ['-count'],
+      sort: ['-count_id'],
       query: 'event.type:csp',
     },
     tags: [
