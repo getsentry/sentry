@@ -479,15 +479,15 @@ export type SentryAppInstallation = {
 };
 
 export type SentryAppWebhookRequest = {
-  webhook_url: string;
-  sentry_app_slug: string;
-  event_type: string;
+  webhookUrl: string;
+  sentryAppSlug: string;
+  eventType: string;
   date: string;
   organization: {
     slug: string;
     name: string;
   };
-  response_code: number;
+  responseCode: number;
 };
 
 export type PermissionValue = 'no-access' | 'read' | 'write' | 'admin';

@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import six
 import json
 
+from dateutil.parser import parse as parse_date
 from django.conf import settings
 from django.utils import timezone
 
@@ -28,15 +29,23 @@ class SentryAppWebhookRequestsBuffer(object):
         else:
             self.client = redis.redis_clusters.get(cluster_id)
 
-    def _convert_redis_request(self, request, event):
-        formatted_request = json.loads(request)
-        if "organization_id" in formatted_request:
-            org = Organization.objects.get(id=formatted_request["organization_id"])
-            formatted_request["organization"] = {"name": org.name, "slug": org.slug}
-            del formatted_request["organization_id"]
+    def _convert_redis_request(self, redis_request, event):
+        """
+        Convert the request string stored in Redis to a python dict that can be returned from the errors endpoint
+        """
+        request = json.loads(redis_request)
 
-        formatted_request["event_type"] = event
-        formatted_request["sentry_app_slug"] = self.sentry_app.slug
+        formatted_request = {
+            "webhookUrl": request.get("webhook_url"),
+            "sentryAppSlug": self.sentry_app.slug,
+            "eventType": event,
+            "date": request.get("date"),
+            "responseCode": request.get("response_code"),
+        }
+
+        if "organization_id" in request:
+            org = Organization.objects.get(id=request["organization_id"])
+            formatted_request["organization"] = {"name": org.name, "slug": org.slug}
 
         return formatted_request
 
@@ -69,7 +78,7 @@ class SentryAppWebhookRequestsBuffer(object):
         return self.client.lrange(buffer_key, 0, BUFFER_SIZE - 1)
 
     def _get_requests(self, event=None, error=False):
-        # If no event is specified, return all
+        # If no event is specified, return the latest requests/errors for all event types
         if event is None:
             all_requests = []
             for evt in VALID_EVENTS:
@@ -79,7 +88,8 @@ class SentryAppWebhookRequestsBuffer(object):
                 ]
                 all_requests.extend(event_requests)
 
-            return all_requests
+            all_requests.sort(key=lambda x: parse_date(x.get("date", None)), reverse=True)
+            return all_requests[0:BUFFER_SIZE]
 
         return [
             self._convert_redis_request(request, event)

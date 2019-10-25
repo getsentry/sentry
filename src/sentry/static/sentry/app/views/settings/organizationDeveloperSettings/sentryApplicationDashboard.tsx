@@ -155,10 +155,10 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
                 <PanelItem key={idx}>
                   <TableLayout>
                     <DateTime date={error.date} />
-                    <div>{error.response_code}</div>
+                    <div>{error.responseCode}</div>
                     <div>{error.organization.name}</div>
-                    <div>{error.event_type}</div>
-                    <OverflowBox>{error.webhook_url}</OverflowBox>
+                    <div>{error.eventType}</div>
+                    <OverflowBox>{error.webhookUrl}</OverflowBox>
                   </TableLayout>
                 </PanelItem>
               ))
