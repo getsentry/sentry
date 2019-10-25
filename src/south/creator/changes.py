@@ -509,12 +509,12 @@ class ManualChanges(BaseChanges):
             try:
                 model_name, field_name = field_desc.split(".")
             except (TypeError, ValueError):
-                print("%r is not a valid field description." % field_desc)
+                print ("%r is not a valid field description." % field_desc)
             model = apps.get_model(self.migrations.app_label(), model_name)
-            yield ("AddIndex", {
-                "model": model,
-                "fields": [model._meta.get_field_by_name(field_name)[0]],
-            })
+            yield (
+                "AddIndex",
+                {"model": model, "fields": [model._meta.get_field_by_name(field_name)[0]]},
+            )
 
 
 class InitialChanges(BaseChanges):

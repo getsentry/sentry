@@ -35,11 +35,11 @@ def handle_db_failure(func):
 
 
 def create_default_projects(app_config, verbosity, **kwargs):
-    if app_config and app_config.name != 'sentry':
+    if app_config and app_config.name != "sentry":
         return
 
     try:
-        app_config.get_model('Project')
+        app_config.get_model("Project")
     except LookupError:
         return
 
@@ -137,9 +137,7 @@ def freeze_option_epoch_for_project(instance, created, app=None, **kwargs):
 # Anything that relies on default objects that may not exist with default
 # fields should be wrapped in handle_db_failure
 post_migrate.connect(
-    handle_db_failure(create_default_projects),
-    dispatch_uid="create_default_project",
-    weak=False,
+    handle_db_failure(create_default_projects), dispatch_uid="create_default_project", weak=False
 )
 
 post_save.connect(

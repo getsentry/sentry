@@ -36,7 +36,7 @@ def sort_dependencies(app_list):
             if hasattr(model, "natural_key"):
                 deps = getattr(model.natural_key, "dependencies", [])
                 if deps:
-                    deps = [apps.get_model(*d.split('.')) for d in deps]
+                    deps = [apps.get_model(*d.split(".")) for d in deps]
             else:
                 deps = []
 
