@@ -9,7 +9,7 @@ from sentry.pipeline import PipelineProvider
 class MigratingIdentityId(namedtuple("MigratingIdentityId", ["id", "legacy_id"])):
     """
     MigratingIdentityId may be used in the ``id`` field of an identity
-    dictionary to facilitate migrating user identites from one identifying id
+    dictionary to facilitate migrating user identities from one identifying id
     to another.
     """
 
@@ -45,7 +45,7 @@ class Provider(PipelineProvider):
         >>>     "id":     "foo@example.com",
         >>>     "email":  "foo@example.com",
         >>>     "name":   "Foo Bar",
-        >>>     "scopes": ['emaill', ...],
+        >>>     "scopes": ['email', ...],
         >>>     "data":   { ... },
         >>> }
 

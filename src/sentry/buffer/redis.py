@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 import six
 
+import contextlib
+import threading
 from time import time
 from binascii import crc32
 
@@ -18,6 +20,30 @@ from sentry.utils.compat import pickle
 from sentry.utils.hashlib import md5_text
 from sentry.utils.imports import import_string
 from sentry.utils.redis import get_cluster_from_options
+
+_local_buffers = None
+_local_buffers_lock = threading.Lock()
+
+
+@contextlib.contextmanager
+def batch_buffers_incr():
+    global _local_buffers
+
+    with _local_buffers_lock:
+        assert _local_buffers is None
+        _local_buffers = {}
+
+    try:
+        yield
+    finally:
+        from sentry.app import buffer
+
+        with _local_buffers_lock:
+            buffers_to_flush = _local_buffers
+            _local_buffers = None
+
+            for (filters, model), (columns, extra) in buffers_to_flush.items():
+                buffer.incr(model=model, columns=columns, filters=dict(filters), extra=extra)
 
 
 class PendingBuffer(object):
@@ -155,6 +181,24 @@ class RedisBuffer(Buffer):
             - Perform a set (last write wins) on extra
         - Add hashmap key to pending flushes
         """
+
+        if _local_buffers is not None:
+            with _local_buffers_lock:
+                if _local_buffers is not None:
+                    frozen_filters = tuple(sorted(filters.items()))
+                    key = (frozen_filters, model)
+
+                    stored_columns, stored_extra = _local_buffers.get(key, ({}, None))
+
+                    for k, v in columns.items():
+                        stored_columns[k] = stored_columns.get(k, 0) + v
+
+                    if extra is not None:
+                        stored_extra = extra
+
+                    _local_buffers[key] = stored_columns, stored_extra
+                    return
+
         # TODO(dcramer): longer term we'd rather not have to serialize values
         # here (unless it's to JSON)
         key = self._make_key(model, filters)

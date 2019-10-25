@@ -14,7 +14,7 @@ import {
   FieldTypes,
   FieldFormatterRenderFunctionPartial,
 } from './data';
-import EventView from './eventView';
+import EventView, {Field as FieldType} from './eventView';
 import {
   Aggregation,
   Field,
@@ -22,7 +22,7 @@ import {
   FIELDS,
   ColumnValueType,
 } from './eventQueryParams';
-import {TableColumn, TableColumnSort, TableState} from './table/types';
+import {TableColumn} from './table/types';
 
 export type EventQuery = {
   field: Array<string>;
@@ -44,7 +44,7 @@ const ROUND_BRACKETS_PATTERN = /[\(\)]/;
  */
 export function hasAggregateField(eventView: EventView): boolean {
   return eventView
-    .getFieldNames()
+    .getFields()
     .some(
       field => AGGREGATE_ALIASES.includes(field as any) || field.match(AGGREGATE_PATTERN)
     );
@@ -228,42 +228,24 @@ const TEMPLATE_TABLE_COLUMN: TableColumn<React.ReactText> = {
   name: '',
   aggregation: '',
   field: '',
+  eventViewField: Object.freeze({field: '', title: ''}),
+  isDragging: false,
 
   type: 'never',
   isSortable: false,
   isPrimary: false,
 };
 
-export function decodeColumnOrderAndColumnSortBy(location: Location): TableState {
-  const {query} = location;
-  return {
-    columnOrder: query ? decodeColumnOrder(query) : [],
-    columnSortBy: query ? decodeColumnSortBy(query) : [],
-  };
-}
+export function decodeColumnOrder(props: {
+  fieldnames: string[];
+  field: string[];
+  fields: Readonly<FieldType[]>;
+}): TableColumn<React.ReactText>[] {
+  const {fieldnames, field, fields} = props;
 
-export function decodeColumnOrder(
-  query: QueryWithColumnState
-): TableColumn<React.ReactText>[] {
-  const {fieldnames, field} = query;
-  const columnsRaw: {
-    aggregationField: string;
-    name: string;
-  }[] = [];
+  return field.map((f: string, index: number) => {
+    const col = {aggregationField: f, name: fieldnames[index]};
 
-  if (typeof fieldnames === 'string' && typeof field === 'string') {
-    columnsRaw.push({aggregationField: field, name: fieldnames});
-  } else if (
-    Array.isArray(fieldnames) &&
-    Array.isArray(field) &&
-    fieldnames.length === field.length
-  ) {
-    field.forEach((f, i) => {
-      columnsRaw.push({aggregationField: f, name: fieldnames[i]});
-    });
-  }
-
-  return columnsRaw.map(col => {
     const column: TableColumn<React.ReactText> = {...TEMPLATE_TABLE_COLUMN};
 
     // "field" will be split into ["field"]
@@ -282,86 +264,37 @@ export function decodeColumnOrder(
     column.key = col.aggregationField;
     column.name = col.name;
     column.type = (FIELDS[column.field] || 'never') as ColumnValueType;
+
     column.isSortable = AGGREGATIONS[column.aggregation]
       ? AGGREGATIONS[column.aggregation].isSortable
       : false;
     column.isPrimary = column.field === 'title';
 
+    column.eventViewField = {
+      title: fields[index].title,
+      field: fields[index].field,
+    };
+
     return column;
   });
 }
 
-export function decodeColumnSortBy(
-  query: QueryWithColumnState
-): TableColumnSort<React.ReactText>[] {
-  const {sort} = query;
+export function pushEventViewToLocation(props: {
+  location: Location;
+  nextEventView: EventView;
+  extraQuery?: Query;
+}) {
+  const {location, nextEventView} = props;
 
-  // Linter forced the ternary into a single line ¯\_(ツ)_/¯
-  const keys: string[] =
-    typeof sort === 'string' ? [sort] : Array.isArray(sort) ? sort : [];
+  const extraQuery = props.extraQuery || {};
 
-  return keys.map(key => {
-    const hasLeadingDash = key[0] === '-';
-
-    return {
-      key: hasLeadingDash ? key.substring(1) : key,
-      order: hasLeadingDash ? 'desc' : 'asc',
-    } as TableColumnSort<string>;
-  });
-}
-
-export function encodeColumnOrderAndColumnSortBy(
-  tableState: TableState
-): QueryWithColumnState {
-  return {
-    fieldnames: encodeColumnFieldName(tableState),
-    field: encodeColumnField(tableState),
-    sort: encodeColumnSort(tableState),
-  };
-}
-
-function encodeColumnFieldName(tableState: TableState): string[] {
-  return tableState.columnOrder.map(col => col.name);
-}
-
-function encodeColumnField(tableState: TableState): string[] {
-  return tableState.columnOrder.map(col =>
-    col.aggregation ? `${col.aggregation}(${col.field})` : col.field
-  );
-}
-
-function encodeColumnSort(tableState: TableState): string[] {
-  return tableState.columnSortBy.map(col =>
-    col.order === 'desc' ? `-${col.key}` : `${col.key}`
-  );
-}
-
-/**
- * The state of the columns is derived from `Location.query`. There are other
- * components mutating the state of the column (sidebar, etc) too.
- *
- * To make add/edit/remove tableColumns, we will update `Location.query` and
- * the changes will be propagated downwards to all the other components.
- */
-export function setColumnStateOnLocation(
-  location: Location,
-  nextColumnOrder: TableColumn<React.ReactText>[],
-  nextColumnSortBy: TableColumnSort<React.ReactText>[]
-) {
-  // Remove a column from columnSortBy if it is not in columnOrder
-  // EventView will throw an error if sorting by a column that isn't queried
-  nextColumnSortBy = nextColumnSortBy.filter(
-    sortBy => nextColumnOrder.findIndex(order => order.key === sortBy.key) > -1
-  );
+  const queryStringObject = nextEventView.generateQueryStringObject();
 
   browserHistory.push({
     ...location,
     query: {
-      ...location.query,
-      ...encodeColumnOrderAndColumnSortBy({
-        columnOrder: nextColumnOrder,
-        columnSortBy: nextColumnSortBy,
-      }),
+      ...extraQuery,
+      ...queryStringObject,
     },
   });
 }

@@ -1,9 +1,43 @@
 from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
+from exam import fixture
 
 from sentry.testutils import APITestCase
 from sentry.models import OrganizationMember, OrganizationMemberTeam, InviteStatus
+
+
+class OrganizationInviteRequestListTest(APITestCase):
+    endpoint = "sentry-api-0-organization-invite-request-index"
+
+    @fixture
+    def org(self):
+        return self.create_organization(owner=self.user)
+
+    def setUp(self):
+        self.invite_request = self.create_member(
+            email="test@example.com",
+            organization=self.org,
+            role="member",
+            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+        )
+        self.request_to_join = self.create_member(
+            email="example@gmail.com",
+            organization=self.org,
+            role="member",
+            invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
+        )
+
+    def test_simple(self):
+        self.login_as(user=self.user)
+        resp = self.get_response(self.org.slug)
+
+        assert resp.status_code == 200
+        assert len(resp.data) == 2
+        assert resp.data[0]["email"] == self.invite_request.email
+        assert resp.data[0]["inviteStatus"] == "requested_to_be_invited"
+        assert resp.data[1]["email"] == self.request_to_join.email
+        assert resp.data[1]["inviteStatus"] == "requested_to_join"
 
 
 class OrganizationInviteRequestCreateTest(APITestCase):
@@ -64,3 +98,20 @@ class OrganizationInviteRequestCreateTest(APITestCase):
         )
 
         assert resp.status_code == 400
+        assert "The user %s is already a member" % user2.email in resp.content
+
+    def test_existing_invite_request(self):
+        self.login_as(user=self.user)
+
+        invite_request = self.create_member(
+            email="foobar@example.com",
+            organization=self.org,
+            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+        )
+
+        resp = self.client.post(
+            self.url, {"email": invite_request.email, "role": "member", "teams": [self.team.slug]}
+        )
+
+        assert resp.status_code == 400
+        assert "There is an existing invite request for %s" % invite_request.email in resp.content

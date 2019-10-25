@@ -2,6 +2,7 @@ import React from 'react';
 import styled from 'react-emotion';
 import * as ReactRouter from 'react-router';
 import {Location} from 'history';
+import {omit} from 'lodash';
 
 import {Organization} from 'app/types';
 import space from 'app/styles/space';
@@ -31,13 +32,29 @@ type EventsProps = {
 export default class Events extends React.Component<EventsProps> {
   handleSearch = query => {
     const {router, location} = this.props;
+
+    const queryParams = getParams({
+      ...(location.query || {}),
+      query,
+    });
+
+    // do not propagate pagination when making a new search
+    const searchQueryParams = omit(queryParams, 'cursor');
+
     router.push({
       pathname: location.pathname,
-      query: getParams({
-        ...(location.query || {}),
-        query,
-      }),
+      query: searchQueryParams,
     });
+  };
+
+  renderTagsTable = () => {
+    const {organization, eventView, location} = this.props;
+
+    if (eventView.tags.length <= 0) {
+      return null;
+    }
+
+    return <Tags eventView={eventView} organization={organization} location={location} />;
   };
 
   render() {
@@ -65,19 +82,26 @@ export default class Events extends React.Component<EventsProps> {
           query={query}
           onSearch={this.handleSearch}
         />
-        <Container>
+        <Container hasTags={eventView.tags.length > 0}>
           <Table organization={organization} location={location} />
-          <Tags eventView={eventView} organization={organization} location={location} />
+          {this.renderTagsTable()}
         </Container>
       </React.Fragment>
     );
   }
 }
 
-const Container = styled('div')`
+const Container = styled('div')<{hasTags: boolean}>`
   display: grid;
-  grid-template-columns: auto 300px;
   grid-gap: ${space(2)};
+
+  ${props => {
+    if (props.hasTags) {
+      return 'grid-template-columns: auto 300px;';
+    }
+
+    return 'grid-template-columns: auto;';
+  }};
 `;
 
 const StyledSearchBar = styled(SearchBar)`

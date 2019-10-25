@@ -9,7 +9,7 @@ storiesOf('Utility|getDynamicText', module).add(
   withInfo(
     `
     Use this to wrap dynamic content (i.e. dates) for acceptance/snapshot tests.
-    Currently checks for existance of PERCY_TOKEN env var.
+    Currently checks for existence of PERCY_TOKEN env var.
     (storybook webpack config has webpack.DefinePlugin for "process.env.IS_PERCY")
     `
   )(() => {

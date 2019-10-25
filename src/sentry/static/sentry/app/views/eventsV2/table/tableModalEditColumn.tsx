@@ -1,5 +1,6 @@
 import React, {ReactText} from 'react';
 import styled from 'react-emotion';
+import {uniq} from 'lodash';
 
 import {t} from 'app/locale';
 import {Form, SelectField, TextField} from 'app/components/forms';
@@ -23,6 +24,7 @@ type ModalActions = {
 
 export function renderTableModalEditColumnFactory(
   organization: Organization,
+  tagKeys: null | string[],
   actions: ModalActions
 ) {
   return {
@@ -37,6 +39,7 @@ export function renderTableModalEditColumnFactory(
           organization={organization}
           indexColumnOrder={indexColumnOrder}
           column={column}
+          tagKeys={tagKeys}
           actions={{
             createColumn: actions.createColumn,
             updateColumn: actions.updateColumn,
@@ -56,6 +59,7 @@ type TableModalEditColumnFormProps = {
   organization: Organization;
   indexColumnOrder?: number;
   column?: TableColumn<ReactText>;
+  tagKeys: null | string[];
 
   actions: ModalActions & {
     onSuccess?: () => void;
@@ -65,6 +69,7 @@ type TableModalEditColumnFormProps = {
 type TableModalEditColumnFormState = {
   aggregations: Aggregation[];
   fields: Field[];
+  name: string;
 };
 
 class TableModalEditColumnBodyForm extends React.Component<
@@ -78,20 +83,29 @@ class TableModalEditColumnBodyForm extends React.Component<
     ),
     fields: filterFieldByAggregation(
       this.props.organization,
+      this.props.tagKeys,
       this.props.column ? this.props.column.aggregation : ''
     ),
+    name: this.props.column ? this.props.column.name : '',
   };
 
   onChangeAggregation = (value: Aggregation) => {
+    const {organization, tagKeys} = this.props;
     this.setState({
-      fields: filterFieldByAggregation(this.props.organization, value),
+      fields: filterFieldByAggregation(organization, tagKeys, value),
     });
   };
 
   onChangeField = (value: Field) => {
+    const name = this.state.name === '' ? String(value) : this.state.name;
     this.setState({
       aggregations: filterAggregationByField(this.props.organization, value),
+      name,
     });
+  };
+
+  onChangeName = (value: string) => {
+    this.setState({name: value});
   };
 
   onSubmitForm = (values: any) => {
@@ -127,7 +141,7 @@ class TableModalEditColumnBodyForm extends React.Component<
           initialData={{
             aggregation: column ? column.aggregation : '',
             field: column ? column.field : '',
-            name: column ? column.name : '',
+            name: this.state.name,
           }}
         >
           <FormRow>
@@ -155,8 +169,10 @@ class TableModalEditColumnBodyForm extends React.Component<
             <TextField
               required
               name="name"
+              value={this.state.name}
               label={t('Column Name')}
               placeholder="Column Name"
+              onChange={this.onChangeName}
             />
           </FormRow>
         </Form>
@@ -183,20 +199,22 @@ function filterAggregationByField(organization: Organization, f?: Field): Aggreg
   if (!organization.features.includes('transaction-events')) {
     functionList = functionList.filter(item => !TRACING_FIELDS.includes(item));
   }
-  if (!f || !FIELDS[f]) {
+  if (!f) {
     return functionList as Aggregation[];
   }
+  // Unknown fields are likely tag keys and thus strings.
+  const fieldType = FIELDS[f] || 'string';
 
-  if (FIELDS[f] === 'never') {
+  if (fieldType === 'never') {
     return [];
   }
 
   return functionList.reduce(
     (accumulator, a) => {
       if (
-        AGGREGATIONS[a].type.includes(FIELDS[f]) ||
+        AGGREGATIONS[a].type.includes(fieldType) ||
         AGGREGATIONS[a].type === '*' ||
-        FIELDS[f] === '*'
+        fieldType === '*'
       ) {
         accumulator.push(a as Aggregation);
       }
@@ -207,8 +225,15 @@ function filterAggregationByField(organization: Organization, f?: Field): Aggreg
   );
 }
 
-function filterFieldByAggregation(organization: Organization, a?: Aggregation): Field[] {
+function filterFieldByAggregation(
+  organization: Organization,
+  tagKeys: null | string[],
+  a?: Aggregation
+): Field[] {
   let fieldList = Object.keys(FIELDS);
+  if (tagKeys && tagKeys.length) {
+    fieldList = uniq(fieldList.concat(tagKeys));
+  }
   if (!organization.features.includes('transaction-events')) {
     fieldList = fieldList.filter(item => !TRACING_FIELDS.includes(item));
   }
@@ -219,14 +244,16 @@ function filterFieldByAggregation(organization: Organization, a?: Aggregation): 
 
   return fieldList.reduce(
     (accumulator, f) => {
-      if (!FIELDS[f] || FIELDS[f] === 'never') {
+      // tag keys are all strings, and values not in FIELDS is a tag.
+      const fieldType = FIELDS[f] || 'string';
+      if (fieldType === 'never') {
         return accumulator;
       }
 
       if (
-        AGGREGATIONS[a].type.includes(FIELDS[f]) ||
+        AGGREGATIONS[a].type.includes(fieldType) ||
         AGGREGATIONS[a].type === '*' ||
-        FIELDS[f] === '*'
+        fieldType === '*'
       ) {
         accumulator.push(f as Field);
       }
@@ -237,10 +264,10 @@ function filterFieldByAggregation(organization: Organization, a?: Aggregation): 
   );
 }
 
-const FormRow = styled.div`
+const FormRow = styled('div')`
   box-sizing: border-box;
 `;
-const FormRowItem = styled.div`
+const FormRowItem = styled('div')`
   display: inline-block;
   padding-right: ${space(1)};
 
@@ -255,7 +282,7 @@ const FormRowItemRight = styled(FormRowItem)`
   width: 65%;
 `;
 
-const FooterContent = styled.div`
+const FooterContent = styled('div')`
   display: flex;
   width: 100%;
 

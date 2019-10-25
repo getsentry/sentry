@@ -29,7 +29,7 @@ class OAuth2Provider(Provider):
     uses the OAuth 2.0 protocol as a means for authenticating a user.
 
     OAuth scopes are configured through the oauth_scopes class property,
-    however may be overriden using the ``config['oauth_scopes']`` object.
+    however may be overridden using the ``config['oauth_scopes']`` object.
     """
 
     oauth_access_token_url = ""

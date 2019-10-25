@@ -18,16 +18,18 @@ exports[`AccountAuthorizations renders empty 1`] = `
         >
           You can manage your own applications via the 
         </span>
-        <a
-          href="/settings/account/api/"
+        <Link
           key="2"
+          onlyActiveOnIndex={false}
+          style={Object {}}
+          to="/settings/account/api/"
         >
           <span
             key="1"
           >
             API dashboard
           </span>
-        </a>
+        </Link>
         <span
           key="3"
         >
@@ -36,19 +38,8 @@ exports[`AccountAuthorizations renders empty 1`] = `
       </span>
     </Description>
     <Panel>
-      <PanelHeader
-        disablePadding={true}
-      >
-        <Flex
-          align="center"
-        >
-          <Box
-            flex="1"
-            px={2}
-          >
-            Approved Applications
-          </Box>
-        </Flex>
+      <PanelHeader>
+        Approved Applications
       </PanelHeader>
       <PanelBody
         direction="column"

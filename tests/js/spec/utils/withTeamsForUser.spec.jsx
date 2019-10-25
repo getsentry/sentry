@@ -1,6 +1,8 @@
 import React from 'react';
 import {mount} from 'sentry-test/enzyme';
 
+import TeamActions from 'app/actions/teamActions';
+import ProjectActions from 'app/actions/projectActions';
 import withTeamsForUser from 'app/utils/withTeamsForUser';
 
 describe('withUserTeams HoC', function() {
@@ -9,6 +11,8 @@ describe('withUserTeams HoC', function() {
 
   beforeEach(function() {
     MockApiClient.clearMockResponses();
+    jest.spyOn(ProjectActions, 'loadProjects');
+    jest.spyOn(TeamActions, 'loadTeams');
   });
 
   it('forwards errors', async function() {
@@ -28,15 +32,17 @@ describe('withUserTeams HoC', function() {
     ).not.toBeNull();
   });
 
-  it('fetches teams and works', async function() {
+  it('fetches teams and loads stores', async function() {
+    const mockProjectA = TestStubs.Project({slug: 'a', id: '1'});
+    const mockProjectB = TestStubs.Project({slug: 'b', id: '2'});
     const mockTeams = [
       {
         slug: 'sentry',
-        projects: [],
+        projects: [mockProjectB],
       },
       {
         slug: 'captainplanet',
-        projects: [],
+        projects: [mockProjectA, mockProjectB],
       },
     ];
 
@@ -55,5 +61,11 @@ describe('withUserTeams HoC', function() {
         .find('MyComponent')
         .prop('teams')
     ).toEqual(mockTeams);
+
+    expect(ProjectActions.loadProjects).toHaveBeenCalledWith([
+      mockProjectB,
+      mockProjectA,
+    ]);
+    expect(TeamActions.loadTeams).toHaveBeenCalledWith(mockTeams);
   });
 });

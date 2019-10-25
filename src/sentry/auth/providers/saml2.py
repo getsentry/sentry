@@ -12,7 +12,8 @@ from six import iteritems, add_metaclass
 from six.moves.urllib.parse import urlparse
 
 from sentry import options
-from sentry.auth import Provider, AuthView
+from sentry.auth.provider import Provider
+from sentry.auth.view import AuthView
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.models import AuthProvider, Organization, OrganizationStatus
 from sentry.utils.auth import get_login_url
@@ -135,7 +136,7 @@ class SAML2ACSView(AuthView):
     def dispatch(self, request, helper):
         provider = helper.provider
 
-        # If we're authenticating during the setup piepline the provider will
+        # If we're authenticating during the setup pipeline the provider will
         # not have been configured yet, build the config first from the state
         if not provider.config:
             provider.config = provider.build_config(helper.fetch_state())
@@ -275,14 +276,14 @@ class SAML2Provider(Provider):
 
         This value will be merged into the configuration by self.build_config,
         however, should a attribute_mapping exist in the helper state at
-        configuration build time, these may be overriden.
+        configuration build time, these may be overridden.
         """
         return {}
 
     def build_config(self, state):
         config = state
 
-        # Default attriute mapping if none bound
+        # Default attribute mapping if none bound
         if "attribute_mapping" not in config:
             config["attribute_mapping"] = self.attribute_mapping()
 

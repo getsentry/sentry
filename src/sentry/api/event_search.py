@@ -72,7 +72,7 @@ def translate(pat):
     return "^" + res + "$"
 
 
-# Explaination of quoted string regex, courtesy of Matt
+# Explanation of quoted string regex, courtesy of Matt
 # "              // literal quote
 # (              // begin capture group
 #   (?:          // begin uncaptured group
@@ -550,7 +550,9 @@ def convert_search_filter_to_snuba_query(search_filter):
     if snuba_name in no_conversion:
         return
     elif snuba_name == "environment":
+        # conditions added to env_conditions are OR'd
         env_conditions = []
+
         _envs = set(value if isinstance(value, (list, tuple)) else [value])
         # the "no environment" environment is null in snuba
         if "" in _envs:
@@ -559,7 +561,7 @@ def convert_search_filter_to_snuba_query(search_filter):
             env_conditions.append(["environment", operator, None])
 
         if _envs:
-            env_conditions.append(["environment", "IN", list(_envs)])
+            env_conditions.append(["environment", "IN", _envs])
 
         return env_conditions
 
@@ -853,18 +855,9 @@ def get_reference_event_conditions(snuba_args, event_slug):
     This is a key part of pagination in the event details modal and
     summary graph navigation.
     """
-    field_names = [get_snuba_column_name(field) for field in snuba_args.get("groupby", [])]
-    # translate the field names into enum columns
-    columns = []
-    has_tags = False
-    for field in field_names:
-        if field.startswith("tags["):
-            has_tags = True
-        else:
-            columns.append(eventstore.Columns(field))
-
-    if has_tags:
-        columns.extend([eventstore.Columns.TAGS_KEY, eventstore.Columns.TAGS_VALUE])
+    groupby = snuba_args.get("groupby", [])
+    columns = eventstore.get_columns_from_aliases(groupby)
+    field_names = [get_snuba_column_name(field) for field in groupby]
 
     # Fetch the reference event ensuring the fields in the groupby
     # clause are present.

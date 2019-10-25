@@ -214,7 +214,7 @@ class KeyRateLimitsForm extends React.Component {
       <Form saveOnBlur apiEndpoint={apiEndpoint} apiMethod="PUT" initialData={data}>
         <Feature
           features={['projects:rate-limits']}
-          hookName="rate-limits"
+          hookName="feature-disabled:rate-limits"
           renderDisabled={({children, ...props}) =>
             children({...props, renderDisabled: disabledAlert})
           }

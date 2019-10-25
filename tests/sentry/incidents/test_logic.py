@@ -36,6 +36,7 @@ from sentry.incidents.logic import (
     delete_alert_rule_trigger,
     delete_alert_rule_trigger_action,
     DEFAULT_ALERT_RULE_RESOLUTION,
+    get_actions_for_trigger,
     get_excluded_projects_for_alert_rule,
     get_incident_aggregates,
     get_incident_event_stats,
@@ -571,7 +572,7 @@ class CreateInitialEventStatsSnapshotTest(TestCase, BaseIncidentsTest):
             assert [row[1] for row in event_stat_snapshot.values] == [1, 1, 2, 1]
 
 
-class GetIncidentSuscribersTest(TestCase, BaseIncidentsTest):
+class GetIncidentSubscribersTest(TestCase, BaseIncidentsTest):
     def test_simple(self):
         incident = self.create_incident()
         assert list(get_incident_subscribers(incident)) == []
@@ -1389,3 +1390,16 @@ class DeleteAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         delete_alert_rule_trigger_action(self.action)
         with self.assertRaises(AlertRuleTriggerAction.DoesNotExist):
             AlertRuleTriggerAction.objects.get(id=action_id)
+
+
+class GetActionsForTriggerTest(BaseAlertRuleTriggerActionTest, TestCase):
+    def test(self):
+        assert list(get_actions_for_trigger(self.trigger)) == []
+        action = create_alert_rule_trigger_action(
+            self.trigger,
+            AlertRuleTriggerAction.Type.EMAIL,
+            AlertRuleTriggerAction.TargetType.USER,
+            target_identifier=six.text_type(self.user.id),
+            target_display="hello",
+        )
+        assert list(get_actions_for_trigger(self.trigger)) == [action]

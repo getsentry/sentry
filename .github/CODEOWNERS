@@ -11,13 +11,7 @@
 /src/sentry/tsdb/redissnuba.py  @getsentry/owners-snuba
 /src/sentry/search/snuba/       @getsentry/owners-snuba
 /src/sentry/tagstore/snuba/     @getsentry/owners-snuba
-
-# Ted stuff
-/src/sentry/similarity/              @tkaemming
-/src/sentry/receivers/similarity.py  @tkaemming
-/src/sentry/digests/                 @tkaemming
-/src/sentry/tasks/reports.py         @tkaemming
-/src/sentry/tasks/digests.py         @tkaemming
+/src/sentry/interfaces/security.py @getsentry/owners-ingest
 
 # Security
 /src/sentry/net/  @getsentry/security

@@ -28,7 +28,11 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
         subject = "Sentry Integration Publication Request from %s" % sentry_app.owner.slug
 
         email.send_mail(
-            subject, message, options.get("mail.from"), ["partners@sentry.io"], fail_silently=False
+            subject,
+            message,
+            options.get("mail.from"),
+            ["partners@sentry.io"],
+            reply_to=[request.user.email],
         )
 
         return Response(status=201)

@@ -70,7 +70,7 @@ class SnubaTSDB(BaseTSDB):
             snuba.Dataset.Outcomes,
             "org_id",
             "times_seen",
-            [["outcome", "=", outcomes.Outcome.ACCEPTED]],
+            [["outcome", "!=", outcomes.Outcome.INVALID]],
         ),
         TSDBModel.organization_total_rejected: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,
@@ -88,7 +88,7 @@ class SnubaTSDB(BaseTSDB):
             snuba.Dataset.Outcomes,
             "project_id",
             "times_seen",
-            [["outcome", "=", outcomes.Outcome.ACCEPTED]],
+            [["outcome", "!=", outcomes.Outcome.INVALID]],
         ),
         TSDBModel.project_total_rejected: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,

@@ -8,7 +8,7 @@ import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import {Panel, PanelItem, PanelBody, PanelHeader} from 'app/components/panels';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
-import Form from 'app/views/settings/components/forms/form';
+import Form, {FieldValue} from 'app/views/settings/components/forms/form';
 import FormModel from 'app/views/settings/components/forms/model';
 import FormField from 'app/views/settings/components/forms/formField';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
@@ -268,6 +268,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
               size="small"
               icon="icon-trash"
               data-test-id="token-delete"
+              type="button"
             >
               {t('Revoke')}
             </Button>
@@ -279,7 +280,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
     }
   };
 
-  onFieldChange = (name: string, value: string | number): void => {
+  onFieldChange = (name: string, value: FieldValue): void => {
     if (name === 'webhookUrl' && !value && this.isInternal) {
       //if no webhook, then set isAlertable to false
       this.form.setValue('isAlertable', false);
@@ -357,6 +358,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
                   icon="icon-circle-add"
                   onClick={evt => this.onAddToken(evt)}
                   data-test-id="token-add"
+                  type="button"
                 >
                   {t('New Token')}
                 </Button>

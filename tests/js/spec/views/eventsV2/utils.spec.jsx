@@ -2,13 +2,13 @@ import {mount, mountWithTheme} from 'sentry-test/enzyme';
 import {browserHistory} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import EventView from 'app/views/eventsV2/eventView';
 import {
   getFieldRenderer,
   getAggregateAlias,
   getEventTagSearchUrl,
-  decodeColumnOrderAndColumnSortBy,
-  encodeColumnOrderAndColumnSortBy,
-  setColumnStateOnLocation,
+  decodeColumnOrder,
+  pushEventViewToLocation,
 } from 'app/views/eventsV2/utils';
 
 describe('eventTagSearchUrl()', function() {
@@ -245,286 +245,161 @@ describe('getFieldRenderer', function() {
   });
 });
 
-describe('decodeColumnOrderAndColumnSortBy', function() {
+describe('decodeColumnOrder', function() {
   it('can decode 0 elements', function() {
-    const location = {query: {}};
-    const table = decodeColumnOrderAndColumnSortBy(location);
+    const results = decodeColumnOrder({
+      fieldnames: [],
+      field: [],
+    });
 
-    expect(Array.isArray(table.columnOrder)).toBeTruthy();
-    expect(Array.isArray(table.columnSortBy)).toBeTruthy();
-    expect(table.columnOrder).toHaveLength(0);
-    expect(table.columnSortBy).toHaveLength(0);
+    expect(Array.isArray(results)).toBeTruthy();
+    expect(results).toHaveLength(0);
   });
 
-  it('can decode 1 element (typed as a string)', function() {
-    const location = {
-      query: {
-        field: 'a',
-        fieldnames: 'ant',
-        sort: 'a',
-      },
-    };
-    const table = decodeColumnOrderAndColumnSortBy(location);
+  it('can decode fields', function() {
+    const results = decodeColumnOrder({
+      field: ['title'],
+      fieldnames: ['Event title'],
+      fields: [{field: 'title', title: 'Event title'}],
+    });
 
-    expect(Array.isArray(table.columnOrder)).toBeTruthy();
-    expect(Array.isArray(table.columnSortBy)).toBeTruthy();
-    expect(table.columnOrder).toHaveLength(1);
-    expect(table.columnSortBy).toHaveLength(1);
+    expect(Array.isArray(results)).toBeTruthy();
 
-    expect(table.columnOrder[0]).toMatchObject({
-      key: 'a',
-      name: 'ant',
+    expect(results[0]).toEqual({
+      key: 'title',
+      name: 'Event title',
       aggregation: '',
-      field: 'a',
-    });
-    expect(table.columnSortBy[0]).toMatchObject({
-      key: 'a',
-      order: 'asc',
-    });
-  });
-
-  it('can decode 2+ element (typed as an array)', function() {
-    const location = {
-      query: {
-        field: ['a', 'b'],
-        fieldnames: ['ant', 'bee'],
-        sort: ['-a'],
-      },
-    };
-    const table = decodeColumnOrderAndColumnSortBy(location);
-
-    expect(Array.isArray(table.columnOrder)).toBeTruthy();
-    expect(Array.isArray(table.columnSortBy)).toBeTruthy();
-    expect(table.columnOrder).toHaveLength(2);
-    expect(table.columnSortBy).toHaveLength(1);
-
-    expect(table.columnOrder[0]).toMatchObject({
-      key: 'a',
-      name: 'ant',
-      aggregation: '',
-      field: 'a',
-    });
-    expect(table.columnOrder[1]).toMatchObject({
-      key: 'b',
-      name: 'bee',
-      aggregation: '',
-      field: 'b',
-    });
-    expect(table.columnSortBy[0]).toMatchObject({
-      key: 'a',
-      order: 'desc',
+      field: 'title',
+      eventViewField: {field: 'title', title: 'Event title'},
+      isDragging: false,
+      isPrimary: true,
+      isSortable: false,
+      type: 'string',
     });
   });
 
-  it('can decode elements with aggregate functions', function() {
-    const location = {
-      query: {
-        field: ['a(b)'],
-        fieldnames: ['antbee'],
-        sort: ['-a(b)'],
-      },
-    };
-    const table = decodeColumnOrderAndColumnSortBy(location);
-
-    expect(Array.isArray(table.columnOrder)).toBeTruthy();
-    expect(Array.isArray(table.columnSortBy)).toBeTruthy();
-    expect(table.columnOrder).toHaveLength(1);
-    expect(table.columnSortBy).toHaveLength(1);
-
-    expect(table.columnOrder[0]).toMatchObject({
-      key: 'a(b)',
-      name: 'antbee',
-      aggregation: 'a',
-      field: 'b',
+  it('can decode aggregate functions with no arguments', function() {
+    const results = decodeColumnOrder({
+      field: ['count()'],
+      fieldnames: ['projects'],
+      fields: [{field: 'count()', title: 'projects'}],
     });
-    expect(table.columnSortBy[0]).toMatchObject({
-      key: 'a(b)',
-      order: 'desc',
-    });
-  });
 
-  it('can decode elements with aggregate functions but no fields', function() {
-    const location = {
-      query: {
-        field: ['a()'],
-        fieldnames: ['ant()'],
-        sort: ['-a()'],
-      },
-    };
-    const table = decodeColumnOrderAndColumnSortBy(location);
+    expect(Array.isArray(results)).toBeTruthy();
 
-    expect(Array.isArray(table.columnOrder)).toBeTruthy();
-    expect(Array.isArray(table.columnSortBy)).toBeTruthy();
-    expect(table.columnOrder).toHaveLength(1);
-    expect(table.columnSortBy).toHaveLength(1);
-
-    expect(table.columnOrder[0]).toMatchObject({
-      key: 'a()',
-      name: 'ant()',
-      aggregation: 'a',
+    expect(results[0]).toEqual({
+      key: 'count()',
+      name: 'projects',
+      aggregation: 'count',
       field: '',
+      eventViewField: {field: 'count()', title: 'projects'},
+      isDragging: false,
+      isPrimary: false,
+      isSortable: true,
+      type: 'never',
     });
-    expect(table.columnSortBy[0]).toMatchObject({
-      key: 'a()',
-      order: 'desc',
+  });
+
+  it('can decode elements with aggregate functions with arguments', function() {
+    const results = decodeColumnOrder({
+      field: ['avg(transaction.duration)'],
+      fieldnames: ['average'],
+      fields: [{field: 'avg(transaction.duration)', title: 'average'}],
+    });
+
+    expect(Array.isArray(results)).toBeTruthy();
+
+    expect(results[0]).toEqual({
+      key: 'avg(transaction.duration)',
+      name: 'average',
+      aggregation: 'avg',
+      field: 'transaction.duration',
+      eventViewField: {field: 'avg(transaction.duration)', title: 'average'},
+      isDragging: false,
+      isPrimary: false,
+      isSortable: true,
+      type: 'duration',
     });
   });
 });
 
-describe('encodeColumnOrderAndColumnSortBy', function() {
-  it('can encode 0 elements', function() {
-    const table = {
-      columnOrder: [],
-      columnSortBy: [],
-    };
+describe('pushEventViewToLocation', function() {
+  const state = {
+    id: '1234',
+    name: 'best query',
+    fields: [
+      {field: 'count()', title: 'events'},
+      {field: 'project.id', title: 'project'},
+    ],
+    sorts: [{field: 'count', kind: 'desc'}],
+    tags: ['foo', 'bar'],
+    query: 'event.type:error',
+    project: [42],
+    start: '2019-10-01T00:00:00',
+    end: '2019-10-02T00:00:00',
+    statsPeriod: '14d',
+    environment: ['staging'],
+  };
 
-    const query = encodeColumnOrderAndColumnSortBy(table);
-
-    expect(Array.isArray(query.fieldnames)).toBeTruthy();
-    expect(Array.isArray(query.field)).toBeTruthy();
-    expect(Array.isArray(query.sort)).toBeTruthy();
-    expect(query.fieldnames).toHaveLength(0);
-    expect(query.field).toHaveLength(0);
-    expect(query.sort).toHaveLength(0);
-  });
-
-  it('can encode an array of elements', function() {
-    const table = {
-      columnOrder: [
-        {
-          key: 'a',
-          name: 'ant',
-          aggregation: '',
-          field: 'a',
-        },
-        {
-          key: 'a(b)',
-          name: 'antbee',
-          aggregation: 'a',
-          field: 'b',
-        },
-      ],
-      columnSortBy: [
-        {
-          key: 'a',
-          order: 'asc',
-        },
-        {
-          key: 'a(b)',
-          order: 'desc',
-        },
-      ],
-    };
-
-    const query = encodeColumnOrderAndColumnSortBy(table);
-    expect(Array.isArray(query.fieldnames)).toBeTruthy();
-    expect(Array.isArray(query.field)).toBeTruthy();
-    expect(Array.isArray(query.sort)).toBeTruthy();
-
-    expect(query.fieldnames).toHaveLength(2);
-    expect(query.fieldnames[0]).toBe('ant');
-    expect(query.fieldnames[1]).toBe('antbee');
-
-    expect(query.field).toHaveLength(2);
-    expect(query.field[0]).toBe('a');
-    expect(query.field[1]).toBe('a(b)');
-
-    expect(query.sort).toHaveLength(2);
-    expect(query.sort[0]).toBe('a');
-    expect(query.sort[1]).toBe('-a(b)');
-  });
-
-  it('will build field using "aggregate(field)" when encoding', function() {
-    const table = {
-      columnOrder: [
-        {
-          key: 'someKey',
-          name: 'antbee',
-          aggregation: 'a',
-          field: 'b',
-        },
-      ],
-      columnSortBy: [],
-    };
-
-    const query = encodeColumnOrderAndColumnSortBy(table);
-    expect(Array.isArray(query.fieldnames)).toBeTruthy();
-    expect(Array.isArray(query.field)).toBeTruthy();
-    expect(Array.isArray(query.sort)).toBeTruthy();
-
-    expect(query.fieldnames).toHaveLength(1);
-    expect(query.fieldnames[0]).toBe('antbee');
-
-    expect(query.field).toHaveLength(1);
-    expect(query.field[0]).toBe('a(b)');
-  });
-});
-
-describe('setColumnStateOnLocation', function() {
   const location = {
-    boba: {
-      fett: 'no',
-      tea: 'yes',
-    },
     query: {
-      star: {
-        trek: 'maybe',
-        wars: 'perhaps',
-      },
+      bestCountry: 'canada',
     },
   };
 
-  it('will copy Location object correctly', function() {
-    setColumnStateOnLocation(location, [], []);
+  it('correct query string objecet pushed to history', function() {
+    const eventView = new EventView(state);
 
-    expect(browserHistory.push).toHaveBeenCalledWith(
-      expect.objectContaining({
-        boba: expect.objectContaining({
-          fett: expect.any(String),
-          tea: expect.any(String),
-        }),
-        query: expect.objectContaining({
-          star: expect.objectContaining({
-            trek: expect.any(String),
-            wars: expect.any(String),
-          }),
-        }),
-      })
-    );
+    pushEventViewToLocation({
+      location,
+      nextEventView: eventView,
+    });
+
+    expect(browserHistory.push).toHaveBeenCalledWith({
+      query: {
+        id: '1234',
+        name: 'best query',
+        field: ['count()', 'project.id'],
+        fieldnames: ['events', 'project'],
+        sort: ['-count'],
+        tag: ['foo', 'bar'],
+        query: 'event.type:error',
+        project: [42],
+        start: '2019-10-01T00:00:00',
+        end: '2019-10-02T00:00:00',
+        statsPeriod: '14d',
+        environment: ['staging'],
+      },
+    });
   });
 
-  it('will remove extraneous columnSortBy elements', function() {
-    const table = {
-      columnOrder: [
-        {
-          key: 'a',
-          name: 'ant',
-          aggregation: '',
-          field: 'a',
-        },
-      ],
-      columnSortBy: [
-        {
-          key: 'a',
-          order: 'asc',
-        },
-        {
-          key: 'a(b)',
-          order: 'desc',
-        },
-      ],
-    };
+  it('extra query params', function() {
+    const eventView = new EventView(state);
 
-    setColumnStateOnLocation(location, table.columnOrder, table.columnSortBy);
+    pushEventViewToLocation({
+      location,
+      nextEventView: eventView,
+      extraQuery: {
+        cursor: 'some cursor',
+      },
+    });
 
-    expect(browserHistory.push).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          fieldnames: expect.arrayContaining(['ant']),
-          field: expect.arrayContaining(['a']),
-          sort: expect.arrayContaining(['a']),
-        }),
-      })
-    );
+    expect(browserHistory.push).toHaveBeenCalledWith({
+      query: {
+        id: '1234',
+        name: 'best query',
+        field: ['count()', 'project.id'],
+        fieldnames: ['events', 'project'],
+        sort: ['-count'],
+        tag: ['foo', 'bar'],
+        query: 'event.type:error',
+        project: [42],
+        start: '2019-10-01T00:00:00',
+        end: '2019-10-02T00:00:00',
+        statsPeriod: '14d',
+        environment: ['staging'],
+        cursor: 'some cursor',
+      },
+    });
   });
 });

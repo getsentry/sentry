@@ -5,6 +5,7 @@ const fs = require('fs');
 
 const {CleanWebpackPlugin} = require('clean-webpack-plugin'); // installed via npm
 const webpack = require('webpack');
+const LastBuiltPlugin = require('./build-utils/last-built-plugin');
 const OptionalLocaleChunkPlugin = require('./build-utils/optional-locale-chunk-plugin');
 const IntegrationDocsFetchPlugin = require('./build-utils/integration-docs-fetch-plugin');
 const ExtractTextPlugin = require('mini-css-extract-plugin');
@@ -28,9 +29,10 @@ const SENTRY_BACKEND_PORT = env.SENTRY_BACKEND_PORT;
 const SENTRY_WEBPACK_PROXY_PORT = env.SENTRY_WEBPACK_PROXY_PORT;
 const USE_HOT_MODULE_RELOAD =
   !IS_PRODUCTION && SENTRY_BACKEND_PORT && SENTRY_WEBPACK_PROXY_PORT;
+const NO_DEV_SERVER = env.NO_DEV_SERVER;
 
 // Deploy previews are built using netlify. We can check if we're in netlifys
-// build process by checking the existance of the PULL_REQUEST env var.
+// build process by checking the existence of the PULL_REQUEST env var.
 //
 // See: https://www.netlify.com/docs/continuous-deployment/#environment-variables
 const DEPLOY_PREVIEW_CONFIG = env.PULL_REQUEST && {
@@ -144,7 +146,7 @@ supportedLocales
   });
 
 /**
- * Restirct translation files that are pulled in through app/translations.jsx
+ * Restrict translation files that are pulled in through app/translations.jsx
  * and through moment/locale/* to only those which we create bundles for via
  * locale/catalogs.json.
  */
@@ -285,6 +287,7 @@ const appConfig = {
       flattening: true, // used by a dependency of react-mentions
       shorthands: true,
       paths: true,
+      exotics: true,
     }),
 
     /**
@@ -308,7 +311,7 @@ const appConfig = {
     new CopyPlugin([{from: path.join(staticPrefix, 'app', 'index.html')}]),
 
     /**
-     * Defines environemnt specific flags.
+     * Defines environment specific flags.
      */
     new webpack.DefinePlugin({
       'process.env': {
@@ -321,7 +324,7 @@ const appConfig = {
 
     /**
      * See above for locale chunks. These plugins help with that
-     * funcationality.
+     * functionality.
      */
     new OptionalLocaleChunkPlugin(),
 
@@ -349,6 +352,10 @@ const appConfig = {
   output: {
     path: distPath,
     filename: '[name].js',
+
+    // Rename global that is used to async load chunks
+    // Avoids 3rd party js from overwriting the default name (webpackJsonp)
+    jsonpFunction: 'sntryWpJsonp',
     sourceMapFilename: '[name].js.map',
   },
   optimization: {
@@ -373,8 +380,12 @@ if (IS_TEST || IS_STORYBOOK) {
   appConfig.resolve.alias['integration-docs-platforms'] = plugin.modulePath;
 }
 
+if (!IS_PRODUCTION) {
+  appConfig.plugins.push(new LastBuiltPlugin({basePath: __dirname}));
+}
+
 // Dev only! Hot module reloading
-if (USE_HOT_MODULE_RELOAD) {
+if (USE_HOT_MODULE_RELOAD && !NO_DEV_SERVER) {
   const backendAddress = `http://localhost:${SENTRY_BACKEND_PORT}/`;
 
   appConfig.plugins.push(new webpack.HotModuleReplacementPlugin());
@@ -407,7 +418,7 @@ if (USE_HOT_MODULE_RELOAD) {
   // XXX(epurkhiser): Sentry (development) can be run in an experimental
   // pure-SPA mode, where ONLY /api* requests are proxied directly to the API
   // backend, otherwise ALL requests are rewritten to a development index.html.
-  // Thus completely seperating the frontend from serving any pages through the
+  // Thus completely separating the frontend from serving any pages through the
   // backend.
   //
   // THIS IS EXPERIMENTAL. Various sentry pages still rely on django to serve

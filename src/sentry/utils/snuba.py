@@ -12,7 +12,6 @@ import re
 import six
 import time
 import urllib3
-import uuid
 
 from concurrent.futures import ThreadPoolExecutor
 from django.conf import settings
@@ -30,6 +29,7 @@ from sentry.models import (
 from sentry.net.http import connection_from_url
 from sentry.utils import metrics, json
 from sentry.utils.dates import to_timestamp
+from sentry.eventstore.base import Columns
 
 # TODO remove this when Snuba accepts more than 500 issues
 MAX_ISSUES = 500
@@ -49,110 +49,12 @@ OVERRIDE_OPTIONS = {
 # a tag with the same name. Existing search patterns expect to refer to the tag,
 # so we support <real_column_name>.name to refer to the top level column name.
 SENTRY_SNUBA_MAP = {
-    # general
-    "id": "event_id",
-    "project.id": "project_id",
-    # We support platform as both tag and a real column.
-    "platform.name": "platform",
-    "message": "message",
-    "title": "title",
-    "location": "location",
-    "culprit": "culprit",
-    "issue.id": "issue",
-    "timestamp": "timestamp",
-    "time": "time",
-    "transaction": "transaction",
-    # We support type as both tag and a real column
-    "event.type": "type",
-    # user
-    "user.id": "user_id",
-    "user.email": "email",
-    "user.username": "username",
-    "user.ip": "ip_address",
-    # sdk
-    "sdk.name": "sdk_name",
-    "sdk.version": "sdk_version",
-    # http
-    "http.method": "http_method",
-    "http.url": "http_referer",
-    # os
-    "os.build": "os_build",
-    "os.kernel_version": "os_kernel_version",
-    # device
-    "device.name": "device_name",
-    "device.brand": "device_brand",
-    "device.locale": "device_locale",
-    "device.uuid": "device_uuid",
-    "device.model_id": "device_model_id",
-    "device.arch": "device_arch",
-    "device.battery_level": "device_battery_level",
-    "device.orientation": "device_orientation",
-    "device.simulator": "device_simulator",
-    "device.online": "device_online",
-    "device.charging": "device_charging",
-    # geo
-    "geo.country_code": "geo_country_code",
-    "geo.region": "geo_region",
-    "geo.city": "geo_city",
-    # error, stack
-    "error.type": "exception_stacks.type",
-    "error.value": "exception_stacks.value",
-    "error.mechanism": "exception_stacks.mechanism_type",
-    "error.handled": "exception_stacks.mechanism_handled",
-    "stack.abs_path": "exception_frames.abs_path",
-    "stack.filename": "exception_frames.filename",
-    "stack.package": "exception_frames.package",
-    "stack.module": "exception_frames.module",
-    "stack.function": "exception_frames.function",
-    "stack.in_app": "exception_frames.in_app",
-    "stack.colno": "exception_frames.colno",
-    "stack.lineno": "exception_frames.lineno",
-    "stack.stack_level": "exception_frames.stack_level",
-    # tags, contexts
-    "tags.key": "tags.key",
-    "tags.value": "tags.value",
-    "tags_key": "tags_key",
-    "tags_value": "tags_value",
-    "contexts.key": "contexts.key",
-    "contexts.value": "contexts.value",
-    # misc
-    "environment": "environment",
-    "release": "tags[sentry:release]",
-    "user": "tags[sentry:user]",
+    col.value.alias: col.value.event_name for col in Columns if col.value.event_name is not None
 }
-
 TRANSACTIONS_SENTRY_SNUBA_MAP = {
-    # general
-    "id": "event_id",
-    "project.id": "project_id",
-    "trace_id": "trace_id",
-    "span_id": "span_id",
-    "title": "transaction_name",
-    "message": "transaction_name",
-    "transaction": "transaction_name",
-    "transaction.op": "transaction_op",
-    "platform.name": "platform",
-    "environment": "environment",
-    "release": "release",
-    # Time related properties
-    "transaction.duration": "duration",
-    # User
-    "user": "user",
-    "user.id": "user_id",
-    "user.email": "user_email",
-    "user.username": "user_name",
-    "user.ip": "ip_address_v4",
-    # tags, contexts
-    "tags.key": "tags.key",
-    "tags.value": "tags.value",
-    "tags_key": "tags_key",
-    "tags_value": "tags_value",
-    "contexts.key": "contexts.key",
-    "contexts.value": "contexts.value",
-    # Shim to make queries that can act on
-    # events or transactions work more smoothly.
-    "timestamp": "finish_ts",
-    "time": "bucketed_end",
+    col.value.alias: col.value.transaction_name
+    for col in Columns
+    if col.value.transaction_name is not None
 }
 
 
@@ -391,6 +293,13 @@ def detect_dataset(query_args, aliased_conditions=False):
             "transaction",
         ]:
             return Dataset.Transactions
+
+        if condition == ["event.type", "!=", "transaction"] or condition == [
+            "type",
+            "!=",
+            "transaction",
+        ]:
+            return Dataset.Events
 
     for field in query_args.get("selected_columns") or []:
         if isinstance(field, six.string_types) and field in transaction_fields:
@@ -1042,12 +951,6 @@ def constrain_condition_to_dataset(cond, dataset):
             if name is None:
                 return None
             cond[0] = name
-            # Reformat 32 byte uuids to 36 byte variants.
-            # The transactions dataset requires properly formatted uuid values.
-            # But the rest of sentry isn't aware of that requirement.
-            if dataset == Dataset.Transactions and name == "event_id" and len(cond[2]) == 32:
-                cond[2] = six.text_type(uuid.UUID(cond[2]))
-
             return cond
         if isinstance(cond[0], (list, tuple)):
             if get_function_index(cond[0]) is not None:
