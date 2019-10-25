@@ -202,14 +202,14 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
         ]
       }
     >
-      <withConfig(AccessContainer)
+      <withConfig(WithOrganizationMockWrapper)
         access={
           Array [
             "project:write",
           ]
         }
       >
-        <AccessContainer
+        <WithOrganizationMockWrapper
           access={
             Array [
               "project:write",
@@ -237,7 +237,7 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
             }
           }
         >
-          <Access
+          <AccessContainer
             access={
               Array [
                 "project:write",
@@ -262,23 +262,6 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
                   "permissions": Set {},
                   "username": "foo@example.com",
                 },
-              }
-            }
-            configUser={
-              Object {
-                "email": "foo@example.com",
-                "flags": Object {
-                  "newsletter_consent_prompt": false,
-                },
-                "hasPasswordAuth": true,
-                "id": "1",
-                "isAuthenticated": true,
-                "name": "Foo Bar",
-                "options": Object {
-                  "timezone": "UTC",
-                },
-                "permissions": Set {},
-                "username": "foo@example.com",
               }
             }
             organization={
@@ -309,11 +292,86 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
                 "teams": Array [],
               }
             }
-            renderNoAccessMessage={false}
-            requireAll={true}
-          />
-        </AccessContainer>
-      </withConfig(AccessContainer)>
+          >
+            <Access
+              access={
+                Array [
+                  "project:write",
+                ]
+              }
+              config={
+                Object {
+                  "features": Set {},
+                  "messages": Array [],
+                  "user": Object {
+                    "email": "foo@example.com",
+                    "flags": Object {
+                      "newsletter_consent_prompt": false,
+                    },
+                    "hasPasswordAuth": true,
+                    "id": "1",
+                    "isAuthenticated": true,
+                    "name": "Foo Bar",
+                    "options": Object {
+                      "timezone": "UTC",
+                    },
+                    "permissions": Set {},
+                    "username": "foo@example.com",
+                  },
+                }
+              }
+              configUser={
+                Object {
+                  "email": "foo@example.com",
+                  "flags": Object {
+                    "newsletter_consent_prompt": false,
+                  },
+                  "hasPasswordAuth": true,
+                  "id": "1",
+                  "isAuthenticated": true,
+                  "name": "Foo Bar",
+                  "options": Object {
+                    "timezone": "UTC",
+                  },
+                  "permissions": Set {},
+                  "username": "foo@example.com",
+                }
+              }
+              isSuperuser={false}
+              organization={
+                Object {
+                  "access": Array [
+                    "org:read",
+                    "org:write",
+                    "org:admin",
+                    "org:integrations",
+                    "project:read",
+                    "project:write",
+                    "project:admin",
+                    "team:read",
+                    "team:write",
+                    "team:admin",
+                  ],
+                  "features": Array [],
+                  "id": "3",
+                  "name": "Organization Name",
+                  "onboardingTasks": Array [],
+                  "projects": Array [],
+                  "scrapeJavaScript": true,
+                  "slug": "org-slug",
+                  "status": Object {
+                    "id": "active",
+                    "name": "active",
+                  },
+                  "teams": Array [],
+                }
+              }
+              renderNoAccessMessage={false}
+              requireAll={true}
+            />
+          </AccessContainer>
+        </WithOrganizationMockWrapper>
+      </withConfig(WithOrganizationMockWrapper)>
     </PermissionAlert>
     <Panel>
       <Component
@@ -585,14 +643,14 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
         ]
       }
     >
-      <withConfig(AccessContainer)
+      <withConfig(WithOrganizationMockWrapper)
         access={
           Array [
             "project:write",
           ]
         }
       >
-        <AccessContainer
+        <WithOrganizationMockWrapper
           access={
             Array [
               "project:write",
@@ -620,7 +678,7 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
             }
           }
         >
-          <Access
+          <AccessContainer
             access={
               Array [
                 "project:write",
@@ -645,23 +703,6 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
                   "permissions": Set {},
                   "username": "foo@example.com",
                 },
-              }
-            }
-            configUser={
-              Object {
-                "email": "foo@example.com",
-                "flags": Object {
-                  "newsletter_consent_prompt": false,
-                },
-                "hasPasswordAuth": true,
-                "id": "1",
-                "isAuthenticated": true,
-                "name": "Foo Bar",
-                "options": Object {
-                  "timezone": "UTC",
-                },
-                "permissions": Set {},
-                "username": "foo@example.com",
               }
             }
             organization={
@@ -692,11 +733,86 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
                 "teams": Array [],
               }
             }
-            renderNoAccessMessage={false}
-            requireAll={true}
-          />
-        </AccessContainer>
-      </withConfig(AccessContainer)>
+          >
+            <Access
+              access={
+                Array [
+                  "project:write",
+                ]
+              }
+              config={
+                Object {
+                  "features": Set {},
+                  "messages": Array [],
+                  "user": Object {
+                    "email": "foo@example.com",
+                    "flags": Object {
+                      "newsletter_consent_prompt": false,
+                    },
+                    "hasPasswordAuth": true,
+                    "id": "1",
+                    "isAuthenticated": true,
+                    "name": "Foo Bar",
+                    "options": Object {
+                      "timezone": "UTC",
+                    },
+                    "permissions": Set {},
+                    "username": "foo@example.com",
+                  },
+                }
+              }
+              configUser={
+                Object {
+                  "email": "foo@example.com",
+                  "flags": Object {
+                    "newsletter_consent_prompt": false,
+                  },
+                  "hasPasswordAuth": true,
+                  "id": "1",
+                  "isAuthenticated": true,
+                  "name": "Foo Bar",
+                  "options": Object {
+                    "timezone": "UTC",
+                  },
+                  "permissions": Set {},
+                  "username": "foo@example.com",
+                }
+              }
+              isSuperuser={false}
+              organization={
+                Object {
+                  "access": Array [
+                    "org:read",
+                    "org:write",
+                    "org:admin",
+                    "org:integrations",
+                    "project:read",
+                    "project:write",
+                    "project:admin",
+                    "team:read",
+                    "team:write",
+                    "team:admin",
+                  ],
+                  "features": Array [],
+                  "id": "3",
+                  "name": "Organization Name",
+                  "onboardingTasks": Array [],
+                  "projects": Array [],
+                  "scrapeJavaScript": true,
+                  "slug": "org-slug",
+                  "status": Object {
+                    "id": "active",
+                    "name": "active",
+                  },
+                  "teams": Array [],
+                }
+              }
+              renderNoAccessMessage={false}
+              requireAll={true}
+            />
+          </AccessContainer>
+        </WithOrganizationMockWrapper>
+      </withConfig(WithOrganizationMockWrapper)>
     </PermissionAlert>
     <Panel>
       <Component
@@ -968,14 +1084,14 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
         ]
       }
     >
-      <withConfig(AccessContainer)
+      <withConfig(WithOrganizationMockWrapper)
         access={
           Array [
             "project:write",
           ]
         }
       >
-        <AccessContainer
+        <WithOrganizationMockWrapper
           access={
             Array [
               "project:write",
@@ -1003,7 +1119,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
             }
           }
         >
-          <Access
+          <AccessContainer
             access={
               Array [
                 "project:write",
@@ -1028,23 +1144,6 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                   "permissions": Set {},
                   "username": "foo@example.com",
                 },
-              }
-            }
-            configUser={
-              Object {
-                "email": "foo@example.com",
-                "flags": Object {
-                  "newsletter_consent_prompt": false,
-                },
-                "hasPasswordAuth": true,
-                "id": "1",
-                "isAuthenticated": true,
-                "name": "Foo Bar",
-                "options": Object {
-                  "timezone": "UTC",
-                },
-                "permissions": Set {},
-                "username": "foo@example.com",
               }
             }
             organization={
@@ -1075,11 +1174,86 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                 "teams": Array [],
               }
             }
-            renderNoAccessMessage={false}
-            requireAll={true}
-          />
-        </AccessContainer>
-      </withConfig(AccessContainer)>
+          >
+            <Access
+              access={
+                Array [
+                  "project:write",
+                ]
+              }
+              config={
+                Object {
+                  "features": Set {},
+                  "messages": Array [],
+                  "user": Object {
+                    "email": "foo@example.com",
+                    "flags": Object {
+                      "newsletter_consent_prompt": false,
+                    },
+                    "hasPasswordAuth": true,
+                    "id": "1",
+                    "isAuthenticated": true,
+                    "name": "Foo Bar",
+                    "options": Object {
+                      "timezone": "UTC",
+                    },
+                    "permissions": Set {},
+                    "username": "foo@example.com",
+                  },
+                }
+              }
+              configUser={
+                Object {
+                  "email": "foo@example.com",
+                  "flags": Object {
+                    "newsletter_consent_prompt": false,
+                  },
+                  "hasPasswordAuth": true,
+                  "id": "1",
+                  "isAuthenticated": true,
+                  "name": "Foo Bar",
+                  "options": Object {
+                    "timezone": "UTC",
+                  },
+                  "permissions": Set {},
+                  "username": "foo@example.com",
+                }
+              }
+              isSuperuser={false}
+              organization={
+                Object {
+                  "access": Array [
+                    "org:read",
+                    "org:write",
+                    "org:admin",
+                    "org:integrations",
+                    "project:read",
+                    "project:write",
+                    "project:admin",
+                    "team:read",
+                    "team:write",
+                    "team:admin",
+                  ],
+                  "features": Array [],
+                  "id": "3",
+                  "name": "Organization Name",
+                  "onboardingTasks": Array [],
+                  "projects": Array [],
+                  "scrapeJavaScript": true,
+                  "slug": "org-slug",
+                  "status": Object {
+                    "id": "active",
+                    "name": "active",
+                  },
+                  "teams": Array [],
+                }
+              }
+              renderNoAccessMessage={false}
+              requireAll={true}
+            />
+          </AccessContainer>
+        </WithOrganizationMockWrapper>
+      </withConfig(WithOrganizationMockWrapper)>
     </PermissionAlert>
     <Panel>
       <Component
@@ -1165,14 +1339,14 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                           </div>
                         </Base>
                       </Flex>
-                      <withConfig(AccessContainer)
+                      <withConfig(WithOrganizationMockWrapper)
                         access={
                           Array [
                             "project:write",
                           ]
                         }
                       >
-                        <AccessContainer
+                        <WithOrganizationMockWrapper
                           access={
                             Array [
                               "project:write",
@@ -1200,7 +1374,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                             }
                           }
                         >
-                          <Access
+                          <AccessContainer
                             access={
                               Array [
                                 "project:write",
@@ -1225,23 +1399,6 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                                   "permissions": Set {},
                                   "username": "foo@example.com",
                                 },
-                              }
-                            }
-                            configUser={
-                              Object {
-                                "email": "foo@example.com",
-                                "flags": Object {
-                                  "newsletter_consent_prompt": false,
-                                },
-                                "hasPasswordAuth": true,
-                                "id": "1",
-                                "isAuthenticated": true,
-                                "name": "Foo Bar",
-                                "options": Object {
-                                  "timezone": "UTC",
-                                },
-                                "permissions": Set {},
-                                "username": "foo@example.com",
                               }
                             }
                             organization={
@@ -1272,74 +1429,149 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                                 "teams": Array [],
                               }
                             }
-                            renderNoAccessMessage={false}
-                            requireAll={true}
                           >
-                            <div>
-                              <EnvironmentButton
-                                align="center"
-                                disabled={false}
-                                onClick={[Function]}
-                                size="xsmall"
-                              >
-                                <Button
+                            <Access
+                              access={
+                                Array [
+                                  "project:write",
+                                ]
+                              }
+                              config={
+                                Object {
+                                  "features": Set {},
+                                  "messages": Array [],
+                                  "user": Object {
+                                    "email": "foo@example.com",
+                                    "flags": Object {
+                                      "newsletter_consent_prompt": false,
+                                    },
+                                    "hasPasswordAuth": true,
+                                    "id": "1",
+                                    "isAuthenticated": true,
+                                    "name": "Foo Bar",
+                                    "options": Object {
+                                      "timezone": "UTC",
+                                    },
+                                    "permissions": Set {},
+                                    "username": "foo@example.com",
+                                  },
+                                }
+                              }
+                              configUser={
+                                Object {
+                                  "email": "foo@example.com",
+                                  "flags": Object {
+                                    "newsletter_consent_prompt": false,
+                                  },
+                                  "hasPasswordAuth": true,
+                                  "id": "1",
+                                  "isAuthenticated": true,
+                                  "name": "Foo Bar",
+                                  "options": Object {
+                                    "timezone": "UTC",
+                                  },
+                                  "permissions": Set {},
+                                  "username": "foo@example.com",
+                                }
+                              }
+                              isSuperuser={false}
+                              organization={
+                                Object {
+                                  "access": Array [
+                                    "org:read",
+                                    "org:write",
+                                    "org:admin",
+                                    "org:integrations",
+                                    "project:read",
+                                    "project:write",
+                                    "project:admin",
+                                    "team:read",
+                                    "team:write",
+                                    "team:admin",
+                                  ],
+                                  "features": Array [],
+                                  "id": "3",
+                                  "name": "Organization Name",
+                                  "onboardingTasks": Array [],
+                                  "projects": Array [],
+                                  "scrapeJavaScript": true,
+                                  "slug": "org-slug",
+                                  "status": Object {
+                                    "id": "active",
+                                    "name": "active",
+                                  },
+                                  "teams": Array [],
+                                }
+                              }
+                              renderNoAccessMessage={false}
+                              requireAll={true}
+                            >
+                              <div>
+                                <EnvironmentButton
                                   align="center"
-                                  className="css-10adnmx-EnvironmentButton e1pnz46f0"
                                   disabled={false}
                                   onClick={[Function]}
                                   size="xsmall"
                                 >
-                                  <StyledButton
-                                    aria-disabled={false}
-                                    aria-label="Show"
+                                  <Button
+                                    align="center"
                                     className="css-10adnmx-EnvironmentButton e1pnz46f0"
                                     disabled={false}
                                     onClick={[Function]}
-                                    role="button"
                                     size="xsmall"
                                   >
-                                    <ForwardRef
+                                    <StyledButton
                                       aria-disabled={false}
                                       aria-label="Show"
-                                      className="e1pnz46f0 css-16clfm1-StyledButton-getColors-EnvironmentButton edwq9my0"
+                                      className="css-10adnmx-EnvironmentButton e1pnz46f0"
                                       disabled={false}
                                       onClick={[Function]}
                                       role="button"
                                       size="xsmall"
                                     >
-                                      <button
+                                      <ForwardRef
                                         aria-disabled={false}
                                         aria-label="Show"
                                         className="e1pnz46f0 css-16clfm1-StyledButton-getColors-EnvironmentButton edwq9my0"
+                                        disabled={false}
                                         onClick={[Function]}
                                         role="button"
                                         size="xsmall"
                                       >
-                                        <ButtonLabel
-                                          align="center"
+                                        <button
+                                          aria-disabled={false}
+                                          aria-label="Show"
+                                          className="e1pnz46f0 css-16clfm1-StyledButton-getColors-EnvironmentButton edwq9my0"
+                                          onClick={[Function]}
+                                          role="button"
                                           size="xsmall"
                                         >
-                                          <Component
+                                          <ButtonLabel
                                             align="center"
-                                            className="css-1bqncjo-ButtonLabel edwq9my1"
                                             size="xsmall"
                                           >
-                                            <span
+                                            <Component
+                                              align="center"
                                               className="css-1bqncjo-ButtonLabel edwq9my1"
+                                              size="xsmall"
                                             >
-                                              Show
-                                            </span>
-                                          </Component>
-                                        </ButtonLabel>
-                                      </button>
-                                    </ForwardRef>
-                                  </StyledButton>
-                                </Button>
-                              </EnvironmentButton>
-                            </div>
-                          </Access>
-                        </AccessContainer>
-                      </withConfig(AccessContainer)>
+                                              <span
+                                                className="css-1bqncjo-ButtonLabel edwq9my1"
+                                              >
+                                                Show
+                                              </span>
+                                            </Component>
+                                          </ButtonLabel>
+                                        </button>
+                                      </ForwardRef>
+                                    </StyledButton>
+                                  </Button>
+                                </EnvironmentButton>
+                              </div>
+                            </Access>
+                          </AccessContainer>
+                        </WithOrganizationMockWrapper>
+                      </withConfig(WithOrganizationMockWrapper)>
                     </div>
                   </Base>
                 </PanelItem>
