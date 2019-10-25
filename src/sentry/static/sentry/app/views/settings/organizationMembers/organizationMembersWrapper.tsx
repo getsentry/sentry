@@ -112,7 +112,17 @@ class OrganizationMembersWrapper extends AsyncView<Props> {
               {t('Invite new members by email to join your organization')}
             </SubText>
           </TextContainer>
-          <Button priority="primary" size="small" onClick={openInviteMembersModal}>
+          <Button
+            priority="primary"
+            size="small"
+            onClick={openInviteMembersModal}
+            disabled={!this.hasWriteAccess}
+            title={
+              !this.hasWriteAccess
+                ? t('You do not have enough permission to add new members')
+                : undefined
+            }
+          >
             {t('Invite Members')}
           </Button>
         </StyledPanel>

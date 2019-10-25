@@ -188,6 +188,23 @@ describe('OrganizationMembersWrapper', function() {
     expect(openInviteMembersModal).toHaveBeenCalled();
   });
 
+  it('cannot invite without permissions', function() {
+    const org = TestStubs.Organization({
+      access: [],
+      status: {
+        id: 'active',
+      },
+    });
+
+    const wrapper = mountWithTheme(
+      <OrganizationMembersWrapper organization={org} {...defaultProps} />,
+      TestStubs.routerContext()
+    );
+
+    const inviteButton = wrapper.find('StyledButton[aria-label="Invite Members"]');
+    expect(inviteButton.prop('disabled')).toBe(true);
+  });
+
   it('renders member list', function() {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
