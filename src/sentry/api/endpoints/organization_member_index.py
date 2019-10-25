@@ -56,12 +56,22 @@ class OrganizationMemberSerializer(serializers.Serializer):
     sendInvite = serializers.BooleanField(required=False, default=True, write_only=True)
 
     def validate_email(self, email):
-        if OrganizationMember.objects.filter(
+        queryset = OrganizationMember.objects.filter(
             Q(email=email) | Q(user__email__iexact=email, user__is_active=True),
             organization=self.context["organization"],
-        ).exists():
+        )
+
+        if queryset.filter(invite_status=InviteStatus.APPROVED.value).exists():
             raise serializers.ValidationError("The user %s is already a member" % email)
 
+        if not self.context.get("allow_existing_invite_request"):
+            if queryset.filter(
+                Q(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)
+                | Q(invite_status=InviteStatus.REQUESTED_TO_JOIN.value)
+            ).exists():
+                raise serializers.ValidationError(
+                    "There is an existing invite request for %s" % email
+                )
         return email
 
     def validate_teams(self, teams):
@@ -154,7 +164,11 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
 
         serializer = OrganizationMemberSerializer(
             data=request.data,
-            context={"organization": organization, "allowed_roles": allowed_roles},
+            context={
+                "organization": organization,
+                "allowed_roles": allowed_roles,
+                "allow_existing_invite_request": True,
+            },
         )
 
         if not serializer.is_valid():
@@ -162,17 +176,24 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
 
         result = serializer.validated_data
 
-        om = OrganizationMember(
-            organization=organization,
-            email=result["email"],
-            role=result["role"],
-            inviter=request.user,
-        )
-
-        if settings.SENTRY_ENABLE_INVITES:
-            om.token = om.generate_token()
-
         with transaction.atomic():
+            # remove any invitation requests for this email before inviting
+            OrganizationMember.objects.filter(
+                Q(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)
+                | Q(invite_status=InviteStatus.REQUESTED_TO_JOIN.value),
+                email=result["email"],
+                organization=organization,
+            ).delete()
+
+            om = OrganizationMember(
+                organization=organization,
+                email=result["email"],
+                role=result["role"],
+                inviter=request.user,
+            )
+
+            if settings.SENTRY_ENABLE_INVITES:
+                om.token = om.generate_token()
             om.save()
 
         if result["teams"]:

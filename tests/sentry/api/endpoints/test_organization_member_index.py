@@ -369,6 +369,44 @@ class OrganizationMemberListTest(APITestCase):
         assert response.status_code == 201
         assert response.data["email"] == "eric@localhost"
 
+    def test_can_invite_member_with_pending_invite_request(self):
+        self.login_as(user=self.owner_user)
+        email = "test@gmail.com"
+
+        invite_request = OrganizationMember.objects.create(
+            email=email,
+            organization=self.org,
+            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+        )
+
+        with self.settings(SENTRY_ENABLE_INVITES=True), self.tasks():
+            resp = self.client.post(
+                self.url, {"email": email, "role": "member", "teams": [self.team.slug]}
+            )
+
+        assert resp.status_code == 201
+        assert not OrganizationMember.objects.filter(id=invite_request.id).exists()
+        assert OrganizationMember.objects.filter(organization=self.org, email=email).exists()
+        assert len(mail.outbox) == 1
+
+    def test_can_invite_member_with_pending_join_request(self):
+        self.login_as(user=self.owner_user)
+        email = "test@gmail.com"
+
+        join_request = OrganizationMember.objects.create(
+            email=email, organization=self.org, invite_status=InviteStatus.REQUESTED_TO_JOIN.value
+        )
+
+        with self.settings(SENTRY_ENABLE_INVITES=True), self.tasks():
+            resp = self.client.post(
+                self.url, {"email": email, "role": "member", "teams": [self.team.slug]}
+            )
+
+        assert resp.status_code == 201
+        assert not OrganizationMember.objects.filter(id=join_request.id).exists()
+        assert OrganizationMember.objects.filter(organization=self.org, email=email).exists()
+        assert len(mail.outbox) == 1
+
 
 class OrganizationMemberListPostTest(APITestCase):
     endpoint = "sentry-api-0-organization-member-index"
