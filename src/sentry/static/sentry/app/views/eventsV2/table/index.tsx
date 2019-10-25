@@ -8,6 +8,7 @@ import {Organization} from 'app/types';
 import withApi from 'app/utils/withApi';
 
 import Pagination from 'app/components/pagination';
+import {fetchOrganizationTags} from 'app/actionCreators/tags';
 
 import {DEFAULT_EVENT_VIEW_V1} from '../data';
 import EventView, {isAPIPayloadSimilar} from '../eventView';
@@ -27,6 +28,7 @@ type TableState = {
   pageLinks: null | string;
 
   tableData: TableData | null | undefined;
+  tagKeys: null | string[];
 };
 
 /**
@@ -51,8 +53,8 @@ class Table extends React.PureComponent<TableProps, TableState> {
 
     eventView: EventView.fromLocation(this.props.location),
     pageLinks: null,
-
     tableData: null,
+    tagKeys: null,
   };
 
   componentDidMount() {
@@ -112,10 +114,18 @@ class Table extends React.PureComponent<TableProps, TableState> {
           error: err.responseJSON.detail,
         });
       });
+
+    fetchOrganizationTags(this.props.api, organization.slug)
+      .then(tags => {
+        this.setState({tagKeys: tags.map(({key}) => key)});
+      })
+      .catch(() => {
+        // Do nothing.
+      });
   };
 
   render() {
-    const {pageLinks, eventView, tableData, isLoading, error} = this.state;
+    const {pageLinks, eventView, tableData, tagKeys, isLoading, error} = this.state;
 
     return (
       <Container>
@@ -125,6 +135,7 @@ class Table extends React.PureComponent<TableProps, TableState> {
           error={error}
           eventView={eventView}
           tableData={tableData}
+          tagKeys={tagKeys}
         />
         <Pagination pageLinks={pageLinks} />
       </Container>
