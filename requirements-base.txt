@@ -67,3 +67,7 @@ ua-parser>=0.6.1,<0.8.0
 unidiff>=0.5.4
 urllib3==1.24.2
 uwsgi>2.0.0,<2.1.0
+
+# sentry-plugins specific dependencies
+cached-property
+phabricator>=0.6.0,<1.0
