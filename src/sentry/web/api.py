@@ -63,7 +63,7 @@ from sentry.lang.native.minidump import (
     write_minidump_placeholder,
     MINIDUMP_ATTACHMENT_TYPE,
 )
-from sentry.models import Project, File, EventAttachment
+from sentry.models import Project, File, EventAttachment, Organization
 from sentry.signals import event_accepted, event_dropped, event_filtered, event_received
 from sentry.quotas.base import RateLimit
 from sentry.utils import json, metrics
@@ -347,6 +347,19 @@ def _scrub_event_data(data, datascrubbing_settings):
     return data
 
 
+def _get_project_from_id(project_id):
+    if not project_id:
+        return None
+    if not project_id.isdigit():
+        track_outcome(0, 0, None, Outcome.INVALID, "project_id")
+        raise APIError("Invalid project_id: %r" % project_id)
+    try:
+        return Project.objects.get_from_cache(id=project_id)
+    except Project.DoesNotExist:
+        track_outcome(0, 0, None, Outcome.INVALID, "project_id")
+        raise APIError("Invalid project_id: %r" % project_id)
+
+
 class APIView(BaseView):
     auth_helper_cls = ClientAuthHelper
 
@@ -451,7 +464,15 @@ class APIView(BaseView):
                 project_id, request, self.auth_helper_cls, helper
             )
 
-            project_config = get_project_config(project_id, for_store=True)
+            project = _get_project_from_id(six.text_type(project_id))
+
+            # Explicitly bind Organization so we don't implicitly query it later
+            # this just allows us to comfortably assure that `project.organization` is safe.
+            # This also allows us to pull the object from cache, instead of being
+            # implicitly fetched from database.
+            project.organization = Organization.objects.get_from_cache(id=project.organization_id)
+
+            project_config = get_project_config(project, for_store=True)
 
             helper.context.bind_project(project_config.project)
 

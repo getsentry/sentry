@@ -1,31 +1,27 @@
 from __future__ import absolute_import
 
+from django.contrib.contenttypes.models import ContentType
 from django.test import TestCase
-from django.db import models
 
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 
 
-class SampleModel(models.Model):
-    camel_case = models.IntegerField()
-
+class ContentTypeSerializer(CamelSnakeModelSerializer):
     class Meta:
-        app_label = "sentry"
-
-
-class SampleSerializer(CamelSnakeModelSerializer):
-    class Meta:
-        model = SampleModel
-        fields = ["camel_case"]
+        model = ContentType
+        fields = ["app_label", "model"]
 
 
 class CamelSnakeModelSerializerTest(TestCase):
     def test_simple(self):
-        serializer = SampleSerializer(data={"camelCase": 1})
+        serializer = ContentTypeSerializer(data={"appLabel": "hello", "model": "Something"})
         assert serializer.is_valid()
-        assert serializer.data == {"camel_case": 1}
+        assert serializer.data == {"model": u"Something", "app_label": u"hello"}
 
     def test_error(self):
-        serializer = SampleSerializer(data={"camelCase": "hi"})
+        serializer = ContentTypeSerializer(data={"appLabel": None})
         assert not serializer.is_valid()
-        assert serializer.errors == {"camelCase": ["A valid integer is required."]}
+        assert serializer.errors == {
+            "appLabel": [u"This field may not be null."],
+            "model": [u"This field is required."],
+        }
