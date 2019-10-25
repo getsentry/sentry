@@ -9,6 +9,7 @@ from sentry.constants import ObjectStatus
 
 from sentry.rules.actions.base import EventAction
 from sentry.models import Integration, PagerDutyService, PagerDutyServiceProject
+from sentry.integrations.exceptions import ApiError
 from .client import PagerDutyClient
 
 
@@ -110,7 +111,13 @@ class PagerDutyNotifyServiceAction(EventAction):
 
         def send_notification(event, futures):
             client = PagerDutyClient(integration_key=service.integration_key)
-            client.send_trigger(event)
+            try:
+                client.send_trigger(event)
+            except ApiError as e:
+                self.logger.info(
+                    "rule.fail.pagerduty_trigger",
+                    extra={"error": e.message, "service": service.service_name},
+                )
 
         key = u"pagerduty:{}".format(integration.id)
         yield self.future(send_notification, key=key)

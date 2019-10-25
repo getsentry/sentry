@@ -18,8 +18,8 @@ class PagerDutyClient(ApiClient):
         if not headers:
             headers = {"Content-Type": "application/json"}
 
-        # Default is json=True, but for some reason the request fails when that is True so passing
-        # along False instead
+        # (XXX) Meredith: We stringify the data ahead of time in send_trigger (because reasons)
+        # so we have to pass json=False since True is the default.
         return self._request(method, path, headers=headers, data=data, params=params, json=False)
 
     def send_trigger(self, data):
@@ -32,8 +32,6 @@ class PagerDutyClient(ApiClient):
                 "event_action": "trigger",
                 "dedup_key": group.qualified_short_id,
                 "payload": {
-                    # TODO(meredith): is this always set for events? does it need to be real_message
-                    # should it be the group title instead ?
                     "summary": data.message or data.title,
                     "severity": "error",
                     "source": source,
@@ -49,6 +47,8 @@ class PagerDutyClient(ApiClient):
                     }
                 ],
             }
+        # (XXX) Meredith: The 'datetime' property that is included in as_dict doesn't
+        # get properly serializied in the requests library so we stringify it here instead.
         return self.post("/", data=json.dumps(payload))
 
     def send_acknowledge(self, data):
