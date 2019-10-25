@@ -37,6 +37,7 @@ export type OrganizationDetailed = Organization & {
   scrapeJavaScript: boolean;
   trustedRelays: string[];
   role?: string;
+  experiments: ActiveExperiments;
 };
 
 export type Project = {
@@ -563,4 +564,9 @@ export type SentryAppComponent = {
 export type RouterProps = {
   params: Params;
   location: Location;
+};
+
+export type ActiveExperiments = {
+  ImprovedInvitesExperiment: 'none' | 'all' | 'join_request' | 'invite_request';
+  TrialUpgradeV2Experiment: 'upgrade' | 'trial' | -1;
 };
