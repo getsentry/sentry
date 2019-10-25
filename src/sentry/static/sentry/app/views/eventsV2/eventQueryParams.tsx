@@ -80,6 +80,7 @@ export const FIELDS: {[key: string]: ColumnValueType} = {
   transaction: 'string',
 
   'event.type': 'string',
+  'platform.name': 'string',
   last_seen: 'never',
   latest_event: 'never',
 
