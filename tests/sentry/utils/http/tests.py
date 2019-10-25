@@ -255,7 +255,7 @@ class IsValidOriginTestCase(unittest.TestCase):
 class IsValidIPTestCase(TestCase):
     def is_valid_ip(self, ip, inputs):
         self.project.update_option("sentry:blacklisted_ips", inputs)
-        project_config = get_project_config(self.project.id)
+        project_config = get_project_config(self.project)
         return is_valid_ip(project_config, ip)
 
     def test_not_in_blacklist(self):
@@ -277,7 +277,7 @@ class IsValidIPTestCase(TestCase):
 class IsValidReleaseTestCase(TestCase):
     def is_valid_release(self, value, inputs):
         self.project.update_option(u"sentry:{}".format(FilterTypes.RELEASES), inputs)
-        project_config = get_project_config(self.project.id)
+        project_config = get_project_config(self.project)
         return is_valid_release(project_config, value)
 
     def test_release_not_in_list(self):
@@ -297,7 +297,7 @@ class IsValidReleaseTestCase(TestCase):
 class IsValidErrorMessageTestCase(TestCase):
     def is_valid_error_message(self, value, inputs):
         self.project.update_option(u"sentry:{}".format(FilterTypes.ERROR_MESSAGES), inputs)
-        project_config = get_project_config(self.project.id)
+        project_config = get_project_config(self.project)
         return is_valid_error_message(project_config, value)
 
     def test_error_class_not_in_list(self):
