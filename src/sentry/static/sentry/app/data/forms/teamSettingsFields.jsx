@@ -1,6 +1,4 @@
-import React from 'react';
-
-import {t, tct} from 'app/locale';
+import {t} from 'app/locale';
 import slugify from 'app/utils/slugify';
 
 // Export route to make these forms searchable by label/help
@@ -24,21 +22,6 @@ const formGroups = [
         saveOnBlur: false,
         saveMessageAlertType: 'info',
         saveMessage: t('You will be redirected to the new team slug after saving'),
-      },
-      {
-        name: 'name',
-        type: 'string',
-        required: true,
-        label: t('Legacy Name'),
-        placeholder: 'e.g. API Team',
-        disabled: ({access}) => !access.has('team:write'),
-        help: tct(
-          '[Deprecated] In the future, only [Name] will be used to identify your team',
-          {
-            Deprecated: <strong>DEPRECATED</strong>,
-            Name: <strong>Name</strong>,
-          }
-        ),
       },
     ],
   },
