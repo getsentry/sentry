@@ -46,12 +46,11 @@ class EventIdLookupEndpoint(OrganizationEndpoint):
         )
 
         try:
-            event = eventstore.get_events(
-                filter=eventstore.Filter(
-                    project_ids=project_slugs_by_id.keys(), event_ids=[event_id]
-                ),
-                limit=1,
-            )[0]
+            snuba_filter = eventstore.Filter(
+                project_ids=project_slugs_by_id.keys(), event_ids=[event_id]
+            )
+            snuba_filter.conditions = [["event.type", "!=", "transaction"]]
+            event = eventstore.get_events(filter=snuba_filter, limit=1)[0]
         except IndexError:
             raise ResourceDoesNotExist()
         else:
