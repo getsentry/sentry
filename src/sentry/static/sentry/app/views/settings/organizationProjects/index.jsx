@@ -20,7 +20,7 @@ import withOrganization from 'app/utils/withOrganization';
 
 import ProjectStatsGraph from './projectStatsGraph';
 
-const ITEMS_PER_PAGE = 2;
+const ITEMS_PER_PAGE = 50;
 
 class OrganizationProjects extends AsyncView {
   static propTypes = {
