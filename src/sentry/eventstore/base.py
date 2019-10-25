@@ -31,6 +31,8 @@ class Columns(Enum):
     TYPE = Column("type", None, "event.type")
     TAGS_KEY = Column("tags.key", "tags.key", "tags.key")
     TAGS_VALUE = Column("tags.value", "tags.value", "tags.value")
+    TAGS_KEYS = Column("tags_key", "tags_key", "tags_key")
+    TAGS_VALUES = Column("tags_value", "tags_value", "tags_value")
     TRANSACTION = Column("transaction", "transaction_name", "transaction")
     USER = Column("tags[sentry:user]", "user", "user")
     USER_ID = Column("user_id", "user_id", "user.id")
