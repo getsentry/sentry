@@ -20,7 +20,7 @@ export type ChildRenderProps = {
   hasSuperuser: boolean;
 };
 
-type ChildFunction = (props: ChildRenderProps) => null | React.ReactNode;
+type ChildFunction = (props: ChildRenderProps) => React.ReactNode;
 
 // Type guard for render func.
 function isRenderFunc(func: React.ReactNode | Function): func is ChildFunction {
