@@ -18,7 +18,7 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import Link from 'app/components/links/link';
 
 import space from 'app/styles/space';
-import {SentryApp, SentryAppWebhookError} from 'app/types';
+import {SentryApp, SentryAppWebhookRequest} from 'app/types';
 import {t} from 'app/locale';
 
 type Props = AsyncView['props'];
@@ -30,7 +30,7 @@ type State = AsyncView['state'] & {
     install_stats: [number, number][];
     uninstall_stats: [number, number][];
   };
-  errors: SentryAppWebhookError[];
+  errors: SentryAppWebhookRequest[];
   interactions: {
     component_interactions: {
       [key: string]: [number, number][];
@@ -146,7 +146,6 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
               <div>{t('Organization')}</div>
               <div>{t('Event Type')}</div>
               <div>{t('Webhook URL')}</div>
-              <div>{t('Response Body')}</div>
             </TableLayout>
           </PanelHeader>
 
@@ -156,11 +155,10 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
                 <PanelItem key={idx}>
                   <TableLayout>
                     <DateTime date={error.date} />
-                    <div>{error.response.statusCode}</div>
+                    <div>{error.response_code}</div>
                     <div>{error.organization.name}</div>
-                    <div>{error.eventType}</div>
-                    <OverflowBox>{error.webhookUrl}</OverflowBox>
-                    <OverflowBox>{error.response.body}</OverflowBox>
+                    <div>{error.event_type}</div>
+                    <OverflowBox>{error.webhook_url}</OverflowBox>
                   </TableLayout>
                 </PanelItem>
               ))
@@ -288,7 +286,7 @@ const StatsHeader = styled('h6')`
 
 const TableLayout = styled('div')`
   display: grid;
-  grid-template-columns: 1fr 0.5fr 1fr 1fr 1fr 2fr;
+  grid-template-columns: 1fr 0.5fr 1fr 1fr 1fr;
   grid-column-gap: ${space(1.5)};
   width: 100%;
   align-items: center;

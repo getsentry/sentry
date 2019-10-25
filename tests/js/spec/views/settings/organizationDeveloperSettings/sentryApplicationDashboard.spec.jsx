@@ -30,7 +30,7 @@ describe('Sentry Application Dashboard', function() {
           elements: [{type: 'stacktrace-link', uri: '/test'}, {type: 'issue-link'}],
         },
       });
-      error = TestStubs.SentryAppWebhookError();
+      error = TestStubs.SentryAppWebhookRequest();
 
       Client.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/stats/`,
@@ -109,7 +109,6 @@ describe('Sentry Application Dashboard', function() {
       expect(errorLogText).toEqual(
         expect.stringContaining('https://example.com/webhook')
       );
-      expect(errorLogText).toEqual(expect.stringContaining('This is an error'));
       expect(errorLogText).toEqual(expect.stringContaining('400'));
       expect(errorLogText).toEqual(expect.stringContaining('issue.assigned'));
       expect(errorLogText).toEqual(expect.stringContaining('Test Org'));
@@ -172,7 +171,7 @@ describe('Sentry Application Dashboard', function() {
           elements: [{type: 'stacktrace-link', uri: '/test'}],
         },
       });
-      error = TestStubs.SentryAppWebhookError();
+      error = TestStubs.SentryAppWebhookRequest();
 
       Client.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/stats/`,
@@ -224,7 +223,6 @@ describe('Sentry Application Dashboard', function() {
       expect(errorLogText).toEqual(
         expect.stringContaining('https://example.com/webhook')
       );
-      expect(errorLogText).toEqual(expect.stringContaining('This is an error'));
       expect(errorLogText).toEqual(expect.stringContaining('400'));
       expect(errorLogText).toEqual(expect.stringContaining('issue.assigned'));
       expect(errorLogText).toEqual(expect.stringContaining('Test Org'));

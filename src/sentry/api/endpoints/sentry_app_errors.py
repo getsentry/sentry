@@ -3,10 +3,9 @@ from __future__ import absolute_import
 from rest_framework.response import Response
 
 from sentry.api.bases import SentryAppBaseEndpoint, SentryAppStatsPermission
-from sentry.api.paginator import OffsetPaginator
-from sentry.api.serializers import serialize
 from sentry.api.utils import get_date_range_from_params, InvalidParams
-from sentry.models import SentryAppWebhookError
+
+from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
 
 
 class SentryAppErrorsEndpoint(SentryAppBaseEndpoint):
@@ -22,16 +21,10 @@ class SentryAppErrorsEndpoint(SentryAppBaseEndpoint):
         except InvalidParams as exc:
             return Response({"detail": exc.message}, status=400)
 
-        filter_args = {"sentry_app": sentry_app.id}
-        if start is not None and end is not None:
-            filter_args["date_added__range"] = (start, end)
+        # TODO actually use the start/end params?
 
-        queryset = SentryAppWebhookError.objects.filter(**filter_args)
+        buffer = SentryAppWebhookRequestsBuffer(sentry_app)
+        # TODO for now I'm just getting all requests for all events
+        requests = buffer.get_requests()
 
-        return self.paginate(
-            request=request,
-            queryset=queryset,
-            order_by="-date_added",
-            paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(x, request.user),
-        )
+        return Response(requests)

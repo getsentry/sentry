@@ -478,27 +478,16 @@ export type SentryAppInstallation = {
   code?: string;
 };
 
-export type SentryAppWebhookError = {
-  webhookUrl: string;
-  app: {
-    uuid: string;
-    slug: string;
-    name: string;
-  };
-  request: {
-    body: object;
-    headers: object;
-  };
-  eventType: string;
+export type SentryAppWebhookRequest = {
+  webhook_url: string;
+  sentry_app_slug: string;
+  event_type: string;
   date: string;
   organization: {
     slug: string;
     name: string;
   };
-  response: {
-    body: string;
-    statusCode: number;
-  };
+  response_code: number;
 };
 
 export type PermissionValue = 'no-access' | 'read' | 'write' | 'admin';
