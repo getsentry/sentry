@@ -112,8 +112,7 @@ ENV PIP_NO_CACHE_DIR=off \
     # Disable some unused uWSGI features, saving dependencies
     # Thank to https://stackoverflow.com/a/25260588/90297
     UWSGI_PROFILE_OVERRIDE=ssl=false;xml=false;routing=false \
-    # UWSGI STATS
-    UWSGI_ENABLE_METRICS=true \
+    # UWSGI dogstatsd plugin
     UWSGI_NEED_PLUGIN=/var/lib/uwsgi/dogstatsd
 
 COPY --from=sdist /dist/*.whl /tmp/dist/
