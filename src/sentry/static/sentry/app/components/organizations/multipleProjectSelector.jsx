@@ -252,6 +252,11 @@ const SelectorFooterControls = props => {
     }
   }
 
+  // Nothing to show.
+  if (!(showAllProjects || showMyProjects || hasChanges)) {
+    return null;
+  }
+
   return (
     <FooterContainer>
       {showAllProjects && (
