@@ -2,7 +2,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {openInviteMembersModal} from 'app/actionCreators/modal';
-import {Organization} from 'app/types';
+import {OrganizationDetailed} from 'app/types';
 import {Panel} from 'app/components/panels';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
@@ -18,7 +18,7 @@ import withOrganization from 'app/utils/withOrganization';
 
 type Props = AsyncView['props'] & {
   children?: any;
-  organization: Organization;
+  organization: OrganizationDetailed;
 };
 
 class OrganizationMembersWrapper extends AsyncView<Props> {

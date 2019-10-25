@@ -17,7 +17,6 @@ export type Organization = {
   access: string[];
   features: string[];
   teams: Team[];
-  experiments: {[key: string]: number};
 };
 
 export type OrganizationDetailed = Organization & {
@@ -578,4 +577,6 @@ export type RouterProps = {
 export type ActiveExperiments = {
   ImprovedInvitesExperiment: 'none' | 'all' | 'join_request' | 'invite_request';
   TrialUpgradeV2Experiment: 'upgrade' | 'trial' | -1;
+  JoinRequestExperiment: 0 | 1 | -1;
+  InviteRequestExperiment: 0 | 1 | -1;
 };

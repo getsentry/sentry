@@ -4,7 +4,7 @@ import {cx} from 'react-emotion';
 
 type Props = {
   text?: string;
-  priority?: string;
+  priority?: 'strong' | 'new' | 'highlight';
   className?: string;
 };
 
@@ -15,6 +15,6 @@ const Badge = ({priority, className, text}: Props) => (
 Badge.propTypes = {
   text: PropTypes.string,
   priority: PropTypes.oneOf(['strong', 'new', 'highlight']),
-};
+} as any;
 
 export default Badge;
