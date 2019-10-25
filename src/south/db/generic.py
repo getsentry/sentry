@@ -3,7 +3,6 @@ from __future__ import print_function
 import re
 import sys
 
-from django.apps import apps
 from django.core.management.color import no_style
 from django.db import transaction, models
 from django.db.utils import DatabaseError
@@ -13,6 +12,7 @@ try:
 except ImportError:
     from django.db.backends.base.creation import BaseDatabaseCreation
 from django.db.models.fields import NOT_PROVIDED
+from django.dispatch import dispatcher
 from django.conf import settings
 from django.utils.datastructures import SortedDict
 try:
@@ -1088,15 +1088,14 @@ class DatabaseOperations(object):
         if self.debug:
             print(" - Sending post_syncdb signal for %s: %s" % (app_label, model_names))
 
-        try:
-            app = apps.get_app_config(app_label)
-        except LookupError:
+        app = models.get_app(app_label)
+        if not app:
             return
 
         created_models = []
         for model_name in model_names:
             try:
-                model = apps.get_model(app_label, model_name)
+                model = models.get_model(app_label, model_name)
             # Django 1.7 throws LookupError
             except LookupError:
                 pass
@@ -1106,19 +1105,12 @@ class DatabaseOperations(object):
 
         if created_models:
             models.signals.post_syncdb.send(
-                sender=app.module,
-                app=app.module,
+                sender=app,
+                app=app,
                 created_models=created_models,
                 verbosity=verbosity,
                 interactive=interactive,
                 db=self.db_alias,
-            )
-            models.signals.post_migrate.send(
-                sender=app,
-                app_config=app,
-                verbosity=verbosity,
-                interactive=interactive,
-                using=self.db_alias,
             )
 
     def mock_model(self, model_name, db_table, db_tablespace='',

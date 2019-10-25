@@ -5,9 +5,8 @@ commandline, or by using autodetection, etc.
 
 from __future__ import print_function
 
-from django.apps import apps
-from django.contrib.contenttypes.generic import GenericRelation
 from django.db import models
+from django.contrib.contenttypes.generic import GenericRelation
 from django.utils.datastructures import SortedDict
 
 from south.creator.freezer import remove_useless_attributes, freeze_apps, model_key
@@ -42,7 +41,7 @@ class BaseChanges(object):
 
     def current_model_from_key(self, key):
         app_label, model_name = key.split(".")
-        return apps.get_model(app_label, model_name)
+        return models.get_model(app_label, model_name)
 
     def current_field_from_key(self, key, fieldname):
         app_label, model_name = key.split(".")
@@ -55,7 +54,7 @@ class BaseChanges(object):
             field.default = 0
             return field
         # Otherwise, normal.
-        return apps.get_model(app_label, model_name)._meta.get_field_by_name(fieldname)[0]
+        return models.get_model(app_label, model_name)._meta.get_field_by_name(fieldname)[0]
 
 
 class AutoChanges(BaseChanges):
@@ -481,7 +480,7 @@ class ManualChanges(BaseChanges):
         model_defs = freeze_apps([self.migrations.app_label()])
         # Make the model changes
         for model_name in self.added_models:
-            model = apps.get_model(self.migrations.app_label(), model_name)
+            model = models.get_model(self.migrations.app_label(), model_name)
             real_fields, meta, m2m_fields = self.split_model_def(
                 model, model_defs[model_key(model)]
             )
@@ -492,7 +491,7 @@ class ManualChanges(BaseChanges):
                 model_name, field_name = field_desc.split(".")
             except (TypeError, ValueError):
                 raise ValueError("%r is not a valid field description." % field_desc)
-            model = apps.get_model(self.migrations.app_label(), model_name)
+            model = models.get_model(self.migrations.app_label(), model_name)
             real_fields, meta, m2m_fields = self.split_model_def(
                 model, model_defs[model_key(model)]
             )
@@ -510,7 +509,7 @@ class ManualChanges(BaseChanges):
                 model_name, field_name = field_desc.split(".")
             except (TypeError, ValueError):
                 print ("%r is not a valid field description." % field_desc)
-            model = apps.get_model(self.migrations.app_label(), model_name)
+            model = models.get_model(self.migrations.app_label(), model_name)
             yield (
                 "AddIndex",
                 {"model": model, "fields": [model._meta.get_field_by_name(field_name)[0]]},
