@@ -345,11 +345,6 @@ SILENCED_SYSTEM_CHECKS = (
     "fields.W342"
 )
 
-import django
-
-if django.VERSION < (1, 9):
-    INSTALLED_APPS += ("south",)
-
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, "static"))
 STATIC_URL = "/_static/{version}/"
 
@@ -1496,8 +1491,6 @@ DEPRECATED_SDKS = {
     "sentry-raven": "raven-ruby",
 }
 
-SOUTH_TESTS_MIGRATE = os.environ.get("SOUTH_TESTS_MIGRATE", "0") == "1"
-
 TERMS_URL = None
 PRIVACY_URL = None
 
@@ -1612,9 +1605,6 @@ SENTRY_RELAY_OPEN_REGISTRATION = False
 
 # GeoIP
 # Used for looking up IP addresses.
-# For example /usr/local/share/GeoIP/GeoIPCity.dat
-GEOIP_PATH = None
-# Same file but in the newer format. Both are required.
 # For example /usr/local/share/GeoIP/GeoIPCity.mmdb
 GEOIP_PATH_MMDB = None
 
@@ -1670,3 +1660,58 @@ KAFKA_TOPICS = {
 # never need to switch this unless you created a workspace app before slack
 # disabled them.
 SLACK_INTEGRATION_USE_WST = False
+
+"""
+Fields are:
+ - south_app_name: Which app to apply the conversion to
+ - south_migration: The south migration to map to the new name. If None, then always
+   apply
+ - django_app_name: The new app name to apply the conversion to
+ - django_migration: Which django migration to 'fake' as run.
+ - south_migration_required: Whether the south migration is required to proceed.
+ - south_migration_required_error: Error message explaining what is going wrong.
+"""
+SOUTH_MIGRATION_CONVERSIONS = (
+    (
+        "sentry",
+        "0472_auto__add_field_sentryapp_author",
+        "sentry",
+        "0001_initial",
+        True,
+        "Please upgrade to Sentry 9.1.2 before upgrading to any later versions.",
+    ),
+    (
+        "sentry",
+        "0516_auto__del_grouptagvalue__del_unique_grouptagvalue_group_id_key_value__",
+        "sentry",
+        "0002_912_to_recent",
+        False,
+        "",
+    ),
+    (
+        "sentry",
+        "0518_auto__chg_field_sentryappwebhookerror_response_code",
+        "sentry",
+        "0003_auto_20191022_0122",
+        False,
+        "",
+    ),
+    ("sentry.nodestore", "0001_initial", "nodestore", "0001_initial", False, None),
+    ("nodestore", "0001_initial", "nodestore", "0001_initial", False, None),
+    (
+        "social_auth",
+        "0004_auto__del_unique_usersocialauth_provider_uid__add_unique_usersocialaut",
+        "social_auth",
+        "0001_initial",
+        True,
+        "Please upgrade to Sentry 9.1.2 before upgrading to any later versions.",
+    ),
+    # From sentry-plugins
+    ("sentry_plugins.jira_ac", "0001_initial", "jira_ac", "0001_initial", False, ""),
+    ("jira_ac", "0001_initial", "jira_ac", "0001_initial", False, ""),
+)
+
+# Whether to use Django migrations to create the database, or just build it based off
+# of models, similar to how syncdb used to work. The former is more correct, the latter
+# is much faster.
+MIGRATIONS_TEST_MIGRATE = os.environ.get("MIGRATIONS_TEST_MIGRATE", "0") == "1"
