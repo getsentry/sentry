@@ -264,10 +264,10 @@ function filterFieldByAggregation(
   );
 }
 
-const FormRow = styled.div`
+const FormRow = styled('div')`
   box-sizing: border-box;
 `;
-const FormRowItem = styled.div`
+const FormRowItem = styled('div')`
   display: inline-block;
   padding-right: ${space(1)};
 
@@ -282,7 +282,7 @@ const FormRowItemRight = styled(FormRowItem)`
   width: 65%;
 `;
 
-const FooterContent = styled.div`
+const FooterContent = styled('div')`
   display: flex;
   width: 100%;
 
