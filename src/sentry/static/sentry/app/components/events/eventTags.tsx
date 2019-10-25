@@ -4,7 +4,7 @@ import _ from 'lodash';
 import queryString from 'query-string';
 
 import {Location} from 'history';
-import {Event, EventTag, Group} from 'app/types';
+import {Event, EventTag} from 'app/types';
 
 import EventDataSection from 'app/components/events/eventDataSection';
 import DeviceName from 'app/components/deviceName';
@@ -16,7 +16,6 @@ import VersionHoverCard from 'app/components/versionHoverCard';
 import InlineSvg from 'app/components/inlineSvg';
 
 type EventTagsProps = {
-  group: Group;
   event: Event;
   orgId: string;
   projectId: string;
@@ -73,7 +72,7 @@ class EventTags extends React.Component<EventTagsProps> {
   }
 
   render() {
-    const {event, group, orgId, hideGuide} = this.props;
+    const {event, orgId, hideGuide} = this.props;
     const {tags} = event;
 
     if (_.isEmpty(tags)) {
@@ -85,8 +84,6 @@ class EventTags extends React.Component<EventTagsProps> {
 
     return (
       <EventDataSection
-        group={group}
-        event={event}
         title={t('Tags')}
         type="tags"
         className="p-b-1"
