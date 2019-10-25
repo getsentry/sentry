@@ -9,6 +9,7 @@ import Pagination from 'app/components/pagination';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import NoProjectMessage from 'app/components/noProjectMessage';
 import AsyncView from 'app/views/asyncView';
 import withOrganization from 'app/utils/withOrganization';
@@ -120,11 +121,13 @@ class OrganizationReleases extends AsyncView {
       return null;
     }
 
-    const releaseProject = selection.projects.length
-      ? allAccessibleProjects.find(
-          project => parseInt(project.id, 10) === selection.projects[0]
-        )
-      : allAccessibleProjects[0];
+    let releaseProject = allAccessibleProjects[0];
+    // Don't look for meta values which have named values
+    if (selection.projects.length && selection.projects[0] !== ALL_ACCESS_PROJECTS) {
+      releaseProject = allAccessibleProjects.find(
+        project => parseInt(project.id, 10) === selection.projects[0]
+      );
+    }
 
     return <ReleaseProgress project={releaseProject} />;
   }

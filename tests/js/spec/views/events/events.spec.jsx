@@ -389,8 +389,8 @@ describe('EventsContainer', function() {
     wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
 
     wrapper
-      .find('MultipleProjectSelector AutoCompleteItem')
-      .at(0)
+      .find('MultipleProjectSelector AutoCompleteItem ProjectSelectorItem')
+      .first()
       .simulate('click');
 
     await tick();
