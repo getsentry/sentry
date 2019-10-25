@@ -196,21 +196,23 @@ def _do_process_event(cache_key, start_time, event_id, process_task, data=None):
             data = new_data
     except RetrySymbolication as e:
         if start_time and (time() - start_time) > 3600:
-            raise RuntimeError("Event spent one hour in processing")
-
-        retry_process_event.apply_async(
-            args=(),
-            kwargs={
-                "process_task_name": process_task.__name__,
-                "task_kwargs": {
-                    "cache_key": cache_key,
-                    "event_id": event_id,
-                    "start_time": start_time,
+            # Do not drop event but actually continue with rest of pipeline
+            # (persisting unsymbolicated event)
+            error_logger.exception("process.failed.infinite_retry")
+        else:
+            retry_process_event.apply_async(
+                args=(),
+                kwargs={
+                    "process_task_name": process_task.__name__,
+                    "task_kwargs": {
+                        "cache_key": cache_key,
+                        "event_id": event_id,
+                        "start_time": start_time,
+                    },
                 },
-            },
-            countdown=e.retry_after,
-        )
-        return
+                countdown=e.retry_after,
+            )
+            return
 
     # TODO(dcramer): ideally we would know if data changed by default
     # Default event processors.
