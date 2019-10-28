@@ -28,6 +28,10 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
             )
         except Project.DoesNotExist:
             return Response(status=404)
+        # Check access to the project as this endpoint doesn't use membership checks done
+        # get_filter_params().
+        if not request.access.has_project_access(project):
+            return Response(status=404)
 
         # We return the requested event if we find a match regardless of whether
         # it occurred within the range specified
