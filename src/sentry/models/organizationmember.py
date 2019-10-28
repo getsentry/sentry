@@ -235,6 +235,57 @@ class OrganizationMember(Model):
             logger = get_logger(name="sentry.mail")
             logger.exception(e)
 
+    def send_request_notification_email(self):
+        from sentry.utils.email import MessageBuilder
+
+        link_args = {"organization_slug": self.organization.slug}
+
+        context = {
+            "email": self.email,
+            "inviter": self.inviter,
+            "organization": self.organization,
+            "organization_link": absolute_uri(
+                reverse("sentry-organization-index", args=[self.organization.slug])
+            ),
+            "pending_requests_link": absolute_uri(
+                reverse("sentry-organization-members-requests", kwargs=link_args)
+            ),
+        }
+
+        if self.requested_to_join:
+            email_args = {
+                "template": "sentry/emails/organization-join-request.txt",
+                "html_template": "sentry/emails/organization-join-request.html",
+            }
+        elif self.requested_to_be_invited:
+            email_args = {
+                "template": "sentry/emails/organization-invite-request.txt",
+                "html_template": "sentry/emails/organization-invite-request.html",
+            }
+        else:
+            raise RuntimeError("This member is not pending invitation")
+
+        recipients = OrganizationMember.objects.select_related("user").filter(
+            organization_id=self.organization_id,
+            user__isnull=False,
+            invite_status=InviteStatus.APPROVED.value,
+            role__in=(r.id for r in roles.get_all() if r.has_scope("member:write")),
+        )
+
+        msg = MessageBuilder(
+            subject="Access request to %s" % (self.organization.name,),
+            type="organization.invite-request",
+            context=context,
+            **email_args
+        )
+
+        for recipient in recipients:
+            try:
+                msg.send_async([recipient.get_email()])
+            except Exception as e:
+                logger = get_logger(name="sentry.mail")
+                logger.exception(e)
+
     def send_sso_link_email(self, actor, provider):
         from sentry.utils.email import MessageBuilder
 

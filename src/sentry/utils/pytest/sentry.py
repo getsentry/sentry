@@ -148,8 +148,7 @@ def pytest_configure(config):
 
     import django
 
-    if hasattr(django, "setup"):
-        django.setup()
+    django.setup()
 
     monkeypatch_django_migrations()
 
@@ -194,6 +193,7 @@ def register_extensions():
     from sentry.integrations.slack import SlackIntegrationProvider
     from sentry.integrations.vsts import VstsIntegrationProvider
     from sentry.integrations.vsts_extension import VstsExtensionIntegrationProvider
+    from sentry.integrations.pagerduty.integration import PagerDutyIntegrationProvider
 
     integrations.register(BitbucketIntegrationProvider)
     integrations.register(ExampleIntegrationProvider)
@@ -206,6 +206,7 @@ def register_extensions():
     integrations.register(SlackIntegrationProvider)
     integrations.register(VstsIntegrationProvider)
     integrations.register(VstsExtensionIntegrationProvider)
+    integrations.register(PagerDutyIntegrationProvider)
 
     from sentry.plugins.base import bindings
     from sentry.plugins.providers.dummy import DummyRepositoryProvider

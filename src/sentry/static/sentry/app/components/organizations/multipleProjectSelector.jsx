@@ -4,13 +4,16 @@ import styled, {css} from 'react-emotion';
 
 import SentryTypes from 'app/sentryTypes';
 import {analytics} from 'app/utils/analytics';
+import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import {t} from 'app/locale';
+import Button from 'app/components/button';
 import ProjectSelector from 'app/components/projectSelector';
 import InlineSvg from 'app/components/inlineSvg';
 
 import HeaderItem from 'app/components/organizations/headerItem';
-import MultipleSelectorSubmitRow from 'app/components/organizations/multipleSelectorSubmitRow';
+import {growIn} from 'app/styles/animations';
+import space from 'app/styles/space';
 
 const rootContainerStyles = css`
   display: flex;
@@ -29,12 +32,12 @@ export default class MultipleProjectSelector extends React.PureComponent {
     forceProject: SentryTypes.Project,
   };
 
-  static defaultProps = {
-    multi: true,
-  };
-
   static contextTypes = {
     router: PropTypes.object,
+  };
+
+  static defaultProps = {
+    multi: true,
   };
 
   constructor() {
@@ -65,13 +68,14 @@ export default class MultipleProjectSelector extends React.PureComponent {
    *
    * Should perform an "update" callback
    */
-  handleQuickSelect = (selected, checked, e) => {
+  handleQuickSelect = selected => {
     analytics('projectselector.direct_selection', {
       path: getRouteStringFromRoutes(this.context.router.routes),
       org_id: parseInt(this.props.organization.id, 10),
     });
 
-    this.props.onChange([parseInt(selected.id, 10)]);
+    const value = selected.id === null ? [] : [parseInt(selected.id, 10)];
+    this.props.onChange(value);
     this.doUpdate();
   };
 
@@ -80,7 +84,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
    *
    * Should perform an "update" callback
    */
-  handleClose = props => {
+  handleClose = () => {
     // Only update if there are changes
     if (!this.state.hasChanges) {
       return;
@@ -117,7 +121,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
   /**
    * Handler for selecting multiple items, should NOT call update
    */
-  handleMultiSelect = (selected, checked, e) => {
+  handleMultiSelect = selected => {
     const {onChange, value} = this.props;
 
     analytics('projectselector.toggle', {
@@ -125,7 +129,9 @@ export default class MultipleProjectSelector extends React.PureComponent {
       path: getRouteStringFromRoutes(this.context.router.routes),
       org_id: parseInt(this.props.organization.id, 10),
     });
-    onChange(selected.map(({id}) => parseInt(id, 10)));
+
+    selected = selected.map(({id}) => parseInt(id, 10)).filter(i => i);
+    onChange(selected);
     this.setState({hasChanges: true});
   };
 
@@ -142,7 +148,6 @@ export default class MultipleProjectSelector extends React.PureComponent {
     const selectedProjectIds = new Set(value);
 
     const allProjects = [...projects, ...nonMemberProjects];
-
     const selected = allProjects.filter(project =>
       selectedProjectIds.has(parseInt(project.id, 10))
     );
@@ -176,25 +181,32 @@ export default class MultipleProjectSelector extends React.PureComponent {
         onClose={this.handleClose}
         onMultiSelect={this.handleMultiSelect}
         rootClassName={rootContainerStyles}
-        menuFooter={({actions}) =>
-          this.state.hasChanges && (
-            <MultipleSelectorSubmitRow onSubmit={() => this.handleUpdate(actions)} />
-          )
-        }
+        menuFooter={({actions}) => (
+          <SelectorFooterControls
+            selected={selectedProjectIds}
+            multi={multi}
+            organization={organization}
+            hasChanges={this.state.hasChanges}
+            onApply={() => this.handleUpdate(actions)}
+            onShowAllProjects={() => {
+              this.handleQuickSelect({id: ALL_ACCESS_PROJECTS});
+              actions.close();
+            }}
+            onShowMyProjects={() => {
+              this.handleClear();
+              actions.close();
+            }}
+          />
+        )}
       >
-        {({
-          getActorProps,
-          selectedItem,
-          activeProject,
-          selectedProjects,
-          isOpen,
-          actions,
-          onBlur,
-        }) => {
+        {({getActorProps, selectedProjects, isOpen}) => {
           const hasSelected = !!selectedProjects.length;
           const title = hasSelected
             ? selectedProjects.map(({slug}) => slug).join(', ')
-            : t('All Projects');
+            : selectedProjectIds.has(ALL_ACCESS_PROJECTS)
+            ? t('All Projects')
+            : t('My Projects');
+
           return (
             <StyledHeaderItem
               data-test-id="global-header-project-selector"
@@ -215,6 +227,78 @@ export default class MultipleProjectSelector extends React.PureComponent {
     );
   }
 }
+
+const SelectorFooterControls = props => {
+  const {
+    selected,
+    multi,
+    hasChanges,
+    onApply,
+    onShowAllProjects,
+    onShowMyProjects,
+    organization,
+  } = props;
+  let showMyProjects = false;
+  let showAllProjects = false;
+  if (multi) {
+    showMyProjects = true;
+
+    const hasGlobalRole = ['owner', 'manager'].includes(organization.role);
+    const hasOpenMembership = organization.features.includes('open-membership');
+    const allSelected = selected && selected.has(ALL_ACCESS_PROJECTS);
+    if ((hasGlobalRole || hasOpenMembership) && !allSelected) {
+      showAllProjects = true;
+      showMyProjects = false;
+    }
+  }
+
+  // Nothing to show.
+  if (!(showAllProjects || showMyProjects || hasChanges)) {
+    return null;
+  }
+
+  return (
+    <FooterContainer>
+      {showAllProjects && (
+        <Button onClick={onShowAllProjects} priority="default" size="xsmall">
+          {t('View All Projects')}
+        </Button>
+      )}
+      {showMyProjects && (
+        <Button onClick={onShowMyProjects} priority="default" size="xsmall">
+          {t('View My Projects')}
+        </Button>
+      )}
+      {hasChanges && (
+        <SubmitButton onClick={onApply} size="xsmall" priority="primary">
+          {t('Apply Filter')}
+        </SubmitButton>
+      )}
+    </FooterContainer>
+  );
+};
+SelectorFooterControls.propTypes = {
+  // Actually a set
+  selected: PropTypes.instanceOf(Set),
+  organization: SentryTypes.Organization,
+  multi: PropTypes.bool,
+  hasChanges: PropTypes.bool,
+  onApply: PropTypes.func,
+  onShowAllProjects: PropTypes.func,
+  onShowMyProjects: PropTypes.func,
+};
+
+const FooterContainer = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  padding: ${space(1)} 0;
+  & > * {
+    margin-left: ${space(0.5)};
+  }
+`;
+const SubmitButton = styled(Button)`
+  animation: 0.1s ${growIn} ease-in;
+`;
 
 const StyledProjectSelector = styled(ProjectSelector)`
   margin: 1px 0 0 -1px;

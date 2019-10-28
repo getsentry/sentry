@@ -680,6 +680,7 @@ describe('GlobalSelectionHeader', function() {
         initialData.routerContext
       );
     });
+
     it('gets member projects', function() {
       expect(wrapper.find('MultipleProjectSelector').prop('projects')).toEqual([
         memberProject,
@@ -705,6 +706,109 @@ describe('GlobalSelectionHeader', function() {
       expect(wrapper.find('MultipleProjectSelector').prop('nonMemberProjects')).toEqual([
         nonMemberProject,
       ]);
+    });
+
+    it('shows "My Projects" button', function() {
+      initialData.organization.features.push('global-views');
+      wrapper = mountWithTheme(
+        <GlobalSelectionHeader
+          organization={initialData.organization}
+          projects={initialData.organization.projects}
+        />,
+        initialData.routerContext
+      );
+
+      // open the project menu.
+      wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
+      const projectSelector = wrapper.find('MultipleProjectSelector');
+
+      // Two projects
+      expect(projectSelector.find('AutoCompleteItem')).toHaveLength(2);
+      // My projects in the footer
+      expect(
+        projectSelector
+          .find('SelectorFooterControls Button')
+          .first()
+          .text()
+      ).toEqual('View My Projects');
+    });
+
+    it('shows "All Projects" button based on features', function() {
+      initialData.organization.features.push('global-views');
+      initialData.organization.features.push('open-membership');
+      wrapper = mountWithTheme(
+        <GlobalSelectionHeader
+          organization={initialData.organization}
+          projects={initialData.organization.projects}
+        />,
+        initialData.routerContext
+      );
+
+      // open the project menu.
+      wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
+      const projectSelector = wrapper.find('MultipleProjectSelector');
+
+      // Two projects
+      expect(projectSelector.find('AutoCompleteItem')).toHaveLength(2);
+      // All projects in the footer
+      expect(
+        projectSelector
+          .find('SelectorFooterControls Button')
+          .first()
+          .text()
+      ).toEqual('View All Projects');
+    });
+
+    it('shows "All Projects" button based on role', function() {
+      initialData.organization.features.push('global-views');
+      initialData.organization.role = 'owner';
+      wrapper = mountWithTheme(
+        <GlobalSelectionHeader
+          organization={initialData.organization}
+          projects={initialData.organization.projects}
+        />,
+        initialData.routerContext
+      );
+
+      // open the project menu.
+      wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
+      const projectSelector = wrapper.find('MultipleProjectSelector');
+
+      // Two projects
+      expect(projectSelector.find('AutoCompleteItem')).toHaveLength(2);
+      // All projects in the footer
+      expect(
+        projectSelector
+          .find('SelectorFooterControls Button')
+          .first()
+          .text()
+      ).toEqual('View All Projects');
+    });
+
+    it('shows "My Projects" when "all projects" is selected', async function() {
+      initialData.organization.features.push('global-views');
+      initialData.organization.role = 'owner';
+
+      wrapper = mountWithTheme(
+        <GlobalSelectionHeader
+          organization={initialData.organization}
+          projects={initialData.organization.projects}
+        />,
+        changeQuery(initialData.routerContext, {project: -1})
+      );
+      await tick();
+
+      // open the project menu.
+      wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
+      const projectSelector = wrapper.find('MultipleProjectSelector');
+
+      // My projects in the footer
+      expect(
+        projectSelector
+          .find('SelectorFooterControls Button')
+          .first()
+          .text()
+      ).toEqual('View My Projects');
     });
   });
 });

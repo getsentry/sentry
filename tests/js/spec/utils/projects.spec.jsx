@@ -3,6 +3,7 @@ import {mount} from 'sentry-test/enzyme';
 
 import Projects from 'app/utils/projects';
 import ProjectsStore from 'app/stores/projectsStore';
+import ProjectActions from 'app/actions/projectActions';
 
 describe('utils.projects', function() {
   const renderer = jest.fn(() => null);
@@ -433,6 +434,67 @@ describe('utils.projects', function() {
           ],
         })
       );
+    });
+
+    it('can query for a list of all projects and save it to the store', async function() {
+      const loadProjects = jest.spyOn(ProjectActions, 'loadProjects');
+      const mockProjects = [
+        TestStubs.Project({
+          id: '100',
+          slug: 'a',
+        }),
+        TestStubs.Project({
+          id: '101',
+          slug: 'b',
+        }),
+        TestStubs.Project({
+          id: '102',
+          slug: 'c',
+        }),
+      ];
+
+      request.mockClear();
+      request = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/projects/',
+        query: {
+          all_projects: '1',
+        },
+        body: mockProjects,
+      });
+
+      const wrapper = createWrapper({allProjects: true});
+
+      // This is initial state
+      expect(renderer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fetching: true,
+          isIncomplete: null,
+          hasMore: null,
+          projects: [],
+        })
+      );
+
+      // wait for request to resolve
+      await tick();
+      wrapper.update();
+      expect(request).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: {all_projects: 1},
+        })
+      );
+
+      expect(renderer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fetching: false,
+          isIncomplete: null,
+          hasMore: false,
+          projects: mockProjects,
+        })
+      );
+
+      // expect the store action to be called
+      expect(loadProjects).toHaveBeenCalledWith(mockProjects);
     });
   });
 });

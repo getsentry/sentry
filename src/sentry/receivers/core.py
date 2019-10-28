@@ -7,7 +7,6 @@ from django.conf import settings
 from django.db import connections, transaction
 from django.db.utils import OperationalError, ProgrammingError
 from django.db.models.signals import post_migrate, post_save
-
 from functools import wraps
 from pkg_resources import parse_version as Version
 
