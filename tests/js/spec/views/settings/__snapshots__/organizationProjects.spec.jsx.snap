@@ -380,82 +380,116 @@ exports[`OrganizationProjects should render the projects in the store 1`] = `
                   <div
                     className="css-z3t9gf-textStyles"
                   >
-                    <PanelItem
-                      align="center"
+                    <GridPanelItem
                       key="2"
-                      p={0}
+                      p={2}
                     >
                       <Base
-                        align="center"
-                        className="css-1jykl04-PanelItem eo8n7lk0"
-                        p={0}
+                        className="css-1325ndv-PanelItem-GridPanelItem ew99cs00"
+                        p={2}
                       >
                         <div
-                          className="css-1jykl04-PanelItem eo8n7lk0"
+                          className="css-1325ndv-PanelItem-GridPanelItem ew99cs00"
                           is={null}
                         >
-                          <Box
-                            flex="1"
-                            p={2}
-                          >
-                            <Base
-                              className="css-14o7hgh"
-                              flex="1"
-                              p={2}
+                          <ProjectListItemWrapper>
+                            <div
+                              className="css-uamzlo-ProjectListItemWrapper ew99cs01"
                             >
-                              <div
-                                className="css-14o7hgh"
-                                is={null}
+                              <ProjectItem
+                                organization={
+                                  Object {
+                                    "access": Array [
+                                      "org:read",
+                                      "org:write",
+                                      "org:admin",
+                                      "org:integrations",
+                                      "project:read",
+                                      "project:write",
+                                      "project:admin",
+                                      "team:read",
+                                      "team:write",
+                                      "team:admin",
+                                    ],
+                                    "features": Array [],
+                                    "id": "3",
+                                    "name": "Organization Name",
+                                    "onboardingTasks": Array [],
+                                    "projects": Array [],
+                                    "scrapeJavaScript": true,
+                                    "slug": "org-slug",
+                                    "status": Object {
+                                      "id": "active",
+                                      "name": "active",
+                                    },
+                                    "teams": Array [],
+                                  }
+                                }
+                                project={
+                                  Object {
+                                    "environments": Array [],
+                                    "hasAccess": true,
+                                    "id": "2",
+                                    "isBookmarked": false,
+                                    "isMember": true,
+                                    "name": "Project Name",
+                                    "slug": "project-slug",
+                                    "teams": Array [],
+                                  }
+                                }
                               >
-                                <ProjectItem
-                                  organization={
-                                    Object {
-                                      "access": Array [
-                                        "org:read",
-                                        "org:write",
-                                        "org:admin",
-                                        "org:integrations",
-                                        "project:read",
-                                        "project:write",
-                                        "project:admin",
-                                        "team:read",
-                                        "team:write",
-                                        "team:admin",
-                                      ],
-                                      "features": Array [],
-                                      "id": "3",
-                                      "name": "Organization Name",
-                                      "onboardingTasks": Array [],
-                                      "projects": Array [],
-                                      "scrapeJavaScript": true,
-                                      "slug": "org-slug",
-                                      "status": Object {
-                                        "id": "active",
-                                        "name": "active",
-                                      },
-                                      "teams": Array [],
-                                    }
-                                  }
-                                  project={
-                                    Object {
-                                      "environments": Array [],
-                                      "hasAccess": true,
-                                      "id": "2",
-                                      "isBookmarked": false,
-                                      "isMember": true,
-                                      "name": "Project Name",
-                                      "slug": "project-slug",
-                                      "teams": Array [],
-                                    }
-                                  }
+                                <Container
+                                  key="2"
                                 >
-                                  <Container
-                                    key="2"
+                                  <div
+                                    className="css-9ku3o0-Container enngb6z0"
                                   >
-                                    <div
-                                      className="css-9ku3o0-Container enngb6z0"
+                                    <BookmarkLink
+                                      isBookmarked={false}
+                                      onToggle={[Function]}
+                                      organization={
+                                        Object {
+                                          "access": Array [
+                                            "org:read",
+                                            "org:write",
+                                            "org:admin",
+                                            "org:integrations",
+                                            "project:read",
+                                            "project:write",
+                                            "project:admin",
+                                            "team:read",
+                                            "team:write",
+                                            "team:admin",
+                                          ],
+                                          "features": Array [],
+                                          "id": "3",
+                                          "name": "Organization Name",
+                                          "onboardingTasks": Array [],
+                                          "projects": Array [],
+                                          "scrapeJavaScript": true,
+                                          "slug": "org-slug",
+                                          "status": Object {
+                                            "id": "active",
+                                            "name": "active",
+                                          },
+                                          "teams": Array [],
+                                        }
+                                      }
+                                      project={
+                                        Object {
+                                          "environments": Array [],
+                                          "hasAccess": true,
+                                          "id": "2",
+                                          "isBookmarked": false,
+                                          "isMember": true,
+                                          "name": "Project Name",
+                                          "slug": "project-slug",
+                                          "teams": Array [],
+                                        }
+                                      }
                                     >
-                                      <BookmarkLink
+                                      <withApi(BookmarkStar)
+                                        className="css-10z01iz-BookmarkLink enngb6z1"
                                         isBookmarked={false}
                                         onToggle={[Function]}
                                         organization={
@@ -499,7 +533,16 @@ exports[`OrganizationProjects should render the projects in the store 1`] = `
                                           }
                                         }
                                       >
-                                        <withApi(BookmarkStar)
+                                        <BookmarkStar
+                                          api={
+                                            Client {
+                                              "_chain": [Function],
+                                              "_wrapRequest": [Function],
+                                              "bulkUpdate": [Function],
+                                              "handleRequestError": [Function],
+                                              "hasProjectBeenRenamed": [Function],
+                                            }
+                                          }
                                           className="css-10z01iz-BookmarkLink enngb6z1"
                                           isBookmarked={false}
                                           onToggle={[Function]}
@@ -544,47 +587,48 @@ exports[`OrganizationProjects should render the projects in the store 1`] = `
                                             }
                                           }
                                         >
-                                          <BookmarkStar
-                                            api={
-                                              Client {
-                                                "_chain": [Function],
-                                                "_wrapRequest": [Function],
-                                                "bulkUpdate": [Function],
-                                                "handleRequestError": [Function],
-                                                "hasProjectBeenRenamed": [Function],
-                                              }
-                                            }
+                                          <Star
                                             className="css-10z01iz-BookmarkLink enngb6z1"
                                             isBookmarked={false}
-                                            onToggle={[Function]}
-                                            organization={
-                                              Object {
-                                                "access": Array [
-                                                  "org:read",
-                                                  "org:write",
-                                                  "org:admin",
-                                                  "org:integrations",
-                                                  "project:read",
-                                                  "project:write",
-                                                  "project:admin",
-                                                  "team:read",
-                                                  "team:write",
-                                                  "team:admin",
-                                                ],
-                                                "features": Array [],
-                                                "id": "3",
-                                                "name": "Organization Name",
-                                                "onboardingTasks": Array [],
-                                                "projects": Array [],
-                                                "scrapeJavaScript": true,
-                                                "slug": "org-slug",
-                                                "status": Object {
-                                                  "id": "active",
-                                                  "name": "active",
-                                                },
-                                                "teams": Array [],
-                                              }
-                                            }
+                                            onClick={[Function]}
+                                            src="icon-star-small-filled"
+                                          >
+                                            <ForwardRef
+                                              className="enngb6z1 css-judnc9-InlineSvg-Star-BookmarkLink e5ekdrk0"
+                                              isBookmarked={false}
+                                              onClick={[Function]}
+                                              src="icon-star-small-filled"
+                                            >
+                                              <svg
+                                                className="enngb6z1 css-judnc9-InlineSvg-Star-BookmarkLink e5ekdrk0"
+                                                height="1em"
+                                                onClick={[Function]}
+                                                viewBox={Object {}}
+                                                width="1em"
+                                              >
+                                                <use
+                                                  href="#test"
+                                                  xlinkHref="#test"
+                                                />
+                                              </svg>
+                                            </ForwardRef>
+                                          </Star>
+                                        </BookmarkStar>
+                                      </withApi(BookmarkStar)>
+                                    </BookmarkLink>
+                                    <Link
+                                      to="/settings/org-slug/projects/project-slug/"
+                                    >
+                                      <Link
+                                        onlyActiveOnIndex={false}
+                                        style={Object {}}
+                                        to="/settings/org-slug/projects/project-slug/"
+                                      >
+                                        <a
+                                          onClick={[Function]}
+                                          style={Object {}}
+                                        >
+                                          <ProjectLabel
                                             project={
                                               Object {
                                                 "environments": Array [],
@@ -598,48 +642,8 @@ exports[`OrganizationProjects should render the projects in the store 1`] = `
                                               }
                                             }
                                           >
-                                            <Star
-                                              className="css-10z01iz-BookmarkLink enngb6z1"
-                                              isBookmarked={false}
-                                              onClick={[Function]}
-                                              src="icon-star-small-filled"
-                                            >
-                                              <ForwardRef
-                                                className="enngb6z1 css-judnc9-InlineSvg-Star-BookmarkLink e5ekdrk0"
-                                                isBookmarked={false}
-                                                onClick={[Function]}
-                                                src="icon-star-small-filled"
-                                              >
-                                                <svg
-                                                  className="enngb6z1 css-judnc9-InlineSvg-Star-BookmarkLink e5ekdrk0"
-                                                  height="1em"
-                                                  onClick={[Function]}
-                                                  viewBox={Object {}}
-                                                  width="1em"
-                                                >
-                                                  <use
-                                                    href="#test"
-                                                    xlinkHref="#test"
-                                                  />
-                                                </svg>
-                                              </ForwardRef>
-                                            </Star>
-                                          </BookmarkStar>
-                                        </withApi(BookmarkStar)>
-                                      </BookmarkLink>
-                                      <Link
-                                        to="/settings/org-slug/projects/project-slug/"
-                                      >
-                                        <Link
-                                          onlyActiveOnIndex={false}
-                                          style={Object {}}
-                                          to="/settings/org-slug/projects/project-slug/"
-                                        >
-                                          <a
-                                            onClick={[Function]}
-                                            style={Object {}}
-                                          >
-                                            <ProjectLabel
+                                            <span
+                                              className="project-label"
                                               project={
                                                 Object {
                                                   "environments": Array [],
@@ -654,72 +658,46 @@ exports[`OrganizationProjects should render the projects in the store 1`] = `
                                               }
                                             >
                                               <span
-                                                className="project-label"
-                                                project={
-                                                  Object {
-                                                    "environments": Array [],
-                                                    "hasAccess": true,
-                                                    "id": "2",
-                                                    "isBookmarked": false,
-                                                    "isMember": true,
-                                                    "name": "Project Name",
-                                                    "slug": "project-slug",
-                                                    "teams": Array [],
-                                                  }
-                                                }
+                                                className="project-name"
                                               >
-                                                <span
-                                                  className="project-name"
-                                                >
-                                                  project-slug
-                                                </span>
+                                                project-slug
                                               </span>
-                                            </ProjectLabel>
-                                          </a>
-                                        </Link>
+                                            </span>
+                                          </ProjectLabel>
+                                        </a>
                                       </Link>
-                                    </div>
-                                  </Container>
-                                </ProjectItem>
-                              </div>
-                            </Base>
-                          </Box>
-                          <Box
-                            p={2}
-                            w={0.25}
-                          >
-                            <Base
-                              className="css-7g8agk"
-                              p={2}
-                              w={0.25}
+                                    </Link>
+                                  </div>
+                                </Container>
+                              </ProjectItem>
+                            </div>
+                          </ProjectListItemWrapper>
+                          <ProjectStatsGraphWrapper>
+                            <div
+                              className="css-gtwx22-ProjectStatsGraphWrapper ew99cs02"
                             >
-                              <div
-                                className="css-7g8agk"
-                                is={null}
-                              >
-                                <ProjectStatsGraph
-                                  key="2"
-                                  project={
-                                    Object {
-                                      "environments": Array [],
-                                      "hasAccess": true,
-                                      "id": "2",
-                                      "isBookmarked": false,
-                                      "isMember": true,
-                                      "name": "Project Name",
-                                      "slug": "project-slug",
-                                      "teams": Array [],
-                                    }
+                              <ProjectStatsGraph
+                                key="2"
+                                project={
+                                  Object {
+                                    "environments": Array [],
+                                    "hasAccess": true,
+                                    "id": "2",
+                                    "isBookmarked": false,
+                                    "isMember": true,
+                                    "name": "Project Name",
+                                    "slug": "project-slug",
+                                    "teams": Array [],
                                   }
-                                >
-                                  <div />
-                                </ProjectStatsGraph>
-                              </div>
-                            </Base>
-                          </Box>
+                                }
+                              >
+                                <div />
+                              </ProjectStatsGraph>
+                            </div>
+                          </ProjectStatsGraphWrapper>
                         </div>
                       </Base>
-                    </PanelItem>
+                    </GridPanelItem>
                   </div>
                 </PanelBody>
               </div>
