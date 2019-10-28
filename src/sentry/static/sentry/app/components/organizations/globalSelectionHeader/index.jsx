@@ -549,6 +549,9 @@ class GlobalSelectionHeader extends React.Component {
             </HeaderItemPosition>
           </React.Fragment>
         )}
+
+        {!showEnvironmentSelector && <HeaderItemPosition isSpacer />}
+        {!showDateSelector && <HeaderItemPosition isSpacer />}
       </Header>
     );
   }

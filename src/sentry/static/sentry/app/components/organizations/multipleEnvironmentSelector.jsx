@@ -291,7 +291,7 @@ const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
   box-shadow: ${p => p.theme.dropShadowLight};
   border-radius: ${p => p.theme.borderRadiusBottom};
   margin-top: 0;
-  min-width: 120%;
+  min-width: 100%;
 `;
 
 class EnvironmentSelectorItem extends React.PureComponent {

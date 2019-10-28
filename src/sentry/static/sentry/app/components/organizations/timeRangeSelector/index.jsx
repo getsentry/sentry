@@ -406,7 +406,7 @@ const Menu = styled('div')`
   border: 1px solid ${p => p.theme.borderDark};
   position: absolute;
   top: 100%;
-  min-width: 120%;
+  min-width: 100%;
   z-index: ${p => p.theme.zIndex.dropdown};
   box-shadow: ${p => p.theme.dropShadowLight};
   border-radius: ${p => p.theme.borderRadiusBottom};
