@@ -15,6 +15,6 @@ const Badge = ({priority, className, text}: Props) => (
 Badge.propTypes = {
   text: PropTypes.string,
   priority: PropTypes.oneOf(['strong', 'new', 'highlight']),
-};
+} as any;
 
 export default Badge;
