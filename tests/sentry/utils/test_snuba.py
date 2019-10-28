@@ -419,10 +419,9 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
             "data": [{"transaction_name": "api.do_things"}],
         }
         transform_aliases_and_query(
-            skip_conditions=True,
             selected_columns=["transaction"],
             conditions=[
-                ["type", "=", "transaction"],
+                ["event.type", "=", "transaction"],
                 ["match", [["ifNull", ["tags[user_email]", ""]], "'(?i)^.*\@sentry\.io$'"]],
                 [["positionCaseInsensitive", ["message", "'recent-searches'"]], "!=", 0],
             ],
@@ -447,15 +446,14 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
         )
 
     @patch("sentry.utils.snuba.raw_query")
-    def test_condition_removal_skip_conditions(self, mock_query):
+    def test_condition_removal(self, mock_query):
         mock_query.return_value = {
             "meta": [{"name": "transaction_name"}, {"name": "duration"}],
             "data": [{"transaction_name": "api.do_things", "duration": 200}],
         }
         transform_aliases_and_query(
-            skip_conditions=True,
             selected_columns=["transaction", "transaction.duration"],
-            conditions=[["type", "=", "transaction"], ["duration", ">", 200]],
+            conditions=[["event.type", "=", "transaction"], ["duration", ">", 200]],
             groupby=["transaction.op"],
             filter_keys={"project_id": [self.project.id]},
         )
@@ -480,9 +478,12 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
             "data": [{"transaction_name": "api.do_things", "duration": 200}],
         }
         transform_aliases_and_query(
-            skip_conditions=True,
             selected_columns=["transaction", "transaction.duration"],
-            conditions=[["type", "=", "transaction"], ["type", "=", "csp"], ["duration", ">", 200]],
+            conditions=[
+                ["event.type", "=", "transaction"],
+                ["type", "=", "csp"],
+                ["duration", ">", 200],
+            ],
             groupby=["transaction.op"],
             filter_keys={"project_id": [self.project.id]},
         )
@@ -501,13 +502,12 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
         )
 
     @patch("sentry.utils.snuba.raw_query")
-    def test_condition_transform_skip_conditions(self, mock_query):
+    def test_condition_transform(self, mock_query):
         mock_query.return_value = {
             "meta": [{"name": "transaction_name"}, {"name": "duration"}],
             "data": [{"transaction_name": "api.do_things", "duration": 200}],
         }
         transform_aliases_and_query(
-            skip_conditions=True,
             selected_columns=["transaction", "transaction.duration"],
             conditions=[["http_method", "=", "GET"]],
             groupby=["transaction.op"],
@@ -534,16 +534,16 @@ class DetectDatasetTest(TestCase):
         assert detect_dataset(query) == Dataset.Events
 
     def test_event_type_condition(self):
-        query = {"conditions": [["type", "=", "transaction"]]}
+        query = {"conditions": [["event.type", "=", "transaction"]]}
         assert detect_dataset(query) == Dataset.Transactions
 
-        query = {"conditions": [["type", "=", "error"]]}
+        query = {"conditions": [["event.type", "=", "error"]]}
         assert detect_dataset(query) == Dataset.Events
 
-        query = {"conditions": [["type", "=", "transaction"]]}
+        query = {"conditions": [["event.type", "=", "transaction"]]}
         assert detect_dataset(query) == Dataset.Transactions
 
-        query = {"conditions": [["type", "=", "error"]]}
+        query = {"conditions": [["event.type", "=", "error"]]}
         assert detect_dataset(query) == Dataset.Events
 
         query = {"conditions": [["type", "!=", "transactions"]]}
