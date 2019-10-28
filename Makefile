@@ -180,6 +180,11 @@ endif
 
 	@echo ""
 
+test-plugins:
+	@echo "--> Running plugin tests"
+	py.test tests/sentry_plugins -vv --cov . --cov-report="xml:.artifacts/plugins.coverage.xml" --junit-xml=".artifacts/plugins.junit.xml"
+	@echo ""
+
 lint: lint-python lint-js
 
 lint-python:

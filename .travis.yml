@@ -164,6 +164,11 @@ matrix:
       name: 'Django 1.9 Acceptance'
       env: DJANGO_VERSION=">=1.9,<1.10" TEST_SUITE=acceptance USE_SNUBA=1
 
+    # allowed to fail
+    - <<: *postgres_default
+      name: 'Plugins'
+      env: TEST_SUITE=plugins DB=postgres
+
     - python: 2.7
       name: 'Frontend'
       env: TEST_SUITE=js
