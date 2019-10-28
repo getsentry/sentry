@@ -18,6 +18,7 @@ import {
 } from './types';
 import GridHeadCell from './gridHeadCell';
 import GridModalEditColumn from './gridModalEditColumn';
+import AddColumnButton from './addColumnButton';
 import {
   GridPanel,
   GridPanelBody,
@@ -132,6 +133,10 @@ class GridEditable<
     this.setState({isEditing: !this.state.isEditing});
   };
 
+  openModalAddColumnAt = (insertIndex: number) => {
+    return this.toggleModalEditColumn(insertIndex);
+  };
+
   toggleModalEditColumn = (
     indexColumnOrder?: number,
     column?: GridColumn<ColumnKey>
@@ -236,6 +241,8 @@ class GridEditable<
 
           {columnOrder.map((column, columnIndex) => (
             <GridHeadCell
+              openModalAddColumnAt={this.openModalAddColumnAt}
+              isLast={columnOrder.length - 1 === columnIndex}
               key={`${columnIndex}.${column.key}`}
               isColumnDragging={this.props.isColumnDragging}
               isPrimary={column.isPrimary}
@@ -279,13 +286,13 @@ class GridEditable<
 
     return (
       <GridEditGroup>
-        <GridEditGroupButton onClick={() => this.toggleModalEditColumn()}>
-          <ToolTip title={t('Add Columns')}>
-            <InlineSvg src="icon-circle-add" data-test-id="grid-edit-add" />
-          </ToolTip>
-        </GridEditGroupButton>
+        <AddColumnButton
+          align="left"
+          onClick={() => this.toggleModalEditColumn()}
+          data-test-id="grid-add-column-right-end"
+        />
         <GridEditGroupButton onClick={this.toggleEdit}>
-          <ToolTip title={t('Cancel Edit')}>
+          <ToolTip title={t('Exit Edit')}>
             <InlineSvg src="icon-close" />
           </ToolTip>
         </GridEditGroupButton>

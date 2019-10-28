@@ -546,6 +546,21 @@ class EventView {
     return newEventView;
   }
 
+  withNewColumnAt(
+    newColumn: {
+      aggregation: string;
+      field: string;
+      fieldname: string;
+    },
+    insertIndex: number
+  ): EventView {
+    const newEventView = this.withNewColumn(newColumn);
+
+    const fromIndex = newEventView.fields.length - 1;
+
+    return newEventView.withMovedColumn({fromIndex, toIndex: insertIndex});
+  }
+
   withUpdatedColumn(
     columnIndex: number,
     updatedColumn: {
