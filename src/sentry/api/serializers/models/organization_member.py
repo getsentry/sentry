@@ -34,6 +34,7 @@ class OrganizationMemberSerializer(Serializer):
             },
             "dateCreated": obj.date_added,
             "inviteStatus": obj.get_invite_status_name(),
+            "inviterName": obj.inviter.get_display_name() if obj.inviter else None,
         }
         return d
 

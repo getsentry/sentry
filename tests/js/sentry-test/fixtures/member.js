@@ -13,6 +13,7 @@ export function Member(params = {}) {
       'sso:linked': false,
     },
     user: User(),
+    inviteStatus: 'approved',
     ...params,
   };
 }

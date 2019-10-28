@@ -361,6 +361,14 @@ export type Member = {
     'sso:invalid': boolean;
   };
   dateCreated: string;
+  inviteStatus: 'approved' | 'requested_to_be_invited' | 'requested_to_join';
+  inviterName: string | null;
+};
+
+export type AccessRequest = {
+  id: string;
+  team: Team;
+  member: Member;
 };
 
 export type EventViewv1 = {
@@ -569,4 +577,6 @@ export type RouterProps = {
 export type ActiveExperiments = {
   ImprovedInvitesExperiment: 'none' | 'all' | 'join_request' | 'invite_request';
   TrialUpgradeV2Experiment: 'upgrade' | 'trial' | -1;
+  JoinRequestExperiment: 0 | 1 | -1;
+  InviteRequestExperiment: 0 | 1 | -1;
 };

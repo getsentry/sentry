@@ -49,7 +49,7 @@ class InviteRequestPermissions(OrganizationPermission):
     scope_map = {
         "GET": ["member:read", "member:write", "member:admin"],
         "PUT": ["member:write", "member:admin"],
-        "DELETE": ["member:admin"],
+        "DELETE": ["member:write", "member:admin"],
     }
 
 

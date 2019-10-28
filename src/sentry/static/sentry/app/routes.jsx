@@ -37,10 +37,10 @@ const lazyLoad = cb => m => cb(null, m.default);
 
 const hook = name => HookStore.get(name).map(cb => cb());
 
-const OrganizationMembersView = HookOrDefault({
+const OrganizationMembersWrapper = HookOrDefault({
   hookName: 'component:org-members-view',
   defaultComponentPromise: () =>
-    import(/* webpackChunkName: "OrganizationMembers" */ 'app/views/settings/organizationMembers'),
+    import(/* webpackChunkName: "OrganizationMembersWrapper" */ 'app/views/settings/organizationMembers/organizationMembersWrapper'),
 });
 
 function routes() {
@@ -497,7 +497,23 @@ function routes() {
       />
 
       <Route path="members/" name="Members">
-        <IndexRoute component={OrganizationMembersView} />
+        <Route component={OrganizationMembersWrapper}>
+          <IndexRoute
+            componentPromise={() =>
+              import(/* webpackChunkName: "OrganizationMembers" */ 'app/views/settings/organizationMembers')
+            }
+            component={errorHandler(LazyLoad)}
+          />
+
+          <Route
+            path="requests/"
+            name="Requests"
+            componentPromise={() =>
+              import(/* webpackChunkName: "OrganizationRequestsView" */ 'app/views/settings/organizationMembers/organizationRequestsView')
+            }
+            component={errorHandler(LazyLoad)}
+          />
+        </Route>
 
         <Route
           path="new/"
