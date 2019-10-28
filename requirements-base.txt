@@ -1,6 +1,9 @@
 BeautifulSoup>=3.2.1
 boto3>=1.4.1,<1.4.6
 botocore<1.5.71
+
+# sentry-plugins specific dependencies
+cached-property
 celery>=3.1.8,<3.1.19
 cffi>=1.11.5,<2.0
 click>=5.0,<7.0
@@ -34,6 +37,7 @@ oauth2>=1.5.167
 parsimonious==0.8.0
 percy>=1.1.2
 petname>=2.6,<2.7
+phabricator>=0.6.0,<1.0
 Pillow>=6.2.1,<7.0.0
 progressbar2>=3.10,<3.11
 psycopg2-binary>=2.7.0,<2.9.0
