@@ -126,7 +126,7 @@ class Client {
       // Because we are mocking an API client, we generally catch errors to show
       // user-friendly error messages, this means in tests this error gets gobbled
       // up and developer frustration ensues.
-      console.warn(err); // eslint-disable-line no-console
+      console.warn(err.message); // eslint-disable-line no-console
       throw err;
     } else {
       // has mocked response
