@@ -127,6 +127,9 @@ register("github-app.client-secret", flags=FLAG_PRIORITIZE_DISK)
 register("vsts.client-id", flags=FLAG_PRIORITIZE_DISK)
 register("vsts.client-secret", flags=FLAG_PRIORITIZE_DISK)
 
+# PagerDuty Integration
+register("pagerduty.app-id", default="")
+
 # Snuba
 register("snuba.search.pre-snuba-candidates-optimizer", type=Bool, default=False)
 register("snuba.search.pre-snuba-candidates-percentage", default=0.2)
