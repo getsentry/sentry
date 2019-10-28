@@ -128,7 +128,9 @@ class BuildAssetsCommand(BaseBuildCommand):
         env["SENTRY_STATIC_DIST_PATH"] = self.sentry_static_dist_path
         env["NODE_ENV"] = "production"
         # TODO: Our JS builds should not require 4GB heap space
-        env["NODE_OPTIONS"] = ((env.get("NODE_OPTIONS", "") + " --max-old-space-size=4096")).lstrip()
+        env["NODE_OPTIONS"] = (
+            (env.get("NODE_OPTIONS", "") + " --max-old-space-size=4096")
+        ).lstrip()
         self._run_yarn_command(["webpack", "--bail"], env=env)
 
     def _write_version_file(self, version_info):

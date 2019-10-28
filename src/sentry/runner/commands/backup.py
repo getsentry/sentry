@@ -21,14 +21,14 @@ def sort_dependencies(app_list):
     Similar to Django's except that we discard the important of natural keys
     when sorting dependencies (i.e. it works without them).
     """
-    from django.db.models import get_model, get_models
+    from django.apps import apps
 
     # Process the list of models, and get the list of dependencies
     model_dependencies = []
     models = set()
     for app, model_list in app_list:
         if model_list is None:
-            model_list = get_models(app)
+            model_list = apps.get_app_config(app).get_models()
 
         for model in model_list:
             models.add(model)
@@ -36,7 +36,7 @@ def sort_dependencies(app_list):
             if hasattr(model, "natural_key"):
                 deps = getattr(model.natural_key, "dependencies", [])
                 if deps:
-                    deps = [get_model(*d.split(".")) for d in deps]
+                    deps = [apps.get_model(*d.split(".")) for d in deps]
             else:
                 deps = []
 

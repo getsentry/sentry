@@ -14,6 +14,7 @@ def event_supports_reprocessing(data):
     """Only events of a certain format support reprocessing."""
     from sentry.stacktraces.processing import find_stacktraces_in_data
     from sentry.stacktraces.platform import NATIVE_PLATFORMS, JAVASCRIPT_PLATFORMS
+
     platform = data.get("platform")
     if platform in NATIVE_PLATFORMS:
         return True

@@ -18,9 +18,15 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
             organization=self.org, name="Mariachi Band", members=[self.user]
         )
 
-        self.project_1 = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
-        self.project_2 = self.create_project(organization=self.org, teams=[self.team], name="Sumatra")
-        self.project_3 = self.create_project(organization=self.org, teams=[self.team], name="Siberian")
+        self.project_1 = self.create_project(
+            organization=self.org, teams=[self.team], name="Bengal"
+        )
+        self.project_2 = self.create_project(
+            organization=self.org, teams=[self.team], name="Sumatra"
+        )
+        self.project_3 = self.create_project(
+            organization=self.org, teams=[self.team], name="Siberian"
+        )
 
         self.create_environment(name="development", project=self.project_1)
         self.create_environment(name="production", project=self.project_1)
@@ -32,7 +38,9 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
 
     def test_global_selection_header_dropdown(self):
         self.project.update(first_event=timezone.now())
-        self.page.visit_issue_list(self.org.slug, query="?query=assigned%3Ame&project=" + six.text_type(self.project_1.id))
+        self.page.visit_issue_list(
+            self.org.slug, query="?query=assigned%3Ame&project=" + six.text_type(self.project_1.id)
+        )
         self.browser.wait_until_test_id("awaiting-events")
 
         self.browser.click('[data-test-id="global-header-project-selector"]')

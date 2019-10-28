@@ -55,24 +55,18 @@ class SentryAppsStatsTest(APITestCase):
         self.login_as(user=self.superuser, superuser=True)
 
         self.create_sentry_app_installation(
-            slug=self.app_1.slug,
-            organization=self.create_organization(),
+            slug=self.app_1.slug, organization=self.create_organization()
         )
 
         for i in range(15):
             app = self.create_sentry_app(
-                name="Test {}".format(i),
-                organization=self.super_org,
-                published=True,
+                name="Test {}".format(i), organization=self.super_org, published=True
             )
 
-            self.create_sentry_app_installation(
-                slug=app.slug,
-                organization=self.org,
-            )
+            self.create_sentry_app_installation(slug=app.slug, organization=self.org)
 
-        response = self.client.get(self.url + '?per_page=10', format="json")
+        response = self.client.get(self.url + "?per_page=10", format="json")
         integrations = json.loads(response.content)
 
         assert len(integrations) == 10  # honors per_page
-        assert integrations[0]['installs'] == 2  # sorted by installs
+        assert integrations[0]["installs"] == 2  # sorted by installs

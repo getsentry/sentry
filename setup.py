@@ -135,11 +135,7 @@ setup(
     packages=find_packages("src"),
     zip_safe=False,
     install_requires=install_requires,
-    extras_require={
-        "dev": dev_requires,
-        "postgres": [],
-        "optional": optional_requires,
-    },
+    extras_require={"dev": dev_requires, "postgres": [], "optional": optional_requires},
     cmdclass=cmdclass,
     license="BSD",
     include_package_data=True,

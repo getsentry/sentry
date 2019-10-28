@@ -129,7 +129,11 @@ class GitLabApiClient(ApiClient):
         # Really useful, because we often don't need most of the project information
         return self.get(
             GitLabApiClientPath.group_projects.format(group=group),
-            params={"search": query, "simple": simple, "include_subgroups": self.metadata.get("include_subgroups", False)},
+            params={
+                "search": query,
+                "simple": simple,
+                "include_subgroups": self.metadata.get("include_subgroups", False),
+            },
         )
 
     def get_project(self, project_id):

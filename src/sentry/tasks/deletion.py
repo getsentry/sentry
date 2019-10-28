@@ -2,9 +2,9 @@ from __future__ import absolute_import
 
 from uuid import uuid4
 
+from django.apps import apps
 from django.conf import settings
 from django.db import transaction
-from django.db.models import get_model
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
@@ -277,7 +277,7 @@ def generic_delete(app_label, model_name, object_id, transaction_id=None, actor_
     from sentry import deletions
     from sentry.models import User
 
-    model = get_model(app_label, model_name)
+    model = apps.get_model(app_label, model_name)
 
     try:
         instance = model.objects.get(id=object_id)

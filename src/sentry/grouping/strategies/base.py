@@ -198,7 +198,9 @@ class StrategyConfiguration(object):
         }
 
 
-def create_strategy_configuration(id, strategies=None, delegates=None, changelog=None, hidden=False):
+def create_strategy_configuration(
+    id, strategies=None, delegates=None, changelog=None, hidden=False
+):
     class NewStrategyConfiguration(StrategyConfiguration):
         pass
 
