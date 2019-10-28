@@ -124,6 +124,10 @@ RUN set -x \
       g++ \
       wget \
     " \
+    # maxminddb
+    && buildDeps="$buildDeps \
+      libmaxminddb-dev \
+    "\
     # librabbitmq
     && buildDeps="$buildDeps \
       make \
@@ -147,12 +151,14 @@ RUN set -x \
     # build dependencies to prevent accidental collusion.
     # These are also installed last as they are needed
     # during container run and can have the same deps w/
-    # build deps.
+    # build deps such as maxminddb.
     && apt-get install -y --no-install-recommends \
       # pillow
       libjpeg-dev \
       # rust bindings
       libffi-dev \
+      # maxminddb bindings
+      libmaxminddb-dev \
       # SAML needs these run-time
       libxmlsec1-dev \
       libxslt-dev \
