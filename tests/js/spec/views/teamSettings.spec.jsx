@@ -14,7 +14,7 @@ describe('TeamSettings', function() {
     window.location.assign.mockRestore();
   });
 
-  it('can change name and slug', async function() {
+  it('can change slug', async function() {
     const team = TestStubs.Team();
     const putMock = MockApiClient.addMockResponse({
       url: `/teams/org/${team.slug}/`,
@@ -32,20 +32,6 @@ describe('TeamSettings', function() {
         onTeamChange={() => {}}
       />,
       mountOptions
-    );
-
-    wrapper
-      .find('input[name="name"]')
-      .simulate('change', {target: {value: 'New Name'}})
-      .simulate('blur');
-
-    expect(putMock).toHaveBeenCalledWith(
-      `/teams/org/${team.slug}/`,
-      expect.objectContaining({
-        data: {
-          name: 'New Name',
-        },
-      })
     );
 
     wrapper
