@@ -266,7 +266,7 @@ class DifAssembleEndpoint(ProjectEndpoint):
             jsonschema.validate(files, schema)
         except jsonschema.ValidationError as e:
             return Response({"error": str(e).splitlines()[0]}, status=400)
-        except BaseException as e:
+        except BaseException:
             return Response({"error": "Invalid json body"}, status=400)
 
         file_response = {}

@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
 import os
 import json
@@ -28,16 +28,17 @@ def pytest_configure(config):
             last_built = int(time.time()) - data["built"]
 
             if last_built <= 3600:
-                print (  # noqa: B314
-                    """
+                print(  # noqa: B314
+                    u"""
 ###################
 #
-# Frontend assets last built %d seconds ago, skipping rebuilds for another %d seconds.
+# Frontend assets last built {} seconds ago, skipping rebuilds for another {} seconds.
 # Delete the file: `.webpack.meta` to rebuild.
 #
 ###################
-                """
-                    % (last_built, 3600 - last_built)
+                """.format(
+                        last_built, 3600 - last_built
+                    )
                 )
                 return
     except IOError:
@@ -45,7 +46,7 @@ def pytest_configure(config):
     except Exception:
         pass
 
-    print (  # noqa: B314
+    print(  # noqa: B314
         """
 ###################
 #
