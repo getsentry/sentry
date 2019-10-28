@@ -87,7 +87,7 @@ class Endpoint(APIView):
     def handle_exception(self, request, exc):
         try:
             response = super(Endpoint, self).handle_exception(exc)
-        except Exception as exc:
+        except Exception:
             import sys
             import traceback
 
