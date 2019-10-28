@@ -286,12 +286,12 @@ class GridEditable<
     return (
       <GridEditGroup>
         <GridEditGroupButton onClick={() => this.toggleModalEditColumn()}>
-          <ToolTip title={t('Add Columns')}>
+          <ToolTip title={t('Add Column')}>
             <InlineSvg src="icon-circle-add" data-test-id="grid-edit-add" />
           </ToolTip>
         </GridEditGroupButton>
         <GridEditGroupButton onClick={this.toggleEdit}>
-          <ToolTip title={t('Cancel Edit')}>
+          <ToolTip title={t('Exit Edit')}>
             <InlineSvg src="icon-close" />
           </ToolTip>
         </GridEditGroupButton>
