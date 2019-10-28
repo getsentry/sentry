@@ -251,7 +251,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
             "type": "transaction",
             "transaction": "api.issue.delete",
             "spans": [],
-            "contexts": {"trace": {"trace_id": "a" * 32, "span_id": "a" * 16}},
+            "contexts": {"trace": {"op": "foobar", "trace_id": "a" * 32, "span_id": "a" * 16}},
             "tags": {"important": "yes"},
         }
         fixtures = (
