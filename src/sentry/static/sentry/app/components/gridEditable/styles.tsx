@@ -7,7 +7,8 @@ import space from 'app/styles/space';
 export const ADD_BUTTON_SIZE = 16; // this is an even number
 export const GRID_HEADER_HEIGHT = 45;
 const GRID_EDIT_WIDTH = 35;
-const GRID_EDIT_WIDTH_EDIT_MODE = GRID_EDIT_WIDTH + ADD_BUTTON_SIZE;
+const GRID_EDIT_WIDTH_EDIT_MODE =
+  GRID_EDIT_WIDTH + ADD_BUTTON_SIZE / 2 + (12 - ADD_BUTTON_SIZE / 2);
 
 /**
  * Explanation of z-index:

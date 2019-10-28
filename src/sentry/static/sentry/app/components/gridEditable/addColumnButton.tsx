@@ -24,7 +24,7 @@ const AddColumnButton = (props: Props) => {
     };
   } else {
     style = {
-      left: `-${ADD_BUTTON_SIZE + 2}px`,
+      left: `-${ADD_BUTTON_SIZE + (12 - ADD_BUTTON_SIZE / 2)}px`,
     };
   }
 
@@ -49,21 +49,15 @@ const Wrapper = styled('div')`
 
   cursor: pointer;
 
-  border-radius: 100%;
-
   position: absolute;
   top: 0;
 
   z-index: ${Z_INDEX_ADD_COLUMN};
 
-  background-color: ${p => p.theme.offWhite};
-
   color: ${p => p.theme.gray2};
   &:hover {
     color: ${p => p.theme.gray3};
   }
-
-  transition: background-color 0.15s ease-in-out;
 `;
 
 const AddButtonWrap = styled('div')`
