@@ -5,10 +5,7 @@ import {t} from 'app/locale';
 import ToolTip from 'app/components/tooltip';
 import InlineSvg from 'app/components/inlineSvg';
 
-import {GRID_HEADER_HEIGHT, Z_INDEX_ADD_COLUMN} from './styles';
-
-// this is an even number
-const BUTTON_SIZE = 16;
+import {GRID_HEADER_HEIGHT, Z_INDEX_ADD_COLUMN, ADD_BUTTON_SIZE} from './styles';
 
 type Props = {
   onClick: () => void;
@@ -23,11 +20,11 @@ const AddColumnButton = (props: Props) => {
 
   if (align === 'right') {
     style = {
-      right: `-${BUTTON_SIZE / 2}px`,
+      right: `-${ADD_BUTTON_SIZE / 2}px`,
     };
   } else {
     style = {
-      left: `-${BUTTON_SIZE + 2}px`,
+      left: `-${ADD_BUTTON_SIZE + 2}px`,
     };
   }
 
@@ -48,7 +45,7 @@ const AddColumnButton = (props: Props) => {
 
 const Wrapper = styled('div')`
   height: ${GRID_HEADER_HEIGHT}px;
-  width: ${BUTTON_SIZE}px;
+  width: ${ADD_BUTTON_SIZE}px;
 
   cursor: pointer;
 
@@ -70,7 +67,7 @@ const Wrapper = styled('div')`
 `;
 
 const AddButtonWrap = styled('div')`
-  width: ${BUTTON_SIZE}px;
+  width: ${ADD_BUTTON_SIZE}px;
   height: ${GRID_HEADER_HEIGHT}px;
 
   display: flex;

@@ -4,9 +4,10 @@ import InlineSvg from 'app/components/inlineSvg';
 import {Panel, PanelBody} from 'app/components/panels';
 import space from 'app/styles/space';
 
+export const ADD_BUTTON_SIZE = 16; // this is an even number
 export const GRID_HEADER_HEIGHT = 45;
-const GRID_EDIT_WIDTH = '35px';
-const GRID_EDIT_WIDTH_DOUBLE = '70px'; // (2 * GRID_EDIT_WIDTH)
+const GRID_EDIT_WIDTH = 35;
+const GRID_EDIT_WIDTH_EDIT_MODE = GRID_EDIT_WIDTH + ADD_BUTTON_SIZE;
 
 /**
  * Explanation of z-index:
@@ -68,10 +69,10 @@ export const Grid = styled('table')<GridEditableProps>`
         return 'padding-right: 0px';
       }
       if (!p.isEditing) {
-        return `padding-right: ${GRID_EDIT_WIDTH};`;
+        return `padding-right: ${GRID_EDIT_WIDTH}px;`;
       }
 
-      return `padding-right: ${GRID_EDIT_WIDTH_DOUBLE};`;
+      return `padding-right: ${GRID_EDIT_WIDTH_EDIT_MODE}px;`;
     }}
   }
 `;
@@ -313,7 +314,7 @@ export const GridEditGroup = styled('th')`
 `;
 export const GridEditGroupButton = styled('div')`
   display: block;
-  width: ${GRID_EDIT_WIDTH};
+  width: ${GRID_EDIT_WIDTH}px;
   height: ${GRID_HEADER_HEIGHT}px;
 
   color: ${p => p.theme.gray2};
