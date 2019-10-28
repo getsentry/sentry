@@ -260,3 +260,4 @@ travis-scan-js: travis-noop
 travis-scan-cli: travis-noop
 travis-scan-dist: travis-noop
 travis-scan-lint: scan-python
+travis-scan-plugins: travis-noop
