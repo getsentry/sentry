@@ -134,6 +134,7 @@ matrix:
     - python: 3.7
       name: 'Linter (Python 3.7)'
       install: pip install 'sentry-flake8>=0.2.0,<0.3.0'
+      # configuration for flake8 can be found in setup.cfg
       script: flake8
 
     - <<: *postgres_default
