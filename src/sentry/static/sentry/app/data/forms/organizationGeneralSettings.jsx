@@ -241,7 +241,8 @@ const formGroups = [
           ),
         },
         visible: ({experiments}) =>
-          !!experiments && experiments.JoinRequestExperiment === 1,
+          !!experiments &&
+          ['all', 'join_request'].includes(experiments.ImprovedInvitesExperiment),
       },
     ],
   },

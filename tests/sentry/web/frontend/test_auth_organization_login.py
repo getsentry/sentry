@@ -41,7 +41,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert not any(c[0][0] == "join_request.link_viewed" for c in mock_record.call_args_list)
 
     @patch("sentry.analytics.record")
-    @patch("sentry.experiments.get", return_value=1)
+    @patch("sentry.experiments.get", return_value="join_request")
     def test_get_request_join_link_with_experiment(self, mock_experiment, mock_record):
         self.login_as(self.user)
         resp = self.client.get(self.path)
@@ -55,7 +55,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
             "join_request.link_viewed", organization_id=self.organization.id
         )
 
-    @patch("sentry.experiments.get", return_value=1)
+    @patch("sentry.experiments.get", return_value="join_request")
     def test_cannot_get_request_join_link_with_setting_disabled(self, mock_experiment):
         OrganizationOption.objects.create(
             organization_id=self.organization.id, key="sentry:join_requests", value=False
