@@ -272,7 +272,7 @@ class OrganizationIntegrations extends AsyncComponent<
     const {orgId} = this.props.params;
     const {reloading, orgOwnedApps, publishedApps, extraApp} = this.state;
     const published = publishedApps || [];
-    //If we have an extra app in state from query parameter, add it as org owned app
+    // If we have an extra app in state from query parameter, add it as org owned app
     if (extraApp) {
       orgOwnedApps.push(extraApp);
     }
