@@ -181,6 +181,8 @@ endif
 	@echo ""
 
 test-plugins:
+	@echo "--> Building static assets"
+	@$(WEBPACK) --display errors-only
 	@echo "--> Running plugin tests"
 	py.test tests/sentry_plugins -vv --cov . --cov-report="xml:.artifacts/plugins.coverage.xml" --junit-xml=".artifacts/plugins.junit.xml"
 	@echo ""
