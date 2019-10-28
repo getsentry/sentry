@@ -234,6 +234,7 @@ travis-test-snuba: test-snuba
 travis-test-symbolicator: test-symbolicator
 travis-test-js: test-js
 travis-test-cli: test-cli
+travis-test-plugins: test-plugins
 travis-test-dist:
 	# NOTE: We quiet down output here to workaround an issue in travis that
 	# causes the build to fail with a EAGAIN when writing a large amount of
