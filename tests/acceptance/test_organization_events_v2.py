@@ -59,7 +59,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.browser.click_when_visible('[data-test-id="grid-edit-enable"]')
             self.browser.snapshot("events-v2 - querybuilder edit state")
 
-            self.browser.click_when_visible('[data-test-id="grid-edit-add"]')
+            self.browser.click_when_visible('[data-test-id="grid-add-column-right-end"]')
             self.browser.snapshot("events-v2 - querybuilder edit modal")
 
     @patch("django.utils.timezone.now")

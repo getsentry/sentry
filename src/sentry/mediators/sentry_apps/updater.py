@@ -61,6 +61,7 @@ class Updater(Mediator):
         if self.user.is_superuser:
             if self.status == SentryAppStatus.PUBLISHED_STR:
                 self.sentry_app.status = SentryAppStatus.PUBLISHED
+                self.sentry_app.date_published = timezone.now()
             if self.status == SentryAppStatus.UNPUBLISHED_STR:
                 self.sentry_app.status = SentryAppStatus.UNPUBLISHED
 
