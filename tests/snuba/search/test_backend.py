@@ -20,7 +20,7 @@ from sentry.models import (
 from sentry.search.snuba.backend import SnubaSearchBackend
 from sentry.testutils import SnubaTestCase, TestCase, xfail_if_not_postgres
 from sentry.testutils.helpers.datetime import iso_format
-from sentry.utils.snuba import SENTRY_SNUBA_MAP, SnubaError
+from sentry.utils.snuba import Dataset, SENTRY_SNUBA_MAP, SnubaError
 
 
 def date_to_query_format(date):
@@ -882,6 +882,8 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
         limit = int(DEFAULT_LIMIT * chunk_growth)
 
         common_args = {
+            "arrayjoin": None,
+            "dataset": Dataset.Events,
             "start": Any(datetime),
             "end": Any(datetime),
             "filter_keys": {
@@ -982,7 +984,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
     def test_hits_estimate(self):
         # 400 Groups/Events
         # Every 3rd one is Unresolved
-        # Evey 2nd one has tag match=1
+        # Every 2nd one has tag match=1
         for i in range(400):
             event = self.store_event(
                 data={

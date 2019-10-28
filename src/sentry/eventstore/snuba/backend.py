@@ -45,10 +45,9 @@ class SnubaEventStorage(EventStorage):
         Get events from Snuba.
         """
         assert filter, "You must provide a filter"
-
         cols = self.__get_columns(additional_columns)
 
-        result = snuba.raw_query(
+        result = snuba.dataset_query(
             selected_columns=cols,
             start=filter.start,
             end=filter.end,
@@ -160,9 +159,7 @@ class SnubaEventStorage(EventStorage):
             limit=1,
             referrer="eventstore.get_next_or_prev_event_id",
             orderby=orderby,
-            dataset=snuba.detect_dataset(
-                {"conditions": filter.conditions}, aliased_conditions=True
-            ),
+            dataset=snuba.detect_dataset({"conditions": filter.conditions}),
         )
 
         if "error" in result or len(result["data"]) == 0:

@@ -87,6 +87,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
 
         full = request.GET.get("full", False)
         snuba_filter = get_filter(request.GET.get("query", None), params)
+        snuba_filter.conditions.append(["event.type", "!=", "transaction"])
 
         snuba_cols = None if full else eventstore.full_columns
 
