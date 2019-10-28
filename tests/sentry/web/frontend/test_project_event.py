@@ -52,7 +52,7 @@ class ProjectEventTest(SnubaTestCase, TestCase):
                 "timestamp": min_ago,
                 "start_timestamp": min_ago,
                 "spans": [],
-                "contexts": {"trace": {"trace_id": "a" * 32, "span_id": "b" * 16}},
+                "contexts": {"trace": {"op": "foobar", "trace_id": "a" * 32, "span_id": "b" * 16}},
             },
             project_id=self.project.id,
         )

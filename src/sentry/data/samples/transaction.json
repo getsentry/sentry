@@ -68,6 +68,7 @@
       "trace": {
          "parent_span_id": "8988cec7cc0779c1",
          "type": "trace",
+         "op": "foobar",
          "trace_id": "a7d67cf796774551a95be6543cacd459",
          "span_id": "babaae0d4b7512d9"
       },

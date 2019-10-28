@@ -894,6 +894,7 @@ class EventManagerTest(TestCase):
                     "contexts": {
                         "trace": {
                             "parent_span_id": "bce14471e0e9654d",
+                            "op": "foobar",
                             "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
                             "span_id": "bf5be759039ede9a",
                         }
@@ -1100,6 +1101,7 @@ class EventManagerTest(TestCase):
                 contexts={
                     "trace": {
                         "parent_span_id": "bce14471e0e9654d",
+                        "op": "foobar",
                         "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
                         "span_id": "bf5be759039ede9a",
                     }
@@ -1133,6 +1135,7 @@ class EventManagerTest(TestCase):
                 contexts={
                     "trace": {
                         "parent_span_id": "bce14471e0e9654d",
+                        "op": "foobar",
                         "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
                         "span_id": "bf5be759039ede9a",
                     }
