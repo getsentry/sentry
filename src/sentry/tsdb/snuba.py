@@ -104,6 +104,8 @@ class SnubaTSDB(BaseTSDB):
         ),
     }
 
+    # The Outcomes dataset aggregates outcomes into chunks of an hour. So, for rollups less than an hour, we want to
+    # query the raw outcomes dataset, with a few different settings (defined in lower_rollup_query_settings).
     lower_rollup_query_settings = {
         TSDBModel.organization_total_received: SnubaModelQuerySettings(
             snuba.Dataset.OutcomesRaw, "org_id", None, [["outcome", "!=", outcomes.Outcome.INVALID]]
@@ -162,6 +164,7 @@ class SnubaTSDB(BaseTSDB):
         `group_on_time`: whether to add a GROUP BY clause on the 'time' field.
         `group_on_model`: whether to add a GROUP BY clause on the primary model.
         """
+        # 10s is the only rollup under an hour that we support
         if rollup and rollup == 10 and model in self.lower_rollup_query_settings.keys():
             model_query_settings = self.lower_rollup_query_settings.get(model)
         else:
@@ -265,6 +268,7 @@ class SnubaTSDB(BaseTSDB):
                         del result[rk]
 
     def get_range(self, model, keys, start, end, rollup=None, environment_ids=None):
+        # 10s is the only rollup under an hour that we support
         if rollup and rollup == 10 and model in self.lower_rollup_query_settings.keys():
             model_query_settings = self.lower_rollup_query_settings.get(model)
         else:
