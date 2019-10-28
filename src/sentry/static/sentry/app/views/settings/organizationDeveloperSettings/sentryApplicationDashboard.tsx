@@ -30,7 +30,7 @@ type State = AsyncView['state'] & {
     install_stats: [number, number][];
     uninstall_stats: [number, number][];
   };
-  errors: SentryAppWebhookRequest[];
+  requests: SentryAppWebhookRequest[];
   interactions: {
     component_interactions: {
       [key: string]: [number, number][];
@@ -52,7 +52,7 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
         `/sentry-apps/${appSlug}/stats/`,
         {query: {since: now - ninety_days_ago, until: now}},
       ],
-      ['errors', `/sentry-apps/${appSlug}/errors/`],
+      ['requests', `/sentry-apps/${appSlug}/requests/`],
       [
         'interactions',
         `/sentry-apps/${appSlug}/interaction/`,
@@ -128,14 +128,14 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
     );
   }
 
-  renderErrorLog() {
-    const {errors} = this.state;
+  renderRequestLog() {
+    const {requests} = this.state;
     return (
       <React.Fragment>
-        <h5>{t('Error Log')}</h5>
+        <h5>{t('Request Log')}</h5>
         <p>
           {t(
-            'This log shows the errors captured from outgoing webhook requests for the following events: issue.assigned, issue.ignored, issue.resolved'
+            'This log shows outgoing webhook requests for the following events: issue.assigned, issue.ignored, issue.resolved, issue.created, error.created'
           )}
         </p>
         <Panel>
@@ -150,21 +150,21 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
           </PanelHeader>
 
           <PanelBody>
-            {errors.length > 0 ? (
-              errors.map((error, idx) => (
+            {requests.length > 0 ? (
+              requests.map((request, idx) => (
                 <PanelItem key={idx}>
                   <TableLayout>
-                    <DateTime date={error.date} />
-                    <div>{error.responseCode}</div>
-                    <div>{error.organization.name}</div>
-                    <div>{error.eventType}</div>
-                    <OverflowBox>{error.webhookUrl}</OverflowBox>
+                    <DateTime date={request.date} />
+                    <div>{request.responseCode}</div>
+                    <div>{request.organization.name}</div>
+                    <div>{request.eventType}</div>
+                    <OverflowBox>{request.webhookUrl}</OverflowBox>
                   </TableLayout>
                 </PanelItem>
               ))
             ) : (
               <EmptyMessage icon="icon-circle-exclamation">
-                {t('No errors found.')}
+                {t('No requests found.')}
               </EmptyMessage>
             )}
           </PanelBody>
@@ -229,7 +229,7 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
       <div>
         {app && <SettingsPageHeader title={app.name} />}
         {app && app.status === 'published' && this.renderInstallData()}
-        {this.renderErrorLog()}
+        {this.renderRequestLog()}
         {app && app.status === 'published' && this.renderIntegrationViews()}
         {app && app.schema.elements && this.renderComponentInteractions()}
       </div>

@@ -8,7 +8,7 @@ from sentry.api.utils import get_date_range_from_params, InvalidParams
 from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
 
 
-class SentryAppErrorsEndpoint(SentryAppBaseEndpoint):
+class SentryAppRequestsEndpoint(SentryAppBaseEndpoint):
     permission_classes = (SentryAppStatsPermission,)
 
     def get(self, request, sentry_app):

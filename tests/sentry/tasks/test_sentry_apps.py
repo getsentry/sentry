@@ -8,7 +8,7 @@ from django.core.urlresolvers import reverse
 from mock import patch
 from requests.exceptions import RequestException
 
-from sentry.models import Rule, SentryApp, SentryAppInstallation, SentryAppWebhookError
+from sentry.models import Rule, SentryApp, SentryAppInstallation
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.faux import faux
@@ -16,6 +16,7 @@ from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.utils.http import absolute_uri
 from sentry.receivers.sentry_apps import *  # NOQA
 from sentry.utils import json
+from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
 from sentry.tasks.post_process import post_process_group
 from sentry.api.serializers import serialize
 from sentry.tasks.sentry_apps import (
@@ -328,7 +329,7 @@ class TestWorkflowNotification(TestCase):
         assert not safe_urlopen.called
 
 
-class TestWebhookErrors(TestCase):
+class TestWebhookRequests(TestCase):
     def setUp(self):
         self.project = self.create_project()
         self.user = self.create_user()
@@ -344,45 +345,37 @@ class TestWebhookErrors(TestCase):
         )
 
         self.issue = self.create_group(project=self.project)
+        self.buffer = SentryAppWebhookRequestsBuffer(self.sentry_app)
 
     @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockFailureResponseInstance)
-    def test_saves_error_if_workflow_webhook_request_fails(self, safe_urlopen):
+    def test_saves_error_if_webhook_request_fails(self, safe_urlopen):
         data = {"issue": serialize(self.issue)}
         send_webhooks(installation=self.install, event="issue.assigned", data=data, actor=self.user)
 
-        error_count = SentryAppWebhookError.objects.count()
-        error = SentryAppWebhookError.objects.first()
+        requests = self.buffer.get_requests()
+        requests_count = len(requests)
+        first_request = requests[0]
 
         assert safe_urlopen.called
-        assert error_count == 1
-        assert error.sentry_app.id == self.install.sentry_app.id
-        assert error.organization.id == self.install.organization.id
-        assert error.response_body == "{}"
+        assert requests_count == 1
+        assert first_request["responseCode"] == 400
+        assert first_request["sentryAppSlug"] == self.install.sentry_app.slug
+        assert first_request["organization"]["slug"] == self.install.organization.slug
 
-    @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockFailureResponseInstance)
-    def test_does_not_save_error_if_nonworkflow_request_fails(self, safe_urlopen):
-        sentry_app = self.create_sentry_app(
-            name="Test App 2",
-            organization=self.project.organization,
-            events=[
-                "issue.resolved",
-                "issue.ignored",
-                "issue.assigned",
-                "issue.created",
-                "error.created",
-            ],
-        )
-        install = self.create_sentry_app_installation(
-            organization=self.project.organization, slug=sentry_app.slug
-        )
+    @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponseInstance)
+    def test_saves_request_if_webhook_request_succeeds(self, safe_urlopen):
         data = {"issue": serialize(self.issue)}
-        send_webhooks(installation=install, event="issue.created", data=data)
-        send_webhooks(installation=install, event="error.created", data=data)
+        send_webhooks(installation=self.install, event="issue.assigned", data=data, actor=self.user)
 
-        error_count = SentryAppWebhookError.objects.count()
+        requests = self.buffer.get_requests()
+        requests_count = len(requests)
+        first_request = requests[0]
 
         assert safe_urlopen.called
-        assert error_count == 0
+        assert requests_count == 1
+        assert first_request["responseCode"] == 200
+        assert first_request["sentryAppSlug"] == self.install.sentry_app.slug
+        assert first_request["organization"]["slug"] == self.install.organization.slug
 
     @patch("sentry.tasks.sentry_apps.safe_urlopen", side_effect=RequestException("Timeout"))
     def test_saves_error_for_request_timeout(self, safe_urlopen):
@@ -393,11 +386,12 @@ class TestWebhookErrors(TestCase):
                 installation=self.install, event="issue.assigned", data=data, actor=self.user
             )
 
-        error_count = SentryAppWebhookError.objects.count()
-        error = SentryAppWebhookError.objects.first()
+        requests = self.buffer.get_requests()
+        requests_count = len(requests)
+        first_request = requests[0]
 
         assert safe_urlopen.called
-        assert error_count == 1
-        assert error.sentry_app.id == self.install.sentry_app.id
-        assert error.organization.id == self.install.organization.id
-        assert error.response_body == "RequestException('Timeout',)"
+        assert requests_count == 1
+        assert first_request["responseCode"] == 0
+        assert first_request["sentryAppSlug"] == self.install.sentry_app.slug
+        assert first_request["organization"]["slug"] == self.install.organization.slug
