@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from django.core import mail
 from django.core.urlresolvers import reverse
 from exam import fixture
 
@@ -43,10 +44,12 @@ class OrganizationInviteRequestListTest(APITestCase):
 class OrganizationInviteRequestCreateTest(APITestCase):
     def setUp(self):
         self.user = self.create_user("foo@localhost")
+        manager = self.create_user(email="manager@localhost")
 
         self.org = self.create_organization()
         self.team = self.create_team(organization=self.org)
         self.member = self.create_member(user=self.user, organization=self.org, role="member")
+        self.create_member(user=manager, organization=self.org, role="manager")
 
         self.login_as(user=self.user)
 
@@ -57,12 +60,15 @@ class OrganizationInviteRequestCreateTest(APITestCase):
 
     def test_simple(self):
         self.login_as(user=self.user)
-        response = self.client.post(
-            self.url, {"email": "eric@localhost", "role": "member", "teams": [self.team.slug]}
-        )
+        with self.tasks():
+            response = self.client.post(
+                self.url, {"email": "eric@localhost", "role": "member", "teams": [self.team.slug]}
+            )
 
         assert response.status_code == 201
         assert response.data["email"] == "eric@localhost"
+
+        assert len(mail.outbox) == 1
 
         member = OrganizationMember.objects.get(organization=self.org, email=response.data["email"])
         assert member.user is None
