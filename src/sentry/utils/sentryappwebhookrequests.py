@@ -44,8 +44,11 @@ class SentryAppWebhookRequestsBuffer(object):
         }
 
         if "organization_id" in request:
-            org = Organization.objects.get(id=request["organization_id"])
-            formatted_request["organization"] = {"name": org.name, "slug": org.slug}
+            try:
+                org = Organization.objects.get_from_cache(id=request["organization_id"])
+                formatted_request["organization"] = {"name": org.name, "slug": org.slug}
+            except Organization.DoesNotExist:
+                pass
 
         return formatted_request
 
@@ -70,7 +73,7 @@ class SentryAppWebhookRequestsBuffer(object):
         self._add_to_buffer(request_key, request_data)
 
         # If it's an error add it to the error buffer
-        if not 200 <= response_code <= 299:
+        if 400 <= response_code <= 599:
             error_key = self._get_redis_key(event, error=True)
             self._add_to_buffer(error_key, request_data)
 
@@ -88,7 +91,7 @@ class SentryAppWebhookRequestsBuffer(object):
                 ]
                 all_requests.extend(event_requests)
 
-            all_requests.sort(key=lambda x: parse_date(x.get("date", None)), reverse=True)
+            all_requests.sort(key=lambda x: parse_date(x.get("date")), reverse=True)
             return all_requests[0:BUFFER_SIZE]
 
         return [
