@@ -113,7 +113,7 @@ class BasicRedisQuota(object):
     def to_json(self):
         return prune_empty_keys(
             {
-                "prefix": six.text_type(self.prefix),
+                "prefix": six.text_type(self.prefix) if self.prefix is not None else None,
                 "subscope": six.text_type(self.subscope) if self.subscope is not None else None,
                 "limit": self.limit,
                 "window": self.window,
