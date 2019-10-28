@@ -12,12 +12,27 @@ const BUTTON_SIZE = 16;
 
 type Props = {
   onClick: () => void;
+  align: 'left' | 'right';
+  ['data-test-id']: string;
 };
 
 const AddColumnButton = (props: Props) => {
-  const {onClick} = props;
+  const {onClick, align} = props;
+
+  let style;
+
+  if (align === 'right') {
+    style = {
+      right: `-${BUTTON_SIZE / 2}px`,
+    };
+  } else {
+    style = {
+      left: `-${BUTTON_SIZE + 2}px`,
+    };
+  }
+
   return (
-    <Wrapper onClick={onClick}>
+    <Wrapper onClick={onClick} data-test-id={props['data-test-id']} style={style}>
       <ToolTip title={t('Add Column')}>
         <AddButtonWrap>
           <InlineSvg
@@ -41,7 +56,6 @@ const Wrapper = styled('div')`
 
   position: absolute;
   top: 0;
-  right: -${BUTTON_SIZE / 2}px;
 
   z-index: ${Z_INDEX_ADD_COLUMN};
 

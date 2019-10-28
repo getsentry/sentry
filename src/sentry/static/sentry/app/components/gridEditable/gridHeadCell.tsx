@@ -147,10 +147,12 @@ class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
 
     return (
       <AddColumnButton
+        align="right"
         onClick={() => {
           const insertIndex = indexColumnOrder + 1;
           openModalAddColumnAt(insertIndex);
         }}
+        data-test-id={`grid-add-column-${indexColumnOrder}`}
       />
     );
   };
