@@ -16,11 +16,11 @@ PUSH_EVENT_EXAMPLE = b"""{
       "id": "133d60480286590a610a0eb7352ff6e02b9674c4",
       "tree_id": "f9d2a07e9488b91af2641b26b9407fe22a451433",
       "distinct": true,
-      "message": "Update README.md (àgain)",
+      "message": "Update README.md (again)",
       "timestamp": "2015-05-05T19:45:15-04:00",
       "url": "https://github.com/baxterthehacker/public-repo/commit/133d60480286590a610a0eb7352ff6e02b9674c4",
       "author": {
-        "name": "bàxterthehacker",
+        "name": "baxterthehacker",
         "email": "baxterthehacker@users.noreply.github.com",
         "username": "baxterthehacker"
       },
@@ -47,7 +47,7 @@ PUSH_EVENT_EXAMPLE = b"""{
       "timestamp": "2015-05-05T19:40:15-04:00",
       "url": "https://github.com/baxterthehacker/public-repo/commit/0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c",
       "author": {
-        "name": "bàxterthehacker",
+        "name": "baxterthehacker",
         "email": "baxterthehacker@users.noreply.github.com",
         "username": "baxterthehacker"
       },
@@ -74,7 +74,7 @@ PUSH_EVENT_EXAMPLE = b"""{
       "timestamp": "2015-05-05T19:40:15-04:00",
       "url": "https://github.com/baxterthehacker/public-repo/commit/0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c",
       "author": {
-        "name": "bàxterthehacker",
+        "name": "baxterthehacker",
         "email": "baxterthehacker@users.noreply.github.com",
         "username": "baxterthehacker"
       },

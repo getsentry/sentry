@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 try:
     VERSION = __import__("pkg_resources").get_distribution("sentry-plugins").version
-except Exception as e:
+except Exception:
     VERSION = "unknown"
 
 # Try to hook our webhook watcher into the rest of the watchers
