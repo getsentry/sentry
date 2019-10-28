@@ -203,10 +203,13 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
     def test_superusers_can_publish_apps(self):
         self.login_as(user=self.superuser, superuser=True)
         app = self.create_sentry_app(name="SampleApp", organization=self.org)
+        assert not app.date_published
         url = reverse("sentry-api-0-sentry-app-details", args=[app.slug])
         response = self.client.put(url, data={"status": "published"}, format="json")
         assert response.status_code == 200
-        assert SentryApp.objects.get(id=app.id).status == SentryAppStatus.PUBLISHED
+        app = SentryApp.objects.get(id=app.id)
+        assert app.status == SentryAppStatus.PUBLISHED
+        assert app.date_published
 
     def test_nonsuperusers_cannot_publish_apps(self):
         self.login_as(user=self.user)
