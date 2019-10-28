@@ -170,12 +170,15 @@ class SlackNotifyServiceAction(EventAction):
         channels_list_initial = True
         while cursor or channels_list_initial:
             channels_list_initial = False
-            channels = session.get("https://slack.com/api/channels.list", params=dict(channels_payload, **{
-                "cursor": cursor
-            }))
+            channels = session.get(
+                "https://slack.com/api/channels.list",
+                params=dict(channels_payload, **{"cursor": cursor}),
+            )
             channels = channels.json()
             if not channels.get("ok"):
-                self.logger.info("rule.slack.channel_list_failed", extra={"error": channels.get("error")})
+                self.logger.info(
+                    "rule.slack.channel_list_failed", extra={"error": channels.get("error")}
+                )
                 return None
 
             cursor = channels.get("response_metadata", {}).get("next_cursor", None)
@@ -189,12 +192,15 @@ class SlackNotifyServiceAction(EventAction):
         groups_list_initial = True
         while cursor or groups_list_initial:
             groups_list_initial = False
-            groups = session.get("https://slack.com/api/groups.list", params=dict(channels_payload, **{
-                "cursor": cursor
-            }))
+            groups = session.get(
+                "https://slack.com/api/groups.list",
+                params=dict(channels_payload, **{"cursor": cursor}),
+            )
             groups = groups.json()
             if not groups.get("ok"):
-                self.logger.info("rule.slack.group_list_failed", extra={"error": groups.get("error")})
+                self.logger.info(
+                    "rule.slack.group_list_failed", extra={"error": groups.get("error")}
+                )
                 return None
 
             cursor = groups.get("response_metadata", {}).get("next_cursor", None)
@@ -208,9 +214,10 @@ class SlackNotifyServiceAction(EventAction):
         users_list_initial = True
         while cursor or users_list_initial:
             users_list_initial = False
-            users = session.get("https://slack.com/api/users.list", params=dict(channels_payload, **{
-                "cursor": cursor
-            }))
+            users = session.get(
+                "https://slack.com/api/users.list",
+                params=dict(channels_payload, **{"cursor": cursor}),
+            )
             users = users.json()
             if not users.get("ok"):
                 self.logger.info("rule.slack.user_list_failed", extra={"error": users.get("error")})

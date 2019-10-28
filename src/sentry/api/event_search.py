@@ -186,19 +186,6 @@ class SearchFilter(namedtuple("SearchFilter", "key operator value")):
 
 
 class SearchKey(namedtuple("SearchKey", "name")):
-    @property
-    def snuba_name(self):
-        snuba_name = SEARCH_MAP.get(self.name)
-        if snuba_name:
-            return snuba_name
-
-        # assume custom tag if not matched above, and add tags[xxx] wrapper if not present.
-        match = TAG_KEY_RE.match(self.name)
-        if match:
-            return self.name
-        else:
-            return "tags[%s]" % (self.name,)
-
     @cached_property
     def is_tag(self):
         return TAG_KEY_RE.match(self.name) or self.name not in SEARCH_MAP
@@ -544,12 +531,12 @@ def convert_endpoint_params(params):
 
 
 def convert_search_filter_to_snuba_query(search_filter):
-    snuba_name = search_filter.key.snuba_name
+    name = search_filter.key.name
     value = search_filter.value.value
 
-    if snuba_name in no_conversion:
+    if name in no_conversion:
         return
-    elif snuba_name == "environment":
+    elif name == "environment":
         # conditions added to env_conditions are OR'd
         env_conditions = []
 
@@ -565,7 +552,7 @@ def convert_search_filter_to_snuba_query(search_filter):
 
         return env_conditions
 
-    elif snuba_name == "message":
+    elif name == "message":
         if search_filter.value.is_wildcard():
             # XXX: We don't want the '^$' values at the beginning and end of
             # the regex since we want to find the pattern anywhere in the
@@ -583,7 +570,7 @@ def convert_search_filter_to_snuba_query(search_filter):
     else:
         value = (
             int(to_timestamp(value)) * 1000
-            if isinstance(value, datetime) and snuba_name != "timestamp"
+            if isinstance(value, datetime) and name != "timestamp"
             else value
         )
 
@@ -591,15 +578,15 @@ def convert_search_filter_to_snuba_query(search_filter):
         # To handle both cases, use `ifNull` to convert to an empty string and
         # compare so we need to check for empty values.
         if search_filter.key.is_tag:
-            snuba_name = ["ifNull", [snuba_name, "''"]]
+            name = ["ifNull", [name, "''"]]
 
         # Handle checks for existence
         if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
             if search_filter.key.is_tag:
-                return [snuba_name, search_filter.operator, value]
+                return [name, search_filter.operator, value]
             else:
                 # If not a tag, we can just check that the column is null.
-                return [["isNull", [snuba_name]], search_filter.operator, 1]
+                return [["isNull", [name]], search_filter.operator, 1]
 
         is_null_condition = None
         if search_filter.operator == "!=" and not search_filter.key.is_tag:
@@ -609,12 +596,12 @@ def convert_search_filter_to_snuba_query(search_filter):
             # together with the inequality check.
             # We don't need to apply this for tags, since if they don't exist
             # they'll always be an empty string.
-            is_null_condition = [["isNull", [snuba_name]], "=", 1]
+            is_null_condition = [["isNull", [name]], "=", 1]
 
         if search_filter.value.is_wildcard():
-            condition = [["match", [snuba_name, "'(?i)%s'" % (value,)]], search_filter.operator, 1]
+            condition = [["match", [name, "'(?i)%s'" % (value,)]], search_filter.operator, 1]
         else:
-            condition = [snuba_name, search_filter.operator, value]
+            condition = [name, search_filter.operator, value]
 
         # We only want to return as a list if we have the check for null
         # present. Returning as a list causes these conditions to be ORed
@@ -657,21 +644,21 @@ def get_filter(query=None, params=None):
 
     for term in parsed_terms:
         if isinstance(term, SearchFilter):
-            snuba_name = term.key.snuba_name
+            name = term.key.name
             if term.key.name == PROJECT_KEY:
                 condition = ["project_id", "=", projects.get(term.value.value)]
                 kwargs["conditions"].append(condition)
-            elif snuba_name in ("start", "end"):
-                kwargs[snuba_name] = term.value.value
-            elif snuba_name in ("project_id", "issue"):
-                if snuba_name == "issue":
-                    snuba_name = "group_ids"
-                if snuba_name == "project_id":
-                    snuba_name = "project_ids"
+            elif name in ("start", "end"):
+                kwargs[name] = term.value.value
+            elif name in ("project_id", "issue.id"):
+                if name == "issue.id":
+                    name = "group_ids"
+                if name == "project_id":
+                    name = "project_ids"
                 value = term.value.value
                 if isinstance(value, int):
                     value = [value]
-                kwargs[snuba_name].extend(value)
+                kwargs[name].extend(value)
             else:
                 converted_filter = convert_search_filter_to_snuba_query(term)
                 kwargs["conditions"].append(converted_filter)
@@ -868,12 +855,12 @@ def get_reference_event_conditions(snuba_args, event_slug):
     if "tags.key" in event_data and "tags.value" in event_data:
         tags = dict(zip(event_data["tags.key"], event_data["tags.value"]))
 
-    for field in field_names:
-        match = TAG_KEY_RE.match(field)
+    for (i, field) in enumerate(groupby):
+        match = TAG_KEY_RE.match(field_names[i])
         if match:
             value = tags.get(match.group(1), None)
         else:
-            value = event_data.get(field, None)
+            value = event_data.get(field_names[i], None)
             # If the value is a sequence use the first element as snuba
             # doesn't support `=` or `IN` operations on fields like exception_frames.filename
             if isinstance(value, (list, set)) and value:

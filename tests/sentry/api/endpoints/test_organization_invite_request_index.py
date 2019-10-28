@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from django.core import mail
 from django.core.urlresolvers import reverse
 from exam import fixture
 
@@ -43,10 +44,12 @@ class OrganizationInviteRequestListTest(APITestCase):
 class OrganizationInviteRequestCreateTest(APITestCase):
     def setUp(self):
         self.user = self.create_user("foo@localhost")
+        manager = self.create_user(email="manager@localhost")
 
         self.org = self.create_organization()
         self.team = self.create_team(organization=self.org)
         self.member = self.create_member(user=self.user, organization=self.org, role="member")
+        self.create_member(user=manager, organization=self.org, role="manager")
 
         self.login_as(user=self.user)
 
@@ -57,12 +60,15 @@ class OrganizationInviteRequestCreateTest(APITestCase):
 
     def test_simple(self):
         self.login_as(user=self.user)
-        response = self.client.post(
-            self.url, {"email": "eric@localhost", "role": "member", "teams": [self.team.slug]}
-        )
+        with self.tasks():
+            response = self.client.post(
+                self.url, {"email": "eric@localhost", "role": "member", "teams": [self.team.slug]}
+            )
 
         assert response.status_code == 201
         assert response.data["email"] == "eric@localhost"
+
+        assert len(mail.outbox) == 1
 
         member = OrganizationMember.objects.get(organization=self.org, email=response.data["email"])
         assert member.user is None
@@ -98,3 +104,20 @@ class OrganizationInviteRequestCreateTest(APITestCase):
         )
 
         assert resp.status_code == 400
+        assert "The user %s is already a member" % user2.email in resp.content
+
+    def test_existing_invite_request(self):
+        self.login_as(user=self.user)
+
+        invite_request = self.create_member(
+            email="foobar@example.com",
+            organization=self.org,
+            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+        )
+
+        resp = self.client.post(
+            self.url, {"email": invite_request.email, "role": "member", "teams": [self.team.slug]}
+        )
+
+        assert resp.status_code == 400
+        assert "There is an existing invite request for %s" % invite_request.email in resp.content

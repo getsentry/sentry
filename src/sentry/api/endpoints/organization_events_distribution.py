@@ -45,7 +45,6 @@ class OrganizationEventsDistributionEndpoint(OrganizationEventsEndpointBase):
             conditions = snuba_args["conditions"] + additional_conditions
 
         top_values = transform_aliases_and_query(
-            skip_conditions=True,
             start=snuba_args["start"],
             end=snuba_args["end"],
             conditions=conditions,

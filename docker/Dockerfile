@@ -111,7 +111,9 @@ ENV PIP_NO_CACHE_DIR=off \
     SENTRY_FILESTORE_DIR=/var/lib/sentry/files \
     # Disable some unused uWSGI features, saving dependencies
     # Thank to https://stackoverflow.com/a/25260588/90297
-    UWSGI_PROFILE_OVERRIDE=ssl=false;xml=false;routing=false
+    UWSGI_PROFILE_OVERRIDE=ssl=false;xml=false;routing=false \
+    # UWSGI dogstatsd plugin
+    UWSGI_NEED_PLUGIN=/var/lib/uwsgi/dogstatsd
 
 COPY --from=sdist /dist/*.whl /tmp/dist/
 RUN set -x \
@@ -120,6 +122,7 @@ RUN set -x \
     && buildDeps="$buildDeps \
       gcc \
       g++ \
+      wget \
     " \
     # maxminddb
     && buildDeps="$buildDeps \
@@ -136,7 +139,13 @@ RUN set -x \
     # Otherwise librabbitmq will install the latest amqp version,
     # violating kombu's amqp<2.0 constraint.
     && pip install librabbitmq==1.6.1 \
-    && rm -rf /tmp/dist \
+    && mkdir /tmp/uwsgi-dogstatsd \
+    && wget -O - https://github.com/eventbrite/uwsgi-dogstatsd/archive/filters-and-tags.tar.gz | \
+       tar -xzf - -C /tmp/uwsgi-dogstatsd --strip-components=1 \
+    && UWSGI_NEED_PLUGIN="" uwsgi --build-plugin /tmp/uwsgi-dogstatsd \
+    && mkdir -p /var/lib/uwsgi \
+    && mv dogstatsd_plugin.so /var/lib/uwsgi/ \
+    && rm -rf /tmp/dist /tmp/uwsgi-dogstatsd .uwsgi_plugins_builder \
     && apt-get purge -y --auto-remove $buildDeps \
     # We install run-time dependencies strictly after
     # build dependencies to prevent accidental collusion.
@@ -175,6 +184,5 @@ ENTRYPOINT exec $SENTRY_CONF/docker-entrypoint.sh $0 $@
 CMD ["run", "web"]
 
 ARG SOURCE_COMMIT
-ENV SENTRY_BUILD=${SOURCE_COMMIT:-unknown}
 LABEL org.opencontainers.image.revision=$SOURCE_COMMIT
 LABEL org.opencontainers.image.licenses="https://github.com/getsentry/sentry/blob/${SOURCE_COMMIT:-master}/LICENSE"

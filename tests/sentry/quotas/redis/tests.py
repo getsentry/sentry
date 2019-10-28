@@ -2,6 +2,7 @@
 
 from __future__ import absolute_import
 
+import pytest
 import mock
 import six
 import time
@@ -207,3 +208,17 @@ class RedisQuotaTest(TestCase):
             timestamp=timestamp,
             # the - 1 is because we refunded once
         ) == [n - 1 for _ in quotas] + [0, 0]
+
+
+@pytest.mark.parametrize(
+    "obj,json",
+    [
+        (
+            BasicRedisQuota(prefix="p", subscope=1, limit=None, window=1, reason_code="go_away"),
+            {"prefix": "p", "subscope": "1", "window": 1, "reasonCode": "go_away"},
+        ),
+        (BasicRedisQuota(limit=0, reason_code="go_away"), {"limit": 0, "reasonCode": "go_away"}),
+    ],
+)
+def test_quotas_to_json(obj, json):
+    assert obj.to_json() == json
