@@ -2,18 +2,23 @@
 """
 Sentry
 ======
+
 Sentry is a realtime event logging and aggregation platform. It specializes
 in monitoring errors and extracting all the information needed to do a proper
 post-mortem without any of the hassle of the standard user feedback loop.
+
 Sentry is a Server
 ------------------
+
 The Sentry package, at its core, is just a simple server and web UI. It will
 handle authentication clients (such as `the Python one
 <https://github.com/getsentry/sentry-python>`_)
 and all of the logic behind storage and aggregation.
+
 That said, Sentry is not limited to Python. The primary implementation is in
 Python, but it contains a full API for sending events from any language, in
 any application.
+
 :copyright: (c) 2011-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
@@ -134,35 +139,7 @@ setup(
     cmdclass=cmdclass,
     license="BSD",
     include_package_data=True,
-    entry_points={
-        "console_scripts": ["sentry = sentry.runner:main"],
-        "sentry.apps": [
-            "jira_ac = sentry_plugins.jira_ac",
-            "jira = sentry_plugins.jira",
-            "sessionstack = sentry_plugins.sessionstack",
-        ],
-        "sentry.plugins": [
-            "amazon_sqs = sentry_plugins.amazon_sqs.plugin:AmazonSQSPlugin",
-            "asana = sentry_plugins.asana.plugin:AsanaPlugin",
-            "bitbucket = sentry_plugins.bitbucket.plugin:BitbucketPlugin",
-            "clubhouse = sentry_plugins.clubhouse.plugin:ClubhousePlugin",
-            "github = sentry_plugins.github.plugin:GitHubPlugin",
-            "gitlab = sentry_plugins.gitlab.plugin:GitLabPlugin",
-            "heroku = sentry_plugins.heroku.plugin:HerokuPlugin",
-            "jira = sentry_plugins.jira.plugin:JiraPlugin",
-            "jira_ac = sentry_plugins.jira_ac.plugin:JiraACPlugin",
-            "pagerduty = sentry_plugins.pagerduty.plugin:PagerDutyPlugin",
-            "phabricator = sentry_plugins.phabricator.plugin:PhabricatorPlugin",
-            "pivotal = sentry_plugins.pivotal.plugin:PivotalPlugin",
-            "pushover = sentry_plugins.pushover.plugin:PushoverPlugin",
-            "segment = sentry_plugins.segment.plugin:SegmentPlugin",
-            "sessionstack = sentry_plugins.sessionstack.plugin:SessionStackPlugin",
-            "slack = sentry_plugins.slack.plugin:SlackPlugin",
-            "splunk = sentry_plugins.splunk.plugin:SplunkPlugin",
-            "victorops = sentry_plugins.victorops.plugin:VictorOpsPlugin",
-            "vsts = sentry_plugins.vsts.plugin:VstsPlugin",
-        ],
-    },
+    entry_points={"console_scripts": ["sentry = sentry.runner:main"]},
     classifiers=[
         "Framework :: Django",
         "Intended Audience :: Developers",
