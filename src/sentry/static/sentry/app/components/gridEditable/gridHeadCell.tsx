@@ -123,11 +123,11 @@ class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
   }
 
   renderResizeGrabbable = () => {
-    if (!FLAG_GRID_RESIZABLE) {
+    const {isEditing} = this.props;
+
+    if (!FLAG_GRID_RESIZABLE || !isEditing) {
       return null;
     }
-
-    const {isEditing} = this.props;
 
     return <GridHeadCellResizer isEditing={isEditing} />;
   };
