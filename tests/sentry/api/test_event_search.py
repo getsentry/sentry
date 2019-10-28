@@ -485,6 +485,14 @@ class ParseSearchQueryTest(unittest.TestCase):
             )
         ]
 
+    def test_invalid_numeric_fields(self):
+        invalid_queries = ["project.id:one", "issue.id:two", "transaction.duration:>hotdog"]
+        for invalid_query in invalid_queries:
+            with self.assertRaises(
+                InvalidSearchQuery, expected_regex="Invalid format for numeric search"
+            ):
+                parse_search_query(invalid_query)
+
     def test_quotes_filtered_on_raw(self):
         # Enclose the full raw query? Strip it.
         assert parse_search_query('thinger:unknown "what is this?"') == [
@@ -1332,10 +1340,7 @@ class GetReferenceEventConditionsTest(SnubaTestCase, TestCase):
         self.conditions["groupby"] = ["gpu.name", "browser.name"]
         slug = "{}:{}".format(self.project.slug, event.event_id)
         result = get_reference_event_conditions(self.conditions, slug)
-        assert result == [
-            ["gpu.name", "=", "nvidia 8600"],
-            ["browser.name", "=", "Firefox"],
-        ]
+        assert result == [["gpu.name", "=", "nvidia 8600"], ["browser.name", "=", "Firefox"]]
 
     def test_issue_field(self):
         event = self.store_event(

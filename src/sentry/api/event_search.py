@@ -154,7 +154,7 @@ SEARCH_MAP = {
 SEARCH_MAP.update(**DATASETS[Dataset.Transactions])
 SEARCH_MAP.update(**DATASETS[Dataset.Events])
 
-no_conversion = set(["project_id", "start", "end"])
+no_conversion = set(["start", "end"])
 
 PROJECT_KEY = "project.name"
 
@@ -210,12 +210,14 @@ class SearchVisitor(NodeVisitor):
     key_mappings = {}
     numeric_keys = set(
         [
+            "project_id",
+            "project.id",
+            "issue.id",
             "device.battery_level",
             "device.charging",
             "device.online",
             "device.simulator",
             "error.handled",
-            "issue.id",
             "stack.colno",
             "stack.in_app",
             "stack.lineno",
@@ -626,10 +628,6 @@ def get_filter(query=None, params=None):
         except ParseError as e:
             raise InvalidSearchQuery(u"Parse error: %r (column %d)" % (e.expr.name, e.column()))
 
-    # Keys included as url params take precedent if same key is included in search
-    if params is not None:
-        parsed_terms.extend(convert_endpoint_params(params))
-
     kwargs = {"start": None, "end": None, "conditions": [], "project_ids": [], "group_ids": []}
 
     projects = {}
@@ -645,23 +643,36 @@ def get_filter(query=None, params=None):
     for term in parsed_terms:
         if isinstance(term, SearchFilter):
             name = term.key.name
-            if term.key.name == PROJECT_KEY:
+            if name == PROJECT_KEY:
                 condition = ["project_id", "=", projects.get(term.value.value)]
                 kwargs["conditions"].append(condition)
-            elif name in ("start", "end"):
-                kwargs[name] = term.value.value
-            elif name in ("project_id", "issue.id"):
-                if name == "issue.id":
-                    name = "group_ids"
-                if name == "project_id":
-                    name = "project_ids"
+            elif name == "issue.id":
                 value = term.value.value
                 if isinstance(value, int):
                     value = [value]
-                kwargs[name].extend(value)
+                kwargs["group_ids"].extend(value)
             else:
                 converted_filter = convert_search_filter_to_snuba_query(term)
-                kwargs["conditions"].append(converted_filter)
+                if converted_filter:
+                    kwargs["conditions"].append(converted_filter)
+
+    # Keys included as url params take precedent if same key is included in search
+    # They are also considered safe and to have had access rules applied unlike conditions
+    # from the query string.
+    if params:
+        for key in ("start", "end"):
+            kwargs[key] = params.get(key, None)
+        # OrganizationEndpoint.get_filter() uses project_id, but eventstore.Filter uses project_ids
+        if "project_id" in params:
+            kwargs["project_ids"] = params["project_id"]
+        if "environment" in params:
+            term = SearchFilter(SearchKey("environment"), "=", SearchValue(params["environment"]))
+            kwargs["conditions"].append(convert_search_filter_to_snuba_query(term))
+        if "group_ids" in params:
+            value = params["group_ids"]
+            if isinstance(value, int):
+                value = [value]
+            kwargs["group_ids"] = value
 
     return eventstore.Filter(**kwargs)
 
