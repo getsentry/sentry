@@ -24,7 +24,7 @@ class GitHubEnterpriseRepositoryProvider(GitHubRepositoryProvider):
         try:
             # make sure installation has access to this specific repo
             client.get_commits(repo)
-        except ApiError as e:
+        except ApiError:
             raise IntegrationError(u"You must grant Sentry access to {}".format(repo))
 
         return repo_data

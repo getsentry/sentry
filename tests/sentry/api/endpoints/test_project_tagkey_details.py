@@ -23,7 +23,7 @@ class ProjectTagKeyDetailsTest(APITestCase, SnubaTestCase):
                 project_id=project.id,
             )
 
-        for i in xrange(0, 16):
+        for i in range(0, 16):
             make_event(i)
 
         self.login_as(user=self.user)

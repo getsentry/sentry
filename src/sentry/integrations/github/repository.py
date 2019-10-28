@@ -27,7 +27,7 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
             # when installing the app (commits can be accessed for public repos)
             # https://developer.github.com/v3/repos/hooks/#list-hooks
             client.repo_hooks(repo)
-        except ApiError as e:
+        except ApiError:
             raise IntegrationError(u"You must grant Sentry access to {}".format(repo))
 
         return repo_data
