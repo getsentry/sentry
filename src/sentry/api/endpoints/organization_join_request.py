@@ -47,6 +47,7 @@ def create_organization_join_request(organization, email, ip_address=None):
                 "ip_address": ip_address,
             },
         )
+        return om
 
 
 class OrganizationJoinRequestEndpoint(OrganizationEndpoint):
@@ -83,5 +84,9 @@ class OrganizationJoinRequestEndpoint(OrganizationEndpoint):
         result = serializer.validated_data
         email = result["email"]
 
-        create_organization_join_request(organization, email, ip_address)
+        member = create_organization_join_request(organization, email, ip_address)
+
+        if member:
+            member.send_request_notification_email()
+
         return Response(status=204)

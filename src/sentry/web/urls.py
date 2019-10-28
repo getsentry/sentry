@@ -446,6 +446,11 @@ urlpatterns += patterns(
                     name="sentry-organization-members",
                 ),
                 url(
+                    r"^(?P<organization_slug>[\w_-]+)/members/requests/$",
+                    react_page_view,
+                    name="sentry-organization-members-requests",
+                ),
+                url(
                     r"^(?P<organization_slug>[\w_-]+)/members/new/$",
                     react_page_view,
                     name="sentry-create-organization-member",
