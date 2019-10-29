@@ -212,14 +212,14 @@ const EventsChartContainer = withGlobalSelection(
         const {selection, ...props} = this.props;
         const {datetime, projects, environments} = selection;
 
-        const {start, end, statsPeriod, utc} = getParams(datetime);
+        const {start, end, statsPeriod} = getParams(datetime);
 
         return (
           <EventsChart
             start={start}
             end={end}
             period={statsPeriod}
-            utc={utc}
+            utc={datetime.utc}
             projects={projects || []}
             environments={environments || []}
             {...props}
