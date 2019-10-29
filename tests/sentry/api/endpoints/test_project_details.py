@@ -80,7 +80,7 @@ class ProjectDetailsTest(APITestCase):
             project.organization.slug,
             "foobar",
         )
-        assert response["Location"] == "http://testserver/api/0/projects/%s/%s/" % (
+        assert response["Location"] == "/api/0/projects/%s/%s/" % (
             project.organization.slug,
             "foobar",
         )

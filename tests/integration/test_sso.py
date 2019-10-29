@@ -24,7 +24,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         self.login_as(user)
 
         path = u"/{}/".format(organization.slug)
-        redirect_uri = u"http://testserver/auth/login/{}/".format(organization.slug)
+        redirect_uri = u"/auth/login/{}/".format(organization.slug)
 
         # we should be redirecting the user to the authentication form as they
         # haven't verified this specific organization

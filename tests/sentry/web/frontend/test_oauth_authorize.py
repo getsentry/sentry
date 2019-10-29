@@ -234,7 +234,7 @@ class OAuthAuthorizeCodeTest(TestCase):
             full_path, {"username": self.user.username, "password": "admin", "op": "login"}
         )
         assert resp.status_code == 302
-        assert resp.get("Location") == u"http://testserver{}".format(full_path)
+        assert resp.get("Location") == full_path
 
         resp = self.client.get(full_path)
         self.assertTemplateUsed("sentry/oauth-authorize.html")

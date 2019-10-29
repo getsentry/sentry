@@ -97,7 +97,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
             resp = self.client.post(path, {"op": "newuser"})
 
         assert resp.status_code == 302
-        assert resp["Location"] == "http://testserver" + reverse("sentry-login")
+        assert resp["Location"] == reverse("sentry-login")
 
         auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
 
@@ -134,7 +134,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(path, {"op": "confirm"})
 
         assert resp.status_code == 302
-        assert resp["Location"] == "http://testserver" + reverse("sentry-login")
+        assert resp["Location"] == reverse("sentry-login")
 
         auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
         assert user == auth_identity.user
@@ -159,7 +159,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(path, {"email": "foo@example.com"})
 
         assert resp.status_code == 302
-        assert resp["Location"] == "http://testserver" + reverse("sentry-login")
+        assert resp["Location"] == reverse("sentry-login")
 
     def test_flow_as_unauthenticated_existing_matched_user_no_merge(self):
         auth_provider = AuthProvider.objects.create(
@@ -183,7 +183,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(path, {"op": "newuser"})
 
         assert resp.status_code == 302
-        assert resp["Location"] == "http://testserver" + reverse("sentry-login")
+        assert resp["Location"] == reverse("sentry-login")
 
         auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
         new_user = auth_identity.user
@@ -233,7 +233,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(path, {"op": "confirm"})
 
         assert resp.status_code == 302
-        assert resp["Location"] == "http://testserver" + reverse("sentry-login")
+        assert resp["Location"] == reverse("sentry-login")
 
         auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
 
@@ -275,7 +275,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(path, {"op": "confirm"})
 
         assert resp.status_code == 302
-        assert resp["Location"] == "http://testserver" + reverse("sentry-login")
+        assert resp["Location"] == reverse("sentry-login")
 
         auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
 
@@ -317,7 +317,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(path, {"op": "confirm"})
 
         assert resp.status_code == 302
-        assert resp["Location"] == "http://testserver" + reverse("sentry-login")
+        assert resp["Location"] == reverse("sentry-login")
 
         auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
 
@@ -363,7 +363,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(path, {"op": "confirm"})
 
         assert resp.status_code == 302
-        assert resp["Location"] == "http://testserver" + reverse("sentry-login")
+        assert resp["Location"] == reverse("sentry-login")
 
         auth_identity = AuthIdentity.objects.get(id=auth_identity.id)
 
@@ -409,7 +409,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(path, {"op": "newuser"})
 
         assert resp.status_code == 302
-        assert resp["Location"] == "http://testserver" + reverse("sentry-login")
+        assert resp["Location"] == reverse("sentry-login")
 
         auth_identity = AuthIdentity.objects.get(id=auth_identity.id)
 
@@ -464,7 +464,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         # there should be no prompt as we auto merge the identity
         assert resp.status_code == 302
-        assert resp["Location"] == "http://testserver" + reverse("sentry-login")
+        assert resp["Location"] == reverse("sentry-login")
 
         auth_identity = AuthIdentity.objects.get(id=auth_identity.id)
 
@@ -619,7 +619,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(path, {"email": "adfadsf@example.com"})
 
         assert resp.status_code == 302
-        assert resp["Location"] == "http://testserver" + reverse("sentry-login")
+        assert resp["Location"] == reverse("sentry-login")
 
         assert not AuthIdentity.objects.filter(id=identity1.id).exists()
 
@@ -661,4 +661,4 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert updated_ident.ident == "foo@new-domain.com"
 
         assert resp.status_code == 302
-        assert resp["Location"] == "http://testserver" + reverse("sentry-login")
+        assert resp["Location"] == reverse("sentry-login")

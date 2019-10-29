@@ -15,7 +15,7 @@ class HomeTest(TestCase):
         resp = self.client.get(self.path)
 
         assert resp.status_code == 302
-        assert resp["Location"] == "http://testserver/auth/login/"
+        assert resp["Location"] == "/auth/login/"
 
     def test_redirects_to_create_org(self):
         self.login_as(self.user)
@@ -24,7 +24,7 @@ class HomeTest(TestCase):
             resp = self.client.get(self.path)
 
         assert resp.status_code == 302
-        assert resp["Location"] == "http://testserver/organizations/new/"
+        assert resp["Location"] == "/organizations/new/"
 
     def test_shows_no_access(self):
         self.login_as(self.user)
@@ -43,4 +43,4 @@ class HomeTest(TestCase):
             resp = self.client.get(self.path)
 
         assert resp.status_code == 302
-        assert resp["Location"] == u"http://testserver/organizations/{}/issues/".format(org.slug)
+        assert resp["Location"] == u"/organizations/{}/issues/".format(org.slug)
