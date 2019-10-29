@@ -54,7 +54,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         reference_event_id = request.GET.get("referenceEvent")
         if reference_event_id:
             snuba_args["conditions"] = get_reference_event_conditions(
-                snuba_args, reference_event_id
+                organization, snuba_args, reference_event_id
             )
 
         return snuba_args
