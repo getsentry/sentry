@@ -358,9 +358,9 @@ class TestWebhookRequests(TestCase):
 
         assert safe_urlopen.called
         assert requests_count == 1
-        assert first_request["responseCode"] == 400
-        assert first_request["sentryAppSlug"] == self.install.sentry_app.slug
-        assert first_request["organization"]["slug"] == self.install.organization.slug
+        assert first_request["response_code"] == 400
+        assert first_request["event_type"] == "issue.assigned"
+        assert first_request["organization_id"] == self.install.organization.id
 
     @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponseInstance)
     def test_saves_request_if_webhook_request_succeeds(self, safe_urlopen):
@@ -373,9 +373,9 @@ class TestWebhookRequests(TestCase):
 
         assert safe_urlopen.called
         assert requests_count == 1
-        assert first_request["responseCode"] == 200
-        assert first_request["sentryAppSlug"] == self.install.sentry_app.slug
-        assert first_request["organization"]["slug"] == self.install.organization.slug
+        assert first_request["response_code"] == 200
+        assert first_request["event_type"] == "issue.assigned"
+        assert first_request["organization_id"] == self.install.organization.id
 
     @patch("sentry.tasks.sentry_apps.safe_urlopen", side_effect=RequestException("Timeout"))
     def test_saves_error_for_request_timeout(self, safe_urlopen):
@@ -392,6 +392,6 @@ class TestWebhookRequests(TestCase):
 
         assert safe_urlopen.called
         assert requests_count == 1
-        assert first_request["responseCode"] == 0
-        assert first_request["sentryAppSlug"] == self.install.sentry_app.slug
-        assert first_request["organization"]["slug"] == self.install.organization.slug
+        assert first_request["response_code"] == 0
+        assert first_request["event_type"] == "issue.assigned"
+        assert first_request["organization_id"] == self.install.organization.id
