@@ -22,7 +22,7 @@ from sentry.utils.imports import import_string
 from sentry.utils.redis import get_cluster_from_options
 
 _local_buffers = None
-_local_buffers_lock = threading.Lock()
+_local_buffers_lock = threading.RLock()
 
 
 @contextlib.contextmanager
