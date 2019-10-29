@@ -120,13 +120,3 @@ class GetSentryAppRequestsTest(SentryAppRequestsTest):
         response = self.client.get(url, format="json")
         assert response.status_code == 200
         assert len(response.data) == 1
-
-    def test_invalid_date_params(self):
-        self.login_as(self.user)
-
-        url = "%s?start=1570489554&end=1562365872" % reverse(
-            "sentry-api-0-sentry-app-requests", args=[self.published_app.slug]
-        )
-        response = self.client.get(url, format="json")
-        assert response.status_code == 400
-        assert response.data["detail"] == "start must be before end"
