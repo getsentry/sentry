@@ -14,11 +14,16 @@ import Panel from 'app/components/panels/panel';
 
 type Data = {};
 
+type RenderProps = {
+  model: FormModel;
+};
+
+type RenderFunction = (props: RenderProps) => React.ReactNode;
+
 type Props = {
   apiMethod: APIRequestMethod;
   apiEndpoint: string;
-  children: React.ReactNode;
-
+  children: React.ReactNode | RenderFunction;
   className?: string;
   cancelLabel?: string;
   submitDisabled?: boolean;
@@ -201,7 +206,9 @@ export default class Form extends React.Component<Props> {
         className={className}
         data-test-id={this.props['data-test-id']}
       >
-        <div>{children}</div>
+        <div>
+          {typeof children === 'function' ? children({model: this.model}) : children}
+        </div>
 
         {shouldShowFooter && (
           <StyledFooter
