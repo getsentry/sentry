@@ -18,12 +18,17 @@ type RenderProps = {
   model: FormModel;
 };
 
-type RenderFunction = (props: RenderProps) => React.ReactNode;
+type RenderFunc = (props: RenderProps) => React.ReactNode;
+
+// Type guard for render func.
+function isRenderFunc(func: React.ReactNode | Function): func is RenderFunc {
+  return typeof func === 'function';
+}
 
 type Props = {
   apiMethod: APIRequestMethod;
   apiEndpoint: string;
-  children: React.ReactNode | RenderFunction;
+  children: React.ReactNode | RenderFunc;
   className?: string;
   cancelLabel?: string;
   submitDisabled?: boolean;
@@ -60,7 +65,7 @@ type Context = {
 };
 
 export default class Form extends React.Component<Props> {
-  static propTypes = {
+  static propTypes: any = {
     cancelLabel: PropTypes.string,
     onCancel: PropTypes.func,
     onSubmit: PropTypes.func,
@@ -206,9 +211,7 @@ export default class Form extends React.Component<Props> {
         className={className}
         data-test-id={this.props['data-test-id']}
       >
-        <div>
-          {typeof children === 'function' ? children({model: this.model}) : children}
-        </div>
+        <div>{isRenderFunc(children) ? children({model: this.model}) : children}</div>
 
         {shouldShowFooter && (
           <StyledFooter
