@@ -119,7 +119,7 @@ COPY --from=sdist /dist/*.whl /tmp/dist/
 RUN set -x \
     && buildDeps="" \
     # uwsgi
-    && buildDeps+="$buildDeps \
+    && buildDeps="$buildDeps \
       gcc \
       g++ \
       wget \
