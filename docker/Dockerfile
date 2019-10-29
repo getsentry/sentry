@@ -119,18 +119,23 @@ COPY --from=sdist /dist/*.whl /tmp/dist/
 RUN set -x \
     && buildDeps="" \
     # uwsgi
-    && buildDeps="$buildDeps \
+    && buildDeps+=" \
       gcc \
       g++ \
       wget \
     " \
     # maxminddb
-    && buildDeps="$buildDeps \
+    && buildDeps+=" \
       libmaxminddb-dev \
     "\
     # librabbitmq
-    && buildDeps="$buildDeps \
+    && buildDeps+=" \
       make \
+    " \
+    # xmlsec
+    && buildDeps+=" \
+      libxmlsec1-dev \
+      pkg-config \
     " \
     && apt-get update \
     && apt-get install -y --no-install-recommends $buildDeps \
