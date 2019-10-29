@@ -846,6 +846,10 @@ class EventView {
 
     const picked = pickRelevantLocationQueryStrings(location);
 
+    // normalize datetime selection
+
+    // picked = omit(picked, ['start', 'end', 'period', 'statsPeriod', 'utc']);
+
     const normalizedTimeWindowParams = getParams({
       start: this.start,
       end: this.end,

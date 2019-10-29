@@ -456,6 +456,129 @@ describe('EventView.getEventsAPIPayload()', function() {
       cursor: 'some cursor',
     });
   });
+
+  it('includes default coerced statsPeriod when omitted or is invalid', function() {
+    const eventView = new EventView({
+      fields: generateFields(['title', 'count()']),
+      sorts: generateSorts(['project', 'count']),
+      tags: [],
+      query: 'event.type:csp',
+    });
+
+    const location = {
+      query: {
+        project: '1234',
+        environment: ['staging'],
+        start: 'start',
+        end: 'end',
+        utc: 'true',
+        // invalid statsPeriod string
+        statsPeriod: 'invalid',
+        cursor: 'some cursor',
+      },
+    };
+
+    expect(eventView.getEventsAPIPayload(location)).toEqual({
+      project: '1234',
+      environment: ['staging'],
+      start: 'start',
+      end: 'end',
+      utc: 'true',
+      statsPeriod: '14d',
+
+      field: ['title', 'count()'],
+      per_page: 50,
+      query: 'event.type:csp',
+      sort: '-count',
+      cursor: 'some cursor',
+    });
+
+    const location2 = {
+      query: {
+        project: '1234',
+        environment: ['staging'],
+        start: 'start',
+        end: 'end',
+        utc: 'true',
+        // statsPeriod is omitted here
+        cursor: 'some cursor',
+      },
+    };
+
+    expect(eventView.getEventsAPIPayload(location2)).toEqual({
+      project: '1234',
+      environment: ['staging'],
+      start: 'start',
+      end: 'end',
+      utc: 'true',
+      statsPeriod: '14d',
+
+      field: ['title', 'count()'],
+      per_page: 50,
+      query: 'event.type:csp',
+      sort: '-count',
+      cursor: 'some cursor',
+    });
+  });
+
+  it('includes default coerced statsPeriod when either start or end is only provided', function() {
+    const eventView = new EventView({
+      fields: generateFields(['title', 'count()']),
+      sorts: generateSorts(['project', 'count']),
+      tags: [],
+      query: 'event.type:csp',
+    });
+
+    const location = {
+      query: {
+        project: '1234',
+        environment: ['staging'],
+        start: 'start',
+        utc: 'true',
+        statsPeriod: 'invalid',
+        cursor: 'some cursor',
+      },
+    };
+
+    expect(eventView.getEventsAPIPayload(location)).toEqual({
+      project: '1234',
+      environment: ['staging'],
+      utc: 'true',
+      start: 'start',
+      statsPeriod: '14d',
+
+      field: ['title', 'count()'],
+      per_page: 50,
+      query: 'event.type:csp',
+      sort: '-count',
+      cursor: 'some cursor',
+    });
+
+    const location2 = {
+      query: {
+        project: '1234',
+        environment: ['staging'],
+        end: 'end',
+        utc: 'true',
+        statsPeriod: 'invalid',
+        cursor: 'some cursor',
+      },
+    };
+
+    expect(eventView.getEventsAPIPayload(location2)).toEqual({
+      project: '1234',
+      environment: ['staging'],
+      utc: 'true',
+      end: 'end',
+      statsPeriod: '14d',
+
+      field: ['title', 'count()'],
+      per_page: 50,
+      query: 'event.type:csp',
+      sort: '-count',
+      cursor: 'some cursor',
+    });
+  });
 });
 
 describe('EventView.getTagsAPIPayload()', function() {
