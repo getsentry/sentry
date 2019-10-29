@@ -63,6 +63,7 @@ class Dataset(Enum):
     Events = "events"
     Transactions = "transactions"
     Outcomes = "outcomes"
+    OutcomesRaw = "outcomes_raw"
 
 
 DATASETS = {Dataset.Events: SENTRY_SNUBA_MAP, Dataset.Transactions: TRANSACTIONS_SENTRY_SNUBA_MAP}
@@ -605,7 +606,7 @@ def _prepare_query_params(query_params):
 
     if query_params.dataset in [Dataset.Events, Dataset.Transactions]:
         (organization_id, params_to_update) = get_query_params_to_update_for_projects(query_params)
-    elif query_params.dataset == Dataset.Outcomes:
+    elif query_params.dataset in [Dataset.Outcomes, Dataset.OutcomesRaw]:
         (organization_id, params_to_update) = get_query_params_to_update_for_organizations(
             query_params
         )

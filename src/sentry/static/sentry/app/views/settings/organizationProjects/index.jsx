@@ -1,6 +1,6 @@
-import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 
 import {sortProjects} from 'app/utils';
 import {t} from 'app/locale';
@@ -15,9 +15,12 @@ import ProjectListItem from 'app/views/settings/components/settingsProjectItem';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import routeTitleGen from 'app/utils/routeTitle';
+import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 
 import ProjectStatsGraph from './projectStatsGraph';
+
+const ITEMS_PER_PAGE = 50;
 
 class OrganizationProjects extends AsyncView {
   static propTypes = {
@@ -45,6 +48,7 @@ class OrganizationProjects extends AsyncView {
         {
           query: {
             query: this.props.location.query.query,
+            per_page: ITEMS_PER_PAGE,
           },
         },
       ],
@@ -56,6 +60,7 @@ class OrganizationProjects extends AsyncView {
             since: new Date().getTime() / 1000 - 3600 * 24,
             stat: 'generated',
             group: 'project',
+            per_page: ITEMS_PER_PAGE,
           },
         },
       ],
@@ -116,11 +121,11 @@ class OrganizationProjects extends AsyncView {
           <PanelBody css={{width: '100%'}}>
             {projectList ? (
               sortProjects(projectList).map(project => (
-                <PanelItem p={0} key={project.id} align="center">
-                  <Box p={2} flex="1">
+                <GridPanelItem key={project.id}>
+                  <ProjectListItemWrapper>
                     <ProjectListItem project={project} organization={organization} />
-                  </Box>
-                  <Box w={3 / 12} p={2}>
+                  </ProjectListItemWrapper>
+                  <ProjectStatsGraphWrapper>
                     {projectStats ? (
                       <ProjectStatsGraph
                         key={project.id}
@@ -130,8 +135,8 @@ class OrganizationProjects extends AsyncView {
                     ) : (
                       <Placeholder height="25px" />
                     )}
-                  </Box>
-                </PanelItem>
+                  </ProjectStatsGraphWrapper>
+                </GridPanelItem>
               ))
             ) : (
               <LoadingIndicator />
@@ -150,3 +155,20 @@ class OrganizationProjects extends AsyncView {
 }
 
 export default withOrganization(OrganizationProjects);
+
+const GridPanelItem = styled(PanelItem)`
+  display: flex;
+  align-items: center;
+  padding: 0;
+`;
+
+const ProjectListItemWrapper = styled('div')`
+  padding: ${space(2)};
+  flex: 1;
+`;
+
+const ProjectStatsGraphWrapper = styled('div')`
+  padding: ${space(2)};
+  width: 25%;
+  margin-left: ${space(2)};
+`;

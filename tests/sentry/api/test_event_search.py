@@ -1202,7 +1202,7 @@ class GetReferenceEventConditionsTest(SnubaTestCase, TestCase):
 
     def test_bad_slug_format(self):
         with pytest.raises(InvalidSearchQuery):
-            get_reference_event_conditions(self.conditions, "lol")
+            get_reference_event_conditions(self.organization, self.conditions, "lol")
 
     def test_unknown_project(self):
         event = self.store_event(
@@ -1211,12 +1211,14 @@ class GetReferenceEventConditionsTest(SnubaTestCase, TestCase):
         )
         self.conditions["filter_keys"]["project_id"] = [-1]
         with pytest.raises(InvalidSearchQuery):
-            get_reference_event_conditions(self.conditions, "nope:{}".format(event.event_id))
+            get_reference_event_conditions(
+                self.organization, self.conditions, "nope:{}".format(event.event_id)
+            )
 
     def test_unknown_event(self):
         with pytest.raises(InvalidSearchQuery):
             slug = "{}:deadbeef".format(self.project.slug)
-            get_reference_event_conditions(self.conditions, slug)
+            get_reference_event_conditions(self.organization, self.conditions, slug)
 
     def test_no_fields(self):
         event = self.store_event(
@@ -1229,7 +1231,7 @@ class GetReferenceEventConditionsTest(SnubaTestCase, TestCase):
         )
         self.conditions["groupby"] = []
         slug = "{}:{}".format(self.project.slug, event.event_id)
-        result = get_reference_event_conditions(self.conditions, slug)
+        result = get_reference_event_conditions(self.organization, self.conditions, slug)
         assert len(result) == 0
 
     def test_basic_fields(self):
@@ -1243,7 +1245,7 @@ class GetReferenceEventConditionsTest(SnubaTestCase, TestCase):
         )
         self.conditions["groupby"] = ["message", "transaction", "unknown-field"]
         slug = "{}:{}".format(self.project.slug, event.event_id)
-        result = get_reference_event_conditions(self.conditions, slug)
+        result = get_reference_event_conditions(self.organization, self.conditions, slug)
         assert result == [
             ["message", "=", "oh no! /issues/{issue_id}"],
             ["transaction", "=", "/issues/{issue_id}"],
@@ -1264,7 +1266,7 @@ class GetReferenceEventConditionsTest(SnubaTestCase, TestCase):
         )
         self.conditions["groupby"] = ["geo.city", "geo.region", "geo.country_code"]
         slug = "{}:{}".format(self.project.slug, event.event_id)
-        result = get_reference_event_conditions(self.conditions, slug)
+        result = get_reference_event_conditions(self.organization, self.conditions, slug)
         assert result == [
             ["geo.city", "=", "San Francisco"],
             ["geo.region", "=", "CA"],
@@ -1283,7 +1285,7 @@ class GetReferenceEventConditionsTest(SnubaTestCase, TestCase):
         )
         self.conditions["groupby"] = ["sdk.version", "sdk.name"]
         slug = "{}:{}".format(self.project.slug, event.event_id)
-        result = get_reference_event_conditions(self.conditions, slug)
+        result = get_reference_event_conditions(self.organization, self.conditions, slug)
         assert result == [["sdk.version", "=", "5.0.12"], ["sdk.name", "=", "sentry-python"]]
 
     def test_error_field(self):
@@ -1292,7 +1294,7 @@ class GetReferenceEventConditionsTest(SnubaTestCase, TestCase):
         event = self.store_event(data=data, project_id=self.project.id)
         self.conditions["groupby"] = ["error.value", "error.type", "error.handled"]
         slug = "{}:{}".format(self.project.slug, event.event_id)
-        result = get_reference_event_conditions(self.conditions, slug)
+        result = get_reference_event_conditions(self.organization, self.conditions, slug)
         assert result == [
             ["error.value", "=", "This is a test exception sent from the Raven CLI."],
             ["error.type", "=", "Exception"],
@@ -1304,7 +1306,7 @@ class GetReferenceEventConditionsTest(SnubaTestCase, TestCase):
         event = self.store_event(data=data, project_id=self.project.id)
         self.conditions["groupby"] = ["stack.filename", "stack.function"]
         slug = "{}:{}".format(self.project.slug, event.event_id)
-        result = get_reference_event_conditions(self.conditions, slug)
+        result = get_reference_event_conditions(self.organization, self.conditions, slug)
         assert result == [
             ["stack.filename", "=", "/Users/example/Development/raven-php/bin/raven"],
             ["stack.function", "=", "raven_cli_test"],
@@ -1321,7 +1323,7 @@ class GetReferenceEventConditionsTest(SnubaTestCase, TestCase):
         )
         self.conditions["groupby"] = ["nope", "color", "customer_id"]
         slug = "{}:{}".format(self.project.slug, event.event_id)
-        result = get_reference_event_conditions(self.conditions, slug)
+        result = get_reference_event_conditions(self.organization, self.conditions, slug)
         assert result == [["color", "=", "red"], ["customer_id", "=", "1"]]
 
     def test_context_value(self):
@@ -1339,7 +1341,7 @@ class GetReferenceEventConditionsTest(SnubaTestCase, TestCase):
         )
         self.conditions["groupby"] = ["gpu.name", "browser.name"]
         slug = "{}:{}".format(self.project.slug, event.event_id)
-        result = get_reference_event_conditions(self.conditions, slug)
+        result = get_reference_event_conditions(self.organization, self.conditions, slug)
         assert result == [["gpu.name", "=", "nvidia 8600"], ["browser.name", "=", "Firefox"]]
 
     def test_issue_field(self):
@@ -1357,7 +1359,7 @@ class GetReferenceEventConditionsTest(SnubaTestCase, TestCase):
         )
         self.conditions["groupby"] = ["issue.id"]
         slug = "{}:{}".format(self.project.slug, event.event_id)
-        result = get_reference_event_conditions(self.conditions, slug)
+        result = get_reference_event_conditions(self.organization, self.conditions, slug)
         assert result == [["issue.id", "=", event.group_id]]
 
     @pytest.mark.xfail(reason="This requires eventstore.get_event_by_id to work with transactions")
@@ -1366,5 +1368,5 @@ class GetReferenceEventConditionsTest(SnubaTestCase, TestCase):
         event = self.store_event(data=data, project_id=self.project.id)
         self.conditions["groupby"] = ["transaction.op", "transaction.duration"]
         slug = "{}:{}".format(self.project.slug, event.event_id)
-        result = get_reference_event_conditions(self.conditions, slug)
+        result = get_reference_event_conditions(self.organization, self.conditions, slug)
         assert result == [["transaction.op", "=", "db"], ["transaction.duration", "=", 2]]

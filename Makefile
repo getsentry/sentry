@@ -182,6 +182,7 @@ endif
 
 lint: lint-python lint-js
 
+# configuration for flake8 can be found in setup.cfg
 lint-python:
 	@echo "--> Linting python"
 	bash -eo pipefail -c "flake8 | tee .artifacts/flake8.pycodestyle.log"

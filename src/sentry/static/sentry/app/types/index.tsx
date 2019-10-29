@@ -163,8 +163,24 @@ export type EventsStats = {
   totals?: {count: number};
 };
 
-export type User = {
+// Avatars are a more primitive version of User.
+export type AvatarUser = {
+  id: string;
+  name: string;
   username: string;
+  email: string;
+  avatarUrl: string;
+  avatar: {
+    avatarUuid: string | null;
+    avatarType: 'letter_avatar' | 'upload';
+  };
+  ip_address: string;
+  options?: {
+    avatarType: string;
+  };
+};
+
+export type User = AvatarUser & {
   lastLogin: string;
   isSuperuser: boolean;
   emails: {
@@ -176,12 +192,9 @@ export type User = {
   lastActive: string;
   isStaff: boolean;
   identities: any[];
-  id: string;
   isActive: boolean;
   has2fa: boolean;
   canReset2fa: boolean;
-  name: string;
-  avatarUrl: string;
   authenticators: Authenticator[];
   dateJoined: string;
   options: {
@@ -189,13 +202,11 @@ export type User = {
     stacktraceOrder: number;
     language: string;
     clock24Hours: boolean;
+    avatarType: string;
   };
   flags: {newsletter_consent_prompt: boolean};
-  avatar: {avatarUuid: string | null; avatarType: 'letter_avatar' | 'upload'};
-  ip_address: string;
   hasPasswordAuth: boolean;
   permissions: Set<string>;
-  email: string;
 };
 
 export type CommitAuthor = {
@@ -361,6 +372,14 @@ export type Member = {
     'sso:invalid': boolean;
   };
   dateCreated: string;
+  inviteStatus: 'approved' | 'requested_to_be_invited' | 'requested_to_join';
+  inviterName: string | null;
+};
+
+export type AccessRequest = {
+  id: string;
+  team: Team;
+  member: Member;
 };
 
 export type EventViewv1 = {
@@ -569,4 +588,6 @@ export type RouterProps = {
 export type ActiveExperiments = {
   ImprovedInvitesExperiment: 'none' | 'all' | 'join_request' | 'invite_request';
   TrialUpgradeV2Experiment: 'upgrade' | 'trial' | -1;
+  JoinRequestExperiment: 0 | 1 | -1;
+  InviteRequestExperiment: 0 | 1 | -1;
 };

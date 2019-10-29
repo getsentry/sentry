@@ -3,18 +3,21 @@ import {Link} from 'react-router';
 import space from 'app/styles/space';
 
 const BackToIssues = styled(Link)`
-  color: ${p => p.theme.gray4};
-  background: ${p => p.theme.offWhite2};
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: ${space(1)};
   width: ${space(1.5)};
   height: ${space(1.5)};
-  border-radius: 50%;
+  align-items: center;
+  justify-content: center;
+
   box-sizing: content-box;
-  z-index: 1;
+  padding: ${space(1)};
+  border-radius: 50%;
+
+  color: ${p => p.theme.gray4};
+  background: ${p => p.theme.offWhite2};
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+  z-index: 1;
 
   &:hover {
     background: ${p => p.theme.offwhite};

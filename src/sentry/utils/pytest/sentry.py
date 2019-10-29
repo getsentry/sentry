@@ -148,8 +148,7 @@ def pytest_configure(config):
 
     import django
 
-    if hasattr(django, "setup"):
-        django.setup()
+    django.setup()
 
     monkeypatch_django_migrations()
 
