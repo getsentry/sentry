@@ -82,7 +82,6 @@ class EventsV2 extends React.Component<Props> {
   render() {
     const {organization, location, router} = this.props;
     const eventSlug = getFirstQueryString(location.query, 'eventSlug');
-
     const eventView = EventView.fromLocation(location);
 
     const hasQuery =
