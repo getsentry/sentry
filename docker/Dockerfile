@@ -170,9 +170,6 @@ RUN set -x \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && python -c 'import librabbitmq' \
-    # Fully verify that the C extension is correctly installed, it unfortunately
-    # requires a full check into maxminddb.extension.Reader
-    && python -c 'import maxminddb.extension; maxminddb.extension.Reader' \
     && mkdir -p $SENTRY_CONF && mkdir -p $SENTRY_FILESTORE_DIR
 
 COPY ./docker/docker-entrypoint.sh ./docker/sentry.conf.py ./docker/config.yml $SENTRY_CONF/
