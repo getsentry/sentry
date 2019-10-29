@@ -27,12 +27,13 @@ import {
   SentryApp,
   IntegrationProvider,
   SentryAppInstallation,
+  RouterProps,
 } from 'app/types';
 import {RequestOptions} from 'app/api';
 
 type AppOrProvider = SentryApp | IntegrationProvider;
 
-type Props = {
+type Props = RouterProps & {
   organization: Organization;
   hideHeader: boolean;
 };
@@ -45,6 +46,7 @@ type State = {
   orgOwnedApps: SentryApp[];
   publishedApps: SentryApp[];
   config: {providers: IntegrationProvider[]};
+  extraApp?: SentryApp;
 };
 
 function isSentryApp(integration: AppOrProvider): integration is SentryApp {
@@ -74,7 +76,7 @@ class OrganizationIntegrations extends AsyncComponent<
   getEndpoints(): ([string, string, any] | [string, string])[] {
     const {orgId} = this.props.params;
     const query = {plugins: ['vsts', 'github', 'bitbucket']};
-    return [
+    const baseEndpoints: ([string, string, any] | [string, string])[] = [
       ['config', `/organizations/${orgId}/config/integrations/`],
       ['integrations', `/organizations/${orgId}/integrations/`],
       ['plugins', `/organizations/${orgId}/plugins/`, {query}],
@@ -82,6 +84,17 @@ class OrganizationIntegrations extends AsyncComponent<
       ['publishedApps', '/sentry-apps/', {query: {status: 'published'}}],
       ['appInstalls', `/organizations/${orgId}/sentry-app-installations/`],
     ];
+    /**
+     * optional app to load for super users
+     * should only be done for unpublished integrations from another org
+     * but no checks are in place to ensure the above condition
+     */
+    const extraAppSlug = new URLSearchParams(this.props.location.search).get('extra_app');
+    if (extraAppSlug) {
+      baseEndpoints.push(['extraApp', `/sentry-apps/${extraAppSlug}/`]);
+    }
+
+    return baseEndpoints;
   }
 
   // State
@@ -257,8 +270,13 @@ class OrganizationIntegrations extends AsyncComponent<
 
   renderBody() {
     const {orgId} = this.props.params;
-    const {reloading, orgOwnedApps, publishedApps} = this.state;
+    const {reloading, orgOwnedApps, publishedApps, extraApp} = this.state;
     const published = publishedApps || [];
+    // If we have an extra app in state from query parameter, add it as org owned app
+    if (extraApp) {
+      orgOwnedApps.push(extraApp);
+    }
+
     // we dont want the app to render twice if its the org that created
     // the published app.
     const orgOwned = orgOwnedApps.filter(app => {
