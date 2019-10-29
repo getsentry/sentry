@@ -76,6 +76,7 @@ class Discover2Item extends React.Component<Props, State> {
     this.timerHandleLeaveClear();
     this.timerHandleLeave = setTimeout(() => {
       this.setState({isOpen: false});
+      this.timerHandleLeave = undefined;
     }, 400); // 300ms feels too fast, 500ms feels too slow.
   };
 
