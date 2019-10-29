@@ -1,14 +1,12 @@
 import {Link} from 'react-router';
-import {Params} from 'react-router/lib/Router';
-import {PlainRoute} from 'react-router/lib/Route';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
 import {Client} from 'app/api';
 import {IssueAlertRule} from 'app/types/alerts';
-import {Location} from 'history';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {RouterProps} from 'app/types';
 import {
   addSuccessMessage,
   addErrorMessage,
@@ -35,12 +33,7 @@ type Props = {
 
   // Is the alert rule editable?
   canEdit?: boolean;
-
-  // react-router params
-  params: Params;
-  location: Location;
-  routes: PlainRoute[];
-};
+} & RouterProps;
 
 type State = {
   loading: boolean;
@@ -85,8 +78,8 @@ class RuleRow extends React.Component<Props, State> {
   };
 
   render() {
-    const {data, canEdit} = this.props;
-    const editLink = recreateRoute(`${data.id}/`, this.props);
+    const {params, routes, location, data, canEdit} = this.props;
+    const editLink = recreateRoute(`${data.id}/`, {params, routes, location});
 
     const environmentName = data.environment
       ? getDisplayName({name: data.environment})

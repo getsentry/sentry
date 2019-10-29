@@ -1,30 +1,36 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
 
-import {t} from 'app/locale';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import recreateRoute from 'app/utils/recreateRoute';
 
 import RuleForm from './ruleForm';
 
-type RouteParams = {orgId: string};
+type RouteParams = {
+  orgId: string;
+  projectId: string;
+};
 type Props = {};
 
 class IncidentRulesCreate extends React.Component<
   RouteComponentProps<RouteParams, {}> & Props
 > {
   handleSubmitSuccess = data => {
-    const {orgId} = this.props.params;
-    this.props.router.push(`/settings/${orgId}/incident-rules/${data.id}/`);
+    const {params, routes, location} = this.props;
+
+    this.props.router.push(
+      recreateRoute(`${data.id}/`, {params, routes, location, stepBack: -1})
+    );
   };
 
   render() {
-    const {orgId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
 
     return (
-      <div>
-        <SettingsPageHeader title={t('New Incident Rule')} />
-        <RuleForm orgId={orgId} onSubmitSuccess={this.handleSubmitSuccess} />
-      </div>
+      <RuleForm
+        orgId={orgId}
+        projectId={projectId}
+        onSubmitSuccess={this.handleSubmitSuccess}
+      />
     );
   }
 }

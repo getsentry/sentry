@@ -10,7 +10,7 @@ import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import recreateRoute from 'app/utils/recreateRoute';
 import space from 'app/styles/space';
 
 import {IncidentRule} from './types';
@@ -23,6 +23,7 @@ type State = {
 
 type RouteParams = {
   orgId: string;
+  projectId: string;
 };
 
 type Props = RouteComponentProps<RouteParams, {}>;
@@ -60,25 +61,11 @@ class IncidentRulesList extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {orgId} = this.props.params;
-    const action = (
-      <Button
-        priority="primary"
-        size="small"
-        to={`/settings/${orgId}/incident-rules/new/`}
-        icon="icon-circle-add"
-      >
-        {t('Create New Rule')}
-      </Button>
-    );
-
     const isLoading = this.state.loading;
-
     const isEmpty = !isLoading && !this.state.rules.length;
 
     return (
       <div>
-        <SettingsPageHeader title={t('Incident Rules')} action={action} />
         <Panel>
           <GridPanelHeader>
             <NameColumn>{t('Name')}</NameColumn>
@@ -93,45 +80,46 @@ class IncidentRulesList extends AsyncView<Props, State> {
 
             {!isLoading &&
               !isEmpty &&
-              this.state.rules.map(rule => (
-                <RuleRow key={rule.id}>
-                  <RuleLink to={`/settings/${orgId}/incident-rules/${rule.id}/`}>
-                    {rule.name}
-                  </RuleLink>
+              this.state.rules.map(rule => {
+                const ruleLink = recreateRoute(`${rule.id}/`, this.props);
+                return (
+                  <RuleRow key={rule.id}>
+                    <RuleLink to={ruleLink}>{rule.name}</RuleLink>
 
-                  <MetricName>{getMetricDisplayName(rule.aggregations[0])}</MetricName>
+                    <MetricName>{getMetricDisplayName(rule.aggregations[0])}</MetricName>
 
-                  <ThresholdColumn>
-                    <Thresholds>
-                      {rule.triggers.map(trigger => trigger.alertThreshold).join(', ')}
-                    </Thresholds>
+                    <ThresholdColumn>
+                      <Thresholds>
+                        {rule.triggers.map(trigger => trigger.alertThreshold).join(', ')}
+                      </Thresholds>
 
-                    <Actions>
-                      <Button
-                        to={`/settings/${orgId}/incident-rules/${rule.id}/`}
-                        size="small"
-                        icon="icon-edit"
-                        aria-label={t('Edit Rule')}
-                      >
-                        {t('Edit')}
-                      </Button>
-
-                      <Confirm
-                        priority="danger"
-                        onConfirm={() => this.handleRemoveRule(rule)}
-                        message={t('Are you sure you want to remove this rule?')}
-                      >
+                      <Actions>
                         <Button
-                          type="button"
+                          to={ruleLink}
                           size="small"
-                          icon="icon-trash"
-                          label={t('Remove Rule')}
-                        />
-                      </Confirm>
-                    </Actions>
-                  </ThresholdColumn>
-                </RuleRow>
-              ))}
+                          icon="icon-edit"
+                          aria-label={t('Edit Rule')}
+                        >
+                          {t('Edit')}
+                        </Button>
+
+                        <Confirm
+                          priority="danger"
+                          onConfirm={() => this.handleRemoveRule(rule)}
+                          message={t('Are you sure you want to remove this rule?')}
+                        >
+                          <Button
+                            type="button"
+                            size="small"
+                            icon="icon-trash"
+                            label={t('Remove Rule')}
+                          />
+                        </Confirm>
+                      </Actions>
+                    </ThresholdColumn>
+                  </RuleRow>
+                );
+              })}
 
             {!isLoading && isEmpty && (
               <EmptyMessage>{t('No Incident rules have been created yet.')}</EmptyMessage>

@@ -1,13 +1,11 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {Organization} from 'app/types';
+import {Organization, RouterProps} from 'app/types';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
-import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
@@ -15,21 +13,17 @@ import withOrganization from 'app/utils/withOrganization';
 
 type Props = {
   organization: Organization;
-  projectId: string;
-};
+} & RouterProps;
 
 class ProjectAlertHeader extends React.Component<Props> {
-  static propTypes = {
-    organization: SentryTypes.Organization.isRequired,
-    projectId: PropTypes.string.isRequired,
-  };
-
   render() {
-    const {organization, projectId} = this.props;
+    const {location, params, organization} = this.props;
+    const {projectId} = params;
 
     const canEditRule = organization.access.includes('project:write');
 
     const basePath = `/settings/${organization.slug}/projects/${projectId}/alerts-v2/`;
+    const isIssues = location.pathname.includes('issue-rules');
 
     return (
       <SettingsPageHeader
@@ -44,7 +38,7 @@ class ProjectAlertHeader extends React.Component<Props> {
               title={t('You do not have permission to edit alert rules.')}
             >
               <Button
-                to={`${basePath}rules/new/`}
+                to={`${basePath}${isIssues ? 'issue' : 'event'}-rules/new/`}
                 disabled={!canEditRule}
                 priority="primary"
                 size="small"

@@ -12,7 +12,6 @@ import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import PermissionAlert from 'app/views/settings/project/permissionAlert';
 import PluginList from 'app/components/pluginList';
 import SentryTypes from 'app/sentryTypes';
-import ProjectAlertHeader from './projectAlertHeader';
 
 export default class ProjectAlertSettings extends AsyncView {
   static propTypes = {
@@ -77,7 +76,6 @@ export default class ProjectAlertSettings extends AsyncView {
       <Access access={['project:write']}>
         {({hasAccess}) => (
           <React.Fragment>
-            <ProjectAlertHeader projectId={projectId} />
             <PermissionAlert />
             <AlertLink to="/settings/account/notifications/" icon="icon-mail">
               {t(

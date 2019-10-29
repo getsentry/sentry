@@ -1,17 +1,17 @@
-import {Params} from 'react-router/lib/Router';
 import React from 'react';
+
+import {RouterProps} from 'app/types';
 
 import ProjectAlertHeader from './projectAlertHeaderNew';
 
-type Props = {
-  params: Params;
+type Props = RouterProps & {
   children: React.ReactNode;
 };
 
-function ProjectAlerts({params, children}: Props) {
+function ProjectAlerts({children, ...props}: Props) {
   return (
     <React.Fragment>
-      <ProjectAlertHeader projectId={params.projectId} />
+      <ProjectAlertHeader {...props} />
       {children}
     </React.Fragment>
   );
