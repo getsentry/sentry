@@ -2,7 +2,7 @@
 from __future__ import absolute_import
 
 # we keep this as a raw string as order matters for hmac signing
-PUSH_EVENT_EXAMPLE = b"""{
+PUSH_EVENT_EXAMPLE = r"""{
   "ref": "refs/heads/changes",
   "before": "9049f1265b7d61be4a8904a9a27120d2064dab3b",
   "after": "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c",
@@ -16,11 +16,11 @@ PUSH_EVENT_EXAMPLE = b"""{
       "id": "133d60480286590a610a0eb7352ff6e02b9674c4",
       "tree_id": "f9d2a07e9488b91af2641b26b9407fe22a451433",
       "distinct": true,
-      "message": "Update README.md (again)",
+      "message": "Update README.md (àgain)",
       "timestamp": "2015-05-05T19:45:15-04:00",
       "url": "https://github.com/baxterthehacker/public-repo/commit/133d60480286590a610a0eb7352ff6e02b9674c4",
       "author": {
-        "name": "baxterthehacker",
+        "name": "bàxterthehacker",
         "email": "baxterthehacker@users.noreply.github.com",
         "username": "baxterthehacker"
       },
@@ -47,7 +47,7 @@ PUSH_EVENT_EXAMPLE = b"""{
       "timestamp": "2015-05-05T19:40:15-04:00",
       "url": "https://github.com/baxterthehacker/public-repo/commit/0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c",
       "author": {
-        "name": "baxterthehacker",
+        "name": "bàxterthehacker",
         "email": "baxterthehacker@users.noreply.github.com",
         "username": "baxterthehacker"
       },
@@ -74,7 +74,7 @@ PUSH_EVENT_EXAMPLE = b"""{
       "timestamp": "2015-05-05T19:40:15-04:00",
       "url": "https://github.com/baxterthehacker/public-repo/commit/0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c",
       "author": {
-        "name": "baxterthehacker",
+        "name": "bàxterthehacker",
         "email": "baxterthehacker@users.noreply.github.com",
         "username": "baxterthehacker"
       },
@@ -220,7 +220,7 @@ PUSH_EVENT_EXAMPLE = b"""{
   }
 }"""
 
-PUSH_EVENT_EXAMPLE_INSTALLATION = b"""{
+PUSH_EVENT_EXAMPLE_INSTALLATION = r"""{
   "ref": "refs/heads/changes",
   "installation" : {
     "id": 12345
@@ -1058,7 +1058,7 @@ LIST_INSTALLATION_API_RESPONSE = """{
   ]
 }"""
 
-PULL_REQUEST_OPENED_EVENT_EXAMPLE = b"""{
+PULL_REQUEST_OPENED_EVENT_EXAMPLE = r"""{
   "action": "opened",
   "number": 1,
   "pull_request": {
@@ -1474,7 +1474,7 @@ PULL_REQUEST_OPENED_EVENT_EXAMPLE = b"""{
   }
 }"""
 
-PULL_REQUEST_EDITED_EVENT_EXAMPLE = b"""{
+PULL_REQUEST_EDITED_EVENT_EXAMPLE = r"""{
   "action": "edited",
   "number": 1,
   "pull_request": {
@@ -1890,7 +1890,7 @@ PULL_REQUEST_EDITED_EVENT_EXAMPLE = b"""{
   }
 }"""
 
-PULL_REQUEST_CLOSED_EVENT_EXAMPLE = b"""{
+PULL_REQUEST_CLOSED_EVENT_EXAMPLE = r"""{
   "action": "closed",
   "number": 1,
   "pull_request": {
