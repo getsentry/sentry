@@ -110,9 +110,7 @@ class Organization(Model):
         related_name="org_memberships",
         through_fields=("organization", "user"),
     )
-    default_role = models.CharField(
-        choices=roles.get_choices(), max_length=32, default=roles.get_default().id
-    )
+    default_role = models.CharField(max_length=32, default=roles.get_default().id)
 
     flags = BitField(
         flags=(
