@@ -26,6 +26,10 @@ class SentryAppRequestsTest(APITestCase):
             name="Unowned Unpublished App", organization=self.create_organization()
         )
 
+        self.internal_app = self.create_internal_integration(
+            name="Internal app", organization=self.org
+        )
+
 
 class GetSentryAppRequestsTest(SentryAppRequestsTest):
     def test_superuser_sees_unowned_published_requests(self):
@@ -120,3 +124,21 @@ class GetSentryAppRequestsTest(SentryAppRequestsTest):
         response = self.client.get(url, format="json")
         assert response.status_code == 200
         assert len(response.data) == 1
+
+    def test_internal_app_requests_does_not_have_organization_field(self):
+        self.login_as(user=self.user)
+        buffer = SentryAppWebhookRequestsBuffer(self.internal_app)
+        buffer.add_request(
+            response_code=200,
+            org_id=self.org.id,
+            event="issue.assigned",
+            url=self.internal_app.webhook_url,
+        )
+
+        url = reverse("sentry-api-0-sentry-app-requests", args=[self.internal_app.slug])
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert "organization" not in response.data[0]
+        assert response.data[0]["sentryAppSlug"] == self.internal_app.slug
+        assert response.data[0]["responseCode"] == 200

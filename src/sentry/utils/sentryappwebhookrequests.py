@@ -58,9 +58,12 @@ class SentryAppWebhookRequestsBuffer(object):
         request_data = {
             "date": six.binary_type(time),
             "response_code": response_code,
-            "organization_id": org_id,
             "webhook_url": url,
         }
+
+        # Don't store the org id for internal apps because it will always be the org that owns the app anyway
+        if not self.sentry_app.is_internal:
+            request_data["organization_id"] = org_id
 
         pipe = self.client.pipeline()
 

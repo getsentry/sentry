@@ -225,7 +225,6 @@ describe('Sentry Application Dashboard', function() {
       );
       expect(requestLogText).toEqual(expect.stringContaining('400'));
       expect(requestLogText).toEqual(expect.stringContaining('issue.assigned'));
-      expect(requestLogText).toEqual(expect.stringContaining('Test Org'));
     });
 
     it('shows an empty message if there are no requests', () => {

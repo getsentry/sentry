@@ -483,7 +483,7 @@ export type SentryAppWebhookRequest = {
   sentryAppSlug: string;
   eventType: string;
   date: string;
-  organization: {
+  organization?: {
     slug: string;
     name: string;
   };

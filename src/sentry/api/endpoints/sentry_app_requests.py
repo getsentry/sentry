@@ -26,6 +26,7 @@ class SentryAppRequestsEndpoint(SentryAppBaseEndpoint):
                 org = Organization.objects.get_from_cache(id=request["organization_id"])
                 formatted_request["organization"] = {"name": org.name, "slug": org.slug}
             except Organization.DoesNotExist:
+                # If the org somehow doesn't exist, just don't add it to the result
                 pass
 
         return formatted_request

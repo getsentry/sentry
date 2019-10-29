@@ -37,7 +37,7 @@ type State = AsyncView['state'] & {
     };
     views: [number, number][];
   };
-  app: SentryApp | null;
+  app: SentryApp;
 };
 
 export default class SentryApplicationDashboard extends AsyncView<Props, State> {
@@ -129,7 +129,7 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
   }
 
   renderRequestLog() {
-    const {requests} = this.state;
+    const {requests, app} = this.state;
     return (
       <React.Fragment>
         <h5>{t('Request Log')}</h5>
@@ -143,7 +143,7 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
             <TableLayout>
               <div>{t('Time')}</div>
               <div>{t('Status Code')}</div>
-              <div>{t('Organization')}</div>
+              {app.status !== 'internal' && <div>{t('Organization')}</div>}
               <div>{t('Event Type')}</div>
               <div>{t('Webhook URL')}</div>
             </TableLayout>
@@ -156,7 +156,9 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
                   <TableLayout>
                     <DateTime date={request.date} />
                     <div>{request.responseCode}</div>
-                    <div>{request.organization.name}</div>
+                    {app.status !== 'internal' && request.organization && (
+                      <div>{request.organization.name}</div>
+                    )}
                     <div>{request.eventType}</div>
                     <OverflowBox>{request.webhookUrl}</OverflowBox>
                   </TableLayout>
@@ -227,11 +229,11 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
 
     return (
       <div>
-        {app && <SettingsPageHeader title={app.name} />}
-        {app && app.status === 'published' && this.renderInstallData()}
+        {<SettingsPageHeader title={app.name} />}
+        {app.status === 'published' && this.renderInstallData()}
         {this.renderRequestLog()}
-        {app && app.status === 'published' && this.renderIntegrationViews()}
-        {app && app.schema.elements && this.renderComponentInteractions()}
+        {app.status === 'published' && this.renderIntegrationViews()}
+        {app.schema.elements && this.renderComponentInteractions()}
       </div>
     );
   }
