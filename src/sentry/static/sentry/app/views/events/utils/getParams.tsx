@@ -30,7 +30,9 @@ export function getParams(params: Params): {[key: string]: string | string[]} {
   // `statsPeriod` takes precendence for now
   let coercedPeriod = statsPeriod || period;
 
-  if (!start && !end && !coercedPeriod) {
+  const isValid = (start && end) || coercedPeriod;
+
+  if (!isValid) {
     coercedPeriod = DEFAULT_STATS_PERIOD;
   }
 

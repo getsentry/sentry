@@ -6,6 +6,7 @@ import {DEFAULT_PER_PAGE} from 'app/constants';
 import {EventViewv1} from 'app/types';
 import {SavedQuery as LegacySavedQuery} from 'app/views/discover/types';
 import {SavedQuery, NewQuery} from 'app/stores/discoverSavedQueriesStore';
+import {getParams} from 'app/views/events/utils/getParams';
 
 import {AUTOLINK_FIELDS, SPECIAL_FIELDS, FIELD_FORMATTERS} from './data';
 import {
@@ -845,17 +846,29 @@ class EventView {
 
     const picked = pickRelevantLocationQueryStrings(location);
 
+    const normalizdTimeWindowParams = getParams({
+      start: this.start,
+      end: this.end,
+      period: decodeScalar(query.period),
+      statsPeriod: this.statsPeriod,
+      utc: decodeScalar(query.utc),
+    });
+
     const sort = this.sorts.length > 0 ? encodeSort(this.sorts[0]) : undefined;
     const fields = this.getFields();
 
     // generate event query
 
-    const eventQuery: EventQuery & LocationQuery = Object.assign(picked, {
-      field: [...new Set(fields)],
-      sort,
-      per_page: DEFAULT_PER_PAGE,
-      query: this.getQuery(query.query),
-    });
+    const eventQuery: EventQuery & LocationQuery = Object.assign(
+      picked,
+      normalizdTimeWindowParams,
+      {
+        field: [...new Set(fields)],
+        sort,
+        per_page: DEFAULT_PER_PAGE,
+        query: this.getQuery(query.query),
+      }
+    );
 
     if (!eventQuery.sort) {
       delete eventQuery.sort;
