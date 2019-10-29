@@ -18,7 +18,7 @@ exports[`ProjectPlugins renders 1`] = `
     <PanelAlert
       type="warning"
     >
-      <withConfig(WithOrganizationMockWrapper)
+      <WithOrganizationMockWrapper
         access={
           Array [
             "org:integrations",
@@ -26,7 +26,7 @@ exports[`ProjectPlugins renders 1`] = `
         }
       >
         <Component />
-      </withConfig(WithOrganizationMockWrapper)>
+      </WithOrganizationMockWrapper>
     </PanelAlert>
     <PanelItem
       key="amazon-sqs"

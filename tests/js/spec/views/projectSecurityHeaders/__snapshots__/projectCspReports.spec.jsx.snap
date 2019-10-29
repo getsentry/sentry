@@ -34,7 +34,7 @@ exports[`ProjectCspReports renders 1`] = `
       submitLabel="Save Changes"
       submitPriority="primary"
     >
-      <withConfig(WithOrganizationMockWrapper)
+      <WithOrganizationMockWrapper
         access={
           Array [
             "project:write",
@@ -42,7 +42,7 @@ exports[`ProjectCspReports renders 1`] = `
         }
       >
         <Component />
-      </withConfig(WithOrganizationMockWrapper)>
+      </WithOrganizationMockWrapper>
     </Form>
     <Panel>
       <PanelHeader>

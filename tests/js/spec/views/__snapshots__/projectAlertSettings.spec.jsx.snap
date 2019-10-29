@@ -4,7 +4,7 @@ exports[`ProjectAlertSettings render() renders 1`] = `
 <SideEffect(DocumentTitle)
   title="Alerts Settings - project-slug - Sentry"
 >
-  <withConfig(WithOrganizationMockWrapper)
+  <WithOrganizationMockWrapper
     access={
       Array [
         "project:write",
@@ -12,6 +12,6 @@ exports[`ProjectAlertSettings render() renders 1`] = `
     }
   >
     <Component />
-  </withConfig(WithOrganizationMockWrapper)>
+  </WithOrganizationMockWrapper>
 </SideEffect(DocumentTitle)>
 `;
