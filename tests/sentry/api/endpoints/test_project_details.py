@@ -80,8 +80,11 @@ class ProjectDetailsTest(APITestCase):
             project.organization.slug,
             "foobar",
         )
-        self.assertRedirects(
-            response, "/api/0/projects/%s/%s/" % (project.organization.slug, "foobar")
+        # XXX: AttributeError: 'Response' object has no attribute 'url'
+        # (this is with self.assertRedirects(response, ...))
+        assert response["Location"] == "/api/0/projects/%s/%s/" % (
+            project.organization.slug,
+            "foobar",
         )
 
 
