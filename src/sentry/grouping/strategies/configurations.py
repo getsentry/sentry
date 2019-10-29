@@ -117,6 +117,26 @@ register_strategy_config(
     """,
 )
 
+register_strategy_config(
+    id="newstyle:2019-10-29",
+    strategies=[
+        "expect-ct:v1",
+        "expect-staple:v1",
+        "hpkp:v1",
+        "csp:v1",
+        "threads:v1",
+        "stacktrace:v1",
+        "chained-exception:v1",
+        "template:v1",
+        "message:v2",
+    ],
+    delegates=["frame:v4", "stacktrace:v1", "single-exception:v2"],
+    changelog="""
+        * Take context lines into account for JavaScript platforms for
+          file origins.
+    """,
+)
+
 # This is a combined strategy that dispatches to legacy:2019-03-12 and
 # newstyle:2019-04-05 depending on the platform.
 

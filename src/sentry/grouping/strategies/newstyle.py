@@ -226,10 +226,25 @@ def frame_v3(frame, event, **meta):
         legacy_function_logic=False,
         use_contextline=good_source,
         javascript_fuzzing=True,
+        with_context_line_file_origin_bug=True,
     )
 
 
-def get_contextline_component(frame, platform):
+@strategy(id="frame:v4", interfaces=["frame"], variants=["!system", "app"])
+def frame_v4(frame, event, **meta):
+    platform = frame.platform or event.platform
+    good_source = platform in ("javascript", "node", "python", "php", "ruby")
+    return get_frame_component(
+        frame,
+        event,
+        meta,
+        legacy_function_logic=False,
+        use_contextline=good_source,
+        javascript_fuzzing=True,
+    )
+
+
+def get_contextline_component(frame, platform, with_context_line_file_origin_bug=False):
     """Returns a contextline component.  The caller's responsibility is to
     make sure context lines are only used for platforms where we trust the
     quality of the sourcecode.  It does however protect against some bad
@@ -245,7 +260,7 @@ def get_contextline_component(frame, platform):
         if len(frame.context_line) > 120:
             component.update(hint="discarded because line too long")
         elif get_behavior_family_for_platform(platform) == "javascript" and has_url_origin(
-            frame.abs_path, allow_file_origin=True
+            frame.abs_path, allow_file_origin=with_context_line_file_origin_bug
         ):
             component.update(hint="discarded because from URL origin")
         else:
@@ -255,7 +270,13 @@ def get_contextline_component(frame, platform):
 
 
 def get_frame_component(
-    frame, event, meta, legacy_function_logic=False, use_contextline=False, javascript_fuzzing=False
+    frame,
+    event,
+    meta,
+    legacy_function_logic=False,
+    use_contextline=False,
+    javascript_fuzzing=False,
+    with_context_line_file_origin_bug=False,
 ):
     platform = frame.platform or event.platform
 
@@ -276,7 +297,9 @@ def get_frame_component(
 
     # If we are allowed to use the contextline we add it now.
     if use_contextline:
-        context_line_component = get_contextline_component(frame, platform)
+        context_line_component = get_contextline_component(
+            frame, platform, with_context_line_file_origin_bug=with_context_line_file_origin_bug
+        )
 
     function_component = get_function_component(
         function=frame.function,
