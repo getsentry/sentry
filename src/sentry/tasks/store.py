@@ -551,7 +551,12 @@ def _do_save_event(
             metrics.timing("events.time-to-process", time() - start_time, instance=data["platform"])
 
 
-@instrumented_task(name="sentry.tasks.store.save_event", queue="events.save_event")
+@instrumented_task(
+    name="sentry.tasks.store.save_event",
+    queue="events.save_event",
+    time_limit=65,
+    soft_time_limit=60,
+)
 def save_event(
     cache_key=None, data=None, start_time=None, event_id=None, project_id=None, **kwargs
 ):
