@@ -92,7 +92,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
             response = self.client.get(url, format="json")
         assert response.status_code == 200
 
-    def test_no_access(self):
+    def test_no_access_missing_feature(self):
         url = reverse(
             "sentry-api-0-organization-event-details",
             kwargs={
@@ -103,7 +103,38 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
         )
 
         response = self.client.get(url, format="json")
+        assert response.status_code == 404, response.content
 
+    def test_access_non_member_project(self):
+        # Add a new user to a project and then access events on project they are not part of.
+        member_user = self.create_user()
+        team = self.create_team(members=[member_user])
+        self.create_project(organization=self.organization, teams=[team])
+
+        # Enable open membership
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+
+        self.login_as(member_user)
+
+        url = reverse(
+            "sentry-api-0-organization-event-details",
+            kwargs={
+                "organization_slug": self.organization.slug,
+                "project_slug": self.project.slug,
+                "event_id": "a" * 32,
+            },
+        )
+        with self.feature("organizations:events-v2"):
+            response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+
+        # When open membership is off, access should be denied to non owner users
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        with self.feature("organizations:events-v2"):
+            response = self.client.get(url, format="json")
         assert response.status_code == 404, response.content
 
     def test_no_event(self):

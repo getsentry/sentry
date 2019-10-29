@@ -13,7 +13,7 @@ from parsimonious.nodes import Node
 from parsimonious.grammar import Grammar, NodeVisitor
 
 from sentry import eventstore
-from sentry.models import Project
+from sentry.models import Project, ProjectStatus
 from sentry.search.utils import (
     parse_datetime_range,
     parse_datetime_string,
@@ -813,14 +813,14 @@ def resolve_field_list(fields, snuba_args):
     }
 
 
-def find_reference_event(snuba_args, reference_event_slug, fields):
+def find_reference_event(organization, snuba_args, reference_event_slug, fields):
     try:
         project_slug, event_id = reference_event_slug.split(":")
     except ValueError:
         raise InvalidSearchQuery("Invalid reference event")
     try:
         project = Project.objects.get(
-            slug=project_slug, id__in=snuba_args["filter_keys"]["project_id"]
+            slug=project_slug, organization=organization, status=ProjectStatus.VISIBLE
         )
     except Project.DoesNotExist:
         raise InvalidSearchQuery("Invalid reference event")
@@ -834,7 +834,7 @@ def find_reference_event(snuba_args, reference_event_slug, fields):
 TAG_KEY_RE = re.compile(r"^tags\[(.*)\]$")
 
 
-def get_reference_event_conditions(snuba_args, event_slug):
+def get_reference_event_conditions(organization, snuba_args, event_slug):
     """
     Returns a list of additional conditions/filter_keys to
     scope a query by the groupby fields using values from the reference event
@@ -848,7 +848,7 @@ def get_reference_event_conditions(snuba_args, event_slug):
 
     # Fetch the reference event ensuring the fields in the groupby
     # clause are present.
-    event_data = find_reference_event(snuba_args, event_slug, columns)
+    event_data = find_reference_event(organization, snuba_args, event_slug, columns)
 
     conditions = []
     tags = {}
