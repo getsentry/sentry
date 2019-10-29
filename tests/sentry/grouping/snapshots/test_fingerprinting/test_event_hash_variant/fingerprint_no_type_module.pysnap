@@ -1,5 +1,5 @@
 ---
-created: '2019-08-05T10:26:51.809104Z'
+created: '2019-10-29T21:47:59.511441Z'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -9,6 +9,7 @@ config:
     - '{{ type }}'
     - '{{ module }}'
     - '{{ function }}'
+    force: false
     matchers:
     - - function
       - main

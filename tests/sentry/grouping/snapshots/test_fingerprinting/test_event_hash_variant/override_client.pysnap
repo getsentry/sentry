@@ -1,23 +1,21 @@
 ---
-created: '2019-10-29T21:47:59.536238Z'
+created: '2019-10-29T22:02:02.552074Z'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
 config:
   rules:
   - fingerprint:
-    - timeout-in-requests
-    force: false
+    - what-is-love
+    force: true
     matchers:
-    - - type
-      - ReadTimeout
-    - - path
-      - '**/requests/adapters.py'
+    - - message
+      - '*love*'
   version: 1
 fingerprint:
-- timeout-in-requests
+- what-is-love
 variants:
   custom-fingerprint:
     type: custom-fingerprint
     values:
-    - timeout-in-requests
+    - what-is-love

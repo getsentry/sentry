@@ -133,16 +133,23 @@ def apply_server_fingerprinting(event, config):
     if not any(x in DEFAULT_FINGERPRINT_VALUES for x in fingerprint):
         return
 
-    new_values = config.get_fingerprint_values_for_event(event)
-    if new_values is None:
+    rv = config.get_fingerprint_values_for_event(event)
+    if rv is None:
         return
 
-    new_fingerprint = []
-    for value in fingerprint:
-        if value in DEFAULT_FINGERPRINT_VALUES:
-            new_fingerprint.extend(new_values)
-        else:
-            new_fingerprint.append(value)
+    # if the fingerprint is forced it replaces the values that might
+    # already be in the event from the client.  Otherwise it only replaces
+    # the `{{ default }}` values in the fingerprint.
+    new_values, force = rv
+    if force:
+        new_fingerprint = new_values
+    else:
+        new_fingerprint = []
+        for value in fingerprint:
+            if value in DEFAULT_FINGERPRINT_VALUES:
+                new_fingerprint.extend(new_values)
+            else:
+                new_fingerprint.append(value)
 
     event["fingerprint"] = new_fingerprint
 

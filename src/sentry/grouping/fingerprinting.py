@@ -30,7 +30,7 @@ matcher        = _ matcher_type sep argument
 matcher_type   = "path" / "function" / "module" / "family" / "type" / "value" / "message" / "package" / "app"
 argument       = quoted / unquoted
 
-fingerprint    = fp_value+
+fingerprint    = fp_value+ _ "!"?
 fp_value        = _ fp_argument _ ","?
 fp_argument    = quoted / unquoted_no_comma
 
@@ -38,7 +38,7 @@ comment        = ~r"#[^\r\n]*"
 
 quoted         = ~r'"([^"\\]*(?:\\.[^"\\]*)*)"'
 unquoted       = ~r"\S+"
-unquoted_no_comma = ~r"((?:\{\{\s*\S+\s*\}\})|(?:[^\s,]+))"
+unquoted_no_comma = ~r"((?:\{\{\s*\S+\s*\}\})|(?:[^\s,!]+))"
 
 follow  = "->"
 sep     = ":"
@@ -153,7 +153,7 @@ class FingerprintingRules(object):
         for rule in self.iter_rules():
             new_values = rule.get_fingerprint_values_for_event_access(access)
             if new_values is not None:
-                return new_values
+                return new_values, rule.force
 
     @classmethod
     def _from_config_structure(cls, data):
@@ -235,9 +235,10 @@ class Match(object):
 
 
 class Rule(object):
-    def __init__(self, matchers, fingerprint):
+    def __init__(self, matchers, fingerprint, force=False):
         self.matchers = matchers
         self.fingerprint = fingerprint
+        self.force = force
 
     def get_fingerprint_values_for_event_access(self, access):
         by_interface = {}
@@ -257,11 +258,16 @@ class Rule(object):
         return {
             "matchers": [x._to_config_structure() for x in self.matchers],
             "fingerprint": self.fingerprint,
+            "force": self.force,
         }
 
     @classmethod
     def _from_config_structure(cls, obj):
-        return cls([Match._from_config_structure(x) for x in obj["matchers"]], obj["fingerprint"])
+        return cls(
+            [Match._from_config_structure(x) for x in obj["matchers"]],
+            obj["fingerprint"],
+            force=obj.get("force", False),
+        )
 
 
 class FingerprintingVisitor(NodeVisitor):
@@ -292,8 +298,9 @@ class FingerprintingVisitor(NodeVisitor):
             return comment_or_rule_or_empty
 
     def visit_rule(self, node, children):
-        _, matcher, _, _, _, fingerprint = children
-        return Rule(matcher, fingerprint)
+        _, matcher, _, _, _, values_and_force = children
+        values, force = values_and_force
+        return Rule(matcher, values, force)
 
     def visit_matcher(self, node, children):
         _, ty, _, argument = children
@@ -308,7 +315,8 @@ class FingerprintingVisitor(NodeVisitor):
     visit_fp_argument = visit_argument
 
     def visit_fingerprint(self, node, children):
-        return children
+        values, _, force = children
+        return values, bool(force)
 
     def visit_fp_value(self, node, children):
         _, argument, _, _ = children

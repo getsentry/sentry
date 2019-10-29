@@ -1,5 +1,5 @@
 ---
-created: '2019-07-23T21:55:25.846335Z'
+created: '2019-10-29T21:47:59.113703Z'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -7,6 +7,7 @@ config:
   rules:
   - fingerprint:
     - database-unavailable
+    force: false
     matchers:
     - - type
       - DatabaseUnavailable

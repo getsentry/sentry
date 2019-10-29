@@ -19,18 +19,23 @@ def test_basic_parsing(insta_snapshot):
 type:DatabaseUnavailable                        -> DatabaseUnavailable
 function:assertion_failed module:foo            -> AssertionFailed, foo
 app:true                                        -> aha
-app:true                                        -> {{ default }}
+app:true                                        -> {{ default }}!
 """
     )
     assert rules._to_config_structure() == {
         "rules": [
-            {"matchers": [["type", "DatabaseUnavailable"]], "fingerprint": ["DatabaseUnavailable"]},
+            {
+                "matchers": [["type", "DatabaseUnavailable"]],
+                "fingerprint": ["DatabaseUnavailable"],
+                "force": False,
+            },
             {
                 "matchers": [["function", "assertion_failed"], ["module", "foo"]],
                 "fingerprint": ["AssertionFailed", "foo"],
+                "force": False,
             },
-            {"matchers": [["app", "true"]], "fingerprint": ["aha"]},
-            {"matchers": [["app", "true"]], "fingerprint": ["{{ default }}"]},
+            {"matchers": [["app", "true"]], "fingerprint": ["aha"], "force": False},
+            {"matchers": [["app", "true"]], "fingerprint": ["{{ default }}"], "force": True},
         ],
         "version": 1,
     }

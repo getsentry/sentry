@@ -1,5 +1,5 @@
 ---
-created: '2019-07-23T21:55:25.902949Z'
+created: '2019-10-29T21:47:59.179764Z'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -7,6 +7,7 @@ config:
   rules:
   - fingerprint:
     - symcache-error
+    force: false
     matchers:
     - - type
       - SymCacheError
