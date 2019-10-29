@@ -1,4 +1,5 @@
 import marked from 'marked';
+import dompurify from 'dompurify';
 
 function isSafeHref(href, pattern) {
   try {
@@ -18,7 +19,7 @@ function Renderer() {
 }
 Object.assign(Renderer.prototype, marked.Renderer.prototype);
 
-// Anythign except javascript, vbscript, data protocols
+// Only https and mailto, (e.g. no javascript, vbscript, data protocols)
 const safeLinkPattern = /^(https?:|mailto:)/i;
 
 Renderer.prototype.link = function(href, title, text) {
@@ -32,7 +33,7 @@ Renderer.prototype.link = function(href, title, text) {
     out += ' title="' + title + '"';
   }
   out += '>' + text + '</a>';
-  return out;
+  return dompurify.sanitize(out);
 };
 
 // Only allow http(s) for image tags
@@ -49,7 +50,7 @@ Renderer.prototype.image = function(href, title, text) {
     out += ' title="' + title + '"';
   }
   out += this.options.xhtml ? '/>' : '>';
-  return out;
+  return dompurify.sanitize(out);
 };
 
 marked.setOptions({
