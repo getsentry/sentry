@@ -1,5 +1,4 @@
 import {Link} from 'react-router';
-import {Location} from 'history';
 import {Params} from 'react-router/lib/Router';
 import {PlainRoute} from 'react-router/lib/Route';
 import PropTypes from 'prop-types';
@@ -7,6 +6,8 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {Client} from 'app/api';
+import {IssueAlertRule} from 'app/types/alerts';
+import {Location} from 'history';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {
   addSuccessMessage,
@@ -21,8 +22,7 @@ import Confirm from 'app/components/confirm';
 import Duration from 'app/components/duration';
 import Tooltip from 'app/components/tooltip';
 import recreateRoute from 'app/utils/recreateRoute';
-
-import {IssueAlertRule} from 'app/types/alerts';
+import space from 'app/styles/space';
 
 type Props = {
   api: Client;
@@ -99,14 +99,13 @@ class RuleRow extends React.Component<Props, State> {
             {data.name} - {environmentName}
           </TextColorLink>
 
-          <div>
+          <Actions>
             <Tooltip
               disabled={canEdit}
               title={t('You do not have permission to edit alert rules.')}
             >
               <Button
                 data-test-id="edit-rule"
-                style={{marginRight: 5}}
                 disabled={!canEdit}
                 size="xsmall"
                 to={editLink}
@@ -127,7 +126,7 @@ class RuleRow extends React.Component<Props, State> {
                 <Button size="xsmall" icon="icon-trash" />
               </Confirm>
             </Tooltip>
-          </div>
+          </Actions>
         </PanelHeader>
 
         <PanelBody>
@@ -202,4 +201,11 @@ const Condition = styled('div')`
   flex-direction: column;
   justify-content: space-between;
   height: 100%;
+`;
+
+const Actions = styled('div')`
+  display: grid;
+  grid-auto-flow: column;
+  grid-gap: ${space(1)};
+  align-items: center;
 `;
