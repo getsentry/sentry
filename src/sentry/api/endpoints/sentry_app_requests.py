@@ -3,28 +3,40 @@ from __future__ import absolute_import
 from rest_framework.response import Response
 
 from sentry.api.bases import SentryAppBaseEndpoint, SentryAppStatsPermission
-from sentry.api.utils import get_date_range_from_params, InvalidParams
 
 from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
+
+from sentry.models import Organization
 
 
 class SentryAppRequestsEndpoint(SentryAppBaseEndpoint):
     permission_classes = (SentryAppStatsPermission,)
 
-    def get(self, request, sentry_app):
-        """
-        :qparam float start - optional
-        :qparam float end - optional
-        """
-        try:
-            start, end = get_date_range_from_params(request.GET, optional=True)
-        except InvalidParams as exc:
-            return Response({"detail": exc.message}, status=400)
+    def format_request(self, request, sentry_app):
+        formatted_request = {
+            "webhookUrl": request.get("webhook_url"),
+            "sentryAppSlug": sentry_app.slug,
+            "eventType": request.get("event_type"),
+            "date": request.get("date"),
+            "responseCode": request.get("response_code"),
+        }
 
-        # TODO actually use the start/end params?
+        if "organization_id" in request:
+            try:
+                org = Organization.objects.get_from_cache(id=request["organization_id"])
+                formatted_request["organization"] = {"name": org.name, "slug": org.slug}
+            except Organization.DoesNotExist:
+                pass
+
+        return formatted_request
+
+    def get(self, request, sentry_app):
+
+        # TODO add optional query params for event type
+        # for now I'm just getting all requests for all events
 
         buffer = SentryAppWebhookRequestsBuffer(sentry_app)
-        # TODO for now I'm just getting all requests for all events
-        requests = buffer.get_requests()
 
-        return Response(requests)
+        formatted_requests = [self.format_request(req, sentry_app) for req in buffer.get_requests()]
+
+        return Response(formatted_requests)

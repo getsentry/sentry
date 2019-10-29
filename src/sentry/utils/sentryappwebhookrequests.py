@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from sentry.utils import redis
 from sentry.models.sentryapp import VALID_EVENTS
-from sentry.models import Organization
+
 
 BUFFER_SIZE = 100
 
@@ -31,30 +31,22 @@ class SentryAppWebhookRequestsBuffer(object):
 
     def _convert_redis_request(self, redis_request, event):
         """
-        Convert the request string stored in Redis to a python dict that can be returned from the errors endpoint
+        Convert the request string stored in Redis to a python dict
+        Add the event type to the dict so that the request can be identified correctly
         """
         request = json.loads(redis_request)
+        request["event_type"] = event
 
-        formatted_request = {
-            "webhookUrl": request.get("webhook_url"),
-            "sentryAppSlug": self.sentry_app.slug,
-            "eventType": event,
-            "date": request.get("date"),
-            "responseCode": request.get("response_code"),
-        }
+        return request
 
-        if "organization_id" in request:
-            try:
-                org = Organization.objects.get_from_cache(id=request["organization_id"])
-                formatted_request["organization"] = {"name": org.name, "slug": org.slug}
-            except Organization.DoesNotExist:
-                pass
+    def _add_to_buffer_pipeline(self, buffer_key, item, pipeline):
+        """
+        Add the item to the buffer key specified, using the given pipeline.
+        This does not execute the pipeline's commands.
+        """
 
-        return formatted_request
-
-    def _add_to_buffer(self, buffer_key, item):
-        self.client.lpush(buffer_key, json.dumps(item))
-        self.client.ltrim(buffer_key, 0, BUFFER_SIZE - 1)
+        pipeline.lpush(buffer_key, json.dumps(item))
+        pipeline.ltrim(buffer_key, 0, BUFFER_SIZE - 1)
 
     def add_request(self, response_code, org_id, event, url):
         if event not in VALID_EVENTS:
@@ -70,34 +62,53 @@ class SentryAppWebhookRequestsBuffer(object):
             "webhook_url": url,
         }
 
-        self._add_to_buffer(request_key, request_data)
+        pipe = self.client.pipeline()
+
+        self._add_to_buffer_pipeline(request_key, request_data, pipe)
 
         # If it's an error add it to the error buffer
         if 400 <= response_code <= 599:
             error_key = self._get_redis_key(event, error=True)
-            self._add_to_buffer(error_key, request_data)
+            self._add_to_buffer_pipeline(error_key, request_data, pipe)
 
-    def _get_all_from_buffer(self, buffer_key):
-        return self.client.lrange(buffer_key, 0, BUFFER_SIZE - 1)
+        pipe.execute()
+
+    def _get_all_from_buffer(self, buffer_key, pipeline=None):
+        """
+        Get the list at the buffer key, using the given pipeline if available.
+        If a pipeline is provided, this does not return a value as the pipeline must still be executed.
+        """
+
+        if pipeline is not None:
+            pipeline.lrange(buffer_key, 0, BUFFER_SIZE - 1)
+        else:
+            return self.client.lrange(buffer_key, 0, BUFFER_SIZE - 1)
 
     def _get_requests(self, event=None, error=False):
         # If no event is specified, return the latest requests/errors for all event types
         if event is None:
+            pipe = self.client.pipeline()
+
             all_requests = []
             for evt in VALID_EVENTS:
+                self._get_all_from_buffer(self._get_redis_key(evt, error=error), pipeline=pipe)
+
+            values = pipe.execute()
+
+            for idx, evt in enumerate(VALID_EVENTS):
                 event_requests = [
-                    self._convert_redis_request(request, evt)
-                    for request in self._get_all_from_buffer(self._get_redis_key(evt, error=error))
+                    self._convert_redis_request(request, evt) for request in values[idx]
                 ]
                 all_requests.extend(event_requests)
 
             all_requests.sort(key=lambda x: parse_date(x.get("date")), reverse=True)
             return all_requests[0:BUFFER_SIZE]
 
-        return [
-            self._convert_redis_request(request, event)
-            for request in self._get_all_from_buffer(self._get_redis_key(event, error=error))
-        ]
+        else:
+            return [
+                self._convert_redis_request(request, event)
+                for request in self._get_all_from_buffer(self._get_redis_key(event, error=error))
+            ]
 
     def get_errors(self, event=None):
         return self._get_requests(event=event, error=True)
