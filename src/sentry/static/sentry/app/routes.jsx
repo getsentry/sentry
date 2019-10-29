@@ -217,7 +217,15 @@ function routes() {
         }
         component={errorHandler(LazyLoad)}
       />
-      <Route name="Alerts" path="alerts/">
+
+      <Route
+        name="Alerts"
+        path="alerts/"
+        component={errorHandler(LazyLoad)}
+        componentPromise={() =>
+          import(/* webpackChunkName: "ProjectAlerts" */ 'app/views/settings/projectAlerts')
+        }
+      >
         <IndexRedirect to="rules/" />
         <Route
           path="settings/"
@@ -232,6 +240,49 @@ function routes() {
             component={errorHandler(LazyLoad)}
             componentPromise={() =>
               import(/* webpackChunkName: "ProjectAlertRules" */ 'app/views/settings/projectAlerts/projectAlertRules')
+            }
+          />
+          <Route
+            path="new/"
+            name="New"
+            component={errorHandler(LazyLoad)}
+            componentPromise={() =>
+              import(/* webpackChunkName: "ProjectAlertRuleDetails" */ 'app/views/settings/projectAlerts/projectAlertRuleDetails')
+            }
+          />
+          <Route
+            path=":ruleId/"
+            name="Edit"
+            componentPromise={() =>
+              import(/* webpackChunkName: "ProjectAlertRuleDetails" */ 'app/views/settings/projectAlerts/projectAlertRuleDetails')
+            }
+            component={errorHandler(LazyLoad)}
+          />
+        </Route>
+      </Route>
+
+      <Route
+        name="Alerts"
+        path="alerts-v2/"
+        component={errorHandler(LazyLoad)}
+        componentPromise={() =>
+          import(/* webpackChunkName: "ProjectAlertsNew" */ 'app/views/settings/projectAlerts/new')
+        }
+      >
+        <IndexRedirect to="issue-rules/" />
+        <Route
+          path="settings/"
+          name="Settings"
+          component={errorHandler(LazyLoad)}
+          componentPromise={() =>
+            import(/* webpackChunkName: "ProjectAlertSettings" */ 'app/views/settings/projectAlerts/projectAlertSettings')
+          }
+        />
+        <Route path="issue-rules/" name="Rules" component={null}>
+          <IndexRoute
+            component={errorHandler(LazyLoad)}
+            componentPromise={() =>
+              import(/* webpackChunkName: "ProjectAlertRules" */ 'app/views/settings/projectAlerts/projectAlertRulesNew')
             }
           />
           <Route

@@ -25,6 +25,12 @@ export default function getConfiguration({project}) {
           description: t('Manage alerts and alert rules for a project'),
         },
         {
+          path: `${pathPrefix}/alerts-v2/`,
+          title: t('Alerts (New)'),
+          description: t('Manage alerts and alert rules for a project'),
+          show: ({features}) => features.has('incidents'),
+        },
+        {
           path: `${pathPrefix}/tags/`,
           title: t('Tags'),
           description: t("View and manage a  project's tags"),
