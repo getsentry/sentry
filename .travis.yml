@@ -41,7 +41,7 @@ env:
     - NODE_OPTIONS=--max-old-space-size=4096
 
 before_install:
-  - pip install "pip==${PYTHON_PIP_VERSION}"
+  - &pip_install pip install "pip==${PYTHON_PIP_VERSION}"
 
 script:
   # certain commands require sentry init to be run, but this is only true for
@@ -77,6 +77,7 @@ base_postgres: &postgres_default
     - redis-server
     - postgresql
   before_install:
+    - *pip_install
     - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:19.4
     - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
     - docker ps -a
@@ -94,6 +95,7 @@ base_acceptance: &acceptance_default
     - redis-server
     - postgresql
   before_install:
+    - *pip_install
     - find "$NODE_DIR" -type d -empty -delete
     - nvm install
     - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:19.4
