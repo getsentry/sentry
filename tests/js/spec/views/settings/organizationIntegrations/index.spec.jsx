@@ -27,7 +27,6 @@ describe('OrganizationIntegrations', () => {
   let githubIntegration;
   let jiraIntegration;
 
-  let params;
   let routerContext;
 
   let publishedSentryAppsRequest;
@@ -36,6 +35,7 @@ describe('OrganizationIntegrations', () => {
 
   let focus;
   let open;
+  let otherProps;
 
   beforeEach(() => {
     Client.clearMockResponses();
@@ -54,13 +54,18 @@ describe('OrganizationIntegrations', () => {
     githubIntegration = TestStubs.GitHubIntegration();
     jiraIntegration = TestStubs.JiraIntegration();
 
-    params = {orgId: org.slug};
-
     routerContext = TestStubs.routerContext();
 
     focus = jest.fn();
     open = jest.fn().mockReturnValue({focus});
     global.open = open;
+
+    otherProps = {
+      location: {
+        search: '',
+      },
+      params: {orgId: org.slug},
+    };
 
     Client.addMockResponse({
       url: `/organizations/${org.slug}/integrations/`,
@@ -98,7 +103,7 @@ describe('OrganizationIntegrations', () => {
     });
 
     wrapper = mountWithTheme(
-      <OrganizationIntegrations organization={org} params={params} />,
+      <OrganizationIntegrations organization={org} {...otherProps} />,
       routerContext
     );
   });
@@ -140,7 +145,7 @@ describe('OrganizationIntegrations', () => {
       });
 
       wrapper = mountWithTheme(
-        <OrganizationIntegrations organization={org} params={params} />,
+        <OrganizationIntegrations organization={org} {...otherProps} />,
         routerContext
       );
     });
@@ -199,7 +204,7 @@ describe('OrganizationIntegrations', () => {
         });
 
         mountWithTheme(
-          <OrganizationIntegrations organization={org} params={params} />,
+          <OrganizationIntegrations organization={org} {...otherProps} />,
           routerContext
         );
 
@@ -222,7 +227,7 @@ describe('OrganizationIntegrations', () => {
         });
 
         wrapper = mountWithTheme(
-          <OrganizationIntegrations organization={org} params={params} />,
+          <OrganizationIntegrations organization={org} {...otherProps} />,
           routerContext
         );
 
@@ -274,7 +279,7 @@ describe('OrganizationIntegrations', () => {
           body: [publishedApp],
         });
         wrapper = mountWithTheme(
-          <OrganizationIntegrations organization={org} params={params} />,
+          <OrganizationIntegrations organization={org} {...otherProps} />,
           routerContext
         );
         expect(wrapper.find('SentryAppInstallationDetail').length).toBe(1);
@@ -315,7 +320,7 @@ describe('OrganizationIntegrations', () => {
         });
 
         wrapper = mountWithTheme(
-          <OrganizationIntegrations organization={org} params={params} />,
+          <OrganizationIntegrations organization={org} {...otherProps} />,
           routerContext
         );
         const pending = wrapper.find('SentryAppInstallationDetail').at(0);
@@ -351,7 +356,7 @@ describe('OrganizationIntegrations', () => {
         });
 
         wrapper = mountWithTheme(
-          <OrganizationIntegrations organization={org} params={params} />,
+          <OrganizationIntegrations organization={org} {...otherProps} />,
           routerContext
         );
         expect(
@@ -378,7 +383,7 @@ describe('OrganizationIntegrations', () => {
         });
 
         wrapper = mountWithTheme(
-          <OrganizationIntegrations organization={org} params={params} />,
+          <OrganizationIntegrations organization={org} {...otherProps} />,
           routerContext
         );
         wrapper.instance().handleRemoveInternalSentryApp(internalApp);
@@ -398,7 +403,7 @@ describe('OrganizationIntegrations', () => {
         });
 
         wrapper = mountWithTheme(
-          <OrganizationIntegrations organization={org} params={params} />,
+          <OrganizationIntegrations organization={org} {...otherProps} />,
           routerContext
         );
 
@@ -482,7 +487,7 @@ describe('OrganizationIntegrations', () => {
         });
 
         wrapper = mountWithTheme(
-          <OrganizationIntegrations organization={org} params={params} />,
+          <OrganizationIntegrations organization={org} {...otherProps} />,
           routerContext
         );
       });
@@ -513,6 +518,34 @@ describe('OrganizationIntegrations', () => {
             .text()
         ).toBe('Install');
       });
+    });
+  });
+  describe('extra_app query parameter defined', () => {
+    it('loads and renders extraApp', () => {
+      const appSlug = 'app2';
+      const extraApp = {
+        ...sentryApp,
+        status: 'unpublished',
+        slug: appSlug,
+        name: 'another app',
+        owner: {
+          id: 43,
+          slug: 'another',
+        },
+      };
+
+      otherProps.location.search = `?extra_app=${appSlug}`;
+      const loadExtraApp = Client.addMockResponse({
+        url: `/sentry-apps/${appSlug}/`,
+        body: extraApp,
+      });
+
+      wrapper = mountWithTheme(
+        <OrganizationIntegrations organization={org} {...otherProps} />,
+        routerContext
+      );
+      expect(loadExtraApp).toHaveBeenCalled();
+      expect(wrapper.find('SentryAppName').text()).toMatch('another app');
     });
   });
 });
