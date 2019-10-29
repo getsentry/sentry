@@ -12,6 +12,7 @@ import ReleaseSeries from 'app/components/charts/releaseSeries';
 import SentryTypes from 'app/sentryTypes';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
+import {getParams} from 'app/views/events/utils/getParams';
 
 import EventsRequest from './utils/eventsRequest';
 import YAxisSelector from './yAxisSelector';
@@ -211,9 +212,14 @@ const EventsChartContainer = withGlobalSelection(
         const {selection, ...props} = this.props;
         const {datetime, projects, environments} = selection;
 
+        const {start, end, statsPeriod, utc} = getParams(datetime);
+
         return (
           <EventsChart
-            {...datetime}
+            start={start}
+            end={end}
+            period={statsPeriod}
+            utc={utc}
             projects={projects || []}
             environments={environments || []}
             {...props}
