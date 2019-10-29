@@ -1,3 +1,4 @@
+import {Environment} from 'app/types';
 import {toTitleCase} from 'app/utils';
 
 const DEFAULT_EMPTY_ROUTING_NAME = 'none';
