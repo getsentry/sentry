@@ -6,9 +6,15 @@ import IncidentRulesDetails from 'app/views/settings/incidentRules/details';
 import GlobalModal from 'app/components/globalModal';
 
 describe('Incident Rules Details', function() {
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/tags/',
-    body: [],
+  beforeAll(function() {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: null,
+    });
   });
 
   it('renders and adds and edits trigger', async function() {

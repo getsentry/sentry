@@ -14,7 +14,7 @@ export function IncidentRule(params) {
     timeWindow: 60,
     aggregations: [0],
     resolveThreshold: 13,
-    projectId: '1',
+    projects: ['project-slug'],
     resolution: 1,
     dateModified: '2019-07-31T23:02:02.731Z',
     triggers: [IncidentTrigger()],

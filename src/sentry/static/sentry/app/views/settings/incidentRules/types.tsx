@@ -30,21 +30,15 @@ export type SavedTrigger = UnsavedTrigger & {
 export type Trigger = Partial<SavedTrigger> & UnsavedTrigger;
 
 export type IncidentRule = {
-  aggregations: number[];
-  aggregation?: number;
-  alertThreshold: number;
-  dataset: 'events';
+  aggregations: AlertRuleAggregations[];
   dateAdded: string;
   dateModified: string;
   id: string;
   name: string;
-  projectId: string;
+  projects: string[];
   query: string;
-  resolution: number;
-  resolveThreshold: number;
   status: number;
-  thresholdPeriod: number;
-  thresholdType: number;
+  thresholdType: AlertRuleThresholdType;
   timeWindow: number;
   triggers: Trigger[];
 };

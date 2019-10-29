@@ -6,11 +6,8 @@ import styled from 'react-emotion';
 import {ReactEchartsRef, Series, SeriesDataUnit} from 'app/types/echarts';
 import Graphic from 'app/components/charts/components/graphic';
 import LineChart from 'app/components/charts/lineChart';
-import SelectControl from 'app/components/forms/selectControl';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
-
-import {ProjectSelectOption} from './types';
 
 type Props = {
   xAxis: EChartOption.XAxis;
@@ -18,11 +15,8 @@ type Props = {
   alertThreshold: number | null;
   resolveThreshold: number | null;
   isInverted: boolean;
-  projectOptions: ProjectSelectOption[];
-  selectedProjects: ProjectSelectOption[];
   onChangeIncidentThreshold: (alertThreshold: number) => void;
   onChangeResolutionThreshold: (resolveThreshold: number) => void;
-  onChangeProjects: (projects: ProjectSelectOption) => void;
   maxValue?: number;
 };
 
@@ -233,7 +227,7 @@ export default class IncidentRulesChart extends React.Component<Props, State> {
   };
 
   render() {
-    const {data, xAxis, projectOptions, selectedProjects, onChangeProjects} = this.props;
+    const {data, xAxis} = this.props;
 
     const alertThresholdPosition =
       this.chartRef &&
@@ -244,12 +238,6 @@ export default class IncidentRulesChart extends React.Component<Props, State> {
 
     return (
       <Wrapper>
-        <CornerProjectSelect
-          value={selectedProjects.length && selectedProjects[0]}
-          options={projectOptions}
-          onChange={onChangeProjects}
-        />
-
         <LineChart
           isGroupedByDate
           forwardedRef={this.handleRef}
@@ -282,19 +270,4 @@ export default class IncidentRulesChart extends React.Component<Props, State> {
 const Wrapper = styled('div')`
   position: relative;
   border-bottom: 1px solid ${p => p.theme.borderLight};
-`;
-
-const CornerProjectSelect = styled(SelectControl)`
-  position: absolute;
-  top: 0;
-  right: 0;
-  z-index: 1;
-  min-width: 150px;
-
-  .Select-control {
-    border-top: 0;
-    border-top-left-radius: 0;
-    border-bottom-right-radius: 0;
-    border-right: 0;
-  }
 `;

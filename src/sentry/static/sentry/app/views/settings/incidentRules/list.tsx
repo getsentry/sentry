@@ -99,7 +99,7 @@ class IncidentRulesList extends AsyncView<Props, State> {
                     {rule.name}
                   </RuleLink>
 
-                  <MetricName>{getMetricDisplayName(rule.thresholdType)}</MetricName>
+                  <MetricName>{getMetricDisplayName(rule.aggregations[0])}</MetricName>
 
                   <ThresholdColumn>
                     <Thresholds>
