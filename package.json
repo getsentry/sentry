@@ -58,6 +58,7 @@
     "crypto-js": "3.1.5",
     "css-loader": "^2.0.1",
     "diff": "^3.5.0",
+    "dompurify": "^2.0.7",
     "echarts": "4.2.1",
     "echarts-for-react": "2.0.14",
     "emotion": "9.2.12",
