@@ -1,5 +1,3 @@
-import {Environment} from '.';
-
 export type IssueAlertRuleAction = {
   id: string;
   name: string;
@@ -16,7 +14,7 @@ export type IssueAlertRule = {
   actions: IssueAlertRuleAction[];
   conditions: IssueAlertRuleCondition[];
   dateCreated: string;
-  environment: null | Environment;
+  environment: null | string;
   frequency: number;
   id: string;
   name: string;
