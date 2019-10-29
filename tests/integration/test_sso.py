@@ -29,14 +29,12 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         # we should be redirecting the user to the authentication form as they
         # haven't verified this specific organization
         resp = self.client.get(path)
-        assert resp.status_code == 302
-        assert resp["Location"] == redirect_uri
+        self.assertRedirects(resp, redirect_uri)
 
         # superuser should still require SSO as they're a member of the org
         user.update(is_superuser=True)
         resp = self.client.get(path)
-        assert resp.status_code == 302
-        assert resp["Location"] == redirect_uri
+        self.assertRedirects(resp, redirect_uri)
 
         # XXX(dcramer): using internal API as exposing a request object is hard
         self.session[SSO_SESSION_KEY] = six.text_type(organization.id)

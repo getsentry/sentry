@@ -233,8 +233,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         resp = self.client.post(
             full_path, {"username": self.user.username, "password": "admin", "op": "login"}
         )
-        assert resp.status_code == 302
-        assert resp.get("Location") == full_path
+        self.assertRedirects(resp, full_path)
 
         resp = self.client.get(full_path)
         self.assertTemplateUsed("sentry/oauth-authorize.html")
@@ -247,8 +246,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         assert grant.application == self.application
         assert not grant.get_scopes()
 
-        assert resp.status_code == 302
-        assert resp["Location"] == u"https://example.com?code={}".format(grant.code)
+        self.assertRedirects(resp, u"https://example.com?code={}".format(grant.code))
 
         authorization = ApiAuthorization.objects.get(user=self.user, application=self.application)
         assert authorization.get_scopes() == grant.get_scopes()

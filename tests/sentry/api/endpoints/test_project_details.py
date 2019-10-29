@@ -80,9 +80,8 @@ class ProjectDetailsTest(APITestCase):
             project.organization.slug,
             "foobar",
         )
-        assert response["Location"] == "/api/0/projects/%s/%s/" % (
-            project.organization.slug,
-            "foobar",
+        self.assertRedirects(
+            response, "/api/0/projects/%s/%s/" % (project.organization.slug, "foobar")
         )
 
 
