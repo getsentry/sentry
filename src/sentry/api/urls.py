@@ -567,7 +567,7 @@ urlpatterns = patterns(
                     name="sentry-api-0-organization-alert-rules",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/triggers/(?P<alert_rule_trigger_id>[^\/]+)$",
+                    r"^(?P<organization_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/triggers/(?P<alert_rule_trigger_id>[^\/]+)/$",
                     OrganizationAlertRuleTriggerDetailsEndpoint.as_view(),
                     name="sentry-api-0-organization-alert-rule-trigger-details",
                 ),
@@ -582,7 +582,7 @@ urlpatterns = patterns(
                     name="sentry-api-0-organization-alert-rule-trigger-action-details",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/triggers/(?P<alert_rule_trigger_id>[^\/]+)/actions$",
+                    r"^(?P<organization_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/triggers/(?P<alert_rule_trigger_id>[^\/]+)/actions/$",
                     OrganizationAlertRuleTriggerActionIndexEndpoint.as_view(),
                     name="sentry-api-0-organization-alert-rules-trigger-actions",
                 ),
