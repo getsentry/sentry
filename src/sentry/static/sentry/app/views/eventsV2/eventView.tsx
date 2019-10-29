@@ -846,7 +846,7 @@ class EventView {
 
     const picked = pickRelevantLocationQueryStrings(location);
 
-    const normalizdTimeWindowParams = getParams({
+    const normalizedTimeWindowParams = getParams({
       start: this.start,
       end: this.end,
       period: decodeScalar(query.period),
@@ -861,7 +861,7 @@ class EventView {
 
     const eventQuery: EventQuery & LocationQuery = Object.assign(
       picked,
-      normalizdTimeWindowParams,
+      normalizedTimeWindowParams,
       {
         field: [...new Set(fields)],
         sort,
