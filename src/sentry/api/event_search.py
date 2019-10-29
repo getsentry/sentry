@@ -640,6 +640,11 @@ def get_filter(query=None, params=None):
             for p in Project.objects.filter(id__in=params["project_id"]).values("id", "slug")
         }
 
+    def to_list(value):
+        if isinstance(value, list):
+            return value
+        return [value]
+
     for term in parsed_terms:
         if isinstance(term, SearchFilter):
             name = term.key.name
@@ -647,10 +652,7 @@ def get_filter(query=None, params=None):
                 condition = ["project_id", "=", projects.get(term.value.value)]
                 kwargs["conditions"].append(condition)
             elif name == "issue.id":
-                value = term.value.value
-                if isinstance(value, int):
-                    value = [value]
-                kwargs["group_ids"].extend(value)
+                kwargs["group_ids"].extend(to_list(term.value.value))
             else:
                 converted_filter = convert_search_filter_to_snuba_query(term)
                 if converted_filter:
@@ -669,10 +671,10 @@ def get_filter(query=None, params=None):
             term = SearchFilter(SearchKey("environment"), "=", SearchValue(params["environment"]))
             kwargs["conditions"].append(convert_search_filter_to_snuba_query(term))
         if "group_ids" in params:
-            value = params["group_ids"]
-            if isinstance(value, int):
-                value = [value]
-            kwargs["group_ids"] = value
+            kwargs["group_ids"] = to_list(params["group_ids"])
+        # Deprecated alias, use `group_ids` instead
+        if "issue.id" in params:
+            kwargs["group_ids"] = to_list(params["issue.id"])
 
     return eventstore.Filter(**kwargs)
 
