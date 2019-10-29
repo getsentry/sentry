@@ -432,8 +432,8 @@ describe('EventView.getEventsAPIPayload()', function() {
         environment: ['staging'],
         start: 'start',
         end: 'end',
-        utc: 'utc',
-        statsPeriod: 'statsPeriod',
+        utc: 'true',
+        statsPeriod: '14d',
         cursor: 'some cursor',
 
         // non-relevant query strings
@@ -446,8 +446,8 @@ describe('EventView.getEventsAPIPayload()', function() {
       environment: ['staging'],
       start: 'start',
       end: 'end',
-      utc: 'utc',
-      statsPeriod: 'statsPeriod',
+      utc: 'true',
+      statsPeriod: '14d',
 
       field: ['title', 'count()'],
       per_page: 50,
@@ -473,8 +473,8 @@ describe('EventView.getTagsAPIPayload()', function() {
         environment: ['staging'],
         start: 'start',
         end: 'end',
-        utc: 'utc',
-        statsPeriod: 'statsPeriod',
+        utc: 'true',
+        statsPeriod: '14d',
 
         // non-relevant query strings
         bestCountry: 'canada',
@@ -488,8 +488,8 @@ describe('EventView.getTagsAPIPayload()', function() {
       environment: ['staging'],
       start: 'start',
       end: 'end',
-      utc: 'utc',
-      statsPeriod: 'statsPeriod',
+      utc: 'true',
+      statsPeriod: '14d',
 
       field: ['title', 'count()'],
       per_page: 50,
