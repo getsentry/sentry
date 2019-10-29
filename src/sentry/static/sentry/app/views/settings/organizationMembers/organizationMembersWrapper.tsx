@@ -5,6 +5,7 @@ import {openInviteMembersModal} from 'app/actionCreators/modal';
 import {OrganizationDetailed} from 'app/types';
 import {Panel} from 'app/components/panels';
 import {t} from 'app/locale';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import AsyncView from 'app/views/asyncView';
 import Badge from 'app/components/badge';
 import Button from 'app/components/button';
@@ -22,6 +23,19 @@ type Props = AsyncView['props'] & {
 };
 
 class OrganizationMembersWrapper extends AsyncView<Props> {
+  componentDidMount() {
+    const {organization} = this.props;
+
+    // record when requests tab is viewed on members page
+    if (this.showInviteRequests && !this.onRequestsTab) {
+      trackAnalyticsEvent({
+        eventKey: 'invite_request.tab_viewed',
+        eventName: 'Invite Request Tab Viewed',
+        organization_id: organization.id,
+      });
+    }
+  }
+
   getEndpoints(): [string, string][] {
     const {orgId} = this.props.params;
 
@@ -48,6 +62,10 @@ class OrganizationMembersWrapper extends AsyncView<Props> {
     );
   }
 
+  get onRequestsTab() {
+    return location.pathname.includes('/requests/');
+  }
+
   get hasWriteAccess() {
     const {organization} = this.props;
     if (!organization || !organization.access) {
@@ -66,7 +84,7 @@ class OrganizationMembersWrapper extends AsyncView<Props> {
     // show the requests tab if there are pending team requests,
     // or if the organization is exposed to the experiment and
     // the user has access to approve or deny requests
-    return requestList.length > 0 || this.showInviteRequests;
+    return (requestList && requestList.length > 0) || this.showInviteRequests;
   }
 
   get requestCount() {
@@ -96,6 +114,7 @@ class OrganizationMembersWrapper extends AsyncView<Props> {
   renderBody() {
     const {
       children,
+      organization,
       params: {orgId},
     } = this.props;
     const {requestList, inviteRequests} = this.state;
@@ -131,15 +150,23 @@ class OrganizationMembersWrapper extends AsyncView<Props> {
           <NavTabs underlined>
             <ListLink
               to={`/settings/${orgId}/members/`}
-              isActive={() => !location.pathname.includes('/requests/')}
+              isActive={() => !this.onRequestsTab}
               data-test-id="members-tab"
             >
               {t('Members')}
             </ListLink>
             <ListLink
               to={`/settings/${orgId}/members/requests/`}
-              isActive={() => location.pathname.includes('/requests/')}
+              isActive={() => this.onRequestsTab}
               data-test-id="requests-tab"
+              onClick={() => {
+                this.showInviteRequests &&
+                  trackAnalyticsEvent({
+                    eventKey: 'invite_request.tab_clicked',
+                    eventName: 'Invite Request Tab Clicked',
+                    organization_id: organization.id,
+                  });
+              }}
             >
               {t('Requests')}
             </ListLink>

@@ -6,6 +6,7 @@ import {AccessRequest, Member, Organization} from 'app/types';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tct} from 'app/locale';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
@@ -51,6 +52,16 @@ class OrganizationRequestsView extends React.Component<Props, State> {
     this.handleRedirect();
   }
 
+  componentDidMount() {
+    const {organization, showInviteRequests} = this.props;
+    showInviteRequests &&
+      trackAnalyticsEvent({
+        eventKey: 'invite_request.page_viewed',
+        eventName: 'Invite Request Page Viewed',
+        organization_id: organization.id,
+      });
+  }
+
   componentDidUpdate() {
     this.handleRedirect();
   }
@@ -67,47 +78,75 @@ class OrganizationRequestsView extends React.Component<Props, State> {
     return router.push(`/settings/${params.orgId}/members/`);
   }
 
-  handleAction = async ({id, method, data, successMessage, errorMessage}) => {
-    const {api, params, onUpdateInviteRequests} = this.props;
+  handleAction = async ({
+    inviteRequest,
+    method,
+    data,
+    successMessage,
+    errorMessage,
+    eventKey,
+    eventName,
+  }) => {
+    const {api, params, organization, onUpdateInviteRequests} = this.props;
 
     this.setState(state => ({
-      inviteRequestBusy: {...state.inviteRequestBusy, [id]: true},
+      inviteRequestBusy: {...state.inviteRequestBusy, [inviteRequest.id]: true},
     }));
 
     try {
-      await api.requestPromise(`/organizations/${params.orgId}/invite-requests/${id}/`, {
-        method,
-        data,
-      });
-      onUpdateInviteRequests(id);
+      await api.requestPromise(
+        `/organizations/${params.orgId}/invite-requests/${inviteRequest.id}/`,
+        {
+          method,
+          data,
+        }
+      );
+
+      onUpdateInviteRequests(inviteRequest.id);
       addSuccessMessage(successMessage);
+      trackAnalyticsEvent({
+        eventKey,
+        eventName,
+        organization_id: organization.id,
+        invite_status: inviteRequest.inviteStatus,
+      });
     } catch (err) {
       addErrorMessage(errorMessage);
       throw err;
     }
 
     this.setState(state => ({
-      inviteRequestBusy: {...state.inviteRequestBusy, [id]: false},
+      inviteRequestBusy: {...state.inviteRequestBusy, [inviteRequest.id]: false},
     }));
   };
 
-  handleApprove = (id: string, email: string) =>
+  handleApprove = (inviteRequest: Member) => {
     this.handleAction({
-      id,
+      inviteRequest,
       method: 'PUT',
       data: {approve: 1},
-      successMessage: tct('[email] has been invited', {email}),
-      errorMessage: tct('Error inviting [email]', {email}),
+      successMessage: tct('[email] has been invited', {email: inviteRequest.email}),
+      errorMessage: tct('Error inviting [email]', {email: inviteRequest.email}),
+      eventKey: 'invite_request.approved',
+      eventName: 'Invite Request Approved',
     });
+  };
 
-  handleDeny = (id: string, email: string) =>
+  handleDeny = (inviteRequest: Member) => {
     this.handleAction({
-      id,
+      inviteRequest,
       method: 'DELETE',
       data: {},
-      successMessage: tct('Invite request for [email] denied', {email}),
-      errorMessage: tct('Error denying invite request for [email]', {email}),
+      successMessage: tct('Invite request for [email] denied', {
+        email: inviteRequest.email,
+      }),
+      errorMessage: tct('Error denying invite request for [email]', {
+        email: inviteRequest.email,
+      }),
+      eventKey: 'invite_request.denied',
+      eventName: 'Invite Request Denied',
     });
+  };
 
   render() {
     const {
