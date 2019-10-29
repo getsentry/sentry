@@ -21,9 +21,9 @@ import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 import withTeams from 'app/utils/withTeams';
 
-import getProjectsByTeams from './getProjectsByTeams';
 import Resources from './resources';
 import TeamSection from './teamSection';
+import getProjectsByTeams from './getProjectsByTeams';
 
 class Dashboard extends React.Component {
   static propTypes = {
