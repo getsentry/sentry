@@ -848,8 +848,6 @@ class EventView {
 
     // normalize datetime selection
 
-    // picked = omit(picked, ['start', 'end', 'period', 'statsPeriod', 'utc']);
-
     const normalizedTimeWindowParams = getParams({
       start: this.start,
       end: this.end,
