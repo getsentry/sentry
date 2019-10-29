@@ -8,14 +8,15 @@ import {
   fetchIncidentActivities,
   updateIncidentNote,
 } from 'app/actionCreators/incident';
+import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex';
 import {t} from 'app/locale';
 import {uniqueId} from 'app/utils/guid';
 import ConfigStore from 'app/stores/configStore';
 import withApi from 'app/utils/withApi';
 
-import Activity from './activity';
-import {IncidentActivityType, IncidentStatus} from '../../utils';
 import {ActivityType, ActivityTypeDraft, NoteType} from '../../types';
+import {IncidentActivityType, IncidentStatus} from '../../utils';
+import Activity from './activity';
 
 function makeDefaultErrorJson() {
   return {detail: t('Unknown error. Please try again.')};
@@ -221,11 +222,5 @@ export default withApi(ActivityContainer);
 function removeFromArrayIndex<T>(array: T[], index: number): T[] {
   const newArray = [...array];
   newArray.splice(index, 1);
-  return newArray;
-}
-
-function replaceAtArrayIndex<T>(array: T[], index: number, obj: T): T[] {
-  const newArray = [...array];
-  newArray.splice(index, 1, obj);
   return newArray;
 }
