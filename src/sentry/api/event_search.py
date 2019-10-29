@@ -528,10 +528,6 @@ def convert_search_boolean_to_snuba_query(search_boolean):
     return [operator, [left, right]]
 
 
-def convert_endpoint_params(params):
-    return [SearchFilter(SearchKey(key), "=", SearchValue(params[key])) for key in params]
-
-
 def convert_search_filter_to_snuba_query(search_filter):
     name = search_filter.key.name
     value = search_filter.value.value
