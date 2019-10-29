@@ -1,3 +1,5 @@
+import FormModel from 'app/views/settings/components/forms/model';
+
 import {debounce} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -19,6 +21,7 @@ import {
   AlertRuleThreshold,
   AlertRuleThresholdType,
   IncidentRule,
+  UnsavedTrigger,
   Trigger,
   Action,
   TargetType,
@@ -272,6 +275,7 @@ type TriggerFormContainerProps = {
   orgId: string;
   organization: Organization;
   projects: Project[];
+  onSave: (trigger: UnsavedTrigger) => void;
 } & React.ComponentProps<typeof TriggerForm> & {
     onSubmitSuccess?: Form['props']['onSubmitSuccess'];
   };
@@ -338,6 +342,14 @@ class TriggerFormContainer extends AsyncComponent<
     });
   };
 
+  handleSubmit = (data, _onSuccess, _onError, _e, model: FormModel) => {
+    if (!model.validateForm()) {
+      return;
+    }
+
+    this.props.onSave(data as Trigger);
+  };
+
   renderLoading() {
     return this.renderBody();
   }
@@ -364,7 +376,7 @@ class TriggerFormContainer extends AsyncComponent<
           ...trigger,
         }}
         saveOnBlur={false}
-        onSubmitSuccess={onSubmitSuccess}
+        onSubmit={this.handleSubmit}
         submitLabel={trigger ? t('Update Trigger') : t('Create Trigger')}
       >
         <TriggerForm

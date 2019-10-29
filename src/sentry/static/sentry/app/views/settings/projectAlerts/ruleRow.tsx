@@ -7,6 +7,7 @@ import styled from 'react-emotion';
 import {Client} from 'app/api';
 import {IssueAlertRule} from 'app/types/alerts';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {RouterProps} from 'app/types';
 import {
   addSuccessMessage,
   addErrorMessage,
