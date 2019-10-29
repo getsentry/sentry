@@ -216,7 +216,7 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                   title="Foo Bar"
                                   tooltip="Foo Bar (example@sentry.io)"
                                   type="letter_avatar"
-                                  uploadId={null}
+                                  uploadId=""
                                   uploadPath="avatar"
                                 >
                                   <Tooltip
@@ -590,7 +590,7 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                   title="Foo Bar"
                                   tooltip="Foo Bar (example@sentry.io)"
                                   type="letter_avatar"
-                                  uploadId={null}
+                                  uploadId=""
                                   uploadPath="avatar"
                                 >
                                   <Tooltip

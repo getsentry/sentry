@@ -2564,6 +2564,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                               title="Jane Doe"
                                               tooltip="Jane Doe (janedoe@example.com)"
                                               type="letter_avatar"
+                                              uploadId=""
                                               uploadPath="avatar"
                                             >
                                               <Tooltip

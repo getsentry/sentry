@@ -753,6 +753,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                                     title="Foo Bar"
                                     tooltip="Foo Bar (foo@example.com)"
                                     type="letter_avatar"
+                                    uploadId=""
                                     uploadPath="avatar"
                                   >
                                     <Tooltip
@@ -3540,6 +3541,7 @@ exports[`Sidebar renders without org and router 1`] = `
                                     title="Foo Bar"
                                     tooltip="Foo Bar (foo@example.com)"
                                     type="letter_avatar"
+                                    uploadId=""
                                     uploadPath="avatar"
                                   >
                                     <Tooltip
