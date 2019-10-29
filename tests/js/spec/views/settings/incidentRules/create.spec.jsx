@@ -5,6 +5,14 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import IncidentRulesCreate from 'app/views/settings/incidentRules/create';
 
 describe('Incident Rules Create', function() {
+  beforeEach(function() {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
+      body: [],
+    });
+  });
+
   it('renders', function() {
     const {organization, routerContext} = initializeOrg();
     mountWithTheme(
