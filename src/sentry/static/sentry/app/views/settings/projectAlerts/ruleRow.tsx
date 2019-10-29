@@ -29,11 +29,17 @@ type Props = {
   orgId: string;
   projectId: string;
   data: IssueAlertRule;
+
+  // Callback when deleting a rule
   onDelete: () => void;
+
+  // Is the alert rule editable?
+  canEdit?: boolean;
+
+  // react-router params
   params: Params;
   location: Location;
   routes: PlainRoute[];
-  canEdit?: boolean;
 };
 
 type State = {
