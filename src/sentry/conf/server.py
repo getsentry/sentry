@@ -1064,10 +1064,7 @@ SENTRY_TSDB_OPTIONS = {}
 SENTRY_NEWSLETTER = "sentry.newsletter.base.Newsletter"
 SENTRY_NEWSLETTER_OPTIONS = {}
 
-# CHANGED FOR USING KAFKA / CDC!!!
-# SENTRY_EVENTSTREAM = "sentry.eventstream.snuba.SnubaEventStream"
-SENTRY_EVENTSTREAM = "sentry.eventstream.kafka.KafkaEventStream"
-
+SENTRY_EVENTSTREAM = "sentry.eventstream.snuba.SnubaEventStream"
 SENTRY_EVENTSTREAM_OPTIONS = {}
 
 # rollups must be ordered from highest granularity to lowest
@@ -1331,7 +1328,7 @@ SENTRY_DEVSERVICES = {
         "volumes": {"redis": {"bind": "/data"}},
     },
     "postgres": {
-        "image": "cdc_sentry_postgres:latest",
+        "image": "postgres:9.6-alpine",
         "ports": {"5432/tcp": 5432},
         "environment": {"POSTGRES_DB": "sentry"},
         "volumes": {"postgres": {"bind": "/var/lib/postgresql/data"}},

@@ -19,9 +19,8 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializerSnuba
 from sentry.api.utils import get_date_range_from_params, InvalidParams
 from sentry.models import Group, GroupStatus
-
-
 from sentry.utils.validators import normalize_event_id
+
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
 
@@ -38,7 +37,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             query_kwargs.update(extra_query_kwargs)
 
         query_kwargs["environments"] = environments if environments else None
-
         result = search.query(**query_kwargs)
         return result, query_kwargs
 

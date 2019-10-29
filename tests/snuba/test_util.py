@@ -44,7 +44,6 @@ class SnubaUtilTest(TestCase, SnubaTestCase):
         # with pytest.raises(snuba.QueryOutsideGroupActivityError):
         #    # query a group for a time range before it had any activity
         #    snuba.raw_query(
-        #        dataset=snuba.Dataset.Events,
         #        start=group1.first_seen - timedelta(days=1, hours=1),
         #        end=group1.first_seen - timedelta(days=1),
         #        filter_keys={

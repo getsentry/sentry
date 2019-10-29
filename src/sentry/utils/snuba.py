@@ -16,7 +16,16 @@ import urllib3
 from concurrent.futures import ThreadPoolExecutor
 from django.conf import settings
 
-from sentry.models import Environment, Group, GroupRelease, Project, Release, ReleaseProject
+from sentry import quotas
+from sentry.models import (
+    Environment,
+    Group,
+    GroupRelease,
+    Organization,
+    Project,
+    Release,
+    ReleaseProject,
+)
 from sentry.net.http import connection_from_url
 from sentry.utils import metrics, json
 from sentry.utils.dates import to_timestamp
@@ -630,6 +639,9 @@ def _prepare_query_params(query_params):
             else:
                 query_params.conditions.append((col, "IN", keys))
 
+    retention = quotas.get_event_retention(organization=Organization(organization_id))
+    if retention:
+        start = max(start, datetime.utcnow() - timedelta(days=retention))
         if start > end:
             raise QueryOutsideRetentionError
 
@@ -637,7 +649,7 @@ def _prepare_query_params(query_params):
     # a Group for T1 to T2 when the group was only active for T3 to T4, so the query
     # wouldn't return any results anyway
     new_start = shrink_time_window(query_params.filter_keys.get("issue"), start)
-
+    # TODO (alexh) this is a quick emergency fix for an occasion where a search
     # results in only 1 django candidate, which is then passed to snuba to
     # check and we raised because of it. Remove this once we figure out why the
     # candidate was returned from django at all if it existed only outside the

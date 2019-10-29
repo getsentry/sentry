@@ -102,7 +102,6 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
 
         self.__produce_event(*insert_args, **insert_kwargs)
         result = snuba.raw_query(
-            dataset=snuba.Dataset.Events,
             start=now - timedelta(days=1),
             end=now + timedelta(days=1),
             selected_columns=["event_id", "group_id"],
