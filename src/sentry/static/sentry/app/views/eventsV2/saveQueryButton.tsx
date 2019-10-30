@@ -77,7 +77,7 @@ class EventsSaveQueryButton extends React.Component<Props, State> {
   render() {
     const newQueryLabel = this.props.isEditingExistingQuery
       ? t('Save as...')
-      : t('Save Query');
+      : t('Save query');
 
     return (
       <DropdownControl
