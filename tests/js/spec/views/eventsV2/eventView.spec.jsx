@@ -57,6 +57,28 @@ describe('EventView.fromLocation()', function() {
       environment: ['staging'],
     });
   });
+
+  it('generates event view when there are no query strings', function() {
+    const location = {
+      query: {},
+    };
+
+    const eventView = EventView.fromLocation(location);
+
+    expect(eventView).toMatchObject({
+      id: void 0,
+      name: void 0,
+      fields: [],
+      sorts: [],
+      tags: [],
+      query: '',
+      project: [],
+      start: void 0,
+      end: void 0,
+      statsPeriod: void 0,
+      environment: [],
+    });
+  });
 });
 
 describe('EventView.fromSavedQuery()', function() {
