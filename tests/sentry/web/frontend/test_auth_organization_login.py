@@ -25,7 +25,8 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
     def path(self):
         return reverse("sentry-auth-organization", args=[self.organization.slug])
 
-    def test_renders_basic(self):
+    @patch("sentry.analytics.record")
+    def test_renders_basic(self, mock_record):
         self.login_as(self.user)
         resp = self.client.get(self.path)
 
@@ -37,14 +38,21 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert "provider_key" not in resp.context
         assert resp.context["join_request_link"] is None
 
+        assert not any(c[0][0] == "join_request.link_viewed" for c in mock_record.call_args_list)
+
+    @patch("sentry.analytics.record")
     @patch("sentry.experiments.get", return_value=1)
-    def test_get_request_join_link_with_experiment(self, mock_experiment):
+    def test_get_request_join_link_with_experiment(self, mock_experiment, mock_record):
         self.login_as(self.user)
         resp = self.client.get(self.path)
 
         assert resp.status_code == 200
         assert resp.context["join_request_link"] == reverse(
             "sentry-join-request", args=[self.organization.slug]
+        )
+
+        mock_record.assert_called_with(
+            "join_request.link_viewed", organization_id=self.organization.id
         )
 
     @patch("sentry.experiments.get", return_value=1)

@@ -105,3 +105,7 @@ integration_issue_linked = BetterSignal(providing_args=["integration", "organiza
 issue_deleted = BetterSignal(providing_args=["group", "user", "delete_type"])
 
 monitor_failed = BetterSignal(providing_args=["monitor"])
+
+# experiments
+join_request_created = BetterSignal(providing_args=["member"])
+join_request_link_viewed = BetterSignal(providing_args=["organization"])

@@ -15,6 +15,7 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
 from sentry.models import AuthProvider, Organization, OrganizationStatus
+from sentry.signals import join_request_link_viewed
 from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
 from sentry.web.frontend.base import BaseView
 from sentry.utils import auth, metrics
@@ -90,6 +91,8 @@ class AuthLoginView(BaseView):
 
         if organization.get_option("sentry:join_requests") is False:
             return None
+
+        join_request_link_viewed.send_robust(sender=self, organization=organization)
 
         return reverse("sentry-join-request", args=[organization.slug])
 
