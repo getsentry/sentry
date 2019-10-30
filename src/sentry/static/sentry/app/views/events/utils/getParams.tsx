@@ -26,6 +26,26 @@ const getStatsPeriodValue = (
   return undefined;
 };
 
+// We normalize potential datetime strings into the form that would be valid
+// if it were to be parsed by datetime.strptime using the format %Y-%m-%dT%H:%M:%S.%f
+// This format was transformed to the form that moment.js understands using
+// https://gist.github.com/asafge/0b13c5066d06ae9a4446
+const normalizeDateTimeString = (
+  input: string | undefined | null
+): string | undefined => {
+  if (!input) {
+    return undefined;
+  }
+
+  const parsed = moment.utc(input);
+
+  if (!parsed.isValid()) {
+    return undefined;
+  }
+
+  return parsed.format('YYYY-MM-DDTHH:mm:ss.SSS');
+};
+
 const getDateTimeString = (
   maybe: string | string[] | undefined | null
 ): string | undefined => {
@@ -34,16 +54,14 @@ const getDateTimeString = (
       return undefined;
     }
 
-    return maybe.find(needle => {
+    const result = maybe.find(needle => {
       return moment.utc(needle).isValid();
     });
+
+    return normalizeDateTimeString(result);
   }
 
-  if (typeof maybe === 'string' && moment.utc(maybe).isValid()) {
-    return maybe;
-  }
-
-  return undefined;
+  return normalizeDateTimeString(maybe);
 };
 
 const parseUtcValue = (utc: any) => {
