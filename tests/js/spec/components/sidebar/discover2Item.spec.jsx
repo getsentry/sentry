@@ -1,6 +1,5 @@
 import React from 'react';
 import {mountWithTheme} from 'sentry-test/enzyme';
-import {browserHistory} from 'react-router';
 
 import {Client} from 'app/api';
 import Discover2Item from 'app/components/sidebar/discover2Item';
