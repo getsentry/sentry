@@ -68,6 +68,7 @@ export type AnalyticsHooks = {
   'analytics:init-user': AnalyticsInitUser;
   'analytics:track-event': AnalyticsTrackEvent;
   'analytics:track-adhoc-event': AnalyticsTrackAdhocEvent;
+  'analytics:log-experiment': AnalyticsLogExperiment;
   'metrics:event': MetricsEvent;
 
   // TODO(epurkhiser): This is deprecated and should be replaced
@@ -190,6 +191,32 @@ type AnalyticsTrackEvent = (opts: {
 type AnalyticsTrackAdhocEvent = (
   opts: Omit<Parameters<AnalyticsTrackEvent>[0], 'eventName'>
 ) => void;
+
+/**
+ * Trigger experiment observed logging.
+ */
+type AnalyticsLogExperiment = (opts: {
+  /**
+   * The organiation with the experiment
+   */
+  organization: Organization;
+  /**
+   * The experiment key
+   */
+  key: string;
+  /**
+   * The name of the exposed unit
+   */
+  unitName: string;
+  /**
+   * The value of the unit to group by
+   */
+  unitId: string | number;
+  /**
+   * The parameter name used for the exposed key
+   */
+  param: string;
+}) => void;
 
 /**
  * Trigger analytics tracking in the hook store.
