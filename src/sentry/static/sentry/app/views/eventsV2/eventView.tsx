@@ -456,11 +456,7 @@ class EventView {
         const currentDateTime = moment.utc(currentValue);
         const othereDateTime = moment.utc(otherValue);
 
-        if (
-          currentDateTime.isValid() &&
-          othereDateTime.isValid() &&
-          !currentDateTime.isSame(othereDateTime)
-        ) {
+        if (!currentDateTime.isSame(othereDateTime)) {
           return false;
         }
       }

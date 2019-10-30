@@ -201,6 +201,41 @@ describe('EventView.fromSavedQuery()', function() {
 
     expect(eventView.isEqualTo(eventView2)).toBe(true);
   });
+
+  it('saved queries are not equal when datetime selection are invalid', function() {
+    const saved = {
+      orderby: '-count_timestamp',
+      end: '2019-10-23T19:27:04+0000',
+      name: 'release query',
+      fields: ['release', 'count(timestamp)'],
+      fieldnames: ['release', 'counts'],
+      dateCreated: '2019-10-30T05:10:23.718937Z',
+      environment: ['dev', 'production'],
+      start: '2019-10-20T21:02:51+0000',
+      version: 2,
+      createdBy: '1',
+      dateUpdated: '2019-10-30T07:25:58.291917Z',
+      id: '3',
+      projects: [1],
+    };
+
+    const eventView = EventView.fromSavedQuery(saved);
+
+    const eventView2 = EventView.fromSavedQuery({
+      ...saved,
+      start: 'invalid',
+    });
+
+    expect(eventView.isEqualTo(eventView2)).toBe(false);
+
+    const eventView3 = EventView.fromSavedQuery({
+      ...saved,
+      end: 'invalid',
+    });
+
+    expect(eventView.isEqualTo(eventView3)).toBe(false);
+    expect(eventView2.isEqualTo(eventView3)).toBe(false);
+  });
 });
 
 describe('EventView.generateQueryStringObject()', function() {
