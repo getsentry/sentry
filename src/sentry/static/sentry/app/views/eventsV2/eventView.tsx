@@ -422,7 +422,7 @@ class EventView {
   }
 
   isEqualTo(other: EventView): boolean {
-    const fluidKeys = [
+    const keys = [
       'id',
       'name',
       'query',
@@ -436,7 +436,7 @@ class EventView {
       'environment',
     ];
 
-    for (const key of fluidKeys) {
+    for (const key of keys) {
       const currentValue = this[key];
       const otherValue = other[key];
 
