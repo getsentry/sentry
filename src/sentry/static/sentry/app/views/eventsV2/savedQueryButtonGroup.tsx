@@ -38,13 +38,15 @@ class SavedQueryButtonGroup extends React.Component<Props> {
   };
 
   deleteQuery = (event: React.MouseEvent<Element>) => {
+    event.preventDefault();
+    event.stopPropagation();
+
     if (!this.isEditingExistingQuery()) {
       return;
     }
 
     const {organization, api, eventView} = this.props;
-    event.preventDefault();
-    event.stopPropagation();
+
     deleteSavedQuery(api, organization.slug, eventView.id!).then(() => {
       addSuccessMessage(t('Query deleted'));
 
