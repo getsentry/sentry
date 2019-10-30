@@ -421,6 +421,33 @@ class EventView {
     });
   }
 
+  isEqualTo(other: EventView): boolean {
+    const fluidKeys = [
+      'id',
+      'name',
+      'query',
+      'start',
+      'end',
+      'statsPeriod',
+      'fields',
+      'sorts',
+      'tags',
+      'project',
+      'environment',
+    ];
+
+    for (const key of fluidKeys) {
+      const currentValue = this[key];
+      const otherValue = other[key];
+
+      if (!isEqual(currentValue, otherValue)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   toNewQuery(): NewQuery {
     const orderby = this.sorts.length > 0 ? encodeSorts(this.sorts)[0] : undefined;
 

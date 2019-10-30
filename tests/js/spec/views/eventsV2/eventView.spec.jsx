@@ -608,6 +608,7 @@ describe('EventView.clone()', function() {
 
     expect(eventView).toMatchObject(state);
     expect(eventView2).toMatchObject(state);
+    expect(eventView.isEqualTo(eventView2)).toBe(true);
   });
 });
 
@@ -1259,6 +1260,144 @@ describe('EventView.sortOnField()', function() {
     };
 
     expect(eventView2).toMatchObject(nextState);
+  });
+});
+
+describe('EventView.isEqualTo()', function() {
+  it('should be true when equal', function() {
+    const state = {
+      id: '1234',
+      name: 'best query',
+      fields: [
+        {field: 'count()', title: 'events'},
+        {field: 'project.id', title: 'project'},
+      ],
+      sorts: generateSorts(['count']),
+      tags: ['foo', 'bar'],
+      query: 'event.type:error',
+      project: [42],
+      start: '2019-10-01T00:00:00',
+      end: '2019-10-02T00:00:00',
+      statsPeriod: '14d',
+      environment: ['staging'],
+    };
+
+    const eventView = new EventView(state);
+    const eventView2 = new EventView(state);
+
+    expect(eventView2 !== eventView).toBeTruthy();
+
+    expect(eventView).toMatchObject(state);
+    expect(eventView2).toMatchObject(state);
+    expect(eventView.isEqualTo(eventView2)).toBe(true);
+  });
+
+  it.only('should be false when not equal', function() {
+    const state = {
+      id: '1234',
+      name: 'best query',
+      fields: [
+        {field: 'count()', title: 'events'},
+        {field: 'project.id', title: 'project'},
+      ],
+      sorts: generateSorts(['count']),
+      tags: ['foo', 'bar'],
+      query: 'event.type:error',
+      project: [42],
+      start: '2019-10-01T00:00:00',
+      end: '2019-10-02T00:00:00',
+      statsPeriod: '14d',
+      environment: ['staging'],
+    };
+
+    const eventView = new EventView(state);
+
+    // id differs
+
+    let eventView2 = new EventView({...state, id: '12'});
+    expect(eventView.isEqualTo(eventView2)).toBe(false);
+
+    // name differs
+
+    eventView2 = new EventView({...state, name: 'new query'});
+    expect(eventView.isEqualTo(eventView2)).toBe(false);
+
+    // field differs
+
+    eventView2 = new EventView({
+      ...state,
+      fields: [
+        // swapped columns
+        {field: 'project.id', title: 'project'},
+        {field: 'count()', title: 'events'},
+      ],
+    });
+    expect(eventView.isEqualTo(eventView2)).toBe(false);
+
+    // sort differs
+
+    eventView2 = new EventView({
+      ...state,
+      sorts: [
+        {
+          field: 'count',
+          kind: 'asc',
+        },
+      ],
+    });
+    expect(eventView.isEqualTo(eventView2)).toBe(false);
+
+    // tags differs
+
+    eventView2 = new EventView({
+      ...state,
+      tags: ['foo', 'baz'],
+    });
+    expect(eventView.isEqualTo(eventView2)).toBe(false);
+
+    // query differs
+
+    eventView2 = new EventView({
+      ...state,
+      query: 'event.type:transaction',
+    });
+    expect(eventView.isEqualTo(eventView2)).toBe(false);
+
+    // project differs
+
+    eventView2 = new EventView({
+      ...state,
+      project: [24],
+    });
+    expect(eventView.isEqualTo(eventView2)).toBe(false);
+
+    // date time differs
+
+    eventView2 = new EventView({
+      ...state,
+      start: '2019-09-01T00:00:00',
+    });
+    expect(eventView.isEqualTo(eventView2)).toBe(false);
+
+    eventView2 = new EventView({
+      ...state,
+      end: '2020-09-01T00:00:00',
+    });
+    expect(eventView.isEqualTo(eventView2)).toBe(false);
+
+    eventView2 = new EventView({
+      ...state,
+      statsPeriod: '24d',
+    });
+    expect(eventView.isEqualTo(eventView2)).toBe(false);
+
+    // environment differs
+
+    eventView2 = new EventView({
+      ...state,
+      environment: [],
+    });
+    expect(eventView.isEqualTo(eventView2)).toBe(false);
   });
 });
 
