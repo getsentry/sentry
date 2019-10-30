@@ -48,14 +48,36 @@ class Discover2Item extends React.Component<Props, State> {
     this.menuId = domId('discover-menu');
   }
 
+  componentWillUnmount() {
+    this.timerHandleLeaveClear();
+  }
+
   private menuId: string = '';
+  private timerHandleLeave?: ReturnType<typeof setTimeout>;
+  private timerHandleLeaveClear = () => {
+    if (this.timerHandleLeave) {
+      clearTimeout(this.timerHandleLeave);
+      this.timerHandleLeave = undefined;
+    }
+  };
 
   handleEnter = () => {
+    this.timerHandleLeaveClear();
     this.setState({isOpen: true});
   };
 
   handleLeave = () => {
-    this.setState({isOpen: false});
+    // HACK(leedongwei)
+    // See https://bjk5.com/post/44698559168/breaking-down-amazons-mega-dropdown
+    //
+    // @doralchan confirmed that the slideout menu will eventually be removed.
+    // This is stop-gap solution to make the slideout better till a new design
+    // can be implemented
+    this.timerHandleLeaveClear();
+    this.timerHandleLeave = setTimeout(() => {
+      this.setState({isOpen: false});
+      this.timerHandleLeave = undefined;
+    }, 400); // 300ms feels too fast, 500ms feels too slow.
   };
 
   handleSelect = (item: SavedQuery) => {
