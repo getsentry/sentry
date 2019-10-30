@@ -130,12 +130,12 @@ class OrganizationDetailsBody extends Component {
     detailed: PropTypes.bool,
   };
 
-  static defaultProps = {
-    detailed: true,
-  };
-
   static contextTypes = {
     organization: SentryTypes.Organization,
+  };
+
+  static defaultProps = {
+    detailed: true,
   };
 
   render() {
