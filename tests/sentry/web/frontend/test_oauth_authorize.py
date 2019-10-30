@@ -246,7 +246,8 @@ class OAuthAuthorizeCodeTest(TestCase):
         assert grant.application == self.application
         assert not grant.get_scopes()
 
-        self.assertRedirects(resp, u"https://example.com?code={}".format(grant.code))
+        assert resp.status_code == 302
+        assert resp["Location"] == u"https://example.com?code={}".format(grant.code)
 
         authorization = ApiAuthorization.objects.get(user=self.user, application=self.application)
         assert authorization.get_scopes() == grant.get_scopes()
