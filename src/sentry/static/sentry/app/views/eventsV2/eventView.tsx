@@ -337,14 +337,6 @@ class EventView {
 
     const id = props.id !== null && props.id !== void 0 ? String(props.id) : void 0;
 
-    // normalize datetime selection
-
-    const {start, end, statsPeriod} = getParams({
-      start: props.start,
-      end: props.end,
-      statsPeriod: props.statsPeriod,
-    });
-
     this.id = id;
     this.name = props.name;
     this.fields = props.fields;
@@ -352,9 +344,9 @@ class EventView {
     this.tags = props.tags;
     this.query = typeof props.query === 'string' ? props.query : '';
     this.project = props.project;
-    this.start = decodeScalar(start);
-    this.end = decodeScalar(end);
-    this.statsPeriod = decodeScalar(statsPeriod);
+    this.start = props.start;
+    this.end = props.end;
+    this.statsPeriod = props.statsPeriod;
     this.environment = props.environment;
   }
 
@@ -413,14 +405,23 @@ class EventView {
       });
     }
 
+    // normalize datetime selection
+
+    const {start, end, statsPeriod} = getParams({
+      start: saved.start,
+      end: saved.end,
+      statsPeriod: saved.range,
+    });
+
     return new EventView({
       fields,
       id: saved.id,
       name: saved.name,
       query: queryStringFromSavedQuery(saved),
       project: saved.projects,
-      start: saved.start,
-      end: saved.end,
+      start: decodeScalar(start),
+      end: decodeScalar(end),
+      statsPeriod: decodeScalar(statsPeriod),
       sorts: fromSorts(saved.orderby),
       tags: collectQueryStringByKey(
         {
@@ -428,7 +429,6 @@ class EventView {
         },
         'tags'
       ),
-      statsPeriod: saved.range,
       environment: collectQueryStringByKey(
         {
           environment: (saved as SavedQuery).environment as string[],
