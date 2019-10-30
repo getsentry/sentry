@@ -16,7 +16,6 @@ import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import {SavedQuery} from 'app/stores/discoverSavedQueriesStore';
-import withDiscoverSavedQueries from 'app/utils/withDiscoverSavedQueries';
 
 import EventView from './eventView';
 
@@ -138,4 +137,4 @@ const StyledDropdownButton = styled(DropdownButton)`
   white-space: nowrap;
 `;
 
-export default withApi(withDiscoverSavedQueries(EventsSaveQueryButton));
+export default withApi(EventsSaveQueryButton);
