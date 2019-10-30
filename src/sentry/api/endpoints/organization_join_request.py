@@ -12,6 +12,8 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.validators import AllowedEmailField
 from sentry.app import ratelimiter
 from sentry.models import AuthProvider, InviteStatus, OrganizationMember
+from sentry.signals import join_request_created
+
 
 JOIN_REQUEST_EXPERIMENT = "JoinRequestExperiment"
 
@@ -88,5 +90,6 @@ class OrganizationJoinRequestEndpoint(OrganizationEndpoint):
 
         if member:
             member.send_request_notification_email()
+            join_request_created.send_robust(sender=self, member=member)
 
         return Response(status=204)
