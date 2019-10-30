@@ -34,12 +34,9 @@ class AlertRuleTriggerActionDetailsBase(object):
             self.organization,
             [self.project],
             "hello",
-            AlertRuleThresholdType.ABOVE,
             "level:error",
             QueryAggregations.TOTAL,
             10,
-            1000,
-            400,
             1,
         )
 
