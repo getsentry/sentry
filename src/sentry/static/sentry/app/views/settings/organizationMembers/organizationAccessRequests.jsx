@@ -46,9 +46,8 @@ class OrganizationAccessRequests extends React.Component {
       });
       onUpdateRequestList(id);
       addSuccessMessage(successMessage);
-    } catch (err) {
+    } catch {
       addErrorMessage(errorMessage);
-      throw err;
     }
 
     this.setState(state => ({
