@@ -1408,6 +1408,9 @@ describe('EventView.isEqualTo()', function() {
     expect(eventView).toMatchObject(state);
     expect(eventView2).toMatchObject(state);
     expect(eventView.isEqualTo(eventView2)).toBe(true);
+
+    // commutativity property holds
+    expect(eventView2.isEqualTo(eventView)).toBe(true);
   });
 
   it('should be false when not equal', function() {
