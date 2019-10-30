@@ -386,7 +386,7 @@ describe('GlobalSelectionHeader', function() {
     });
   });
 
-  it('updates store when there are no query params in URL and `disableLoadFromStore` is false', function() {
+  it('updates store when there are query params in URL', function() {
     const initializationObj = initializeOrg({
       organization: {
         features: ['global-views'],
@@ -407,7 +407,7 @@ describe('GlobalSelectionHeader', function() {
     expect(globalActions.updateDateTime).toHaveBeenCalled();
   });
 
-  it('does update store when there are no query params in URL and `disableLoadFromStore` is true', function() {
+  it('updates store with default values when there are no query params in URL', function() {
     const initializationObj = initializeOrg({
       organization: {
         features: ['global-views'],
@@ -419,10 +419,7 @@ describe('GlobalSelectionHeader', function() {
     });
 
     mountWithTheme(
-      <GlobalSelectionHeader
-        organization={initializationObj.organization}
-        disableLoadFromStore
-      />,
+      <GlobalSelectionHeader organization={initializationObj.organization} />,
       initializationObj.routerContext
     );
 
