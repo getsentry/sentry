@@ -17,21 +17,34 @@ type Props = {
   savedQueries: SavedQuery[];
 };
 
-const SavedQueryButtonGroup = (props: Props) => {
-  const {location, organization, eventView, savedQueries} = props;
+class SavedQueryButtonGroup extends React.Component<Props> {
+  isEditingExistingQuery = (): boolean => {
+    const {savedQueries, eventView} = this.props;
 
-  return (
-    <ButtonGroup>
-      <Button icon="icon-trash" />
-      <EventsSaveQueryButton
-        location={location}
-        organization={organization}
-        eventView={eventView}
-        savedQueries={savedQueries}
-      />
-    </ButtonGroup>
-  );
-};
+    const index = savedQueries.findIndex(needle => {
+      return needle.id === eventView.id;
+    });
+
+    return index >= 0;
+  };
+
+  render() {
+    const {location, organization, eventView, savedQueries} = this.props;
+
+    return (
+      <ButtonGroup>
+        <Button icon="icon-trash" />
+        <EventsSaveQueryButton
+          location={location}
+          organization={organization}
+          eventView={eventView}
+          savedQueries={savedQueries}
+          isEditingExistingQuery={this.isEditingExistingQuery()}
+        />
+      </ButtonGroup>
+    );
+  }
+}
 
 const ButtonGroup = styled('div')`
   > * + * {

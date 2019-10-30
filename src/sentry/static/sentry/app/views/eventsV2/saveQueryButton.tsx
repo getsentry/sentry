@@ -25,6 +25,7 @@ type Props = {
   eventView: EventView;
   location: Location;
   savedQueries: SavedQuery[];
+  isEditingExistingQuery: boolean;
 };
 
 type State = {
@@ -73,18 +74,8 @@ class EventsSaveQueryButton extends React.Component<Props, State> {
     this.setState({queryName: value});
   };
 
-  isEditingExistingQuery = (): boolean => {
-    const {savedQueries, eventView} = this.props;
-
-    const index = savedQueries.findIndex(needle => {
-      return needle.id === eventView.id;
-    });
-
-    return index >= 0;
-  };
-
   render() {
-    const newQueryLabel = this.isEditingExistingQuery()
+    const newQueryLabel = this.props.isEditingExistingQuery
       ? t('Save as...')
       : t('Save Query');
 
