@@ -9,6 +9,7 @@ from sentry.models import Project, ProjectStatus
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers.rest_framework import ListField
 from sentry.api.utils import get_date_range_from_params, InvalidParams
+from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.utils.snuba import SENTRY_SNUBA_MAP
 
 
@@ -168,13 +169,16 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
     def validate_projects(self, projects):
         organization = self.context["organization"]
 
+        projects = set(projects)
+        if projects == ALL_ACCESS_PROJECTS:
+            return projects
+
         org_projects = set(
             Project.objects.filter(
                 organization=organization, id__in=projects, status=ProjectStatus.VISIBLE
             ).values_list("id", flat=True)
         )
-
-        if set(projects) != org_projects:
+        if projects != org_projects:
             raise PermissionDenied
 
         return projects
@@ -210,6 +214,10 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
                 raise serializers.ValidationError(
                     "You must provide an equal number of field names and fields"
                 )
+
+            if data["projects"] == ALL_ACCESS_PROJECTS:
+                data["projects"] = []
+                query["all_projects"] = True
 
         return {"name": data["name"], "project_ids": data["projects"], "query": query}
 

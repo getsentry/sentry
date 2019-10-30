@@ -194,3 +194,19 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
                 },
             )
         assert response.status_code == 201, response.content
+
+    def test_post_all_projects(self):
+        with self.feature(self.feature_name):
+            url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
+            response = self.client.post(
+                url,
+                {
+                    "name": "New query",
+                    "projects": [-1],
+                    "fields": ["title", "count()"],
+                    "range": "24h",
+                    "version": 2,
+                },
+            )
+        assert response.status_code == 201, response.content
+        assert response.data["projects"] == [-1]
