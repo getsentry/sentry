@@ -200,6 +200,20 @@ describe('EventView.fromSavedQuery()', function() {
     });
 
     expect(eventView.isEqualTo(eventView2)).toBe(true);
+
+    const eventView3 = EventView.fromSavedQuery({
+      ...saved,
+      start: '2019-10-20T21:02:51Z',
+    });
+
+    expect(eventView.isEqualTo(eventView3)).toBe(true);
+
+    const eventView4 = EventView.fromSavedQuery({
+      ...saved,
+      end: '2019-10-23T19:27:04Z',
+    });
+
+    expect(eventView.isEqualTo(eventView4)).toBe(true);
   });
 
   it('saved queries are not equal when datetime selection are invalid', function() {
@@ -1411,6 +1425,33 @@ describe('EventView.isEqualTo()', function() {
 
     // commutativity property holds
     expect(eventView2.isEqualTo(eventView)).toBe(true);
+  });
+
+  it('should be true when datetime are equal but differ in format', function() {
+    const state = {
+      id: '1234',
+      name: 'best query',
+      fields: [
+        {field: 'count()', title: 'events'},
+        {field: 'project.id', title: 'project'},
+      ],
+      sorts: generateSorts(['count']),
+      tags: ['foo', 'bar'],
+      query: 'event.type:error',
+      project: [42],
+      start: '2019-10-20T21:02:51+0000',
+      end: '2019-10-23T19:27:04+0000',
+      environment: ['staging'],
+    };
+
+    const eventView = new EventView(state);
+    const eventView2 = new EventView({
+      ...state,
+      start: '2019-10-20T21:02:51Z',
+      end: '2019-10-23T19:27:04Z',
+    });
+
+    expect(eventView.isEqualTo(eventView2)).toBe(true);
   });
 
   it('should be false when not equal', function() {
