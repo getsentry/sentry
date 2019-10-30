@@ -3,13 +3,10 @@ from __future__ import absolute_import, print_function
 import importlib
 import six
 
-from django.conf import settings
 from django.db import models
 from django.db.models.fields import NOT_PROVIDED
 from psycopg2.extensions import register_adapter
 from uuid import uuid4, UUID
-
-SOUTH = "south" in settings.INSTALLED_APPS
 
 
 # Adapted from django-pgfields
@@ -147,22 +144,3 @@ if hasattr(models, "SubfieldBase"):
 
 # Register the UUID type with psycopg2.
 register_adapter(UUID, UUIDAdapter)
-
-# If South is installed, then tell South how to properly
-# introspect a UUIDField.
-if SOUTH:
-    from south.modelsinspector import add_introspection_rules
-
-    add_introspection_rules(
-        [
-            (
-                (UUIDField,),
-                [],
-                {
-                    "auto_add": ["_auto_add_str", {"default": False}],
-                    "coerce_to": ["_coerce_to", {"default": UUID}],
-                },
-            )
-        ],
-        (r"^sentry\.db\.models\.fields\.uuid\.UUIDField",),
-    )

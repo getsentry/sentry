@@ -53,11 +53,3 @@ class JSONField(models.TextField):
     def value_from_object(self, obj):
         """Return value dumped to string."""
         return self.get_prep_value(self._get_val_from_obj(obj))
-
-
-try:
-    from south.modelsinspector import add_introspection_rules
-
-    add_introspection_rules([], ["^social_auth\.fields\.JSONField"])
-except Exception:
-    pass

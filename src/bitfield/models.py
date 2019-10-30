@@ -117,14 +117,6 @@ class BitField(BigIntegerField):
         self.flags = flags
         self.labels = labels
 
-    def south_field_triple(self):
-        "Returns a suitable description of this field for South."
-        from south.modelsinspector import introspector
-
-        field_class = "django.db.models.fields.BigIntegerField"
-        args, kwargs = introspector(self)
-        return (field_class, args, kwargs)
-
     def formfield(self, form_class=BitFormField, **kwargs):
         choices = [(k, self.labels[self.flags.index(k)]) for k in self.flags]
         return Field.formfield(self, form_class, choices=choices, **kwargs)

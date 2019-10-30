@@ -2,7 +2,6 @@ from __future__ import absolute_import, print_function
 
 import six
 
-from django.conf import settings
 from django.db import connections, models
 from django.db.models.signals import pre_migrate
 
@@ -34,13 +33,6 @@ if hasattr(models, "SubfieldBase"):
     CITextField = six.add_metaclass(models.SubfieldBase)(CITextField)
     CICharField = six.add_metaclass(models.SubfieldBase)(CICharField)
     CIEmailField = six.add_metaclass(models.SubfieldBase)(CIEmailField)
-
-if "south" in settings.INSTALLED_APPS:
-    from south.modelsinspector import add_introspection_rules
-
-    add_introspection_rules([], ["^sentry\.db\.models\.fields\.citext\.CITextField"])
-    add_introspection_rules([], ["^sentry\.db\.models\.fields\.citext\.CICharField"])
-    add_introspection_rules([], ["^sentry\.db\.models\.fields\.citext\.CIEmailField"])
 
 
 def create_citext_extension(using, **kwargs):
