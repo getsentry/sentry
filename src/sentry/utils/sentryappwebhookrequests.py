@@ -125,6 +125,6 @@ class SentryAppWebhookRequestsBuffer(object):
         sentry_app_id = self.sentry_app.id
 
         if error:
-            return "sentry-app-webhook-error:{}:{}".format(sentry_app_id, event)
+            return "sentry-app-webhook-error:{{{0}}}:{1}".format(sentry_app_id, event)
         else:
-            return "sentry-app-webhook-request:{}:{}".format(sentry_app_id, event)
+            return "sentry-app-webhook-request:{{{0}}}:{1}".format(sentry_app_id, event)
