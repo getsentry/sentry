@@ -7,6 +7,7 @@ import {
   getFieldRenderer,
   getAggregateAlias,
   getEventTagSearchUrl,
+  isAggregateField,
   decodeColumnOrder,
   pushEventViewToLocation,
 } from 'app/views/eventsV2/utils';
@@ -401,5 +402,20 @@ describe('pushEventViewToLocation', function() {
         cursor: 'some cursor',
       },
     });
+  });
+});
+
+describe('isAggregateField', function() {
+  it('detects aliases', function() {
+    expect(isAggregateField('p888')).toBe(false);
+    expect(isAggregateField('other_field')).toBe(false);
+    expect(isAggregateField('p75')).toBe(true);
+    expect(isAggregateField('last_seen')).toBe(true);
+  });
+
+  it('detects functions', function() {
+    expect(isAggregateField('thing(')).toBe(false);
+    expect(isAggregateField('count()')).toBe(true);
+    expect(isAggregateField('unique_count(user)')).toBe(true);
   });
 });

@@ -66,6 +66,12 @@ class JiraCloud(object):
         """
         return "accountId"
 
+    def query_field(self):
+        """
+        Jira-Cloud requires GDPR compliant API usage so we have to use query
+        """
+        return "query"
+
 
 class JiraApiClient(ApiClient):
     COMMENTS_URL = "/rest/api/2/issue/%s/comment"
@@ -110,6 +116,9 @@ class JiraApiClient(ApiClient):
 
     def user_id_field(self):
         return self.jira_style.user_id_field()
+
+    def query_field(self):
+        return self.jira_style.query_field()
 
     def get_cached(self, url, params=None):
         """
@@ -194,13 +203,15 @@ class JiraApiClient(ApiClient):
 
     def search_users_for_project(self, project, username):
         # Jira Server wants a project key, while cloud is indifferent.
-        # Use the query parameter as our implemention follows jira's gdpr practices
         project_key = self.get_project_key_for_id(project)
-        return self.get_cached(self.USERS_URL, params={"project": project_key, "query": username})
+        return self.get_cached(
+            self.USERS_URL, params={"project": project_key, self.query_field(): username}
+        )
 
     def search_users_for_issue(self, issue_key, email):
-        # Use the query parameter as our implemention follows jira's gdpr practices
-        return self.get_cached(self.USERS_URL, params={"issueKey": issue_key, "query": email})
+        return self.get_cached(
+            self.USERS_URL, params={"issueKey": issue_key, self.query_field(): email}
+        )
 
     def create_issue(self, raw_form_data):
         data = {"fields": raw_form_data}

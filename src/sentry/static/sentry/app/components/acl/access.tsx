@@ -1,8 +1,8 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import PropTypes from 'prop-types';
 
 import {t} from 'app/locale';
-import {Config, Organization, User} from 'app/types';
+import {Config, Organization} from 'app/types';
 import Alert from 'app/components/alert';
 import SentryTypes from 'app/sentryTypes';
 import withConfig from 'app/utils/withConfig';
@@ -47,7 +47,7 @@ type DefaultProps = {
   /**
    * List of required access levels
    */
-  access?: string[];
+  access: string[];
 };
 
 const defaultProps: DefaultProps = {
@@ -62,10 +62,11 @@ type Props = {
    * Current Organization
    */
   organization: Organization;
+
   /**
-   * User Configuration from ConfigStore
+   * Configuration from ConfigStore
    */
-  configUser: User;
+  config: Config;
 
   /**
    * Children can be a node or a function as child.
@@ -77,9 +78,8 @@ type Props = {
  * Component to handle access restrictions.
  */
 class Access extends React.Component<Props> {
-  static propTypes = {
+  static propTypes: any = {
     organization: SentryTypes.Organization,
-    configUser: PropTypes.object,
     access: PropTypes.arrayOf(PropTypes.string),
     requireAll: PropTypes.bool,
     isSuperuser: PropTypes.bool,
@@ -92,7 +92,7 @@ class Access extends React.Component<Props> {
   render() {
     const {
       organization,
-      configUser,
+      config,
       access,
       requireAll,
       isSuperuser,
@@ -104,7 +104,7 @@ class Access extends React.Component<Props> {
     const method = requireAll ? 'every' : 'some';
 
     const hasAccess = !access || access[method](acc => orgAccess.includes(acc));
-    const hasSuperuser = !!configUser.isSuperuser;
+    const hasSuperuser = !!config.user.isSuperuser;
 
     const renderProps: ChildRenderProps = {
       hasAccess,
@@ -127,20 +127,4 @@ class Access extends React.Component<Props> {
   }
 }
 
-type ContainerProps = {
-  config: Config;
-  organization: Organization;
-} & Omit<Props, 'configUser'>;
-
-class AccessContainer extends React.Component<ContainerProps> {
-  static propTypes = {
-    config: SentryTypes.Config,
-  };
-
-  render() {
-    const user = this.props.config.user || {};
-    return <Access configUser={user} {...this.props} />;
-  }
-}
-
-export default withConfig(withOrganization(AccessContainer));
+export default withOrganization(withConfig(Access));

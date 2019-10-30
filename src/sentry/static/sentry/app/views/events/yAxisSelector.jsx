@@ -7,7 +7,7 @@ import space from 'app/styles/space';
 
 const YAxisSelector = props => {
   const {options, onChange, selected} = props;
-  const selectedOption = options.find(opt => selected === opt.value);
+  const selectedOption = options.find(opt => selected === opt.value) || options[0];
 
   return (
     <Container>
@@ -24,14 +24,14 @@ const YAxisSelector = props => {
         )}
       >
         {options.map(opt => (
-          <DropdownItem
+          <StyledDropdownItem
             key={opt.value}
             onSelect={onChange}
             eventKey={opt.value}
             isActive={selected === opt.value}
           >
             {opt.label}
-          </DropdownItem>
+          </StyledDropdownItem>
         ))}
       </DropdownControl>
     </Container>
@@ -43,6 +43,7 @@ const StyledDropdownButton = styled(
 )`
   color: ${p => p.theme.gray2};
   font-weight: normal;
+  text-transform: capitalize;
   height: ${space(4)};
   padding: ${space(0.5)} ${space(1)};
   background: ${p => p.theme.offWhite};
@@ -64,5 +65,9 @@ YAxisSelector.propTypes = {
   onChange: PropTypes.func.isRequired,
   selected: PropTypes.string,
 };
+
+const StyledDropdownItem = styled(DropdownItem)`
+  text-transform: capitalize;
+`;
 
 export default YAxisSelector;

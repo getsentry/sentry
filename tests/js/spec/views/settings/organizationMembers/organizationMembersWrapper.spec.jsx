@@ -2,9 +2,13 @@ import React from 'react';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {openInviteMembersModal} from 'app/actionCreators/modal';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import OrganizationMembers from 'app/views/settings/organizationMembers';
 import OrganizationMembersWrapper from 'app/views/settings/organizationMembers/organizationMembersWrapper';
 
+jest.mock('app/utils/analytics', () => ({
+  trackAnalyticsEvent: jest.fn(),
+}));
 jest.mock('app/actionCreators/modal', () => ({
   openInviteMembersModal: jest.fn(),
 }));
@@ -35,6 +39,7 @@ describe('OrganizationMembersWrapper', function() {
   });
 
   beforeEach(function() {
+    trackAnalyticsEvent.mockClear();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/invite-requests/',
@@ -82,6 +87,7 @@ describe('OrganizationMembersWrapper', function() {
     );
 
     expect(wrapper.find('NavTabs').exists()).toBe(false);
+    expect(trackAnalyticsEvent).not.toHaveBeenCalled();
   });
 
   it('renders requests tab with InviteRequestExperiment', function() {
@@ -107,6 +113,19 @@ describe('OrganizationMembersWrapper', function() {
     expect(wrapper.find('Badge[text="2"]').exists()).toBe(true);
     expect(wrapper.find('ListLink[data-test-id="members-tab"]').exists()).toBe(true);
     expect(wrapper.find('ListLink[data-test-id="requests-tab"]').exists()).toBe(true);
+
+    expect(trackAnalyticsEvent).toHaveBeenCalledWith({
+      eventKey: 'invite_request.tab_viewed',
+      eventName: 'Invite Request Tab Viewed',
+      organization_id: org.id,
+    });
+
+    wrapper.find('a[data-test-id="requests-tab"]').simulate('click');
+    expect(trackAnalyticsEvent).toHaveBeenCalledWith({
+      eventKey: 'invite_request.tab_clicked',
+      eventName: 'Invite Request Tab Clicked',
+      organization_id: org.id,
+    });
   });
 
   it('renders requests tab with JoinRequestExperiment', function() {
@@ -144,6 +163,8 @@ describe('OrganizationMembersWrapper', function() {
     expect(wrapper.find('NavTabs').exists()).toBe(true);
     expect(wrapper.find('ListLink[data-test-id="members-tab"]').exists()).toBe(true);
     expect(wrapper.find('ListLink[data-test-id="requests-tab"]').exists()).toBe(true);
+
+    expect(trackAnalyticsEvent).not.toHaveBeenCalled();
   });
 
   it('renders requests tab with team requests and no access', function() {
@@ -173,6 +194,8 @@ describe('OrganizationMembersWrapper', function() {
     expect(wrapper.find('Badge[text="1"]').exists()).toBe(true);
     expect(wrapper.find('ListLink[data-test-id="members-tab"]').exists()).toBe(true);
     expect(wrapper.find('ListLink[data-test-id="requests-tab"]').exists()).toBe(true);
+
+    expect(trackAnalyticsEvent).not.toHaveBeenCalled();
   });
 
   it('can invite member', function() {

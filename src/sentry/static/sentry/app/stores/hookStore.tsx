@@ -4,8 +4,6 @@ import * as Sentry from '@sentry/browser';
 
 import {Hooks, HookName} from 'app/types/hooks';
 
-type HookMapping = {[H in HookName]?: Array<Hooks[H]>};
-
 /**
  * See types/hooks for hook usage reference.
  */
@@ -15,6 +13,7 @@ const validHookNames = new Set<HookName>([
   'analytics:init-user',
   'analytics:track-adhoc-event',
   'analytics:track-event',
+  'analytics:log-experiment',
   'component:header-date-range',
   'component:header-selector-items',
   'component:org-members-view',
@@ -51,7 +50,11 @@ const validHookNames = new Set<HookName>([
 ]);
 
 type HookStoreInterface = {
-  hooks: HookMapping;
+  // XXX(epurkhiser): We could type this as {[H in HookName]?:
+  // Array<Hooks[H]>}, however this causes typescript to produce a complex
+  // union that it complains is 'too complex'
+  hooks: any;
+
   add<H extends HookName>(hookName: H, callback: Hooks[H]): void;
   remove<H extends HookName>(hookName: H, callback: Hooks[H]): void;
   get<H extends HookName>(hookName: H): Array<Hooks[H]>;

@@ -41,7 +41,7 @@ env:
     - NODE_OPTIONS=--max-old-space-size=4096
 
 before_install:
-  - pip install "pip==${PYTHON_PIP_VERSION}"
+  - &pip_install pip install "pip==${PYTHON_PIP_VERSION}"
 
 script:
   # certain commands require sentry init to be run, but this is only true for
@@ -77,12 +77,13 @@ base_postgres: &postgres_default
     - redis-server
     - postgresql
   before_install:
+    - *pip_install
     - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:19.4
     - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
     - docker ps -a
   install:
     - python setup.py install_egg_info
-    - pip install -U -e ".[dev,optional]"
+    - pip install -U -e ".[dev]"
   before_script:
     - psql -c 'create database sentry;' -U postgres
 
@@ -94,6 +95,7 @@ base_acceptance: &acceptance_default
     - redis-server
     - postgresql
   before_install:
+    - *pip_install
     - find "$NODE_DIR" -type d -empty -delete
     - nvm install
     - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:19.4
@@ -102,7 +104,7 @@ base_acceptance: &acceptance_default
   install:
     - ./bin/yarn install --pure-lockfile
     - python setup.py install_egg_info
-    - pip install -U -e ".[dev,optional]"
+    - pip install -U -e ".[dev]"
     - |
       CHROME_MAJOR_VERSION="$(dpkg -s google-chrome-stable | sed -nr 's/Version: ([0-9]+).*/\1/p')"
       wget -N "https://chromedriver.storage.googleapis.com/$(curl https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_MAJOR_VERSION})/chromedriver_linux64.zip" -P ~/
@@ -125,7 +127,7 @@ matrix:
       env: TEST_SUITE=lint
       install:
         - python setup.py install_egg_info
-        - SENTRY_LIGHT_BUILD=1 pip install -U -e ".[dev,optional]"
+        - SENTRY_LIGHT_BUILD=1 pip install -U -e ".[dev]"
         - find "$NODE_DIR" -type d -empty -delete
         - nvm install
         - ./bin/yarn install --pure-lockfile
@@ -180,6 +182,7 @@ matrix:
       name: 'Frontend'
       env: TEST_SUITE=js
       before_install:
+        - *pip_install
         - find "$NODE_DIR" -type d -empty -delete
         - nvm install
       install:
@@ -201,6 +204,7 @@ matrix:
       name: 'Distribution build'
       env: TEST_SUITE=dist
       before_install:
+        - *pip_install
         - find "$NODE_DIR" -type d -empty -delete
         - nvm install
 
@@ -222,6 +226,7 @@ matrix:
         - redis-server
         - postgresql
       before_install:
+        - *pip_install
         - docker run -d --network host --name zookeeper -e ZOOKEEPER_CLIENT_PORT=2181 confluentinc/cp-zookeeper:4.1.0
         - docker run -d --network host --name kafka -e KAFKA_ZOOKEEPER_CONNECT=localhost:2181 -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092 -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 confluentinc/cp-kafka:4.1.0
         - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:19.4
@@ -229,17 +234,17 @@ matrix:
         - docker ps -a
       install:
         - python setup.py install_egg_info
-        - pip install -U -e ".[dev,optional]"
+        - pip install -U -e ".[dev]"
         - pip install confluent-kafka
       before_script:
         - psql -c 'create database sentry;' -U postgres
 
     # Deploy 'storybook' (component & style guide) - allowed to fail
-    - language: node_js
-      name: 'Storybook Deploy'
+    - name: 'Storybook Deploy'
+      language: node_js
       env: STORYBOOK_BUILD=1
       before_install:
-        # Decrypt the credentials we added to the repo using the key we added with the Travis command line tool
+         # Decrypt the credentials we added to the repo using the key we added with the Travis command line tool
         - openssl aes-256-cbc -K $encrypted_020be61ef175_key -iv $encrypted_020be61ef175_iv -in .travis/storybook-credentials.tar.gz.enc -out credentials.tar.gz -d
         # If the SDK is not already cached, download it and unpack it
         - if [ ! -d ${HOME}/google-cloud-sdk ]; then curl https://sdk.cloud.google.com | bash; fi
@@ -253,15 +258,12 @@ matrix:
       after_success: skip
       after_failure: skip
 
-# jobs are defined in matrix/include
-# to specify which jobs are allowed to fail, match the env exactly in matrix/allow_failures
   allow_failures:
-    - language: node_js
-      env: STORYBOOK_BUILD=1
-    - env: DJANGO_VERSION=">=1.9,<1.10" TEST_SUITE=postgres DB=postgres TOTAL_TEST_GROUPS=2 TEST_GROUP=0
-    - env: DJANGO_VERSION=">=1.9,<1.10" TEST_SUITE=postgres DB=postgres TOTAL_TEST_GROUPS=2 TEST_GROUP=1
-    - env: DJANGO_VERSION=">=1.9,<1.10" TEST_SUITE=acceptance USE_SNUBA=1
-    - env: TEST_SUITE=plugins DB=postgres PERCY_ENABLE=0
+    - name: 'Storybook Deploy'
+    - name: 'Django 1.9 Backend [Postgres] (1/2)'
+    - name: 'Django 1.9 Backend [Postgres] (2/2)'
+    - name: 'Django 1.9 Acceptance'
+    - name: 'Plugins'
 
 notifications:
   webhooks:

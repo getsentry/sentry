@@ -58,6 +58,8 @@ export type Team = {
   isMember: boolean;
 };
 
+export type TeamWithProjects = Team & {projects: Project[]};
+
 // This type is incomplete
 export type EventMetadata = {
   value?: string;

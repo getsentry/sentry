@@ -46,9 +46,9 @@ class TriggersModal extends React.Component<Props> {
         <RuleName>{rule.name}</RuleName>
         <TriggerForm
           organization={organization}
-          projects={projects || []}
           orgId={organization.slug}
           onSubmitSuccess={this.handleSubmitSuccess}
+          projects={projects}
           rule={rule}
           trigger={trigger}
         />

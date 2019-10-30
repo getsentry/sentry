@@ -78,6 +78,9 @@ class PagerDutyNotifyServiceAction(EventAction):
         if initial_service:
             self.form_fields["service"]["initial"] = initial_service
 
+    def is_enabled(self):
+        return self.get_integrations().exists()
+
     def get_initial_service(self):
         try:
             # service_id here is the id of the PagerDutyService record, not the

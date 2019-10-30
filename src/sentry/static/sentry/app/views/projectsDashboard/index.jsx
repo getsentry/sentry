@@ -1,4 +1,3 @@
-import {Flex} from 'grid-emotion';
 import {Link, browserHistory} from 'react-router';
 import LazyLoad from 'react-lazyload';
 import PropTypes from 'prop-types';
@@ -15,6 +14,7 @@ import PageHeading from 'app/components/pageHeading';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 import SentryTypes from 'app/sentryTypes';
+import getProjectsByTeams from 'app/utils/getProjectsByTeams';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import profiler from 'app/utils/profiler';
 import space from 'app/styles/space';
@@ -24,7 +24,6 @@ import withTeams from 'app/utils/withTeams';
 
 import Resources from './resources';
 import TeamSection from './teamSection';
-import getProjectsByTeams from './getProjectsByTeams';
 
 class Dashboard extends React.Component {
   static propTypes = {
@@ -131,9 +130,9 @@ class Dashboard extends React.Component {
 
 const OrganizationDashboard = props => {
   return (
-    <Flex flex="1" direction="column">
+    <OrganizationDashboardWrapper>
       <Dashboard {...props} />
-    </Flex>
+    </OrganizationDashboardWrapper>
   );
 };
 
@@ -147,6 +146,12 @@ const ProjectsHeader = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
+`;
+
+const OrganizationDashboardWrapper = styled('div')`
+  display: flex;
+  flex: 1;
+  flex-direction: column;
 `;
 
 export {Dashboard};

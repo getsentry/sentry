@@ -271,8 +271,8 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
           {this.willInvite
             ? t('Invite new members by email to join your organization.')
             : t(
-                `You can’t directly invite users because you don’t have
-                 permissions, but we’ll send a request on your behalf!`
+                `You don't have permission to directly invite users, but we’ll
+                 send a request on your behalf!`
               )}
         </Subtext>
 

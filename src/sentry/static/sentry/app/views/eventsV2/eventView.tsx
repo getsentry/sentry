@@ -7,7 +7,13 @@ import {SavedQuery as LegacySavedQuery} from 'app/views/discover/types';
 import {SavedQuery, NewQuery} from 'app/stores/discoverSavedQueriesStore';
 
 import {AUTOLINK_FIELDS, SPECIAL_FIELDS, FIELD_FORMATTERS} from './data';
-import {MetaType, EventQuery, getAggregateAlias, decodeColumnOrder} from './utils';
+import {
+  MetaType,
+  EventQuery,
+  isAggregateField,
+  getAggregateAlias,
+  decodeColumnOrder,
+} from './utils';
 import {TableColumn, TableColumnSort} from './table/types';
 
 type LocationQuery = {
@@ -477,6 +483,10 @@ class EventView {
     return this.fields.map(field => {
       return field.field;
     });
+  }
+
+  getAggregateFields(): Field[] {
+    return this.fields.filter(field => isAggregateField(field.field));
   }
 
   /**
