@@ -676,7 +676,8 @@ class PluginTestCase(TestCase):
 
     def assertPluginInstalled(self, name, plugin):
         path = type(plugin).__module__ + ":" + type(plugin).__name__
-        for ep in iter_entry_points("sentry.plugins"):
+        # TODO (Steve): change new_plugins to plugins
+        for ep in iter_entry_points("sentry.new_plugins"):
             if ep.name == name:
                 ep_path = ep.module_name + ":" + ".".join(ep.attrs)
                 if ep_path == path:
