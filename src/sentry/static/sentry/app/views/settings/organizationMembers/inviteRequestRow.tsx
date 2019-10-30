@@ -16,8 +16,8 @@ type Props = {
   inviteRequest: Member;
   inviteRequestBusy: {[key: string]: boolean};
   organization: Organization;
-  onApprove: (id: string, email: string) => Promise<void>;
-  onDeny: (id: string, email: string) => Promise<void>;
+  onApprove: (inviteRequest: Member) => void;
+  onDeny: (inviteRequest: Member) => void;
 };
 
 const InviteModalHook = HookOrDefault({
@@ -29,7 +29,7 @@ const InviteModalHook = HookOrDefault({
 type InviteModalRenderFunc = React.ComponentProps<typeof InviteModalHook>['children'];
 
 const InviteRequestRow = ({
-  inviteRequest: {id, email, inviteStatus, inviterName, roleName},
+  inviteRequest,
   inviteRequestBusy,
   organization,
   onApprove,
@@ -40,17 +40,19 @@ const InviteRequestRow = ({
     <StyledPanelItem>
       <div>
         <h5 style={{marginBottom: '3px'}}>
-          <UserName>{email}</UserName>
+          <UserName>{inviteRequest.email}</UserName>
         </h5>
-        {inviteStatus === 'requested_to_be_invited' ? (
-          inviterName && (
+        {inviteRequest.inviteStatus === 'requested_to_be_invited' ? (
+          inviteRequest.inviterName && (
             <Tooltip
               title={t(
                 'An existing member has asked to invite this user to your organization'
               )}
             >
               <Description>
-                {tct('Requested by [inviterName]', {inviterName})}
+                {tct('Requested by [inviterName]', {
+                  inviterName: inviteRequest.inviterName,
+                })}
               </Description>
             </Tooltip>
           )
@@ -60,7 +62,7 @@ const InviteRequestRow = ({
           </Tooltip>
         )}
       </div>
-      <div>{roleName}</div>
+      <div>{inviteRequest.roleName}</div>
       <ButtonGroup>
         <Confirm
           onConfirm={sendInvites}
@@ -68,20 +70,24 @@ const InviteRequestRow = ({
           message={
             <React.Fragment>
               {tct('Are you sure you want to invite [email] to your organization?', {
-                email,
+                email: inviteRequest.email,
               })}
               {headerInfo}
             </React.Fragment>
           }
         >
-          <Button priority="primary" size="small" busy={inviteRequestBusy[id]}>
+          <Button
+            priority="primary"
+            size="small"
+            busy={inviteRequestBusy[inviteRequest.id]}
+          >
             {t('Approve')}
           </Button>
         </Confirm>
         <Button
           size="small"
-          busy={inviteRequestBusy[id]}
-          onClick={() => onDeny(id, email)}
+          busy={inviteRequestBusy[inviteRequest.id]}
+          onClick={() => onDeny(inviteRequest)}
         >
           {t('Deny')}
         </Button>
@@ -93,7 +99,7 @@ const InviteRequestRow = ({
     <InviteModalHook
       willInvite
       organization={organization}
-      onSendInvites={() => onApprove(id, email)}
+      onSendInvites={() => onApprove(inviteRequest)}
     >
       {hookRenderer}
     </InviteModalHook>
@@ -106,6 +112,7 @@ InviteRequestRow.propTypes = {
     id: PropTypes.string,
     inviterName: PropTypes.string,
     inviteStatus: PropTypes.string,
+    roleName: PropTypes.string,
   }),
   onApprove: PropTypes.func,
   onDeny: PropTypes.func,

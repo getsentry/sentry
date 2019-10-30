@@ -67,7 +67,7 @@ describe('InviteRequestRow', function() {
 
     wrapper.find('button[aria-label="Approve"]').simulate('click');
     wrapper.find('button[aria-label="Confirm"]').simulate('click');
-    expect(mockApprove).toHaveBeenCalledWith(inviteRequest.id, inviteRequest.email);
+    expect(mockApprove).toHaveBeenCalledWith(inviteRequest);
     expect(mockDeny).not.toHaveBeenCalled();
   });
 
@@ -86,7 +86,7 @@ describe('InviteRequestRow', function() {
     );
 
     wrapper.find('button[aria-label="Deny"]').simulate('click');
-    expect(mockDeny).toHaveBeenCalledWith(inviteRequest.id, inviteRequest.email);
+    expect(mockDeny).toHaveBeenCalledWith(inviteRequest);
     expect(mockApprove).not.toHaveBeenCalled();
   });
 });
