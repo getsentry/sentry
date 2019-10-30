@@ -32,7 +32,7 @@ mock==2.0.0
 msgpack>=0.6.1,<0.7.0
 oauth2>=1.5.167
 parsimonious==0.8.0
-percy>=1.1.2
+percy>=2.0.2
 petname>=2.6,<2.7
 Pillow>=6.2.1,<7.0.0
 progressbar2>=3.10,<3.11
