@@ -10,6 +10,7 @@ from sentry.api.helpers.environments import get_environments
 from sentry.api.permissions import SentryPermission
 from sentry.api.utils import get_date_range_from_params, InvalidParams
 from sentry.auth.superuser import is_active_superuser
+from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.models import (
     ApiKey,
     Authenticator,
@@ -29,9 +30,6 @@ class OrganizationEventsError(Exception):
 
 class NoProjects(Exception):
     pass
-
-
-ALL_ACCESS_PROJECTS = {-1}
 
 
 class OrganizationPermission(SentryPermission):
