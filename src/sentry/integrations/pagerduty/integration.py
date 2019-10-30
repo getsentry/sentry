@@ -14,12 +14,7 @@ from sentry.integrations.base import (
     IntegrationProvider,
     FeatureDescription,
 )
-from sentry.models import (
-    OrganizationIntegration,
-    PagerDutyServiceProject,
-    PagerDutyService,
-    Project,
-)
+from sentry.models import OrganizationIntegration, PagerDutyService
 from sentry.pipeline import PipelineView
 from .client import PagerDutyClient
 
@@ -50,66 +45,6 @@ metadata = IntegrationMetadata(
 class PagerDutyIntegration(IntegrationInstallation):
     def get_client(self, integration_key):
         return PagerDutyClient(integration_key=integration_key)
-
-    def get_organization_config(self):
-        from sentry.models import Project
-
-        projects = Project.objects.filter(organization_id=self.org_integration.organization_id)
-        items = []
-        for p in projects:
-            items.append({"value": p.id, "label": p.name})
-
-        service_options = [(s.id, s.service_name) for s in self.services]
-
-        fields = [
-            {
-                "name": "project_mapping",
-                "type": "choice_mapper",
-                "label": "Map projects in Sentry to services in PagerDuty",
-                "help": "When an alert rule is triggered in a project, this mapping will let us know what service to create the incident in PagerDuty.",
-                "addButtonText": "Add Sentry Project",
-                "addDropdown": {
-                    "emptyMessage": "All projects configured",
-                    "noResultsMessage": "Could not find project",
-                    "items": items,
-                },
-                "mappedSelectors": {
-                    "service": {"choices": service_options, "placeholder": "Select a service"}
-                },
-                "columnLabels": {"service": "Service"},
-                "mappedColumnLabel": "Sentry Project",
-            }
-        ]
-
-        return fields
-
-    def update_organization_config(self, data):
-
-        if "project_mapping" in data:
-            project_ids_and_services = data.pop("project_mapping")
-
-            with transaction.atomic():
-                PagerDutyServiceProject.objects.filter(pagerduty_service__in=self.services).delete()
-
-                for p_id, s in project_ids_and_services.items():
-                    # create the record in the table
-                    project = Project.objects.get(pk=p_id)
-                    service = PagerDutyService.objects.get(id=s["service"])
-                    PagerDutyServiceProject.objects.create(
-                        project=project, pagerduty_service=service
-                    )
-
-    def get_config_data(self):
-        config = self.org_integration.config
-        project_mappings = PagerDutyServiceProject.objects.filter(
-            pagerduty_service__in=self.services
-        )
-        data = {}
-        for pm in project_mappings:
-            data[pm.project_id] = {"service": pm.pagerduty_service_id}
-        config = {}
-        config["project_mapping"] = data
-        return config
 
     @property
     def services(self):
