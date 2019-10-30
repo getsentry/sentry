@@ -21,6 +21,7 @@ class DebugOrganizationJoinRequestEmailView(View):
             "organization_link": absolute_uri(
                 reverse("sentry-organization-index", args=[org.slug])
             ),
+            "settings_link": absolute_uri(reverse("sentry-organization-settings", args=[org.slug])),
         }
         return MailPreview(
             html_template="sentry/emails/organization-join-request.html",
