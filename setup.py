@@ -146,7 +146,7 @@ setup(
             "jira = sentry_plugins.jira",
             "sessionstack = sentry_plugins.sessionstack",
         ],
-        "sentry.plugins": [
+        "sentry.new_plugins": [
             "amazon_sqs = sentry_plugins.amazon_sqs.plugin:AmazonSQSPlugin",
             "asana = sentry_plugins.asana.plugin:AsanaPlugin",
             "bitbucket = sentry_plugins.bitbucket.plugin:BitbucketPlugin",

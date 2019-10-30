@@ -11,7 +11,7 @@ from sentry.utils.sdk import configure_sdk
 from sentry.utils.warnings import DeprecatedSettingWarning
 
 
-def register_plugins(settings):
+def register_plugins(settings, test_plugins=False):
     from pkg_resources import iter_entry_points
     from sentry.plugins.base import plugins
 
@@ -20,8 +20,8 @@ def register_plugins(settings):
     #         'phabricator = sentry_phabricator.plugins:PhabricatorPlugin'
     #     ],
     # },
-
-    for ep in iter_entry_points("sentry.plugins"):
+    entry_point = "sentry.new_plugins" if test_plugins else "sentry.plugins"
+    for ep in iter_entry_points(entry_point):
         try:
             plugin = ep.load()
         except Exception:
