@@ -8,7 +8,7 @@ export const zIndex = {
   spanTreeToggler: 99999,
 };
 
-export const SPAN_ROW_HEIGHT = 25;
+export const SPAN_ROW_HEIGHT = 24;
 
 type SpanRowProps = {
   visible?: boolean;
@@ -20,7 +20,8 @@ type SpanRowAndDivProps = Omit<React.HTMLProps<HTMLDivElement>, keyof SpanRowPro
 
 export const SpanRow = styled('div')<SpanRowAndDivProps>`
   display: ${p => (p.visible ? 'block' : 'none')};
-  border-top: ${p => (p.showBorder ? `1px solid  ${p.theme.gray1}` : null)};
+  border-top: ${p => (p.showBorder ? `1px solid ${p.theme.gray1}` : null)};
+  margin-top: ${p => (p.showBorder ? '-1px' : null)}; /* to prevent offset on toggle */
   position: relative;
   overflow: hidden;
 
