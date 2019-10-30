@@ -263,6 +263,7 @@ describe('OrganizationRequestsView', function() {
       eventName: 'Invite Request Approved',
       organization_id: org.id,
       invite_status: inviteRequest.inviteStatus,
+      member_id: parseInt(inviteRequest.id, 10),
     });
   });
 
@@ -322,6 +323,7 @@ describe('OrganizationRequestsView', function() {
       eventName: 'Invite Request Denied',
       organization_id: org.id,
       invite_status: joinRequest.inviteStatus,
+      member_id: parseInt(joinRequest.id, 10),
     });
   });
 });

@@ -108,6 +108,7 @@ class OrganizationRequestsView extends React.Component<Props, State> {
         eventKey,
         eventName,
         organization_id: organization.id,
+        member_id: parseInt(inviteRequest.id, 10),
         invite_status: inviteRequest.inviteStatus,
       });
     } catch (err) {
