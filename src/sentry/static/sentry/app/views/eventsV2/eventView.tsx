@@ -272,7 +272,7 @@ function isLegacySavedQuery(
 
 const queryStringFromSavedQuery = (saved: LegacySavedQuery | SavedQuery): string => {
   if (!isLegacySavedQuery(saved) && saved.query) {
-    return saved.query;
+    return saved.query || '';
   }
   if (isLegacySavedQuery(saved) && saved.conditions) {
     const conditions = saved.conditions.map(item => {
@@ -295,7 +295,7 @@ class EventView {
   fields: Readonly<Field[]>;
   sorts: Readonly<Sort[]>;
   tags: Readonly<string[]>;
-  query: string | undefined;
+  query: string;
   project: Readonly<number[]>;
   start: string | undefined;
   end: string | undefined;
@@ -308,7 +308,7 @@ class EventView {
     fields: Readonly<Field[]>;
     sorts: Readonly<Sort[]>;
     tags: Readonly<string[]>;
-    query?: string | undefined;
+    query: string;
     project: Readonly<number[]>;
     start: string | undefined;
     end: string | undefined;
@@ -340,7 +340,7 @@ class EventView {
     this.fields = props.fields;
     this.sorts = sorts;
     this.tags = props.tags;
-    this.query = props.query;
+    this.query = typeof props.query === 'string' ? props.query : '';
     this.project = props.project;
     this.start = props.start;
     this.end = props.end;
@@ -355,7 +355,7 @@ class EventView {
       fields: decodeFields(location),
       sorts: decodeSorts(location),
       tags: collectQueryStringByKey(location.query, 'tag'),
-      query: decodeQuery(location),
+      query: decodeQuery(location) || '',
       project: decodeProjects(location),
       start: decodeScalar(location.query.start),
       end: decodeScalar(location.query.end),
@@ -377,7 +377,7 @@ class EventView {
       name: eventViewV1.name,
       sorts: fromSorts(eventViewV1.data.sort),
       tags: eventViewV1.tags,
-      query: eventViewV1.data.query,
+      query: eventViewV1.data.query || '',
       project: [],
       id: undefined,
       start: undefined,

@@ -90,6 +90,39 @@ describe('EventView.fromSavedQuery()', function() {
     });
   });
 
+  it('maps saved query with no conditions', function() {
+    const saved = {
+      orderby: '-count_id',
+      name: 'foo bar',
+      fields: ['release', 'count(id)'],
+      fieldnames: ['Release tags', 'counts'],
+      dateCreated: '2019-10-30T06:13:17.632078Z',
+      environment: ['dev', 'production'],
+      version: 2,
+      createdBy: '1',
+      dateUpdated: '2019-10-30T06:13:17.632096Z',
+      id: '5',
+      projects: [1],
+    };
+
+    const eventView = EventView.fromSavedQuery(saved);
+
+    const expected = {
+      id: '5',
+      name: 'foo bar',
+      fields: [
+        {field: 'release', title: 'Release tags'},
+        {field: 'count(id)', title: 'counts'},
+      ],
+      sorts: generateSorts(['count_id']),
+      query: '',
+      project: [1],
+      environment: ['dev', 'production'],
+    };
+
+    expect(eventView).toMatchObject(expected);
+  });
+
   it('maps equality conditions', function() {
     const saved = {
       fields: ['count()', 'id'],
