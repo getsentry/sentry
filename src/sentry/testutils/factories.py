@@ -24,7 +24,6 @@ from sentry.event_manager import EventManager
 from sentry.constants import SentryAppStatus
 from sentry.incidents.logic import create_alert_rule
 from sentry.incidents.models import (
-    AlertRuleThresholdType,
     Incident,
     IncidentGroup,
     IncidentProject,
@@ -941,12 +940,9 @@ class Factories(object):
         organization,
         projects,
         name=None,
-        threshold_type=AlertRuleThresholdType.ABOVE,
         query="level:error",
         aggregation=QueryAggregations.TOTAL,
         time_window=10,
-        alert_threshold=100,
-        resolve_threshold=10,
         threshold_period=1,
         include_all_projects=False,
         excluded_projects=None,
@@ -958,12 +954,9 @@ class Factories(object):
             organization,
             projects,
             name,
-            threshold_type,
             query,
             aggregation,
             time_window,
-            alert_threshold,
-            resolve_threshold,
             threshold_period,
             include_all_projects=include_all_projects,
             excluded_projects=excluded_projects,

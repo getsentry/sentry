@@ -17,14 +17,14 @@ class BaseAlertRuleSerializerTest(object):
         assert result["id"] == six.text_type(alert_rule.id)
         assert result["organizationId"] == six.text_type(alert_rule.organization_id)
         assert result["name"] == alert_rule.name
-        assert result["thresholdType"] == alert_rule.threshold_type
+        assert result["thresholdType"] == 0
         assert result["dataset"] == alert_rule.dataset
         assert result["query"] == alert_rule.query
         assert result["aggregation"] == alert_rule.aggregation
         assert result["timeWindow"] == alert_rule.time_window
         assert result["resolution"] == alert_rule.resolution
-        assert result["alertThreshold"] == alert_rule.alert_threshold
-        assert result["resolveThreshold"] == alert_rule.resolve_threshold
+        assert result["alertThreshold"] == 0
+        assert result["resolveThreshold"] == 0
         assert result["thresholdPeriod"] == alert_rule.threshold_period
         assert result["includeAllProjects"] == alert_rule.include_all_projects
         assert result["dateModified"] == alert_rule.date_modified
@@ -37,12 +37,9 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
             self.organization,
             [self.project],
             "hello",
-            AlertRuleThresholdType.ABOVE,
             "level:error",
             QueryAggregations.TOTAL,
             10,
-            1000,
-            400,
             1,
         )
         result = serialize(alert_rule)

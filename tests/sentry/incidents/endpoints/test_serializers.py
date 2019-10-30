@@ -70,16 +70,6 @@ class TestAlertRuleSerializer(TestCase):
             {"timeWindow": 0}, {"timeWindow": ["Ensure this value is greater than or equal to 1."]}
         )
 
-    def test_threshold_type(self):
-        invalid_values = [
-            "Invalid threshold type, valid values are %s"
-            % [item.value for item in AlertRuleThresholdType]
-        ]
-        self.run_fail_validation_test(
-            {"thresholdType": "a"}, {"thresholdType": ["A valid integer is required."]}
-        )
-        self.run_fail_validation_test({"thresholdType": 50}, {"thresholdType": invalid_values})
-
     def test_aggregation(self):
         invalid_values = [
             "Invalid aggregation, valid values are %s" % [item.value for item in QueryAggregations]
@@ -103,21 +93,9 @@ class TestAlertRuleSerializer(TestCase):
         name = "hello"
         query = "level:error"
         aggregation = QueryAggregations.TOTAL
-        threshold_type = AlertRuleThresholdType.ABOVE
         time_window = 10
-        alert_threshold = 1000
-        resolve_threshold = 400
         alert_rule = create_alert_rule(
-            self.organization,
-            projects,
-            name,
-            threshold_type,
-            query,
-            aggregation,
-            time_window,
-            alert_threshold,
-            resolve_threshold,
-            1,
+            self.organization, projects, name, query, aggregation, time_window, 1
         )
 
         self._run_changed_fields_test(
@@ -125,12 +103,9 @@ class TestAlertRuleSerializer(TestCase):
             {
                 "projects": [p.slug for p in projects],
                 "name": name,
-                "threshold_type": threshold_type.value,
                 "query": query,
                 "aggregation": aggregation.value,
                 "time_window": time_window,
-                "alert_threshold": alert_threshold,
-                "resolve_threshold": resolve_threshold,
             },
             {},
         )
@@ -142,11 +117,6 @@ class TestAlertRuleSerializer(TestCase):
 
         self._run_changed_fields_test(alert_rule, {"name": name}, {})
         self._run_changed_fields_test(alert_rule, {"name": "a name"}, {"name": "a name"})
-
-        self._run_changed_fields_test(alert_rule, {"threshold_type": threshold_type.value}, {})
-        self._run_changed_fields_test(
-            alert_rule, {"threshold_type": 1}, {"threshold_type": AlertRuleThresholdType.BELOW}
-        )
 
         self._run_changed_fields_test(alert_rule, {"query": query}, {})
         self._run_changed_fields_test(
@@ -160,16 +130,6 @@ class TestAlertRuleSerializer(TestCase):
 
         self._run_changed_fields_test(alert_rule, {"time_window": time_window}, {})
         self._run_changed_fields_test(alert_rule, {"time_window": 20}, {"time_window": 20})
-
-        self._run_changed_fields_test(alert_rule, {"alert_threshold": alert_threshold}, {})
-        self._run_changed_fields_test(
-            alert_rule, {"alert_threshold": 2000}, {"alert_threshold": 2000}
-        )
-
-        self._run_changed_fields_test(alert_rule, {"resolve_threshold": resolve_threshold}, {})
-        self._run_changed_fields_test(
-            alert_rule, {"resolve_threshold": 200}, {"resolve_threshold": 200}
-        )
 
     def test_remove_unchanged_fields_include_all(self):
         projects = [self.project]

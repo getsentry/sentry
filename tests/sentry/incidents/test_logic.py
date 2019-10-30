@@ -93,12 +93,9 @@ class CreateIncidentTest(TestCase):
             self.organization,
             [self.project],
             "hello",
-            AlertRuleThresholdType.ABOVE,
             "level:error",
             QueryAggregations.TOTAL,
             10,
-            1000,
-            400,
             1,
         )
 
@@ -767,37 +764,28 @@ class BulkGetIncidentStatusTest(TestCase, BaseIncidentsTest):
 class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
     def test(self):
         name = "hello"
-        threshold_type = AlertRuleThresholdType.ABOVE
         query = "level:error"
         aggregation = QueryAggregations.TOTAL
         time_window = 10
-        alert_threshold = 1000
-        resolve_threshold = 400
         threshold_period = 1
         alert_rule = create_alert_rule(
             self.organization,
             [self.project],
             name,
-            threshold_type,
             query,
             aggregation,
             time_window,
-            alert_threshold,
-            resolve_threshold,
             threshold_period,
         )
         assert alert_rule.query_subscriptions.get().project == self.project
         assert alert_rule.name == name
         assert alert_rule.status == AlertRuleStatus.PENDING.value
         assert alert_rule.query_subscriptions.all().count() == 1
-        assert alert_rule.threshold_type == threshold_type.value
         assert alert_rule.dataset == QueryDatasets.EVENTS.value
         assert alert_rule.query == query
         assert alert_rule.aggregation == aggregation.value
         assert alert_rule.time_window == time_window
         assert alert_rule.resolution == DEFAULT_ALERT_RULE_RESOLUTION
-        assert alert_rule.alert_threshold == alert_threshold
-        assert alert_rule.resolve_threshold == resolve_threshold
         assert alert_rule.threshold_period == threshold_period
 
     def test_include_all_projects(self):
@@ -817,42 +805,21 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
     def test_invalid_query(self):
         with self.assertRaises(InvalidSearchQuery):
             create_alert_rule(
-                self.organization,
-                [self.project],
-                "hi",
-                AlertRuleThresholdType.ABOVE,
-                "has:",
-                QueryAggregations.TOTAL,
-                1,
-                1,
-                1,
-                1,
+                self.organization, [self.project], "hi", "has:", QueryAggregations.TOTAL, 1, 1
             )
 
     def test_existing_name(self):
         name = "uh oh"
         create_alert_rule(
-            self.organization,
-            [self.project],
-            name,
-            AlertRuleThresholdType.ABOVE,
-            "level:error",
-            QueryAggregations.TOTAL,
-            1,
-            1,
-            1,
-            1,
+            self.organization, [self.project], name, "level:error", QueryAggregations.TOTAL, 1, 1
         )
         with self.assertRaises(AlertRuleNameAlreadyUsedError):
             create_alert_rule(
                 self.organization,
                 [self.project],
                 name,
-                AlertRuleThresholdType.ABOVE,
                 "level:error",
                 QueryAggregations.TOTAL,
-                1,
-                1,
                 1,
                 1,
             )
@@ -865,23 +832,17 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             self.organization,
             [self.project],
             "hello",
-            AlertRuleThresholdType.ABOVE,
             "level:error",
             QueryAggregations.TOTAL,
             10,
-            1000,
-            400,
             1,
         )
 
     def test(self):
         name = "uh oh"
-        threshold_type = AlertRuleThresholdType.BELOW
         query = "level:warning"
         aggregation = QueryAggregations.UNIQUE_USERS
         time_window = 50
-        alert_threshold = 2000
-        resolve_threshold = 800
         threshold_period = 2
 
         updated_projects = [self.project, self.create_project(fire_project_created=True)]
@@ -890,12 +851,9 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             self.alert_rule,
             projects=updated_projects,
             name=name,
-            threshold_type=threshold_type,
             query=query,
             aggregation=aggregation,
             time_window=time_window,
-            alert_threshold=alert_threshold,
-            resolve_threshold=resolve_threshold,
             threshold_period=threshold_period,
         )
         assert self.alert_rule.name == name
@@ -905,12 +863,9 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             assert subscription.query == query
             assert subscription.aggregation == aggregation.value
             assert subscription.time_window == time_window
-        assert self.alert_rule.threshold_type == threshold_type.value
         assert self.alert_rule.query == query
         assert self.alert_rule.aggregation == aggregation.value
         assert self.alert_rule.time_window == time_window
-        assert self.alert_rule.alert_threshold == alert_threshold
-        assert self.alert_rule.resolve_threshold == resolve_threshold
         assert self.alert_rule.threshold_period == threshold_period
 
     def test_update_subscription(self):
@@ -928,12 +883,9 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             self.organization,
             [self.project],
             used_name,
-            AlertRuleThresholdType.ABOVE,
             "level:error",
             QueryAggregations.TOTAL,
             10,
-            1000,
-            400,
             1,
         )
         with self.assertRaises(AlertRuleNameAlreadyUsedError):
@@ -948,12 +900,9 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             self.organization,
             [self.project, self.create_project(fire_project_created=True)],
             "something",
-            AlertRuleThresholdType.ABOVE,
             "level:error",
             QueryAggregations.TOTAL,
             10,
-            1000,
-            400,
             1,
         )
         update_alert_rule(alert_rule, [self.project])
@@ -964,12 +913,9 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             self.organization,
             [self.project, self.create_project(fire_project_created=True)],
             "something",
-            AlertRuleThresholdType.ABOVE,
             "level:error",
             QueryAggregations.TOTAL,
             10,
-            1000,
-            400,
             1,
         )
         query_update = "level:warning"
@@ -1048,12 +994,9 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
             self.organization,
             [self.project],
             "hello",
-            AlertRuleThresholdType.ABOVE,
             "level:error",
             QueryAggregations.TOTAL,
             10,
-            1000,
-            400,
             1,
         )
 
