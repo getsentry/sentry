@@ -11,7 +11,7 @@ from sentry.testutils import PluginTestCase
 from sentry.utils import json
 from social_auth.models import UserSocialAuth
 
-from new_sentry_plugins.vsts.plugin import VstsPlugin
+from sentry_plugins.vsts.plugin import VstsPlugin
 
 WORK_ITEM_RESPONSE = """{
   "id": 309,

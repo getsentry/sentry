@@ -5,7 +5,7 @@ import responses
 from exam import fixture
 from sentry.testutils import PluginTestCase
 
-from new_sentry_plugins.sessionstack.plugin import SessionStackPlugin
+from sentry_plugins.sessionstack.plugin import SessionStackPlugin
 
 EXPECTED_SESSION_URL = (
     "https://app.sessionstack.com/player/#/sessions/588778a6c5762c1d566653ff"
