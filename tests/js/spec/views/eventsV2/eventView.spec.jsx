@@ -51,9 +51,77 @@ describe('EventView.fromLocation()', function() {
       tags: ['foo', 'bar'],
       query: 'event.type:transaction',
       project: [123],
+      start: undefined,
+      end: undefined,
+      statsPeriod: '14d',
+      environment: ['staging'],
+    });
+  });
+
+  it('includes first valid statsPeriod', function() {
+    const location = {
+      query: {
+        id: '42',
+        name: 'best query',
+        field: ['count()', 'id'],
+        fieldnames: ['events', 'projects'],
+        sort: ['title', '-count'],
+        tag: ['foo', 'bar'],
+        query: 'event.type:transaction',
+        project: [123],
+        start: '2019-10-01T00:00:00',
+        end: '2019-10-02T00:00:00',
+        statsPeriod: ['invalid', '28d'],
+        environment: ['staging'],
+      },
+    };
+
+    const eventView = EventView.fromLocation(location);
+
+    expect(eventView).toMatchObject({
+      id: '42',
+      name: 'best query',
+      fields: [{field: 'count()', title: 'events'}, {field: 'id', title: 'projects'}],
+      sorts: generateSorts(['count']),
+      tags: ['foo', 'bar'],
+      query: 'event.type:transaction',
+      project: [123],
+      start: undefined,
+      end: undefined,
+      statsPeriod: '28d',
+      environment: ['staging'],
+    });
+  });
+
+  it('includes start and end', function() {
+    const location = {
+      query: {
+        id: '42',
+        name: 'best query',
+        field: ['count()', 'id'],
+        fieldnames: ['events', 'projects'],
+        sort: ['title', '-count'],
+        tag: ['foo', 'bar'],
+        query: 'event.type:transaction',
+        project: [123],
+        start: '2019-10-01T00:00:00',
+        end: '2019-10-02T00:00:00',
+        environment: ['staging'],
+      },
+    };
+
+    const eventView = EventView.fromLocation(location);
+
+    expect(eventView).toMatchObject({
+      id: '42',
+      name: 'best query',
+      fields: [{field: 'count()', title: 'events'}, {field: 'id', title: 'projects'}],
+      sorts: generateSorts(['count']),
+      tags: ['foo', 'bar'],
+      query: 'event.type:transaction',
+      project: [123],
       start: '2019-10-01T00:00:00',
       end: '2019-10-02T00:00:00',
-      statsPeriod: '14d',
       environment: ['staging'],
     });
   });
@@ -577,6 +645,30 @@ describe('EventView.getEventsAPIPayload()', function() {
       query: 'event.type:csp',
       sort: '-count',
       cursor: 'some cursor',
+    });
+  });
+
+  it('includes start and end', function() {
+    const eventView = new EventView({
+      fields: generateFields(['title', 'count()']),
+      sorts: generateSorts(['count']),
+      tags: [],
+      query: 'event.type:csp',
+      start: '2019-10-01T00:00:00',
+      end: '2019-10-02T00:00:00',
+    });
+
+    const location = {
+      query: {},
+    };
+
+    expect(eventView.getEventsAPIPayload(location)).toEqual({
+      field: ['title', 'count()'],
+      sort: '-count',
+      query: 'event.type:csp',
+      start: '2019-10-01T00:00:00',
+      end: '2019-10-02T00:00:00',
+      per_page: 50,
     });
   });
 });

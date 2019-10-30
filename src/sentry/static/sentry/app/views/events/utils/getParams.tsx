@@ -2,7 +2,7 @@ import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {defined} from 'app/utils';
 import moment from 'moment';
 
-const STATS_PERIOD_PATTERN = '^d+[hdmsw]?$';
+const STATS_PERIOD_PATTERN = '^\\d+[hdmsw]?$';
 
 function validStatsPeriod(input: string) {
   return !!input.match(STATS_PERIOD_PATTERN);
@@ -46,12 +46,31 @@ const getDateTimeString = (
   return undefined;
 };
 
-const getUtcValue = utc => {
+const parseUtcValue = (utc: any) => {
   if (typeof utc !== 'undefined') {
     return utc === true || utc === 'true' ? 'true' : 'false';
   }
+  return undefined;
+};
 
-  return utc;
+const getUtcValue = (maybe: string | string[] | undefined | null): string | undefined => {
+  if (Array.isArray(maybe)) {
+    if (maybe.length <= 0) {
+      return undefined;
+    }
+
+    return maybe.find(needle => {
+      return !!parseUtcValue(needle);
+    });
+  }
+
+  maybe = parseUtcValue(maybe);
+
+  if (typeof maybe === 'string') {
+    return maybe;
+  }
+
+  return undefined;
 };
 
 interface Params {
@@ -75,17 +94,20 @@ export function getParams(params: Params): {[key: string]: string | string[]} {
   // `statsPeriod` takes precendence for now
   let coercedPeriod = getStatsPeriodValue(statsPeriod) || getStatsPeriodValue(period);
 
-  const isValid = (start && end) || coercedPeriod;
+  const dateTimeStart = getDateTimeString(start);
+  const dateTimeEnd = getDateTimeString(end);
 
-  if (!isValid) {
-    coercedPeriod = DEFAULT_STATS_PERIOD;
+  if (!(dateTimeStart && dateTimeEnd)) {
+    if (!coercedPeriod) {
+      coercedPeriod = DEFAULT_STATS_PERIOD;
+    }
   }
 
   // Filter null values
   return Object.entries({
     statsPeriod: coercedPeriod,
-    start: coercedPeriod ? null : getDateTimeString(start),
-    end: coercedPeriod ? null : getDateTimeString(end),
+    start: coercedPeriod ? null : dateTimeStart,
+    end: coercedPeriod ? null : dateTimeEnd,
     // coerce utc into a string (it can be both: a string representation from router,
     // or a boolean from time range picker)
     utc: getUtcValue(utc),

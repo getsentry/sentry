@@ -351,6 +351,8 @@ class EventView {
   }
 
   static fromLocation(location: Location): EventView {
+    const {start, end, statsPeriod} = getParams(location.query);
+
     return new EventView({
       id: decodeScalar(location.query.id),
       name: decodeScalar(location.query.name),
@@ -359,9 +361,9 @@ class EventView {
       tags: collectQueryStringByKey(location.query, 'tag'),
       query: decodeQuery(location) || '',
       project: decodeProjects(location),
-      start: decodeScalar(location.query.start),
-      end: decodeScalar(location.query.end),
-      statsPeriod: decodeScalar(location.query.statsPeriod),
+      start: decodeScalar(start),
+      end: decodeScalar(end),
+      statsPeriod: decodeScalar(statsPeriod),
       environment: collectQueryStringByKey(location.query, 'environment'),
     });
   }
