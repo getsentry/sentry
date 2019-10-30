@@ -10,7 +10,6 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.api.event_search import (
-    convert_endpoint_params,
     event_search_grammar,
     get_filter,
     resolve_field_list,
@@ -988,37 +987,6 @@ class GetSnubaQueryArgsTest(TestCase):
         filter.conditions == [["project_id", "=", p1.id]]
         filter.filter_keys == {"project_id": [p1.id, p2.id]}
         filter.project_ids == [p1.id, p2.id]
-
-
-class ConvertEndpointParamsTests(unittest.TestCase):
-    def test_simple(self):
-        assert convert_endpoint_params(
-            {
-                "project_id": [1, 2, 3],
-                "start": datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc),
-                "end": datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc),
-            }
-        ) == [
-            SearchFilter(
-                key=SearchKey(name="start"),
-                operator="=",
-                value=SearchValue(
-                    raw_value=datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
-                ),
-            ),
-            SearchFilter(
-                key=SearchKey(name="project_id"),
-                operator="=",
-                value=SearchValue(raw_value=[1, 2, 3]),
-            ),
-            SearchFilter(
-                key=SearchKey(name="end"),
-                operator="=",
-                value=SearchValue(
-                    raw_value=datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc)
-                ),
-            ),
-        ]
 
 
 class ResolveFieldListTest(unittest.TestCase):
