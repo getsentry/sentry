@@ -680,8 +680,8 @@ FIELD_ALIASES = {
 VALID_AGGREGATES = {
     "count_unique": {"snuba_name": "uniq", "fields": "*"},
     "count": {"snuba_name": "count", "fields": "*"},
-    "min": {"snuba_name": "min", "fields": ["timestamp", "transaction.duration"]},
-    "max": {"snuba_name": "max", "fields": ["timestamp", "transaction.duration"]},
+    "min": {"snuba_name": "min", "fields": ["time", "timestamp", "transaction.duration"]},
+    "max": {"snuba_name": "max", "fields": ["time", "timestamp", "transaction.duration"]},
     "avg": {"snuba_name": "avg", "fields": ["transaction.duration"]},
 }
 
