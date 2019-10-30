@@ -426,6 +426,11 @@ urlpatterns += patterns(
                 ),
                 url(r"^account/", generic_react_page_view),
                 url(
+                    r"^(?P<organization_slug>[\w_-]+)/$",
+                    react_page_view,
+                    name="sentry-organization-settings",
+                ),
+                url(
                     r"^(?P<organization_slug>[\w_-]+)/members/$",
                     react_page_view,
                     name="sentry-organization-members",

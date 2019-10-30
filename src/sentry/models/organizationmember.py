@@ -250,6 +250,9 @@ class OrganizationMember(Model):
             "pending_requests_link": absolute_uri(
                 reverse("sentry-organization-members-requests", kwargs=link_args)
             ),
+            "settings_link": absolute_uri(
+                reverse("sentry-organization-settings", args=[self.organization.slug])
+            ),
         }
 
         if self.requested_to_join:
