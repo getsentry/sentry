@@ -73,7 +73,7 @@ class Discover2Item extends React.Component<Props, State> {
     const {organization} = this.props;
     const target = {
       pathname: `/organizations/${organization.slug}/eventsv2/`,
-      query: {...EventView.fromSavedQuery(item).generateQueryStringObject(), edit: true},
+      query: {...EventView.fromSavedQuery(item).generateQueryStringObject()},
     };
     browserHistory.push(target);
   };
