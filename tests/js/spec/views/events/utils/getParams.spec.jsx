@@ -23,8 +23,12 @@ describe('getParams', function() {
 
   it('should parse start and end', function() {
     expect(getParams({start: '2019-10-01T00:00:00', end: '2019-10-02T00:00:00'})).toEqual(
-      {start: '2019-10-01T00:00:00', end: '2019-10-02T00:00:00'}
+      {start: '2019-10-01T00:00:00.000', end: '2019-10-02T00:00:00.000'}
     );
+
+    expect(
+      getParams({start: '2019-10-23T04:28:49+0000', end: '2019-10-26T02:56:17+0000'})
+    ).toEqual({start: '2019-10-23T04:28:49.000', end: '2019-10-26T02:56:17.000'});
   });
 
   it('should parse first valid start and end', function() {
@@ -33,7 +37,7 @@ describe('getParams', function() {
         start: ['invalid', '2019-10-01T00:00:00', '2020-10-01T00:00:00'],
         end: ['invalid', '2019-10-02T00:00:00', '2020-10-02T00:00:00'],
       })
-    ).toEqual({start: '2019-10-01T00:00:00', end: '2019-10-02T00:00:00'});
+    ).toEqual({start: '2019-10-01T00:00:00.000', end: '2019-10-02T00:00:00.000'});
   });
 
   it('should return default statsPeriod if both start and end are not provided, or either are invalid', function() {
