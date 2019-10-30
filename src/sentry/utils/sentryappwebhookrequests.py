@@ -107,7 +107,7 @@ class SentryAppWebhookRequestsBuffer(object):
     def get_requests(self, event=None):
         return self._get_requests(event=event, error=False)
 
-    def add_request(self, response_code, org_id, event, url):
+    def add_request(self, response_code, org_id, event, url, error=None):
         if event not in EXTENDED_VALID_EVENTS:
             return
 
@@ -123,6 +123,10 @@ class SentryAppWebhookRequestsBuffer(object):
         # Don't store the org id for internal apps because it will always be the org that owns the app anyway
         if not self.sentry_app.is_internal:
             request_data["organization_id"] = org_id
+
+        # If there's a sentry error associated with this request!
+        if error is not None:
+            request_data["error_id"] = error
 
         pipe = self.client.pipeline()
 

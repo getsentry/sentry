@@ -130,6 +130,7 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
 
   renderRequestLog() {
     const {requests, app} = this.state;
+    const {orgId} = this.props.params;
     return (
       <React.Fragment>
         <h5>{t('Request Log')}</h5>
@@ -151,19 +152,25 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
 
           <PanelBody>
             {requests.length > 0 ? (
-              requests.map((request, idx) => (
-                <PanelItem key={idx}>
-                  <TableLayout>
-                    <DateTime date={request.date} />
-                    <div>{request.responseCode}</div>
-                    {app.status !== 'internal' && request.organization && (
-                      <div>{request.organization.name}</div>
-                    )}
-                    <div>{request.eventType}</div>
-                    <OverflowBox>{request.webhookUrl}</OverflowBox>
-                  </TableLayout>
-                </PanelItem>
-              ))
+              requests.map((request, idx) => {
+                const LinkOrDiv = request.errorId ? Link : 'div';
+                const linkTo = request.errorId
+                  ? `/organizations/${orgId}/events/?query=${request.errorId}`
+                  : '';
+                return (
+                  <PanelItem key={idx}>
+                    <TableLayout>
+                      <DateTime date={request.date} />
+                      <LinkOrDiv to={linkTo}>{request.responseCode}</LinkOrDiv>
+                      {app.status !== 'internal' && request.organization && (
+                        <div>{request.organization.name}</div>
+                      )}
+                      <div>{request.eventType}</div>
+                      <OverflowBox>{request.webhookUrl}</OverflowBox>
+                    </TableLayout>
+                  </PanelItem>
+                );
+              })
             ) : (
               <EmptyMessage icon="icon-circle-exclamation">
                 {t('No requests found.')}

@@ -21,6 +21,9 @@ class SentryAppRequestsEndpoint(SentryAppBaseEndpoint):
             "responseCode": request.get("response_code"),
         }
 
+        if "error_id" in request:
+            formatted_request["errorId"] = request.get("error_id")
+
         if "organization_id" in request:
             try:
                 org = Organization.objects.get_from_cache(id=request["organization_id"])
