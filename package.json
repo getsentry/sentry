@@ -177,7 +177,7 @@
   "scripts": {
     "test": "node scripts/test.js",
     "test-precommit": "yarn test --bail --findRelatedTests -u",
-    "test-ci": "JEST_JUNIT_OUTPUT=.artifacts/jest.junit.xml yarn test --ci --coverage --testResultsProcessor=jest-junit",
+    "test-ci": "JEST_JUNIT_OUTPUT=.artifacts/jest.junit.xml yarn test --ci --coverage --testResultsProcessor=jest-junit tests/js/spec/views/organizationContext.spec.jsx",
     "test-debug": "node --inspect-brk scripts/test.js --runInBand",
     "test-staged": "yarn test --findRelatedTests $(git diff --name-only --cached)",
     "lint": "yarn eslint tests/js src/sentry/static/sentry/app --ext .js,.jsx,.ts,.tsx",

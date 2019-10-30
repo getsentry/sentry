@@ -134,8 +134,6 @@ test-cli:
 	@echo ""
 
 test-js: node-version-check
-	@echo "--> Building static assets"
-	@$(WEBPACK) --profile --json > .artifacts/webpack-stats.json
 	@echo "--> Running JavaScript tests"
 	@$(YARN) run test-ci
 	@echo ""
