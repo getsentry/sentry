@@ -18,7 +18,7 @@ email-reply-parser>=0.2.0,<0.3.0
 enum34>=1.1.6,<1.2.0
 functools32>=3.2.3,<3.3
 futures>=3.2.0,<4.0.0
-# optional but needed for below
+# optional but needed for google stuff below
 google-cloud-core==0.29.1
 # optional
 google-cloud-bigtable>=0.32.1,<0.33.0
