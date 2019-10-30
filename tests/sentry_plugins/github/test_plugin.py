@@ -10,7 +10,7 @@ from sentry.testutils import PluginTestCase
 from sentry.utils import json
 from social_auth.models import UserSocialAuth
 
-from sentry_plugins.github.plugin import GitHubPlugin
+from new_sentry_plugins.github.plugin import GitHubPlugin
 
 
 class GitHubPluginTest(PluginTestCase):

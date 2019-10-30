@@ -9,7 +9,7 @@ from sentry.testutils import PluginTestCase
 from sentry.utils import json
 from six.moves.urllib.parse import parse_qs
 
-from sentry_plugins.slack.plugin import SlackPlugin
+from new_sentry_plugins.slack.plugin import SlackPlugin
 
 
 class SlackPluginTest(PluginTestCase):
