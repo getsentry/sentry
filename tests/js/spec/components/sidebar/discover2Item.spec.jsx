@@ -81,39 +81,4 @@ describe('Sidebar > Discover2Item', function() {
     const menuItems = menu.find('MenuItem');
     expect(menuItems).toHaveLength(2);
   });
-
-  it('handles delete buttons', async function() {
-    const deleteRequest = Client.addMockResponse({
-      url: '/organizations/org-slug/discover/saved/1/',
-      method: 'DELETE',
-    });
-    const wrapper = makeWrapper({organization, client});
-    // Wait for reflux
-    await tick();
-    await tick();
-
-    const nav = wrapper.find('nav');
-    nav.simulate('mouseEnter');
-    await wrapper.update();
-
-    const item = wrapper.find('Menu MenuItem').first();
-    item.find('MenuItemButton[icon="icon-trash"]').simulate('click');
-
-    expect(deleteRequest).toHaveBeenCalled();
-  });
-
-  it('handles edit buttons', async function() {
-    const wrapper = makeWrapper({organization, client});
-    // Wait for reflux
-    await tick();
-    await tick();
-
-    const nav = wrapper.find('nav');
-    nav.simulate('mouseEnter');
-    await wrapper.update();
-
-    const item = wrapper.find('Menu MenuItem').first();
-    item.find('MenuItemButton[icon="icon-edit"]').simulate('click');
-    expect(browserHistory.push).toHaveBeenCalled();
-  });
 });
