@@ -28,12 +28,20 @@ class SavedQueryButtonGroup extends React.Component<Props> {
     return index >= 0;
   };
 
+  renderDeleteButton = () => {
+    if (!this.isEditingExistingQuery()) {
+      return null;
+    }
+
+    return <Button icon="icon-trash" />;
+  };
+
   render() {
     const {location, organization, eventView, savedQueries} = this.props;
 
     return (
       <ButtonGroup>
-        <Button icon="icon-trash" />
+        {this.renderDeleteButton()}
         <EventsSaveQueryButton
           location={location}
           organization={organization}
