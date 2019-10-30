@@ -1,5 +1,6 @@
 import {Location, Query} from 'history';
 import {isString, cloneDeep, pick, isEqual} from 'lodash';
+import moment from 'moment';
 
 import {DEFAULT_PER_PAGE} from 'app/constants';
 import {EventViewv1} from 'app/types';
@@ -272,7 +273,7 @@ function isLegacySavedQuery(
 
 const queryStringFromSavedQuery = (saved: LegacySavedQuery | SavedQuery): string => {
   if (!isLegacySavedQuery(saved) && saved.query) {
-    return saved.query;
+    return saved.query || '';
   }
   if (isLegacySavedQuery(saved) && saved.conditions) {
     const conditions = saved.conditions.map(item => {
@@ -295,7 +296,7 @@ class EventView {
   fields: Readonly<Field[]>;
   sorts: Readonly<Sort[]>;
   tags: Readonly<string[]>;
-  query: string | undefined;
+  query: string;
   project: Readonly<number[]>;
   start: string | undefined;
   end: string | undefined;
@@ -308,7 +309,7 @@ class EventView {
     fields: Readonly<Field[]>;
     sorts: Readonly<Sort[]>;
     tags: Readonly<string[]>;
-    query?: string | undefined;
+    query: string;
     project: Readonly<number[]>;
     start: string | undefined;
     end: string | undefined;
@@ -340,7 +341,7 @@ class EventView {
     this.fields = props.fields;
     this.sorts = sorts;
     this.tags = props.tags;
-    this.query = props.query;
+    this.query = typeof props.query === 'string' ? props.query : '';
     this.project = props.project;
     this.start = props.start;
     this.end = props.end;
@@ -355,7 +356,7 @@ class EventView {
       fields: decodeFields(location),
       sorts: decodeSorts(location),
       tags: collectQueryStringByKey(location.query, 'tag'),
-      query: decodeQuery(location),
+      query: decodeQuery(location) || '',
       project: decodeProjects(location),
       start: decodeScalar(location.query.start),
       end: decodeScalar(location.query.end),
@@ -377,7 +378,7 @@ class EventView {
       name: eventViewV1.name,
       sorts: fromSorts(eventViewV1.data.sort),
       tags: eventViewV1.tags,
-      query: eventViewV1.data.query,
+      query: eventViewV1.data.query || '',
       project: [],
       id: undefined,
       start: undefined,
@@ -419,6 +420,49 @@ class EventView {
         'environment'
       ),
     });
+  }
+
+  isEqualTo(other: EventView): boolean {
+    const keys = [
+      'id',
+      'name',
+      'query',
+      'statsPeriod',
+      'fields',
+      'sorts',
+      'tags',
+      'project',
+      'environment',
+    ];
+
+    for (const key of keys) {
+      const currentValue = this[key];
+      const otherValue = other[key];
+
+      if (!isEqual(currentValue, otherValue)) {
+        return false;
+      }
+    }
+
+    // compare datetime selections using moment
+
+    const dateTimeKeys = ['start', 'end'];
+
+    for (const key of dateTimeKeys) {
+      const currentValue = this[key];
+      const otherValue = other[key];
+
+      if (currentValue && otherValue) {
+        const currentDateTime = moment.utc(currentValue);
+        const othereDateTime = moment.utc(otherValue);
+
+        if (!currentDateTime.isSame(othereDateTime)) {
+          return false;
+        }
+      }
+    }
+
+    return true;
   }
 
   toNewQuery(): NewQuery {
