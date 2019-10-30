@@ -23,8 +23,6 @@ from sentry.utils.sdk import capture_exception
 
 ERR_NO_SSO = _("The organization does not exist or does not have Single Sign-On enabled.")
 
-JOIN_REQUEST_EXPERIMENT = "JoinRequestExperiment"
-
 
 # Stores callbacks that are called to get additional template context data before the login page
 # is rendered. Callbacks are called in any order. If an error is encountered in a callback it is
@@ -85,8 +83,8 @@ class AuthLoginView(BaseView):
         if not organization:
             return None
 
-        assignment = experiments.get(org=organization, experiment_name=JOIN_REQUEST_EXPERIMENT)
-        if assignment != 1:
+        variant = experiments.get(org=organization, experiment_name="ImprovedInvitesExperiment")
+        if variant not in ("all", "join_request"):
             return None
 
         if organization.get_option("sentry:join_requests") is False:
