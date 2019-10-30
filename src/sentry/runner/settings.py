@@ -146,13 +146,12 @@ def configure(ctx, py, yaml, skip_service_validation=False):
 
     hasattr(settings, "INSTALLED_APPS")
 
-    from .initializer import initialize_app, on_configure
+    from .initializer import initialize_app
 
     initialize_app(
         {"config_path": py, "settings": settings, "options": yaml},
         skip_service_validation=skip_service_validation,
     )
-    on_configure({"settings": settings})
 
     __installed = True
 
