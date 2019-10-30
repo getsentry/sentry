@@ -18,6 +18,8 @@ import Input from 'app/components/forms/input';
 import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
+import {SavedQuery} from 'app/stores/discoverSavedQueriesStore';
+import withDiscoverSavedQueries from 'app/utils/withDiscoverSavedQueries';
 
 import EventView from './eventView';
 
@@ -27,6 +29,7 @@ type Props = {
   eventView: EventView;
   location: Location;
   isEditing: boolean;
+  savedQueries: SavedQuery[];
 };
 
 type State = {
@@ -95,9 +98,23 @@ class EventsSaveQueryButton extends React.Component<Props, State> {
     this.setState({queryName: value});
   };
 
+  isEditingExistingQuery = (): boolean => {
+    const {savedQueries, eventView} = this.props;
+
+    const index = savedQueries.findIndex(needle => {
+      return needle.id === eventView.id;
+    });
+
+    return index >= 0;
+  };
+
   render() {
     const {isEditing} = this.props;
     const buttonText = isEditing ? t('Update') : t('Save');
+
+    const newQueryLabel = this.isEditingExistingQuery()
+      ? t('Save as...')
+      : t('Save Query');
 
     return (
       <DropdownControl
@@ -110,7 +127,7 @@ class EventsSaveQueryButton extends React.Component<Props, State> {
             showChevron={false}
           >
             <StyledInlineSvg src="icon-bookmark" size="14" />
-            {t('Save Query')}
+            {newQueryLabel}
           </StyledDropdownButton>
         )}
       >
@@ -148,4 +165,4 @@ const StyledDropdownButton = styled(DropdownButton)`
   white-space: nowrap;
 `;
 
-export default withApi(EventsSaveQueryButton);
+export default withApi(withDiscoverSavedQueries(EventsSaveQueryButton));
