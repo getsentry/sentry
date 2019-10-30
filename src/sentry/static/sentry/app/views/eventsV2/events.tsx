@@ -2,7 +2,7 @@ import React from 'react';
 import styled from 'react-emotion';
 import * as ReactRouter from 'react-router';
 import {Location} from 'history';
-import {omit} from 'lodash';
+import {omit, uniqBy} from 'lodash';
 
 import {Organization} from 'app/types';
 import space from 'app/styles/space';
@@ -15,11 +15,11 @@ import {getParams} from 'app/views/events/utils/getParams';
 
 import Table from './table';
 import Tags from './tags';
-import EventView from './eventView';
+import EventView, {Field} from './eventView';
 
 const CHART_AXIS_OPTIONS = [
-  {label: 'Count', value: 'event_count'},
-  {label: 'Users', value: 'user_count'},
+  {label: 'count', value: 'count(id)'},
+  {label: 'users', value: 'count_unique(user)'},
 ];
 
 type EventsProps = {
@@ -61,6 +61,17 @@ export default class Events extends React.Component<EventsProps> {
     const {organization, eventView, location, router} = this.props;
     const query = location.query.query || '';
 
+    // Make option set and add the default options in.
+    const yAxisOptions = uniqBy(
+      eventView
+        .getAggregateFields()
+        .map((field: Field) => {
+          return {label: field.title, value: field.field};
+        })
+        .concat(CHART_AXIS_OPTIONS),
+      'value'
+    );
+
     return (
       <React.Fragment>
         <Panel>
@@ -71,7 +82,7 @@ export default class Events extends React.Component<EventsProps> {
                 query={eventView.getEventsAPIPayload(location).query}
                 organization={organization}
                 showLegend
-                yAxisOptions={CHART_AXIS_OPTIONS}
+                yAxisOptions={yAxisOptions}
               />
             ),
             fixed: 'events chart',
@@ -83,7 +94,7 @@ export default class Events extends React.Component<EventsProps> {
           onSearch={this.handleSearch}
         />
         <Container hasTags={eventView.tags.length > 0}>
-          <Table organization={organization} location={location} />
+          <Table organization={organization} eventView={eventView} location={location} />
           {this.renderTagsTable()}
         </Container>
       </React.Fragment>

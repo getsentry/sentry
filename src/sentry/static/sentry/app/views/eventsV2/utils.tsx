@@ -51,6 +51,15 @@ export function hasAggregateField(eventView: EventView): boolean {
 }
 
 /**
+ * Check if a field name looks like an aggregate function or known aggregate alias.
+ */
+export function isAggregateField(field: string): boolean {
+  return (
+    AGGREGATE_ALIASES.includes(field as any) || field.match(AGGREGATE_PATTERN) !== null
+  );
+}
+
+/**
  * Return a location object for the current pathname
  * with a query string reflected the provided tag.
  *
