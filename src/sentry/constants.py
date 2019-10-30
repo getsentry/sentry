@@ -224,23 +224,6 @@ SENTRY_RULES = (
 # methods as defined by http://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html + PATCH
 HTTP_METHODS = ("GET", "POST", "PUT", "OPTIONS", "HEAD", "DELETE", "TRACE", "CONNECT", "PATCH")
 
-# XXX: Must be all lowercase
-DEFAULT_SCRUBBED_FIELDS = (
-    "password",
-    "secret",
-    "passwd",
-    "api_key",
-    "apikey",
-    "access_token",
-    "auth",
-    "credentials",
-    "mysql_pwd",
-    "stripetoken",
-    "card[number]",
-)
-
-NOT_SCRUBBED_VALUES = set([True, False, "true", "false", "null", "undefined"])
-
 VALID_PLATFORMS = set(
     [
         "as3",
@@ -272,11 +255,6 @@ OK_PLUGIN_DISABLED = _("The {name} integration has been disabled.")
 OK_PLUGIN_SAVED = _("Configuration for the {name} integration has been saved.")
 
 WARN_SESSION_EXPIRED = "Your session has expired."  # TODO: translate this
-
-# If this value changes, also change it in src/sentry/static/sentry/app/constants/index.tsx
-# TODO(kmclb): once relay is doing the filtering, this will change, at minimum to become
-# "DEFAULT_FILTER_MASK" or some such, since the mask value will be dynamic
-FILTER_MASK = "[Filtered]"
 
 # Maximum length of a symbol
 MAX_SYM = 256
