@@ -663,7 +663,7 @@ class PluginTestCase(TestCase):
             self.addCleanup(plugins.unregister, self.plugin)
 
     def assertAppInstalled(self, name, path):
-        for ep in iter_entry_points("sentry.apps"):
+        for ep in iter_entry_points("sentry.new_apps"):
             if ep.name == name:
                 ep_path = ep.module_name
                 if ep_path == path:

@@ -140,7 +140,7 @@ setup(
     include_package_data=True,
     entry_points={
         "console_scripts": ["sentry = sentry.runner:main"],
-        "sentry.apps": [
+        "sentry.new_apps": [
             "jira_ac = new_sentry_plugins.jira_ac",
             "jira = new_sentry_plugins.jira",
             "sessionstack = new_sentry_plugins.sessionstack",
