@@ -84,6 +84,8 @@ class SavedQueryButtonGroup extends React.Component<Props> {
 }
 
 const ButtonGroup = styled('div')`
+  display: flex;
+
   > * + * {
     margin-left: 8px;
   }
