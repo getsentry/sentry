@@ -1,5 +1,6 @@
 import {Location, Query} from 'history';
 import {isString, cloneDeep, pick, isEqual} from 'lodash';
+import moment from 'moment';
 
 import {DEFAULT_PER_PAGE} from 'app/constants';
 import {EventViewv1} from 'app/types';
@@ -426,8 +427,6 @@ class EventView {
       'id',
       'name',
       'query',
-      'start',
-      'end',
       'statsPeriod',
       'fields',
       'sorts',
@@ -442,6 +441,28 @@ class EventView {
 
       if (!isEqual(currentValue, otherValue)) {
         return false;
+      }
+    }
+
+    // compare datetime selections using moment
+
+    const dateTimeKeys = ['start', 'end'];
+
+    for (const key of dateTimeKeys) {
+      const currentValue = this[key];
+      const otherValue = other[key];
+
+      if (currentValue && otherValue) {
+        const currentDateTime = moment.utc(currentValue);
+        const othereDateTime = moment.utc(otherValue);
+
+        if (
+          currentDateTime.isValid() &&
+          othereDateTime.isValid() &&
+          !currentDateTime.isSame(othereDateTime)
+        ) {
+          return false;
+        }
       }
     }
 

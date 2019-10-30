@@ -173,6 +173,34 @@ describe('EventView.fromSavedQuery()', function() {
     expect(eventView.start).toEqual('');
     expect(eventView.end).toEqual('');
   });
+
+  it('saved queries are equal when start and end datetime differ in format', function() {
+    const saved = {
+      orderby: '-count_timestamp',
+      end: '2019-10-23T19:27:04+0000',
+      name: 'release query',
+      fields: ['release', 'count(timestamp)'],
+      fieldnames: ['release', 'counts'],
+      dateCreated: '2019-10-30T05:10:23.718937Z',
+      environment: ['dev', 'production'],
+      start: '2019-10-20T21:02:51+0000',
+      version: 2,
+      createdBy: '1',
+      dateUpdated: '2019-10-30T07:25:58.291917Z',
+      id: '3',
+      projects: [1],
+    };
+
+    const eventView = EventView.fromSavedQuery(saved);
+
+    const eventView2 = EventView.fromSavedQuery({
+      ...saved,
+      start: '2019-10-20T21:02:51Z',
+      end: '2019-10-23T19:27:04Z',
+    });
+
+    expect(eventView.isEqualTo(eventView2)).toBe(true);
+  });
 });
 
 describe('EventView.generateQueryStringObject()', function() {
