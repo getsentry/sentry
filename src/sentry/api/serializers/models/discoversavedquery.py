@@ -23,6 +23,7 @@ class DiscoverSavedQuerySerializer(Serializer):
             "orderby",
             "limit",
             "version",
+            "tags",
         ]
 
         data = {
