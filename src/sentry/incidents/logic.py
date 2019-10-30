@@ -132,7 +132,7 @@ def calculate_incident_start(query, projects, groups):
     """
     params = {}
     if groups:
-        params["issue.id"] = [g.id for g in groups]
+        params["group_ids"] = [g.id for g in groups]
         end = max(g.last_seen for g in groups) + timedelta(seconds=1)
     else:
         end = timezone.now()
@@ -423,7 +423,7 @@ def bulk_build_incident_query_params(incidents, start=None, end=None):
         }
         group_ids = incident_groups[incident.id]
         if group_ids:
-            params["issue.id"] = group_ids
+            params["group_ids"] = group_ids
         project_ids = incident_projects[incident.id]
         if project_ids:
             params["project_id"] = project_ids

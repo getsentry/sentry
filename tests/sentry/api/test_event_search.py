@@ -10,7 +10,6 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.api.event_search import (
-    convert_endpoint_params,
     event_search_grammar,
     get_filter,
     resolve_field_list,
@@ -484,6 +483,14 @@ class ParseSearchQueryTest(unittest.TestCase):
                 value=SearchValue(raw_value=">500"),
             )
         ]
+
+    def test_invalid_numeric_fields(self):
+        invalid_queries = ["project.id:one", "issue.id:two", "transaction.duration:>hotdog"]
+        for invalid_query in invalid_queries:
+            with self.assertRaises(
+                InvalidSearchQuery, expected_regex="Invalid format for numeric search"
+            ):
+                parse_search_query(invalid_query)
 
     def test_quotes_filtered_on_raw(self):
         # Enclose the full raw query? Strip it.
@@ -982,37 +989,6 @@ class GetSnubaQueryArgsTest(TestCase):
         filter.project_ids == [p1.id, p2.id]
 
 
-class ConvertEndpointParamsTests(unittest.TestCase):
-    def test_simple(self):
-        assert convert_endpoint_params(
-            {
-                "project_id": [1, 2, 3],
-                "start": datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc),
-                "end": datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc),
-            }
-        ) == [
-            SearchFilter(
-                key=SearchKey(name="start"),
-                operator="=",
-                value=SearchValue(
-                    raw_value=datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
-                ),
-            ),
-            SearchFilter(
-                key=SearchKey(name="project_id"),
-                operator="=",
-                value=SearchValue(raw_value=[1, 2, 3]),
-            ),
-            SearchFilter(
-                key=SearchKey(name="end"),
-                operator="=",
-                value=SearchValue(
-                    raw_value=datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc)
-                ),
-            ),
-        ]
-
-
 class ResolveFieldListTest(unittest.TestCase):
     def test_non_string_field_error(self):
         fields = [["any", "thing", "lol"]]
@@ -1334,10 +1310,7 @@ class GetReferenceEventConditionsTest(SnubaTestCase, TestCase):
         self.conditions["groupby"] = ["gpu.name", "browser.name"]
         slug = "{}:{}".format(self.project.slug, event.event_id)
         result = get_reference_event_conditions(self.organization, self.conditions, slug)
-        assert result == [
-            ["gpu.name", "=", "nvidia 8600"],
-            ["browser.name", "=", "Firefox"],
-        ]
+        assert result == [["gpu.name", "=", "nvidia 8600"], ["browser.name", "=", "Firefox"]]
 
     def test_issue_field(self):
         event = self.store_event(
