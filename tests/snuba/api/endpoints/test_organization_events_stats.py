@@ -321,3 +321,18 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         # We could get more results depending on where the 30 min
         # windows land.
         assert len(items) >= 3
+
+    def test_project_id_query_filter(self):
+        with self.feature("organizations:events-v2"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "end": iso_format(before_now()),
+                    "start": iso_format(before_now(hours=2)),
+                    "query": "project_id:1",
+                    "interval": "30m",
+                    "yAxis": "count()",
+                },
+            )
+        assert response.status_code == 200
