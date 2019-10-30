@@ -12,6 +12,7 @@ from sentry.models.sentryapp import VALID_EVENTS
 
 
 BUFFER_SIZE = 100
+KEY_EXPIRY = 60 * 60 * 24 * 30  # 30 days
 
 
 class SentryAppWebhookRequestsBuffer(object):
@@ -47,6 +48,7 @@ class SentryAppWebhookRequestsBuffer(object):
 
         pipeline.lpush(buffer_key, json.dumps(item))
         pipeline.ltrim(buffer_key, 0, BUFFER_SIZE - 1)
+        pipeline.expire(buffer_key, KEY_EXPIRY)
 
     def add_request(self, response_code, org_id, event, url):
         if event not in VALID_EVENTS:
