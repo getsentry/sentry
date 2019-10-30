@@ -3,11 +3,15 @@ import {Location} from 'history';
 import styled from 'react-emotion';
 import {browserHistory} from 'react-router';
 
+import space from 'app/styles/space';
 import {Client} from 'app/api';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import {Organization} from 'app/types';
-import {deleteSavedQuery} from 'app/actionCreators/discoverSavedQueries';
+import {
+  deleteSavedQuery,
+  updateSavedQuery,
+} from 'app/actionCreators/discoverSavedQueries';
 import {SavedQuery} from 'app/stores/discoverSavedQueriesStore';
 import withApi from 'app/utils/withApi';
 import withDiscoverSavedQueries from 'app/utils/withDiscoverSavedQueries';
@@ -25,16 +29,28 @@ type Props = {
 };
 
 class SavedQueryButtonGroup extends React.Component<Props> {
-  isEditingExistingQuery = (): boolean => {
+  getExistingSavedQuery = (): EventView | undefined => {
     const {savedQueries, eventView} = this.props;
-
-    const isValidId = typeof eventView.id === 'string';
 
     const index = savedQueries.findIndex(needle => {
       return needle.id === eventView.id;
     });
 
-    return index >= 0 && isValidId;
+    if (index < 0) {
+      return undefined;
+    }
+
+    const savedQuery = savedQueries[index];
+
+    return EventView.fromSavedQuery(savedQuery);
+  };
+
+  isEditingExistingQuery = (): boolean => {
+    const {eventView} = this.props;
+
+    const isValidId = typeof eventView.id === 'string';
+
+    return !!this.getExistingSavedQuery() && isValidId;
   };
 
   deleteQuery = (event: React.MouseEvent<Element>) => {
@@ -67,12 +83,49 @@ class SavedQueryButtonGroup extends React.Component<Props> {
     return <Button icon="icon-trash" onClick={this.deleteQuery} />;
   };
 
+  handleSaveQuery = (event: React.MouseEvent<Element>) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!this.isEditingExistingQuery()) {
+      return;
+    }
+
+    const {organization, api, eventView} = this.props;
+
+    const payload = eventView.toNewQuery();
+
+    updateSavedQuery(api, organization.slug, payload).then(_saved => {
+      addSuccessMessage(t('Query updated'));
+
+      // NOTE: there is no need to convert _saved into an EventView and push it
+      //       to the browser history, since this.props.eventView already
+      //       derives from location.
+    });
+  };
+
+  isQueryModified = (): boolean => {
+    const previousSavedQuery = this.getExistingSavedQuery();
+
+    if (!previousSavedQuery) {
+      return false;
+    }
+
+    const {eventView} = this.props;
+
+    return !eventView.isEqualTo(previousSavedQuery);
+  };
+
   renderSaveButton = () => {
     if (!this.isEditingExistingQuery()) {
       return null;
     }
 
-    return <Button>{t('Update query')}</Button>;
+    return (
+      <Button disabled={!this.isQueryModified()} onClick={this.handleSaveQuery}>
+        {t('Update query')}
+      </Button>
+    );
   };
 
   render() {
@@ -98,7 +151,7 @@ const ButtonGroup = styled('div')`
   display: flex;
 
   > * + * {
-    margin-left: 8px;
+    margin-left: ${space(1)};
   }
 `;
 
