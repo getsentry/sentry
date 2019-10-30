@@ -38,6 +38,8 @@ steps:
   - '-e'
   - '-c'
   - |
+    # Only push to Docker Hub from master
+    [ "$BRANCH_NAME" != "master" ] && exit 0
     # Need to pull the image first due to Kaniko
     docker pull us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA
     echo "$$DOCKER_PASSWORD" | docker login --username=sentrybuilder --password-stdin
@@ -45,11 +47,8 @@ steps:
     docker push getsentry/sentry:$SHORT_SHA
     docker tag us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA getsentry/sentry:$COMMIT_SHA
     docker push getsentry/sentry:$COMMIT_SHA
-    # Only tag "latest" when on master
-    if [ "$BRANCH_NAME" == "master" ]; then
-      docker tag us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA getsentry/sentry:latest
-      docker push getsentry/sentry:latest
-    fi
+    docker tag us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA getsentry/sentry:latest
+    docker push getsentry/sentry:latest
 timeout: 2400s
 options:
   # We need more memory for Webpack builds & e2e onpremise tests
