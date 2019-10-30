@@ -1292,7 +1292,7 @@ describe('EventView.isEqualTo()', function() {
     expect(eventView.isEqualTo(eventView2)).toBe(true);
   });
 
-  it.only('should be false when not equal', function() {
+  it('should be false when not equal', function() {
     const state = {
       id: '1234',
       name: 'best query',
