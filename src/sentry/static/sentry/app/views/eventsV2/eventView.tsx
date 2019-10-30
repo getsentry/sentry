@@ -337,6 +337,14 @@ class EventView {
 
     const id = props.id !== null && props.id !== void 0 ? String(props.id) : void 0;
 
+    // normalize datetime selection
+
+    const {start, end, statsPeriod} = getParams({
+      start: props.start,
+      end: props.end,
+      statsPeriod: props.statsPeriod,
+    });
+
     this.id = id;
     this.name = props.name;
     this.fields = props.fields;
@@ -344,9 +352,9 @@ class EventView {
     this.tags = props.tags;
     this.query = typeof props.query === 'string' ? props.query : '';
     this.project = props.project;
-    this.start = props.start;
-    this.end = props.end;
-    this.statsPeriod = props.statsPeriod;
+    this.start = decodeScalar(start);
+    this.end = decodeScalar(end);
+    this.statsPeriod = decodeScalar(statsPeriod);
     this.environment = props.environment;
   }
 
