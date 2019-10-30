@@ -108,9 +108,10 @@ class OrganizationJoinRequestTest(APITestCase):
         assert pending == original_pending
         assert not mock_log.info.called
 
+    @patch("sentry.analytics.record")
     @patch("sentry.api.endpoints.organization_join_request.logger")
     @patch("sentry.experiments.get", return_value=1)
-    def test_already_requested_to_join(self, mock_experiment, mock_log):
+    def test_already_requested_to_join(self, mock_experiment, mock_log, mock_record):
         join_request_email = "join-request@example.com"
         original_join_request = self.create_member(
             email=join_request_email,
@@ -128,9 +129,12 @@ class OrganizationJoinRequestTest(APITestCase):
         assert join_request == original_join_request
         assert not mock_log.info.called
 
+        assert not any(c[0][0] == "join_request.created" for c in mock_record.call_args_list)
+
+    @patch("sentry.analytics.record")
     @patch("sentry.api.endpoints.organization_join_request.logger")
     @patch("sentry.experiments.get", return_value=1)
-    def test_request_to_join(self, mock_experiment, mock_log):
+    def test_request_to_join(self, mock_experiment, mock_log, mock_record):
         with self.tasks():
             resp = self.get_response(self.org.slug, email=self.email)
 
@@ -151,6 +155,10 @@ class OrganizationJoinRequestTest(APITestCase):
                 "email": self.email,
                 "ip_address": "127.0.0.1",
             },
+        )
+
+        mock_record.assert_called_with(
+            "join_request.created", member_id=join_request.id, organization_id=self.org.id
         )
 
         assert len(mail.outbox) == 1
