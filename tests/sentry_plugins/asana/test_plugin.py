@@ -10,7 +10,7 @@ from sentry.testutils import PluginTestCase
 from sentry.utils import json
 from social_auth.models import UserSocialAuth
 
-from sentry_plugins.asana.plugin import AsanaPlugin
+from new_sentry_plugins.asana.plugin import AsanaPlugin
 
 
 class AsanaPluginTest(PluginTestCase):

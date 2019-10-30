@@ -5,7 +5,7 @@ from django.core.urlresolvers import reverse
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
 
-from sentry_plugins.pivotal.plugin import PivotalPlugin
+from new_sentry_plugins.pivotal.plugin import PivotalPlugin
 
 
 class PivotalPluginTest(PluginTestCase):

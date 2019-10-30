@@ -4,7 +4,7 @@ from exam import fixture
 from django.test import RequestFactory
 from sentry.testutils import PluginTestCase
 
-from sentry_plugins.jira_ac.plugin import JiraACPlugin
+from new_sentry_plugins.jira_ac.plugin import JiraACPlugin
 
 
 class JiraPluginTest(PluginTestCase):
@@ -20,5 +20,5 @@ class JiraPluginTest(PluginTestCase):
         assert self.plugin.conf_key == "jira-ac"
 
     def test_entry_point(self):
-        self.assertAppInstalled("jira_ac", "sentry_plugins.jira_ac")
+        self.assertAppInstalled("jira_ac", "new_sentry_plugins.jira_ac")
         self.assertPluginInstalled("jira_ac", self.plugin)
