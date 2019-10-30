@@ -132,6 +132,11 @@ RUN set -x \
     && buildDeps="$buildDeps \
       make \
     " \
+       # xmlsec
+    && buildDeps="$buildDeps \
+      libxmlsec1-dev \
+      pkg-config \
+    " \
     && apt-get update \
     && apt-get install -y --no-install-recommends $buildDeps \
     && pip install /tmp/dist/*.whl \

@@ -94,7 +94,7 @@ install-yarn-pkgs:
 
 install-sentry-dev:
 	@echo "--> Installing Sentry (for development)"
-	$(PIP) install -e ".[dev,optional]" $(PIP_OPTS)
+	$(PIP) install -e ".[dev]" $(PIP_OPTS)
 
 build-js-po: node-version-check
 	mkdir -p build
