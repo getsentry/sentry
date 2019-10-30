@@ -30,7 +30,7 @@ describe('EventsV2 > SaveQueryButton', function() {
       TestStubs.routerContext()
     );
     const button = wrapper.find('StyledDropdownButton');
-    expect(button.text()).toEqual('Save Search');
+    expect(button.text()).toEqual('Save Query');
   });
 
   it('renders a popover for a new query', function() {

@@ -110,7 +110,7 @@ class EventsSaveQueryButton extends React.Component<Props, State> {
             showChevron={false}
           >
             <StyledInlineSvg src="icon-bookmark" size="14" />
-            {t('Save Search')}
+            {t('Save Query')}
           </StyledDropdownButton>
         )}
       >
