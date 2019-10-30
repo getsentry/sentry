@@ -1,4 +1,3 @@
-import {Flex} from 'grid-emotion';
 import {Link, browserHistory} from 'react-router';
 import LazyLoad from 'react-lazyload';
 import PropTypes from 'prop-types';
@@ -131,9 +130,9 @@ class Dashboard extends React.Component {
 
 const OrganizationDashboard = props => {
   return (
-    <Flex flex="1" direction="column">
+    <OrganizationDashboardWrapper>
       <Dashboard {...props} />
-    </Flex>
+    </OrganizationDashboardWrapper>
   );
 };
 
@@ -147,6 +146,12 @@ const ProjectsHeader = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
+`;
+
+const OrganizationDashboardWrapper = styled('div')`
+  display: flex;
+  flex: 1;
+  flex-direction: column;
 `;
 
 export {Dashboard};
