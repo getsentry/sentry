@@ -54,34 +54,37 @@ class TableView extends React.Component<TableViewProps> {
     let nextEventView: EventView;
 
     if (typeof insertAt === 'number') {
+      const payload = {
+        aggregation: String(nextColumn.aggregation),
+        field: String(nextColumn.field),
+        fieldname: nextColumn.name,
+      };
+
       // create and insert a column at a specific index
-      nextEventView = eventView.withNewColumnAt(
-        {
-          aggregation: String(nextColumn.aggregation),
-          field: String(nextColumn.field),
-          fieldname: nextColumn.name,
-        },
-        insertAt
-      );
+      nextEventView = eventView.withNewColumnAt(payload, insertAt);
 
       // metrics
       trackAnalyticsEvent({
         eventKey: 'discover_v2.add_column',
         eventName: 'Discoverv2: Add a new column at an index',
         insert_at: insertAt,
+        ...payload,
       });
     } else {
-      // create and insert a column at the right end of the table
-      nextEventView = eventView.withNewColumn({
+      const payload = {
         aggregation: String(nextColumn.aggregation),
         field: String(nextColumn.field),
         fieldname: nextColumn.name,
-      });
+      };
+
+      // create and insert a column at the right end of the table
+      nextEventView = eventView.withNewColumn(payload);
 
       // metrics
       trackAnalyticsEvent({
         eventKey: 'discover_v2.add_column.right_end',
         eventName: 'Discoverv2: Add a new column at the right end of the table',
+        ...payload,
       });
     }
 
