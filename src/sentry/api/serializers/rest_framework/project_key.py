@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from rest_framework import serializers
 from sentry.api.fields.empty_integer import EmptyIntegerField
+from sentry.loader.browsersdkversion import get_browser_sdk_version_choices
 
 
 class RateLimitSerializer(serializers.Serializer):
@@ -14,3 +15,7 @@ class ProjectKeySerializer(serializers.Serializer):
     public = serializers.RegexField(r"^[a-f0-9]{32}$", required=False, allow_null=True)
     secret = serializers.RegexField(r"^[a-f0-9]{32}$", required=False, allow_null=True)
     rateLimit = RateLimitSerializer(required=False, allow_null=True)
+    isActive = serializers.BooleanField(required=False)
+    browserSdkVersion = serializers.ChoiceField(
+        choices=get_browser_sdk_version_choices(), required=False
+    )
