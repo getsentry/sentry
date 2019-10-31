@@ -11,7 +11,7 @@ import {Panel} from 'app/components/panels';
 import EventsChart from 'app/views/events/eventsChart';
 import getDynamicText from 'app/utils/getDynamicText';
 
-import {getParams} from 'app/views/events/utils/getParams';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 
 import Table from './table';
 import Tags from './tags';

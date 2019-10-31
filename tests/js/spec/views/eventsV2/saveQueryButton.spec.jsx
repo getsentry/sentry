@@ -130,6 +130,7 @@ describe('EventsV2 > SaveQueryButton', function() {
         name: 'my query',
         query: '',
         sort: [],
+        statsPeriod: '14d',
         tag: [],
       },
     });

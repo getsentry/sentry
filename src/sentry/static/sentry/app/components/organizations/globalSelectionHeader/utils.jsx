@@ -2,17 +2,20 @@ import {pick, pickBy, identity} from 'lodash';
 
 import {defined} from 'app/utils';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 
 // Parses URL query parameters for values relevant to global selection header
 export function getStateFromQuery(query) {
-  let start = query[URL_PARAM.START] !== 'null' && query[URL_PARAM.START];
-  let end = query[URL_PARAM.END] !== 'null' && query[URL_PARAM.END];
+  const parsedParams = getParams(query);
+
+  let start = parsedParams.start;
+  let end = parsedParams.end;
   let project = query[URL_PARAM.PROJECT];
   let environment = query[URL_PARAM.ENVIRONMENT];
-  const period = query[URL_PARAM.PERIOD];
-  const utc = query[URL_PARAM.UTC];
+  const period = parsedParams.statsPeriod;
+  const utc = parsedParams.utc;
 
   const hasAbsolute = !!start && !!end;
 

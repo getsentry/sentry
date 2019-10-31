@@ -16,7 +16,7 @@ import SentryTypes from 'app/sentryTypes';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import withOrganization from 'app/utils/withOrganization';
 
-import {getParams} from './utils/getParams';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import EventsChart from './eventsChart';
 import EventsTable from './eventsTable';
 

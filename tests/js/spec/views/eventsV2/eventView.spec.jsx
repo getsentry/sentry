@@ -51,9 +51,77 @@ describe('EventView.fromLocation()', function() {
       tags: ['foo', 'bar'],
       query: 'event.type:transaction',
       project: [123],
-      start: '2019-10-01T00:00:00',
-      end: '2019-10-02T00:00:00',
+      start: undefined,
+      end: undefined,
       statsPeriod: '14d',
+      environment: ['staging'],
+    });
+  });
+
+  it('includes first valid statsPeriod', function() {
+    const location = {
+      query: {
+        id: '42',
+        name: 'best query',
+        field: ['count()', 'id'],
+        fieldnames: ['events', 'projects'],
+        sort: ['title', '-count'],
+        tag: ['foo', 'bar'],
+        query: 'event.type:transaction',
+        project: [123],
+        start: '2019-10-01T00:00:00',
+        end: '2019-10-02T00:00:00',
+        statsPeriod: ['invalid', '28d'],
+        environment: ['staging'],
+      },
+    };
+
+    const eventView = EventView.fromLocation(location);
+
+    expect(eventView).toMatchObject({
+      id: '42',
+      name: 'best query',
+      fields: [{field: 'count()', title: 'events'}, {field: 'id', title: 'projects'}],
+      sorts: generateSorts(['count']),
+      tags: ['foo', 'bar'],
+      query: 'event.type:transaction',
+      project: [123],
+      start: undefined,
+      end: undefined,
+      statsPeriod: '28d',
+      environment: ['staging'],
+    });
+  });
+
+  it('includes start and end', function() {
+    const location = {
+      query: {
+        id: '42',
+        name: 'best query',
+        field: ['count()', 'id'],
+        fieldnames: ['events', 'projects'],
+        sort: ['title', '-count'],
+        tag: ['foo', 'bar'],
+        query: 'event.type:transaction',
+        project: [123],
+        start: '2019-10-01T00:00:00',
+        end: '2019-10-02T00:00:00',
+        environment: ['staging'],
+      },
+    };
+
+    const eventView = EventView.fromLocation(location);
+
+    expect(eventView).toMatchObject({
+      id: '42',
+      name: 'best query',
+      fields: [{field: 'count()', title: 'events'}, {field: 'id', title: 'projects'}],
+      sorts: generateSorts(['count']),
+      tags: ['foo', 'bar'],
+      query: 'event.type:transaction',
+      project: [123],
+      start: '2019-10-01T00:00:00.000',
+      end: '2019-10-02T00:00:00.000',
       environment: ['staging'],
     });
   });
@@ -75,7 +143,7 @@ describe('EventView.fromLocation()', function() {
       project: [],
       start: void 0,
       end: void 0,
-      statsPeriod: void 0,
+      statsPeriod: '14d',
       environment: [],
     });
   });
@@ -105,9 +173,28 @@ describe('EventView.fromSavedQuery()', function() {
       tags: [],
       query: 'event.type:transaction',
       project: [123],
-      start: '2019-10-01T00:00:00',
-      end: '2019-10-02T00:00:00',
+      start: undefined,
+      end: undefined,
+      // statsPeriod has precedence
       statsPeriod: '14d',
+      environment: ['staging'],
+    });
+
+    const eventView2 = EventView.fromSavedQuery({
+      ...saved,
+      range: undefined,
+    });
+    expect(eventView2).toMatchObject({
+      id: saved.id,
+      name: saved.name,
+      fields: [{field: 'count()', title: 'count()'}, {field: 'id', title: 'id'}],
+      sorts: [{field: 'id', kind: 'desc'}],
+      tags: [],
+      query: 'event.type:transaction',
+      project: [123],
+      start: '2019-10-01T00:00:00.000',
+      end: '2019-10-02T00:00:00.000',
+      statsPeriod: undefined,
       environment: ['staging'],
     });
   });
@@ -170,8 +257,8 @@ describe('EventView.fromSavedQuery()', function() {
     ]);
     expect(eventView.name).toEqual(saved.name);
     expect(eventView.statsPeriod).toEqual('14d');
-    expect(eventView.start).toEqual('');
-    expect(eventView.end).toEqual('');
+    expect(eventView.start).toEqual(undefined);
+    expect(eventView.end).toEqual(undefined);
   });
 
   it('saved queries are equal when start and end datetime differ in format', function() {
@@ -248,7 +335,9 @@ describe('EventView.fromSavedQuery()', function() {
     });
 
     expect(eventView.isEqualTo(eventView3)).toBe(false);
-    expect(eventView2.isEqualTo(eventView3)).toBe(false);
+
+    // this is expected since datetime (start and end) are normalized
+    expect(eventView2.isEqualTo(eventView3)).toBe(true);
   });
 });
 
@@ -432,8 +521,8 @@ describe('EventView.getEventsAPIPayload()', function() {
         environment: ['staging'],
         start: 'start',
         end: 'end',
-        utc: 'utc',
-        statsPeriod: 'statsPeriod',
+        utc: 'true',
+        statsPeriod: '14d',
         cursor: 'some cursor',
 
         // non-relevant query strings
@@ -446,14 +535,161 @@ describe('EventView.getEventsAPIPayload()', function() {
       environment: ['staging'],
       start: 'start',
       end: 'end',
-      utc: 'utc',
-      statsPeriod: 'statsPeriod',
+      utc: 'true',
+      statsPeriod: '14d',
 
       field: ['title', 'count()'],
       per_page: 50,
       query: 'event.type:csp',
       sort: '-count',
       cursor: 'some cursor',
+    });
+  });
+
+  it('includes default coerced statsPeriod when omitted or is invalid', function() {
+    const eventView = new EventView({
+      fields: generateFields(['title', 'count()']),
+      sorts: generateSorts(['project', 'count']),
+      tags: [],
+      query: 'event.type:csp',
+    });
+
+    const location = {
+      query: {
+        project: '1234',
+        environment: ['staging'],
+        start: 'start',
+        end: 'end',
+        utc: 'true',
+        // invalid statsPeriod string
+        statsPeriod: 'invalid',
+        cursor: 'some cursor',
+      },
+    };
+
+    expect(eventView.getEventsAPIPayload(location)).toEqual({
+      project: '1234',
+      environment: ['staging'],
+      start: 'start',
+      end: 'end',
+      utc: 'true',
+      statsPeriod: '14d',
+
+      field: ['title', 'count()'],
+      per_page: 50,
+      query: 'event.type:csp',
+      sort: '-count',
+      cursor: 'some cursor',
+    });
+
+    const location2 = {
+      query: {
+        project: '1234',
+        environment: ['staging'],
+        start: 'start',
+        end: 'end',
+        utc: 'true',
+        // statsPeriod is omitted here
+        cursor: 'some cursor',
+      },
+    };
+
+    expect(eventView.getEventsAPIPayload(location2)).toEqual({
+      project: '1234',
+      environment: ['staging'],
+      start: 'start',
+      end: 'end',
+      utc: 'true',
+      statsPeriod: '14d',
+
+      field: ['title', 'count()'],
+      per_page: 50,
+      query: 'event.type:csp',
+      sort: '-count',
+      cursor: 'some cursor',
+    });
+  });
+
+  it('includes default coerced statsPeriod when either start or end is only provided', function() {
+    const eventView = new EventView({
+      fields: generateFields(['title', 'count()']),
+      sorts: generateSorts(['project', 'count']),
+      tags: [],
+      query: 'event.type:csp',
+    });
+
+    const location = {
+      query: {
+        project: '1234',
+        environment: ['staging'],
+        start: 'start',
+        utc: 'true',
+        statsPeriod: 'invalid',
+        cursor: 'some cursor',
+      },
+    };
+
+    expect(eventView.getEventsAPIPayload(location)).toEqual({
+      project: '1234',
+      environment: ['staging'],
+      utc: 'true',
+      start: 'start',
+      statsPeriod: '14d',
+
+      field: ['title', 'count()'],
+      per_page: 50,
+      query: 'event.type:csp',
+      sort: '-count',
+      cursor: 'some cursor',
+    });
+
+    const location2 = {
+      query: {
+        project: '1234',
+        environment: ['staging'],
+        end: 'end',
+        utc: 'true',
+        statsPeriod: 'invalid',
+        cursor: 'some cursor',
+      },
+    };
+
+    expect(eventView.getEventsAPIPayload(location2)).toEqual({
+      project: '1234',
+      environment: ['staging'],
+      utc: 'true',
+      end: 'end',
+      statsPeriod: '14d',
+
+      field: ['title', 'count()'],
+      per_page: 50,
+      query: 'event.type:csp',
+      sort: '-count',
+      cursor: 'some cursor',
+    });
+  });
+
+  it('includes start and end', function() {
+    const eventView = new EventView({
+      fields: generateFields(['title', 'count()']),
+      sorts: generateSorts(['count']),
+      tags: [],
+      query: 'event.type:csp',
+      start: '2019-10-01T00:00:00',
+      end: '2019-10-02T00:00:00',
+    });
+
+    const location = {
+      query: {},
+    };
+
+    expect(eventView.getEventsAPIPayload(location)).toEqual({
+      field: ['title', 'count()'],
+      sort: '-count',
+      query: 'event.type:csp',
+      start: '2019-10-01T00:00:00.000',
+      end: '2019-10-02T00:00:00.000',
+      per_page: 50,
     });
   });
 });
@@ -473,8 +709,8 @@ describe('EventView.getTagsAPIPayload()', function() {
         environment: ['staging'],
         start: 'start',
         end: 'end',
-        utc: 'utc',
-        statsPeriod: 'statsPeriod',
+        utc: 'true',
+        statsPeriod: '14d',
 
         // non-relevant query strings
         bestCountry: 'canada',
@@ -488,8 +724,8 @@ describe('EventView.getTagsAPIPayload()', function() {
       environment: ['staging'],
       start: 'start',
       end: 'end',
-      utc: 'utc',
-      statsPeriod: 'statsPeriod',
+      utc: 'true',
+      statsPeriod: '14d',
 
       field: ['title', 'count()'],
       per_page: 50,
