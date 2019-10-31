@@ -138,6 +138,13 @@ class TableView extends React.Component<TableViewProps> {
 
     const nextEventView = eventView.withDeletedColumn(columnIndex, tableData.meta);
 
+    // metrics
+    trackAnalyticsEvent({
+      eventKey: 'discover_v2.delete_column',
+      eventName: 'Discoverv2: A column was updated',
+      deleted_at: columnIndex,
+    });
+
     pushEventViewToLocation({
       location,
       nextEventView,
