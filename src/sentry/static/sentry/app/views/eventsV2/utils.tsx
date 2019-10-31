@@ -85,6 +85,7 @@ export function getEventTagSearchUrl(
 }
 
 export type TagTopValue = {
+  name: string;
   url: {
     pathname: string;
     query: any;
