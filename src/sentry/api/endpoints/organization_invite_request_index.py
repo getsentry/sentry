@@ -33,6 +33,9 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
             organization=organization,
         ).order_by("invite_status", "email")
 
+        if organization.get_option("sentry:join_requests") is False:
+            queryset = queryset.filter(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)
+
         return self.paginate(
             request=request,
             queryset=queryset,
