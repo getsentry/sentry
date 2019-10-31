@@ -121,13 +121,6 @@ class RuleForm extends React.Component<Props> {
                 choices: Object.entries(TIME_WINDOW_MAP),
                 required: true,
               },
-              {
-                name: 'isDefault',
-                type: 'boolean',
-                label: t('Is Default'),
-                defaultValue: false,
-                help: t('Default rules will visible for all members of an organization?'),
-              },
             ],
           },
         ]}
