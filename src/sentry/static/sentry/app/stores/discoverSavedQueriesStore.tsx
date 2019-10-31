@@ -16,6 +16,7 @@ export type NewQuery = {
   start?: string;
   end?: string;
   environment?: Readonly<string[]>;
+  tags?: Readonly<string[]>;
 };
 
 export type SavedQuery = NewQuery & {

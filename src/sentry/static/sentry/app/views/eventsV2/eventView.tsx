@@ -411,7 +411,12 @@ class EventView {
       start: saved.start,
       end: saved.end,
       sorts: fromSorts(saved.orderby),
-      tags: [],
+      tags: collectQueryStringByKey(
+        {
+          tags: (saved as SavedQuery).tags as string[],
+        },
+        'tags'
+      ),
       statsPeriod: saved.range,
       environment: collectQueryStringByKey(
         {
@@ -475,7 +480,7 @@ class EventView {
       fields: this.getFields(),
       fieldnames: this.getFieldNames(),
       orderby,
-      // TODO: tags?
+      tags: this.tags,
       query: this.query || '',
       projects: this.project,
       start: this.start,
