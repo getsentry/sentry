@@ -120,8 +120,8 @@ describe('EventView.fromLocation()', function() {
       tags: ['foo', 'bar'],
       query: 'event.type:transaction',
       project: [123],
-      start: '2019-10-01T00:00:00',
-      end: '2019-10-02T00:00:00',
+      start: '2019-10-01T00:00:00.000',
+      end: '2019-10-02T00:00:00.000',
       environment: ['staging'],
     });
   });
@@ -143,7 +143,7 @@ describe('EventView.fromLocation()', function() {
       project: [],
       start: void 0,
       end: void 0,
-      statsPeriod: void 0,
+      statsPeriod: '14d',
       environment: [],
     });
   });
@@ -173,9 +173,28 @@ describe('EventView.fromSavedQuery()', function() {
       tags: [],
       query: 'event.type:transaction',
       project: [123],
-      start: '2019-10-01T00:00:00',
-      end: '2019-10-02T00:00:00',
+      start: undefined,
+      end: undefined,
+      // statsPeriod has precedence
       statsPeriod: '14d',
+      environment: ['staging'],
+    });
+
+    const eventView2 = EventView.fromSavedQuery({
+      ...saved,
+      range: undefined,
+    });
+    expect(eventView2).toMatchObject({
+      id: saved.id,
+      name: saved.name,
+      fields: [{field: 'count()', title: 'count()'}, {field: 'id', title: 'id'}],
+      sorts: [{field: 'id', kind: 'desc'}],
+      tags: [],
+      query: 'event.type:transaction',
+      project: [123],
+      start: '2019-10-01T00:00:00.000',
+      end: '2019-10-02T00:00:00.000',
+      statsPeriod: undefined,
       environment: ['staging'],
     });
   });
@@ -238,8 +257,8 @@ describe('EventView.fromSavedQuery()', function() {
     ]);
     expect(eventView.name).toEqual(saved.name);
     expect(eventView.statsPeriod).toEqual('14d');
-    expect(eventView.start).toEqual('');
-    expect(eventView.end).toEqual('');
+    expect(eventView.start).toEqual(undefined);
+    expect(eventView.end).toEqual(undefined);
   });
 
   it('saved queries are equal when start and end datetime differ in format', function() {
@@ -316,7 +335,9 @@ describe('EventView.fromSavedQuery()', function() {
     });
 
     expect(eventView.isEqualTo(eventView3)).toBe(false);
-    expect(eventView2.isEqualTo(eventView3)).toBe(false);
+
+    // this is expected since datetime (start and end) are normalized
+    expect(eventView2.isEqualTo(eventView3)).toBe(true);
   });
 });
 
@@ -666,8 +687,8 @@ describe('EventView.getEventsAPIPayload()', function() {
       field: ['title', 'count()'],
       sort: '-count',
       query: 'event.type:csp',
-      start: '2019-10-01T00:00:00',
-      end: '2019-10-02T00:00:00',
+      start: '2019-10-01T00:00:00.000',
+      end: '2019-10-02T00:00:00.000',
       per_page: 50,
     });
   });
