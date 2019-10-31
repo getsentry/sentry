@@ -55,7 +55,7 @@ type Props = {
     onSubmitSuccess: (data: Data) => void,
     onSubmitError: (error: any) => void,
     e: React.FormEvent,
-    setFormSaving: FormModel['setFormSaving']
+    model: FormModel
   ) => void;
 } & Pick<FormOptions, 'onSubmitSuccess' | 'onSubmitError' | 'onFieldChange'>;
 
@@ -161,7 +161,7 @@ export default class Form extends React.Component<Props> {
         this.onSubmitSuccess,
         this.onSubmitError,
         e,
-        this.model.setFormSaving.bind(this.model)
+        this.model
       );
     } else {
       this.model.saveForm();
