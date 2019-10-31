@@ -160,6 +160,14 @@ class TableView extends React.Component<TableViewProps> {
 
     const nextEventView = eventView.withMovedColumn({fromIndex, toIndex});
 
+    // metrics
+    trackAnalyticsEvent({
+      eventKey: 'discover_v2.move_column',
+      eventName: 'Discoverv2: A column was moved',
+      from_index: fromIndex,
+      to_index: toIndex,
+    });
+
     pushEventViewToLocation({
       location,
       nextEventView,
