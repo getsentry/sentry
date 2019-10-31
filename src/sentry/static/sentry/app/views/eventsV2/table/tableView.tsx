@@ -141,7 +141,7 @@ class TableView extends React.Component<TableViewProps> {
     // metrics
     trackAnalyticsEvent({
       eventKey: 'discover_v2.delete_column',
-      eventName: 'Discoverv2: A column was updated',
+      eventName: 'Discoverv2: A column was deleted',
       deleted_at: columnIndex,
     });
 
