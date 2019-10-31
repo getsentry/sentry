@@ -149,7 +149,7 @@ class OrganizationMembersWrapper extends AsyncView<Props> {
           <Button
             priority="primary"
             size="small"
-            onClick={openInviteMembersModal}
+            onClick={() => openInviteMembersModal({source: 'members_settings'})}
             disabled={!this.canOpeninviteModal}
             title={
               !this.canOpeninviteModal
