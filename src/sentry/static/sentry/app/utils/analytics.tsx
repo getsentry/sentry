@@ -51,7 +51,7 @@ export const trackAdhocEvent: Hooks['analytics:track-adhoc-event'] = options =>
  * details.
  */
 export const logExperiment: Hooks['analytics:log-experiment'] = options =>
-  HookStore.get('analytics:track-adhoc-event').forEach(cb => cb(options));
+  HookStore.get('analytics:log-experiment').forEach(cb => cb(options));
 
 /**
  * Legacy analytics tracking.
