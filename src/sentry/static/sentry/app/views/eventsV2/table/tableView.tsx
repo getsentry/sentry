@@ -67,7 +67,7 @@ class TableView extends React.Component<TableViewProps> {
       trackAnalyticsEvent({
         eventKey: 'discover_v2.add_column',
         eventName: 'Discoverv2: Add a new column at an index',
-        insert_at: insertAt,
+        insert_at_index: insertAt,
         ...payload,
       });
     } else {
@@ -121,7 +121,7 @@ class TableView extends React.Component<TableViewProps> {
     trackAnalyticsEvent({
       eventKey: 'discover_v2.update_column',
       eventName: 'Discoverv2: A column was updated',
-      updated_at: columnIndex,
+      updated_at_index: columnIndex,
       ...payload,
     });
 
@@ -148,7 +148,7 @@ class TableView extends React.Component<TableViewProps> {
     trackAnalyticsEvent({
       eventKey: 'discover_v2.delete_column',
       eventName: 'Discoverv2: A column was deleted',
-      deleted_at: columnIndex,
+      deleted_at_index: columnIndex,
     });
 
     pushEventViewToLocation({
