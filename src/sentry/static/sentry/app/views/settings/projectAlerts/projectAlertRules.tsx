@@ -1,6 +1,10 @@
+import {Params} from 'react-router/lib/Router';
+import {PlainRoute} from 'react-router/lib/Route';
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import {IssueAlertRule} from 'app/types/alerts';
+import {Location} from 'history';
 import {Panel} from 'app/components/panels';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
@@ -12,16 +16,30 @@ import SentryTypes from 'app/sentryTypes';
 
 import ProjectAlertHeader from './projectAlertHeader';
 
-class ProjectAlertRules extends AsyncView {
+type Props = {
+  params: Params;
+  location: Location;
+  routes: PlainRoute[];
+};
+
+type State = {
+  ruleList: IssueAlertRule[];
+};
+
+class ProjectAlertRules extends AsyncView<
+  Props & AsyncView['props'],
+  State & AsyncView['state']
+> {
   static propTypes = {
     routes: PropTypes.array.isRequired,
   };
 
   static contextTypes = {
+    router: PropTypes.object,
     organization: SentryTypes.Organization,
   };
 
-  getEndpoints() {
+  getEndpoints(): [string, string][] {
     const {orgId, projectId} = this.props.params;
     return [['ruleList', `/projects/${orgId}/${projectId}/rules/`]];
   }
