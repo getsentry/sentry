@@ -67,7 +67,7 @@ class TableView extends React.Component<TableViewProps> {
       trackAnalyticsEvent({
         eventKey: 'discover_v2.add_column',
         eventName: 'Discoverv2: Add a new column at an index',
-        index: insertAt,
+        insert_at: insertAt,
       });
     } else {
       // create and insert a column at the right end of the table
