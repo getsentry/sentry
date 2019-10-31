@@ -37,8 +37,6 @@ class OrganizationDeveloperSettingsNewAcceptanceTest(AcceptanceTestCase):
 
         self.browser.wait_until(".ref-success")
 
-        self.browser.snapshot("developer settings new public integration after success")
-
         assert self.browser.find_element_by_xpath("//div[contains(text(), 'Client ID')]")
 
     def test_create_new_internal_integration(self):
