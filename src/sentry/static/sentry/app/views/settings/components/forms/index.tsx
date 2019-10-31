@@ -1,8 +1,11 @@
 export {default as ApiForm} from './apiForm';
 export {default as BooleanField} from './booleanField';
+export {default as ChoiceMapperField} from './choiceMapperField';
 export {default as DatePickerField} from './datePickerField';
 export {default as DateTimeField} from './dateTimeField';
-export {default as emailField} from './emailField';
+export {default as EmailField} from './emailField';
+export {default as FieldFromConfig} from './fieldFromConfig';
+export {default as FieldSeparator} from './fieldSeparator';
 export {default as Form} from './form';
 export {default as FormPanel} from './formPanel';
 export {default as HiddenField} from './hiddenField';
@@ -16,4 +19,4 @@ export {default as RichListField} from './richListField';
 export {default as SelectField} from './selectField';
 export {default as TextareaField} from './textareaField';
 export {default as TestCopyInput} from './textCopyInput';
-export {default as TestField} from './textField';
+export {default as TextField} from './textField';
