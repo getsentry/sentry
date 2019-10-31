@@ -112,6 +112,13 @@ class TableView extends React.Component<TableViewProps> {
       tableData.meta
     );
 
+    // metrics
+    trackAnalyticsEvent({
+      eventKey: 'discover_v2.update_column',
+      eventName: 'Discoverv2: A column was updated',
+      updated_at: columnIndex,
+    });
+
     pushEventViewToLocation({
       location,
       nextEventView,
