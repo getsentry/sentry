@@ -99,9 +99,7 @@ const withTeamsForUser = <P extends InjectedTeamsProps>(
     }
 
     render() {
-      return (
-        <WrappedComponent {...(this.props as (P & DependentProps))} {...this.state} />
-      );
+      return <WrappedComponent {...this.props as (P & DependentProps)} {...this.state} />;
     }
   };
 
