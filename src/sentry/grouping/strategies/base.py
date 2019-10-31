@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import six
 import inspect
 
 from sentry import projectoptions
@@ -10,17 +11,26 @@ from sentry.grouping.enhancer import Enhancements
 STRATEGIES = {}
 
 
-def strategy(id, variants, interfaces, name=None, score=None):
+def strategy(id=None, ids=None, variants=None, interfaces=None, name=None, score=None):
     """Registers a strategy"""
+    if interfaces is None or variants is None:
+        raise TypeError("interfaces and variants are required")
+
     if name is None:
         if len(interfaces) != 1:
             raise RuntimeError("%r requires a name" % id)
         name = interfaces[0]
 
+    if id is not None:
+        if ids is not None:
+            raise TypeError("id and ids given")
+        ids = [id]
+
     def decorator(f):
-        STRATEGIES[id] = rv = Strategy(
-            id=id, name=name, interfaces=interfaces, variants=variants, score=score, func=f
-        )
+        for id in ids:
+            STRATEGIES[id] = rv = Strategy(
+                id=id, name=name, interfaces=interfaces, variants=variants, score=score, func=f
+            )
         return rv
 
     return decorator
@@ -39,6 +49,7 @@ class Strategy(object):
 
     def __init__(self, id, name, interfaces, variants, score, func):
         self.id = id
+        self.strategy_class = id.split(":", 1)[0]
         self.name = name
         self.interfaces = interfaces
         self.mandatory_variants = []
@@ -199,32 +210,50 @@ class StrategyConfiguration(object):
 
 
 def create_strategy_configuration(
-    id, strategies=None, delegates=None, changelog=None, hidden=False
+    id, strategies=None, delegates=None, changelog=None, hidden=False, base=None
 ):
+    """Declares a new strategy configuration.
+
+    Values can be inherited from a base configuration.  For strategies if there is
+    a strategy of the same class it's replaced.  For delegates if there is a
+    delegation for the same interface it's replaced.
+
+    It's impossible to remove a strategy of a class when a base is declared (same
+    for delegates).
+    """
+
     class NewStrategyConfiguration(StrategyConfiguration):
         pass
 
     NewStrategyConfiguration.id = id
     NewStrategyConfiguration.config_class = id.split(":", 1)[0]
-    NewStrategyConfiguration.strategies = {}
-    NewStrategyConfiguration.delegates = {}
+    NewStrategyConfiguration.strategies = dict(base.strategies) if base else {}
+    NewStrategyConfiguration.delegates = dict(base.delegates) if base else {}
     NewStrategyConfiguration.hidden = hidden
+
+    by_class = {}
+    for strategy in six.itervalues(NewStrategyConfiguration.strategies):
+        by_class.setdefault(strategy.strategy_class, []).append(strategy.id)
 
     for strategy_id in strategies or {}:
         strategy = lookup_strategy(strategy_id)
         if strategy.score is None:
             raise RuntimeError("Unscored strategy %s added to %s" % (strategy_id, id))
+        for old_id in by_class.get(strategy.strategy_class) or ():
+            NewStrategyConfiguration.strategies.pop(old_id, None)
         NewStrategyConfiguration.strategies[strategy_id] = strategy
 
+    new_delegates = set()
     for strategy_id in delegates or ():
         strategy = lookup_strategy(strategy_id)
         for interface in strategy.interfaces:
-            if interface in NewStrategyConfiguration.delegates:
+            if interface in new_delegates:
                 raise RuntimeError(
                     "duplicate interface match for "
                     "delegate %r (conflict on %r)" % (id, interface)
                 )
             NewStrategyConfiguration.delegates[interface] = strategy
+            new_delegates.add(interface)
 
     NewStrategyConfiguration.changelog = inspect.cleandoc(changelog or "")
     NewStrategyConfiguration.__name__ = "StrategyConfiguration(%s)" % id

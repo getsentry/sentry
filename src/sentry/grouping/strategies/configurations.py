@@ -11,6 +11,8 @@ CONFIGURATIONS = {}
 
 
 def register_strategy_config(id, **kwargs):
+    if kwargs.get("base") is not None:
+        kwargs["base"] = CONFIGURATIONS[kwargs["base"]]
     rv = create_strategy_configuration(id, **kwargs)
     if rv.config_class not in CLASSES:
         CLASSES.append(rv.config_class)
@@ -50,46 +52,6 @@ register_strategy_config(
 # javascript but works for all platforms.
 
 register_strategy_config(
-    id="newstyle:2019-04-05",
-    strategies=[
-        "expect-ct:v1",
-        "expect-staple:v1",
-        "hpkp:v1",
-        "csp:v1",
-        "threads:v1",
-        "stacktrace:v1",
-        "chained-exception:v1",
-        "template:v1",
-        "message:v1",
-    ],
-    delegates=["frame:v1", "stacktrace:v1", "single-exception:v1"],
-    changelog="""
-        * Experimental grouping algorithm (should not be used)
-    """,
-    hidden=True,
-)
-
-register_strategy_config(
-    id="newstyle:2019-04-17",
-    strategies=[
-        "expect-ct:v1",
-        "expect-staple:v1",
-        "hpkp:v1",
-        "csp:v1",
-        "threads:v1",
-        "stacktrace:v1",
-        "chained-exception:v1",
-        "template:v1",
-        "message:v2",
-    ],
-    delegates=["frame:v2", "stacktrace:v1", "single-exception:v2"],
-    changelog="""
-        * Experimental grouping algorithm (should not be used)
-    """,
-    hidden=True,
-)
-
-register_strategy_config(
     id="newstyle:2019-05-08",
     strategies=[
         "expect-ct:v1",
@@ -119,6 +81,22 @@ register_strategy_config(
 
 register_strategy_config(
     id="newstyle:2019-10-29",
+    base="newstyle:2019-05-08",
+    delegates=["frame:v4"],
+    changelog="""
+        * Take context lines into account for JavaScript platforms for
+          file origins.
+    """,
+)
+
+
+# Deprecated strategies
+#
+# These should not be used.  They are experiments which should be phased out
+# once there are no projects on them.
+
+register_strategy_config(
+    id="newstyle:2019-04-05",
     strategies=[
         "expect-ct:v1",
         "expect-staple:v1",
@@ -128,17 +106,25 @@ register_strategy_config(
         "stacktrace:v1",
         "chained-exception:v1",
         "template:v1",
-        "message:v2",
+        "message:v1",
     ],
-    delegates=["frame:v4", "stacktrace:v1", "single-exception:v2"],
+    delegates=["frame:v1", "stacktrace:v1", "single-exception:v1"],
     changelog="""
-        * Take context lines into account for JavaScript platforms for
-          file origins.
+        * Experimental grouping algorithm (should not be used)
     """,
+    hidden=True,
 )
 
-# This is a combined strategy that dispatches to legacy:2019-03-12 and
-# newstyle:2019-04-05 depending on the platform.
+register_strategy_config(
+    id="newstyle:2019-04-17",
+    base="newstyle:2019-04-05",
+    strategies=["message:v2"],
+    delegates=["frame:v2", "single-exception:v2"],
+    changelog="""
+        * Experimental grouping algorithm (should not be used)
+    """,
+    hidden=True,
+)
 
 register_strategy_config(
     id="combined:2019-04-07",
