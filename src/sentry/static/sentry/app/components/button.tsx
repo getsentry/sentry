@@ -161,7 +161,7 @@ class Button extends React.Component<ButtonProps, {}> {
               <StyledInlineSvg
                 src={icon}
                 size={
-                  (size && size.endsWith('small')) || size === 'micro' ? '12px' : '16px'
+                  (size && size.endsWith('small')) || size === 'micro' ? '12px' : '13px'
                 }
               />
             </Icon>
