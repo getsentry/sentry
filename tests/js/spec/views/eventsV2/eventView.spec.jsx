@@ -38,6 +38,7 @@ describe('EventView.fromLocation()', function() {
         end: '2019-10-02T00:00:00',
         statsPeriod: '14d',
         environment: ['staging'],
+        yAxis: 'p95',
       },
     };
 
@@ -55,6 +56,7 @@ describe('EventView.fromLocation()', function() {
       end: '2019-10-02T00:00:00',
       statsPeriod: '14d',
       environment: ['staging'],
+      yAxis: 'p95',
     });
   });
 
@@ -77,12 +79,13 @@ describe('EventView.fromLocation()', function() {
       end: void 0,
       statsPeriod: void 0,
       environment: [],
+      yAxis: void 0,
     });
   });
 });
 
 describe('EventView.fromSavedQuery()', function() {
-  it('maps basic properties', function() {
+  it('maps basic properties of legacy query', function() {
     const saved = {
       id: '42',
       name: 'best query',
@@ -109,6 +112,7 @@ describe('EventView.fromSavedQuery()', function() {
       end: '2019-10-02T00:00:00',
       statsPeriod: '14d',
       environment: ['staging'],
+      yAxis: undefined,
     });
   });
 
@@ -125,6 +129,7 @@ describe('EventView.fromSavedQuery()', function() {
       dateUpdated: '2019-10-30T06:13:17.632096Z',
       id: '5',
       projects: [1],
+      yAxis: 'count(id)',
     };
 
     const eventView = EventView.fromSavedQuery(saved);
@@ -140,6 +145,7 @@ describe('EventView.fromSavedQuery()', function() {
       query: '',
       project: [1],
       environment: ['dev', 'production'],
+      yAxis: 'count(id)',
     };
 
     expect(eventView).toMatchObject(expected);
@@ -263,6 +269,7 @@ describe('EventView.generateQueryStringObject()', function() {
       statsPeriod: '',
       start: null,
       end: undefined,
+      yAxis: undefined,
     });
     const query = eventView.generateQueryStringObject();
     expect(query.environment).toBeUndefined();
@@ -270,6 +277,7 @@ describe('EventView.generateQueryStringObject()', function() {
     expect(query.start).toBeUndefined();
     expect(query.end).toBeUndefined();
     expect(query.project).toBeUndefined();
+    expect(query.yAxis).toBeUndefined();
   });
 
   it('generates query string object', function() {
@@ -288,6 +296,7 @@ describe('EventView.generateQueryStringObject()', function() {
       end: '2019-10-02T00:00:00',
       statsPeriod: '14d',
       environment: ['staging'],
+      yAxis: 'count(id)',
     };
 
     const eventView = new EventView(state);
@@ -305,6 +314,7 @@ describe('EventView.generateQueryStringObject()', function() {
       end: '2019-10-02T00:00:00',
       statsPeriod: '14d',
       environment: ['staging'],
+      yAxis: 'count(id)',
     };
 
     expect(eventView.generateQueryStringObject()).toEqual(expected);
@@ -435,6 +445,7 @@ describe('EventView.getEventsAPIPayload()', function() {
         utc: 'utc',
         statsPeriod: 'statsPeriod',
         cursor: 'some cursor',
+        yAxis: 'count(id)',
 
         // non-relevant query strings
         bestCountry: 'canada',

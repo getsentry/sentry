@@ -161,9 +161,10 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
     fieldnames = ListField(child=serializers.CharField(), required=False, allow_null=True)
     query = serializers.CharField(required=False, allow_null=True)
     tags = ListField(child=serializers.CharField(), required=False, allow_null=True)
+    yAxis = serializers.CharField(required=False, allow_null=True)
 
     disallowed_fields = {
-        1: set(["environment", "fieldnames", "query", "tags"]),
+        1: set(["environment", "fieldnames", "query", "tags", "yAxis"]),
         2: set(["groupby", "rollup", "aggregations", "conditions", "limit"]),
     }
 
@@ -200,6 +201,7 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
             "orderby",
             "limit",
             "tags",
+            "yAxis",
         ]
 
         for key in query_keys:
