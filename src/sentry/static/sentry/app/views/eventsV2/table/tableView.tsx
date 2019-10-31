@@ -2,7 +2,7 @@ import React from 'react';
 import {Location} from 'history';
 
 import {Organization} from 'app/types';
-
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import GridEditable from 'app/components/gridEditable';
 
 import {getFieldRenderer, getAggregateAlias, pushEventViewToLocation} from '../utils';
@@ -63,12 +63,23 @@ class TableView extends React.Component<TableViewProps> {
         },
         insertAt
       );
+
+      trackAnalyticsEvent({
+        eventKey: 'discover_v2.add_column',
+        eventName: 'Discoverv2: Add a new column at an index',
+        index: insertAt,
+      });
     } else {
       // create and insert a column at the right end of the table
       nextEventView = eventView.withNewColumn({
         aggregation: String(nextColumn.aggregation),
         field: String(nextColumn.field),
         fieldname: nextColumn.name,
+      });
+
+      trackAnalyticsEvent({
+        eventKey: 'discover_v2.add_column_right_side',
+        eventName: 'Discoverv2: Add a new column at the right end of the table',
       });
     }
 
