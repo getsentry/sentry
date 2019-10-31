@@ -173,7 +173,7 @@ describe('OrganizationContext', function() {
 
     wrapper = createWrapper({
       useLastOrganization: true,
-      params: {orgId: 'foo'},
+      params: {orgId: ''},
       organizationsLoading: true,
       organizations: [],
     });
@@ -187,9 +187,9 @@ describe('OrganizationContext', function() {
         TestStubs.Organization({slug: 'bar'}),
       ],
     });
-    wrapper.update();
 
-    await tick();
+    await tick(); // action to start fetch org
+    await tick(); // action after successfully fetching org
     wrapper.update();
     expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
 
