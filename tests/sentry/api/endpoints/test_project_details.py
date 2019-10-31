@@ -621,8 +621,10 @@ class CopyProjectSettingsTest(APITestCase):
         self.assert_other_project_settings_not_changed()
 
     def test_project_from_another_org(self):
-        project = self.create_project()
-        other_project = self.create_project(organization=self.create_organization())
+        project = self.create_project(fire_project_created=True)
+        other_project = self.create_project(
+            organization=self.create_organization(), fire_project_created=True
+        )
         resp = self.client.put(self.path(project), data={"copy_from_project": other_project.id})
         assert resp.status_code == 400
         assert resp.data == {"copy_from_project": ["Project to copy settings from not found."]}
@@ -630,7 +632,7 @@ class CopyProjectSettingsTest(APITestCase):
         self.assert_settings_not_copied(other_project)
 
     def test_project_does_not_exist(self):
-        project = self.create_project()
+        project = self.create_project(fire_project_created=True)
         resp = self.client.put(self.path(project), data={"copy_from_project": 1234567890})
         assert resp.status_code == 400
         assert resp.data == {"copy_from_project": ["Project to copy settings from not found."]}
@@ -640,7 +642,7 @@ class CopyProjectSettingsTest(APITestCase):
         user = self.create_user()
         self.login_as(user=user)
         team = self.create_team(members=[user])
-        project = self.create_project(teams=[team])
+        project = self.create_project(teams=[team], fire_project_created=True)
         OrganizationMember.objects.filter(user=user, organization=self.organization).update(
             role="admin"
         )
@@ -663,7 +665,7 @@ class CopyProjectSettingsTest(APITestCase):
         user = self.create_user()
         self.login_as(user=user)
         team = self.create_team(members=[user])
-        project = self.create_project(teams=[team])
+        project = self.create_project(teams=[team], fire_project_created=True)
         OrganizationMember.objects.filter(user=user, organization=self.organization).update(
             role="admin"
         )
@@ -691,7 +693,7 @@ class CopyProjectSettingsTest(APITestCase):
     @mock.patch("sentry.models.project.Project.copy_settings_from")
     def test_copy_project_settings_fails(self, mock_copy_settings_from):
         mock_copy_settings_from.return_value = False
-        project = self.create_project()
+        project = self.create_project(fire_project_created=True)
         resp = self.client.put(
             self.path(project), data={"copy_from_project": self.other_project.id}
         )

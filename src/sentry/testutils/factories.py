@@ -12,6 +12,8 @@ import six
 import warnings
 from importlib import import_module
 
+from django.contrib.auth.models import AnonymousUser
+from django.db import transaction
 from django.utils import timezone
 from django.utils.text import slugify
 from hashlib import sha1
@@ -64,6 +66,7 @@ from sentry.models import (
     SentryAppWebhookError,
 )
 from sentry.models.integrationfeature import Feature, IntegrationFeature
+from sentry.signals import project_created
 from sentry.snuba.models import QueryAggregations
 from sentry.utils import json
 from sentry.utils.canonical import CanonicalKeyDict
@@ -270,7 +273,7 @@ class Factories(object):
         return env
 
     @staticmethod
-    def create_project(organization=None, teams=None, **kwargs):
+    def create_project(organization=None, teams=None, fire_project_created=False, **kwargs):
         if not kwargs.get("name"):
             kwargs["name"] = petname.Generate(2, " ", letters=10).title()
         if not kwargs.get("slug"):
@@ -278,10 +281,15 @@ class Factories(object):
         if not organization and teams:
             organization = teams[0].organization
 
-        project = Project.objects.create(organization=organization, **kwargs)
-        if teams:
-            for team in teams:
-                project.add_team(team)
+        with transaction.atomic():
+            project = Project.objects.create(organization=organization, **kwargs)
+            if teams:
+                for team in teams:
+                    project.add_team(team)
+            if fire_project_created:
+                project_created.send(
+                    project=project, user=AnonymousUser(), default_rules=True, sender=Factories
+                )
         return project
 
     @staticmethod
