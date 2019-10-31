@@ -5,7 +5,12 @@ import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import GridEditable from 'app/components/gridEditable';
 
-import {getFieldRenderer, getAggregateAlias, pushEventViewToLocation} from '../utils';
+import {
+  getFieldRenderer,
+  getAggregateAlias,
+  pushEventViewToLocation,
+  explodeField,
+} from '../utils';
 import EventView, {pickRelevantLocationQueryStrings} from '../eventView';
 import SortLink from '../sortLink';
 import renderTableModalEditColumnFactory from './tableModalEditColumn';
@@ -118,11 +123,37 @@ class TableView extends React.Component<TableViewProps> {
     );
 
     if (nextEventView !== eventView) {
+      let changed: 'some' | 'all' | 'aggregate' | 'field' | 'fieldname' = 'some';
+
+      const prevField = explodeField(eventView.fields[columnIndex]);
+      const nextField = explodeField(nextEventView.fields[columnIndex]);
+
+      const aggregationChanged = prevField.aggregation !== nextField.aggregation;
+      const fieldChanged = prevField.field !== nextField.field;
+      const fieldnameChanged = prevField.fieldname !== nextField.fieldname;
+
+      if (aggregationChanged && fieldChanged && fieldnameChanged) {
+        changed = 'all';
+      }
+
+      if (aggregationChanged && !fieldChanged && !fieldnameChanged) {
+        changed = 'aggregate';
+      }
+
+      if (!aggregationChanged && fieldChanged && !fieldnameChanged) {
+        changed = 'field';
+      }
+
+      if (!aggregationChanged && !fieldChanged && fieldnameChanged) {
+        changed = 'fieldname';
+      }
+
       // metrics
       trackAnalyticsEvent({
         eventKey: 'discover_v2.update_column',
         eventName: 'Discoverv2: A column was updated',
         updated_at_index: columnIndex,
+        changed,
         ...payload,
       });
     }

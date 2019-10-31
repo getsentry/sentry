@@ -35,6 +35,22 @@ export type EventQuery = {
 const AGGREGATE_PATTERN = /^([^\(]+)\(([a-z\._+]*)\)$/;
 const ROUND_BRACKETS_PATTERN = /[\(\)]/;
 
+export function explodeField(
+  field: FieldType
+): {aggregation: string; field: string; fieldname: string} {
+  const results = field.field.match(AGGREGATE_PATTERN);
+
+  if (!results) {
+    return {aggregation: '', field: field.field, fieldname: field.title};
+  }
+
+  if (results.length >= 3) {
+    return {aggregation: results[1], field: results[2], fieldname: field.title};
+  }
+
+  return {aggregation: '', field: field.field, fieldname: field.title};
+}
+
 /**
  * Takes a view and determines if there are any aggregate fields in it.
  *
