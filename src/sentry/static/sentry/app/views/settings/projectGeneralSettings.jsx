@@ -96,6 +96,34 @@ class ProjectGeneralSettings extends AsyncView {
     }, handleXhrErrorResponse('Unable to transfer project'));
   };
 
+  getGroupingChangelog() {
+    let updateNotes = '';
+
+    this.state.groupingConfigs.forEach(({id, latest, changelog, base}) => {
+      if (latest && this.state.data.groupingConfig !== id) {
+        updateNotes = changelog;
+
+        let next = base;
+        while (next !== this.state.data.groupingConfig) {
+          const cfg = this.state.groupingConfigs.find(x => x.id === next); // eslint-disable-line no-loop-func
+          if (!cfg) {
+            break;
+          }
+          updateNotes = cfg.changelog + '\n' + updateNotes;
+          next = cfg.base;
+        }
+      }
+    });
+
+    this.state.groupingEnhancementBases.forEach(({id, latest, changelog}) => {
+      if (latest && this.state.data.groupingEnhancementsBase !== id) {
+        updateNotes += '\n\n' + changelog;
+      }
+    });
+
+    return updateNotes;
+  }
+
   renderUpgradeGrouping() {
     const {orgId, projectId} = this.props.params;
 
@@ -103,20 +131,18 @@ class ProjectGeneralSettings extends AsyncView {
       return null;
     }
 
-    let updateNotes = '';
-    let riskLevel = 0;
+    const updateNotes = this.getGroupingChangelog();
+    let riskLevel = 1;
     const newData = {};
 
-    this.state.groupingConfigs.forEach(({id, latest, changelog}) => {
+    this.state.groupingConfigs.forEach(({id, latest}) => {
       if (latest && this.state.data.groupingConfig !== id) {
-        updateNotes += changelog + '\n\n';
         newData.groupingConfig = id;
       }
     });
 
-    this.state.groupingEnhancementBases.forEach(({id, latest, changelog}) => {
+    this.state.groupingEnhancementBases.forEach(({id, latest}) => {
       if (latest && this.state.data.groupingEnhancementsBase !== id) {
-        updateNotes += changelog + '\n\n';
         newData.groupingEnhancementsBase = id;
       }
     });

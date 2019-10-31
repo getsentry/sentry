@@ -163,6 +163,7 @@ class Strategy(object):
 
 class StrategyConfiguration(object):
     id = None
+    base = None
     config_class = None
     strategies = {}
     delegates = {}
@@ -198,6 +199,7 @@ class StrategyConfiguration(object):
     def as_dict(self):
         return {
             "id": self.id,
+            "base": self.base.id if self.base else None,
             "strategies": sorted(self.strategies),
             "changelog": self.changelog,
             "delegates": sorted(x.id for x in self.delegates.values()),
@@ -226,6 +228,7 @@ def create_strategy_configuration(
         pass
 
     NewStrategyConfiguration.id = id
+    NewStrategyConfiguration.base = base
     NewStrategyConfiguration.config_class = id.split(":", 1)[0]
     NewStrategyConfiguration.strategies = dict(base.strategies) if base else {}
     NewStrategyConfiguration.delegates = dict(base.delegates) if base else {}

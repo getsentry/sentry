@@ -66,7 +66,7 @@ register_strategy_config(
     ],
     delegates=["frame:v3", "stacktrace:v1", "single-exception:v2"],
     changelog="""
-        * uses source code information all platforms with reliable sources
+        * Uses source code information all platforms with reliable sources
           for grouping (JavaScript, Python, PHP and Ruby) and function
           names and filenames otherwise.
         * Fallback grouping applies clean-up logic on exception messages
