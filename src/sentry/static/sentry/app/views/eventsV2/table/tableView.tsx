@@ -277,6 +277,22 @@ class TableView extends React.Component<TableViewProps> {
     return nextColumnOrder;
   };
 
+  onToggleEdit = (isEditing: boolean) => {
+    if (isEditing) {
+      // metrics
+      trackAnalyticsEvent({
+        eventKey: 'discover_v2.table.column_header.edit_mode.enter',
+        eventName: 'Discoverv2: Enter column header edit mode',
+      });
+    } else {
+      // metrics
+      trackAnalyticsEvent({
+        eventKey: 'discover_v2.table.column_header.edit_mode.exit',
+        eventName: 'Discoverv2: Exit column header edit mode',
+      });
+    }
+  };
+
   render() {
     const {organization, isLoading, error, tableData, tagKeys, eventView} = this.props;
 
@@ -313,6 +329,7 @@ class TableView extends React.Component<TableViewProps> {
           return (
             <GridEditable
               isEditable
+              onToggleEdit={this.onToggleEdit}
               isColumnDragging={isColumnDragging}
               gridHeadCellButtonProps={{className: DRAGGABLE_COLUMN_CLASSNAME_IDENTIFIER}}
               isLoading={isLoading}
