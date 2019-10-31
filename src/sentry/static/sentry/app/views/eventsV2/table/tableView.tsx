@@ -105,13 +105,15 @@ class TableView extends React.Component<TableViewProps> {
       return;
     }
 
+    const payload = {
+      aggregation: String(nextColumn.aggregation),
+      field: String(nextColumn.field),
+      fieldname: nextColumn.name,
+    };
+
     const nextEventView = eventView.withUpdatedColumn(
       columnIndex,
-      {
-        aggregation: String(nextColumn.aggregation),
-        field: String(nextColumn.field),
-        fieldname: nextColumn.name,
-      },
+      payload,
       tableData.meta
     );
 
@@ -120,6 +122,7 @@ class TableView extends React.Component<TableViewProps> {
       eventKey: 'discover_v2.update_column',
       eventName: 'Discoverv2: A column was updated',
       updated_at: columnIndex,
+      ...payload,
     });
 
     pushEventViewToLocation({
