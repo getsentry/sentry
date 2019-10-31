@@ -1,10 +1,12 @@
 import {Location, Query} from 'history';
 import {isString, cloneDeep, pick, isEqual} from 'lodash';
+import moment from 'moment';
 
 import {DEFAULT_PER_PAGE} from 'app/constants';
 import {EventViewv1} from 'app/types';
 import {SavedQuery as LegacySavedQuery} from 'app/views/discover/types';
 import {SavedQuery, NewQuery} from 'app/stores/discoverSavedQueriesStore';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 
 import {AUTOLINK_FIELDS, SPECIAL_FIELDS, FIELD_FORMATTERS} from './data';
 import {
@@ -272,7 +274,7 @@ function isLegacySavedQuery(
 
 const queryStringFromSavedQuery = (saved: LegacySavedQuery | SavedQuery): string => {
   if (!isLegacySavedQuery(saved) && saved.query) {
-    return saved.query;
+    return saved.query || '';
   }
   if (isLegacySavedQuery(saved) && saved.conditions) {
     const conditions = saved.conditions.map(item => {
@@ -295,7 +297,7 @@ class EventView {
   fields: Readonly<Field[]>;
   sorts: Readonly<Sort[]>;
   tags: Readonly<string[]>;
-  query: string | undefined;
+  query: string;
   project: Readonly<number[]>;
   start: string | undefined;
   end: string | undefined;
@@ -308,7 +310,7 @@ class EventView {
     fields: Readonly<Field[]>;
     sorts: Readonly<Sort[]>;
     tags: Readonly<string[]>;
-    query?: string | undefined;
+    query: string;
     project: Readonly<number[]>;
     start: string | undefined;
     end: string | undefined;
@@ -340,7 +342,7 @@ class EventView {
     this.fields = props.fields;
     this.sorts = sorts;
     this.tags = props.tags;
-    this.query = props.query;
+    this.query = typeof props.query === 'string' ? props.query : '';
     this.project = props.project;
     this.start = props.start;
     this.end = props.end;
@@ -349,17 +351,19 @@ class EventView {
   }
 
   static fromLocation(location: Location): EventView {
+    const {start, end, statsPeriod} = getParams(location.query);
+
     return new EventView({
       id: decodeScalar(location.query.id),
       name: decodeScalar(location.query.name),
       fields: decodeFields(location),
       sorts: decodeSorts(location),
       tags: collectQueryStringByKey(location.query, 'tag'),
-      query: decodeQuery(location),
+      query: decodeQuery(location) || '',
       project: decodeProjects(location),
-      start: decodeScalar(location.query.start),
-      end: decodeScalar(location.query.end),
-      statsPeriod: decodeScalar(location.query.statsPeriod),
+      start: decodeScalar(start),
+      end: decodeScalar(end),
+      statsPeriod: decodeScalar(statsPeriod),
       environment: collectQueryStringByKey(location.query, 'environment'),
     });
   }
@@ -377,7 +381,7 @@ class EventView {
       name: eventViewV1.name,
       sorts: fromSorts(eventViewV1.data.sort),
       tags: eventViewV1.tags,
-      query: eventViewV1.data.query,
+      query: eventViewV1.data.query || '',
       project: [],
       id: undefined,
       start: undefined,
@@ -401,17 +405,30 @@ class EventView {
       });
     }
 
+    // normalize datetime selection
+
+    const {start, end, statsPeriod} = getParams({
+      start: saved.start,
+      end: saved.end,
+      statsPeriod: saved.range,
+    });
+
     return new EventView({
       fields,
       id: saved.id,
       name: saved.name,
       query: queryStringFromSavedQuery(saved),
       project: saved.projects,
-      start: saved.start,
-      end: saved.end,
+      start: decodeScalar(start),
+      end: decodeScalar(end),
+      statsPeriod: decodeScalar(statsPeriod),
       sorts: fromSorts(saved.orderby),
-      tags: [],
-      statsPeriod: saved.range,
+      tags: collectQueryStringByKey(
+        {
+          tags: (saved as SavedQuery).tags as string[],
+        },
+        'tags'
+      ),
       environment: collectQueryStringByKey(
         {
           environment: (saved as SavedQuery).environment as string[],
@@ -419,6 +436,49 @@ class EventView {
         'environment'
       ),
     });
+  }
+
+  isEqualTo(other: EventView): boolean {
+    const keys = [
+      'id',
+      'name',
+      'query',
+      'statsPeriod',
+      'fields',
+      'sorts',
+      'tags',
+      'project',
+      'environment',
+    ];
+
+    for (const key of keys) {
+      const currentValue = this[key];
+      const otherValue = other[key];
+
+      if (!isEqual(currentValue, otherValue)) {
+        return false;
+      }
+    }
+
+    // compare datetime selections using moment
+
+    const dateTimeKeys = ['start', 'end'];
+
+    for (const key of dateTimeKeys) {
+      const currentValue = this[key];
+      const otherValue = other[key];
+
+      if (currentValue && otherValue) {
+        const currentDateTime = moment.utc(currentValue);
+        const othereDateTime = moment.utc(otherValue);
+
+        if (!currentDateTime.isSame(othereDateTime)) {
+          return false;
+        }
+      }
+    }
+
+    return true;
   }
 
   toNewQuery(): NewQuery {
@@ -431,7 +491,7 @@ class EventView {
       fields: this.getFields(),
       fieldnames: this.getFieldNames(),
       orderby,
-      // TODO: tags?
+      tags: this.tags,
       query: this.query || '',
       projects: this.project,
       start: this.start,
@@ -796,17 +856,31 @@ class EventView {
 
     const picked = pickRelevantLocationQueryStrings(location);
 
+    // normalize datetime selection
+
+    const normalizedTimeWindowParams = getParams({
+      start: this.start,
+      end: this.end,
+      period: decodeScalar(query.period),
+      statsPeriod: this.statsPeriod,
+      utc: decodeScalar(query.utc),
+    });
+
     const sort = this.sorts.length > 0 ? encodeSort(this.sorts[0]) : undefined;
     const fields = this.getFields();
 
     // generate event query
 
-    const eventQuery: EventQuery & LocationQuery = Object.assign(picked, {
-      field: [...new Set(fields)],
-      sort,
-      per_page: DEFAULT_PER_PAGE,
-      query: this.getQuery(query.query),
-    });
+    const eventQuery: EventQuery & LocationQuery = Object.assign(
+      picked,
+      normalizedTimeWindowParams,
+      {
+        field: [...new Set(fields)],
+        sort,
+        per_page: DEFAULT_PER_PAGE,
+        query: this.getQuery(query.query),
+      }
+    );
 
     if (!eventQuery.sort) {
       delete eventQuery.sort;

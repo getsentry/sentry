@@ -74,7 +74,7 @@ describe('OrganizationMembersWrapper', function() {
 
   it('does not render requests tab without access', function() {
     const org = TestStubs.Organization({
-      experiments: {InviteRequestExperiment: 1},
+      experiments: {ImprovedInvitesExperiment: 'invite_request'},
       access: [],
       status: {
         id: 'active',
@@ -90,9 +90,9 @@ describe('OrganizationMembersWrapper', function() {
     expect(trackAnalyticsEvent).not.toHaveBeenCalled();
   });
 
-  it('renders requests tab with InviteRequestExperiment', function() {
+  it('renders requests tab with ImprovedInvitesExperiment invite_request', function() {
     const org = TestStubs.Organization({
-      experiments: {InviteRequestExperiment: 1},
+      experiments: {ImprovedInvitesExperiment: 'invite_request'},
       access: ['member:admin', 'org:admin', 'member:write'],
       status: {
         id: 'active',
@@ -128,9 +128,9 @@ describe('OrganizationMembersWrapper', function() {
     });
   });
 
-  it('renders requests tab with JoinRequestExperiment', function() {
+  it('renders requests tab with ImprovedInvitesExperiment join_request', function() {
     const org = TestStubs.Organization({
-      experiments: {JoinRequestExperiment: 1},
+      experiments: {ImprovedInvitesExperiment: 'join_request'},
       access: ['member:admin', 'org:admin', 'member:write'],
       status: {
         id: 'active',

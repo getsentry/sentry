@@ -30,15 +30,18 @@ class AlertRuleSerializer(Serializer):
             "name": obj.name,
             "organizationId": six.text_type(obj.organization_id),
             "status": obj.status,
-            "thresholdType": obj.threshold_type,
+            # TODO: Remove when frontend isn't using
+            "thresholdType": 0,
             "dataset": obj.dataset,
             "query": obj.query,
             "aggregation": obj.aggregation,
             "aggregations": [obj.aggregation],
             "timeWindow": obj.time_window,
             "resolution": obj.resolution,
-            "alertThreshold": obj.alert_threshold,
-            "resolveThreshold": obj.resolve_threshold,
+            # TODO: Remove when frontend isn't using
+            "alertThreshold": 0,
+            # TODO: Remove when frontend isn't using
+            "resolveThreshold": 0,
             "thresholdPeriod": obj.threshold_period,
             "triggers": attrs.get("triggers", []),
             "includeAllProjects": obj.include_all_projects,
