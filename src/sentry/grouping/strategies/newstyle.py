@@ -236,7 +236,7 @@ def frame(frame, event, **meta):
     )
 
 
-def get_contextline_component(frame, platform, with_context_line_file_origin_bug=False):
+def get_contextline_component(frame, platform, function, with_context_line_file_origin_bug=False):
     """Returns a contextline component.  The caller's responsibility is to
     make sure context lines are only used for platforms where we trust the
     quality of the sourcecode.  It does however protect against some bad
@@ -250,10 +250,14 @@ def get_contextline_component(frame, platform, with_context_line_file_origin_bug
     if line:
         if len(frame.context_line) > 120:
             component.update(hint="discarded because line too long", contributes=False)
-        elif get_behavior_family_for_platform(platform) == "javascript" and has_url_origin(
-            frame.abs_path, allow_file_origin=with_context_line_file_origin_bug
-        ):
-            component.update(hint="discarded because from URL origin", contributes=False)
+        elif get_behavior_family_for_platform(platform) == "javascript":
+            if with_context_line_file_origin_bug:
+                if has_url_origin(frame.abs_path, allow_file_origin=True):
+                    component.update(hint="discarded because from URL origin", contributes=False)
+            elif not function and has_url_origin(frame.abs_path):
+                component.update(
+                    hint="discarded because from URL origin and no function", contributes=False
+                )
 
     return component
 
@@ -287,7 +291,10 @@ def get_frame_component(
     # If we are allowed to use the contextline we add it now.
     if use_contextline:
         context_line_component = get_contextline_component(
-            frame, platform, with_context_line_file_origin_bug=with_context_line_file_origin_bug
+            frame,
+            platform,
+            function=frame.function,
+            with_context_line_file_origin_bug=with_context_line_file_origin_bug,
         )
 
     function_component = get_function_component(

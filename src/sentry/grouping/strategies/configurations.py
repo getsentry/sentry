@@ -84,8 +84,8 @@ register_strategy_config(
     base="newstyle:2019-05-08",
     delegates=["frame:v4"],
     changelog="""
-        * Take context lines into account for JavaScript platforms for
-          file origins.
+        * Better rules for when to take context lines into account for
+          JavaScript platforms for grouping purposes.
     """,
 )
 
