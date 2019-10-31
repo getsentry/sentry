@@ -88,6 +88,11 @@ export default class Events extends React.Component<EventsProps> {
 
     return (
       <React.Fragment>
+        <StyledSearchBar
+          organization={organization}
+          query={query}
+          onSearch={this.handleSearch}
+        />
         <Panel>
           {getDynamicText({
             value: (
@@ -104,11 +109,6 @@ export default class Events extends React.Component<EventsProps> {
             fixed: 'events chart',
           })}
         </Panel>
-        <StyledSearchBar
-          organization={organization}
-          query={query}
-          onSearch={this.handleSearch}
-        />
         <Container hasTags={eventView.tags.length > 0}>
           <Table organization={organization} eventView={eventView} location={location} />
           {this.renderTagsTable()}

@@ -89,7 +89,7 @@ class EventsSaveQueryButton extends React.Component<Props, State> {
             isOpen={isOpen}
             showChevron={false}
           >
-            <StyledInlineSvg src="icon-bookmark" size="14" />
+            <StyledInlineSvg src="icon-star" size="14" />
             {newQueryLabel}
           </StyledDropdownButton>
         )}
@@ -101,9 +101,9 @@ class EventsSaveQueryButton extends React.Component<Props, State> {
             value={this.state.queryName}
             onChange={this.handleInputChange}
           />
-          <Button size="small" onClick={this.handleSave} priority="primary">
+          <StyledSaveButton size="small" onClick={this.handleSave} priority="primary">
             {t('Save')}
-          </Button>
+          </StyledSaveButton>
         </SaveQueryContainer>
       </DropdownControl>
     );
@@ -121,6 +121,10 @@ const StyledInlineSvg = styled(InlineSvg)`
 const StyledInput = styled(Input)`
   width: 100%;
   margin-bottom: ${space(1)};
+`;
+
+const StyledSaveButton = styled(Button)`
+  width: 100%;
 `;
 
 const StyledDropdownButton = styled(DropdownButton)`

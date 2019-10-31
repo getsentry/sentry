@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 import {isEqual} from 'lodash';
 import {Location} from 'history';
+import {t} from 'app/locale';
 import * as Sentry from '@sentry/browser';
 
 import {Client} from 'app/api';
@@ -128,9 +129,21 @@ class Tags extends React.Component<Props, State> {
   }
 
   render() {
-    return <div>{this.props.eventView.tags.map(tag => this.renderTag(tag))}</div>;
+    return (
+      <TagSection>
+        <TagSectionHeading>{t('Event Tag Summary')}</TagSectionHeading>
+        {this.props.eventView.tags.map(tag => this.renderTag(tag))}
+      </TagSection>
+    );
   }
 }
+
+const TagSection = styled('div')`
+  margin: 16px 0;
+`;
+const TagSectionHeading = styled('h6')`
+  color: ${p => p.theme.gray3};
+`;
 
 const StyledPlaceholder = styled(Placeholder)`
   border-radius: ${p => p.theme.borderRadius};
