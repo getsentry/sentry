@@ -65,7 +65,7 @@ const withTeamsForUser = <P extends InjectedTeamsProps>(
           () => {
             metric.measure({
               name: 'app.component.perf',
-              start: 'organization-details-fetch-start',
+              start: 'user-teams-fetch-start',
               data: {
                 name: 'user-teams',
                 route: '/organizations/:orgid/user-teams',
@@ -104,9 +104,7 @@ const withTeamsForUser = <P extends InjectedTeamsProps>(
     }
 
     render() {
-      return (
-        <WrappedComponent {...(this.props as (P & DependentProps))} {...this.state} />
-      );
+      return <WrappedComponent {...this.props as (P & DependentProps)} {...this.state} />;
     }
   };
 
