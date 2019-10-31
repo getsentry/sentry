@@ -77,7 +77,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             ).distinct()
             if any(p for p in projects if not request.access.has_project_access(p)):
                 raise PermissionDenied
-            params["issue.id"] = list(group_ids)
+            params["group_ids"] = list(group_ids)
             params["project_id"] = list(set([p.id for p in projects] + params["project_id"]))
 
         query = request.GET.get("query")

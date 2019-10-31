@@ -16,6 +16,8 @@ export type NewQuery = {
   start?: string;
   end?: string;
   environment?: Readonly<string[]>;
+  tags?: Readonly<string[]>;
+  yAxis?: string;
 };
 
 export type SavedQuery = NewQuery & {

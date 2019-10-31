@@ -4,6 +4,7 @@ import {Params} from 'react-router/lib/Router';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t, tct} from 'app/locale';
+import {trackAdhocEvent} from 'app/utils/analytics';
 import EmailField from 'app/views/settings/components/forms/emailField';
 import Form from 'app/views/settings/components/forms/form';
 import InlineSvg from 'app/components/inlineSvg';
@@ -22,6 +23,15 @@ class OrganizationJoinRequest extends React.Component<Props, State> {
   state: State = {
     submitSuccess: null,
   };
+
+  componentDidMount() {
+    const {orgId} = this.props.params;
+
+    trackAdhocEvent({
+      eventKey: 'join_request.viewed',
+      org_slug: orgId,
+    });
+  }
 
   handleSubmitSuccess = () => {
     this.setState({submitSuccess: true});

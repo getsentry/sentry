@@ -91,9 +91,7 @@ class OrganizationMember(Model):
         settings.AUTH_USER_MODEL, null=True, blank=True, related_name="sentry_orgmember_set"
     )
     email = models.EmailField(null=True, blank=True, max_length=75)
-    role = models.CharField(
-        choices=roles.get_choices(), max_length=32, default=roles.get_default().id
-    )
+    role = models.CharField(max_length=32, default=roles.get_default().id)
     flags = BitField(
         flags=(("sso:linked", "sso:linked"), ("sso:invalid", "sso:invalid")), default=0
     )
@@ -249,6 +247,9 @@ class OrganizationMember(Model):
             ),
             "pending_requests_link": absolute_uri(
                 reverse("sentry-organization-members-requests", kwargs=link_args)
+            ),
+            "settings_link": absolute_uri(
+                reverse("sentry-organization-settings", args=[self.organization.slug])
             ),
         }
 

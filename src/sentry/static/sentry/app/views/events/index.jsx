@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {getParams} from 'app/views/events/utils/getParams';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {t} from 'app/locale';
 import BetaTag from 'app/components/betaTag';
 import Feature from 'app/components/acl/feature';

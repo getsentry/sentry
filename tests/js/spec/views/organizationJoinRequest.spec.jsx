@@ -2,8 +2,12 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import React from 'react';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
+import {trackAdhocEvent} from 'app/utils/analytics';
 import OrganizationJoinRequest from 'app/views/organizationJoinRequest';
 
+jest.mock('app/utils/analytics', () => ({
+  trackAdhocEvent: jest.fn(),
+}));
 jest.mock('app/actionCreators/indicator');
 
 describe('OrganizationJoinRequest', function() {
@@ -11,6 +15,7 @@ describe('OrganizationJoinRequest', function() {
   const endpoint = `/organizations/${org.slug}/join-request/`;
 
   beforeEach(function() {
+    trackAdhocEvent.mockClear();
     MockApiClient.clearMockResponses();
   });
 
@@ -23,6 +28,11 @@ describe('OrganizationJoinRequest', function() {
     expect(wrapper.find('h3').text()).toBe('Request to Join');
     expect(wrapper.find('EmailField').exists()).toBe(true);
     expect(wrapper.find('button[aria-label="Request to Join"]').exists()).toBe(true);
+
+    expect(trackAdhocEvent).toHaveBeenCalledWith({
+      eventKey: 'join_request.viewed',
+      org_slug: org.slug,
+    });
   });
 
   it('submits', async function() {

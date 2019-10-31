@@ -14,6 +14,7 @@ import PageHeading from 'app/components/pageHeading';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 import SentryTypes from 'app/sentryTypes';
+import getProjectsByTeams from 'app/utils/getProjectsByTeams';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import profiler from 'app/utils/profiler';
 import space from 'app/styles/space';
@@ -23,7 +24,6 @@ import withTeams from 'app/utils/withTeams';
 
 import Resources from './resources';
 import TeamSection from './teamSection';
-import getProjectsByTeams from './getProjectsByTeams';
 
 class Dashboard extends React.Component {
   static propTypes = {

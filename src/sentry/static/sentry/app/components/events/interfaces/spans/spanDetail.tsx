@@ -69,7 +69,7 @@ const SpanDetail = (props: PropTypes) => {
 };
 
 const SpanDetailContainer = styled('div')`
-  border-bottom: 1px solid #d1cad8;
+  border-bottom: 1px solid ${p => p.theme.gray1};
   padding: ${space(2)};
   background-color: #faf9fb;
 

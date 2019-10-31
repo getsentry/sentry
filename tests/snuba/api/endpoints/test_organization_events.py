@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import six
 from six.moves.urllib.parse import urlencode
 
 from django.utils import timezone
@@ -596,3 +597,31 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         self.assert_events_in_response(
             response, [event_1.event_id, event_2.event_id, event_3.event_id, event_4.event_id]
         )
+
+    def test_project_id_filter(self):
+        team = self.create_team(organization=self.organization, members=[self.user])
+        project = self.create_project(organization=self.organization, teams=[team])
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "best event",
+                "timestamp": iso_format(self.min_ago),
+            },
+            project_id=project.id,
+        )
+        url = reverse(
+            "sentry-api-0-organization-events", kwargs={"organization_slug": self.organization.slug}
+        )
+
+        self.login_as(user=self.user)
+        response = self.client.get(
+            url, {"query": "project_id:{}".format(project.id)}, format="json"
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["projectID"] == six.text_type(project.id)
+
+        response = self.client.get(url, {"query": "project_id:9"}, format="json")
+        # project_id filter should apply
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
