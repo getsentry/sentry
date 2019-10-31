@@ -812,9 +812,9 @@ class EventManager(object):
 
         metrics.timing("events.latency", received_timestamp - recorded_timestamp, tags=metric_tags)
         metrics.timing("events.size.data.post_save", event.size, tags=metric_tags)
-        metrics.timing(
+        metrics.incr(
             "events.post_save.normalize.errors",
-            len(self._data.get("errors") or ()),
+            amount=len(self._data.get("errors") or ()),
             tags=metric_tags,
         )
 
