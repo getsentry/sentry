@@ -26,6 +26,7 @@ type LocationQuery = {
   utc?: string | string[];
   statsPeriod?: string | string[];
   cursor?: string | string[];
+  yAxis?: string | string[];
 };
 
 const EXTERNAL_QUERY_STRING_KEYS: Readonly<Array<keyof LocationQuery>> = [
@@ -303,6 +304,7 @@ class EventView {
   end: string | undefined;
   statsPeriod: string | undefined;
   environment: Readonly<string[]>;
+  yAxis: string | undefined;
 
   constructor(props: {
     id: string | undefined;
@@ -316,6 +318,7 @@ class EventView {
     end: string | undefined;
     statsPeriod: string | undefined;
     environment: Readonly<string[]>;
+    yAxis: string | undefined;
   }) {
     // only include sort keys that are included in the fields
 
@@ -348,6 +351,7 @@ class EventView {
     this.end = props.end;
     this.statsPeriod = props.statsPeriod;
     this.environment = props.environment;
+    this.yAxis = props.yAxis;
   }
 
   static fromLocation(location: Location): EventView {
@@ -365,6 +369,7 @@ class EventView {
       end: decodeScalar(end),
       statsPeriod: decodeScalar(statsPeriod),
       environment: collectQueryStringByKey(location.query, 'environment'),
+      yAxis: decodeScalar(location.query.yAxis),
     });
   }
 
@@ -388,21 +393,24 @@ class EventView {
       end: undefined,
       statsPeriod: undefined,
       environment: [],
+      yAxis: undefined,
     });
   }
 
   static fromSavedQuery(saved: SavedQuery | LegacySavedQuery): EventView {
-    let fields;
+    let fields, yAxis;
     if (isLegacySavedQuery(saved)) {
       fields = saved.fields.map(field => {
         return {field, title: field};
       });
+      yAxis = undefined;
     } else {
       fields = saved.fields.map((field, i) => {
         const title =
           saved.fieldnames && saved.fieldnames[i] ? saved.fieldnames[i] : field;
         return {field, title};
       });
+      yAxis = saved.yAxis;
     }
 
     // normalize datetime selection
@@ -435,6 +443,7 @@ class EventView {
         },
         'environment'
       ),
+      yAxis,
     });
   }
 
@@ -498,6 +507,7 @@ class EventView {
       end: this.end,
       range: this.statsPeriod,
       environment: this.environment,
+      yAxis: this.yAxis,
     };
 
     if (!newQuery.query) {
@@ -518,6 +528,7 @@ class EventView {
       sort: encodeSorts(this.sorts),
       tag: this.tags,
       query: this.query,
+      yAxis: this.yAxis,
     };
 
     for (const field of EXTERNAL_QUERY_STRING_KEYS) {
@@ -587,6 +598,7 @@ class EventView {
       end: this.end,
       statsPeriod: this.statsPeriod,
       environment: this.environment,
+      yAxis: this.yAxis,
     });
   }
 
