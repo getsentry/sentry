@@ -44,12 +44,13 @@ class EventModalContent extends React.Component<EventModalContentProps> {
   };
 
   componentDidMount() {
-    const {event} = this.props;
+    const {event, organization} = this.props;
     // metrics
     trackAnalyticsEvent({
       eventKey: 'discover_v2.event_details',
       eventName: 'Discoverv2: Opened Event Details',
       event_type: event.type,
+      organization_id: organization.id,
     });
   }
 

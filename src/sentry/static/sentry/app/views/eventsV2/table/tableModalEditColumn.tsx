@@ -91,7 +91,7 @@ class TableModalEditColumnBodyForm extends React.Component<
   };
 
   componentDidMount() {
-    const {column, indexColumnOrder} = this.props;
+    const {column, indexColumnOrder, organization} = this.props;
 
     const isEditing = !!column;
     const focusedColumnIndex =
@@ -106,6 +106,7 @@ class TableModalEditColumnBodyForm extends React.Component<
           eventKey: 'discover_v2.edit_column.open_modal',
           eventName: 'Discoverv2: Opened modal to edit a column',
           index: focusedColumnIndex,
+          organization_id: organization.id,
         });
       }
     } else {
@@ -114,6 +115,7 @@ class TableModalEditColumnBodyForm extends React.Component<
         eventKey: 'discover_v2.add_column.open_modal',
         eventName: 'Discoverv2: Opened modal to add a column',
         index: focusedColumnIndex,
+        organization_id: organization.id,
       });
     }
   }
