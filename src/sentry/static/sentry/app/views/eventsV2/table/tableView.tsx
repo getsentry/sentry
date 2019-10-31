@@ -64,6 +64,7 @@ class TableView extends React.Component<TableViewProps> {
         insertAt
       );
 
+      // metrics
       trackAnalyticsEvent({
         eventKey: 'discover_v2.add_column',
         eventName: 'Discoverv2: Add a new column at an index',
@@ -77,6 +78,7 @@ class TableView extends React.Component<TableViewProps> {
         fieldname: nextColumn.name,
       });
 
+      // metrics
       trackAnalyticsEvent({
         eventKey: 'discover_v2.add_column.right_end',
         eventName: 'Discoverv2: Add a new column at the right end of the table',
