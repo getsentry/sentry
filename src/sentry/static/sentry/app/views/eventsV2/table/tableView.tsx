@@ -117,13 +117,15 @@ class TableView extends React.Component<TableViewProps> {
       tableData.meta
     );
 
-    // metrics
-    trackAnalyticsEvent({
-      eventKey: 'discover_v2.update_column',
-      eventName: 'Discoverv2: A column was updated',
-      updated_at_index: columnIndex,
-      ...payload,
-    });
+    if (nextEventView !== eventView) {
+      // metrics
+      trackAnalyticsEvent({
+        eventKey: 'discover_v2.update_column',
+        eventName: 'Discoverv2: A column was updated',
+        updated_at_index: columnIndex,
+        ...payload,
+      });
+    }
 
     pushEventViewToLocation({
       location,
