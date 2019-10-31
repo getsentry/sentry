@@ -1,6 +1,7 @@
 import _ from 'lodash';
 import {Query} from 'history';
 
+import {NewQuery} from 'app/stores/discoverSavedQueriesStore';
 import {Project} from 'app/types/index';
 import {appendTagCondition} from 'app/utils/queryString';
 
@@ -270,4 +271,15 @@ export function generateQueryWithTag(
   }
 
   return query;
+}
+
+export function extractAnalyticsQueryFields(payload: NewQuery): Partial<NewQuery> {
+  const {projects, fields, fieldnames, query, tags} = payload;
+  return {
+    projects,
+    fields,
+    fieldnames,
+    query,
+    tags,
+  };
 }

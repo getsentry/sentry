@@ -6,6 +6,8 @@ import {browserHistory} from 'react-router';
 import space from 'app/styles/space';
 import {Client} from 'app/api';
 import {t} from 'app/locale';
+import {extractAnalyticsQueryFields} from 'app/utils';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import Button from 'app/components/button';
 import {Organization} from 'app/types';
 import {
@@ -72,6 +74,13 @@ class SavedQueryButtonGroup extends React.Component<Props> {
         pathname: location.pathname,
         query: {},
       });
+
+      trackAnalyticsEvent({
+        eventKey: 'discover_v2.delete_query',
+        eventName: 'Discoverv2: Deleting a saved query',
+        organization_id: organization.id,
+        ...extractAnalyticsQueryFields(eventView.toNewQuery()),
+      });
     });
   };
 
@@ -98,6 +107,12 @@ class SavedQueryButtonGroup extends React.Component<Props> {
     updateSavedQuery(api, organization.slug, payload).then(_saved => {
       addSuccessMessage(t('Query updated'));
 
+      trackAnalyticsEvent({
+        eventKey: 'discover_v2.update_query',
+        eventName: 'Discoverv2: Updating a saved query',
+        organization_id: organization.id,
+        ...extractAnalyticsQueryFields(payload),
+      });
       // NOTE: there is no need to convert _saved into an EventView and push it
       //       to the browser history, since this.props.eventView already
       //       derives from location.

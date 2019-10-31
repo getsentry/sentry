@@ -6,6 +6,8 @@ import {Location} from 'history';
 import {Client} from 'app/api';
 import {Organization} from 'app/types';
 import {t} from 'app/locale';
+import {extractAnalyticsQueryFields} from 'app/utils';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {createSavedQuery} from 'app/actionCreators/discoverSavedQueries';
 import {addSuccessMessage} from 'app/actionCreators/indicator';
 import DropdownControl from 'app/components/dropdownControl';
@@ -58,6 +60,7 @@ class EventsSaveQueryButton extends React.Component<Props, State> {
       payload.name = this.state.queryName;
     }
 
+    const editingExistingQuery = this.props.isEditingExistingQuery;
     createSavedQuery(api, organization.slug, payload).then(saved => {
       const view = EventView.fromSavedQuery(saved);
       addSuccessMessage(t('Query saved'));
@@ -65,6 +68,21 @@ class EventsSaveQueryButton extends React.Component<Props, State> {
       browserHistory.push({
         pathname: location.pathname,
         query: view.generateQueryStringObject(),
+      });
+
+      const eventKeyName = editingExistingQuery
+        ? {
+            eventKey: 'discover_v2.save_existing_query',
+            eventName: 'Discoverv2: Save a saved query as a new query',
+          }
+        : {
+            eventKey: 'discover_v2.save_new_query',
+            eventName: 'Discoverv2: Save a new query',
+          };
+      trackAnalyticsEvent({
+        ...eventKeyName,
+        organization_id: organization.id,
+        ...extractAnalyticsQueryFields(payload),
       });
     });
   };
