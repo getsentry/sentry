@@ -78,7 +78,7 @@ class TableView extends React.Component<TableViewProps> {
       });
 
       trackAnalyticsEvent({
-        eventKey: 'discover_v2.add_column_right_side',
+        eventKey: 'discover_v2.add_column.right_end',
         eventName: 'Discoverv2: Add a new column at the right end of the table',
       });
     }
