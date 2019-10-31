@@ -1,6 +1,10 @@
 from __future__ import absolute_import
 
-from sentry.grouping.strategies.base import create_strategy_configuration
+from sentry.grouping.strategies.base import (
+    create_strategy_configuration,
+    RISK_LEVEL_MEDIUM,
+    RISK_LEVEL_HIGH,
+)
 
 
 # The classes of grouping algorithms
@@ -64,6 +68,7 @@ register_strategy_config(
         "template:v1",
         "message:v2",
     ],
+    risk=RISK_LEVEL_HIGH,
     delegates=["frame:v3", "stacktrace:v1", "single-exception:v2"],
     changelog="""
         * Uses source code information all platforms with reliable sources
@@ -83,6 +88,7 @@ register_strategy_config(
     id="newstyle:2019-10-29",
     base="newstyle:2019-05-08",
     delegates=["frame:v4"],
+    risk=RISK_LEVEL_MEDIUM,
     changelog="""
         * Better rules for when to take context lines into account for
           JavaScript platforms for grouping purposes.
@@ -109,6 +115,7 @@ register_strategy_config(
         "message:v1",
     ],
     delegates=["frame:v1", "stacktrace:v1", "single-exception:v1"],
+    risk=RISK_LEVEL_HIGH,
     changelog="""
         * Experimental grouping algorithm (should not be used)
     """,
@@ -120,6 +127,7 @@ register_strategy_config(
     base="newstyle:2019-04-05",
     strategies=["message:v2"],
     delegates=["frame:v2", "single-exception:v2"],
+    risk=RISK_LEVEL_HIGH,
     changelog="""
         * Experimental grouping algorithm (should not be used)
     """,
@@ -140,6 +148,7 @@ register_strategy_config(
         "message:v1",
     ],
     delegates=["frame:v1nl", "stacktrace:v1nl", "single-exception:v1nl"],
+    risk=RISK_LEVEL_HIGH,
     changelog="""
         * Uses `newstyle:2019-04-05` for native platforms
         * Uses `legacy:2019-03-12` for all other platforms

@@ -11,6 +11,11 @@ from sentry.grouping.enhancer import Enhancements
 STRATEGIES = {}
 
 
+RISK_LEVEL_LOW = 0
+RISK_LEVEL_MEDIUM = 1
+RISK_LEVEL_HIGH = 2
+
+
 def strategy(id=None, ids=None, variants=None, interfaces=None, name=None, score=None):
     """Registers a strategy"""
     if interfaces is None or variants is None:
@@ -169,6 +174,7 @@ class StrategyConfiguration(object):
     delegates = {}
     changelog = None
     hidden = False
+    risk = RISK_LEVEL_LOW
 
     def __init__(self, enhancements=None, **extra):
         if enhancements is None:
@@ -204,6 +210,7 @@ class StrategyConfiguration(object):
             "changelog": self.changelog,
             "delegates": sorted(x.id for x in self.delegates.values()),
             "hidden": self.hidden,
+            "risk": self.risk,
             "latest": projectoptions.lookup_well_known_key("sentry:grouping_config").get_default(
                 epoch=projectoptions.LATEST_EPOCH
             )
@@ -212,7 +219,7 @@ class StrategyConfiguration(object):
 
 
 def create_strategy_configuration(
-    id, strategies=None, delegates=None, changelog=None, hidden=False, base=None
+    id, strategies=None, delegates=None, changelog=None, hidden=False, base=None, risk=None
 ):
     """Declares a new strategy configuration.
 
@@ -232,6 +239,9 @@ def create_strategy_configuration(
     NewStrategyConfiguration.config_class = id.split(":", 1)[0]
     NewStrategyConfiguration.strategies = dict(base.strategies) if base else {}
     NewStrategyConfiguration.delegates = dict(base.delegates) if base else {}
+    if risk is None:
+        risk = RISK_LEVEL_LOW
+    NewStrategyConfiguration.risk = risk
     NewStrategyConfiguration.hidden = hidden
 
     by_class = {}
