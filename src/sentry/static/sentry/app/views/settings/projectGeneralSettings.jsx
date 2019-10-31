@@ -96,25 +96,26 @@ class ProjectGeneralSettings extends AsyncView {
     }, handleXhrErrorResponse('Unable to transfer project'));
   };
 
-  getGroupingChangelogAndRisk() {
+  getGroupingChanges() {
     let updateNotes = '';
     const byId = {};
     let riskLevel = 0;
-    let latest = null;
+    let latestGroupingConfig = null;
+    let latestEnhancementsBase = null;
 
     this.state.groupingConfigs.forEach(cfg => {
       byId[cfg.id] = cfg;
       if (cfg.latest && this.state.data.groupingConfig !== cfg.id) {
         updateNotes = cfg.changelog;
-        latest = cfg;
+        latestGroupingConfig = cfg;
         riskLevel = cfg.risk;
       }
     });
 
-    if (latest) {
-      let next = latest.base;
+    if (latestGroupingConfig) {
+      let next = latestGroupingConfig.base;
       while (next !== this.state.data.groupingConfig) {
-        const cfg = byId[next].next;
+        const cfg = byId[next];
         if (!cfg) {
           break;
         }
@@ -127,10 +128,11 @@ class ProjectGeneralSettings extends AsyncView {
     this.state.groupingEnhancementBases.forEach(cfg => {
       if (cfg.latest && this.state.data.groupingEnhancementsBase !== cfg.id) {
         updateNotes += '\n\n' + cfg.changelog;
+        latestEnhancementsBase = cfg;
       }
     });
 
-    return {updateNotes, riskLevel};
+    return {updateNotes, riskLevel, latestGroupingConfig, latestEnhancementsBase};
   }
 
   renderUpgradeGrouping() {
@@ -140,20 +142,20 @@ class ProjectGeneralSettings extends AsyncView {
       return null;
     }
 
-    const {updateNotes, riskLevel} = this.getGroupingChangelog();
+    const {
+      updateNotes,
+      riskLevel,
+      latestGroupingConfig,
+      latestEnhancementsBase,
+    } = this.getGroupingChanges();
+    const noUpdates = !latestGroupingConfig && !latestEnhancementsBase;
     const newData = {};
-
-    this.state.groupingConfigs.forEach(({id, latest}) => {
-      if (latest && this.state.data.groupingConfig !== id) {
-        newData.groupingConfig = id;
-      }
-    });
-
-    this.state.groupingEnhancementBases.forEach(({id, latest}) => {
-      if (latest && this.state.data.groupingEnhancementsBase !== id) {
-        newData.groupingEnhancementsBase = id;
-      }
-    });
+    if (latestGroupingConfig) {
+      newData.groupingConfig = latestGroupingConfig.id;
+    }
+    if (latestEnhancementsBase) {
+      newData.groupingEnhancementBases = latestEnhancementsBase.id;
+    }
 
     let riskNote;
     let alertType;
@@ -178,8 +180,6 @@ class ProjectGeneralSettings extends AsyncView {
         break;
       default:
     }
-
-    const noUpdates = Object.keys(newData).length === 0;
 
     return (
       <Field
