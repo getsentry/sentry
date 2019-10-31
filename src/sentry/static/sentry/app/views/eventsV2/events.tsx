@@ -30,7 +30,7 @@ type EventsProps = {
 };
 
 export default class Events extends React.Component<EventsProps> {
-  handleSearch = query => {
+  handleSearch = (query: string) => {
     const {router, location} = this.props;
 
     const queryParams = getParams({
@@ -44,6 +44,20 @@ export default class Events extends React.Component<EventsProps> {
     router.push({
       pathname: location.pathname,
       query: searchQueryParams,
+    });
+  };
+
+  handleYAxisChange = (value: string) => {
+    const {router, location} = this.props;
+
+    const newQuery = {
+      ...location.query,
+      yAxis: value,
+    };
+
+    router.push({
+      pathname: location.pathname,
+      query: newQuery,
     });
   };
 
@@ -83,6 +97,8 @@ export default class Events extends React.Component<EventsProps> {
                 organization={organization}
                 showLegend
                 yAxisOptions={yAxisOptions}
+                yAxisValue={eventView.yAxis}
+                onYAxisChange={this.handleYAxisChange}
               />
             ),
             fixed: 'events chart',

@@ -171,6 +171,20 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             [{"count": 2}],
         ]
 
+    def test_invalid_aggregate(self):
+        with self.feature("organizations:events-v2"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "interval": "1h",
+                    "yAxis": "rubbish",
+                },
+            )
+        assert response.status_code == 400, response.content
+
     def test_aggregate_function_user_count(self):
         with self.feature("organizations:events-v2"):
             response = self.client.get(

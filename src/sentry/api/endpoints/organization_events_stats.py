@@ -66,7 +66,10 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
             resolved = resolve_field_list([y_axis], {})
         except InvalidSearchQuery as err:
             raise ParseError(detail=six.text_type(err))
-        aggregate = resolved["aggregations"][0]
+        try:
+            aggregate = resolved["aggregations"][0]
+        except IndexError:
+            raise ParseError(detail="Invalid yAxis value requested.")
         aggregate[2] = "count"
         snuba_args["aggregations"] = [aggregate]
 

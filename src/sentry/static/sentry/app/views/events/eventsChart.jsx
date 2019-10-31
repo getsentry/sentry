@@ -12,6 +12,7 @@ import ReleaseSeries from 'app/components/charts/releaseSeries';
 import SentryTypes from 'app/sentryTypes';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
+import {callIfFunction} from 'app/utils/callIfFunction';
 
 import EventsRequest from './utils/eventsRequest';
 import YAxisSelector from './yAxisSelector';
@@ -99,23 +100,26 @@ class EventsChart extends React.Component {
     router: PropTypes.object,
     showLegend: PropTypes.bool,
     yAxisOptions: PropTypes.array,
+    yAxisValue: PropTypes.string,
+    onYAxisChange: PropTypes.func,
   };
-
-  constructor(props) {
-    super(props);
-    const value =
-      props.yAxisOptions && props.yAxisOptions.length
-        ? props.yAxisOptions[0].value
-        : undefined;
-
-    this.state = {
-      yAxis: value,
-    };
-  }
 
   handleYAxisChange = value => {
-    this.setState({yAxis: value});
+    const {onYAxisChange} = this.props;
+    callIfFunction(onYAxisChange, value);
   };
+
+  getYAxisValue() {
+    const {yAxisValue, yAxisOptions} = this.props;
+    if (yAxisValue) {
+      return yAxisValue;
+    }
+    if (yAxisOptions && yAxisOptions.length) {
+      return yAxisOptions[0].value;
+    }
+
+    return undefined;
+  }
 
   render() {
     const {
@@ -134,6 +138,7 @@ class EventsChart extends React.Component {
     } = this.props;
     // Include previous only on relative dates (defaults to relative if no start and end)
     const includePrevious = !start && !end;
+    const yAxis = this.getYAxisValue();
 
     return (
       <ChartZoom
@@ -157,7 +162,7 @@ class EventsChart extends React.Component {
             showLoading={false}
             query={query}
             includePrevious={includePrevious}
-            yAxis={this.state.yAxis}
+            yAxis={yAxis}
           >
             {({loading, reloading, timeseriesData, previousTimeseriesData}) => {
               return (
@@ -172,7 +177,7 @@ class EventsChart extends React.Component {
                         <TransparentLoadingMask visible={reloading} />
                         {yAxisOptions && (
                           <YAxisSelector
-                            selected={this.state.yAxis}
+                            selected={yAxis}
                             options={yAxisOptions}
                             onChange={this.handleYAxisChange}
                           />

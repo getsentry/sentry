@@ -24,6 +24,7 @@ class DiscoverSavedQuerySerializer(Serializer):
             "limit",
             "version",
             "tags",
+            "yAxis",
         ]
 
         data = {

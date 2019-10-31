@@ -170,6 +170,7 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
                     "query": "event.type:error browser.name:Firefox",
                     "range": "24h",
                     "tags": ["release", "environment"],
+                    "yAxis": "count(id)",
                     "version": 2,
                 },
             )
@@ -181,6 +182,7 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
         assert data["environment"] == ["dev"]
         assert data["query"] == "event.type:error browser.name:Firefox"
         assert data["tags"] == ["release", "environment"]
+        assert data["yAxis"] == "count(id)"
 
     def test_post_success_no_fieldnames(self):
         with self.feature(self.feature_name):
