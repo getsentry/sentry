@@ -210,7 +210,7 @@ describe('GlobalSelectionHeader', function() {
 
     expect(GlobalSelectionStore.get()).toEqual({
       datetime: {
-        period: null,
+        period: '14d',
         utc: null,
         start: null,
         end: null,
@@ -239,7 +239,7 @@ describe('GlobalSelectionHeader', function() {
     // Store should not have any environments selected
     expect(GlobalSelectionStore.get()).toEqual({
       datetime: {
-        period: null,
+        period: '14d',
         utc: null,
         start: null,
         end: null,
@@ -327,7 +327,7 @@ describe('GlobalSelectionHeader', function() {
     wrapper.update();
 
     expect(globalActions.updateDateTime).toHaveBeenCalledWith({
-      period: null,
+      period: '7d',
       utc: null,
       start: null,
       end: null,
@@ -337,7 +337,7 @@ describe('GlobalSelectionHeader', function() {
 
     expect(GlobalSelectionStore.get()).toEqual({
       datetime: {
-        period: null,
+        period: '14d',
         utc: null,
         start: null,
         end: null,
@@ -386,7 +386,7 @@ describe('GlobalSelectionHeader', function() {
     });
   });
 
-  it('updates store when there are no query params in URL and `disableLoadFromStore` is false', function() {
+  it('updates store when there are query params in URL', function() {
     const initializationObj = initializeOrg({
       organization: {
         features: ['global-views'],
@@ -407,7 +407,7 @@ describe('GlobalSelectionHeader', function() {
     expect(globalActions.updateDateTime).toHaveBeenCalled();
   });
 
-  it('does not update store when there are no query params in URL and `disableLoadFromStore` is true', function() {
+  it('updates store with default values when there are no query params in URL', function() {
     const initializationObj = initializeOrg({
       organization: {
         features: ['global-views'],
@@ -419,16 +419,18 @@ describe('GlobalSelectionHeader', function() {
     });
 
     mountWithTheme(
-      <GlobalSelectionHeader
-        organization={initializationObj.organization}
-        disableLoadFromStore
-      />,
+      <GlobalSelectionHeader organization={initializationObj.organization} />,
       initializationObj.routerContext
     );
 
-    expect(globalActions.updateProjects).not.toHaveBeenCalled();
-    expect(globalActions.updateEnvironments).not.toHaveBeenCalled();
-    expect(globalActions.updateDateTime).not.toHaveBeenCalled();
+    expect(globalActions.updateProjects).toHaveBeenCalledWith([]);
+    expect(globalActions.updateEnvironments).toHaveBeenCalledWith([]);
+    expect(globalActions.updateDateTime).toHaveBeenCalledWith({
+      end: null,
+      period: '14d',
+      start: null,
+      utc: null,
+    });
   });
 
   describe('Single project selection mode', function() {
@@ -549,7 +551,7 @@ describe('GlobalSelectionHeader', function() {
 
         expect(initialData.router.replace).toHaveBeenLastCalledWith({
           pathname: undefined,
-          query: {project: [0], environment: []},
+          query: {project: [0]},
         });
       });
 
@@ -604,7 +606,7 @@ describe('GlobalSelectionHeader', function() {
 
         expect(initialData.router.replace).toHaveBeenLastCalledWith({
           pathname: undefined,
-          query: {project: [1], environment: []},
+          query: {project: [1]},
         });
       });
     });

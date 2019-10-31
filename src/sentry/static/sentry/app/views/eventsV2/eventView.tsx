@@ -6,6 +6,7 @@ import {DEFAULT_PER_PAGE} from 'app/constants';
 import {EventViewv1} from 'app/types';
 import {SavedQuery as LegacySavedQuery} from 'app/views/discover/types';
 import {SavedQuery, NewQuery} from 'app/stores/discoverSavedQueriesStore';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 
 import {AUTOLINK_FIELDS, SPECIAL_FIELDS, FIELD_FORMATTERS} from './data';
 import {
@@ -350,6 +351,8 @@ class EventView {
   }
 
   static fromLocation(location: Location): EventView {
+    const {start, end, statsPeriod} = getParams(location.query);
+
     return new EventView({
       id: decodeScalar(location.query.id),
       name: decodeScalar(location.query.name),
@@ -358,9 +361,9 @@ class EventView {
       tags: collectQueryStringByKey(location.query, 'tag'),
       query: decodeQuery(location) || '',
       project: decodeProjects(location),
-      start: decodeScalar(location.query.start),
-      end: decodeScalar(location.query.end),
-      statsPeriod: decodeScalar(location.query.statsPeriod),
+      start: decodeScalar(start),
+      end: decodeScalar(end),
+      statsPeriod: decodeScalar(statsPeriod),
       environment: collectQueryStringByKey(location.query, 'environment'),
     });
   }
@@ -402,14 +405,23 @@ class EventView {
       });
     }
 
+    // normalize datetime selection
+
+    const {start, end, statsPeriod} = getParams({
+      start: saved.start,
+      end: saved.end,
+      statsPeriod: saved.range,
+    });
+
     return new EventView({
       fields,
       id: saved.id,
       name: saved.name,
       query: queryStringFromSavedQuery(saved),
       project: saved.projects,
-      start: saved.start,
-      end: saved.end,
+      start: decodeScalar(start),
+      end: decodeScalar(end),
+      statsPeriod: decodeScalar(statsPeriod),
       sorts: fromSorts(saved.orderby),
       tags: collectQueryStringByKey(
         {
@@ -417,7 +429,6 @@ class EventView {
         },
         'tags'
       ),
-      statsPeriod: saved.range,
       environment: collectQueryStringByKey(
         {
           environment: (saved as SavedQuery).environment as string[],
@@ -845,17 +856,31 @@ class EventView {
 
     const picked = pickRelevantLocationQueryStrings(location);
 
+    // normalize datetime selection
+
+    const normalizedTimeWindowParams = getParams({
+      start: this.start,
+      end: this.end,
+      period: decodeScalar(query.period),
+      statsPeriod: this.statsPeriod,
+      utc: decodeScalar(query.utc),
+    });
+
     const sort = this.sorts.length > 0 ? encodeSort(this.sorts[0]) : undefined;
     const fields = this.getFields();
 
     // generate event query
 
-    const eventQuery: EventQuery & LocationQuery = Object.assign(picked, {
-      field: [...new Set(fields)],
-      sort,
-      per_page: DEFAULT_PER_PAGE,
-      query: this.getQuery(query.query),
-    });
+    const eventQuery: EventQuery & LocationQuery = Object.assign(
+      picked,
+      normalizedTimeWindowParams,
+      {
+        field: [...new Set(fields)],
+        sort,
+        per_page: DEFAULT_PER_PAGE,
+        query: this.getQuery(query.query),
+      }
+    );
 
     if (!eventQuery.sort) {
       delete eventQuery.sort;
