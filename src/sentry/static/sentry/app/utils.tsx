@@ -273,6 +273,10 @@ export function generateQueryWithTag(
   return query;
 }
 
+/**
+ * Takes in a DiscoverV2 NewQuery object and returns a Partial containing
+ * the desired fields to populate into reload analytics
+ */
 export function extractAnalyticsQueryFields(payload: NewQuery): Partial<NewQuery> {
   const {projects, fields, fieldnames, query, tags} = payload;
   return {
