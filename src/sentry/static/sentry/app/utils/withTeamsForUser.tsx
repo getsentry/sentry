@@ -7,6 +7,7 @@ import getDisplayName from 'app/utils/getDisplayName';
 import getProjectsByTeams from 'app/utils/getProjectsByTeams';
 import ConfigStore from 'app/stores/configStore';
 import TeamActions from 'app/actions/teamActions';
+import {metric} from './analytics';
 
 // We require these props when using this HOC
 type DependentProps = {
@@ -52,13 +53,27 @@ const withTeamsForUser = <P extends InjectedTeamsProps>(
         loadingTeams: true,
       });
       try {
+        metric.mark('user-teams-fetch-start');
         const teamsWithProjects: TeamWithProjects[] = await this.props.api.requestPromise(
           this.getUsersTeamsEndpoint()
         );
-        this.setState({
-          teams: teamsWithProjects,
-          loadingTeams: false,
-        });
+        this.setState(
+          {
+            teams: teamsWithProjects,
+            loadingTeams: false,
+          },
+          () => {
+            metric.measure({
+              name: 'app.component.perf',
+              start: 'organization-details-fetch-start',
+              data: {
+                name: 'user-teams',
+                route: '/organizations/:orgid/user-teams',
+                organization_id: parseInt(this.props.organization.id, 10),
+              },
+            });
+          }
+        );
 
         // also fill up TeamStore so org context does not have to refetch org
         // details due to lack of teams/projects
@@ -89,7 +104,9 @@ const withTeamsForUser = <P extends InjectedTeamsProps>(
     }
 
     render() {
-      return <WrappedComponent {...this.props as (P & DependentProps)} {...this.state} />;
+      return (
+        <WrappedComponent {...(this.props as (P & DependentProps))} {...this.state} />
+      );
     }
   };
 
