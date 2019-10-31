@@ -13,6 +13,7 @@ from threading import Thread
 from six.moves.queue import Queue
 
 
+metrics_skip_all_internal = getattr(settings, "SENTRY_METRICS_SKIP_ALL_INTERNAL", False)
 metrics_skip_internal_prefixes = tuple(settings.SENTRY_METRICS_SKIP_INTERNAL_PREFIXES)
 
 
@@ -99,12 +100,19 @@ def incr(
     skip_internal=True,
     sample_rate=settings.SENTRY_METRICS_SAMPLE_RATE,
 ):
-    banned_prefix = key.startswith(metrics_skip_internal_prefixes)
-    if not skip_internal and _should_sample(sample_rate) and not banned_prefix:
+    should_send_internal = (
+        not metrics_skip_all_internal
+        and not skip_internal
+        and _should_sample(sample_rate)
+        and not key.startswith(metrics_skip_internal_prefixes)
+    )
+
+    if should_send_internal:
         internal.incr(key, instance, tags, amount, sample_rate)
+
     try:
         backend.incr(key, instance, tags, amount, sample_rate)
-        if not skip_internal and not banned_prefix:
+        if should_send_internal:
             backend.incr("internal_metrics.incr", key, None, 1, sample_rate)
     except Exception:
         logger = logging.getLogger("sentry.errors")
