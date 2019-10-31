@@ -89,7 +89,7 @@ class EventsSaveQueryButton extends React.Component<Props, State> {
             isOpen={isOpen}
             showChevron={false}
           >
-            <StyledInlineSvg src="icon-bookmark" size="14" />
+            <StyledInlineSvg src="icon-star" size="14" />
             {newQueryLabel}
           </StyledDropdownButton>
         )}
