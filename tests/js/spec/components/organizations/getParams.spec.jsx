@@ -1,4 +1,4 @@
-import {getParams} from 'app/views/events/utils/getParams';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 
 describe('getParams', function() {
   it('should return default statsPeriod if it is not provided or is invalid', function() {

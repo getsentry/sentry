@@ -2,7 +2,7 @@ import {pick, pickBy, identity} from 'lodash';
 
 import {defined} from 'app/utils';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
-import {getParams} from 'app/views/events/utils/getParams';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 
