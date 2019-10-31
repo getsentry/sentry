@@ -101,9 +101,17 @@ class EventsChart extends React.Component {
     yAxisOptions: PropTypes.array,
   };
 
-  state = {
-    yAxis: 'event_count',
-  };
+  constructor(props) {
+    super(props);
+    const value =
+      props.yAxisOptions && props.yAxisOptions.length
+        ? props.yAxisOptions[0].value
+        : undefined;
+
+    this.state = {
+      yAxis: value,
+    };
+  }
 
   handleYAxisChange = value => {
     this.setState({yAxis: value});

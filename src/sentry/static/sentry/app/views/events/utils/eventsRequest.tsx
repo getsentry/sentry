@@ -47,7 +47,7 @@ type EventsRequestPartialProps = {
   includeTransformedData?: boolean;
   loading?: boolean;
   showLoading?: boolean;
-  yAxis?: 'event_count' | 'user_count';
+  yAxis?: string;
   children: (renderProps: RenderProps) => React.ReactNode;
 };
 

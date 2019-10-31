@@ -16,7 +16,7 @@ type Options = {
   includePrevious?: boolean;
   limit?: number;
   query?: string;
-  yAxis?: 'event_count' | 'user_count';
+  yAxis?: string;
   field?: string[];
   referenceEvent?: string;
 };
