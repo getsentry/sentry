@@ -176,7 +176,7 @@ matrix:
     # allowed to fail
     - <<: *acceptance_default
       name: 'Plugins'
-      env: TEST_SUITE=plugins DB=postgres PERCY_ENABLE=0
+      env: TEST_SUITE=plugins DB=postgres PERCY_TOKEN=${PLUGIN_PERCY_TOKEN}
 
     - python: 2.7
       name: 'Frontend'
