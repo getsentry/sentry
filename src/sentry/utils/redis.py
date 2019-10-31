@@ -10,7 +10,7 @@ from threading import Lock
 import rb
 from django.utils.functional import SimpleLazyObject
 from pkg_resources import resource_string
-from redis.client import Script
+from redis.client import Script, StrictRedis
 from redis.connection import ConnectionPool
 from redis.exceptions import ConnectionError, BusyLoadingError
 from rediscluster import StrictRedisCluster
@@ -100,7 +100,11 @@ class RetryingStrictRedisCluster(StrictRedisCluster):
 
 class _RedisCluster(object):
     def supports(self, config):
-        return config.get("is_redis_cluster", False)
+        # _RedisCluster supports two configurations:
+        #  * Explicitly configured with is_redis_cluster. This mode is for real redis-cluster.
+        #  * No is_redis_cluster, but only 1 host. This represents a singular node Redis running
+        #    in non-cluster mode.
+        return config.get("is_redis_cluster", False) or len(config.get("hosts")) == 1
 
     def factory(self, **config):
         # StrictRedisCluster expects a list of { host, port } dicts. Coerce the
@@ -111,9 +115,14 @@ class _RedisCluster(object):
         # Redis cluster does not wait to attempt to connect. We'd prefer to not
         # make TCP connections on boot. Wrap the client in a lazy proxy object.
         def cluster_factory():
-            return RetryingStrictRedisCluster(
-                startup_nodes=hosts, decode_responses=True, skip_full_coverage_check=True
-            )
+            if config.get("is_redis_cluster", False):
+                return RetryingStrictRedisCluster(
+                    startup_nodes=hosts, decode_responses=True, skip_full_coverage_check=True
+                )
+            else:
+                host = hosts[0].copy()
+                host["decode_responses"] = True
+                return StrictRedis(**host)
 
         return SimpleLazyObject(cluster_factory)
 
