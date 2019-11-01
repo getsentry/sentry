@@ -34,6 +34,18 @@ type State = {
   queryName: string;
 };
 
+// Used for resolving the event name for an analytics event
+const EVENT_NAME_EXISTING_MAP = {
+  request: 'Discoverv2: Request to save a saved query as a new query',
+  success: 'Discoverv2: Successfully saved a saved query as a new query',
+  failed: 'Discoverv2: Failed to save a saved query as a new query',
+};
+const EVENT_NAME_NEW_MAP = {
+  request: 'Discoverv2: Request to save a new query',
+  success: 'Discoverv2: Successfully saved a new query',
+  failed: 'Discoverv2: Failed to save a new query',
+};
+
 class EventsSaveQueryButton extends React.Component<Props, State> {
   state = {
     queryName: '',
@@ -61,36 +73,63 @@ class EventsSaveQueryButton extends React.Component<Props, State> {
     }
 
     const editingExistingQuery = this.props.isEditingExistingQuery;
-    createSavedQuery(api, organization.slug, payload).then(saved => {
-      const view = EventView.fromSavedQuery(saved);
-      addSuccessMessage(t('Query saved'));
-
-      browserHistory.push({
-        pathname: location.pathname,
-        query: view.generateQueryStringObject(),
-      });
-
-      const eventKeyName = editingExistingQuery
-        ? {
-            eventKey: 'discover_v2.save_existing_query',
-            eventName: 'Discoverv2: Save a saved query as a new query',
-          }
-        : {
-            eventKey: 'discover_v2.save_new_query',
-            eventName: 'Discoverv2: Save a new query',
-          };
-      trackAnalyticsEvent({
-        ...eventKeyName,
-        organization_id: organization.id,
-        ...extractAnalyticsQueryFields(payload),
-      });
+    trackAnalyticsEvent({
+      ...this.getAnalyticsEventKeyName(editingExistingQuery, 'request'),
+      organization_id: organization.id,
+      ...extractAnalyticsQueryFields(payload),
     });
+
+    createSavedQuery(api, organization.slug, payload)
+      .then(saved => {
+        const view = EventView.fromSavedQuery(saved);
+        addSuccessMessage(t('Query saved'));
+
+        browserHistory.push({
+          pathname: location.pathname,
+          query: view.generateQueryStringObject(),
+        });
+
+        trackAnalyticsEvent({
+          ...this.getAnalyticsEventKeyName(editingExistingQuery, 'success'),
+          organization_id: organization.id,
+          ...extractAnalyticsQueryFields(payload),
+        });
+      })
+      .catch((err: Error) => {
+        trackAnalyticsEvent({
+          ...this.getAnalyticsEventKeyName(editingExistingQuery, 'failed'),
+          organization_id: organization.id,
+          ...extractAnalyticsQueryFields(payload),
+          error:
+            (err && err.message) ||
+            `Could not save a ${editingExistingQuery ? 'existing' : 'new'} query`,
+        });
+      });
   };
 
   handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
     this.setState({queryName: value});
   };
+
+  getAnalyticsEventKeyName(
+    editingExistingQuery: boolean,
+    type: 'request' | 'success' | 'failed'
+  ) {
+    const eventKey =
+      (editingExistingQuery
+        ? 'discover_v2.save_existing_query'
+        : 'discover_v2.save_new_query') + type;
+
+    const eventName = editingExistingQuery
+      ? EVENT_NAME_EXISTING_MAP[type]
+      : EVENT_NAME_NEW_MAP[type];
+
+    return {
+      eventKey,
+      eventName,
+    };
+  }
 
   render() {
     const newQueryLabel = this.props.isEditingExistingQuery

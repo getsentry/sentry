@@ -65,23 +65,40 @@ class SavedQueryButtonGroup extends React.Component<Props> {
 
     const {organization, api, eventView} = this.props;
 
-    deleteSavedQuery(api, organization.slug, eventView.id!).then(() => {
-      addSuccessMessage(t('Query deleted'));
-
-      // redirect to the primary discover2 page
-
-      browserHistory.push({
-        pathname: location.pathname,
-        query: {},
-      });
-
-      trackAnalyticsEvent({
-        eventKey: 'discover_v2.delete_query',
-        eventName: 'Discoverv2: Deleting a saved query',
-        organization_id: organization.id,
-        ...extractAnalyticsQueryFields(eventView.toNewQuery()),
-      });
+    trackAnalyticsEvent({
+      eventKey: 'discover_v2.delete_query_request',
+      eventName: 'Discoverv2: Request to delete a saved query',
+      organization_id: organization.id,
+      ...extractAnalyticsQueryFields(eventView.toNewQuery()),
     });
+
+    deleteSavedQuery(api, organization.slug, eventView.id!)
+      .then(() => {
+        addSuccessMessage(t('Query deleted'));
+
+        // redirect to the primary discover2 page
+
+        browserHistory.push({
+          pathname: location.pathname,
+          query: {},
+        });
+
+        trackAnalyticsEvent({
+          eventKey: 'discover_v2.delete_query_success',
+          eventName: 'Discoverv2: Successfully deleted a saved query',
+          organization_id: organization.id,
+          ...extractAnalyticsQueryFields(eventView.toNewQuery()),
+        });
+      })
+      .catch((err: Error) => {
+        trackAnalyticsEvent({
+          eventKey: 'discover_v2.delete_query_failed',
+          eventName: 'Discoverv2: Failed to delete a saved query',
+          organization_id: organization.id,
+          ...extractAnalyticsQueryFields(eventView.toNewQuery()),
+          error: (err && err.message) || 'Failed to delete query',
+        });
+      });
   };
 
   renderDeleteButton = () => {
@@ -104,19 +121,36 @@ class SavedQueryButtonGroup extends React.Component<Props> {
 
     const payload = eventView.toNewQuery();
 
-    updateSavedQuery(api, organization.slug, payload).then(_saved => {
-      addSuccessMessage(t('Query updated'));
-
-      trackAnalyticsEvent({
-        eventKey: 'discover_v2.update_query',
-        eventName: 'Discoverv2: Updating a saved query',
-        organization_id: organization.id,
-        ...extractAnalyticsQueryFields(payload),
-      });
-      // NOTE: there is no need to convert _saved into an EventView and push it
-      //       to the browser history, since this.props.eventView already
-      //       derives from location.
+    trackAnalyticsEvent({
+      eventKey: 'discover_v2.update_query_request',
+      eventName: 'Discoverv2: Request to update a saved query',
+      organization_id: organization.id,
+      ...extractAnalyticsQueryFields(payload),
     });
+
+    updateSavedQuery(api, organization.slug, payload)
+      .then(_saved => {
+        addSuccessMessage(t('Query updated'));
+
+        trackAnalyticsEvent({
+          eventKey: 'discover_v2.update_query_success',
+          eventName: 'Discoverv2: Successfully updated a saved query',
+          organization_id: organization.id,
+          ...extractAnalyticsQueryFields(payload),
+        });
+        // NOTE: there is no need to convert _saved into an EventView and push it
+        //       to the browser history, since this.props.eventView already
+        //       derives from location.
+      })
+      .catch((err: Error) => {
+        trackAnalyticsEvent({
+          eventKey: 'discover_v2.update_query_failed',
+          eventName: 'Discoverv2: Failed to update a saved query',
+          organization_id: organization.id,
+          ...extractAnalyticsQueryFields(payload),
+          error: (err && err.message) || 'Failed to update a query',
+        });
+      });
   };
 
   isQueryModified = (): boolean => {
