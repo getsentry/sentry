@@ -246,6 +246,17 @@ export default function createQueryBuilder(
       return Promise.reject(new Error('Start date cannot be after end date'));
     }
 
+    const {start, end, statsPeriod} = getParams(data);
+
+    if (start && end) {
+      data.start = start;
+      data.end = end;
+    }
+
+    if (statsPeriod) {
+      data.range = statsPeriod;
+    }
+
     return api
       .requestPromise(endpoint, {includeAllArgs: true, method: 'POST', data} as any)
       .then(([responseData, _, utils]) => {
@@ -282,6 +293,17 @@ export default function createQueryBuilder(
 
     if (moment.utc(data.start).isAfter(moment.utc(data.end))) {
       return Promise.reject(new Error('Start date cannot be after end date'));
+    }
+
+    const {start, end, statsPeriod} = getParams(data);
+
+    if (start && end) {
+      data.start = start;
+      data.end = end;
+    }
+
+    if (statsPeriod) {
+      data.range = statsPeriod;
     }
 
     return api.requestPromise(endpoint, {method: 'POST', data} as any).catch(() => {
