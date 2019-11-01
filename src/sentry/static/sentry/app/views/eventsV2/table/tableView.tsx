@@ -125,7 +125,7 @@ class TableView extends React.Component<TableViewProps> {
     );
 
     if (nextEventView !== eventView) {
-      let changed: 'some' | 'all' | 'aggregate' | 'field' | 'fieldname' = 'some';
+      const changed: string[] = [];
 
       const prevField = explodeField(eventView.fields[columnIndex]);
       const nextField = explodeField(nextEventView.fields[columnIndex]);
@@ -134,20 +134,16 @@ class TableView extends React.Component<TableViewProps> {
       const fieldChanged = prevField.field !== nextField.field;
       const fieldnameChanged = prevField.fieldname !== nextField.fieldname;
 
-      if (aggregationChanged && fieldChanged && fieldnameChanged) {
-        changed = 'all';
+      if (aggregationChanged) {
+        changed.push('aggregate');
       }
 
-      if (aggregationChanged && !fieldChanged && !fieldnameChanged) {
-        changed = 'aggregate';
+      if (fieldChanged) {
+        changed.push('field');
       }
 
-      if (!aggregationChanged && fieldChanged && !fieldnameChanged) {
-        changed = 'field';
-      }
-
-      if (!aggregationChanged && !fieldChanged && fieldnameChanged) {
-        changed = 'fieldname';
+      if (fieldnameChanged) {
+        changed.push('fieldname');
       }
 
       // metrics
