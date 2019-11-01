@@ -161,7 +161,7 @@ class SentryAppWebhookRequestsBuffer(object):
             client = redis.redis_clusters.get(cluster_id)
             self.buffer = _RedisBuffer(sentry_app, client)
         except KeyError:
-            self.buffer = _BaseBuffer(sentry_app, client)
+            self.buffer = _BaseBuffer(sentry_app, None)
 
     def get_errors(self, event=None):
         return self.buffer.get_errors(event=event)
