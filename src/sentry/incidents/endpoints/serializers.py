@@ -26,6 +26,9 @@ from sentry.incidents.models import (
     AlertRuleTriggerAction,
 )
 from sentry.models.project import Project
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.snuba.models import QueryAggregations
 
 
@@ -243,6 +246,38 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                 "Invalid target_type, valid values are %s"
                 % [item.value for item in AlertRuleTriggerAction.TargetType]
             )
+
+    def validate(self, attrs):
+        if ("target_type" in attrs) != ("target_identifier" in attrs):
+            raise serializers.ValidationError(
+                "targetType and targetIdentifier must be passed together"
+            )
+        target_type = attrs.get("target_type")
+        access = self.context["access"]
+        identifier = attrs.get("target_identifier")
+        if target_type == AlertRuleTriggerAction.TargetType.TEAM:
+            try:
+                team = Team.objects.get(id=identifier)
+            except Team.DoesNotExist:
+                raise serializers.ValidationError("Team does not exist")
+            if not access.has_team(team):
+                raise serializers.ValidationError("Team does not exist")
+        elif target_type == AlertRuleTriggerAction.TargetType.USER:
+            try:
+                user = User.objects.get(id=identifier)
+            except User.DoesNotExist:
+                raise serializers.ValidationError("User does not exist")
+
+            if not OrganizationMember.objects.filter(
+                organization=self.context["organization"], user=user
+            ).exists():
+                raise serializers.ValidationError("User does not belong to this organization")
+        elif target_type == AlertRuleTriggerAction.TargetType.SPECIFIC:
+            # Compare with `type` and perform a specific validation as needed
+            # TODO: Implement these as needed
+            pass
+
+        return attrs
 
     def create(self, validated_data):
         return create_alert_rule_trigger_action(trigger=self.context["trigger"], **validated_data)
