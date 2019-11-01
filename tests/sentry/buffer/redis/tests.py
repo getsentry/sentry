@@ -133,7 +133,7 @@ class RedisBufferTest(TestCase):
             client.zadd("b:p:1", 1, "bar")
             client.zadd("b:p", 1, "baz")
 
-        # On first pass, we are expecing to do:
+        # On first pass, we are expecting to do:
         # * process the buffer that doesn't have a partition (b:p)
         # * queue up 2 jobs, one for each partition to process.
         self.buf.process_pending()

@@ -9,7 +9,7 @@ from sentry.testutils.helpers.datetime import iso_format, before_now
 
 class GroupTagDetailsTest(APITestCase, SnubaTestCase):
     def test_simple(self):
-        for i in xrange(3):
+        for i in range(3):
             self.store_event(
                 data={
                     "tags": {"foo": "bar"},

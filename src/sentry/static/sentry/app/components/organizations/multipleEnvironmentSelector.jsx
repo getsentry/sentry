@@ -5,6 +5,7 @@ import {uniq} from 'lodash';
 
 import {analytics} from 'app/utils/analytics';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
+import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {t} from 'app/locale';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import GlobalSelectionHeaderRow from 'app/components/globalSelectionHeaderRow';
@@ -43,12 +44,12 @@ class MultipleEnvironmentSelector extends React.PureComponent {
     onUpdate: PropTypes.func,
   };
 
-  static defaultProps = {
-    value: [],
-  };
-
   static contextTypes = {
     router: PropTypes.object,
+  };
+
+  static defaultProps = {
+    value: [],
   };
 
   constructor(props) {
@@ -59,7 +60,7 @@ class MultipleEnvironmentSelector extends React.PureComponent {
     };
   }
 
-  componentDidUpdate(prevProps, prevState) {
+  componentDidUpdate(prevProps) {
     // Need to sync state
     if (this.props.value !== prevProps.value) {
       this.syncSelectedStateFromProps();
@@ -164,7 +165,7 @@ class MultipleEnvironmentSelector extends React.PureComponent {
       org_id: parseInt(this.props.organization.id, 10),
     });
 
-    this.setState(state => {
+    this.setState(() => {
       this.doChange([env], e);
 
       return {
@@ -186,8 +187,18 @@ class MultipleEnvironmentSelector extends React.PureComponent {
     let environments = [];
     organization.projects.forEach(function(project) {
       const projectId = parseInt(project.id, 10);
-      // When selectedProjects is empty all projects are selected.
-      if (selectedProjects.includes(projectId) || selectedProjects.length === 0) {
+
+      // Include environments from:
+      // - the requested projects
+      // - all member projects if 'my projects' (empty list) is selected.
+      // - all projects if -1 is the only selected project.
+      if (
+        (selectedProjects.length === 1 &&
+          selectedProjects[0] === ALL_ACCESS_PROJECTS &&
+          project.hasAccess) ||
+        (selectedProjects.length === 0 && project.isMember) ||
+        selectedProjects.includes(projectId)
+      ) {
         environments = environments.concat(project.environments);
       }
     });
@@ -241,7 +252,7 @@ class MultipleEnvironmentSelector extends React.PureComponent {
           ),
         }))}
       >
-        {({isOpen, getActorProps, actions}) => (
+        {({isOpen, getActorProps}) => (
           <StyledHeaderItem
             data-test-id="global-header-environment-selector"
             icon={<StyledInlineSvg src="icon-window" />}
@@ -280,7 +291,7 @@ const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
   box-shadow: ${p => p.theme.dropShadowLight};
   border-radius: ${p => p.theme.borderRadiusBottom};
   margin-top: 0;
-  min-width: 120%;
+  min-width: 100%;
 `;
 
 class EnvironmentSelectorItem extends React.PureComponent {

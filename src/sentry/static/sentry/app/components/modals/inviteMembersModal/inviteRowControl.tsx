@@ -55,6 +55,16 @@ const InviteRowControl = ({
           label: value,
         }))}
         valueComponent={props => renderEmailValue(inviteStatus[props.value.value], props)}
+        onBlur={e =>
+          e.target.value &&
+          onChangeEmails([...emails.map(value => ({value})), {value: e.target.value}])
+        }
+        shouldKeyDownEventCreateNewOption={({keyCode}) =>
+          // Keycodes are ENTER, SPACE, TAB, COMMA
+          [13, 32, 9, 188].includes(keyCode)
+        }
+        onBlurResetsInput={false}
+        onCloseResetsInput={false}
         onChange={onChangeEmails}
         multiple
         creatable

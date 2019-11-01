@@ -8,6 +8,7 @@ import {Organization} from 'app/types';
 import withApi from 'app/utils/withApi';
 
 import Pagination from 'app/components/pagination';
+import {fetchOrganizationTags} from 'app/actionCreators/tags';
 
 import {DEFAULT_EVENT_VIEW_V1} from '../data';
 import EventView, {isAPIPayloadSimilar} from '../eventView';
@@ -17,16 +18,17 @@ import {TableData} from './types';
 type TableProps = {
   api: Client;
   location: Location;
+  eventView: EventView;
   organization: Organization;
 };
 type TableState = {
   isLoading: boolean;
   error: null | string;
 
-  eventView: EventView;
   pageLinks: null | string;
 
   tableData: TableData | null | undefined;
+  tagKeys: null | string[];
 };
 
 /**
@@ -38,27 +40,19 @@ type TableState = {
  * Table is maintained and controlled
  */
 class Table extends React.PureComponent<TableProps, TableState> {
-  static getDerivedStateFromProps(props: TableProps, state: TableState): TableState {
-    return {
-      ...state,
-      eventView: EventView.fromLocation(props.location),
-    };
-  }
-
   state: TableState = {
     isLoading: true,
     error: null,
 
-    eventView: EventView.fromLocation(this.props.location),
     pageLinks: null,
-
     tableData: null,
+    tagKeys: null,
   };
 
   componentDidMount() {
-    const {location} = this.props;
+    const {location, eventView} = this.props;
 
-    if (!this.state.eventView.isValid()) {
+    if (!eventView.isValid()) {
       const nextEventView = EventView.fromEventViewv1(DEFAULT_EVENT_VIEW_V1);
 
       browserHistory.replace({
@@ -71,21 +65,21 @@ class Table extends React.PureComponent<TableProps, TableState> {
     this.fetchData();
   }
 
-  componentDidUpdate(prevProps: TableProps, prevState: TableState) {
-    if (!this.state.isLoading && this.shouldRefetchData(prevProps, prevState)) {
+  componentDidUpdate(prevProps: TableProps) {
+    if (!this.state.isLoading && this.shouldRefetchData(prevProps)) {
       this.fetchData();
     }
   }
 
-  shouldRefetchData = (prevProps: TableProps, prevState: TableState): boolean => {
-    const thisAPIPayload = this.state.eventView.getEventsAPIPayload(this.props.location);
-    const otherAPIPayload = prevState.eventView.getEventsAPIPayload(prevProps.location);
+  shouldRefetchData = (prevProps: TableProps): boolean => {
+    const thisAPIPayload = this.props.eventView.getEventsAPIPayload(this.props.location);
+    const otherAPIPayload = prevProps.eventView.getEventsAPIPayload(prevProps.location);
 
     return !isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
   };
 
   fetchData = () => {
-    const {organization, location} = this.props;
+    const {eventView, organization, location} = this.props;
     const url = `/organizations/${organization.slug}/eventsv2/`;
 
     this.setState({isLoading: true});
@@ -94,7 +88,7 @@ class Table extends React.PureComponent<TableProps, TableState> {
       .requestPromise(url, {
         method: 'GET',
         includeAllArgs: true,
-        query: this.state.eventView.getEventsAPIPayload(location),
+        query: eventView.getEventsAPIPayload(location),
       })
       .then(([data, _, jqXHR]) => {
         this.setState(prevState => {
@@ -112,10 +106,19 @@ class Table extends React.PureComponent<TableProps, TableState> {
           error: err.responseJSON.detail,
         });
       });
+
+    fetchOrganizationTags(this.props.api, organization.slug)
+      .then(tags => {
+        this.setState({tagKeys: tags.map(({key}) => key)});
+      })
+      .catch(() => {
+        // Do nothing.
+      });
   };
 
   render() {
-    const {pageLinks, eventView, tableData, isLoading, error} = this.state;
+    const {eventView} = this.props;
+    const {pageLinks, tableData, tagKeys, isLoading, error} = this.state;
 
     return (
       <Container>
@@ -125,6 +128,7 @@ class Table extends React.PureComponent<TableProps, TableState> {
           error={error}
           eventView={eventView}
           tableData={tableData}
+          tagKeys={tagKeys}
         />
         <Pagination pageLinks={pageLinks} />
       </Container>

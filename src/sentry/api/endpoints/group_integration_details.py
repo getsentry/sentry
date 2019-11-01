@@ -245,7 +245,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         if not self._has_issue_feature(group.organization, request.user):
             return Response({"detail": MISSING_FEATURE_MESSAGE}, status=400)
 
-        # note here externalIssue refers to `ExternalIssue.id` wheras above
+        # note here externalIssue refers to `ExternalIssue.id` whereas above
         # it refers to the id from the provider
         external_issue_id = request.GET.get("externalIssue")
         if not external_issue_id:

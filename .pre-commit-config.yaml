@@ -25,7 +25,7 @@ repos:
     hooks:
     - id: black
       types: [python]
-      exclude: (south_migrations/)
+      exclude: (south_migrations/|migrations/)
 -   repo: git://github.com/pre-commit/pre-commit-hooks
     rev: v1.3.0
     hooks:

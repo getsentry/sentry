@@ -3,7 +3,6 @@ import {browserHistory} from 'react-router';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
-import {openInviteMembersModal} from 'app/actionCreators/modal';
 import ConfigStore from 'app/stores/configStore';
 import OrganizationMembers from 'app/views/settings/organizationMembers';
 import OrganizationsStore from 'app/stores/organizationsStore';
@@ -11,9 +10,6 @@ import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 
 jest.mock('app/api');
 jest.mock('app/actionCreators/indicator');
-jest.mock('app/actionCreators/modal', () => ({
-  openInviteMembersModal: jest.fn(),
-}));
 
 describe('OrganizationMembers', function() {
   const members = TestStubs.Members();
@@ -89,24 +85,6 @@ describe('OrganizationMembers', function() {
     });
     browserHistory.push.mockReset();
     OrganizationsStore.load([organization]);
-  });
-
-  it('can invite member with access', function() {
-    const wrapper = mountWithTheme(
-      <OrganizationMembers
-        {...defaultProps}
-        params={{
-          orgId: 'org-id',
-        }}
-      />,
-      TestStubs.routerContext([{organization}])
-    );
-
-    const inviteButton = wrapper.find('StyledButton[aria-label="Invite Members"]');
-    expect(inviteButton.prop('disabled')).toBe(false);
-    inviteButton.simulate('click');
-
-    expect(openInviteMembersModal).toHaveBeenCalled();
   });
 
   it('can remove a member', async function() {
@@ -316,73 +294,6 @@ describe('OrganizationMembers', function() {
 
     await tick();
     expect(inviteMock).toHaveBeenCalled();
-  });
-
-  it('can approve pending access request', async function() {
-    const approveMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-id/access-requests/pending-id/',
-      method: 'PUT',
-    });
-    const wrapper = mountWithTheme(
-      <OrganizationMembers
-        {...defaultProps}
-        params={{
-          orgId: 'org-id',
-        }}
-      />,
-      TestStubs.routerContext()
-    );
-
-    expect(approveMock).not.toHaveBeenCalled();
-
-    wrapper
-      .find('OrganizationAccessRequests Button[priority="primary"]')
-      .simulate('click');
-
-    await tick();
-
-    expect(approveMock).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        data: {
-          isApproved: true,
-        },
-      })
-    );
-  });
-
-  it('can deny pending access request', async function() {
-    const denyMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-id/access-requests/pending-id/',
-      method: 'PUT',
-    });
-    const wrapper = mountWithTheme(
-      <OrganizationMembers
-        {...defaultProps}
-        params={{
-          orgId: 'org-id',
-        }}
-      />,
-      TestStubs.routerContext()
-    );
-
-    expect(denyMock).not.toHaveBeenCalled();
-
-    wrapper
-      .find('OrganizationAccessRequests Button')
-      .at(1)
-      .simulate('click');
-
-    await tick();
-
-    expect(denyMock).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        data: {
-          isApproved: false,
-        },
-      })
-    );
   });
 
   it('can search organization members', async function() {

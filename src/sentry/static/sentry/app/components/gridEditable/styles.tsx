@@ -4,9 +4,11 @@ import InlineSvg from 'app/components/inlineSvg';
 import {Panel, PanelBody} from 'app/components/panels';
 import space from 'app/styles/space';
 
-const GRID_HEADER_HEIGHT = '45px';
-const GRID_EDIT_WIDTH = '35px';
-const GRID_EDIT_WIDTH_DOUBLE = '70px'; // (2 * GRID_EDIT_WIDTH)
+export const ADD_BUTTON_SIZE = 16; // this is an even number
+export const GRID_HEADER_HEIGHT = 45;
+const GRID_EDIT_WIDTH = 35;
+const GRID_EDIT_WIDTH_EDIT_MODE =
+  GRID_EDIT_WIDTH + ADD_BUTTON_SIZE / 2 + (12 - ADD_BUTTON_SIZE / 2);
 
 /**
  * Explanation of z-index:
@@ -15,13 +17,14 @@ const GRID_EDIT_WIDTH_DOUBLE = '70px'; // (2 * GRID_EDIT_WIDTH)
  */
 const Z_INDEX_RESIZER = '1';
 const Z_INDEX_EDITABLE = '10';
+export const Z_INDEX_ADD_COLUMN = '20';
 
 type GridEditableProps = {
   numColumn?: number;
   isEditable?: boolean;
   isEditing?: boolean;
   isPrimary?: boolean;
-  isFlagged?: boolean;
+  isDragging?: boolean;
 };
 
 export const GridPanel = styled(Panel)`
@@ -67,10 +70,10 @@ export const Grid = styled('table')<GridEditableProps>`
         return 'padding-right: 0px';
       }
       if (!p.isEditing) {
-        return `padding-right: ${GRID_EDIT_WIDTH};`;
+        return `padding-right: ${GRID_EDIT_WIDTH}px;`;
       }
 
-      return `padding-right: ${GRID_EDIT_WIDTH_DOUBLE};`;
+      return `padding-right: ${GRID_EDIT_WIDTH_EDIT_MODE}px;`;
     }}
   }
 `;
@@ -93,7 +96,7 @@ export const GridHeadCell = styled('th')`
      We override this by setting min-width to be 0. */
   position: relative;
   min-width: 0;
-  height: ${GRID_HEADER_HEIGHT};
+  height: ${GRID_HEADER_HEIGHT}px;
 
   border-bottom: 1px solid ${p => p.theme.borderDark};
   background: ${p => p.theme.offWhite};
@@ -103,11 +106,17 @@ export const GridHeadCellButton = styled('div')<GridEditableProps>`
   min-width: 24px; /* Ensure that edit/remove buttons are never hidden */
   display: block;
 
-  margin: ${space(1)};
+  margin: ${space(1)} ${space(1.5)};
   padding: ${space(1)} ${space(1.5)};
   border-radius: ${p => p.theme.borderRadius};
 
-  color: ${p => p.theme.gray2};
+  color: ${p => {
+    if (p.isDragging) {
+      return p.theme.offWhite2;
+    }
+
+    return p.theme.gray2;
+  }};
   font-size: 13px;
   font-weight: 600;
   line-height: 1;
@@ -116,19 +125,50 @@ export const GridHeadCellButton = styled('div')<GridEditableProps>`
   text-overflow: ellipsis;
   overflow: hidden;
 
-  background: ${p => (p.isEditing ? p.theme.offWhite2 : 'none')};
+  background: ${p => {
+    if (p.isDragging) {
+      return p.theme.gray2;
+    }
+
+    if (p.isEditing) {
+      return p.theme.offWhite2;
+    }
+
+    return 'none';
+  }};
 
   a {
-    color: ${p => p.theme.gray2};
+    color: ${p => {
+      if (p.isDragging) {
+        return p.theme.offWhite2;
+      }
+
+      return p.theme.gray2;
+    }};
   }
 
   &:hover,
   &:active {
-    color: ${p => p.theme.gray3};
+    color: ${p => {
+      if (p.isDragging) {
+        return p.theme.offWhite2;
+      }
+
+      return p.theme.gray2;
+    }};
+
     a {
-      color: ${p => p.theme.gray3};
+      color: ${p => {
+        if (p.isDragging) {
+          return p.theme.offWhite2;
+        }
+
+        return p.theme.gray2;
+      }};
     }
   }
+
+  user-select: none;
 `;
 export const GridHeadCellResizer = styled('span')<GridEditableProps>`
   position: absolute;
@@ -195,9 +235,7 @@ export const GridHeadCellButtonHoverBackground = styled(GridHeadCellButton)`
     color: ${p => p.theme.gray1} !important;
   }
 `;
-export const GridHeadCellButtonHoverButtonGroup = styled('div')<GridEditableProps>`
-  ${p => !p.isFlagged && 'margin: 0 auto;'}
-`;
+
 export const GridHeadCellButtonHoverButton = styled('div')`
   display: inline-flex;
   justify-content: center;
@@ -268,7 +306,7 @@ export const GridEditGroup = styled('th')`
   top: 0;
   right: 0;
   display: flex;
-  height: ${GRID_HEADER_HEIGHT};
+  height: ${GRID_HEADER_HEIGHT}px;
 
   background-color: ${p => p.theme.offWhite};
   border-bottom: 1px solid ${p => p.theme.borderDark};
@@ -277,8 +315,8 @@ export const GridEditGroup = styled('th')`
 `;
 export const GridEditGroupButton = styled('div')`
   display: block;
-  width: ${GRID_EDIT_WIDTH};
-  height: ${GRID_HEADER_HEIGHT};
+  width: ${GRID_EDIT_WIDTH}px;
+  height: ${GRID_HEADER_HEIGHT}px;
 
   color: ${p => p.theme.gray2};
   font-size: 16px;

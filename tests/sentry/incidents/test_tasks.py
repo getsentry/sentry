@@ -128,13 +128,13 @@ class TestBuildActivityContext(BaseIncidentActivityTest, TestCase):
         activity = create_incident_activity(
             self.incident, IncidentActivityType.COMMENT, user=self.user, comment="hello"
         )
-        recepient = self.create_user()
+        recipient = self.create_user()
         self.run_test(
             activity,
             expected_username=activity.user.name,
             expected_action="left a comment",
             expected_comment=activity.comment,
-            expected_recipient=recepient,
+            expected_recipient=recipient,
         )
         activity.type = IncidentActivityType.STATUS_CHANGE
         activity.value = six.text_type(IncidentStatus.CLOSED.value)
@@ -145,7 +145,7 @@ class TestBuildActivityContext(BaseIncidentActivityTest, TestCase):
             expected_action="changed status from %s to %s"
             % (IncidentStatus.OPEN.name.lower(), IncidentStatus.CLOSED.name.lower()),
             expected_comment=activity.comment,
-            expected_recipient=recepient,
+            expected_recipient=recipient,
         )
 
 

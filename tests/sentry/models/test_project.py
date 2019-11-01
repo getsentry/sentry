@@ -277,14 +277,14 @@ class CopyProjectSettingsTest(TestCase):
         assert rules[0].label == "Send a notification for new issues"
 
     def test_simple(self):
-        project = self.create_project()
+        project = self.create_project(fire_project_created=True)
 
         assert project.copy_settings_from(self.other_project.id)
         self.assert_settings_copied(project)
         self.assert_other_project_settings_not_changed()
 
     def test_copy_with_previous_settings(self):
-        project = self.create_project()
+        project = self.create_project(fire_project_created=True)
         project.update_option("sentry:resolve_age", 200)
         ProjectTeam.objects.create(team=self.create_team(), project=project)
         self.create_environment(project=project)

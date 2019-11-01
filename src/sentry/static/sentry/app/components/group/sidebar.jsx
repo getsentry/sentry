@@ -245,7 +245,6 @@ class GroupSidebar extends React.Component {
             event={this.props.event}
             group={this.props.group}
             project={project}
-            orgId={organization.slug}
           />
         </ErrorBoundary>
 

@@ -14,7 +14,7 @@ import {
   FieldTypes,
   FieldFormatterRenderFunctionPartial,
 } from './data';
-import EventView from './eventView';
+import EventView, {Field as FieldType} from './eventView';
 import {
   Aggregation,
   Field,
@@ -48,6 +48,15 @@ export function hasAggregateField(eventView: EventView): boolean {
     .some(
       field => AGGREGATE_ALIASES.includes(field as any) || field.match(AGGREGATE_PATTERN)
     );
+}
+
+/**
+ * Check if a field name looks like an aggregate function or known aggregate alias.
+ */
+export function isAggregateField(field: string): boolean {
+  return (
+    AGGREGATE_ALIASES.includes(field as any) || field.match(AGGREGATE_PATTERN) !== null
+  );
 }
 
 /**
@@ -228,6 +237,8 @@ const TEMPLATE_TABLE_COLUMN: TableColumn<React.ReactText> = {
   name: '',
   aggregation: '',
   field: '',
+  eventViewField: Object.freeze({field: '', title: ''}),
+  isDragging: false,
 
   type: 'never',
   isSortable: false,
@@ -237,8 +248,9 @@ const TEMPLATE_TABLE_COLUMN: TableColumn<React.ReactText> = {
 export function decodeColumnOrder(props: {
   fieldnames: string[];
   field: string[];
+  fields: Readonly<FieldType[]>;
 }): TableColumn<React.ReactText>[] {
-  const {fieldnames, field} = props;
+  const {fieldnames, field, fields} = props;
 
   return field.map((f: string, index: number) => {
     const col = {aggregationField: f, name: fieldnames[index]};
@@ -266,6 +278,11 @@ export function decodeColumnOrder(props: {
       ? AGGREGATIONS[column.aggregation].isSortable
       : false;
     column.isPrimary = column.field === 'title';
+
+    column.eventViewField = {
+      title: fields[index].title,
+      field: fields[index].field,
+    };
 
     return column;
   });

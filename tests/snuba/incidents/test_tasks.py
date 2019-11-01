@@ -55,12 +55,9 @@ class HandleSnubaQueryUpdateTest(TestCase):
             self.organization,
             [self.project],
             "some rule",
-            AlertRuleThresholdType.ABOVE,
             query="",
             aggregation=QueryAggregations.TOTAL,
             time_window=1,
-            alert_threshold=100,
-            resolve_threshold=10,
             threshold_period=1,
         )
         trigger = create_alert_rule_trigger(

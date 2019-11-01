@@ -42,6 +42,9 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
     # individually. If we find this to be a problem then we can look into batching.
     projects = serializers.ListField(child=ProjectField(), required=False)
     excluded_projects = serializers.ListField(child=ProjectField(), required=False)
+    threshold_type = serializers.IntegerField(required=False)
+    alert_threshold = serializers.IntegerField(required=False)
+    resolve_threshold = serializers.IntegerField(required=False)
 
     class Meta:
         model = AlertRule
@@ -72,15 +75,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             "include_all_projects": {"default": False},
         }
 
-    def validate_threshold_type(self, threshold_type):
-        try:
-            return AlertRuleThresholdType(threshold_type)
-        except ValueError:
-            raise serializers.ValidationError(
-                "Invalid threshold type, valid values are %s"
-                % [item.value for item in AlertRuleThresholdType]
-            )
-
     def validate_aggregation(self, aggregation):
         try:
             return QueryAggregations(aggregation)
@@ -101,7 +95,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             )
 
     def validate(self, attrs):
-        return self._handle_aggregations_transition(attrs)
+        return self._handle_old_fields_transition(attrs)
 
     def create(self, validated_data):
         try:
@@ -136,13 +130,17 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                 validated_data.pop(field_name)
         return validated_data
 
-    def _handle_aggregations_transition(self, validated_data):
+    def _handle_old_fields_transition(self, validated_data):
         # Temporary methods for transitioning from multiple aggregations to a single
         # aggregate
         if "aggregations" in validated_data and "aggregation" not in validated_data:
             validated_data["aggregation"] = validated_data["aggregations"][0]
 
         validated_data.pop("aggregations", None)
+        # TODO: Remove after frontend stops using these fields
+        validated_data.pop("threshold_type", None)
+        validated_data.pop("alert_threshold", None)
+        validated_data.pop("resolve_threshold", None)
         return validated_data
 
     def update(self, instance, validated_data):

@@ -7,6 +7,7 @@ import {
   getFieldRenderer,
   getAggregateAlias,
   getEventTagSearchUrl,
+  isAggregateField,
   decodeColumnOrder,
   pushEventViewToLocation,
 } from 'app/views/eventsV2/utils';
@@ -260,15 +261,21 @@ describe('decodeColumnOrder', function() {
     const results = decodeColumnOrder({
       field: ['title'],
       fieldnames: ['Event title'],
+      fields: [{field: 'title', title: 'Event title'}],
     });
 
     expect(Array.isArray(results)).toBeTruthy();
 
-    expect(results[0]).toMatchObject({
+    expect(results[0]).toEqual({
       key: 'title',
       name: 'Event title',
       aggregation: '',
       field: 'title',
+      eventViewField: {field: 'title', title: 'Event title'},
+      isDragging: false,
+      isPrimary: true,
+      isSortable: false,
+      type: 'string',
     });
   });
 
@@ -276,15 +283,21 @@ describe('decodeColumnOrder', function() {
     const results = decodeColumnOrder({
       field: ['count()'],
       fieldnames: ['projects'],
+      fields: [{field: 'count()', title: 'projects'}],
     });
 
     expect(Array.isArray(results)).toBeTruthy();
 
-    expect(results[0]).toMatchObject({
+    expect(results[0]).toEqual({
       key: 'count()',
       name: 'projects',
       aggregation: 'count',
       field: '',
+      eventViewField: {field: 'count()', title: 'projects'},
+      isDragging: false,
+      isPrimary: false,
+      isSortable: true,
+      type: 'never',
     });
   });
 
@@ -292,15 +305,21 @@ describe('decodeColumnOrder', function() {
     const results = decodeColumnOrder({
       field: ['avg(transaction.duration)'],
       fieldnames: ['average'],
+      fields: [{field: 'avg(transaction.duration)', title: 'average'}],
     });
 
     expect(Array.isArray(results)).toBeTruthy();
 
-    expect(results[0]).toMatchObject({
+    expect(results[0]).toEqual({
       key: 'avg(transaction.duration)',
       name: 'average',
       aggregation: 'avg',
       field: 'transaction.duration',
+      eventViewField: {field: 'avg(transaction.duration)', title: 'average'},
+      isDragging: false,
+      isPrimary: false,
+      isSortable: true,
+      type: 'duration',
     });
   });
 });
@@ -383,5 +402,20 @@ describe('pushEventViewToLocation', function() {
         cursor: 'some cursor',
       },
     });
+  });
+});
+
+describe('isAggregateField', function() {
+  it('detects aliases', function() {
+    expect(isAggregateField('p888')).toBe(false);
+    expect(isAggregateField('other_field')).toBe(false);
+    expect(isAggregateField('p75')).toBe(true);
+    expect(isAggregateField('last_seen')).toBe(true);
+  });
+
+  it('detects functions', function() {
+    expect(isAggregateField('thing(')).toBe(false);
+    expect(isAggregateField('count()')).toBe(true);
+    expect(isAggregateField('unique_count(user)')).toBe(true);
   });
 });

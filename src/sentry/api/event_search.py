@@ -13,7 +13,7 @@ from parsimonious.nodes import Node
 from parsimonious.grammar import Grammar, NodeVisitor
 
 from sentry import eventstore
-from sentry.models import Project
+from sentry.models import Project, ProjectStatus
 from sentry.search.utils import (
     parse_datetime_range,
     parse_datetime_string,
@@ -72,7 +72,7 @@ def translate(pat):
     return "^" + res + "$"
 
 
-# Explaination of quoted string regex, courtesy of Matt
+# Explanation of quoted string regex, courtesy of Matt
 # "              // literal quote
 # (              // begin capture group
 #   (?:          // begin uncaptured group
@@ -154,7 +154,7 @@ SEARCH_MAP = {
 SEARCH_MAP.update(**DATASETS[Dataset.Transactions])
 SEARCH_MAP.update(**DATASETS[Dataset.Events])
 
-no_conversion = set(["project_id", "start", "end"])
+no_conversion = set(["start", "end"])
 
 PROJECT_KEY = "project.name"
 
@@ -186,19 +186,6 @@ class SearchFilter(namedtuple("SearchFilter", "key operator value")):
 
 
 class SearchKey(namedtuple("SearchKey", "name")):
-    @property
-    def snuba_name(self):
-        snuba_name = SEARCH_MAP.get(self.name)
-        if snuba_name:
-            return snuba_name
-
-        # assume custom tag if not matched above, and add tags[xxx] wrapper if not present.
-        match = TAG_KEY_RE.match(self.name)
-        if match:
-            return self.name
-        else:
-            return "tags[%s]" % (self.name,)
-
     @cached_property
     def is_tag(self):
         return TAG_KEY_RE.match(self.name) or self.name not in SEARCH_MAP
@@ -223,12 +210,14 @@ class SearchVisitor(NodeVisitor):
     key_mappings = {}
     numeric_keys = set(
         [
+            "project_id",
+            "project.id",
+            "issue.id",
             "device.battery_level",
             "device.charging",
             "device.online",
             "device.simulator",
             "error.handled",
-            "issue.id",
             "stack.colno",
             "stack.in_app",
             "stack.lineno",
@@ -539,18 +528,16 @@ def convert_search_boolean_to_snuba_query(search_boolean):
     return [operator, [left, right]]
 
 
-def convert_endpoint_params(params):
-    return [SearchFilter(SearchKey(key), "=", SearchValue(params[key])) for key in params]
-
-
 def convert_search_filter_to_snuba_query(search_filter):
-    snuba_name = search_filter.key.snuba_name
+    name = search_filter.key.name
     value = search_filter.value.value
 
-    if snuba_name in no_conversion:
+    if name in no_conversion:
         return
-    elif snuba_name == "environment":
+    elif name == "environment":
+        # conditions added to env_conditions are OR'd
         env_conditions = []
+
         _envs = set(value if isinstance(value, (list, tuple)) else [value])
         # the "no environment" environment is null in snuba
         if "" in _envs:
@@ -559,11 +546,11 @@ def convert_search_filter_to_snuba_query(search_filter):
             env_conditions.append(["environment", operator, None])
 
         if _envs:
-            env_conditions.append(["environment", "IN", list(_envs)])
+            env_conditions.append(["environment", "IN", _envs])
 
         return env_conditions
 
-    elif snuba_name == "message":
+    elif name == "message":
         if search_filter.value.is_wildcard():
             # XXX: We don't want the '^$' values at the beginning and end of
             # the regex since we want to find the pattern anywhere in the
@@ -581,7 +568,7 @@ def convert_search_filter_to_snuba_query(search_filter):
     else:
         value = (
             int(to_timestamp(value)) * 1000
-            if isinstance(value, datetime) and snuba_name != "timestamp"
+            if isinstance(value, datetime) and name != "timestamp"
             else value
         )
 
@@ -589,15 +576,15 @@ def convert_search_filter_to_snuba_query(search_filter):
         # To handle both cases, use `ifNull` to convert to an empty string and
         # compare so we need to check for empty values.
         if search_filter.key.is_tag:
-            snuba_name = ["ifNull", [snuba_name, "''"]]
+            name = ["ifNull", [name, "''"]]
 
         # Handle checks for existence
         if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
             if search_filter.key.is_tag:
-                return [snuba_name, search_filter.operator, value]
+                return [name, search_filter.operator, value]
             else:
                 # If not a tag, we can just check that the column is null.
-                return [["isNull", [snuba_name]], search_filter.operator, 1]
+                return [["isNull", [name]], search_filter.operator, 1]
 
         is_null_condition = None
         if search_filter.operator == "!=" and not search_filter.key.is_tag:
@@ -607,12 +594,12 @@ def convert_search_filter_to_snuba_query(search_filter):
             # together with the inequality check.
             # We don't need to apply this for tags, since if they don't exist
             # they'll always be an empty string.
-            is_null_condition = [["isNull", [snuba_name]], "=", 1]
+            is_null_condition = [["isNull", [name]], "=", 1]
 
         if search_filter.value.is_wildcard():
-            condition = [["match", [snuba_name, "'(?i)%s'" % (value,)]], search_filter.operator, 1]
+            condition = [["match", [name, "'(?i)%s'" % (value,)]], search_filter.operator, 1]
         else:
-            condition = [snuba_name, search_filter.operator, value]
+            condition = [name, search_filter.operator, value]
 
         # We only want to return as a list if we have the check for null
         # present. Returning as a list causes these conditions to be ORed
@@ -637,10 +624,6 @@ def get_filter(query=None, params=None):
         except ParseError as e:
             raise InvalidSearchQuery(u"Parse error: %r (column %d)" % (e.expr.name, e.column()))
 
-    # Keys included as url params take precedent if same key is included in search
-    if params is not None:
-        parsed_terms.extend(convert_endpoint_params(params))
-
     kwargs = {"start": None, "end": None, "conditions": [], "project_ids": [], "group_ids": []}
 
     projects = {}
@@ -653,26 +636,41 @@ def get_filter(query=None, params=None):
             for p in Project.objects.filter(id__in=params["project_id"]).values("id", "slug")
         }
 
+    def to_list(value):
+        if isinstance(value, list):
+            return value
+        return [value]
+
     for term in parsed_terms:
         if isinstance(term, SearchFilter):
-            snuba_name = term.key.snuba_name
-            if term.key.name == PROJECT_KEY:
+            name = term.key.name
+            if name == PROJECT_KEY:
                 condition = ["project_id", "=", projects.get(term.value.value)]
                 kwargs["conditions"].append(condition)
-            elif snuba_name in ("start", "end"):
-                kwargs[snuba_name] = term.value.value
-            elif snuba_name in ("project_id", "issue"):
-                if snuba_name == "issue":
-                    snuba_name = "group_ids"
-                if snuba_name == "project_id":
-                    snuba_name = "project_ids"
-                value = term.value.value
-                if isinstance(value, int):
-                    value = [value]
-                kwargs[snuba_name].extend(value)
+            elif name == "issue.id":
+                kwargs["group_ids"].extend(to_list(term.value.value))
             else:
                 converted_filter = convert_search_filter_to_snuba_query(term)
-                kwargs["conditions"].append(converted_filter)
+                if converted_filter:
+                    kwargs["conditions"].append(converted_filter)
+
+    # Keys included as url params take precedent if same key is included in search
+    # They are also considered safe and to have had access rules applied unlike conditions
+    # from the query string.
+    if params:
+        for key in ("start", "end"):
+            kwargs[key] = params.get(key, None)
+        # OrganizationEndpoint.get_filter() uses project_id, but eventstore.Filter uses project_ids
+        if "project_id" in params:
+            kwargs["project_ids"] = params["project_id"]
+        if "environment" in params:
+            term = SearchFilter(SearchKey("environment"), "=", SearchValue(params["environment"]))
+            kwargs["conditions"].append(convert_search_filter_to_snuba_query(term))
+        if "group_ids" in params:
+            kwargs["group_ids"] = to_list(params["group_ids"])
+        # Deprecated alias, use `group_ids` instead
+        if "issue.id" in params:
+            kwargs["group_ids"] = to_list(params["issue.id"])
 
     return eventstore.Filter(**kwargs)
 
@@ -691,8 +689,8 @@ FIELD_ALIASES = {
 VALID_AGGREGATES = {
     "count_unique": {"snuba_name": "uniq", "fields": "*"},
     "count": {"snuba_name": "count", "fields": "*"},
-    "min": {"snuba_name": "min", "fields": ["timestamp", "transaction.duration"]},
-    "max": {"snuba_name": "max", "fields": ["timestamp", "transaction.duration"]},
+    "min": {"snuba_name": "min", "fields": ["time", "timestamp", "transaction.duration"]},
+    "max": {"snuba_name": "max", "fields": ["time", "timestamp", "transaction.duration"]},
     "avg": {"snuba_name": "avg", "fields": ["transaction.duration"]},
 }
 
@@ -824,14 +822,14 @@ def resolve_field_list(fields, snuba_args):
     }
 
 
-def find_reference_event(snuba_args, reference_event_slug, fields):
+def find_reference_event(organization, snuba_args, reference_event_slug, fields):
     try:
         project_slug, event_id = reference_event_slug.split(":")
     except ValueError:
         raise InvalidSearchQuery("Invalid reference event")
     try:
         project = Project.objects.get(
-            slug=project_slug, id__in=snuba_args["filter_keys"]["project_id"]
+            slug=project_slug, organization=organization, status=ProjectStatus.VISIBLE
         )
     except Project.DoesNotExist:
         raise InvalidSearchQuery("Invalid reference event")
@@ -845,7 +843,7 @@ def find_reference_event(snuba_args, reference_event_slug, fields):
 TAG_KEY_RE = re.compile(r"^tags\[(.*)\]$")
 
 
-def get_reference_event_conditions(snuba_args, event_slug):
+def get_reference_event_conditions(organization, snuba_args, event_slug):
     """
     Returns a list of additional conditions/filter_keys to
     scope a query by the groupby fields using values from the reference event
@@ -853,34 +851,25 @@ def get_reference_event_conditions(snuba_args, event_slug):
     This is a key part of pagination in the event details modal and
     summary graph navigation.
     """
-    field_names = [get_snuba_column_name(field) for field in snuba_args.get("groupby", [])]
-    # translate the field names into enum columns
-    columns = []
-    has_tags = False
-    for field in field_names:
-        if field.startswith("tags["):
-            has_tags = True
-        else:
-            columns.append(eventstore.Columns(field))
-
-    if has_tags:
-        columns.extend([eventstore.Columns.TAGS_KEY, eventstore.Columns.TAGS_VALUE])
+    groupby = snuba_args.get("groupby", [])
+    columns = eventstore.get_columns_from_aliases(groupby)
+    field_names = [get_snuba_column_name(field) for field in groupby]
 
     # Fetch the reference event ensuring the fields in the groupby
     # clause are present.
-    event_data = find_reference_event(snuba_args, event_slug, columns)
+    event_data = find_reference_event(organization, snuba_args, event_slug, columns)
 
     conditions = []
     tags = {}
     if "tags.key" in event_data and "tags.value" in event_data:
         tags = dict(zip(event_data["tags.key"], event_data["tags.value"]))
 
-    for field in field_names:
-        match = TAG_KEY_RE.match(field)
+    for (i, field) in enumerate(groupby):
+        match = TAG_KEY_RE.match(field_names[i])
         if match:
             value = tags.get(match.group(1), None)
         else:
-            value = event_data.get(field, None)
+            value = event_data.get(field_names[i], None)
             # If the value is a sequence use the first element as snuba
             # doesn't support `=` or `IN` operations on fields like exception_frames.filename
             if isinstance(value, (list, set)) and value:

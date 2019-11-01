@@ -74,7 +74,7 @@ class EventManagerTest(TestCase):
 
         assert event1.group_id != event2.group_id
 
-    def test_ephemral_interfaces_removed_on_save(self):
+    def test_ephemeral_interfaces_removed_on_save(self):
         manager = EventManager(make_event(platform="python"))
         manager.normalize()
         event = manager.save(1)
@@ -894,6 +894,7 @@ class EventManagerTest(TestCase):
                     "contexts": {
                         "trace": {
                             "parent_span_id": "bce14471e0e9654d",
+                            "op": "foobar",
                             "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
                             "span_id": "bf5be759039ede9a",
                         }
@@ -1059,7 +1060,7 @@ class EventManagerTest(TestCase):
 
         data = {"exception": {"values": [item.value for item in items]}}
 
-        project_config = get_project_config(self.project.id, for_store=True)
+        project_config = get_project_config(self.project, for_store=True)
         manager = EventManager(data, project=self.project, project_config=project_config)
 
         mock_is_valid_error_message.side_effect = [item.result for item in items]
@@ -1100,6 +1101,7 @@ class EventManagerTest(TestCase):
                 contexts={
                     "trace": {
                         "parent_span_id": "bce14471e0e9654d",
+                        "op": "foobar",
                         "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
                         "span_id": "bf5be759039ede9a",
                     }
@@ -1133,6 +1135,7 @@ class EventManagerTest(TestCase):
                 contexts={
                     "trace": {
                         "parent_span_id": "bce14471e0e9654d",
+                        "op": "foobar",
                         "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
                         "span_id": "bf5be759039ede9a",
                     }

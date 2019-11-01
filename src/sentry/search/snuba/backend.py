@@ -385,12 +385,12 @@ class SnubaSearchBackend(SearchBackend):
         if start == retention_date and end == retention_date:
             # Both `start` and `end` must have been trimmed to `retention_date`,
             # so this entire search was against a time range that is outside of
-            # retention. We'll return empty results to maintain backwards compatability
+            # retention. We'll return empty results to maintain backwards compatibility
             # with Django search (for now).
             return EMPTY_RESULT
 
         if start >= end:
-            # TODO: This maintains backwards compatability with Django search, but
+            # TODO: This maintains backwards compatibility with Django search, but
             # in the future we should find a way to notify the user that their search
             # is invalid.
             return EMPTY_RESULT
@@ -671,7 +671,8 @@ def snuba_search(
         orderby = ["-{}".format(sort_field), "issue"]  # ensure stable sort within the same score
         referrer = "search"
 
-    snuba_results = snuba.raw_query(
+    snuba_results = snuba.dataset_query(
+        dataset=snuba.Dataset.Events,
         start=start,
         end=end,
         selected_columns=selected_columns,

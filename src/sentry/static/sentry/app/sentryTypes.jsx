@@ -704,7 +704,7 @@ export const EChartsAxis = PropTypes.shape({
   axisPointer: PropTypes.object,
 
   // zlevel value of all graghical elements in x axis.
-  // zlevel is used to make layers with Canvas. Graphical elements with different zlevel values will be placed in different Canvases, which is a common optimization technique. We can put those frequently changed elements (like those with animations) to a seperate zlevel. Notice that too many Canvases will increase memory cost, and should be used carefully on mobile phones to avoid crash.
+  // zlevel is used to make layers with Canvas. Graphical elements with different zlevel values will be placed in different Canvases, which is a common optimization technique. We can put those frequently changed elements (like those with animations) to a separate zlevel. Notice that too many Canvases will increase memory cost, and should be used carefully on mobile phones to avoid crash.
   // Canvases with bigger zlevel will be placed on Canvases with smaller zlevel.
   zlevel: PropTypes.number,
 
@@ -807,7 +807,7 @@ export const EChartsTooltip = PropTypes.shape({
   // padding: 5
   // // Set the top and bottom paddings to be 5, and left and right paddings to be 10
   // padding: [5, 10]
-  // // Set each of the four paddings seperately
+  // // Set each of the four paddings separately
   // padding: [
   // 5,  // up
   // 10, // right
@@ -830,7 +830,7 @@ export const EChartsGrid = PropTypes.shape({
   show: PropTypes.bool,
 
   // zlevel value of all graghical elements in .
-  // zlevel is used to make layers with Canvas. Graphical elements with different zlevel values will be placed in different Canvases, which is a common optimization technique. We can put those frequently changed elements (like those with animations) to a seperate zlevel. Notice that too many Canvases will increase memory cost, and should be used carefully on mobile phones to avoid crash.
+  // zlevel is used to make layers with Canvas. Graphical elements with different zlevel values will be placed in different Canvases, which is a common optimization technique. We can put those frequently changed elements (like those with animations) to a separate zlevel. Notice that too many Canvases will increase memory cost, and should be used carefully on mobile phones to avoid crash.
   // Canvases with bigger zlevel will be placed on Canvases with smaller zlevel.
   zlevel: PropTypes.number,
 
@@ -980,7 +980,7 @@ export const EChartsToolBox = PropTypes.shape({
   iconStyle: PropTypes.object,
 
   // zlevel value of all graghical elements in .
-  // zlevel is used to make layers with Canvas. Graphical elements with different zlevel values will be placed in different Canvases, which is a common optimization technique. We can put those frequently changed elements (like those with animations) to a seperate zlevel. Notice that too many Canvases will increase memory cost, and should be used carefully on mobile phones to avoid crash.
+  // zlevel is used to make layers with Canvas. Graphical elements with different zlevel values will be placed in different Canvases, which is a common optimization technique. We can put those frequently changed elements (like those with animations) to a separate zlevel. Notice that too many Canvases will increase memory cost, and should be used carefully on mobile phones to avoid crash.
   // Canvases with bigger zlevel will be placed on Canvases with smaller zlevel.
   zlevel: PropTypes.number,
 

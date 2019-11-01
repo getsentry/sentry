@@ -89,7 +89,7 @@ class SentryApp(ParanoidModel, HasApiScopes):
 
     # does the application need to wait for verification
     # on behalf of the external service to know if its installations
-    # are successully installed ?
+    # are successfully installed ?
     verify_install = models.BooleanField(default=True)
 
     events = ArrayField(of=models.TextField, null=True)
@@ -99,6 +99,7 @@ class SentryApp(ParanoidModel, HasApiScopes):
 
     date_added = models.DateTimeField(default=timezone.now)
     date_updated = models.DateTimeField(default=timezone.now)
+    date_published = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         app_label = "sentry"

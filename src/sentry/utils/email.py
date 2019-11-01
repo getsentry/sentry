@@ -111,7 +111,7 @@ def domain_from_email(email):
 
 
 # Slightly modified version of Django's
-# `django.core.mail.message:make_msgid` becuase we need
+# `django.core.mail.message:make_msgid` because we need
 # to override the domain. If we ever upgrade to
 # django 1.8, we can/should replace this.
 def make_msgid(domain):

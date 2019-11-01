@@ -11,17 +11,18 @@ from sentry.utils.sdk import configure_sdk
 from sentry.utils.warnings import DeprecatedSettingWarning
 
 
-def register_plugins(settings):
+def register_plugins(settings, test_plugins=False):
     from pkg_resources import iter_entry_points
-    from sentry.plugins import plugins
+    from sentry.plugins.base import plugins
 
     # entry_points={
     #    'sentry.plugins': [
     #         'phabricator = sentry_phabricator.plugins:PhabricatorPlugin'
     #     ],
     # },
-
-    for ep in iter_entry_points("sentry.plugins"):
+    # TODO (Steve): Remove option for test_plugins
+    entry_point = "sentry.new_plugins" if test_plugins else "sentry.plugins"
+    for ep in iter_entry_points(entry_point):
         try:
             plugin = ep.load()
         except Exception:
@@ -60,7 +61,7 @@ def register_plugins(settings):
 
 
 def init_plugin(plugin):
-    from sentry.plugins import bindings
+    from sentry.plugins.base import bindings
 
     plugin.setup(bindings)
 
@@ -266,9 +267,6 @@ def initialize_app(config, skip_service_validation=False):
 
     if "south" in settings.INSTALLED_APPS:
         fix_south(settings)
-    monkeypatch_django_migrations()
-
-    apply_legacy_settings(settings)
 
     # Commonly setups don't correctly configure themselves for production envs
     # so lets try to provide a bit more guidance
@@ -306,9 +304,11 @@ def initialize_app(config, skip_service_validation=False):
 
     import django
 
-    if hasattr(django, "setup"):
-        # support for Django 1.7+
-        django.setup()
+    django.setup()
+
+    monkeypatch_django_migrations()
+
+    apply_legacy_settings(settings)
 
     bind_cache_to_option_store()
 

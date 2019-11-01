@@ -216,7 +216,7 @@ const OnboardingWrapper = styled('main')`
   padding-bottom: 50vh;
 `;
 
-const Container = styled.div`
+const Container = styled('div')`
   padding: 0 ${space(3)};
   max-width: ${p => p.theme.breakpoints[0]};
   width: 100%;

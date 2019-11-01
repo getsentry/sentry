@@ -31,9 +31,32 @@ const transformPlatformsToList = ({platforms}) =>
     })
     .sort(alphaSortFromKey(item => item.name));
 
+function fetch(_compilation, callback) {
+  https
+    .get(PLATFORMS_URL, res => {
+      res.setEncoding('utf8');
+      let buffer = '';
+      res
+        .on('data', data => {
+          buffer += data;
+        })
+        .on('end', () =>
+          fs.writeFile(
+            this.modulePath,
+            JSON.stringify({
+              platforms: transformPlatformsToList(JSON.parse(buffer)),
+            }),
+            callback
+          )
+        );
+    })
+    .on('error', callback);
+}
+
 class IntegrationDocsFetchPlugin {
   constructor({basePath}) {
     this.modulePath = path.join(basePath, DOCS_INDEX_PATH);
+    this.hasRun = false;
     const moduleDir = path.dirname(this.modulePath);
     if (!fs.existsSync(moduleDir)) {
       fs.mkdirSync(moduleDir, {recursive: true});
@@ -41,28 +64,19 @@ class IntegrationDocsFetchPlugin {
   }
 
   apply(compiler) {
-    compiler.hooks.beforeRun.tapAsync(
+    compiler.hooks.beforeRun.tapAsync('IntegrationDocsFetchPlugin', fetch.bind(this));
+
+    compiler.hooks.watchRun.tapAsync(
       'IntegrationDocsFetchPlugin',
       (compilation, callback) => {
-        https
-          .get(PLATFORMS_URL, res => {
-            res.setEncoding('utf8');
-            let buffer = '';
-            res
-              .on('data', data => {
-                buffer += data;
-              })
-              .on('end', () =>
-                fs.writeFile(
-                  this.modulePath,
-                  JSON.stringify({
-                    platforms: transformPlatformsToList(JSON.parse(buffer)),
-                  }),
-                  callback
-                )
-              );
-          })
-          .on('error', callback);
+        // Only run once when watching and only if it does not exist on fs
+        if (this.hasRun || fs.existsSync(this.modulePath)) {
+          callback();
+          return;
+        }
+
+        fetch.call(this, compilation, callback);
+        this.hasRun = true;
       }
     );
   }

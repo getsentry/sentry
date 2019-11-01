@@ -127,8 +127,10 @@ def pytest_configure(config):
     patcher = mock.patch("socket.getfqdn", return_value="localhost")
     patcher.start()
 
-    if not settings.SOUTH_TESTS_MIGRATE:
-        settings.INSTALLED_APPS = tuple(i for i in settings.INSTALLED_APPS if i != "south")
+    if not settings.MIGRATIONS_TEST_MIGRATE:
+        # TODO: In Django 1.9 the value can be set to `None` rather than a nonexistent
+        # module.
+        settings.MIGRATION_MODULES["sentry"] = "sentry.migrations_not_used_in_tests"
 
     from sentry.runner.initializer import (
         bind_cache_to_option_store,
@@ -146,8 +148,7 @@ def pytest_configure(config):
 
     import django
 
-    if hasattr(django, "setup"):
-        django.setup()
+    django.setup()
 
     monkeypatch_django_migrations()
 
@@ -172,7 +173,7 @@ def pytest_configure(config):
 
 
 def register_extensions():
-    from sentry.plugins import plugins
+    from sentry.plugins.base import plugins
     from sentry.plugins.utils import TestIssuePlugin2
 
     plugins.register(TestIssuePlugin2)
@@ -192,6 +193,7 @@ def register_extensions():
     from sentry.integrations.slack import SlackIntegrationProvider
     from sentry.integrations.vsts import VstsIntegrationProvider
     from sentry.integrations.vsts_extension import VstsExtensionIntegrationProvider
+    from sentry.integrations.pagerduty.integration import PagerDutyIntegrationProvider
 
     integrations.register(BitbucketIntegrationProvider)
     integrations.register(ExampleIntegrationProvider)
@@ -204,8 +206,9 @@ def register_extensions():
     integrations.register(SlackIntegrationProvider)
     integrations.register(VstsIntegrationProvider)
     integrations.register(VstsExtensionIntegrationProvider)
+    integrations.register(PagerDutyIntegrationProvider)
 
-    from sentry.plugins import bindings
+    from sentry.plugins.base import bindings
     from sentry.plugins.providers.dummy import DummyRepositoryProvider
 
     bindings.add("repository.provider", DummyRepositoryProvider, id="dummy")

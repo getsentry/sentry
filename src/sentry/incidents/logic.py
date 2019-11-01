@@ -132,7 +132,7 @@ def calculate_incident_start(query, projects, groups):
     """
     params = {}
     if groups:
-        params["issue.id"] = [g.id for g in groups]
+        params["group_ids"] = [g.id for g in groups]
         end = max(g.last_seen for g in groups) + timedelta(seconds=1)
     else:
         end = timezone.now()
@@ -423,7 +423,7 @@ def bulk_build_incident_query_params(incidents, start=None, end=None):
         }
         group_ids = incident_groups[incident.id]
         if group_ids:
-            params["issue.id"] = group_ids
+            params["group_ids"] = group_ids
         project_ids = incident_projects[incident.id]
         if project_ids:
             params["project_id"] = project_ids
@@ -582,12 +582,9 @@ def create_alert_rule(
     organization,
     projects,
     name,
-    threshold_type,
     query,
     aggregation,
     time_window,
-    alert_threshold,
-    resolve_threshold,
     threshold_period,
     include_all_projects=False,
     excluded_projects=None,
@@ -600,14 +597,9 @@ def create_alert_rule(
     if `include_all_projects` is True
     :param name: Name for the alert rule. This will be used as part of the
     incident name, and must be unique per project
-    :param threshold_type: An AlertRuleThresholdType
     :param query: An event search query to subscribe to and monitor for alerts
     :param aggregation: A QueryAggregation to fetch for this alert rule
     :param time_window: Time period to aggregate over, in minutes
-    :param alert_threshold: Value that the subscription needs to reach to
-    trigger the alert
-    :param resolve_threshold: Value that the subscription needs to reach to
-    resolve the alert
     :param threshold_period: How many update periods the value of the
     subscription needs to exceed the threshold before triggering
     :param include_all_projects: Whether to include all current and future projects
@@ -625,14 +617,11 @@ def create_alert_rule(
         alert_rule = AlertRule.objects.create(
             organization=organization,
             name=name,
-            threshold_type=threshold_type.value,
             dataset=dataset.value,
             query=query,
             aggregation=aggregation.value,
             time_window=time_window,
             resolution=resolution,
-            alert_threshold=alert_threshold,
-            resolve_threshold=resolve_threshold,
             threshold_period=threshold_period,
             include_all_projects=include_all_projects,
         )
@@ -655,12 +644,9 @@ def update_alert_rule(
     alert_rule,
     projects=None,
     name=None,
-    threshold_type=None,
     query=None,
     aggregation=None,
     time_window=None,
-    alert_threshold=None,
-    resolve_threshold=None,
     threshold_period=None,
     include_all_projects=None,
     excluded_projects=None,
@@ -673,14 +659,9 @@ def update_alert_rule(
     `include_all_projects` is True
     :param name: Name for the alert rule. This will be used as part of the
     incident name, and must be unique per project.
-    :param threshold_type: An AlertRuleThresholdType
     :param query: An event search query to subscribe to and monitor for alerts
     :param aggregation: An AlertRuleAggregation that we want to fetch for this alert rule
     :param time_window: Time period to aggregate over, in minutes.
-    :param alert_threshold: Value that the subscription needs to reach to
-    trigger the alert
-    :param resolve_threshold: Value that the subscription needs to reach to
-    resolve the alert
     :param threshold_period: How many update periods the value of the
     subscription needs to exceed the threshold before triggering
     :param include_all_projects: Whether to include all current and future projects
@@ -699,8 +680,6 @@ def update_alert_rule(
     updated_fields = {}
     if name:
         updated_fields["name"] = name
-    if threshold_type:
-        updated_fields["threshold_type"] = threshold_type.value
     if query is not None:
         validate_alert_rule_query(query)
         updated_fields["query"] = query
@@ -708,10 +687,6 @@ def update_alert_rule(
         updated_fields["aggregation"] = aggregation.value
     if time_window:
         updated_fields["time_window"] = time_window
-    if alert_threshold is not None:
-        updated_fields["alert_threshold"] = alert_threshold
-    if resolve_threshold is not None:
-        updated_fields["resolve_threshold"] = resolve_threshold
     if threshold_period:
         updated_fields["threshold_period"] = threshold_period
     if include_all_projects is not None:

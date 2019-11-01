@@ -6,13 +6,9 @@ import time
 from django.conf import settings
 
 from sentry import features
-from sentry.models import EventDict
-from sentry.utils import snuba
 from sentry.utils.cache import cache
 from sentry.exceptions import PluginError
-from sentry.plugins import plugins
 from sentry.signals import event_processed
-from sentry.tasks.sentry_apps import process_resource_change_bound
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.redis import redis_clusters
@@ -123,6 +119,8 @@ def post_process_group(event, is_new, is_regression, is_new_group_environment, *
     """
     Fires post processing hooks for a group.
     """
+    from sentry.utils import snuba
+
     with snuba.options_override({"consistent": True}):
         if check_event_already_post_processed(event):
             logger.info(
@@ -138,7 +136,7 @@ def post_process_group(event, is_new, is_regression, is_new_group_environment, *
         # NOTE: we must pass through the full Event object, and not an
         # event_id since the Event object may not actually have been stored
         # in the database due to sampling.
-        from sentry.models import Project, Organization
+        from sentry.models import Project, Organization, EventDict
         from sentry.models.group import get_group_with_redirect
         from sentry.rules.processor import RuleProcessor
         from sentry.tasks.servicehooks import process_service_hook
@@ -192,6 +190,8 @@ def post_process_group(event, is_new, is_regression, is_new_group_environment, *
                         if any(e in allowed_events for e in events):
                             process_service_hook.delay(servicehook_id=servicehook_id, event=event)
 
+            from sentry.tasks.sentry_apps import process_resource_change_bound
+
             if event.get_event_type() == "error" and _should_send_error_created_hooks(
                 event.project
             ):
@@ -202,6 +202,8 @@ def post_process_group(event, is_new, is_regression, is_new_group_environment, *
                 process_resource_change_bound.delay(
                     action="created", sender="Group", instance_id=event.group_id
                 )
+
+            from sentry.plugins.base import plugins
 
             for plugin in plugins.for_project(event.project):
                 plugin_post_process_group(
@@ -253,6 +255,8 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
     """
     with configure_scope() as scope:
         scope.set_tag("project", event.project_id)
+
+    from sentry.plugins.base import plugins
 
     plugin = plugins.get(plugin_slug)
     safe_execute(

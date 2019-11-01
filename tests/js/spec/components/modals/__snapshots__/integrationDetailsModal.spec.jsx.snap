@@ -456,7 +456,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
           </ForwardRef>
         </StyledButton>
       </Button>
-      <withConfig(AccessContainer)
+      <WithOrganizationMockWrapper
         access={
           Array [
             "org:integrations",
@@ -491,32 +491,11 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
           }
         }
       >
-        <AccessContainer
+        <withConfig(Access)
           access={
             Array [
               "org:integrations",
             ]
-          }
-          config={
-            Object {
-              "features": Set {},
-              "messages": Array [],
-              "user": Object {
-                "email": "foo@example.com",
-                "flags": Object {
-                  "newsletter_consent_prompt": false,
-                },
-                "hasPasswordAuth": true,
-                "id": "1",
-                "isAuthenticated": true,
-                "name": "Foo Bar",
-                "options": Object {
-                  "timezone": "UTC",
-                },
-                "permissions": Set {},
-                "username": "foo@example.com",
-              },
-            }
           }
           organization={
             Object {
@@ -574,23 +553,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                 },
               }
             }
-            configUser={
-              Object {
-                "email": "foo@example.com",
-                "flags": Object {
-                  "newsletter_consent_prompt": false,
-                },
-                "hasPasswordAuth": true,
-                "id": "1",
-                "isAuthenticated": true,
-                "name": "Foo Bar",
-                "options": Object {
-                  "timezone": "UTC",
-                },
-                "permissions": Set {},
-                "username": "foo@example.com",
-              }
-            }
+            isSuperuser={false}
             organization={
               Object {
                 "access": Array [
@@ -809,8 +772,8 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
               </AddButton>
             </Tooltip>
           </Access>
-        </AccessContainer>
-      </withConfig(AccessContainer)>
+        </withConfig(Access)>
+      </WithOrganizationMockWrapper>
     </div>
   </IntegrationFeatures>
 </IntegrationDetailsModal>

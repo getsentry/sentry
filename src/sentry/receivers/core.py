@@ -5,14 +5,15 @@ import logging
 from click import echo
 from django.conf import settings
 from django.db import connections, transaction
+from django.contrib.auth.models import AnonymousUser
 from django.db.utils import OperationalError, ProgrammingError
-from django.db.models.signals import post_syncdb, post_save
+from django.db.models.signals import post_migrate, post_save
 from functools import wraps
 from pkg_resources import parse_version as Version
 
 from sentry import options
 from sentry.models import Organization, OrganizationMember, Project, User, Team, ProjectKey
-from sentry.utils import db
+from sentry.signals import project_created
 
 PROJECT_SEQUENCE_FIX = """
 SELECT setval('sentry_project_id_seq', (
@@ -34,11 +35,13 @@ def handle_db_failure(func):
     return wrapped
 
 
-def create_default_projects(created_models, app=None, verbosity=2, **kwargs):
-    if app and app.__name__ != "sentry.models":
+def create_default_projects(app_config, verbosity=2, **kwargs):
+    if app_config and app_config.name != "sentry":
         return
 
-    if Project not in created_models:
+    try:
+        app_config.get_model("Project")
+    except LookupError:
         return
 
     create_default_project(
@@ -72,14 +75,21 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
         organization=org, slug="sentry", defaults={"name": "Sentry"}
     )
 
-    project = Project.objects.create(
-        id=id, public=False, name=name, slug=slug, organization=team.organization, **kwargs
-    )
-    project.add_team(team)
+    with transaction.atomic():
+        project = Project.objects.create(
+            id=id, public=False, name=name, slug=slug, organization=team.organization, **kwargs
+        )
+        project.add_team(team)
 
-    # HACK: manually update the ID after insert due to Postgres
-    # sequence issues. Seriously, fuck everything about this.
-    if db.is_postgres(project._state.db):
+        project_created.send(
+            project=project,
+            user=user or AnonymousUser(),
+            default_rules=True,
+            sender=create_default_project,
+        )
+
+        # HACK: manually update the ID after insert due to Postgres
+        # sequence issues. Seriously, fuck everything about this.
         connection = connections[project._state.db]
         cursor = connection.cursor()
         cursor.execute(PROJECT_SEQUENCE_FIX)
@@ -134,9 +144,10 @@ def freeze_option_epoch_for_project(instance, created, app=None, **kwargs):
 
 # Anything that relies on default objects that may not exist with default
 # fields should be wrapped in handle_db_failure
-post_syncdb.connect(
+post_migrate.connect(
     handle_db_failure(create_default_projects), dispatch_uid="create_default_project", weak=False
 )
+
 post_save.connect(
     handle_db_failure(create_keys_for_project),
     sender=Project,

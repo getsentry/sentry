@@ -20,38 +20,36 @@ exports[`ProjectPluginRow renders 1`] = `
   slug="amazon-sqs"
   version="8.23.0.dev0"
 >
-  <withConfig(AccessContainer)
+  <WithOrganizationMockWrapper
     access={
       Array [
         "project:write",
       ]
     }
   >
-    <AccessContainer
+    <withConfig(Access)
       access={
         Array [
           "project:write",
         ]
       }
-      config={
+      organization={
         Object {
-          "features": Set {},
-          "messages": Array [],
-          "user": Object {
-            "email": "foo@example.com",
-            "flags": Object {
-              "newsletter_consent_prompt": false,
-            },
-            "hasPasswordAuth": true,
-            "id": "1",
-            "isAuthenticated": true,
-            "name": "Foo Bar",
-            "options": Object {
-              "timezone": "UTC",
-            },
-            "permissions": Set {},
-            "username": "foo@example.com",
+          "access": Array [
+            "project:write",
+          ],
+          "features": Array [],
+          "id": "3",
+          "name": "Organization Name",
+          "onboardingTasks": Array [],
+          "projects": Array [],
+          "scrapeJavaScript": true,
+          "slug": "org-slug",
+          "status": Object {
+            "id": "active",
+            "name": "active",
           },
+          "teams": Array [],
         }
       }
     >
@@ -82,23 +80,7 @@ exports[`ProjectPluginRow renders 1`] = `
             },
           }
         }
-        configUser={
-          Object {
-            "email": "foo@example.com",
-            "flags": Object {
-              "newsletter_consent_prompt": false,
-            },
-            "hasPasswordAuth": true,
-            "id": "1",
-            "isAuthenticated": true,
-            "name": "Foo Bar",
-            "options": Object {
-              "timezone": "UTC",
-            },
-            "permissions": Set {},
-            "username": "foo@example.com",
-          }
-        }
+        isSuperuser={false}
         organization={
           Object {
             "access": Array [
@@ -259,7 +241,7 @@ exports[`ProjectPluginRow renders 1`] = `
           </Base>
         </Flex>
       </Access>
-    </AccessContainer>
-  </withConfig(AccessContainer)>
+    </withConfig(Access)>
+  </WithOrganizationMockWrapper>
 </ProjectPluginRow>
 `;

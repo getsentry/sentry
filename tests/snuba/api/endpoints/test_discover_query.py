@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from datetime import datetime, timedelta
 
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import iso_format
 from django.core.urlresolvers import reverse
 
 
@@ -61,8 +62,8 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
                 {
                     "projects": [self.project.id],
                     "fields": ["message", "platform.name"],
-                    "start": (datetime.now() - timedelta(seconds=10)).strftime("%Y-%m-%dT%H:%M:%S"),
-                    "end": (datetime.now()).strftime("%Y-%m-%dT%H:%M:%S"),
+                    "start": iso_format(datetime.now() - timedelta(seconds=10)),
+                    "end": iso_format(datetime.now()),
                     "orderby": "-timestamp",
                     "range": None,
                 },
@@ -102,8 +103,8 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
                     "projects": [self.project.id],
                     "fields": ["message", "platform"],
                     "range": "1d",
-                    "start": (datetime.now() - timedelta(seconds=10)).strftime("%Y-%m-%dT%H:%M:%S"),
-                    "end": (datetime.now()).strftime("%Y-%m-%dT%H:%M:%S"),
+                    "start": iso_format(datetime.now() - timedelta(seconds=10)),
+                    "end": iso_format(datetime.now()),
                     "orderby": "-timestamp",
                 },
             )
@@ -119,8 +120,8 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
                     "fields": ["message", "platform"],
                     "statsPeriodStart": "7d",
                     "statsPeriodEnd": "1d",
-                    "start": (datetime.now() - timedelta(seconds=10)).strftime("%Y-%m-%dT%H:%M:%S"),
-                    "end": (datetime.now()).strftime("%Y-%m-%dT%H:%M:%S"),
+                    "start": iso_format(datetime.now() - timedelta(seconds=10)),
+                    "end": iso_format(datetime.now()),
                     "orderby": "-timestamp",
                 },
             )
@@ -159,8 +160,8 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
                             "release",
                         ]
                     ],
-                    "start": (datetime.now() - timedelta(seconds=10)).strftime("%Y-%m-%dT%H:%M:%S"),
-                    "end": (datetime.now()).strftime("%Y-%m-%dT%H:%M:%S"),
+                    "start": iso_format(datetime.now() - timedelta(seconds=10)),
+                    "end": iso_format(datetime.now()),
                     "groupby": ["time", "release"],
                     "rollup": 86400,
                     "limit": 1000,
@@ -500,11 +501,39 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
                 {
                     "projects": [self.new_project.id],
                     "fields": ["message", "platform"],
-                    "start": (datetime.now() - timedelta(seconds=10)).strftime("%Y-%m-%dT%H:%M:%S"),
-                    "end": (datetime.now()).strftime("%Y-%m-%dT%H:%M:%S"),
+                    "start": iso_format(datetime.now() - timedelta(seconds=10)),
+                    "end": iso_format(datetime.now()),
                     "orderby": "-timestamp",
                     "range": None,
                 },
             )
 
         assert response.status_code == 200, response.content
+
+    def test_all_projects(self):
+        project = self.create_project(organization=self.org)
+        self.event = self.store_event(
+            data={
+                "message": "other message",
+                "platform": "python",
+                "timestamp": iso_format(self.now - timedelta(minutes=1)),
+            },
+            project_id=project.id,
+        )
+
+        with self.feature("organizations:discover"):
+            url = reverse("sentry-api-0-discover-query", args=[self.org.slug])
+            response = self.client.post(
+                url,
+                {
+                    "projects": [-1],
+                    "fields": ["message", "platform.name"],
+                    "range": "1d",
+                    "orderby": "-timestamp",
+                    "start": None,
+                    "end": None,
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 2

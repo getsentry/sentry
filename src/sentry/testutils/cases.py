@@ -77,7 +77,7 @@ from sentry.models import (
     WidgetDataSource,
     WidgetDataSourceTypes,
 )
-from sentry.plugins import plugins
+from sentry.plugins.base import plugins
 from sentry.rules import EventState
 from sentry.tagstore.snuba import SnubaTagStorage
 from sentry.utils import json
@@ -663,7 +663,7 @@ class PluginTestCase(TestCase):
             self.addCleanup(plugins.unregister, self.plugin)
 
     def assertAppInstalled(self, name, path):
-        for ep in iter_entry_points("sentry.apps"):
+        for ep in iter_entry_points("sentry.new_apps"):
             if ep.name == name:
                 ep_path = ep.module_name
                 if ep_path == path:
@@ -676,7 +676,8 @@ class PluginTestCase(TestCase):
 
     def assertPluginInstalled(self, name, plugin):
         path = type(plugin).__module__ + ":" + type(plugin).__name__
-        for ep in iter_entry_points("sentry.plugins"):
+        # TODO (Steve): change new_plugins to plugins
+        for ep in iter_entry_points("sentry.new_plugins"):
             if ep.name == name:
                 ep_path = ep.module_name + ":" + ".".join(ep.attrs)
                 if ep_path == path:
