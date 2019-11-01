@@ -6,10 +6,7 @@ import {Location} from 'history';
 import {Client} from 'app/api';
 import {Organization} from 'app/types';
 import {t} from 'app/locale';
-import {
-  createSavedQuery,
-  updateSavedQuery,
-} from 'app/actionCreators/discoverSavedQueries';
+import {createSavedQuery} from 'app/actionCreators/discoverSavedQueries';
 import {addSuccessMessage} from 'app/actionCreators/indicator';
 import DropdownControl from 'app/components/dropdownControl';
 import DropdownButton from 'app/components/dropdownButton';
@@ -18,6 +15,7 @@ import Input from 'app/components/forms/input';
 import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
+import {SavedQuery} from 'app/stores/discoverSavedQueriesStore';
 
 import EventView from './eventView';
 
@@ -26,7 +24,8 @@ type Props = {
   organization: Organization;
   eventView: EventView;
   location: Location;
-  isEditing: boolean;
+  savedQueries: SavedQuery[];
+  isEditingExistingQuery: boolean;
 };
 
 type State = {
@@ -37,21 +36,6 @@ class EventsSaveQueryButton extends React.Component<Props, State> {
   state = {
     queryName: '',
   };
-
-  componentDidUpdate(prevProps: Props) {
-    // Going from one query to another whilst not leaving edit mode
-    if (
-      (this.props.isEditing === true &&
-        this.props.eventView.id !== prevProps.eventView.id) ||
-      this.props.isEditing !== prevProps.isEditing
-    ) {
-      const queryName =
-        this.props.isEditing === true ? this.props.eventView.name || '' : '';
-
-      // eslint-disable-next-line react/no-did-update-set-state
-      this.setState({queryName});
-    }
-  }
 
   swallowEvent = (event: React.MouseEvent) => {
     // Stop propagation for the input and container so
@@ -67,19 +51,14 @@ class EventsSaveQueryButton extends React.Component<Props, State> {
   };
 
   handleSave = () => {
-    const {api, eventView, organization, location, isEditing} = this.props;
+    const {api, eventView, organization, location} = this.props;
 
     const payload = eventView.toNewQuery();
     if (this.state.queryName) {
       payload.name = this.state.queryName;
     }
-    let promise;
-    if (isEditing) {
-      promise = updateSavedQuery(api, organization.slug, payload);
-    } else {
-      promise = createSavedQuery(api, organization.slug, payload);
-    }
-    promise.then(saved => {
+
+    createSavedQuery(api, organization.slug, payload).then(saved => {
       const view = EventView.fromSavedQuery(saved);
       addSuccessMessage(t('Query saved'));
 
@@ -96,8 +75,9 @@ class EventsSaveQueryButton extends React.Component<Props, State> {
   };
 
   render() {
-    const {isEditing} = this.props;
-    const buttonText = isEditing ? t('Update') : t('Save');
+    const newQueryLabel = this.props.isEditingExistingQuery
+      ? t('Save as...')
+      : t('Save query');
 
     return (
       <DropdownControl
@@ -109,8 +89,8 @@ class EventsSaveQueryButton extends React.Component<Props, State> {
             isOpen={isOpen}
             showChevron={false}
           >
-            <StyledInlineSvg src="icon-bookmark" size="14" />
-            {t('Save Search')}
+            <StyledInlineSvg src="icon-star" size="14" />
+            {newQueryLabel}
           </StyledDropdownButton>
         )}
       >
@@ -121,9 +101,9 @@ class EventsSaveQueryButton extends React.Component<Props, State> {
             value={this.state.queryName}
             onChange={this.handleInputChange}
           />
-          <Button size="small" onClick={this.handleSave} priority="primary">
-            {buttonText}
-          </Button>
+          <StyledSaveButton size="small" onClick={this.handleSave} priority="primary">
+            {t('Save')}
+          </StyledSaveButton>
         </SaveQueryContainer>
       </DropdownControl>
     );
@@ -141,6 +121,10 @@ const StyledInlineSvg = styled(InlineSvg)`
 const StyledInput = styled(Input)`
   width: 100%;
   margin-bottom: ${space(1)};
+`;
+
+const StyledSaveButton = styled(Button)`
+  width: 100%;
 `;
 
 const StyledDropdownButton = styled(DropdownButton)`

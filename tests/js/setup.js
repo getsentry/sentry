@@ -132,20 +132,20 @@ jest.mock('popper.js', () => {
   };
 });
 
-// We generally use actual jQuery, and jest mocks takes precedence over node_modules
+// We generally use actual jQuery, and jest mocks takes precedence over node_modules.
 jest.unmock('jquery');
 
 /**
  * Test Globals
  */
 
-// This is so we can use async/await in tests instead of wrapping with `setTimeout`
+// This is so we can use async/await in tests instead of wrapping with `setTimeout`.
 window.tick = () => new Promise(resolve => setTimeout(resolve));
 
 window.$ = window.jQuery = jQuery;
 window.scrollTo = jest.fn();
 
-// this is very commonly used, so expose it globally
+// This is very commonly used, so expose it globally.
 window.MockApiClient = require.requireMock('app/api').Client;
 
 window.TestStubs = {

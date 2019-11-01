@@ -171,6 +171,20 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             [{"count": 2}],
         ]
 
+    def test_invalid_aggregate(self):
+        with self.feature("organizations:events-v2"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "interval": "1h",
+                    "yAxis": "rubbish",
+                },
+            )
+        assert response.status_code == 400, response.content
+
     def test_aggregate_function_user_count(self):
         with self.feature("organizations:events-v2"):
             response = self.client.get(
@@ -321,3 +335,18 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         # We could get more results depending on where the 30 min
         # windows land.
         assert len(items) >= 3
+
+    def test_project_id_query_filter(self):
+        with self.feature("organizations:events-v2"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "end": iso_format(before_now()),
+                    "start": iso_format(before_now(hours=2)),
+                    "query": "project_id:1",
+                    "interval": "30m",
+                    "yAxis": "count()",
+                },
+            )
+        assert response.status_code == 200

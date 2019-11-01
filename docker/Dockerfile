@@ -132,13 +132,18 @@ RUN set -x \
     && buildDeps="$buildDeps \
       make \
     " \
+       # xmlsec
+    && buildDeps="$buildDeps \
+      libxmlsec1-dev \
+      pkg-config \
+    " \
     && apt-get update \
     && apt-get install -y --no-install-recommends $buildDeps \
     && pip install /tmp/dist/*.whl \
     # Separate these due to https://git.io/fjyz6
     # Otherwise librabbitmq will install the latest amqp version,
     # violating kombu's amqp<2.0 constraint.
-    && pip install librabbitmq==1.6.1 maxminddb==1.4.1 \
+    && pip install librabbitmq==1.6.1 \
     && mkdir /tmp/uwsgi-dogstatsd \
     && wget -O - https://github.com/eventbrite/uwsgi-dogstatsd/archive/filters-and-tags.tar.gz | \
        tar -xzf - -C /tmp/uwsgi-dogstatsd --strip-components=1 \

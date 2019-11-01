@@ -15,14 +15,13 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
 from sentry.models import AuthProvider, Organization, OrganizationStatus
+from sentry.signals import join_request_link_viewed
 from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
 from sentry.web.frontend.base import BaseView
 from sentry.utils import auth, metrics
 from sentry.utils.sdk import capture_exception
 
 ERR_NO_SSO = _("The organization does not exist or does not have Single Sign-On enabled.")
-
-JOIN_REQUEST_EXPERIMENT = "JoinRequestExperiment"
 
 
 # Stores callbacks that are called to get additional template context data before the login page
@@ -84,12 +83,14 @@ class AuthLoginView(BaseView):
         if not organization:
             return None
 
-        assignment = experiments.get(org=organization, experiment_name=JOIN_REQUEST_EXPERIMENT)
-        if assignment != 1:
+        variant = experiments.get(org=organization, experiment_name="ImprovedInvitesExperiment")
+        if variant not in ("all", "join_request"):
             return None
 
         if organization.get_option("sentry:join_requests") is False:
             return None
+
+        join_request_link_viewed.send_robust(sender=self, organization=organization)
 
         return reverse("sentry-join-request", args=[organization.slug])
 

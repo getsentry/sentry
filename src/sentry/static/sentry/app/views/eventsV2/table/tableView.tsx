@@ -45,14 +45,32 @@ class TableView extends React.Component<TableViewProps> {
    * In most cases, the new EventView object differs from the previous EventView
    * object. The new EventView object is pushed to the location object.
    */
-  _createColumn = (nextColumn: TableColumn<keyof TableDataRow>) => {
+  _createColumn = (
+    nextColumn: TableColumn<keyof TableDataRow>,
+    insertAt: number | undefined
+  ) => {
     const {location, eventView} = this.props;
 
-    const nextEventView = eventView.withNewColumn({
-      aggregation: String(nextColumn.aggregation),
-      field: String(nextColumn.field),
-      fieldname: nextColumn.name,
-    });
+    let nextEventView: EventView;
+
+    if (typeof insertAt === 'number') {
+      // create and insert a column at a specific index
+      nextEventView = eventView.withNewColumnAt(
+        {
+          aggregation: String(nextColumn.aggregation),
+          field: String(nextColumn.field),
+          fieldname: nextColumn.name,
+        },
+        insertAt
+      );
+    } else {
+      // create and insert a column at the right end of the table
+      nextEventView = eventView.withNewColumn({
+        aggregation: String(nextColumn.aggregation),
+        field: String(nextColumn.field),
+        fieldname: nextColumn.name,
+      });
+    }
 
     pushEventViewToLocation({
       location,
@@ -67,7 +85,7 @@ class TableView extends React.Component<TableViewProps> {
   _updateColumn = (columnIndex: number, nextColumn: TableColumn<keyof TableDataRow>) => {
     const {location, eventView, tableData} = this.props;
 
-    if (!tableData) {
+    if (!tableData || !tableData.meta) {
       return;
     }
 
@@ -94,7 +112,7 @@ class TableView extends React.Component<TableViewProps> {
   _deleteColumn = (columnIndex: number) => {
     const {location, eventView, tableData} = this.props;
 
-    if (!tableData) {
+    if (!tableData || !tableData.meta) {
       return;
     }
 
@@ -125,7 +143,7 @@ class TableView extends React.Component<TableViewProps> {
   _renderGridHeaderCell = (column: TableColumn<keyof TableDataRow>): React.ReactNode => {
     const {eventView, location, tableData} = this.props;
 
-    if (!tableData) {
+    if (!tableData || !tableData.meta) {
       return column.name;
     }
 
@@ -160,9 +178,11 @@ class TableView extends React.Component<TableViewProps> {
     dataRow: TableDataRow
   ): React.ReactNode => {
     const {location, organization, tableData, eventView} = this.props;
-    if (!tableData) {
+
+    if (!tableData || !tableData.meta) {
       return dataRow[column.key];
     }
+
     const hasLinkField = eventView.hasAutolinkField();
     const forceLink =
       !hasLinkField && eventView.getFields().indexOf(String(column.field)) === 0;

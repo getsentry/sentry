@@ -136,7 +136,6 @@ def pytest_configure(config):
         bind_cache_to_option_store,
         bootstrap_options,
         configure_structlog,
-        fix_south,
         initialize_receivers,
         monkeypatch_django_migrations,
         setup_services,
@@ -144,12 +143,10 @@ def pytest_configure(config):
 
     bootstrap_options(settings)
     configure_structlog()
-    fix_south(settings)
 
     import django
 
-    if hasattr(django, "setup"):
-        django.setup()
+    django.setup()
 
     monkeypatch_django_migrations()
 

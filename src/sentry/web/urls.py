@@ -49,21 +49,6 @@ from sentry.web.frontend.project_event import ProjectEventRedirect
 __all__ = ("urlpatterns",)
 
 
-def init_all_applications():
-    """
-    Forces import of all applications to ensure code is registered.
-    """
-    from django.db.models import get_apps, get_models
-
-    for app in get_apps():
-        try:
-            get_models(app)
-        except Exception:
-            continue
-
-
-init_all_applications()
-
 # Only create one instance of the ReactPageView since it's duplicated everywhere
 generic_react_page_view = GenericReactPageView.as_view()
 react_page_view = ReactPageView.as_view()
@@ -441,9 +426,19 @@ urlpatterns += patterns(
                 ),
                 url(r"^account/", generic_react_page_view),
                 url(
+                    r"^(?P<organization_slug>[\w_-]+)/$",
+                    react_page_view,
+                    name="sentry-organization-settings",
+                ),
+                url(
                     r"^(?P<organization_slug>[\w_-]+)/members/$",
                     react_page_view,
                     name="sentry-organization-members",
+                ),
+                url(
+                    r"^(?P<organization_slug>[\w_-]+)/members/requests/$",
+                    react_page_view,
+                    name="sentry-organization-members-requests",
                 ),
                 url(
                     r"^(?P<organization_slug>[\w_-]+)/members/new/$",

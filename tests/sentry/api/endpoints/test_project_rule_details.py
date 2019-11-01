@@ -13,8 +13,8 @@ class ProjectRuleDetailsTest(APITestCase):
         self.login_as(user=self.user)
 
         team = self.create_team()
-        project1 = self.create_project(teams=[team], name="foo")
-        self.create_project(teams=[team], name="bar")
+        project1 = self.create_project(teams=[team], name="foo", fire_project_created=True)
+        self.create_project(teams=[team], name="bar", fire_project_created=True)
 
         rule = project1.rule_set.all()[0]
 
@@ -36,8 +36,8 @@ class ProjectRuleDetailsTest(APITestCase):
         self.login_as(user=self.user)
 
         team = self.create_team()
-        project1 = self.create_project(teams=[team], name="foo")
-        self.create_project(teams=[team], name="bar")
+        project1 = self.create_project(teams=[team], name="foo", fire_project_created=True)
+        self.create_project(teams=[team], name="bar", fire_project_created=True)
 
         rule = project1.rule_set.all()[0]
         rule.update(environment_id=Environment.get_or_create(rule.project, "production").id)
@@ -60,8 +60,8 @@ class ProjectRuleDetailsTest(APITestCase):
         self.login_as(user=self.user)
 
         team = self.create_team()
-        project1 = self.create_project(teams=[team], name="foo")
-        self.create_project(teams=[team], name="bar")
+        project1 = self.create_project(teams=[team], name="foo", fire_project_created=True)
+        self.create_project(teams=[team], name="bar", fire_project_created=True)
 
         rule = project1.rule_set.all()[0]
         rule.update(environment_id=None)

@@ -114,6 +114,11 @@ def devserver(reload, watchers, workers, experimental_spa, styleguide, prefix, e
         os.environ["SENTRY_WEBPACK_PROXY_PORT"] = "%s" % proxy_port
         os.environ["SENTRY_BACKEND_PORT"] = "%s" % port
 
+        # webpack and/or typescript is causing memory issues
+        os.environ["NODE_OPTIONS"] = (
+            (os.environ.get("NODE_OPTIONS", "") + " --max-old-space-size=4096")
+        ).lstrip()
+
         # Replace the webpack watcher with the drop-in webpack-dev-server
         webpack_config = next(w for w in daemons if w[0] == "webpack")[1]
         webpack_config[0] = os.path.join(

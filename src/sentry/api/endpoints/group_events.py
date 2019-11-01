@@ -73,7 +73,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         default_end = timezone.now()
         default_start = default_end - timedelta(days=90)
         params = {
-            "issue.id": [group.id],
+            "group_ids": [group.id],
             "project_id": [group.project_id],
             "start": start if start else default_start,
             "end": end if end else default_end,

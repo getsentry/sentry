@@ -73,7 +73,6 @@ def get_requirements(env):
 
 install_requires = get_requirements("base")
 dev_requires = get_requirements("dev")
-optional_requires = get_requirements("optional")
 
 # override django version in requirements file if DJANGO_VERSION is set
 DJANGO_VERSION = os.environ.get("DJANGO_VERSION")
@@ -135,15 +134,39 @@ setup(
     packages=find_packages("src"),
     zip_safe=False,
     install_requires=install_requires,
-    extras_require={
-        "dev": dev_requires,
-        "postgres": [],
-        "optional": optional_requires,
-    },
+    extras_require={"dev": dev_requires, "postgres": []},
     cmdclass=cmdclass,
     license="BSD",
     include_package_data=True,
-    entry_points={"console_scripts": ["sentry = sentry.runner:main"]},
+    entry_points={
+        "console_scripts": ["sentry = sentry.runner:main"],
+        "sentry.new_apps": [
+            "jira_ac = new_sentry_plugins.jira_ac",
+            "jira = new_sentry_plugins.jira",
+            "sessionstack = new_sentry_plugins.sessionstack",
+        ],
+        "sentry.new_plugins": [
+            "amazon_sqs = new_sentry_plugins.amazon_sqs.plugin:AmazonSQSPlugin",
+            "asana = new_sentry_plugins.asana.plugin:AsanaPlugin",
+            "bitbucket = new_sentry_plugins.bitbucket.plugin:BitbucketPlugin",
+            "clubhouse = new_sentry_plugins.clubhouse.plugin:ClubhousePlugin",
+            "github = new_sentry_plugins.github.plugin:GitHubPlugin",
+            "gitlab = new_sentry_plugins.gitlab.plugin:GitLabPlugin",
+            "heroku = new_sentry_plugins.heroku.plugin:HerokuPlugin",
+            "jira = new_sentry_plugins.jira.plugin:JiraPlugin",
+            "jira_ac = new_sentry_plugins.jira_ac.plugin:JiraACPlugin",
+            "pagerduty = new_sentry_plugins.pagerduty.plugin:PagerDutyPlugin",
+            "phabricator = new_sentry_plugins.phabricator.plugin:PhabricatorPlugin",
+            "pivotal = new_sentry_plugins.pivotal.plugin:PivotalPlugin",
+            "pushover = new_sentry_plugins.pushover.plugin:PushoverPlugin",
+            "segment = new_sentry_plugins.segment.plugin:SegmentPlugin",
+            "sessionstack = new_sentry_plugins.sessionstack.plugin:SessionStackPlugin",
+            "slack = new_sentry_plugins.slack.plugin:SlackPlugin",
+            "splunk = new_sentry_plugins.splunk.plugin:SplunkPlugin",
+            "victorops = new_sentry_plugins.victorops.plugin:VictorOpsPlugin",
+            "vsts = new_sentry_plugins.vsts.plugin:VstsPlugin",
+        ],
+    },
     classifiers=[
         "Framework :: Django",
         "Intended Audience :: Developers",

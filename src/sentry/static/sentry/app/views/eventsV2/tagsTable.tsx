@@ -20,7 +20,7 @@ const TagsTable = (props: Props) => {
   const {location, tags} = props;
   return (
     <div>
-      <TagHeading>{t('Tags')}</TagHeading>
+      <TagHeading>{t('Event Tag Details')}</TagHeading>
       <StyledTable>
         <tbody>
           {tags.map(tag => {
@@ -59,11 +59,9 @@ const StyledTable = styled('table')`
   max-width: 100%;
 `;
 
-const TagHeading = styled('h5')`
-  text-transform: uppercase;
+const TagHeading = styled('h6')`
   color: ${p => p.theme.gray3};
-  font-size: ${p => p.theme.fontSizeMedium};
-  margin: 0 0 ${space(1)} ${space(1)};
+  margin-bottom: 16px;
 `;
 
 const StyledTr = styled('tr')`

@@ -13,7 +13,7 @@ from parsimonious.nodes import Node
 from parsimonious.grammar import Grammar, NodeVisitor
 
 from sentry import eventstore
-from sentry.models import Project
+from sentry.models import Project, ProjectStatus
 from sentry.search.utils import (
     parse_datetime_range,
     parse_datetime_string,
@@ -154,7 +154,7 @@ SEARCH_MAP = {
 SEARCH_MAP.update(**DATASETS[Dataset.Transactions])
 SEARCH_MAP.update(**DATASETS[Dataset.Events])
 
-no_conversion = set(["project_id", "start", "end"])
+no_conversion = set(["start", "end"])
 
 PROJECT_KEY = "project.name"
 
@@ -210,12 +210,14 @@ class SearchVisitor(NodeVisitor):
     key_mappings = {}
     numeric_keys = set(
         [
+            "project_id",
+            "project.id",
+            "issue.id",
             "device.battery_level",
             "device.charging",
             "device.online",
             "device.simulator",
             "error.handled",
-            "issue.id",
             "stack.colno",
             "stack.in_app",
             "stack.lineno",
@@ -526,10 +528,6 @@ def convert_search_boolean_to_snuba_query(search_boolean):
     return [operator, [left, right]]
 
 
-def convert_endpoint_params(params):
-    return [SearchFilter(SearchKey(key), "=", SearchValue(params[key])) for key in params]
-
-
 def convert_search_filter_to_snuba_query(search_filter):
     name = search_filter.key.name
     value = search_filter.value.value
@@ -626,10 +624,6 @@ def get_filter(query=None, params=None):
         except ParseError as e:
             raise InvalidSearchQuery(u"Parse error: %r (column %d)" % (e.expr.name, e.column()))
 
-    # Keys included as url params take precedent if same key is included in search
-    if params is not None:
-        parsed_terms.extend(convert_endpoint_params(params))
-
     kwargs = {"start": None, "end": None, "conditions": [], "project_ids": [], "group_ids": []}
 
     projects = {}
@@ -642,26 +636,41 @@ def get_filter(query=None, params=None):
             for p in Project.objects.filter(id__in=params["project_id"]).values("id", "slug")
         }
 
+    def to_list(value):
+        if isinstance(value, list):
+            return value
+        return [value]
+
     for term in parsed_terms:
         if isinstance(term, SearchFilter):
             name = term.key.name
-            if term.key.name == PROJECT_KEY:
+            if name == PROJECT_KEY:
                 condition = ["project_id", "=", projects.get(term.value.value)]
                 kwargs["conditions"].append(condition)
-            elif name in ("start", "end"):
-                kwargs[name] = term.value.value
-            elif name in ("project_id", "issue.id"):
-                if name == "issue.id":
-                    name = "group_ids"
-                if name == "project_id":
-                    name = "project_ids"
-                value = term.value.value
-                if isinstance(value, int):
-                    value = [value]
-                kwargs[name].extend(value)
+            elif name == "issue.id":
+                kwargs["group_ids"].extend(to_list(term.value.value))
             else:
                 converted_filter = convert_search_filter_to_snuba_query(term)
-                kwargs["conditions"].append(converted_filter)
+                if converted_filter:
+                    kwargs["conditions"].append(converted_filter)
+
+    # Keys included as url params take precedent if same key is included in search
+    # They are also considered safe and to have had access rules applied unlike conditions
+    # from the query string.
+    if params:
+        for key in ("start", "end"):
+            kwargs[key] = params.get(key, None)
+        # OrganizationEndpoint.get_filter() uses project_id, but eventstore.Filter uses project_ids
+        if "project_id" in params:
+            kwargs["project_ids"] = params["project_id"]
+        if "environment" in params:
+            term = SearchFilter(SearchKey("environment"), "=", SearchValue(params["environment"]))
+            kwargs["conditions"].append(convert_search_filter_to_snuba_query(term))
+        if "group_ids" in params:
+            kwargs["group_ids"] = to_list(params["group_ids"])
+        # Deprecated alias, use `group_ids` instead
+        if "issue.id" in params:
+            kwargs["group_ids"] = to_list(params["issue.id"])
 
     return eventstore.Filter(**kwargs)
 
@@ -680,8 +689,8 @@ FIELD_ALIASES = {
 VALID_AGGREGATES = {
     "count_unique": {"snuba_name": "uniq", "fields": "*"},
     "count": {"snuba_name": "count", "fields": "*"},
-    "min": {"snuba_name": "min", "fields": ["timestamp", "transaction.duration"]},
-    "max": {"snuba_name": "max", "fields": ["timestamp", "transaction.duration"]},
+    "min": {"snuba_name": "min", "fields": ["time", "timestamp", "transaction.duration"]},
+    "max": {"snuba_name": "max", "fields": ["time", "timestamp", "transaction.duration"]},
     "avg": {"snuba_name": "avg", "fields": ["transaction.duration"]},
 }
 
@@ -813,14 +822,14 @@ def resolve_field_list(fields, snuba_args):
     }
 
 
-def find_reference_event(snuba_args, reference_event_slug, fields):
+def find_reference_event(organization, snuba_args, reference_event_slug, fields):
     try:
         project_slug, event_id = reference_event_slug.split(":")
     except ValueError:
         raise InvalidSearchQuery("Invalid reference event")
     try:
         project = Project.objects.get(
-            slug=project_slug, id__in=snuba_args["filter_keys"]["project_id"]
+            slug=project_slug, organization=organization, status=ProjectStatus.VISIBLE
         )
     except Project.DoesNotExist:
         raise InvalidSearchQuery("Invalid reference event")
@@ -834,7 +843,7 @@ def find_reference_event(snuba_args, reference_event_slug, fields):
 TAG_KEY_RE = re.compile(r"^tags\[(.*)\]$")
 
 
-def get_reference_event_conditions(snuba_args, event_slug):
+def get_reference_event_conditions(organization, snuba_args, event_slug):
     """
     Returns a list of additional conditions/filter_keys to
     scope a query by the groupby fields using values from the reference event
@@ -848,7 +857,7 @@ def get_reference_event_conditions(snuba_args, event_slug):
 
     # Fetch the reference event ensuring the fields in the groupby
     # clause are present.
-    event_data = find_reference_event(snuba_args, event_slug, columns)
+    event_data = find_reference_event(organization, snuba_args, event_slug, columns)
 
     conditions = []
     tags = {}

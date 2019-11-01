@@ -5,15 +5,15 @@ import logging
 from click import echo
 from django.conf import settings
 from django.db import connections, transaction
+from django.contrib.auth.models import AnonymousUser
 from django.db.utils import OperationalError, ProgrammingError
 from django.db.models.signals import post_migrate, post_save
-
 from functools import wraps
 from pkg_resources import parse_version as Version
 
 from sentry import options
 from sentry.models import Organization, OrganizationMember, Project, User, Team, ProjectKey
-from sentry.utils import db
+from sentry.signals import project_created
 
 PROJECT_SEQUENCE_FIX = """
 SELECT setval('sentry_project_id_seq', (
@@ -75,14 +75,21 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
         organization=org, slug="sentry", defaults={"name": "Sentry"}
     )
 
-    project = Project.objects.create(
-        id=id, public=False, name=name, slug=slug, organization=team.organization, **kwargs
-    )
-    project.add_team(team)
+    with transaction.atomic():
+        project = Project.objects.create(
+            id=id, public=False, name=name, slug=slug, organization=team.organization, **kwargs
+        )
+        project.add_team(team)
 
-    # HACK: manually update the ID after insert due to Postgres
-    # sequence issues. Seriously, fuck everything about this.
-    if db.is_postgres(project._state.db):
+        project_created.send(
+            project=project,
+            user=user or AnonymousUser(),
+            default_rules=True,
+            sender=create_default_project,
+        )
+
+        # HACK: manually update the ID after insert due to Postgres
+        # sequence issues. Seriously, fuck everything about this.
         connection = connections[project._state.db]
         cursor = connection.cursor()
         cursor.execute(PROJECT_SEQUENCE_FIX)

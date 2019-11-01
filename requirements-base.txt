@@ -18,6 +18,14 @@ email-reply-parser>=0.2.0,<0.3.0
 enum34>=1.1.6,<1.2.0
 functools32>=3.2.3,<3.3
 futures>=3.2.0,<4.0.0
+# optional but needed for google stuff below
+google-cloud-core==0.29.1
+# optional
+google-cloud-bigtable>=0.32.1,<0.33.0
+# optional
+google-cloud-pubsub>=0.35.4,<0.36.0
+# optional
+google-cloud-storage>=1.13.2,<1.14
 # broken on python3
 hiredis>=0.1.0,<0.2.0
 ipaddress>=1.0.16,<1.1.0
@@ -25,6 +33,8 @@ jsonschema==2.6.0
 kombu==3.0.35
 loremipsum>=1.0.5,<1.1.0
 lxml>=3.4.1
+# optional
+maxminddb==1.4.1
 # for vsts repo
 mistune>0.7,<0.9
 mmh3>=2.3.1,<2.4
@@ -34,7 +44,7 @@ oauth2>=1.5.167
 parsimonious==0.8.0
 percy>=1.1.2
 petname>=2.6,<2.7
-Pillow>=3.2.0,<=4.2.1
+Pillow>=6.2.1,<7.0.0
 progressbar2>=3.10,<3.11
 psycopg2-binary>=2.7.0,<2.9.0
 PyJWT>=1.5.0,<1.6.0
@@ -42,6 +52,8 @@ python-dateutil>=2.0.0,<3.0.0
 python-memcached>=1.53,<2.0.0
 python-openid>=2.2
 python-u2flib-server>=5.0.0,<6.0.0
+# optional
+python3-saml>=1.4.0,<1.5
 PyYAML>=3.11,<3.12
 qrcode>=5.2.2,<6.0.0
 querystring_parser>=1.2.3,<2.0.0
@@ -67,3 +79,7 @@ ua-parser>=0.6.1,<0.8.0
 unidiff>=0.5.4
 urllib3==1.24.2
 uwsgi>2.0.0,<2.1.0
+
+# sentry-plugins specific dependencies
+cached-property
+phabricator>=0.6.0,<1.0

@@ -5,7 +5,7 @@ import styled from 'react-emotion';
 
 import {PageHeader} from 'app/styles/organization';
 import {Panel, PanelBody, PanelItem} from 'app/components/panels';
-import {getParams} from 'app/views/events/utils/getParams';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import BetaTag from 'app/components/betaTag';

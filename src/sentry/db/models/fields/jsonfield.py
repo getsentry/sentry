@@ -135,9 +135,3 @@ class JSONField(models.TextField):
 
     def value_to_string(self, obj):
         return self._get_val_from_obj(obj)
-
-
-if "south" in settings.INSTALLED_APPS:
-    from south.modelsinspector import add_introspection_rules
-
-    add_introspection_rules([], ["^sentry\.db\.models\.fields\.jsonfield.JSONField"])

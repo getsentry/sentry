@@ -141,3 +141,9 @@ class JiraServer(object):
         Jira-Server doesn't require GDPR compliant API usage so we can use `name`
         """
         return "name"
+
+    def query_field(self):
+        """
+        Jira-Server doesn't require GDPR compliant API usage so we can use `username`
+        """
+        return "username"

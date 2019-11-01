@@ -21,7 +21,7 @@ import withOrganization from 'app/utils/withOrganization';
 
 import Events from './events';
 import EventDetails from './eventDetails';
-import EventsSaveQueryButton from './saveQueryButton';
+import SavedQueryButtonGroup from './savedQueryButtonGroup';
 import {getFirstQueryString} from './utils';
 import {ALL_VIEWS, TRANSACTION_VIEWS} from './data';
 import EventView from './eventView';
@@ -82,11 +82,9 @@ class EventsV2 extends React.Component<Props> {
   render() {
     const {organization, location, router} = this.props;
     const eventSlug = getFirstQueryString(location.query, 'eventSlug');
-
     const eventView = EventView.fromLocation(location);
 
-    const hasQuery =
-      location.query.field || location.query.eventSlug || location.query.view;
+    const hasQuery = location.query.field || location.query.eventSlug;
 
     const documentTitle = this.getEventViewName()
       .reverse()
@@ -104,8 +102,7 @@ class EventsV2 extends React.Component<Props> {
                     {pageTitle} <BetaTag />
                   </PageHeading>
                   {hasQuery && (
-                    <EventsSaveQueryButton
-                      isEditing={!!location.query.edit}
+                    <SavedQueryButtonGroup
                       location={location}
                       organization={organization}
                       eventView={eventView}

@@ -18,10 +18,6 @@ import TriggersModal from 'app/views/settings/incidentRules/triggers/modal';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 
-type State = {
-  rule: IncidentRule;
-} & AsyncView['state'];
-
 type RouteParams = {
   orgId: string;
   incidentRuleId: string;
@@ -32,10 +28,9 @@ type Props = {
   projects: Project[];
 };
 
-const widthCss = css`
-  width: 80%;
-  margin-left: -40%;
-`;
+type State = {
+  rule: IncidentRule;
+} & AsyncView['state'];
 
 class IncidentRulesDetails extends AsyncView<
   RouteComponentProps<RouteParams, {}> & Props,
@@ -54,19 +49,25 @@ class IncidentRulesDetails extends AsyncView<
 
   openTriggersModal = (trigger?: Trigger) => {
     const {organization, projects} = this.props;
+    const {rule} = this.state;
 
     openModal(
       ({closeModal}) => (
         <TriggersModal
           organization={organization}
-          projects={projects || []}
-          rule={this.state.rule}
+          projects={projects}
+          rule={rule}
           trigger={trigger}
           closeModal={closeModal}
           onSubmitSuccess={trigger ? this.handleEditedTrigger : this.handleAddedTrigger}
         />
       ),
-      {dialogClassName: widthCss}
+      {
+        dialogClassName: css`
+          width: 80%;
+          margin-left: -40%;
+        `,
+      }
     );
   };
 

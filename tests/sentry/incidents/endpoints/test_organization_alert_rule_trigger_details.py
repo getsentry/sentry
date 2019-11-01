@@ -31,12 +31,9 @@ class AlertRuleTriggerDetailsBase(object):
             self.organization,
             [self.project],
             "hello",
-            AlertRuleThresholdType.ABOVE,
             "level:error",
             QueryAggregations.TOTAL,
             10,
-            1000,
-            400,
             1,
         )
 
@@ -111,10 +108,7 @@ class AlertRuleTriggerDetailsPutEndpointTest(AlertRuleTriggerDetailsBase, APITes
         self.login_as(self.user)
         with self.feature("organizations:incidents"):
             resp = self.get_valid_response(
-                self.organization.slug,
-                self.alert_rule.id,
-                self.trigger.id,
-                alert_threshold=self.alert_rule.alert_threshold,
+                self.organization.slug, self.alert_rule.id, self.trigger.id
             )
 
         # Alert rule should be exactly the same
