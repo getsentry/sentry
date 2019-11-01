@@ -174,6 +174,8 @@ class TableView extends React.Component<TableViewProps> {
       return;
     }
 
+    const prevField = explodeField(eventView.fields[columnIndex]);
+
     const nextEventView = eventView.withDeletedColumn(columnIndex, tableData.meta);
 
     // metrics
@@ -182,6 +184,9 @@ class TableView extends React.Component<TableViewProps> {
       eventName: 'Discoverv2: A column was deleted',
       deleted_at_index: columnIndex,
       organization_id: organization.id,
+      aggregation: prevField.aggregation,
+      field: prevField.field,
+      fieldname: prevField.fieldname,
     });
 
     pushEventViewToLocation({
