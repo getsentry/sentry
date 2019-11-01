@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import six
 from exam import fixture
 
 from sentry.auth.access import from_user
@@ -371,14 +372,34 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
             {"type": AlertRuleTriggerAction.Type.SLACK.value},
             {"type": AlertRuleTriggerAction.Type.SLACK},
         )
-        self._run_changed_fields_test(action, {"target_type": target_type.value}, {})
+        self._run_changed_fields_test(
+            action, {"target_type": target_type.value, "target_identifier": identifier}, {}
+        )
         self._run_changed_fields_test(
             action,
-            {"target_type": AlertRuleTriggerAction.TargetType.USER.value},
-            {"target_type": AlertRuleTriggerAction.TargetType.USER},
+            {
+                "target_type": AlertRuleTriggerAction.TargetType.USER.value,
+                "target_identifier": six.text_type(self.user.id),
+            },
+            {
+                "target_type": AlertRuleTriggerAction.TargetType.USER,
+                "target_identifier": six.text_type(self.user.id),
+            },
         )
 
-        self._run_changed_fields_test(action, {"target_identifier": identifier}, {})
-        self._run_changed_fields_test(
-            action, {"target_identifier": "bye"}, {"target_identifier": "bye"}
+    def test_user_perms(self):
+        self.run_fail_validation_test(
+            {
+                "target_type": AlertRuleTriggerAction.TargetType.USER.value,
+                "target_identifier": "1234567",
+            },
+            {"nonFieldErrors": ["User does not exist"]},
+        )
+        other_user = self.create_user()
+        self.run_fail_validation_test(
+            {
+                "target_type": AlertRuleTriggerAction.TargetType.USER.value,
+                "target_identifier": six.text_type(other_user.id),
+            },
+            {"nonFieldErrors": ["User does not belong to this organization"]},
         )
