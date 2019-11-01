@@ -6,6 +6,7 @@ import {Client} from 'app/api';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t} from 'app/locale';
 import {Project, Organization} from 'app/types';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 
 import {openModal} from 'app/actionCreators/modal';
 import ConfigStore from 'app/stores/configStore';
@@ -148,11 +149,11 @@ export default function createQueryBuilder(
     const projects = query.projects.length ? query.projects : defaultProjectIds;
 
     // Default to DEFAULT_STATS_PERIOD when no date range selected (either relative or absolute)
-    const {range, start, end} = query;
+    const {statsPeriod, start, end} = getParams(query);
     const hasAbsolute = start && end;
     const daterange = {
       ...(hasAbsolute && {start, end}),
-      ...(range ? {range} : !hasAbsolute && {range: DEFAULT_STATS_PERIOD}),
+      ...(statsPeriod && {range: statsPeriod}),
     };
 
     // Default to all fields if there are none selected, and no aggregation is
