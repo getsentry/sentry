@@ -23,6 +23,7 @@ from sentry.models import (
     GroupRelease,
     Organization,
     Project,
+    ProjectKey,
     Release,
     ReleaseProject,
 )
@@ -582,6 +583,10 @@ def get_query_params_to_update_for_organizations(query_params):
         organization_id = organization_ids[0]
     elif "project_id" in query_params.filter_keys:
         organization_id, _ = get_query_params_to_update_for_projects(query_params)
+    elif "key_id" in query_params.filter_keys:
+        key_ids = list(set(query_params.filter_keys["key_id"]))
+        project_key = ProjectKey.objects.get(pk=key_ids[0])
+        organization_id = project_key.project.organization_id
     else:
         organization_id = None
 
