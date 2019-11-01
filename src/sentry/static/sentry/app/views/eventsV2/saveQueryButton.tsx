@@ -118,8 +118,8 @@ class EventsSaveQueryButton extends React.Component<Props, State> {
   ) {
     const eventKey =
       (editingExistingQuery
-        ? 'discover_v2.save_existing_query'
-        : 'discover_v2.save_new_query') + type;
+        ? 'discover_v2.save_existing_query_'
+        : 'discover_v2.save_new_query_') + type;
 
     const eventName = editingExistingQuery
       ? EVENT_NAME_EXISTING_MAP[type]
