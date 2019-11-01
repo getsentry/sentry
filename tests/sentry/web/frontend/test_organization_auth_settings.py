@@ -107,8 +107,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             path = reverse("sentry-auth-sso")
             resp = self.client.post(path, {"email": user.email})
 
-        assert resp.status_code == 302
-        assert resp["Location"] == u"http://testserver{}".format(configure_path)
+        self.assertRedirects(resp, configure_path)
 
         auth_provider = AuthProvider.objects.get(organization=organization, provider="dummy")
         auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
