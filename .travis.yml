@@ -178,6 +178,11 @@ matrix:
       name: 'Plugins'
       env: TEST_SUITE=plugins DB=postgres PERCY_TOKEN=${PLUGIN_PERCY_TOKEN}
 
+    # allowed to fail
+    - <<: *acceptance_default
+      name: 'Django 1.9 Plugins'
+      env: DJANGO_VERSION=">=1.9,<1.10" TEST_SUITE=plugins DB=postgres PERCY_TOKEN=${PLUGIN_PERCY_TOKEN}
+
     - python: 2.7
       name: 'Frontend'
       env: TEST_SUITE=js
@@ -264,6 +269,7 @@ matrix:
     - name: 'Django 1.9 Backend [Postgres] (2/2)'
     - name: 'Django 1.9 Acceptance'
     - name: 'Plugins'
+    - name: 'Django 1.9 Plugins'
 
 notifications:
   webhooks:
