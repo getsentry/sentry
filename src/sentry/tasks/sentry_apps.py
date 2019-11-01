@@ -263,6 +263,17 @@ def send_webhooks(installation, event, **kwargs):
     # the event is within the allowed projects.
     project_limited = ServiceHookProject.objects.filter(service_hook_id=servicehook.id).exists()
 
+    # If the event is error.created & the request is going out to the Org that owns the Sentry App,
+    # Make sure we don't send the request, to prevent potential infinite loops
+    if (
+        event == "error.created"
+        and installation.organization_id == installation.sentry_app.owner_id
+    ):
+        # TODO: Just don't send error.created to the project that the integration lives in
+        # Need to first implement project mapping for integration partners
+        metrics.incr("webhook_request.dropped", tags={"sentry_app": installation.sentry_app.id})
+        return
+
     if not project_limited:
         resource, action = event.split(".")
 
