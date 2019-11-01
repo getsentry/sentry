@@ -19,6 +19,7 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import OrganizationStore from 'app/stores/organizationStore';
 import ProjectActions from 'app/actions/projectActions';
+import TeamActions from 'app/actions/teamActions';
 import SentryTypes from 'app/sentryTypes';
 import Sidebar from 'app/components/sidebar';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
@@ -38,6 +39,7 @@ const OrganizationContext = createReactClass({
     organizationsLoading: PropTypes.bool,
     organizations: PropTypes.arrayOf(SentryTypes.Organization),
     finishProfile: PropTypes.func,
+    detailed: PropTypes.bool,
   },
 
   childContextTypes: {
@@ -49,9 +51,23 @@ const OrganizationContext = createReactClass({
     Reflux.listenTo(OrganizationStore, 'loadOrganization'),
   ],
 
+  getDefaultProps() {
+    return {
+      detailed: true,
+    };
+  },
+
   getInitialState() {
-    // retrieve initial state from store
-    return OrganizationStore.get();
+    if (this.isOrgStorePopulatedCorrectly()) {
+      // retrieve initial state from store
+      return OrganizationStore.get();
+    }
+    return {
+      loading: true,
+      error: null,
+      errorType: null,
+      organization: null,
+    };
   },
 
   getChildContext() {
@@ -112,24 +128,40 @@ const OrganizationContext = createReactClass({
     );
   },
 
-  fetchData() {
+  isOrgStorePopulatedCorrectly() {
+    const {detailed} = this.props;
+    const {organization, dirty} = OrganizationStore.get();
+
+    return (
+      !dirty &&
+      organization &&
+      organization.slug === this.getOrganizationSlug() &&
+      (!detailed || (detailed && organization.projects && organization.teams))
+    );
+  },
+
+  async fetchData() {
     if (!this.getOrganizationSlug()) {
       this.setState({loading: this.props.organizationsLoading});
       return;
     }
     // fetch from the store, then fetch from the API if necessary
-    const {organization, dirty} = OrganizationStore.get();
-    if (
-      !dirty &&
-      organization &&
-      organization.slug === this.getOrganizationSlug() &&
-      organization.projects &&
-      organization.teams
-    ) {
+    if (this.isOrgStorePopulatedCorrectly()) {
       return;
     }
     metric.mark('organization-details-fetch-start');
-    fetchOrganizationDetails(this.props.api, this.getOrganizationSlug(), true);
+    fetchOrganizationDetails(
+      this.props.api,
+      this.getOrganizationSlug(),
+      this.props.detailed
+    );
+    // create a request for all teams if in lightweight org
+    if (!this.props.detailed) {
+      const teams = await this.props.api.requestPromise(
+        this.getOrganizationTeamsEndpoint()
+      );
+      TeamActions.loadTeams(teams);
+    }
   },
 
   loadOrganization(orgData) {
@@ -158,6 +190,7 @@ const OrganizationContext = createReactClass({
       // We do not want to load the user's last used env/project in this case, otherwise will
       // lead to very confusing behavior.
       if (
+        this.props.detailed &&
         !this.props.routes.find(
           ({path}) => path && path.includes('/organizations/:orgId/issues/:groupId/')
         )
@@ -197,6 +230,10 @@ const OrganizationContext = createReactClass({
 
   getOrganizationDetailsEndpoint() {
     return `/organizations/${this.getOrganizationSlug()}/`;
+  },
+
+  getOrganizationTeamsEndpoint() {
+    return `/organizations/${this.getOrganizationSlug()}/teams/`;
   },
 
   getTitle() {

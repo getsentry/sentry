@@ -6,7 +6,6 @@ import {Organization, Project, Team, TeamWithProjects} from 'app/types';
 import getDisplayName from 'app/utils/getDisplayName';
 import getProjectsByTeams from 'app/utils/getProjectsByTeams';
 import ConfigStore from 'app/stores/configStore';
-import TeamActions from 'app/actions/teamActions';
 import {metric} from './analytics';
 
 // We require these props when using this HOC
@@ -74,10 +73,6 @@ const withTeamsForUser = <P extends InjectedTeamsProps>(
             });
           }
         );
-
-        // also fill up TeamStore so org context does not have to refetch org
-        // details due to lack of teams/projects
-        TeamActions.loadTeams(teamsWithProjects);
       } catch (error) {
         this.setState({
           error,

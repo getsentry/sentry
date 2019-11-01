@@ -63,8 +63,6 @@ describe('withUserTeams HoC', function() {
         .find('MyComponent')
         .prop('teams')
     ).toEqual(mockTeams);
-
-    expect(TeamActions.loadTeams).toHaveBeenCalledWith(mockTeams);
   });
 
   it('does not fetch teams if information is in organization', async function() {
