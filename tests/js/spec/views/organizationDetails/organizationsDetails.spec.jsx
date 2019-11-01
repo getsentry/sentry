@@ -1,21 +1,33 @@
 import React from 'react';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import OrganizationDetails from 'app/views/organizationDetails';
+import OrganizationDetails, {
+  LightWeightOrganizationDetails,
+} from 'app/views/organizationDetails';
 import OrganizationStore from 'app/stores/organizationStore';
 
+let tree;
+
 describe('OrganizationDetails', function() {
-  beforeEach(function() {
+  beforeEach(async function() {
     OrganizationStore.reset();
+    // wait for store reset changes to propagate
+    await tick();
+
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: '/broadcasts/',
+      url: '/organizations/org-slug/broadcasts/',
       body: [],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/environments/',
       body: [],
     });
+  });
+
+  afterEach(function() {
+    // necessary to unsubscribe successfully from org store
+    tree.unmount();
   });
 
   describe('render()', function() {
@@ -31,7 +43,7 @@ describe('OrganizationDetails', function() {
             },
           }),
         });
-        const tree = mountWithTheme(
+        tree = mountWithTheme(
           <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} routes={[]} />,
           TestStubs.routerContext()
         );
@@ -56,7 +68,7 @@ describe('OrganizationDetails', function() {
             },
           }),
         });
-        const tree = mountWithTheme(
+        tree = mountWithTheme(
           <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} routes={[]} />,
           TestStubs.routerContext()
         );
@@ -88,7 +100,7 @@ describe('OrganizationDetails', function() {
       });
 
       it('should render a deletion in progress prompt', async function() {
-        const tree = mountWithTheme(
+        tree = mountWithTheme(
           <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} routes={[]} />,
           TestStubs.routerContext()
         );
@@ -101,5 +113,39 @@ describe('OrganizationDetails', function() {
         expect(tree.find('button[aria-label="Restore Organization"]')).toHaveLength(0);
       });
     });
+  });
+  it('can render a lightweight version of itself and fetches teams', async function() {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/',
+      body: TestStubs.Organization({
+        slug: 'org-slug',
+      }),
+    });
+    const getTeamsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/teams/',
+      body: [TestStubs.Team()],
+    });
+    const getProjectsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [TestStubs.Project()],
+    });
+    tree = mountWithTheme(
+      <LightWeightOrganizationDetails
+        params={{orgId: 'org-slug'}}
+        location={{}}
+        routes={[]}
+        includeSidebar={false}
+      >
+        {null}
+      </LightWeightOrganizationDetails>,
+      TestStubs.routerContext()
+    );
+    await tick();
+    await tick();
+    await tick();
+    tree.update();
+    expect(getTeamsMock).toHaveBeenCalled();
+    expect(getProjectsMock).toHaveBeenCalled();
+    expect(tree.find('LightWeightInstallPromptBanner')).toHaveLength(1);
   });
 });
