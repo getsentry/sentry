@@ -202,6 +202,7 @@ class TableView extends React.Component<TableViewProps> {
   _moveColumnCommit = (fromIndex: number, toIndex: number) => {
     const {location, eventView, organization} = this.props;
 
+    const prevField = explodeField(eventView.fields[fromIndex]);
     const nextEventView = eventView.withMovedColumn({fromIndex, toIndex});
 
     // metrics
@@ -211,6 +212,9 @@ class TableView extends React.Component<TableViewProps> {
       from_index: fromIndex,
       to_index: toIndex,
       organization_id: organization.id,
+      aggregation: prevField.aggregation,
+      field: prevField.field,
+      fieldname: prevField.fieldname,
     });
 
     pushEventViewToLocation({
