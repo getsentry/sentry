@@ -1,5 +1,5 @@
 ---
-created: '2019-05-10T12:45:55.182908Z'
+created: '2019-11-01T10:06:05.465176Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -14,7 +14,6 @@ app:
               u'app/components/modals/createTeamModal'
             filename (module takes precedence)
               u'createteammodal.jsx'
-            function (ignored unknown function name)
             context-line*
               u'onError(err);'
           frame (non app frame)
@@ -42,7 +41,6 @@ system:
               u'app/components/modals/createTeamModal'
             filename (module takes precedence)
               u'createteammodal.jsx'
-            function (ignored unknown function name)
             context-line*
               u'onError(err);'
           frame*

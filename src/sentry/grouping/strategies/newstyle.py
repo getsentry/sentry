@@ -321,8 +321,10 @@ def get_frame_component(
         func = frame.raw_function or frame.function
         if func:
             func = func.rsplit(".", 1)[-1]
-        if func in (
-            None,
+        # special case empty functions not to have a hint
+        if not func:
+            function_component.update(contributes=False)
+        elif func in (
             "?",
             "<anonymous function>",
             "<anonymous>",
