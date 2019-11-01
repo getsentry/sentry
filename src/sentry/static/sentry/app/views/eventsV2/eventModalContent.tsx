@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
+import {Location} from 'history';
 
 import SentryTypes from 'app/sentryTypes';
 import DateTime from 'app/components/dateTime';
@@ -11,7 +12,7 @@ import space from 'app/styles/space';
 import getDynamicText from 'app/utils/getDynamicText';
 import {getMessage, getTitle} from 'app/utils/events';
 import {Event, Organization} from 'app/types';
-import {Location} from 'history';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 
 import EventInterfaces from './eventInterfaces';
 import LinkedIssuePreview from './linkedIssuePreview';
@@ -34,57 +35,75 @@ type EventModalContentProps = {
  * Render the columns and navigation elements inside the event modal view.
  * Controlled by the EventDetails View.
  */
-const EventModalContent = (props: EventModalContentProps) => {
-  const {event, projectId, organization, location, eventView} = props;
+class EventModalContent extends React.Component<EventModalContentProps> {
+  static propTypes = {
+    event: SentryTypes.Event.isRequired,
+    projectId: PropTypes.string.isRequired,
+    organization: SentryTypes.Organization.isRequired,
+    location: PropTypes.object.isRequired,
+  };
 
-  // Having an aggregate field means we want to show pagination/graphs
-  const isGroupedView = hasAggregateField(eventView);
-  const eventJsonUrl = `/api/0/projects/${organization.slug}/${projectId}/events/${
-    event.eventID
-  }/json/`;
+  componentDidMount() {
+    const {event, organization} = this.props;
+    // metrics
+    trackAnalyticsEvent({
+      eventKey: 'discover_v2.event_details',
+      eventName: 'Discoverv2: Opened Event Details',
+      event_type: event.type,
+      organization_id: organization.id,
+    });
+  }
 
-  return (
-    <ColumnGrid>
-      <HeaderBox>
-        <EventHeader event={event} />
-        {isGroupedView && <ModalPagination event={event} location={location} />}
-        {isGroupedView &&
-          getDynamicText({
-            value: (
-              <ModalLineGraph
-                organization={organization}
-                currentEvent={event}
-                location={location}
-                eventView={eventView}
-              />
-            ),
-            fixed: 'events chart',
-          })}
-      </HeaderBox>
-      <ContentColumn>
-        <EventInterfaces event={event} projectId={projectId} />
-      </ContentColumn>
-      <SidebarColumn>
-        {event.groupID && (
-          <LinkedIssuePreview groupId={event.groupID} eventId={event.eventID} />
-        )}
-        {event.type === 'transaction' && (
-          <RelatedEvents organization={organization} event={event} location={location} />
-        )}
-        <EventMetadata event={event} eventJsonUrl={eventJsonUrl} />
-        <SidebarBlock>
-          <TagsTable tags={event.tags} />
-        </SidebarBlock>
-      </SidebarColumn>
-    </ColumnGrid>
-  );
-};
-EventModalContent.propTypes = {
-  event: SentryTypes.Event.isRequired,
-  projectId: PropTypes.string.isRequired,
-  organization: SentryTypes.Organization.isRequired,
-  location: PropTypes.object.isRequired,
-};
+  render() {
+    const {event, projectId, organization, location, eventView} = this.props;
+
+    // Having an aggregate field means we want to show pagination/graphs
+    const isGroupedView = hasAggregateField(eventView);
+    const eventJsonUrl = `/api/0/projects/${organization.slug}/${projectId}/events/${
+      event.eventID
+    }/json/`;
+
+    return (
+      <ColumnGrid>
+        <HeaderBox>
+          <EventHeader event={event} />
+          {isGroupedView && <ModalPagination event={event} location={location} />}
+          {isGroupedView &&
+            getDynamicText({
+              value: (
+                <ModalLineGraph
+                  organization={organization}
+                  currentEvent={event}
+                  location={location}
+                  eventView={eventView}
+                />
+              ),
+              fixed: 'events chart',
+            })}
+        </HeaderBox>
+        <ContentColumn>
+          <EventInterfaces event={event} projectId={projectId} />
+        </ContentColumn>
+        <SidebarColumn>
+          {event.groupID && (
+            <LinkedIssuePreview groupId={event.groupID} eventId={event.eventID} />
+          )}
+          {event.type === 'transaction' && (
+            <RelatedEvents
+              organization={organization}
+              event={event}
+              location={location}
+            />
+          )}
+          <EventMetadata event={event} eventJsonUrl={eventJsonUrl} />
+          <SidebarBlock>
+            <TagsTable tags={event.tags} />
+          </SidebarBlock>
+        </SidebarColumn>
+      </ColumnGrid>
+    );
+  }
+}
 
 /**
  * Render the header of the modal content

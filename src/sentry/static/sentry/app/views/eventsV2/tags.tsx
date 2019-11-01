@@ -12,6 +12,7 @@ import Placeholder from 'app/components/placeholder';
 import TagDistributionMeter from 'app/components/tagDistributionMeter';
 import withApi from 'app/utils/withApi';
 import {Organization} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 
 import {
   fetchTagDistribution,
@@ -101,6 +102,18 @@ class Tags extends React.Component<Props, State> {
     }
   };
 
+  onTagClick = (tag: string, segment: TagTopValue) => {
+    const {organization} = this.props;
+    // metrics
+    trackAnalyticsEvent({
+      eventKey: 'discover_v2.facet_map.clicked',
+      eventName: 'Discoverv2: Clicked on a tag on the facet map',
+      tag,
+      value: segment.value,
+      organization_id: organization.id,
+    });
+  };
+
   renderTag(tag) {
     const {location} = this.props;
     const {tags, totalValues} = this.state;
@@ -124,6 +137,7 @@ class Tags extends React.Component<Props, State> {
         totalValues={totalValues}
         isLoading={isLoading}
         renderLoading={() => <StyledPlaceholder height="16px" />}
+        onTagClick={this.onTagClick}
       />
     );
   }
