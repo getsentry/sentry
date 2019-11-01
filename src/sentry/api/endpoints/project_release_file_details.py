@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 import posixpath
 
+from django.http import StreamingHttpResponse
 from rest_framework import serializers
 from rest_framework.response import Response
 
@@ -10,11 +11,6 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models import Release, ReleaseFile
 from sentry.utils.apidocs import scenario, attach_scenarios
-
-try:
-    from django.http import CompatibleStreamingHttpResponse as StreamingHttpResponse
-except ImportError:
-    from django.http import StreamingHttpResponse
 
 
 @scenario("RetrieveReleaseFile")

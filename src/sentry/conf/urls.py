@@ -10,13 +10,8 @@ These are additional urls used by the Sentry-provided web server
 from __future__ import absolute_import
 
 from django.conf import settings
+from django.conf.urls import include, patterns, url
 import debug_toolbar
-
-try:
-    from django.conf.urls import include, patterns, url
-except ImportError:
-    # django < 1.5 compat
-    from django.conf.urls.defaults import include, patterns, url  # NOQA
 
 from sentry.web.urls import urlpatterns as web_urlpatterns
 from sentry.web.frontend.csrf_failure import CsrfFailureView
