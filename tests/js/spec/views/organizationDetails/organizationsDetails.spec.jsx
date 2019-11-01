@@ -11,6 +11,7 @@ let tree;
 describe('OrganizationDetails', function() {
   beforeEach(async function() {
     OrganizationStore.reset();
+    // wait for store reset changes to propagate
     await tick();
 
     MockApiClient.clearMockResponses();
@@ -25,6 +26,7 @@ describe('OrganizationDetails', function() {
   });
 
   afterEach(function() {
+    // necessary to unsubscribe successfully from org store
     tree.unmount();
   });
 

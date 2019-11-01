@@ -6,7 +6,7 @@ describe('LightWeightInstallPromptBanner', function() {
   it('renders', async function() {
     const project1 = TestStubs.Project();
     const project2 = TestStubs.Project({firstEvent: null});
-    const organization = TestStubs.Organization({projects: [project1, project2]});
+    const organization = TestStubs.Organization({slug: 'org-slug'});
     const getProjectsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [project1, project2],
