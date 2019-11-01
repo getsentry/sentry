@@ -79,6 +79,10 @@ export default class Events extends React.Component<EventsProps> {
     const yAxisOptions = uniqBy(
       eventView
         .getAggregateFields()
+        // Exclude last_seen and latest_event as they don't produce useful graphs.
+        .filter(
+          (field: Field) => ['last_seen', 'latest_event'].includes(field.field) === false
+        )
         .map((field: Field) => {
           return {label: field.title, value: field.field};
         })
