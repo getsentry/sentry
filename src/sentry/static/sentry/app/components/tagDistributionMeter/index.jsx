@@ -27,6 +27,7 @@ export default class TagDistributionMeter extends React.Component {
     renderEmpty: PropTypes.func,
     renderLoading: PropTypes.func,
     renderError: PropTypes.func,
+    onTagClick: PropTypes.func,
   };
 
   static defaultProps = {
@@ -38,7 +39,7 @@ export default class TagDistributionMeter extends React.Component {
   };
 
   renderSegments() {
-    const {segments, totalValues} = this.props;
+    const {segments, totalValues, onTagClick, title} = this.props;
 
     const totalVisible = segments.reduce((sum, value) => sum + value.count, 0);
     const hasOther = totalVisible < totalValues;
@@ -72,6 +73,11 @@ export default class TagDistributionMeter extends React.Component {
                   to={value.isOther ? null : value.url}
                   index={index}
                   isOther={!!value.isOther}
+                  onClick={() => {
+                    if (onTagClick) {
+                      onTagClick(title, value);
+                    }
+                  }}
                 >
                   <Description first={index === 0}>
                     <Percentage>{pctLabel}%</Percentage>
