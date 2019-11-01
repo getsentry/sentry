@@ -10,7 +10,9 @@ import IssueListContainer from 'app/views/issueList/container';
 import IssueListOverview from 'app/views/issueList/overview';
 import LazyLoad from 'app/components/lazyLoad';
 import OrganizationContext from 'app/views/organizationContext';
-import OrganizationDetails from 'app/views/organizationDetails';
+import OrganizationDetails, {
+  LightWeightOrganizationDetails,
+} from 'app/views/organizationDetails';
 import OrganizationRoot from 'app/views/organizationRoot';
 import ProjectEventRedirect from 'app/views/projectEventRedirect';
 import RouteNotFound from 'app/views/routeNotFound';
@@ -37,10 +39,10 @@ const lazyLoad = cb => m => cb(null, m.default);
 
 const hook = name => HookStore.get(name).map(cb => cb());
 
-const OrganizationMembersView = HookOrDefault({
+const OrganizationMembersWrapper = HookOrDefault({
   hookName: 'component:org-members-view',
   defaultComponentPromise: () =>
-    import(/* webpackChunkName: "OrganizationMembers" */ 'app/views/settings/organizationMembers'),
+    import(/* webpackChunkName: "OrganizationMembersWrapper" */ 'app/views/settings/organizationMembers/organizationMembersWrapper'),
 });
 
 function routes() {
@@ -497,7 +499,23 @@ function routes() {
       />
 
       <Route path="members/" name="Members">
-        <IndexRoute component={OrganizationMembersView} />
+        <Route component={OrganizationMembersWrapper}>
+          <IndexRoute
+            componentPromise={() =>
+              import(/* webpackChunkName: "OrganizationMembers" */ 'app/views/settings/organizationMembers')
+            }
+            component={errorHandler(LazyLoad)}
+          />
+
+          <Route
+            path="requests/"
+            name="Requests"
+            componentPromise={() =>
+              import(/* webpackChunkName: "OrganizationRequestsView" */ 'app/views/settings/organizationMembers/organizationRequestsView')
+            }
+            component={errorHandler(LazyLoad)}
+          />
+        </Route>
 
         <Route
           path="new/"
@@ -937,22 +955,25 @@ function routes() {
           </Route>
         </Route>
       </Route>
+      {/* A route tree for lightweight organizational detail views */}
+      <Route path="/:orgId/" component={errorHandler(LightWeightOrganizationDetails)}>
+        <IndexRoute
+          componentPromise={() =>
+            import(/* webpackChunkName: "ProjectsDashboard" */ 'app/views/projectsDashboard')
+          }
+          component={errorHandler(LazyLoad)}
+        />
+        <Route
+          path="/organizations/:orgId/projects/"
+          componentPromise={() =>
+            import(/* webpackChunkName: "ProjectsDashboard" */ 'app/views/projectsDashboard')
+          }
+          component={errorHandler(LazyLoad)}
+        />
+      </Route>
       <Route path="/:orgId/" component={errorHandler(OrganizationDetails)}>
         <Route component={errorHandler(OrganizationRoot)}>
-          <IndexRoute
-            componentPromise={() =>
-              import(/* webpackChunkName: "ProjectsDashboard" */ 'app/views/projectsDashboard')
-            }
-            component={errorHandler(LazyLoad)}
-          />
           {hook('routes:organization-root')}
-          <Route
-            path="/organizations/:orgId/projects/"
-            componentPromise={() =>
-              import(/* webpackChunkName: "ProjectsDashboard" */ 'app/views/projectsDashboard')
-            }
-            component={errorHandler(LazyLoad)}
-          />
           />
           <Route
             path="/organizations/:orgId/stats/"

@@ -82,12 +82,9 @@ class ProcessUpdateTest(TestCase):
             self.organization,
             [self.project, self.other_project],
             "some rule",
-            AlertRuleThresholdType.ABOVE,
             query="",
             aggregation=QueryAggregations.TOTAL,
             time_window=1,
-            alert_threshold=100,
-            resolve_threshold=10,
             threshold_period=1,
         )
         # Make sure the trigger exists

@@ -4,7 +4,7 @@ from django.db import transaction
 from django.db.models import Q
 from rest_framework.response import Response
 
-from sentry import roles, features
+from sentry import roles, features, experiments
 from sentry.app import locks
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
@@ -33,6 +33,9 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
             organization=organization,
         ).order_by("invite_status", "email")
 
+        if organization.get_option("sentry:join_requests") is False:
+            queryset = queryset.filter(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)
+
         return self.paginate(
             request=request,
             queryset=queryset,
@@ -60,6 +63,10 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
             return Response(
                 {"organization": "Your organization is not allowed to invite members"}, status=403
             )
+
+        variant = experiments.get(org=organization, experiment_name="ImprovedInvitesExperiment")
+        if variant not in ("all", "invite_request"):
+            return Response(status=403)
 
         serializer = OrganizationMemberSerializer(
             data=request.data,
@@ -92,5 +99,7 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
                 data=om.get_audit_log_data(),
                 event=AuditLogEntryEvent.INVITE_REQUEST_ADD,
             )
+
+        om.send_request_notification_email()
 
         return Response(serialize(om), status=201)

@@ -98,10 +98,7 @@ class Organization(Model):
     name = models.CharField(max_length=64)
     slug = models.SlugField(unique=True)
     status = BoundedPositiveIntegerField(
-        choices=OrganizationStatus.as_choices(),
-        # south will generate a default value of `'<OrganizationStatus.ACTIVE: 0>'`
-        # if `.value` is omitted
-        default=OrganizationStatus.ACTIVE.value,
+        choices=OrganizationStatus.as_choices(), default=OrganizationStatus.ACTIVE.value
     )
     date_added = models.DateTimeField(default=timezone.now)
     members = models.ManyToManyField(
@@ -110,9 +107,7 @@ class Organization(Model):
         related_name="org_memberships",
         through_fields=("organization", "user"),
     )
-    default_role = models.CharField(
-        choices=roles.get_choices(), max_length=32, default=roles.get_default().id
-    )
+    default_role = models.CharField(max_length=32, default=roles.get_default().id)
 
     flags = BitField(
         flags=(

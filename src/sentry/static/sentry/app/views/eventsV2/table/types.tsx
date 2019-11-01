@@ -31,6 +31,6 @@ export type TableDataRow = {
 };
 
 export type TableData = {
-  meta: MetaType;
+  meta?: MetaType;
   data: Array<TableDataRow>;
 };

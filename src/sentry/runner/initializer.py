@@ -11,7 +11,7 @@ from sentry.utils.sdk import configure_sdk
 from sentry.utils.warnings import DeprecatedSettingWarning
 
 
-def register_plugins(settings):
+def register_plugins(settings, test_plugins=False):
     from pkg_resources import iter_entry_points
     from sentry.plugins.base import plugins
 
@@ -20,8 +20,9 @@ def register_plugins(settings):
     #         'phabricator = sentry_phabricator.plugins:PhabricatorPlugin'
     #     ],
     # },
-
-    for ep in iter_entry_points("sentry.plugins"):
+    # TODO (Steve): Remove option for test_plugins
+    entry_point = "sentry.new_plugins" if test_plugins else "sentry.plugins"
+    for ep in iter_entry_points(entry_point):
         try:
             plugin = ep.load()
         except Exception:
@@ -264,12 +265,6 @@ def initialize_app(config, skip_service_validation=False):
 
     configure_structlog()
 
-    if "south" in settings.INSTALLED_APPS:
-        fix_south(settings)
-    monkeypatch_django_migrations()
-
-    apply_legacy_settings(settings)
-
     # Commonly setups don't correctly configure themselves for production envs
     # so lets try to provide a bit more guidance
     if settings.CELERY_ALWAYS_EAGER and not settings.DEBUG:
@@ -306,9 +301,11 @@ def initialize_app(config, skip_service_validation=False):
 
     import django
 
-    if hasattr(django, "setup"):
-        # support for Django 1.7+
-        django.setup()
+    django.setup()
+
+    monkeypatch_django_migrations()
+
+    apply_legacy_settings(settings)
 
     bind_cache_to_option_store()
 
@@ -391,16 +388,6 @@ def validate_options(settings):
     from sentry.options import default_manager
 
     default_manager.validate(settings.SENTRY_OPTIONS, warn=True)
-
-
-def fix_south(settings):
-    settings.SOUTH_DATABASE_ADAPTERS = {}
-
-    # South needs an adapter defined conditionally
-    for key, value in six.iteritems(settings.DATABASES):
-        if value["ENGINE"] != "sentry.db.postgres":
-            continue
-        settings.SOUTH_DATABASE_ADAPTERS[key] = "south.db.postgresql_psycopg2"
 
 
 def monkeypatch_django_migrations():
@@ -528,43 +515,6 @@ def apply_legacy_settings(settings):
         raise ConfigurationError(
             "`system.secret-key` MUST be set. Use 'sentry config generate-secret-key' to get one."
         )
-
-
-def skip_migration_if_applied(settings, app_name, table_name, name="0001_initial"):
-    from south.migration import Migrations
-    from sentry.utils.db import table_exists
-    import types
-
-    if app_name not in settings.INSTALLED_APPS:
-        return
-
-    migration = Migrations(app_name)[name]
-
-    def skip_if_table_exists(original):
-        def wrapped(self):
-            # TODO: look into why we're having to return some ridiculous
-            # lambda
-            if table_exists(table_name):
-                return lambda x=None: None
-            return original()
-
-        wrapped.__name__ = original.__name__
-        return wrapped
-
-    migration.forwards = types.MethodType(skip_if_table_exists(migration.forwards), migration)
-
-
-def on_configure(config):
-    """
-    Executes after settings are full installed and configured.
-
-    At this point we can force import on various things such as models
-    as all of settings should be correctly configured.
-    """
-    settings = config["settings"]
-
-    if "south" in settings.INSTALLED_APPS:
-        skip_migration_if_applied(settings, "social_auth", "social_auth_association")
 
 
 def validate_snuba():

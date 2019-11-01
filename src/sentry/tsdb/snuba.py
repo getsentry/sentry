@@ -104,8 +104,78 @@ class SnubaTSDB(BaseTSDB):
         ),
     }
 
+    model_being_upgraded_query_settings2 = {
+        TSDBModel.key_total_received: SnubaModelQuerySettings(
+            snuba.Dataset.Outcomes,
+            "key_id",
+            "times_seen",
+            [["outcome", "!=", outcomes.Outcome.INVALID]],
+        ),
+        TSDBModel.key_total_rejected: SnubaModelQuerySettings(
+            snuba.Dataset.Outcomes,
+            "key_id",
+            "times_seen",
+            [["outcome", "=", outcomes.Outcome.RATE_LIMITED]],
+        ),
+        TSDBModel.key_total_blacklisted: SnubaModelQuerySettings(
+            snuba.Dataset.Outcomes,
+            "key_id",
+            "times_seen",
+            [["outcome", "=", outcomes.Outcome.FILTERED]],
+        ),
+    }
+
+    # The Outcomes dataset aggregates outcomes into chunks of an hour. So, for rollups less than an hour, we want to
+    # query the raw outcomes dataset, with a few different settings (defined in lower_rollup_query_settings).
+    lower_rollup_query_settings = {
+        TSDBModel.organization_total_received: SnubaModelQuerySettings(
+            snuba.Dataset.OutcomesRaw, "org_id", None, [["outcome", "!=", outcomes.Outcome.INVALID]]
+        ),
+        TSDBModel.organization_total_rejected: SnubaModelQuerySettings(
+            snuba.Dataset.OutcomesRaw,
+            "org_id",
+            None,
+            [["outcome", "=", outcomes.Outcome.RATE_LIMITED]],
+        ),
+        TSDBModel.organization_total_blacklisted: SnubaModelQuerySettings(
+            snuba.Dataset.OutcomesRaw, "org_id", None, [["outcome", "=", outcomes.Outcome.FILTERED]]
+        ),
+        TSDBModel.project_total_received: SnubaModelQuerySettings(
+            snuba.Dataset.OutcomesRaw,
+            "project_id",
+            None,
+            [["outcome", "!=", outcomes.Outcome.INVALID]],
+        ),
+        TSDBModel.project_total_rejected: SnubaModelQuerySettings(
+            snuba.Dataset.OutcomesRaw,
+            "project_id",
+            None,
+            [["outcome", "=", outcomes.Outcome.RATE_LIMITED]],
+        ),
+        TSDBModel.project_total_blacklisted: SnubaModelQuerySettings(
+            snuba.Dataset.OutcomesRaw,
+            "project_id",
+            None,
+            [["outcome", "=", outcomes.Outcome.FILTERED]],
+        ),
+        TSDBModel.key_total_received: SnubaModelQuerySettings(
+            snuba.Dataset.OutcomesRaw, "key_id", None, [["outcome", "!=", outcomes.Outcome.INVALID]]
+        ),
+        TSDBModel.key_total_rejected: SnubaModelQuerySettings(
+            snuba.Dataset.OutcomesRaw,
+            "key_id",
+            None,
+            [["outcome", "=", outcomes.Outcome.RATE_LIMITED]],
+        ),
+        TSDBModel.key_total_blacklisted: SnubaModelQuerySettings(
+            snuba.Dataset.OutcomesRaw, "key_id", None, [["outcome", "=", outcomes.Outcome.FILTERED]]
+        ),
+    }
+
     all_model_query_settings = dict(
-        model_columns.items() + model_being_upgraded_query_settings.items()
+        model_columns.items()
+        + model_being_upgraded_query_settings.items()
+        + model_being_upgraded_query_settings2.items()
     )
 
     def __init__(self, **options):
@@ -129,7 +199,15 @@ class SnubaTSDB(BaseTSDB):
         `group_on_time`: whether to add a GROUP BY clause on the 'time' field.
         `group_on_model`: whether to add a GROUP BY clause on the primary model.
         """
-        model_query_settings = self.all_model_query_settings.get(model)
+        # XXX: to counteract the hack in project_key_stats.py
+        if model in self.model_being_upgraded_query_settings2.keys():
+            keys = list(set(map(lambda x: int(x), keys)))
+
+        # 10s is the only rollup under an hour that we support
+        if rollup and rollup == 10 and model in self.lower_rollup_query_settings.keys():
+            model_query_settings = self.lower_rollup_query_settings.get(model)
+        else:
+            model_query_settings = self.all_model_query_settings.get(model)
 
         if model_query_settings is None:
             raise Exception(u"Unsupported TSDBModel: {}".format(model.name))
@@ -229,7 +307,11 @@ class SnubaTSDB(BaseTSDB):
                         del result[rk]
 
     def get_range(self, model, keys, start, end, rollup=None, environment_ids=None):
-        model_query_settings = self.all_model_query_settings.get(model)
+        # 10s is the only rollup under an hour that we support
+        if rollup and rollup == 10 and model in self.lower_rollup_query_settings.keys():
+            model_query_settings = self.lower_rollup_query_settings.get(model)
+        else:
+            model_query_settings = self.all_model_query_settings.get(model)
 
         assert model_query_settings is not None, u"Unsupported TSDBModel: {}".format(model.name)
 

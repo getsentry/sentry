@@ -2,10 +2,11 @@ import React from 'react';
 import _ from 'lodash';
 
 import {Client} from 'app/api';
-import {Team, Organization} from 'app/types';
+import {Organization, Project, Team, TeamWithProjects} from 'app/types';
 import getDisplayName from 'app/utils/getDisplayName';
-import ProjectActions from 'app/actions/projectActions';
-import TeamActions from 'app/actions/teamActions';
+import getProjectsByTeams from 'app/utils/getProjectsByTeams';
+import ConfigStore from 'app/stores/configStore';
+import {metric} from './analytics';
 
 // We require these props when using this HOC
 type DependentProps = {
@@ -14,7 +15,7 @@ type DependentProps = {
 };
 
 type InjectedTeamsProps = {
-  teams: Team[];
+  teams: TeamWithProjects[];
   loadingTeams: boolean;
   error: Error | null;
 };
@@ -39,27 +40,58 @@ const withTeamsForUser = <P extends InjectedTeamsProps>(
     }
 
     async fetchTeams() {
+      // check if we can use organization teams/projects instead of fetching data
+      const {projects, teams} = this.props.organization;
+      if (projects && teams) {
+        // populate teams with projects information for use by wrapped components
+        this.populateTeamsWithProjects(teams, projects);
+        return;
+      }
+
       this.setState({
         loadingTeams: true,
       });
       try {
-        const teams = await this.props.api.requestPromise(this.getUsersTeamsEndpoint());
-        this.setState({
-          teams,
-          loadingTeams: false,
-        });
-
-        // also fill up TeamStore and ProjectStore so org context does not have
-        // to refetch org details due to lack of teams/projects
-        const projects = _.uniqBy(_.flatten(teams.map(team => team.projects)), 'id');
-        ProjectActions.loadProjects(projects);
-        TeamActions.loadTeams(teams);
+        metric.mark('user-teams-fetch-start');
+        const teamsWithProjects: TeamWithProjects[] = await this.props.api.requestPromise(
+          this.getUsersTeamsEndpoint()
+        );
+        this.setState(
+          {
+            teams: teamsWithProjects,
+            loadingTeams: false,
+          },
+          () => {
+            metric.measure({
+              name: 'app.component.perf',
+              start: 'user-teams-fetch-start',
+              data: {
+                name: 'user-teams',
+                route: '/organizations/:orgid/user-teams',
+                organization_id: parseInt(this.props.organization.id, 10),
+              },
+            });
+          }
+        );
       } catch (error) {
         this.setState({
           error,
           loadingTeams: false,
         });
       }
+    }
+
+    populateTeamsWithProjects(teams: Team[], projects: Project[]) {
+      const {isSuperuser} = ConfigStore.get('user');
+      const {projectsByTeam} = getProjectsByTeams(teams, projects, isSuperuser);
+      const teamsWithProjects: TeamWithProjects[] = teams.map(team => {
+        const teamProjects = projectsByTeam[team.slug] || [];
+        return {...team, projects: teamProjects};
+      });
+      this.setState({
+        teams: teamsWithProjects,
+        loadingTeams: false,
+      });
     }
 
     getUsersTeamsEndpoint() {

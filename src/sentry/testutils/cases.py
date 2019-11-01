@@ -674,9 +674,36 @@ class PluginTestCase(TestCase):
                 )
         self.fail("Missing app from entry_points: %r" % (name,))
 
+    # TODO (Steve): remove function
+    def assertNewAppInstalled(self, name, path):
+        for ep in iter_entry_points("sentry.new_apps"):
+            if ep.name == name:
+                ep_path = ep.module_name
+                if ep_path == path:
+                    return
+                self.fail(
+                    "Found app in entry_points, but wrong class. Got %r, expected %r"
+                    % (ep_path, path)
+                )
+        self.fail("Missing app from entry_points: %r" % (name,))
+
     def assertPluginInstalled(self, name, plugin):
         path = type(plugin).__module__ + ":" + type(plugin).__name__
         for ep in iter_entry_points("sentry.plugins"):
+            if ep.name == name:
+                ep_path = ep.module_name + ":" + ".".join(ep.attrs)
+                if ep_path == path:
+                    return
+                self.fail(
+                    "Found plugin in entry_points, but wrong class. Got %r, expected %r"
+                    % (ep_path, path)
+                )
+        self.fail("Missing plugin from entry_points: %r" % (name,))
+
+    # TODO (Steve): remove function
+    def assertNewPluginInstalled(self, name, plugin):
+        path = type(plugin).__module__ + ":" + type(plugin).__name__
+        for ep in iter_entry_points("sentry.new_plugins"):
             if ep.name == name:
                 ep_path = ep.module_name + ":" + ".".join(ep.attrs)
                 if ep_path == path:
@@ -849,20 +876,20 @@ class OutcomesSnubaTest(TestCase):
         super(OutcomesSnubaTest, self).setUp()
         assert requests.post(settings.SENTRY_SNUBA + "/tests/outcomes/drop").status_code == 200
 
-    def __format(self, org_id, project_id, outcome, timestamp):
+    def __format(self, org_id, project_id, outcome, timestamp, key_id):
         return {
             "project_id": project_id,
             "timestamp": timestamp.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
             "org_id": org_id,
             "reason": None,
-            "key_id": 1,
+            "key_id": key_id,
             "outcome": outcome,
         }
 
-    def store_outcomes(self, org_id, project_id, outcome, timestamp, num_times):
+    def store_outcomes(self, org_id, project_id, outcome, timestamp, key_id, num_times):
         outcomes = []
         for _ in range(num_times):
-            outcomes.append(self.__format(org_id, project_id, outcome, timestamp))
+            outcomes.append(self.__format(org_id, project_id, outcome, timestamp, key_id))
 
         assert (
             requests.post(

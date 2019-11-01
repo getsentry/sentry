@@ -25,4 +25,19 @@ describe('InstallPromptBanner', function() {
     );
     expect(wrapper.find('StyledAlert').exists()).toBe(false);
   });
+
+  it('renders using projects props', function() {
+    const project1 = TestStubs.Project();
+    const project2 = TestStubs.Project({firstEvent: '2018-03-18'});
+    const organization = TestStubs.Organization();
+    const wrapper = shallow(
+      <InstallPromptBanner
+        config={{}}
+        organization={organization}
+        projects={[project1, project2]}
+      />,
+      TestStubs.routerContext()
+    );
+    expect(wrapper.find('StyledAlert').exists()).toBe(false);
+  });
 });

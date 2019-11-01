@@ -35,6 +35,7 @@ class ProjectSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64, required=True)
     slug = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50, required=False, allow_null=True)
     platform = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    default_rules = serializers.BooleanField(required=False, initial=True)
 
 
 # While currently the UI suggests teams are a parent of a project, in reality
@@ -118,6 +119,7 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
         :param string name: the name for the new project.
         :param string slug: optionally a slug for the new project.  If it's
                             not provided a slug is generated from the name.
+        :param bool default_rules: create default rules (defaults to True)
         :auth: required
         """
         serializer = ProjectSerializer(data=request.data)
@@ -125,30 +127,38 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
         if serializer.is_valid():
             result = serializer.validated_data
 
-            try:
-                with transaction.atomic():
-                    project = Project.objects.create(
-                        name=result["name"],
-                        slug=result.get("slug"),
-                        organization=team.organization,
-                        platform=result.get("platform"),
+            with transaction.atomic():
+                try:
+                    with transaction.atomic():
+                        project = Project.objects.create(
+                            name=result["name"],
+                            slug=result.get("slug"),
+                            organization=team.organization,
+                            platform=result.get("platform"),
+                        )
+                except IntegrityError:
+                    return Response(
+                        {"detail": "A project with this slug already exists."}, status=409
                     )
-            except IntegrityError:
-                return Response({"detail": "A project with this slug already exists."}, status=409)
-            else:
-                project.add_team(team)
+                else:
+                    project.add_team(team)
 
-            # XXX: create sample event?
+                # XXX: create sample event?
 
-            self.create_audit_entry(
-                request=request,
-                organization=team.organization,
-                target_object=project.id,
-                event=AuditLogEntryEvent.PROJECT_ADD,
-                data=project.get_audit_log_data(),
-            )
+                self.create_audit_entry(
+                    request=request,
+                    organization=team.organization,
+                    target_object=project.id,
+                    event=AuditLogEntryEvent.PROJECT_ADD,
+                    data=project.get_audit_log_data(),
+                )
 
-            project_created.send_robust(project=project, user=request.user, sender=self)
+                project_created.send(
+                    project=project,
+                    user=request.user,
+                    default_rules=result.get("default_rules", True),
+                    sender=self,
+                )
 
             return Response(serialize(project, request.user), status=201)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

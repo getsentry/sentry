@@ -19,7 +19,7 @@ addons:
     update: true
     packages:
       - libxmlsec1-dev
-      - libgeoip-dev
+      - libmaxminddb-dev
   chrome: stable
 
 env:
@@ -34,13 +34,14 @@ env:
     - SENTRY_LIGHT_BUILD=1
     - SENTRY_SKIP_BACKEND_VALIDATION=1
     - MIGRATIONS_TEST_MIGRATE=0
+    # Use this to override the django version in the requirements file.
     - DJANGO_VERSION=">=1.8,<1.9"
     # node's version is pinned by .nvmrc and is autodetected by `nvm install`.
     - NODE_DIR="${HOME}/.nvm/versions/node/v$(< .nvmrc)"
     - NODE_OPTIONS=--max-old-space-size=4096
 
 before_install:
-  - pip install "pip==${PYTHON_PIP_VERSION}"
+  - &pip_install pip install "pip==${PYTHON_PIP_VERSION}"
 
 script:
   # certain commands require sentry init to be run, but this is only true for
@@ -76,12 +77,13 @@ base_postgres: &postgres_default
     - redis-server
     - postgresql
   before_install:
+    - *pip_install
     - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:19.4
     - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
     - docker ps -a
   install:
     - python setup.py install_egg_info
-    - pip install -U -e ".[dev,tests,optional]"
+    - pip install -U -e ".[dev]"
   before_script:
     - psql -c 'create database sentry;' -U postgres
 
@@ -93,6 +95,7 @@ base_acceptance: &acceptance_default
     - redis-server
     - postgresql
   before_install:
+    - *pip_install
     - find "$NODE_DIR" -type d -empty -delete
     - nvm install
     - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:19.4
@@ -101,7 +104,7 @@ base_acceptance: &acceptance_default
   install:
     - ./bin/yarn install --pure-lockfile
     - python setup.py install_egg_info
-    - pip install -U -e ".[dev,tests,optional]"
+    - pip install -U -e ".[dev]"
     - |
       CHROME_MAJOR_VERSION="$(dpkg -s google-chrome-stable | sed -nr 's/Version: ([0-9]+).*/\1/p')"
       wget -N "https://chromedriver.storage.googleapis.com/$(curl https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_MAJOR_VERSION})/chromedriver_linux64.zip" -P ~/
@@ -124,14 +127,22 @@ matrix:
       env: TEST_SUITE=lint
       install:
         - python setup.py install_egg_info
-        - SENTRY_LIGHT_BUILD=1 pip install -U -e ".[dev,tests,optional]"
+        - SENTRY_LIGHT_BUILD=1 pip install -U -e ".[dev]"
         - find "$NODE_DIR" -type d -empty -delete
         - nvm install
         - ./bin/yarn install --pure-lockfile
 
+    # Proactive linting on 3.7 during the porting process
+    - python: 3.7
+      name: 'Linter (Python 3.7)'
+      install: pip install 'sentry-flake8>=0.2.0,<0.3.0'
+      # configuration for flake8 can be found in setup.cfg
+      script: flake8
+
     - <<: *postgres_default
       name: 'Backend [Postgres] (1/2)'
       env: TEST_SUITE=postgres DB=postgres TOTAL_TEST_GROUPS=2 TEST_GROUP=0
+
     - <<: *postgres_default
       name: 'Backend [Postgres] (2/2)'
       env: TEST_SUITE=postgres DB=postgres TOTAL_TEST_GROUPS=2 TEST_GROUP=1
@@ -147,10 +158,31 @@ matrix:
       name: 'Acceptance'
       env: TEST_SUITE=acceptance USE_SNUBA=1
 
+    # allowed to fail
+    - <<: *postgres_default
+      name: 'Django 1.9 Backend [Postgres] (1/2)'
+      env: DJANGO_VERSION=">=1.9,<1.10" TEST_SUITE=postgres DB=postgres TOTAL_TEST_GROUPS=2 TEST_GROUP=0
+
+    # allowed to fail
+    - <<: *postgres_default
+      name: 'Django 1.9 Backend [Postgres] (2/2)'
+      env: DJANGO_VERSION=">=1.9,<1.10" TEST_SUITE=postgres DB=postgres TOTAL_TEST_GROUPS=2 TEST_GROUP=1
+
+    # allowed to fail
+    - <<: *acceptance_default
+      name: 'Django 1.9 Acceptance'
+      env: DJANGO_VERSION=">=1.9,<1.10" TEST_SUITE=acceptance USE_SNUBA=1
+
+    # allowed to fail
+    - <<: *acceptance_default
+      name: 'Plugins'
+      env: TEST_SUITE=plugins DB=postgres PERCY_TOKEN=${PLUGIN_PERCY_TOKEN}
+
     - python: 2.7
       name: 'Frontend'
       env: TEST_SUITE=js
       before_install:
+        - *pip_install
         - find "$NODE_DIR" -type d -empty -delete
         - nvm install
       install:
@@ -172,6 +204,7 @@ matrix:
       name: 'Distribution build'
       env: TEST_SUITE=dist
       before_install:
+        - *pip_install
         - find "$NODE_DIR" -type d -empty -delete
         - nvm install
 
@@ -184,7 +217,6 @@ matrix:
         - docker run -d --network host --name symbolicator us.gcr.io/sentryio/symbolicator:latest run
         - docker ps -a
 
-    # snuba in testing
     - python: 2.7
       name: 'Snuba Integration'
       env: TEST_SUITE=snuba USE_SNUBA=1 SENTRY_ZOOKEEPER_HOSTS=localhost:2181 SENTRY_KAFKA_HOSTS=localhost:9092
@@ -194,6 +226,7 @@ matrix:
         - redis-server
         - postgresql
       before_install:
+        - *pip_install
         - docker run -d --network host --name zookeeper -e ZOOKEEPER_CLIENT_PORT=2181 confluentinc/cp-zookeeper:4.1.0
         - docker run -d --network host --name kafka -e KAFKA_ZOOKEEPER_CONNECT=localhost:2181 -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092 -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 confluentinc/cp-kafka:4.1.0
         - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:19.4
@@ -201,17 +234,17 @@ matrix:
         - docker ps -a
       install:
         - python setup.py install_egg_info
-        - pip install -U -e ".[dev,tests,optional]"
+        - pip install -U -e ".[dev]"
         - pip install confluent-kafka
       before_script:
         - psql -c 'create database sentry;' -U postgres
 
     # Deploy 'storybook' (component & style guide) - allowed to fail
-    - language: node_js
-      name: 'Storybook Deploy'
+    - name: 'Storybook Deploy'
+      language: node_js
       env: STORYBOOK_BUILD=1
       before_install:
-        # Decrypt the credentials we added to the repo using the key we added with the Travis command line tool
+         # Decrypt the credentials we added to the repo using the key we added with the Travis command line tool
         - openssl aes-256-cbc -K $encrypted_020be61ef175_key -iv $encrypted_020be61ef175_iv -in .travis/storybook-credentials.tar.gz.enc -out credentials.tar.gz -d
         # If the SDK is not already cached, download it and unpack it
         - if [ ! -d ${HOME}/google-cloud-sdk ]; then curl https://sdk.cloud.google.com | bash; fi
@@ -225,11 +258,12 @@ matrix:
       after_success: skip
       after_failure: skip
 
-# jobs are defined in matrix/include
-# to specify which jobs are allowed to fail, match the env exactly in matrix/allow_failures
   allow_failures:
-    - language: node_js
-      env: STORYBOOK_BUILD=1
+    - name: 'Storybook Deploy'
+    - name: 'Django 1.9 Backend [Postgres] (1/2)'
+    - name: 'Django 1.9 Backend [Postgres] (2/2)'
+    - name: 'Django 1.9 Acceptance'
+    - name: 'Plugins'
 
 notifications:
   webhooks:

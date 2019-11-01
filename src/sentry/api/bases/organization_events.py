@@ -54,7 +54,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         reference_event_id = request.GET.get("referenceEvent")
         if reference_event_id:
             snuba_args["conditions"] = get_reference_event_conditions(
-                snuba_args, reference_event_id
+                organization, snuba_args, reference_event_id
             )
 
         return snuba_args
@@ -77,7 +77,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             ).distinct()
             if any(p for p in projects if not request.access.has_project_access(p)):
                 raise PermissionDenied
-            params["issue.id"] = list(group_ids)
+            params["group_ids"] = list(group_ids)
             params["project_id"] = list(set([p.id for p in projects] + params["project_id"]))
 
         query = request.GET.get("query")
@@ -95,7 +95,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
         # 'legacy' endpoints cannot access transactions dataset.
         # as they often have assumptions about which columns are returned.
-        dataset = snuba.detect_dataset(snuba_args, aliased_conditions=True)
+        dataset = snuba.detect_dataset(snuba_args)
         if dataset != snuba.Dataset.Events:
             raise OrganizationEventsError(
                 "Invalid query. You cannot reference non-events data in this endpoint."

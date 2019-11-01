@@ -94,7 +94,7 @@ install-yarn-pkgs:
 
 install-sentry-dev:
 	@echo "--> Installing Sentry (for development)"
-	$(PIP) install -e ".[dev,optional]" $(PIP_OPTS)
+	$(PIP) install -e ".[dev]" $(PIP_OPTS)
 
 build-js-po: node-version-check
 	mkdir -p build
@@ -180,8 +180,16 @@ endif
 
 	@echo ""
 
+test-plugins:
+	@echo "--> Building static assets"
+	@$(WEBPACK) --display errors-only
+	@echo "--> Running plugin tests"
+	py.test tests/sentry_plugins -vv --cov . --cov-report="xml:.artifacts/plugins.coverage.xml" --junit-xml=".artifacts/plugins.junit.xml"
+	@echo ""
+
 lint: lint-python lint-js
 
+# configuration for flake8 can be found in setup.cfg
 lint-python:
 	@echo "--> Linting python"
 	bash -eo pipefail -c "flake8 | tee .artifacts/flake8.pycodestyle.log"
@@ -229,6 +237,7 @@ travis-test-snuba: test-snuba
 travis-test-symbolicator: test-symbolicator
 travis-test-js: test-js
 travis-test-cli: test-cli
+travis-test-plugins: test-plugins
 travis-test-dist:
 	# NOTE: We quiet down output here to workaround an issue in travis that
 	# causes the build to fail with a EAGAIN when writing a large amount of
@@ -252,3 +261,4 @@ travis-scan-js: travis-noop
 travis-scan-cli: travis-noop
 travis-scan-dist: travis-noop
 travis-scan-lint: scan-python
+travis-scan-plugins: travis-noop

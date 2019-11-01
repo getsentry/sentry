@@ -9,7 +9,6 @@ __all__ = (
 
 import six
 
-from django.conf import settings
 from django.db.models import CharField, TextField
 from picklefield.fields import PickledObjectField
 from sentry.db.models.fields.jsonfield import JSONField
@@ -97,14 +96,3 @@ class EncryptedTextField(TextField):
         raise NotImplementedError(
             u"{!r} lookup type for {!r} is not supported".format(lookup_type, self)
         )
-
-
-if "south" in settings.INSTALLED_APPS:
-    from south.modelsinspector import add_introspection_rules
-
-    add_introspection_rules(
-        [], ["^sentry\.db\.models\.fields\.encrypted\.EncryptedPickledObjectField"]
-    )
-    add_introspection_rules([], ["^sentry\.db\.models\.fields\.encrypted\.EncryptedCharField"])
-    add_introspection_rules([], ["^sentry\.db\.models\.fields\.encrypted\.EncryptedJsonField"])
-    add_introspection_rules([], ["^sentry\.db\.models\.fields\.encrypted\.EncryptedTextField"])

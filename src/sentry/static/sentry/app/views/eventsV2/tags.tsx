@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 import {isEqual} from 'lodash';
 import {Location} from 'history';
+import {t} from 'app/locale';
 import * as Sentry from '@sentry/browser';
 
 import {Client} from 'app/api';
@@ -11,6 +12,7 @@ import Placeholder from 'app/components/placeholder';
 import TagDistributionMeter from 'app/components/tagDistributionMeter';
 import withApi from 'app/utils/withApi';
 import {Organization} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 
 import {
   fetchTagDistribution,
@@ -100,6 +102,18 @@ class Tags extends React.Component<Props, State> {
     }
   };
 
+  onTagClick = (tag: string, segment: TagTopValue) => {
+    const {organization} = this.props;
+    // metrics
+    trackAnalyticsEvent({
+      eventKey: 'discover_v2.facet_map.clicked',
+      eventName: 'Discoverv2: Clicked on a tag on the facet map',
+      tag,
+      value: segment.value,
+      organization_id: organization.id,
+    });
+  };
+
   renderTag(tag) {
     const {location} = this.props;
     const {tags, totalValues} = this.state;
@@ -123,14 +137,27 @@ class Tags extends React.Component<Props, State> {
         totalValues={totalValues}
         isLoading={isLoading}
         renderLoading={() => <StyledPlaceholder height="16px" />}
+        onTagClick={this.onTagClick}
       />
     );
   }
 
   render() {
-    return <div>{this.props.eventView.tags.map(tag => this.renderTag(tag))}</div>;
+    return (
+      <TagSection>
+        <TagSectionHeading>{t('Event Tag Summary')}</TagSectionHeading>
+        {this.props.eventView.tags.map(tag => this.renderTag(tag))}
+      </TagSection>
+    );
   }
 }
+
+const TagSection = styled('div')`
+  margin: 16px 0;
+`;
+const TagSectionHeading = styled('h6')`
+  color: ${p => p.theme.gray3};
+`;
 
 const StyledPlaceholder = styled(Placeholder)`
   border-radius: ${p => p.theme.borderRadius};

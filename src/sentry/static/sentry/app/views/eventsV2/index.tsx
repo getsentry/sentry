@@ -8,6 +8,7 @@ import {Location} from 'history';
 
 import {Organization} from 'app/types';
 import {t} from 'app/locale';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import SentryTypes from 'app/sentryTypes';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {PageContent, PageHeader} from 'app/styles/organization';
@@ -21,7 +22,7 @@ import withOrganization from 'app/utils/withOrganization';
 
 import Events from './events';
 import EventDetails from './eventDetails';
-import EventsSaveQueryButton from './saveQueryButton';
+import SavedQueryButtonGroup from './savedQueryButtonGroup';
 import {getFirstQueryString} from './utils';
 import {ALL_VIEWS, TRANSACTION_VIEWS} from './data';
 import EventView from './eventView';
@@ -59,7 +60,19 @@ class EventsV2 extends React.Component<Props> {
 
       return (
         <LinkContainer key={index}>
-          <Link to={to}>{eventView.name}</Link>
+          <Link
+            to={to}
+            onClick={() => {
+              trackAnalyticsEvent({
+                eventKey: 'discover_v2.prebuilt_query_click',
+                eventName: 'Discoverv2: Click a pre-built query',
+                organization_id: this.props.organization.id,
+                query_name: eventView.name,
+              });
+            }}
+          >
+            {eventView.name}
+          </Link>
         </LinkContainer>
       );
     });
@@ -82,11 +95,9 @@ class EventsV2 extends React.Component<Props> {
   render() {
     const {organization, location, router} = this.props;
     const eventSlug = getFirstQueryString(location.query, 'eventSlug');
-
     const eventView = EventView.fromLocation(location);
 
-    const hasQuery =
-      location.query.field || location.query.eventSlug || location.query.view;
+    const hasQuery = location.query.field || location.query.eventSlug;
 
     const documentTitle = this.getEventViewName()
       .reverse()
@@ -104,8 +115,7 @@ class EventsV2 extends React.Component<Props> {
                     {pageTitle} <BetaTag />
                   </PageHeading>
                   {hasQuery && (
-                    <EventsSaveQueryButton
-                      isEditing={!!location.query.edit}
+                    <SavedQueryButtonGroup
                       location={location}
                       organization={organization}
                       eventView={eventView}

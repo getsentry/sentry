@@ -4,12 +4,7 @@ import {browserHistory} from 'react-router';
 
 import {Client} from 'app/api';
 import AutoComplete from 'app/components/autoComplete';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import {
-  fetchSavedQueries,
-  deleteSavedQuery,
-} from 'app/actionCreators/discoverSavedQueries';
+import {fetchSavedQueries} from 'app/actionCreators/discoverSavedQueries';
 import Highlight from 'app/components/highlight';
 import InlineSvg from 'app/components/inlineSvg';
 import {t} from 'app/locale';
@@ -48,14 +43,36 @@ class Discover2Item extends React.Component<Props, State> {
     this.menuId = domId('discover-menu');
   }
 
+  componentWillUnmount() {
+    this.timerHandleLeaveClear();
+  }
+
   private menuId: string = '';
+  private timerHandleLeave?: ReturnType<typeof setTimeout>;
+  private timerHandleLeaveClear = () => {
+    if (this.timerHandleLeave) {
+      clearTimeout(this.timerHandleLeave);
+      this.timerHandleLeave = undefined;
+    }
+  };
 
   handleEnter = () => {
+    this.timerHandleLeaveClear();
     this.setState({isOpen: true});
   };
 
   handleLeave = () => {
-    this.setState({isOpen: false});
+    // HACK(leedongwei)
+    // See https://bjk5.com/post/44698559168/breaking-down-amazons-mega-dropdown
+    //
+    // @doralchan confirmed that the slideout menu will eventually be removed.
+    // This is stop-gap solution to make the slideout better till a new design
+    // can be implemented
+    this.timerHandleLeaveClear();
+    this.timerHandleLeave = setTimeout(() => {
+      this.setState({isOpen: false});
+      this.timerHandleLeave = undefined;
+    }, 400); // 300ms feels too fast, 500ms feels too slow.
   };
 
   handleSelect = (item: SavedQuery) => {
@@ -65,24 +82,6 @@ class Discover2Item extends React.Component<Props, State> {
       query: EventView.fromSavedQuery(item).generateQueryStringObject(),
     };
     browserHistory.push(target);
-  };
-
-  handleEdit = (event: React.MouseEvent<Element>, item: SavedQuery) => {
-    event.preventDefault();
-    event.stopPropagation();
-    const {organization} = this.props;
-    const target = {
-      pathname: `/organizations/${organization.slug}/eventsv2/`,
-      query: {...EventView.fromSavedQuery(item).generateQueryStringObject(), edit: true},
-    };
-    browserHistory.push(target);
-  };
-
-  handleDelete = (event: React.MouseEvent<Element>, item: SavedQuery) => {
-    const {organization, api} = this.props;
-    event.preventDefault();
-    event.stopPropagation();
-    deleteSavedQuery(api, organization.slug, item.id);
   };
 
   renderSavedQueries({inputValue, getItemProps, highlightedIndex}) {
@@ -112,20 +111,6 @@ class Discover2Item extends React.Component<Props, State> {
             <QueryName>
               <Highlight text={inputValue}>{item.name}</Highlight>
             </QueryName>
-            <ButtonBar>
-              <MenuItemButton
-                borderless
-                size="xxsmall"
-                icon="icon-edit"
-                onClick={event => this.handleEdit(event, item)}
-              />
-              <MenuItemButton
-                borderless
-                size="xxsmall"
-                icon="icon-trash"
-                onClick={event => this.handleDelete(event, item)}
-              />
-            </ButtonBar>
           </MenuItem>
         );
       });
@@ -251,11 +236,6 @@ const StyledLabel = styled('label')<{htmlFor: string}>`
   margin: 0;
   color: ${p => p.theme.gray2};
   padding: ${space(1.5)} ${space(1)} ${space(1.5)} ${space(2)};
-`;
-
-const MenuItemButton = styled(Button)`
-  color: ${p => p.theme.gray3};
-  margin-left: ${space(0.5)};
 `;
 
 const InputContainer = styled('div')`

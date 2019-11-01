@@ -210,7 +210,7 @@ describe('GlobalSelectionHeader', function() {
 
     expect(GlobalSelectionStore.get()).toEqual({
       datetime: {
-        period: null,
+        period: '14d',
         utc: null,
         start: null,
         end: null,
@@ -239,7 +239,7 @@ describe('GlobalSelectionHeader', function() {
     // Store should not have any environments selected
     expect(GlobalSelectionStore.get()).toEqual({
       datetime: {
-        period: null,
+        period: '14d',
         utc: null,
         start: null,
         end: null,
@@ -327,7 +327,7 @@ describe('GlobalSelectionHeader', function() {
     wrapper.update();
 
     expect(globalActions.updateDateTime).toHaveBeenCalledWith({
-      period: null,
+      period: '7d',
       utc: null,
       start: null,
       end: null,
@@ -337,7 +337,7 @@ describe('GlobalSelectionHeader', function() {
 
     expect(GlobalSelectionStore.get()).toEqual({
       datetime: {
-        period: null,
+        period: '14d',
         utc: null,
         start: null,
         end: null,
@@ -386,7 +386,7 @@ describe('GlobalSelectionHeader', function() {
     });
   });
 
-  it('updates store when there are no query params in URL and `disableLoadFromStore` is false', function() {
+  it('updates store when there are query params in URL', function() {
     const initializationObj = initializeOrg({
       organization: {
         features: ['global-views'],
@@ -407,7 +407,7 @@ describe('GlobalSelectionHeader', function() {
     expect(globalActions.updateDateTime).toHaveBeenCalled();
   });
 
-  it('does not update store when there are no query params in URL and `disableLoadFromStore` is true', function() {
+  it('updates store with default values when there are no query params in URL', function() {
     const initializationObj = initializeOrg({
       organization: {
         features: ['global-views'],
@@ -419,16 +419,18 @@ describe('GlobalSelectionHeader', function() {
     });
 
     mountWithTheme(
-      <GlobalSelectionHeader
-        organization={initializationObj.organization}
-        disableLoadFromStore
-      />,
+      <GlobalSelectionHeader organization={initializationObj.organization} />,
       initializationObj.routerContext
     );
 
-    expect(globalActions.updateProjects).not.toHaveBeenCalled();
-    expect(globalActions.updateEnvironments).not.toHaveBeenCalled();
-    expect(globalActions.updateDateTime).not.toHaveBeenCalled();
+    expect(globalActions.updateProjects).toHaveBeenCalledWith([]);
+    expect(globalActions.updateEnvironments).toHaveBeenCalledWith([]);
+    expect(globalActions.updateDateTime).toHaveBeenCalledWith({
+      end: null,
+      period: '14d',
+      start: null,
+      utc: null,
+    });
   });
 
   describe('Single project selection mode', function() {
@@ -549,7 +551,7 @@ describe('GlobalSelectionHeader', function() {
 
         expect(initialData.router.replace).toHaveBeenLastCalledWith({
           pathname: undefined,
-          query: {project: [0], environment: []},
+          query: {project: [0]},
         });
       });
 
@@ -604,7 +606,7 @@ describe('GlobalSelectionHeader', function() {
 
         expect(initialData.router.replace).toHaveBeenLastCalledWith({
           pathname: undefined,
-          query: {project: [1], environment: []},
+          query: {project: [1]},
         });
       });
     });
@@ -680,6 +682,7 @@ describe('GlobalSelectionHeader', function() {
         initialData.routerContext
       );
     });
+
     it('gets member projects', function() {
       expect(wrapper.find('MultipleProjectSelector').prop('projects')).toEqual([
         memberProject,
@@ -705,6 +708,109 @@ describe('GlobalSelectionHeader', function() {
       expect(wrapper.find('MultipleProjectSelector').prop('nonMemberProjects')).toEqual([
         nonMemberProject,
       ]);
+    });
+
+    it('shows "My Projects" button', function() {
+      initialData.organization.features.push('global-views');
+      wrapper = mountWithTheme(
+        <GlobalSelectionHeader
+          organization={initialData.organization}
+          projects={initialData.organization.projects}
+        />,
+        initialData.routerContext
+      );
+
+      // open the project menu.
+      wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
+      const projectSelector = wrapper.find('MultipleProjectSelector');
+
+      // Two projects
+      expect(projectSelector.find('AutoCompleteItem')).toHaveLength(2);
+      // My projects in the footer
+      expect(
+        projectSelector
+          .find('SelectorFooterControls Button')
+          .first()
+          .text()
+      ).toEqual('View My Projects');
+    });
+
+    it('shows "All Projects" button based on features', function() {
+      initialData.organization.features.push('global-views');
+      initialData.organization.features.push('open-membership');
+      wrapper = mountWithTheme(
+        <GlobalSelectionHeader
+          organization={initialData.organization}
+          projects={initialData.organization.projects}
+        />,
+        initialData.routerContext
+      );
+
+      // open the project menu.
+      wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
+      const projectSelector = wrapper.find('MultipleProjectSelector');
+
+      // Two projects
+      expect(projectSelector.find('AutoCompleteItem')).toHaveLength(2);
+      // All projects in the footer
+      expect(
+        projectSelector
+          .find('SelectorFooterControls Button')
+          .first()
+          .text()
+      ).toEqual('View All Projects');
+    });
+
+    it('shows "All Projects" button based on role', function() {
+      initialData.organization.features.push('global-views');
+      initialData.organization.role = 'owner';
+      wrapper = mountWithTheme(
+        <GlobalSelectionHeader
+          organization={initialData.organization}
+          projects={initialData.organization.projects}
+        />,
+        initialData.routerContext
+      );
+
+      // open the project menu.
+      wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
+      const projectSelector = wrapper.find('MultipleProjectSelector');
+
+      // Two projects
+      expect(projectSelector.find('AutoCompleteItem')).toHaveLength(2);
+      // All projects in the footer
+      expect(
+        projectSelector
+          .find('SelectorFooterControls Button')
+          .first()
+          .text()
+      ).toEqual('View All Projects');
+    });
+
+    it('shows "My Projects" when "all projects" is selected', async function() {
+      initialData.organization.features.push('global-views');
+      initialData.organization.role = 'owner';
+
+      wrapper = mountWithTheme(
+        <GlobalSelectionHeader
+          organization={initialData.organization}
+          projects={initialData.organization.projects}
+        />,
+        changeQuery(initialData.routerContext, {project: -1})
+      );
+      await tick();
+
+      // open the project menu.
+      wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
+      const projectSelector = wrapper.find('MultipleProjectSelector');
+
+      // My projects in the footer
+      expect(
+        projectSelector
+          .find('SelectorFooterControls Button')
+          .first()
+          .text()
+      ).toEqual('View My Projects');
     });
   });
 });

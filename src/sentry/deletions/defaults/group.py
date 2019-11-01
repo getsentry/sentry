@@ -51,8 +51,9 @@ class EventDataDeletionTask(BaseDeletionTask):
         nodestore.delete_multi(node_ids)
 
         # Remove EventAttachment and UserReport
-        EventAttachment.objects.filter(event_id=event.event_id, project_id=self.project_id).delete()
-        UserReport.objects.filter(event_id=event.event_id, project_id=self.project_id).delete()
+        event_ids = [event.event_id for event in events]
+        EventAttachment.objects.filter(event_id__in=event_ids, project_id=self.project_id).delete()
+        UserReport.objects.filter(event_id__in=event_ids, project_id=self.project_id).delete()
 
         return True
 

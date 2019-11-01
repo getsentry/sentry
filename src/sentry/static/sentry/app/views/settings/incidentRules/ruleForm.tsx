@@ -56,33 +56,15 @@ class RuleForm extends React.Component<Props> {
                 required: true,
               },
               {
-                name: 'includeAllProjects',
-                type: 'boolean',
-                label: t('Apply to all Projects'),
-                help: t(
-                  'This should apply to all projects as well as all future projects'
-                ),
-              },
-              {
                 name: 'projects',
                 type: 'select',
-                label: t('Projects'),
-                help: t('Select projects that this rule will apply to'),
+                label: t('Project'),
+                help: t('Select a project that this rule will apply to'),
                 choices: projects.map(({slug}) => [slug, slug]),
-                placeholder: t('All Projects'),
-                multiple: true,
+                getValue: value => [value],
+                setValue: value => (value.length ? value[0] : []),
+                placeholder: t('Select a project'),
                 required: true,
-                visible: ({model}) => !model.getValue('includeAllProjects'),
-              },
-              {
-                name: 'excludedProjects',
-                type: 'select',
-                label: t('Exclude Projects'),
-                help: t('Select projects that will be excluded from this rule'),
-                choices: projects.map(({slug}) => [slug, slug]),
-                placeholder: t('None'),
-                multiple: true,
-                visible: ({model}) => !!model.getValue('includeAllProjects'),
               },
               {
                 name: 'aggregations',
@@ -139,13 +121,6 @@ class RuleForm extends React.Component<Props> {
                 choices: Object.entries(TIME_WINDOW_MAP),
                 required: true,
               },
-              {
-                name: 'isDefault',
-                type: 'boolean',
-                label: t('Is Default'),
-                defaultValue: false,
-                help: t('Default rules will visible for all members of an organization?'),
-              },
             ],
           },
         ]}
@@ -181,6 +156,7 @@ function RuleFormContainer({
         query: '',
         aggregations: DEFAULT_METRIC,
         projects: [],
+        includeAllProjects: false,
         excludedProjects: [],
 
         // TODO(incidents): Temp values

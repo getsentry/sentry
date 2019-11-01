@@ -1,10 +1,17 @@
 from __future__ import absolute_import
 
+from django.core import mail
 from django.core.urlresolvers import reverse
 from exam import fixture
+from mock import patch
 
 from sentry.testutils import APITestCase
-from sentry.models import OrganizationMember, OrganizationMemberTeam, InviteStatus
+from sentry.models import (
+    OrganizationMember,
+    OrganizationMemberTeam,
+    OrganizationOption,
+    InviteStatus,
+)
 
 
 class OrganizationInviteRequestListTest(APITestCase):
@@ -39,14 +46,29 @@ class OrganizationInviteRequestListTest(APITestCase):
         assert resp.data[1]["email"] == self.request_to_join.email
         assert resp.data[1]["inviteStatus"] == "requested_to_join"
 
+    def test_join_requests_disabled(self):
+        OrganizationOption.objects.create(
+            organization_id=self.org.id, key="sentry:join_requests", value=False
+        )
+
+        self.login_as(user=self.user)
+        resp = self.get_response(self.org.slug)
+
+        assert resp.status_code == 200
+        assert len(resp.data) == 1
+        assert resp.data[0]["email"] == self.invite_request.email
+        assert resp.data[0]["inviteStatus"] == "requested_to_be_invited"
+
 
 class OrganizationInviteRequestCreateTest(APITestCase):
     def setUp(self):
         self.user = self.create_user("foo@localhost")
+        manager = self.create_user(email="manager@localhost")
 
         self.org = self.create_organization()
         self.team = self.create_team(organization=self.org)
         self.member = self.create_member(user=self.user, organization=self.org, role="member")
+        self.create_member(user=manager, organization=self.org, role="manager")
 
         self.login_as(user=self.user)
 
@@ -55,14 +77,18 @@ class OrganizationInviteRequestCreateTest(APITestCase):
             kwargs={"organization_slug": self.org.slug},
         )
 
-    def test_simple(self):
+    @patch("sentry.experiments.get", return_value="invite_request")
+    def test_simple(self, mocked_experiment):
         self.login_as(user=self.user)
-        response = self.client.post(
-            self.url, {"email": "eric@localhost", "role": "member", "teams": [self.team.slug]}
-        )
+        with self.tasks():
+            response = self.client.post(
+                self.url, {"email": "eric@localhost", "role": "member", "teams": [self.team.slug]}
+            )
 
         assert response.status_code == 201
         assert response.data["email"] == "eric@localhost"
+
+        assert len(mail.outbox) == 1
 
         member = OrganizationMember.objects.get(organization=self.org, email=response.data["email"])
         assert member.user is None
@@ -75,7 +101,8 @@ class OrganizationInviteRequestCreateTest(APITestCase):
         assert len(teams) == 1
         assert teams[0].team_id == self.team.id
 
-    def test_higher_role(self):
+    @patch("sentry.experiments.get", return_value="invite_request")
+    def test_higher_role(self, mocked_experiment):
         self.login_as(user=self.user)
         response = self.client.post(
             self.url, {"email": "eric@localhost", "role": "owner", "teams": [self.team.slug]}
@@ -87,7 +114,8 @@ class OrganizationInviteRequestCreateTest(APITestCase):
         member = OrganizationMember.objects.get(organization=self.org, email=response.data["email"])
         assert member.role == "owner"
 
-    def test_existing_member(self):
+    @patch("sentry.experiments.get", return_value="invite_request")
+    def test_existing_member(self, mocked_experiment):
         self.login_as(user=self.user)
 
         user2 = self.create_user("foobar@example.com")
@@ -100,7 +128,8 @@ class OrganizationInviteRequestCreateTest(APITestCase):
         assert resp.status_code == 400
         assert "The user %s is already a member" % user2.email in resp.content
 
-    def test_existing_invite_request(self):
+    @patch("sentry.experiments.get", return_value="invite_request")
+    def test_existing_invite_request(self, mocked_experiment):
         self.login_as(user=self.user)
 
         invite_request = self.create_member(

@@ -18,6 +18,7 @@ import {
 } from './types';
 import GridHeadCell from './gridHeadCell';
 import GridModalEditColumn from './gridModalEditColumn';
+import AddColumnButton from './addColumnButton';
 import {
   GridPanel,
   GridPanelBody,
@@ -33,6 +34,8 @@ import {
 } from './styles';
 
 type GridEditableProps<DataRow, ColumnKey> = {
+  onToggleEdit?: (nextValue: boolean) => void;
+
   gridHeadCellButtonProps?: {[prop: string]: any};
 
   isEditable?: boolean;
@@ -129,7 +132,17 @@ class GridEditable<
   }
 
   toggleEdit = () => {
-    this.setState({isEditing: !this.state.isEditing});
+    const nextValue = !this.state.isEditing;
+
+    if (this.props.onToggleEdit) {
+      this.props.onToggleEdit(nextValue);
+    }
+
+    this.setState({isEditing: nextValue});
+  };
+
+  openModalAddColumnAt = (insertIndex: number) => {
+    return this.toggleModalEditColumn(insertIndex);
   };
 
   toggleModalEditColumn = (
@@ -236,6 +249,8 @@ class GridEditable<
 
           {columnOrder.map((column, columnIndex) => (
             <GridHeadCell
+              openModalAddColumnAt={this.openModalAddColumnAt}
+              isLast={columnOrder.length - 1 === columnIndex}
               key={`${columnIndex}.${column.key}`}
               isColumnDragging={this.props.isColumnDragging}
               isPrimary={column.isPrimary}
@@ -279,13 +294,13 @@ class GridEditable<
 
     return (
       <GridEditGroup>
-        <GridEditGroupButton onClick={() => this.toggleModalEditColumn()}>
-          <ToolTip title={t('Add Columns')}>
-            <InlineSvg src="icon-circle-add" data-test-id="grid-edit-add" />
-          </ToolTip>
-        </GridEditGroupButton>
+        <AddColumnButton
+          align="left"
+          onClick={() => this.toggleModalEditColumn()}
+          data-test-id="grid-add-column-right-end"
+        />
         <GridEditGroupButton onClick={this.toggleEdit}>
-          <ToolTip title={t('Cancel Edit')}>
+          <ToolTip title={t('Exit Edit')}>
             <InlineSvg src="icon-close" />
           </ToolTip>
         </GridEditGroupButton>
