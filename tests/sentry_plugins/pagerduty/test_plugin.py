@@ -32,7 +32,7 @@ class PagerDutyPluginTest(PluginTestCase):
         assert self.plugin.conf_key == "pagerduty"
 
     def test_entry_point(self):
-        self.assertPluginInstalled("pagerduty", self.plugin)
+        self.assertNewPluginInstalled("pagerduty", self.plugin)
 
     def test_is_configured(self):
         assert self.plugin.is_configured(self.project) is False
