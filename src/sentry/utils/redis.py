@@ -118,9 +118,9 @@ class _RedisCluster(object):
                     startup_nodes=hosts, decode_responses=True, skip_full_coverage_check=True
                 )
             else:
-                return StrictRedis(
-                    host=hosts[0]["host"], port=hosts[0]["port"], decode_responses=True
-                )
+                host = hosts[0].copy()
+                host["decode_responses"] = True
+                return StrictRedis(**host)
 
         return SimpleLazyObject(cluster_factory)
 
