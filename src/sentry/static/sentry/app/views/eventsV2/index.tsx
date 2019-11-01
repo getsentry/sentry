@@ -8,6 +8,7 @@ import {Location} from 'history';
 
 import {Organization} from 'app/types';
 import {t} from 'app/locale';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import SentryTypes from 'app/sentryTypes';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {PageContent, PageHeader} from 'app/styles/organization';
@@ -59,7 +60,19 @@ class EventsV2 extends React.Component<Props> {
 
       return (
         <LinkContainer key={index}>
-          <Link to={to}>{eventView.name}</Link>
+          <Link
+            to={to}
+            onClick={() => {
+              trackAnalyticsEvent({
+                eventKey: 'discover_v2.prebuilt_query_click',
+                eventName: 'Discoverv2: Click a pre-built query',
+                organization_id: this.props.organization.id,
+                query_name: eventView.name,
+              });
+            }}
+          >
+            {eventView.name}
+          </Link>
         </LinkContainer>
       );
     });
