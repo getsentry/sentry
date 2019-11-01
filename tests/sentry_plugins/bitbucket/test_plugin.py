@@ -26,7 +26,7 @@ class BitbucketPluginTest(PluginTestCase):
         assert self.plugin.conf_key == "bitbucket"
 
     def test_entry_point(self):
-        self.assertPluginInstalled("bitbucket", self.plugin)
+        self.assertNewPluginInstalled("bitbucket", self.plugin)
 
     def test_get_issue_label(self):
         group = self.create_group(message="Hello world", culprit="foo.bar")

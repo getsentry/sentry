@@ -22,7 +22,7 @@ class PhabricatorPluginTest(PluginTestCase):
         assert self.plugin.conf_key == "phabricator"
 
     def test_entry_point(self):
-        self.assertPluginInstalled("phabricator", self.plugin)
+        self.assertNewPluginInstalled("phabricator", self.plugin)
 
     def test_get_issue_label(self):
         group = self.create_group(message="Hello world", culprit="foo.bar")

@@ -18,7 +18,7 @@ class SegmentPluginTest(PluginTestCase):
         assert self.plugin.conf_key == "segment"
 
     def test_entry_point(self):
-        self.assertPluginInstalled("segment", self.plugin)
+        self.assertNewPluginInstalled("segment", self.plugin)
 
     @responses.activate
     def test_simple_notification(self):

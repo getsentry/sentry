@@ -21,7 +21,7 @@ class SlackPluginTest(PluginTestCase):
         assert self.plugin.conf_key == "slack"
 
     def test_entry_point(self):
-        self.assertPluginInstalled("slack", self.plugin)
+        self.assertNewPluginInstalled("slack", self.plugin)
 
     @responses.activate
     def test_simple_notification(self):

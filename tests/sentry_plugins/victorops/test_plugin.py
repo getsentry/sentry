@@ -37,7 +37,7 @@ class VictorOpsPluginTest(PluginTestCase):
         assert self.plugin.conf_key == "victorops"
 
     def test_entry_point(self):
-        self.assertPluginInstalled("victorops", self.plugin)
+        self.assertNewPluginInstalled("victorops", self.plugin)
 
     def test_is_configured(self):
         assert self.plugin.is_configured(self.project) is False

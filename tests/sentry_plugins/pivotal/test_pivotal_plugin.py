@@ -17,7 +17,7 @@ class PivotalPluginTest(PluginTestCase):
         assert self.plugin.conf_key == "pivotal"
 
     def test_entry_point(self):
-        self.assertPluginInstalled("pivotal", self.plugin)
+        self.assertNewPluginInstalled("pivotal", self.plugin)
 
     def test_get_issue_label(self):
         group = self.create_group(message="Hello world", culprit="foo.bar")

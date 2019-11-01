@@ -72,7 +72,7 @@ class VstsPluginTest(PluginTestCase):
         assert self.plugin.conf_key == "vsts"
 
     def test_entry_point(self):
-        self.assertPluginInstalled("vsts", self.plugin)
+        self.assertNewPluginInstalled("vsts", self.plugin)
 
     def test_get_issue_label(self):
         group = self.create_group(message="Hello world", culprit="foo.bar")

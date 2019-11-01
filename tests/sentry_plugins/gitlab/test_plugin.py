@@ -24,7 +24,7 @@ class GitLabPluginTest(PluginTestCase):
         assert self.plugin.conf_key == "gitlab"
 
     def test_entry_point(self):
-        self.assertPluginInstalled("gitlab", self.plugin)
+        self.assertNewPluginInstalled("gitlab", self.plugin)
 
     def test_get_issue_label(self):
         group = self.create_group(message="Hello world", culprit="foo.bar")

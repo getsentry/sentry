@@ -26,7 +26,7 @@ class AsanaPluginTest(PluginTestCase):
         assert self.plugin.conf_key == "asana"
 
     def test_entry_point(self):
-        self.assertPluginInstalled("asana", self.plugin)
+        self.assertNewPluginInstalled("asana", self.plugin)
 
     def test_get_issue_label(self):
         group = self.create_group(message="Hello world", culprit="foo.bar")

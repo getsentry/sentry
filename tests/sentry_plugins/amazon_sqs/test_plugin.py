@@ -19,7 +19,7 @@ class AmazonSQSPluginTest(PluginTestCase):
         assert self.plugin.conf_key == "amazon-sqs"
 
     def test_entry_point(self):
-        self.assertPluginInstalled("amazon_sqs", self.plugin)
+        self.assertNewPluginInstalled("amazon_sqs", self.plugin)
 
     def run_test(self):
         self.plugin.set_option("access_key", "access-key", self.project)

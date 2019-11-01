@@ -26,7 +26,7 @@ class SessionStackPluginTest(PluginTestCase):
         assert self.plugin.conf_key == "sessionstack"
 
     def test_entry_point(self):
-        self.assertPluginInstalled("sessionstack", self.plugin)
+        self.assertNewPluginInstalled("sessionstack", self.plugin)
 
     @responses.activate
     def test_config_validation(self):
