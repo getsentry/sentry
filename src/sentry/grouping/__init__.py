@@ -41,7 +41,7 @@ Variants
     in the past were able to provide a grouping hash (the checksum) which was
     used for grouping exclusively.
 
-`FallbackVariant`?
+`FallbackVariant`:
     This variant produces always the same hash.  It's used if nothing else works.
 
 `ComponentVariant`:
