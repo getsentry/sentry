@@ -7,7 +7,7 @@ from sentry.new_migrations.monkey.writer import SENTRY_MIGRATION_TEMPLATE
 
 from django.db.migrations import migration, executor, writer
 
-LAST_VERIFIED_DJANGO_VERSION = (1, 8)
+LAST_VERIFIED_DJANGO_VERSION = (1, 9)
 CHECK_MESSAGE = """Looks like you're trying to upgrade Django! Since we monkeypatch
 the Django migration library in several places, please verify that we have the latest
 code, and that the monkeypatching still works as expected. Currently the main things

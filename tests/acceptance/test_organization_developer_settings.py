@@ -35,9 +35,7 @@ class OrganizationDeveloperSettingsNewAcceptanceTest(AcceptanceTestCase):
 
         self.browser.click('[aria-label="Save Changes"]')
 
-        self.browser.wait_until(".ref-success")
-
-        assert self.browser.find_element_by_xpath("//div[contains(text(), 'Client ID')]")
+        self.browser.wait_until(xpath="//div[contains(text(), 'Client ID')]", timeout=3)
 
     def test_create_new_internal_integration(self):
         self.load_page(self.org_developer_settings_path)
@@ -48,9 +46,7 @@ class OrganizationDeveloperSettingsNewAcceptanceTest(AcceptanceTestCase):
 
         self.browser.click('[aria-label="Save Changes"]')
 
-        self.browser.wait_until(".ref-success")
-
-        assert self.browser.find_element_by_xpath("//button//span[contains(text(), 'New Token')]")
+        self.browser.wait_until(xpath="//button//span[contains(text(), 'New Token')]", timeout=3)
 
 
 class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):

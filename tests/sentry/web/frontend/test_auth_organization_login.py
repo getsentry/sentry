@@ -94,10 +94,10 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         with self.settings(
             TERMS_URL="https://example.com/terms", PRIVACY_URL="https://example.com/privacy"
         ):
-            resp = self.client.post(path, {"op": "newuser"})
-
-        assert resp.status_code == 302
-        assert resp["Location"] == "http://testserver" + reverse("sentry-login")
+            resp = self.client.post(path, {"op": "newuser"}, follow=False)
+            self.assertRedirects(resp, reverse("sentry-login"), target_status_code=302)
+            resp = self.client.post(path, {"op": "newuser"}, follow=True)
+            self.assertRedirects(resp, "/organizations/foo/issues/")
 
         auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
 
@@ -131,10 +131,10 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         self.assertTemplateUsed(resp, "sentry/auth-confirm-link.html")
         assert resp.status_code == 200
 
-        resp = self.client.post(path, {"op": "confirm"})
-
-        assert resp.status_code == 302
-        assert resp["Location"] == "http://testserver" + reverse("sentry-login")
+        resp = self.client.post(path, {"op": "confirm"}, follow=False)
+        self.assertRedirects(resp, reverse("sentry-login"), target_status_code=302)
+        resp = self.client.post(path, {"op": "confirm"}, follow=True)
+        self.assertRedirects(resp, "/organizations/foo/issues/")
 
         auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
         assert user == auth_identity.user
@@ -156,10 +156,10 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert self.provider.TEMPLATE in resp.content.decode("utf-8")
 
         path = reverse("sentry-auth-sso")
-        resp = self.client.post(path, {"email": "foo@example.com"})
-
-        assert resp.status_code == 302
-        assert resp["Location"] == "http://testserver" + reverse("sentry-login")
+        resp = self.client.post(path, {"email": "foo@example.com"}, follow=False)
+        self.assertRedirects(resp, reverse("sentry-login"), target_status_code=302)
+        resp = self.client.post(path, {"email": "foo@example.com"}, follow=True)
+        self.assertRedirects(resp, "/organizations/foo/issues/")
 
     def test_flow_as_unauthenticated_existing_matched_user_no_merge(self):
         auth_provider = AuthProvider.objects.create(
@@ -180,10 +180,10 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp.context["existing_user"] == user
         assert resp.context["login_form"]
 
-        resp = self.client.post(path, {"op": "newuser"})
-
-        assert resp.status_code == 302
-        assert resp["Location"] == "http://testserver" + reverse("sentry-login")
+        resp = self.client.post(path, {"op": "newuser"}, follow=False)
+        self.assertRedirects(resp, reverse("sentry-login"), target_status_code=302)
+        resp = self.client.post(path, {"op": "newuser"}, follow=True)
+        self.assertRedirects(resp, "/organizations/foo/issues/")
 
         auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
         new_user = auth_identity.user
@@ -230,10 +230,10 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         self.assertTemplateUsed(resp, "sentry/auth-confirm-link.html")
         assert resp.status_code == 200
 
-        resp = self.client.post(path, {"op": "confirm"})
-
-        assert resp.status_code == 302
-        assert resp["Location"] == "http://testserver" + reverse("sentry-login")
+        resp = self.client.post(path, {"op": "confirm"}, follow=False)
+        self.assertRedirects(resp, reverse("sentry-login"), target_status_code=302)
+        resp = self.client.post(path, {"op": "confirm"}, follow=True)
+        self.assertRedirects(resp, "/organizations/foo/issues/")
 
         auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
 
@@ -272,10 +272,10 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         self.assertTemplateUsed(resp, "sentry/auth-confirm-link.html")
         assert resp.status_code == 200
 
-        resp = self.client.post(path, {"op": "confirm"})
-
-        assert resp.status_code == 302
-        assert resp["Location"] == "http://testserver" + reverse("sentry-login")
+        resp = self.client.post(path, {"op": "confirm"}, follow=False)
+        self.assertRedirects(resp, reverse("sentry-login"), target_status_code=302)
+        resp = self.client.post(path, {"op": "confirm"}, follow=True)
+        self.assertRedirects(resp, "/organizations/foo/issues/")
 
         auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
 
@@ -314,10 +314,10 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         self.assertTemplateUsed(resp, "sentry/auth-confirm-link.html")
         assert resp.status_code == 200
 
-        resp = self.client.post(path, {"op": "confirm"})
-
-        assert resp.status_code == 302
-        assert resp["Location"] == "http://testserver" + reverse("sentry-login")
+        resp = self.client.post(path, {"op": "confirm"}, follow=False)
+        self.assertRedirects(resp, reverse("sentry-login"), target_status_code=302)
+        resp = self.client.post(path, {"op": "confirm"}, follow=True)
+        self.assertRedirects(resp, "/organizations/foo/issues/")
 
         auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
 
@@ -360,10 +360,10 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         self.assertTemplateUsed(resp, "sentry/auth-confirm-link.html")
         assert resp.status_code == 200
 
-        resp = self.client.post(path, {"op": "confirm"})
-
-        assert resp.status_code == 302
-        assert resp["Location"] == "http://testserver" + reverse("sentry-login")
+        resp = self.client.post(path, {"op": "confirm"}, follow=False)
+        self.assertRedirects(resp, reverse("sentry-login"), target_status_code=302)
+        resp = self.client.post(path, {"op": "confirm"}, follow=True)
+        self.assertRedirects(resp, "/organizations/foo/issues/")
 
         auth_identity = AuthIdentity.objects.get(id=auth_identity.id)
 
@@ -406,10 +406,10 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert not resp.context["existing_user"]
         assert resp.context["login_form"]
 
-        resp = self.client.post(path, {"op": "newuser"})
-
-        assert resp.status_code == 302
-        assert resp["Location"] == "http://testserver" + reverse("sentry-login")
+        resp = self.client.post(path, {"op": "newuser"}, follow=False)
+        self.assertRedirects(resp, reverse("sentry-login"), target_status_code=302)
+        resp = self.client.post(path, {"op": "newuser"}, follow=True)
+        self.assertRedirects(resp, "/organizations/foo/issues/")
 
         auth_identity = AuthIdentity.objects.get(id=auth_identity.id)
 
@@ -459,12 +459,14 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         # we're suggesting the identity changed (as if the Google ident was
         # updated to be something else)
         resp = self.client.post(
-            path, {"email": "bar@example.com", "id": "123", "email_verified": "1"}
+            path, {"email": "bar@example.com", "id": "123", "email_verified": "1"}, follow=False
         )
-
         # there should be no prompt as we auto merge the identity
-        assert resp.status_code == 302
-        assert resp["Location"] == "http://testserver" + reverse("sentry-login")
+        self.assertRedirects(resp, reverse("sentry-login"), target_status_code=302)
+        resp = self.client.post(
+            path, {"email": "bar@example.com", "id": "123", "email_verified": "1"}, follow=True
+        )
+        self.assertRedirects(resp, "/auth/login/foo/")
 
         auth_identity = AuthIdentity.objects.get(id=auth_identity.id)
 
@@ -616,10 +618,10 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         # we're suggesting the identity changed (as if the Google ident was
         # updated to be something else)
-        resp = self.client.post(path, {"email": "adfadsf@example.com"})
-
-        assert resp.status_code == 302
-        assert resp["Location"] == "http://testserver" + reverse("sentry-login")
+        resp = self.client.post(path, {"email": "adfadsf@example.com"}, follow=False)
+        self.assertRedirects(resp, reverse("sentry-login"), target_status_code=302)
+        resp = self.client.post(path, {"email": "adfadsf@example.com"}, follow=True)
+        self.assertRedirects(resp, "/auth/login/foo/")
 
         assert not AuthIdentity.objects.filter(id=identity1.id).exists()
 
@@ -653,12 +655,14 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         path = reverse("sentry-auth-sso")
 
         resp = self.client.post(
-            path, {"email": "foo@new-domain.com", "legacy_email": "foo@example.com"}
+            path, {"email": "foo@new-domain.com", "legacy_email": "foo@example.com"}, follow=False
         )
+        self.assertRedirects(resp, reverse("sentry-login"), target_status_code=302)
+        resp = self.client.post(
+            path, {"email": "foo@new-domain.com", "legacy_email": "foo@example.com"}, follow=True
+        )
+        self.assertRedirects(resp, "/organizations/foo/issues/")
 
         # Ensure the ident was migrated from the legacy identity
         updated_ident = AuthIdentity.objects.get(id=user_ident.id)
         assert updated_ident.ident == "foo@new-domain.com"
-
-        assert resp.status_code == 302
-        assert resp["Location"] == "http://testserver" + reverse("sentry-login")

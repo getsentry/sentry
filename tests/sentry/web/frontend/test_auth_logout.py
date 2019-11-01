@@ -44,6 +44,4 @@ class AuthLogoutTest(TestCase):
         self.client.post(self.path + "?next=" + quote(next))
 
         resp = self.client.post(self.path)
-        assert resp.status_code == 302
-        assert next not in resp["Location"]
-        assert resp["Location"] == "http://testserver/auth/login/"
+        self.assertRedirects(resp, "/auth/login/")
