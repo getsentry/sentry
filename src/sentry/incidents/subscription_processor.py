@@ -369,9 +369,5 @@ def update_alert_rule_stats(alert_rule, subscription, last_update, alert_counts,
 
 
 def get_redis_client():
-    cluster_key = getattr(settings, "SENTRY_INCIDENT_RULES_REDIS_CLUSTER", None)
-    if cluster_key is None:
-        client = redis.clusters.get("default").get_local_client(0)
-    else:
-        client = redis.redis_clusters.get(cluster_key)
-    return client
+    cluster_key = getattr(settings, "SENTRY_INCIDENT_RULES_REDIS_CLUSTER", "default")
+    return redis.redis_clusters.get(cluster_key)
