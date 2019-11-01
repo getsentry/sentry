@@ -4,6 +4,7 @@ import * as ReactRouter from 'react-router';
 import {Location} from 'history';
 import {omit, uniqBy} from 'lodash';
 
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {Organization} from 'app/types';
 import space from 'app/styles/space';
 import SearchBar from 'app/views/events/searchBar';
@@ -58,6 +59,13 @@ export default class Events extends React.Component<EventsProps> {
     router.push({
       pathname: location.pathname,
       query: newQuery,
+    });
+
+    trackAnalyticsEvent({
+      eventKey: 'discover_v2.y_axis_change',
+      eventName: "Discoverv2: Change chart's y axis",
+      organization_id: this.props.organization.id,
+      y_axis_value: value,
     });
   };
 
