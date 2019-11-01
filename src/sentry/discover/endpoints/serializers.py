@@ -219,9 +219,9 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
                     "You must provide an equal number of field names and fields"
                 )
 
-            if data["projects"] == ALL_ACCESS_PROJECTS:
-                data["projects"] = []
-                query["all_projects"] = True
+        if data["projects"] == ALL_ACCESS_PROJECTS:
+            data["projects"] = []
+            query["all_projects"] = True
 
         return {"name": data["name"], "project_ids": data["projects"], "query": query}
 

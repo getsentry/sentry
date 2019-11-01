@@ -349,7 +349,8 @@ export default function createQueryBuilder(
    */
   function reset(q: any) {
     const [validProjects, invalidProjects] = partition(q.projects || [], project =>
-      defaultProjectIds.includes(project)
+      // -1 means all projects
+      project === -1 ? true : defaultProjectIds.includes(project)
     );
 
     if (invalidProjects.length) {
