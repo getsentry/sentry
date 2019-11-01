@@ -39,6 +39,7 @@ from sentry.snuba.subscriptions import (
     bulk_create_snuba_subscriptions,
     bulk_delete_snuba_subscriptions,
     bulk_update_snuba_subscriptions,
+    query_aggregation_to_snuba,
 )
 from sentry.utils.committers import get_event_file_committers
 from sentry.utils.snuba import bulk_raw_query, raw_query, SnubaQueryParams, SnubaTSResult, zerofill
@@ -59,6 +60,7 @@ def create_incident(
     type,
     title,
     query,
+    aggregation,
     date_started=None,
     date_detected=None,
     # TODO: Probably remove detection_uuid?
@@ -88,6 +90,7 @@ def create_incident(
             type=type.value,
             title=title,
             query=query,
+            aggregation=aggregation.value,
             date_started=date_started,
             date_detected=date_detected,
             alert_rule=alert_rule,
@@ -454,7 +457,13 @@ def get_incident_event_stats(incident, start=None, end=None, data_points=50):
 def bulk_get_incident_event_stats(incidents, query_params_list, data_points=50):
     snuba_params_list = [
         SnubaQueryParams(
-            aggregations=[("count()", "", "count")],
+            aggregations=[
+                (
+                    query_aggregation_to_snuba[QueryAggregations(incident.aggregation)][0],
+                    query_aggregation_to_snuba[QueryAggregations(incident.aggregation)][1],
+                    "count",
+                )
+            ],
             orderby="time",
             groupby=["time"],
             rollup=max(int(incident.duration.total_seconds() / data_points), 1),

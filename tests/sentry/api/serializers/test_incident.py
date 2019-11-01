@@ -30,6 +30,7 @@ class IncidentSerializerTest(TestCase):
         assert result["type"] == incident.type
         assert result["title"] == incident.title
         assert result["query"] == incident.query
+        assert result["aggregation"] == incident.aggregation
         assert result["dateStarted"] == incident.date_started
         assert result["dateDetected"] == incident.date_detected
         assert result["dateAdded"] == incident.date_added

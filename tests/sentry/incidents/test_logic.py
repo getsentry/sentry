@@ -86,6 +86,7 @@ class CreateIncidentTest(TestCase):
         incident_type = IncidentType.CREATED
         title = "hello"
         query = "goodbye"
+        aggregation = QueryAggregations.UNIQUE_USERS
         date_started = timezone.now()
         other_project = self.create_project(fire_project_created=True)
         other_group = self.create_group(project=other_project)
@@ -105,6 +106,7 @@ class CreateIncidentTest(TestCase):
             type=incident_type,
             title=title,
             query=query,
+            aggregation=aggregation,
             date_started=date_started,
             projects=[self.project],
             groups=[self.group, other_group],
@@ -114,6 +116,7 @@ class CreateIncidentTest(TestCase):
         assert incident.status == incident_type.value
         assert incident.title == title
         assert incident.query == query
+        assert incident.aggregation == aggregation.value
         assert incident.date_started == date_started
         assert incident.date_detected == date_started
         assert incident.alert_rule == alert_rule
@@ -196,6 +199,7 @@ class UpdateIncidentStatus(TestCase):
             IncidentType.CREATED,
             "Test",
             "",
+            QueryAggregations.TOTAL,
             timezone.now(),
             projects=[self.project],
         )
@@ -212,6 +216,7 @@ class UpdateIncidentStatus(TestCase):
             IncidentType.CREATED,
             "Test",
             "",
+            QueryAggregations.TOTAL,
             timezone.now(),
             projects=[self.project],
         )
@@ -735,6 +740,7 @@ class BulkGetIncidentStatusTest(TestCase, BaseIncidentsTest):
             IncidentType.CREATED,
             "Closed",
             "",
+            QueryAggregations.TOTAL,
             groups=[self.group],
             date_started=timezone.now() - timedelta(days=30),
         )
@@ -744,6 +750,7 @@ class BulkGetIncidentStatusTest(TestCase, BaseIncidentsTest):
             IncidentType.CREATED,
             "Open",
             "",
+            QueryAggregations.TOTAL,
             groups=[self.group],
             date_started=timezone.now() - timedelta(days=30),
         )

@@ -15,6 +15,7 @@ from sentry.incidents.logic import create_incident
 from sentry.incidents.models import Incident, IncidentStatus, IncidentType
 from sentry.models.group import Group
 from sentry.models.project import Project
+from sentry.snuba.models import QueryAggregations
 
 
 class IncidentSerializer(serializers.Serializer):
@@ -22,6 +23,7 @@ class IncidentSerializer(serializers.Serializer):
     groups = ListField(child=serializers.CharField(), required=True, allow_null=False)
     title = serializers.CharField(required=True)
     query = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    aggregation = serializers.IntegerField(default=QueryAggregations.TOTAL.value)
     dateStarted = serializers.DateTimeField(required=False)
     dateDetected = serializers.DateTimeField(required=False, allow_null=True)
 
@@ -38,6 +40,15 @@ class IncidentSerializer(serializers.Serializer):
         if len(groups) != len(group_ids):
             raise serializers.ValidationError("Invalid group id(s)")
         return list(groups)
+
+    def validate_aggregation(self, aggregation):
+        try:
+            return QueryAggregations(aggregation)
+        except ValueError:
+            raise serializers.ValidationError(
+                "Invalid aggregation, valid values are %s"
+                % [item.value for item in QueryAggregations]
+            )
 
 
 class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
@@ -93,6 +104,7 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
                 type=IncidentType.CREATED,
                 title=result["title"],
                 query=result.get("query", ""),
+                aggregation=result["aggregation"],
                 date_started=result.get("dateStarted"),
                 date_detected=result.get("dateDetected"),
                 projects=result["projects"],
