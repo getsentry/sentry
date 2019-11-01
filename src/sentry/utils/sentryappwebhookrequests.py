@@ -15,30 +15,17 @@ BUFFER_SIZE = 100
 KEY_EXPIRY = 60 * 60 * 24 * 30  # 30 days
 
 
-class _BaseBuffer(object):
-    """
-    Default dummy implementation of the requests buffer with all public facing methods
-    """
-
-    def __init__(self, sentry_app, client):
-        self.sentry_app = sentry_app
-        self.client = client
-
-    def get_errors(self, event=None):
-        return []
-
-    def get_requests(self, event=None):
-        return []
-
-    def add_request(self, response_code, org_id, event, url):
-        pass
-
-
-class _RedisBuffer(_BaseBuffer):
+class SentryAppWebhookRequestsBuffer(object):
     """
     Create a data structure to store basic information about Sentry App webhook requests in Redis
     This should store the last 100 requests and last 100 errors (in different keys) for each event type, for each Sentry App
     """
+
+    def __init__(self, sentry_app):
+        self.sentry_app = sentry_app
+
+        cluster_id = getattr(settings, "SENTRY_WEBHOOK_LOG_REDIS_CLUSTER", "default")
+        self.client = redis.redis_clusters.get(cluster_id)
 
     def _get_redis_key(self, event, error=False):
         sentry_app_id = self.sentry_app.id
@@ -147,27 +134,3 @@ class _RedisBuffer(_BaseBuffer):
             self._add_to_buffer_pipeline(error_key, request_data, pipe)
 
         pipe.execute()
-
-
-class SentryAppWebhookRequestsBuffer(object):
-    """
-    Create and delegate to a buffer to store webhook requests from Sentry Apps to webhooks
-    Only works if redis_clusters is available, otherwise a dummy buffer is created
-    """
-
-    def __init__(self, sentry_app):
-        cluster_id = getattr(settings, "SENTRY_WEBHOOK_LOG_REDIS_CLUSTER", "default")
-        try:
-            client = redis.redis_clusters.get(cluster_id)
-            self.buffer = _RedisBuffer(sentry_app, client)
-        except KeyError:
-            self.buffer = _BaseBuffer(sentry_app, None)
-
-    def get_errors(self, event=None):
-        return self.buffer.get_errors(event=event)
-
-    def get_requests(self, event=None):
-        return self.buffer.get_requests(event=event)
-
-    def add_request(self, response_code, org_id, event, url):
-        return self.buffer.add_request(response_code, org_id, event, url)
