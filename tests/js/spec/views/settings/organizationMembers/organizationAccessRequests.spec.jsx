@@ -13,7 +13,7 @@ describe('OrganizationAccessRequests', function() {
       <OrganizationAccessRequests
         orgId={orgId}
         requestList={[]}
-        onUpdateRequestList={() => {}}
+        onRemoveAccessRequest={() => {}}
       />
     );
 
@@ -25,7 +25,7 @@ describe('OrganizationAccessRequests', function() {
       <OrganizationAccessRequests
         orgId={orgId}
         requestList={requestList}
-        onUpdateRequestList={() => {}}
+        onRemoveAccessRequest={() => {}}
       />
     );
 
@@ -53,7 +53,7 @@ describe('OrganizationAccessRequests', function() {
       <OrganizationAccessRequests
         orgId={orgId}
         requestList={requestList}
-        onUpdateRequestList={onUpdateRequestListMock}
+        onRemoveAccessRequest={onUpdateRequestListMock}
       />
     );
 
@@ -83,7 +83,7 @@ describe('OrganizationAccessRequests', function() {
       <OrganizationAccessRequests
         orgId={orgId}
         requestList={requestList}
-        onUpdateRequestList={onUpdateRequestListMock}
+        onRemoveAccessRequest={onUpdateRequestListMock}
       />
     );
 
