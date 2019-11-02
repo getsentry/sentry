@@ -72,7 +72,9 @@ class OrganizationJoinRequestEndpoint(OrganizationEndpoint):
         ip_address = request.META["REMOTE_ADDR"]
 
         if ratelimiter.is_limited(
-            u"org-join-request:ip:{}".format(ip_address), limit=5, window=60  # 5 per minute
+            u"org-join-request:ip:{}".format(ip_address),
+            limit=5,
+            window=86400,  # 5 per day, 60 x 60 x 24
         ):
             return Response({"detail": "Rate limit exceeded."}, status=429)
 
