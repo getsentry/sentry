@@ -34,6 +34,8 @@ import {
 } from './styles';
 
 type GridEditableProps<DataRow, ColumnKey> = {
+  onToggleEdit?: (nextValue: boolean) => void;
+
   gridHeadCellButtonProps?: {[prop: string]: any};
 
   isEditable?: boolean;
@@ -130,7 +132,13 @@ class GridEditable<
   }
 
   toggleEdit = () => {
-    this.setState({isEditing: !this.state.isEditing});
+    const nextValue = !this.state.isEditing;
+
+    if (this.props.onToggleEdit) {
+      this.props.onToggleEdit(nextValue);
+    }
+
+    this.setState({isEditing: nextValue});
   };
 
   openModalAddColumnAt = (insertIndex: number) => {

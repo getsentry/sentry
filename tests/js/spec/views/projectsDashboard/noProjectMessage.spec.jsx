@@ -42,4 +42,17 @@ describe('NoProjectMessage', function() {
       true
     );
   });
+
+  it('handles projects from props', function() {
+    const lightWeightOrg = TestStubs.Organization();
+    delete lightWeightOrg.projects;
+
+    const wrapper = shallow(
+      <NoProjectMessage projects={[]} organization={lightWeightOrg} />,
+      TestStubs.routerContext()
+    );
+    expect(
+      wrapper.find('Button[to="/organizations/org-slug/projects/new/"]')
+    ).toHaveLength(1);
+  });
 });

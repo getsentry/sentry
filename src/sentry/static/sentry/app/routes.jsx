@@ -10,7 +10,9 @@ import IssueListContainer from 'app/views/issueList/container';
 import IssueListOverview from 'app/views/issueList/overview';
 import LazyLoad from 'app/components/lazyLoad';
 import OrganizationContext from 'app/views/organizationContext';
-import OrganizationDetails from 'app/views/organizationDetails';
+import OrganizationDetails, {
+  LightWeightOrganizationDetails,
+} from 'app/views/organizationDetails';
 import OrganizationRoot from 'app/views/organizationRoot';
 import ProjectEventRedirect from 'app/views/projectEventRedirect';
 import RouteNotFound from 'app/views/routeNotFound';
@@ -953,22 +955,25 @@ function routes() {
           </Route>
         </Route>
       </Route>
+      {/* A route tree for lightweight organizational detail views */}
+      <Route path="/:orgId/" component={errorHandler(LightWeightOrganizationDetails)}>
+        <IndexRoute
+          componentPromise={() =>
+            import(/* webpackChunkName: "ProjectsDashboard" */ 'app/views/projectsDashboard')
+          }
+          component={errorHandler(LazyLoad)}
+        />
+        <Route
+          path="/organizations/:orgId/projects/"
+          componentPromise={() =>
+            import(/* webpackChunkName: "ProjectsDashboard" */ 'app/views/projectsDashboard')
+          }
+          component={errorHandler(LazyLoad)}
+        />
+      </Route>
       <Route path="/:orgId/" component={errorHandler(OrganizationDetails)}>
         <Route component={errorHandler(OrganizationRoot)}>
-          <IndexRoute
-            componentPromise={() =>
-              import(/* webpackChunkName: "ProjectsDashboard" */ 'app/views/projectsDashboard')
-            }
-            component={errorHandler(LazyLoad)}
-          />
           {hook('routes:organization-root')}
-          <Route
-            path="/organizations/:orgId/projects/"
-            componentPromise={() =>
-              import(/* webpackChunkName: "ProjectsDashboard" */ 'app/views/projectsDashboard')
-            }
-            component={errorHandler(LazyLoad)}
-          />
           />
           <Route
             path="/organizations/:orgId/stats/"

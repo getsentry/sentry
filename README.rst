@@ -49,5 +49,5 @@ Resources
 * `Contributing <https://docs.sentry.io/internal/contributing/>`_
 * `Bug Tracker <https://github.com/getsentry/sentry/issues>`_
 * `Code <https://github.com/getsentry/sentry>`_
-* `IRC <irc://irc.freenode.net/sentry>`_  (irc.freenode.net, #sentry)
+* `Discord <https://discord.gg/ez5KZN7>`_
 * `Transifex <https://www.transifex.com/getsentry/sentry/>`_ (Translate Sentry!)

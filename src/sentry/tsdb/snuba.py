@@ -104,6 +104,27 @@ class SnubaTSDB(BaseTSDB):
         ),
     }
 
+    model_being_upgraded_query_settings2 = {
+        TSDBModel.key_total_received: SnubaModelQuerySettings(
+            snuba.Dataset.Outcomes,
+            "key_id",
+            "times_seen",
+            [["outcome", "!=", outcomes.Outcome.INVALID]],
+        ),
+        TSDBModel.key_total_rejected: SnubaModelQuerySettings(
+            snuba.Dataset.Outcomes,
+            "key_id",
+            "times_seen",
+            [["outcome", "=", outcomes.Outcome.RATE_LIMITED]],
+        ),
+        TSDBModel.key_total_blacklisted: SnubaModelQuerySettings(
+            snuba.Dataset.Outcomes,
+            "key_id",
+            "times_seen",
+            [["outcome", "=", outcomes.Outcome.FILTERED]],
+        ),
+    }
+
     # The Outcomes dataset aggregates outcomes into chunks of an hour. So, for rollups less than an hour, we want to
     # query the raw outcomes dataset, with a few different settings (defined in lower_rollup_query_settings).
     lower_rollup_query_settings = {
@@ -137,10 +158,24 @@ class SnubaTSDB(BaseTSDB):
             None,
             [["outcome", "=", outcomes.Outcome.FILTERED]],
         ),
+        TSDBModel.key_total_received: SnubaModelQuerySettings(
+            snuba.Dataset.OutcomesRaw, "key_id", None, [["outcome", "!=", outcomes.Outcome.INVALID]]
+        ),
+        TSDBModel.key_total_rejected: SnubaModelQuerySettings(
+            snuba.Dataset.OutcomesRaw,
+            "key_id",
+            None,
+            [["outcome", "=", outcomes.Outcome.RATE_LIMITED]],
+        ),
+        TSDBModel.key_total_blacklisted: SnubaModelQuerySettings(
+            snuba.Dataset.OutcomesRaw, "key_id", None, [["outcome", "=", outcomes.Outcome.FILTERED]]
+        ),
     }
 
     all_model_query_settings = dict(
-        model_columns.items() + model_being_upgraded_query_settings.items()
+        model_columns.items()
+        + model_being_upgraded_query_settings.items()
+        + model_being_upgraded_query_settings2.items()
     )
 
     def __init__(self, **options):
@@ -164,6 +199,10 @@ class SnubaTSDB(BaseTSDB):
         `group_on_time`: whether to add a GROUP BY clause on the 'time' field.
         `group_on_model`: whether to add a GROUP BY clause on the primary model.
         """
+        # XXX: to counteract the hack in project_key_stats.py
+        if model in self.model_being_upgraded_query_settings2.keys():
+            keys = list(set(map(lambda x: int(x), keys)))
+
         # 10s is the only rollup under an hour that we support
         if rollup and rollup == 10 and model in self.lower_rollup_query_settings.keys():
             model_query_settings = self.lower_rollup_query_settings.get(model)

@@ -16,6 +16,8 @@ from django.utils.translation import ugettext_lazy as _
 from sentry.utils.integrationdocs import load_doc
 from sentry.utils.geo import rust_geoip
 
+import semaphore
+
 
 def get_all_languages():
     results = []
@@ -224,29 +226,8 @@ SENTRY_RULES = (
 # methods as defined by http://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html + PATCH
 HTTP_METHODS = ("GET", "POST", "PUT", "OPTIONS", "HEAD", "DELETE", "TRACE", "CONNECT", "PATCH")
 
-VALID_PLATFORMS = set(
-    [
-        "as3",
-        "c",
-        "cfml",
-        "cocoa",
-        "csharp",
-        "go",
-        "java",
-        "javascript",
-        "node",
-        "objc",
-        "other",
-        "perl",
-        "php",
-        "python",
-        "ruby",
-        "elixir",
-        "haskell",
-        "groovy",
-        "native",
-    ]
-)
+# See https://github.com/getsentry/semaphore/blob/master/general/src/protocol/constants.rs
+VALID_PLATFORMS = semaphore.VALID_PLATFORMS
 
 OK_PLUGIN_ENABLED = _("The {name} integration has been enabled.")
 
@@ -469,7 +450,6 @@ DEFAULT_STORE_NORMALIZER_ARGS = dict(
     geoip_lookup=rust_geoip,
     stacktrace_frames_hard_limit=settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT,
     max_stacktrace_frames=settings.SENTRY_MAX_STACKTRACE_FRAMES,
-    valid_platforms=list(VALID_PLATFORMS),
     max_secs_in_future=MAX_SECS_IN_FUTURE,
     max_secs_in_past=MAX_SECS_IN_PAST,
     enable_trimming=True,

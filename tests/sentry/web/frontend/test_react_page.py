@@ -13,10 +13,7 @@ class ReactPageViewTest(TestCase):
         path = reverse("sentry-organization-home", args=[org.slug])
         resp = self.client.get(path)
 
-        assert resp.status_code == 302
-        assert resp["Location"] == u"http://testserver{}".format(
-            reverse("sentry-auth-organization", args=[org.slug])
-        )
+        self.assertRedirects(resp, reverse("sentry-auth-organization", args=[org.slug]))
         assert resp["X-Robots-Tag"] == "noindex, nofollow"
 
     def test_superuser_can_load(self):
@@ -42,10 +39,7 @@ class ReactPageViewTest(TestCase):
 
         resp = self.client.get(path)
 
-        assert resp.status_code == 302
-        assert resp["Location"] == u"http://testserver{}".format(
-            reverse("sentry-auth-organization", args=[org.slug])
-        )
+        self.assertRedirects(resp, reverse("sentry-auth-organization", args=[org.slug]))
 
         # ensure we dont redirect to auth if its not a valid org
         path = reverse("sentry-organization-home", args=["foobar"])
@@ -53,9 +47,7 @@ class ReactPageViewTest(TestCase):
         resp = self.client.get(path)
 
         assert resp.status_code == 302
-        assert resp["Location"] != u"http://testserver{}".format(
-            reverse("sentry-auth-organization", args=[org.slug])
-        )
+        assert resp["Location"] != reverse("sentry-auth-organization", args=[org.slug])
 
         # ensure we dont redirect with valid membership
         path = reverse("sentry-organization-home", args=[org.slug])

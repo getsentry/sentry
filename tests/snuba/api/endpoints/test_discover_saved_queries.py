@@ -82,6 +82,24 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
             )
         assert response.status_code == 403, response.content
 
+    def test_post_all_projects(self):
+        with self.feature(self.feature_name):
+            url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
+            response = self.client.post(
+                url,
+                {
+                    "name": "All projects",
+                    "projects": [-1],
+                    "conditions": [],
+                    "fields": ["title", "count()"],
+                    "range": "24h",
+                    "orderby": "time",
+                },
+            )
+        assert response.status_code == 201, response.content
+        assert response.data["projects"] == [-1]
+        assert response.data["name"] == "All projects"
+
     def test_post_cannot_use_version_two_fields(self):
         with self.feature(self.feature_name):
             url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
