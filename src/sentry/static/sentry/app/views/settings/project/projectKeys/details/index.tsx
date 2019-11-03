@@ -44,7 +44,7 @@ export default class ProjectKeyDetails extends AsyncView<Props, State> {
     const {params} = this.props;
 
     return (
-      <div className="ref-key-details">
+      <div data-test-id="key-details">
         <SettingsPageHeader title={t('Key Details')} />
         <PermissionAlert />
 

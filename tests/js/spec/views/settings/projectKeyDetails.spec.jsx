@@ -1,13 +1,8 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import ProjectKeyDetails from 'app/views/settings/project/projectKeys/projectKeyDetails';
-
-jest.mock('react-router', () => ({
-  withRouter: i => i,
-  browserHistory: {push: jest.fn()},
-}));
+import {mountWithTheme} from 'sentry-test/enzyme';
+import ProjectKeyDetails from 'app/views/settings/project/projectKeys/details';
 
 describe('ProjectKeyDetails', function() {
   let org;

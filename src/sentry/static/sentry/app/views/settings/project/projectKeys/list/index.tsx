@@ -177,7 +177,7 @@ class ProjectKeys extends AsyncView<Props, State> {
     const isEmpty = !this.state.keyList.length;
 
     return (
-      <div className="ref-keys">
+      <div data-test-id="project-keys">
         <SettingsPageHeader
           title={t('Client Keys')}
           action={
