@@ -17,20 +17,18 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 
 const ROUTE_PREFIX = '/settings/account/api/';
 
+type Props = RouteComponentProps<{}, {}> & AsyncView['props'];
 type State = {
   appList: ApiApplication[];
-};
+} & AsyncView['state'];
 
-class ApiApplications extends AsyncView<
-  RouteComponentProps<{}, {}> & AsyncView['props'],
-  State & AsyncView['state']
-> {
+class ApiApplications extends AsyncView<Props, State> {
   getEndpoints(): [string, string][] {
     return [['appList', '/api-applications/']];
   }
 
   getTitle() {
-    return 'API Applications';
+    return t('API Applications');
   }
 
   handleCreateApplication = async () => {
@@ -48,7 +46,7 @@ class ApiApplications extends AsyncView<
     }
   };
 
-  handleRemoveApplication = app => {
+  handleRemoveApplication = (app: ApiApplication) => {
     this.setState({
       appList: this.state.appList.filter(a => a.id !== app.id),
     });

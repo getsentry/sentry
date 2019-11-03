@@ -15,20 +15,18 @@ import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 import apiApplication from 'app/data/forms/apiApplication';
 import getDynamicText from 'app/utils/getDynamicText';
 
+type Props = RouteComponentProps<{}, {}> & AsyncView['props'];
 type State = {
   app: ApiApplication;
-};
+} & AsyncView['state'];
 
-class ApiApplicationsDetails extends AsyncView<
-  RouteComponentProps<{}, {}> & AsyncView['props'],
-  State & AsyncView['state']
-> {
+class ApiApplicationsDetails extends AsyncView<Props, State> {
   getEndpoints(): [string, string][] {
     return [['app', `/api-applications/${this.props.params.appId}/`]];
   }
 
   getTitle() {
-    return 'Application Details';
+    return t('Application Details');
   }
 
   renderBody() {
