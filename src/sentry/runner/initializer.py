@@ -11,7 +11,7 @@ from sentry.utils.sdk import configure_sdk
 from sentry.utils.warnings import DeprecatedSettingWarning
 
 
-def register_plugins(settings, plugins_moved=None):
+def register_plugins(settings, test_plugins=False):
     from pkg_resources import iter_entry_points
     from sentry.plugins.base import plugins
 
@@ -20,25 +20,13 @@ def register_plugins(settings, plugins_moved=None):
     #         'phabricator = sentry_phabricator.plugins:PhabricatorPlugin'
     #     ],
     # },
-    entry_point = "sentry.new_plugins" if plugins_moved else "sentry.plugins"
-    for ep in iter_entry_points(entry_point):
-        # TODO (Steve): Remove if condition
-        if plugins_moved and ep.name not in plugins_moved:
-            continue
-        try:
-            plugin = ep.load()
-        except Exception:
-            import traceback
+    entry_points = [
+        "sentry.new_plugins",
+        "sentry.test_only_plugins" if test_plugins else "sentry.plugins",
+    ]
 
-            click.echo(
-                "Failed to load plugin %r:\n%s" % (ep.name, traceback.format_exc()), err=True
-            )
-        else:
-            plugins.register(plugin)
-
-    # TODO (Steve): Remove logic below
-    if plugins_moved:
-        for ep in iter_entry_points("sentry.test_only_plugins"):
+    for entry_point in entry_points:
+        for ep in iter_entry_points(entry_point):
             try:
                 plugin = ep.load()
             except Exception:
@@ -325,7 +313,7 @@ def initialize_app(config, skip_service_validation=False):
 
     bind_cache_to_option_store()
 
-    register_plugins(settings, plugins_moved=["amazon_sqs"])
+    register_plugins(settings)
 
     initialize_receivers()
 

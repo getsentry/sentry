@@ -36,9 +36,7 @@ def install_sentry_plugins():
 
     from sentry.runner.initializer import register_plugins
 
-    register_plugins(settings, plugins_moved=[
-        'amazon_sqs'
-    ])
+    register_plugins(settings, test_plugins=True)
 
     settings.ASANA_CLIENT_ID = "abc"
     settings.ASANA_CLIENT_SECRET = "123"
