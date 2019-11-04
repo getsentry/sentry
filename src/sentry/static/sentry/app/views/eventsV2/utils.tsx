@@ -242,7 +242,7 @@ export function getAggregateAlias(field: string): string {
  * @param name      name of the query string field
  */
 export function getFirstQueryString(
-  query: {[key: string]: string | string[] | null | undefined},
+  query: {[key: string]: string | string[] | null | undefined} = {},
   name: string,
   defaultValue?: string
 ): string | undefined {
