@@ -1,5 +1,5 @@
 ---
-created: '2019-07-10T12:18:45.903717Z'
+created: '2019-11-01T10:06:05.611880Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -13,7 +13,6 @@ app:
             u'foo/bar/baz'
           filename (ignored because frame points to a URL)
             u'foo.py'
-          function (ignored unknown function name)
 --------------------------------------------------------------------------
 fallback:
   hash: 'd41d8cd98f00b204e9800998ecf8427e'
@@ -28,4 +27,3 @@ system:
             u'foo/bar/baz'
           filename (ignored because frame points to a URL)
             u'foo.py'
-          function (ignored unknown function name)
