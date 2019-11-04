@@ -83,7 +83,7 @@ class SentryAppWebhookRequestsBuffer(object):
                 ]
                 all_requests.extend(event_requests)
 
-            all_requests.sort(key=lambda x: parse_date(x.get("date")), reverse=True)
+            all_requests.sort(key=lambda x: parse_date(x["date"]), reverse=True)
             return all_requests[0:BUFFER_SIZE]
 
         else:
@@ -93,21 +93,12 @@ class SentryAppWebhookRequestsBuffer(object):
             ]
 
     def get_errors(self, event=None):
-        if self.client is None:
-            return []
-
         return self._get_requests(event=event, error=True)
 
     def get_requests(self, event=None):
-        if self.client is None:
-            return []
-
         return self._get_requests(event=event, error=False)
 
     def add_request(self, response_code, org_id, event, url):
-        if self.client is None:
-            return
-
         if event not in VALID_EVENTS:
             return
 
