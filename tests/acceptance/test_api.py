@@ -15,7 +15,7 @@ class ApiTokensTest(AcceptanceTestCase):
         self.browser.wait_until_not(".loading")
         self.browser.snapshot("api tokens - no tokens")
 
-        self.browser.click_when_visible(".ref-create-token")
+        self.browser.click_when_visible('[data-test-id="create-token"]')
         self.browser.wait_until_not(".loading")
         self.browser.snapshot("api tokens - new token")
 
