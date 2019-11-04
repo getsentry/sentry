@@ -324,8 +324,6 @@ class EventManager(object):
         with metrics.timer("events.store.normalize.duration"):
             self._normalize_impl()
 
-        metrics.timing("events.store.normalize.errors", len(self._data.get("errors") or ()))
-
     def _normalize_impl(self):
         if self._normalized:
             raise RuntimeError("Already normalized")
@@ -810,9 +808,15 @@ class EventManager(object):
             skip_consume=raw,
         )
 
-        metrics.timing("events.latency", received_timestamp - recorded_timestamp)
+        metric_tags = {"from_relay": "_relay_processed" in self._data}
 
-        metrics.timing("events.size.data.post_save", event.size)
+        metrics.timing("events.latency", received_timestamp - recorded_timestamp, tags=metric_tags)
+        metrics.timing("events.size.data.post_save", event.size, tags=metric_tags)
+        metrics.incr(
+            "events.post_save.normalize.errors",
+            amount=len(self._data.get("errors") or ()),
+            tags=metric_tags,
+        )
 
         return event
 

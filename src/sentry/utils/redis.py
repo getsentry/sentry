@@ -100,8 +100,10 @@ class RetryingStrictRedisCluster(StrictRedisCluster):
 
 class _RedisCluster(object):
     def supports(self, config):
-        # Default RedisCluster works on both a singular Redis instance
-        # as well as a redis-cluster cluster.
+        # _RedisCluster supports two configurations:
+        #  * Explicitly configured with is_redis_cluster. This mode is for real redis-cluster.
+        #  * No is_redis_cluster, but only 1 host. This represents a singular node Redis running
+        #    in non-cluster mode.
         return config.get("is_redis_cluster", False) or len(config.get("hosts")) == 1
 
     def factory(self, **config):

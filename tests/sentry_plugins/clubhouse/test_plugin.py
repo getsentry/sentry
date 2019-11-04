@@ -24,7 +24,7 @@ class ClubhousePluginTest(PluginTestCase):
         assert self.plugin.conf_key == "clubhouse"
 
     def test_entry_point(self):
-        self.assertPluginInstalled("clubhouse", self.plugin)
+        self.assertNewPluginInstalled("clubhouse", self.plugin)
 
     def test_get_issue_label(self):
         group = self.create_group(message="Hello world", culprit="foo.bar")

@@ -2,7 +2,7 @@ from __future__ import absolute_import
 from sentry.projectoptions import register
 
 # latest epoch
-LATEST_EPOCH = 3
+LATEST_EPOCH = 4
 
 # grouping related configs
 #
@@ -14,10 +14,14 @@ LATEST_EPOCH = 3
 # TODO: we might instead want to fall back to the latest of the project's
 # epoch instead.
 LEGACY_GROUPING_CONFIG = "legacy:2019-03-12"
-DEFAULT_GROUPING_CONFIG = "newstyle:2019-05-08"
+DEFAULT_GROUPING_CONFIG = "newstyle:2019-10-29"
 register(
     key="sentry:grouping_config",
-    epoch_defaults={1: LEGACY_GROUPING_CONFIG, 3: DEFAULT_GROUPING_CONFIG},
+    epoch_defaults={
+        1: LEGACY_GROUPING_CONFIG,
+        3: "newstyle:2019-05-08",
+        4: DEFAULT_GROUPING_CONFIG,
+    },
 )
 
 # Grouping enhancements defaults

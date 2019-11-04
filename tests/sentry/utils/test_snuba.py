@@ -614,6 +614,13 @@ class PrepareQueryParamsTest(TestCase):
         kwargs, _, _ = _prepare_query_params(query_params)
         assert kwargs["organization"] == self.organization.id
 
+    def test_outcomes_dataset_with_key_id(self):
+        key = self.create_project_key(project=self.project)
+        query_params = SnubaQueryParams(dataset=Dataset.Outcomes, filter_keys={"key_id": [key.id]})
+
+        kwargs, _, _ = _prepare_query_params(query_params)
+        assert kwargs["organization"] == self.organization.id
+
     def test_outcomes_dataset_with_no_org_id_given(self):
         query_params = SnubaQueryParams(dataset=Dataset.Outcomes)
 

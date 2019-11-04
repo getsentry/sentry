@@ -297,6 +297,14 @@ describe('Query Builder', function() {
       });
       expect(openModal).not.toHaveBeenCalled();
     });
+
+    it('does not display warning for -1 (all projects)', function() {
+      queryBuilder.reset({
+        fields: ['id'],
+        projects: [-1],
+      });
+      expect(openModal).not.toHaveBeenCalled();
+    });
   });
 
   describe('getColumns()', function() {

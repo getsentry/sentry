@@ -51,7 +51,7 @@ def _get_frame_paths(event):
 def _get_commits(releases):
     return list(
         Commit.objects.filter(
-            releasecommit=ReleaseCommit.objects.filter(release__in=releases)
+            releasecommit__in=ReleaseCommit.objects.filter(release__in=releases)
         ).select_related("author")
     )
 
