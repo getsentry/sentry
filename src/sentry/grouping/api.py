@@ -129,22 +129,9 @@ def get_fingerprinting_config_for_project(project):
 
 
 def apply_server_fingerprinting(event, config):
-    fingerprint = event["fingerprint"]
-    if not any(x in DEFAULT_FINGERPRINT_VALUES for x in fingerprint):
-        return
-
-    new_values = config.get_fingerprint_values_for_event(event)
-    if new_values is None:
-        return
-
-    new_fingerprint = []
-    for value in fingerprint:
-        if value in DEFAULT_FINGERPRINT_VALUES:
-            new_fingerprint.extend(new_values)
-        else:
-            new_fingerprint.append(value)
-
-    event["fingerprint"] = new_fingerprint
+    new_fingerprint = config.get_fingerprint_values_for_event(event)
+    if new_fingerprint is not None:
+        event["fingerprint"] = new_fingerprint
 
 
 def _get_calculated_grouping_variants_for_event(event, config):
