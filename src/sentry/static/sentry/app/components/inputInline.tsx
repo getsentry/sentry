@@ -52,8 +52,8 @@ class InputInline extends React.Component<Props, State> {
   static setValueOnEvent(
     event: React.FormEvent<HTMLDivElement>
   ): React.FormEvent<HTMLInputElement> {
-    (event.target as any).value = (event.target as any).innerHTML;
-    (event.currentTarget as any).value = (event.currentTarget as any).innerHTML;
+    (event.target as any).value = (event.target as any).textContent;
+    (event.currentTarget as any).value = (event.currentTarget as any).textContent;
     return event as React.FormEvent<HTMLInputElement>;
   }
 
