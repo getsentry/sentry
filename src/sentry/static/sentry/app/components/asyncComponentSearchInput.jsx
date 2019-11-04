@@ -50,7 +50,10 @@ class AsyncComponentSearchInput extends React.Component {
       },
       success: (data, _, jqXHR) => {
         this.setState({busy: false});
-        this.props.onSuccess(data, jqXHR);
+        // only update data if the request's query matches the current query
+        if (this.state.query === searchQuery) {
+          this.props.onSuccess(data, jqXHR);
+        }
       },
       error: () => {
         this.setState({busy: false});
