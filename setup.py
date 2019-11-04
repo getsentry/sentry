@@ -145,8 +145,10 @@ setup(
             "jira = new_sentry_plugins.jira",
             "sessionstack = new_sentry_plugins.sessionstack",
         ],
+        "sentry.plugins": [
+            "amazon_sqs = sentry_plugins.amazon_sqs.plugin:AmazonSQSPlugin",
+        ],
         "sentry.new_plugins": [
-            "amazon_sqs = new_sentry_plugins.amazon_sqs.plugin:AmazonSQSPlugin",
             "asana = new_sentry_plugins.asana.plugin:AsanaPlugin",
             "bitbucket = new_sentry_plugins.bitbucket.plugin:BitbucketPlugin",
             "clubhouse = new_sentry_plugins.clubhouse.plugin:ClubhousePlugin",

@@ -11,7 +11,7 @@ from sentry.utils.sdk import configure_sdk
 from sentry.utils.warnings import DeprecatedSettingWarning
 
 
-def register_plugins(settings, test_plugins=False):
+def register_plugins(settings, plugins_moved=None):
     from pkg_resources import iter_entry_points
     from sentry.plugins.base import plugins
 
@@ -20,9 +20,10 @@ def register_plugins(settings, test_plugins=False):
     #         'phabricator = sentry_phabricator.plugins:PhabricatorPlugin'
     #     ],
     # },
-    # TODO (Steve): Remove option for test_plugins
-    entry_point = "sentry.new_plugins" if test_plugins else "sentry.plugins"
-    for ep in iter_entry_points(entry_point):
+    for ep in iter_entry_points("sentry.plugins"):
+        # TODO (Steve): Remove if condition
+        if plugins_moved and ep.name not in plugins_moved:
+            continue
         try:
             plugin = ep.load()
         except Exception:
@@ -33,6 +34,20 @@ def register_plugins(settings, test_plugins=False):
             )
         else:
             plugins.register(plugin)
+
+    # TODO (Steve): Remove logic below
+    if plugins_moved:
+        for ep in iter_entry_points("sentry.new_plugins"):
+            try:
+                plugin = ep.load()
+            except Exception:
+                import traceback
+
+                click.echo(
+                    "Failed to load plugin %r:\n%s" % (ep.name, traceback.format_exc()), err=True
+                )
+            else:
+                plugins.register(plugin)
 
     for plugin in plugins.all(version=None):
         init_plugin(plugin)
@@ -309,7 +324,9 @@ def initialize_app(config, skip_service_validation=False):
 
     bind_cache_to_option_store()
 
-    register_plugins(settings)
+    register_plugins(settings, plugins_moved=[
+        'amazon_sqs'
+    ])
 
     initialize_receivers()
 

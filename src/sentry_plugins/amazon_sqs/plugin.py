@@ -4,9 +4,9 @@ import logging
 
 import boto3
 from botocore.client import ClientError
-from new_sentry_plugins.base import CorePluginMixin
+from sentry_plugins.base import CorePluginMixin
 from sentry.plugins.bases.data_forwarding import DataForwardingPlugin
-from new_sentry_plugins.utils import get_secret_field_config
+from sentry_plugins.utils import get_secret_field_config
 from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
@@ -93,7 +93,7 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
             if e.message.startswith("An error occurred (AccessDenied)"):
                 # If there's an issue with the user's token then we can't do
                 # anything to recover. Just log and continue.
-                metrics_name = "new_sentry_plugins.amazon_sqs.access_token_invalid"
+                metrics_name = "sentry_plugins.amazon_sqs.access_token_invalid"
                 logger.info(
                     metrics_name,
                     extra={
@@ -113,7 +113,7 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
                 )
                 return False
             elif e.message.endswith("must contain the parameter MessageGroupId."):
-                metrics_name = "new_sentry_plugins.amazon_sqs.missing_message_group_id"
+                metrics_name = "sentry_plugins.amazon_sqs.missing_message_group_id"
                 logger.info(
                     metrics_name,
                     extra={
