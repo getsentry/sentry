@@ -182,7 +182,7 @@ function routes() {
             path=":appId/"
             name="Details"
             componentPromise={() =>
-              import(/* webpackChunkName: "ApiApplicationDetails" */ 'app/views/settings/account/apiApplicationDetails')
+              import(/* webpackChunkName: "ApiApplicationDetails" */ 'app/views/settings/account/apiApplications/details')
             }
             component={errorHandler(LazyLoad)}
           />

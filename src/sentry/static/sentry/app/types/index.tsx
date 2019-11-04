@@ -549,6 +549,18 @@ export type InternalAppApiToken = BaseApiToken & {
   refreshToken: string;
 };
 
+export type ApiApplication = {
+  allowedOrigins: string[];
+  clientID: string;
+  clientSecret: string | null;
+  homepageUrl: string | null;
+  id: string;
+  name: string;
+  privacyUrl: string | null;
+  redirectUris: string[];
+  termsUrl: string | null;
+};
+
 export type UserReport = {
   id: string;
   eventID: string;
