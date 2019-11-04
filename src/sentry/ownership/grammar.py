@@ -1,10 +1,10 @@
 from __future__ import absolute_import
 
 from collections import namedtuple
-from fnmatch import fnmatch
 from parsimonious.grammar import Grammar, NodeVisitor
 from parsimonious.exceptions import ParseError  # noqa
 from sentry.utils.safe import get_path
+from sentry.utils.glob import glob_match
 
 __all__ = ("parse_rules", "dump_schema", "load_schema")
 
@@ -90,7 +90,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
             url = data["request"]["url"]
         except KeyError:
             return False
-        return fnmatch(url, self.pattern)
+        return glob_match(url, self.pattern, ignorecase=True)
 
     def test_path(self, data):
         for frame in _iter_frames(data):
@@ -99,11 +99,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
             if not filename:
                 continue
 
-            # fnmatch keeps it's own internal cache, so
-            # there isn't any optimization we can do here
-            # by using fnmatch.translate before and compiling
-            # our own regex.
-            if fnmatch(filename, self.pattern):
+            if glob_match(filename, self.pattern, ignorecase=True, path_normalize=True):
                 return True
 
         return False
