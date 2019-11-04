@@ -1,4 +1,3 @@
-import {Flex} from 'grid-emotion';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -147,10 +146,10 @@ class SearchResult extends React.Component {
 
   render() {
     return (
-      <Flex justify="space-between" align="center">
+      <Wrapper>
         <Content>{this.renderContent()}</Content>
         {this.renderResultType()}
-      </Flex>
+      </Wrapper>
     );
   }
 }
@@ -174,8 +173,15 @@ const BadgeDetail = styled('div')`
   color: ${p => (p.highlighted ? p.theme.purpleDarkest : null)};
 `;
 
-const Content = styled(props => <Flex direction="column" {...props} />)`
-  /* stylelint-disable-next-line no-empty-block */
+const Wrapper = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const Content = styled('div')`
+  display: flex;
+  flex-direction: column;
 `;
 
 const ResultTypeIcon = styled(InlineSvg)`
