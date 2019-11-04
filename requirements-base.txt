@@ -9,7 +9,6 @@ confluent-kafka==0.11.5
 croniter>=0.3.26,<0.4.0
 cssutils==1.0.2
 django-crispy-forms==1.6.1
-django-jsonfield>=0.9.13,<0.9.14
 django-picklefield>=0.3.0,<1.1.0
 django-sudo>=2.1.0,<3.0.0
 Django>=1.8,<1.9
