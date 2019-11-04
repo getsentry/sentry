@@ -21,7 +21,7 @@ import sentry.db.models.fields.bounded
 import sentry.models.useremail
 import sentry.models.broadcast
 import sentry.db.models.fields.array
-import jsonfield.fields
+import sentry.db.models.fields.jsonfield
 import sentry.models.servicehook
 import sentry.db.models.fields.foreignkey
 import django.db.models.deletion
@@ -771,7 +771,7 @@ class Migration(migrations.Migration):
                 ('id', sentry.db.models.fields.bounded.BoundedBigAutoField(
                     serialize=False, primary_key=True)),
                 ('name', models.CharField(max_length=255)),
-                ('query', jsonfield.fields.JSONField(default=dict)),
+                ('query', sentry.db.models.fields.jsonfield.JSONField(default=dict)),
                 ('date_created', models.DateTimeField(auto_now_add=True)),
                 ('date_updated', models.DateTimeField(auto_now=True)),
                 ('created_by', sentry.db.models.fields.foreignkey.FlexibleForeignKey(
@@ -950,7 +950,7 @@ class Migration(migrations.Migration):
                 ('date_added', models.DateTimeField(default=django.utils.timezone.now)),
                 ('title', models.TextField(null=True)),
                 ('description', models.TextField(null=True)),
-                ('metadata', jsonfield.fields.JSONField(null=True)),
+                ('metadata', sentry.db.models.fields.jsonfield.JSONField(null=True)),
             ],
             options={
                 'db_table': 'sentry_externalissue',
@@ -1065,7 +1065,7 @@ class Migration(migrations.Migration):
                 ('date_completed', models.DateTimeField(default=django.utils.timezone.now)),
                 ('complete', models.BooleanField(default=False)),
                 ('applicable', models.BooleanField(default=True)),
-                ('data', jsonfield.fields.JSONField(default=dict)),
+                ('data', sentry.db.models.fields.jsonfield.JSONField(default=dict)),
             ],
             options={
                 'db_table': 'sentry_featureadoption',
@@ -1079,7 +1079,7 @@ class Migration(migrations.Migration):
                 ('name', models.TextField()),
                 ('type', models.CharField(max_length=64)),
                 ('timestamp', models.DateTimeField(default=django.utils.timezone.now, db_index=True)),
-                ('headers', jsonfield.fields.JSONField(default=dict)),
+                ('headers', sentry.db.models.fields.jsonfield.JSONField(default=dict)),
                 ('size', sentry.db.models.fields.bounded.BoundedPositiveIntegerField(null=True)),
                 ('checksum', models.CharField(max_length=40, null=True, db_index=True)),
                 ('path', models.TextField(null=True)),
@@ -1256,7 +1256,7 @@ class Migration(migrations.Migration):
                 ('linked_id', sentry.db.models.fields.bounded.BoundedBigIntegerField()),
                 ('relationship', sentry.db.models.fields.bounded.BoundedPositiveIntegerField(
                     default=2, choices=[(1, 'Resolves'), (2, 'Linked')])),
-                ('data', jsonfield.fields.JSONField(default=dict)),
+                ('data', sentry.db.models.fields.jsonfield.JSONField(default=dict)),
                 ('datetime', models.DateTimeField(default=django.utils.timezone.now, db_index=True)),
             ],
             options={
@@ -1373,7 +1373,7 @@ class Migration(migrations.Migration):
                 ('window', sentry.db.models.fields.bounded.BoundedPositiveIntegerField(null=True)),
                 ('user_count', sentry.db.models.fields.bounded.BoundedPositiveIntegerField(null=True)),
                 ('user_window', sentry.db.models.fields.bounded.BoundedPositiveIntegerField(null=True)),
-                ('state', jsonfield.fields.JSONField(null=True)),
+                ('state', sentry.db.models.fields.jsonfield.JSONField(null=True)),
                 ('actor_id', sentry.db.models.fields.bounded.BoundedPositiveIntegerField(null=True)),
                 ('group', sentry.db.models.fields.foreignkey.FlexibleForeignKey(
                     to='sentry.Group', unique=True)),
@@ -1749,7 +1749,7 @@ class Migration(migrations.Migration):
                     choices=[(1, b'Complete'), (2, b'Pending'), (3, b'Skipped')])),
                 ('date_completed', models.DateTimeField(default=django.utils.timezone.now)),
                 ('project_id', sentry.db.models.fields.bounded.BoundedBigIntegerField(null=True, blank=True)),
-                ('data', jsonfield.fields.JSONField(default=dict)),
+                ('data', sentry.db.models.fields.jsonfield.JSONField(default=dict)),
                 ('organization', sentry.db.models.fields.foreignkey.FlexibleForeignKey(to='sentry.Organization')),
                 ('user', sentry.db.models.fields.foreignkey.FlexibleForeignKey(
                     to=settings.AUTH_USER_MODEL, null=True)),
@@ -1877,7 +1877,7 @@ class Migration(migrations.Migration):
                 ('cpu_name', models.CharField(max_length=40)),
                 ('debug_id', models.CharField(max_length=64, db_column=b'uuid')),
                 ('code_id', models.CharField(max_length=64, null=True)),
-                ('data', jsonfield.fields.JSONField(null=True)),
+                ('data', sentry.db.models.fields.jsonfield.JSONField(null=True)),
                 ('file', sentry.db.models.fields.foreignkey.FlexibleForeignKey(to='sentry.File')),
                 ('project', sentry.db.models.fields.foreignkey.FlexibleForeignKey(
                     to='sentry.Project', null=True)),
@@ -1914,7 +1914,7 @@ class Migration(migrations.Migration):
                 ('date_added', models.DateTimeField(default=django.utils.timezone.now, null=True)),
                 ('rate_limit_count', sentry.db.models.fields.bounded.BoundedPositiveIntegerField(null=True)),
                 ('rate_limit_window', sentry.db.models.fields.bounded.BoundedPositiveIntegerField(null=True)),
-                ('data', jsonfield.fields.JSONField(default=dict)),
+                ('data', sentry.db.models.fields.jsonfield.JSONField(default=dict)),
                 ('project', sentry.db.models.fields.foreignkey.FlexibleForeignKey(
                     related_name='key_set', to='sentry.Project')),
             ],
@@ -1941,7 +1941,7 @@ class Migration(migrations.Migration):
                 ('id', sentry.db.models.fields.bounded.BoundedBigAutoField(
                     serialize=False, primary_key=True)),
                 ('raw', models.TextField(null=True)),
-                ('schema', jsonfield.fields.JSONField(null=True)),
+                ('schema', sentry.db.models.fields.jsonfield.JSONField(null=True)),
                 ('fallthrough', models.BooleanField(default=True)),
                 ('date_created', models.DateTimeField(default=django.utils.timezone.now)),
                 ('last_updated', models.DateTimeField(default=django.utils.timezone.now)),
@@ -2020,7 +2020,7 @@ class Migration(migrations.Migration):
                 ('organization_id', sentry.db.models.fields.bounded.BoundedPositiveIntegerField(db_index=True)),
                 ('project_id', sentry.db.models.fields.bounded.BoundedPositiveIntegerField(db_index=True)),
                 ('feature', models.CharField(max_length=64)),
-                ('data', jsonfield.fields.JSONField(default={})),
+                ('data', sentry.db.models.fields.jsonfield.JSONField(default={})),
                 ('date_added', models.DateTimeField(default=django.utils.timezone.now)),
                 ('user', sentry.db.models.fields.foreignkey.FlexibleForeignKey(to=settings.AUTH_USER_MODEL)),
             ],
@@ -2118,7 +2118,7 @@ class Migration(migrations.Migration):
                 ('date_added', models.DateTimeField(default=django.utils.timezone.now)),
                 ('date_started', models.DateTimeField(null=True, blank=True)),
                 ('date_released', models.DateTimeField(null=True, blank=True)),
-                ('data', jsonfield.fields.JSONField(default={})),
+                ('data', sentry.db.models.fields.jsonfield.JSONField(default={})),
                 ('new_groups', sentry.db.models.fields.bounded.BoundedPositiveIntegerField(default=0)),
                 ('commit_count', sentry.db.models.fields.bounded.BoundedPositiveIntegerField(default=0, null=True)),
                 ('last_commit_id', sentry.db.models.fields.bounded.BoundedPositiveIntegerField(null=True)),
@@ -2241,7 +2241,7 @@ class Migration(migrations.Migration):
                 ('url', models.URLField(null=True)),
                 ('provider', models.CharField(max_length=64, null=True)),
                 ('external_id', models.CharField(max_length=64, null=True)),
-                ('config', jsonfield.fields.JSONField(default=dict)),
+                ('config', sentry.db.models.fields.jsonfield.JSONField(default=dict)),
                 ('status', sentry.db.models.fields.bounded.BoundedPositiveIntegerField(default=0, db_index=True, choices=[
                  (0, b'active'), (1, b'disabled'), (2, b'pending_deletion'), (3, b'deletion_in_progress')])),
                 ('date_added', models.DateTimeField(default=django.utils.timezone.now)),
@@ -2332,7 +2332,7 @@ class Migration(migrations.Migration):
                 ('date_scheduled', models.DateTimeField(
                     default=sentry.models.scheduledeletion.default_date_schedule)),
                 ('actor_id', sentry.db.models.fields.bounded.BoundedBigIntegerField(null=True)),
-                ('data', jsonfield.fields.JSONField(default={})),
+                ('data', sentry.db.models.fields.jsonfield.JSONField(default={})),
                 ('in_progress', models.BooleanField(default=False)),
                 ('aborted', models.BooleanField(default=False)),
             ],
@@ -2346,7 +2346,7 @@ class Migration(migrations.Migration):
                 ('id', sentry.db.models.fields.bounded.BoundedBigAutoField(
                     serialize=False, primary_key=True)),
                 ('name', models.CharField(max_length=128)),
-                ('payload', jsonfield.fields.JSONField(default=dict)),
+                ('payload', sentry.db.models.fields.jsonfield.JSONField(default=dict)),
                 ('date_added', models.DateTimeField(default=django.utils.timezone.now)),
                 ('date_scheduled', models.DateTimeField()),
             ],
@@ -2692,7 +2692,7 @@ class Migration(migrations.Migration):
                 ('title', models.CharField(max_length=255)),
                 ('display_type', sentry.db.models.fields.bounded.BoundedPositiveIntegerField(choices=[(0, b'line'), (1, b'area'), (
                     2, b'stacked_area'), (3, b'bar'), (4, b'pie'), (5, b'table'), (6, b'world_map'), (7, b'percentage_area_chart')])),
-                ('display_options', jsonfield.fields.JSONField(default={})),
+                ('display_options', sentry.db.models.fields.jsonfield.JSONField(default={})),
                 ('date_added', models.DateTimeField(default=django.utils.timezone.now)),
                 ('status', sentry.db.models.fields.bounded.BoundedPositiveIntegerField(default=0, choices=[
                  (0, b'active'), (1, b'disabled'), (2, b'pending_deletion'), (3, b'deletion_in_progress')])),
@@ -2710,7 +2710,7 @@ class Migration(migrations.Migration):
                 ('type', sentry.db.models.fields.bounded.BoundedPositiveIntegerField(
                     choices=[(0, b'discover_saved_search')])),
                 ('name', models.CharField(max_length=255)),
-                ('data', jsonfield.fields.JSONField(default={})),
+                ('data', sentry.db.models.fields.jsonfield.JSONField(default={})),
                 ('order', sentry.db.models.fields.bounded.BoundedPositiveIntegerField()),
                 ('date_added', models.DateTimeField(default=django.utils.timezone.now)),
                 ('status', sentry.db.models.fields.bounded.BoundedPositiveIntegerField(default=0, choices=[
