@@ -25,7 +25,6 @@ class PagerDutyService(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_pagerdutyservice"
-        unique_together = (("service_id", "organization_integration"),)
 
 
 class PagerDutyServiceProject(Model):
