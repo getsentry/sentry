@@ -16,7 +16,7 @@ from sentry.models import (
 from sentry.testutils import APITestCase
 from uuid import uuid4
 
-from new_sentry_plugins.github.testutils import (
+from test_only_plugins.github.testutils import (
     INSTALLATION_EVENT_EXAMPLE,
     INSTALLATION_REPO_EVENT,
     PUSH_EVENT_EXAMPLE,

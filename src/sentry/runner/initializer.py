@@ -20,7 +20,8 @@ def register_plugins(settings, plugins_moved=None):
     #         'phabricator = sentry_phabricator.plugins:PhabricatorPlugin'
     #     ],
     # },
-    for ep in iter_entry_points("sentry.plugins"):
+    entry_point = "sentry.new_plugins" if plugins_moved else "sentry.plugins"
+    for ep in iter_entry_points(entry_point):
         # TODO (Steve): Remove if condition
         if plugins_moved and ep.name not in plugins_moved:
             continue
@@ -37,7 +38,7 @@ def register_plugins(settings, plugins_moved=None):
 
     # TODO (Steve): Remove logic below
     if plugins_moved:
-        for ep in iter_entry_points("sentry.new_plugins"):
+        for ep in iter_entry_points("sentry.test_only_plugins"):
             try:
                 plugin = ep.load()
             except Exception:
@@ -48,6 +49,8 @@ def register_plugins(settings, plugins_moved=None):
                 )
             else:
                 plugins.register(plugin)
+
+
 
     for plugin in plugins.all(version=None):
         init_plugin(plugin)

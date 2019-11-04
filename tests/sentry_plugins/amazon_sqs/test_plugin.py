@@ -7,7 +7,7 @@ from mock import patch
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
 
-from sentry_plugins.amazon_sqs.plugin import AmazonSQSPlugin
+from new_sentry_plugins.amazon_sqs.plugin import AmazonSQSPlugin
 
 
 class AmazonSQSPluginTest(PluginTestCase):
@@ -19,7 +19,7 @@ class AmazonSQSPluginTest(PluginTestCase):
         assert self.plugin.conf_key == "amazon-sqs"
 
     def test_entry_point(self):
-        self.assertPluginInstalled("amazon_sqs", self.plugin)
+        self.assertNewPluginInstalled("amazon_sqs", self.plugin)
 
     def run_test(self):
         self.plugin.set_option("access_key", "access-key", self.project)
@@ -59,7 +59,7 @@ class AmazonSQSPluginTest(PluginTestCase):
             MessageBody=json.dumps(self.plugin.get_event_payload(event)),
         )
 
-    @patch("sentry_plugins.amazon_sqs.plugin.logger")
+    @patch("new_sentry_plugins.amazon_sqs.plugin.logger")
     @patch("boto3.client")
     def test_token_error(self, mock_client, logger):
         mock_client.return_value.send_message.side_effect = ClientError(
@@ -75,10 +75,11 @@ class AmazonSQSPluginTest(PluginTestCase):
         self.run_test()
         assert len(logger.info.call_args_list) == 1
         assert (
-            logger.info.call_args_list[0][0][0] == "sentry_plugins.amazon_sqs.access_token_invalid"
+            logger.info.call_args_list[0][0][0]
+            == "new_sentry_plugins.amazon_sqs.access_token_invalid"
         )
 
-    @patch("sentry_plugins.amazon_sqs.plugin.logger")
+    @patch("new_sentry_plugins.amazon_sqs.plugin.logger")
     @patch("boto3.client")
     def test_message_group_error(self, mock_client, logger):
         mock_client.return_value.send_message.side_effect = ClientError(
@@ -96,7 +97,7 @@ class AmazonSQSPluginTest(PluginTestCase):
         assert len(logger.info.call_args_list) == 1
         assert (
             logger.info.call_args_list[0][0][0]
-            == "sentry_plugins.amazon_sqs.missing_message_group_id"
+            == "new_sentry_plugins.amazon_sqs.missing_message_group_id"
         )
 
     @patch("uuid.uuid4")
