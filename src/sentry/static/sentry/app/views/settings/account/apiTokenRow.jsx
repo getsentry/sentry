@@ -91,15 +91,15 @@ const ScopeList = styled('div')`
 `;
 
 const Time = styled('time')`
-  font-size: 0.9em;
+  font-size: ${p => p.theme.fontSizeRelativeSmaller};
   line-height: 1.4;
 `;
 
 const Heading = styled('div')`
-  font-size: 13px;
+  font-size: ${p => p.theme.fontSizeMedium};
   text-transform: uppercase;
   color: ${p => p.theme.gray3};
-  margin-bottom: 8px;
+  margin-bottom: ${space(1)};
 `;
 
 export default ApiTokenRow;
