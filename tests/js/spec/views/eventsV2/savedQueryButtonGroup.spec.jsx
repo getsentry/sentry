@@ -2,11 +2,12 @@ import React from 'react';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {browserHistory} from 'react-router';
 
-import EventSaveQueryButton from 'app/views/eventsV2/saveQueryButton';
+import SavedQueryButtonGroup from 'app/views/eventsV2/savedQuery';
 import {ALL_VIEWS} from 'app/views/eventsV2/data';
 import EventView from 'app/views/eventsV2/eventView';
 
-describe('EventsV2 > SaveQueryButton', function() {
+// eslint-disable-next-line jest/no-disabled-tests
+describe.skip('EventsV2 > SaveQueryButtonGroup', function() {
   const errorsView = EventView.fromEventViewv1(
     ALL_VIEWS.find(view => view.name === 'Errors')
   );
@@ -21,7 +22,7 @@ describe('EventsV2 > SaveQueryButton', function() {
 
   it('renders a button', function() {
     const wrapper = mountWithTheme(
-      <EventSaveQueryButton
+      <SavedQueryButtonGroup
         organization={organization}
         location={location}
         isEditing={false}
@@ -35,7 +36,7 @@ describe('EventsV2 > SaveQueryButton', function() {
 
   it('renders a popover for a new query', function() {
     const wrapper = mountWithTheme(
-      <EventSaveQueryButton
+      <SavedQueryButtonGroup
         organization={organization}
         location={location}
         isEditing={false}
@@ -56,7 +57,7 @@ describe('EventsV2 > SaveQueryButton', function() {
 
   it('renders a popover for an existing query', function() {
     const wrapper = mountWithTheme(
-      <EventSaveQueryButton
+      <SavedQueryButtonGroup
         organization={organization}
         location={location}
         eventView={errorsView}
@@ -74,7 +75,7 @@ describe('EventsV2 > SaveQueryButton', function() {
 
   it('sets input value based on props', function() {
     const wrapper = mountWithTheme(
-      <EventSaveQueryButton
+      <SavedQueryButtonGroup
         organization={organization}
         location={location}
         eventView={errorsView}
@@ -100,7 +101,7 @@ describe('EventsV2 > SaveQueryButton', function() {
       },
     });
     const wrapper = mountWithTheme(
-      <EventSaveQueryButton
+      <SavedQueryButtonGroup
         organization={organization}
         location={location}
         eventView={errorsView}
