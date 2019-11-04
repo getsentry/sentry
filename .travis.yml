@@ -112,7 +112,6 @@ base_acceptance: &acceptance_default
     - rm ~/chromedriver_linux64.zip
     - sudo install -m755 ~/chromedriver /usr/local/bin/
   before_script:
-    - pip freeze
     - psql -c 'create database sentry;' -U postgres
 
 
