@@ -29,12 +29,19 @@ class GlobInput(object):
         [GlobInput("foo/hello.PY", "**/*.py", doublestar=True), False],
         [GlobInput("foo/hello.PY", "**/*.py", ignorecase=True), True],
         [GlobInput("foo/hello.PY", "**/*.py", doublestar=True, ignorecase=True), True],
-        [GlobInput("foo\\hello.PY", "**/*.py", ignorecase=True), False],
-        [GlobInput("foo\\hello.PY", "**/*.py", doublestar=True, ignorecase=True), False],
-        [GlobInput("foo\\hello.PY", "**/*.py", ignorecase=True, path_normalize=True), True],
+        [GlobInput("root\\foo\\hello.PY", "root/**/*.py", ignorecase=True), False],
+        [GlobInput("root\\foo\\hello.PY", "root/**/*.py", doublestar=True, ignorecase=True), False],
+        [
+            GlobInput("root\\foo\\hello.PY", "root/**/*.py", ignorecase=True, path_normalize=True),
+            True,
+        ],
         [
             GlobInput(
-                "foo\\hello.PY", "**/*.py", doublestar=True, ignorecase=True, path_normalize=True
+                "root\\foo\\hello.PY",
+                "root/**/*.py",
+                doublestar=True,
+                ignorecase=True,
+                path_normalize=True,
             ),
             True,
         ],

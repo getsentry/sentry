@@ -18,14 +18,13 @@ class PagerDutyService(Model):
 
     organization_integration = FlexibleForeignKey("sentry.OrganizationIntegration")
     integration_key = models.CharField(max_length=255)
-    service_id = models.CharField(max_length=255)
+    service_id = models.CharField(max_length=255, null=True)
     service_name = models.CharField(max_length=255)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_pagerdutyservice"
-        unique_together = (("service_id", "organization_integration"),)
 
 
 class PagerDutyServiceProject(Model):
