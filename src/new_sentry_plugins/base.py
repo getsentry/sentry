@@ -7,7 +7,11 @@ import sys
 
 from sentry.exceptions import InvalidIdentity, PluginError
 
-from new_sentry_plugins.constants import ERR_INTERNAL, ERR_UNAUTHORIZED, ERR_UNSUPPORTED_RESPONSE_TYPE
+from new_sentry_plugins.constants import (
+    ERR_INTERNAL,
+    ERR_UNAUTHORIZED,
+    ERR_UNSUPPORTED_RESPONSE_TYPE,
+)
 from new_sentry_plugins.exceptions import (
     ApiError,
     ApiHostError,

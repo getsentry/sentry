@@ -15,7 +15,11 @@ class AsanaClient(AuthApiClient):
         return self.get("/tasks/%s" % issue_id)
 
     def create_issue(self, workspace, data):
-        asana_data = {"name": data["title"], "notes": data["description"], "workspace": text_type(workspace)}
+        asana_data = {
+            "name": data["title"],
+            "notes": data["description"],
+            "workspace": text_type(workspace),
+        }
         if data.get("project"):
             asana_data["projects"] = [text_type(data["project"])]
 

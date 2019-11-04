@@ -1,12 +1,12 @@
 from __future__ import absolute_import
 
+from collections import OrderedDict
 import logging
 import json
 import requests
 
 from BeautifulSoup import BeautifulStoneSoup
 from cached_property import cached_property
-from django.utils.datastructures import SortedDict
 from requests.exceptions import ConnectionError, HTTPError
 
 from sentry.http import build_session
@@ -59,7 +59,7 @@ class BaseApiResponse(object):
         # to decode it anyways
         if "application/json" not in response.headers["Content-Type"]:
             try:
-                data = json.loads(response.text, object_pairs_hook=SortedDict)
+                data = json.loads(response.text, object_pairs_hook=OrderedDict)
             except (TypeError, ValueError):
                 if allow_text:
                     return TextApiResponse(response.text, response.headers, response.status_code)
@@ -67,7 +67,7 @@ class BaseApiResponse(object):
                     response.headers["Content-Type"], response.status_code
                 )
         else:
-            data = json.loads(response.text, object_pairs_hook=SortedDict)
+            data = json.loads(response.text, object_pairs_hook=OrderedDict)
 
         if isinstance(data, dict):
             return MappingApiResponse(data, response.headers, response.status_code)
