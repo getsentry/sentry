@@ -50,8 +50,6 @@ def register_plugins(settings, plugins_moved=None):
             else:
                 plugins.register(plugin)
 
-
-
     for plugin in plugins.all(version=None):
         init_plugin(plugin)
 
@@ -327,9 +325,7 @@ def initialize_app(config, skip_service_validation=False):
 
     bind_cache_to_option_store()
 
-    register_plugins(settings, plugins_moved=[
-        'amazon_sqs'
-    ])
+    register_plugins(settings, plugins_moved=["amazon_sqs"])
 
     initialize_receivers()
 
