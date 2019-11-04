@@ -1,20 +1,20 @@
 ---
-created: '2019-11-01T11:48:29.596222Z'
+created: '2019-11-01T11:48:30.045123Z'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
 config:
   rules:
   - fingerprint:
-    - database-unavailable
+    - what-is-love
     matchers:
-    - - type
-      - DatabaseUnavailable
+    - - message
+      - '*love*'
   version: 1
 fingerprint:
-- database-unavailable
+- what-is-love
 variants:
   custom-fingerprint:
     type: custom-fingerprint
     values:
-    - database-unavailable
+    - what-is-love
