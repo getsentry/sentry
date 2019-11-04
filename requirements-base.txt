@@ -21,7 +21,7 @@ futures>=3.2.0,<4.0.0
 # optional but needed for google stuff below
 google-api-core==1.14.3
 google-auth==1.6.3
-google-cloud-core==1.0.3
+google-cloud-core==0.29.1
 googleapis-common-protos==1.6.0
 # optional
 google-cloud-bigtable==0.32.2
