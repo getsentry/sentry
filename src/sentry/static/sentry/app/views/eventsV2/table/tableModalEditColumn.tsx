@@ -179,8 +179,8 @@ class TableModalEditColumnBodyForm extends React.Component<
             <FormRowItemLeft>
               <SelectField
                 name="aggregation"
-                label={t('Select')}
-                placeholder="Aggregate"
+                label={t('Aggregate')}
+                placeholder="Select Aggregate"
                 choices={this.state.aggregations}
                 onChange={this.onChangeAggregation}
               />
@@ -189,8 +189,8 @@ class TableModalEditColumnBodyForm extends React.Component<
               <SelectField
                 required
                 name="field"
-                label={t('Column')}
-                placeholder="Column"
+                label={t('Column Type')}
+                placeholder="Select Column Type"
                 choices={this.state.fields}
                 onChange={this.onChangeField}
               />
@@ -201,8 +201,8 @@ class TableModalEditColumnBodyForm extends React.Component<
               required
               name="name"
               value={this.state.name}
-              label={t('Column Name')}
-              placeholder="Column Name"
+              label={t('Display Name')}
+              placeholder="Display Name"
               onChange={this.onChangeName}
             />
           </FormRow>
