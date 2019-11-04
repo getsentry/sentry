@@ -20,6 +20,7 @@ from sentry.incidents.models import (
     IncidentStatus,
     IncidentSuspectCommit,
 )
+from sentry.models import Project
 from sentry.snuba.query_subscription_consumer import register_subscriber
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils.email import MessageBuilder
@@ -181,16 +182,24 @@ def handle_snuba_query_update(subscription_update, subscription):
     default_retry_delay=60,
     max_retries=5,
 )
-def handle_trigger_action(action_id, incident_id, method):
+def handle_trigger_action(action_id, incident_id, project_id, method):
     try:
-        action = AlertRuleTriggerAction.objects.get(id=action_id)
+        action = AlertRuleTriggerAction.objects.select_related(
+            "alert_rule_trigger", "alert_rule_trigger__alert_rule"
+        ).get(id=action_id)
     except AlertRuleTriggerAction.DoesNotExist:
         metrics.incr("incidents.alert_rules.skipping_missing_action")
         return
     try:
-        incident = Incident.objects.get(id=incident_id)
+        incident = Incident.objects.select_related("organization").get(id=incident_id)
     except Incident.DoesNotExist:
         metrics.incr("incidents.alert_rules.skipping_missing_incident")
         return
 
-    getattr(action, method)(incident)
+    try:
+        project = Project.objects.get(id=project_id)
+    except Project.DoesNotExist:
+        metrics.incr("incidents.alert_rules.skipping_missing_project")
+        return
+
+    getattr(action, method)(incident, project)

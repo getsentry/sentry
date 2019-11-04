@@ -88,7 +88,7 @@ class VictorOpsPlugin(CorePluginMixin, NotifyPlugin):
                 timestamp=int(event.datetime.strftime("%s")),
                 issue_url=group.get_absolute_url(),
                 issue_id=group.id,
-                project_id=group.project.id
+                project_id=group.project.id,
             )
         except ApiError as e:
             message = "Could not communicate with victorops. Got %s" % e
