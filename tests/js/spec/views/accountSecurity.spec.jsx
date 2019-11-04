@@ -60,7 +60,7 @@ describe('AccountSecurity', function() {
 
     // Remove button
     expect(wrapper.find('Button[icon="icon-trash"]')).toHaveLength(1);
-    expect(wrapper.find('CircleIndicator').prop('enabled')).toBe(true);
+    expect(wrapper.find('AuthenticatorStatus').prop('enabled')).toBe(true);
 
     expect(wrapper.find('TwoFactorRequired')).toHaveLength(0);
   });
@@ -89,7 +89,7 @@ describe('AccountSecurity', function() {
       </AccountSecurityWrapper>,
       TestStubs.routerContext()
     );
-    expect(wrapper.find('CircleIndicator').prop('enabled')).toBe(true);
+    expect(wrapper.find('AuthenticatorStatus').prop('enabled')).toBe(true);
 
     // This will open confirm modal
     wrapper.find('Button[icon="icon-trash"]').simulate('click');
@@ -103,7 +103,7 @@ describe('AccountSecurity', function() {
 
     setTimeout(() => {
       wrapper.update();
-      expect(wrapper.find('CircleIndicator').prop('enabled')).toBe(false);
+      expect(wrapper.find('AuthenticatorStatus').prop('enabled')).toBe(false);
     }, 1);
     // still has another 2fa method
     expect(wrapper.find('TwoFactorRequired')).toHaveLength(0);
@@ -140,7 +140,7 @@ describe('AccountSecurity', function() {
 
     expect(
       wrapper
-        .find('CircleIndicator')
+        .find('AuthenticatorStatus')
         .first()
         .prop('enabled')
     ).toBe(true);
@@ -199,7 +199,7 @@ describe('AccountSecurity', function() {
       </AccountSecurityWrapper>,
       TestStubs.routerContext()
     );
-    expect(wrapper.find('CircleIndicator').prop('enabled')).toBe(true);
+    expect(wrapper.find('AuthenticatorStatus').prop('enabled')).toBe(true);
 
     expect(wrapper.find('RemoveConfirm').prop('disabled')).toBe(true);
     expect(wrapper.find('Tooltip').prop('disabled')).toBe(false);
@@ -233,7 +233,7 @@ describe('AccountSecurity', function() {
         .first()
         .prop('children')
     ).toBe('Add');
-    expect(wrapper.find('CircleIndicator').prop('enabled')).toBe(false);
+    expect(wrapper.find('AuthenticatorStatus').prop('enabled')).toBe(false);
     // user is not 2fa enrolled
     expect(wrapper.find('TwoFactorRequired')).toHaveLength(1);
   });
@@ -255,7 +255,7 @@ describe('AccountSecurity', function() {
 
     // There should be an View Codes button
     expect(wrapper.find('Button[className="details-button"]')).toHaveLength(0);
-    expect(wrapper.find('CircleIndicator').prop('enabled')).toBe(false);
+    expect(wrapper.find('AuthenticatorStatus').prop('enabled')).toBe(false);
     // user is not 2fa enrolled
     expect(wrapper.find('TwoFactorRequired')).toHaveLength(1);
   });
@@ -281,7 +281,7 @@ describe('AccountSecurity', function() {
         .first()
         .prop('children')
     ).toBe('View Codes');
-    expect(wrapper.find('CircleIndicator').prop('enabled')).toBe(true);
+    expect(wrapper.find('AuthenticatorStatus').prop('enabled')).toBe(true);
   });
 
   it('can change password', function() {

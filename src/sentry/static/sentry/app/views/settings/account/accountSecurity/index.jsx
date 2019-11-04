@@ -1,8 +1,8 @@
-import {Box, Flex} from 'grid-emotion';
+import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import PropTypes from 'prop-types';
 
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
@@ -11,14 +11,14 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import Field from 'app/views/settings/components/forms/field';
 import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import PasswordForm from 'app/views/settings/account/passwordForm';
+import RemoveConfirm from 'app/views/settings/account/accountSecurity/components/removeConfirm';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import Tooltip from 'app/components/tooltip';
 import TwoFactorRequired from 'app/views/settings/account/accountSecurity/components/twoFactorRequired';
-import RemoveConfirm from 'app/views/settings/account/accountSecurity/components/removeConfirm';
-import PasswordForm from 'app/views/settings/account/passwordForm';
 import recreateRoute from 'app/utils/recreateRoute';
+import space from 'app/styles/space';
 
 /**
  * Lists 2fa devices + password change form
@@ -102,9 +102,7 @@ class AccountSecurity extends AsyncView {
         </Panel>
 
         <Panel>
-          <PanelHeader>
-            <Box>{t('Two-Factor Authentication')}</Box>
-          </PanelHeader>
+          <PanelHeader>{t('Two-Factor Authentication')}</PanelHeader>
 
           {isEmpty && (
             <EmptyMessage>{t('No available authenticators to add')}</EmptyMessage>
@@ -123,12 +121,12 @@ class AccountSecurity extends AsyncView {
                   name,
                 } = auth;
                 return (
-                  <PanelItem key={id} p={0} direction="column">
-                    <Flex flex="1" p={2} align="center">
-                      <Box flex="1">
-                        <CircleIndicator css={{marginRight: 6}} enabled={isEnrolled} />
+                  <AuthenticatorPanelItem key={id}>
+                    <AuthenticatorHeader>
+                      <AuthenticatorTitle>
+                        <AuthenticatorStatus enabled={isEnrolled} />
                         <AuthenticatorName>{name}</AuthenticatorName>
-                      </Box>
+                      </AuthenticatorTitle>
 
                       {!isBackupInterface && !isEnrolled && (
                         <Button
@@ -162,22 +160,16 @@ class AccountSecurity extends AsyncView {
                             onConfirm={() => onDisable(auth)}
                             disabled={deleteDisabled}
                           >
-                            <Button
-                              css={{marginLeft: 6}}
-                              size="small"
-                              icon="icon-trash"
-                            />
+                            <TrashButton size="small" icon="icon-trash" />
                           </RemoveConfirm>
                         </Tooltip>
                       )}
 
                       {isBackupInterface && !isEnrolled ? t('requires 2FA') : null}
-                    </Flex>
+                    </AuthenticatorHeader>
 
-                    <Box p={2} pt={0}>
-                      <TextBlock css={{marginBottom: 0}}>{description}</TextBlock>
-                    </Box>
-                  </PanelItem>
+                    <Description>{description}</Description>
+                  </AuthenticatorPanelItem>
                 );
               })}
           </PanelBody>
@@ -189,6 +181,33 @@ class AccountSecurity extends AsyncView {
 
 const AuthenticatorName = styled('span')`
   font-size: 1.2em;
+`;
+
+const AuthenticatorPanelItem = styled(PanelItem)`
+  flex-direction: column;
+`;
+
+const AuthenticatorHeader = styled('div')`
+  display: flex;
+  flex: 1;
+  align-items: center;
+`;
+
+const AuthenticatorTitle = styled('div')`
+  flex: 1;
+`;
+
+const AuthenticatorStatus = styled(CircleIndicator)`
+  margin-right: ${space(1)};
+`;
+
+const TrashButton = styled(Button)`
+  margin-right: ${space(1)};
+`;
+
+const Description = styled(TextBlock)`
+  margin-top: ${space(2)};
+  margin-bottom: 0;
 `;
 
 export default AccountSecurity;
