@@ -106,7 +106,7 @@ class SentryAppWebhookRequestsBuffer(object):
 
         time = timezone.now()
         request_data = {
-            "date": six.binary_type(time),
+            "date": six.text_type(time),
             "response_code": response_code,
             "webhook_url": url,
         }
