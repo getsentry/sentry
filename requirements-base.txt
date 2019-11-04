@@ -21,7 +21,6 @@ futures>=3.2.0,<4.0.0
 # optional but needed for google stuff below
 google-api-core==1.14.3
 google-auth==1.6.3
-google-cloud-bigquery==1.10.0
 google-cloud-core>=0.29.1,<=1.0.3
 googleapis-common-protos>=1.5.8,<=1.6.0
 # optional
