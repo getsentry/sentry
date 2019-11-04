@@ -1,19 +1,22 @@
-import {Box, Flex} from 'grid-emotion';
 import React from 'react';
 
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'app/actionCreators/indicator';
 import {t, tct} from 'app/locale';
 import ApiTokenRow from 'app/views/settings/account/apiTokenRow';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import IndicatorStore from 'app/stores/indicatorStore';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 
 class ApiTokens extends AsyncView {
   getTitle() {
-    return 'API Tokens';
+    return t('API Tokens');
   }
 
   getDefaultState() {
@@ -29,29 +32,28 @@ class ApiTokens extends AsyncView {
   }
 
   handleRemoveToken = token => {
-    const loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+    addLoadingMessage();
     const oldTokenList = this.state.tokenList;
 
     this.setState(
       state => ({
         tokenList: state.tokenList.filter(tk => tk.token !== token.token),
       }),
-      () =>
-        this.api.request('/api-tokens/', {
-          method: 'DELETE',
-          data: {token: token.token},
-          success: data => {
-            IndicatorStore.remove(loadingIndicator);
-            IndicatorStore.addSuccess(t('Removed token'));
-          },
-          error: () => {
-            IndicatorStore.remove(loadingIndicator);
-            IndicatorStore.addError(t('Unable to remove token. Please try again.'));
-            this.setState({
-              tokenList: oldTokenList,
-            });
-          },
-        })
+      async () => {
+        try {
+          await this.api.requestPromise('/api-tokens/', {
+            method: 'DELETE',
+            data: {token: token.token},
+          });
+
+          addSuccessMessage(t('Removed token'));
+        } catch (_err) {
+          addErrorMessage(t('Unable to remove token. Please try again.'));
+          this.setState({
+            tokenList: oldTokenList,
+          });
+        }
+      }
     );
   };
 
@@ -65,7 +67,7 @@ class ApiTokens extends AsyncView {
         priority="primary"
         size="small"
         to="/settings/account/api/auth-tokens/new-token/"
-        className="ref-create-token"
+        data-test-id="create-token"
       >
         {t('Create New Token')}
       </Button>
@@ -94,13 +96,7 @@ class ApiTokens extends AsyncView {
           </small>
         </TextBlock>
         <Panel>
-          <PanelHeader disablePadding>
-            <Flex align="center">
-              <Box px={2} flex="1">
-                {t('Auth Token')}
-              </Box>
-            </Flex>
-          </PanelHeader>
+          <PanelHeader>{t('Auth Token')}</PanelHeader>
 
           <PanelBody>
             {isEmpty && (
