@@ -2,7 +2,6 @@ import React from 'react';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 import styled from 'react-emotion';
-import {Flex} from 'grid-emotion';
 
 import theme from 'app/utils/theme';
 
@@ -14,25 +13,31 @@ storiesOf('Style|Colors', module).add(
     });
 
     return (
-      <Flex wrap="wrap">
+      <Swatches>
         {colorsToDisplay.map(([name, color]) => (
-          <Swatch key={name} color={color} align="center" justify="center">
+          <Swatch key={name} color={color}>
             {name}
           </Swatch>
         ))}
-      </Flex>
+      </Swatches>
     );
   })
 );
 
-const Swatch = styled(Flex)`
+const Swatches = styled('div')`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 80px);
+  grid-gap: 16px;
+`;
+
+const Swatch = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background-color: ${p => p.color};
   color: ${p => (p.color[1].match(/[0-8]{1}/) ? p.theme.offWhite : p.theme.gray5)};
   font-size: ${p => p.theme.fontSizeSmall};
-  width: 80px;
   height: 80px;
-  margin: 8px;
-  padding: 8px;
   text-align: center;
   word-break: break-all;
   line-height: 1.4em;

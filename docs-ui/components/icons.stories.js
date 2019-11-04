@@ -2,7 +2,6 @@ import React from 'react';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 import styled from 'react-emotion';
-import {Flex} from 'grid-emotion';
 
 import InlineSvg from 'app/components/inlineSvg';
 
@@ -13,29 +12,42 @@ storiesOf('Style|Icons', module).add(
     const icons = context.keys().map(key => key.replace('./', '').replace('.svg', ''));
 
     return (
-      <Flex wrap="wrap">
+      <Swatches>
         {icons.map(icon => (
-          <Swatch key={icon} align="center" justify="center">
-            <Flex flex={1} align="center" justify="center">
+          <Swatch key={icon}>
+            <IconWrapper>
               <InlineSvg height={20} width={20} src={icon} />
-            </Flex>
+            </IconWrapper>
             <Text>{icon.replace('icon-', '')}</Text>
           </Swatch>
         ))}
-      </Flex>
+      </Swatches>
     );
   })
 );
 
-const Swatch = styled(Flex)`
+const Swatches = styled('div')`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 80px);
+  grid-gap: 16px;
+`;
+
+const IconWrapper = styled('div')`
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+`;
+
+const Swatch = styled('div')`
+  display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
   background-color: white;
   border: 1px solid ${p => p.theme.borderLight};
   color: ${p => p.theme.gray5};
-  width: 80px;
   height: 80px;
-  margin: 8px;
-  padding: 8px;
   text-align: center;
   word-break: break-all;
   line-height: 1.4em;

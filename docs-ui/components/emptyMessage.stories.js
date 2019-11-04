@@ -1,11 +1,12 @@
+import styled from 'react-emotion';
 import React from 'react';
-import {Flex, Box} from 'grid-emotion';
 
 import {Panel, PanelHeader} from 'app/components/panels';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import space from 'app/styles/space';
 
 storiesOf('UI|EmptyMessage', module)
   .add(
@@ -72,14 +73,14 @@ storiesOf('UI|EmptyMessage', module)
           title="Sentry is better with friends!"
           description="When you use sentry with friends, you'll find your world of possibilities expands!"
           action={
-            <Flex justify="center">
-              <Box mr={1}>
+            <Wrapper>
+              <ButtonWrapper>
                 <Button priority="primary">Invite Members</Button>
-              </Box>
-              <Box>
+              </ButtonWrapper>
+              <div>
                 <Button>Learn More</Button>
-              </Box>
-            </Flex>
+              </div>
+            </Wrapper>
           }
         />
       </Panel>
@@ -94,16 +95,25 @@ storiesOf('UI|EmptyMessage', module)
           title="You're missing out on crucial functionality!"
           description="Enable this feature now to get the most out of Sentry. What are you waiting for? Do it!"
           action={
-            <Flex justify="center">
-              <Box mr={1}>
+            <Wrapper>
+              <ButtonWrapper>
                 <Button priority="primary">Enable it!</Button>
-              </Box>
-              <Box>
+              </ButtonWrapper>
+              <div>
                 <Button>Learn More</Button>
-              </Box>
-            </Flex>
+              </div>
+            </Wrapper>
           }
         />
       </Panel>
     ))
   );
+
+const Wrapper = styled('div')`
+  display: flex;
+  justify-content: center;
+`;
+
+const ButtonWrapper = styled('div')`
+  margin-right: ${space(1)};
+`;
