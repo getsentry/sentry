@@ -65,68 +65,66 @@ class IncidentRulesList extends AsyncView<Props, State> {
     const isEmpty = !isLoading && !this.state.rules.length;
 
     return (
-      <div>
-        <Panel>
-          <GridPanelHeader>
-            <NameColumn>{t('Name')}</NameColumn>
+      <Panel>
+        <GridPanelHeader>
+          <NameColumn>{t('Name')}</NameColumn>
 
-            <div>{t('Metric')}</div>
+          <div>{t('Metric')}</div>
 
-            <div>{t('Threshold')}</div>
-          </GridPanelHeader>
+          <div>{t('Threshold')}</div>
+        </GridPanelHeader>
 
-          <PanelBody>
-            {isLoading && <LoadingIndicator />}
+        <PanelBody>
+          {isLoading && <LoadingIndicator />}
 
-            {!isLoading &&
-              !isEmpty &&
-              this.state.rules.map(rule => {
-                const ruleLink = recreateRoute(`${rule.id}/`, this.props);
-                return (
-                  <RuleRow key={rule.id}>
-                    <RuleLink to={ruleLink}>{rule.name}</RuleLink>
+          {!isLoading &&
+            !isEmpty &&
+            this.state.rules.map(rule => {
+              const ruleLink = recreateRoute(`${rule.id}/`, this.props);
+              return (
+                <RuleRow key={rule.id}>
+                  <RuleLink to={ruleLink}>{rule.name}</RuleLink>
 
-                    <MetricName>{getMetricDisplayName(rule.aggregations[0])}</MetricName>
+                  <MetricName>{getMetricDisplayName(rule.aggregations[0])}</MetricName>
 
-                    <ThresholdColumn>
-                      <Thresholds>
-                        {rule.triggers.map(trigger => trigger.alertThreshold).join(', ')}
-                      </Thresholds>
+                  <ThresholdColumn>
+                    <Thresholds>
+                      {rule.triggers.map(trigger => trigger.alertThreshold).join(', ')}
+                    </Thresholds>
 
-                      <Actions>
+                    <Actions>
+                      <Button
+                        to={ruleLink}
+                        size="small"
+                        icon="icon-edit"
+                        aria-label={t('Edit Rule')}
+                      >
+                        {t('Edit')}
+                      </Button>
+
+                      <Confirm
+                        priority="danger"
+                        onConfirm={() => this.handleRemoveRule(rule)}
+                        message={t('Are you sure you want to remove this rule?')}
+                      >
                         <Button
-                          to={ruleLink}
+                          type="button"
                           size="small"
-                          icon="icon-edit"
-                          aria-label={t('Edit Rule')}
-                        >
-                          {t('Edit')}
-                        </Button>
+                          icon="icon-trash"
+                          label={t('Remove Rule')}
+                        />
+                      </Confirm>
+                    </Actions>
+                  </ThresholdColumn>
+                </RuleRow>
+              );
+            })}
 
-                        <Confirm
-                          priority="danger"
-                          onConfirm={() => this.handleRemoveRule(rule)}
-                          message={t('Are you sure you want to remove this rule?')}
-                        >
-                          <Button
-                            type="button"
-                            size="small"
-                            icon="icon-trash"
-                            label={t('Remove Rule')}
-                          />
-                        </Confirm>
-                      </Actions>
-                    </ThresholdColumn>
-                  </RuleRow>
-                );
-              })}
-
-            {!isLoading && isEmpty && (
-              <EmptyMessage>{t('No Incident rules have been created yet.')}</EmptyMessage>
-            )}
-          </PanelBody>
-        </Panel>
-      </div>
+          {!isLoading && isEmpty && (
+            <EmptyMessage>{t('No Incident rules have been created yet.')}</EmptyMessage>
+          )}
+        </PanelBody>
+      </Panel>
     );
   }
 }
