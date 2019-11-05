@@ -351,7 +351,7 @@ function routes() {
       <Route path="keys/" name="Client Keys">
         <IndexRoute
           componentPromise={() =>
-            import(/* webpackChunkName: "ProjectKeys" */ 'app/views/settings/project/projectKeys')
+            import(/* webpackChunkName: "ProjectKeys" */ 'app/views/settings/project/projectKeys/list')
           }
           component={errorHandler(LazyLoad)}
         />
@@ -360,7 +360,7 @@ function routes() {
           path=":keyId/"
           name="Details"
           componentPromise={() =>
-            import(/* webpackChunkName: "ProjectKeyDetails" */ 'app/views/settings/project/projectKeys/projectKeyDetails')
+            import(/* webpackChunkName: "ProjectKeyDetails" */ 'app/views/settings/project/projectKeys/details')
           }
           component={errorHandler(LazyLoad)}
         />
