@@ -16,10 +16,21 @@ import BarChart from 'app/components/charts/barChart';
 import DateTime from 'app/components/dateTime';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import Link from 'app/components/links/link';
+import Tag from 'app/views/settings/components/tag';
 
 import space from 'app/styles/space';
 import {SentryApp, SentryAppWebhookRequest} from 'app/types';
 import {t} from 'app/locale';
+
+const ResponseCode = ({code}: {code: number}) => {
+  return (
+    <div>
+      <Tag priority={code >= 100 && code <= 399 ? 'success' : 'error'}>
+        {code === 0 ? 'timeout' : code}
+      </Tag>
+    </div>
+  );
+};
 
 type Props = AsyncView['props'];
 
@@ -155,7 +166,7 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
                 <PanelItem key={idx}>
                   <TableLayout>
                     <DateTime date={request.date} />
-                    <div>{request.responseCode}</div>
+                    <ResponseCode code={request.responseCode} />
                     {app.status !== 'internal' && request.organization && (
                       <div>{request.organization.name}</div>
                     )}
