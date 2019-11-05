@@ -41,7 +41,7 @@ export const TRANSACTION_VIEWS: Readonly<Array<EventViewv1>> = [
         'p75',
         'p95',
       ],
-      fieldnames: ['transaction', 'project', 'volume', 'avg', '75th', '95th'],
+      fieldnames: ['transaction', 'project', '# of events', 'avg', '75th', '95th'],
       sort: ['-count_id'],
       query: 'event.type:transaction',
     },
@@ -58,7 +58,7 @@ export const TRANSACTION_VIEWS: Readonly<Array<EventViewv1>> = [
         'p75',
         'p95',
       ],
-      fieldnames: ['user', 'events', 'unique transactions', 'avg', '75th', '95th'],
+      fieldnames: ['user', '# of events', 'unique transactions', 'avg', '75th', '95th'],
       sort: ['-count_id'],
       query: 'event.type:transaction',
     },
@@ -68,7 +68,7 @@ export const TRANSACTION_VIEWS: Readonly<Array<EventViewv1>> = [
     name: t('Transactions by Region'),
     data: {
       fields: ['geo.region', 'count(id)', 'avg(transaction.duration)', 'p75', 'p95'],
-      fieldnames: ['Region', 'events', 'avg', '75th', '95th'],
+      fieldnames: ['Region', '# of events', 'avg', '75th', '95th'],
       sort: ['-count_id'],
       query: 'event.type:transaction',
     },
@@ -82,7 +82,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     name: t('Project Summary'),
     data: {
       fields: ['project', 'count(id)', 'count_unique(issue.id)'],
-      fieldnames: ['project', 'events', 'unique errors'],
+      fieldnames: ['project', '# of events', 'unique errors'],
       sort: ['-count_id'],
       query: 'event.type:error',
     },
@@ -92,7 +92,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     name: t('Errors'),
     data: {
       fields: ['title', 'count(id)', 'count_unique(user)', 'project', 'last_seen'],
-      fieldnames: ['error', 'events', 'users', 'project', 'last seen'],
+      fieldnames: ['error', '# of events', 'users', 'project', 'last seen'],
       sort: ['-count_id', '-title'],
       query: 'event.type:error',
     },
@@ -102,7 +102,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     name: t('Errors by URL'),
     data: {
       fields: ['url', 'count(id)', 'count_unique(issue.id)'],
-      fieldnames: ['URL', 'events', 'unique errors'],
+      fieldnames: ['URL', '# of events', 'unique errors'],
       sort: ['-count_id'],
       query: 'event.type:error',
     },
@@ -112,7 +112,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     name: t('Errors by User'),
     data: {
       fields: ['user', 'count(id)', 'count_unique(issue.id)'],
-      fieldnames: ['User', 'events', 'unique errors'],
+      fieldnames: ['User', '# of events', 'unique errors'],
       sort: ['-count_id'],
       query: 'event.type:error',
     },
@@ -122,7 +122,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     name: t('Content Security Policy (CSP)'),
     data: {
       fields: ['title', 'count(id)', 'count_unique(user)', 'project', 'last_seen'],
-      fieldnames: ['csp', 'events', 'users', 'project', 'last seen'],
+      fieldnames: ['csp', '# of events', 'users', 'project', 'last seen'],
       sort: ['-count_id', '-title'],
       query: 'event.type:csp',
     },
@@ -140,7 +140,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     name: t('Content Security Policy (CSP) Report by Directive'),
     data: {
       fields: ['effective-directive', 'count(id)', 'count_unique(title)'],
-      fieldnames: ['directive', 'events', 'reports'],
+      fieldnames: ['directive', '# of events', 'reports'],
       sort: ['-count_id'],
       query: 'event.type:csp',
     },
@@ -157,7 +157,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     name: t('Content Security Policy (CSP) Report by Blocked URI'),
     data: {
       fields: ['blocked-uri', 'count(id)'],
-      fieldnames: ['URI', 'events'],
+      fieldnames: ['URI', '# of events'],
       sort: ['-count_id'],
       query: 'event.type:csp',
     },
@@ -174,7 +174,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     name: t('Content Security Policy (CSP) Report by User'),
     data: {
       fields: ['user', 'count(id)', 'count_unique(title)'],
-      fieldnames: ['User', 'events', 'reports'],
+      fieldnames: ['User', '# of events', 'reports'],
       sort: ['-count_id'],
       query: 'event.type:csp',
     },
