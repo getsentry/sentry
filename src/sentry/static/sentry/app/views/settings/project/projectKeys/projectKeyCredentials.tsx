@@ -1,38 +1,30 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 
+import {ProjectKey} from 'app/views/settings/project/projectKeys/types';
 import {t, tct} from 'app/locale';
 import ExternalLink from 'app/components/links/externalLink';
 import Field from 'app/views/settings/components/forms/field';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
-import SentryTypes from 'app/sentryTypes';
 import getDynamicText from 'app/utils/getDynamicText';
 
-class ProjectKeyCredentials extends React.Component {
-  static propTypes = {
-    projectId: PropTypes.string.isRequired,
-    data: SentryTypes.ProjectKey,
+const DEFAULT_PROPS = {
+  showDsn: true,
+  showDsnPublic: true,
+  showSecurityEndpoint: true,
+  showMinidump: true,
+  showUnreal: true,
+  showPublicKey: false,
+  showSecretKey: false,
+  showProjectId: false,
+};
 
-    showDsn: PropTypes.bool,
-    showDsnPublic: PropTypes.bool,
-    showSecurityEndpoint: PropTypes.bool,
-    showMinidump: PropTypes.bool,
-    showUnreal: PropTypes.bool,
-    showPublicKey: PropTypes.bool,
-    showSecretKey: PropTypes.bool,
-    showProjectId: PropTypes.bool,
-  };
+type Props = {
+  projectId: string;
+  data: ProjectKey;
+} & Partial<typeof DEFAULT_PROPS>;
 
-  static defaultProps = {
-    showDsn: true,
-    showDsnPublic: true,
-    showSecurityEndpoint: true,
-    showMinidump: true,
-    showUnreal: true,
-    showPublicKey: false,
-    showSecretKey: false,
-    showProjectId: false,
-  };
+class ProjectKeyCredentials extends React.Component<Props> {
+  static defaultProps = DEFAULT_PROPS;
 
   render() {
     const {
