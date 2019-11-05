@@ -1,7 +1,6 @@
 import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import marked from 'marked';
 import styled from 'react-emotion';
 
 import {t, tn, tct} from 'app/locale';
@@ -16,6 +15,7 @@ import TeamStore from 'app/stores/teamStore';
 import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
 import VersionHoverCard from 'app/components/versionHoverCard';
+import marked from 'app/utils/marked';
 import space from 'app/styles/space';
 
 class ActivityItem extends React.Component {
