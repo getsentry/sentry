@@ -42,7 +42,7 @@ class ProjectAlertRules extends AsyncView<
     return [['ruleList', `/projects/${orgId}/${projectId}/rules/`]];
   }
 
-  handleDeleteRule = rule => {
+  handleDeleteRule = (rule: IssueAlertRule) => {
     this.setState({
       ruleList: this.state.ruleList.filter(r => r.id !== rule.id),
     });
