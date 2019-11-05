@@ -3,11 +3,13 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
+import {browserHistory} from 'react-router';
 
 import SentryTypes from 'app/sentryTypes';
 import {Member, User} from 'app/types';
 
 import {assignToUser, assignToActor, clearAssignment} from 'app/actionCreators/group';
+import {openInviteMembersModal} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import {valueIsEqual, buildUserId, buildTeamId} from 'app/utils';
 import ActorAvatar from 'app/components/avatar/actorAvatar';
@@ -175,6 +177,17 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
     e.stopPropagation();
   },
 
+  hasInviteRequestExperiment() {
+    const {organization} = this.context;
+
+    if (!organization || !organization.experiments) {
+      return false;
+    }
+
+    const variant = organization.experiments.ImprovedInvitesExperiment;
+    return variant === 'all' || variant === 'invite_request';
+  },
+
   renderNewMemberNodes() {
     const {size} = this.props;
     const members = putSessionUserFirst(this.memberList());
@@ -243,6 +256,8 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
     const canInvite = ConfigStore.get('invitesEnabled');
     const hasOrgWrite = organization.access.includes('org:write');
     const memberList = this.memberList();
+    const hasExperiment = this.hasInviteRequestExperiment();
+    const showInviteMemberButton = (canInvite && hasOrgWrite) || hasExperiment;
 
     return (
       <div className={className}>
@@ -283,14 +298,19 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
               )
             }
             menuFooter={
-              canInvite &&
-              hasOrgWrite && (
+              showInviteMemberButton && (
                 <InviteMemberLink
                   data-test-id="invite-member"
                   disabled={loading}
-                  to={`/settings/${
-                    this.context.organization.slug
-                  }/members/new/?referrer=assignee_selector`}
+                  onClick={() =>
+                    hasExperiment
+                      ? openInviteMembersModal({source: 'assignee_selector'})
+                      : browserHistory.push(
+                          `/settings/${
+                            organization.slug
+                          }/members/new/?referrer=assignee_selector`
+                        )
+                  }
                 >
                   <MenuItemWrapper>
                     <IconContainer>
