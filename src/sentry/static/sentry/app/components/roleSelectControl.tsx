@@ -17,11 +17,7 @@ const RoleSelector = ({roles, disableUnallowed, ...props}: Props) => (
       roles.map(r => ({
         value: r.id,
         label: r.name,
-        disabled:
-          (disableUnallowed && !r.allowed) ||
-          // TODO(epurkhiser): This is a quick hack before we allow invite
-          // acceptance to select a different role.
-          (!disableUnallowed && r.id === 'owner'),
+        disabled: disableUnallowed && !r.allowed,
       }))
     }
     optionRenderer={option => {

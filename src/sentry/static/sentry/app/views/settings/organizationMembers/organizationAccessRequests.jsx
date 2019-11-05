@@ -14,7 +14,7 @@ class OrganizationAccessRequests extends React.Component {
   static propTypes = {
     api: PropTypes.object.isRequired,
     orgId: PropTypes.string.isRequired,
-    onUpdateRequestList: PropTypes.func.isRequired,
+    onRemoveAccessRequest: PropTypes.func.isRequired,
     requestList: PropTypes.arrayOf(
       PropTypes.shape({
         id: PropTypes.string.isRequired,
@@ -33,7 +33,7 @@ class OrganizationAccessRequests extends React.Component {
   };
 
   handleAction = async ({id, isApproved, successMessage, errorMessage}) => {
-    const {api, orgId, onUpdateRequestList} = this.props;
+    const {api, orgId, onRemoveAccessRequest} = this.props;
 
     this.setState(state => ({
       accessRequestBusy: {...state.accessRequestBusy, [id]: true},
@@ -44,7 +44,7 @@ class OrganizationAccessRequests extends React.Component {
         method: 'PUT',
         data: {isApproved},
       });
-      onUpdateRequestList(id);
+      onRemoveAccessRequest(id);
       addSuccessMessage(successMessage);
     } catch {
       addErrorMessage(errorMessage);
