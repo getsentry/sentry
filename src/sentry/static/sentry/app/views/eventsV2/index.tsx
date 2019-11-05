@@ -125,12 +125,12 @@ class EventsV2 extends React.Component<Props> {
                   )}
                 </PageHeader>
                 <Banner
-                  title="Discover"
-                  subtitle="Here are a few sample queries to kick things off"
+                  title={t('Discover')}
+                  subtitle={t('Here are a few sample queries to kick things off')}
                 >
                   <Button>Users who error in 1 min</Button>
                   <Button>Browsers by most bugs</Button>
-                  <Button>Slowest HTTP Endpoints</Button>
+                  <Button>Slowest HTTP endpoints</Button>
                 </Banner>
                 {!hasQuery && this.renderQueryList()}
                 {hasQuery && (

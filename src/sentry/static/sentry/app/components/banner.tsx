@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from 'react-emotion';
 import theme from 'app/utils/theme';
+import space from 'app/styles/space';
 
 import spaceBg from '../../images/background-space.svg';
 
@@ -30,10 +31,20 @@ const StyledBanner = styled('div')`
   background-repeat: no-repeat;
   background-size: cover;
   background-position: center center;
-  height: 0;
   position: relative;
   min-height: 320px;
   padding-top: 24%;
+  box-shadow: ${p => p.theme.dropShadowLight};
+  margin-bottom: ${space(2)};
+
+  @media (min-width: ${theme.breakpoints[1]}) {
+    min-height: 220px;
+  }
+
+  @media (min-width: ${theme.breakpoints[3]}) {
+    padding-top: 0;
+    height: 300px;
+  }
 `;
 
 const BannerContent = styled('div')`
@@ -47,17 +58,25 @@ const BannerContent = styled('div')`
   justify-content: center;
   align-items: center;
   text-align: center;
-  padding: 48px;
+  padding: ${space(4)};
 `;
 
 const BannerTitle = styled('h1')`
-  margin: 16px 0;
+  margin: ${space(1.5)};
+  font-size: 48px;
   color: ${p => p.theme.white};
 `;
 
-const BannerSubtitle = styled('h5')`
-  margin-bottom: 24px;
+const BannerSubtitle = styled('h4')`
+  margin-bottom: ${space(3)};
+  font-size: ${theme.fontSizeMedium};
   color: ${p => p.theme.white};
+
+  @media (min-width: ${theme.breakpoints[1]}) {
+    font-size: ${theme.fontSizeLarge};
+    flex-direction: row;
+    min-width: 650px;
+  }
 `;
 
 const BannerActions = styled('div')`
