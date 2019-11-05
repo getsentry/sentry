@@ -128,42 +128,44 @@ class AccountSecurity extends AsyncView {
                         <AuthenticatorName>{name}</AuthenticatorName>
                       </AuthenticatorTitle>
 
-                      {!isBackupInterface && !isEnrolled && (
-                        <Button
-                          to={`/settings/account/security/mfa/${id}/enroll/`}
-                          size="small"
-                          priority="primary"
-                          className="enroll-button"
-                        >
-                          {t('Add')}
-                        </Button>
-                      )}
-
-                      {isEnrolled && authId && (
-                        <Button
-                          to={`/settings/account/security/mfa/${authId}/`}
-                          size="small"
-                          className="details-button"
-                        >
-                          {configureButton}
-                        </Button>
-                      )}
-
-                      {!isBackupInterface && isEnrolled && (
-                        <Tooltip
-                          title={t(
-                            `Two-factor authentication is required for organization(s): ${this.formatOrgSlugs()}.`
-                          )}
-                          disabled={!deleteDisabled}
-                        >
-                          <RemoveConfirm
-                            onConfirm={() => onDisable(auth)}
-                            disabled={deleteDisabled}
+                      <Actions>
+                        {!isBackupInterface && !isEnrolled && (
+                          <Button
+                            to={`/settings/account/security/mfa/${id}/enroll/`}
+                            size="small"
+                            priority="primary"
+                            className="enroll-button"
                           >
-                            <TrashButton size="small" icon="icon-trash" />
-                          </RemoveConfirm>
-                        </Tooltip>
-                      )}
+                            {t('Add')}
+                          </Button>
+                        )}
+
+                        {isEnrolled && authId && (
+                          <Button
+                            to={`/settings/account/security/mfa/${authId}/`}
+                            size="small"
+                            className="details-button"
+                          >
+                            {configureButton}
+                          </Button>
+                        )}
+
+                        {!isBackupInterface && isEnrolled && (
+                          <Tooltip
+                            title={t(
+                              `Two-factor authentication is required for organization(s): ${this.formatOrgSlugs()}.`
+                            )}
+                            disabled={!deleteDisabled}
+                          >
+                            <RemoveConfirm
+                              onConfirm={() => onDisable(auth)}
+                              disabled={deleteDisabled}
+                            >
+                              <Button size="small" icon="icon-trash" />
+                            </RemoveConfirm>
+                          </Tooltip>
+                        )}
+                      </Actions>
 
                       {isBackupInterface && !isEnrolled ? t('requires 2FA') : null}
                     </AuthenticatorHeader>
@@ -197,11 +199,13 @@ const AuthenticatorTitle = styled('div')`
   flex: 1;
 `;
 
-const AuthenticatorStatus = styled(CircleIndicator)`
-  margin-right: ${space(1)};
+const Actions = styled('div')`
+  display: grid;
+  grid-auto-flow: column;
+  grid-gap: ${space(1)};
 `;
 
-const TrashButton = styled(Button)`
+const AuthenticatorStatus = styled(CircleIndicator)`
   margin-right: ${space(1)};
 `;
 
