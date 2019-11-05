@@ -90,7 +90,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
             url = data["request"]["url"]
         except KeyError:
             return False
-        return glob_match(url, self.pattern, ignorecase=True)
+        return url and glob_match(url, self.pattern, ignorecase=True)
 
     def test_path(self, data):
         for frame in _iter_frames(data):
