@@ -10,6 +10,7 @@ from mock import patch
 from sentry.auth import manager
 from sentry.models import InviteStatus, OrganizationMember, INVITE_DAYS_VALID
 from sentry.testutils import TestCase
+from sentry.tasks.members import send_invite_request_notification_email
 
 
 class OrganizationMemberTest(TestCase):
@@ -40,7 +41,7 @@ class OrganizationMemberTest(TestCase):
 
         assert msg.to == ["foo@example.com"]
 
-    def test_send_request_notification_email(self):
+    def test_send_invite_request_notification_email(self):
         organization = self.create_organization()
 
         user1 = self.create_user(email="manager@localhost")
@@ -51,7 +52,7 @@ class OrganizationMemberTest(TestCase):
         self.create_member(organization=organization, user=user2, role="owner")
         self.create_member(organization=organization, user=user3, role="member")
 
-        member = OrganizationMember(
+        member = OrganizationMember.objects.create(
             id=1,
             role="manager",
             organization=organization,
@@ -60,7 +61,7 @@ class OrganizationMemberTest(TestCase):
             invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
         )
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
-            member.send_request_notification_email()
+            send_invite_request_notification_email(member.id)
 
         assert len(mail.outbox) == 2
 

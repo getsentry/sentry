@@ -14,6 +14,7 @@ from sentry.app import ratelimiter
 from sentry.models import AuthProvider, InviteStatus, OrganizationMember
 from sentry.signals import join_request_created
 
+from sentry.tasks.members import send_invite_request_notification_email
 
 logger = logging.getLogger(__name__)
 
@@ -30,24 +31,13 @@ def create_organization_join_request(organization, email, ip_address=None):
         return
 
     try:
-        om = OrganizationMember.objects.create(
+        return OrganizationMember.objects.create(
             organization=organization,
             email=email,
             invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
         )
     except IntegrityError:
         pass
-    else:
-        logger.info(
-            "org-join-request.created",
-            extra={
-                "organization_id": organization.id,
-                "member_id": om.id,
-                "email": email,
-                "ip_address": ip_address,
-            },
-        )
-        return om
 
 
 class OrganizationJoinRequestEndpoint(OrganizationEndpoint):
@@ -65,7 +55,7 @@ class OrganizationJoinRequestEndpoint(OrganizationEndpoint):
             )
 
         # users can already join organizations with SSO enabled without an invite
-        # so no need to allow requests to join as well
+        # so they should join that way and not through a request to the admins
         if AuthProvider.objects.filter(organization=organization).exists():
             return Response(status=403)
 
@@ -89,7 +79,7 @@ class OrganizationJoinRequestEndpoint(OrganizationEndpoint):
         member = create_organization_join_request(organization, email, ip_address)
 
         if member:
-            member.send_request_notification_email()
+            send_invite_request_notification_email.delay(member.id)
             join_request_created.send_robust(sender=self, member=member)
 
         return Response(status=204)
