@@ -17,14 +17,17 @@ email-reply-parser>=0.2.0,<0.3.0
 enum34>=1.1.6,<1.2.0
 functools32>=3.2.3,<3.3
 futures>=3.2.0,<4.0.0
-# optional
-google-cloud-bigtable>=0.32.1,<0.33.0
 # optional but needed for google stuff below
+google-api-core==1.14.3
+google-auth==1.6.3
 google-cloud-core==0.29.1
+googleapis-common-protos==1.6.0
 # optional
-google-cloud-pubsub>=0.35.4,<0.36.0
+google-cloud-bigtable==0.32.2
 # optional
-google-cloud-storage>=1.13.2,<1.14
+google-cloud-pubsub==0.35.4
+# optional
+google-cloud-storage==1.13.3
 # broken on python3
 hiredis>=0.1.0,<0.2.0
 ipaddress>=1.0.16,<1.1.0
