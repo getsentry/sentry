@@ -18,7 +18,7 @@ function getDuration(
   fixedDigits: number = 0,
   abbreviation: boolean = false
 ): string {
-  let value = Math.abs(seconds * 1000);
+  const value = Math.abs(seconds * 1000);
 
   if (value >= 604800000) {
     const {label, result} = roundWithFixed(value / 604800000, fixedDigits);
