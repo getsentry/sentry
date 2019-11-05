@@ -19,6 +19,7 @@ import BetaTag from 'app/components/betaTag';
 import Feature from 'app/components/acl/feature';
 import Link from 'app/components/links/link';
 import NoProjectMessage from 'app/components/noProjectMessage';
+import theme from 'app/utils/theme';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -94,6 +95,21 @@ class EventsV2 extends React.Component<Props> {
     return [t('Discover')];
   };
 
+  renderBanner() {
+    return (
+      <Banner
+        title={t('Discover')}
+        subtitle={t('Here are a few sample queries to kick things off')}
+      >
+        <BannerButton icon="icon-circle-add">
+          {t('Users who error in < 1 min')}
+        </BannerButton>
+        <BannerButton icon="icon-circle-add">{t('Browsers by most bugs')}</BannerButton>
+        <BannerButton icon="icon-circle-add">{t('Slowest HTTP endpoints')}</BannerButton>
+      </Banner>
+    );
+  }
+
   render() {
     const {organization, location, router} = this.props;
     const eventSlug = getFirstQueryString(location.query, 'eventSlug');
@@ -124,14 +140,7 @@ class EventsV2 extends React.Component<Props> {
                     />
                   )}
                 </PageHeader>
-                <Banner
-                  title={t('Discover')}
-                  subtitle={t('Here are a few sample queries to kick things off')}
-                >
-                  <Button>Users who error in 1 min</Button>
-                  <Button>Browsers by most bugs</Button>
-                  <Button>Slowest HTTP endpoints</Button>
-                </Banner>
+                {!hasQuery && this.renderBanner()}
                 {!hasQuery && this.renderQueryList()}
                 {hasQuery && (
                   <Events
@@ -158,6 +167,14 @@ class EventsV2 extends React.Component<Props> {
     );
   }
 }
+
+const BannerButton = styled(Button)`
+  margin: ${space(1)} 0;
+
+  @media (min-width: ${theme.breakpoints[1]}) {
+    margin: 0 ${space(1)};
+  }
+`;
 
 const LinkList = styled('ul')`
   list-style: none;

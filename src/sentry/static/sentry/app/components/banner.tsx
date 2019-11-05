@@ -63,8 +63,11 @@ const BannerContent = styled('div')`
 
 const BannerTitle = styled('h1')`
   margin: ${space(1.5)};
-  font-size: 48px;
   color: ${p => p.theme.white};
+
+  @media (min-width: ${theme.breakpoints[1]}) {
+    font-size: 48px;
+  }
 `;
 
 const BannerSubtitle = styled('h4')`
@@ -83,8 +86,10 @@ const BannerActions = styled('div')`
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  width: 100%;
 
   @media (min-width: ${theme.breakpoints[1]}) {
+    width: auto;
     flex-direction: row;
     min-width: 650px;
   }
