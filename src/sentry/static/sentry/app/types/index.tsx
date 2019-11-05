@@ -376,6 +376,7 @@ export type Member = {
   dateCreated: string;
   inviteStatus: 'approved' | 'requested_to_be_invited' | 'requested_to_join';
   inviterName: string | null;
+  teams: string[];
 };
 
 export type AccessRequest = {
