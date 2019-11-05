@@ -35,7 +35,6 @@ class PagerDutyClientTest(APITestCase):
         )
         self.integration.add_organization(self.organization, self.user)
         self.service = PagerDutyService.objects.create(
-            service_id=SERVICES[0]["service_id"],
             service_name=SERVICES[0]["service_name"],
             integration_key=SERVICES[0]["integration_key"],
             organization_integration=self.integration.organizationintegration_set.first(),
