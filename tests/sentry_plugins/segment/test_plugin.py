@@ -6,7 +6,7 @@ from exam import fixture
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
 
-from new_sentry_plugins.segment.plugin import SegmentPlugin
+from test_only_plugins.segment.plugin import SegmentPlugin
 
 
 class SegmentPluginTest(PluginTestCase):
@@ -18,7 +18,7 @@ class SegmentPluginTest(PluginTestCase):
         assert self.plugin.conf_key == "segment"
 
     def test_entry_point(self):
-        self.assertNewPluginInstalled("segment", self.plugin)
+        self.assertTestOnlyPluginInstalled("segment", self.plugin)
 
     @responses.activate
     def test_simple_notification(self):

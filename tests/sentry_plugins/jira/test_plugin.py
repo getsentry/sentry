@@ -9,7 +9,7 @@ from django.test import RequestFactory
 from sentry.testutils import TestCase
 from sentry.utils import json
 
-from new_sentry_plugins.jira.plugin import JiraPlugin
+from test_only_plugins.jira.plugin import JiraPlugin
 
 create_meta_response = {
     "expand": "projects",

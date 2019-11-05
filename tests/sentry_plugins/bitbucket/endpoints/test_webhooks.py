@@ -6,8 +6,8 @@ from django.utils import timezone
 from sentry.models import Commit, CommitAuthor, Repository
 from sentry.testutils import APITestCase, TestCase
 
-from new_sentry_plugins.bitbucket.endpoints.webhook import parse_raw_user_email, parse_raw_user_name
-from new_sentry_plugins.bitbucket.testutils import PUSH_EVENT_EXAMPLE
+from test_only_plugins.bitbucket.endpoints.webhook import parse_raw_user_email, parse_raw_user_name
+from test_only_plugins.bitbucket.testutils import PUSH_EVENT_EXAMPLE
 
 BAD_IP = "109.111.111.10"
 BITBUCKET_IP_IN_RANGE = "104.192.143.10"
