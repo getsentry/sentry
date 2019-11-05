@@ -61,11 +61,11 @@ class PagerDutyIntegration(IntegrationInstallation):
                 "help": "If a services needs to be updated, deleted, or added manually please do so here. Alert rules will need to be individually updated for any additions or deletions of services.",
                 "addButtonText": "",
                 "mappedSelectors": {
-                    "integration_key": {"placeholder": "Enter an integration key"},
-                    "service": {"placeholder": "Enter a service"}
+                    "integration_key": {"placeholder": "e.g fbb6fe10e852fdf8894f311e50da4072"},
+                    "service": {"placeholder": "e.g Checkout Server"}
                 },
                 "columnLabels": {"service": "Service", "integration_key": "Integration Key"},
-                "columnKeys": ["service", "integration_key"],
+                "columnKeys": ["service", "integration_key"]
             }
         ]
 

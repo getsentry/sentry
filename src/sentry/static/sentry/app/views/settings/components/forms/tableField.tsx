@@ -8,16 +8,12 @@ import {t} from 'app/locale';
 import Button from 'app/components/button';
 import InputField from 'app/views/settings/components/forms/inputField';
 import Input from 'app/views/settings/components/forms/controls/input';
-import SelectControl from 'app/components/forms/selectControl';
-
-const selectControlShape = PropTypes.shape(SelectControl.propTypes);
 
 type Props = {
   name?: string;
   addButtonText?: React.ReactNode;
-  DlumnLabel?: React.ReactNode;
   columnLabels: any;
-  mappedSelectors?: any;
+  columnKeys?: string[];
   allowEmpty?: boolean;
 };
 
@@ -25,40 +21,19 @@ export default class TableField extends React.Component<Props> {
   static propTypes = {
     ...InputField.propTypes,
     /**
-     * Text used for the 'add row' button.
+     * Text used for the 'add' button. An empty string can be used
+     * to just render the "+" icon.
      */
     addButtonText: PropTypes.node,
     /**
-     * A list of column labels (headers) for the multichoice table. This should
-     * have the same mapping keys as the mappedSelectors prop.
+     * A list of column labels (headers) for the table.
      */
     columnLabels: PropTypes.objectOf(PropTypes.node).isRequired,
-    columnKeys: PropTypes.arrayOf(PropTypes.string),
     /**
-     * mappedSelectors controls how the Select control should render for each
-     * column. This can be generalised so that each column renders the same set
-     * of choices for each mapped item by providing an object with column
-     * label keys mapping to the select descriptor, OR you may specify the set
-     * of select descriptors *specific* to a mapped item, where the item value
-     * maps to the object of column label keys to select descriptor.
-     *
-     * Example - All selects are the same per column:
-     *
-     * {
-     *   'column_key1: {...select1},
-     *   'column_key2: {...select2},
-     * }
-     *
-     * Example - Selects differ for each of the items available:
-     *
-     * {
-     *   'my_object_value':  {'colum_key1': {...select1}, 'column_key2': {...select2}},
-     *   'other_object_val': {'colum_key1': {...select3}, 'column_key2': {...select4}},
-     * }
+     * A list of column keys for the table, in the order that you want
+     * the columns to appear - order doesn't matter in columnLabels
      */
-    mappedSelectors: PropTypes.objectOf(
-      PropTypes.oneOfType([selectControlShape, PropTypes.objectOf(selectControlShape)])
-    ).isRequired,
+    columnKeys: PropTypes.arrayOf(PropTypes.string),
     /**
      * Automatically save even if fields are empty
      */
@@ -130,7 +105,7 @@ export default class TableField extends React.Component<Props> {
     );
 
     // The field will be set to inline when there is no value set for the
-    // field, just show the dropdown.
+    // field, just show the button.
     if (!valueIsEmpty) {
       return <Box>{button}</Box>;
     }
