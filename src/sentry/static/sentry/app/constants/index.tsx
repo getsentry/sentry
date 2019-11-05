@@ -42,24 +42,28 @@ export const MEMBER_ROLES = [
   {
     id: 'member',
     name: 'Member',
+    allowed: true,
     desc:
       'Members can view and act on events, as well as view most other data within the organization.',
   },
   {
     id: 'admin',
     name: 'Admin',
+    allowed: true,
     desc:
       "Admin privileges on any teams of which they're a member. They can create new teams and projects, as well as remove teams and projects which they already hold membership on (or all teams, if open membership is on).",
   },
   {
     id: 'manager',
     name: 'Manager',
+    allowed: true,
     desc:
       'Gains admin access on all teams as well as the ability to add and remove members.',
   },
   {
     id: 'owner',
     name: 'Organization Owner',
+    allowed: true,
     desc:
       'Unrestricted access to the organization, its data, and its settings. Can add, modify, and delete projects and members, as well as make billing and plan changes.',
   },
