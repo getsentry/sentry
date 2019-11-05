@@ -14,6 +14,15 @@ PIP_OPTS := --no-use-pep517 --disable-pip-version-check
 WEBPACK := NODE_ENV=production ./bin/yarn webpack
 YARN := ./bin/yarn
 
+DROPDB := $(shell command -v dropdb 2> /dev/null)
+ifndef DROPDB
+	DROPDB = docker exec sentry_postgres dropdb
+endif
+CREATEDB := $(shell command -v createdb 2> /dev/null)
+ifndef CREATEDB
+	CREATEDB = docker exec sentry_postgres createdb
+endif
+
 bootstrap: develop init-config run-dependent-services create-db apply-migrations
 
 develop: ensure-venv setup-git develop-only
@@ -32,13 +41,11 @@ build: locale
 
 drop-db:
 	@echo "--> Dropping existing 'sentry' database"
-	docker exec $$(docker ps --filter 'name=sentry_postgres' --format '{{.ID}}') \
-		dropdb -U postgres sentry || true
+	$(DROPDB) -h 127.0.0.1 -U postgres sentry || true
 
 create-db:
 	@echo "--> Creating 'sentry' database"
-	docker exec $$(docker ps --filter 'name=sentry_postgres' --format '{{.ID}}') \
-		createdb -U postgres -E utf-8 sentry || true
+	$(CREATEDB) -h 127.0.0.1 -U postgres -E utf-8 sentry || true
 
 apply-migrations:
 	@echo "--> Applying migrations"
