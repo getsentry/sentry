@@ -57,8 +57,6 @@ class MoreSnubaSearchBackend(SnubaSearchBackendBase):
         date_from=None,
         date_to=None,
     ):
-        # print ("Running New Backend Query...")
-
         start_time = time.time()
         from sentry.models import Group, GroupStatus, GroupSubscription
 
@@ -135,8 +133,6 @@ class MoreSnubaSearchBackend(SnubaSearchBackendBase):
 
         end_time = time.time()
         run_time = end_time - start_time
-        # print ("MoreSnuba Runtime: (seconds):", run_time)
-        # print ("MoreSnuba Results:", results.results)
         logger.debug("SEN-1050/MoreSnuba Results: %r", results.results)
         logger.debug("SEN-1050/MoreSnuba Runtime: (seconds): %r", run_time)
 
