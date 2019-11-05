@@ -8,7 +8,7 @@ from django.test import RequestFactory
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
 
-from new_sentry_plugins.gitlab.plugin import GitLabPlugin
+from test_only_plugins.gitlab.plugin import GitLabPlugin
 
 
 class GitLabPluginTest(PluginTestCase):
@@ -24,7 +24,7 @@ class GitLabPluginTest(PluginTestCase):
         assert self.plugin.conf_key == "gitlab"
 
     def test_entry_point(self):
-        self.assertNewPluginInstalled("gitlab", self.plugin)
+        self.assertTestOnlyPluginInstalled("gitlab", self.plugin)
 
     def test_get_issue_label(self):
         group = self.create_group(message="Hello world", culprit="foo.bar")

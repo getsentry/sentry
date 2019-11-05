@@ -20,19 +20,23 @@ def register_plugins(settings, test_plugins=False):
     #         'phabricator = sentry_phabricator.plugins:PhabricatorPlugin'
     #     ],
     # },
-    # TODO (Steve): Remove option for test_plugins
-    entry_point = "sentry.new_plugins" if test_plugins else "sentry.plugins"
-    for ep in iter_entry_points(entry_point):
-        try:
-            plugin = ep.load()
-        except Exception:
-            import traceback
+    entry_points = [
+        "sentry.new_plugins",
+        "sentry.test_only_plugins" if test_plugins else "sentry.plugins",
+    ]
 
-            click.echo(
-                "Failed to load plugin %r:\n%s" % (ep.name, traceback.format_exc()), err=True
-            )
-        else:
-            plugins.register(plugin)
+    for entry_point in entry_points:
+        for ep in iter_entry_points(entry_point):
+            try:
+                plugin = ep.load()
+            except Exception:
+                import traceback
+
+                click.echo(
+                    "Failed to load plugin %r:\n%s" % (ep.name, traceback.format_exc()), err=True
+                )
+            else:
+                plugins.register(plugin)
 
     for plugin in plugins.all(version=None):
         init_plugin(plugin)

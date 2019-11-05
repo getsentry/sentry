@@ -8,7 +8,7 @@ from django.test import RequestFactory
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
 
-from new_sentry_plugins.clubhouse.plugin import ClubhousePlugin
+from test_only_plugins.clubhouse.plugin import ClubhousePlugin
 
 
 class ClubhousePluginTest(PluginTestCase):
@@ -24,7 +24,7 @@ class ClubhousePluginTest(PluginTestCase):
         assert self.plugin.conf_key == "clubhouse"
 
     def test_entry_point(self):
-        self.assertNewPluginInstalled("clubhouse", self.plugin)
+        self.assertTestOnlyPluginInstalled("clubhouse", self.plugin)
 
     def test_get_issue_label(self):
         group = self.create_group(message="Hello world", culprit="foo.bar")

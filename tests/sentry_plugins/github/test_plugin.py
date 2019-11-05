@@ -10,7 +10,7 @@ from sentry.testutils import PluginTestCase
 from sentry.utils import json
 from social_auth.models import UserSocialAuth
 
-from new_sentry_plugins.github.plugin import GitHubPlugin
+from test_only_plugins.github.plugin import GitHubPlugin
 
 
 class GitHubPluginTest(PluginTestCase):
@@ -26,7 +26,7 @@ class GitHubPluginTest(PluginTestCase):
         assert self.plugin.conf_key == "github"
 
     def test_entry_point(self):
-        self.assertNewPluginInstalled("github", self.plugin)
+        self.assertTestOnlyPluginInstalled("github", self.plugin)
 
     def test_get_issue_label(self):
         group = self.create_group(message="Hello world", culprit="foo.bar")

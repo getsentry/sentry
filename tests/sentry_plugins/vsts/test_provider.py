@@ -7,8 +7,8 @@ from social_auth.models import UserSocialAuth
 from sentry.testutils import PluginTestCase
 from sentry.models import Repository
 
-from new_sentry_plugins.vsts.repository_provider import VisualStudioRepositoryProvider
-from new_sentry_plugins.vsts.testutils import COMPARE_COMMITS_EXAMPLE, FILE_CHANGES_EXAMPLE
+from test_only_plugins.vsts.repository_provider import VisualStudioRepositoryProvider
+from test_only_plugins.vsts.testutils import COMPARE_COMMITS_EXAMPLE, FILE_CHANGES_EXAMPLE
 
 
 class VisualStudioRepositoryProviderPluginTest(PluginTestCase):

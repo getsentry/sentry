@@ -6,7 +6,7 @@ from exam import fixture
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
 
-from new_sentry_plugins.splunk.plugin import SplunkPlugin
+from test_only_plugins.splunk.plugin import SplunkPlugin
 
 
 class SplunkPluginTest(PluginTestCase):
@@ -18,7 +18,7 @@ class SplunkPluginTest(PluginTestCase):
         assert self.plugin.conf_key == "splunk"
 
     def test_entry_point(self):
-        self.assertNewPluginInstalled("splunk", self.plugin)
+        self.assertTestOnlyPluginInstalled("splunk", self.plugin)
 
     @responses.activate
     def test_simple_notification(self):

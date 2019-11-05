@@ -7,8 +7,8 @@ from sentry.models import Repository
 from sentry.testutils import PluginTestCase
 from social_auth.models import UserSocialAuth
 
-from new_sentry_plugins.bitbucket.plugin import BitbucketRepositoryProvider
-from new_sentry_plugins.bitbucket.testutils import COMPARE_COMMITS_EXAMPLE, COMMIT_DIFF_PATCH
+from test_only_plugins.bitbucket.plugin import BitbucketRepositoryProvider
+from test_only_plugins.bitbucket.testutils import COMPARE_COMMITS_EXAMPLE, COMMIT_DIFF_PATCH
 
 
 class BitbucketPluginTest(PluginTestCase):

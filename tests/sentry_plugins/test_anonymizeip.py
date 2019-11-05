@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from new_sentry_plugins.anonymizeip import anonymize_ip
+from test_only_plugins.anonymizeip import anonymize_ip
 
 
 def test_ipv6():

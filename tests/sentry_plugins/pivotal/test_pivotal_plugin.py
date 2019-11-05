@@ -5,7 +5,7 @@ from django.core.urlresolvers import reverse
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
 
-from new_sentry_plugins.pivotal.plugin import PivotalPlugin
+from test_only_plugins.pivotal.plugin import PivotalPlugin
 
 
 class PivotalPluginTest(PluginTestCase):
@@ -17,7 +17,7 @@ class PivotalPluginTest(PluginTestCase):
         assert self.plugin.conf_key == "pivotal"
 
     def test_entry_point(self):
-        self.assertNewPluginInstalled("pivotal", self.plugin)
+        self.assertTestOnlyPluginInstalled("pivotal", self.plugin)
 
     def test_get_issue_label(self):
         group = self.create_group(message="Hello world", culprit="foo.bar")

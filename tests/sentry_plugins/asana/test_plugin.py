@@ -10,7 +10,7 @@ from sentry.testutils import PluginTestCase
 from sentry.utils import json
 from social_auth.models import UserSocialAuth
 
-from new_sentry_plugins.asana.plugin import AsanaPlugin
+from test_only_plugins.asana.plugin import AsanaPlugin
 
 
 class AsanaPluginTest(PluginTestCase):
@@ -26,7 +26,7 @@ class AsanaPluginTest(PluginTestCase):
         assert self.plugin.conf_key == "asana"
 
     def test_entry_point(self):
-        self.assertNewPluginInstalled("asana", self.plugin)
+        self.assertTestOnlyPluginInstalled("asana", self.plugin)
 
     def test_get_issue_label(self):
         group = self.create_group(message="Hello world", culprit="foo.bar")

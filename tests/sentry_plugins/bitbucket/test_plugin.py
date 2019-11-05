@@ -10,7 +10,7 @@ from sentry.testutils import PluginTestCase
 
 from social_auth.models import UserSocialAuth
 
-from new_sentry_plugins.bitbucket.plugin import BitbucketPlugin
+from test_only_plugins.bitbucket.plugin import BitbucketPlugin
 
 
 class BitbucketPluginTest(PluginTestCase):
@@ -26,7 +26,7 @@ class BitbucketPluginTest(PluginTestCase):
         assert self.plugin.conf_key == "bitbucket"
 
     def test_entry_point(self):
-        self.assertNewPluginInstalled("bitbucket", self.plugin)
+        self.assertTestOnlyPluginInstalled("bitbucket", self.plugin)
 
     def test_get_issue_label(self):
         group = self.create_group(message="Hello world", culprit="foo.bar")
