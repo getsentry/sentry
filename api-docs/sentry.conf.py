@@ -43,7 +43,7 @@ LOGIN_REDIRECT_URL = SENTRY_URL_PREFIX + "/"
 SENTRY_WEB_HOST = "127.0.0.1"
 SENTRY_WEB_PORT = SENTRY_APIDOCS_WEB_PORT
 SENTRY_WEB_OPTIONS = {
-    "workers": 2,
+    "workers": 1,
     "limit_request_line": 0,
     "secure_scheme_headers": {"X-FORWARDED-PROTO": "https"},
 }
