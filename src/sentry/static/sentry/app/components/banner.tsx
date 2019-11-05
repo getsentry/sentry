@@ -1,21 +1,34 @@
 import React from 'react';
+import InlineSvg from 'app/components/inlineSvg';
+
 import styled from 'react-emotion';
 import theme from 'app/utils/theme';
 import space from 'app/styles/space';
+import {t} from 'app/locale';
 
 import spaceBg from '../../images/background-space.svg';
 
 type Props = {
   title?: string;
   subtitle?: string;
+  dismissable?: boolean;
 };
 
 class Banner extends React.Component<Props> {
+  static defaultProps = {
+    dismissable: true,
+  };
+
+  renderClose() {
+    return <BannerIcon src="icon-close" aria-label={t('Close')} />;
+  }
+
   render() {
-    const {title, subtitle, children} = this.props;
+    const {title, subtitle, dismissable, children} = this.props;
 
     return (
       <StyledBanner>
+        {dismissable ? this.renderClose() : null}
         <BannerContent>
           <BannerTitle>{title}</BannerTitle>
           <BannerSubtitle>{subtitle}</BannerSubtitle>
@@ -93,6 +106,16 @@ const BannerActions = styled('div')`
     flex-direction: row;
     min-width: 650px;
   }
+`;
+
+const BannerIcon = styled(InlineSvg)`
+  position: absolute;
+  display: block;
+  top: ${space(2)};
+  right: ${space(2)};
+  color: ${p => p.theme.white};
+  cursor: pointer;
+  z-index: 1;
 `;
 
 export default Banner;
