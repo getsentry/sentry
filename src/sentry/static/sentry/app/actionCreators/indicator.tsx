@@ -3,7 +3,7 @@ import styled from 'react-emotion';
 
 import {DEFAULT_TOAST_DURATION} from 'app/constants';
 import {t, tct} from 'app/locale';
-import FormModel from 'app/views/settings/components/forms/model';
+import FormModel, {FieldValue} from 'app/views/settings/components/forms/model';
 import IndicatorActions from 'app/actions/indicatorActions';
 import space from 'app/styles/space';
 
@@ -18,7 +18,7 @@ type Indicator = {
   type: IndicatorType;
   id: string | number;
   message: React.ReactNode;
-  options: {};
+  options: Options;
 };
 
 // Removes a single indicator
@@ -73,11 +73,14 @@ const PRETTY_VALUES: Map<unknown, string> = new Map([
   ['', '<empty>'],
   [null, '<none>'],
   [undefined, '<unset>'],
+  // if we don't cast as any, then typescript complains because booleans are not valid keys
+  [true as any, 'enabled'],
+  [false as any, 'disabled'],
 ]);
 
 // Transform form values into a string
 // Otherwise bool values will not get rendered and empty strings look like a bug
-const prettyFormString = (val: unknown, model: FormModel, fieldName: string) => {
+const prettyFormString = (val: FieldValue, model: FormModel, fieldName: string) => {
   const descriptor = model.fieldDescriptor.get(fieldName);
 
   if (descriptor && typeof descriptor.formatMessageValue === 'function') {
@@ -92,16 +95,12 @@ const prettyFormString = (val: unknown, model: FormModel, fieldName: string) => 
     return PRETTY_VALUES.get(val);
   }
 
-  // boolean values not in PRETTY_VALUES because of typescript
-  if (val === true) {
-    return 'enabled';
-  }
-
-  if (val === false) {
-    return 'disabled';
-  }
-
   return `${val}`;
+};
+
+type Change = {
+  old: FieldValue;
+  new: FieldValue;
 };
 
 /**
@@ -111,7 +110,11 @@ const prettyFormString = (val: unknown, model: FormModel, fieldName: string) => 
  * Also allows for undo
  */
 
-export function saveOnBlurUndoMessage(change, model, fieldName) {
+export function saveOnBlurUndoMessage(
+  change: Change,
+  model: FormModel,
+  fieldName: string
+) {
   if (!model) {
     return;
   }
@@ -122,7 +125,7 @@ export function saveOnBlurUndoMessage(change, model, fieldName) {
     return;
   }
 
-  const prettifyValue = val => prettyFormString(val, model, fieldName);
+  const prettifyValue = (val: FieldValue) => prettyFormString(val, model, fieldName);
 
   // Hide the change text when formatMessageValue is explicitly set to false
   const showChangeText = model.getDescriptor(fieldName, 'formatMessageValue') !== false;
