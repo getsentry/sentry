@@ -19,6 +19,7 @@ import SentryTypes from 'app/sentryTypes';
 import platforms from 'app/data/platforms';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
+import getDynamicText from 'app/utils/getDynamicText';
 import withOrganization from 'app/utils/withOrganization';
 
 /**
@@ -85,7 +86,7 @@ class ProjectDocs extends React.Component {
     }
   };
 
-  handleFullDocsClick = e => {
+  handleFullDocsClick = () => {
     const {organization, project, platform} = this.props;
     recordAnalyticsDocsClicked({organization, project, platform});
   };
@@ -166,17 +167,24 @@ class ProjectDocs extends React.Component {
       </PoseGroup>
     );
 
+    const loadingError = (
+      <LoadingError
+        message={t('Failed to load documentation for the %s platform.', platform)}
+        onRetry={this.fetchData}
+      />
+    );
+
+    const testOnlyAlert = (
+      <Alert type="warning">Platform documentation is not rendered in Percy Tests</Alert>
+    );
+
     return (
       <React.Fragment>
         {introduction}
-        {!hasError ? (
-          docs
-        ) : (
-          <LoadingError
-            message={t('Failed to load documentation for the %s platform.', platform)}
-            onRetry={this.fetchData}
-          />
-        )}
+        {getDynamicText({
+          value: !hasError ? docs : loadingError,
+          fixed: testOnlyAlert,
+        })}
       </React.Fragment>
     );
   }
