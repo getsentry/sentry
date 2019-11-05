@@ -211,7 +211,7 @@ export function getFieldRenderer(
   const explodedField = explodeFieldString(field);
 
   if (isDuration(explodedField)) {
-    return partial(FIELD_FORMATTERS['duration'].renderFunc, fieldName);
+    return partial(FIELD_FORMATTERS.duration.renderFunc, fieldName);
   }
 
   if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
