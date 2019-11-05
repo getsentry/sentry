@@ -13,6 +13,8 @@ import SentryTypes from 'app/sentryTypes';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import PageHeading from 'app/components/pageHeading';
+import Banner from 'app/components/banner';
+import Button from 'app/components/button';
 import BetaTag from 'app/components/betaTag';
 import Feature from 'app/components/acl/feature';
 import Link from 'app/components/links/link';
@@ -122,6 +124,14 @@ class EventsV2 extends React.Component<Props> {
                     />
                   )}
                 </PageHeader>
+                <Banner
+                  title="Discover"
+                  subtitle="Here are a few sample queries to kick things off"
+                >
+                  <Button>Users who error in 1 min</Button>
+                  <Button>Browsers by most bugs</Button>
+                  <Button>Slowest HTTP Endpoints</Button>
+                </Banner>
                 {!hasQuery && this.renderQueryList()}
                 {hasQuery && (
                   <Events
