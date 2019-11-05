@@ -28,9 +28,11 @@ class Banner extends React.Component<Props> {
 const StyledBanner = styled('div')`
   background-image: url(${spaceBg});
   background-repeat: no-repeat;
-  background-size: 100% auto;
+  background-size: cover;
+  background-position: center center;
   height: 0;
   position: relative;
+  min-height: 320px;
   padding-top: 24%;
 `;
 
@@ -44,27 +46,28 @@ const BannerContent = styled('div')`
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 40px;
+  text-align: center;
+  padding: 48px;
 `;
 
 const BannerTitle = styled('h1')`
-  margin-bottom: 8px;
+  margin: 16px 0;
   color: ${p => p.theme.white};
 `;
+
 const BannerSubtitle = styled('h5')`
   margin-bottom: 24px;
   color: ${p => p.theme.white};
 `;
 
 const BannerActions = styled('div')`
-  width: 60%;
-  min-width: 650px;
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   justify-content: space-between;
 
-  @media (max-width: ${theme.breakpoints[1]}) {
-    flex-direction: column;
+  @media (min-width: ${theme.breakpoints[1]}) {
+    flex-direction: row;
+    min-width: 650px;
   }
 `;
 
