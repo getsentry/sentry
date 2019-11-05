@@ -4,60 +4,34 @@ exports[`ApiTokenRow renders 1`] = `
 <StyledPanelItem
   p={2}
 >
-  <div>
-    <Flex>
-      <Box
-        flex="1"
+  <Controls>
+    <InputWrapper>
+      <TextCopyInput
+        onCopy={[Function]}
       >
-        <div
-          style={
-            Object {
-              "marginBottom": 5,
-            }
-          }
-        >
-          <small>
-            <TextCopyInput
-              flexValueContainer={false}
-              onCopy={[Function]}
-              renderer={[Function]}
-            >
-              apitoken123
-            </TextCopyInput>
-          </small>
-        </div>
-      </Box>
-      <Action
-        pl={2}
-      >
-        <StyledButton
-          align="center"
-          disabled={false}
-          icon="icon-circle-subtract"
-          onClick={[Function]}
-          size="small"
-        >
-          <span
-            className="ref-delete-api-token"
-          >
-            Remove
-          </span>
-        </StyledButton>
-      </Action>
-    </Flex>
-  </div>
-  <Details>
-    <Box
-      flex="1"
+        apitoken123
+      </TextCopyInput>
+    </InputWrapper>
+    <Button
+      align="center"
+      disabled={false}
+      icon="icon-circle-subtract"
+      onClick={[Function]}
+      size="small"
     >
+      Remove
+    </Button>
+  </Controls>
+  <Details>
+    <ScopesWrapper>
       <Heading>
         Scopes
       </Heading>
       <ScopeList>
         scope1, scope2
       </ScopeList>
-    </Box>
-    <Box>
+    </ScopesWrapper>
+    <div>
       <Heading>
         Created
       </Heading>
@@ -67,7 +41,7 @@ exports[`ApiTokenRow renders 1`] = `
           seconds={true}
         />
       </Time>
-    </Box>
+    </div>
   </Details>
 </StyledPanelItem>
 `;
