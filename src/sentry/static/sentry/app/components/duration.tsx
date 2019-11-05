@@ -3,8 +3,6 @@ import React from 'react';
 
 import {tn} from 'app/locale';
 
-Math.round((1.005 + Number.EPSILON) * 100) / 100;
-
 function roundWithFixed(
   value: number,
   fixedDigits: number
