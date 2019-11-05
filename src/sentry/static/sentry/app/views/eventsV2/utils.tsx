@@ -21,6 +21,8 @@ import {
   AGGREGATIONS,
   FIELDS,
   ColumnValueType,
+  DURATION_FIELDS,
+  DURATION_AGGREGATION_WHITELIST,
 } from './eventQueryParams';
 import {TableColumn} from './table/types';
 
@@ -35,20 +37,32 @@ export type EventQuery = {
 const AGGREGATE_PATTERN = /^([^\(]+)\(([a-z\._+]*)\)$/;
 const ROUND_BRACKETS_PATTERN = /[\(\)]/;
 
+function explodeFieldString(field: string): {aggregation: string; field: string} {
+  const results = field.match(AGGREGATE_PATTERN);
+
+  if (results && results.length >= 3) {
+    return {aggregation: results[1], field: results[2]};
+  }
+
+  return {aggregation: '', field};
+}
+
 export function explodeField(
   field: FieldType
 ): {aggregation: string; field: string; fieldname: string} {
-  const results = field.field.match(AGGREGATE_PATTERN);
+  const results = explodeFieldString(field.field);
 
-  if (!results) {
-    return {aggregation: '', field: field.field, fieldname: field.title};
+  return {aggregation: results.aggregation, field: results.field, fieldname: field.title};
+}
+
+function isDuration(input: {aggregation: string; field: string}): boolean {
+  if (input.aggregation !== '') {
+    if (!DURATION_AGGREGATION_WHITELIST.includes(input.aggregation)) {
+      return false;
+    }
   }
 
-  if (results.length >= 3) {
-    return {aggregation: results[1], field: results[2], fieldname: field.title};
-  }
-
-  return {aggregation: '', field: field.field, fieldname: field.title};
+  return DURATION_FIELDS.includes(input.field);
 }
 
 /**
@@ -192,6 +206,12 @@ export function getFieldRenderer(
   // use a different formatter set based on the type.
   if (forceLink && LINK_FORMATTERS.hasOwnProperty(fieldType)) {
     return partial(LINK_FORMATTERS[fieldType], fieldName);
+  }
+
+  const explodedField = explodeFieldString(field);
+
+  if (isDuration(explodedField)) {
+    return partial(FIELD_FORMATTERS['duration'].renderFunc, fieldName);
   }
 
   if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
