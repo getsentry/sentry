@@ -7,14 +7,17 @@ export type NewQuery = {
   id: string | undefined;
   version: Versions;
   name: string;
-  projects: number[];
-  fields: string[];
-  fieldnames: string[];
+  projects: Readonly<number[]>;
+  fields: Readonly<string[]>;
+  fieldnames: Readonly<string[]>;
   query: string;
   orderby?: string;
   range?: string;
   start?: string;
   end?: string;
+  environment?: Readonly<string[]>;
+  tags?: Readonly<string[]>;
+  yAxis?: string;
 };
 
 export type SavedQuery = NewQuery & {
@@ -131,4 +134,5 @@ const DiscoverSavedQueriesStore = Reflux.createStore({
   },
 });
 
-export default DiscoverSavedQueriesStore;
+// TODO(ts): This should be properly typed
+export default DiscoverSavedQueriesStore as any;

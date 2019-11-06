@@ -58,38 +58,45 @@ exports[`ProjectTags renders 1`] = `
           ]
         }
       >
-        <withConfig(AccessContainer)
+        <WithOrganizationMockWrapper
           access={
             Array [
               "project:write",
             ]
           }
         >
-          <AccessContainer
+          <withConfig(Access)
             access={
               Array [
                 "project:write",
               ]
             }
-            config={
+            organization={
               Object {
-                "features": Set {},
-                "messages": Array [],
-                "user": Object {
-                  "email": "foo@example.com",
-                  "flags": Object {
-                    "newsletter_consent_prompt": false,
-                  },
-                  "hasPasswordAuth": true,
-                  "id": "1",
-                  "isAuthenticated": true,
-                  "name": "Foo Bar",
-                  "options": Object {
-                    "timezone": "UTC",
-                  },
-                  "permissions": Set {},
-                  "username": "foo@example.com",
+                "access": Array [
+                  "org:read",
+                  "org:write",
+                  "org:admin",
+                  "org:integrations",
+                  "project:read",
+                  "project:write",
+                  "project:admin",
+                  "team:read",
+                  "team:write",
+                  "team:admin",
+                ],
+                "features": Array [],
+                "id": "3",
+                "name": "Organization Name",
+                "onboardingTasks": Array [],
+                "projects": Array [],
+                "scrapeJavaScript": true,
+                "slug": "org-slug",
+                "status": Object {
+                  "id": "active",
+                  "name": "active",
                 },
+                "teams": Array [],
               }
             }
           >
@@ -120,23 +127,7 @@ exports[`ProjectTags renders 1`] = `
                   },
                 }
               }
-              configUser={
-                Object {
-                  "email": "foo@example.com",
-                  "flags": Object {
-                    "newsletter_consent_prompt": false,
-                  },
-                  "hasPasswordAuth": true,
-                  "id": "1",
-                  "isAuthenticated": true,
-                  "name": "Foo Bar",
-                  "options": Object {
-                    "timezone": "UTC",
-                  },
-                  "permissions": Set {},
-                  "username": "foo@example.com",
-                }
-              }
+              isSuperuser={false}
               organization={
                 Object {
                   "access": Array [
@@ -168,8 +159,8 @@ exports[`ProjectTags renders 1`] = `
               renderNoAccessMessage={false}
               requireAll={true}
             />
-          </AccessContainer>
-        </withConfig(AccessContainer)>
+          </withConfig(Access)>
+        </WithOrganizationMockWrapper>
       </PermissionAlert>
       <TextBlock>
         <div
@@ -274,38 +265,45 @@ exports[`ProjectTags renders 1`] = `
               <div
                 className="css-a4ya23-textStyles"
               >
-                <withConfig(AccessContainer)
+                <WithOrganizationMockWrapper
                   access={
                     Array [
                       "project:write",
                     ]
                   }
                 >
-                  <AccessContainer
+                  <withConfig(Access)
                     access={
                       Array [
                         "project:write",
                       ]
                     }
-                    config={
+                    organization={
                       Object {
-                        "features": Set {},
-                        "messages": Array [],
-                        "user": Object {
-                          "email": "foo@example.com",
-                          "flags": Object {
-                            "newsletter_consent_prompt": false,
-                          },
-                          "hasPasswordAuth": true,
-                          "id": "1",
-                          "isAuthenticated": true,
-                          "name": "Foo Bar",
-                          "options": Object {
-                            "timezone": "UTC",
-                          },
-                          "permissions": Set {},
-                          "username": "foo@example.com",
+                        "access": Array [
+                          "org:read",
+                          "org:write",
+                          "org:admin",
+                          "org:integrations",
+                          "project:read",
+                          "project:write",
+                          "project:admin",
+                          "team:read",
+                          "team:write",
+                          "team:admin",
+                        ],
+                        "features": Array [],
+                        "id": "3",
+                        "name": "Organization Name",
+                        "onboardingTasks": Array [],
+                        "projects": Array [],
+                        "scrapeJavaScript": true,
+                        "slug": "org-slug",
+                        "status": Object {
+                          "id": "active",
+                          "name": "active",
                         },
+                        "teams": Array [],
                       }
                     }
                   >
@@ -336,23 +334,7 @@ exports[`ProjectTags renders 1`] = `
                           },
                         }
                       }
-                      configUser={
-                        Object {
-                          "email": "foo@example.com",
-                          "flags": Object {
-                            "newsletter_consent_prompt": false,
-                          },
-                          "hasPasswordAuth": true,
-                          "id": "1",
-                          "isAuthenticated": true,
-                          "name": "Foo Bar",
-                          "options": Object {
-                            "timezone": "UTC",
-                          },
-                          "permissions": Set {},
-                          "username": "foo@example.com",
-                        }
-                      }
+                      isSuperuser={false}
                       organization={
                         Object {
                           "access": Array [
@@ -1139,7 +1121,7 @@ exports[`ProjectTags renders 1`] = `
                                           >
                                             <span
                                               aria-describedby="tooltip-123456"
-                                              className="css-1m3e0hg-Container eowlwvy0"
+                                              className="css-1vf31z4-Container eowlwvy0"
                                               onBlur={[Function]}
                                               onFocus={[Function]}
                                               onMouseEnter={[Function]}
@@ -1393,7 +1375,7 @@ exports[`ProjectTags renders 1`] = `
                                           >
                                             <span
                                               aria-describedby="tooltip-123456"
-                                              className="css-1m3e0hg-Container eowlwvy0"
+                                              className="css-1vf31z4-Container eowlwvy0"
                                               onBlur={[Function]}
                                               onFocus={[Function]}
                                               onMouseEnter={[Function]}
@@ -1578,8 +1560,8 @@ exports[`ProjectTags renders 1`] = `
                         </Base>
                       </PanelItem>
                     </Access>
-                  </AccessContainer>
-                </withConfig(AccessContainer)>
+                  </withConfig(Access)>
+                </WithOrganizationMockWrapper>
               </div>
             </PanelBody>
           </div>

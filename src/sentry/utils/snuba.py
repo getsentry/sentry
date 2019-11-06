@@ -12,7 +12,6 @@ import re
 import six
 import time
 import urllib3
-import uuid
 
 from concurrent.futures import ThreadPoolExecutor
 from django.conf import settings
@@ -24,12 +23,14 @@ from sentry.models import (
     GroupRelease,
     Organization,
     Project,
+    ProjectKey,
     Release,
     ReleaseProject,
 )
 from sentry.net.http import connection_from_url
 from sentry.utils import metrics, json
 from sentry.utils.dates import to_timestamp
+from sentry.eventstore.base import Columns
 
 # TODO remove this when Snuba accepts more than 500 issues
 MAX_ISSUES = 500
@@ -49,110 +50,12 @@ OVERRIDE_OPTIONS = {
 # a tag with the same name. Existing search patterns expect to refer to the tag,
 # so we support <real_column_name>.name to refer to the top level column name.
 SENTRY_SNUBA_MAP = {
-    # general
-    "id": "event_id",
-    "project.id": "project_id",
-    # We support platform as both tag and a real column.
-    "platform.name": "platform",
-    "message": "message",
-    "title": "title",
-    "location": "location",
-    "culprit": "culprit",
-    "issue.id": "issue",
-    "timestamp": "timestamp",
-    "time": "time",
-    "transaction": "transaction",
-    # We support type as both tag and a real column
-    "event.type": "type",
-    # user
-    "user.id": "user_id",
-    "user.email": "email",
-    "user.username": "username",
-    "user.ip": "ip_address",
-    # sdk
-    "sdk.name": "sdk_name",
-    "sdk.version": "sdk_version",
-    # http
-    "http.method": "http_method",
-    "http.url": "http_referer",
-    # os
-    "os.build": "os_build",
-    "os.kernel_version": "os_kernel_version",
-    # device
-    "device.name": "device_name",
-    "device.brand": "device_brand",
-    "device.locale": "device_locale",
-    "device.uuid": "device_uuid",
-    "device.model_id": "device_model_id",
-    "device.arch": "device_arch",
-    "device.battery_level": "device_battery_level",
-    "device.orientation": "device_orientation",
-    "device.simulator": "device_simulator",
-    "device.online": "device_online",
-    "device.charging": "device_charging",
-    # geo
-    "geo.country_code": "geo_country_code",
-    "geo.region": "geo_region",
-    "geo.city": "geo_city",
-    # error, stack
-    "error.type": "exception_stacks.type",
-    "error.value": "exception_stacks.value",
-    "error.mechanism": "exception_stacks.mechanism_type",
-    "error.handled": "exception_stacks.mechanism_handled",
-    "stack.abs_path": "exception_frames.abs_path",
-    "stack.filename": "exception_frames.filename",
-    "stack.package": "exception_frames.package",
-    "stack.module": "exception_frames.module",
-    "stack.function": "exception_frames.function",
-    "stack.in_app": "exception_frames.in_app",
-    "stack.colno": "exception_frames.colno",
-    "stack.lineno": "exception_frames.lineno",
-    "stack.stack_level": "exception_frames.stack_level",
-    # tags, contexts
-    "tags.key": "tags.key",
-    "tags.value": "tags.value",
-    "tags_key": "tags_key",
-    "tags_value": "tags_value",
-    "contexts.key": "contexts.key",
-    "contexts.value": "contexts.value",
-    # misc
-    "environment": "environment",
-    "release": "tags[sentry:release]",
-    "user": "tags[sentry:user]",
+    col.value.alias: col.value.event_name for col in Columns if col.value.event_name is not None
 }
-
 TRANSACTIONS_SENTRY_SNUBA_MAP = {
-    # general
-    "id": "event_id",
-    "project.id": "project_id",
-    "trace_id": "trace_id",
-    "span_id": "span_id",
-    "title": "transaction_name",
-    "message": "transaction_name",
-    "transaction": "transaction_name",
-    "transaction.op": "transaction_op",
-    "platform.name": "platform",
-    "environment": "environment",
-    "release": "release",
-    # Time related properties
-    "transaction.duration": "duration",
-    # User
-    "user": "user",
-    "user.id": "user_id",
-    "user.email": "user_email",
-    "user.username": "user_name",
-    "user.ip": "ip_address_v4",
-    # tags, contexts
-    "tags.key": "tags.key",
-    "tags.value": "tags.value",
-    "tags_key": "tags_key",
-    "tags_value": "tags_value",
-    "contexts.key": "contexts.key",
-    "contexts.value": "contexts.value",
-    # Shim to make queries that can act on
-    # events or transactions work more smoothly.
-    "timestamp": "finish_ts",
-    "time": "bucketed_end",
+    col.value.alias: col.value.transaction_name
+    for col in Columns
+    if col.value.transaction_name is not None
 }
 
 
@@ -161,14 +64,17 @@ class Dataset(Enum):
     Events = "events"
     Transactions = "transactions"
     Outcomes = "outcomes"
+    OutcomesRaw = "outcomes_raw"
 
 
 DATASETS = {Dataset.Events: SENTRY_SNUBA_MAP, Dataset.Transactions: TRANSACTIONS_SENTRY_SNUBA_MAP}
 
 # Store the internal field names to save work later on.
+# Add `group_id` to the events dataset list as we don't want to publically
+# expose that field, but it is used by eventstore and other internals.
 DATASET_FIELDS = {
-    Dataset.Events: SENTRY_SNUBA_MAP.values(),
-    Dataset.Transactions: TRANSACTIONS_SENTRY_SNUBA_MAP.values(),
+    Dataset.Events: list(SENTRY_SNUBA_MAP.values()) + ["group_id"],
+    Dataset.Transactions: list(TRANSACTIONS_SENTRY_SNUBA_MAP.values()),
 }
 
 
@@ -178,8 +84,7 @@ class SnubaError(Exception):
 
 class UnqualifiedQueryError(SnubaError):
     """
-    Exception raised when no project_id qualifications were provided in the
-    query or could be derived from other filter criteria.
+    Exception raised when a required qualification was not satisfied in the query.
     """
 
 
@@ -341,7 +246,7 @@ def get_snuba_column_name(name, dataset=Dataset.Events):
     the column is assumed to be a tag. If name is falsy or name is a quoted literal
     (e.g. "'name'"), leave unchanged.
     """
-    no_conversion = set(["project_id", "start", "end"])
+    no_conversion = set(["issue", "project_id", "start", "end"])
 
     if name in no_conversion:
         return name
@@ -393,6 +298,13 @@ def detect_dataset(query_args, aliased_conditions=False):
         ]:
             return Dataset.Transactions
 
+        if condition == ["event.type", "!=", "transaction"] or condition == [
+            "type",
+            "!=",
+            "transaction",
+        ]:
+            return Dataset.Events
+
     for field in query_args.get("selected_columns") or []:
         if isinstance(field, six.string_types) and field in transaction_fields:
             return Dataset.Transactions
@@ -400,12 +312,16 @@ def detect_dataset(query_args, aliased_conditions=False):
     for field in query_args.get("aggregations") or []:
         if len(field) != 3:
             continue
+        # Check field or fields
         if isinstance(field[1], six.string_types) and field[1] in transaction_fields:
             return Dataset.Transactions
         if isinstance(field[1], (list, tuple)):
             is_transaction = [column for column in field[1] if column in transaction_fields]
             if is_transaction:
                 return Dataset.Transactions
+        # Check for transaction only field aliases
+        if isinstance(field[2], six.string_types) and field[2] in ("p95", "p75"):
+            return Dataset.Transactions
 
     for field in query_args.get("groupby") or []:
         if field in transaction_fields:
@@ -516,7 +432,7 @@ def valid_orderby(orderby, custom_fields=None, dataset=Dataset.Events):
     return True
 
 
-def transform_aliases_and_query(skip_conditions=False, **kwargs):
+def transform_aliases_and_query(**kwargs):
     """
     Convert aliases in selected_columns, groupby, aggregation, conditions,
     orderby and arrayjoin fields to their internal Snuba format and post the
@@ -538,7 +454,7 @@ def transform_aliases_and_query(skip_conditions=False, **kwargs):
     rollup = kwargs.get("rollup")
     orderby = kwargs.get("orderby")
     having = kwargs.get("having", [])
-    dataset = detect_dataset(kwargs, aliased_conditions=skip_conditions)
+    dataset = detect_dataset(kwargs)
 
     if selected_columns:
         for (idx, col) in enumerate(selected_columns):
@@ -571,22 +487,9 @@ def transform_aliases_and_query(skip_conditions=False, **kwargs):
         elif isinstance(aggregation[1], (set, tuple, list)):
             aggregation[1] = [get_snuba_column_name(col, dataset) for col in aggregation[1]]
 
-    if not skip_conditions:
-        for col in filter_keys.keys():
-            name = get_snuba_column_name(col, dataset)
-            filter_keys[name] = filter_keys.pop(col)
-
-    def handle_condition(cond):
-        if isinstance(cond, (list, tuple)) and len(cond):
-            if isinstance(cond[0], (list, tuple)):
-                cond[0] = handle_condition(cond[0])
-            elif len(cond) == 3:
-                # map column name
-                cond[0] = get_snuba_column_name(cond[0], dataset)
-            elif len(cond) == 2 and cond[0] == "has":
-                # first function argument is the column if function is "has"
-                cond[1][0] = get_snuba_column_name(cond[1][0], dataset)
-        return cond
+    for col in filter_keys.keys():
+        name = get_snuba_column_name(col, dataset)
+        filter_keys[name] = filter_keys.pop(col)
 
     if conditions:
         aliased_conditions = []
@@ -594,10 +497,8 @@ def transform_aliases_and_query(skip_conditions=False, **kwargs):
             field = condition[0]
             if not isinstance(field, (list, tuple)) and field in derived_columns:
                 having.append(condition)
-            elif skip_conditions:
-                aliased_conditions.append(condition)
             else:
-                aliased_conditions.append(handle_condition(condition))
+                aliased_conditions.append(condition)
         kwargs["conditions"] = aliased_conditions
 
     if having:
@@ -640,17 +541,11 @@ def transform_aliases_and_query(skip_conditions=False, **kwargs):
     return result
 
 
-def _prepare_query_params(query_params):
-    # convert to naive UTC datetimes, as Snuba only deals in UTC
-    # and this avoids offset-naive and offset-aware issues
-    start = naiveify_datetime(query_params.start)
-    end = naiveify_datetime(query_params.end)
-
-    with timer("get_snuba_map"):
-        forward, reverse = get_snuba_translators(
-            query_params.filter_keys, is_grouprelease=query_params.is_grouprelease
-        )
-
+def get_query_params_to_update_for_projects(query_params):
+    """
+    Get the project ID and query params that need to be updated for project
+    based datasets, before we send the query to Snuba.
+    """
     if "project_id" in query_params.filter_keys:
         # If we are given a set of project ids, use those directly.
         project_ids = list(set(query_params.filter_keys["project_id"]))
@@ -665,6 +560,68 @@ def _prepare_query_params(query_params):
     else:
         project_ids = []
 
+    if not project_ids:
+        raise UnqualifiedQueryError(
+            "No project_id filter, or none could be inferred from other filters."
+        )
+
+    # any project will do, as they should all be from the same organization
+    organization_id = Project.objects.get(pk=project_ids[0]).organization_id
+
+    return organization_id, {"project": project_ids}
+
+
+def get_query_params_to_update_for_organizations(query_params):
+    """
+    Get the organization ID and query params that need to be updated for organization
+    based datasets, before we send the query to Snuba.
+    """
+    if "org_id" in query_params.filter_keys:
+        organization_ids = list(set(query_params.filter_keys["org_id"]))
+        if len(organization_ids) != 1:
+            raise UnqualifiedQueryError("Multiple organization_ids found. Only one allowed.")
+        organization_id = organization_ids[0]
+    elif "project_id" in query_params.filter_keys:
+        organization_id, _ = get_query_params_to_update_for_projects(query_params)
+    elif "key_id" in query_params.filter_keys:
+        key_ids = list(set(query_params.filter_keys["key_id"]))
+        project_key = ProjectKey.objects.get(pk=key_ids[0])
+        organization_id = project_key.project.organization_id
+    else:
+        organization_id = None
+
+    if not organization_id:
+        raise UnqualifiedQueryError(
+            "No organization_id filter, or none could be inferred from other filters."
+        )
+
+    return organization_id, {"organization": organization_id}
+
+
+def _prepare_query_params(query_params):
+    # convert to naive UTC datetimes, as Snuba only deals in UTC
+    # and this avoids offset-naive and offset-aware issues
+    start = naiveify_datetime(query_params.start)
+    end = naiveify_datetime(query_params.end)
+
+    with timer("get_snuba_map"):
+        forward, reverse = get_snuba_translators(
+            query_params.filter_keys, is_grouprelease=query_params.is_grouprelease
+        )
+
+    if query_params.dataset in [Dataset.Events, Dataset.Transactions]:
+        (organization_id, params_to_update) = get_query_params_to_update_for_projects(query_params)
+    elif query_params.dataset in [Dataset.Outcomes, Dataset.OutcomesRaw]:
+        (organization_id, params_to_update) = get_query_params_to_update_for_organizations(
+            query_params
+        )
+    else:
+        raise UnqualifiedQueryError(
+            "No strategy found for getting an organization for the given dataset."
+        )
+
+    query_params.kwargs.update(params_to_update)
+
     for col, keys in six.iteritems(forward(deepcopy(query_params.filter_keys))):
         if keys:
             if len(keys) == 1 and None in keys:
@@ -672,14 +629,7 @@ def _prepare_query_params(query_params):
             else:
                 query_params.conditions.append((col, "IN", keys))
 
-    if not project_ids:
-        raise UnqualifiedQueryError(
-            "No project_id filter, or none could be inferred from other filters."
-        )
-
-    # any project will do, as they should all be from the same organization
-    project = Project.objects.get(pk=project_ids[0])
-    retention = quotas.get_event_retention(organization=Organization(project.organization_id))
+    retention = quotas.get_event_retention(organization=Organization(organization_id))
     if retention:
         start = max(start, datetime.utcnow() - timedelta(days=retention))
         if start > end:
@@ -709,7 +659,6 @@ def _prepare_query_params(query_params):
             "groupby": query_params.groupby,
             "conditions": query_params.conditions,
             "aggregations": query_params.aggregations,
-            "project": project_ids,
             "granularity": query_params.rollup,  # TODO name these things the same
         }
     )
@@ -953,7 +902,7 @@ def constrain_column_to_dataset(col, dataset, value=None):
         return col
     # Special case for the type condition as we only want
     # to drop it when we are querying transactions.
-    if dataset == Dataset.Transactions and col == "type" and value == "transaction":
+    if dataset == Dataset.Transactions and col == "event.type" and value == "transaction":
         return None
     if not col or QUOTED_LITERAL_RE.match(col):
         return col
@@ -974,29 +923,42 @@ def constrain_condition_to_dataset(cond, dataset):
     We have the dataset context here, so we need to re-scope conditions to the
     current dataset.
     """
+    index = get_function_index(cond)
+    if index is not None:
+        # IN conditions are detected as a function but aren't really.
+        if cond[index] == "IN":
+            cond[0] = constrain_column_to_dataset(cond[0], dataset)
+            return cond
+
+        func_args = cond[index + 1]
+        for (i, arg) in enumerate(func_args):
+            # Nested function
+            if isinstance(arg, (list, tuple)):
+                func_args[i] = constrain_condition_to_dataset(arg, dataset)
+            else:
+                func_args[i] = constrain_column_to_dataset(arg, dataset)
+        cond[index + 1] = func_args
+        return cond
+
+    # No function name found
     if isinstance(cond, (list, tuple)) and len(cond):
-        if isinstance(cond[0], (list, tuple)):
-            # Nested condition or function expressions
-            cond = [constrain_condition_to_dataset(c, dataset) for c in cond]
-        elif len(cond) == 3:
-            # map column name
+        # Condition is [col, operator, value]
+        if isinstance(cond[0], six.string_types) and len(cond) == 3:
+            # Map column name to current dataset removing
+            # invalid conditions based on the dataset.
             name = constrain_column_to_dataset(cond[0], dataset, cond[2])
             if name is None:
                 return None
             cond[0] = name
-            # Reformat 32 byte uuids to 36 byte variants.
-            # The transactions dataset requires properly formatted uuid values.
-            # But the rest of sentry isn't aware of that requirement.
-            if dataset == Dataset.Transactions and name == "event_id" and len(cond[2]) == 32:
-                cond[2] = six.text_type(uuid.UUID(cond[2]))
-        elif len(cond) == 2 and cond[0] == "has":
-            # first function argument is the column if function is "has"
-            cond[1][0] = constrain_column_to_dataset(cond[1][0], dataset)
-        elif len(cond) == 2 and SAFE_FUNCTION_RE.match(cond[0]):
-            # Function call with column name arguments.
-            if isinstance(cond[1], list):
-                cond[1] = [constrain_column_to_dataset(item, dataset) for item in cond[1]]
-    return cond
+            return cond
+        if isinstance(cond[0], (list, tuple)):
+            if get_function_index(cond[0]) is not None:
+                cond[0] = constrain_condition_to_dataset(cond[0], dataset)
+                return cond
+            else:
+                # Nested conditions
+                return [constrain_condition_to_dataset(item, dataset) for item in cond]
+    raise ValueError("Unexpected condition format %s" % cond)
 
 
 def dataset_query(
@@ -1035,7 +997,7 @@ def dataset_query(
     derived_columns = []
     if selected_columns:
         for (i, col) in enumerate(selected_columns):
-            if isinstance(col, list):
+            if isinstance(col, (list, tuple)):
                 derived_columns.append(col[2])
             else:
                 selected_columns[i] = constrain_column_to_dataset(col, dataset)
@@ -1052,11 +1014,14 @@ def dataset_query(
         conditions = list(filter(None, conditions))
 
     if orderby:
+        # Don't mutate in case we have a default order passed.
+        updated_order = []
         for (i, order) in enumerate(orderby):
             order_field = order.lstrip("-")
             if order_field not in derived_columns:
                 order_field = constrain_column_to_dataset(order_field, dataset)
-            orderby[i] = u"{}{}".format("-" if order.startswith("-") else "", order_field)
+            updated_order.append(u"{}{}".format("-" if order.startswith("-") else "", order_field))
+        orderby = updated_order
 
     return raw_query(
         start=start,
@@ -1210,13 +1175,13 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
         if "time" in row
         else row,
     )
-    # Extra reverse translator for bucketed_start column.
+    # Extra reverse translator for bucketed_end column.
     reverse = compose(
         reverse,
         lambda row: replace(
-            row, "bucketed_start", int(to_timestamp(parse_datetime(row["bucketed_start"])))
+            row, "bucketed_end", int(to_timestamp(parse_datetime(row["bucketed_end"])))
         )
-        if "bucketed_start" in row
+        if "bucketed_end" in row
         else row,
     )
 

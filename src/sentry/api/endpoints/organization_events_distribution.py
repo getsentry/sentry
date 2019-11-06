@@ -37,10 +37,14 @@ class OrganizationEventsDistributionEndpoint(OrganizationEventsEndpointBase):
             conditions = snuba_args["conditions"]
         else:
             colname = key
-            conditions = snuba_args["conditions"] + [[colname, "IS NOT NULL", None]]
+            additional_conditions = []
+            # the "no environment" environment is null in snuba
+            if not ("environment" in params and "" in params["environment"]):
+                additional_conditions = [[colname, "IS NOT NULL", None]]
+
+            conditions = snuba_args["conditions"] + additional_conditions
 
         top_values = transform_aliases_and_query(
-            skip_conditions=True,
             start=snuba_args["start"],
             end=snuba_args["end"],
             conditions=conditions,

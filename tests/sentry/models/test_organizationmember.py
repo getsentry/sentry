@@ -8,7 +8,7 @@ from django.utils import timezone
 from mock import patch
 
 from sentry.auth import manager
-from sentry.models import OrganizationMember, INVITE_DAYS_VALID
+from sentry.models import InviteStatus, OrganizationMember, INVITE_DAYS_VALID
 from sentry.testutils import TestCase
 
 
@@ -39,6 +39,36 @@ class OrganizationMemberTest(TestCase):
         msg = mail.outbox[0]
 
         assert msg.to == ["foo@example.com"]
+
+    def test_send_request_notification_email(self):
+        organization = self.create_organization()
+
+        user1 = self.create_user(email="manager@localhost")
+        user2 = self.create_user(email="owner@localhost")
+        user3 = self.create_user(email="member@localhost")
+
+        self.create_member(organization=organization, user=user1, role="manager")
+        self.create_member(organization=organization, user=user2, role="owner")
+        self.create_member(organization=organization, user=user3, role="member")
+
+        member = OrganizationMember(
+            id=1,
+            role="manager",
+            organization=organization,
+            email="foo@example.com",
+            inviter=user3,
+            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+        )
+        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+            member.send_request_notification_email()
+
+        assert len(mail.outbox) == 2
+
+        assert mail.outbox[0].to == ["manager@localhost"]
+        assert mail.outbox[1].to == ["owner@localhost"]
+
+        expected_subject = "Access request to %s" % (organization.name,)
+        assert mail.outbox[0].subject == expected_subject
 
     def test_send_sso_link_email(self):
         organization = self.create_organization()
@@ -172,3 +202,17 @@ class OrganizationMemberTest(TestCase):
         )
         OrganizationMember.delete_expired(timezone.now())
         assert OrganizationMember.objects.get(id=member.id)
+
+    def test_approve_invite(self):
+        organization = self.create_organization()
+        member = OrganizationMember.objects.create(
+            organization=organization,
+            role="member",
+            email="test@example.com",
+            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+        )
+        assert not member.invite_approved
+
+        member.approve_invite()
+        assert member.invite_approved
+        member.invite_status == InviteStatus.APPROVED.value

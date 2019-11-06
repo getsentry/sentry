@@ -1,5 +1,7 @@
 from __future__ import print_function, absolute_import
 
+import logging
+
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils import timezone
@@ -12,7 +14,9 @@ from sentry.models import (
     OrganizationOption,
     Organization,
 )
-from sentry.plugins import IssueTrackingPlugin, IssueTrackingPlugin2, NotificationPlugin
+from sentry.plugins.bases import IssueTrackingPlugin
+from sentry.plugins.bases import IssueTrackingPlugin2
+from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.signals import (
     event_processed,
     first_event_pending,
@@ -56,9 +60,17 @@ def record_new_project(project, user, **kwargs):
         user_id = default_user_id = user.id
     else:
         user = user_id = None
-        default_user_id = (
-            Organization.objects.get(id=project.organization_id).get_default_owner().id
-        )
+        try:
+            default_user_id = (
+                Organization.objects.get(id=project.organization_id).get_default_owner().id
+            )
+        except IndexError:
+            logging.getLogger("sentry").warn(
+                "Cannot initiate onboarding for organization (%s) due to missing owners",
+                project.organization_id,
+            )
+            # XXX(dcramer): we cannot setup onboarding tasks without a user
+            return
 
     analytics.record(
         "project.created",

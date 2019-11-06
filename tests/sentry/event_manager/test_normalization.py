@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import pytest
-import mock
 import logging
 
 from datetime import datetime
@@ -62,17 +61,6 @@ def test_does_default_ip_address_to_user(user):
     data = manager.get_data()
 
     assert data["user"]["ip_address"] == "127.0.0.1"
-
-
-@mock.patch("sentry.interfaces.geo.geo_by_addr")
-def test_skips_geo_with_no_result(geo_by_addr_mock):
-    geo_by_addr_mock.return_value = None
-
-    manager = EventManager(make_event(**{"user": {"ip_address": "127.0.0.1"}}))
-    manager.normalize()
-    data = manager.get_data()
-    assert data["user"]["ip_address"] == "127.0.0.1"
-    assert "geo" not in data["user"]
 
 
 def test_does_default_ip_address_if_present():
@@ -213,7 +201,7 @@ def test_deprecated_attrs(key):
     assert not data.get("errors")
 
 
-def test_returns_cannonical_dict():
+def test_returns_canonical_dict():
     from sentry.utils.canonical import CanonicalKeyDict
 
     event = make_event()

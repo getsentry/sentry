@@ -62,12 +62,11 @@ from sentry.lang.native.minidump import (
     write_minidump_placeholder,
     MINIDUMP_ATTACHMENT_TYPE,
 )
-from sentry.models import Project, File, EventAttachment
+from sentry.models import Project, File, EventAttachment, Organization
 from sentry.signals import event_accepted, event_dropped, event_filtered, event_received
 from sentry.quotas.base import RateLimit
 from sentry.utils import json, metrics
 from sentry.utils.data_filters import FilterStatKeys
-from sentry.utils.data_scrubber import SensitiveDataFilter
 from sentry.utils.http import is_valid_origin, get_origins, is_same_domain, origin_from_request
 from sentry.utils.outcomes import Outcome, track_outcome, decide_signals_in_consumer
 from sentry.utils.pubsub import QueuedPublisherService, KafkaPublisher
@@ -285,39 +284,8 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments,
         )
         raise APIForbidden("An event with the same ID already exists (%s)" % (event_id,))
 
-    config = project_config.config
-    datascrubbing_settings = config.get("datascrubbingSettings") or {}
-
-    scrub_ip_address = datascrubbing_settings.get("scrubIpAddresses")
-
-    scrub_data = datascrubbing_settings.get("scrubData")
-
-    if random.random() < options.get("store.sample-rust-data-scrubber", 0.0):
-        rust_scrubbed_data = safe_execute(
-            semaphore.scrub_event, datascrubbing_settings, dict(data), _with_transaction=False
-        )
-    else:
-        rust_scrubbed_data = None
-
-    if rust_scrubbed_data and options.get("store.use-rust-data-scrubber", False):
-        data = rust_scrubbed_data
-        data["_rust_data_scrubbed"] = True  # TODO: Remove after sampling
-    else:
-        if scrub_data:
-            # We filter data immediately before it ever gets into the queue
-            sensitive_fields = datascrubbing_settings.get("sensitiveFields")
-            exclude_fields = datascrubbing_settings.get("excludeFields")
-            scrub_defaults = datascrubbing_settings.get("scrubDefaults")
-
-            SensitiveDataFilter(
-                fields=sensitive_fields,
-                include_defaults=scrub_defaults,
-                exclude_fields=exclude_fields,
-            ).apply(data)
-
-        if scrub_ip_address:
-            # We filter data immediately before it ever gets into the queue
-            helper.ensure_does_not_have_ip(data)
+    datascrubbing_settings = project_config.config.get("datascrubbingSettings") or {}
+    data = semaphore.scrub_event(datascrubbing_settings, dict(data))
 
     # mutates data (strips a lot of context if not queued)
     helper.insert_data_to_database(data, start_time=start_time, attachments=attachments)
@@ -329,6 +297,19 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments,
     event_accepted.send_robust(ip=remote_addr, data=data, project=project, sender=process_event)
 
     return event_id
+
+
+def _get_project_from_id(project_id):
+    if not project_id:
+        return None
+    if not project_id.isdigit():
+        track_outcome(0, 0, None, Outcome.INVALID, "project_id")
+        raise APIError("Invalid project_id: %r" % project_id)
+    try:
+        return Project.objects.get_from_cache(id=project_id)
+    except Project.DoesNotExist:
+        track_outcome(0, 0, None, Outcome.INVALID, "project_id")
+        raise APIError("Invalid project_id: %r" % project_id)
 
 
 class APIView(BaseView):
@@ -413,7 +394,7 @@ class APIView(BaseView):
 
             kafka_publisher.publish(
                 channel=getattr(settings, "KAFKA_RAW_EVENTS_PUBLISHER_TOPIC", "raw-store-events"),
-                value=json.dumps([meta, base64.b64encode(data)]),
+                value=json.dumps([meta, base64.b64encode(data), project_config.to_dict()]),
             )
         except Exception as e:
             logger.debug("Cannot publish event to Kafka: {}".format(e.message))
@@ -435,7 +416,15 @@ class APIView(BaseView):
                 project_id, request, self.auth_helper_cls, helper
             )
 
-            project_config = get_project_config(project_id, for_store=True)
+            project = _get_project_from_id(six.text_type(project_id))
+
+            # Explicitly bind Organization so we don't implicitly query it later
+            # this just allows us to comfortably assure that `project.organization` is safe.
+            # This also allows us to pull the object from cache, instead of being
+            # implicitly fetched from database.
+            project.organization = Organization.objects.get_from_cache(id=project.organization_id)
+
+            project_config = get_project_config(project, for_store=True)
 
             helper.context.bind_project(project_config.project)
 

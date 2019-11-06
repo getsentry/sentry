@@ -1,12 +1,14 @@
 from __future__ import absolute_import
 
 from django.db import transaction
+from django.db.models import Q
 from rest_framework.response import Response
 
+from sentry import roles, experiments
 from sentry.app import locks
-from sentry import roles, features
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
-from sentry.api.serializers import serialize
+from sentry.api.paginator import OffsetPaginator
+from sentry.api.serializers import serialize, OrganizationMemberWithTeamsSerializer
 from sentry.models import AuditLogEntryEvent, OrganizationMember, InviteStatus
 from sentry.utils.retries import TimedRetryPolicy
 
@@ -24,8 +26,24 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
     permission_classes = (InviteRequestPermissions,)
 
     def get(self, request, organization):
-        # TODO(epurkhiser): Add listing of invite requests
-        pass
+        queryset = OrganizationMember.objects.filter(
+            Q(user__isnull=True),
+            Q(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)
+            | Q(invite_status=InviteStatus.REQUESTED_TO_JOIN.value),
+            organization=organization,
+        ).order_by("invite_status", "email")
+
+        if organization.get_option("sentry:join_requests") is False:
+            queryset = queryset.filter(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)
+
+        return self.paginate(
+            request=request,
+            queryset=queryset,
+            on_results=lambda x: serialize(
+                x, request.user, OrganizationMemberWithTeamsSerializer()
+            ),
+            paginator_cls=OffsetPaginator,
+        )
 
     def post(self, request, organization):
         """
@@ -41,10 +59,9 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
 
         :auth: required
         """
-        if not features.has("organizations:invite-members", organization, actor=request.user):
-            return Response(
-                {"organization": "Your organization is not allowed to invite members"}, status=403
-            )
+        variant = experiments.get(org=organization, experiment_name="ImprovedInvitesExperiment")
+        if variant not in ("all", "invite_request"):
+            return Response(status=403)
 
         serializer = OrganizationMemberSerializer(
             data=request.data,
@@ -77,5 +94,7 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
                 data=om.get_audit_log_data(),
                 event=AuditLogEntryEvent.INVITE_REQUEST_ADD,
             )
+
+        om.send_request_notification_email()
 
         return Response(serialize(om), status=201)

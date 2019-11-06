@@ -32,7 +32,7 @@ def test_system_origin():
         ("{% absolute_uri '/{}/' who %}", "http://testserver/matt/"),
         # String substitution with missing variable
         ("{% absolute_uri '/foo/{}/' xxx %}", "http://testserver/foo//"),
-        # String substitution with multple vars
+        # String substitution with multiple vars
         ("{% absolute_uri '/{}/{}/' who desc %}", "http://testserver/matt/awesome/"),
         # Empty tag, as other var
         ("{% absolute_uri as uri %}hello {{ uri }}!", "hello http://testserver!"),

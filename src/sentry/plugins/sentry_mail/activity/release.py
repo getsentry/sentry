@@ -115,7 +115,7 @@ class ReleaseActivityEmail(ActivityEmail):
         users = list(
             User.objects.filter(
                 emails__is_verified=True,
-                sentry_orgmember_set__teams=Team.objects.filter(
+                sentry_orgmember_set__teams__in=Team.objects.filter(
                     id__in=ProjectTeam.objects.filter(project__in=self.projects).values_list(
                         "team_id", flat=True
                     )

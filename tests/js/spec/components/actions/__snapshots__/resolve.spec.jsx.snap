@@ -256,7 +256,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                             >
                               <span
                                 aria-describedby="tooltip-123456"
-                                className="css-zt6512-Container eowlwvy0"
+                                className="css-1v55bsv-Container eowlwvy0"
                                 onBlur={[Function]}
                                 onFocus={[Function]}
                                 onMouseEnter={[Function]}
@@ -365,7 +365,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                             >
                               <span
                                 aria-describedby="tooltip-123456"
-                                className="css-zt6512-Container eowlwvy0"
+                                className="css-1v55bsv-Container eowlwvy0"
                                 onBlur={[Function]}
                                 onFocus={[Function]}
                                 onMouseEnter={[Function]}
@@ -474,7 +474,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                             >
                               <span
                                 aria-describedby="tooltip-123456"
-                                className="css-zt6512-Container eowlwvy0"
+                                className="css-1v55bsv-Container eowlwvy0"
                                 onBlur={[Function]}
                                 onFocus={[Function]}
                                 onMouseEnter={[Function]}
@@ -720,7 +720,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
                             >
                               <span
                                 aria-describedby="tooltip-123456"
-                                className="css-zt6512-Container eowlwvy0"
+                                className="css-1v55bsv-Container eowlwvy0"
                                 onBlur={[Function]}
                                 onFocus={[Function]}
                                 onMouseEnter={[Function]}
@@ -775,7 +775,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
                             >
                               <span
                                 aria-describedby="tooltip-123456"
-                                className="css-zt6512-Container eowlwvy0"
+                                className="css-1v55bsv-Container eowlwvy0"
                                 onBlur={[Function]}
                                 onFocus={[Function]}
                                 onMouseEnter={[Function]}
@@ -830,7 +830,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
                             >
                               <span
                                 aria-describedby="tooltip-123456"
-                                className="css-zt6512-Container eowlwvy0"
+                                className="css-1v55bsv-Container eowlwvy0"
                                 onBlur={[Function]}
                                 onFocus={[Function]}
                                 onMouseEnter={[Function]}

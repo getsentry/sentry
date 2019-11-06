@@ -62,7 +62,7 @@ event_processed = BetterSignal(providing_args=["project", "event"])
 event_saved = BetterSignal(providing_args=["project"])
 
 # Organization Onboarding Signals
-project_created = BetterSignal(providing_args=["project", "user"])
+project_created = BetterSignal(providing_args=["project", "user", "default_rules"])
 first_event_pending = BetterSignal(providing_args=["project", "user"])
 first_event_received = BetterSignal(providing_args=["project", "event"])
 member_invited = BetterSignal(providing_args=["member", "user"])
@@ -105,3 +105,7 @@ integration_issue_linked = BetterSignal(providing_args=["integration", "organiza
 issue_deleted = BetterSignal(providing_args=["group", "user", "delete_type"])
 
 monitor_failed = BetterSignal(providing_args=["monitor"])
+
+# experiments
+join_request_created = BetterSignal(providing_args=["member"])
+join_request_link_viewed = BetterSignal(providing_args=["organization"])

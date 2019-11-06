@@ -148,7 +148,7 @@ class ChunkedMiddleware(object):
         # If we are dealing with chunked data and we have uwsgi we assume
         # that we can read to the end of the input stream so we can bypass
         # the default limited stream.  We set the content length reasonably
-        # high so that the reads generally succeeed.  This is ugly but with
+        # high so that the reads generally succeed.  This is ugly but with
         # Django 1.6 it seems to be the best we can easily do.
         if "HTTP_TRANSFER_ENCODING" not in request.META:
             return
@@ -178,7 +178,7 @@ class DecompressBodyMiddleware(object):
             request.META["CONTENT_LENGTH"] = "4294967295"  # 0xffffffff
 
             # The original content encoding is no longer valid, so we have to
-            # remove the header. Otherwise, LazyData will attemt to re-decode
+            # remove the header. Otherwise, LazyData will attempt to re-decode
             # the body.
             del request.META["HTTP_CONTENT_ENCODING"]
 

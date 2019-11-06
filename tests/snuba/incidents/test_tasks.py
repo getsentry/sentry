@@ -4,14 +4,29 @@ import json
 from copy import deepcopy
 from uuid import uuid4
 
+import six
 from confluent_kafka import Producer
 from django.conf import settings
+from django.core import mail
 from django.test.utils import override_settings
 from exam import fixture
+from freezegun import freeze_time
 
-from sentry.incidents.logic import create_alert_rule, create_alert_rule_trigger
+from sentry.incidents.action_handlers import EmailActionHandler
+from sentry.incidents.logic import (
+    create_alert_rule,
+    create_alert_rule_trigger,
+    create_alert_rule_trigger_action,
+)
 from sentry.snuba.subscriptions import query_aggregation_to_snuba
-from sentry.incidents.models import AlertRuleThresholdType, Incident, IncidentStatus, IncidentType
+from sentry.incidents.models import (
+    AlertRuleThresholdType,
+    AlertRuleTriggerAction,
+    Incident,
+    IncidentStatus,
+    IncidentType,
+    TriggerStatus,
+)
 from sentry.incidents.tasks import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.snuba.models import QueryAggregations
 from sentry.snuba.query_subscription_consumer import QuerySubscriptionConsumer, subscriber_registry
@@ -19,6 +34,7 @@ from sentry.snuba.query_subscription_consumer import QuerySubscriptionConsumer, 
 from sentry.testutils import TestCase
 
 
+@freeze_time()
 class HandleSnubaQueryUpdateTest(TestCase):
     def setUp(self):
         super(HandleSnubaQueryUpdateTest, self).setUp()
@@ -44,22 +60,29 @@ class HandleSnubaQueryUpdateTest(TestCase):
             self.organization,
             [self.project],
             "some rule",
-            AlertRuleThresholdType.ABOVE,
             query="",
             aggregation=QueryAggregations.TOTAL,
             time_window=1,
-            alert_threshold=100,
-            resolve_threshold=10,
             threshold_period=1,
         )
-        create_alert_rule_trigger(
+        trigger = create_alert_rule_trigger(
             rule, "hi", AlertRuleThresholdType.ABOVE, 100, resolve_threshold=10
+        )
+        create_alert_rule_trigger_action(
+            trigger,
+            AlertRuleTriggerAction.Type.EMAIL,
+            AlertRuleTriggerAction.TargetType.USER,
+            six.text_type(self.user.id),
         )
         return rule
 
     @fixture
     def trigger(self):
         return self.rule.alertruletrigger_set.get()
+
+    @fixture
+    def action(self):
+        return self.trigger.alertruletriggeraction_set.get()
 
     @fixture
     def producer(self):
@@ -105,13 +128,27 @@ class HandleSnubaQueryUpdateTest(TestCase):
         self.producer.produce(self.topic, json.dumps(message))
         self.producer.flush()
 
-        def active_incident_exists():
+        def active_incident():
             return Incident.objects.filter(
                 type=IncidentType.ALERT_TRIGGERED.value,
                 status=IncidentStatus.OPEN.value,
                 alert_rule=self.rule,
-            ).exists()
+            )
 
         consumer = QuerySubscriptionConsumer("hi", topic=self.topic)
-        with self.assertChanges(active_incident_exists, before=False, after=True):
+        with self.assertChanges(
+            lambda: active_incident().exists(), before=False, after=True
+        ), self.tasks():
             consumer.run()
+
+        assert len(mail.outbox) == 1
+        handler = EmailActionHandler(self.action, active_incident().get(), self.project)
+        message = handler.build_message(
+            handler.generate_email_context(TriggerStatus.ACTIVE), TriggerStatus.ACTIVE, self.user.id
+        )
+
+        out = mail.outbox[0]
+        assert out.to == [self.user.email]
+        assert out.subject == message.subject
+        built_message = message.build(self.user.email)
+        assert out.body == built_message.body

@@ -13,11 +13,18 @@ from sentry.incidents.logic import (
     AlertRuleTriggerLabelAlreadyUsedError,
     create_alert_rule,
     create_alert_rule_trigger,
+    create_alert_rule_trigger_action,
     get_excluded_projects_for_alert_rule,
     update_alert_rule,
     update_alert_rule_trigger,
+    update_alert_rule_trigger_action,
 )
-from sentry.incidents.models import AlertRule, AlertRuleThresholdType, AlertRuleTrigger
+from sentry.incidents.models import (
+    AlertRule,
+    AlertRuleThresholdType,
+    AlertRuleTrigger,
+    AlertRuleTriggerAction,
+)
 from sentry.models.project import Project
 from sentry.snuba.models import QueryAggregations
 
@@ -35,6 +42,9 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
     # individually. If we find this to be a problem then we can look into batching.
     projects = serializers.ListField(child=ProjectField(), required=False)
     excluded_projects = serializers.ListField(child=ProjectField(), required=False)
+    threshold_type = serializers.IntegerField(required=False)
+    alert_threshold = serializers.IntegerField(required=False)
+    resolve_threshold = serializers.IntegerField(required=False)
 
     class Meta:
         model = AlertRule
@@ -65,15 +75,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             "include_all_projects": {"default": False},
         }
 
-    def validate_threshold_type(self, threshold_type):
-        try:
-            return AlertRuleThresholdType(threshold_type)
-        except ValueError:
-            raise serializers.ValidationError(
-                "Invalid threshold type, valid values are %s"
-                % [item.value for item in AlertRuleThresholdType]
-            )
-
     def validate_aggregation(self, aggregation):
         try:
             return QueryAggregations(aggregation)
@@ -94,7 +95,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             )
 
     def validate(self, attrs):
-        return self._handle_aggregations_transition(attrs)
+        return self._handle_old_fields_transition(attrs)
 
     def create(self, validated_data):
         try:
@@ -129,13 +130,17 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                 validated_data.pop(field_name)
         return validated_data
 
-    def _handle_aggregations_transition(self, validated_data):
+    def _handle_old_fields_transition(self, validated_data):
         # Temporary methods for transitioning from multiple aggregations to a single
         # aggregate
         if "aggregations" in validated_data and "aggregation" not in validated_data:
             validated_data["aggregation"] = validated_data["aggregations"][0]
 
         validated_data.pop("aggregations", None)
+        # TODO: Remove after frontend stops using these fields
+        validated_data.pop("threshold_type", None)
+        validated_data.pop("alert_threshold", None)
+        validated_data.pop("resolve_threshold", None)
         return validated_data
 
     def update(self, instance, validated_data):
@@ -205,3 +210,52 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
             return update_alert_rule_trigger(instance, **validated_data)
         except AlertRuleTriggerLabelAlreadyUsedError:
             raise serializers.ValidationError("This label is already in use for this alert rule")
+
+
+class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
+    """
+    Serializer for creating/updating a trigger action. Required context:
+     - `trigger`: The trigger related to this action.
+     - `alert_rule`: The alert_rule related to this action.
+     - `organization`: The organization related to this action.
+     - `access`: An access object (from `request.access`)
+    """
+
+    class Meta:
+        model = AlertRuleTriggerAction
+        fields = ["type", "target_type", "target_identifier"]
+        extra_kwargs = {"target_identifier": {"required": True}}
+
+    def validate_type(self, type):
+        try:
+            return AlertRuleTriggerAction.Type(type)
+        except ValueError:
+            raise serializers.ValidationError(
+                "Invalid type, valid values are %s"
+                % [item.value for item in AlertRuleTriggerAction.Type]
+            )
+
+    def validate_target_type(self, target_type):
+        try:
+            return AlertRuleTriggerAction.TargetType(target_type)
+        except ValueError:
+            raise serializers.ValidationError(
+                "Invalid target_type, valid values are %s"
+                % [item.value for item in AlertRuleTriggerAction.TargetType]
+            )
+
+    def create(self, validated_data):
+        return create_alert_rule_trigger_action(trigger=self.context["trigger"], **validated_data)
+
+    def _remove_unchanged_fields(self, instance, validated_data):
+        for field_name, value in list(six.iteritems(validated_data)):
+            # Remove any fields that haven't actually changed
+            if isinstance(value, Enum):
+                value = value.value
+            if getattr(instance, field_name) == value:
+                validated_data.pop(field_name)
+        return validated_data
+
+    def update(self, instance, validated_data):
+        validated_data = self._remove_unchanged_fields(instance, validated_data)
+        return update_alert_rule_trigger_action(instance, **validated_data)

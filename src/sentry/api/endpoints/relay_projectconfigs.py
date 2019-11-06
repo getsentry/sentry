@@ -3,11 +3,15 @@ from __future__ import absolute_import
 import six
 from rest_framework.response import Response
 
+from sentry_sdk import Hub
+from sentry_sdk.tracing import Span
+
 from sentry.api.base import Endpoint
 from sentry.api.permissions import RelayPermission
 from sentry.api.authentication import RelayAuthentication
 from sentry.relay import config
-from sentry.models import Project, Organization
+from sentry.models import Project, Organization, OrganizationOption
+from sentry.utils import metrics
 
 
 class RelayProjectConfigsEndpoint(Endpoint):
@@ -15,7 +19,12 @@ class RelayProjectConfigsEndpoint(Endpoint):
     permission_classes = (RelayPermission,)
 
     def post(self, request):
+        with Hub.current.start_span(
+            Span(op="http.server", transaction="RelayProjectConfigsEndpoint", sampled=True)
+        ):
+            return self._post(request)
 
+    def _post(self, request):
         relay = request.relay
         assert relay is not None  # should be provided during Authentication
 
@@ -24,38 +33,55 @@ class RelayProjectConfigsEndpoint(Endpoint):
         if full_config_requested and not relay.is_internal:
             return Response("Relay unauthorized for full config information", 403)
 
-        project_ids = request.relay_request_data.get("projects") or ()
-        projects = {}
+        with Hub.current.start_span(op="relay_fetch_projects"):
+            project_ids = set(request.relay_request_data.get("projects") or ())
+            if project_ids:
+                with metrics.timer("relay_project_configs.fetching_projects.duration"):
+                    projects = {p.id: p for p in Project.objects.filter(pk__in=project_ids)}
+            else:
+                projects = {}
 
-        orgs = set()
+        with Hub.current.start_span(op="relay_fetch_orgs"):
+            # Preload all organizations and their options to prevent repeated
+            # database access when computing the project configuration.
+            org_ids = set(project.organization_id for project in six.itervalues(projects))
+            if org_ids:
+                with metrics.timer("relay_project_configs.fetching_orgs.duration"):
+                    orgs = {
+                        o.id: o
+                        for o in Organization.objects.filter(pk__in=org_ids)
+                        if request.relay.has_org_access(o)
+                    }
+            else:
+                orgs = {}
+            org_options = {
+                i: OrganizationOption.objects.get_all_values(i) for i in six.iterkeys(orgs)
+            }
 
-        # In the first iteration we fetch all configs that we know about
-        # but only the project settings
-        if project_ids:
-            for project in Project.objects.filter(pk__in=project_ids):
-                # for internal relays return the full, rich, configuration,
-                # for external relays return the minimal config
-                proj_config = config.get_project_config(
-                    project.id, relay.is_internal and full_config_requested
-                )
+        metrics.timing("relay_project_configs.projects_requested", len(project_ids))
+        metrics.timing("relay_project_configs.projects_fetched", len(projects))
+        metrics.timing("relay_project_configs.orgs_fetched", len(orgs))
 
-                projects[six.text_type(project.id)] = proj_config
-
-                orgs.add(project.organization_id)
-
-        # In the second iteration we check if the project has access to
-        # the org at all.
-        if orgs:
-            orgs = {o.id: o for o in Organization.objects.filter(pk__in=orgs)}
-            for cfg in list(projects.values()):
-                org = orgs.get(cfg.project.organization_id)
-                if org is None or not request.relay.has_org_access(org):
-                    projects.pop(six.text_type(cfg.project.id))
-
-        # Fill in configs that we failed the access check for or don't
-        # exist.
-        configs = {p_id: cfg.to_camel_case_dict() for p_id, cfg in six.iteritems(projects)}
+        configs = {}
         for project_id in project_ids:
-            configs.setdefault(six.text_type(project_id), None)
+            configs[six.text_type(project_id)] = None
+
+            project = projects.get(int(project_id))
+            if project is None:
+                continue
+
+            organization = orgs.get(project.organization_id)
+            if organization is None:
+                continue
+
+            project.organization = organization
+            org_opts = org_options.get(organization.id) or {}
+
+            with Hub.current.start_span(op="get_config"):
+                with metrics.timer("relay_project_configs.get_config.duration"):
+                    project_config = config.get_project_config(
+                        project, org_options=org_opts, full_config=full_config_requested
+                    )
+                configs[six.text_type(project_id)] = project_config.to_camel_case_dict()
 
         return Response({"configs": configs}, status=200)

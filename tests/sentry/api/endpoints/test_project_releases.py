@@ -266,7 +266,7 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
             new_issues_count=7,
         )
 
-        # TODO(LB): This is testing all environmetns but it will not work
+        # TODO(LB): This is testing all environments but it will not work
         # given what I did with the release serializer
         # it will instead rely on tagstore. Not sure how to fix this.
         # response = self.client.get(url, format='json')
@@ -368,7 +368,7 @@ class ProjectReleaseCreateTest(APITestCase):
 
         assert response.status_code == 208, response.content
 
-    def test_duplicate_accross_org(self):
+    def test_duplicate_across_org(self):
         self.login_as(user=self.user)
 
         project = self.create_project(name="foo")

@@ -141,13 +141,15 @@ const TOGGLE_BUTTON_MAX_WIDTH = 40;
 const TOGGLE_BORDER_BOX = TOGGLE_BUTTON_MAX_WIDTH + TOGGLE_BUTTON_MARGIN_RIGHT;
 const MARGIN_LEFT = 8;
 
+type DurationDisplay = 'left' | 'right' | 'inset';
+
 const getDurationDisplay = ({
   width,
   left,
 }: {
   width: undefined | number;
   left: undefined | number;
-}) => {
+}): DurationDisplay => {
   const spaceNeeded = 0.3;
 
   if (left === undefined || width === undefined) {
@@ -824,16 +826,16 @@ type TogglerTypes = OmitHtmlDivProps<{
 
 const SpanTreeTogglerContainer = styled('div')<TogglerTypes>`
   position: relative;
-  height: 15px;
-  width: ${p => (p.hasToggler ? '44px' : '16px')};
-  min-width: ${p => (p.hasToggler ? '44px' : '16px')}; /* annoying flex thing */
+  height: 16px;
+  width: ${p => (p.hasToggler ? '40px' : '16px')};
+  min-width: ${p => (p.hasToggler ? '40px' : '16px')}; /* annoying flex thing */
   margin-right: ${space(1)};
   z-index: ${zIndex.spanTreeToggler};
   display: flex;
   justify-content: flex-end;
 `;
 
-// one-off to get the perfect heirarchy
+// one-off to get the perfect hierarchy
 const spanTreeColor = '#D5CEDB';
 
 const SpanTreeConnector = styled('div')<TogglerTypes>`
@@ -845,7 +847,7 @@ const SpanTreeConnector = styled('div')<TogglerTypes>`
 
   &:before {
     content: '';
-    width: ${p => (p.hasToggler ? '3px' : '8px')};
+    width: ${p => (p.hasToggler ? '2px' : '8px')};
     position: absolute;
     height: 1px;
     top: ${p => (p.isLast ? '100%' : '50%')};
@@ -855,8 +857,8 @@ const SpanTreeConnector = styled('div')<TogglerTypes>`
 
   &:after {
     content: '';
-    width: 4px;
-    height: 4px;
+    width: 2px;
+    height: 2px;
     border-radius: 50%;
     /* border radius stops working at 3px */
     transform: scale(0.5) translateY(-100%);
@@ -897,8 +899,7 @@ type SpanTreeTogglerAndDivProps = OmitHtmlDivProps<{
 
 const SpanTreeToggler = styled('div')<SpanTreeTogglerAndDivProps>`
   white-space: nowrap;
-  height: 15px;
-  min-width: 25px;
+  min-width: 32px;
   padding: 0 4px;
   display: flex;
   align-items: center;
@@ -907,6 +908,7 @@ const SpanTreeToggler = styled('div')<SpanTreeTogglerAndDivProps>`
   transition: all 0.15s ease-in-out;
   font-size: ${p => p.theme.fontSizeExtraSmall};
   line-height: 0;
+  z-index: 1;
 
   ${p => getTogglerTheme(p)}
 `;
@@ -925,7 +927,7 @@ const getDurationPillAlignment = ({durationDisplay}) => {
   }
 };
 
-const DurationPill = styled('div')`
+const DurationPill = styled('div')<{durationDisplay: DurationDisplay}>`
   position: absolute;
 
   color: ${p => p.theme.gray2};

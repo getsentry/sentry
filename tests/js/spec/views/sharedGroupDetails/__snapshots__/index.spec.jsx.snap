@@ -959,13 +959,13 @@ exports[`SharedGroupDetails renders 1`] = `
                             target="_blank"
                           >
                             <ForwardRef
-                              className="hidden-xs css-ry1asy-FooterLink e35opxf0"
+                              className="hidden-xs css-ry1asy-FooterLink e1xhjlxg0"
                               href="/api/"
                               rel="noreferrer noopener"
                               target="_blank"
                             >
                               <a
-                                className="hidden-xs css-ry1asy-FooterLink e35opxf0"
+                                className="hidden-xs css-ry1asy-FooterLink e1xhjlxg0"
                                 href="/api/"
                                 rel="noreferrer noopener"
                                 target="_blank"
@@ -980,13 +980,13 @@ exports[`SharedGroupDetails renders 1`] = `
                             target="_blank"
                           >
                             <ForwardRef
-                              className="css-ry1asy-FooterLink e35opxf0"
+                              className="css-ry1asy-FooterLink e1xhjlxg0"
                               href="/docs/"
                               rel="noreferrer noopener"
                               target="_blank"
                             >
                               <a
-                                className="css-ry1asy-FooterLink e35opxf0"
+                                className="css-ry1asy-FooterLink e1xhjlxg0"
                                 href="/docs/"
                                 rel="noreferrer noopener"
                                 target="_blank"
@@ -1002,13 +1002,13 @@ exports[`SharedGroupDetails renders 1`] = `
                             target="_blank"
                           >
                             <ForwardRef
-                              className="hidden-xs css-ry1asy-FooterLink e35opxf0"
+                              className="hidden-xs css-ry1asy-FooterLink e1xhjlxg0"
                               href="https://github.com/getsentry/sentry"
                               rel="noreferrer"
                               target="_blank"
                             >
                               <a
-                                className="hidden-xs css-ry1asy-FooterLink e35opxf0"
+                                className="hidden-xs css-ry1asy-FooterLink e1xhjlxg0"
                                 href="https://github.com/getsentry/sentry"
                                 rel="noreferrer"
                                 target="_blank"
@@ -1021,11 +1021,13 @@ exports[`SharedGroupDetails renders 1`] = `
                         <a
                           className="icon-sentry-logo"
                           href="/"
-                          tabIndex="-1"
+                          tabIndex={-1}
                         />
                         <Hook
                           name="footer"
-                        />
+                        >
+                          <Hook(footer) />
+                        </Hook>
                       </div>
                     </footer>
                   </Footer>

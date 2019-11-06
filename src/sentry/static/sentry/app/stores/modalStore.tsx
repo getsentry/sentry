@@ -35,4 +35,5 @@ const ModalStore = Reflux.createStore({
   },
 });
 
-export default ModalStore;
+// TODO(ts): This should be properly typed
+export default ModalStore as any;

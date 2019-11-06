@@ -7,15 +7,24 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import OrganizationEnvironmentsStore from 'app/stores/organizationEnvironmentsStore';
 import {Client} from 'app/api';
-import {GlobalSelection, Organization, Environment} from 'app/types';
+import {
+  GlobalSelection,
+  Organization,
+  Environment,
+  RouterProps,
+  Project,
+  Group,
+} from 'app/types';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 
-type Props = {
+type Props = RouterProps & {
   api: Client;
   organization: Organization;
   selection: GlobalSelection;
+  project: Project;
+  group: Group;
 };
 
 type State = {
@@ -27,7 +36,7 @@ export class GroupEventDetailsContainer extends React.Component<Props, State> {
   state = OrganizationEnvironmentsStore.get();
 
   componentDidMount() {
-    this.environmentSubscription = OrganizationEnvironmentsStore.listen(data =>
+    this.environmentUnsubscribe = OrganizationEnvironmentsStore.listen(data =>
       this.setState(data)
     );
     const {environments, error} = OrganizationEnvironmentsStore.get();
@@ -37,13 +46,13 @@ export class GroupEventDetailsContainer extends React.Component<Props, State> {
   }
 
   componentWillUnmount() {
-    if (this.environmentSubscription) {
-      this.environmentSubscription.unsubscribe();
+    if (this.environmentUnsubscribe) {
+      this.environmentUnsubscribe();
     }
   }
 
   // TODO(ts): reflux :(
-  environmentSubscription: any;
+  environmentUnsubscribe: any;
 
   render() {
     if (this.state.error) {
@@ -58,7 +67,7 @@ export class GroupEventDetailsContainer extends React.Component<Props, State> {
       return <LoadingIndicator />;
     }
     const {selection, ...otherProps} = this.props;
-    const environments = this.state.environments.filter(env =>
+    const environments: Environment[] = this.state.environments.filter(env =>
       selection.environments.includes(env.name)
     );
     return <GroupEventDetails {...otherProps} environments={environments} />;

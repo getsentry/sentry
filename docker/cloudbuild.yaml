@@ -1,0 +1,64 @@
+steps:
+- name: 'gcr.io/kaniko-project/executor:latest'
+  args: [
+    '--cache=true',
+    '--build-arg', 'SOURCE_COMMIT=$COMMIT_SHA',
+    '--destination=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA',
+    '-f', './docker/Dockerfile'
+  ]
+  timeout: 900s
+# Smoke tests
+- name: 'gcr.io/$PROJECT_ID/docker-compose'
+  entrypoint: 'bash'
+  env:
+  - 'SENTRY_IMAGE=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA'
+  - 'SENTRY_TEST_HOST=http://web:9000'
+  - 'CI=1'
+  args:
+  - '-e'
+  - '-c'
+  - |
+    mkdir onpremise && cd onpremise
+    # TODO(byk): This should fetch from master when the branch is merged
+    # TODO(byk): We may also build this part as a builder image everytime
+    #            there's a push to onpremise and use that image for
+    curl -L "https://github.com/getsentry/onpremise/archive/v10.tar.gz" | tar xzf - --strip-components=1
+    # The following trick is from https://stackoverflow.com/a/52400857/90297 with great gratuity
+    echo '{"version": "3.4", "networks":{"default":{"external":{"name":"cloudbuild"}}}}' > docker-compose.override.yml
+    ./install.sh
+    docker-compose run --rm web createuser --superuser --email test@example.com --password test123TEST
+    docker-compose up -d
+    timeout 20 bash -c 'until $(curl -Isf -o /dev/null http://web:9000); do printf "."; sleep 0.5; done' || docker-compose logs web
+    ./test.sh
+  timeout: 1200s
+- name: 'gcr.io/cloud-builders/docker'
+  secretEnv: ['DOCKER_PASSWORD']
+  entrypoint: 'bash'
+  args:
+  - '-e'
+  - '-c'
+  - |
+    # Only push to Docker Hub from master
+    [ "$BRANCH_NAME" != "master" ] && exit 0
+    # Need to pull the image first due to Kaniko
+    docker pull us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA
+    echo "$$DOCKER_PASSWORD" | docker login --username=sentrybuilder --password-stdin
+    docker tag us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA getsentry/sentry:$SHORT_SHA
+    docker push getsentry/sentry:$SHORT_SHA
+    docker tag us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA getsentry/sentry:$COMMIT_SHA
+    docker push getsentry/sentry:$COMMIT_SHA
+    docker tag us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA getsentry/sentry:latest
+    docker push getsentry/sentry:latest
+timeout: 2400s
+options:
+  # We need more memory for Webpack builds & e2e onpremise tests
+  machineType: 'N1_HIGHCPU_8'
+secrets:
+- kmsKeyName: projects/sentryio/locations/global/keyRings/service-credentials/cryptoKeys/cloudbuild
+  secretEnv:
+    # This is a personal access token for the sentrybuilder account, encrypted using the
+    # short guide at http://bit.ly/2Pg6uw9
+    DOCKER_PASSWORD: |
+      CiQAE8gN7y3OMxn+a1kofmK4Bi8jQZtdRFj2lYYwaZHVeIIBUzMSTQA9tvn8XCv2vqj6u8CHoeSP
+      TVW9pLvSCorKoeNtOp0eb+6V1yNJW/+JC07DNO1KLbTbodbuza6jKJHU5xeAJ4kGQI78UY5Vu1Gp
+      QcMK

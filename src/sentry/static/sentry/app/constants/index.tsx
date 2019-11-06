@@ -3,6 +3,7 @@
  */
 
 import {t} from 'app/locale';
+import {Scope} from 'app/types';
 
 export const API_SCOPES = [
   'project:read',
@@ -13,11 +14,13 @@ export const API_SCOPES = [
   'team:write',
   'team:admin',
   'event:read',
+  'event:write',
   'event:admin',
   'org:read',
   'org:write',
   'org:admin',
   'member:read',
+  'member:write',
   'member:admin',
 ] as const;
 
@@ -39,33 +42,53 @@ export const MEMBER_ROLES = [
   {
     id: 'member',
     name: 'Member',
+    allowed: true,
     desc:
       'Members can view and act on events, as well as view most other data within the organization.',
   },
   {
     id: 'admin',
     name: 'Admin',
+    allowed: true,
     desc:
       "Admin privileges on any teams of which they're a member. They can create new teams and projects, as well as remove teams and projects which they already hold membership on (or all teams, if open membership is on).",
   },
   {
     id: 'manager',
     name: 'Manager',
+    allowed: true,
     desc:
       'Gains admin access on all teams as well as the ability to add and remove members.',
   },
   {
     id: 'owner',
     name: 'Organization Owner',
+    allowed: true,
     desc:
       'Unrestricted access to the organization, its data, and its settings. Can add, modify, and delete projects and members, as well as make billing and plan changes.',
   },
 ];
 
+export type PermissionChoice = {
+  label: 'No Access' | 'Read' | 'Read & Write' | 'Admin';
+  scopes: Scope[];
+};
+type PermissionObj = {
+  resource: 'Project' | 'Team' | 'Release' | 'Event' | 'Organization' | 'Member';
+  help: string;
+  label?: string;
+  choices: {
+    'no-access': PermissionChoice;
+    read?: PermissionChoice;
+    write?: PermissionChoice;
+    admin: PermissionChoice;
+  };
+};
+
 // We expose permissions for Sentry Apps in a more resource-centric way.
 // All of the API_SCOPES from above should be represented in a more
 // User-friendly way here.
-export const SENTRY_APP_PERMISSIONS = [
+export const SENTRY_APP_PERMISSIONS: PermissionObj[] = [
   {
     resource: 'Project',
     help: 'Projects, Tags, Debug Files, and Feedback',
@@ -210,3 +233,8 @@ export const EXPERIMENTAL_SPA = process.env.EXPERIMENTAL_SPA;
 // TODO(kmclb): once relay is doing the scrubbing, the masking value will be dynamic,
 // so this will have to change
 export const FILTER_MASK = '[Filtered]';
+
+// Errors that may occur during the fetching of organization details
+export const ORGANIZATION_FETCH_ERROR_TYPES = {
+  ORG_NOT_FOUND: 'ORG_NOT_FOUND',
+};

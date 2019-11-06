@@ -80,4 +80,15 @@ describe('SentryAppDetailsModal', function() {
       expect(wrapper.find(installButton).prop('disabled')).toBe(true);
     });
   });
+
+  describe('when the Integration requires no permissions', () => {
+    beforeEach(() => {
+      sentryApp = {...sentryApp, scopes: []};
+      wrapper = render();
+    });
+
+    it('does not render permissions', () => {
+      expect(wrapper.exists('Title')).toBe(false);
+    });
+  });
 });

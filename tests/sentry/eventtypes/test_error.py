@@ -15,6 +15,31 @@ class ErrorEventTest(TestCase):
         data = {"exception": {"values": [{"type": None, "value": None, "stacktrace": {}}]}}
         assert inst.get_metadata(data) == {"type": "Error", "value": ""}
 
+    def test_get_metadata_function(self):
+        inst = ErrorEvent()
+        data = {
+            "platform": "native",
+            "exception": {
+                "values": [
+                    {
+                        "stacktrace": {
+                            "frames": [
+                                {"in_app": True, "function": "void top_func(int)"},
+                                {"in_app": False, "function": "void invalid_func(int)"},
+                                {"in_app": True, "function": "<unknown>"},
+                            ]
+                        }
+                    }
+                ]
+            },
+        }
+        assert inst.get_metadata(data) == {"type": "Error", "value": "", "function": "top_func"}
+
+    def test_get_metadata_function_none_frame(self):
+        inst = ErrorEvent()
+        data = {"exception": {"values": [{"stacktrace": {"frames": [None]}}]}}
+        assert inst.get_metadata(data) == {"type": "Error", "value": ""}
+
     def test_get_title_none_value(self):
         inst = ErrorEvent()
         result = inst.get_title({"type": "Error", "value": None})

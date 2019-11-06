@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import six
 from sentry.api.serializers import Serializer, register
+from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.models import DiscoverSavedQuery
 
 
@@ -22,6 +23,8 @@ class DiscoverSavedQuerySerializer(Serializer):
             "orderby",
             "limit",
             "version",
+            "tags",
+            "yAxis",
         ]
 
         data = {
@@ -36,5 +39,8 @@ class DiscoverSavedQuerySerializer(Serializer):
         for key in query_keys:
             if obj.query.get(key) is not None:
                 data[key] = obj.query[key]
+
+        if obj.query.get("all_projects"):
+            data["projects"] = list(ALL_ACCESS_PROJECTS)
 
         return data

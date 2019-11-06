@@ -135,6 +135,13 @@ class InstallationForm(forms.Form):
         ),
         widget=forms.TextInput(attrs={"placeholder": _("my-group/my-subgroup")}),
     )
+    include_subgroups = forms.BooleanField(
+        label=_("Include Subgroups"),
+        help_text=_("Include projects in subgroups of the GitLab group."),
+        widget=forms.CheckboxInput(),
+        required=False,
+        initial=False,
+    )
     verify_ssl = forms.BooleanField(
         label=_("Verify SSL"),
         help_text=_(
@@ -268,6 +275,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
                     "base_url": installation_data["url"],
                     "verify_ssl": installation_data["verify_ssl"],
                     "group": installation_data["group"],
+                    "include_subgroups": installation_data["include_subgroups"],
                     "error_message": e.message,
                     "error_status": e.code,
                 },
@@ -286,6 +294,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
         oauth_data = get_oauth_data(data)
         user = get_user_info(data["access_token"], state["installation_data"])
         group = self.get_group_info(data["access_token"], state["installation_data"])
+        include_subgroups = state["installation_data"]["include_subgroups"]
         scopes = sorted(GitlabIdentityProvider.oauth_scopes)
         base_url = state["installation_data"]["url"]
 
@@ -314,6 +323,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
                 "base_url": base_url,
                 "webhook_secret": secret.hexdigest(),
                 "group_id": group["id"],
+                "include_subgroups": include_subgroups,
             },
             "user_identity": {
                 "type": "gitlab",
@@ -325,7 +335,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
         return integration
 
     def setup(self):
-        from sentry.plugins import bindings
+        from sentry.plugins.base import bindings
 
         bindings.add(
             "integration-repository.provider", GitlabRepositoryProvider, id="integrations:gitlab"

@@ -2074,6 +2074,25 @@
   resolved "https://registry.yarnpkg.com/@types/clipboard/-/clipboard-2.0.1.tgz#75a74086c293d75b12bc93ff13bc7797fef05a40"
   integrity sha512-gJJX9Jjdt3bIAePQRRjYWG20dIhAgEqonguyHxXuqALxsoDsDLimihqrSg8fXgVTJ4KZCzkfglKtwsh/8dLfbA==
 
+"@types/color-convert@*":
+  version "1.9.0"
+  resolved "https://registry.yarnpkg.com/@types/color-convert/-/color-convert-1.9.0.tgz#bfa8203e41e7c65471e9841d7e306a7cd8b5172d"
+  integrity sha512-OKGEfULrvSL2VRbkl/gnjjgbbF7ycIlpSsX7Nkab4MOWi5XxmgBYvuiQ7lcCFY5cPDz7MUNaKgxte2VRmtr4Fg==
+  dependencies:
+    "@types/color-name" "*"
+
+"@types/color-name@*":
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/@types/color-name/-/color-name-1.1.1.tgz#1c1261bbeaa10a8055bbc5d8ab84b7b2afc846a0"
+  integrity sha512-rr+OQyAjxze7GgWrSaJwydHStIhHq2lvY3BOC2Mj7KnzI7XK0Uw1TOOdI9lDoajEbSWLiYgoo4f1R51erQfhPQ==
+
+"@types/color@^3.0.0":
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/@types/color/-/color-3.0.0.tgz#40f8a6bf2fd86e969876b339a837d8ff1b0a6e30"
+  integrity sha512-5qqtNia+m2I0/85+pd2YzAXaTyKO8j+svirO5aN+XaQJ5+eZ8nx0jPtEWZLxCi50xwYsX10xUHetFzfb1WEs4Q==
+  dependencies:
+    "@types/color-convert" "*"
+
 "@types/create-react-class@^15.6.2":
   version "15.6.2"
   resolved "https://registry.yarnpkg.com/@types/create-react-class/-/create-react-class-15.6.2.tgz#0e1b89153be31ded959359c2b827cceaa9d18cf6"
@@ -2247,6 +2266,11 @@
   dependencies:
     "@types/prop-types" "*"
     csstype "^2.2.0"
+
+"@types/reflux@0.4.1":
+  version "0.4.1"
+  resolved "https://registry.yarnpkg.com/@types/reflux/-/reflux-0.4.1.tgz#1f91d5ede2172c535107e9f79755bda70234f9c1"
+  integrity sha1-H5HV7eIXLFNRB+n3l1W9pwI0+cE=
 
 "@types/tapable@*":
   version "1.0.4"
@@ -5409,6 +5433,11 @@ domhandler@^2.3.0:
   dependencies:
     domelementtype "1"
 
+dompurify@^2.0.7:
+  version "2.0.7"
+  resolved "https://registry.yarnpkg.com/dompurify/-/dompurify-2.0.7.tgz#f8266ad38fe1602fb5b3222f31eedbf5c16c4fd5"
+  integrity sha512-S3O0lk6rFJtO01ZTzMollCOGg+WAtCwS3U5E2WSDY/x/sy7q70RjEC4Dmrih5/UqzLLB9XoKJ8KqwBxaNvBu4A==
+
 domready@1.0.8:
   version "1.0.8"
   resolved "https://registry.yarnpkg.com/domready/-/domready-1.0.8.tgz#91f252e597b65af77e745ae24dd0185d5e26d58c"
@@ -5795,31 +5824,32 @@ eslint-config-prettier@6.3.0:
   dependencies:
     get-stdin "^6.0.0"
 
-eslint-config-sentry-app@1.22.0:
-  version "1.22.0"
-  resolved "https://registry.yarnpkg.com/eslint-config-sentry-app/-/eslint-config-sentry-app-1.22.0.tgz#a015a086b7784ca7acc824a217e44dc6ee554535"
-  integrity sha512-CX5Pl8AgpaIw5pZ5O82IxhBLHRjCf3wUVmmnevi5UubA8kv58D0sMCRhWRPo9XBHG59W0b5hqTG28CkFtm/mKg==
+eslint-config-sentry-app@1.25.0:
+  version "1.25.0"
+  resolved "https://registry.yarnpkg.com/eslint-config-sentry-app/-/eslint-config-sentry-app-1.25.0.tgz#10b9ce0f3a8e6454f44cfecadadc5e8a42935c2c"
+  integrity sha512-r8G/NODUWHTbKLUDha5Ex7+j2b8fqe8ByPIKVD76N2tcQdXVT7XKFuu77Frryf6eKxuFgjobGqTLS6FO6Joe7w==
   dependencies:
     eslint-config-prettier "6.3.0"
-    eslint-config-sentry "^1.22.0"
-    eslint-config-sentry-react "^1.22.0"
+    eslint-config-sentry "^1.25.0"
+    eslint-config-sentry-react "^1.25.0"
     eslint-import-resolver-webpack "0.11.1"
     eslint-plugin-import "2.18.2"
     eslint-plugin-jest "22.17.0"
     eslint-plugin-prettier "3.1.1"
     eslint-plugin-react "7.15.1"
+    eslint-plugin-sentry "^1.25.0"
 
-eslint-config-sentry-react@^1.22.0:
-  version "1.22.0"
-  resolved "https://registry.yarnpkg.com/eslint-config-sentry-react/-/eslint-config-sentry-react-1.22.0.tgz#0939e72f0ccd43e37eb898a3228470dd37d7d447"
-  integrity sha512-nJXzF805OsYh5qeCJK/nDILmnHQcT3zmT63QekydAoyB5RqYgU6rtYc/6EYoyI+qg2DT8sTeZV8sbQ3bOECUbg==
+eslint-config-sentry-react@^1.25.0:
+  version "1.25.0"
+  resolved "https://registry.yarnpkg.com/eslint-config-sentry-react/-/eslint-config-sentry-react-1.25.0.tgz#85c3bf7498c62010339a96aefd166c14af71cb0a"
+  integrity sha512-2OIlksZ+PHM+t1mXX7W3ZVRwlTAkuFS59SKqO4n6qopleCU/VyWJdxtjD+VC1mJPuJdr/FTJS0QJC0q2SrqAEQ==
   dependencies:
-    eslint-config-sentry "^1.22.0"
+    eslint-config-sentry "^1.25.0"
 
-eslint-config-sentry@^1.22.0:
-  version "1.22.0"
-  resolved "https://registry.yarnpkg.com/eslint-config-sentry/-/eslint-config-sentry-1.22.0.tgz#b25dd6053fd9c0192383008005a42534d69ba460"
-  integrity sha512-T40na0wdaLFVO/LslQ9v761mSTpv5QecwEjO42Z5v5YcL2OjxHFnw1rKeO7aMURzOuneSIFcepYHs5plXgRzOQ==
+eslint-config-sentry@^1.25.0:
+  version "1.25.0"
+  resolved "https://registry.yarnpkg.com/eslint-config-sentry/-/eslint-config-sentry-1.25.0.tgz#c871bf197b13f9ddee80b58be78483b00876772b"
+  integrity sha512-eOX7f8M7d4F6pXkGUDveovEbJhtQLvUhSBvQu6ubfBQR2xV24CLRyeJFiXXR4cPB0OAesqmmH4P0R/BaWa1NEw==
 
 eslint-import-resolver-node@^0.3.2:
   version "0.3.2"
@@ -5898,6 +5928,13 @@ eslint-plugin-react@7.15.1:
     object.values "^1.1.0"
     prop-types "^15.7.2"
     resolve "^1.12.0"
+
+eslint-plugin-sentry@^1.25.0:
+  version "1.25.0"
+  resolved "https://registry.yarnpkg.com/eslint-plugin-sentry/-/eslint-plugin-sentry-1.25.0.tgz#71a5d63e3b3d8a51a755811666b50d3125f41df8"
+  integrity sha512-n4spt+W8IEty5nU/cMQzFOuc6jV0QF49uu0KpOMsOefH8ssSljU5U2S8EbEMZFEIn5r7BTh1OnWlfxV+YcG+uw==
+  dependencies:
+    requireindex "~1.1.0"
 
 eslint-scope@3.7.1:
   version "3.7.1"
@@ -12671,6 +12708,11 @@ require-uncached@^1.0.3:
   dependencies:
     caller-path "^0.1.0"
     resolve-from "^1.0.0"
+
+requireindex@~1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/requireindex/-/requireindex-1.1.0.tgz#e5404b81557ef75db6e49c5a72004893fe03e162"
+  integrity sha1-5UBLgVV+91225JxacgBIk/4D4WI=
 
 requires-port@1.0.x, requires-port@^1.0.0, requires-port@~1.0.0:
   version "1.0.0"

@@ -169,7 +169,15 @@ def get_client_config(request=None):
         context.update(
             {"isAuthenticated": True, "user": serialize(user, user, DetailedUserSerializer())}
         )
-        context["user"]["isSuperuser"] = is_superuser
+
+        if request.user.is_superuser:
+            # Note: This intentionally does not use the "active" superuser flag as
+            # the frontend should only ever use this flag as a hint that the user can be a superuser
+            # the API will always need to check for active superuser.
+            #
+            # This is needed in the case where you access a different org and get denied, but the UI
+            # can open the sudo dialog if you are an "inactive" superuser
+            context["user"]["isSuperuser"] = request.user.is_superuser
     else:
         context.update({"isAuthenticated": False, "user": None})
 

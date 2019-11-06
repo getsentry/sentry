@@ -193,7 +193,7 @@ def chained_exception_legacy(chained_exception, config, **meta):
         return config.get_grouping_component(exceptions[0], **meta)
 
     # Case 2: try to build a new component out of the individual
-    # errors however with a trick.  In case any exeption has a
+    # errors however with a trick.  In case any exception has a
     # stacktrace we want to ignore all other exceptions.
     any_stacktraces = False
     values = []
@@ -341,21 +341,15 @@ def frame_legacy(frame, event, **meta):
             fallback_hint = "is not used if module or filename are available"
         if frame.symbol:
             symbol_component.update(
-                contributes=False,
-                values=[frame.symbol],
-                hint="symbol " + fallback_hint,
+                contributes=False, values=[frame.symbol], hint="symbol " + fallback_hint
             )
         if func:
             function_component.update(
-                contributes=False,
-                values=[func],
-                hint="function name " + fallback_hint,
+                contributes=False, values=[func], hint="function name " + fallback_hint
             )
         if frame.lineno:
             lineno_component.update(
-                contributes=False,
-                values=[frame.lineno],
-                hint="line number " + fallback_hint,
+                contributes=False, values=[frame.lineno], hint="line number " + fallback_hint
             )
 
     return GroupingComponent(

@@ -74,7 +74,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
                 "type": "transaction",
                 "transaction": "api.issue.delete",
                 "spans": [],
-                "contexts": {"trace": {"trace_id": "a" * 32, "span_id": "a" * 16}},
+                "contexts": {"trace": {"op": "foobar", "trace_id": "a" * 32, "span_id": "a" * 16}},
                 "start_timestamp": iso_format(before_now(minutes=1, seconds=5)),
                 "timestamp": min_ago,
             },
@@ -92,7 +92,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
             response = self.client.get(url, format="json")
         assert response.status_code == 200
 
-    def test_no_access(self):
+    def test_no_access_missing_feature(self):
         url = reverse(
             "sentry-api-0-organization-event-details",
             kwargs={
@@ -103,7 +103,38 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
         )
 
         response = self.client.get(url, format="json")
+        assert response.status_code == 404, response.content
 
+    def test_access_non_member_project(self):
+        # Add a new user to a project and then access events on project they are not part of.
+        member_user = self.create_user()
+        team = self.create_team(members=[member_user])
+        self.create_project(organization=self.organization, teams=[team])
+
+        # Enable open membership
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+
+        self.login_as(member_user)
+
+        url = reverse(
+            "sentry-api-0-organization-event-details",
+            kwargs={
+                "organization_slug": self.organization.slug,
+                "project_slug": self.project.slug,
+                "event_id": "a" * 32,
+            },
+        )
+        with self.feature("organizations:events-v2"):
+            response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+
+        # When open membership is off, access should be denied to non owner users
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        with self.feature("organizations:events-v2"):
+            response = self.client.get(url, format="json")
         assert response.status_code == 404, response.content
 
     def test_no_event(self):
@@ -251,7 +282,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
             "type": "transaction",
             "transaction": "api.issue.delete",
             "spans": [],
-            "contexts": {"trace": {"trace_id": "a" * 32, "span_id": "a" * 16}},
+            "contexts": {"trace": {"op": "foobar", "trace_id": "a" * 32, "span_id": "a" * 16}},
             "tags": {"important": "yes"},
         }
         fixtures = (
@@ -281,5 +312,5 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
                 data={"field": ["important", "count()"], "query": "transaction.duration:>2"},
             )
         assert response.status_code == 200
-        assert response.data["nextEventID"].replace("-", "") == "d" * 32
-        assert response.data["previousEventID"].replace("-", "") == "f" * 32
+        assert response.data["nextEventID"] == "d" * 32
+        assert response.data["previousEventID"] == "f" * 32

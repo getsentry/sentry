@@ -43,7 +43,7 @@ type Props = {
   /**
    * The content for the tooltip. Requires hasTooltip to display
    */
-  tooltip?: Pick<Tooltip['props'], 'title'>;
+  tooltip?: React.ReactNode;
   /**
    * Additional props for the tooltip
    */

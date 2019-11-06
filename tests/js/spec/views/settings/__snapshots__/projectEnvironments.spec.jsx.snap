@@ -202,38 +202,45 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
         ]
       }
     >
-      <withConfig(AccessContainer)
+      <WithOrganizationMockWrapper
         access={
           Array [
             "project:write",
           ]
         }
       >
-        <AccessContainer
+        <withConfig(Access)
           access={
             Array [
               "project:write",
             ]
           }
-          config={
+          organization={
             Object {
-              "features": Set {},
-              "messages": Array [],
-              "user": Object {
-                "email": "foo@example.com",
-                "flags": Object {
-                  "newsletter_consent_prompt": false,
-                },
-                "hasPasswordAuth": true,
-                "id": "1",
-                "isAuthenticated": true,
-                "name": "Foo Bar",
-                "options": Object {
-                  "timezone": "UTC",
-                },
-                "permissions": Set {},
-                "username": "foo@example.com",
+              "access": Array [
+                "org:read",
+                "org:write",
+                "org:admin",
+                "org:integrations",
+                "project:read",
+                "project:write",
+                "project:admin",
+                "team:read",
+                "team:write",
+                "team:admin",
+              ],
+              "features": Array [],
+              "id": "3",
+              "name": "Organization Name",
+              "onboardingTasks": Array [],
+              "projects": Array [],
+              "scrapeJavaScript": true,
+              "slug": "org-slug",
+              "status": Object {
+                "id": "active",
+                "name": "active",
               },
+              "teams": Array [],
             }
           }
         >
@@ -264,23 +271,7 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
                 },
               }
             }
-            configUser={
-              Object {
-                "email": "foo@example.com",
-                "flags": Object {
-                  "newsletter_consent_prompt": false,
-                },
-                "hasPasswordAuth": true,
-                "id": "1",
-                "isAuthenticated": true,
-                "name": "Foo Bar",
-                "options": Object {
-                  "timezone": "UTC",
-                },
-                "permissions": Set {},
-                "username": "foo@example.com",
-              }
-            }
+            isSuperuser={false}
             organization={
               Object {
                 "access": Array [
@@ -312,8 +303,8 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
             renderNoAccessMessage={false}
             requireAll={true}
           />
-        </AccessContainer>
-      </withConfig(AccessContainer)>
+        </withConfig(Access)>
+      </WithOrganizationMockWrapper>
     </PermissionAlert>
     <Panel>
       <Component
@@ -585,38 +576,45 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
         ]
       }
     >
-      <withConfig(AccessContainer)
+      <WithOrganizationMockWrapper
         access={
           Array [
             "project:write",
           ]
         }
       >
-        <AccessContainer
+        <withConfig(Access)
           access={
             Array [
               "project:write",
             ]
           }
-          config={
+          organization={
             Object {
-              "features": Set {},
-              "messages": Array [],
-              "user": Object {
-                "email": "foo@example.com",
-                "flags": Object {
-                  "newsletter_consent_prompt": false,
-                },
-                "hasPasswordAuth": true,
-                "id": "1",
-                "isAuthenticated": true,
-                "name": "Foo Bar",
-                "options": Object {
-                  "timezone": "UTC",
-                },
-                "permissions": Set {},
-                "username": "foo@example.com",
+              "access": Array [
+                "org:read",
+                "org:write",
+                "org:admin",
+                "org:integrations",
+                "project:read",
+                "project:write",
+                "project:admin",
+                "team:read",
+                "team:write",
+                "team:admin",
+              ],
+              "features": Array [],
+              "id": "3",
+              "name": "Organization Name",
+              "onboardingTasks": Array [],
+              "projects": Array [],
+              "scrapeJavaScript": true,
+              "slug": "org-slug",
+              "status": Object {
+                "id": "active",
+                "name": "active",
               },
+              "teams": Array [],
             }
           }
         >
@@ -647,23 +645,7 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
                 },
               }
             }
-            configUser={
-              Object {
-                "email": "foo@example.com",
-                "flags": Object {
-                  "newsletter_consent_prompt": false,
-                },
-                "hasPasswordAuth": true,
-                "id": "1",
-                "isAuthenticated": true,
-                "name": "Foo Bar",
-                "options": Object {
-                  "timezone": "UTC",
-                },
-                "permissions": Set {},
-                "username": "foo@example.com",
-              }
-            }
+            isSuperuser={false}
             organization={
               Object {
                 "access": Array [
@@ -695,8 +677,8 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
             renderNoAccessMessage={false}
             requireAll={true}
           />
-        </AccessContainer>
-      </withConfig(AccessContainer)>
+        </withConfig(Access)>
+      </WithOrganizationMockWrapper>
     </PermissionAlert>
     <Panel>
       <Component
@@ -968,38 +950,45 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
         ]
       }
     >
-      <withConfig(AccessContainer)
+      <WithOrganizationMockWrapper
         access={
           Array [
             "project:write",
           ]
         }
       >
-        <AccessContainer
+        <withConfig(Access)
           access={
             Array [
               "project:write",
             ]
           }
-          config={
+          organization={
             Object {
-              "features": Set {},
-              "messages": Array [],
-              "user": Object {
-                "email": "foo@example.com",
-                "flags": Object {
-                  "newsletter_consent_prompt": false,
-                },
-                "hasPasswordAuth": true,
-                "id": "1",
-                "isAuthenticated": true,
-                "name": "Foo Bar",
-                "options": Object {
-                  "timezone": "UTC",
-                },
-                "permissions": Set {},
-                "username": "foo@example.com",
+              "access": Array [
+                "org:read",
+                "org:write",
+                "org:admin",
+                "org:integrations",
+                "project:read",
+                "project:write",
+                "project:admin",
+                "team:read",
+                "team:write",
+                "team:admin",
+              ],
+              "features": Array [],
+              "id": "3",
+              "name": "Organization Name",
+              "onboardingTasks": Array [],
+              "projects": Array [],
+              "scrapeJavaScript": true,
+              "slug": "org-slug",
+              "status": Object {
+                "id": "active",
+                "name": "active",
               },
+              "teams": Array [],
             }
           }
         >
@@ -1030,23 +1019,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                 },
               }
             }
-            configUser={
-              Object {
-                "email": "foo@example.com",
-                "flags": Object {
-                  "newsletter_consent_prompt": false,
-                },
-                "hasPasswordAuth": true,
-                "id": "1",
-                "isAuthenticated": true,
-                "name": "Foo Bar",
-                "options": Object {
-                  "timezone": "UTC",
-                },
-                "permissions": Set {},
-                "username": "foo@example.com",
-              }
-            }
+            isSuperuser={false}
             organization={
               Object {
                 "access": Array [
@@ -1078,8 +1051,8 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
             renderNoAccessMessage={false}
             requireAll={true}
           />
-        </AccessContainer>
-      </withConfig(AccessContainer)>
+        </withConfig(Access)>
+      </WithOrganizationMockWrapper>
     </PermissionAlert>
     <Panel>
       <Component
@@ -1165,38 +1138,45 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                           </div>
                         </Base>
                       </Flex>
-                      <withConfig(AccessContainer)
+                      <WithOrganizationMockWrapper
                         access={
                           Array [
                             "project:write",
                           ]
                         }
                       >
-                        <AccessContainer
+                        <withConfig(Access)
                           access={
                             Array [
                               "project:write",
                             ]
                           }
-                          config={
+                          organization={
                             Object {
-                              "features": Set {},
-                              "messages": Array [],
-                              "user": Object {
-                                "email": "foo@example.com",
-                                "flags": Object {
-                                  "newsletter_consent_prompt": false,
-                                },
-                                "hasPasswordAuth": true,
-                                "id": "1",
-                                "isAuthenticated": true,
-                                "name": "Foo Bar",
-                                "options": Object {
-                                  "timezone": "UTC",
-                                },
-                                "permissions": Set {},
-                                "username": "foo@example.com",
+                              "access": Array [
+                                "org:read",
+                                "org:write",
+                                "org:admin",
+                                "org:integrations",
+                                "project:read",
+                                "project:write",
+                                "project:admin",
+                                "team:read",
+                                "team:write",
+                                "team:admin",
+                              ],
+                              "features": Array [],
+                              "id": "3",
+                              "name": "Organization Name",
+                              "onboardingTasks": Array [],
+                              "projects": Array [],
+                              "scrapeJavaScript": true,
+                              "slug": "org-slug",
+                              "status": Object {
+                                "id": "active",
+                                "name": "active",
                               },
+                              "teams": Array [],
                             }
                           }
                         >
@@ -1227,23 +1207,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                                 },
                               }
                             }
-                            configUser={
-                              Object {
-                                "email": "foo@example.com",
-                                "flags": Object {
-                                  "newsletter_consent_prompt": false,
-                                },
-                                "hasPasswordAuth": true,
-                                "id": "1",
-                                "isAuthenticated": true,
-                                "name": "Foo Bar",
-                                "options": Object {
-                                  "timezone": "UTC",
-                                },
-                                "permissions": Set {},
-                                "username": "foo@example.com",
-                              }
-                            }
+                            isSuperuser={false}
                             organization={
                               Object {
                                 "access": Array [
@@ -1338,8 +1302,8 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                               </EnvironmentButton>
                             </div>
                           </Access>
-                        </AccessContainer>
-                      </withConfig(AccessContainer)>
+                        </withConfig(Access)>
+                      </WithOrganizationMockWrapper>
                     </div>
                   </Base>
                 </PanelItem>

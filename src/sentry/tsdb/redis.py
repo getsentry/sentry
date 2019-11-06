@@ -207,11 +207,20 @@ class RedisTSDB(BaseTSDB):
         Increment project ID=1 and group ID=5:
 
         >>> incr_multi([(TimeSeriesModel.project, 1), (TimeSeriesModel.group, 5)])
-        """
-        self.validate_arguments([model for model, _ in items], [environment_id])
 
-        if timestamp is None:
-            timestamp = timezone.now()
+        Increment individual timestamps:
+
+        >>> incr_multi([(TimeSeriesModel.project, 1, {"timestamp": ...}),
+        ...             (TimeSeriesModel.group, 5, {"timestamp": ...})])
+        """
+
+        default_timestamp = timestamp
+        default_count = count
+
+        self.validate_arguments([item[0] for item in items], [environment_id])
+
+        if default_timestamp is None:
+            default_timestamp = timezone.now()
 
         for (cluster, durable), environment_ids in self.get_cluster_groups(
             set([None, environment_id])
@@ -221,16 +230,38 @@ class RedisTSDB(BaseTSDB):
                 manager = SuppressionWrapper(manager)
 
             with manager as client:
+                # (hash_key, hash_field) -> count
+                key_operations = defaultdict(lambda: 0)
+                # (hash_key) -> "max expiration encountered"
+                key_expiries = defaultdict(lambda: 0.0)
+
                 for rollup, max_values in six.iteritems(self.rollups):
-                    for model, key in items:
+                    for item in items:
+                        if len(item) == 2:
+                            model, key = item
+                            options = {}
+                        else:
+                            model, key, options = item
+
+                        count = options.get("count", default_count)
+                        timestamp = options.get("timestamp", default_timestamp)
+
+                        expiry = self.calculate_expiry(rollup, max_values, timestamp)
+
                         for environment_id in environment_ids:
                             hash_key, hash_field = self.make_counter_key(
                                 model, rollup, timestamp, key, environment_id
                             )
-                            client.hincrby(hash_key, hash_field, count)
-                            client.expireat(
-                                hash_key, self.calculate_expiry(rollup, max_values, timestamp)
-                            )
+
+                            if key_expiries[hash_key] < expiry:
+                                key_expiries[hash_key] = expiry
+
+                            key_operations[(hash_key, hash_field)] += count
+
+                for (hash_key, hash_field), count in six.iteritems(key_operations):
+                    client.hincrby(hash_key, hash_field, count)
+                    if key_expiries.get(hash_key):
+                        client.expireat(hash_key, key_expiries.pop(hash_key))
 
     def get_range(self, model, keys, start, end, rollup=None, environment_ids=None):
         """
@@ -349,7 +380,7 @@ class RedisTSDB(BaseTSDB):
 
     def record_multi(self, items, timestamp=None, environment_id=None):
         """
-        Record an occurence of an item in a distinct counter.
+        Record an occurrence of an item in a distinct counter.
         """
         self.validate_arguments([model for model, key, values in items], [environment_id])
 
@@ -421,7 +452,7 @@ class RedisTSDB(BaseTSDB):
                 # ``PFCOUNT`` correctly (although this is fixed in the Git
                 # master, so should be available in the next release) and only
                 # supports a single key argument -- not the variadic signature
-                # supported by the protocol -- so we have to call the commnand
+                # supported by the protocol -- so we have to call the command
                 # directly here instead.
                 ks = []
                 for timestamp in series:

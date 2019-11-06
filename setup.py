@@ -73,7 +73,6 @@ def get_requirements(env):
 
 install_requires = get_requirements("base")
 dev_requires = get_requirements("dev")
-optional_requires = get_requirements("optional")
 
 # override django version in requirements file if DJANGO_VERSION is set
 DJANGO_VERSION = os.environ.get("DJANGO_VERSION")
@@ -135,15 +134,41 @@ setup(
     packages=find_packages("src"),
     zip_safe=False,
     install_requires=install_requires,
-    extras_require={
-        "dev": dev_requires,
-        "postgres": [],
-        "optional": optional_requires,
-    },
+    extras_require={"dev": dev_requires, "postgres": []},
     cmdclass=cmdclass,
     license="BSD",
     include_package_data=True,
-    entry_points={"console_scripts": ["sentry = sentry.runner:main"]},
+    entry_points={
+        "console_scripts": ["sentry = sentry.runner:main"],
+        "sentry.test_only_apps": [
+            "jira_ac = test_only_plugins.jira_ac",
+            "jira = test_only_plugins.jira",
+            "sessionstack = test_only_plugins.sessionstack",
+        ],
+        "sentry.new_plugins": [
+            "amazon_sqs = new_sentry_plugins.amazon_sqs.plugin:AmazonSQSPlugin",
+        ],
+        "sentry.test_only_plugins": [
+            "asana = test_only_plugins.asana.plugin:AsanaPlugin",
+            "bitbucket = test_only_plugins.bitbucket.plugin:BitbucketPlugin",
+            "clubhouse = test_only_plugins.clubhouse.plugin:ClubhousePlugin",
+            "github = test_only_plugins.github.plugin:GitHubPlugin",
+            "gitlab = test_only_plugins.gitlab.plugin:GitLabPlugin",
+            "heroku = test_only_plugins.heroku.plugin:HerokuPlugin",
+            "jira = test_only_plugins.jira.plugin:JiraPlugin",
+            "jira_ac = test_only_plugins.jira_ac.plugin:JiraACPlugin",
+            "pagerduty = test_only_plugins.pagerduty.plugin:PagerDutyPlugin",
+            "phabricator = test_only_plugins.phabricator.plugin:PhabricatorPlugin",
+            "pivotal = test_only_plugins.pivotal.plugin:PivotalPlugin",
+            "pushover = test_only_plugins.pushover.plugin:PushoverPlugin",
+            "segment = test_only_plugins.segment.plugin:SegmentPlugin",
+            "sessionstack = test_only_plugins.sessionstack.plugin:SessionStackPlugin",
+            "slack = test_only_plugins.slack.plugin:SlackPlugin",
+            "splunk = test_only_plugins.splunk.plugin:SplunkPlugin",
+            "victorops = test_only_plugins.victorops.plugin:VictorOpsPlugin",
+            "vsts = test_only_plugins.vsts.plugin:VstsPlugin",
+        ],
+    },
     classifiers=[
         "Framework :: Django",
         "Intended Audience :: Developers",

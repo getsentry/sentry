@@ -7,7 +7,6 @@ import six
 import warnings
 from uuid import uuid4
 
-from django.conf import settings
 from django.db import models
 from django.db.models.signals import post_delete
 
@@ -55,7 +54,7 @@ class NodeData(collections.MutableMapping):
         data = dict(self.__dict__)
         # downgrade this into a normal dict in case it's a shim dict.
         # This is needed as older workers might not know about newer
-        # collection types.  For isntance we have events where this is a
+        # collection types.  For instance we have events where this is a
         # CanonicalKeyDict
         data.pop("data", None)
         data["_node_data_CANONICAL"] = isinstance(data["_node_data"], CANONICAL_TYPES)
@@ -238,8 +237,3 @@ class NodeField(GzippedDictField):
 
 if hasattr(models, "SubfieldBase"):
     NodeField = six.add_metaclass(models.SubfieldBase)(NodeField)
-
-if "south" in settings.INSTALLED_APPS:
-    from south.modelsinspector import add_introspection_rules
-
-    add_introspection_rules([], ["^sentry\.db\.models\.fields\.node\.NodeField"])

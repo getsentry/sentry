@@ -65,7 +65,7 @@ from sentry.models import (
     UserReport,
     Organization,
 )
-from sentry.plugins import plugins
+from sentry.plugins.base import plugins
 from sentry.signals import event_discarded, event_saved, first_event_received
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.utils import metrics
@@ -323,8 +323,6 @@ class EventManager(object):
     def normalize(self):
         with metrics.timer("events.store.normalize.duration"):
             self._normalize_impl()
-
-        metrics.timing("events.store.normalize.errors", len(self._data.get("errors") or ()))
 
     def _normalize_impl(self):
         if self._normalized:
@@ -623,7 +621,7 @@ class EventManager(object):
         # normalize step before.  We now also make sure that the
         # fingerprint was set to `'{{ default }}' just in case someone
         # removed it from the payload.  The call to get_hashes will then
-        # look at `grouping_config` to pick the right paramters.
+        # look at `grouping_config` to pick the right parameters.
         data["fingerprint"] = data.get("fingerprint") or ["{{ default }}"]
         apply_server_fingerprinting(data, get_fingerprinting_config_for_project(project))
 
@@ -642,7 +640,7 @@ class EventManager(object):
         # derived attributes.  The reason for this is that we push this
         # data into kafka for snuba processing and our postprocessing
         # picks up the data right from the snuba topic.  For most usage
-        # however the data is dynamically overriden by Event.title and
+        # however the data is dynamically overridden by Event.title and
         # Event.location (See Event.as_dict)
         materialized_metadata = self.materialize_metadata()
         event_metadata = materialized_metadata["metadata"]
@@ -834,9 +832,15 @@ class EventManager(object):
             skip_consume=raw,
         )
 
-        metrics.timing("events.latency", received_timestamp - recorded_timestamp)
+        metric_tags = {"from_relay": "_relay_processed" in self._data}
 
-        metrics.timing("events.size.data.post_save", event.size)
+        metrics.timing("events.latency", received_timestamp - recorded_timestamp, tags=metric_tags)
+        metrics.timing("events.size.data.post_save", event.size, tags=metric_tags)
+        metrics.incr(
+            "events.post_save.normalize.errors",
+            amount=len(self._data.get("errors") or ()),
+            tags=metric_tags,
+        )
 
         return event
 
@@ -933,7 +937,7 @@ class EventManager(object):
             )
 
         else:
-            group = Group.objects.get(id=existing_group_id)
+            group = Group.objects.get_from_cache(id=existing_group_id)
 
             group_is_new = False
 

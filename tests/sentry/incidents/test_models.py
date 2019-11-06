@@ -3,13 +3,15 @@ from __future__ import absolute_import
 import unittest
 from datetime import timedelta
 
+import six
 from django.db import IntegrityError, transaction
 from django.utils import timezone
+from exam import patcher
 from freezegun import freeze_time
-from mock import patch
+from mock import Mock, patch
 
 from sentry.db.models.manager import BaseManager
-from sentry.incidents.models import Incident, IncidentStatus
+from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentStatus
 from sentry.testutils import TestCase
 
 
@@ -124,3 +126,98 @@ class IncidentCurrentEndDateTest(unittest.TestCase):
         assert incident.current_end_date == timezone.now()
         incident.date_closed = timezone.now() - timedelta(minutes=10)
         assert incident.current_end_date == timezone.now() - timedelta(minutes=10)
+
+
+class AlertRuleTriggerActionTargetTest(TestCase):
+    def test_user(self):
+        trigger = AlertRuleTriggerAction(
+            target_type=AlertRuleTriggerAction.TargetType.USER.value,
+            target_identifier=six.text_type(self.user.id),
+        )
+        assert trigger.target == self.user
+
+    def test_invalid_user(self):
+        trigger = AlertRuleTriggerAction(
+            target_type=AlertRuleTriggerAction.TargetType.USER.value, target_identifier="10000000"
+        )
+        assert trigger.target is None
+
+    def test_team(self):
+        trigger = AlertRuleTriggerAction(
+            target_type=AlertRuleTriggerAction.TargetType.TEAM.value,
+            target_identifier=six.text_type(self.team.id),
+        )
+        assert trigger.target == self.team
+
+    def test_invalid_team(self):
+        trigger = AlertRuleTriggerAction(
+            target_type=AlertRuleTriggerAction.TargetType.TEAM.value, target_identifier="10000000"
+        )
+        assert trigger.target is None
+
+    def test_specific(self):
+        email = "test@test.com"
+        trigger = AlertRuleTriggerAction(
+            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC.value, target_identifier=email
+        )
+        assert trigger.target == email
+
+
+class AlertRuleTriggerActionActivateTest(object):
+    method = None
+
+    def setUp(self):
+        self.old_handlers = AlertRuleTriggerAction.handlers
+        AlertRuleTriggerAction.handlers = {}
+
+    def tearDown(self):
+        AlertRuleTriggerAction.handlers = self.old_handlers
+
+    def test_no_handler(self):
+        trigger = AlertRuleTriggerAction(type=AlertRuleTriggerAction.Type.EMAIL.value)
+        assert trigger.fire(Mock(), Mock()) is None
+
+    def test_handler(self):
+        mock_handler = Mock()
+        mock_method = getattr(mock_handler.return_value, self.method)
+        mock_method.return_value = "test"
+        type = AlertRuleTriggerAction.Type.EMAIL
+        AlertRuleTriggerAction.register_type_handler(type)(mock_handler)
+        trigger = AlertRuleTriggerAction(type=type.value)
+        assert getattr(trigger, self.method)(Mock(), Mock()) == mock_method.return_value
+
+
+class AlertRuleTriggerActionFireTest(AlertRuleTriggerActionActivateTest, unittest.TestCase):
+    method = "fire"
+
+
+class AlertRuleTriggerActionResolveTest(AlertRuleTriggerActionActivateTest, unittest.TestCase):
+    method = "resolve"
+
+
+class AlertRuleTriggerActionActivateTest(TestCase):
+    metrics = patcher("sentry.incidents.models.metrics")
+
+    def setUp(self):
+        self.old_handlers = AlertRuleTriggerAction.handlers
+        AlertRuleTriggerAction.handlers = {}
+
+    def tearDown(self):
+        AlertRuleTriggerAction.handlers = self.old_handlers
+
+    def test_unhandled(self):
+        trigger = AlertRuleTriggerAction(type=AlertRuleTriggerAction.Type.EMAIL.value)
+        trigger.build_handler(Mock(), Mock())
+        self.metrics.incr.assert_called_once_with("alert_rule_trigger.unhandled_type.0")
+
+    def test_handled(self):
+        mock_handler = Mock()
+        type = AlertRuleTriggerAction.Type.EMAIL
+        AlertRuleTriggerAction.register_type_handler(type)(mock_handler)
+
+        trigger = AlertRuleTriggerAction(type=AlertRuleTriggerAction.Type.EMAIL.value)
+        incident = Mock()
+        project = Mock()
+        trigger.build_handler(incident, project)
+        mock_handler.assert_called_once_with(trigger, incident, project)
+        assert not self.metrics.incr.called

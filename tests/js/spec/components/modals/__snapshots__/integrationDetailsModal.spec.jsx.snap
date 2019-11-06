@@ -326,23 +326,21 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
     </Base>
   </Metadata>
   <Alert
-    alignTop={false}
     iconSize="24px"
     key="0"
     type="warning"
   >
-    <AlertWrapper
-      alignTop={false}
-      className="ref-warning"
+    <Component
+      className="css-1g6nbgo-Alert-getAlertColorStyles-alertStyles ejthpj82"
+      iconSize="24px"
       type="warning"
     >
       <div
-        className="ref-warning css-osoqhl-AlertWrapper-alertStyles e1xb5l7j1"
-        type="warning"
+        className="ref-warning css-1g6nbgo-Alert-getAlertColorStyles-alertStyles ejthpj82"
       >
         <StyledTextBlock>
           <div
-            className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
+            className="css-1h3n7tg-TextBlock-StyledTextBlock ejthpj81"
           >
             <span
               dangerouslySetInnerHTML={
@@ -354,7 +352,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
           </div>
         </StyledTextBlock>
       </div>
-    </AlertWrapper>
+    </Component>
   </Alert>
   <IntegrationFeatures
     features={
@@ -458,7 +456,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
           </ForwardRef>
         </StyledButton>
       </Button>
-      <withConfig(AccessContainer)
+      <WithOrganizationMockWrapper
         access={
           Array [
             "org:integrations",
@@ -493,32 +491,11 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
           }
         }
       >
-        <AccessContainer
+        <withConfig(Access)
           access={
             Array [
               "org:integrations",
             ]
-          }
-          config={
-            Object {
-              "features": Set {},
-              "messages": Array [],
-              "user": Object {
-                "email": "foo@example.com",
-                "flags": Object {
-                  "newsletter_consent_prompt": false,
-                },
-                "hasPasswordAuth": true,
-                "id": "1",
-                "isAuthenticated": true,
-                "name": "Foo Bar",
-                "options": Object {
-                  "timezone": "UTC",
-                },
-                "permissions": Set {},
-                "username": "foo@example.com",
-              },
-            }
           }
           organization={
             Object {
@@ -576,23 +553,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                 },
               }
             }
-            configUser={
-              Object {
-                "email": "foo@example.com",
-                "flags": Object {
-                  "newsletter_consent_prompt": false,
-                },
-                "hasPasswordAuth": true,
-                "id": "1",
-                "isAuthenticated": true,
-                "name": "Foo Bar",
-                "options": Object {
-                  "timezone": "UTC",
-                },
-                "permissions": Set {},
-                "username": "foo@example.com",
-              }
-            }
+            isSuperuser={false}
             organization={
               Object {
                 "access": Array [
@@ -811,8 +772,8 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
               </AddButton>
             </Tooltip>
           </Access>
-        </AccessContainer>
-      </withConfig(AccessContainer)>
+        </withConfig(Access)>
+      </WithOrganizationMockWrapper>
     </div>
   </IntegrationFeatures>
 </IntegrationDetailsModal>

@@ -17,7 +17,6 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
             return Response({"count": 0})
 
         data = snuba.transform_aliases_and_query(
-            skip_conditions=True,
             aggregations=[["count()", "", "count"]],
             referrer="api.organization-event-meta",
             **snuba_args

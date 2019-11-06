@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from datetime import datetime
 import six
 from copy import deepcopy
 
@@ -12,6 +11,20 @@ from sentry.utils.validators import normalize_event_id
 DEFAULT_ORDERBY = ["-timestamp", "-event_id"]
 DEFAULT_LIMIT = 100
 DEFAULT_OFFSET = 0
+
+
+def get_before_event_condition(event):
+    return [
+        ["timestamp", "<=", event.timestamp],
+        [["timestamp", "<", event.timestamp], ["event_id", "<", event.event_id]],
+    ]
+
+
+def get_after_event_condition(event):
+    return [
+        ["timestamp", ">=", event.timestamp],
+        [["timestamp", ">", event.timestamp], ["event_id", ">", event.event_id]],
+    ]
 
 
 class SnubaEventStorage(EventStorage):
@@ -32,10 +45,9 @@ class SnubaEventStorage(EventStorage):
         Get events from Snuba.
         """
         assert filter, "You must provide a filter"
-
         cols = self.__get_columns(additional_columns)
 
-        result = snuba.raw_query(
+        result = snuba.dataset_query(
             selected_columns=cols,
             start=filter.start,
             end=filter.end,
@@ -74,6 +86,26 @@ class SnubaEventStorage(EventStorage):
             return SnubaEvent(result["data"][0])
         return None
 
+    def get_earliest_event_id(self, event, filter):
+        orderby = ["timestamp", "event_id"]
+
+        filter = deepcopy(filter)
+        filter.conditions = filter.conditions or []
+        filter.conditions.extend(get_before_event_condition(event))
+        filter.end = event.datetime
+
+        return self.__get_event_id_from_filter(filter=filter, orderby=orderby)
+
+    def get_latest_event_id(self, event, filter):
+        orderby = ["-timestamp", "-event_id"]
+
+        filter = deepcopy(filter)
+        filter.conditions = filter.conditions or []
+        filter.conditions.extend(get_after_event_condition(event))
+        filter.start = event.datetime
+
+        return self.__get_event_id_from_filter(filter=filter, orderby=orderby)
+
     def get_next_event_id(self, event, filter):
         """
         Returns (project_id, event_id) of a next event given a current event
@@ -85,17 +117,11 @@ class SnubaEventStorage(EventStorage):
             return None
 
         filter = deepcopy(filter)
-
-        time_condition = [
-            ["timestamp", ">=", event.timestamp],
-            [["timestamp", ">", event.timestamp], ["event_id", ">", event.event_id]],
-        ]
         filter.conditions = filter.conditions or []
-        filter.conditions.extend(time_condition)
+        filter.conditions.extend(get_after_event_condition(event))
         filter.start = event.datetime
-        filter.end = datetime.utcnow()
 
-        return self.__get_next_or_prev_event_id(filter=filter, orderby=["timestamp", "event_id"])
+        return self.__get_event_id_from_filter(filter=filter, orderby=["timestamp", "event_id"])
 
     def get_prev_event_id(self, event, filter):
         """
@@ -108,17 +134,11 @@ class SnubaEventStorage(EventStorage):
             return None
 
         filter = deepcopy(filter)
-
-        time_condition = [
-            ["timestamp", "<=", event.timestamp],
-            [["timestamp", "<", event.timestamp], ["event_id", "<", event.event_id]],
-        ]
         filter.conditions = filter.conditions or []
-        filter.conditions.extend(time_condition)
+        filter.conditions.extend(get_before_event_condition(event))
         filter.end = event.datetime
-        filter.start = datetime.utcfromtimestamp(0)
 
-        return self.__get_next_or_prev_event_id(filter=filter, orderby=["-timestamp", "-event_id"])
+        return self.__get_event_id_from_filter(filter=filter, orderby=["-timestamp", "-event_id"])
 
     def __get_columns(self, additional_columns):
         columns = EventStorage.minimal_columns
@@ -126,9 +146,9 @@ class SnubaEventStorage(EventStorage):
         if additional_columns:
             columns = set(columns + additional_columns)
 
-        return [col.value for col in columns]
+        return [col.value.event_name for col in columns]
 
-    def __get_next_or_prev_event_id(self, filter=None, orderby=None):
+    def __get_event_id_from_filter(self, filter=None, orderby=None):
         columns = ["event_id", "project_id"]
         result = snuba.dataset_query(
             selected_columns=columns,
@@ -139,10 +159,7 @@ class SnubaEventStorage(EventStorage):
             limit=1,
             referrer="eventstore.get_next_or_prev_event_id",
             orderby=orderby,
-            dataset=snuba.detect_dataset(
-                {"selected_columns": columns, "conditions": filter.conditions},
-                aliased_conditions=True,
-            ),
+            dataset=snuba.detect_dataset({"conditions": filter.conditions}),
         )
 
         if "error" in result or len(result["data"]) == 0:

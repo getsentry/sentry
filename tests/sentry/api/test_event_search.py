@@ -10,7 +10,6 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.api.event_search import (
-    convert_endpoint_params,
     event_search_grammar,
     get_filter,
     resolve_field_list,
@@ -485,6 +484,14 @@ class ParseSearchQueryTest(unittest.TestCase):
             )
         ]
 
+    def test_invalid_numeric_fields(self):
+        invalid_queries = ["project.id:one", "issue.id:two", "transaction.duration:>hotdog"]
+        for invalid_query in invalid_queries:
+            with self.assertRaises(
+                InvalidSearchQuery, expected_regex="Invalid format for numeric search"
+            ):
+                parse_search_query(invalid_query)
+
     def test_quotes_filtered_on_raw(self):
         # Enclose the full raw query? Strip it.
         assert parse_search_query('thinger:unknown "what is this?"') == [
@@ -859,9 +866,9 @@ class GetSnubaQueryArgsTest(TestCase):
         )
 
         assert filter.conditions == [
-            ["email", "=", "foo@example.com"],
-            ["tags[sentry:release]", "=", "1.2.1"],
-            [["ifNull", ["tags[fruit]", "''"]], "=", "apple"],
+            ["user.email", "=", "foo@example.com"],
+            ["release", "=", "1.2.1"],
+            [["ifNull", ["fruit", "''"]], "=", "apple"],
             [["positionCaseInsensitive", ["message", "'hello'"]], "!=", 0],
         ]
         assert filter.start == datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
@@ -874,7 +881,7 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_negation(self):
         filter = get_filter("!user.email:foo@example.com")
         assert filter.conditions == [
-            [[["isNull", ["email"]], "=", 1], ["email", "!=", "foo@example.com"]]
+            [[["isNull", ["user.email"]], "=", 1], ["user.email", "!=", "foo@example.com"]]
         ]
         assert filter.filter_keys == {}
 
@@ -883,9 +890,7 @@ class GetSnubaQueryArgsTest(TestCase):
             [["ifNull", ["tags[fruit]", "''"]], "=", "apple"]
         ]
 
-        assert get_filter("fruit:apple").conditions == [
-            [["ifNull", ["tags[fruit]", "''"]], "=", "apple"]
-        ]
+        assert get_filter("fruit:apple").conditions == [[["ifNull", ["fruit", "''"]], "=", "apple"]]
 
         assert get_filter("tags[project_id]:123").conditions == [
             [["ifNull", ["tags[project_id]", "''"]], "=", "123"]
@@ -907,8 +912,8 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_wildcard(self):
         filter = get_filter("release:3.1.* user.email:*@example.com")
         assert filter.conditions == [
-            [["match", ["tags[sentry:release]", "'(?i)^3\\.1\\..*$'"]], "=", 1],
-            [["match", ["email", "'(?i)^.*\\@example\\.com$'"]], "=", 1],
+            [["match", ["release", "'(?i)^3\\.1\\..*$'"]], "=", 1],
+            [["match", ["user.email", "'(?i)^.*\\@example\\.com$'"]], "=", 1],
         ]
         assert filter.filter_keys == {}
 
@@ -916,34 +921,30 @@ class GetSnubaQueryArgsTest(TestCase):
         filter = get_filter("!release:3.1.* user.email:*@example.com")
         assert filter.conditions == [
             [
-                [["isNull", ["tags[sentry:release]"]], "=", 1],
-                [["match", ["tags[sentry:release]", "'(?i)^3\\.1\\..*$'"]], "!=", 1],
+                [["isNull", ["release"]], "=", 1],
+                [["match", ["release", "'(?i)^3\\.1\\..*$'"]], "!=", 1],
             ],
-            [["match", ["email", "'(?i)^.*\\@example\\.com$'"]], "=", 1],
+            [["match", ["user.email", "'(?i)^.*\\@example\\.com$'"]], "=", 1],
         ]
         assert filter.filter_keys == {}
 
     def test_escaped_wildcard(self):
         assert get_filter("release:3.1.\\* user.email:\\*@example.com").conditions == [
-            [["match", ["tags[sentry:release]", "'(?i)^3\\.1\\.\\*$'"]], "=", 1],
-            [["match", ["email", "'(?i)^\*\\@example\\.com$'"]], "=", 1],
+            [["match", ["release", "'(?i)^3\\.1\\.\\*$'"]], "=", 1],
+            [["match", ["user.email", "'(?i)^\*\\@example\\.com$'"]], "=", 1],
         ]
         assert get_filter("release:\\\\\\*").conditions == [
-            [["match", ["tags[sentry:release]", "'(?i)^\\\\\\*$'"]], "=", 1]
+            [["match", ["release", "'(?i)^\\\\\\*$'"]], "=", 1]
         ]
         assert get_filter("release:\\\\*").conditions == [
-            [["match", ["tags[sentry:release]", "'(?i)^\\\\.*$'"]], "=", 1]
+            [["match", ["release", "'(?i)^\\\\.*$'"]], "=", 1]
         ]
 
     def test_has(self):
-        assert get_filter("has:release").conditions == [
-            [["isNull", ["tags[sentry:release]"]], "!=", 1]
-        ]
+        assert get_filter("has:release").conditions == [[["isNull", ["release"]], "!=", 1]]
 
     def test_not_has(self):
-        assert get_filter("!has:release").conditions == [
-            [["isNull", ["tags[sentry:release]"]], "=", 1]
-        ]
+        assert get_filter("!has:release").conditions == [[["isNull", ["release"]], "=", 1]]
 
     def test_message_negative(self):
         assert get_filter('!message:"post_process.process_error HTTPError 403"').conditions == [
@@ -973,7 +974,7 @@ class GetSnubaQueryArgsTest(TestCase):
         assert filter.group_ids == [1, 2, 3]
 
         filter = get_filter("issue.id:1 user.email:foo@example.com")
-        assert filter.conditions == [["email", "=", "foo@example.com"]]
+        assert filter.conditions == [["user.email", "=", "foo@example.com"]]
         assert filter.filter_keys == {"issue": [1]}
         assert filter.group_ids == [1]
 
@@ -986,37 +987,6 @@ class GetSnubaQueryArgsTest(TestCase):
         filter.conditions == [["project_id", "=", p1.id]]
         filter.filter_keys == {"project_id": [p1.id, p2.id]}
         filter.project_ids == [p1.id, p2.id]
-
-
-class ConvertEndpointParamsTests(unittest.TestCase):
-    def test_simple(self):
-        assert convert_endpoint_params(
-            {
-                "project_id": [1, 2, 3],
-                "start": datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc),
-                "end": datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc),
-            }
-        ) == [
-            SearchFilter(
-                key=SearchKey(name="start"),
-                operator="=",
-                value=SearchValue(
-                    raw_value=datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
-                ),
-            ),
-            SearchFilter(
-                key=SearchKey(name="project_id"),
-                operator="=",
-                value=SearchValue(raw_value=[1, 2, 3]),
-            ),
-            SearchFilter(
-                key=SearchKey(name="end"),
-                operator="=",
-                value=SearchValue(
-                    raw_value=datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc)
-                ),
-            ),
-        ]
 
 
 class ResolveFieldListTest(unittest.TestCase):
@@ -1200,7 +1170,7 @@ class GetReferenceEventConditionsTest(SnubaTestCase, TestCase):
 
     def test_bad_slug_format(self):
         with pytest.raises(InvalidSearchQuery):
-            get_reference_event_conditions(self.conditions, "lol")
+            get_reference_event_conditions(self.organization, self.conditions, "lol")
 
     def test_unknown_project(self):
         event = self.store_event(
@@ -1209,12 +1179,14 @@ class GetReferenceEventConditionsTest(SnubaTestCase, TestCase):
         )
         self.conditions["filter_keys"]["project_id"] = [-1]
         with pytest.raises(InvalidSearchQuery):
-            get_reference_event_conditions(self.conditions, "nope:{}".format(event.event_id))
+            get_reference_event_conditions(
+                self.organization, self.conditions, "nope:{}".format(event.event_id)
+            )
 
     def test_unknown_event(self):
         with pytest.raises(InvalidSearchQuery):
             slug = "{}:deadbeef".format(self.project.slug)
-            get_reference_event_conditions(self.conditions, slug)
+            get_reference_event_conditions(self.organization, self.conditions, slug)
 
     def test_no_fields(self):
         event = self.store_event(
@@ -1227,7 +1199,7 @@ class GetReferenceEventConditionsTest(SnubaTestCase, TestCase):
         )
         self.conditions["groupby"] = []
         slug = "{}:{}".format(self.project.slug, event.event_id)
-        result = get_reference_event_conditions(self.conditions, slug)
+        result = get_reference_event_conditions(self.organization, self.conditions, slug)
         assert len(result) == 0
 
     def test_basic_fields(self):
@@ -1241,7 +1213,7 @@ class GetReferenceEventConditionsTest(SnubaTestCase, TestCase):
         )
         self.conditions["groupby"] = ["message", "transaction", "unknown-field"]
         slug = "{}:{}".format(self.project.slug, event.event_id)
-        result = get_reference_event_conditions(self.conditions, slug)
+        result = get_reference_event_conditions(self.organization, self.conditions, slug)
         assert result == [
             ["message", "=", "oh no! /issues/{issue_id}"],
             ["transaction", "=", "/issues/{issue_id}"],
@@ -1262,11 +1234,11 @@ class GetReferenceEventConditionsTest(SnubaTestCase, TestCase):
         )
         self.conditions["groupby"] = ["geo.city", "geo.region", "geo.country_code"]
         slug = "{}:{}".format(self.project.slug, event.event_id)
-        result = get_reference_event_conditions(self.conditions, slug)
+        result = get_reference_event_conditions(self.organization, self.conditions, slug)
         assert result == [
-            ["geo_city", "=", "San Francisco"],
-            ["geo_region", "=", "CA"],
-            ["geo_country_code", "=", "US"],
+            ["geo.city", "=", "San Francisco"],
+            ["geo.region", "=", "CA"],
+            ["geo.country_code", "=", "US"],
         ]
 
     def test_sdk_field(self):
@@ -1281,8 +1253,8 @@ class GetReferenceEventConditionsTest(SnubaTestCase, TestCase):
         )
         self.conditions["groupby"] = ["sdk.version", "sdk.name"]
         slug = "{}:{}".format(self.project.slug, event.event_id)
-        result = get_reference_event_conditions(self.conditions, slug)
-        assert result == [["sdk_version", "=", "5.0.12"], ["sdk_name", "=", "sentry-python"]]
+        result = get_reference_event_conditions(self.organization, self.conditions, slug)
+        assert result == [["sdk.version", "=", "5.0.12"], ["sdk.name", "=", "sentry-python"]]
 
     def test_error_field(self):
         data = load_data("php")
@@ -1290,10 +1262,10 @@ class GetReferenceEventConditionsTest(SnubaTestCase, TestCase):
         event = self.store_event(data=data, project_id=self.project.id)
         self.conditions["groupby"] = ["error.value", "error.type", "error.handled"]
         slug = "{}:{}".format(self.project.slug, event.event_id)
-        result = get_reference_event_conditions(self.conditions, slug)
+        result = get_reference_event_conditions(self.organization, self.conditions, slug)
         assert result == [
-            ["exception_stacks.value", "=", "This is a test exception sent from the Raven CLI."],
-            ["exception_stacks.type", "=", "Exception"],
+            ["error.value", "=", "This is a test exception sent from the Raven CLI."],
+            ["error.type", "=", "Exception"],
         ]
 
     def test_stack_field(self):
@@ -1302,10 +1274,10 @@ class GetReferenceEventConditionsTest(SnubaTestCase, TestCase):
         event = self.store_event(data=data, project_id=self.project.id)
         self.conditions["groupby"] = ["stack.filename", "stack.function"]
         slug = "{}:{}".format(self.project.slug, event.event_id)
-        result = get_reference_event_conditions(self.conditions, slug)
+        result = get_reference_event_conditions(self.organization, self.conditions, slug)
         assert result == [
-            ["exception_frames.filename", "=", "/Users/example/Development/raven-php/bin/raven"],
-            ["exception_frames.function", "=", "raven_cli_test"],
+            ["stack.filename", "=", "/Users/example/Development/raven-php/bin/raven"],
+            ["stack.function", "=", "raven_cli_test"],
         ]
 
     def test_tag_value(self):
@@ -1319,8 +1291,8 @@ class GetReferenceEventConditionsTest(SnubaTestCase, TestCase):
         )
         self.conditions["groupby"] = ["nope", "color", "customer_id"]
         slug = "{}:{}".format(self.project.slug, event.event_id)
-        result = get_reference_event_conditions(self.conditions, slug)
-        assert result == [["tags[color]", "=", "red"], ["tags[customer_id]", "=", "1"]]
+        result = get_reference_event_conditions(self.organization, self.conditions, slug)
+        assert result == [["color", "=", "red"], ["customer_id", "=", "1"]]
 
     def test_context_value(self):
         event = self.store_event(
@@ -1337,11 +1309,8 @@ class GetReferenceEventConditionsTest(SnubaTestCase, TestCase):
         )
         self.conditions["groupby"] = ["gpu.name", "browser.name"]
         slug = "{}:{}".format(self.project.slug, event.event_id)
-        result = get_reference_event_conditions(self.conditions, slug)
-        assert result == [
-            ["tags[gpu.name]", "=", "nvidia 8600"],
-            ["tags[browser.name]", "=", "Firefox"],
-        ]
+        result = get_reference_event_conditions(self.organization, self.conditions, slug)
+        assert result == [["gpu.name", "=", "nvidia 8600"], ["browser.name", "=", "Firefox"]]
 
     def test_issue_field(self):
         event = self.store_event(
@@ -1358,8 +1327,8 @@ class GetReferenceEventConditionsTest(SnubaTestCase, TestCase):
         )
         self.conditions["groupby"] = ["issue.id"]
         slug = "{}:{}".format(self.project.slug, event.event_id)
-        result = get_reference_event_conditions(self.conditions, slug)
-        assert result == [["issue", "=", event.group_id]]
+        result = get_reference_event_conditions(self.organization, self.conditions, slug)
+        assert result == [["issue.id", "=", event.group_id]]
 
     @pytest.mark.xfail(reason="This requires eventstore.get_event_by_id to work with transactions")
     def test_transcation_field(self):
@@ -1367,5 +1336,5 @@ class GetReferenceEventConditionsTest(SnubaTestCase, TestCase):
         event = self.store_event(data=data, project_id=self.project.id)
         self.conditions["groupby"] = ["transaction.op", "transaction.duration"]
         slug = "{}:{}".format(self.project.slug, event.event_id)
-        result = get_reference_event_conditions(self.conditions, slug)
-        assert result == [["transaction_op", "=", "db"], ["duration", "=", 2]]
+        result = get_reference_event_conditions(self.organization, self.conditions, slug)
+        assert result == [["transaction.op", "=", "db"], ["transaction.duration", "=", 2]]

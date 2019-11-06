@@ -8,7 +8,7 @@ from django.core.urlresolvers import reverse
 from sentry.exceptions import InvalidIdentity, PluginError
 from sentry.integrations.exceptions import IntegrationError
 from sentry.models import Deploy, LatestRelease, Release, ReleaseHeadCommit, Repository, User
-from sentry.plugins import bindings
+from sentry.plugins.base import bindings
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
@@ -62,7 +62,7 @@ def handle_invalid_identity(identity, commit_failure=False):
 )
 @retry(exclude=(Release.DoesNotExist, User.DoesNotExist))
 def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
-    # TODO(dcramer): this function could use some cleanup/refactoring as its a bit unwieldly
+    # TODO(dcramer): this function could use some cleanup/refactoring as it's a bit unwieldy
     commit_list = []
 
     release = Release.objects.get(id=release_id)

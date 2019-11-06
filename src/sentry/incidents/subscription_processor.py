@@ -20,6 +20,7 @@ from sentry.incidents.models import (
     IncidentType,
     TriggerStatus,
 )
+from sentry.incidents.tasks import handle_trigger_action
 from sentry.snuba.models import QueryAggregations
 from sentry.utils import metrics, redis
 from sentry.utils.dates import to_datetime
@@ -192,6 +193,7 @@ class SubscriptionProcessor(object):
                     alert_rule_trigger=trigger,
                     status=TriggerStatus.ACTIVE.value,
                 )
+            self.handle_trigger_actions(incident_trigger)
             self.incident_triggers[trigger.id] = incident_trigger
 
             # TODO: We should create an audit log, and maybe something that keeps
@@ -225,13 +227,30 @@ class SubscriptionProcessor(object):
         """
         self.trigger_resolve_counts[trigger.id] += 1
         if self.trigger_resolve_counts[trigger.id] >= self.alert_rule.threshold_period:
-            self.incident_triggers[trigger.id].status = TriggerStatus.RESOLVED.value
-            self.incident_triggers[trigger.id].save()
+            incident_trigger = self.incident_triggers[trigger.id]
+            incident_trigger.status = TriggerStatus.RESOLVED.value
+            incident_trigger.save()
+            self.handle_trigger_actions(incident_trigger)
+
             if self.check_triggers_resolved():
                 update_incident_status(self.active_incident, IncidentStatus.CLOSED)
                 self.active_incident = None
                 self.incident_triggers.clear()
             self.trigger_resolve_counts[trigger.id] = 0
+
+    def handle_trigger_actions(self, incident_trigger):
+        method = "fire" if incident_trigger.status == TriggerStatus.ACTIVE.value else "resolve"
+
+        for action in incident_trigger.alert_rule_trigger.alertruletriggeraction_set.all():
+            handle_trigger_action.apply_async(
+                kwargs={
+                    "action_id": action.id,
+                    "incident_id": incident_trigger.incident_id,
+                    "project_id": self.subscription.project_id,
+                    "method": method,
+                },
+                countdown=5,
+            )
 
     def update_alert_rule_stats(self):
         """

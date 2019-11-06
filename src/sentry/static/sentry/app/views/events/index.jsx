@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {getParams} from 'app/views/events/utils/getParams';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {t} from 'app/locale';
 import BetaTag from 'app/components/betaTag';
 import Feature from 'app/components/acl/feature';
@@ -43,7 +43,11 @@ class EventsContainer extends React.Component {
     const {organization, location, children} = this.props;
 
     return (
-      <Feature features={['events']} hookName="events-page" renderDisabled>
+      <Feature
+        features={['events']}
+        hookName="feature-disabled:events-page"
+        renderDisabled
+      >
         <GlobalSelectionHeader
           organization={organization}
           resetParamsOnChange={['cursor']}

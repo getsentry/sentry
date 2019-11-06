@@ -1,11 +1,20 @@
 FROM python:2.7.16-slim-buster as sdist
 
+LABEL maintainer="oss@sentry.io"
+LABEL org.opencontainers.image.title="Sentry PyPI Wheel"
+LABEL org.opencontainers.image.description="PyPI Wheel Builder for Sentry"
+LABEL org.opencontainers.image.url="https://sentry.io/"
+LABEL org.opencontainers.image.source="https://github.com/getsentry/sentry"
+LABEL org.opencontainers.image.vendor="Functional Software, Inc."
+LABEL org.opencontainers.image.authors="oss@sentry.io"
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     # Needed for GPG
     dirmngr \
     gnupg \
     # Needed for fetching stuff
     wget \
+    libarchive-tools \
     && rm -rf /var/lib/apt/lists/*
 
 # Fetch trusted keys
@@ -60,17 +69,33 @@ RUN cd /usr/src/sentry \
     && tar -xzf "node-v$NODE_VERSION-linux-x64.tar.gz" -C /usr/local --strip-components=1 \
     && rm -r "node-v$NODE_VERSION-linux-x64.tar.gz" SHASUMS256.txt.asc
 
-ARG SOURCE_COMMIT="unknown"
-ENV SENTRY_BUILD=$SOURCE_COMMIT
+ARG SOURCE_COMMIT
+ENV SENTRY_BUILD=${SOURCE_COMMIT:-unknown}
+LABEL org.opencontainers.image.revision=$SOURCE_COMMIT
+LABEL org.opencontainers.image.licenses="https://github.com/getsentry/sentry/blob/${SOURCE_COMMIT:-master}/LICENSE"
+
 COPY . /usr/src/sentry/
 RUN export YARN_CACHE_FOLDER="$(mktemp -d)" \
     && cd /usr/src/sentry \
     && python setup.py bdist_wheel \
+    && wget -qO- https://github.com/getsentry/sentry-plugins/archive/master.zip | bsdtar -xvf- \
+    && cd sentry-plugins-master \
+    && PYTHONPATH=/usr/src/sentry/src python setup.py bdist_wheel -d ../dist \
     && rm -r "$YARN_CACHE_FOLDER" \
     && mv /usr/src/sentry/dist /dist
 
 # This is the image to be run
 FROM python:2.7.16-slim-buster
+
+LABEL maintainer="oss@sentry.io"
+LABEL org.opencontainers.image.title="Sentry"
+LABEL org.opencontainers.image.description="Sentry runtime image"
+LABEL org.opencontainers.image.url="https://sentry.io/"
+LABEL org.opencontainers.image.documentation="https://github.com/getsentry/onpremise/tree/v10"
+LABEL org.opencontainers.image.source="https://github.com/getsentry/sentry"
+LABEL org.opencontainers.image.vendor="Functional Software, Inc."
+LABEL org.opencontainers.image.authors="oss@sentry.io"
+
 
 # add our user and group first to make sure their IDs get assigned consistently
 RUN groupadd -r sentry && useradd -r -m -g sentry sentry
@@ -86,7 +111,9 @@ ENV PIP_NO_CACHE_DIR=off \
     SENTRY_FILESTORE_DIR=/var/lib/sentry/files \
     # Disable some unused uWSGI features, saving dependencies
     # Thank to https://stackoverflow.com/a/25260588/90297
-    UWSGI_PROFILE_OVERRIDE=ssl=false;xml=false;routing=false
+    UWSGI_PROFILE_OVERRIDE=ssl=false;xml=false;routing=false \
+    # UWSGI dogstatsd plugin
+    UWSGI_NEED_PLUGIN=/var/lib/uwsgi/dogstatsd
 
 COPY --from=sdist /dist/*.whl /tmp/dist/
 RUN set -x \
@@ -95,6 +122,7 @@ RUN set -x \
     && buildDeps="$buildDeps \
       gcc \
       g++ \
+      wget \
     " \
     # maxminddb
     && buildDeps="$buildDeps \
@@ -104,14 +132,25 @@ RUN set -x \
     && buildDeps="$buildDeps \
       make \
     " \
+       # xmlsec
+    && buildDeps="$buildDeps \
+      libxmlsec1-dev \
+      pkg-config \
+    " \
     && apt-get update \
     && apt-get install -y --no-install-recommends $buildDeps \
     && pip install /tmp/dist/*.whl \
     # Separate these due to https://git.io/fjyz6
     # Otherwise librabbitmq will install the latest amqp version,
     # violating kombu's amqp<2.0 constraint.
-    && pip install librabbitmq==1.6.1 maxminddb==1.4.1 \
-    && rm -rf /tmp/dist \
+    && pip install librabbitmq==1.6.1 \
+    && mkdir /tmp/uwsgi-dogstatsd \
+    && wget -O - https://github.com/eventbrite/uwsgi-dogstatsd/archive/filters-and-tags.tar.gz | \
+       tar -xzf - -C /tmp/uwsgi-dogstatsd --strip-components=1 \
+    && UWSGI_NEED_PLUGIN="" uwsgi --build-plugin /tmp/uwsgi-dogstatsd \
+    && mkdir -p /var/lib/uwsgi \
+    && mv dogstatsd_plugin.so /var/lib/uwsgi/ \
+    && rm -rf /tmp/dist /tmp/uwsgi-dogstatsd .uwsgi_plugins_builder \
     && apt-get purge -y --auto-remove $buildDeps \
     # We install run-time dependencies strictly after
     # build dependencies to prevent accidental collusion.
@@ -148,3 +187,7 @@ VOLUME /var/lib/sentry/files
 
 ENTRYPOINT exec $SENTRY_CONF/docker-entrypoint.sh $0 $@
 CMD ["run", "web"]
+
+ARG SOURCE_COMMIT
+LABEL org.opencontainers.image.revision=$SOURCE_COMMIT
+LABEL org.opencontainers.image.licenses="https://github.com/getsentry/sentry/blob/${SOURCE_COMMIT:-master}/LICENSE"

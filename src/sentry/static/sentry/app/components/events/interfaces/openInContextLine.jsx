@@ -5,6 +5,7 @@ import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
 import styled from 'react-emotion';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
+import {recordInteraction} from 'app/utils/recordSentryAppInteraction';
 
 class OpenInContextLine extends React.Component {
   static propTypes = {
@@ -34,11 +35,19 @@ class OpenInContextLine extends React.Component {
   renderOpenInLink = component => {
     const url = this.getUrl(component);
     const {slug} = component.sentryApp;
+
+    const recordStacktraceLinkInteraction = () => {
+      recordInteraction(slug, 'sentry_app_component_interacted', {
+        componentType: 'stacktrace-link',
+      });
+    };
+
     return (
       <OpenInLink
         key={component.uuid}
         data-test-id={`stacktrace-link-${slug}`}
         href={url}
+        onClick={recordStacktraceLinkInteraction}
       >
         <OpenInIcon slug={slug} />
         <OpenInName>{t(`${component.sentryApp.name}`)}</OpenInName>

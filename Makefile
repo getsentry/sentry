@@ -14,7 +14,16 @@ PIP_OPTS := --no-use-pep517 --disable-pip-version-check
 WEBPACK := NODE_ENV=production ./bin/yarn webpack
 YARN := ./bin/yarn
 
-bootstrap: install-system-pkgs develop init-config run-dependent-services create-db apply-migrations
+DROPDB := $(shell command -v dropdb 2> /dev/null)
+ifndef DROPDB
+	DROPDB = docker exec sentry_postgres dropdb
+endif
+CREATEDB := $(shell command -v createdb 2> /dev/null)
+ifndef CREATEDB
+	CREATEDB = docker exec sentry_postgres createdb
+endif
+
+bootstrap: develop init-config run-dependent-services create-db apply-migrations
 
 develop: ensure-venv setup-git develop-only
 
@@ -32,13 +41,11 @@ build: locale
 
 drop-db:
 	@echo "--> Dropping existing 'sentry' database"
-	docker exec $$(docker ps --filter 'name=sentry_postgres' --format '{{.ID}}') \
-		dropdb -U postgres sentry || true
+	$(DROPDB) -h 127.0.0.1 -U postgres sentry || true
 
 create-db:
 	@echo "--> Creating 'sentry' database"
-	docker exec $$(docker ps --filter 'name=sentry_postgres' --format '{{.ID}}') \
-		createdb -U postgres -E utf-8 sentry || true
+	$(CREATEDB) -h 127.0.0.1 -U postgres -E utf-8 sentry || true
 
 apply-migrations:
 	@echo "--> Applying migrations"
@@ -81,10 +88,6 @@ update-submodules:
 node-version-check:
 	@test "$$(node -v)" = v"$$(cat .nvmrc)" || (echo 'node version does not match .nvmrc. Recommended to use https://github.com/creationix/nvm'; exit 1)
 
-install-system-pkgs: node-version-check
-	@echo "--> Installing system packages (from Brewfile)"
-	@command -v brew 2>&1 > /dev/null && brew bundle || (echo 'WARNING: homebrew not found or brew bundle failed - skipping system dependencies.')
-
 install-yarn-pkgs:
 	@echo "--> Installing Yarn packages (for development)"
 	@command -v $(YARN) 2>&1 > /dev/null || (echo 'yarn not found. Please install it before proceeding.'; exit 1)
@@ -98,7 +101,7 @@ install-yarn-pkgs:
 
 install-sentry-dev:
 	@echo "--> Installing Sentry (for development)"
-	$(PIP) install -e ".[dev,optional]" $(PIP_OPTS)
+	$(PIP) install -e ".[dev]" $(PIP_OPTS)
 
 build-js-po: node-version-check
 	mkdir -p build
@@ -184,8 +187,16 @@ endif
 
 	@echo ""
 
+test-plugins:
+	@echo "--> Building static assets"
+	@$(WEBPACK) --display errors-only
+	@echo "--> Running plugin tests"
+	py.test tests/sentry_plugins -vv --cov . --cov-report="xml:.artifacts/plugins.coverage.xml" --junit-xml=".artifacts/plugins.junit.xml"
+	@echo ""
+
 lint: lint-python lint-js
 
+# configuration for flake8 can be found in setup.cfg
 lint-python:
 	@echo "--> Linting python"
 	bash -eo pipefail -c "flake8 | tee .artifacts/flake8.pycodestyle.log"
@@ -212,7 +223,7 @@ publish:
 	python setup.py sdist bdist_wheel upload
 
 
-.PHONY: develop develop-only test build test reset-db clean setup-git update-submodules node-version-check install-system-pkgs install-yarn-pkgs install-sentry-dev build-js-po locale update-transifex build-platform-assets test-cli test-js test-styleguide test-python test-snuba test-symbolicator test-acceptance lint lint-python lint-js publish
+.PHONY: develop develop-only test build test reset-db clean setup-git update-submodules node-version-check install-yarn-pkgs install-sentry-dev build-js-po locale update-transifex build-platform-assets test-cli test-js test-styleguide test-python test-snuba test-symbolicator test-acceptance lint lint-python lint-js publish
 
 
 ############################
@@ -233,6 +244,7 @@ travis-test-snuba: test-snuba
 travis-test-symbolicator: test-symbolicator
 travis-test-js: test-js
 travis-test-cli: test-cli
+travis-test-plugins: test-plugins
 travis-test-dist:
 	# NOTE: We quiet down output here to workaround an issue in travis that
 	# causes the build to fail with a EAGAIN when writing a large amount of
@@ -256,3 +268,4 @@ travis-scan-js: travis-noop
 travis-scan-cli: travis-noop
 travis-scan-dist: travis-noop
 travis-scan-lint: scan-python
+travis-scan-plugins: travis-noop

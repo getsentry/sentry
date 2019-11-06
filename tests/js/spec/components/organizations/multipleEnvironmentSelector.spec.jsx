@@ -2,6 +2,7 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import MultipleEnvironmentSelector from 'app/components/organizations/multipleEnvironmentSelector';
+import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 
 describe('MultipleEnvironmentSelector', function() {
   let wrapper;
@@ -20,6 +21,12 @@ describe('MultipleEnvironmentSelector', function() {
         id: '2',
         slug: 'second',
         environments: ['dev'],
+      }),
+      TestStubs.Project({
+        id: '3',
+        slug: 'no member',
+        environments: ['no-env'],
+        isMember: false,
       }),
     ],
   });
@@ -48,7 +55,7 @@ describe('MultipleEnvironmentSelector', function() {
     await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
 
     // Select all envs
-    envs.forEach((env, i) => {
+    envs.forEach((_env, i) => {
       wrapper
         .find('EnvironmentSelectorItem')
         .at(i)
@@ -104,7 +111,7 @@ describe('MultipleEnvironmentSelector', function() {
     expect(items.at(0).text()).toBe('dev');
   });
 
-  it('shows the all environments when there are no projects selected', async function() {
+  it('shows member project environments when there are no projects selected', async function() {
     wrapper.setProps({selectedProjects: []});
     wrapper.update();
 
@@ -115,6 +122,20 @@ describe('MultipleEnvironmentSelector', function() {
     expect(items.at(0).text()).toBe('production');
     expect(items.at(1).text()).toBe('staging');
     expect(items.at(2).text()).toBe('dev');
+  });
+
+  it('shows all project environments when "all projects" is selected', async function() {
+    wrapper.setProps({selectedProjects: [ALL_ACCESS_PROJECTS]});
+    wrapper.update();
+
+    await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
+    const items = wrapper.find('MultipleEnvironmentSelector GlobalSelectionHeaderRow');
+
+    expect(items.length).toEqual(4);
+    expect(items.at(0).text()).toBe('production');
+    expect(items.at(1).text()).toBe('staging');
+    expect(items.at(2).text()).toBe('dev');
+    expect(items.at(3).text()).toBe('no-env');
   });
 
   it('shows the distinct union of environments across all projects', async function() {

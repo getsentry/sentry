@@ -28,15 +28,13 @@ exports[`ProjectCspReports renders 1`] = `
       cancelLabel="Cancel"
       className="form-stacked"
       initialData={Object {}}
-      onSubmitError={[Function]}
-      onSubmitSuccess={[Function]}
       requireChanges={false}
       saveOnBlur={true}
       submitDisabled={false}
       submitLabel="Save Changes"
       submitPriority="primary"
     >
-      <withConfig(AccessContainer)
+      <WithOrganizationMockWrapper
         access={
           Array [
             "project:write",
@@ -44,7 +42,7 @@ exports[`ProjectCspReports renders 1`] = `
         }
       >
         <Component />
-      </withConfig(AccessContainer)>
+      </WithOrganizationMockWrapper>
     </Form>
     <Panel>
       <PanelHeader>

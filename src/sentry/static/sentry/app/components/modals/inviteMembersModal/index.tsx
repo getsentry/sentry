@@ -4,8 +4,11 @@ import styled, {css} from 'react-emotion';
 import {t, tn, tct} from 'app/locale';
 import {MEMBER_ROLES} from 'app/constants';
 import {ModalRenderProps} from 'app/actionCreators/modal';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {uniqueId} from 'app/utils/guid';
 import InlineSvg from 'app/components/inlineSvg';
 import Button from 'app/components/button';
+import HookOrDefault from 'app/components/hookOrDefault';
 import space from 'app/styles/space';
 import AsyncComponent from 'app/components/asyncComponent';
 import {Organization} from 'app/types';
@@ -19,6 +22,7 @@ import InviteRowControl from './inviteRowControl';
 type Props = AsyncComponent['props'] &
   ModalRenderProps & {
     organization: Organization;
+    source?: string;
   };
 
 type State = AsyncComponent['state'] & {
@@ -30,17 +34,41 @@ type State = AsyncComponent['state'] & {
 
 const DEFAULT_ROLE = 'member';
 
+const InviteModalHook = HookOrDefault({
+  hookName: 'member-invite-modal:customization',
+  defaultComponent: ({onSendInvites, children}) =>
+    children({sendInvites: onSendInvites, canSend: true}),
+});
+
+type InviteModalRenderFunc = React.ComponentProps<typeof InviteModalHook>['children'];
+
 class InviteMembersModal extends AsyncComponent<Props, State> {
   get inviteTemplate(): InviteRow {
     return {emails: new Set(), teams: new Set(), role: DEFAULT_ROLE};
   }
 
+  /**
+   * Used for analytics tracking of the modals usage.
+   */
+  sessionId = '';
+
+  componentDidMount() {
+    this.sessionId = uniqueId();
+
+    const {organization, source} = this.props;
+
+    trackAnalyticsEvent({
+      eventKey: 'invite_modal.opened',
+      eventName: 'Invite Modal: Opened',
+      organization_id: organization.id,
+      modal_session: this.sessionId,
+      can_invite: this.willInvite,
+      source,
+    });
+  }
+
   getEndpoints(): [string, string][] {
     const orgId = this.props.organization.slug;
-
-    // TODO(epurkhiser): For admins we cannot lookup me, and will not have
-    // roles when viewing this modal as an admin. We need to add some hardcoded
-    // defaults like in the old page.
 
     return [['member', `/organizations/${orgId}/members/me/`]];
   }
@@ -56,13 +84,21 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
     };
   }
 
-  reset = () =>
+  reset = () => {
     this.setState({
       pendingInvites: [this.inviteTemplate],
       inviteStatus: {},
       complete: false,
       sendingInvites: false,
     });
+
+    trackAnalyticsEvent({
+      eventKey: 'invite_modal.add_more',
+      eventName: 'Invite Modal: Add More',
+      organization_id: this.props.organization.id,
+      modal_session: this.sessionId,
+    });
+  };
 
   sendInvite = async (invite: NormalizedInvite) => {
     const {slug} = this.props.organization;
@@ -111,6 +147,17 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
     this.setState({sendingInvites: true});
     await Promise.all(this.invites.map(this.sendInvite));
     this.setState({sendingInvites: false, complete: true});
+
+    trackAnalyticsEvent({
+      eventKey: this.willInvite
+        ? 'invite_modal.invites_sent'
+        : 'invite_modal.requests_sent',
+      eventName: this.willInvite
+        ? 'Invite Modal: Invites Sent'
+        : 'Invite Modal: Requests Sent',
+      organization_id: this.props.organization.id,
+      modal_session: this.sessionId,
+    });
   };
 
   addInviteRow = () =>
@@ -239,7 +286,8 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
 
     const disableInputs = sendingInvites || complete;
 
-    return (
+    // eslint-disable-next-line react/prop-types
+    const hookRenderer: InviteModalRenderFunc = ({sendInvites, canSend, headerInfo}) => (
       <React.Fragment>
         <Heading>
           <InlineSvg src="icon-mail" size="36px" />
@@ -261,10 +309,12 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
           {this.willInvite
             ? t('Invite new members by email to join your organization.')
             : t(
-                `You can’t directly invite users because you don’t have
-                 permissions, but we’ll send a request on your behalf!`
+                `You don't have permission to directly invite users, but we’ll
+                 send a request on your behalf!`
               )}
         </Subtext>
+
+        {headerInfo}
 
         <InviteeHeadings>
           <div>{t('Email addresses')}</div>
@@ -313,7 +363,15 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
                   data-test-id="close"
                   priority="primary"
                   size="small"
-                  onClick={closeModal}
+                  onClick={() => {
+                    trackAnalyticsEvent({
+                      eventKey: 'invite_modal.closed',
+                      eventName: 'Invite Modal: Closed',
+                      organization_id: this.props.organization.id,
+                      modal_session: this.sessionId,
+                    });
+                    closeModal();
+                  }}
                 >
                   {t('Close')}
                 </Button>
@@ -332,8 +390,8 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
                   size="small"
                   data-test-id="send-invites"
                   priority="primary"
-                  disabled={!this.isValidInvites || disableInputs}
-                  onClick={this.sendInvites}
+                  disabled={!canSend || !this.isValidInvites || disableInputs}
+                  onClick={sendInvites}
                 >
                   {this.inviteButtonLabel}
                 </Button>
@@ -342,6 +400,16 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
           </FooterContent>
         </Footer>
       </React.Fragment>
+    );
+
+    return (
+      <InviteModalHook
+        organization={this.props.organization}
+        willInvite={this.willInvite}
+        onSendInvites={this.sendInvites}
+      >
+        {hookRenderer}
+      </InviteModalHook>
     );
   }
 }

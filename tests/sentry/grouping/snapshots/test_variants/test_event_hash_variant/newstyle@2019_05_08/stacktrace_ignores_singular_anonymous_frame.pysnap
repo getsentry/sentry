@@ -1,5 +1,5 @@
 ---
-created: '2019-05-10T12:45:56.069725Z'
+created: '2019-11-01T10:06:06.520539Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,7 +11,6 @@ app:
         frame (non app frame)
           filename (anonymous filename discarded)
             u'<anonymous>'
-          function (ignored unknown function name)
         frame (non app frame)
           filename*
             u'dojo.js'
@@ -31,7 +30,6 @@ system:
         frame (ignored low quality javascript frame)
           filename (anonymous filename discarded)
             u'<anonymous>'
-          function (ignored unknown function name)
         frame*
           filename*
             u'dojo.js'

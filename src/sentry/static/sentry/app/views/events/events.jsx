@@ -1,4 +1,3 @@
-import {Flex} from 'grid-emotion';
 import {browserHistory} from 'react-router';
 import {isEqual} from 'lodash';
 import PropTypes from 'prop-types';
@@ -17,7 +16,7 @@ import SentryTypes from 'app/sentryTypes';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import withOrganization from 'app/utils/withOrganization';
 
-import {getParams} from './utils/getParams';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import EventsChart from './eventsChart';
 import EventsTable from './eventsTable';
 
@@ -205,7 +204,7 @@ class Events extends AsyncView {
         />
 
         {!loading && !reloading && !error && (
-          <Flex align="center" justify="space-between">
+          <PaginationWrapper>
             <RowDisplay>
               {events.length ? t(`Results ${this.renderRowCounts()}`) : t('No Results')}
               {!!events.length && eventsPageLinks && (
@@ -222,12 +221,18 @@ class Events extends AsyncView {
               )}
             </RowDisplay>
             <Pagination pageLinks={eventsPageLinks} className="" />
-          </Flex>
+          </PaginationWrapper>
         )}
       </React.Fragment>
     );
   }
 }
+
+const PaginationWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
 
 const RowDisplay = styled('div')`
   color: ${p => p.theme.gray6};

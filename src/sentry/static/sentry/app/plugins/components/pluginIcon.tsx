@@ -3,9 +3,11 @@ import styled from 'react-emotion';
 
 import placeholder from 'app/../images/integrations/integration-default.png';
 import sentry from 'app/../images/integrations/integration-sentry.png';
+import amixr from 'app/../images/integrations/amixr-logo.png';
 import asana from 'app/../images/integrations/asana-logo.png';
 import bitbucket from 'app/../images/integrations/bitbucket-logo.png';
 import campfire from 'app/../images/integrations/campfire-logo.png';
+import clickup from 'app/../images/integrations/clickup-logo.png';
 import clubhouse from 'app/../images/integrations/clubhouse-logo.png';
 import flowdock from 'app/../images/integrations/flowdock-logo.png';
 import github from 'app/../images/integrations/github-logo.png';
@@ -43,9 +45,11 @@ export const ICON_PATHS = {
   urls: sentry,
   webhooks: sentry,
 
+  amixr,
   asana,
   bitbucket,
   campfire,
+  clickup,
   clubhouse,
   flowdock,
   github,

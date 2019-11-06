@@ -6,7 +6,7 @@ from sentry.models import User
 
 
 def find_mail_plugin():
-    from sentry.plugins import plugins
+    from sentry.plugins.base import plugins
 
     for plugin in plugins.all():
         if type(plugin).__name__.endswith("MailPlugin"):

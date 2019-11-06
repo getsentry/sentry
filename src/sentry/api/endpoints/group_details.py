@@ -29,7 +29,8 @@ from sentry.models import (
     User,
     UserReport,
 )
-from sentry.plugins import IssueTrackingPlugin2, plugins
+from sentry.plugins.base import plugins
+from sentry.plugins.bases import IssueTrackingPlugin2
 from sentry.signals import issue_deleted
 from sentry.utils.safe import safe_execute
 from sentry.utils.apidocs import scenario, attach_scenarios

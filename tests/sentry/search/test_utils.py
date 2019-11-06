@@ -71,7 +71,7 @@ class ParseQueryTest(TestCase):
         result = self.parse_query("foo:  :ba:r::foo:")
         assert result == {"tags": {}, "query": "foo:  :ba:r::foo:"}
 
-    def test_handles_space_seperation_after_useless_prefix_exception(self):
+    def test_handles_space_separation_after_useless_prefix_exception(self):
         result = self.parse_query("foo: bar foo:bar")
         assert result == {"tags": {"foo": "bar"}, "query": "foo: bar"}
 

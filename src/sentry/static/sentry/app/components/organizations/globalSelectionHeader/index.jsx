@@ -18,7 +18,6 @@ import {
 } from 'app/actionCreators/globalSelection';
 import BackToIssues from 'app/components/organizations/backToIssues';
 import ConfigStore from 'app/stores/configStore';
-import Header from 'app/components/organizations/header';
 import HeaderItemPosition from 'app/components/organizations/headerItemPosition';
 import HeaderSeparator from 'app/components/organizations/headerSeparator';
 import InlineSvg from 'app/components/inlineSvg';
@@ -32,6 +31,7 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withProjects from 'app/utils/withProjects';
 
 import {getStateFromQuery} from './utils';
+import Header from './header';
 
 function getProjectIdFromProject(project) {
   return parseInt(project.id, 10);
@@ -549,6 +549,9 @@ class GlobalSelectionHeader extends React.Component {
             </HeaderItemPosition>
           </React.Fragment>
         )}
+
+        {!showEnvironmentSelector && <HeaderItemPosition isSpacer />}
+        {!showDateSelector && <HeaderItemPosition isSpacer />}
       </Header>
     );
   }

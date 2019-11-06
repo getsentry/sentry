@@ -9,9 +9,16 @@ import InlineSvg from 'app/components/inlineSvg';
 import LoadingContainer from 'app/components/loading/loadingContainer';
 import ToolTip from 'app/components/tooltip';
 
-import {GridColumn, GridColumnHeader, GridColumnOrder, GridColumnSortBy} from './types';
+import {
+  GridColumn,
+  GridColumnHeader,
+  GridColumnOrder,
+  GridColumnSortBy,
+  ObjectKey,
+} from './types';
 import GridHeadCell from './gridHeadCell';
 import GridModalEditColumn from './gridModalEditColumn';
+import AddColumnButton from './addColumnButton';
 import {
   GridPanel,
   GridPanelBody,
@@ -26,9 +33,14 @@ import {
   GridEditGroupButton,
 } from './styles';
 
-type GridEditableProps<DataRow, ColumnKey extends keyof DataRow> = {
+type GridEditableProps<DataRow, ColumnKey> = {
+  onToggleEdit?: (nextValue: boolean) => void;
+
+  gridHeadCellButtonProps?: {[prop: string]: any};
+
   isEditable?: boolean;
   isLoading?: boolean;
+  isColumnDragging: boolean;
   error?: React.ReactNode | null;
 
   /**
@@ -49,7 +61,10 @@ type GridEditableProps<DataRow, ColumnKey extends keyof DataRow> = {
    * data within it. Note that this is optional.
    */
   grid: {
-    renderHeaderCell?: (column: GridColumnOrder<ColumnKey>) => React.ReactNode;
+    renderHeaderCell?: (
+      column: GridColumnOrder<ColumnKey>,
+      columnIndex: number
+    ) => React.ReactNode;
     renderBodyCell?: (
       column: GridColumnOrder<ColumnKey>,
       dataRow: DataRow
@@ -77,7 +92,11 @@ type GridEditableProps<DataRow, ColumnKey extends keyof DataRow> = {
    * have to provide functions to move/delete the columns
    */
   actions: {
-    moveColumn: (indexFrom: number, indexTo: number) => void;
+    moveColumnCommit: (indexFrom: number, indexTo: number) => void;
+    onDragStart: (
+      event: React.MouseEvent<SVGSVGElement, MouseEvent>,
+      indexFrom: number
+    ) => void;
     deleteColumn: (index: number) => void;
   };
 };
@@ -88,8 +107,8 @@ type GridEditableState = {
 };
 
 class GridEditable<
-  DataRow extends Object,
-  ColumnKey extends keyof DataRow
+  DataRow extends {[key: string]: any},
+  ColumnKey extends ObjectKey
 > extends React.Component<GridEditableProps<DataRow, ColumnKey>, GridEditableState> {
   static defaultProps = {
     isEditable: false,
@@ -113,7 +132,17 @@ class GridEditable<
   }
 
   toggleEdit = () => {
-    this.setState({isEditing: !this.state.isEditing});
+    const nextValue = !this.state.isEditing;
+
+    if (this.props.onToggleEdit) {
+      this.props.onToggleEdit(nextValue);
+    }
+
+    this.setState({isEditing: nextValue});
+  };
+
+  openModalAddColumnAt = (insertIndex: number) => {
+    return this.toggleModalEditColumn(insertIndex);
   };
 
   toggleModalEditColumn = (
@@ -218,20 +247,27 @@ class GridEditable<
               HTML semantics. */
           isEditable && this.renderGridHeadEditButtons()}
 
-          {columnOrder.map((column, i) => (
+          {columnOrder.map((column, columnIndex) => (
             <GridHeadCell
-              key={`${i}.${column.key}`}
+              openModalAddColumnAt={this.openModalAddColumnAt}
+              isLast={columnOrder.length - 1 === columnIndex}
+              key={`${columnIndex}.${column.key}`}
+              isColumnDragging={this.props.isColumnDragging}
               isPrimary={column.isPrimary}
               isEditing={enableEdit}
-              indexColumnOrder={i}
+              indexColumnOrder={columnIndex}
               column={column}
+              gridHeadCellButtonProps={this.props.gridHeadCellButtonProps || {}}
               actions={{
-                moveColumn: actions.moveColumn,
+                moveColumnCommit: actions.moveColumnCommit,
+                onDragStart: actions.onDragStart,
                 deleteColumn: actions.deleteColumn,
                 toggleModalEditColumn: this.toggleModalEditColumn,
               }}
             >
-              {grid.renderHeaderCell ? grid.renderHeaderCell(column) : column.name}
+              {grid.renderHeaderCell
+                ? grid.renderHeaderCell(column, columnIndex)
+                : column.name}
             </GridHeadCell>
           ))}
         </GridRow>
@@ -258,13 +294,13 @@ class GridEditable<
 
     return (
       <GridEditGroup>
-        <GridEditGroupButton onClick={() => this.toggleModalEditColumn()}>
-          <ToolTip title={t('Add Columns')}>
-            <InlineSvg src="icon-circle-add" data-test-id="grid-edit-add" />
-          </ToolTip>
-        </GridEditGroupButton>
+        <AddColumnButton
+          align="left"
+          onClick={() => this.toggleModalEditColumn()}
+          data-test-id="grid-add-column-right-end"
+        />
         <GridEditGroupButton onClick={this.toggleEdit}>
-          <ToolTip title={t('Cancel Edit')}>
+          <ToolTip title={t('Exit Edit')}>
             <InlineSvg src="icon-close" />
           </ToolTip>
         </GridEditGroupButton>

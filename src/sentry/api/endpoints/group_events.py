@@ -73,7 +73,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         default_end = timezone.now()
         default_start = default_end - timedelta(days=90)
         params = {
-            "issue.id": [group.id],
+            "group_ids": [group.id],
             "project_id": [group.project_id],
             "start": start if start else default_start,
             "end": end if end else default_end,
@@ -87,6 +87,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
 
         full = request.GET.get("full", False)
         snuba_filter = get_filter(request.GET.get("query", None), params)
+        snuba_filter.conditions.append(["event.type", "!=", "transaction"])
 
         snuba_cols = None if full else eventstore.full_columns
 

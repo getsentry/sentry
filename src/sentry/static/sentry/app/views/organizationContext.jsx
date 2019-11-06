@@ -6,9 +6,10 @@ import * as Sentry from '@sentry/browser';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
-import {metric} from 'app/utils/analytics';
+import {ORGANIZATION_FETCH_ERROR_TYPES} from 'app/constants';
+import {fetchOrganizationDetails} from 'app/actionCreators/organization';
+import {metric, logExperiment} from 'app/utils/analytics';
 import {openSudo} from 'app/actionCreators/modal';
-import {setActiveOrganization} from 'app/actionCreators/organizations';
 import {t} from 'app/locale';
 import Alert from 'app/components/alert';
 import ConfigStore from 'app/stores/configStore';
@@ -16,20 +17,16 @@ import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import HookStore from 'app/stores/hookStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import OrganizationStore from 'app/stores/organizationStore';
 import ProjectActions from 'app/actions/projectActions';
-import ProjectsStore from 'app/stores/projectsStore';
+import TeamActions from 'app/actions/teamActions';
 import SentryTypes from 'app/sentryTypes';
 import Sidebar from 'app/components/sidebar';
-import TeamStore from 'app/stores/teamStore';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import profiler from 'app/utils/profiler';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withOrganizations from 'app/utils/withOrganizations';
-
-const ERROR_TYPES = {
-  ORG_NOT_FOUND: 'ORG_NOT_FOUND',
-};
 
 const OrganizationContext = createReactClass({
   displayName: 'OrganizationContext',
@@ -42,18 +39,32 @@ const OrganizationContext = createReactClass({
     organizationsLoading: PropTypes.bool,
     organizations: PropTypes.arrayOf(SentryTypes.Organization),
     finishProfile: PropTypes.func,
+    detailed: PropTypes.bool,
   },
 
   childContextTypes: {
     organization: SentryTypes.Organization,
   },
 
-  mixins: [Reflux.listenTo(ProjectActions.createSuccess, 'onProjectCreation')],
+  mixins: [
+    Reflux.listenTo(ProjectActions.createSuccess, 'onProjectCreation'),
+    Reflux.listenTo(OrganizationStore, 'loadOrganization'),
+  ],
+
+  getDefaultProps() {
+    return {
+      detailed: true,
+    };
+  },
 
   getInitialState() {
+    if (this.isOrgStorePopulatedCorrectly()) {
+      // retrieve initial state from store
+      return OrganizationStore.get();
+    }
     return {
       loading: true,
-      error: false,
+      error: null,
       errorType: null,
       organization: null,
     };
@@ -95,10 +106,6 @@ const OrganizationContext = createReactClass({
     }
   },
 
-  componentWillUnmount() {
-    TeamStore.reset();
-  },
-
   remountComponent() {
     this.setState(this.getInitialState(), this.fetchData);
   },
@@ -107,7 +114,7 @@ const OrganizationContext = createReactClass({
     // If a new project was created, we need to re-fetch the
     // org details endpoint, which will propagate re-rendering
     // for the entire component tree
-    this.fetchData();
+    fetchOrganizationDetails(this.props.api, this.getOrganizationSlug(), true);
   },
 
   getOrganizationSlug() {
@@ -121,97 +128,112 @@ const OrganizationContext = createReactClass({
     );
   },
 
-  fetchData() {
+  isOrgStorePopulatedCorrectly() {
+    const {detailed} = this.props;
+    const {organization, dirty} = OrganizationStore.get();
+
+    return (
+      !dirty &&
+      organization &&
+      organization.slug === this.getOrganizationSlug() &&
+      (!detailed || (detailed && organization.projects && organization.teams))
+    );
+  },
+
+  async fetchData() {
     if (!this.getOrganizationSlug()) {
       this.setState({loading: this.props.organizationsLoading});
       return;
     }
-
+    // fetch from the store, then fetch from the API if necessary
+    if (this.isOrgStorePopulatedCorrectly()) {
+      return;
+    }
     metric.mark('organization-details-fetch-start');
+    fetchOrganizationDetails(
+      this.props.api,
+      this.getOrganizationSlug(),
+      this.props.detailed
+    );
+    // create a request for all teams if in lightweight org
+    if (!this.props.detailed) {
+      const teams = await this.props.api.requestPromise(
+        this.getOrganizationTeamsEndpoint()
+      );
+      TeamActions.loadTeams(teams);
+    }
+  },
 
-    this.props.api
-      .requestPromise(this.getOrganizationDetailsEndpoint())
-      .then(data => {
-        // Allow injection via getsentry et all
-        const hooks = [];
-        HookStore.get('organization:header').forEach(cb => {
-          hooks.push(cb(data));
-        });
+  loadOrganization(orgData) {
+    const {organization, error} = orgData;
+    const hooks = [];
 
-        setActiveOrganization(data);
+    if (organization && !error) {
+      HookStore.get('organization:header').forEach(cb => {
+        hooks.push(cb(organization));
+      });
 
-        // Configure scope to have organization tag
-        Sentry.configureScope(scope => {
-          scope.setTag('organization', data.id);
-        });
+      // Log exposure to the improved invite experiment
+      logExperiment({
+        organization,
+        key: 'ImprovedInvitesExperiment',
+        unitName: 'org_id',
+        unitId: parseInt(organization.id, 10),
+        param: 'variant',
+      });
 
-        TeamStore.loadInitialData(data.teams);
-        ProjectsStore.loadInitialData(data.projects);
-
-        // Make an exception for issue details in the case where it is accessed directly (e.g. from email)
-        // We do not want to load the user's last used env/project in this case, otherwise will
-        // lead to very confusing behavior.
-        if (
-          !this.props.routes.find(
-            ({path}) => path && path.includes('/organizations/:orgId/issues/:groupId/')
-          )
-        ) {
-          GlobalSelectionStore.loadInitialData(data, this.props.location.query);
-        }
-        this.setState(
-          {
-            organization: data,
-            loading: false,
-            error: false,
-            errorType: null,
-            hooks,
-          },
-          () => {
-            // Take a measurement for when organization details are done loading and the new state is applied
-            metric.measure({
-              name: 'app.component.perf',
-              start: 'organization-details-fetch-start',
-              data: {
-                name: 'org-details',
-                route: getRouteStringFromRoutes(this.props.routes),
-                organization_id: parseInt(data.id, 10),
-              },
-            });
-          }
-        );
-      })
-      .catch(err => {
-        let errorType = null;
-
-        switch (err.statusText) {
-          case 'NOT FOUND':
-            errorType = ERROR_TYPES.ORG_NOT_FOUND;
-            break;
-          default:
-        }
-        this.setState({
-          loading: false,
-          error: true,
-          errorType,
-        });
-
-        // If user is superuser, open sudo window
-        const user = ConfigStore.get('user');
-        if (!user || !user.isSuperuser || err.status !== 403) {
-          // This `catch` can swallow up errors in development (and tests)
-          // So let's log them. This may create some noise, especially the test case where
-          // we specifically test this branch
-          console.error(err); // eslint-disable-line no-console
-          return;
-        }
+      // Configure scope to have organization tag
+      Sentry.configureScope(scope => {
+        scope.setTag('organization', organization.id);
+      });
+      // Make an exception for issue details in the case where it is accessed directly (e.g. from email)
+      // We do not want to load the user's last used env/project in this case, otherwise will
+      // lead to very confusing behavior.
+      if (
+        this.props.detailed &&
+        !this.props.routes.find(
+          ({path}) => path && path.includes('/organizations/:orgId/issues/:groupId/')
+        )
+      ) {
+        GlobalSelectionStore.loadInitialData(organization, this.props.location.query);
+      }
+    } else if (error) {
+      // If user is superuser, open sudo window
+      const user = ConfigStore.get('user');
+      if (!user || !user.isSuperuser || error.status !== 403) {
+        // This `catch` can swallow up errors in development (and tests)
+        // So let's log them. This may create some noise, especially the test case where
+        // we specifically test this branch
+        console.error(error); // eslint-disable-line no-console
+      } else {
         openSudo({
           retryRequest: () => Promise.resolve(this.fetchData()),
         });
-      });
+      }
+    }
+
+    this.setState({...orgData, hooks}, () => {
+      // Take a measurement for when organization details are done loading and the new state is applied
+      if (organization) {
+        metric.measure({
+          name: 'app.component.perf',
+          start: 'organization-details-fetch-start',
+          data: {
+            name: 'org-details',
+            route: getRouteStringFromRoutes(this.props.routes),
+            organization_id: parseInt(organization.id, 10),
+          },
+        });
+      }
+    });
   },
 
   getOrganizationDetailsEndpoint() {
     return `/organizations/${this.getOrganizationSlug()}/`;
+  },
+
+  getOrganizationTeamsEndpoint() {
+    return `/organizations/${this.getOrganizationSlug()}/teams/`;
   },
 
   getTitle() {
@@ -233,7 +255,7 @@ const OrganizationContext = createReactClass({
     let errorComponent;
 
     switch (this.state.errorType) {
-      case ERROR_TYPES.ORG_NOT_FOUND:
+      case ORGANIZATION_FETCH_ERROR_TYPES.ORG_NOT_FOUND:
         errorComponent = (
           <Alert type="error">
             {t('The organization you were looking for was not found.')}

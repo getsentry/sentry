@@ -7,19 +7,14 @@ import sentry.utils as utils
 from datetime import datetime
 from pytz import utc
 
-from sentry.coreapi import APIError
 from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
 from sentry.message_filters import get_all_filters, get_filter_key
 from sentry import quotas
 
-from sentry.models.organization import Organization
 from sentry.models.organizationoption import OrganizationOption
-from sentry.models.project import Project
-from sentry.models.projectoption import ProjectOption
 from sentry.utils.data_filters import FilterTypes, FilterStatKeys
 from sentry.utils.http import get_origins
-from sentry.utils.outcomes import track_outcome, Outcome
 from sentry.models.projectkey import ProjectKey
 from sentry.utils.sdk import configure_scope
 
@@ -29,26 +24,25 @@ def get_project_key_config(project_key):
     return {"dsn": project_key.dsn_public}
 
 
-def get_project_config(project_id, full_config=True, for_store=False):
+def get_project_config(project, org_options=None, full_config=True, for_store=False):
     """
     Constructs the ProjectConfig information.
 
-    :param project_id: the project id as int or string
+    :param project: The project to load configuration for. Ensure that
+        organization is bound on this object; otherwise it will be loaded from
+        the database.
+    :param org_options: Inject preloaded organization options for faster loading.
+        If ``None``, options are lazy-loaded from the database.
     :param full_config: True if only the full config is required, False
         if only the restricted (for external relays) is required
         (default True, i.e. full configuration)
     :param for_store: If set to true, this omits all parameters that are not
-        needed for store normalization. This is a temporary flag that should
-        be removed once store has been moved to Relay. Most importantly, this
-        avoids database accesses.
+        needed for Relay. This is a temporary flag that should be removed once
+        store has been moved to Relay. Most importantly, this avoids database
+        accesses.
 
     :return: a ProjectConfig object for the given project
     """
-    project = _get_project_from_id(six.text_type(project_id))
-
-    if project is None:
-        raise APIError("Invalid project id:{}".format(project_id))
-
     with configure_scope() as scope:
         scope.set_tag("project", project.id)
 
@@ -71,7 +65,8 @@ def get_project_config(project_id, full_config=True, for_store=False):
 
     now = datetime.utcnow().replace(tzinfo=utc)
 
-    org_options = OrganizationOption.objects.get_all_values(project.organization_id)
+    if org_options is None:
+        org_options = OrganizationOption.objects.get_all_values(project.organization_id)
 
     cfg = {
         "disabled": project.status > 0,
@@ -96,17 +91,6 @@ def get_project_config(project_id, full_config=True, for_store=False):
     # The organization id is only required for reporting when processing events
     # internally. Do not expose it to external Relays.
     cfg["organization_id"] = project.organization_id
-
-    # Explicitly bind Organization so we don't implicitly query it later
-    # this just allows us to comfortably assure that `project.organization` is safe.
-    # This also allows us to pull the object from cache, instead of being
-    # implicitly fetched from database.
-    project.organization = Organization.objects.get_from_cache(id=project.organization_id)
-
-    if project.organization is not None:
-        org_options = OrganizationOption.objects.get_all_values(project.organization_id)
-    else:
-        org_options = {}
 
     project_cfg = cfg["config"]
 
@@ -383,19 +367,6 @@ def _to_camel_case_dict(obj):
     }
 
 
-def _get_project_from_id(project_id):
-    if not project_id:
-        return None
-    if not project_id.isdigit():
-        track_outcome(0, 0, None, Outcome.INVALID, "project_id")
-        raise APIError("Invalid project_id: %r" % project_id)
-    try:
-        return Project.objects.get_from_cache(id=project_id)
-    except Project.DoesNotExist:
-        track_outcome(0, 0, None, Outcome.INVALID, "project_id")
-        raise APIError("Invalid project_id: %r" % project_id)
-
-
 def _load_filter_settings(flt, project):
     """
     Returns the filter settings for the specified project
@@ -408,7 +379,7 @@ def _load_filter_settings(flt, project):
     """
     filter_id = flt.spec.id
     filter_key = u"filters:{}".format(filter_id)
-    setting = ProjectOption.objects.get_value(project=project, key=filter_key, default=None)
+    setting = project.get_option(filter_key)
 
     return _filter_option_to_config_setting(flt, setting)
 

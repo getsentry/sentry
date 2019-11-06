@@ -15,7 +15,7 @@ describe('FirstEventIndicator', function() {
     expect(wrapper.find('WaitingIndicator').exists()).toBe(true);
   });
 
-  describe('recieved first event', function() {
+  describe('received first event', function() {
     it('renders', function() {
       const org = TestStubs.Organization();
 

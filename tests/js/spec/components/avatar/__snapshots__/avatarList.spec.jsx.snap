@@ -124,7 +124,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
               >
                 <span
                   aria-describedby="tooltip-123456"
-                  className="css-1m3e0hg-Container eowlwvy0"
+                  className="css-1vf31z4-Container eowlwvy0"
                   onBlur={[Function]}
                   onFocus={[Function]}
                   onMouseEnter={[Function]}
@@ -248,6 +248,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 }
               }
               type="letter_avatar"
+              uploadId=""
               uploadPath="avatar"
             >
               <Tooltip
@@ -272,7 +273,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                       >
                         <span
                           aria-describedby="tooltip-123456"
-                          className="css-1m3e0hg-Container eowlwvy0"
+                          className="css-1vf31z4-Container eowlwvy0"
                           onBlur={[Function]}
                           onFocus={[Function]}
                           onMouseEnter={[Function]}
@@ -446,6 +447,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 }
               }
               type="letter_avatar"
+              uploadId=""
               uploadPath="avatar"
             >
               <Tooltip
@@ -470,7 +472,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                       >
                         <span
                           aria-describedby="tooltip-123456"
-                          className="css-1m3e0hg-Container eowlwvy0"
+                          className="css-1vf31z4-Container eowlwvy0"
                           onBlur={[Function]}
                           onFocus={[Function]}
                           onMouseEnter={[Function]}
@@ -644,6 +646,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 }
               }
               type="letter_avatar"
+              uploadId=""
               uploadPath="avatar"
             >
               <Tooltip
@@ -668,7 +671,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                       >
                         <span
                           aria-describedby="tooltip-123456"
-                          className="css-1m3e0hg-Container eowlwvy0"
+                          className="css-1vf31z4-Container eowlwvy0"
                           onBlur={[Function]}
                           onFocus={[Function]}
                           onMouseEnter={[Function]}
@@ -842,6 +845,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 }
               }
               type="letter_avatar"
+              uploadId=""
               uploadPath="avatar"
             >
               <Tooltip
@@ -866,7 +870,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                       >
                         <span
                           aria-describedby="tooltip-123456"
-                          className="css-1m3e0hg-Container eowlwvy0"
+                          className="css-1vf31z4-Container eowlwvy0"
                           onBlur={[Function]}
                           onFocus={[Function]}
                           onMouseEnter={[Function]}
@@ -1040,6 +1044,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 }
               }
               type="letter_avatar"
+              uploadId=""
               uploadPath="avatar"
             >
               <Tooltip
@@ -1064,7 +1069,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                       >
                         <span
                           aria-describedby="tooltip-123456"
-                          className="css-1m3e0hg-Container eowlwvy0"
+                          className="css-1vf31z4-Container eowlwvy0"
                           onBlur={[Function]}
                           onFocus={[Function]}
                           onMouseEnter={[Function]}
@@ -1290,6 +1295,7 @@ exports[`AvatarList renders with user avatars 1`] = `
                 }
               }
               type="letter_avatar"
+              uploadId=""
               uploadPath="avatar"
             >
               <Tooltip
@@ -1314,7 +1320,7 @@ exports[`AvatarList renders with user avatars 1`] = `
                       >
                         <span
                           aria-describedby="tooltip-123456"
-                          className="css-1m3e0hg-Container eowlwvy0"
+                          className="css-1vf31z4-Container eowlwvy0"
                           onBlur={[Function]}
                           onFocus={[Function]}
                           onMouseEnter={[Function]}
@@ -1488,6 +1494,7 @@ exports[`AvatarList renders with user avatars 1`] = `
                 }
               }
               type="letter_avatar"
+              uploadId=""
               uploadPath="avatar"
             >
               <Tooltip
@@ -1512,7 +1519,7 @@ exports[`AvatarList renders with user avatars 1`] = `
                       >
                         <span
                           aria-describedby="tooltip-123456"
-                          className="css-1m3e0hg-Container eowlwvy0"
+                          className="css-1vf31z4-Container eowlwvy0"
                           onBlur={[Function]}
                           onFocus={[Function]}
                           onMouseEnter={[Function]}
