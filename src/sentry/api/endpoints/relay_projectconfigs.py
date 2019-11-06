@@ -82,6 +82,8 @@ class RelayProjectConfigsEndpoint(Endpoint):
                     project_config = config.get_project_config(
                         project, org_options=org_opts, full_config=full_config_requested
                     )
+
+            with Hub.current.start_span(op="to_camel_case_dict"):
                 configs[six.text_type(project_id)] = project_config.to_camel_case_dict()
 
         return Response({"configs": configs}, status=200)
