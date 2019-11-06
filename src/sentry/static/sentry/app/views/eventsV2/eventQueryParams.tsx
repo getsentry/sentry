@@ -154,3 +154,9 @@ export const TRACING_FIELDS = [
   'p95',
   'p75',
 ];
+
+// list of fields that are duration-like
+export const DURATION_FIELDS = ['transaction.duration', 'p95', 'p75'];
+// acceptable list of aggregate functions, that, when applied to any of the duration-like
+// fields in DURATION_FIELDS, the resulting expression is still duration-like
+export const DURATION_AGGREGATION_WHITELIST = ['min', 'max', 'sum', 'avg'];
