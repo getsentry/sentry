@@ -45,6 +45,10 @@ class EventsV2 extends React.Component<Props> {
     router: PropTypes.object.isRequired,
   };
 
+  state = {
+    isBannerHidden: localStorage.getItem('discover-banner-dismissed'),
+  };
+
   renderQueryList() {
     const {location, organization} = this.props;
     let views = ALL_VIEWS;
@@ -96,12 +100,13 @@ class EventsV2 extends React.Component<Props> {
     return [t('Discover')];
   };
 
-  handleClick() {
-    localStorage.setItem('discbanner-dismissed', true);
-  }
+  handleClick = () => {
+    localStorage.setItem('discover-banner-dismissed', true);
+    this.setState({isBannerHidden: true});
+  };
 
   renderBanner() {
-    const bannerDismissed = localStorage.getItem('discbanner-dismissed');
+    const bannerDismissed = localStorage.getItem('discover-banner-dismissed');
 
     if (bannerDismissed) {
       return null;
