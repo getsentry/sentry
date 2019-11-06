@@ -280,7 +280,6 @@ MIDDLEWARE_CLASSES = (
     # TODO(dcramer): kill this once we verify its safe
     # 'sentry.middleware.social_auth.SentrySocialAuthExceptionMiddleware',
     "django.contrib.messages.middleware.MessageMiddleware",
-    "sentry.debug.middleware.DebugMiddleware",
 )
 
 ROOT_URLCONF = "sentry.conf.urls"
