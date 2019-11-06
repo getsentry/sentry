@@ -2,7 +2,6 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import React from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {selectByLabel} from 'sentry-test/select';
 import {RuleFormContainer} from 'app/views/settings/incidentRules/ruleForm';
 
 describe('Incident Rules Form', function() {
@@ -12,6 +11,7 @@ describe('Incident Rules Form', function() {
       <RuleFormContainer
         organization={organization}
         orgId={organization.slug}
+        projectId="project-slug"
         projects={[project, TestStubs.Project({slug: 'project-2', id: '3'})]}
         {...props}
       />,
@@ -40,8 +40,6 @@ describe('Incident Rules Form', function() {
      */
     it('creates a rule', async function() {
       const wrapper = createWrapper();
-
-      selectByLabel(wrapper, 'project-slug', {name: 'projects'});
 
       // Enter in name so we can submit
       wrapper
@@ -77,20 +75,23 @@ describe('Incident Rules Form', function() {
       });
     });
 
-    it('edits projects', async function() {
+    it('edits metric', async function() {
       const wrapper = createWrapper({
         incidentRuleId: rule.id,
         initialData: rule,
         saveOnBlur: true,
       });
 
-      selectByLabel(wrapper, 'project-2', {name: 'projects'});
+      wrapper
+        .find('input[name="name"]')
+        .simulate('change', {target: {value: 'new name'}})
+        .simulate('blur');
 
       expect(editRule).toHaveBeenLastCalledWith(
         expect.anything(),
         expect.objectContaining({
           data: {
-            projects: ['project-2'],
+            name: 'new name',
           },
         })
       );
