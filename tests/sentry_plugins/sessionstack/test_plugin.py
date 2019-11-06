@@ -5,7 +5,7 @@ import responses
 from exam import fixture
 from sentry.testutils import PluginTestCase
 
-from new_sentry_plugins.sessionstack.plugin import SessionStackPlugin
+from test_only_plugins.sessionstack.plugin import SessionStackPlugin
 
 EXPECTED_SESSION_URL = (
     "https://app.sessionstack.com/player/#/sessions/588778a6c5762c1d566653ff"
@@ -26,7 +26,7 @@ class SessionStackPluginTest(PluginTestCase):
         assert self.plugin.conf_key == "sessionstack"
 
     def test_entry_point(self):
-        self.assertPluginInstalled("sessionstack", self.plugin)
+        self.assertTestOnlyPluginInstalled("sessionstack", self.plugin)
 
     @responses.activate
     def test_config_validation(self):

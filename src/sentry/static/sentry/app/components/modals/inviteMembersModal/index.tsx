@@ -70,10 +70,6 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
   getEndpoints(): [string, string][] {
     const orgId = this.props.organization.slug;
 
-    // TODO(epurkhiser): For admins we cannot lookup me, and will not have
-    // roles when viewing this modal as an admin. We need to add some hardcoded
-    // defaults like in the old page.
-
     return [['member', `/organizations/${orgId}/members/me/`]];
   }
 

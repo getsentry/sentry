@@ -1,5 +1,5 @@
 ---
-created: '2019-05-08T07:29:42.186423Z'
+created: '2019-11-01T10:02:43.394263Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -13,6 +13,8 @@ app:
             u'foo.py'
           function*
             u'test'
+          context-line (discarded because from URL origin)
+            u'hello world'
 --------------------------------------------------------------------------
 system:
   hash: '098f6bcd4621d373cade4e832627b4f6'
@@ -24,3 +26,5 @@ system:
             u'foo.py'
           function*
             u'test'
+          context-line (discarded because from URL origin)
+            u'hello world'

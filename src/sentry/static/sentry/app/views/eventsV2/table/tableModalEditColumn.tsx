@@ -2,6 +2,7 @@ import React, {ReactText} from 'react';
 import styled from 'react-emotion';
 import {uniq} from 'lodash';
 
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {t} from 'app/locale';
 import {Form, SelectField, TextField} from 'app/components/forms';
 import InlineSvg from 'app/components/inlineSvg';
@@ -89,6 +90,36 @@ class TableModalEditColumnBodyForm extends React.Component<
     name: this.props.column ? this.props.column.name : '',
   };
 
+  componentDidMount() {
+    const {column, indexColumnOrder, organization} = this.props;
+
+    const isEditing = !!column;
+    const focusedColumnIndex =
+      typeof indexColumnOrder === 'number' && indexColumnOrder >= 0
+        ? indexColumnOrder
+        : -1;
+
+    if (isEditing) {
+      if (typeof indexColumnOrder === 'number') {
+        // metrics
+        trackAnalyticsEvent({
+          eventKey: 'discover_v2.edit_column.open_modal',
+          eventName: 'Discoverv2: Opened modal to edit a column',
+          index: focusedColumnIndex,
+          organization_id: organization.id,
+        });
+      }
+    } else {
+      // metrics
+      trackAnalyticsEvent({
+        eventKey: 'discover_v2.add_column.open_modal',
+        eventName: 'Discoverv2: Opened modal to add a column',
+        index: focusedColumnIndex,
+        organization_id: organization.id,
+      });
+    }
+  }
+
   onChangeAggregation = (value: Aggregation) => {
     const {organization, tagKeys} = this.props;
     this.setState({
@@ -148,8 +179,8 @@ class TableModalEditColumnBodyForm extends React.Component<
             <FormRowItemLeft>
               <SelectField
                 name="aggregation"
-                label={t('Select')}
-                placeholder="Aggregate"
+                label={t('Aggregate')}
+                placeholder="Select Aggregate"
                 choices={this.state.aggregations}
                 onChange={this.onChangeAggregation}
               />
@@ -158,8 +189,8 @@ class TableModalEditColumnBodyForm extends React.Component<
               <SelectField
                 required
                 name="field"
-                label={t('Column')}
-                placeholder="Column"
+                label={t('Column Type')}
+                placeholder="Select Column Type"
                 choices={this.state.fields}
                 onChange={this.onChangeField}
               />
@@ -170,8 +201,8 @@ class TableModalEditColumnBodyForm extends React.Component<
               required
               name="name"
               value={this.state.name}
-              label={t('Column Name')}
-              placeholder="Column Name"
+              label={t('Display Name')}
+              placeholder="Display Name"
               onChange={this.onChangeName}
             />
           </FormRow>

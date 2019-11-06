@@ -19,7 +19,7 @@ class AmazonSQSPluginTest(PluginTestCase):
         assert self.plugin.conf_key == "amazon-sqs"
 
     def test_entry_point(self):
-        self.assertPluginInstalled("amazon_sqs", self.plugin)
+        self.assertNewPluginInstalled("amazon_sqs", self.plugin)
 
     def run_test(self):
         self.plugin.set_option("access_key", "access-key", self.project)
@@ -75,7 +75,8 @@ class AmazonSQSPluginTest(PluginTestCase):
         self.run_test()
         assert len(logger.info.call_args_list) == 1
         assert (
-            logger.info.call_args_list[0][0][0] == "new_sentry_plugins.amazon_sqs.access_token_invalid"
+            logger.info.call_args_list[0][0][0]
+            == "new_sentry_plugins.amazon_sqs.access_token_invalid"
         )
 
     @patch("new_sentry_plugins.amazon_sqs.plugin.logger")

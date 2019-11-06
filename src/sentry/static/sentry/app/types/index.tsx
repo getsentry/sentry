@@ -376,6 +376,7 @@ export type Member = {
   dateCreated: string;
   inviteStatus: 'approved' | 'requested_to_be_invited' | 'requested_to_join';
   inviterName: string | null;
+  teams: string[];
 };
 
 export type AccessRequest = {
@@ -547,6 +548,18 @@ export type InternalAppApiToken = BaseApiToken & {
   application: null;
   token: string;
   refreshToken: string;
+};
+
+export type ApiApplication = {
+  allowedOrigins: string[];
+  clientID: string;
+  clientSecret: string | null;
+  homepageUrl: string | null;
+  id: string;
+  name: string;
+  privacyUrl: string | null;
+  redirectUris: string[];
+  termsUrl: string | null;
 };
 
 export type UserReport = {
