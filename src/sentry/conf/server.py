@@ -311,7 +311,6 @@ INSTALLED_APPS = (
     "django.contrib.sessions",
     "django.contrib.sites",
     "crispy_forms",
-    "debug_toolbar",
     "rest_framework",
     "sentry",
     "sentry.analytics",
@@ -782,19 +781,6 @@ CRISPY_TEMPLATE_PACK = "bootstrap3"
 # Percy config for visual regression testing.
 
 PERCY_DEFAULT_TESTING_WIDTHS = (1280, 375)
-
-# Debugger
-
-DEBUG_TOOLBAR_PANELS = (
-    "debug_toolbar.panels.timer.TimerPanel",
-    "sentry.debug.panels.route.RoutePanel",
-    "debug_toolbar.panels.templates.TemplatesPanel",
-    "debug_toolbar.panels.sql.SQLPanel",
-    # TODO(dcramer): https://github.com/getsentry/sentry/issues/1722
-    # 'sentry.debug.panels.redis.RedisPanel',
-)
-
-DEBUG_TOOLBAR_PATCH_SETTINGS = False
 
 # Sentry and internal client configuration
 
