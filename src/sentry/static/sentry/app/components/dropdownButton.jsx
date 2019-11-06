@@ -13,7 +13,7 @@ class DropdownButton extends React.Component {
   render() {
     const {isOpen, showChevron, children, ...otherProps} = this.props;
     return (
-      <StyledButton isOpen={isOpen} {...otherProps}>
+      <StyledButton type="button" isOpen={isOpen} {...otherProps}>
         {children}
         {showChevron && <StyledChevronDown />}
       </StyledButton>

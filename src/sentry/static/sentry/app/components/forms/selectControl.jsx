@@ -103,7 +103,7 @@ SelectPicker.propTypes = {
   forwardedRef: PropTypes.any,
 };
 
-const forwardRef = (props, ref) => <SelectPicker {...props} forwardedRef={ref} />;
+const forwardRef = (props, ref) => <SelectPicker forwardedRef={ref} {...props} />;
 forwardRef.displayName = 'SelectPicker';
 
 const StyledSelect = styled(React.forwardRef(forwardRef))`

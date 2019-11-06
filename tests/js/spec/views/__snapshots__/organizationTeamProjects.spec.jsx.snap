@@ -200,11 +200,13 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                         <StyledButton
                                           isOpen={false}
                                           size="xsmall"
+                                          type="button"
                                         >
                                           <ForwardRef
                                             className="css-a2adl3-StyledButton e1yghndz1"
                                             isOpen={false}
                                             size="xsmall"
+                                            type="button"
                                           >
                                             <Button
                                               align="center"
@@ -212,6 +214,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                               disabled={false}
                                               innerRef={null}
                                               size="xsmall"
+                                              type="button"
                                             >
                                               <StyledButton
                                                 aria-disabled={false}
@@ -221,6 +224,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                 onClick={[Function]}
                                                 role="button"
                                                 size="xsmall"
+                                                type="button"
                                               >
                                                 <ForwardRef
                                                   aria-disabled={false}
@@ -229,6 +233,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                   onClick={[Function]}
                                                   role="button"
                                                   size="xsmall"
+                                                  type="button"
                                                 >
                                                   <button
                                                     aria-disabled={false}
@@ -236,6 +241,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                     onClick={[Function]}
                                                     role="button"
                                                     size="xsmall"
+                                                    type="button"
                                                   >
                                                     <ButtonLabel
                                                       align="center"
