@@ -1,5 +1,6 @@
 from __future__ import absolute_import, print_function
 
+import random
 import logging
 import six
 import threading
@@ -14,7 +15,7 @@ from django.db.models.manager import Manager, QuerySet
 from django.db.models.signals import post_save, post_delete, post_init, class_prepared
 from django.utils.encoding import smart_text
 
-from sentry import nodestore
+from sentry import nodestore, options
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
@@ -253,6 +254,94 @@ class BaseManager(Manager):
         super(BaseManager, self).contribute_to_class(model, name)
         class_prepared.connect(self.__class_prepared, sender=model)
 
+    def get_from_cache(self, **kwargs):
+        """
+        Wrapper around QuerySet.get which supports caching of the
+        intermediate value.  Callee is responsible for making sure
+        the cache key is cleared on save.
+        """
+        sample_rate = options.get("models.use-get-many-from-cache-sample-rate")
+
+        if sample_rate and random.random() < sample_rate:
+            if not self.cache_fields or len(kwargs) > 1:
+                return self.get(**kwargs)
+
+            key, value = next(six.iteritems(kwargs))
+
+            # We store everything by key references (vs instances)
+            if isinstance(value, Model):
+                value = value.pk
+
+            results = self.get_many_from_cache(values=[value], key=key)
+            if not results:
+                raise self.model.DoesNotExist()
+
+            return results[0]
+
+        return self._get_from_cache_legacy(**kwargs)
+
+    def _get_from_cache_legacy(self, **kwargs):
+        # XXX(markus): Remove in favor of implementation based on
+        # get_many_from_cache
+        if not self.cache_fields or len(kwargs) > 1:
+            return self.get(**kwargs)
+
+        key, value = next(six.iteritems(kwargs))
+        pk_name = self.model._meta.pk.name
+        if key == "pk":
+            key = pk_name
+
+        # We store everything by key references (vs instances)
+        if isinstance(value, Model):
+            value = value.pk
+
+        # Kill __exact since it's the default behavior
+        if key.endswith("__exact"):
+            key = key.split("__exact", 1)[0]
+
+        if key in self.cache_fields or key == pk_name:
+            cache_key = self.__get_lookup_cache_key(**{key: value})
+            local_cache = self._get_local_cache()
+            if local_cache is not None:
+                result = local_cache.get(cache_key)
+                if result is not None:
+                    return result
+
+            retval = cache.get(cache_key, version=self.cache_version)
+            if retval is None:
+                result = self.get(**kwargs)
+                # Ensure we're pushing it into the cache
+                self.__post_save(instance=result)
+                if local_cache is not None:
+                    local_cache[cache_key] = result
+                return result
+
+            # If we didn't look up by pk we need to hit the reffed
+            # key
+            if key != pk_name:
+                result = self.get_from_cache(**{pk_name: retval})
+                if local_cache is not None:
+                    local_cache[cache_key] = result
+                return result
+
+            if not isinstance(retval, self.model):
+                if settings.DEBUG:
+                    raise ValueError("Unexpected value type returned from cache")
+                logger.error("Cache response returned invalid value %r", retval)
+                return self.get(**kwargs)
+
+            if key == pk_name and int(value) != retval.pk:
+                if settings.DEBUG:
+                    raise ValueError("Unexpected value returned from cache")
+                logger.error("Cache response returned invalid value %r", retval)
+                return self.get(**kwargs)
+
+            retval._state.db = router.db_for_read(self.model, **kwargs)
+
+            return retval
+        else:
+            return self.get(**kwargs)
+
     def get_many_from_cache(self, values, key="pk"):
         """
         Wrapper around `QuerySet.filter(pk__in=values)` which supports caching of
@@ -337,27 +426,6 @@ class BaseManager(Manager):
             results.append(result)
 
         return results
-
-    def get_from_cache(self, **kwargs):
-        """
-        Wrapper around QuerySet.get which supports caching of the
-        intermediate value.  Callee is responsible for making sure
-        the cache key is cleared on save.
-        """
-        if not self.cache_fields or len(kwargs) > 1:
-            return self.get(**kwargs)
-
-        key, value = next(six.iteritems(kwargs))
-
-        # We store everything by key references (vs instances)
-        if isinstance(value, Model):
-            value = value.pk
-
-        results = self.get_many_from_cache(values=[value], key=key)
-        if not results:
-            raise self.model.DoesNotExist()
-
-        return results[0]
 
     def create_or_update(self, **kwargs):
         return create_or_update(self.model, **kwargs)
