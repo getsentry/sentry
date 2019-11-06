@@ -136,7 +136,7 @@ setup(
     install_requires=install_requires,
     extras_require={"dev": dev_requires, "postgres": []},
     cmdclass=cmdclass,
-    license="BSD",
+    license="BSL-1.1",
     include_package_data=True,
     entry_points={
         "console_scripts": ["sentry = sentry.runner:main"],
@@ -180,5 +180,6 @@ setup(
         "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 2 :: Only",
         "Topic :: Software Development",
+        "License :: Other/Proprietary License",
     ],
 )
