@@ -20,10 +20,10 @@ class CreateIncidentModal extends React.Component {
     organization: SentryTypes.Organization.isRequired,
   };
 
-  handleSubmit = async (data, onSuccess, onError, _e, setFormSavingState) => {
+  handleSubmit = async (data, onSuccess, onError, _e, model) => {
     const {api, organization, issues} = this.props;
 
-    setFormSavingState();
+    model.setFormSaving();
 
     try {
       const incident = await createIncident(api, organization, data.title, issues);
