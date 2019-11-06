@@ -6,6 +6,7 @@ import * as ReactRouter from 'react-router';
 import {Params} from 'react-router/lib/Router';
 import {Location} from 'history';
 
+import localStorage from 'app/utils/localStorage';
 import {Organization} from 'app/types';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -13,10 +14,13 @@ import SentryTypes from 'app/sentryTypes';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import PageHeading from 'app/components/pageHeading';
+import Banner from 'app/components/banner';
+import Button from 'app/components/button';
 import BetaTag from 'app/components/betaTag';
 import Feature from 'app/components/acl/feature';
 import Link from 'app/components/links/link';
 import NoProjectMessage from 'app/components/noProjectMessage';
+import theme from 'app/utils/theme';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -39,6 +43,10 @@ class EventsV2 extends React.Component<Props> {
     organization: SentryTypes.Organization.isRequired,
     location: PropTypes.object.isRequired,
     router: PropTypes.object.isRequired,
+  };
+
+  state = {
+    isBannerHidden: localStorage.getItem('discover-banner-dismissed'),
   };
 
   renderQueryList() {
@@ -92,6 +100,35 @@ class EventsV2 extends React.Component<Props> {
     return [t('Discover')];
   };
 
+  handleClick = () => {
+    localStorage.setItem('discover-banner-dismissed', true);
+    this.setState({isBannerHidden: true});
+  };
+
+  renderBanner() {
+    const bannerDismissed = localStorage.getItem('discover-banner-dismissed');
+
+    if (bannerDismissed) {
+      return null;
+    } else {
+      return (
+        <Banner
+          title={t('Discover')}
+          subtitle={t('Here are a few sample queries to kick things off')}
+          onCloseClick={this.handleClick}
+        >
+          <BannerButton icon="icon-circle-add">
+            {t('Users who error in < 1 min')}
+          </BannerButton>
+          <BannerButton icon="icon-circle-add">{t('Browsers by most bugs')}</BannerButton>
+          <BannerButton icon="icon-circle-add">
+            {t('Slowest HTTP endpoints')}
+          </BannerButton>
+        </Banner>
+      );
+    }
+  }
+
   render() {
     const {organization, location, router} = this.props;
     const eventSlug = getFirstQueryString(location.query, 'eventSlug');
@@ -122,6 +159,7 @@ class EventsV2 extends React.Component<Props> {
                     />
                   )}
                 </PageHeader>
+                {!hasQuery && this.renderBanner()}
                 {!hasQuery && this.renderQueryList()}
                 {hasQuery && (
                   <Events
@@ -148,6 +186,14 @@ class EventsV2 extends React.Component<Props> {
     );
   }
 }
+
+const BannerButton = styled(Button)`
+  margin: ${space(1)} 0;
+
+  @media (min-width: ${theme.breakpoints[1]}) {
+    margin: 0 ${space(1)};
+  }
+`;
 
 const LinkList = styled('ul')`
   list-style: none;
