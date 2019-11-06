@@ -1,0 +1,968 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`TableField renders renders with form context 1`] = `
+<Form
+  allowUndo={false}
+  cancelLabel="Cancel"
+  className="form-stacked"
+  model={
+    FormModel {
+      "api": Client {
+        "_chain": [Function],
+        "_wrapRequest": [Function],
+        "bulkUpdate": [Function],
+        "handleRequestError": [Function],
+        "hasProjectBeenRenamed": [Function],
+      },
+      "errors": Object {},
+      "fieldDescriptor": Map {
+        "fieldName" => Object {
+          "addButtonText": "Add Thing",
+          "allowEmpty": false,
+          "children": [Function],
+          "className": undefined,
+          "columnKeys": Array [
+            "column1",
+            "column2",
+          ],
+          "columnLabels": Object {
+            "column1": "Column 1",
+            "column2": "Column 2",
+          },
+          "field": [Function],
+          "flexibleControlStateSize": false,
+          "formatMessageValue": false,
+          "hideErrorMessage": false,
+          "inline": [Function],
+          "name": "fieldName",
+          "perItemMapping": false,
+        },
+      },
+      "fieldState": Object {},
+      "fields": Object {},
+      "formErrors": undefined,
+      "formState": undefined,
+      "initialData": Object {},
+      "options": Object {
+        "allowUndo": false,
+        "apiEndpoint": undefined,
+        "apiMethod": undefined,
+        "onFieldChange": undefined,
+        "onSubmitError": undefined,
+        "onSubmitSuccess": undefined,
+        "resetOnError": undefined,
+        "saveOnBlur": false,
+      },
+      "snapshots": Array [
+        Map {},
+      ],
+    }
+  }
+  onSubmit={[MockFunction]}
+  requireChanges={false}
+  saveOnBlur={false}
+  submitDisabled={false}
+  submitLabel="Save Changes"
+  submitPriority="primary"
+>
+  <form
+    className="form-stacked"
+    onSubmit={[Function]}
+  >
+    <div>
+      <TableField
+        addButtonText="Add Thing"
+        allowEmpty={false}
+        columnKeys={
+          Array [
+            "column1",
+            "column2",
+          ]
+        }
+        columnLabels={
+          Object {
+            "column1": "Column 1",
+            "column2": "Column 2",
+          }
+        }
+        formatMessageValue={false}
+        name="fieldName"
+        perItemMapping={false}
+      >
+        <InputField
+          addButtonText="Add Thing"
+          allowEmpty={false}
+          columnKeys={
+            Array [
+              "column1",
+              "column2",
+            ]
+          }
+          columnLabels={
+            Object {
+              "column1": "Column 1",
+              "column2": "Column 2",
+            }
+          }
+          field={[Function]}
+          formatMessageValue={false}
+          inline={[Function]}
+          name="fieldName"
+          perItemMapping={false}
+        >
+          <FormField
+            addButtonText="Add Thing"
+            allowEmpty={false}
+            columnKeys={
+              Array [
+                "column1",
+                "column2",
+              ]
+            }
+            columnLabels={
+              Object {
+                "column1": "Column 1",
+                "column2": "Column 2",
+              }
+            }
+            field={[Function]}
+            flexibleControlStateSize={false}
+            formatMessageValue={false}
+            hideErrorMessage={false}
+            inline={[Function]}
+            name="fieldName"
+            perItemMapping={false}
+          >
+            <Observer>
+              <Field
+                addButtonText="Add Thing"
+                alignRight={false}
+                allowEmpty={false}
+                columnKeys={
+                  Array [
+                    "column1",
+                    "column2",
+                  ]
+                }
+                columnLabels={
+                  Object {
+                    "column1": "Column 1",
+                    "column2": "Column 2",
+                  }
+                }
+                disabled={false}
+                field={[Function]}
+                flexibleControlStateSize={false}
+                formatMessageValue={false}
+                id="fieldName"
+                inline={true}
+                name="fieldName"
+                perItemMapping={false}
+                required={false}
+                visible={true}
+              >
+                <FieldWrapper
+                  hasControlState={true}
+                  inline={true}
+                >
+                  <Component
+                    className="css-1715a37-FieldWrapper-getPadding-borderStyle-inlineStyle etqqcs20"
+                  >
+                    <Flex
+                      className="css-1715a37-FieldWrapper-getPadding-borderStyle-inlineStyle etqqcs20"
+                    >
+                      <Base
+                        className="etqqcs20 css-2j8o10-FieldWrapper-getPadding-borderStyle-inlineStyle"
+                      >
+                        <div
+                          className="etqqcs20 css-2j8o10-FieldWrapper-getPadding-borderStyle-inlineStyle"
+                          is={null}
+                        >
+                          <FieldControl
+                            alignRight={false}
+                            controlState={
+                              <ControlState
+                                model={
+                                  FormModel {
+                                    "api": Client {
+                                      "_chain": [Function],
+                                      "_wrapRequest": [Function],
+                                      "bulkUpdate": [Function],
+                                      "handleRequestError": [Function],
+                                      "hasProjectBeenRenamed": [Function],
+                                    },
+                                    "errors": Object {},
+                                    "fieldDescriptor": Map {
+                                      "fieldName" => Object {
+                                        "addButtonText": "Add Thing",
+                                        "allowEmpty": false,
+                                        "children": [Function],
+                                        "className": undefined,
+                                        "columnKeys": Array [
+                                          "column1",
+                                          "column2",
+                                        ],
+                                        "columnLabels": Object {
+                                          "column1": "Column 1",
+                                          "column2": "Column 2",
+                                        },
+                                        "field": [Function],
+                                        "flexibleControlStateSize": false,
+                                        "formatMessageValue": false,
+                                        "hideErrorMessage": false,
+                                        "inline": [Function],
+                                        "name": "fieldName",
+                                        "perItemMapping": false,
+                                      },
+                                    },
+                                    "fieldState": Object {},
+                                    "fields": Object {},
+                                    "formErrors": undefined,
+                                    "formState": undefined,
+                                    "initialData": Object {},
+                                    "options": Object {
+                                      "allowUndo": false,
+                                      "apiEndpoint": undefined,
+                                      "apiMethod": undefined,
+                                      "onFieldChange": undefined,
+                                      "onSubmitError": undefined,
+                                      "onSubmitSuccess": undefined,
+                                      "resetOnError": undefined,
+                                      "saveOnBlur": false,
+                                    },
+                                    "snapshots": Array [
+                                      Map {},
+                                    ],
+                                  }
+                                }
+                                name="fieldName"
+                              />
+                            }
+                            disabled={false}
+                            errorState={
+                              <Observer>
+                                [Function]
+                              </Observer>
+                            }
+                            flexibleControlStateSize={false}
+                            inline={true}
+                          >
+                            <FieldControlErrorWrapper
+                              inline={true}
+                            >
+                              <Component
+                                className="css-1xbxyck-FieldControlErrorWrapper e78b1iv0"
+                                inline={true}
+                              >
+                                <Box
+                                  className="css-1xbxyck-FieldControlErrorWrapper e78b1iv0"
+                                >
+                                  <Base
+                                    className="e78b1iv0 css-1kkovz0-FieldControlErrorWrapper"
+                                  >
+                                    <div
+                                      className="e78b1iv0 css-1kkovz0-FieldControlErrorWrapper"
+                                      is={null}
+                                    >
+                                      <FieldControlWrapper>
+                                        <Component
+                                          className="css-1ke1xob-FieldControlWrapper e78b1iv2"
+                                        >
+                                          <Flex
+                                            className="css-1ke1xob-FieldControlWrapper e78b1iv2"
+                                          >
+                                            <Base
+                                              className="e78b1iv2 css-w4o1g8-FieldControlWrapper"
+                                            >
+                                              <div
+                                                className="e78b1iv2 css-w4o1g8-FieldControlWrapper"
+                                                is={null}
+                                              >
+                                                <FieldControlStyled
+                                                  alignRight={false}
+                                                >
+                                                  <Component
+                                                    alignRight={false}
+                                                    className="css-1pkvhmy-FieldControlStyled e78b1iv1"
+                                                  >
+                                                    <Box
+                                                      className="css-1pkvhmy-FieldControlStyled e78b1iv1"
+                                                    >
+                                                      <Base
+                                                        className="e78b1iv1 css-wkkbba-FieldControlStyled"
+                                                      >
+                                                        <div
+                                                          className="e78b1iv1 css-wkkbba-FieldControlStyled"
+                                                          is={null}
+                                                        >
+                                                          <Observer>
+                                                            <Box>
+                                                              <Base
+                                                                className="css-roynbj"
+                                                              >
+                                                                <div
+                                                                  className="css-roynbj"
+                                                                  is={null}
+                                                                >
+                                                                  <Button
+                                                                    align="center"
+                                                                    disabled={false}
+                                                                    icon="icon-circle-add"
+                                                                    onClick={[Function]}
+                                                                    size="xsmall"
+                                                                  >
+                                                                    <StyledButton
+                                                                      aria-disabled={false}
+                                                                      aria-label="Add Thing"
+                                                                      disabled={false}
+                                                                      onClick={[Function]}
+                                                                      role="button"
+                                                                      size="xsmall"
+                                                                    >
+                                                                      <ForwardRef
+                                                                        aria-disabled={false}
+                                                                        aria-label="Add Thing"
+                                                                        className="css-z6hjis-StyledButton-getColors edwq9my0"
+                                                                        disabled={false}
+                                                                        onClick={[Function]}
+                                                                        role="button"
+                                                                        size="xsmall"
+                                                                      >
+                                                                        <button
+                                                                          aria-disabled={false}
+                                                                          aria-label="Add Thing"
+                                                                          className="css-z6hjis-StyledButton-getColors edwq9my0"
+                                                                          onClick={[Function]}
+                                                                          role="button"
+                                                                          size="xsmall"
+                                                                        >
+                                                                          <ButtonLabel
+                                                                            align="center"
+                                                                            size="xsmall"
+                                                                          >
+                                                                            <Component
+                                                                              align="center"
+                                                                              className="css-1bqncjo-ButtonLabel edwq9my1"
+                                                                              size="xsmall"
+                                                                            >
+                                                                              <span
+                                                                                className="css-1bqncjo-ButtonLabel edwq9my1"
+                                                                              >
+                                                                                <Icon
+                                                                                  hasChildren={true}
+                                                                                  size="xsmall"
+                                                                                >
+                                                                                  <Component
+                                                                                    className="css-1vdnsie-Icon edwq9my2"
+                                                                                    hasChildren={true}
+                                                                                    size="xsmall"
+                                                                                  >
+                                                                                    <span
+                                                                                      className="css-1vdnsie-Icon edwq9my2"
+                                                                                      size="xsmall"
+                                                                                    >
+                                                                                      <StyledInlineSvg
+                                                                                        size="12px"
+                                                                                        src="icon-circle-add"
+                                                                                      >
+                                                                                        <ForwardRef
+                                                                                          className="css-52zz4j-InlineSvg-StyledInlineSvg edwq9my3"
+                                                                                          size="12px"
+                                                                                          src="icon-circle-add"
+                                                                                        >
+                                                                                          <svg
+                                                                                            className="css-52zz4j-InlineSvg-StyledInlineSvg edwq9my3"
+                                                                                            height="12px"
+                                                                                            viewBox={Object {}}
+                                                                                            width="12px"
+                                                                                          >
+                                                                                            <use
+                                                                                              href="#test"
+                                                                                              xlinkHref="#test"
+                                                                                            />
+                                                                                          </svg>
+                                                                                        </ForwardRef>
+                                                                                      </StyledInlineSvg>
+                                                                                    </span>
+                                                                                  </Component>
+                                                                                </Icon>
+                                                                                Add Thing
+                                                                              </span>
+                                                                            </Component>
+                                                                          </ButtonLabel>
+                                                                        </button>
+                                                                      </ForwardRef>
+                                                                    </StyledButton>
+                                                                  </Button>
+                                                                </div>
+                                                              </Base>
+                                                            </Box>
+                                                          </Observer>
+                                                        </div>
+                                                      </Base>
+                                                    </Box>
+                                                  </Component>
+                                                </FieldControlStyled>
+                                                <FieldControlState
+                                                  flexibleControlStateSize={false}
+                                                >
+                                                  <Component
+                                                    className="css-1j6hng-FieldControlState e1rziqw00"
+                                                    flexibleControlStateSize={false}
+                                                  >
+                                                    <Flex
+                                                      className="css-1j6hng-FieldControlState e1rziqw00"
+                                                    >
+                                                      <Base
+                                                        className="e1rziqw00 css-1fqbh7r-FieldControlState"
+                                                      >
+                                                        <div
+                                                          className="e1rziqw00 css-1fqbh7r-FieldControlState"
+                                                          is={null}
+                                                        >
+                                                          <ControlState
+                                                            model={
+                                                              FormModel {
+                                                                "api": Client {
+                                                                  "_chain": [Function],
+                                                                  "_wrapRequest": [Function],
+                                                                  "bulkUpdate": [Function],
+                                                                  "handleRequestError": [Function],
+                                                                  "hasProjectBeenRenamed": [Function],
+                                                                },
+                                                                "errors": Object {},
+                                                                "fieldDescriptor": Map {
+                                                                  "fieldName" => Object {
+                                                                    "addButtonText": "Add Thing",
+                                                                    "allowEmpty": false,
+                                                                    "children": [Function],
+                                                                    "className": undefined,
+                                                                    "columnKeys": Array [
+                                                                      "column1",
+                                                                      "column2",
+                                                                    ],
+                                                                    "columnLabels": Object {
+                                                                      "column1": "Column 1",
+                                                                      "column2": "Column 2",
+                                                                    },
+                                                                    "field": [Function],
+                                                                    "flexibleControlStateSize": false,
+                                                                    "formatMessageValue": false,
+                                                                    "hideErrorMessage": false,
+                                                                    "inline": [Function],
+                                                                    "name": "fieldName",
+                                                                    "perItemMapping": false,
+                                                                  },
+                                                                },
+                                                                "fieldState": Object {},
+                                                                "fields": Object {},
+                                                                "formErrors": undefined,
+                                                                "formState": undefined,
+                                                                "initialData": Object {},
+                                                                "options": Object {
+                                                                  "allowUndo": false,
+                                                                  "apiEndpoint": undefined,
+                                                                  "apiMethod": undefined,
+                                                                  "onFieldChange": undefined,
+                                                                  "onSubmitError": undefined,
+                                                                  "onSubmitSuccess": undefined,
+                                                                  "resetOnError": undefined,
+                                                                  "saveOnBlur": false,
+                                                                },
+                                                                "snapshots": Array [
+                                                                  Map {},
+                                                                ],
+                                                              }
+                                                            }
+                                                            name="fieldName"
+                                                          >
+                                                            <Observer />
+                                                            <Observer />
+                                                          </ControlState>
+                                                        </div>
+                                                      </Base>
+                                                    </Flex>
+                                                  </Component>
+                                                </FieldControlState>
+                                              </div>
+                                            </Base>
+                                          </Flex>
+                                        </Component>
+                                      </FieldControlWrapper>
+                                      <Observer />
+                                    </div>
+                                  </Base>
+                                </Box>
+                              </Component>
+                            </FieldControlErrorWrapper>
+                          </FieldControl>
+                        </div>
+                      </Base>
+                    </Flex>
+                  </Component>
+                </FieldWrapper>
+              </Field>
+            </Observer>
+          </FormField>
+        </InputField>
+      </TableField>
+    </div>
+    <StyledFooter
+      saveOnBlur={false}
+    >
+      <div
+        className="css-1g4ne7-StyledFooter e1r1zmbj0"
+      >
+        <Observer>
+          <Button
+            align="center"
+            data-test-id="form-submit"
+            disabled={false}
+            priority="primary"
+            type="submit"
+          >
+            <StyledButton
+              aria-disabled={false}
+              aria-label="Save Changes"
+              data-test-id="form-submit"
+              disabled={false}
+              onClick={[Function]}
+              priority="primary"
+              role="button"
+              type="submit"
+            >
+              <ForwardRef
+                aria-disabled={false}
+                aria-label="Save Changes"
+                className="css-xiynrq-StyledButton-getColors edwq9my0"
+                data-test-id="form-submit"
+                disabled={false}
+                onClick={[Function]}
+                priority="primary"
+                role="button"
+                type="submit"
+              >
+                <button
+                  aria-disabled={false}
+                  aria-label="Save Changes"
+                  className="css-xiynrq-StyledButton-getColors edwq9my0"
+                  data-test-id="form-submit"
+                  onClick={[Function]}
+                  role="button"
+                  type="submit"
+                >
+                  <ButtonLabel
+                    align="center"
+                    priority="primary"
+                  >
+                    <Component
+                      align="center"
+                      className="css-oo1m2a-ButtonLabel edwq9my1"
+                      priority="primary"
+                    >
+                      <span
+                        className="css-oo1m2a-ButtonLabel edwq9my1"
+                      >
+                        Save Changes
+                      </span>
+                    </Component>
+                  </ButtonLabel>
+                </button>
+              </ForwardRef>
+            </StyledButton>
+          </Button>
+        </Observer>
+      </div>
+    </StyledFooter>
+  </form>
+</Form>
+`;
+
+exports[`TableField renders renders without form context 1`] = `
+<TableField
+  addButtonText="Add Item"
+  allowEmpty={false}
+  columnKeys={
+    Array [
+      "column1",
+      "column2",
+    ]
+  }
+  columnLabels={
+    Object {
+      "column1": "Column 1",
+      "column2": "Column 2",
+    }
+  }
+  formatMessageValue={false}
+  name="fieldName"
+  perItemMapping={false}
+>
+  <InputField
+    addButtonText="Add Item"
+    allowEmpty={false}
+    columnKeys={
+      Array [
+        "column1",
+        "column2",
+      ]
+    }
+    columnLabels={
+      Object {
+        "column1": "Column 1",
+        "column2": "Column 2",
+      }
+    }
+    field={[Function]}
+    formatMessageValue={false}
+    inline={[Function]}
+    name="fieldName"
+    perItemMapping={false}
+  >
+    <FormField
+      addButtonText="Add Item"
+      allowEmpty={false}
+      columnKeys={
+        Array [
+          "column1",
+          "column2",
+        ]
+      }
+      columnLabels={
+        Object {
+          "column1": "Column 1",
+          "column2": "Column 2",
+        }
+      }
+      field={[Function]}
+      flexibleControlStateSize={false}
+      formatMessageValue={false}
+      hideErrorMessage={false}
+      inline={[Function]}
+      name="fieldName"
+      perItemMapping={false}
+    >
+      <Observer>
+        <Field
+          addButtonText="Add Item"
+          alignRight={false}
+          allowEmpty={false}
+          columnKeys={
+            Array [
+              "column1",
+              "column2",
+            ]
+          }
+          columnLabels={
+            Object {
+              "column1": "Column 1",
+              "column2": "Column 2",
+            }
+          }
+          disabled={false}
+          field={[Function]}
+          flexibleControlStateSize={false}
+          formatMessageValue={false}
+          id="fieldName"
+          inline={true}
+          name="fieldName"
+          perItemMapping={false}
+          required={false}
+          visible={true}
+        >
+          <FieldWrapper
+            hasControlState={true}
+            inline={true}
+          >
+            <Component
+              className="css-1715a37-FieldWrapper-getPadding-borderStyle-inlineStyle etqqcs20"
+            >
+              <Flex
+                className="css-1715a37-FieldWrapper-getPadding-borderStyle-inlineStyle etqqcs20"
+              >
+                <Base
+                  className="etqqcs20 css-2j8o10-FieldWrapper-getPadding-borderStyle-inlineStyle"
+                >
+                  <div
+                    className="etqqcs20 css-2j8o10-FieldWrapper-getPadding-borderStyle-inlineStyle"
+                    is={null}
+                  >
+                    <FieldControl
+                      alignRight={false}
+                      controlState={
+                        <ControlState
+                          model={
+                            MockModel {
+                              "initialData": Object {
+                                "fieldName": undefined,
+                              },
+                              "props": Object {
+                                "addButtonText": "Add Item",
+                                "allowEmpty": false,
+                                "children": [Function],
+                                "className": undefined,
+                                "columnKeys": Array [
+                                  "column1",
+                                  "column2",
+                                ],
+                                "columnLabels": Object {
+                                  "column1": "Column 1",
+                                  "column2": "Column 2",
+                                },
+                                "field": [Function],
+                                "flexibleControlStateSize": false,
+                                "formatMessageValue": false,
+                                "hideErrorMessage": false,
+                                "inline": [Function],
+                                "name": "fieldName",
+                                "perItemMapping": false,
+                              },
+                            }
+                          }
+                          name="fieldName"
+                        />
+                      }
+                      disabled={false}
+                      errorState={
+                        <Observer>
+                          [Function]
+                        </Observer>
+                      }
+                      flexibleControlStateSize={false}
+                      inline={true}
+                    >
+                      <FieldControlErrorWrapper
+                        inline={true}
+                      >
+                        <Component
+                          className="css-1xbxyck-FieldControlErrorWrapper e78b1iv0"
+                          inline={true}
+                        >
+                          <Box
+                            className="css-1xbxyck-FieldControlErrorWrapper e78b1iv0"
+                          >
+                            <Base
+                              className="e78b1iv0 css-1kkovz0-FieldControlErrorWrapper"
+                            >
+                              <div
+                                className="e78b1iv0 css-1kkovz0-FieldControlErrorWrapper"
+                                is={null}
+                              >
+                                <FieldControlWrapper>
+                                  <Component
+                                    className="css-1ke1xob-FieldControlWrapper e78b1iv2"
+                                  >
+                                    <Flex
+                                      className="css-1ke1xob-FieldControlWrapper e78b1iv2"
+                                    >
+                                      <Base
+                                        className="e78b1iv2 css-w4o1g8-FieldControlWrapper"
+                                      >
+                                        <div
+                                          className="e78b1iv2 css-w4o1g8-FieldControlWrapper"
+                                          is={null}
+                                        >
+                                          <FieldControlStyled
+                                            alignRight={false}
+                                          >
+                                            <Component
+                                              alignRight={false}
+                                              className="css-1pkvhmy-FieldControlStyled e78b1iv1"
+                                            >
+                                              <Box
+                                                className="css-1pkvhmy-FieldControlStyled e78b1iv1"
+                                              >
+                                                <Base
+                                                  className="e78b1iv1 css-wkkbba-FieldControlStyled"
+                                                >
+                                                  <div
+                                                    className="e78b1iv1 css-wkkbba-FieldControlStyled"
+                                                    is={null}
+                                                  >
+                                                    <Observer>
+                                                      <Box>
+                                                        <Base
+                                                          className="css-roynbj"
+                                                        >
+                                                          <div
+                                                            className="css-roynbj"
+                                                            is={null}
+                                                          >
+                                                            <Button
+                                                              align="center"
+                                                              disabled={false}
+                                                              icon="icon-circle-add"
+                                                              onClick={[Function]}
+                                                              size="xsmall"
+                                                            >
+                                                              <StyledButton
+                                                                aria-disabled={false}
+                                                                aria-label="Add Item"
+                                                                disabled={false}
+                                                                onClick={[Function]}
+                                                                role="button"
+                                                                size="xsmall"
+                                                              >
+                                                                <ForwardRef
+                                                                  aria-disabled={false}
+                                                                  aria-label="Add Item"
+                                                                  className="css-z6hjis-StyledButton-getColors edwq9my0"
+                                                                  disabled={false}
+                                                                  onClick={[Function]}
+                                                                  role="button"
+                                                                  size="xsmall"
+                                                                >
+                                                                  <button
+                                                                    aria-disabled={false}
+                                                                    aria-label="Add Item"
+                                                                    className="css-z6hjis-StyledButton-getColors edwq9my0"
+                                                                    onClick={[Function]}
+                                                                    role="button"
+                                                                    size="xsmall"
+                                                                  >
+                                                                    <ButtonLabel
+                                                                      align="center"
+                                                                      size="xsmall"
+                                                                    >
+                                                                      <Component
+                                                                        align="center"
+                                                                        className="css-1bqncjo-ButtonLabel edwq9my1"
+                                                                        size="xsmall"
+                                                                      >
+                                                                        <span
+                                                                          className="css-1bqncjo-ButtonLabel edwq9my1"
+                                                                        >
+                                                                          <Icon
+                                                                            hasChildren={true}
+                                                                            size="xsmall"
+                                                                          >
+                                                                            <Component
+                                                                              className="css-1vdnsie-Icon edwq9my2"
+                                                                              hasChildren={true}
+                                                                              size="xsmall"
+                                                                            >
+                                                                              <span
+                                                                                className="css-1vdnsie-Icon edwq9my2"
+                                                                                size="xsmall"
+                                                                              >
+                                                                                <StyledInlineSvg
+                                                                                  size="12px"
+                                                                                  src="icon-circle-add"
+                                                                                >
+                                                                                  <ForwardRef
+                                                                                    className="css-52zz4j-InlineSvg-StyledInlineSvg edwq9my3"
+                                                                                    size="12px"
+                                                                                    src="icon-circle-add"
+                                                                                  >
+                                                                                    <svg
+                                                                                      className="css-52zz4j-InlineSvg-StyledInlineSvg edwq9my3"
+                                                                                      height="12px"
+                                                                                      viewBox={Object {}}
+                                                                                      width="12px"
+                                                                                    >
+                                                                                      <use
+                                                                                        href="#test"
+                                                                                        xlinkHref="#test"
+                                                                                      />
+                                                                                    </svg>
+                                                                                  </ForwardRef>
+                                                                                </StyledInlineSvg>
+                                                                              </span>
+                                                                            </Component>
+                                                                          </Icon>
+                                                                          Add Item
+                                                                        </span>
+                                                                      </Component>
+                                                                    </ButtonLabel>
+                                                                  </button>
+                                                                </ForwardRef>
+                                                              </StyledButton>
+                                                            </Button>
+                                                          </div>
+                                                        </Base>
+                                                      </Box>
+                                                    </Observer>
+                                                  </div>
+                                                </Base>
+                                              </Box>
+                                            </Component>
+                                          </FieldControlStyled>
+                                          <FieldControlState
+                                            flexibleControlStateSize={false}
+                                          >
+                                            <Component
+                                              className="css-1j6hng-FieldControlState e1rziqw00"
+                                              flexibleControlStateSize={false}
+                                            >
+                                              <Flex
+                                                className="css-1j6hng-FieldControlState e1rziqw00"
+                                              >
+                                                <Base
+                                                  className="e1rziqw00 css-1fqbh7r-FieldControlState"
+                                                >
+                                                  <div
+                                                    className="e1rziqw00 css-1fqbh7r-FieldControlState"
+                                                    is={null}
+                                                  >
+                                                    <ControlState
+                                                      model={
+                                                        MockModel {
+                                                          "initialData": Object {
+                                                            "fieldName": undefined,
+                                                          },
+                                                          "props": Object {
+                                                            "addButtonText": "Add Item",
+                                                            "allowEmpty": false,
+                                                            "children": [Function],
+                                                            "className": undefined,
+                                                            "columnKeys": Array [
+                                                              "column1",
+                                                              "column2",
+                                                            ],
+                                                            "columnLabels": Object {
+                                                              "column1": "Column 1",
+                                                              "column2": "Column 2",
+                                                            },
+                                                            "field": [Function],
+                                                            "flexibleControlStateSize": false,
+                                                            "formatMessageValue": false,
+                                                            "hideErrorMessage": false,
+                                                            "inline": [Function],
+                                                            "name": "fieldName",
+                                                            "perItemMapping": false,
+                                                          },
+                                                        }
+                                                      }
+                                                      name="fieldName"
+                                                    >
+                                                      <Observer />
+                                                      <Observer />
+                                                    </ControlState>
+                                                  </div>
+                                                </Base>
+                                              </Flex>
+                                            </Component>
+                                          </FieldControlState>
+                                        </div>
+                                      </Base>
+                                    </Flex>
+                                  </Component>
+                                </FieldControlWrapper>
+                                <Observer />
+                              </div>
+                            </Base>
+                          </Box>
+                        </Component>
+                      </FieldControlErrorWrapper>
+                    </FieldControl>
+                  </div>
+                </Base>
+              </Flex>
+            </Component>
+          </FieldWrapper>
+        </Field>
+      </Observer>
+    </FormField>
+  </InputField>
+</TableField>
+`;

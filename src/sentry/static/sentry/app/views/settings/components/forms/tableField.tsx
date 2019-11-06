@@ -13,7 +13,7 @@ type Props = {
   name?: string;
   addButtonText?: React.ReactNode;
   columnLabels: any;
-  columnKeys?: string[];
+  columnKeys: string[];
   allowEmpty?: boolean;
 };
 
@@ -33,7 +33,7 @@ export default class TableField extends React.Component<Props> {
      * A list of column keys for the table, in the order that you want
      * the columns to appear - order doesn't matter in columnLabels
      */
-    columnKeys: PropTypes.arrayOf(PropTypes.string),
+    columnKeys: PropTypes.arrayOf(PropTypes.string).isRequired,
     /**
      * Automatically save even if fields are empty
      */
