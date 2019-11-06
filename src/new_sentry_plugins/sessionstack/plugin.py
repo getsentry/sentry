@@ -8,7 +8,7 @@ from sentry.plugins.base import Plugin2
 from sentry.plugins.base.configuration import react_plugin_config
 from sentry.exceptions import PluginError
 
-from test_only_plugins.base import CorePluginMixin
+from new_sentry_plugins.base import CorePluginMixin
 
 from .client import SessionStackClient, UnauthorizedError, InvalidWebsiteIdError, InvalidApiUrlError
 

@@ -79,6 +79,7 @@ class Importer(object):
         load_settings(self.config_path, settings=settings_mod, silent=True)
 
         install_plugin_apps("sentry.apps", settings_mod)
+        install_plugin_apps("sentry.new_apps", settings_mod)
 
         return settings_mod
 
