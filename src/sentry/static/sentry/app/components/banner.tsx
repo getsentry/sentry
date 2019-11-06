@@ -5,49 +5,36 @@ import styled from 'react-emotion';
 import theme from 'app/utils/theme';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
-import localStorage from 'app/utils/localStorage';
 
 import spaceBg from '../../images/background-space.svg';
 
 type Props = {
   title?: string;
   subtitle?: string;
-  dismissable?: boolean;
+  isDismissable?: boolean;
+  onCloseClick?: () => void;
 };
 
 class Banner extends React.Component<Props> {
   static defaultProps: Partial<Props> = {
-    dismissable: true,
+    isDismissable: true,
   };
 
-  handleClick() {
-    localStorage.setItem('banner-dismissed', true);
-  }
-
   render() {
-    const {title, subtitle, dismissable, children} = this.props;
-    const bannerDismissed = localStorage.getItem('banner-dismissed');
+    const {title, subtitle, isDismissable, onCloseClick, children} = this.props;
 
-    if (!bannerDismissed) {
-      return (
-        <StyledBanner>
-          {dismissable ? (
-            <BannerIcon
-              src="icon-close"
-              aria-label={t('Close')}
-              onClick={this.handleClick}
-            />
-          ) : null}
-          <BannerContent>
-            <BannerTitle>{title}</BannerTitle>
-            <BannerSubtitle>{subtitle}</BannerSubtitle>
-            <BannerActions>{children}</BannerActions>
-          </BannerContent>
-        </StyledBanner>
-      );
-    } else {
-      return null;
-    }
+    return (
+      <StyledBanner>
+        {isDismissable ? (
+          <BannerIcon src="icon-close" aria-label={t('Close')} onClick={onCloseClick} />
+        ) : null}
+        <BannerContent>
+          <BannerTitle>{title}</BannerTitle>
+          <BannerSubtitle>{subtitle}</BannerSubtitle>
+          <BannerActions>{children}</BannerActions>
+        </BannerContent>
+      </StyledBanner>
+    );
   }
 }
 

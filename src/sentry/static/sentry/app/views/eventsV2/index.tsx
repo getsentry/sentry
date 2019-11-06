@@ -6,6 +6,7 @@ import * as ReactRouter from 'react-router';
 import {Params} from 'react-router/lib/Router';
 import {Location} from 'history';
 
+import localStorage from 'app/utils/localStorage';
 import {Organization} from 'app/types';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -95,19 +96,32 @@ class EventsV2 extends React.Component<Props> {
     return [t('Discover')];
   };
 
+  handleClick() {
+    localStorage.setItem('discbanner-dismissed', true);
+  }
+
   renderBanner() {
-    return (
-      <Banner
-        title={t('Discover')}
-        subtitle={t('Here are a few sample queries to kick things off')}
-      >
-        <BannerButton icon="icon-circle-add">
-          {t('Users who error in < 1 min')}
-        </BannerButton>
-        <BannerButton icon="icon-circle-add">{t('Browsers by most bugs')}</BannerButton>
-        <BannerButton icon="icon-circle-add">{t('Slowest HTTP endpoints')}</BannerButton>
-      </Banner>
-    );
+    const bannerDismissed = localStorage.getItem('discbanner-dismissed');
+
+    if (bannerDismissed) {
+      return null;
+    } else {
+      return (
+        <Banner
+          title={t('Discover')}
+          subtitle={t('Here are a few sample queries to kick things off')}
+          onCloseClick={this.handleClick}
+        >
+          <BannerButton icon="icon-circle-add">
+            {t('Users who error in < 1 min')}
+          </BannerButton>
+          <BannerButton icon="icon-circle-add">{t('Browsers by most bugs')}</BannerButton>
+          <BannerButton icon="icon-circle-add">
+            {t('Slowest HTTP endpoints')}
+          </BannerButton>
+        </Banner>
+      );
+    }
   }
 
   render() {
