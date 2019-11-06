@@ -253,6 +253,91 @@ class BaseManager(Manager):
         super(BaseManager, self).contribute_to_class(model, name)
         class_prepared.connect(self.__class_prepared, sender=model)
 
+    def get_many_from_cache(self, values, key="pk"):
+        """
+        Wrapper around `QuerySet.filter(pk__in=values)` which supports caching of
+        the intermediate value.  Callee is responsible for making sure the
+        cache key is cleared on save.
+        """
+
+        pk_name = self.model._meta.pk.name
+
+        if key == "pk":
+            key = pk_name
+
+        # Kill __exact since it's the default behavior
+        if key.endswith("__exact"):
+            key = key.split("__exact", 1)[0]
+
+        if key not in self.cache_fields and key != pk_name:
+            return self.filter(**{key + "__in": values})
+
+        local_cache = self._get_local_cache()
+
+        results = []
+        memcached_cache_keys = []
+        memcached_values = []
+
+        for value in values:
+            cache_key = self.__get_lookup_cache_key(**{key: value})
+            if local_cache is not None:
+                result = local_cache.get(cache_key)
+                if result is not None:
+                    results.append(result)
+                    continue
+
+            memcached_cache_keys.append(cache_key)
+            memcached_values.append(value)
+
+        memcached_cache_results = cache.get_many(memcached_cache_keys, version=self.cache_version)
+
+        db_cache_keys = []
+        db_values = []
+
+        for cache_key, value in zip(memcached_cache_keys, memcached_values):
+            result = memcached_cache_results.get(cache_key)
+            if result is not None:
+                if key == pk_name and (
+                    not isinstance(result, self.model) or int(value) != result.pk
+                ):
+                    if settings.DEBUG:
+                        raise ValueError("Unexpected value returned from cache")
+                    logger.error("Cache response returned invalid value %r", result)
+                else:
+                    if key == pk_name:
+                        result._state.db = router.db_for_read(self.model, **{key: value})
+
+                    if local_cache is not None:
+                        local_cache[cache_key] = result
+
+                    results.append(result)
+                    continue
+
+            db_cache_keys.append(cache_key)
+            db_values.append(value)
+
+        # If we didn't look up by pk we need to hit the reffed key
+        if key != pk_name:
+            results = self.get_many_from_cache(results, key=pk_name)
+
+        db_results = {getattr(x, key): x for x in self.filter(**{key + "__in": db_values})}
+
+        for cache_key, value in zip(db_cache_keys, db_values):
+            result = db_results.get(value)
+
+            if result is None:
+                continue
+
+            # push back into caches
+            # XXX: Should use set_many here, but __post_save code is too complex
+            self.__post_save(instance=result)
+            if local_cache is not None:
+                local_cache[cache_key] = result
+
+            results.append(result)
+
+        return results
+
     def get_from_cache(self, **kwargs):
         """
         Wrapper around QuerySet.get which supports caching of the
@@ -263,60 +348,16 @@ class BaseManager(Manager):
             return self.get(**kwargs)
 
         key, value = next(six.iteritems(kwargs))
-        pk_name = self.model._meta.pk.name
-        if key == "pk":
-            key = pk_name
 
         # We store everything by key references (vs instances)
         if isinstance(value, Model):
             value = value.pk
 
-        # Kill __exact since it's the default behavior
-        if key.endswith("__exact"):
-            key = key.split("__exact", 1)[0]
+        results = self.get_many_from_cache(values=[value], key=key)
+        if not results:
+            raise self.model.DoesNotExist()
 
-        if key in self.cache_fields or key == pk_name:
-            cache_key = self.__get_lookup_cache_key(**{key: value})
-            local_cache = self._get_local_cache()
-            if local_cache is not None:
-                result = local_cache.get(cache_key)
-                if result is not None:
-                    return result
-
-            retval = cache.get(cache_key, version=self.cache_version)
-            if retval is None:
-                result = self.get(**kwargs)
-                # Ensure we're pushing it into the cache
-                self.__post_save(instance=result)
-                if local_cache is not None:
-                    local_cache[cache_key] = result
-                return result
-
-            # If we didn't look up by pk we need to hit the reffed
-            # key
-            if key != pk_name:
-                result = self.get_from_cache(**{pk_name: retval})
-                if local_cache is not None:
-                    local_cache[cache_key] = result
-                return result
-
-            if not isinstance(retval, self.model):
-                if settings.DEBUG:
-                    raise ValueError("Unexpected value type returned from cache")
-                logger.error("Cache response returned invalid value %r", retval)
-                return self.get(**kwargs)
-
-            if key == pk_name and int(value) != retval.pk:
-                if settings.DEBUG:
-                    raise ValueError("Unexpected value returned from cache")
-                logger.error("Cache response returned invalid value %r", retval)
-                return self.get(**kwargs)
-
-            retval._state.db = router.db_for_read(self.model, **kwargs)
-
-            return retval
-        else:
-            return self.get(**kwargs)
+        return results[0]
 
     def create_or_update(self, **kwargs):
         return create_or_update(self.model, **kwargs)

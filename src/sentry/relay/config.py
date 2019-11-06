@@ -17,7 +17,6 @@ from sentry import quotas
 from sentry.models.organizationoption import OrganizationOption
 from sentry.utils.data_filters import FilterTypes, FilterStatKeys
 from sentry.utils.http import get_origins
-from sentry.models.projectkey import ProjectKey
 from sentry.utils.sdk import configure_scope
 
 
@@ -26,7 +25,7 @@ def get_project_key_config(project_key):
     return {"dsn": project_key.dsn_public}
 
 
-def get_project_config(project, org_options=None, full_config=True, for_store=False):
+def get_project_config(project, org_options=None, full_config=True, project_keys=None):
     """
     Constructs the ProjectConfig information.
 
@@ -49,14 +48,9 @@ def get_project_config(project, org_options=None, full_config=True, for_store=Fa
         scope.set_tag("project", project.id)
 
     with Hub.current.start_span(op="fetch_keys"):
-        if for_store:
-            project_keys = []
-        else:
-            project_keys = ProjectKey.objects.filter(project=project).all()
-
         public_keys = []
 
-        for project_key in project_keys:
+        for project_key in project_keys or ():
             key = {"publicKey": project_key.public_key, "isEnabled": project_key.status == 0}
             if full_config:
                 key["numericId"] = project_key.id

@@ -10,7 +10,7 @@ from sentry.api.base import Endpoint
 from sentry.api.permissions import RelayPermission
 from sentry.api.authentication import RelayAuthentication
 from sentry.relay import config
-from sentry.models import Project, Organization, OrganizationOption
+from sentry.models import Project, ProjectKey, Organization, OrganizationOption
 from sentry.utils import metrics
 
 
@@ -37,7 +37,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
             project_ids = set(request.relay_request_data.get("projects") or ())
             if project_ids:
                 with metrics.timer("relay_project_configs.fetching_projects.duration"):
-                    projects = {p.id: p for p in Project.objects.filter(pk__in=project_ids)}
+                    projects = {p.id: p for p in Project.objects.get_many_from_cache(project_ids)}
             else:
                 projects = {}
 
@@ -49,7 +49,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
                 with metrics.timer("relay_project_configs.fetching_orgs.duration"):
                     orgs = {
                         o.id: o
-                        for o in Organization.objects.filter(pk__in=org_ids)
+                        for o in Organization.objects.get_many_from_cache(org_ids)
                         if request.relay.has_org_access(o)
                     }
             else:
@@ -57,6 +57,11 @@ class RelayProjectConfigsEndpoint(Endpoint):
             org_options = {
                 i: OrganizationOption.objects.get_all_values(i) for i in six.iterkeys(orgs)
             }
+
+        with Hub.current.start_span(op="relay_fetch_keys"):
+            project_keys = {}
+            for key in ProjectKey.objects.get_many_from_cache(project_ids, key="project_id"):
+                project_keys.setdefault(key.project_id, []).append(key)
 
         metrics.timing("relay_project_configs.projects_requested", len(project_ids))
         metrics.timing("relay_project_configs.projects_fetched", len(projects))
@@ -80,10 +85,12 @@ class RelayProjectConfigsEndpoint(Endpoint):
             with Hub.current.start_span(op="get_config"):
                 with metrics.timer("relay_project_configs.get_config.duration"):
                     project_config = config.get_project_config(
-                        project, org_options=org_opts, full_config=full_config_requested
+                        project,
+                        org_options=org_opts,
+                        full_config=full_config_requested,
+                        project_keys=project_keys.get(project.id, []),
                     )
 
-            with Hub.current.start_span(op="to_camel_case_dict"):
-                configs[six.text_type(project_id)] = project_config.to_camel_case_dict()
+            configs[six.text_type(project_id)] = project_config.to_camel_case_dict()
 
         return Response({"configs": configs}, status=200)
