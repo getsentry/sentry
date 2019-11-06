@@ -20,6 +20,7 @@ import withProjects from 'app/utils/withProjects';
 
 type RouteParams = {
   orgId: string;
+  projectId: string;
   incidentRuleId: string;
 };
 
@@ -143,15 +144,14 @@ class IncidentRulesDetails extends AsyncView<
   };
 
   renderBody() {
-    const {orgId, incidentRuleId} = this.props.params;
+    const {orgId, projectId, incidentRuleId} = this.props.params;
     const {rule} = this.state;
 
     return (
-      <div>
-        <SettingsPageHeader title={t('Edit Incident Rule')} />
-
+      <React.Fragment>
         <RuleForm
           saveOnBlur
+          projectId={projectId}
           orgId={orgId}
           incidentRuleId={incidentRuleId}
           initialData={rule}
@@ -177,7 +177,7 @@ class IncidentRulesDetails extends AsyncView<
           onDelete={this.handleDeleteTrigger}
           onEdit={this.handleEditTrigger}
         />
-      </div>
+      </React.Fragment>
     );
   }
 }

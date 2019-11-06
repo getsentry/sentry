@@ -2,6 +2,7 @@ import {SpanEntry} from 'app/components/events/interfaces/spans/types';
 import {API_SCOPES} from 'app/constants';
 import {Field} from 'app/views/settings/components/forms/type';
 import {Params} from 'react-router/lib/Router';
+import {PlainRoute} from 'react-router/lib/Route';
 import {Location} from 'history';
 
 export type ObjectStatus =
@@ -598,6 +599,7 @@ export type SentryAppComponent = {
 export type RouterProps = {
   params: Params;
   location: Location;
+  routes: PlainRoute[];
 };
 
 export type ActiveExperiments = {

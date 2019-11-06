@@ -217,7 +217,15 @@ function routes() {
         }
         component={errorHandler(LazyLoad)}
       />
-      <Route name="Alerts" path="alerts/">
+
+      <Route
+        name="Alerts"
+        path="alerts/"
+        component={errorHandler(LazyLoad)}
+        componentPromise={() =>
+          import(/* webpackChunkName: "ProjectAlerts" */ 'app/views/settings/projectAlerts')
+        }
+      >
         <IndexRedirect to="rules/" />
         <Route
           path="settings/"
@@ -247,6 +255,74 @@ function routes() {
             name="Edit"
             componentPromise={() =>
               import(/* webpackChunkName: "ProjectAlertRuleDetails" */ 'app/views/settings/projectAlerts/projectAlertRuleDetails')
+            }
+            component={errorHandler(LazyLoad)}
+          />
+        </Route>
+      </Route>
+
+      <Route
+        name="Alerts"
+        path="alerts-v2/"
+        component={errorHandler(LazyLoad)}
+        componentPromise={() =>
+          import(/* webpackChunkName: "ProjectAlertsNew" */ 'app/views/settings/projectAlerts/new')
+        }
+      >
+        <IndexRedirect to="issue-rules/" />
+        <Route
+          path="settings/"
+          name="Settings"
+          component={errorHandler(LazyLoad)}
+          componentPromise={() =>
+            import(/* webpackChunkName: "ProjectAlertSettings" */ 'app/views/settings/projectAlerts/projectAlertSettings')
+          }
+        />
+        <Route path="issue-rules/" name="Rules" component={null}>
+          <IndexRoute
+            component={errorHandler(LazyLoad)}
+            componentPromise={() =>
+              import(/* webpackChunkName: "ProjectAlertRules" */ 'app/views/settings/projectAlerts/projectAlertRulesNew')
+            }
+          />
+          <Route
+            path="new/"
+            name="New"
+            component={errorHandler(LazyLoad)}
+            componentPromise={() =>
+              import(/* webpackChunkName: "ProjectAlertRuleDetails" */ 'app/views/settings/projectAlerts/projectAlertRuleDetails')
+            }
+          />
+          <Route
+            path=":ruleId/"
+            name="Edit"
+            componentPromise={() =>
+              import(/* webpackChunkName: "ProjectAlertRuleDetails" */ 'app/views/settings/projectAlerts/projectAlertRuleDetails')
+            }
+            component={errorHandler(LazyLoad)}
+          />
+        </Route>
+
+        <Route path="event-rules/" name="Event Rules" component={null}>
+          <IndexRoute
+            componentPromise={() =>
+              import(/* webpackChunkName: "IncidentRulesList" */ 'app/views/settings/incidentRules/list')
+            }
+            component={errorHandler(LazyLoad)}
+          />
+          <Route
+            name="New Incident Rule"
+            path="new/"
+            componentPromise={() =>
+              import(/* webpackChunkName: "IncidentRulesCreate" */ 'app/views/settings/incidentRules/create')
+            }
+            component={errorHandler(LazyLoad)}
+          />
+          <Route
+            name="Edit Incident Rule"
+            path=":incidentRuleId/"
+            componentPromise={() =>
+              import(/* webpackChunkName: "IncidentRulesDetails" */ 'app/views/settings/incidentRules/details')
             }
             component={errorHandler(LazyLoad)}
           />
@@ -531,38 +607,6 @@ function routes() {
           name="Details"
           componentPromise={() =>
             import(/* webpackChunkName: "OrganizationMemberDetail" */ 'app/views/settings/organizationMembers/organizationMemberDetail')
-          }
-          component={errorHandler(LazyLoad)}
-        />
-      </Route>
-
-      <Route
-        name="Incident Rules"
-        path="incident-rules/"
-        componentPromise={() =>
-          import(/* webpackChunkName: "IncidentRules" */ 'app/views/settings/incidentRules')
-        }
-        component={errorHandler(LazyLoad)}
-      >
-        <IndexRoute
-          componentPromise={() =>
-            import(/* webpackChunkName: "IncidentRulesList" */ 'app/views/settings/incidentRules/list')
-          }
-          component={errorHandler(LazyLoad)}
-        />
-        <Route
-          name="New Incident Rule"
-          path="new/"
-          componentPromise={() =>
-            import(/* webpackChunkName: "IncidentRulesCreate" */ 'app/views/settings/incidentRules/create')
-          }
-          component={errorHandler(LazyLoad)}
-        />
-        <Route
-          name="Edit Incident Rule"
-          path=":incidentRuleId/"
-          componentPromise={() =>
-            import(/* webpackChunkName: "IncidentRulesDetails" */ 'app/views/settings/incidentRules/details')
           }
           component={errorHandler(LazyLoad)}
         />

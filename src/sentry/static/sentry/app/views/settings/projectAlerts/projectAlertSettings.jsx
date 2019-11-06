@@ -4,6 +4,7 @@ import {PanelAlert} from 'app/components/panels';
 import {fields} from 'app/data/forms/projectAlerts';
 import {t} from 'app/locale';
 import routeTitleGen from 'app/utils/routeTitle';
+import withOrganization from 'app/utils/withOrganization';
 import Access from 'app/components/acl/access';
 import AlertLink from 'app/components/alertLink';
 import AsyncView from 'app/views/asyncView';
@@ -12,9 +13,8 @@ import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import PermissionAlert from 'app/views/settings/project/permissionAlert';
 import PluginList from 'app/components/pluginList';
 import SentryTypes from 'app/sentryTypes';
-import ProjectAlertHeader from './projectAlertHeader';
 
-export default class ProjectAlertSettings extends AsyncView {
+class ProjectAlertSettings extends AsyncView {
   static propTypes = {
     ...AsyncView.propTypes,
     // these are not declared as required of issues with cloned elements
@@ -77,7 +77,6 @@ export default class ProjectAlertSettings extends AsyncView {
       <Access access={['project:write']}>
         {({hasAccess}) => (
           <React.Fragment>
-            <ProjectAlertHeader projectId={projectId} />
             <PermissionAlert />
             <AlertLink to="/settings/account/notifications/" icon="icon-mail">
               {t(
@@ -137,3 +136,5 @@ export default class ProjectAlertSettings extends AsyncView {
     );
   }
 }
+
+export default withOrganization(ProjectAlertSettings);

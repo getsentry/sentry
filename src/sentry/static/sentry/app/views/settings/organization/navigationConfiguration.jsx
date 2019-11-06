@@ -33,13 +33,6 @@ const organizationNavigation = [
         id: 'members',
       },
       {
-        path: `${pathPrefix}/incident-rules/`,
-        title: t('Incident Rules'),
-        show: ({features}) => features.has('incidents'),
-        description: t('Manage Incident Rules'),
-        id: 'incident-rules',
-      },
-      {
         path: `${pathPrefix}/auth/`,
         title: t('Auth'),
         description: t('Configure single sign-on'),

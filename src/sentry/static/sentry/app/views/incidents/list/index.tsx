@@ -149,14 +149,6 @@ class IncidentsListContainer extends React.Component<Props> {
             </PageHeading>
 
             <Actions>
-              <Button
-                priority="default"
-                size="small"
-                to={`/settings/${orgId}/incident-rules/`}
-                icon="icon-settings"
-              >
-                {t('Manage Rules')}
-              </Button>
               <div className="btn-group">
                 <Button
                   to={{pathname, query: allIncidentsQuery}}
