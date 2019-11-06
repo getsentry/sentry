@@ -6,13 +6,13 @@ import responses
 from mock import Mock
 from sentry.testutils import TestCase
 
-from test_only_plugins.exceptions import (
+from new_sentry_plugins.exceptions import (
     ApiError,
     ApiHostError,
     ApiUnauthorized,
     UnsupportedResponseType,
 )
-from test_only_plugins.client import ApiClient, AuthApiClient
+from new_sentry_plugins.client import ApiClient, AuthApiClient
 
 
 class ApiClientTest(TestCase):
