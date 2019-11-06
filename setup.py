@@ -140,13 +140,16 @@ setup(
     include_package_data=True,
     entry_points={
         "console_scripts": ["sentry = sentry.runner:main"],
+        "sentry.new_apps": [
+            "sessionstack = new_sentry_plugins.sessionstack",
+        ],
         "sentry.test_only_apps": [
             "jira_ac = test_only_plugins.jira_ac",
             "jira = test_only_plugins.jira",
-            "sessionstack = test_only_plugins.sessionstack",
         ],
         "sentry.new_plugins": [
             "amazon_sqs = new_sentry_plugins.amazon_sqs.plugin:AmazonSQSPlugin",
+            "sessionstack = new_sentry_plugins.sessionstack.plugin:SessionStackPlugin",
         ],
         "sentry.test_only_plugins": [
             "asana = test_only_plugins.asana.plugin:AsanaPlugin",
@@ -162,7 +165,6 @@ setup(
             "pivotal = test_only_plugins.pivotal.plugin:PivotalPlugin",
             "pushover = test_only_plugins.pushover.plugin:PushoverPlugin",
             "segment = test_only_plugins.segment.plugin:SegmentPlugin",
-            "sessionstack = test_only_plugins.sessionstack.plugin:SessionStackPlugin",
             "slack = test_only_plugins.slack.plugin:SlackPlugin",
             "splunk = test_only_plugins.splunk.plugin:SplunkPlugin",
             "victorops = test_only_plugins.victorops.plugin:VictorOpsPlugin",
