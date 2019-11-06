@@ -136,7 +136,7 @@ setup(
     install_requires=install_requires,
     extras_require={"dev": dev_requires, "postgres": []},
     cmdclass=cmdclass,
-    license="BSL 1.1",
+    license="BSL-1.1",
     include_package_data=True,
     entry_points={
         "console_scripts": ["sentry = sentry.runner:main"],
