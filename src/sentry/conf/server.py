@@ -74,7 +74,6 @@ MAINTENANCE = False
 ADMINS = ()
 
 # Hosts that are considered in the same network (including VPNs).
-# This gives access to functionality like the debug toolbar.
 INTERNAL_IPS = ()
 
 # List of IP subnets which should not be accessible
