@@ -20,7 +20,7 @@ import Banner from 'app/components/banner';
 import Button from 'app/components/button';
 import BetaTag from 'app/components/betaTag';
 import Feature from 'app/components/acl/feature';
-import Link from 'app/components/links/link';
+import SearchBar from 'app/views/events/searchBar';
 import NoProjectMessage from 'app/components/noProjectMessage';
 
 import {PageContent, PageHeader} from 'app/styles/organization';
@@ -33,6 +33,7 @@ import EventView from './eventView';
 import EventInputName from './eventInputName';
 import {getFirstQueryString} from './utils';
 import {ALL_VIEWS, TRANSACTION_VIEWS, SAMPLE_VIEWS} from './data';
+import QueryCard from './querycard';
 
 type Props = {
   organization: Organization;
@@ -81,25 +82,23 @@ class EventsV2 extends React.Component<Props> {
       };
 
       return (
-        <LinkContainer key={index}>
-          <Link
-            to={to}
-            onClick={() => {
-              trackAnalyticsEvent({
-                eventKey: 'discover_v2.prebuilt_query_click',
-                eventName: 'Discoverv2: Click a pre-built query',
-                organization_id: this.props.organization.id,
-                query_name: eventView.name,
-              });
-            }}
-          >
-            {eventView.name}
-          </Link>
-        </LinkContainer>
+        <QueryCard
+          key={index}
+          to={to}
+          title={eventView.name}
+          onEventClick={() => {
+            trackAnalyticsEvent({
+              eventKey: 'discover_v2.prebuilt_query_click',
+              eventName: 'Discoverv2: Click a pre-built query',
+              organization_id: this.props.organization.id,
+              query_name: eventView.name,
+            });
+          }}
+        />
       );
     });
 
-    return <LinkList>{list}</LinkList>;
+    return <QueryGrid>{list}</QueryGrid>;
   }
 
   renderBanner() {
@@ -122,32 +121,31 @@ class EventsV2 extends React.Component<Props> {
       };
 
       return (
-        <BannerButton
-          to={to}
-          icon="icon-circle-add"
-          key={index}
-          onClick={() => {
-            trackAnalyticsEvent({
-              eventKey: 'discover_v2.prebuilt_query_click',
-              eventName: 'Discoverv2: Click a pre-built query',
-              organization_id: this.props.organization.id,
-              query_name: eventView.name,
-            });
-          }}
+        <StyledBanner
+          title={t('Discover')}
+          subtitle={t('Here are a few sample queries to kick things off')}
+          onCloseClick={this.handleClick}
         >
-          {view.buttonLabel || eventView.name}
-        </BannerButton>
+          <BannerButton icon="icon-circle-add">
+            {t('Users who error in < 1 min')}
+          </BannerButton>
+          <BannerButton icon="icon-circle-add">{t('Browsers by most bugs')}</BannerButton>
+          <BannerButton icon="icon-circle-add">
+            {t('Slowest HTTP endpoints')}
+          </BannerButton>
+        </StyledBanner>
       );
     });
 
+  }
+
+  renderNewQuery() {
     return (
-      <Banner
-        title={t('Discover')}
-        subtitle={t('Here are a few sample queries to kick things off')}
-        onCloseClick={this.handleClick}
-      >
-        {sampleQueries}
-      </Banner>
+      <div>
+        {this.renderBanner()}
+        <StyledSearchBar />
+        {this.renderQueryList()}
+      </div>
     );
   }
 
@@ -192,8 +190,7 @@ class EventsV2 extends React.Component<Props> {
                     />
                   )}
                 </PageHeader>
-                {!hasQuery && this.renderBanner()}
-                {!hasQuery && this.renderQueryList()}
+                {!hasQuery && this.renderNewQuery()}
                 {hasQuery && (
                   <Events
                     organization={organization}
@@ -228,18 +225,26 @@ const BannerButton = styled(Button)`
   }
 `;
 
-const LinkList = styled('ul')`
-  list-style: none;
-  padding: 0;
-  margin: 0;
+const StyledBanner = styled(Banner)`
+  margin-bottom: ${space(3)};
 `;
-const LinkContainer = styled('li')`
-  background: ${p => p.theme.white};
-  line-height: 1.4;
-  border: 1px solid ${p => p.theme.borderLight};
-  border-radius: ${p => p.theme.borderRadius};
-  margin-bottom: ${space(1)};
-  padding: ${space(1)};
+
+const StyledSearchBar = styled(SearchBar)`
+  margin-bottom: ${space(3)};
+`;
+
+const QueryGrid = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-gap: ${space(3)};
+
+  @media (min-width: ${theme.breakpoints[1]}) {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  @media (min-width: ${theme.breakpoints[2]}) {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
 `;
 
 // Wrapper is needed because BetaTag discards margins applied directly to it

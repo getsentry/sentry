@@ -47,7 +47,7 @@ const StyledBanner = styled('div')`
   min-height: 320px;
   padding-top: 24%;
   box-shadow: ${p => p.theme.dropShadowLight};
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(3)};
 
   @media (min-width: ${theme.breakpoints[1]}) {
     min-height: 220px;
