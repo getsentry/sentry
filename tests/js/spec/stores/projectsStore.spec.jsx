@@ -40,7 +40,7 @@ describe('ProjectsStore', function() {
     });
   });
 
-  describe('updates data', function() {
+  describe('updating data', function() {
     beforeEach(function() {
       ProjectsStore.reset();
       ProjectsStore.loadInitialData([projectFoo, projectBar]);
