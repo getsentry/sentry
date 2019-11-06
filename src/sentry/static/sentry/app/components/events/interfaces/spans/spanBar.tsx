@@ -274,7 +274,17 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
 
   renderSpanTreeConnector = ({hasToggler}: {hasToggler: boolean}) => {
     const {isLast, isRoot, treeDepth, continuingTreeDepths, span} = this.props;
+
     if (isRoot) {
+      if (hasToggler) {
+        return (
+          <ConnectorBar
+            style={{right: '11px', height: '10px', bottom: '-5px', top: 'auto'}}
+            key={`${span.span_id}-last`}
+          />
+        );
+      }
+
       return null;
     }
 
@@ -282,6 +292,15 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       const left = ((treeDepth - depth) * (TOGGLE_BORDER_BOX / 2) + 1) * -1;
       return <ConnectorBar style={{left}} key={`${span.span_id}-${depth}`} />;
     });
+
+    if (hasToggler) {
+      connectorBars.push(
+        <ConnectorBar
+          style={{right: '15px', height: '10px', bottom: '0', top: 'auto'}}
+          key={`${span.span_id}-last`}
+        />
+      );
+    }
 
     return (
       <SpanTreeConnector isLast={isLast} hasToggler={hasToggler}>
@@ -840,6 +859,7 @@ const spanTreeColor = '#D5CEDB';
 
 const SpanTreeConnector = styled('div')<TogglerTypes>`
   height: ${p => (p.isLast ? '85%' : '175%')};
+  width: 100%;
   border-left: 1px solid ${spanTreeColor};
   position: absolute;
   left: 4px;
