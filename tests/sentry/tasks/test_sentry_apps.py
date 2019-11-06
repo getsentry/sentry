@@ -103,7 +103,7 @@ class TestSendAlertEvent(TestCase):
 
         assert not safe_urlopen.called
 
-    @patch("sentry.tasks.sentry_apps.safe_urlopen")
+    @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponseInstance)
     def test_send_alert_event(self, safe_urlopen):
         group = self.create_group(project=self.project)
         event = self.create_event(group=group)

@@ -14,6 +14,15 @@ from sentry.models.sentryapp import VALID_EVENTS
 BUFFER_SIZE = 100
 KEY_EXPIRY = 60 * 60 * 24 * 30  # 30 days
 
+EXTENDED_VALID_EVENTS = VALID_EVENTS + (
+    "event_alert.triggered",
+    "installation.created",
+    "installation.deleted",
+    "select_uri.requested",
+    "issue_create_uri.requested",
+    "issue_link_uri.requested",
+)
+
 
 class SentryAppWebhookRequestsBuffer(object):
     """
@@ -72,12 +81,12 @@ class SentryAppWebhookRequestsBuffer(object):
             pipe = self.client.pipeline()
 
             all_requests = []
-            for evt in VALID_EVENTS:
+            for evt in EXTENDED_VALID_EVENTS:
                 self._get_all_from_buffer(self._get_redis_key(evt, error=error), pipeline=pipe)
 
             values = pipe.execute()
 
-            for idx, evt in enumerate(VALID_EVENTS):
+            for idx, evt in enumerate(EXTENDED_VALID_EVENTS):
                 event_requests = [
                     self._convert_redis_request(request, evt) for request in values[idx]
                 ]
@@ -99,7 +108,7 @@ class SentryAppWebhookRequestsBuffer(object):
         return self._get_requests(event=event, error=False)
 
     def add_request(self, response_code, org_id, event, url):
-        if event not in VALID_EVENTS:
+        if event not in EXTENDED_VALID_EVENTS:
             return
 
         request_key = self._get_redis_key(event)

@@ -1,6 +1,11 @@
 from __future__ import absolute_import
 
 from jsonschema import Draft4Validator
+from requests.exceptions import RequestException
+
+from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
+from sentry.http import safe_urlopen
+
 
 SELECT_OPTIONS_SCHEMA = {
     "type": "array",
@@ -35,3 +40,24 @@ def validate(instance, schema_type):
         return False
 
     return True
+
+
+# TODO make abstraction for urlopen kwargs to accept POST and data
+def send_and_save_request(sentry_app, org_id, event, **kwargs):
+    url = kwargs.get("url")
+    if not url:
+        return
+
+    buffer = SentryAppWebhookRequestsBuffer(sentry_app)
+
+    try:
+        resp = safe_urlopen(**kwargs)
+    except RequestException:
+        # Response code of 0 represents timeout
+        buffer.add_request(response_code=0, org_id=org_id, event=event, url=url)
+        # Re-raise the exception because some of these tasks might retry on the exception
+        raise
+
+    buffer.add_request(response_code=resp.status_code, org_id=org_id, event=event, url=url)
+
+    return resp

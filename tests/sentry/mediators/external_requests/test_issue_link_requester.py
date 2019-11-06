@@ -48,6 +48,7 @@ class TestIssueLinkRequester(TestCase):
             uri="/link-issue",
             fields=fields,
             user=self.user,
+            action="create",
         )
         assert result == {
             "project": "ProjectName",
@@ -90,6 +91,7 @@ class TestIssueLinkRequester(TestCase):
                 uri="/link-issue",
                 fields={},
                 user=self.user,
+                action="create",
             )
 
     @responses.activate
@@ -109,4 +111,5 @@ class TestIssueLinkRequester(TestCase):
                 uri="/link-issue",
                 fields={},
                 user=self.user,
+                action="create",
             )
