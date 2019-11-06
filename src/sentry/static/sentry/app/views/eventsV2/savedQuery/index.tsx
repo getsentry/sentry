@@ -27,6 +27,7 @@ type Props = {
   organization: Organization;
   eventView: EventView;
   savedQueries: SavedQuery[];
+  savedQueriesLoading: boolean;
 };
 type State = {
   isNewQuery: boolean;
@@ -36,10 +37,9 @@ type State = {
   queryName: string;
 };
 
-class SavedQueryButtonGroup extends React.Component<Props> {
-  static getDerivedStateFromProps(nextProps: Props, prevState: State): Partial<State> {
-    const {eventView: nextEventView, savedQueries} = nextProps;
-    const {queryId} = prevState;
+class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
+  static getDerivedStateFromProps(nextProps: Props, prevState: State): State {
+    const {eventView: nextEventView, savedQueries, savedQueriesLoading} = nextProps;
 
     // For a new unsaved query
     const savedQuery = savedQueries.find(q => q.id === nextEventView.id);
@@ -52,8 +52,14 @@ class SavedQueryButtonGroup extends React.Component<Props> {
       };
     }
 
+    if (savedQueriesLoading) {
+      return prevState;
+    }
+
+    const savedEventView = EventView.fromSavedQuery(savedQuery);
+
     // Switching from a SavedQuery to another SavedQuery
-    if (queryId !== nextEventView.id) {
+    if (savedEventView.id !== nextEventView.id) {
       return {
         isNewQuery: false,
         isEditingQuery: false,
@@ -63,11 +69,12 @@ class SavedQueryButtonGroup extends React.Component<Props> {
     }
 
     // For modifying a SavedQuery
-    const savedEventView = EventView.fromSavedQuery(savedQuery);
     const isEqualQuery = nextEventView.isEqualTo(savedEventView);
+
     return {
       isNewQuery: false,
       isEditingQuery: !isEqualQuery,
+      queryId: nextEventView.id,
 
       // HACK(leedongwei): See comment at SavedQueryButtonGroup.onFocusInput
       queryName: prevState.queryName || '',
