@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from sentry.api.serializers import serialize
 from sentry.incidents.endpoints.bases import OrganizationAlertRuleTriggerActionEndpoint
 from sentry.incidents.endpoints.serializers import AlertRuleTriggerActionSerializer
-from sentry.incidents.logic import delete_alert_rule_trigger_action
+from sentry.incidents.logic import delete_alert_rule_trigger_action, InvalidTriggerActionError
 
 
 class OrganizationAlertRuleTriggerActionDetailsEndpoint(OrganizationAlertRuleTriggerActionEndpoint):
@@ -33,8 +33,13 @@ class OrganizationAlertRuleTriggerActionDetailsEndpoint(OrganizationAlertRuleTri
         )
 
         if serializer.is_valid():
-            trigger = serializer.save()
-            return Response(serialize(trigger, request.user), status=status.HTTP_200_OK)
+            try:
+                alert_rule_trigger_action = serializer.save()
+            except InvalidTriggerActionError as e:
+                return Response(e.message, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                serialize(alert_rule_trigger_action, request.user), status=status.HTTP_200_OK
+            )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
