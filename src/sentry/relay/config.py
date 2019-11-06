@@ -47,18 +47,17 @@ def get_project_config(project, org_options=None, full_config=True, project_keys
     with configure_scope() as scope:
         scope.set_tag("project", project.id)
 
-    with Hub.current.start_span(op="fetch_keys"):
-        public_keys = []
+    public_keys = []
 
-        for project_key in project_keys or ():
-            key = {"publicKey": project_key.public_key, "isEnabled": project_key.status == 0}
-            if full_config:
-                key["numericId"] = project_key.id
+    for project_key in project_keys or ():
+        key = {"publicKey": project_key.public_key, "isEnabled": project_key.status == 0}
+        if full_config:
+            key["numericId"] = project_key.id
 
-                key["quotas"] = [
-                    quota.to_json() for quota in quotas.get_quotas(project, key=project_key)
-                ]
-            public_keys.append(key)
+            key["quotas"] = [
+                quota.to_json() for quota in quotas.get_quotas(project, key=project_key)
+            ]
+        public_keys.append(key)
 
     now = datetime.utcnow().replace(tzinfo=utc)
 
