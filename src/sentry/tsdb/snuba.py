@@ -30,10 +30,7 @@ class SnubaTSDB(BaseTSDB):
     will return empty results for unsupported models.
     """
 
-    # The ``model_query_settings`` and ``model_being_upgraded_query_settings`` are translations of
-    # TSDB models into required settings for querying snuba. Queries for ``model_columns``
-    # directly hit snuba, while queries for ``model_columns_being_upgraded`` hit
-    # redis in the main thread and snuba in a background thread.
+    # ``model_query_settings`` is a translation of TSDB models into required settings for querying snuba
     model_query_settings = {
         TSDBModel.project: SnubaModelQuerySettings(snuba.Dataset.Events, "project_id", None, None),
         TSDBModel.group: SnubaModelQuerySettings(snuba.Dataset.Events, "issue", None, None),
