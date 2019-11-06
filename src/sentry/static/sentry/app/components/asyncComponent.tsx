@@ -378,7 +378,7 @@ export default class AsyncComponent<
     return <LoadingIndicator />;
   }
 
-  renderError(error, disableLog = false, disableReport = false): React.ReactNode {
+  renderError(error?, disableLog = false, disableReport = false): React.ReactNode {
     // 401s are captured by SudoModal, but may be passed back to AsyncComponent if they close the modal without identifying
     const unauthorizedErrors = Object.values(this.state.errors).find(
       resp => resp && resp.status === 401
