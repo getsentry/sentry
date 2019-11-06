@@ -37,10 +37,10 @@ def get_project_config(project, org_options=None, full_config=True, project_keys
     :param full_config: True if only the full config is required, False
         if only the restricted (for external relays) is required
         (default True, i.e. full configuration)
-    :param for_store: If set to true, this omits all parameters that are not
-        needed for Relay. This is a temporary flag that should be removed once
-        store has been moved to Relay. Most importantly, this avoids database
-        accesses.
+    :param project_keys: Pre-fetched project keys for performance, similar to
+        org_options. However, if no project keys are provided it is assumed
+        that the config does not need to contain auth information (this is the
+        case when used in python's StoreView)
 
     :return: a ProjectConfig object for the given project
     """
