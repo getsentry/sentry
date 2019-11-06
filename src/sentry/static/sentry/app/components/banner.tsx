@@ -5,6 +5,7 @@ import styled from 'react-emotion';
 import theme from 'app/utils/theme';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
+import localStorage from 'app/utils/localStorage';
 
 import spaceBg from '../../images/background-space.svg';
 
@@ -15,27 +16,38 @@ type Props = {
 };
 
 class Banner extends React.Component<Props> {
-  static defaultProps = {
+  static defaultProps: Partial<Props> = {
     dismissable: true,
   };
 
-  renderClose() {
-    return <BannerIcon src="icon-close" aria-label={t('Close')} />;
+  handleClick() {
+    localStorage.setItem('banner-dismissed', true);
   }
 
   render() {
     const {title, subtitle, dismissable, children} = this.props;
+    const bannerDismissed = localStorage.getItem('banner-dismissed');
 
-    return (
-      <StyledBanner>
-        {dismissable ? this.renderClose() : null}
-        <BannerContent>
-          <BannerTitle>{title}</BannerTitle>
-          <BannerSubtitle>{subtitle}</BannerSubtitle>
-          <BannerActions>{children}</BannerActions>
-        </BannerContent>
-      </StyledBanner>
-    );
+    if (!bannerDismissed) {
+      return (
+        <StyledBanner>
+          {dismissable ? (
+            <BannerIcon
+              src="icon-close"
+              aria-label={t('Close')}
+              onClick={this.handleClick}
+            />
+          ) : null}
+          <BannerContent>
+            <BannerTitle>{title}</BannerTitle>
+            <BannerSubtitle>{subtitle}</BannerSubtitle>
+            <BannerActions>{children}</BannerActions>
+          </BannerContent>
+        </StyledBanner>
+      );
+    } else {
+      return null;
+    }
   }
 }
 
