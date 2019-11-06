@@ -24,6 +24,7 @@ type Props = {
   api: Client;
   organization: Organization;
   savedQueries: SavedQuery[];
+  savedQueriesLoading: boolean;
 };
 
 type State = {

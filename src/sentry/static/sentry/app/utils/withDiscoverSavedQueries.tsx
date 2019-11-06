@@ -9,10 +9,12 @@ import getDisplayName from 'app/utils/getDisplayName';
 
 type InjectedDiscoverSavedQueriesProps = {
   savedQueries: SavedQuery[];
+  savedQueriesLoading: boolean;
 };
 
 type State = {
   savedQueries: SavedQuery[];
+  savedQueriesLoading: boolean;
 };
 
 /**
@@ -31,8 +33,11 @@ const withDiscoverSavedQueries = <P extends InjectedDiscoverSavedQueriesProps>(
     mixins: [Reflux.listenTo(DiscoverSavedQueriesStore, 'onUpdate') as any],
 
     getInitialState() {
+      const {savedQueries, isLoading} = DiscoverSavedQueriesStore.get();
+
       return {
-        savedQueries: DiscoverSavedQueriesStore.get().savedQueries,
+        savedQueries,
+        savedQueriesLoading: isLoading,
       };
     },
 
@@ -45,15 +50,19 @@ const withDiscoverSavedQueries = <P extends InjectedDiscoverSavedQueriesProps>(
     },
 
     updateQueries() {
-      const queries = DiscoverSavedQueriesStore.get().savedQueries.filter(
-        (item: SavedQuery) => item.version === 2
-      );
-      this.setState({savedQueries: queries});
+      const {savedQueries, isLoading} = DiscoverSavedQueriesStore.get();
+
+      const queries = savedQueries.filter((item: SavedQuery) => item.version === 2);
+      this.setState({savedQueries: queries, savedQueriesLoading: isLoading});
     },
 
     render() {
       return (
-        <WrappedComponent savedQueries={this.state.savedQueries} {...this.props as P} />
+        <WrappedComponent
+          savedQueries={this.state.savedQueries}
+          savedQueriesLoading={this.state.savedQueriesLoading}
+          {...this.props as P}
+        />
       );
     },
   });

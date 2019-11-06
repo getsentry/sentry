@@ -20,6 +20,7 @@ type Props = {
   organization: Organization;
   eventView: EventView;
   savedQueries: SavedQuery[];
+  savedQueriesLoading: boolean;
 };
 
 const NAME_DEFAULT = t('Untitled query');
@@ -65,7 +66,6 @@ class EventInputName extends React.Component<Props> {
     handleUpdateQueryName(api, organization, nextEventView).then(
       (updatedQuery: SavedQuery) => {
         const view = EventView.fromSavedQuery(updatedQuery);
-
         // May have to delay this for the store to update.
         browserHistory.push({
           pathname: location.pathname,

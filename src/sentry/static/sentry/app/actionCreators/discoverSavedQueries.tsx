@@ -14,6 +14,9 @@ export function fetchSavedQueries(api: Client, orgId: string): Promise<SavedQuer
       method: 'GET',
     }
   );
+
+  DiscoverSavedQueryActions.startFetchSavedQueries();
+
   promise
     .then(resp => {
       DiscoverSavedQueryActions.fetchSavedQueriesSuccess(resp);
@@ -37,6 +40,9 @@ export function createSavedQuery(
       data: query,
     }
   );
+
+  DiscoverSavedQueryActions.startFetchSavedQueries();
+
   promise
     .then(resp => {
       DiscoverSavedQueryActions.createSavedQuerySuccess(resp);
@@ -59,6 +65,9 @@ export function updateSavedQuery(
       data: query,
     }
   );
+
+  DiscoverSavedQueryActions.startFetchSavedQueries();
+
   promise
     .then(resp => {
       DiscoverSavedQueryActions.updateSavedQuerySuccess(resp);
@@ -78,6 +87,9 @@ export function deleteSavedQuery(
     `/organizations/${orgId}/discover/saved/${queryId}/`,
     {method: 'DELETE'}
   );
+
+  DiscoverSavedQueryActions.startFetchSavedQueries();
+
   promise
     .then(() => {
       DiscoverSavedQueryActions.deleteSavedQuerySuccess(queryId);
