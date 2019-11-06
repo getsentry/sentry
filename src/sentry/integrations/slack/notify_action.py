@@ -8,11 +8,7 @@ from sentry.rules.actions.base import EventAction
 from sentry.utils import metrics, json
 from sentry.models import Integration
 
-from .utils import build_group_attachment
-
-MEMBER_PREFIX = "@"
-CHANNEL_PREFIX = "#"
-strip_channel_chars = "".join([MEMBER_PREFIX, CHANNEL_PREFIX])
+from .utils import build_group_attachment, get_channel_id
 
 
 class SlackNotifyServiceForm(forms.Form):
@@ -38,7 +34,7 @@ class SlackNotifyServiceForm(forms.Form):
         cleaned_data = super(SlackNotifyServiceForm, self).clean()
 
         workspace = cleaned_data.get("workspace")
-        channel = cleaned_data.get("channel", "").lstrip(strip_channel_chars)
+        channel = cleaned_data.get("channel", "")
 
         channel_id = self.channel_transformer(workspace, channel)
 
@@ -149,83 +145,4 @@ class SlackNotifyServiceAction(EventAction):
         )
 
     def get_channel_id(self, integration_id, name):
-        try:
-            integration = Integration.objects.get(
-                provider="slack", organizations=self.project.organization, id=integration_id
-            )
-        except Integration.DoesNotExist:
-            return None
-
-        session = http.build_session()
-
-        token_payload = {"token": integration.metadata["access_token"]}
-
-        # Look for channel ID
-        channels_payload = dict(
-            token_payload, **{"exclude_archived": False, "exclude_members": True}
-        )
-
-        # Slack limits the response of `channels.list` to 1000 channels, paginate if needed
-        cursor = None
-        channels_list_initial = True
-        while cursor or channels_list_initial:
-            channels_list_initial = False
-            channels = session.get(
-                "https://slack.com/api/channels.list",
-                params=dict(channels_payload, **{"cursor": cursor}),
-            )
-            channels = channels.json()
-            if not channels.get("ok"):
-                self.logger.info(
-                    "rule.slack.channel_list_failed", extra={"error": channels.get("error")}
-                )
-                return None
-
-            cursor = channels.get("response_metadata", {}).get("next_cursor", None)
-            channel_id = {c["name"]: c["id"] for c in channels["channels"]}.get(name)
-            if channel_id:
-                return (CHANNEL_PREFIX, channel_id)
-
-        # Channel may be private
-        # Slack limits the response of `groups.list` to 1000 groups, paginate if needed
-        cursor = None
-        groups_list_initial = True
-        while cursor or groups_list_initial:
-            groups_list_initial = False
-            groups = session.get(
-                "https://slack.com/api/groups.list",
-                params=dict(channels_payload, **{"cursor": cursor}),
-            )
-            groups = groups.json()
-            if not groups.get("ok"):
-                self.logger.info(
-                    "rule.slack.group_list_failed", extra={"error": groups.get("error")}
-                )
-                return None
-
-            cursor = groups.get("response_metadata", {}).get("next_cursor", None)
-            group_id = {c["name"]: c["id"] for c in groups["groups"]}.get(name)
-            if group_id:
-                return (CHANNEL_PREFIX, group_id)
-
-        # Channel may actually be a user
-        # Slack limits the response of `users.list` to 1000 users, paginate if needed
-        cursor = None
-        users_list_initial = True
-        while cursor or users_list_initial:
-            users_list_initial = False
-            users = session.get(
-                "https://slack.com/api/users.list",
-                params=dict(channels_payload, **{"cursor": cursor}),
-            )
-            users = users.json()
-            if not users.get("ok"):
-                self.logger.info("rule.slack.user_list_failed", extra={"error": users.get("error")})
-                return None
-
-            cursor = users.get("response_metadata", {}).get("next_cursor", None)
-            member_id = {c["name"]: c["id"] for c in users["members"]}.get(name)
-            if member_id:
-                return (CHANNEL_PREFIX, member_id)
-
-        return None
+        return get_channel_id(self.project.organization, integration_id, name)
