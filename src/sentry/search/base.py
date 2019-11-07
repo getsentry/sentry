@@ -1,6 +1,6 @@
 from __future__ import absolute_import
-from abc import abtractmethod
 from sentry.utils.services import Service
+
 
 ANY = object()
 
@@ -13,7 +13,6 @@ class SearchBackend(Service):
     def __init__(self, **options):
         pass
 
-    @abtractmethod
     def query(
         self,
         projects,
