@@ -416,7 +416,7 @@ class BaseManager(Manager):
             if local_cache is not None:
                 local_cache[cache_key] = db_result
 
-            final_results.append(result)
+            final_results.append(db_result)
 
         # XXX: Should use set_many here, but __post_save code is too complex
         for instance in cache_writes:
