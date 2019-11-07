@@ -215,10 +215,11 @@ class TriggerForm extends React.Component<Props, State> {
             config={config}
             organization={organization}
             projects={projects}
-            rule={rule}
             isInverted={isInverted}
             alertThreshold={alertThreshold}
             resolveThreshold={resolveThreshold}
+            query={rule.query}
+            aggregations={rule.aggregations}
             timeWindow={rule.timeWindow}
             onChangeIncidentThreshold={this.handleChangeIncidentThreshold}
             onChangeResolutionThreshold={this.handleChangeResolutionThreshold}
@@ -272,13 +273,10 @@ class TriggerForm extends React.Component<Props, State> {
 }
 
 type TriggerFormContainerProps = {
-  orgId: string;
   organization: Organization;
   projects: Project[];
   onSave: (trigger: UnsavedTrigger) => void;
-} & React.ComponentProps<typeof TriggerForm> & {
-    onSubmitSuccess?: Form['props']['onSubmitSuccess'];
-  };
+} & React.ComponentProps<typeof TriggerForm>;
 
 type TriggerFormContainerState = {
   actions: Action[];
@@ -297,13 +295,13 @@ class TriggerFormContainer extends AsyncComponent<
   }
 
   componentDidMount() {
-    const {orgId} = this.props;
+    const {organization} = this.props;
 
-    fetchOrgMembers(this.api, orgId);
+    fetchOrgMembers(this.api, organization.slug);
   }
 
   getEndpoints(): [string, string][] {
-    const {orgId, rule, trigger} = this.props;
+    const {organization, rule, trigger} = this.props;
 
     if (!trigger) {
       return [];
@@ -312,7 +310,9 @@ class TriggerFormContainer extends AsyncComponent<
     return [
       [
         'actions',
-        `/organizations/${orgId}/alert-rules/${rule.id}/triggers/${trigger.id}/actions/`,
+        `/organizations/${organization.slug}/alert-rules/${rule.id}/triggers/${
+          trigger.id
+        }/actions/`,
       ],
     ];
   }
@@ -332,9 +332,9 @@ class TriggerFormContainer extends AsyncComponent<
   };
 
   handleChangeAction = (index: number, action: Action): void => {
-    const {api, orgId, rule, trigger} = this.props;
+    const {api, organization, rule, trigger} = this.props;
     this.setState(state => {
-      addOrUpdateAction(api, orgId, rule, action, trigger);
+      addOrUpdateAction(api, organization.slug, rule, action, trigger);
 
       return {
         actions: replaceAtArrayIndex(state.actions, index, action),
@@ -355,22 +355,14 @@ class TriggerFormContainer extends AsyncComponent<
   }
 
   renderBody() {
-    const {
-      orgId,
-      onSubmitSuccess,
-      rule,
-      trigger,
-      organization,
-      projects,
-      ...props
-    } = this.props;
+    const {organization, rule, trigger, projects, ...props} = this.props;
 
     return (
       <Form
         apiMethod={trigger ? 'PUT' : 'POST'}
-        apiEndpoint={`/organizations/${orgId}/alert-rules/${rule.id}/triggers/${
-          trigger ? `${trigger.id}/` : ''
-        }`}
+        apiEndpoint={`/organizations/${organization.slug}/alert-rules/${
+          rule.id
+        }/triggers/${trigger ? `${trigger.id}/` : ''}`}
         initialData={{
           thresholdType: AlertRuleThresholdType.ABOVE,
           ...trigger,
