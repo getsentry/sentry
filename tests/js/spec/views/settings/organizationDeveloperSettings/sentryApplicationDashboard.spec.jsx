@@ -11,7 +11,7 @@ describe('Sentry Application Dashboard', function() {
   let org;
   let orgId;
   let sentryApp;
-  let error;
+  let request;
 
   let wrapper;
 
@@ -30,7 +30,7 @@ describe('Sentry Application Dashboard', function() {
           elements: [{type: 'stacktrace-link', uri: '/test'}, {type: 'issue-link'}],
         },
       });
-      error = TestStubs.SentryAppWebhookError();
+      request = TestStubs.SentryAppWebhookRequest();
 
       Client.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/stats/`,
@@ -43,8 +43,8 @@ describe('Sentry Application Dashboard', function() {
       });
 
       Client.addMockResponse({
-        url: `/sentry-apps/${sentryApp.slug}/errors/`,
-        body: [error],
+        url: `/sentry-apps/${sentryApp.slug}/requests/`,
+        body: [request],
       });
 
       Client.addMockResponse({
@@ -100,24 +100,23 @@ describe('Sentry Application Dashboard', function() {
       });
     });
 
-    it('shows the error log', () => {
-      const errorLog = wrapper.find('PanelBody');
-      const errorLogText = errorLog.find('PanelItem').text();
-      // The mock response has 1 error
-      expect(errorLog.find('PanelItem')).toHaveLength(1);
+    it('shows the request log', () => {
+      const requestLog = wrapper.find('PanelBody');
+      const requestLogText = requestLog.find('PanelItem').text();
+      // The mock response has 1 request
+      expect(requestLog.find('PanelItem')).toHaveLength(1);
       // Make sure that all the info is displayed
-      expect(errorLogText).toEqual(
+      expect(requestLogText).toEqual(
         expect.stringContaining('https://example.com/webhook')
       );
-      expect(errorLogText).toEqual(expect.stringContaining('This is an error'));
-      expect(errorLogText).toEqual(expect.stringContaining('400'));
-      expect(errorLogText).toEqual(expect.stringContaining('issue.assigned'));
-      expect(errorLogText).toEqual(expect.stringContaining('Test Org'));
+      expect(requestLogText).toEqual(expect.stringContaining('400'));
+      expect(requestLogText).toEqual(expect.stringContaining('issue.assigned'));
+      expect(requestLogText).toEqual(expect.stringContaining('Test Org'));
     });
 
-    it('shows an empty message if there are no errors', () => {
+    it('shows an empty message if there are no requests', () => {
       Client.addMockResponse({
-        url: `/sentry-apps/${sentryApp.slug}/errors/`,
+        url: `/sentry-apps/${sentryApp.slug}/requests/`,
         body: [],
       });
 
@@ -128,7 +127,7 @@ describe('Sentry Application Dashboard', function() {
 
       expect(wrapper.find('PanelBody').exists('PanelItem')).toBeFalsy();
       expect(wrapper.find('EmptyMessage').text()).toEqual(
-        expect.stringContaining('No errors found.')
+        expect.stringContaining('No requests found.')
       );
     });
 
@@ -172,7 +171,7 @@ describe('Sentry Application Dashboard', function() {
           elements: [{type: 'stacktrace-link', uri: '/test'}],
         },
       });
-      error = TestStubs.SentryAppWebhookError();
+      request = TestStubs.SentryAppWebhookRequest();
 
       Client.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/stats/`,
@@ -185,8 +184,8 @@ describe('Sentry Application Dashboard', function() {
       });
 
       Client.addMockResponse({
-        url: `/sentry-apps/${sentryApp.slug}/errors/`,
-        body: [error],
+        url: `/sentry-apps/${sentryApp.slug}/requests/`,
+        body: [request],
       });
 
       Client.addMockResponse({
@@ -215,24 +214,22 @@ describe('Sentry Application Dashboard', function() {
       expect(wrapper.exists('BarChart')).toBeFalsy();
     });
 
-    it('shows the error log', () => {
-      const errorLog = wrapper.find('PanelBody');
-      const errorLogText = errorLog.find('PanelItem').text();
-      // The mock response has 1 error
-      expect(errorLog.find('PanelItem')).toHaveLength(1);
+    it('shows the request log', () => {
+      const requestLog = wrapper.find('PanelBody');
+      const requestLogText = requestLog.find('PanelItem').text();
+      // The mock response has 1 request
+      expect(requestLog.find('PanelItem')).toHaveLength(1);
       // Make sure that all the info is displayed
-      expect(errorLogText).toEqual(
+      expect(requestLogText).toEqual(
         expect.stringContaining('https://example.com/webhook')
       );
-      expect(errorLogText).toEqual(expect.stringContaining('This is an error'));
-      expect(errorLogText).toEqual(expect.stringContaining('400'));
-      expect(errorLogText).toEqual(expect.stringContaining('issue.assigned'));
-      expect(errorLogText).toEqual(expect.stringContaining('Test Org'));
+      expect(requestLogText).toEqual(expect.stringContaining('400'));
+      expect(requestLogText).toEqual(expect.stringContaining('issue.assigned'));
     });
 
-    it('shows an empty message if there are no errors', () => {
+    it('shows an empty message if there are no requests', () => {
       Client.addMockResponse({
-        url: `/sentry-apps/${sentryApp.slug}/errors/`,
+        url: `/sentry-apps/${sentryApp.slug}/requests/`,
         body: [],
       });
 
@@ -243,7 +240,7 @@ describe('Sentry Application Dashboard', function() {
 
       expect(wrapper.find('PanelBody').exists('PanelItem')).toBeFalsy();
       expect(wrapper.find('EmptyMessage').text()).toEqual(
-        expect.stringContaining('No errors found.')
+        expect.stringContaining('No requests found.')
       );
     });
 
