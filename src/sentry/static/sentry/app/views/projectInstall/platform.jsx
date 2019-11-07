@@ -1,4 +1,3 @@
-import {Box, Flex} from 'grid-emotion';
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -14,6 +13,7 @@ import NotFound from 'app/components/errors/notFound';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import SentryTypes from 'app/sentryTypes';
 import platforms from 'app/data/platforms';
+import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withProject from 'app/utils/withProject';
@@ -89,18 +89,14 @@ class ProjectInstallPlatform extends React.Component {
       <Panel>
         <PanelHeader hasButtons>
           {t('Configure %(platform)s', {platform: platform.name})}
-          <Flex>
-            <Box ml={1}>
-              <Button size="small" href={gettingStartedLink}>
-                {t('< Back')}
-              </Button>
-            </Box>
-            <Box ml={1}>
-              <Button size="small" href={platform.link} external>
-                {t('Full Documentation')}
-              </Button>
-            </Box>
-          </Flex>
+          <Actions>
+            <Button size="small" href={gettingStartedLink}>
+              {t('< Back')}
+            </Button>
+            <Button size="small" href={platform.link} external>
+              {t('Full Documentation')}
+            </Button>
+          </Actions>
         </PanelHeader>
 
         <PanelAlert type="info">
@@ -156,6 +152,12 @@ const DocumentationWrapper = styled('div')`
     word-break: break-all;
     white-space: pre-wrap;
   }
+`;
+
+const Actions = styled('div')`
+  display: grid;
+  grid-auto-flow: column;
+  grid-gap: ${space(1)};
 `;
 
 export {ProjectInstallPlatform};

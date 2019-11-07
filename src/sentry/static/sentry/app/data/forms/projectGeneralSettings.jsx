@@ -1,6 +1,3 @@
-// TODO(grid-emotion): Refactor
-// eslint-disable-next-line no-restricted-imports
-import {Flex} from 'grid-emotion';
 import React from 'react';
 import styled from 'react-emotion';
 
@@ -415,7 +412,8 @@ export const fields = {
   },
 };
 
-const PlatformWrapper = styled(Flex)`
+const PlatformWrapper = styled('div')`
+  display: flex;
   align-items: center;
 `;
 const StyledPlatformIcon = styled(PlatformIcon)`

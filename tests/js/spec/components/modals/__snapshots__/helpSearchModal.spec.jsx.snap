@@ -104,82 +104,57 @@ exports[`Docs Search Modal can open help search modal and complete a search 1`] 
                 }
               }
             >
-              <Flex
-                align="center"
-                justify="space-between"
-              >
-                <Base
-                  align="center"
-                  className="css-v7pzd9"
-                  justify="space-between"
+              <Wrapper>
+                <div
+                  className="css-1gjt7pu-Wrapper e1deq8q73"
                 >
-                  <div
-                    className="css-v7pzd9"
-                    is={null}
-                  >
-                    <Content>
-                      <Component
-                        className="css-lo919j-Content e1deq8q73"
-                      >
-                        <Flex
-                          className="css-lo919j-Content e1deq8q73"
-                          direction="column"
-                        >
-                          <Base
-                            className="e1deq8q73 css-12nl3av-Content"
-                            direction="column"
+                  <Content>
+                    <div
+                      className="css-174kchf-Content e1deq8q74"
+                    >
+                      <div>
+                        <SearchTitle>
+                          <span
+                            className="css-jyrvax-SearchTitle e1deq8q70"
                           >
-                            <div
-                              className="e1deq8q73 css-12nl3av-Content"
-                              is={null}
+                            <span
+                              key="0"
                             >
-                              <div>
-                                <SearchTitle>
-                                  <span
-                                    className="css-jyrvax-SearchTitle e1deq8q70"
-                                  >
-                                    <span
-                                      key="0"
-                                    >
-                                      Doc result 1
-                                    </span>
-                                  </span>
-                                </SearchTitle>
-                              </div>
-                              <SearchDetail>
-                                <div
-                                  className="css-17e2h30-SearchDetail e1deq8q71"
-                                >
-                                  <span
-                                    key="0"
-                                  >
-                                    Doc result 1 description
-                                  </span>
-                                </div>
-                              </SearchDetail>
-                            </div>
-                          </Base>
-                        </Flex>
-                      </Component>
-                    </Content>
-                    <DocsBadge>
-                      <Component
+                              Doc result 1
+                            </span>
+                          </span>
+                        </SearchTitle>
+                      </div>
+                      <SearchDetail>
+                        <div
+                          className="css-17e2h30-SearchDetail e1deq8q71"
+                        >
+                          <span
+                            key="0"
+                          >
+                            Doc result 1 description
+                          </span>
+                        </div>
+                      </SearchDetail>
+                    </div>
+                  </Content>
+                  <DocsBadge>
+                    <Component
+                      className="css-ekzoaq-DocsBadge ekxyuw11"
+                    >
+                      <ResultIcon
                         className="css-ekzoaq-DocsBadge ekxyuw11"
                       >
-                        <ResultIcon
-                          className="css-ekzoaq-DocsBadge ekxyuw11"
+                        <div
+                          className="ekxyuw11 css-f5te32-ResultIcon-DocsBadge ekxyuw10"
                         >
-                          <div
-                            className="ekxyuw11 css-f5te32-ResultIcon-DocsBadge ekxyuw10"
-                          >
-                            docs
-                          </div>
-                        </ResultIcon>
-                      </Component>
-                    </DocsBadge>
-                  </div>
-                </Base>
-              </Flex>
+                          docs
+                        </div>
+                      </ResultIcon>
+                    </Component>
+                  </DocsBadge>
+                </div>
+              </Wrapper>
             </SearchResult>
           </withRouter(SearchResult)>
         </div>
@@ -282,82 +257,57 @@ exports[`Docs Search Modal can open help search modal and complete a search 1`] 
                 }
               }
             >
-              <Flex
-                align="center"
-                justify="space-between"
-              >
-                <Base
-                  align="center"
-                  className="css-v7pzd9"
-                  justify="space-between"
+              <Wrapper>
+                <div
+                  className="css-1gjt7pu-Wrapper e1deq8q73"
                 >
-                  <div
-                    className="css-v7pzd9"
-                    is={null}
-                  >
-                    <Content>
-                      <Component
-                        className="css-lo919j-Content e1deq8q73"
-                      >
-                        <Flex
-                          className="css-lo919j-Content e1deq8q73"
-                          direction="column"
-                        >
-                          <Base
-                            className="e1deq8q73 css-12nl3av-Content"
-                            direction="column"
+                  <Content>
+                    <div
+                      className="css-174kchf-Content e1deq8q74"
+                    >
+                      <div>
+                        <SearchTitle>
+                          <span
+                            className="css-jyrvax-SearchTitle e1deq8q70"
                           >
-                            <div
-                              className="e1deq8q73 css-12nl3av-Content"
-                              is={null}
+                            <span
+                              key="0"
                             >
-                              <div>
-                                <SearchTitle>
-                                  <span
-                                    className="css-jyrvax-SearchTitle e1deq8q70"
-                                  >
-                                    <span
-                                      key="0"
-                                    >
-                                      FAQ result 1
-                                    </span>
-                                  </span>
-                                </SearchTitle>
-                              </div>
-                              <SearchDetail>
-                                <div
-                                  className="css-17e2h30-SearchDetail e1deq8q71"
-                                >
-                                  <span
-                                    key="0"
-                                  >
-                                    FAQ result 1 description
-                                  </span>
-                                </div>
-                              </SearchDetail>
-                            </div>
-                          </Base>
-                        </Flex>
-                      </Component>
-                    </Content>
-                    <FaqsBadge>
-                      <Component
+                              FAQ result 1
+                            </span>
+                          </span>
+                        </SearchTitle>
+                      </div>
+                      <SearchDetail>
+                        <div
+                          className="css-17e2h30-SearchDetail e1deq8q71"
+                        >
+                          <span
+                            key="0"
+                          >
+                            FAQ result 1 description
+                          </span>
+                        </div>
+                      </SearchDetail>
+                    </div>
+                  </Content>
+                  <FaqsBadge>
+                    <Component
+                      className="css-1ghhjdv-FaqsBadge ekxyuw12"
+                    >
+                      <ResultIcon
                         className="css-1ghhjdv-FaqsBadge ekxyuw12"
                       >
-                        <ResultIcon
-                          className="css-1ghhjdv-FaqsBadge ekxyuw12"
+                        <div
+                          className="ekxyuw12 css-1p74sld-ResultIcon-FaqsBadge ekxyuw10"
                         >
-                          <div
-                            className="ekxyuw12 css-1p74sld-ResultIcon-FaqsBadge ekxyuw10"
-                          >
-                            faqs
-                          </div>
-                        </ResultIcon>
-                      </Component>
-                    </FaqsBadge>
-                  </div>
-                </Base>
-              </Flex>
+                          faqs
+                        </div>
+                      </ResultIcon>
+                    </Component>
+                  </FaqsBadge>
+                </div>
+              </Wrapper>
             </SearchResult>
           </withRouter(SearchResult)>
         </div>

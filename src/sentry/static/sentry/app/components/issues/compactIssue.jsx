@@ -1,4 +1,3 @@
-import {Flex, Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
@@ -9,12 +8,13 @@ import {PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
 import DropdownLink from 'app/components/dropdownLink';
 import ErrorLevel from 'app/components/events/errorLevel';
-import SnoozeAction from 'app/components/issues/snoozeAction';
 import GroupChart from 'app/components/stream/groupChart';
 import GroupStore from 'app/stores/groupStore';
 import IndicatorStore from 'app/stores/indicatorStore';
 import Link from 'app/components/links/link';
 import SentryTypes from 'app/sentryTypes';
+import SnoozeAction from 'app/components/issues/snoozeAction';
+import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -83,10 +83,8 @@ class CompactIssueHeader extends React.Component {
 
     return (
       <React.Fragment>
-        <Flex align="center">
-          <Box mr={1}>
-            <StyledErrorLevel size="12px" level={data.level} title={data.level} />
-          </Box>
+        <IssueHeaderMetaWrapper>
+          <StyledErrorLevel size="12px" level={data.level} title={data.level} />
           <h3 className="truncate">
             <Link to={issueLink}>
               <span className="icon icon-soundoff" />
@@ -94,7 +92,7 @@ class CompactIssueHeader extends React.Component {
               {this.getTitle()}
             </Link>
           </h3>
-        </Flex>
+        </IssueHeaderMetaWrapper>
         <div className="event-extra">
           <span className="project-name">
             <strong>{data.project.slug}</strong>
@@ -274,6 +272,12 @@ const CompactIssue = createReactClass({
 export {CompactIssue};
 export default withApi(withOrganization(CompactIssue));
 
+const IssueHeaderMetaWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
 const StyledErrorLevel = styled(ErrorLevel)`
   display: block;
+  margin-right: ${space(1)};
 `;

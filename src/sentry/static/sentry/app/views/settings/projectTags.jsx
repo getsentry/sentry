@@ -1,5 +1,5 @@
-import {Box, Flex} from 'grid-emotion';
 import React from 'react';
+import styled from 'react-emotion';
 
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {t, tct} from 'app/locale';
@@ -14,6 +14,7 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import Tooltip from 'app/components/tooltip';
 import routeTitleGen from 'app/utils/routeTitle';
+import space from 'app/styles/space';
 
 export default class ProjectTags extends AsyncView {
   getEndpoints() {
@@ -65,11 +66,7 @@ export default class ProjectTags extends AsyncView {
         </TextBlock>
 
         <Panel>
-          <PanelHeader>
-            <Flex>
-              <Box flex="1">{t('Tags')}</Box>
-            </Flex>
-          </PanelHeader>
+          <PanelHeader>{t('Tags')}</PanelHeader>
 
           <PanelBody>
             {isEmpty && (
@@ -88,11 +85,10 @@ export default class ProjectTags extends AsyncView {
                 tags.map(({key, canDelete}, idx) => {
                   const enabled = canDelete && hasAccess;
                   return (
-                    <PanelItem p={0} align="center" key={key} className="ref-tag-row">
-                      <Box align="flex-end" flex="1" p={2}>
-                        <span>{key}</span>
-                      </Box>
-                      <Flex align="center" p={2}>
+                    <TagPanelItem key={key} data-test-id="tag-row">
+                      <TagName>{key}</TagName>
+
+                      <Actions>
                         <Tooltip
                           disabled={enabled}
                           title={
@@ -115,8 +111,8 @@ export default class ProjectTags extends AsyncView {
                             />
                           </LinkWithConfirmation>
                         </Tooltip>
-                      </Flex>
-                    </PanelItem>
+                      </Actions>
+                    </TagPanelItem>
                   );
                 })
               }
@@ -127,3 +123,19 @@ export default class ProjectTags extends AsyncView {
     );
   }
 }
+
+const TagPanelItem = styled(PanelItem)`
+  padding: 0;
+  align-items: center;
+`;
+
+const TagName = styled('div')`
+  flex: 1;
+  padding: ${space(2)};
+`;
+
+const Actions = styled('div')`
+  display: flex;
+  align-items: center;
+  padding: ${space(2)};
+`;

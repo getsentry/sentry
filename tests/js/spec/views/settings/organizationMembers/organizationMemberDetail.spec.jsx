@@ -140,7 +140,7 @@ describe('OrganizationMemberDetail', function() {
       await wrapper.update();
 
       // Should have one team enabled
-      expect(wrapper.find('TeamSelect PanelItem')).toHaveLength(1);
+      expect(wrapper.find('TeamPanelItem')).toHaveLength(1);
 
       // Select new team to join
       // Open the dropdown
