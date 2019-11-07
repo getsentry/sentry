@@ -21,6 +21,7 @@ const ProjectsStore = Reflux.createStore({
 
   reset() {
     this.itemsById = {};
+    this.loading = true;
   },
 
   loadInitialData(items) {
@@ -28,6 +29,7 @@ const ProjectsStore = Reflux.createStore({
       map[project.id] = project;
       return map;
     }, {});
+    this.loading = false;
     this.trigger(new Set(Object.keys(this.itemsById)));
   },
 
@@ -166,6 +168,13 @@ const ProjectsStore = Reflux.createStore({
 
   getBySlug(slug) {
     return this.getAll().find(project => project.slug === slug);
+  },
+
+  getState() {
+    return {
+      projects: this.getAll(),
+      loading: this.loading,
+    };
   },
 });
 
