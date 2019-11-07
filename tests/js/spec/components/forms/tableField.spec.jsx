@@ -49,7 +49,7 @@ describe('TableField', function() {
     });
 
     it("doesn't render columns if there's no initalData", function() {
-      expect(wrapper.find('StyledHeader').exists()).toBe(false);
+      expect(wrapper.find('HeaderLabel').exists()).toBe(false);
     });
 
     describe('saves changes', function() {
@@ -57,13 +57,13 @@ describe('TableField', function() {
         wrapper.find('Button[icon="icon-circle-add"]').simulate('click');
         expect(
           wrapper
-            .find('StyledHeader')
+            .find('HeaderLabel')
             .at(0)
             .text()
         ).toBe('Column 1');
         expect(
           wrapper
-            .find('StyledHeader')
+            .find('HeaderLabel')
             .at(1)
             .text()
         ).toBe('Column 2');
