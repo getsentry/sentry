@@ -1060,7 +1060,7 @@ class EventManagerTest(TestCase):
 
         data = {"exception": {"values": [item.value for item in items]}}
 
-        project_config = get_project_config(self.project, for_store=True)
+        project_config = get_project_config(self.project)
         manager = EventManager(data, project=self.project, project_config=project_config)
 
         mock_is_valid_error_message.side_effect = [item.result for item in items]

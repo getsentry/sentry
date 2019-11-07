@@ -12,6 +12,7 @@ import getDynamicText from 'app/utils/getDynamicText';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import pinIcon from 'app/../images/location-pin.png';
 import {EventViewv1, Organization} from 'app/types';
+import Duration from 'app/components/duration';
 
 import {QueryLink} from './styles';
 
@@ -218,6 +219,7 @@ type FieldFormatters = {
   number: FieldFormatter;
   date: FieldFormatter;
   string: FieldFormatter;
+  duration: FieldFormatter;
 };
 
 export type FieldTypes = keyof FieldFormatters;
@@ -288,6 +290,18 @@ export const FIELD_FORMATTERS: FieldFormatters = {
       const value = Array.isArray(data[field]) ? data[field].slice(-1) : data[field];
       return <QueryLink to={target}>{value}</QueryLink>;
     },
+  },
+  duration: {
+    sortField: true,
+    renderFunc: (field, data) => (
+      <NumberContainer>
+        {typeof data[field] === 'number' ? (
+          <Duration seconds={data[field] / 1000} fixedDigits={2} abbreviation />
+        ) : (
+          emptyValue
+        )}
+      </NumberContainer>
+    ),
   },
 };
 
