@@ -391,6 +391,8 @@ class BaseManager(Manager):
                 db_lookup_values.append(value)
                 continue
 
+            final_results.append(cache_result)
+
         if nested_lookup_values:
             nested_results = self.get_many_from_cache(nested_lookup_values, key=pk_name)
             final_results.extend(nested_results)
