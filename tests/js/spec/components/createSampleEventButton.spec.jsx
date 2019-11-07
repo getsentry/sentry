@@ -60,6 +60,8 @@ describe('CreateSampleEventButton', function() {
     // Wait for the api request and latestEventAvailable to resolve
     await Promise.resolve();
     await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
 
     wrapper.update();
     expect(
