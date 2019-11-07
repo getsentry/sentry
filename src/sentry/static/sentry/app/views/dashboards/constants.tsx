@@ -7,4 +7,4 @@ export const WIDGET_DISPLAY = {
   TABLE: 'table',
   WORLD_MAP: 'world-map',
   PERCENTAGE_AREA_CHART: 'percentage-area',
-};
+} as const;
