@@ -391,7 +391,7 @@ class EventView {
       id: undefined,
       start: undefined,
       end: undefined,
-      statsPeriod: undefined,
+      statsPeriod: eventViewV1.statsPeriod,
       environment: [],
       yAxis: undefined,
     });

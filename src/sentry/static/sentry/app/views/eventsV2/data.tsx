@@ -190,6 +190,42 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
   },
 ];
 
+// sample queries for the discover banner
+export const SAMPLE_VIEWS: Readonly<Array<EventViewv1>> = [
+  {
+    name: t('Orgs with most errors in last 24 hrs'),
+    data: {
+      fields: ['organization', 'count(id)', 'count_unique(user)'],
+      fieldnames: ['Organization', '# of events', 'users'],
+      sort: ['-count_id'],
+      query: 'event.type:error',
+    },
+    tags: ['project.name', 'release', 'environment'],
+    statsPeriod: '24h',
+  },
+  {
+    name: t('Browsers with most bugs'),
+    data: {
+      fields: ['browser.name', 'count(id)', 'count_unique(issue.id)'],
+      fieldnames: ['Browser', '# of events', 'unique errors'],
+      sort: ['-count_id'],
+      query: 'event.type:error',
+    },
+    tags: ['error.type', 'project.name', 'url', 'release', 'environment'],
+  },
+  {
+    name: t('Top issues this week'),
+    data: {
+      fields: ['title', 'issue.id', 'project', 'count(id)', 'count_unique(user)'],
+      fieldnames: ['Title', 'issue.id', 'project', '# of events', 'users'],
+      sort: ['-count_id'],
+      query: 'event.type:error',
+    },
+    tags: ['project.name', 'release', 'environment'],
+    statsPeriod: '7d',
+  },
+];
+
 type EventData = {[key: string]: any};
 
 type RenderFunctionBaggage = {

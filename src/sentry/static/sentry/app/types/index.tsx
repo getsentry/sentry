@@ -395,6 +395,7 @@ export type EventViewv1 = {
     query?: string;
   };
   tags: string[];
+  statsPeriod?: string;
 };
 
 export type Repository = {
