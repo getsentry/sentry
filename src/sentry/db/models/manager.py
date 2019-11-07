@@ -1,6 +1,5 @@
 from __future__ import absolute_import, print_function
 
-import random
 import logging
 import six
 import threading
@@ -15,7 +14,7 @@ from django.db.models.manager import Manager, QuerySet
 from django.db.models.signals import post_save, post_delete, post_init, class_prepared
 from django.utils.encoding import smart_text
 
-from sentry import nodestore, options
+from sentry import nodestore
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
@@ -260,29 +259,6 @@ class BaseManager(Manager):
         intermediate value.  Callee is responsible for making sure
         the cache key is cleared on save.
         """
-        sample_rate = options.get("models.use-get-many-from-cache-sample-rate")
-
-        if sample_rate and random.random() < sample_rate:
-            if not self.cache_fields or len(kwargs) > 1:
-                return self.get(**kwargs)
-
-            key, value = next(six.iteritems(kwargs))
-
-            # We store everything by key references (vs instances)
-            if isinstance(value, Model):
-                value = value.pk
-
-            results = self.get_many_from_cache(values=[value], key=key)
-            if not results:
-                raise self.model.DoesNotExist()
-
-            return results[0]
-
-        return self._get_from_cache_legacy(**kwargs)
-
-    def _get_from_cache_legacy(self, **kwargs):
-        # XXX(markus): Remove in favor of implementation based on
-        # get_many_from_cache
         if not self.cache_fields or len(kwargs) > 1:
             return self.get(**kwargs)
 
