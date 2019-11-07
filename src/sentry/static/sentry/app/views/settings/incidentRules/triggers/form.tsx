@@ -274,7 +274,9 @@ class TriggerForm extends React.Component<Props, State> {
 
 type TriggerFormContainerProps = {
   organization: Organization;
+  rule: IncidentRule;
   projects: Project[];
+  trigger?: Trigger;
   onSave: (trigger: UnsavedTrigger) => void;
 } & React.ComponentProps<typeof TriggerForm>;
 
@@ -286,10 +288,9 @@ class TriggerFormContainer extends AsyncComponent<
   TriggerFormContainerProps & AsyncComponent['props'],
   TriggerFormContainerState & AsyncComponent['state']
 > {
-  constructor(props, context) {
-    super(props, context);
-    this.state = {
-      ...this.state,
+  getDefaultState() {
+    return {
+      ...super.getDefaultState(),
       actions: [],
     };
   }
@@ -303,7 +304,7 @@ class TriggerFormContainer extends AsyncComponent<
   getEndpoints(): [string, string][] {
     const {organization, rule, trigger} = this.props;
 
-    if (!trigger) {
+    if (!trigger || !trigger.id) {
       return [];
     }
 
