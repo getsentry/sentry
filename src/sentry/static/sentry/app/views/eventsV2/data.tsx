@@ -190,6 +190,49 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
   },
 ];
 
+// sample queries for the discover banner
+export const SAMPLE_VIEWS: Readonly<Array<EventViewv1 & {buttonLabel?: string}>> = [
+  {
+    name: t('Content Security Policy (CSP) Report by User'),
+    buttonLabel: t('CSP Reports by User'),
+    data: {
+      fields: ['user', 'count(id)', 'count_unique(title)'],
+      fieldnames: ['User', '# of events', 'reports'],
+      sort: ['-count_id'],
+      query: 'event.type:csp',
+    },
+    tags: [
+      'project.name',
+      'blocked-uri',
+      'browser.name',
+      'os.name',
+      'release',
+      'environment',
+    ],
+  },
+  {
+    name: t('Browsers with most bugs'),
+    data: {
+      fields: ['browser.name', 'count(id)', 'count_unique(issue.id)'],
+      fieldnames: ['Browser', '# of events', 'unique errors'],
+      sort: ['-count_id'],
+      query: 'event.type:error',
+    },
+    tags: ['error.type', 'project.name', 'url', 'release', 'environment'],
+  },
+  {
+    name: t('Top issues this week'),
+    data: {
+      fields: ['title', 'issue.id', 'project', 'count(id)', 'count_unique(user)'],
+      fieldnames: ['Title', 'issue.id', 'project', '# of events', 'users'],
+      sort: ['-count_id'],
+      query: 'event.type:error',
+    },
+    tags: ['project.name', 'release', 'environment'],
+    statsPeriod: '7d',
+  },
+];
+
 type EventData = {[key: string]: any};
 
 type RenderFunctionBaggage = {
