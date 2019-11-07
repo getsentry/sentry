@@ -7,6 +7,7 @@ import HiddenField from './hiddenField';
 import NumberField from './numberField';
 import RangeField from './rangeField';
 import SelectField from './selectField';
+import TableField from './tableField';
 import TextField from './textField';
 import TextareaField from './textareaField';
 import RadioField from './radioField';
@@ -14,7 +15,6 @@ import InputField from './inputField';
 import ChoiceMapperField from './choiceMapperField';
 import RichListField from './richListField';
 import FieldSeparator from './fieldSeparator';
-import TableField from './tableField';
 
 import {Field} from './type';
 

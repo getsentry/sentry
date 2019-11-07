@@ -1,7 +1,7 @@
-import {Flex, Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
+import space from 'app/styles/space';
 
 import {defined, objectIsEmpty} from 'app/utils';
 import {t} from 'app/locale';
@@ -24,7 +24,8 @@ type Props = {
   name?: string;
   columnLabels: object;
   columnKeys: string[];
-} & Partial<DefaultProps>;
+} & Partial<DefaultProps> &
+  InputField['props'];
 
 export default class TableField extends React.Component<Props> {
   static propTypes = {
@@ -95,7 +96,6 @@ export default class TableField extends React.Component<Props> {
 
     const setValue = (rowIndex: number, fieldKey: string, fieldValue: any) => {
       const newValue = [...value];
-      console.log(fieldValue);
       newValue[rowIndex][fieldKey] =
         fieldValue && fieldValue.currentTarget ? fieldValue.currentTarget.value : null;
       saveChanges(newValue);
@@ -110,48 +110,42 @@ export default class TableField extends React.Component<Props> {
     // The field will be set to inline when there is no value set for the
     // field, just show the button.
     if (!valueIsEmpty) {
-      return <Box>{button}</Box>;
+      return <div>{button}</div>;
     }
 
     return (
       <React.Fragment>
-        <Flex align="center">
+        <HeaderContainer>
           {mappedKeys.map((fieldKey, i) => (
-            <Flex
-              key={fieldKey}
-              ml={1}
-              flex="1 0 0"
-              align="center"
-              justify="space-between"
-            >
-              <StyledHeader>{columnLabels[fieldKey]}</StyledHeader>
+            <Header key={fieldKey}>
+              <HeaderLabel>{columnLabels[fieldKey]}</HeaderLabel>
               {i === mappedKeys.length - 1 && button}
-            </Flex>
+            </Header>
           ))}
-        </Flex>
+        </HeaderContainer>
         {value.map((row, rowIndex) => (
-          <Flex key={rowIndex} align="center" mt={1}>
+          <RowContainer data-test-id="field-row" key={rowIndex}>
             {mappedKeys.map((fieldKey: string, i: number) => (
-              <Flex key={fieldKey} align="center" ml={1} flex="1 0 0">
-                <Box flex={1}>
+              <Row key={fieldKey}>
+                <RowInput>
                   <Input
                     onChange={v => setValue(rowIndex, fieldKey, v ? v : null)}
                     value={row[fieldKey]}
                   />
-                </Box>
+                </RowInput>
                 {i === mappedKeys.length - 1 && (
-                  <Box ml={1}>
+                  <RemoveButton>
                     <Button
                       icon="icon-trash"
                       size="small"
                       disabled={disabled}
                       onClick={() => removeRow(rowIndex)}
                     />
-                  </Box>
+                  </RemoveButton>
                 )}
-              </Flex>
+              </Row>
             ))}
-          </Flex>
+          </RowContainer>
         ))}
       </React.Fragment>
     );
@@ -168,8 +162,42 @@ export default class TableField extends React.Component<Props> {
   }
 }
 
-const StyledHeader = styled(Box)`
+const HeaderLabel = styled('div')`
   font-size: 0.8em;
   text-transform: uppercase;
   color: ${p => p.theme.gray3};
+`;
+
+const HeaderContainer = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+const Header = styled('div')`
+  display: flex;
+  flex: 1 0 0;
+  align-items: center;
+  justify-content: space-between;
+  margin-left: ${space(1)};
+`;
+
+const RowContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  margin-top: ${space(1)};
+`;
+
+const Row = styled('div')`
+  display: flex;
+  flex: 1 0 0;
+  align-items: center;
+  margin-top: ${space(1)};
+`;
+
+const RowInput = styled('div')`
+  flex: 1;
+`;
+
+const RemoveButton = styled('div')`
+  margin-left: ${space(1)};
 `;

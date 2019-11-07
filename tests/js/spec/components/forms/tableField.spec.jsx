@@ -80,7 +80,7 @@ describe('TableField', function() {
           .last()
           .simulate('click');
 
-        expect(wrapper.find('StyledHeader')).toBe('sd');
+        expect(wrapper.find('RowContainer[data-test-id="field-row"]')).toHaveLength(1);
       });
     });
   });

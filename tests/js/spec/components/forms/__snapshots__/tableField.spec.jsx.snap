@@ -18,6 +18,7 @@ exports[`TableField renders renders with form context 1`] = `
       "fieldDescriptor": Map {
         "fieldName" => Object {
           "addButtonText": "Add Thing",
+          "allowEmpty": false,
           "children": [Function],
           "className": undefined,
           "columnKeys": Array [
@@ -30,6 +31,7 @@ exports[`TableField renders renders with form context 1`] = `
           },
           "field": [Function],
           "flexibleControlStateSize": false,
+          "formatMessageValue": false,
           "hideErrorMessage": false,
           "inline": [Function],
           "name": "fieldName",
@@ -69,6 +71,7 @@ exports[`TableField renders renders with form context 1`] = `
     <div>
       <TableField
         addButtonText="Add Thing"
+        allowEmpty={false}
         columnKeys={
           Array [
             "column1",
@@ -81,10 +84,12 @@ exports[`TableField renders renders with form context 1`] = `
             "column2": "Column 2",
           }
         }
+        formatMessageValue={false}
         name="fieldName"
       >
         <InputField
           addButtonText="Add Thing"
+          allowEmpty={false}
           columnKeys={
             Array [
               "column1",
@@ -98,11 +103,13 @@ exports[`TableField renders renders with form context 1`] = `
             }
           }
           field={[Function]}
+          formatMessageValue={false}
           inline={[Function]}
           name="fieldName"
         >
           <FormField
             addButtonText="Add Thing"
+            allowEmpty={false}
             columnKeys={
               Array [
                 "column1",
@@ -117,6 +124,7 @@ exports[`TableField renders renders with form context 1`] = `
             }
             field={[Function]}
             flexibleControlStateSize={false}
+            formatMessageValue={false}
             hideErrorMessage={false}
             inline={[Function]}
             name="fieldName"
@@ -125,6 +133,7 @@ exports[`TableField renders renders with form context 1`] = `
               <Field
                 addButtonText="Add Thing"
                 alignRight={false}
+                allowEmpty={false}
                 columnKeys={
                   Array [
                     "column1",
@@ -140,6 +149,7 @@ exports[`TableField renders renders with form context 1`] = `
                 disabled={false}
                 field={[Function]}
                 flexibleControlStateSize={false}
+                formatMessageValue={false}
                 id="fieldName"
                 inline={true}
                 name="fieldName"
@@ -180,6 +190,7 @@ exports[`TableField renders renders with form context 1`] = `
                                     "fieldDescriptor": Map {
                                       "fieldName" => Object {
                                         "addButtonText": "Add Thing",
+                                        "allowEmpty": false,
                                         "children": [Function],
                                         "className": undefined,
                                         "columnKeys": Array [
@@ -192,6 +203,7 @@ exports[`TableField renders renders with form context 1`] = `
                                         },
                                         "field": [Function],
                                         "flexibleControlStateSize": false,
+                                        "formatMessageValue": false,
                                         "hideErrorMessage": false,
                                         "inline": [Function],
                                         "name": "fieldName",
@@ -416,6 +428,7 @@ exports[`TableField renders renders with form context 1`] = `
                                                                 "fieldDescriptor": Map {
                                                                   "fieldName" => Object {
                                                                     "addButtonText": "Add Thing",
+                                                                    "allowEmpty": false,
                                                                     "children": [Function],
                                                                     "className": undefined,
                                                                     "columnKeys": Array [
@@ -428,6 +441,7 @@ exports[`TableField renders renders with form context 1`] = `
                                                                     },
                                                                     "field": [Function],
                                                                     "flexibleControlStateSize": false,
+                                                                    "formatMessageValue": false,
                                                                     "hideErrorMessage": false,
                                                                     "inline": [Function],
                                                                     "name": "fieldName",
@@ -559,6 +573,8 @@ exports[`TableField renders renders with form context 1`] = `
 
 exports[`TableField renders renders without form context 1`] = `
 <TableField
+  addButtonText="Add Item"
+  allowEmpty={false}
   columnKeys={
     Array [
       "column1",
@@ -571,9 +587,12 @@ exports[`TableField renders renders without form context 1`] = `
       "column2": "Column 2",
     }
   }
+  formatMessageValue={false}
   name="fieldName"
 >
   <InputField
+    addButtonText="Add Item"
+    allowEmpty={false}
     columnKeys={
       Array [
         "column1",
@@ -587,10 +606,13 @@ exports[`TableField renders renders without form context 1`] = `
       }
     }
     field={[Function]}
+    formatMessageValue={false}
     inline={[Function]}
     name="fieldName"
   >
     <FormField
+      addButtonText="Add Item"
+      allowEmpty={false}
       columnKeys={
         Array [
           "column1",
@@ -605,13 +627,16 @@ exports[`TableField renders renders without form context 1`] = `
       }
       field={[Function]}
       flexibleControlStateSize={false}
+      formatMessageValue={false}
       hideErrorMessage={false}
       inline={[Function]}
       name="fieldName"
     >
       <Observer>
         <Field
+          addButtonText="Add Item"
           alignRight={false}
+          allowEmpty={false}
           columnKeys={
             Array [
               "column1",
@@ -627,6 +652,7 @@ exports[`TableField renders renders without form context 1`] = `
           disabled={false}
           field={[Function]}
           flexibleControlStateSize={false}
+          formatMessageValue={false}
           id="fieldName"
           inline={true}
           name="fieldName"
@@ -660,6 +686,8 @@ exports[`TableField renders renders without form context 1`] = `
                                 "fieldName": undefined,
                               },
                               "props": Object {
+                                "addButtonText": "Add Item",
+                                "allowEmpty": false,
                                 "children": [Function],
                                 "className": undefined,
                                 "columnKeys": Array [
@@ -672,6 +700,7 @@ exports[`TableField renders renders without form context 1`] = `
                                 },
                                 "field": [Function],
                                 "flexibleControlStateSize": false,
+                                "formatMessageValue": false,
                                 "hideErrorMessage": false,
                                 "inline": [Function],
                                 "name": "fieldName",
@@ -756,6 +785,7 @@ exports[`TableField renders renders without form context 1`] = `
                                                             >
                                                               <StyledButton
                                                                 aria-disabled={false}
+                                                                aria-label="Add Item"
                                                                 disabled={false}
                                                                 onClick={[Function]}
                                                                 role="button"
@@ -763,6 +793,7 @@ exports[`TableField renders renders without form context 1`] = `
                                                               >
                                                                 <ForwardRef
                                                                   aria-disabled={false}
+                                                                  aria-label="Add Item"
                                                                   className="css-z6hjis-StyledButton-getColors edwq9my0"
                                                                   disabled={false}
                                                                   onClick={[Function]}
@@ -771,6 +802,7 @@ exports[`TableField renders renders without form context 1`] = `
                                                                 >
                                                                   <button
                                                                     aria-disabled={false}
+                                                                    aria-label="Add Item"
                                                                     className="css-z6hjis-StyledButton-getColors edwq9my0"
                                                                     onClick={[Function]}
                                                                     role="button"
@@ -789,16 +821,16 @@ exports[`TableField renders renders without form context 1`] = `
                                                                           className="css-1bqncjo-ButtonLabel edwq9my1"
                                                                         >
                                                                           <Icon
-                                                                            hasChildren={false}
+                                                                            hasChildren={true}
                                                                             size="xsmall"
                                                                           >
                                                                             <Component
-                                                                              className="css-ljhpxy-Icon edwq9my2"
-                                                                              hasChildren={false}
+                                                                              className="css-1vdnsie-Icon edwq9my2"
+                                                                              hasChildren={true}
                                                                               size="xsmall"
                                                                             >
                                                                               <span
-                                                                                className="css-ljhpxy-Icon edwq9my2"
+                                                                                className="css-1vdnsie-Icon edwq9my2"
                                                                                 size="xsmall"
                                                                               >
                                                                                 <StyledInlineSvg
@@ -826,6 +858,7 @@ exports[`TableField renders renders without form context 1`] = `
                                                                               </span>
                                                                             </Component>
                                                                           </Icon>
+                                                                          Add Item
                                                                         </span>
                                                                       </Component>
                                                                     </ButtonLabel>
@@ -866,6 +899,8 @@ exports[`TableField renders renders without form context 1`] = `
                                                             "fieldName": undefined,
                                                           },
                                                           "props": Object {
+                                                            "addButtonText": "Add Item",
+                                                            "allowEmpty": false,
                                                             "children": [Function],
                                                             "className": undefined,
                                                             "columnKeys": Array [
@@ -878,6 +913,7 @@ exports[`TableField renders renders without form context 1`] = `
                                                             },
                                                             "field": [Function],
                                                             "flexibleControlStateSize": false,
+                                                            "formatMessageValue": false,
                                                             "hideErrorMessage": false,
                                                             "inline": [Function],
                                                             "name": "fieldName",
