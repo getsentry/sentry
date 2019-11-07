@@ -3,20 +3,21 @@ import React from 'react';
 import styled from 'react-emotion';
 import space from 'app/styles/space';
 import Link from 'app/components/links/link';
-
+import InlineSvg from 'app/components/inlineSvg';
+import Avatar from 'app/components/avatar';
 // import {t} from 'app/locale';
-// import InlineSvg from 'app/components/inlineSvg';
 
 type Props = {
   title?: string;
   queryDetail?: string;
   to?: string | object;
   onEventClick?: () => void;
+  creatorName?: string | object;
 };
 
 class QueryCard extends React.Component<Props> {
   render() {
-    const {title, queryDetail, onEventClick, to} = this.props;
+    const {title, queryDetail, onEventClick, to, creatorName} = this.props;
 
     return (
       <StyledQueryCard onClick={onEventClick} to={to}>
@@ -24,7 +25,14 @@ class QueryCard extends React.Component<Props> {
           <StyledTitle>{title}</StyledTitle>
           <StyledQueryDetail>{queryDetail}</StyledQueryDetail>
         </QueryCardHeader>
-        <QueryCardFooter>TBD</QueryCardFooter>
+        <QueryCardBody />
+        <QueryCardFooter>
+          <StyledCreator>
+            <StyledAvatar user={creatorName} />
+            <small>Creator Name</small>
+          </StyledCreator>
+          <InlineSvg src="icon-ellipsis-filled" />
+        </QueryCardFooter>
       </StyledQueryCard>
     );
   }
@@ -58,10 +66,24 @@ const StyledQueryDetail = styled('div')`
   font-weight: 300;
 `;
 
+const QueryCardBody = styled('div')`
+  background: ${p => p.theme.offWhiteLight};
+  height: 100px;
+`;
+
 const QueryCardFooter = styled('div')`
-  display: block;
+  display: flex;
+  justify-content: space-between;
   padding: ${space(1.5)} ${space(2)};
   color: ${p => p.theme.gray5};
+`;
+
+const StyledCreator = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+const StyledAvatar = styled(Avatar)`
+  margin-right: ${space(1)};
 `;
 
 export default QueryCard;
