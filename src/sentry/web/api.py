@@ -424,7 +424,7 @@ class APIView(BaseView):
             # implicitly fetched from database.
             project.organization = Organization.objects.get_from_cache(id=project.organization_id)
 
-            project_config = get_project_config(project, for_store=True)
+            project_config = get_project_config(project)
 
             helper.context.bind_project(project_config.project)
 

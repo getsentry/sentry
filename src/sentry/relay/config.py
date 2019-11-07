@@ -4,6 +4,8 @@ import six
 import uuid
 import sentry.utils as utils
 
+from sentry_sdk import Hub
+
 from datetime import datetime
 from pytz import utc
 
@@ -15,7 +17,6 @@ from sentry import quotas
 from sentry.models.organizationoption import OrganizationOption
 from sentry.utils.data_filters import FilterTypes, FilterStatKeys
 from sentry.utils.http import get_origins
-from sentry.models.projectkey import ProjectKey
 from sentry.utils.sdk import configure_scope
 
 
@@ -24,7 +25,7 @@ def get_project_key_config(project_key):
     return {"dsn": project_key.dsn_public}
 
 
-def get_project_config(project, org_options=None, full_config=True, for_store=False):
+def get_project_config(project, org_options=None, full_config=True, project_keys=None):
     """
     Constructs the ProjectConfig information.
 
@@ -36,24 +37,19 @@ def get_project_config(project, org_options=None, full_config=True, for_store=Fa
     :param full_config: True if only the full config is required, False
         if only the restricted (for external relays) is required
         (default True, i.e. full configuration)
-    :param for_store: If set to true, this omits all parameters that are not
-        needed for Relay. This is a temporary flag that should be removed once
-        store has been moved to Relay. Most importantly, this avoids database
-        accesses.
+    :param project_keys: Pre-fetched project keys for performance, similar to
+        org_options. However, if no project keys are provided it is assumed
+        that the config does not need to contain auth information (this is the
+        case when used in python's StoreView)
 
     :return: a ProjectConfig object for the given project
     """
     with configure_scope() as scope:
         scope.set_tag("project", project.id)
 
-    if for_store:
-        project_keys = []
-    else:
-        project_keys = ProjectKey.objects.filter(project=project).all()
-
     public_keys = []
 
-    for project_key in project_keys:
+    for project_key in project_keys or ():
         key = {"publicKey": project_key.public_key, "isEnabled": project_key.status == 0}
         if full_config:
             key["numericId"] = project_key.id
@@ -68,21 +64,22 @@ def get_project_config(project, org_options=None, full_config=True, for_store=Fa
     if org_options is None:
         org_options = OrganizationOption.objects.get_all_values(project.organization_id)
 
-    cfg = {
-        "disabled": project.status > 0,
-        "slug": project.slug,
-        "lastFetch": now,
-        "lastChange": project.get_option("sentry:relay-rev-lastchange", now),
-        "rev": project.get_option("sentry:relay-rev", uuid.uuid4().hex),
-        "publicKeys": public_keys,
-        "config": {
-            "allowedDomains": project.get_option("sentry:origins", ["*"]),
-            "trustedRelays": org_options.get("sentry:trusted-relays", []),
-            "piiConfig": _get_pii_config(project),
-            "datascrubbingSettings": _get_datascrubbing_settings(project, org_options),
-        },
-        "project_id": project.id,
-    }
+    with Hub.current.start_span(op="get_public_config"):
+        cfg = {
+            "disabled": project.status > 0,
+            "slug": project.slug,
+            "lastFetch": now,
+            "lastChange": project.get_option("sentry:relay-rev-lastchange", now),
+            "rev": project.get_option("sentry:relay-rev", uuid.uuid4().hex),
+            "publicKeys": public_keys,
+            "config": {
+                "allowedDomains": project.get_option("sentry:origins", ["*"]),
+                "trustedRelays": org_options.get("sentry:trusted-relays", []),
+                "piiConfig": _get_pii_config(project),
+                "datascrubbingSettings": _get_datascrubbing_settings(project, org_options),
+            },
+            "project_id": project.id,
+        }
 
     if not full_config:
         # This is all we need for external Relay processors
@@ -94,33 +91,34 @@ def get_project_config(project, org_options=None, full_config=True, for_store=Fa
 
     project_cfg = cfg["config"]
 
-    # get the filter settings for this project
-    filter_settings = {}
-    project_cfg["filter_settings"] = filter_settings
+    with Hub.current.start_span(op="get_filter_settings"):
+        # get the filter settings for this project
+        filter_settings = {}
+        project_cfg["filter_settings"] = filter_settings
 
-    for flt in get_all_filters():
-        filter_id = get_filter_key(flt)
-        settings = _load_filter_settings(flt, project)
-        filter_settings[filter_id] = settings
+        for flt in get_all_filters():
+            filter_id = get_filter_key(flt)
+            settings = _load_filter_settings(flt, project)
+            filter_settings[filter_id] = settings
 
-    invalid_releases = project.get_option(u"sentry:{}".format(FilterTypes.RELEASES))
-    if invalid_releases:
-        filter_settings[FilterTypes.RELEASES] = {"releases": invalid_releases}
+        invalid_releases = project.get_option(u"sentry:{}".format(FilterTypes.RELEASES))
+        if invalid_releases:
+            filter_settings[FilterTypes.RELEASES] = {"releases": invalid_releases}
 
-    blacklisted_ips = project.get_option("sentry:blacklisted_ips")
-    if blacklisted_ips:
-        filter_settings["client_ips"] = {"blacklisted_ips": blacklisted_ips}
+        blacklisted_ips = project.get_option("sentry:blacklisted_ips")
+        if blacklisted_ips:
+            filter_settings["client_ips"] = {"blacklisted_ips": blacklisted_ips}
 
-    error_messages = project.get_option(u"sentry:{}".format(FilterTypes.ERROR_MESSAGES))
-    if error_messages:
-        filter_settings[FilterTypes.ERROR_MESSAGES] = {"patterns": error_messages}
+        error_messages = project.get_option(u"sentry:{}".format(FilterTypes.ERROR_MESSAGES))
+        if error_messages:
+            filter_settings[FilterTypes.ERROR_MESSAGES] = {"patterns": error_messages}
 
-    csp_disallowed_sources = []
-    if bool(project.get_option("sentry:csp_ignored_sources_defaults", True)):
-        csp_disallowed_sources += DEFAULT_DISALLOWED_SOURCES
-    csp_disallowed_sources += project.get_option("sentry:csp_ignored_sources", [])
-    if csp_disallowed_sources:
-        filter_settings["csp"] = {"disallowed_sources": csp_disallowed_sources}
+        csp_disallowed_sources = []
+        if bool(project.get_option("sentry:csp_ignored_sources_defaults", True)):
+            csp_disallowed_sources += DEFAULT_DISALLOWED_SOURCES
+        csp_disallowed_sources += project.get_option("sentry:csp_ignored_sources", [])
+        if csp_disallowed_sources:
+            filter_settings["csp"] = {"disallowed_sources": csp_disallowed_sources}
 
     scrub_ip_address = org_options.get(
         "sentry:require_scrub_ip_address", False
@@ -128,8 +126,11 @@ def get_project_config(project, org_options=None, full_config=True, for_store=Fa
 
     project_cfg["scrub_ip_addresses"] = scrub_ip_address
 
-    project_cfg["grouping_config"] = get_grouping_config_dict_for_project(project)
-    project_cfg["allowed_domains"] = list(get_origins(project))
+    with Hub.current.start_span(op="get_grouping_config_dict_for_project"):
+        project_cfg["grouping_config"] = get_grouping_config_dict_for_project(project)
+
+    with Hub.current.start_span(op="get_origins"):
+        project_cfg["allowed_domains"] = list(get_origins(project))
 
     return ProjectConfig(project, **cfg)
 
