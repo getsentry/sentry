@@ -586,20 +586,6 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                               >
                                 <span
                                   className="project-label"
-                                  project={
-                                    Object {
-                                      "environments": Array [],
-                                      "hasAccess": true,
-                                      "id": "2",
-                                      "isBookmarked": false,
-                                      "isMember": true,
-                                      "name": "Project Name",
-                                      "slug": "project-slug",
-                                      "teams": Array [
-                                        undefined,
-                                      ],
-                                    }
-                                  }
                                 >
                                   <span
                                     className="project-name"
@@ -960,18 +946,6 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                               >
                                 <span
                                   className="project-label"
-                                  project={
-                                    Object {
-                                      "environments": Array [],
-                                      "hasAccess": true,
-                                      "id": "3",
-                                      "isBookmarked": false,
-                                      "isMember": true,
-                                      "name": "Project Name 2",
-                                      "slug": "project-slug-2",
-                                      "teams": Array [],
-                                    }
-                                  }
                                 >
                                   <span
                                     className="project-name"
