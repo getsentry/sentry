@@ -236,15 +236,15 @@ const StyledSearchBar = styled(SearchBar)`
 
 const QueryGrid = styled('div')`
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(100px, 1fr);
   grid-gap: ${space(3)};
 
   @media (min-width: ${theme.breakpoints[1]}) {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(100px, 1fr));
   }
 
-  @media (min-width: ${theme.breakpoints[2]}) {
-    grid-template-columns: repeat(3, 1fr);
+  @media (min-width: ${theme.breakpoints[3]}) {
+    grid-template-columns: repeat(3, minmax(100px, 1fr));
   }
 `;
 

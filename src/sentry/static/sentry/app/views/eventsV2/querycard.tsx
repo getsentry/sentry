@@ -5,19 +5,21 @@ import space from 'app/styles/space';
 import Link from 'app/components/links/link';
 import InlineSvg from 'app/components/inlineSvg';
 import Avatar from 'app/components/avatar';
-// import {t} from 'app/locale';
 
 type Props = {
   title?: string;
   queryDetail?: string;
   to?: string | object;
   onEventClick?: () => void;
-  creatorName?: string | object;
 };
 
 class QueryCard extends React.Component<Props> {
   render() {
-    const {title, queryDetail, onEventClick, to, creatorName} = this.props;
+    const {title, queryDetail, onEventClick, to} = this.props;
+    const creatorName = {
+      id: 1,
+      name: 'Bob',
+    };
 
     return (
       <StyledQueryCard onClick={onEventClick} to={to}>
@@ -49,14 +51,19 @@ const StyledQueryCard = styled(Link)`
 `;
 
 const QueryCardHeader = styled('div')`
-  display: block;
   padding: ${space(1.5)} ${space(2)};
+  height: 80px;
+  overflow: hidden;
 `;
 
 const StyledTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   color: ${p => p.theme.gray5};
   font-weight: 300;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
 `;
 
 const StyledQueryDetail = styled('div')`
@@ -64,6 +71,10 @@ const StyledQueryDetail = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.gray2};
   font-weight: 300;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
 `;
 
 const QueryCardBody = styled('div')`
@@ -74,6 +85,7 @@ const QueryCardBody = styled('div')`
 const QueryCardFooter = styled('div')`
   display: flex;
   justify-content: space-between;
+  align-items: center;
   padding: ${space(1.5)} ${space(2)};
   color: ${p => p.theme.gray5};
 `;
