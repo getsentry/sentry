@@ -18,7 +18,7 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import Link from 'app/components/links/link';
 
 import space from 'app/styles/space';
-import {SentryApp, SentryAppWebhookError} from 'app/types';
+import {SentryApp, SentryAppWebhookRequest} from 'app/types';
 import {t} from 'app/locale';
 
 type Props = AsyncView['props'];
@@ -30,14 +30,14 @@ type State = AsyncView['state'] & {
     install_stats: [number, number][];
     uninstall_stats: [number, number][];
   };
-  errors: SentryAppWebhookError[];
+  requests: SentryAppWebhookRequest[];
   interactions: {
     component_interactions: {
       [key: string]: [number, number][];
     };
     views: [number, number][];
   };
-  app: SentryApp | null;
+  app: SentryApp;
 };
 
 export default class SentryApplicationDashboard extends AsyncView<Props, State> {
@@ -52,7 +52,7 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
         `/sentry-apps/${appSlug}/stats/`,
         {query: {since: now - ninety_days_ago, until: now}},
       ],
-      ['errors', `/sentry-apps/${appSlug}/errors/`],
+      ['requests', `/sentry-apps/${appSlug}/requests/`],
       [
         'interactions',
         `/sentry-apps/${appSlug}/interaction/`,
@@ -128,14 +128,14 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
     );
   }
 
-  renderErrorLog() {
-    const {errors} = this.state;
+  renderRequestLog() {
+    const {requests, app} = this.state;
     return (
       <React.Fragment>
-        <h5>{t('Error Log')}</h5>
+        <h5>{t('Request Log')}</h5>
         <p>
           {t(
-            'This log shows the errors captured from outgoing webhook requests for the following events: issue.assigned, issue.ignored, issue.resolved'
+            'This log shows outgoing webhook requests for the following events: issue.assigned, issue.ignored, issue.resolved, issue.created, error.created'
           )}
         </p>
         <Panel>
@@ -143,30 +143,30 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
             <TableLayout>
               <div>{t('Time')}</div>
               <div>{t('Status Code')}</div>
-              <div>{t('Organization')}</div>
+              {app.status !== 'internal' && <div>{t('Organization')}</div>}
               <div>{t('Event Type')}</div>
               <div>{t('Webhook URL')}</div>
-              <div>{t('Response Body')}</div>
             </TableLayout>
           </PanelHeader>
 
           <PanelBody>
-            {errors.length > 0 ? (
-              errors.map((error, idx) => (
+            {requests.length > 0 ? (
+              requests.map((request, idx) => (
                 <PanelItem key={idx}>
                   <TableLayout>
-                    <DateTime date={error.date} />
-                    <div>{error.response.statusCode}</div>
-                    <div>{error.organization.name}</div>
-                    <div>{error.eventType}</div>
-                    <OverflowBox>{error.webhookUrl}</OverflowBox>
-                    <OverflowBox>{error.response.body}</OverflowBox>
+                    <DateTime date={request.date} />
+                    <div>{request.responseCode}</div>
+                    {app.status !== 'internal' && request.organization && (
+                      <div>{request.organization.name}</div>
+                    )}
+                    <div>{request.eventType}</div>
+                    <OverflowBox>{request.webhookUrl}</OverflowBox>
                   </TableLayout>
                 </PanelItem>
               ))
             ) : (
               <EmptyMessage icon="icon-circle-exclamation">
-                {t('No errors found.')}
+                {t('No requests found.')}
               </EmptyMessage>
             )}
           </PanelBody>
@@ -229,11 +229,11 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
 
     return (
       <div>
-        {app && <SettingsPageHeader title={app.name} />}
-        {app && app.status === 'published' && this.renderInstallData()}
-        {this.renderErrorLog()}
-        {app && app.status === 'published' && this.renderIntegrationViews()}
-        {app && app.schema.elements && this.renderComponentInteractions()}
+        {<SettingsPageHeader title={app.name} />}
+        {app.status === 'published' && this.renderInstallData()}
+        {this.renderRequestLog()}
+        {app.status === 'published' && this.renderIntegrationViews()}
+        {app.schema.elements && this.renderComponentInteractions()}
       </div>
     );
   }
@@ -288,7 +288,7 @@ const StatsHeader = styled('h6')`
 
 const TableLayout = styled('div')`
   display: grid;
-  grid-template-columns: 1fr 0.5fr 1fr 1fr 1fr 2fr;
+  grid-template-columns: 1fr 0.5fr 1fr 1fr 1fr;
   grid-column-gap: ${space(1.5)};
   width: 100%;
   align-items: center;
