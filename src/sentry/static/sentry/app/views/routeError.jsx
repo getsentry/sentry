@@ -23,7 +23,7 @@ class RouteError extends React.Component {
   };
 
   componentWillMount() {
-    let {error} = this.props;
+    const {error} = this.props;
     const {disableLogSentry, disableReport, routes} = this.props;
     const {organization, project} = this.context;
 
@@ -36,7 +36,7 @@ class RouteError extends React.Component {
 
     const route = getRouteStringFromRoutes(routes);
     if (route) {
-      error = new Error(error.message + `: ${route}`);
+      error.message = `${error.message}: ${route}`;
     }
     // TODO(dcramer): show something in addition to embed (that contains it?)
     // throw this in a timeout so if it errors we dont fall over
