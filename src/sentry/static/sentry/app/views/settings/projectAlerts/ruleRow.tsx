@@ -1,4 +1,3 @@
-import {RouteComponentProps} from 'react-router/lib/Router';
 import {Link} from 'react-router';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import PropTypes from 'prop-types';
