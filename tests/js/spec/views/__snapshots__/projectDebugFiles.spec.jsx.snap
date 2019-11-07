@@ -251,42 +251,30 @@ exports[`ProjectDebugFiles renders 1`] = `
                 data-test-id="empty-state"
               >
                 <div
-                  className="css-pdv4gl-EmptyStreamWrapper ernlsnc0"
+                  className="css-eeziz4-EmptyStreamWrapper ernlsnc0"
                   data-test-id="empty-state"
                 >
                   <HeroIcon
                     size="54"
                     src="icon-circle-exclamation"
                   >
-                    <Component
-                      className="css-gwydcl-HeroIcon e1h7wyrq0"
+                    <ForwardRef
+                      className="css-192qau-InlineSvg-HeroIcon e1csd7tf0"
                       size="54"
                       src="icon-circle-exclamation"
                     >
-                      <InlineSvg
-                        className="css-gwydcl-HeroIcon e1h7wyrq0"
-                        size="54"
-                        src="icon-circle-exclamation"
+                      <svg
+                        className="css-192qau-InlineSvg-HeroIcon e1csd7tf0"
+                        height="54"
+                        viewBox={Object {}}
+                        width="54"
                       >
-                        <ForwardRef
-                          className="e1h7wyrq0 css-192qau-InlineSvg-HeroIcon enyz4ql0"
-                          size="54"
-                          src="icon-circle-exclamation"
-                        >
-                          <svg
-                            className="e1h7wyrq0 css-192qau-InlineSvg-HeroIcon enyz4ql0"
-                            height="54"
-                            viewBox={Object {}}
-                            width="54"
-                          >
-                            <use
-                              href="#test"
-                              xlinkHref="#test"
-                            />
-                          </svg>
-                        </ForwardRef>
-                      </InlineSvg>
-                    </Component>
+                        <use
+                          href="#test"
+                          xlinkHref="#test"
+                        />
+                      </svg>
+                    </ForwardRef>
                   </HeroIcon>
                   <p>
                     There are no debug symbols for this project.
