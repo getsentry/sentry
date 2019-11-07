@@ -7,16 +7,37 @@ import {t} from 'app/locale';
 import InlineSvg from 'app/components/inlineSvg';
 import Button from 'app/components/button';
 
-class DetailedError extends React.Component {
+type Props = {
+  className?: string;
+  /**
+   * Error heading
+   */
+  heading: React.ReactNode;
+  /**
+   * Detailed error explanation
+   */
+  message?: React.ReactNode;
+  /**
+   * Retry callback
+   */
+  onRetry?: (e: React.MouseEvent) => void;
+  /**
+   * Hide support links in footer of error message
+   */
+  hideSupportLinks?: boolean;
+};
+
+function openFeedback(e: React.MouseEvent) {
+  e.preventDefault();
+  Sentry.showReportDialog();
+}
+
+class DetailedError extends React.Component<Props> {
   static propTypes = {
     className: PropTypes.string,
-    /* Retry callback */
     onRetry: PropTypes.func,
-    /* Error heading */
     heading: PropTypes.string.isRequired,
-    /* Detailed error explanation */
     message: PropTypes.node,
-    /* Hide support links in footer of error message */
     hideSupportLinks: PropTypes.bool,
   };
 
@@ -25,14 +46,8 @@ class DetailedError extends React.Component {
   };
 
   componentDidMount() {
-    setTimeout(() => {
-      this.forceUpdate();
-    }, 100);
-  }
-
-  openFeedback(e) {
-    e.preventDefault();
-    Sentry.showReportDialog();
+    // XXX(epurkhiser): Why is this here?
+    setTimeout(() => this.forceUpdate(), 100);
   }
 
   render() {
@@ -64,7 +79,7 @@ class DetailedError extends React.Component {
               {!hideSupportLinks && (
                 <div className="detailed-error-support-links">
                   {Sentry.lastEventId() && (
-                    <Button priority="link" onClick={this.openFeedback}>
+                    <Button priority="link" onClick={openFeedback}>
                       {t('Fill out a report')}
                     </Button>
                   )}
