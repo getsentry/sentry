@@ -97,7 +97,7 @@ class BuildIncidentAttachmentTest(TestCase):
             ),
             "text": " ",
             "fields": [
-                {"title": "Status", "value": "Open", "short": True},
+                {"title": "Status", "value": "Fired", "short": True},
                 {"title": "Events", "value": 0, "short": True},
                 {"title": "Users", "value": 0, "short": True},
             ],
