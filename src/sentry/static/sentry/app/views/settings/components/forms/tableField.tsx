@@ -9,13 +9,22 @@ import Button from 'app/components/button';
 import InputField from 'app/views/settings/components/forms/inputField';
 import Input from 'app/views/settings/components/forms/controls/input';
 
+const defaultProps = {
+  addButtonText: t('Add Item'),
+  allowEmpty: false,
+  // Since we're saving an object, there isn't a great way to render the
+  // change within the toast. Just turn off displaying the from/to portion of
+  // the message.
+  formatMessageValue: false,
+};
+
+type DefaultProps = Readonly<typeof defaultProps>;
+
 type Props = {
   name?: string;
-  addButtonText?: React.ReactNode;
-  columnLabels: any;
+  columnLabels: object;
   columnKeys: string[];
-  allowEmpty?: boolean;
-};
+} & Partial<DefaultProps>;
 
 export default class TableField extends React.Component<Props> {
   static propTypes = {
@@ -26,9 +35,9 @@ export default class TableField extends React.Component<Props> {
      */
     addButtonText: PropTypes.node,
     /**
-     * A list of column labels (headers) for the table.
+     * An object with of column labels (headers) for the table.
      */
-    columnLabels: PropTypes.objectOf(PropTypes.node).isRequired,
+    columnLabels: PropTypes.object.isRequired,
     /**
      * A list of column keys for the table, in the order that you want
      * the columns to appear - order doesn't matter in columnLabels
@@ -40,15 +49,7 @@ export default class TableField extends React.Component<Props> {
     allowEmpty: PropTypes.bool,
   };
 
-  static defaultProps = {
-    addButtonText: t('Add Item'),
-    perItemMapping: false,
-    allowEmpty: false,
-    // Since we're saving an object, there isn't a great way to render the
-    // change within the toast. Just turn off displaying the from/to portion of
-    // the message.
-    formatMessageValue: false,
-  };
+  static defaultProps = defaultProps;
 
   hasValue = value => defined(value) && !objectIsEmpty(value);
 
@@ -94,7 +95,9 @@ export default class TableField extends React.Component<Props> {
 
     const setValue = (rowIndex: number, fieldKey: string, fieldValue: any) => {
       const newValue = [...value];
-      newValue[rowIndex][fieldKey] = fieldValue.currentTarget.value;
+      console.log(fieldValue);
+      newValue[rowIndex][fieldKey] =
+        fieldValue && fieldValue.currentTarget ? fieldValue.currentTarget.value : null;
       saveChanges(newValue);
     };
 
@@ -132,7 +135,7 @@ export default class TableField extends React.Component<Props> {
               <Flex key={fieldKey} align="center" ml={1} flex="1 0 0">
                 <Box flex={1}>
                   <Input
-                    onChange={(v: string) => setValue(rowIndex, fieldKey, v ? v : null)}
+                    onChange={v => setValue(rowIndex, fieldKey, v ? v : null)}
                     value={row[fieldKey]}
                   />
                 </Box>

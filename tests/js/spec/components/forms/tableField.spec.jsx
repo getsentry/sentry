@@ -79,6 +79,8 @@ describe('TableField', function() {
           .find('Button[icon="icon-trash"]')
           .last()
           .simulate('click');
+
+        expect(wrapper.find('StyledHeader')).toBe('sd');
       });
     });
   });

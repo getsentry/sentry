@@ -148,7 +148,6 @@ class PagerDutyInstallationRedirect(PipelineView):
 
         app_id = options.get("pagerduty.app-id")
         setup_url = absolute_uri("/extensions/pagerduty/setup/")
-        setup_url = "https://meredith.ngrok.io/extensions/pagerduty/setup/"
 
         return (
             u"https://%s.pagerduty.com/install/integration?app_id=%s&redirect_url=%s&version=1"
@@ -160,8 +159,6 @@ class PagerDutyInstallationRedirect(PipelineView):
             pipeline.bind_state("config", request.GET["config"])
             return pipeline.next_step()
 
-        account_name = None
-        if "account" in request.GET:
-            account_name = request.GET["account"]
+        account_name = getattr(request, "account", None)
 
         return self.redirect(self.get_app_url(account_name))
