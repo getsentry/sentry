@@ -337,77 +337,92 @@ class BaseManager(Manager):
         if key not in self.cache_fields and key != pk_name:
             return self.filter(**{key + "__in": values})
 
+        final_results = []
+        cache_lookup_cache_keys = []
+        cache_lookup_values = []
+
         local_cache = self._get_local_cache()
-
-        results = []
-        memcached_cache_keys = []
-        memcached_values = []
-
         for value in values:
             cache_key = self.__get_lookup_cache_key(**{key: value})
-            if local_cache is not None:
-                result = local_cache.get(cache_key)
-                if result is not None:
-                    results.append(result)
-                    continue
-
-            memcached_cache_keys.append(cache_key)
-            memcached_values.append(value)
-
-        if not memcached_cache_keys:
-            return results
-
-        memcached_cache_results = cache.get_many(memcached_cache_keys, version=self.cache_version)
-
-        db_cache_keys = []
-        db_values = []
-
-        for cache_key, value in zip(memcached_cache_keys, memcached_values):
-            result = memcached_cache_results.get(cache_key)
+            result = local_cache and local_cache.get(cache_key)
             if result is not None:
-                if key == pk_name and (
-                    not isinstance(result, self.model) or int(value) != result.pk
-                ):
-                    if settings.DEBUG:
-                        raise ValueError("Unexpected value returned from cache")
-                    logger.error("Cache response returned invalid value %r", result)
-                else:
-                    if key == pk_name:
-                        result._state.db = router.db_for_read(self.model, **{key: value})
+                final_results.append(result)
+            else:
+                cache_lookup_cache_keys.append(cache_key)
+                cache_lookup_values.append(value)
 
-                    if local_cache is not None:
-                        local_cache[cache_key] = result
+        if not cache_lookup_cache_keys:
+            return final_results
 
-                    results.append(result)
-                    continue
+        cache_results = cache.get_many(cache_lookup_cache_keys, version=self.cache_version)
 
-            db_cache_keys.append(cache_key)
-            db_values.append(value)
+        db_lookup_cache_keys = []
+        db_lookup_values = []
 
-        # If we didn't look up by pk we need to hit the reffed key
-        if key != pk_name:
-            results = self.get_many_from_cache(results, key=pk_name)
+        nested_lookup_cache_keys = []
+        nested_lookup_values = []
 
-        if not db_values:
-            return results
-
-        db_results = {getattr(x, key): x for x in self.filter(**{key + "__in": db_values})}
-
-        for cache_key, value in zip(db_cache_keys, db_values):
-            result = db_results.get(value)
-
-            if result is None:
+        for cache_key, value in zip(cache_lookup_cache_keys, cache_lookup_values):
+            cache_result = cache_results.get(cache_key)
+            if cache_result is None:
+                db_lookup_cache_keys.append(cache_key)
+                db_lookup_values.append(value)
                 continue
 
-            # push back into caches
-            # XXX: Should use set_many here, but __post_save code is too complex
-            self.__post_save(instance=result)
+            # If we didn't look up by pk we need to hit the reffed key
+            if key != pk_name:
+                nested_lookup_cache_keys.append(cache_key)
+                nested_lookup_values.append(cache_result)
+                continue
+
+            if not isinstance(cache_result, self.model):
+                if settings.DEBUG:
+                    raise ValueError("Unexpected value type returned from cache")
+                logger.error("Cache response returned invalid value %r", cache_result)
+                db_lookup_cache_keys.append(cache_key)
+                db_lookup_values.append(value)
+                continue
+
+            if key == pk_name and int(value) != cache_result.pk:
+                if settings.DEBUG:
+                    raise ValueError("Unexpected value returned from cache")
+                logger.error("Cache response returned invalid value %r", cache_result)
+                db_lookup_cache_keys.append(cache_key)
+                db_lookup_values.append(value)
+                continue
+
+        if nested_lookup_values:
+            nested_results = self.get_many_from_cache(nested_lookup_values, key=pk_name)
+            final_results.extend(nested_results)
             if local_cache is not None:
-                local_cache[cache_key] = result
+                for nested_result in nested_results:
+                    value = getattr(nested_result, key)
+                    cache_key = self.__get_lookup_cache_key(**{key: value})
+                    local_cache[cache_key] = nested_result
 
-            results.append(result)
+        if not db_lookup_values:
+            return final_results
 
-        return results
+        cache_writes = []
+
+        db_results = {getattr(x, key): x for x in self.filter(**{key + "__in": db_lookup_values})}
+        for cache_key, value in zip(db_lookup_cache_keys, db_lookup_values):
+            db_result = db_results.get(value)
+            if db_result is None:
+                continue  # This model ultimately does not exist
+
+            # Ensure we're pushing it into the cache
+            cache_writes.append(db_result)
+            if local_cache is not None:
+                local_cache[cache_key] = db_result
+
+            final_results.append(result)
+
+        # XXX: Should use set_many here, but __post_save code is too complex
+        for instance in cache_writes:
+            self.__post_save(instance=instance)
+
+        return final_results
 
     def create_or_update(self, **kwargs):
         return create_or_update(self.model, **kwargs)
