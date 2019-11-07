@@ -243,8 +243,12 @@ const QueryGrid = styled('div')`
     grid-template-columns: repeat(2, minmax(100px, 1fr));
   }
 
-  @media (min-width: ${theme.breakpoints[3]}) {
+  @media (min-width: ${theme.breakpoints[2]}) {
     grid-template-columns: repeat(3, minmax(100px, 1fr));
+  }
+
+  @media (min-width: ${theme.breakpoints[4]}) {
+    grid-template-columns: repeat(5, minmax(100px, 1fr));
   }
 `;
 
