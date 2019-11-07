@@ -191,17 +191,24 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
 ];
 
 // sample queries for the discover banner
-export const SAMPLE_VIEWS: Readonly<Array<EventViewv1>> = [
+export const SAMPLE_VIEWS: Readonly<Array<EventViewv1 & {buttonLabel?: string}>> = [
   {
-    name: t('Orgs with most errors in last 24 hrs'),
+    name: t('Content Security Policy (CSP) Report by User'),
+    buttonLabel: t('CSP Reports by User'),
     data: {
-      fields: ['organization', 'count(id)', 'count_unique(user)'],
-      fieldnames: ['Organization', '# of events', 'users'],
+      fields: ['user', 'count(id)', 'count_unique(title)'],
+      fieldnames: ['User', '# of events', 'reports'],
       sort: ['-count_id'],
-      query: 'event.type:error',
+      query: 'event.type:csp',
     },
-    tags: ['project.name', 'release', 'environment'],
-    statsPeriod: '24h',
+    tags: [
+      'project.name',
+      'blocked-uri',
+      'browser.name',
+      'os.name',
+      'release',
+      'environment',
+    ],
   },
   {
     name: t('Browsers with most bugs'),

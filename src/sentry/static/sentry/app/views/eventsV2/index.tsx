@@ -135,7 +135,7 @@ class EventsV2 extends React.Component<Props> {
             });
           }}
         >
-          {eventView.name}
+          {view.buttonLabel || eventView.name}
         </BannerButton>
       );
     });
