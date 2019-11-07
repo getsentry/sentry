@@ -259,64 +259,17 @@ class BaseManager(Manager):
         intermediate value.  Callee is responsible for making sure
         the cache key is cleared on save.
         """
+
         if not self.cache_fields or len(kwargs) > 1:
             return self.get(**kwargs)
 
         key, value = next(six.iteritems(kwargs))
-        pk_name = self.model._meta.pk.name
-        if key == "pk":
-            key = pk_name
 
-        # We store everything by key references (vs instances)
-        if isinstance(value, Model):
-            value = value.pk
+        result = self.get_many_from_cache([value], key=key)
+        if not result:
+            raise self.model.DoesNotExit()
 
-        # Kill __exact since it's the default behavior
-        if key.endswith("__exact"):
-            key = key.split("__exact", 1)[0]
-
-        if key in self.cache_fields or key == pk_name:
-            cache_key = self.__get_lookup_cache_key(**{key: value})
-            local_cache = self._get_local_cache()
-            if local_cache is not None:
-                result = local_cache.get(cache_key)
-                if result is not None:
-                    return result
-
-            retval = cache.get(cache_key, version=self.cache_version)
-            if retval is None:
-                result = self.get(**kwargs)
-                # Ensure we're pushing it into the cache
-                self.__post_save(instance=result)
-                if local_cache is not None:
-                    local_cache[cache_key] = result
-                return result
-
-            # If we didn't look up by pk we need to hit the reffed
-            # key
-            if key != pk_name:
-                result = self.get_from_cache(**{pk_name: retval})
-                if local_cache is not None:
-                    local_cache[cache_key] = result
-                return result
-
-            if not isinstance(retval, self.model):
-                if settings.DEBUG:
-                    raise ValueError("Unexpected value type returned from cache")
-                logger.error("Cache response returned invalid value %r", retval)
-                return self.get(**kwargs)
-
-            if key == pk_name and int(value) != retval.pk:
-                if settings.DEBUG:
-                    raise ValueError("Unexpected value returned from cache")
-                logger.error("Cache response returned invalid value %r", retval)
-                return self.get(**kwargs)
-
-            retval._state.db = router.db_for_read(self.model, **kwargs)
-
-            return retval
-        else:
-            return self.get(**kwargs)
+        return result[0]
 
     def get_many_from_cache(self, values, key="pk"):
         """
@@ -390,6 +343,8 @@ class BaseManager(Manager):
                 db_lookup_cache_keys.append(cache_key)
                 db_lookup_values.append(value)
                 continue
+
+            cache_result._state.db = router.db_for_read(self.model, **{key: value})
 
             final_results.append(cache_result)
 
