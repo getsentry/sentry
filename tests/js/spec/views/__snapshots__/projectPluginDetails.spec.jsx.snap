@@ -768,8 +768,6 @@ exports[`ProjectPluginDetails renders 1`] = `
                         <dd>
                           <ForwardRef
                             href="https://github.com/getsentry/sentry"
-                            rel="noreferrer noopener"
-                            target="_blank"
                           >
                             <a
                               href="https://github.com/getsentry/sentry"

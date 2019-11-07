@@ -1178,8 +1178,6 @@ exports[`Sidebar SidebarPanel can display Broadcasts panel and mark as seen 1`] 
         >
           <ForwardRef
             href="https://docs.sentry.io/hosted/clients/javascript/sourcemaps/#uploading-source-maps-to-sentry"
-            rel="noreferrer noopener"
-            target="_blank"
           >
             <a
               href="https://docs.sentry.io/hosted/clients/javascript/sourcemaps/#uploading-source-maps-to-sentry"
@@ -1284,10 +1282,8 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
                   className="css-z6hjis-StyledButton-getColors edwq9my0"
                   href="https://status.sentry.io"
                   onClick={[Function]}
-                  rel="noreferrer noopener"
                   role="button"
                   size="small"
-                  target="_blank"
                 >
                   <a
                     aria-disabled={false}
