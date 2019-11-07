@@ -6,35 +6,32 @@ import HeroIcon from 'app/components/heroIcon';
 import InlineSvg from 'app/components/inlineSvg';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
-class EmptyStateWarning extends React.Component {
-  static propTypes = {
-    small: PropTypes.bool,
-  };
+type Props = {
+  small?: boolean;
+};
 
-  static defaultProps = {
-    small: false,
-  };
+const EmptyStateWarning: React.FC<Props> = ({small, children}) =>
+  small ? (
+    <EmptyMessage>
+      <SmallMessage>
+        <InlineSvg src="icon-circle-exclamation" width="34px" />
+        {children}
+      </SmallMessage>
+    </EmptyMessage>
+  ) : (
+    <EmptyStreamWrapper data-test-id="empty-state">
+      <HeroIcon src="icon-circle-exclamation" size="54" />
+      {children}
+    </EmptyStreamWrapper>
+  );
 
-  render() {
-    if (this.props.small) {
-      return (
-        <EmptyMessage>
-          <SmallMessage>
-            <InlineSvg src="icon-circle-exclamation" width="34px" />
-            {this.props.children}
-          </SmallMessage>
-        </EmptyMessage>
-      );
-    }
+EmptyStateWarning.propTypes = {
+  small: PropTypes.bool,
+};
 
-    return (
-      <EmptyStreamWrapper data-test-id="empty-state">
-        <HeroIcon src="icon-circle-exclamation" size="54" />
-        {this.props.children}
-      </EmptyStreamWrapper>
-    );
-  }
-}
+EmptyStateWarning.defaultProps = {
+  small: false,
+};
 
 const EmptyStreamWrapper = styled('div')`
   text-align: center;
