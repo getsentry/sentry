@@ -1,3 +1,4 @@
+import {browserHistory} from 'react-router';
 import {debounce} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -6,6 +7,7 @@ import styled from 'react-emotion';
 import {Panel, PanelHeader} from 'app/components/panels';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {joinTeam, leaveTeam} from 'app/actionCreators/teams';
+import {openInviteMembersModal} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import Avatar from 'app/components/avatar';
 import Button from 'app/components/button';
@@ -197,6 +199,17 @@ class TeamMembers extends React.Component {
     this.debouncedFetchMembersRequest(e.target.value);
   };
 
+  get hasInviteRequestExperiment() {
+    const {organization} = this.props;
+
+    if (!organization || !organization.experiments) {
+      return false;
+    }
+
+    const variant = organization.experiments.ImprovedInvitesExperiment;
+    return variant === 'all' || variant === 'invite_request';
+  }
+
   renderDropdown = access => {
     const {params} = this.props;
 
@@ -238,8 +251,17 @@ class TeamMembers extends React.Component {
     const menuHeader = (
       <StyledMembersLabel>
         {t('Members')}
-        <StyledCreateMemberLink to={`/settings/${params.orgId}/members/new/`}>
-          {t('Add Member')}
+        <StyledCreateMemberLink
+          onClick={() =>
+            this.hasInviteRequestExperiment
+              ? openInviteMembersModal({source: 'teams'})
+              : browserHistory.push(
+                  `/settings/${params.orgId}/members/new/?referrer=teams`
+                )
+          }
+          data-test-id="invite-member"
+        >
+          {t('Invite Member')}
         </StyledCreateMemberLink>
       </StyledMembersLabel>
     );
@@ -255,7 +277,7 @@ class TeamMembers extends React.Component {
         onClose={() => this.debouncedFetchMembersRequest('')}
       >
         {({isOpen}) => (
-          <DropdownButton isOpen={isOpen} size="xsmall">
+          <DropdownButton isOpen={isOpen} size="xsmall" data-test-id="add-member">
             {t('Add Member')}
           </DropdownButton>
         )}
