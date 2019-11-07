@@ -120,18 +120,18 @@ class OrganizationMembersWrapper extends AsyncView<Props, State> {
 
   removeAccessRequest = (id: string) =>
     this.setState(state => ({
-      requestList: state.requestList.filter(m => m.id !== id),
+      requestList: state.requestList.filter(request => request.id !== id),
     }));
 
   removeInviteRequest = (id: string) =>
     this.setState(state => ({
-      inviteRequests: state.inviteRequests.filter(m => m.id !== id),
+      inviteRequests: state.inviteRequests.filter(request => request.id !== id),
     }));
 
   updateInviteRequest = (id: string, data: Partial<Member>) =>
     this.setState(state => {
       const inviteRequests = [...state.inviteRequests];
-      const inviteIndex = inviteRequests.findIndex(m => m.id === id);
+      const inviteIndex = inviteRequests.findIndex(request => request.id === id);
 
       inviteRequests[inviteIndex] = {...inviteRequests[inviteIndex], ...data};
 
