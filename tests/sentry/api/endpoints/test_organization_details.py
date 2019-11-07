@@ -70,8 +70,7 @@ class OrganizationDetailsTest(APITestCase):
 
         # TODO(dcramer): we need to pare this down -- lots of duplicate queries
         # for membership data
-        # TODO(markus): Reset to 36 once option is gone
-        with self.assertNumQueries(38, using="default"):
+        with self.assertNumQueries(36, using="default"):
             from django.db import connections
 
             response = self.client.get(url, format="json")
