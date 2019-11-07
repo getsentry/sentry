@@ -378,6 +378,9 @@ class BaseManager(Manager):
             memcached_cache_keys.append(cache_key)
             memcached_values.append(value)
 
+        if not memcached_cache_keys:
+            return results
+
         memcached_cache_results = cache.get_many(memcached_cache_keys, version=self.cache_version)
 
         db_cache_keys = []
@@ -408,6 +411,9 @@ class BaseManager(Manager):
         # If we didn't look up by pk we need to hit the reffed key
         if key != pk_name:
             results = self.get_many_from_cache(results, key=pk_name)
+
+        if not db_values:
+            return results
 
         db_results = {getattr(x, key): x for x in self.filter(**{key + "__in": db_values})}
 
