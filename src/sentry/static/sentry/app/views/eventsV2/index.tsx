@@ -122,7 +122,19 @@ class EventsV2 extends React.Component<Props> {
       };
 
       return (
-        <BannerButton to={to} icon="icon-circle-add" key={index}>
+        <BannerButton
+          to={to}
+          icon="icon-circle-add"
+          key={index}
+          onClick={() => {
+            trackAnalyticsEvent({
+              eventKey: 'discover_v2.prebuilt_query_click',
+              eventName: 'Discoverv2: Click a pre-built query',
+              organization_id: this.props.organization.id,
+              query_name: eventView.name,
+            });
+          }}
+        >
           {eventView.name}
         </BannerButton>
       );
