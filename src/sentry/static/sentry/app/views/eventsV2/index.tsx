@@ -34,6 +34,7 @@ import EventInputName from './eventInputName';
 import {getFirstQueryString} from './utils';
 import {ALL_VIEWS, TRANSACTION_VIEWS, SAMPLE_VIEWS} from './data';
 import QueryCard from './querycard';
+import MiniGraph from './miniGraph';
 
 type Props = {
   organization: Organization;
@@ -87,6 +88,15 @@ class EventsV2 extends React.Component<Props> {
           to={to}
           title={eventView.name}
           queryDetail={eventView.query}
+          renderGraph={() => {
+            return (
+              <MiniGraph
+                query={eventView.getEventsAPIPayload(location).query}
+                eventView={eventView}
+                organization={organization}
+              />
+            );
+          }}
           onEventClick={() => {
             trackAnalyticsEvent({
               eventKey: 'discover_v2.prebuilt_query_click',

@@ -10,11 +10,12 @@ type Props = {
   queryDetail?: string;
   to?: string | object;
   onEventClick?: () => void;
+  renderGraph: () => React.ReactNode;
 };
 
 class QueryCard extends React.PureComponent<Props> {
   render() {
-    const {title, queryDetail, onEventClick, to} = this.props;
+    const {title, queryDetail, onEventClick, to, renderGraph} = this.props;
 
     return (
       <StyledQueryCard onClick={onEventClick} to={to}>
@@ -22,7 +23,7 @@ class QueryCard extends React.PureComponent<Props> {
           <StyledTitle>{title}</StyledTitle>
           <StyledQueryDetail>{queryDetail}</StyledQueryDetail>
         </QueryCardHeader>
-        <QueryCardBody />
+        <QueryCardBody>{renderGraph()}</QueryCardBody>
         <QueryCardFooter>
           <StyledCreator>
             <small>Pre-Built Query</small>
@@ -51,6 +52,10 @@ const StyledQueryCard = styled(Link)`
 
   &:active {
     box-shadow: 0px 0px 0px 6px rgba(209, 202, 216, 0.5);
+  }
+
+  * {
+    cursor: pointer;
   }
 `;
 
