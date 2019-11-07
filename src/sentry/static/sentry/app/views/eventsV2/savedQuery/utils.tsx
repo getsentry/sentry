@@ -134,15 +134,12 @@ export function handleUpdateQueryName(
 ) {
   const payload = eventView.toNewQuery();
 
-  // TODO(leedongwei): Enable analytics in a separate PR
-  /*
   trackAnalyticsEvent({
     eventKey: 'discover_v2.update_query_name_request',
     eventName: "Discoverv2: Request to update a saved query's name",
     organization_id: organization.id,
     ...extractAnalyticsQueryFields(payload),
   });
-  */
 
   const promise = updateSavedQuery(api, organization.slug, payload);
 
@@ -150,19 +147,16 @@ export function handleUpdateQueryName(
     .then(_saved => {
       addSuccessMessage(t('Query name saved'));
 
-      /*
       trackAnalyticsEvent({
         eventKey: 'discover_v2.update_query_name_success',
         eventName: "Discoverv2: Successfully updated a saved query's name",
         organization_id: organization.id,
         ...extractAnalyticsQueryFields(payload),
       });
-      */
     })
-    .catch((_err: Error) => {
+    .catch((err: Error) => {
       addErrorMessage(t('Query name not saved'));
 
-      /*
       trackAnalyticsEvent({
         eventKey: 'discover_v2.update_query_failed',
         eventName: "Discoverv2: Failed to update a saved query's name",
@@ -170,7 +164,6 @@ export function handleUpdateQueryName(
         ...extractAnalyticsQueryFields(payload),
         error: (err && err.message) || 'Failed to update a query name',
       });
-      */
     });
 
   return promise;
