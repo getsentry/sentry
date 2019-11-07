@@ -32,7 +32,7 @@ import SavedQueryButtonGroup from './savedQuery';
 import EventView from './eventView';
 import EventInputName from './eventInputName';
 import {getFirstQueryString} from './utils';
-import {ALL_VIEWS, TRANSACTION_VIEWS} from './data';
+import {ALL_VIEWS, TRANSACTION_VIEWS, SAMPLE_VIEWS} from './data';
 
 type Props = {
   organization: Organization;
@@ -107,23 +107,48 @@ class EventsV2 extends React.Component<Props> {
 
     if (bannerDismissed) {
       return null;
-    } else {
-      return (
-        <Banner
-          title={t('Discover')}
-          subtitle={t('Here are a few sample queries to kick things off')}
-          onCloseClick={this.handleClick}
-        >
-          <BannerButton icon="icon-circle-add">
-            {t('Users who error in < 1 min')}
-          </BannerButton>
-          <BannerButton icon="icon-circle-add">{t('Browsers by most bugs')}</BannerButton>
-          <BannerButton icon="icon-circle-add">
-            {t('Slowest HTTP endpoints')}
-          </BannerButton>
-        </Banner>
-      );
     }
+
+    const {location} = this.props;
+
+    const sampleQueries = SAMPLE_VIEWS.map((view, index) => {
+      const eventView = EventView.fromEventViewv1(view);
+
+      const to = {
+        pathname: location.pathname,
+        query: {
+          ...eventView.generateQueryStringObject(),
+        },
+      };
+
+      return (
+        <BannerButton
+          to={to}
+          icon="icon-circle-add"
+          key={index}
+          onClick={() => {
+            trackAnalyticsEvent({
+              eventKey: 'discover_v2.prebuilt_query_click',
+              eventName: 'Discoverv2: Click a pre-built query',
+              organization_id: this.props.organization.id,
+              query_name: eventView.name,
+            });
+          }}
+        >
+          {view.buttonLabel || eventView.name}
+        </BannerButton>
+      );
+    });
+
+    return (
+      <Banner
+        title={t('Discover')}
+        subtitle={t('Here are a few sample queries to kick things off')}
+        onCloseClick={this.handleClick}
+      >
+        {sampleQueries}
+      </Banner>
+    );
   }
 
   render() {
