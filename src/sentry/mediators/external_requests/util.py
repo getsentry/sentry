@@ -42,8 +42,13 @@ def validate(instance, schema_type):
     return True
 
 
-# TODO make abstraction for urlopen kwargs to accept POST and data
 def send_and_save_request(sentry_app, org_id, event, **kwargs):
+    """
+    Send a webhook request, and save the request into the Redis buffer for the app dashboard request log
+    Returns the response of the request
+
+    kwargs ends up being the arguments passed into safe_urlopen
+    """
     url = kwargs.get("url")
     if not url:
         return
