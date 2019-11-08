@@ -69,7 +69,6 @@ const QueryCardHeader = styled('div')`
 const StyledTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   color: ${p => p.theme.gray5};
-  font-weight: 300;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -80,7 +79,6 @@ const StyledQueryDetail = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.gray2};
-  font-weight: 300;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
