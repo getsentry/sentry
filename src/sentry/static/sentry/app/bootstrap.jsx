@@ -12,7 +12,7 @@ import ReactDOM from 'react-dom';
 import Reflux from 'reflux';
 import * as Router from 'react-router';
 import * as Sentry from '@sentry/browser';
-import {ExtraErrorData, Tracing} from '@sentry/integrations';
+import {ExtraErrorData, Tracing, TransactionActivity} from '@sentry/integrations';
 import createReactClass from 'create-react-class';
 import jQuery from 'jquery';
 import moment from 'moment';
@@ -34,6 +34,9 @@ Sentry.init({
     }),
     new Tracing({
       tracingOrigins: ['localhost', 'sentry.io', /^\//],
+    }),
+    new TransactionActivity({
+      idleTimeout: 500,
     }),
   ],
 });

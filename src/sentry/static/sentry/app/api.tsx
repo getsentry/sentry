@@ -1,6 +1,7 @@
 import {isUndefined, isNil, get} from 'lodash';
 import $ from 'jquery';
 import * as Sentry from '@sentry/browser';
+import {TransactionActivity} from '@sentry/integrations';
 
 import {
   PROJECT_MOVED,
@@ -12,8 +13,6 @@ import {openSudo, redirectToProject} from 'app/actionCreators/modal';
 import {uniqueId} from 'app/utils/guid';
 import GroupActions from 'app/actions/groupActions';
 import createRequestError from 'app/utils/requestError/createRequestError';
-
-import {startRequest, finishRequest} from 'app/utils/apm';
 
 export class Request {
   alive: boolean;
@@ -267,17 +266,13 @@ export class Client {
       }
     }
 
-    // TODO(kamil): We forgot to add this to Spans interface
-    const requestSpan = Sentry.startSpan({
+    const xhrActivity = TransactionActivity.pushActivity('xhr', {
       data: {
         request_data: data,
       },
       op: 'http',
       description: `${method} ${fullUrl}`,
-    }) as Sentry.Span;
-
-    // notify apm utils that a request has started
-    startRequest(id);
+    });
 
     const errorObject = new Error();
 
@@ -346,8 +341,7 @@ export class Client {
           );
         },
         complete: (jqXHR: JQueryXHR, textStatus: string) => {
-          requestSpan.finish();
-          finishRequest(id);
+          TransactionActivity.popActivity(xhrActivity);
 
           return this.wrapCallback<[JQueryXHR, string]>(id, options.complete, true)(
             jqXHR,
