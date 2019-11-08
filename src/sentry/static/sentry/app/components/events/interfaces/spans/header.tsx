@@ -2,7 +2,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import space from 'app/styles/space';
-import {get} from 'lodash';
+import get from 'lodash/get';
 
 import {
   rectOfContent,

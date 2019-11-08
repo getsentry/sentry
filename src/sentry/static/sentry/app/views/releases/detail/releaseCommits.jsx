@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import {omit} from 'lodash';
+import omit from 'lodash/omit';
 import React from 'react';
 
 import {Panel, PanelHeader, PanelBody} from 'app/components/panels';

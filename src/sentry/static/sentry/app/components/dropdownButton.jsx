@@ -3,7 +3,7 @@ import React from 'react';
 import styled from 'react-emotion';
 import Button from 'app/components/button';
 import InlineSvg from 'app/components/inlineSvg';
-import {omit} from 'lodash';
+import omit from 'lodash/omit';
 
 class DropdownButton extends React.Component {
   static propTypes = {

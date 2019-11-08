@@ -1,5 +1,5 @@
 import {Link} from 'react-router';
-import {omit} from 'lodash';
+import omit from 'lodash/omit';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
