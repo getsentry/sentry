@@ -94,10 +94,15 @@ export default class TableField extends React.Component<Props> {
       saveChanges(newValue);
     };
 
-    const setValue = (rowIndex: number, fieldKey: string, fieldValue: any) => {
+    const setValue = (
+      rowIndex: number,
+      fieldKey: string,
+      fieldValue: React.FormEvent<HTMLInputElement>
+    ) => {
       const newValue = [...value];
-      newValue[rowIndex][fieldKey] =
-        fieldValue && fieldValue.currentTarget ? fieldValue.currentTarget.value : null;
+      newValue[rowIndex][fieldKey] = fieldValue.currentTarget
+        ? fieldValue.currentTarget.value
+        : null;
       saveChanges(newValue);
     };
 
