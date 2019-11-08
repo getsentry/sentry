@@ -25,7 +25,14 @@ class Migration(migrations.Migration):
     ]
 
     migrations.SeparateDatabaseAndState(
-        database_operations=[],
+        database_operations=[
+            migrations.RunSQL(
+                """
+                ALTER TABLE "sentry_sentryappwebhookerror" DROP CONSTRAINT "organization_id_refs_id_e5de1b55";
+                ALTER TABLE "sentry_sentryappwebhookerror" DROP CONSTRAINT "sentry_app_id_refs_id_def41997";
+                """
+            )
+        ],
         state_operations=[
             migrations.RemoveField(
                 model_name='sentryappwebhookerror',
