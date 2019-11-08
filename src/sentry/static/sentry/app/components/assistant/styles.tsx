@@ -27,7 +27,11 @@ const CueContainer = styled(AssistantContainer)`
   height: 2.75em;
 `;
 
-const CueIcon = styled(({hasGuide, ...props}) => (
+type CueIconProps = React.ComponentPropsWithoutRef<typeof InlineSvg> & {
+  hasGuide: boolean;
+};
+
+const CueIcon = styled(({hasGuide, ...props}: CueIconProps) => (
   <InlineSvg
     src={hasGuide ? 'icon-circle-exclamation' : 'icon-circle-question'}
     {...props}
