@@ -122,22 +122,33 @@ class EventsV2 extends React.Component<Props> {
       };
 
       return (
-        <StyledBanner
-          title={t('Discover')}
-          subtitle={t('Here are a few sample queries to kick things off')}
-          onCloseClick={this.handleClick}
+        <BannerButton
+          to={to}
+          icon="icon-circle-add"
+          key={index}
+          onClick={() => {
+            trackAnalyticsEvent({
+              eventKey: 'discover_v2.prebuilt_query_click',
+              eventName: 'Discoverv2: Click a pre-built query',
+              organization_id: this.props.organization.id,
+              query_name: eventView.name,
+            });
+          }}
         >
-          <BannerButton icon="icon-circle-add">
-            {t('Users who error in < 1 min')}
-          </BannerButton>
-          <BannerButton icon="icon-circle-add">{t('Browsers by most bugs')}</BannerButton>
-          <BannerButton icon="icon-circle-add">
-            {t('Slowest HTTP endpoints')}
-          </BannerButton>
-        </StyledBanner>
+          {view.buttonLabel || eventView.name}
+        </BannerButton>
       );
     });
 
+    return (
+      <StyledBanner
+        title={t('Discover')}
+        subtitle={t('Here are a few sample queries to kick things off')}
+        onCloseClick={this.handleClick}
+      >
+        {sampleQueries}
+      </StyledBanner>
+    );
   }
 
   renderNewQuery() {
