@@ -28,8 +28,8 @@ class Migration(migrations.Migration):
         database_operations=[
             migrations.RunSQL(
                 """
-                ALTER TABLE "sentry_sentryappwebhookerror" DROP CONSTRAINT "organization_id";
-                ALTER TABLE "sentry_sentryappwebhookerror" DROP CONSTRAINT "sentry_app_id";
+                ALTER TABLE "sentry_sentryappwebhookerror" DROP CONSTRAINT "organization_id_refs_id_e5de1b55";
+                ALTER TABLE "sentry_sentryappwebhookerror" DROP CONSTRAINT "sentry_app_id_refs_id_def41997";
                 """
             )
         ],
