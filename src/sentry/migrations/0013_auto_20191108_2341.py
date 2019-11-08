@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 
 from django.db import migrations, models
+import sentry.db.models.fields.bounded
 
 
 class Migration(migrations.Migration):
@@ -25,20 +26,14 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.SeparateDatabaseAndState(
-            database_operations=[],
-            state_operations=[
-                migrations.RemoveField(
-                    model_name='sentryappwebhookerror',
-                    name='organization',
-                ),
-                migrations.RemoveField(
-                    model_name='sentryappwebhookerror',
-                    name='sentry_app',
-                ),
-                migrations.DeleteModel(
-                    name='SentryAppWebhookError',
-                ),
-            ],
-        )
+        migrations.AlterField(
+            model_name='sentryappwebhookerror',
+            name='organization',
+            field=sentry.db.models.fields.bounded.BoundedBigIntegerField(),
+        ),
+        migrations.AlterField(
+            model_name='sentryappwebhookerror',
+            name='sentry_app',
+            field=sentry.db.models.fields.bounded.BoundedBigIntegerField(),
+        ),
     ]
