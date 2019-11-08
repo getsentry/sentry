@@ -14,6 +14,7 @@ const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const LodashModuleReplacementPlugin = require('lodash-webpack-plugin');
 const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
 const CopyPlugin = require('copy-webpack-plugin');
+const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
 
 const babelConfig = require('./babel.config');
 
@@ -460,4 +461,5 @@ if (IS_PRODUCTION) {
   });
 }
 
-module.exports = appConfig;
+const smp = new SpeedMeasurePlugin();
+module.exports = smp.wrap(appConfig);
