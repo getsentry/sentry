@@ -200,11 +200,13 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                         <StyledButton
                                           isOpen={false}
                                           size="xsmall"
+                                          type="button"
                                         >
                                           <ForwardRef
                                             className="css-a2adl3-StyledButton e1yghndz1"
                                             isOpen={false}
                                             size="xsmall"
+                                            type="button"
                                           >
                                             <Button
                                               align="center"
@@ -212,6 +214,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                               disabled={false}
                                               innerRef={null}
                                               size="xsmall"
+                                              type="button"
                                             >
                                               <StyledButton
                                                 aria-disabled={false}
@@ -221,6 +224,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                 onClick={[Function]}
                                                 role="button"
                                                 size="xsmall"
+                                                type="button"
                                               >
                                                 <ForwardRef
                                                   aria-disabled={false}
@@ -229,6 +233,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                   onClick={[Function]}
                                                   role="button"
                                                   size="xsmall"
+                                                  type="button"
                                                 >
                                                   <button
                                                     aria-disabled={false}
@@ -236,6 +241,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                     onClick={[Function]}
                                                     role="button"
                                                     size="xsmall"
+                                                    type="button"
                                                   >
                                                     <ButtonLabel
                                                       align="center"
@@ -580,20 +586,6 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                               >
                                 <span
                                   className="project-label"
-                                  project={
-                                    Object {
-                                      "environments": Array [],
-                                      "hasAccess": true,
-                                      "id": "2",
-                                      "isBookmarked": false,
-                                      "isMember": true,
-                                      "name": "Project Name",
-                                      "slug": "project-slug",
-                                      "teams": Array [
-                                        undefined,
-                                      ],
-                                    }
-                                  }
                                 >
                                   <span
                                     className="project-name"
@@ -954,18 +946,6 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                               >
                                 <span
                                   className="project-label"
-                                  project={
-                                    Object {
-                                      "environments": Array [],
-                                      "hasAccess": true,
-                                      "id": "3",
-                                      "isBookmarked": false,
-                                      "isMember": true,
-                                      "name": "Project Name 2",
-                                      "slug": "project-slug-2",
-                                      "teams": Array [],
-                                    }
-                                  }
                                 >
                                   <span
                                     className="project-name"

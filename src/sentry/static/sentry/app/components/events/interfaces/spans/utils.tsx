@@ -285,7 +285,7 @@ export const setBodyUserSelect = (nextValues: UserSelectValues): UserSelectValue
     msUserSelect: document.body.style.msUserSelect,
   };
 
-  document.body.style.userSelect = nextValues.userSelect;
+  document.body.style.userSelect = nextValues.userSelect || '';
   // MozUserSelect is not typed in TS
   // @ts-ignore
   document.body.style.MozUserSelect = nextValues.MozUserSelect;

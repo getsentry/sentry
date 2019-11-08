@@ -221,7 +221,7 @@ const button = {
 };
 
 const theme = {
-  breakpoints: ['768px', '992px', '1200px'],
+  breakpoints: ['768px', '992px', '1200px', '1440px', '2560px'],
 
   ...colors,
 

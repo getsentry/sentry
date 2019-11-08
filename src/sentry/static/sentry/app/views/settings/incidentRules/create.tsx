@@ -1,31 +1,45 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
 
-import {t} from 'app/locale';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import {AlertRuleAggregations} from 'app/views/settings/incidentRules/types';
+import {Organization, Project} from 'app/types';
+import recreateRoute from 'app/utils/recreateRoute';
+import withOrganization from 'app/utils/withOrganization';
+import withProject from 'app/utils/withProject';
 
 import RuleForm from './ruleForm';
 
-type RouteParams = {orgId: string};
-type Props = {};
+const DEFAULT_METRIC = [AlertRuleAggregations.TOTAL];
+const DEFAULT_RULE = {
+  aggregations: DEFAULT_METRIC,
+  query: '',
+  timeWindow: 60,
+  triggers: [],
+};
 
-class IncidentRulesCreate extends React.Component<
-  RouteComponentProps<RouteParams, {}> & Props
-> {
+type Props = {
+  organization: Organization;
+  project: Project;
+};
+
+class IncidentRulesCreate extends React.Component<RouteComponentProps<{}, {}> & Props> {
   handleSubmitSuccess = data => {
-    const {orgId} = this.props.params;
-    this.props.router.push(`/settings/${orgId}/incident-rules/${data.id}/`);
+    const {params, routes, router, location} = this.props;
+
+    router.push(recreateRoute(`${data.id}/`, {params, routes, location, stepBack: -1}));
   };
 
   render() {
-    const {orgId} = this.props.params;
+    const {organization, project} = this.props;
 
     return (
-      <div>
-        <SettingsPageHeader title={t('New Incident Rule')} />
-        <RuleForm orgId={orgId} onSubmitSuccess={this.handleSubmitSuccess} />
-      </div>
+      <RuleForm
+        organization={organization}
+        onSubmitSuccess={this.handleSubmitSuccess}
+        rule={{...DEFAULT_RULE, projects: [project.slug]}}
+      />
     );
   }
 }
-export default IncidentRulesCreate;
+
+export default withOrganization(withProject(IncidentRulesCreate));

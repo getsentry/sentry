@@ -1,7 +1,8 @@
 import React from 'react';
-import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import AccountSecurityDetails from 'app/views/settings/account/accountSecurity/accountSecurityDetails';
 import AccountSecurityWrapper from 'app/views/settings/account/accountSecurity/accountSecurityWrapper';
 
@@ -10,10 +11,23 @@ const ORG_ENDPOINT = '/organizations/';
 
 describe('AccountSecurityDetails', function() {
   let wrapper;
+  let routerContext;
+  let router;
+  let params;
 
   describe('Totp', function() {
-    Client.clearMockResponses();
     beforeAll(function() {
+      Client.clearMockResponses();
+      params = {
+        authId: 15,
+      };
+
+      ({router, routerContext} = initializeOrg({
+        router: {
+          params,
+        },
+      }));
+
       Client.addMockResponse({
         url: ENDPOINT,
         body: TestStubs.AllAuthenticators(),
@@ -28,23 +42,14 @@ describe('AccountSecurityDetails', function() {
       });
       wrapper = mountWithTheme(
         <AccountSecurityWrapper>
-          <AccountSecurityDetails />
+          <AccountSecurityDetails router={router} params={params} />
         </AccountSecurityWrapper>,
-        TestStubs.routerContext([
-          {
-            router: {
-              ...TestStubs.router(),
-              params: {
-                authId: 15,
-              },
-            },
-          },
-        ])
+        routerContext
       );
     });
 
     it('has enrolled circle indicator', function() {
-      expect(wrapper.find('CircleIndicator').prop('enabled')).toBe(true);
+      expect(wrapper.find('AuthenticatorStatus').prop('enabled')).toBe(true);
     });
 
     it('has created and last used dates', function() {
@@ -78,18 +83,9 @@ describe('AccountSecurityDetails', function() {
 
       wrapper = mountWithTheme(
         <AccountSecurityWrapper>
-          <AccountSecurityDetails />
+          <AccountSecurityDetails router={router} params={params} />
         </AccountSecurityWrapper>,
-        TestStubs.routerContext([
-          {
-            router: {
-              ...TestStubs.router(),
-              params: {
-                authId: 15,
-              },
-            },
-          },
-        ])
+        routerContext
       );
 
       wrapper.find('RemoveConfirm Button').simulate('click');
@@ -117,18 +113,9 @@ describe('AccountSecurityDetails', function() {
 
       wrapper = mountWithTheme(
         <AccountSecurityWrapper>
-          <AccountSecurityDetails />
+          <AccountSecurityDetails router={router} params={params} />
         </AccountSecurityWrapper>,
-        TestStubs.routerContext([
-          {
-            router: {
-              ...TestStubs.router(),
-              params: {
-                authId: 15,
-              },
-            },
-          },
-        ])
+        routerContext
       );
 
       wrapper.find('RemoveConfirm Button').simulate('click');
@@ -139,6 +126,13 @@ describe('AccountSecurityDetails', function() {
 
   describe('Recovery', function() {
     beforeEach(function() {
+      params = {authId: 16};
+      ({router, routerContext} = initializeOrg({
+        router: {
+          params,
+        },
+      }));
+
       Client.clearMockResponses();
       Client.addMockResponse({
         url: ENDPOINT,
@@ -152,25 +146,17 @@ describe('AccountSecurityDetails', function() {
         url: `${ENDPOINT}16/`,
         body: TestStubs.Authenticators().Recovery(),
       });
+
       wrapper = mountWithTheme(
         <AccountSecurityWrapper>
-          <AccountSecurityDetails />
+          <AccountSecurityDetails router={router} params={params} />
         </AccountSecurityWrapper>,
-        TestStubs.routerContext([
-          {
-            router: {
-              ...TestStubs.router(),
-              params: {
-                authId: 16,
-              },
-            },
-          },
-        ])
+        routerContext
       );
     });
 
     it('has enrolled circle indicator', function() {
-      expect(wrapper.find('CircleIndicator').prop('enabled')).toBe(true);
+      expect(wrapper.find('AuthenticatorStatus').prop('enabled')).toBe(true);
     });
 
     it('has created and last used dates', function() {

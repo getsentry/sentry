@@ -394,6 +394,7 @@ export type EventViewv1 = {
     query?: string;
   };
   tags: string[];
+  statsPeriod?: string;
 };
 
 export type Repository = {
@@ -500,27 +501,16 @@ export type SentryAppInstallation = {
   code?: string;
 };
 
-export type SentryAppWebhookError = {
+export type SentryAppWebhookRequest = {
   webhookUrl: string;
-  app: {
-    uuid: string;
-    slug: string;
-    name: string;
-  };
-  request: {
-    body: object;
-    headers: object;
-  };
+  sentryAppSlug: string;
   eventType: string;
   date: string;
-  organization: {
+  organization?: {
     slug: string;
     name: string;
   };
-  response: {
-    body: string;
-    statusCode: number;
-  };
+  responseCode: number;
 };
 
 export type PermissionValue = 'no-access' | 'read' | 'write' | 'admin';
