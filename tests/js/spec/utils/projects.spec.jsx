@@ -435,10 +435,14 @@ describe('utils.projects', function() {
         })
       );
     });
+  });
 
-    it('can query for a list of all projects and save it to the store', async function() {
-      const loadProjects = jest.spyOn(ProjectActions, 'loadProjects');
-      const mockProjects = [
+  describe('with all projects prop', function() {
+    let request;
+    let mockProjects;
+
+    beforeEach(async function() {
+      mockProjects = [
         TestStubs.Project({
           id: '100',
           slug: 'a',
@@ -453,7 +457,6 @@ describe('utils.projects', function() {
         }),
       ];
 
-      request.mockClear();
       request = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
         query: {
@@ -461,9 +464,13 @@ describe('utils.projects', function() {
         },
         body: mockProjects,
       });
+      ProjectsStore.reset();
+    });
+
+    it('can query for a list of all projects and save it to the store', async function() {
+      const loadProjects = jest.spyOn(ProjectActions, 'loadProjects');
 
       const wrapper = createWrapper({allProjects: true});
-
       // This is initial state
       expect(renderer).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -495,6 +502,23 @@ describe('utils.projects', function() {
 
       // expect the store action to be called
       expect(loadProjects).toHaveBeenCalledWith(mockProjects);
+    });
+
+    it('does not refetch projects that are already loaded in the store', async function() {
+      ProjectsStore.loadInitialData(mockProjects);
+
+      const wrapper = createWrapper({allProjects: true});
+      wrapper.update();
+
+      expect(renderer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fetching: false,
+          isIncomplete: null,
+          hasMore: false,
+          projects: mockProjects,
+        })
+      );
+      expect(request).not.toHaveBeenCalled();
     });
   });
 });
