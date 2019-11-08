@@ -75,10 +75,7 @@ class ProjectChooser extends React.Component<Props> {
             {sortProjects(organization.projects).map((project: Project) => (
               <PanelItemSmall key={project.slug}>
                 <StyledLink to={`/${organization.slug}/${project.slug}/${task.location}`}>
-                  <StyledProjectLabel
-                    project={project}
-                    organization={this.props.organization}
-                  />
+                  <StyledProjectLabel project={project} />
                 </StyledLink>
               </PanelItemSmall>
             ))}

@@ -644,18 +644,6 @@ exports[`OrganizationProjects should render the projects in the store 1`] = `
                                           >
                                             <span
                                               className="project-label"
-                                              project={
-                                                Object {
-                                                  "environments": Array [],
-                                                  "hasAccess": true,
-                                                  "id": "2",
-                                                  "isBookmarked": false,
-                                                  "isMember": true,
-                                                  "name": "Project Name",
-                                                  "slug": "project-slug",
-                                                  "teams": Array [],
-                                                }
-                                              }
                                             >
                                               <span
                                                 className="project-name"
