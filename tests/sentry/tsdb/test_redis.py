@@ -318,7 +318,7 @@ class RedisTSDBTest(TestCase):
 
     def test_frequency_tables(self):
         now = datetime.utcnow().replace(tzinfo=pytz.UTC)
-        model = TSDBModel.frequent_projects_by_organization
+        model = TSDBModel.frequent_issues_by_project
 
         # None of the registered frequency tables actually support
         # environments, so we have to pretend like one actually does
