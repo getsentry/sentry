@@ -24,27 +24,29 @@ class Migration(migrations.Migration):
         ('sentry', '0013_auto_20191108_2104.py'),
     ]
 
-    migrations.SeparateDatabaseAndState(
-        database_operations=[
-            migrations.RunSQL(
-                """
-                DROP TABLE "sentry_sentryappwebhookerror";
-                """,
-                reverse_sql="""
-                CREATE TABLE "sentry_sentryappwebhookerror" (
-                    id BIGSERIAL PRIMARY KEY,
-                    date_added timestamp with time zone NOT NULL,
-                    sentry_app_id bigint NOT NULL REFERENCES sentry_sentryapp(id) DEFERRABLE INITIALLY DEFERRED,
-                    organization_id bigint NOT NULL REFERENCES sentry_organization(id) DEFERRABLE INITIALLY DEFERRED,
-                    request_body text NOT NULL,
-                    request_headers text NOT NULL,
-                    event_type character varying(64) NOT NULL,
-                    webhook_url character varying(200) NOT NULL,
-                    response_body text NOT NULL,
-                    response_code smallint CHECK (response_code >= 0)
-                );
-                """
-            )
-        ],
-        state_operations=[],
-    )
+    operations = [
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    """
+                    DROP TABLE "sentry_sentryappwebhookerror";
+                    """,
+                    reverse_sql="""
+                    CREATE TABLE "sentry_sentryappwebhookerror" (
+                        id BIGSERIAL PRIMARY KEY,
+                        date_added timestamp with time zone NOT NULL,
+                        sentry_app_id bigint NOT NULL REFERENCES sentry_sentryapp(id) DEFERRABLE INITIALLY DEFERRED,
+                        organization_id bigint NOT NULL REFERENCES sentry_organization(id) DEFERRABLE INITIALLY DEFERRED,
+                        request_body text NOT NULL,
+                        request_headers text NOT NULL,
+                        event_type character varying(64) NOT NULL,
+                        webhook_url character varying(200) NOT NULL,
+                        response_body text NOT NULL,
+                        response_code smallint CHECK (response_code >= 0)
+                    );
+                    """
+                )
+            ],
+            state_operations=[],
+        )
+    ]
