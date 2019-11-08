@@ -4,8 +4,6 @@ import React from 'react';
 import {AlertRuleAggregations} from 'app/views/settings/incidentRules/types';
 import {Organization, Project} from 'app/types';
 import recreateRoute from 'app/utils/recreateRoute';
-import withOrganization from 'app/utils/withOrganization';
-import withProject from 'app/utils/withProject';
 
 import RuleForm from './ruleForm';
 
@@ -42,4 +40,4 @@ class IncidentRulesCreate extends React.Component<RouteComponentProps<{}, {}> & 
   }
 }
 
-export default withOrganization(withProject(IncidentRulesCreate));
+export default IncidentRulesCreate;
