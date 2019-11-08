@@ -5,7 +5,10 @@ import {t} from 'app/locale';
 import Access from 'app/components/acl/access';
 import Alert from 'app/components/alert';
 
-const PermissionAlert = ({access, ...props}) => (
+type Props = React.ComponentPropsWithoutRef<typeof Alert> &
+  Pick<React.ComponentProps<typeof Access>, 'access'>;
+
+const PermissionAlert = ({access, ...props}: Props) => (
   <Access access={access}>
     {({hasAccess}) =>
       !hasAccess && (
