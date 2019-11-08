@@ -1,5 +1,5 @@
-export default function parseApiError(resp) {
-  const {detail} = (resp && resp.responseJSON) || {};
+export default function parseApiError(resp: JQueryXHR): string {
+  const {detail} = (resp && resp.responseJSON) || ({} as object);
 
   // return immediately if string
   if (typeof detail === 'string') {

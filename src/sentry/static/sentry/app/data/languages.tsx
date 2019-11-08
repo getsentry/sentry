@@ -11,4 +11,4 @@ export default [
   ['fr', 'French'],
   ['es', 'Spanish'],
   ['en', 'English'],
-];
+] as const;
