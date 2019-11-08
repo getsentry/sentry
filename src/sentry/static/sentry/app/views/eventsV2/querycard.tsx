@@ -12,7 +12,7 @@ type Props = {
   onEventClick?: () => void;
 };
 
-class QueryCard extends React.Component<Props> {
+class QueryCard extends React.PureComponent<Props> {
   render() {
     const {title, queryDetail, onEventClick, to} = this.props;
 
