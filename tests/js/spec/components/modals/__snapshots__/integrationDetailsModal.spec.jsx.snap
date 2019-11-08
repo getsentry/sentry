@@ -295,8 +295,6 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
             >
               <ForwardRef
                 href="http://example.com/integration_source_url"
-                rel="noreferrer noopener"
-                target="_blank"
               >
                 <a
                   href="http://example.com/integration_source_url"
@@ -308,8 +306,6 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
               </ForwardRef>
               <ForwardRef
                 href="http://example.com/integration_issue_url"
-                rel="noreferrer noopener"
-                target="_blank"
               >
                 <a
                   href="http://example.com/integration_issue_url"

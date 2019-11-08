@@ -37,8 +37,6 @@ exports[`ProjectHpkpReports renders 1`] = `
             <ForwardRef
               href="https://en.wikipedia.org/wiki/HTTP_Public_Key_Pinning"
               key="1"
-              rel="noreferrer noopener"
-              target="_blank"
             >
               <span
                 key="0"

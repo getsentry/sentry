@@ -162,8 +162,6 @@ exports[`ProjectPluginRow renders 1`] = `
                           <ForwardRef
                             className="css-8vm1xp-grayText"
                             href="https://github.com/getsentry/sentry"
-                            rel="noreferrer noopener"
-                            target="_blank"
                           >
                             <a
                               className="css-8vm1xp-grayText"
