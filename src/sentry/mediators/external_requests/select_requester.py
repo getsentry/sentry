@@ -54,8 +54,8 @@ class SelectRequester(Mediator):
                 send_and_save_request(
                     self.sentry_app,
                     self.install.organization_id,
-                    "select_uri.requested",
-                    url=self._build_url(),
+                    "select.requested",
+                    self._build_url(),
                     headers=self._build_headers(),
                 )
             )

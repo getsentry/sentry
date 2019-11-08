@@ -150,6 +150,13 @@ class TestSendAlertEvent(TestCase):
             ),
         )
 
+        buffer = SentryAppWebhookRequestsBuffer(self.sentry_app)
+        requests = buffer.get_requests()
+
+        assert len(requests) == 1
+        assert requests[0]["response_code"] == 200
+        assert requests[0]["event_type"] == "event_alert.triggered"
+
 
 @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponseInstance)
 class TestProcessResourceChange(TestCase):

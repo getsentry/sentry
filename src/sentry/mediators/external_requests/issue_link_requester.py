@@ -60,11 +60,12 @@ class IssueLinkRequester(Mediator):
         return u"{}://{}{}".format(urlparts.scheme, urlparts.netloc, self.uri)
 
     def _make_request(self):
+        action_to_past_tense = {"create": "created", "link": "linked"}
         req = send_and_save_request(
             self.sentry_app,
             self.install.organization_id,
-            "issue_{}_uri.requested".format(self.action),
-            url=self._build_url(),
+            "external_issue.{}".format(action_to_past_tense[self.action]),
+            self._build_url(),
             headers=self._build_headers(),
             method="POST",
             data=self.body,

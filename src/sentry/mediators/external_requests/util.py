@@ -42,21 +42,18 @@ def validate(instance, schema_type):
     return True
 
 
-def send_and_save_request(sentry_app, org_id, event, **kwargs):
+def send_and_save_request(sentry_app, org_id, event, url, **kwargs):
     """
     Send a webhook request, and save the request into the Redis buffer for the app dashboard request log
     Returns the response of the request
 
     kwargs ends up being the arguments passed into safe_urlopen
     """
-    url = kwargs.get("url")
-    if not url:
-        return
 
     buffer = SentryAppWebhookRequestsBuffer(sentry_app)
 
     try:
-        resp = safe_urlopen(**kwargs)
+        resp = safe_urlopen(url=url, **kwargs)
     except RequestException:
         # Response code of 0 represents timeout
         buffer.add_request(response_code=0, org_id=org_id, event=event, url=url)

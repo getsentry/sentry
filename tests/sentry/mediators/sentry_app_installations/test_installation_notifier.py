@@ -8,6 +8,7 @@ from sentry.mediators.sentry_app_installations import InstallationNotifier
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.faux import faux
 from sentry.utils import json
+from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
 
 MockResponse = namedtuple("MockResponse", ["headers", "content", "ok", "status_code"])
 MockResponseInstance = MockResponse({}, {}, True, 200)
@@ -110,3 +111,15 @@ class TestInstallationNotifier(TestCase):
             InstallationNotifier.run(install=self.install, user=self.user, action="updated")
 
         assert not safe_urlopen.called
+
+    @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponseInstance)
+    def test_webhook_request_saved(self, safe_urlopen):
+        InstallationNotifier.run(install=self.install, user=self.user, action="created")
+        InstallationNotifier.run(install=self.install, user=self.user, action="deleted")
+
+        buffer = SentryAppWebhookRequestsBuffer(self.sentry_app)
+        requests = buffer.get_requests()
+
+        assert len(requests) == 2
+        assert requests[0]["event_type"] == "installation.deleted"
+        assert requests[1]["event_type"] == "installation.created"
