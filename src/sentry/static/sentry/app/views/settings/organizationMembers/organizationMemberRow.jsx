@@ -1,4 +1,3 @@
-import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -12,6 +11,7 @@ import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import SentryTypes from 'app/sentryTypes';
+import space from 'app/styles/space';
 import Tooltip from 'app/components/tooltip';
 import recreateRoute from 'app/utils/recreateRoute';
 
@@ -41,10 +41,7 @@ export default class OrganizationMemberRow extends React.PureComponent {
     status: PropTypes.oneOf(['', 'loading', 'success', 'error']),
   };
 
-  constructor(...args) {
-    super(...args);
-    this.state = {busy: false};
-  }
+  state = {busy: false};
 
   handleRemove = e => {
     const {onRemove} = this.props;
@@ -109,19 +106,17 @@ export default class OrganizationMemberRow extends React.PureComponent {
     const canResend = !expired && canAddMembers && (pending || needsSso);
 
     return (
-      <PanelItem align="center" p={0} py={2}>
-        <Box pl={2}>
-          <Avatar size={32} user={user ? user : {id: email, email}} />
-        </Box>
+      <StyledPanelItem>
+        <StyledAvatar size={32} user={user ? user : {id: email, email}} />
 
-        <Box pl={1} pr={2} flex="1">
+        <MemberDescription>
           <h5 style={{margin: '0 0 3px'}}>
             <UserName to={detailsUrl}>{name}</UserName>
           </h5>
           <Email>{email}</Email>
-        </Box>
+        </MemberDescription>
 
-        <Box px={2} w={180}>
+        <AuthenticationStatus>
           {needsSso || pending ? (
             <div>
               <div>
@@ -162,14 +157,12 @@ export default class OrganizationMemberRow extends React.PureComponent {
               )}
             </div>
           )}
-        </Box>
+        </AuthenticationStatus>
 
-        <Box px={2} w={140}>
-          {roleName}
-        </Box>
+        <MemberRole>{roleName}</MemberRole>
 
         {showRemoveButton || showLeaveButton ? (
-          <Box px={2} w={140}>
+          <RemoveMember>
             {showRemoveButton && canRemoveMember && (
               <Confirm
                 message={tct('Are you sure you want to remove [name] from [orgName]?', {
@@ -234,12 +227,42 @@ export default class OrganizationMemberRow extends React.PureComponent {
                 {t('Leave')}
               </Button>
             )}
-          </Box>
+          </RemoveMember>
         ) : null}
-      </PanelItem>
+      </StyledPanelItem>
     );
   }
 }
+
+const StyledPanelItem = styled(PanelItem)`
+  align-items: center;
+  padding: ${space(2)} 0;
+`;
+
+const StyledAvatar = styled(Avatar)`
+  margin-left: ${space(2)};
+`;
+
+const MemberDescription = styled('div')`
+  flex: 1;
+  padding-left: ${space(1)};
+  padding-right: ${space(2)};
+`;
+
+const AuthenticationStatus = styled('div')`
+  width: 180px;
+  padding: 0 ${space(2)};
+`;
+
+const MemberRole = styled('div')`
+  width: 140px;
+  padding: 0 ${space(2)};
+`;
+
+const RemoveMember = styled('div')`
+  width: 140px;
+  padding: 0 ${space(2)};
+`;
 
 const NoTwoFactorIcon = styled(props => (
   <InlineSvg {...props} src="icon-circle-exclamation" />
