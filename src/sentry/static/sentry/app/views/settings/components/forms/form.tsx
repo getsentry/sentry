@@ -26,8 +26,8 @@ function isRenderFunc(func: React.ReactNode | Function): func is RenderFunc {
 }
 
 type Props = {
-  apiMethod: APIRequestMethod;
-  apiEndpoint: string;
+  apiMethod?: APIRequestMethod;
+  apiEndpoint?: string;
   children: React.ReactNode | RenderFunc;
   className?: string;
   cancelLabel?: string;
