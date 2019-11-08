@@ -46,7 +46,7 @@ def compact(seq):
         Removes keys with a corresponding ``None`` value.
 
     list:
-        Removes ``None`` valules.
+        Removes ``None`` values.
 
     >>> compact({'foo': 'bar', 'baz': None})
     {'foo': 'bar'}
