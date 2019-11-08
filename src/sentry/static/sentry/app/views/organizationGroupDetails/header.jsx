@@ -19,6 +19,7 @@ import SeenByList from 'app/components/seenByList';
 import SentryTypes from 'app/sentryTypes';
 import ShortId from 'app/components/shortId';
 import Tooltip from 'app/components/tooltip';
+import Badge from 'app/components/badge';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 
@@ -206,14 +207,13 @@ class GroupHeader extends React.Component {
             to={`${baseUrl}${groupId}/activity/${location.search}`}
             isActive={() => location.pathname.includes('/activity/')}
           >
-            {t('Comments')} <span className="badge animated">{group.numComments}</span>
+            {t('Comments')} <Badge text={group.numComments} />
           </ListLink>
           <ListLink
             to={`${baseUrl}${groupId}/feedback/${location.search}`}
             isActive={() => location.pathname.includes('/feedback/')}
           >
-            {t('User Feedback')}
-            <span className="badge animated">{group.userReportCount}</span>
+            {t('User Feedback')} <Badge text={group.userReportCount} />
           </ListLink>
           <ListLink
             to={`${baseUrl}${groupId}/tags/${location.search}`}

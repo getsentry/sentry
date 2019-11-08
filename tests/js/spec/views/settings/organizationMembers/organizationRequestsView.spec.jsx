@@ -121,7 +121,7 @@ describe('OrganizationRequestsView', function() {
     );
 
     expect(wrapper.find('NavTabs').exists()).toBe(true);
-    expect(wrapper.find('Badge[text="1"]').exists()).toBe(true);
+    expect(wrapper.find('StyledBadge[text="1"]').exists()).toBe(true);
     expect(wrapper.find('OrganizationAccessRequests').exists()).toBe(true);
     expect(
       wrapper
@@ -155,7 +155,7 @@ describe('OrganizationRequestsView', function() {
     );
 
     expect(wrapper.find('NavTabs').exists()).toBe(true);
-    expect(wrapper.find('Badge[text="1"]').exists()).toBe(true);
+    expect(wrapper.find('StyledBadge[text="1"]').exists()).toBe(true);
     expect(wrapper.find('OrganizationAccessRequests').exists()).toBe(true);
     expect(
       wrapper
@@ -197,7 +197,7 @@ describe('OrganizationRequestsView', function() {
     );
 
     expect(wrapper.find('NavTabs').exists()).toBe(true);
-    expect(wrapper.find('Badge[text="1"]').exists()).toBe(true);
+    expect(wrapper.find('StyledBadge[text="1"]').exists()).toBe(true);
     expect(wrapper.find('InviteRequestRow').exists()).toBe(false);
 
     expect(trackAnalyticsEvent).not.toHaveBeenCalled();
@@ -231,7 +231,7 @@ describe('OrganizationRequestsView', function() {
     );
 
     expect(wrapper.find('NavTabs').exists()).toBe(true);
-    expect(wrapper.find('Badge[text="1"]').exists()).toBe(true);
+    expect(wrapper.find('StyledBadge[text="1"]').exists()).toBe(true);
     expect(wrapper.find('InviteRequestRow').exists()).toBe(false);
 
     expect(trackAnalyticsEvent).not.toHaveBeenCalled();
@@ -263,7 +263,7 @@ describe('OrganizationRequestsView', function() {
     );
 
     expect(wrapper.find('NavTabs').exists()).toBe(true);
-    expect(wrapper.find('Badge[text="1"]').exists()).toBe(true);
+    expect(wrapper.find('StyledBadge[text="1"]').exists()).toBe(true);
     expect(wrapper.find('InviteRequestRow').exists()).toBe(true);
 
     expect(
@@ -280,7 +280,7 @@ describe('OrganizationRequestsView', function() {
     wrapper.update();
 
     expect(wrapper.find('NavTabs').exists()).toBe(true);
-    expect(wrapper.find('Badge').exists()).toBe(false);
+    expect(wrapper.find('StyledBadge').exists()).toBe(false);
     expect(wrapper.find('InviteRequestRow').exists()).toBe(false);
 
     expect(trackAnalyticsEvent).toHaveBeenCalledWith({
@@ -324,7 +324,7 @@ describe('OrganizationRequestsView', function() {
     );
 
     expect(wrapper.find('NavTabs').exists()).toBe(true);
-    expect(wrapper.find('Badge[text="1"]').exists()).toBe(true);
+    expect(wrapper.find('StyledBadge[text="1"]').exists()).toBe(true);
     expect(wrapper.find('InviteRequestRow').exists()).toBe(true);
 
     expect(
@@ -340,7 +340,7 @@ describe('OrganizationRequestsView', function() {
     wrapper.update();
 
     expect(wrapper.find('NavTabs').exists()).toBe(true);
-    expect(wrapper.find('Badge').exists()).toBe(false);
+    expect(wrapper.find('StyledBadge').exists()).toBe(false);
     expect(wrapper.find('InviteRequestRow').exists()).toBe(false);
 
     expect(trackAnalyticsEvent).toHaveBeenCalledWith({

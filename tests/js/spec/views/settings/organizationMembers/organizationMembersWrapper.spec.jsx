@@ -110,7 +110,7 @@ describe('OrganizationMembersWrapper', function() {
     );
 
     expect(wrapper.find('NavTabs').exists()).toBe(true);
-    expect(wrapper.find('Badge[text="2"]').exists()).toBe(true);
+    expect(wrapper.find('StyledBadge[text="2"]').exists()).toBe(true);
     expect(wrapper.find('ListLink[data-test-id="members-tab"]').exists()).toBe(true);
     expect(wrapper.find('ListLink[data-test-id="requests-tab"]').exists()).toBe(true);
 
@@ -143,7 +143,7 @@ describe('OrganizationMembersWrapper', function() {
     );
 
     expect(wrapper.find('NavTabs').exists()).toBe(true);
-    expect(wrapper.find('Badge').exists()).toBe(false);
+    expect(wrapper.find('StyledBadge').exists()).toBe(false);
     expect(wrapper.find('ListLink[data-test-id="members-tab"]').exists()).toBe(true);
     expect(wrapper.find('ListLink[data-test-id="requests-tab"]').exists()).toBe(true);
   });
@@ -191,7 +191,7 @@ describe('OrganizationMembersWrapper', function() {
     );
 
     expect(wrapper.find('NavTabs').exists()).toBe(true);
-    expect(wrapper.find('Badge[text="1"]').exists()).toBe(true);
+    expect(wrapper.find('StyledBadge[text="1"]').exists()).toBe(true);
     expect(wrapper.find('ListLink[data-test-id="members-tab"]').exists()).toBe(true);
     expect(wrapper.find('ListLink[data-test-id="requests-tab"]').exists()).toBe(true);
 
