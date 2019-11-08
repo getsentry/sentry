@@ -76,7 +76,6 @@
     "less": "^3.9.0",
     "less-loader": "^4.1.0",
     "lodash": "^4.17.11",
-    "lodash-webpack-plugin": "^0.11.5",
     "marked": "0.6.2",
     "mini-css-extract-plugin": "^v0.5.0",
     "mobx": "^5.13.0",

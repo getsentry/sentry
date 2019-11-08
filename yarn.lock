@@ -9375,13 +9375,6 @@ locate-path@^3.0.0:
     p-locate "^3.0.0"
     path-exists "^3.0.0"
 
-lodash-webpack-plugin@^0.11.5:
-  version "0.11.5"
-  resolved "https://registry.yarnpkg.com/lodash-webpack-plugin/-/lodash-webpack-plugin-0.11.5.tgz#c4bd064b4f561c3f823fa5982bdeb12c475390b9"
-  integrity sha512-QWfEIYxpixOdbd6KBe5g6MDWcyTgP3trDXwKHFqTlXrWiLcs/67fGQ0IWeRyhWlTITQIgMpJAYd2oeIztuV5VA==
-  dependencies:
-    lodash "^4.17.4"
-
 lodash._getnative@^3.0.0:
   version "3.9.1"
   resolved "https://registry.yarnpkg.com/lodash._getnative/-/lodash._getnative-3.9.1.tgz#570bc7dede46d61cdcde687d65d3eecbaa3aaff5"
