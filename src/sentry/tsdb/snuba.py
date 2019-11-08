@@ -6,6 +6,7 @@ import six
 
 from sentry.tsdb.base import BaseTSDB, TSDBModel
 from sentry.utils import snuba, outcomes
+from sentry.utils.data_filters import FilterStatKeys
 from sentry.utils.dates import to_datetime
 
 
@@ -106,6 +107,66 @@ class SnubaTSDB(BaseTSDB):
             "times_seen",
             [["outcome", "=", outcomes.Outcome.FILTERED]],
         ),
+        TSDBModel.project_total_received_ip_address: SnubaModelQuerySettings(
+            snuba.Dataset.Outcomes,
+            "project_id",
+            "times_seen",
+            [["reason", "=", FilterStatKeys.IP_ADDRESS]],
+        ),
+        TSDBModel.project_total_received_release_version: SnubaModelQuerySettings(
+            snuba.Dataset.Outcomes,
+            "project_id",
+            "times_seen",
+            [["reason", "=", FilterStatKeys.RELEASE_VERSION]],
+        ),
+        TSDBModel.project_total_received_error_message: SnubaModelQuerySettings(
+            snuba.Dataset.Outcomes,
+            "project_id",
+            "times_seen",
+            [["reason", "=", FilterStatKeys.ERROR_MESSAGE]],
+        ),
+        TSDBModel.project_total_received_browser_extensions: SnubaModelQuerySettings(
+            snuba.Dataset.Outcomes,
+            "project_id",
+            "times_seen",
+            [["reason", "=", FilterStatKeys.BROWSER_EXTENSION]],
+        ),
+        TSDBModel.project_total_received_legacy_browsers: SnubaModelQuerySettings(
+            snuba.Dataset.Outcomes,
+            "project_id",
+            "times_seen",
+            [["reason", "=", FilterStatKeys.LEGACY_BROWSER]],
+        ),
+        TSDBModel.project_total_received_localhost: SnubaModelQuerySettings(
+            snuba.Dataset.Outcomes,
+            "project_id",
+            "times_seen",
+            [["reason", "=", FilterStatKeys.LOCALHOST]],
+        ),
+        TSDBModel.project_total_received_web_crawlers: SnubaModelQuerySettings(
+            snuba.Dataset.Outcomes,
+            "project_id",
+            "times_seen",
+            [["reason", "=", FilterStatKeys.WEB_CRAWLER]],
+        ),
+        TSDBModel.project_total_received_invalid_csp: SnubaModelQuerySettings(
+            snuba.Dataset.Outcomes,
+            "project_id",
+            "times_seen",
+            [["reason", "=", FilterStatKeys.INVALID_CSP]],
+        ),
+        TSDBModel.project_total_received_cors: SnubaModelQuerySettings(
+            snuba.Dataset.Outcomes,
+            "project_id",
+            "times_seen",
+            [["reason", "=", FilterStatKeys.CORS]],
+        ),
+        TSDBModel.project_total_received_discarded: SnubaModelQuerySettings(
+            snuba.Dataset.Outcomes,
+            "project_id",
+            "times_seen",
+            [["reason", "=", FilterStatKeys.DISCARDED_HASH]],
+        ),
     }
 
     # ``model_columns_being_upgraded`` are models that currently use Redis but are being
@@ -158,6 +219,63 @@ class SnubaTSDB(BaseTSDB):
         ),
         TSDBModel.key_total_blacklisted: SnubaModelQuerySettings(
             snuba.Dataset.OutcomesRaw, "key_id", None, [["outcome", "=", outcomes.Outcome.FILTERED]]
+        ),
+        TSDBModel.project_total_received_ip_address: SnubaModelQuerySettings(
+            snuba.Dataset.OutcomesRaw,
+            "project_id",
+            None,
+            [["reason", "=", FilterStatKeys.IP_ADDRESS]],
+        ),
+        TSDBModel.project_total_received_release_version: SnubaModelQuerySettings(
+            snuba.Dataset.OutcomesRaw,
+            "project_id",
+            None,
+            [["reason", "=", FilterStatKeys.RELEASE_VERSION]],
+        ),
+        TSDBModel.project_total_received_error_message: SnubaModelQuerySettings(
+            snuba.Dataset.OutcomesRaw,
+            "project_id",
+            None,
+            [["reason", "=", FilterStatKeys.ERROR_MESSAGE]],
+        ),
+        TSDBModel.project_total_received_browser_extensions: SnubaModelQuerySettings(
+            snuba.Dataset.OutcomesRaw,
+            "project_id",
+            None,
+            [["reason", "=", FilterStatKeys.BROWSER_EXTENSION]],
+        ),
+        TSDBModel.project_total_received_legacy_browsers: SnubaModelQuerySettings(
+            snuba.Dataset.OutcomesRaw,
+            "project_id",
+            None,
+            [["reason", "=", FilterStatKeys.LEGACY_BROWSER]],
+        ),
+        TSDBModel.project_total_received_localhost: SnubaModelQuerySettings(
+            snuba.Dataset.OutcomesRaw,
+            "project_id",
+            None,
+            [["reason", "=", FilterStatKeys.LOCALHOST]],
+        ),
+        TSDBModel.project_total_received_web_crawlers: SnubaModelQuerySettings(
+            snuba.Dataset.OutcomesRaw,
+            "project_id",
+            None,
+            [["reason", "=", FilterStatKeys.WEB_CRAWLER]],
+        ),
+        TSDBModel.project_total_received_invalid_csp: SnubaModelQuerySettings(
+            snuba.Dataset.OutcomesRaw,
+            "project_id",
+            None,
+            [["reason", "=", FilterStatKeys.INVALID_CSP]],
+        ),
+        TSDBModel.project_total_received_cors: SnubaModelQuerySettings(
+            snuba.Dataset.OutcomesRaw, "project_id", None, [["reason", "=", FilterStatKeys.CORS]]
+        ),
+        TSDBModel.project_total_received_discarded: SnubaModelQuerySettings(
+            snuba.Dataset.OutcomesRaw,
+            "project_id",
+            None,
+            [["reason", "=", FilterStatKeys.DISCARDED_HASH]],
         ),
     }
 
