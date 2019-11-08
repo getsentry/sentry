@@ -41,7 +41,7 @@ class CreateSavedSearchButton extends React.Component {
     addLoadingMessage(t('Saving Changes'));
 
     createSavedSearch(api, organization.slug, this.state.name, query)
-      .then(data => {
+      .then(_data => {
         this.onToggle();
         this.setState({
           error: null,
@@ -103,6 +103,7 @@ class CreateSavedSearchButton extends React.Component {
           type="button"
           aria-label={t('Add to organization filter list')}
           icon="icon-add-to-list"
+          iconSize="16px"
           className={buttonClassName}
         >
           {!iconOnly && t('Create Saved Search')}
