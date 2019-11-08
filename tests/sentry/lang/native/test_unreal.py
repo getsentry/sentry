@@ -81,7 +81,7 @@ class UnrealIntegrationTest(TestCase):
         assert event["user"]["username"] == expected_username
 
     def test_merge_unreal_context_event_without_user_description(self):
-        expected_username = "Jane Doe"
+        expected_username = "Orville Wright"
         context = {"runtime_properties": {"username": expected_username}}
         event = {"event_id": MOCK_EVENT_ID}
         merge_unreal_context_event(context, event, self.project)

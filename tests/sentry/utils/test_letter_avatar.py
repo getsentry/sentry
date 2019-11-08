@@ -5,7 +5,7 @@ from sentry.utils.avatar import get_letter_avatar
 
 def test_letter_avatar():
     # Test name as display name and email as identifier
-    letter_avatar = get_letter_avatar("Jane Doe", "janedoe@example.com")
+    letter_avatar = get_letter_avatar("Orville Wright", "orvillewright@example.com")
     assert "JD" in letter_avatar
     assert "#f868bc" in letter_avatar  # pink
     assert "svg" in letter_avatar
@@ -26,7 +26,7 @@ def test_letter_avatar():
     assert "#57be8c" in letter_avatar  # green
 
     # Test name as display name and email as identifier for html
-    letter_avatar = get_letter_avatar("Jane Doe", "janedoe@example.com", use_svg=False)
+    letter_avatar = get_letter_avatar("Orville Wright", "orvillewright@example.com", use_svg=False)
     assert "JD" in letter_avatar
     assert "#f868bc" in letter_avatar  # pink
     assert "span" in letter_avatar

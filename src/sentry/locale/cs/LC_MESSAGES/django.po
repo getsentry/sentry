@@ -2963,7 +2963,7 @@ msgid "Submit Crash Report"
 msgstr "Odeslat hlášení o pádu"
 
 #: web/frontend/error_page_embed.py:55
-msgid "Jane Doe"
+msgid "Orville Wright"
 msgstr "Jana Nováková"
 
 #: web/frontend/error_page_embed.py:61

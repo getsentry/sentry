@@ -5,8 +5,8 @@ import LetterAvatar from 'app/components/letterAvatar';
 
 describe('LetterAvatar', function() {
   const USER_1 = {
-    identifier: 'janedoe@example.com',
-    displayName: 'Jane Doe',
+    identifier: 'orvillewright@example.com',
+    displayName: 'Orville Wright',
   };
   const USER_2 = {
     identifier: 'johnsmith@example.com',
@@ -25,19 +25,19 @@ describe('LetterAvatar', function() {
     displayName: '',
   };
   const USER_6 = {
-    identifier: 'janedoe@example.com',
-    displayName: 'Jane Doe ',
+    identifier: 'orvillewright@example.com',
+    displayName: 'Orville Wright ',
   };
   const USER_7 = {
-    identifier: 'janedoe@example.com',
+    identifier: 'orvillewright@example.com',
     displayName: ' ',
   };
   const USER_8 = {
-    identifier: 'janedoe@example.com',
+    identifier: 'orvillewright@example.com',
     displayName: '\u2603super \u2603duper',
   };
   const USER_9 = {
-    identifier: 'janedoe@example.com',
+    identifier: 'orvillewright@example.com',
     displayName: 'jane austen doe',
   };
 

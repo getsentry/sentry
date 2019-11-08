@@ -2969,8 +2969,8 @@ msgid "Submit Crash Report"
 msgstr "提交崩溃报告"
 
 #: web/frontend/error_page_embed.py:55
-msgid "Jane Doe"
-msgstr "Jane Doe"
+msgid "Orville Wright"
+msgstr "Orville Wright"
 
 #: web/frontend/error_page_embed.py:61
 msgid "jane@example.com"

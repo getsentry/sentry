@@ -7,8 +7,8 @@ import TeamStore from 'app/stores/teamStore';
 describe('Avatar', function() {
   const USER = {
     id: '1',
-    name: 'Jane Doe',
-    email: 'janedoe@example.com',
+    name: 'Orville Wright',
+    email: 'orvillewright@example.com',
   };
   const TEAM_1 = {
     id: '3',
@@ -33,7 +33,7 @@ describe('Avatar', function() {
         <ActorAvatar
           actor={{
             id: '1',
-            name: 'Jane Doe',
+            name: 'Orville Wright',
             type: 'user',
           }}
         />

@@ -7,8 +7,8 @@ import SeenByList from 'app/components/seenByList';
 
 const USER = {
   id: 1,
-  name: 'Jane Doe',
-  email: 'janedoe@example.com',
+  name: 'Orville Wright',
+  email: 'orvillewright@example.com',
 };
 
 // eslint-disable-next-line
