@@ -47,7 +47,17 @@ const StyledQueryCard = styled(Link)`
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  height: 200px;
+  height: 220px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    box-shadow: 0px 0px 0px 6px rgba(209, 202, 216, 0.2);
+    transform: translateY(-2px);
+  }
+
+  &:active {
+    box-shadow: 0px 0px 0px 6px rgba(209, 202, 216, 0.5);
+  }
 `;
 
 const QueryCardHeader = styled('div')`
@@ -79,7 +89,9 @@ const StyledQueryDetail = styled('div')`
 
 const QueryCardBody = styled('div')`
   background: ${p => p.theme.offWhiteLight};
-  height: 100px;
+  max-height: 100px;
+  height: 100%;
+  overflow: hidden;
 `;
 
 const QueryCardFooter = styled('div')`
