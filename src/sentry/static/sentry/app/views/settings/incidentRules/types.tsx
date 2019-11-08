@@ -30,19 +30,23 @@ export type SavedTrigger = UnsavedTrigger & {
 
 export type Trigger = Partial<SavedTrigger> & UnsavedTrigger;
 
-export type IncidentRule = {
+export type UnsavedIncidentRule = {
   aggregations: AlertRuleAggregations[];
-  dateAdded: string;
-  dateModified: string;
-  id: string;
-  name: string;
   projects: string[];
   query: string;
-  status: number;
-  thresholdType: AlertRuleThresholdType;
   timeWindow: number;
   triggers: Trigger[];
 };
+
+export type SavedIncidentRule = UnsavedIncidentRule & {
+  dateAdded: string;
+  dateModified: string;
+  id: string;
+  status: number;
+  name: string;
+};
+
+export type IncidentRule = Partial<SavedIncidentRule> & UnsavedIncidentRule;
 
 export enum TimeWindow {
   ONE_MINUTE = 60,

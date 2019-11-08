@@ -13,12 +13,12 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import recreateRoute from 'app/utils/recreateRoute';
 import space from 'app/styles/space';
 
-import {IncidentRule} from './types';
+import {SavedIncidentRule} from './types';
 import {deleteRule} from './actions';
 import getMetricDisplayName from './utils/getMetricDisplayName';
 
 type State = {
-  rules: IncidentRule[];
+  rules: SavedIncidentRule[];
 } & AsyncView['state'];
 
 type RouteParams = {
@@ -35,7 +35,7 @@ class IncidentRulesList extends AsyncView<Props, State> {
     return [['rules', `/organizations/${orgId}/alert-rules/`] as [string, string]];
   }
 
-  handleRemoveRule = async (rule: IncidentRule) => {
+  handleRemoveRule = async (rule: SavedIncidentRule) => {
     const {orgId} = this.props.params;
 
     // Optimistic update

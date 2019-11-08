@@ -392,10 +392,10 @@ class FormModel {
    */
   @action
   saveForm() {
-    this.validateForm();
-    if (this.isError) {
+    if (!this.validateForm()) {
       return null;
     }
+
     let saveSnapshot: SaveSnapshot = this.createSnapshot();
 
     const request = this.doApiRequest({
@@ -661,9 +661,14 @@ class FormModel {
     this.setFieldState(id, FormState.SAVING, false);
   }
 
+  /**
+   * Returns true if there are no errors
+   */
   @action
-  validateForm() {
+  validateForm(): boolean {
     Array.from(this.fieldDescriptor.keys()).forEach(id => !this.validateField(id));
+
+    return !this.isError;
   }
 
   @action
