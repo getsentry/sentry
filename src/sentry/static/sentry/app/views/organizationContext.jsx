@@ -191,6 +191,7 @@ const OrganizationContext = createReactClass({
       // lead to very confusing behavior.
       if (
         this.props.detailed &&
+        organization.projects &&
         !this.props.routes.find(
           ({path}) => path && path.includes('/organizations/:orgId/issues/:groupId/')
         )
