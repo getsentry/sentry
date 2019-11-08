@@ -734,18 +734,7 @@ class EventManager(object):
 
         tsdb.incr_multi(counters, timestamp=event.datetime, environment_id=environment.id)
 
-        frequencies = [
-            # (tsdb.models.frequent_projects_by_organization, {
-            #     project.organization_id: {
-            #         project.id: 1,
-            #     },
-            # }),
-            # (tsdb.models.frequent_issues_by_project, {
-            #     project.id: {
-            #         group.id: 1,
-            #     },
-            # })
-        ]
+        frequencies = []
 
         if group:
             frequencies.append(
