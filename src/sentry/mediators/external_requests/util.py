@@ -42,7 +42,7 @@ def validate(instance, schema_type):
     return True
 
 
-def send_and_save_request(sentry_app, org_id, event, url, **kwargs):
+def send_and_save_sentry_app_request(url, sentry_app, org_id, event, **kwargs):
     """
     Send a webhook request, and save the request into the Redis buffer for the app dashboard request log
     Returns the response of the request
