@@ -1,4 +1,4 @@
-import {isString} from 'lodash';
+import isString from 'lodash/isString';
 import {divergentColorScale, spanColors} from 'app/utils/theme';
 
 type Rect = {

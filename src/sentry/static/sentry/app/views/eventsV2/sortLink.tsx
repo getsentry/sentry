@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 import {Location} from 'history';
-import {omit} from 'lodash';
+import omit from 'lodash/omit';
 
 import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/links/link';

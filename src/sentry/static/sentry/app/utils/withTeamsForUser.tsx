@@ -1,5 +1,4 @@
 import React from 'react';
-import _ from 'lodash';
 
 import {Client} from 'app/api';
 import {Organization, Project, Team, TeamWithProjects} from 'app/types';
@@ -23,7 +22,7 @@ type InjectedTeamsProps = {
 const withTeamsForUser = <P extends InjectedTeamsProps>(
   WrappedComponent: React.ComponentType<P>
 ) =>
-  class extends React.Component<
+  (class extends React.Component<
     Omit<P, keyof InjectedTeamsProps> & Partial<InjectedTeamsProps> & DependentProps,
     InjectedTeamsProps
   > {
@@ -101,6 +100,6 @@ const withTeamsForUser = <P extends InjectedTeamsProps>(
     render() {
       return <WrappedComponent {...this.props as (P & DependentProps)} {...this.state} />;
     }
-  };
+  });
 
 export default withTeamsForUser;

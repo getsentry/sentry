@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import * as Sentry from '@sentry/browser';
-import _ from 'lodash';
+import debounce from 'lodash/debounce';
 import createReactClass from 'create-react-class';
 import styled, {css} from 'react-emotion';
 
@@ -465,7 +465,7 @@ class SmartSearchBar extends React.Component {
    * Returns array of tag values that substring match `query`; invokes `callback`
    * with data when ready
    */
-  getTagValues = _.debounce(
+  getTagValues = debounce(
     async (tag, query) => {
       // Strip double quotes if there are any
       query = query.replace(/"/g, '').trim();
@@ -513,7 +513,7 @@ class SmartSearchBar extends React.Component {
   /**
    * Get recent searches
    */
-  getRecentSearches = _.debounce(
+  getRecentSearches = debounce(
     async () => {
       const {savedSearchType, hasRecentSearches, onGetRecentSearches} = this.props;
       // `savedSearchType` can be 0
@@ -553,7 +553,7 @@ class SmartSearchBar extends React.Component {
     return [];
   };
 
-  getReleases = _.debounce(
+  getReleases = debounce(
     async (tag, query) => {
       const releasePromise = this.fetchReleases(query);
 

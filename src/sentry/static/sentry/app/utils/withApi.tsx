@@ -29,7 +29,7 @@ const withApi = <P extends InjectedApiProps>(
   WrappedComponent: React.ComponentType<P>,
   {persistInFlight}: OptionProps = {}
 ) =>
-  class extends React.Component<WrappedProps<P>> {
+  (class extends React.Component<WrappedProps<P>> {
     static displayName = `withApi(${getDisplayName(WrappedComponent)})`;
 
     constructor(props: WrappedProps<P>) {
@@ -48,6 +48,6 @@ const withApi = <P extends InjectedApiProps>(
     render() {
       return <WrappedComponent api={this.api} {...this.props as P} />;
     }
-  };
+  });
 
 export default withApi;

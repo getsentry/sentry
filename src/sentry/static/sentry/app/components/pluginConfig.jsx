@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import _ from 'lodash';
+import isEqual from 'lodash/isEqual';
 import styled from 'react-emotion';
 
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
@@ -45,9 +45,7 @@ class PluginConfig extends React.Component {
   }
 
   shouldComponentUpdate(nextProps, nextState) {
-    return (
-      !_.isEqual(nextState, this.state) || !_.isEqual(nextProps.data, this.props.data)
-    );
+    return !isEqual(nextState, this.state) || !isEqual(nextProps.data, this.props.data);
   }
 
   loadPlugin(data) {

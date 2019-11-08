@@ -11,7 +11,7 @@ type InjectedOrganizationProps = {
 const withOrganization = <P extends InjectedOrganizationProps>(
   WrappedComponent: React.ComponentType<P>
 ) =>
-  class extends React.Component<
+  (class extends React.Component<
     Omit<P, keyof InjectedOrganizationProps> & Partial<InjectedOrganizationProps>
   > {
     static displayName = `withOrganization(${getDisplayName(WrappedComponent)})`;
@@ -27,6 +27,6 @@ const withOrganization = <P extends InjectedOrganizationProps>(
         />
       );
     }
-  };
+  });
 
 export default withOrganization;
