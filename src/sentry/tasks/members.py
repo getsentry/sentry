@@ -4,7 +4,7 @@ from django.core.urlresolvers import reverse
 from structlog import get_logger
 
 from sentry import roles
-from sentry.models import OrganizationMember
+from sentry.models import InviteStatus, OrganizationMember
 from sentry.tasks.base import instrumented_task
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
@@ -13,7 +13,7 @@ from sentry.utils.http import absolute_uri
 @instrumented_task(name="sentry.tasks.send_invite_request_notification_email", queue="email")
 def send_invite_request_notification_email(member_id):
     try:
-        om = OrganizationMember.objects.get(id=member_id)
+        om = OrganizationMember.objects.select_related("inviter", "organization").get(id=member_id)
     except OrganizationMember.DoesNotExist:
         return
 
@@ -48,6 +48,7 @@ def send_invite_request_notification_email(member_id):
     recipients = OrganizationMember.objects.select_related("user").filter(
         organization_id=om.organization_id,
         user__isnull=False,
+        invite_status=InviteStatus.APPROVED.value,
         role__in=(r.id for r in roles.get_all() if r.has_scope("member:write")),
     )
 
