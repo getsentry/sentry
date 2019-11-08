@@ -461,5 +461,5 @@ if (IS_PRODUCTION) {
   });
 }
 
-const smp = new SpeedMeasurePlugin();
+const smp = new SpeedMeasurePlugin({disable: !process.env.MEASURE});
 module.exports = smp.wrap(appConfig);
