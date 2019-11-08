@@ -24,7 +24,7 @@ class Banner extends React.Component<Props> {
     const {title, subtitle, isDismissable, onCloseClick, children} = this.props;
 
     return (
-      <StyledBanner>
+      <BannerWrapper>
         {isDismissable ? (
           <BannerIcon src="icon-close" aria-label={t('Close')} onClick={onCloseClick} />
         ) : null}
@@ -33,21 +33,21 @@ class Banner extends React.Component<Props> {
           <BannerSubtitle>{subtitle}</BannerSubtitle>
           <BannerActions>{children}</BannerActions>
         </BannerContent>
-      </StyledBanner>
+      </BannerWrapper>
     );
   }
 }
 
-const StyledBanner = styled('div')`
+const BannerWrapper = styled('div')`
   background-image: url(${spaceBg});
   background-repeat: no-repeat;
   background-size: cover;
   background-position: center center;
   position: relative;
   min-height: 320px;
+  margin-bottom: ${space(3)};
   padding-top: 24%;
   box-shadow: ${p => p.theme.dropShadowLight};
-  margin-bottom: ${space(3)};
 
   @media (min-width: ${theme.breakpoints[1]}) {
     min-height: 220px;

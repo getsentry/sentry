@@ -141,13 +141,13 @@ class EventsV2 extends React.Component<Props> {
     });
 
     return (
-      <StyledBanner
+      <Banner
         title={t('Discover')}
         subtitle={t('Here are a few sample queries to kick things off')}
         onCloseClick={this.handleClick}
       >
         {sampleQueries}
-      </StyledBanner>
+      </Banner>
     );
   }
 
@@ -235,10 +235,6 @@ const BannerButton = styled(Button)`
   @media (min-width: ${theme.breakpoints[1]}) {
     margin: 0 ${space(1)};
   }
-`;
-
-const StyledBanner = styled(Banner)`
-  margin-bottom: ${space(3)};
 `;
 
 const StyledSearchBar = styled(SearchBar)`

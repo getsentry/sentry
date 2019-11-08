@@ -4,7 +4,6 @@ import styled from 'react-emotion';
 import space from 'app/styles/space';
 import Link from 'app/components/links/link';
 import InlineSvg from 'app/components/inlineSvg';
-import Avatar from 'app/components/avatar';
 
 type Props = {
   title?: string;
@@ -16,10 +15,6 @@ type Props = {
 class QueryCard extends React.Component<Props> {
   render() {
     const {title, queryDetail, onEventClick, to} = this.props;
-    const creatorName = {
-      id: 1,
-      name: 'Bob',
-    };
 
     return (
       <StyledQueryCard onClick={onEventClick} to={to}>
@@ -30,8 +25,7 @@ class QueryCard extends React.Component<Props> {
         <QueryCardBody />
         <QueryCardFooter>
           <StyledCreator>
-            <StyledAvatar user={creatorName} />
-            <small>Creator Name</small>
+            <small>Pre-Built Query</small>
           </StyledCreator>
           <InlineSvg src="icon-ellipsis-filled" />
         </QueryCardFooter>
@@ -103,9 +97,6 @@ const QueryCardFooter = styled('div')`
 const StyledCreator = styled('div')`
   display: flex;
   align-items: center;
-`;
-const StyledAvatar = styled(Avatar)`
-  margin-right: ${space(1)};
 `;
 
 export default QueryCard;
