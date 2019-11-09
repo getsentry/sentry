@@ -165,7 +165,9 @@ class InstallationForm(forms.Form):
             "For example, if your group URL is "
             "https://gitlab.com/my-group/my-subgroup, enter `my-group/my-subgroup`."
             "<br>"
-            "Leave this empty to integrate an entire self-managed GitLab instance."
+            "If you are trying to integrate an entire self-managed GitLab instance, "
+            "leave this empty. Doing so will also allow you to select projects in "
+            "user namespaces (such as users' personal repositories and users' forks)."
         ),
         widget=forms.TextInput(attrs={"placeholder": _("my-group/my-subgroup")}),
         required=False,
