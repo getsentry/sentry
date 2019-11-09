@@ -328,6 +328,7 @@ let appConfig = {
       less: path.join(staticPrefix, 'less'),
       'sentry-test': path.join(__dirname, 'tests', 'js', 'sentry-test'),
       'sentry-locale': path.join(__dirname, 'src', 'sentry', 'locale'),
+      'react-mentions': path.join(__dirname, 'node_modules', '@sentry', 'react-mentions'),
     },
 
     modules: ['node_modules'],
