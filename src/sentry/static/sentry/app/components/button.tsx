@@ -167,7 +167,7 @@ class Button extends React.Component<ButtonProps, {}> {
                     ? iconSize
                     : (size && size.endsWith('small')) || size === 'micro'
                     ? '12px'
-                    : '13px'
+                    : '14px'
                 }
               />
             </Icon>
