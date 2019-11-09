@@ -177,7 +177,8 @@ class InstallationForm(forms.Form):
         help_text=_(
             "Include projects in subgroups of the GitLab group."
             "<br>"
-            "Not applicable when integrating an entire GitLab instance."
+            "Not applicable when integrating an entire GitLab instance. "
+            "All groups are included for instance-level integrations."
         ),
         widget=forms.CheckboxInput(),
         required=False,
