@@ -2,7 +2,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {openInviteMembersModal} from 'app/actionCreators/modal';
-import {OrganizationDetailed} from 'app/types';
+import {OrganizationDetailed, Member} from 'app/types';
 import {Panel} from 'app/components/panels';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -22,7 +22,11 @@ type Props = AsyncView['props'] & {
   organization: OrganizationDetailed;
 };
 
-class OrganizationMembersWrapper extends AsyncView<Props> {
+type State = AsyncView['state'] & {
+  inviteRequests: Member[];
+};
+
+class OrganizationMembersWrapper extends AsyncView<Props, State> {
   componentDidMount() {
     const {organization} = this.props;
 
@@ -114,17 +118,25 @@ class OrganizationMembersWrapper extends AsyncView<Props> {
     return count ? count.toString() : null;
   }
 
-  updateRequestList = (id: string) =>
+  removeAccessRequest = (id: string) =>
     this.setState(state => ({
-      requestList: state.requestList.filter(({id: existingId}) => existingId !== id),
+      requestList: state.requestList.filter(request => request.id !== id),
     }));
 
-  updateInviteRequests = (id: string) =>
+  removeInviteRequest = (id: string) =>
     this.setState(state => ({
-      inviteRequests: state.inviteRequests.filter(
-        ({id: existingId}) => existingId !== id
-      ),
+      inviteRequests: state.inviteRequests.filter(request => request.id !== id),
     }));
+
+  updateInviteRequest = (id: string, data: Partial<Member>) =>
+    this.setState(state => {
+      const inviteRequests = [...state.inviteRequests];
+      const inviteIndex = inviteRequests.findIndex(request => request.id === id);
+
+      inviteRequests[inviteIndex] = {...inviteRequests[inviteIndex], ...data};
+
+      return {inviteRequests};
+    });
 
   renderBody() {
     const {
@@ -193,8 +205,9 @@ class OrganizationMembersWrapper extends AsyncView<Props> {
           React.cloneElement(children, {
             requestList,
             inviteRequests,
-            onUpdateInviteRequests: this.updateInviteRequests,
-            onUpdateRequestList: this.updateRequestList,
+            onRemoveInviteRequest: this.removeInviteRequest,
+            onUpdateInviteRequest: this.updateInviteRequest,
+            onRemoveAccessRequest: this.removeAccessRequest,
             showInviteRequests: this.showInviteRequests,
           })}
       </React.Fragment>

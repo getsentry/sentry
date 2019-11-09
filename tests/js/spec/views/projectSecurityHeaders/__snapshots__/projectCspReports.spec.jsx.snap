@@ -60,8 +60,6 @@ exports[`ProjectCspReports renders 1`] = `
             <ForwardRef
               href="https://en.wikipedia.org/wiki/Content_Security_Policy"
               key="1"
-              rel="noreferrer noopener"
-              target="_blank"
             >
               <span
                 key="0"

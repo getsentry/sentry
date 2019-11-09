@@ -3,42 +3,63 @@ import React from 'react';
 
 import {tn} from 'app/locale';
 
-function getDuration(seconds: number): string {
-  const value = Math.abs(seconds * 1000);
-  let result: number = 0;
+function roundWithFixed(
+  value: number,
+  fixedDigits: number
+): {label: string; result: number} {
+  const label = value.toFixed(fixedDigits);
+  const result = fixedDigits <= 0 ? Math.round(value) : value;
 
-  if (value >= 604800000) {
-    result = Math.round(value / 604800000);
-    return `${result} ${tn('week', 'weeks', result)}`;
-  }
-  if (value >= 172800000) {
-    result = Math.round(value / 86400000);
-    return `${result} ${tn('day', 'days', result)}`;
-  }
-  if (value >= 7200000) {
-    result = Math.round(value / 3600000);
-    return `${result} ${tn('hour', 'hours', result)}`;
-  }
-  if (value >= 120000) {
-    result = Math.round(value / 60000);
-    return `${result} ${tn('minute', 'minutes', result)}`;
-  }
-  if (value >= 1000) {
-    result = Math.round(value / 1000);
-    return `${result} ${tn('second', 'seconds', result)}`;
-  }
-
-  return Math.round(value) + ' ms';
+  return {label, result};
 }
 
-type Props = React.HTMLProps<HTMLSpanElement> & {seconds: number};
+function getDuration(
+  seconds: number,
+  fixedDigits: number = 0,
+  abbreviation: boolean = false
+): string {
+  const value = Math.abs(seconds * 1000);
 
-const Duration = ({seconds, ...props}: Props) => (
-  <span {...props}>{getDuration(seconds)}</span>
+  if (value >= 604800000) {
+    const {label, result} = roundWithFixed(value / 604800000, fixedDigits);
+    return `${label} ${abbreviation ? 'wk' : tn('week', 'weeks', result)}`;
+  }
+  if (value >= 172800000) {
+    const {label, result} = roundWithFixed(value / 86400000, fixedDigits);
+    return `${label} ${abbreviation ? 'd' : tn('day', 'days', result)}`;
+  }
+  if (value >= 7200000) {
+    const {label, result} = roundWithFixed(value / 3600000, fixedDigits);
+    return `${label} ${abbreviation ? 'hr' : tn('hour', 'hours', result)}`;
+  }
+  if (value >= 120000) {
+    const {label, result} = roundWithFixed(value / 60000, fixedDigits);
+    return `${label} ${abbreviation ? 'min' : tn('minute', 'minutes', result)}`;
+  }
+  if (value >= 1000) {
+    const {label, result} = roundWithFixed(value / 1000, fixedDigits);
+    return `${label} ${abbreviation ? 's' : tn('second', 'seconds', result)}`;
+  }
+
+  const {label} = roundWithFixed(value, fixedDigits);
+
+  return `${label} ms`;
+}
+
+type Props = React.HTMLProps<HTMLSpanElement> & {
+  seconds: number;
+  fixedDigits?: number;
+  abbreviation?: boolean;
+};
+
+const Duration = ({seconds, fixedDigits, abbreviation, ...props}: Props) => (
+  <span {...props}>{getDuration(seconds, fixedDigits, abbreviation)}</span>
 );
 
 Duration.propTypes = {
   seconds: PropTypes.number.isRequired,
+  fixedDigits: PropTypes.number,
+  abbreviation: PropTypes.bool,
 };
 
 export default Duration;

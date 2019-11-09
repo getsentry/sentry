@@ -12,7 +12,7 @@ describe('Incident Rules -> Triggers Modal', function() {
     mountWithTheme(
       <TriggersModal
         organization={organization}
-        projects={[project, TestStubs.Project({slug: 'project-2', id: '3'})]}
+        projects={[project]}
         rule={rule}
         {...props}
       />,
@@ -20,6 +20,10 @@ describe('Incident Rules -> Triggers Modal', function() {
     );
   beforeEach(function() {
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/',
+      body: [],
+    });
     statsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
     });

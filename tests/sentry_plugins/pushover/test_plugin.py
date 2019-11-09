@@ -10,7 +10,7 @@ from sentry.testutils import PluginTestCase
 from sentry.utils import json
 from six.moves.urllib.parse import parse_qs
 
-from new_sentry_plugins.pushover.plugin import PushoverPlugin
+from test_only_plugins.pushover.plugin import PushoverPlugin
 
 SUCCESS = """{"status":1,"request":"e460545a8b333d0da2f3602aff3133d6"}"""
 
@@ -24,7 +24,7 @@ class PushoverPluginTest(PluginTestCase):
         assert self.plugin.conf_key == "pushover"
 
     def test_entry_point(self):
-        self.assertNewPluginInstalled("pushover", self.plugin)
+        self.assertTestOnlyPluginInstalled("pushover", self.plugin)
 
     def test_is_configured(self):
         assert self.plugin.is_configured(self.project) is False

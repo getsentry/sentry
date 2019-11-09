@@ -14,11 +14,21 @@ import Panel from 'app/components/panels/panel';
 
 type Data = {};
 
-type Props = {
-  apiMethod: APIRequestMethod;
-  apiEndpoint: string;
-  children: React.ReactNode;
+type RenderProps = {
+  model: FormModel;
+};
 
+type RenderFunc = (props: RenderProps) => React.ReactNode;
+
+// Type guard for render func.
+function isRenderFunc(func: React.ReactNode | Function): func is RenderFunc {
+  return typeof func === 'function';
+}
+
+type Props = {
+  apiMethod?: APIRequestMethod;
+  apiEndpoint?: string;
+  children: React.ReactNode | RenderFunc;
   className?: string;
   cancelLabel?: string;
   submitDisabled?: boolean;
@@ -45,7 +55,7 @@ type Props = {
     onSubmitSuccess: (data: Data) => void,
     onSubmitError: (error: any) => void,
     e: React.FormEvent,
-    setFormSaving: FormModel['setFormSaving']
+    model: FormModel
   ) => void;
 } & Pick<FormOptions, 'onSubmitSuccess' | 'onSubmitError' | 'onFieldChange'>;
 
@@ -55,7 +65,7 @@ type Context = {
 };
 
 export default class Form extends React.Component<Props> {
-  static propTypes = {
+  static propTypes: any = {
     cancelLabel: PropTypes.string,
     onCancel: PropTypes.func,
     onSubmit: PropTypes.func,
@@ -151,7 +161,7 @@ export default class Form extends React.Component<Props> {
         this.onSubmitSuccess,
         this.onSubmitError,
         e,
-        this.model.setFormSaving.bind(this.model)
+        this.model
       );
     } else {
       this.model.saveForm();
@@ -201,7 +211,7 @@ export default class Form extends React.Component<Props> {
         className={className}
         data-test-id={this.props['data-test-id']}
       >
-        <div>{children}</div>
+        <div>{isRenderFunc(children) ? children({model: this.model}) : children}</div>
 
         {shouldShowFooter && (
           <StyledFooter

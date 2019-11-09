@@ -8,9 +8,15 @@ import {addErrorMessage} from 'app/actionCreators/indicator';
 export function fetchSavedQueries(api: Client, orgId: string): Promise<SavedQuery[]> {
   DiscoverSavedQueryActions.startFetchSavedQueries();
 
-  const promise = api.requestPromise(`/organizations/${orgId}/discover/saved/`, {
-    method: 'GET',
-  });
+  const promise: Promise<SavedQuery[]> = api.requestPromise(
+    `/organizations/${orgId}/discover/saved/`,
+    {
+      method: 'GET',
+    }
+  );
+
+  DiscoverSavedQueryActions.startFetchSavedQueries();
+
   promise
     .then(resp => {
       DiscoverSavedQueryActions.fetchSavedQueriesSuccess(resp);
@@ -27,10 +33,16 @@ export function createSavedQuery(
   orgId: string,
   query: NewQuery
 ): Promise<SavedQuery> {
-  const promise = api.requestPromise(`/organizations/${orgId}/discover/saved/`, {
-    method: 'POST',
-    data: query,
-  });
+  const promise: Promise<SavedQuery> = api.requestPromise(
+    `/organizations/${orgId}/discover/saved/`,
+    {
+      method: 'POST',
+      data: query,
+    }
+  );
+
+  DiscoverSavedQueryActions.startFetchSavedQueries();
+
   promise
     .then(resp => {
       DiscoverSavedQueryActions.createSavedQuerySuccess(resp);
@@ -46,13 +58,16 @@ export function updateSavedQuery(
   orgId: string,
   query: NewQuery
 ): Promise<SavedQuery> {
-  const promise = api.requestPromise(
+  const promise: Promise<SavedQuery> = api.requestPromise(
     `/organizations/${orgId}/discover/saved/${query.id}/`,
     {
       method: 'PUT',
       data: query,
     }
   );
+
+  DiscoverSavedQueryActions.startFetchSavedQueries();
+
   promise
     .then(resp => {
       DiscoverSavedQueryActions.updateSavedQuerySuccess(resp);
@@ -67,11 +82,14 @@ export function deleteSavedQuery(
   api: Client,
   orgId: string,
   queryId: string
-): Promise<null> {
-  const promise = api.requestPromise(
+): Promise<void> {
+  const promise: Promise<void> = api.requestPromise(
     `/organizations/${orgId}/discover/saved/${queryId}/`,
     {method: 'DELETE'}
   );
+
+  DiscoverSavedQueryActions.startFetchSavedQueries();
+
   promise
     .then(() => {
       DiscoverSavedQueryActions.deleteSavedQuerySuccess(queryId);
@@ -79,6 +97,5 @@ export function deleteSavedQuery(
     .catch(() => {
       addErrorMessage(t('Unable to delete the saved query'));
     });
-
   return promise;
 }

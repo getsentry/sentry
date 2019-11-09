@@ -2,41 +2,43 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import * as ReactRouter from 'react-router';
 
-import {AccessRequest, Member, Organization} from 'app/types';
+import {MEMBER_ROLES} from 'app/constants';
+import {AccessRequest, Member, Organization, Team} from 'app/types';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tct} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+import withTeams from 'app/utils/withTeams';
+import AsyncView from 'app/views/asyncView';
 
 import InviteRequestRow from './inviteRequestRow';
 import OrganizationAccessRequests from './organizationAccessRequests';
 
 type Props = {
-  api: any;
   params: any;
   router: ReactRouter.InjectedRouter;
   organization: Organization;
   requestList: AccessRequest[];
   inviteRequests: Member[];
-  onUpdateInviteRequests: (id: string) => void;
-  onUpdateRequestList: (id: string) => void;
+  teams: Team[];
+  onUpdateInviteRequest: (id: string, data: Partial<Member>) => void;
+  onRemoveInviteRequest: (id: string) => void;
+  onRemoveAccessRequest: (id: string) => void;
   showInviteRequests: boolean;
 };
 
-type State = {
+type State = AsyncView['state'] & {
   inviteRequestBusy: {[key: string]: boolean};
 };
 
-class OrganizationRequestsView extends React.Component<Props, State> {
+class OrganizationRequestsView extends AsyncView<Props, State> {
   static propTypes = {
-    api: PropTypes.object.isRequired,
     requestList: PropTypes.array.isRequired,
     inviteRequests: PropTypes.array.isRequired,
-    onUpdateInviteRequests: PropTypes.func.isRequired,
-    onUpdateRequestList: PropTypes.func.isRequired,
+    onRemoveInviteRequest: PropTypes.func.isRequired,
+    onRemoveAccessRequest: PropTypes.func.isRequired,
     showInviteRequests: PropTypes.bool.isRequired,
   };
 
@@ -44,11 +46,16 @@ class OrganizationRequestsView extends React.Component<Props, State> {
     inviteRequests: [],
   };
 
-  state: State = {
-    inviteRequestBusy: {},
-  };
+  getDefaultState() {
+    const state = super.getDefaultState();
+    return {
+      ...state,
+      inviteRequestBusy: {},
+    };
+  }
 
   componentWillMount() {
+    super.componentWillMount();
     this.handleRedirect();
   }
 
@@ -64,6 +71,12 @@ class OrganizationRequestsView extends React.Component<Props, State> {
 
   componentDidUpdate() {
     this.handleRedirect();
+  }
+
+  getEndpoints(): [string, string][] {
+    const orgId = this.props.organization.slug;
+
+    return [['member', `/organizations/${orgId}/members/me/`]];
   }
 
   handleRedirect() {
@@ -87,14 +100,14 @@ class OrganizationRequestsView extends React.Component<Props, State> {
     eventKey,
     eventName,
   }) => {
-    const {api, params, organization, onUpdateInviteRequests} = this.props;
+    const {params, organization, onRemoveInviteRequest} = this.props;
 
     this.setState(state => ({
       inviteRequestBusy: {...state.inviteRequestBusy, [inviteRequest.id]: true},
     }));
 
     try {
-      await api.requestPromise(
+      await this.api.requestPromise(
         `/organizations/${params.orgId}/invite-requests/${inviteRequest.id}/`,
         {
           method,
@@ -102,7 +115,7 @@ class OrganizationRequestsView extends React.Component<Props, State> {
         }
       );
 
-      onUpdateInviteRequests(inviteRequest.id);
+      onRemoveInviteRequest(inviteRequest.id);
       addSuccessMessage(successMessage);
       trackAnalyticsEvent({
         eventKey,
@@ -124,7 +137,11 @@ class OrganizationRequestsView extends React.Component<Props, State> {
     this.handleAction({
       inviteRequest,
       method: 'PUT',
-      data: {approve: 1},
+      data: {
+        role: inviteRequest.role,
+        teams: inviteRequest.teams,
+        approve: 1,
+      },
       successMessage: tct('[email] has been invited', {email: inviteRequest.email}),
       errorMessage: tct('Error inviting [email]', {email: inviteRequest.email}),
       eventKey: 'invite_request.approved',
@@ -154,10 +171,12 @@ class OrganizationRequestsView extends React.Component<Props, State> {
       requestList,
       showInviteRequests,
       inviteRequests,
-      onUpdateRequestList,
+      onRemoveAccessRequest,
+      onUpdateInviteRequest,
       organization,
+      teams,
     } = this.props;
-    const {inviteRequestBusy} = this.state;
+    const {inviteRequestBusy, member} = this.state;
 
     return (
       <React.Fragment>
@@ -171,8 +190,11 @@ class OrganizationRequestsView extends React.Component<Props, State> {
                   organization={organization}
                   inviteRequest={inviteRequest}
                   inviteRequestBusy={inviteRequestBusy}
+                  allTeams={teams}
+                  allRoles={member ? member.roles : MEMBER_ROLES}
                   onApprove={this.handleApprove}
                   onDeny={this.handleDeny}
+                  onUpdate={data => onUpdateInviteRequest(inviteRequest.id, data)}
                 />
               ))}
               {inviteRequests.length === 0 && (
@@ -185,11 +207,11 @@ class OrganizationRequestsView extends React.Component<Props, State> {
         <OrganizationAccessRequests
           orgId={params.orgId}
           requestList={requestList}
-          onUpdateRequestList={onUpdateRequestList}
+          onRemoveAccessRequest={onRemoveAccessRequest}
         />
       </React.Fragment>
     );
   }
 }
 
-export default withApi(withOrganization(OrganizationRequestsView));
+export default withTeams(withOrganization(OrganizationRequestsView));

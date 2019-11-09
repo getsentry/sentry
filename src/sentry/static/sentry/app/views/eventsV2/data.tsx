@@ -12,6 +12,7 @@ import getDynamicText from 'app/utils/getDynamicText';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import pinIcon from 'app/../images/location-pin.png';
 import {EventViewv1, Organization} from 'app/types';
+import Duration from 'app/components/duration';
 
 import {QueryLink} from './styles';
 
@@ -41,7 +42,7 @@ export const TRANSACTION_VIEWS: Readonly<Array<EventViewv1>> = [
         'p75',
         'p95',
       ],
-      fieldnames: ['transaction', 'project', 'volume', 'avg', '75th', '95th'],
+      fieldnames: ['transaction', 'project', '# of events', 'avg', '75th', '95th'],
       sort: ['-count_id'],
       query: 'event.type:transaction',
     },
@@ -58,7 +59,7 @@ export const TRANSACTION_VIEWS: Readonly<Array<EventViewv1>> = [
         'p75',
         'p95',
       ],
-      fieldnames: ['user', 'events', 'unique transactions', 'avg', '75th', '95th'],
+      fieldnames: ['user', '# of events', 'unique transactions', 'avg', '75th', '95th'],
       sort: ['-count_id'],
       query: 'event.type:transaction',
     },
@@ -68,7 +69,7 @@ export const TRANSACTION_VIEWS: Readonly<Array<EventViewv1>> = [
     name: t('Transactions by Region'),
     data: {
       fields: ['geo.region', 'count(id)', 'avg(transaction.duration)', 'p75', 'p95'],
-      fieldnames: ['Region', 'events', 'avg', '75th', '95th'],
+      fieldnames: ['Region', '# of events', 'avg', '75th', '95th'],
       sort: ['-count_id'],
       query: 'event.type:transaction',
     },
@@ -82,7 +83,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     name: t('Project Summary'),
     data: {
       fields: ['project', 'count(id)', 'count_unique(issue.id)'],
-      fieldnames: ['project', 'events', 'unique errors'],
+      fieldnames: ['project', '# of events', 'unique errors'],
       sort: ['-count_id'],
       query: 'event.type:error',
     },
@@ -92,7 +93,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     name: t('Errors'),
     data: {
       fields: ['title', 'count(id)', 'count_unique(user)', 'project', 'last_seen'],
-      fieldnames: ['error', 'events', 'users', 'project', 'last seen'],
+      fieldnames: ['error', '# of events', 'users', 'project', 'last seen'],
       sort: ['-count_id', '-title'],
       query: 'event.type:error',
     },
@@ -102,7 +103,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     name: t('Errors by URL'),
     data: {
       fields: ['url', 'count(id)', 'count_unique(issue.id)'],
-      fieldnames: ['URL', 'events', 'unique errors'],
+      fieldnames: ['URL', '# of events', 'unique errors'],
       sort: ['-count_id'],
       query: 'event.type:error',
     },
@@ -112,7 +113,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     name: t('Errors by User'),
     data: {
       fields: ['user', 'count(id)', 'count_unique(issue.id)'],
-      fieldnames: ['User', 'events', 'unique errors'],
+      fieldnames: ['User', '# of events', 'unique errors'],
       sort: ['-count_id'],
       query: 'event.type:error',
     },
@@ -122,7 +123,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     name: t('Content Security Policy (CSP)'),
     data: {
       fields: ['title', 'count(id)', 'count_unique(user)', 'project', 'last_seen'],
-      fieldnames: ['csp', 'events', 'users', 'project', 'last seen'],
+      fieldnames: ['csp', '# of events', 'users', 'project', 'last seen'],
       sort: ['-count_id', '-title'],
       query: 'event.type:csp',
     },
@@ -140,7 +141,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     name: t('Content Security Policy (CSP) Report by Directive'),
     data: {
       fields: ['effective-directive', 'count(id)', 'count_unique(title)'],
-      fieldnames: ['directive', 'events', 'reports'],
+      fieldnames: ['directive', '# of events', 'reports'],
       sort: ['-count_id'],
       query: 'event.type:csp',
     },
@@ -157,7 +158,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     name: t('Content Security Policy (CSP) Report by Blocked URI'),
     data: {
       fields: ['blocked-uri', 'count(id)'],
-      fieldnames: ['URI', 'events'],
+      fieldnames: ['URI', '# of events'],
       sort: ['-count_id'],
       query: 'event.type:csp',
     },
@@ -174,7 +175,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
     name: t('Content Security Policy (CSP) Report by User'),
     data: {
       fields: ['user', 'count(id)', 'count_unique(title)'],
-      fieldnames: ['User', 'events', 'reports'],
+      fieldnames: ['User', '# of events', 'reports'],
       sort: ['-count_id'],
       query: 'event.type:csp',
     },
@@ -186,6 +187,49 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
       'release',
       'environment',
     ],
+  },
+];
+
+// sample queries for the discover banner
+export const SAMPLE_VIEWS: Readonly<Array<EventViewv1 & {buttonLabel?: string}>> = [
+  {
+    name: t('Content Security Policy (CSP) Report by User'),
+    buttonLabel: t('CSP Reports by User'),
+    data: {
+      fields: ['user', 'count(id)', 'count_unique(title)'],
+      fieldnames: ['User', '# of events', 'reports'],
+      sort: ['-count_id'],
+      query: 'event.type:csp',
+    },
+    tags: [
+      'project.name',
+      'blocked-uri',
+      'browser.name',
+      'os.name',
+      'release',
+      'environment',
+    ],
+  },
+  {
+    name: t('Browsers with most bugs'),
+    data: {
+      fields: ['browser.name', 'count(id)', 'count_unique(issue.id)'],
+      fieldnames: ['Browser', '# of events', 'unique errors'],
+      sort: ['-count_id'],
+      query: 'event.type:error',
+    },
+    tags: ['error.type', 'project.name', 'url', 'release', 'environment'],
+  },
+  {
+    name: t('Top issues this week'),
+    data: {
+      fields: ['title', 'issue.id', 'project', 'count(id)', 'count_unique(user)'],
+      fieldnames: ['Title', 'issue.id', 'project', '# of events', 'users'],
+      sort: ['-count_id'],
+      query: 'event.type:error',
+    },
+    tags: ['project.name', 'release', 'environment'],
+    statsPeriod: '7d',
   },
 ];
 
@@ -218,6 +262,7 @@ type FieldFormatters = {
   number: FieldFormatter;
   date: FieldFormatter;
   string: FieldFormatter;
+  duration: FieldFormatter;
 };
 
 export type FieldTypes = keyof FieldFormatters;
@@ -288,6 +333,18 @@ export const FIELD_FORMATTERS: FieldFormatters = {
       const value = Array.isArray(data[field]) ? data[field].slice(-1) : data[field];
       return <QueryLink to={target}>{value}</QueryLink>;
     },
+  },
+  duration: {
+    sortField: true,
+    renderFunc: (field, data) => (
+      <NumberContainer>
+        {typeof data[field] === 'number' ? (
+          <Duration seconds={data[field] / 1000} fixedDigits={2} abbreviation />
+        ) : (
+          emptyValue
+        )}
+      </NumberContainer>
+    ),
   },
 };
 

@@ -577,7 +577,7 @@ exports[`Project Ownership Input renders 1`] = `
                 }
                 value={Array []}
               >
-                <MultiSelectControl
+                <ForwardRef(MultiSelectControl)
                   async={true}
                   cache={false}
                   className="css-1domaf0"
@@ -598,6 +598,7 @@ exports[`Project Ownership Input renders 1`] = `
                     clearable={true}
                     defaultOptions={true}
                     filterOptions={[Function]}
+                    forwardedRef={[Function]}
                     height={36}
                     loadOptions={[Function]}
                     multiple={true}
@@ -617,6 +618,7 @@ exports[`Project Ownership Input renders 1`] = `
                       defaultOptions={true}
                       deleteRemoves={true}
                       filterOptions={[Function]}
+                      forwardedRef={[Function]}
                       height={36}
                       loadOptions={[Function]}
                       multi={true}
@@ -637,6 +639,7 @@ exports[`Project Ownership Input renders 1`] = `
                         defaultOptions={true}
                         deleteRemoves={true}
                         filterOptions={[Function]}
+                        forwardedRef={[Function]}
                         height={36}
                         loadOptions={[Function]}
                         multi={true}
@@ -657,7 +660,7 @@ exports[`Project Ownership Input renders 1`] = `
                           defaultOptions={true}
                           deleteRemoves={true}
                           filterOptions={[Function]}
-                          forwardedRef={null}
+                          forwardedRef={[Function]}
                           height={36}
                           loadOptions={[Function]}
                           multi={true}
@@ -852,7 +855,7 @@ exports[`Project Ownership Input renders 1`] = `
                       </ForwardRef(SelectPicker)>
                     </StyledSelect>
                   </SelectControl>
-                </MultiSelectControl>
+                </ForwardRef(MultiSelectControl)>
               </SelectOwners>
             </div>
           </Base>

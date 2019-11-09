@@ -6,26 +6,34 @@ import * as ReactRouter from 'react-router';
 import {Params} from 'react-router/lib/Router';
 import {Location} from 'history';
 
-import {Organization} from 'app/types';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import SentryTypes from 'app/sentryTypes';
+import theme from 'app/utils/theme';
+import {Organization} from 'app/types';
+import localStorage from 'app/utils/localStorage';
+import withOrganization from 'app/utils/withOrganization';
+
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import {PageContent, PageHeader} from 'app/styles/organization';
 import PageHeading from 'app/components/pageHeading';
+import Banner from 'app/components/banner';
+import Button from 'app/components/button';
 import BetaTag from 'app/components/betaTag';
 import Feature from 'app/components/acl/feature';
-import Link from 'app/components/links/link';
+import SearchBar from 'app/views/events/searchBar';
 import NoProjectMessage from 'app/components/noProjectMessage';
+
+import {PageContent, PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
-import withOrganization from 'app/utils/withOrganization';
 
 import Events from './events';
 import EventDetails from './eventDetails';
-import SavedQueryButtonGroup from './savedQueryButtonGroup';
-import {getFirstQueryString} from './utils';
-import {ALL_VIEWS, TRANSACTION_VIEWS} from './data';
+import SavedQueryButtonGroup from './savedQuery';
 import EventView from './eventView';
+import EventInputName from './eventInputName';
+import {getFirstQueryString} from './utils';
+import {ALL_VIEWS, TRANSACTION_VIEWS, SAMPLE_VIEWS} from './data';
+import QueryCard from './querycard';
 
 type Props = {
   organization: Organization;
@@ -39,6 +47,21 @@ class EventsV2 extends React.Component<Props> {
     organization: SentryTypes.Organization.isRequired,
     location: PropTypes.object.isRequired,
     router: PropTypes.object.isRequired,
+  };
+
+  state = {
+    isBannerHidden: localStorage.getItem('discover-banner-dismissed'),
+  };
+
+  getDocumentTitle = (name: string | undefined): Array<string> => {
+    return typeof name === 'string' && String(name).trim().length > 0
+      ? [String(name).trim(), t('Discover')]
+      : [t('Discover')];
+  };
+
+  handleClick = () => {
+    localStorage.setItem('discover-banner-dismissed', true);
+    this.setState({isBannerHidden: true});
   };
 
   renderQueryList() {
@@ -59,50 +82,94 @@ class EventsV2 extends React.Component<Props> {
       };
 
       return (
-        <LinkContainer key={index}>
-          <Link
-            to={to}
-            onClick={() => {
-              trackAnalyticsEvent({
-                eventKey: 'discover_v2.prebuilt_query_click',
-                eventName: 'Discoverv2: Click a pre-built query',
-                organization_id: this.props.organization.id,
-                query_name: eventView.name,
-              });
-            }}
-          >
-            {eventView.name}
-          </Link>
-        </LinkContainer>
+        <QueryCard
+          key={index}
+          to={to}
+          title={eventView.name}
+          queryDetail={eventView.query}
+          onEventClick={() => {
+            trackAnalyticsEvent({
+              eventKey: 'discover_v2.prebuilt_query_click',
+              eventName: 'Discoverv2: Click a pre-built query',
+              organization_id: this.props.organization.id,
+              query_name: eventView.name,
+            });
+          }}
+        />
       );
     });
 
-    return <LinkList>{list}</LinkList>;
+    return <QueryGrid>{list}</QueryGrid>;
   }
 
-  getEventViewName = (): Array<string> => {
-    const {location} = this.props;
+  renderBanner() {
+    const bannerDismissed = localStorage.getItem('discover-banner-dismissed');
 
-    const name = getFirstQueryString(location.query, 'name');
-
-    if (typeof name === 'string' && String(name).trim().length > 0) {
-      return [t('Discover'), String(name).trim()];
+    if (bannerDismissed) {
+      return null;
     }
 
-    return [t('Discover')];
-  };
+    const {location} = this.props;
+
+    const sampleQueries = SAMPLE_VIEWS.map((view, index) => {
+      const eventView = EventView.fromEventViewv1(view);
+
+      const to = {
+        pathname: location.pathname,
+        query: {
+          ...eventView.generateQueryStringObject(),
+        },
+      };
+
+      return (
+        <BannerButton
+          to={to}
+          icon="icon-circle-add"
+          key={index}
+          onClick={() => {
+            trackAnalyticsEvent({
+              eventKey: 'discover_v2.prebuilt_query_click',
+              eventName: 'Discoverv2: Click a pre-built query',
+              organization_id: this.props.organization.id,
+              query_name: eventView.name,
+            });
+          }}
+        >
+          {view.buttonLabel || eventView.name}
+        </BannerButton>
+      );
+    });
+
+    return (
+      <Banner
+        title={t('Discover')}
+        subtitle={t('Here are a few sample queries to kick things off')}
+        onCloseClick={this.handleClick}
+      >
+        {sampleQueries}
+      </Banner>
+    );
+  }
+
+  renderNewQuery() {
+    return (
+      <div>
+        {this.renderBanner()}
+        <StyledSearchBar />
+        {this.renderQueryList()}
+      </div>
+    );
+  }
 
   render() {
     const {organization, location, router} = this.props;
+
     const eventSlug = getFirstQueryString(location.query, 'eventSlug');
     const eventView = EventView.fromLocation(location);
+    const documentTitle = this.getDocumentTitle(eventView.name).join(' - ');
 
     const hasQuery = location.query.field || location.query.eventSlug;
 
-    const documentTitle = this.getEventViewName()
-      .reverse()
-      .join(' - ');
-    const pageTitle = this.getEventViewName().join(' \u2014 ');
     return (
       <Feature features={['events-v2']} organization={organization} renderDisabled>
         <DocumentTitle title={`${documentTitle} - ${organization.slug} - Sentry`}>
@@ -112,8 +179,21 @@ class EventsV2 extends React.Component<Props> {
               <NoProjectMessage organization={organization}>
                 <PageHeader>
                   <PageHeading>
-                    {pageTitle} <BetaTag />
+                    {t('Discover')}
+                    <BetaTagWrapper>
+                      <BetaTag />
+                    </BetaTagWrapper>
+                    {hasQuery && (
+                      <React.Fragment>
+                        {' \u2014 '}
+                        <EventInputName
+                          organization={organization}
+                          eventView={eventView}
+                        />
+                      </React.Fragment>
+                    )}
                   </PageHeading>
+
                   {hasQuery && (
                     <SavedQueryButtonGroup
                       location={location}
@@ -122,7 +202,7 @@ class EventsV2 extends React.Component<Props> {
                     />
                   )}
                 </PageHeader>
-                {!hasQuery && this.renderQueryList()}
+                {!hasQuery && this.renderNewQuery()}
                 {hasQuery && (
                   <Events
                     organization={organization}
@@ -149,19 +229,39 @@ class EventsV2 extends React.Component<Props> {
   }
 }
 
-const LinkList = styled('ul')`
-  list-style: none;
-  padding: 0;
-  margin: 0;
+const BannerButton = styled(Button)`
+  margin: ${space(1)} 0;
+
+  @media (min-width: ${theme.breakpoints[1]}) {
+    margin: 0 ${space(1)};
+  }
 `;
 
-const LinkContainer = styled('li')`
-  background: ${p => p.theme.white};
-  line-height: 1.4;
-  border: 1px solid ${p => p.theme.borderLight};
-  border-radius: ${p => p.theme.borderRadius};
-  margin-bottom: ${space(1)};
-  padding: ${space(1)};
+const StyledSearchBar = styled(SearchBar)`
+  margin-bottom: ${space(3)};
+`;
+
+const QueryGrid = styled('div')`
+  display: grid;
+  grid-template-columns: minmax(100px, 1fr);
+  grid-gap: ${space(3)};
+
+  @media (min-width: ${theme.breakpoints[1]}) {
+    grid-template-columns: repeat(2, minmax(100px, 1fr));
+  }
+
+  @media (min-width: ${theme.breakpoints[2]}) {
+    grid-template-columns: repeat(3, minmax(100px, 1fr));
+  }
+
+  @media (min-width: ${theme.breakpoints[4]}) {
+    grid-template-columns: repeat(5, minmax(100px, 1fr));
+  }
+`;
+
+// Wrapper is needed because BetaTag discards margins applied directly to it
+const BetaTagWrapper = styled('span')`
+  margin-right: 0.4em;
 `;
 
 export default withOrganization(EventsV2);

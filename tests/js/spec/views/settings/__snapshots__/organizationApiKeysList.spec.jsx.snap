@@ -216,8 +216,6 @@ exports[`OrganizationApiKeysList renders 1`] = `
           <ForwardRef
             href="https://docs.sentry.io/hosted/api/"
             key="2"
-            rel="noreferrer noopener"
-            target="_blank"
           >
             <a
               href="https://docs.sentry.io/hosted/api/"

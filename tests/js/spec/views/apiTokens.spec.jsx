@@ -49,7 +49,7 @@ describe('ApiTokens', function() {
 
     const wrapper = mountWithTheme(<ApiTokens />, routerContext);
 
-    wrapper.find('.ref-delete-api-token').simulate('click');
+    wrapper.find('button[aria-label="Remove"]').simulate('click');
 
     // Should be loading
     expect(mock).toHaveBeenCalledTimes(1);

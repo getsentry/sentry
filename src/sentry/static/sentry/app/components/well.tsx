@@ -6,7 +6,7 @@ type Props = {
   hasImage: boolean | undefined;
   centered: boolean | undefined;
   children: React.ReactNode;
-  theme: any;
+  theme?: any;
 };
 
 type WellProps = Omit<React.HTMLProps<HTMLDivElement>, keyof Props> & Props;

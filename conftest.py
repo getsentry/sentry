@@ -33,6 +33,7 @@ def install_sentry_plugins():
     from django.conf import settings
 
     install_plugin_apps("sentry.new_apps", settings)
+    install_plugin_apps("sentry.test_only_apps", settings)
 
     from sentry.runner.initializer import register_plugins
 
