@@ -167,7 +167,7 @@ class InstallationForm(forms.Form):
             "<br>"
             "If you are trying to integrate an entire self-managed GitLab instance, "
             "leave this empty. Doing so will also allow you to select projects in "
-            "user namespaces (such as users' personal repositories and users' forks)."
+            "all group and user namespaces (such as users' personal repositories and forks)."
         ),
         widget=forms.TextInput(attrs={"placeholder": _("my-group/my-subgroup")}),
         required=False,
