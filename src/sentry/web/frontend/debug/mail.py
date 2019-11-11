@@ -13,6 +13,7 @@ from django.template.defaultfilters import slugify
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.views.generic import View
+from django.db import IntegrityError
 from loremipsum import Generator
 from random import Random
 
@@ -243,7 +244,10 @@ def alert(request):
     event = event_manager.save(project.id)
     # Prevent Percy screenshot from constantly changing
     event.datetime = datetime(2017, 9, 6, 0, 0)
-    event.save()
+    try:
+        event.save()
+    except IntegrityError:
+        pass
     event_type = event_manager.get_event_type()
 
     group.message = event_manager.get_search_message()

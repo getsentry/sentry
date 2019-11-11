@@ -73,29 +73,25 @@ const InviteRequestRow = ({
           </Tooltip>
         )}
       </div>
-      <div>
-        <RoleSelectControl
-          name="role"
-          disableUnallowed
-          onChange={r => onUpdate({role: r.value})}
-          value={inviteRequest.role}
-          roles={allRoles}
-        />
-      </div>
-      <div>
-        <SelectControl
-          name="teams"
-          placeholder={t('Add to teams...')}
-          onChange={teams => onUpdate({teams: teams.map(team => team.value)})}
-          value={inviteRequest.teams}
-          options={allTeams.map(({slug}) => ({
-            value: slug,
-            label: `#${slug}`,
-          }))}
-          multiple
-          clearable
-        />
-      </div>
+      <RoleSelectControl
+        name="role"
+        disableUnallowed
+        onChange={r => onUpdate({role: r.value})}
+        value={inviteRequest.role}
+        roles={allRoles}
+      />
+      <SelectControl
+        name="teams"
+        placeholder={t('Add to teams...')}
+        onChange={teams => onUpdate({teams: teams.map(team => team.value)})}
+        value={inviteRequest.teams}
+        options={allTeams.map(({slug}) => ({
+          value: slug,
+          label: `#${slug}`,
+        }))}
+        multiple
+        clearable
+      />
       <ButtonGroup>
         <Confirm
           onConfirm={sendInvites}

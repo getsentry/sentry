@@ -1,10 +1,10 @@
 import {Client} from 'app/api';
-import {IncidentRule, Trigger} from './types';
+import {SavedIncidentRule, Trigger} from './types';
 
 export function deleteRule(
   api: Client,
   orgId: string,
-  rule: IncidentRule
+  rule: SavedIncidentRule
 ): Promise<void> {
   return api.requestPromise(`/organizations/${orgId}/alert-rules/${rule.id}/`, {
     method: 'DELETE',

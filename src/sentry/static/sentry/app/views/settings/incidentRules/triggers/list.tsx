@@ -40,13 +40,13 @@ export default class TriggersList extends React.Component<Props> {
         </PanelHeaderGrid>
         <PanelBody>
           {isEmpty && <EmptyMessage>{t('No triggers added')}</EmptyMessage>}
-          {triggers.map(trigger => {
+          {triggers.map((trigger, index) => {
             const [mainCondition, secondaryCondition] = getTriggerConditionDisplayName(
               trigger
             );
 
             return (
-              <Grid key={trigger.id}>
+              <Grid key={trigger.id || `new-${index}`}>
                 <Label>{trigger.label}</Label>
                 <Condition>
                   <MainCondition>{mainCondition}</MainCondition>
