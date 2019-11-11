@@ -21,7 +21,7 @@ class Migration(migrations.Migration):
 
 
     dependencies = [
-        ('sentry', '0013_auto_20191108_2341'),
+        ('sentry', '0013_auto_20191111_1829'),
     ]
 
     operations = [
