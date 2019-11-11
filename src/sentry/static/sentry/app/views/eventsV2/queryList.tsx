@@ -9,6 +9,9 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import theme from 'app/utils/theme';
 import withDiscoverSavedQueries from 'app/utils/withDiscoverSavedQueries';
 import {SavedQuery} from 'app/stores/discoverSavedQueriesStore';
+import withApi from 'app/utils/withApi';
+import {Client} from 'app/api';
+import {fetchSavedQueries} from 'app/actionCreators/discoverSavedQueries';
 
 import EventView from './eventView';
 import {ALL_VIEWS, TRANSACTION_VIEWS} from './data';
@@ -16,6 +19,7 @@ import QueryCard from './querycard';
 import MiniGraph from './miniGraph';
 
 type Props = {
+  api: Client;
   organization: Organization;
   location: Location;
   savedQueries: SavedQuery[];
@@ -23,6 +27,11 @@ type Props = {
 };
 
 class QueryList extends React.Component<Props> {
+  componentDidMount() {
+    const {api, organization} = this.props;
+    fetchSavedQueries(api, organization.slug);
+  }
+
   renderPrebuiltQueries = () => {
     const {location, organization} = this.props;
     let views = ALL_VIEWS;
@@ -72,9 +81,16 @@ class QueryList extends React.Component<Props> {
   };
 
   renderSavedQueries = () => {
-    const {savedQueries, location} = this.props;
+    const {savedQueries, savedQueriesLoading, location} = this.props;
 
-    if (!savedQueries || !Array.isArray(savedQueries) || savedQueries.length === 0) {
+    console.log('savedQueries', savedQueries);
+
+    if (
+      savedQueriesLoading ||
+      !savedQueries ||
+      !Array.isArray(savedQueries) ||
+      savedQueries.length === 0
+    ) {
       return [];
     }
 
@@ -136,4 +152,4 @@ const QueryGrid = styled('div')`
   }
 `;
 
-export default withDiscoverSavedQueries(QueryList);
+export default withApi(withDiscoverSavedQueries(QueryList));
