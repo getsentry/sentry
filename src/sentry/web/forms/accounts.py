@@ -157,7 +157,7 @@ class PasswordlessRegistrationForm(forms.ModelForm):
     name = forms.CharField(
         label=_("Name"),
         max_length=30,
-        widget=forms.TextInput(attrs={"placeholder": "Jane Doe"}),
+        widget=forms.TextInput(attrs={"placeholder": "Jane Bloggs"}),
         required=True,
     )
     username = AllowedEmailField(

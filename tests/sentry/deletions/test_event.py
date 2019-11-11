@@ -20,7 +20,7 @@ class DeleteEventTest(TestCase):
             name="hello.png",
         )
         UserReport.objects.create(
-            event_id=event.event_id, project_id=event.project_id, name="Jane Doe"
+            event_id=event.event_id, project_id=event.project_id, name="Jane Bloggs"
         )
         assert nodestore.get(node_id) is not None
         deletion = ScheduledDeletion.schedule(event, days=0)

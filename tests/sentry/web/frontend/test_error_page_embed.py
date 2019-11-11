@@ -93,14 +93,14 @@ class ErrorPageEmbedTest(TestCase):
     def test_submission(self):
         resp = self.client.post(
             self.path_with_qs,
-            {"name": "Jane Doe", "email": "jane@example.com", "comments": "This is an example!"},
+            {"name": "Jane Bloggs", "email": "jane@example.com", "comments": "This is an example!"},
             HTTP_REFERER="http://example.com",
             HTTP_ACCEPT="application/json",
         )
         assert resp.status_code == 200, resp.content
 
         report = UserReport.objects.get()
-        assert report.name == "Jane Doe"
+        assert report.name == "Jane Bloggs"
         assert report.email == "jane@example.com"
         assert report.comments == "This is an example!"
         assert report.event_id == self.event_id
@@ -133,7 +133,7 @@ class ErrorPageEmbedTest(TestCase):
 
         resp = self.client.post(
             path,
-            {"name": "Jane Doe", "email": "jane@example.com", "comments": "This is an example!"},
+            {"name": "Jane Bloggs", "email": "jane@example.com", "comments": "This is an example!"},
             HTTP_REFERER="http://example.com",
             HTTP_ACCEPT="application/json",
         )
@@ -179,7 +179,7 @@ class ErrorPageEmbedEnvironmentTest(TestCase):
         self.login_as(user=self.user)
         response = self.client.post(
             self.path,
-            {"name": "Jane Doe", "email": "jane@example.com", "comments": "This is an example!"},
+            {"name": "Jane Bloggs", "email": "jane@example.com", "comments": "This is an example!"},
             HTTP_REFERER="http://example.com",
         )
 
@@ -190,7 +190,7 @@ class ErrorPageEmbedEnvironmentTest(TestCase):
         self.login_as(user=self.user)
         response = self.client.post(
             self.path,
-            {"name": "Jane Doe", "email": "jane@example.com", "comments": "This is an example!"},
+            {"name": "Jane Bloggs", "email": "jane@example.com", "comments": "This is an example!"},
             HTTP_REFERER="http://example.com",
         )
         self.make_event(environment=self.environment.name, event_id=self.event_id)
