@@ -999,26 +999,9 @@ function routes() {
           </Route>
         </Route>
       </Route>
-      {/* A route tree for lightweight organizational detail views */}
-      <Route path="/:orgId/" component={errorHandler(LightWeightOrganizationDetails)}>
-        <IndexRoute
-          componentPromise={() =>
-            import(/* webpackChunkName: "ProjectsDashboard" */ 'app/views/projectsDashboard')
-          }
-          component={errorHandler(LazyLoad)}
-        />
-        <Route
-          path="/organizations/:orgId/projects/"
-          componentPromise={() =>
-            import(/* webpackChunkName: "ProjectsDashboard" */ 'app/views/projectsDashboard')
-          }
-          component={errorHandler(LazyLoad)}
-        />
-      </Route>
       <Route path="/:orgId/" component={errorHandler(OrganizationDetails)}>
         <Route component={errorHandler(OrganizationRoot)}>
           {hook('routes:organization-root')}
-          />
           <Route
             path="/organizations/:orgId/stats/"
             componentPromise={() =>
@@ -1309,7 +1292,6 @@ function routes() {
             component={errorHandler(LazyLoad)}
           />
           <Route path="/organizations/:orgId/">
-            <Redirect from="/organizations/:orgId/projects/" to="/:orgId/" />
             {hook('routes:organization')}
             <Redirect path="/organizations/:orgId/teams/" to="/settings/:orgId/teams/" />
             <Redirect
@@ -1622,6 +1604,16 @@ function routes() {
         <Route
           path=":projectId/events/:eventId/"
           component={errorHandler(ProjectEventRedirect)}
+        />
+      </Route>
+      {/* A route tree for lightweight organizational detail views */}
+      <Route component={errorHandler(LightWeightOrganizationDetails)}>
+        <Route
+          path="/organizations/:orgId/projects/"
+          componentPromise={() =>
+            import(/* webpackChunkName: "ProjectsDashboard" */ 'app/views/projectsDashboard')
+          }
+          component={errorHandler(LazyLoad)}
         />
       </Route>
       {hook('routes')}
