@@ -5,6 +5,7 @@ import logging
 from rest_framework import serializers
 from rest_framework.response import Response
 from uuid import uuid4
+from django.db import transaction
 
 from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationRepositoryPermission
@@ -74,10 +75,14 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
 
         if update_kwargs:
             old_status = repo.status
-            repo.update(**update_kwargs)
-            if old_status == ObjectStatus.PENDING_DELETION and repo.status == ObjectStatus.VISIBLE:
-                repo.reset_pending_deletion_field_names()
-                repo.delete_pending_deletion_option()
+            with transaction.atomic():
+                repo.update(**update_kwargs)
+                if (
+                    old_status == ObjectStatus.PENDING_DELETION
+                    and repo.status == ObjectStatus.VISIBLE
+                ):
+                    repo.reset_pending_deletion_field_names()
+                    repo.delete_pending_deletion_option()
 
         return Response(serialize(repo, request.user))
 
