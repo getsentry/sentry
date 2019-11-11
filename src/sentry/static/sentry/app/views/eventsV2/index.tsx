@@ -32,9 +32,8 @@ import SavedQueryButtonGroup from './savedQuery';
 import EventView from './eventView';
 import EventInputName from './eventInputName';
 import {getFirstQueryString} from './utils';
-import {ALL_VIEWS, TRANSACTION_VIEWS, SAMPLE_VIEWS} from './data';
-import QueryCard from './querycard';
-import MiniGraph from './miniGraph';
+import {SAMPLE_VIEWS} from './data';
+import QueryList from './queryList';
 
 const DISPLAY_SEARCH_BAR_FLAG = false;
 
@@ -66,53 +65,6 @@ class EventsV2 extends React.Component<Props> {
     localStorage.setItem('discover-banner-dismissed', true);
     this.setState({isBannerHidden: true});
   };
-
-  renderQueryList() {
-    const {location, organization} = this.props;
-    let views = ALL_VIEWS;
-    if (organization.features.includes('transaction-events')) {
-      views = [...ALL_VIEWS, ...TRANSACTION_VIEWS];
-    }
-
-    const list = views.map((eventViewv1, index) => {
-      const eventView = EventView.fromEventViewv1(eventViewv1);
-      const to = {
-        pathname: location.pathname,
-        query: {
-          ...location.query,
-          ...eventView.generateQueryStringObject(),
-        },
-      };
-
-      return (
-        <QueryCard
-          key={index}
-          to={to}
-          title={eventView.name}
-          queryDetail={eventView.query}
-          renderGraph={() => {
-            return (
-              <MiniGraph
-                query={eventView.getEventsAPIPayload(location).query}
-                eventView={eventView}
-                organization={organization}
-              />
-            );
-          }}
-          onEventClick={() => {
-            trackAnalyticsEvent({
-              eventKey: 'discover_v2.prebuilt_query_click',
-              eventName: 'Discoverv2: Click a pre-built query',
-              organization_id: this.props.organization.id,
-              query_name: eventView.name,
-            });
-          }}
-        />
-      );
-    });
-
-    return <QueryGrid>{list}</QueryGrid>;
-  }
 
   renderBanner() {
     const bannerDismissed = localStorage.getItem('discover-banner-dismissed');
@@ -164,11 +116,13 @@ class EventsV2 extends React.Component<Props> {
   }
 
   renderNewQuery() {
+    const {location, organization} = this.props;
+
     return (
       <div>
         {this.renderBanner()}
         {DISPLAY_SEARCH_BAR_FLAG && <StyledSearchBar />}
-        {this.renderQueryList()}
+        {<QueryList location={location} organization={organization} />}
       </div>
     );
   }
@@ -251,24 +205,6 @@ const BannerButton = styled(Button)`
 
 const StyledSearchBar = styled(SearchBar)`
   margin-bottom: ${space(3)};
-`;
-
-const QueryGrid = styled('div')`
-  display: grid;
-  grid-template-columns: minmax(100px, 1fr);
-  grid-gap: ${space(3)};
-
-  @media (min-width: ${theme.breakpoints[1]}) {
-    grid-template-columns: repeat(2, minmax(100px, 1fr));
-  }
-
-  @media (min-width: ${theme.breakpoints[2]}) {
-    grid-template-columns: repeat(3, minmax(100px, 1fr));
-  }
-
-  @media (min-width: ${theme.breakpoints[4]}) {
-    grid-template-columns: repeat(5, minmax(100px, 1fr));
-  }
 `;
 
 // Wrapper is needed because BetaTag discards margins applied directly to it
