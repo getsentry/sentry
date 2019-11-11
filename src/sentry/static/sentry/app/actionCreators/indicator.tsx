@@ -3,11 +3,26 @@ import styled from 'react-emotion';
 
 import {DEFAULT_TOAST_DURATION} from 'app/constants';
 import {t, tct} from 'app/locale';
+import FormModel, {FieldValue} from 'app/views/settings/components/forms/model';
 import IndicatorActions from 'app/actions/indicatorActions';
 import space from 'app/styles/space';
 
+type IndicatorType = 'loading' | 'error' | 'success' | 'undo' | '';
+
+type Options = {
+  duration?: number;
+  append?: boolean;
+};
+
+type Indicator = {
+  type: IndicatorType;
+  id: string | number;
+  message: React.ReactNode;
+  options: Options;
+};
+
 // Removes a single indicator
-export function removeIndicator(indicator) {
+export function removeIndicator(indicator: Indicator) {
   IndicatorActions.remove(indicator);
 }
 
@@ -17,7 +32,11 @@ export function clearIndicators() {
 }
 
 // Note previous IndicatorStore.add behavior was to default to "loading" if no type was supplied
-export function addMessage(msg, type, options = {}) {
+export function addMessage(
+  msg: React.ReactNode,
+  type: IndicatorType,
+  options: Options = {}
+): void {
   let {duration} = options;
 
   // use default only if undefined, as 0 is a valid duration
@@ -30,33 +49,38 @@ export function addMessage(msg, type, options = {}) {
   IndicatorActions[action](msg, type, {...options, duration});
 }
 
-function addMessageWithType(type) {
-  return (msg, duration, options = {}) => addMessage(msg, type, {...options, duration});
+function addMessageWithType(type: IndicatorType) {
+  return (msg: React.ReactNode, duration?: number, options?: Omit<Options, 'duration'>) =>
+    addMessage(msg, type, {...options, duration});
 }
 
-export function addLoadingMessage(msg = t('Saving changes...'), ...args) {
+export function addLoadingMessage(
+  msg: React.ReactNode = t('Saving changes...'),
+  ...args
+) {
   return addMessageWithType('loading')(msg, ...args);
 }
 
-export function addErrorMessage(...args) {
-  return addMessageWithType('error')(...args);
+export function addErrorMessage(msg: React.ReactNode, ...args) {
+  return addMessageWithType('error')(msg, ...args);
 }
 
-export function addSuccessMessage(...args) {
-  return addMessageWithType('success')(...args);
+export function addSuccessMessage(msg: React.ReactNode, ...args) {
+  return addMessageWithType('success')(msg, ...args);
 }
 
-const PRETTY_VALUES = {
-  '': '<empty>',
-  [null]: '<none>',
-  [undefined]: '<unset>',
-  [false]: 'disabled',
-  [true]: 'enabled',
-};
+const PRETTY_VALUES: Map<unknown, string> = new Map([
+  ['', '<empty>'],
+  [null, '<none>'],
+  [undefined, '<unset>'],
+  // if we don't cast as any, then typescript complains because booleans are not valid keys
+  [true as any, 'enabled'],
+  [false as any, 'disabled'],
+]);
 
 // Transform form values into a string
 // Otherwise bool values will not get rendered and empty strings look like a bug
-const prettyFormString = (val, model, fieldName) => {
+const prettyFormString = (val: FieldValue, model: FormModel, fieldName: string) => {
   const descriptor = model.fieldDescriptor.get(fieldName);
 
   if (descriptor && typeof descriptor.formatMessageValue === 'function') {
@@ -67,11 +91,16 @@ const prettyFormString = (val, model, fieldName) => {
     return descriptor.formatMessageValue(val, {...descriptor, initialData});
   }
 
-  if (val in PRETTY_VALUES) {
-    return PRETTY_VALUES[val];
+  if (PRETTY_VALUES.has(val)) {
+    return PRETTY_VALUES.get(val);
   }
 
   return `${val}`;
+};
+
+type Change = {
+  old: FieldValue;
+  new: FieldValue;
 };
 
 /**
@@ -81,7 +110,11 @@ const prettyFormString = (val, model, fieldName) => {
  * Also allows for undo
  */
 
-export function saveOnBlurUndoMessage(change, model, fieldName) {
+export function saveOnBlurUndoMessage(
+  change: Change,
+  model: FormModel,
+  fieldName: string
+) {
   if (!model) {
     return;
   }
@@ -92,7 +125,7 @@ export function saveOnBlurUndoMessage(change, model, fieldName) {
     return;
   }
 
-  const prettifyValue = val => prettyFormString(val, model, fieldName);
+  const prettifyValue = (val: FieldValue) => prettyFormString(val, model, fieldName);
 
   // Hide the change text when formatMessageValue is explicitly set to false
   const showChangeText = model.getDescriptor(fieldName, 'formatMessageValue') !== false;

@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {Panel, PanelAlert} from 'app/components/panels';
-import {addLoadingMessage, removeIndicator} from 'app/actionCreators/indicator';
+import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {t, tn} from 'app/locale';
 import Access from 'app/components/acl/access';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
@@ -118,7 +118,7 @@ class ProjectProcessingIssues extends React.Component {
     this.setState({
       reprocessing: true,
     });
-    const loadingIndicator = addLoadingMessage(t('Started reprocessing..'));
+    addLoadingMessage(t('Started reprocessing..'));
     const {orgId, projectId} = this.props.params;
     this.props.api.request(`/projects/${orgId}/${projectId}/reprocessing/`, {
       method: 'POST',
@@ -134,7 +134,7 @@ class ProjectProcessingIssues extends React.Component {
         });
       },
       complete: () => {
-        removeIndicator(loadingIndicator);
+        clearIndicators();
       },
     });
   };
