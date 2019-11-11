@@ -22,7 +22,7 @@ import EventView from './eventView';
 import {ALL_VIEWS, TRANSACTION_VIEWS} from './data';
 import QueryCard from './querycard';
 import MiniGraph from './miniGraph';
-import {handleDeleteQuery} from './savedQuery/utils';
+import {handleDeleteQuery, handleCreateQuery} from './savedQuery/utils';
 
 type Props = {
   api: Client;
@@ -88,7 +88,6 @@ class QueryList extends React.Component<Props> {
 
   handleDeleteQuery = (eventView: EventView) => (event: React.MouseEvent<Element>) => {
     event.preventDefault();
-    event.stopPropagation();
 
     const {api, location, organization} = this.props;
 
@@ -100,8 +99,24 @@ class QueryList extends React.Component<Props> {
     });
   };
 
+  handleDuplicateQuery = (eventView: EventView) => (event: React.MouseEvent<Element>) => {
+    event.preventDefault();
+
+    const {api, location, organization} = this.props;
+
+    eventView = eventView.clone();
+    eventView.name = `${eventView.name} copy`;
+
+    handleCreateQuery(api, organization, eventView).then(() => {
+      browserHistory.push({
+        pathname: location.pathname,
+        query: {},
+      });
+    });
+  };
+
   renderSavedQueries = () => {
-    const {savedQueries, location} = this.props;
+    const {savedQueries, location, organization} = this.props;
 
     if (!savedQueries || !Array.isArray(savedQueries) || savedQueries.length === 0) {
       return [];
@@ -132,6 +147,15 @@ class QueryList extends React.Component<Props> {
               query_name: eventView.name,
             });
           }}
+          renderGraph={() => {
+            return (
+              <MiniGraph
+                query={eventView.getEventsAPIPayload(location).query}
+                eventView={eventView}
+                organization={organization}
+              />
+            );
+          }}
           renderContextMenu={() => {
             return (
               <ContextMenu>
@@ -141,7 +165,12 @@ class QueryList extends React.Component<Props> {
                 >
                   {t('Delete Query')}
                 </MenuItem>
-                <MenuItem href="">Item</MenuItem>
+                <MenuItem
+                  href="#duplicate-query"
+                  onClick={this.handleDuplicateQuery(eventView)}
+                >
+                  {t('Duplicate Query')}
+                </MenuItem>
               </ContextMenu>
             );
           }}
