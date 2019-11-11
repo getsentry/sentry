@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import ProjectActions from 'app/actions/projectActions';
+import ProjectsStore from 'app/stores/projectsStore';
 import SentryTypes from 'app/sentryTypes';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import withApi from 'app/utils/withApi';
@@ -274,6 +275,15 @@ async function fetchProjects(api, orgId, {slugs, search, limit, allProjects} = {
   }
 
   if (allProjects) {
+    const {loading, projects} = ProjectsStore.getState();
+    // If the projects store is loaded then return all projects from the store
+    if (!loading) {
+      return {
+        results: projects,
+        hasMore: false,
+      };
+    }
+    // Otherwise mark the query to fetch all projects from the API
     query.all_projects = 1;
   }
 
