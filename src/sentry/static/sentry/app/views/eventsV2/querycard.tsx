@@ -1,12 +1,8 @@
 import React from 'react';
 import styled from 'react-emotion';
-import classNames from 'classnames';
 
 import space from 'app/styles/space';
 import Link from 'app/components/links/link';
-import InlineSvg from 'app/components/inlineSvg';
-import DropdownMenu from 'app/components/dropdownMenu';
-import MenuItem from 'app/components/menuItem';
 
 type Props = {
   title?: string;
@@ -15,11 +11,20 @@ type Props = {
   to?: string | object;
   onEventClick?: () => void;
   renderGraph: () => React.ReactNode;
+  renderContextMenu?: () => React.ReactNode;
 };
 
 class QueryCard extends React.PureComponent<Props> {
   render() {
-    const {title, subtitle, queryDetail, onEventClick, to, renderGraph} = this.props;
+    const {
+      title,
+      subtitle,
+      queryDetail,
+      onEventClick,
+      to,
+      renderContextMenu,
+      renderGraph,
+    } = this.props;
 
     return (
       <StyledQueryCard onClick={onEventClick} to={to}>
@@ -32,72 +37,9 @@ class QueryCard extends React.PureComponent<Props> {
           <StyledCreator>
             <small>{subtitle}</small>
           </StyledCreator>
-
-          <ContextMenu>
-            <MenuItem href="">Item</MenuItem>
-            <MenuItem href="">Item</MenuItem>
-          </ContextMenu>
-          {false && (
-            <ContextMenuButton>
-              <InlineSvg src="icon-ellipsis-filled" />
-            </ContextMenuButton>
-          )}
+          {renderContextMenu && renderContextMenu()}
         </QueryCardFooter>
       </StyledQueryCard>
-    );
-  }
-}
-
-const ContextMenuButton = styled('div')`
-  border-radius: 3px;
-  background-color: ${p => p.theme.offWhite};
-  padding-left: 8px;
-  padding-right: 8px;
-
-  &:hover {
-    background-color: ${p => p.theme.offWhite2};
-  }
-`;
-
-class ContextMenu extends React.Component {
-  render() {
-    const {children} = this.props;
-
-    return (
-      <DropdownMenu>
-        {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
-          const topLevelCx = classNames('dropdown', {
-            'pull-right': true,
-            'anchor-right': true,
-            open: isOpen,
-          });
-
-          return (
-            <span
-              {...getRootProps({
-                className: topLevelCx,
-              })}
-            >
-              <ContextMenuButton
-                {...getActorProps({
-                  onClick: event => {
-                    event.stopPropagation();
-                    event.preventDefault();
-                  },
-                }) as any}
-              >
-                <InlineSvg src="icon-ellipsis-filled" />
-              </ContextMenuButton>
-
-              {isOpen && (
-                <ul {...getMenuProps({}) as any} className={classNames('dropdown-menu')}>
-                  {children}
-                </ul>
-              )}
-            </span>
-          );
-        }}
-      </DropdownMenu>
     );
   }
 }

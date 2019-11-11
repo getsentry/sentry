@@ -1,6 +1,8 @@
 import React from 'react';
 import {Location} from 'history';
 import styled from 'react-emotion';
+import classNames from 'classnames';
+import {browserHistory} from 'react-router';
 
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -12,6 +14,9 @@ import {SavedQuery} from 'app/stores/discoverSavedQueriesStore';
 import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
 import {fetchSavedQueries} from 'app/actionCreators/discoverSavedQueries';
+import InlineSvg from 'app/components/inlineSvg';
+import DropdownMenu from 'app/components/dropdownMenu';
+import MenuItem from 'app/components/menuItem';
 
 import EventView from './eventView';
 import {ALL_VIEWS, TRANSACTION_VIEWS} from './data';
@@ -81,17 +86,24 @@ class QueryList extends React.Component<Props> {
     return list;
   };
 
+  handleDeleteQuery = (eventView: EventView) => (event: React.MouseEvent<Element>) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const {api, location, organization} = this.props;
+
+    handleDeleteQuery(api, organization, eventView).then(() => {
+      browserHistory.push({
+        pathname: location.pathname,
+        query: {},
+      });
+    });
+  };
+
   renderSavedQueries = () => {
-    const {savedQueries, savedQueriesLoading, location} = this.props;
+    const {savedQueries, location} = this.props;
 
-    console.log('savedQueries', savedQueries);
-
-    if (
-      savedQueriesLoading ||
-      !savedQueries ||
-      !Array.isArray(savedQueries) ||
-      savedQueries.length === 0
-    ) {
+    if (!savedQueries || !Array.isArray(savedQueries) || savedQueries.length === 0) {
       return [];
     }
 
@@ -119,6 +131,19 @@ class QueryList extends React.Component<Props> {
               organization_id: this.props.organization.id,
               query_name: eventView.name,
             });
+          }}
+          renderContextMenu={() => {
+            return (
+              <ContextMenu>
+                <MenuItem
+                  href="#delete-query"
+                  onClick={this.handleDeleteQuery(eventView)}
+                >
+                  {t('Delete Query')}
+                </MenuItem>
+                <MenuItem href="">Item</MenuItem>
+              </ContextMenu>
+            );
           }}
         />
       );
@@ -150,6 +175,60 @@ const QueryGrid = styled('div')`
 
   @media (min-width: ${theme.breakpoints[4]}) {
     grid-template-columns: repeat(5, minmax(100px, 1fr));
+  }
+`;
+
+class ContextMenu extends React.Component {
+  render() {
+    const {children} = this.props;
+
+    return (
+      <DropdownMenu>
+        {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
+          const topLevelCx = classNames('dropdown', {
+            'pull-right': true,
+            'anchor-right': true,
+            open: isOpen,
+          });
+
+          return (
+            <span
+              {...getRootProps({
+                className: topLevelCx,
+              })}
+            >
+              <ContextMenuButton
+                {...getActorProps({
+                  onClick: event => {
+                    event.stopPropagation();
+                    event.preventDefault();
+                  },
+                }) as any}
+              >
+                <InlineSvg src="icon-ellipsis-filled" />
+              </ContextMenuButton>
+
+              {isOpen && (
+                <ul {...getMenuProps({}) as any} className={classNames('dropdown-menu')}>
+                  {children}
+                </ul>
+              )}
+            </span>
+          );
+        }}
+      </DropdownMenu>
+    );
+  }
+}
+
+const ContextMenuButton = styled('div')`
+  border-radius: 3px;
+  background-color: ${p => p.theme.offWhite};
+  padding-left: 8px;
+  padding-right: 8px;
+
+  &:hover {
+    background-color: ${p => p.theme.offWhite2};
   }
 `;
 
