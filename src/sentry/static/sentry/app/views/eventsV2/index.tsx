@@ -36,6 +36,8 @@ import {ALL_VIEWS, TRANSACTION_VIEWS, SAMPLE_VIEWS} from './data';
 import QueryCard from './querycard';
 import MiniGraph from './miniGraph';
 
+const DISPLAY_SEARCH_BAR_FLAG = false;
+
 type Props = {
   organization: Organization;
   location: Location;
@@ -165,7 +167,7 @@ class EventsV2 extends React.Component<Props> {
     return (
       <div>
         {this.renderBanner()}
-        <StyledSearchBar />
+        {DISPLAY_SEARCH_BAR_FLAG && <StyledSearchBar />}
         {this.renderQueryList()}
       </div>
     );
