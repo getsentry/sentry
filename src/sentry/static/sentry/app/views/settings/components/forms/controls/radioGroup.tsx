@@ -45,6 +45,7 @@ const RadioGroup: React.FC<Props> = ({
             <RadioLineText disabled={disabled}>{name}</RadioLineText>
             {description && (
               <React.Fragment>
+                {/* If there is a description then we want to have a 2x2 grid so the first column width aligns with Radio Button */}
                 <div />
                 <Description>{description}</Description>
               </React.Fragment>
