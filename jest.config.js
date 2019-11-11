@@ -34,4 +34,15 @@ module.exports = {
   },
   moduleFileExtensions: ['js', 'ts', 'jsx', 'tsx'],
   globals: {},
+
+  reporters: [
+    'default',
+    [
+      'jest-junit',
+      {
+        outputDirectory: '.artifacts',
+        outputName: 'jest.junit.xml',
+      },
+    ],
+  ],
 };
