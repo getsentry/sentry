@@ -76,7 +76,7 @@ export default class TableField extends React.Component<Props> {
 
       const validValues = !Object.values(nextValue)
         .map(o => Object.values(o).find(v => v === null))
-        .includes(undefined);
+        .includes(null);
 
       if (allowEmpty || validValues) {
         onBlur();
