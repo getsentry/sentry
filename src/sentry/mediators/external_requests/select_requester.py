@@ -55,7 +55,7 @@ class SelectRequester(Mediator):
                     self._build_url(),
                     self.sentry_app,
                     self.install.organization_id,
-                    "select.requested",
+                    "select_options.requested",
                     headers=self._build_headers(),
                 )
             )

@@ -56,7 +56,7 @@ class TestSelectRequester(TestCase):
 
         assert len(requests) == 1
         assert requests[0]["response_code"] == 200
-        assert requests[0]["event_type"] == "select.requested"
+        assert requests[0]["event_type"] == "select_options.requested"
 
     @responses.activate
     def test_invalid_response_format(self):
@@ -106,4 +106,4 @@ class TestSelectRequester(TestCase):
 
         assert len(requests) == 1
         assert requests[0]["response_code"] == 500
-        assert requests[0]["event_type"] == "select.requested"
+        assert requests[0]["event_type"] == "select_options.requested"

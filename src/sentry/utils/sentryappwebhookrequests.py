@@ -18,7 +18,7 @@ EXTENDED_VALID_EVENTS = VALID_EVENTS + (
     "event_alert.triggered",
     "installation.created",
     "installation.deleted",
-    "select.requested",
+    "select_options.requested",
     "external_issue.created",
     "external_issue.linked",
 )
