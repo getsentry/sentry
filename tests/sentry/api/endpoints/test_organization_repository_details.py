@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
 from mock import patch
-from django.core.urlresolvers import reverse
 
+from django.core.urlresolvers import reverse
 
 from sentry.constants import ObjectStatus
 from sentry.models import Commit, Integration, OrganizationOption, Repository
