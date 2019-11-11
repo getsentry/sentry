@@ -5,46 +5,64 @@ import isPropValid from '@emotion/is-prop-valid';
 
 import {growIn} from 'app/styles/animations';
 
-const RadioGroup = ({value, disabled, choices, label, onChange, ...props}) => {
-  const isSelected = id => {
-    return value ? value === id : id === 0;
-  };
+type Props = {
+  value: string | number | null;
 
+  // An array of [id, name, description]
+  choices: [string, string, string?][];
+  disabled?: boolean;
+  label: string;
+  onChange: (id: string, e: React.MouseEvent) => void;
+};
+
+const RadioGroup: React.FC<Props> = ({
+  value,
+  disabled,
+  choices,
+  label,
+  onChange,
+  ...props
+}) => {
   return (
     <div {...props} role="radiogroup" aria-labelledby={label}>
-      {(choices || []).map(([id, name, description], index) => (
-        <RadioLineItem
-          key={index}
-          onClick={e => !disabled && onChange(id, e)}
-          role="radio"
-          index={index}
-          aria-checked={isSelected(id)}
-          disabled={disabled}
-        >
-          <RadioLineButton type="button" disabled={disabled}>
-            {isSelected(id) && (
-              <RadioLineButtonFill disabled={disabled} animate={value !== ''} />
+      {(choices || []).map(([id, name, description], index) => {
+        const isSelected = value === id;
+
+        return (
+          <RadioLineItem
+            key={index}
+            onClick={e => !disabled && onChange(id, e)}
+            role="radio"
+            index={index}
+            aria-checked={isSelected}
+            disabled={disabled}
+          >
+            <RadioLineButton type="button" disabled={disabled}>
+              {isSelected && (
+                <RadioLineButtonFill disabled={disabled} animate={value !== ''} />
+              )}
+            </RadioLineButton>
+            <RadioLineText disabled={disabled}>{name}</RadioLineText>
+            {description && (
+              <React.Fragment>
+                <div />
+                <Description>{description}</Description>
+              </React.Fragment>
             )}
-          </RadioLineButton>
-          <RadioLineText disabled={disabled}>{name}</RadioLineText>
-          {description && (
-            <React.Fragment>
-              <div />
-              <Description>{description}</Description>
-            </React.Fragment>
-          )}
-        </RadioLineItem>
-      ))}
+          </RadioLineItem>
+        );
+      })}
     </div>
   );
 };
 
 RadioGroup.propTypes = {
   value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  choices: PropTypes.arrayOf(PropTypes.array),
+  // TODO(ts): This is causing issues with ts
+  choices: PropTypes.any.isRequired,
   disabled: PropTypes.bool,
-  label: PropTypes.string,
-  onChange: PropTypes.func,
+  label: PropTypes.string.isRequired,
+  onChange: PropTypes.func.isRequired,
 };
 
 const RadioLineButton = styled('button')`
@@ -70,17 +88,23 @@ const RadioLineButton = styled('button')`
 
 const shouldForwardProp = p => !['disabled', 'animate'].includes(p) && isPropValid(p);
 
-const RadioLineItem = styled('div', {shouldForwardProp})`
+const RadioLineItem = styled('div', {shouldForwardProp})<{
+  disabled?: boolean;
+  index: number;
+}>`
   display: grid;
   grid-gap: 0.25em 0.5em;
   grid-template-columns: max-content auto;
   align-items: center;
   cursor: ${p => (p.disabled ? 'default' : 'pointer')};
-  margin-top: ${p => (p.index ? '0.5em' : '0')};
+  margin-top: ${p => (p.index > 0 ? '0.5em' : '0')};
   outline: none;
 `;
 
-const RadioLineButtonFill = styled('div', {shouldForwardProp})`
+const RadioLineButtonFill = styled('div', {shouldForwardProp})<{
+  animate: boolean;
+  disabled?: boolean;
+}>`
   width: 1rem;
   height: 1rem;
   border-radius: 50%;
@@ -89,7 +113,7 @@ const RadioLineButtonFill = styled('div', {shouldForwardProp})`
   opacity: ${p => (p.disabled ? 0.4 : null)};
 `;
 
-const RadioLineText = styled('div', {shouldForwardProp})`
+const RadioLineText = styled('div', {shouldForwardProp})<{disabled?: boolean}>`
   opacity: ${p => (p.disabled ? 0.4 : null)};
 `;
 
