@@ -13,8 +13,8 @@ jest.mock('app/stores/configStore', () => {
 describe('Avatar', function() {
   const USER = {
     id: '1',
-    name: 'Jane Doe',
-    email: 'janedoe@example.com',
+    name: 'Jane Bloggs',
+    email: 'janebloggs@example.com',
   };
 
   describe('render()', function() {
