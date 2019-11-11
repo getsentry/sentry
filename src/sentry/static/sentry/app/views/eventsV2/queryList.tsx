@@ -17,6 +17,7 @@ import EventView from './eventView';
 import {ALL_VIEWS, TRANSACTION_VIEWS} from './data';
 import QueryCard from './querycard';
 import MiniGraph from './miniGraph';
+import {handleDeleteQuery} from './savedQuery/utils';
 
 type Props = {
   api: Client;
