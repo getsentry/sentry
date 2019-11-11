@@ -141,6 +141,8 @@ def get_search_filter(search_filters, name, operator):
 
 
 class SnubaSearchBackend(SearchBackend):
+    QUERY_DATASET = snuba.Dataset.Groups
+    ISSUE_FIELD_NAME = "events.issue"
     logger = logging.getLogger("sentry.search.snuba")
     dependency_aggregations = {"priority": ["events.last_seen", "times_seen"]}
     issue_only_fields = set(
@@ -172,7 +174,7 @@ class SnubaSearchBackend(SearchBackend):
         # https://github.com/getsentry/sentry/blob/804c85100d0003cfdda91701911f21ed5f66f67c/src/sentry/event_manager.py#L241-L271
         "priority": ["toUInt64(plus(multiply(log(times_seen), 600), `events.last_seen`))", ""],
         # Only makes sense with WITH TOTALS, returns 1 for an individual group.
-        "total": ["uniq", "events.issue"],
+        "total": ["uniq", ISSUE_FIELD_NAME],
     }
 
     def query(
@@ -565,7 +567,7 @@ class SnubaSearchBackend(SearchBackend):
             filters["environment"] = environment_ids
 
         if candidate_ids:
-            filters["events.issue"] = sorted(candidate_ids)
+            filters[self.ISSUE_FIELD_NAME] = sorted(candidate_ids)
 
         conditions = []
         having = []
@@ -623,7 +625,7 @@ class SnubaSearchBackend(SearchBackend):
         if get_sample:
             query_hash = md5(repr(conditions)).hexdigest()[:8]
             selected_columns.append(
-                ("cityHash64", ("'{}'".format(query_hash), "events.issue"), "sample")
+                ("cityHash64", ("'{}'".format(query_hash), self.ISSUE_FIELD_NAME), "sample")
             )
             sort_field = "sample"
             orderby = [sort_field]
@@ -636,7 +638,7 @@ class SnubaSearchBackend(SearchBackend):
                 # TODO: snuba has issues supporting - with aliased aggregates?
                 # when https://getsentry.atlassian.net/browse/SNS-290 is complete, remove above line and add below
                 # "-{}".format(sort_field),
-                "events.issue",
+                self.ISSUE_FIELD_NAME,
             ]  # ensure stable sort within the same score
             referrer = "search"
 
@@ -655,11 +657,11 @@ class SnubaSearchBackend(SearchBackend):
         # print("offset",offset)
         # print("groupby:",orderby)
         snuba_results = snuba.dataset_query(
-            dataset=snuba.Dataset.Groups,
+            dataset=self.QUERY_DATASET,
             start=start,
             end=end,
             selected_columns=selected_columns,
-            groupby=["events.issue"],
+            groupby=[self.ISSUE_FIELD_NAME],
             conditions=conditions,
             having=having,
             filter_keys=filters,
@@ -678,7 +680,7 @@ class SnubaSearchBackend(SearchBackend):
         if not get_sample:
             metrics.timing("snuba.search.num_result_groups", len(rows))
 
-        return [(row["events.issue"], row[sort_field]) for row in rows], total
+        return [(row[self.ISSUE_FIELD_NAME], row[sort_field]) for row in rows], total
 
     def build_environment_and_release_queryset(
         self, projects, group_queryset, environments, search_filters
@@ -790,6 +792,9 @@ class SnubaSearchBackend(SearchBackend):
             datetime_value = datetime_value.replace(microsecond=0).isoformat().replace("+00:00", "")
             converted_filter[2] = datetime_value
         return converted_filter
+
+    # def modify_converted_filter(self, search_filter, converted_filter, environment_ids=None):
+    #     return "", converted_filter
 
     def modify_converted_filter(self, search_filter, converted_filter, environment_ids=None):
         from sentry.api.event_search import TAG_KEY_RE
