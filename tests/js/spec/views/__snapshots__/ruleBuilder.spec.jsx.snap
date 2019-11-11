@@ -753,7 +753,7 @@ exports[`RuleBuilder renders 1`] = `
                                       }
                                     }
                                   />,
-                                  "searchKey": "janebloggs@example.com Jane Bloggs",
+                                  "searchKey": "janebloggs@example.com jane bloggs",
                                   "value": "user:1",
                                 },
                                 Object {
@@ -1848,7 +1848,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                         }
                       }
                     />,
-                    "searchKey": "janebloggs@example.com Jane Bloggs",
+                    "searchKey": "janebloggs@example.com jane bloggs",
                     "value": "user:1",
                   },
                 ]
@@ -1899,7 +1899,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                           }
                         }
                       />,
-                      "searchKey": "janebloggs@example.com Jane Bloggs",
+                      "searchKey": "janebloggs@example.com jane bloggs",
                       "value": "user:1",
                     },
                   ]
@@ -1954,7 +1954,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                             }
                           }
                         />,
-                        "searchKey": "janebloggs@example.com Jane Bloggs",
+                        "searchKey": "janebloggs@example.com jane bloggs",
                         "value": "user:1",
                       },
                     ]
@@ -2013,7 +2013,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                               }
                             }
                           />,
-                          "searchKey": "janebloggs@example.com Jane Bloggs",
+                          "searchKey": "janebloggs@example.com jane bloggs",
                           "value": "user:1",
                         },
                       ]
@@ -2072,7 +2072,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                 }
                               }
                             />,
-                            "searchKey": "janebloggs@example.com Jane Bloggs",
+                            "searchKey": "janebloggs@example.com jane bloggs",
                             "value": "user:1",
                           },
                         ]
@@ -2131,7 +2131,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                   }
                                 }
                               />,
-                              "searchKey": "janebloggs@example.com Jane Bloggs",
+                              "searchKey": "janebloggs@example.com jane bloggs",
                               "value": "user:1",
                             },
                           ]
@@ -2194,7 +2194,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                     }
                                   }
                                 />,
-                                "searchKey": "janebloggs@example.com Jane Bloggs",
+                                "searchKey": "janebloggs@example.com jane bloggs",
                                 "value": "user:1",
                               },
                             ]
@@ -2277,7 +2277,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                       }
                                     }
                                   />,
-                                  "searchKey": "janebloggs@example.com Jane Bloggs",
+                                  "searchKey": "janebloggs@example.com jane bloggs",
                                   "value": "user:1",
                                 },
                                 Object {
@@ -2427,7 +2427,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                       }
                                     }
                                   />,
-                                  "searchKey": "janebloggs@example.com Jane Bloggs",
+                                  "searchKey": "janebloggs@example.com jane bloggs",
                                   "value": "user:1",
                                 },
                               ]
@@ -2491,7 +2491,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                             }
                                           }
                                         />,
-                                        "searchKey": "janebloggs@example.com Jane Bloggs",
+                                        "searchKey": "janebloggs@example.com jane bloggs",
                                         "value": "user:1",
                                       }
                                     }
@@ -2637,7 +2637,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                                                     viewBox="0 0 120 120"
                                                                   >
                                                                     <rect
-                                                                      fill="#f868bc"
+                                                                      fill="#4e3fb4"
                                                                       height="120"
                                                                       rx="15"
                                                                       ry="15"
@@ -2657,7 +2657,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                                                       x="50%"
                                                                       y="50%"
                                                                     >
-                                                                      JD
+                                                                      JB
                                                                     </text>
                                                                   </svg>
                                                                 </Component>

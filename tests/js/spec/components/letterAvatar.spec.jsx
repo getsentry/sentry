@@ -69,7 +69,7 @@ describe('LetterAvatar', function() {
 
     it('should get initials based on name even if there are trailing spaces', function() {
       const letterAvatar = mount(<LetterAvatar {...USER_6} />);
-      expect(letterAvatar.text()).toEqual('JD');
+      expect(letterAvatar.text()).toEqual('JB');
     });
 
     it('should not slice multibyte characters in half', function() {
@@ -86,7 +86,7 @@ describe('LetterAvatar', function() {
   describe('color', function() {
     it('should return a color based on email', function() {
       const letterAvatar = mount(<LetterAvatar {...USER_1} />);
-      expect(letterAvatar.find('rect').props().fill).toEqual('#f868bc');
+      expect(letterAvatar.find('rect').props().fill).toEqual('#4e3fb4');
     });
 
     it('should return a color based on username', function() {
