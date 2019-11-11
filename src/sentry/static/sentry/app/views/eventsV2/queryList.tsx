@@ -57,7 +57,7 @@ class QueryList extends React.Component<Props> {
 
       return (
         <QueryCard
-          key={index}
+          key={`${index}-${eventView.name}`}
           to={to}
           title={eventView.name}
           subtitle={t('Pre-Built Query')}
@@ -119,7 +119,7 @@ class QueryList extends React.Component<Props> {
 
       return (
         <QueryCard
-          key={index}
+          key={`${index}-${eventView.id}`}
           to={to}
           title={eventView.name}
           subtitle={t('Saved Query')}
