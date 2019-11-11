@@ -2,10 +2,13 @@ import React from 'react';
 import {Location} from 'history';
 import styled from 'react-emotion';
 
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import theme from 'app/utils/theme';
+import withDiscoverSavedQueries from 'app/utils/withDiscoverSavedQueries';
+import {SavedQuery} from 'app/stores/discoverSavedQueriesStore';
 
 import EventView from './eventView';
 import {ALL_VIEWS, TRANSACTION_VIEWS} from './data';
@@ -15,10 +18,12 @@ import MiniGraph from './miniGraph';
 type Props = {
   organization: Organization;
   location: Location;
+  savedQueries: SavedQuery[];
+  savedQueriesLoading: boolean;
 };
 
 class QueryList extends React.Component<Props> {
-  render() {
+  renderPrebuiltQueries = () => {
     const {location, organization} = this.props;
     let views = ALL_VIEWS;
     if (organization.features.includes('transaction-events')) {
@@ -40,6 +45,7 @@ class QueryList extends React.Component<Props> {
           key={index}
           to={to}
           title={eventView.name}
+          subtitle={t('Pre-Built Query')}
           queryDetail={eventView.query}
           renderGraph={() => {
             return (
@@ -61,6 +67,12 @@ class QueryList extends React.Component<Props> {
         />
       );
     });
+
+    return list;
+  };
+
+  render() {
+    const list = this.renderPrebuiltQueries();
 
     return <QueryGrid>{list}</QueryGrid>;
   }
@@ -84,4 +96,4 @@ const QueryGrid = styled('div')`
   }
 `;
 
-export default QueryList;
+export default withDiscoverSavedQueries(QueryList);
