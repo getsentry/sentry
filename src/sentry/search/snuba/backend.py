@@ -580,44 +580,26 @@ class SnubaSearchBackend(SearchBackend):
                 search_filter.key.name == "date"
             ):
                 continue
-            print ("search filter:", search_filter)
             converted_filter = convert_search_filter_to_snuba_query(search_filter)
-            print ("converted filter1:", converted_filter)
             table_alias, converted_filter = self.modify_converted_filter(
                 search_filter, converted_filter, environment_ids
             )
-            print ("converted filter2`:", converted_filter)
-            print ("search_filter.key.name`:", search_filter.key.name)
-            print (
-                "search_filter.key.name in self.aggregation_defs:`:",
-                search_filter.key.name in self.aggregation_defs,
-            )
-            print ("search_filter.key.is_tag", search_filter.key.is_tag)
             # Ensure that no user-generated tags that clashes with aggregation_defs is added to having
             field_name = table_alias + search_filter.key.name
             if field_name in self.aggregation_defs and not search_filter.key.is_tag:
-                print ("Going into having!", field_name)
                 having.append(converted_filter)
             else:
-                print ("Going into conditions!")
                 conditions.append(converted_filter)
 
-        print ("sort field:", sort_field)
         extra_aggregations = self.dependency_aggregations.get(sort_field, [])
-        print ("extra_aggregations:", extra_aggregations)
         required_aggregations = set([sort_field, "total"] + extra_aggregations)
-        print ("having:", having)
         for h in having:
             alias = h[0]
-            print ("adding to required aggregations:", alias)
             required_aggregations.add(alias)
 
         aggregations = []
-        print ("required aggregations:", required_aggregations)
         for alias in required_aggregations:
-            print ("alias is:", alias)
             aggregations.append(self.aggregation_defs[alias] + [alias])
-        print ("aggregations:", aggregations)
         if cursor is not None:
             having.append((sort_field, ">=" if cursor.is_prev else "<=", cursor.value))
 
@@ -634,29 +616,11 @@ class SnubaSearchBackend(SearchBackend):
             # Get the top matching groups by score, i.e. the actual search results
             # in the order that we want them.
             orderby = [
-                # "{}".format(sort_field),
-                # TODO: snuba has issues supporting - with aliased aggregates?
-                # when https://github.com/getsentry/snuba/pull/573 is merged, remove above line and add below
-                #  https://getsentry.atlassian.net/browse/SNS-29
                 "-{}".format(sort_field),
                 self.ISSUE_FIELD_NAME,
             ]  # ensure stable sort within the same score
             referrer = "search"
 
-        print ("")
-        print ("orderby:", orderby)
-        print ("start", start)
-        print ("end", end)
-        print ("selected_columns", selected_columns)
-        print ("conditions", conditions)
-        print ("having", having)
-        print ("filters", filters)
-        print ("aggregations", aggregations)
-        print ("orderby", orderby)
-        # print("referrer",referrer)
-        # print("limit",limit)
-        # print("offset",offset)
-        # print("groupby:",orderby)
         snuba_results = snuba.dataset_query(
             dataset=self.QUERY_DATASET,
             start=start,
@@ -686,8 +650,6 @@ class SnubaSearchBackend(SearchBackend):
     def build_environment_and_release_queryset(
         self, projects, group_queryset, environments, search_filters
     ):
-        # print("CALLING ORIGINAL BUILD_ENVIRONMENT FUNCTION")
-
         from sentry.models import Release, GroupEnvironment
 
         # TODO: It's possible `first_release` could be handled by Snuba.
@@ -759,7 +721,6 @@ class SnubaSearchBackend(SearchBackend):
         date_from=None,
         date_to=None,
     ):
-        # print("Calling original get_queryset_builder_conditions ")
         from sentry.models import GroupSubscription
 
         return {

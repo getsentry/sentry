@@ -92,8 +92,6 @@ class MoreSnubaSearchBackend(SnubaSearchBackend):
         date_from=None,
         date_to=None,
     ):
-        print ("Calling moresnuba get_queryset_builder_conditions ")
-
         # We override this function to remove status and active_at
         qs_builder_conditions = super(MoreSnubaSearchBackend, self).get_queryset_builder_conditions(
             projects,
@@ -116,38 +114,14 @@ class MoreSnubaSearchBackend(SnubaSearchBackend):
     def build_environment_and_release_queryset(
         self, projects, group_queryset, environments, search_filters
     ):
-        print ("CALLING OVERRIDDEN BUILD_ENVIRONMENT FUNCTION")
         # Override the base function, which filters the group_queryset,
         # and do no postgres filter building for first_release and first_seen
         # Just return it unmodified. We do this filter in snuba now.
         return group_queryset
 
     def modify_converted_filter(self, search_filter, converted_filter, environment_ids=None):
-        from sentry.api.event_search import TAG_KEY_RE
-
         table_alias = ""
         converted_filter = self.modify_filter_if_date(search_filter, converted_filter)
-
-        # TODO: VERIFY THIS IS OKAY TO HAPPEN WITH THE POSSIBILITY OF GOING INTO HAVING
-
-        # Because we are using the groups dataset, tags (retrieved from the event table) must be prefixed with `events.`.
-        # Other fields, such as first_seen, last_seen, and first_release will come from `groups` if there are no environment filters, and `events` if there are.
-        # Another spot to do this could be the convert_search_filter_to_snuba_query function (event_search.py  ~line 595 where it is returned)
-        # But that may have unintended consequences to it's other usages. So for now, I am doing it here as a "first draft"
-        # self.modify_converted_filter(converted_filter)
-
-        print (converted_filter)
-        print (converted_filter[0])
-        print (converted_filter[0][1])
-        print (converted_filter[0][1][0])
-
-        # This part of the if statement could be removed in favour of adding a prefix in constrain_column_to_dataset.
-        # TODO: Confirm above comment - have some tags come in wrapped already and see if they are handled properly.
-        # if isinstance(converted_filter[0], list) and TAG_KEY_RE.match(
-        # converted_filter[0][1][0]
-        # ):
-        # converted_filter[0][1][0] = "events." + converted_filter[0][1][0]
-        # el
 
         # TODO: What is this still now doing and is it neccessary?
         if search_filter.key.name in ["first_seen", "last_seen", "first_release"]:
@@ -156,26 +130,11 @@ class MoreSnubaSearchBackend(SnubaSearchBackend):
             else:
                 table_alias = "groups."
 
-            # TODO:
-            # What if [0][1][0] is a list like it was in this example:
-            # `[['match', [['ifNull', [u'tags[server]', "''"]], "'(?i)^.*net$'"]], '!=', 1]`
-            # (it's `['ifNull', [u'tags[server]', "''"]`)
-            # THIS WILL BUG OUT. SO LOOK FOR A SMARTER/BETTER WAY
             if isinstance(converted_filter[0], list):
                 converted_filter[0][1][0] = table_alias + converted_filter[0][1][0]
             else:
                 converted_filter[0] = table_alias + converted_filter[0]
 
-        # TODO: This could also go into HAVING!!!!
-        # We can't query on the aggregate functions in WHERE, so we actually want to query on the timestamp.
-        # if (
-        #         converted_filter[0] == "events.first_seen"
-        #         or converted_filter[0] == "events.last_seen"
-        #     ):
-        #         converted_filter[0] = "events.timestamp"
-        # # Need to add the aggregations (say for events.first_seen and events.last_seen?) so snuba knows what they are.
-        # if aggregation_defs.get(converted_filter[0], None) is not None:
-        #     extra_aggregations.append(converted_filter[0])
         return table_alias, converted_filter
 
     def modify_filter_if_date(self, search_filter, converted_filter):
