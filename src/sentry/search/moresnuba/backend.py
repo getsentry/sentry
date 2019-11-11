@@ -59,6 +59,7 @@ class MoreSnubaSearchBackend(SnubaSearchBackend):
         self.issue_only_fields.discard("first_release")
         self.issue_only_fields.discard("status")
 
+
     # def query(
     #     self,
     #     projects,
@@ -92,10 +93,10 @@ class MoreSnubaSearchBackend(SnubaSearchBackend):
         date_from=None,
         date_to=None,
     ):
-        print ("Calling moresnuba get_queryset_builder_conditions ")
+        print("Calling moresnuba get_queryset_builder_conditions ")
 
-        # We override this function to remove status and active_at
-        qs_builder_conditions = super(MoreSnubaSearchBackend, self).get_queryset_builder_conditions(
+        #We override this function to remove status and active_at
+        qs_builder_conditions = super(MoreSnubaSearchBackend,self).get_queryset_builder_conditions(
             projects,
             environments,
             sort_by,
@@ -105,7 +106,7 @@ class MoreSnubaSearchBackend(SnubaSearchBackend):
             paginator_options,
             search_filters,
             date_from,
-            date_to,
+            date_to
         )
 
         del qs_builder_conditions["status"]
@@ -116,7 +117,7 @@ class MoreSnubaSearchBackend(SnubaSearchBackend):
     def build_environment_and_release_queryset(
         self, projects, group_queryset, environments, search_filters
     ):
-        print ("CALLING OVERRIDDEN BUILD_ENVIRONMENT FUNCTION")
+        print("CALLING OVERRIDDEN BUILD_ENVIRONMENT FUNCTION")
         # Override the base function, which filters the group_queryset,
         # and do no postgres filter building for first_release and first_seen
         # Just return it unmodified. We do this filter in snuba now.
@@ -177,3 +178,14 @@ class MoreSnubaSearchBackend(SnubaSearchBackend):
         # if aggregation_defs.get(converted_filter[0], None) is not None:
         #     extra_aggregations.append(converted_filter[0])
         return table_alias, converted_filter
+
+    def modify_filter_if_date(self, search_filter, converted_filter):
+        import datetime
+
+        special_date_names = ["groups.active_at", "first_seen", "last_seen"]
+        if search_filter.key.name in special_date_names:
+            # Need to get '2018-02-06T03:35:54' out of 1517888878000
+            datetime_value = datetime.datetime.fromtimestamp(converted_filter[2] / 1000)
+            datetime_value = datetime_value.replace(microsecond=0).isoformat().replace("+00:00", "")
+            converted_filter[2] = datetime_value
+        return converted_filter
