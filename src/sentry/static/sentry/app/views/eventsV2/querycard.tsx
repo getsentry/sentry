@@ -1,6 +1,8 @@
 import React from 'react';
 
 import styled from 'react-emotion';
+
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 import Link from 'app/components/links/link';
 import InlineSvg from 'app/components/inlineSvg';
