@@ -15,12 +15,12 @@ describe('RuleBuilder', function() {
   let handleAdd;
   const USER_1 = TestStubs.User({
     id: '1',
-    name: 'Orville Wright',
-    email: 'orvillewright@example.com',
+    name: 'Jane Bloggs',
+    email: 'janebloggs@example.com',
     user: {
       id: '1',
-      name: 'Orville Wright',
-      email: 'orvillewright@example.com',
+      name: 'Jane Bloggs',
+      email: 'janebloggs@example.com',
     },
   });
   const USER_2 = TestStubs.User({
@@ -146,7 +146,7 @@ describe('RuleBuilder', function() {
         .prop('user').id
     ).toBe('2');
 
-    // Enter to select Orville Wright
+    // Enter to select Jane Bloggs
     wrapper.find('SelectOwners .Select-control').simulate('keyDown', {keyCode: 13});
 
     const ruleCandidate = wrapper.find('RuleCandidate').first();

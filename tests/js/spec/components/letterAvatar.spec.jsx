@@ -5,8 +5,8 @@ import LetterAvatar from 'app/components/letterAvatar';
 
 describe('LetterAvatar', function() {
   const USER_1 = {
-    identifier: 'orvillewright@example.com',
-    displayName: 'Orville Wright',
+    identifier: 'janebloggs@example.com',
+    displayName: 'Jane Bloggs',
   };
   const USER_2 = {
     identifier: 'johnsmith@example.com',
@@ -25,26 +25,26 @@ describe('LetterAvatar', function() {
     displayName: '',
   };
   const USER_6 = {
-    identifier: 'orvillewright@example.com',
-    displayName: 'Orville Wright ',
+    identifier: 'janebloggs@example.com',
+    displayName: 'Jane Bloggs ',
   };
   const USER_7 = {
-    identifier: 'orvillewright@example.com',
+    identifier: 'janebloggs@example.com',
     displayName: ' ',
   };
   const USER_8 = {
-    identifier: 'orvillewright@example.com',
+    identifier: 'janebloggs@example.com',
     displayName: '\u2603super \u2603duper',
   };
   const USER_9 = {
-    identifier: 'orvillewright@example.com',
-    displayName: 'jane austen doe',
+    identifier: 'janebloggs@example.com',
+    displayName: 'jane austen bloggs',
   };
 
   describe('display name', function() {
     it('should get initials based on name', function() {
       const letterAvatar = mount(<LetterAvatar {...USER_1} />);
-      expect(letterAvatar.text()).toEqual('JD');
+      expect(letterAvatar.text()).toEqual('JB');
     });
 
     it('should get initials based on email', function() {
@@ -79,7 +79,7 @@ describe('LetterAvatar', function() {
 
     it('should pick most last name', function() {
       const letterAvatar = mount(<LetterAvatar {...USER_9} />);
-      expect(letterAvatar.text()).toEqual('JD');
+      expect(letterAvatar.text()).toEqual('JB');
     });
   });
 

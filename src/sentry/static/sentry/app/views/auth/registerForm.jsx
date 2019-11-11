@@ -95,7 +95,7 @@ class RegisterForm extends React.Component {
       >
         <TextField
           name="name"
-          placeholder={t('Orville Wright')}
+          placeholder={t('Jane Bloggs')}
           maxlength={30}
           label={t('Name')}
           error={errors.name}

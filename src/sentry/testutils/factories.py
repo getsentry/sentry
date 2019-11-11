@@ -876,7 +876,7 @@ class Factories(object):
             group=group,
             event_id=event_id or "a" * 32,
             project=project or group.project,
-            name="Orville Wright",
+            name="Jane Bloggs",
             email="jane@example.com",
             comments="the application crashed",
             **kwargs
