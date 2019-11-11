@@ -26,7 +26,7 @@ class QueryCard extends React.PureComponent<Props> {
         <QueryCardBody>{renderGraph()}</QueryCardBody>
         <QueryCardFooter>
           <StyledCreator>
-            <small>Pre-Built Query</small>
+            <small>{t('Pre-Built Query')}</small>
           </StyledCreator>
           <InlineSvg src="icon-ellipsis-filled" />
         </QueryCardFooter>
