@@ -12,7 +12,7 @@ const RadioGroup = ({value, disabled, choices, label, onChange, ...props}) => {
 
   return (
     <div {...props} role="radiogroup" aria-labelledby={label}>
-      {(choices || []).map(([id, name], index) => (
+      {(choices || []).map(([id, name, description], index) => (
         <RadioLineItem
           key={index}
           onClick={e => !disabled && onChange(id, e)}
@@ -27,6 +27,12 @@ const RadioGroup = ({value, disabled, choices, label, onChange, ...props}) => {
             )}
           </RadioLineButton>
           <RadioLineText disabled={disabled}>{name}</RadioLineText>
+          {description && (
+            <React.Fragment>
+              <div />
+              <Description>{description}</Description>
+            </React.Fragment>
+          )}
         </RadioLineItem>
       ))}
     </div>
@@ -65,7 +71,9 @@ const RadioLineButton = styled('button')`
 const shouldForwardProp = p => !['disabled', 'animate'].includes(p) && isPropValid(p);
 
 const RadioLineItem = styled('div', {shouldForwardProp})`
-  display: flex;
+  display: grid;
+  grid-gap: 0.25em 0.5em;
+  grid-template-columns: max-content auto;
   align-items: center;
   cursor: ${p => (p.disabled ? 'default' : 'pointer')};
   margin-top: ${p => (p.index ? '0.5em' : '0')};
@@ -82,10 +90,13 @@ const RadioLineButtonFill = styled('div', {shouldForwardProp})`
 `;
 
 const RadioLineText = styled('div', {shouldForwardProp})`
-  margin-left: 0.5em;
-  font-size: 0.875em;
-  font-weight: bold;
   opacity: ${p => (p.disabled ? 0.4 : null)};
+`;
+
+const Description = styled('div')`
+  color: ${p => p.theme.gray1};
+  font-size: ${p => p.theme.fontSizeRelativeSmall};
+  line-height: 1.25em;
 `;
 
 export default RadioGroup;
