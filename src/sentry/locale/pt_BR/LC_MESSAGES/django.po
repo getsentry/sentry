@@ -2963,8 +2963,8 @@ msgid "Submit Crash Report"
 msgstr "Submeta Relatórios de Erros Fatais"
 
 #: web/frontend/error_page_embed.py:55
-msgid "Orville Wright"
-msgstr "Orville Wright"
+msgid "Jane Doe"
+msgstr "Jane Doe"
 
 #: web/frontend/error_page_embed.py:61
 msgid "jane@example.com"

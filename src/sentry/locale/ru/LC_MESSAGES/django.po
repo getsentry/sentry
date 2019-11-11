@@ -2992,7 +2992,7 @@ msgid "Submit Crash Report"
 msgstr "Отправить отчет о сбое"
 
 #: web/frontend/error_page_embed.py:55
-msgid "Orville Wright"
+msgid "Jane Doe"
 msgstr "Варвара Пупкина"
 
 #: web/frontend/error_page_embed.py:61

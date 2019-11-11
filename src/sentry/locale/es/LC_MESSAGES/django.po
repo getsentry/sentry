@@ -2957,7 +2957,7 @@ msgid "Submit Crash Report"
 msgstr "Enviar Informe de fallo"
 
 #: web/frontend/error_page_embed.py:55
-msgid "Orville Wright"
+msgid "Jane Doe"
 msgstr "Marta López"
 
 #: web/frontend/error_page_embed.py:61

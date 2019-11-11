@@ -2953,7 +2953,7 @@ msgid "Submit Crash Report"
 msgstr "Подаване на доклад за грешка"
 
 #: web/frontend/error_page_embed.py:55
-msgid "Orville Wright"
+msgid "Jane Doe"
 msgstr "Иван Петров"
 
 #: web/frontend/error_page_embed.py:61
