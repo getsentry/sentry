@@ -496,6 +496,7 @@ class Factories(object):
         # emulate EventManager refs
         event.data.bind_ref(event)
         event.save()
+        event.data.save()
         return event
 
     @staticmethod

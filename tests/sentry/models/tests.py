@@ -96,6 +96,8 @@ class EventNodeStoreTest(TestCase):
         e1_node_id = e1.data.id
         assert e1.data.id is not None, "We should have generated a node_id for this event"
         e1_body = nodestore.get(e1_node_id)
+        e1.data.save()
+        e1_body = nodestore.get(e1_node_id)
         assert e1_body == {"foo": "bar"}, "The event body should be in nodestore"
 
         e1 = Event.objects.get(project_id=1, event_id="abc")
@@ -123,6 +125,8 @@ class EventNodeStoreTest(TestCase):
         }, "Event body should be the one provided (sans node_id)"
         e3.save()
         e3_body = nodestore.get("1:ghi")
+        e3.data.save()
+        e3_body = nodestore.get("1:ghi")
         assert e3_body == {"baz": "quux"}, "Event body should be saved to nodestore"
 
         e3 = Event.objects.get(project_id=1, event_id="ghi")
@@ -138,6 +142,7 @@ class EventNodeStoreTest(TestCase):
         # Event with no data should not be saved (or loaded) from nodestore
         e4 = Event(project_id=1, event_id="mno", data=None)
         e4.save()
+        e4.data.save()
         assert nodestore.get("1:mno") is None, "We should not have saved anything to nodestore"
         e4 = Event.objects.get(project_id=1, event_id="mno")
         assert e4.data.id is None
@@ -155,6 +160,7 @@ class EventNodeStoreTest(TestCase):
         event = self.create_event(group=group2)
         event.data.bind_ref(invalid_event)
         event.save()
+        event.data.save()
 
         assert event.data.get_ref(event) != event.data.get_ref(invalid_event)
 

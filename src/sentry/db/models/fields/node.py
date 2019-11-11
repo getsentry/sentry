@@ -169,6 +169,9 @@ class NodeField(GzippedDictField):
         self.ref_version = kwargs.pop("ref_version", None)
         self.wrapper = kwargs.pop("wrapper", None)
         self.id_func = kwargs.pop("id_func", lambda: b64encode(uuid4().bytes))
+        # We only automatically save data to nodestore for RawEvent
+        # Event performs saving node data as a separate step
+        self.skip_nodestore_save = kwargs.pop("skip_nodestore_save", False)
         super(NodeField, self).__init__(*args, **kwargs)
 
     def contribute_to_class(self, cls, name):
@@ -231,7 +234,8 @@ class NodeField(GzippedDictField):
         if value.id is None:
             value.id = self.id_func()
 
-        value.save()
+        if not self.skip_nodestore_save:
+            value.save()
         return compress(pickle.dumps({"node_id": value.id}))
 
 

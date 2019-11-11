@@ -14,7 +14,7 @@ from hashlib import md5
 
 from semaphore.processing import StoreNormalizer
 
-from sentry import eventtypes
+from sentry import eventtypes, options
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedIntegerField,
@@ -619,6 +619,7 @@ class Event(EventCommon, Model):
         ref_func=lambda x: x.project_id or x.project.id,
         ref_version=2,
         wrapper=EventDict,
+        skip_nodestore_save=options.get("store.save-event-skips-nodestore", True),
     )
 
     objects = EventManager()
