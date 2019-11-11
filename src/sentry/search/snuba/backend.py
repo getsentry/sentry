@@ -10,7 +10,6 @@ from django.db.models import Q
 from django.utils import timezone
 
 from sentry import options, quotas
-from sentry.api.event_search import convert_search_filter_to_snuba_query
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.search.base import SearchBackend
 from sentry.utils import snuba, metrics
@@ -143,7 +142,7 @@ def get_search_filter(search_filters, name, operator):
 
 class SnubaSearchBackend(SearchBackend):
     logger = logging.getLogger("sentry.search.snuba")
-    dependency_aggregations = {"priority": ["last_seen", "times_seen"]}
+    dependency_aggregations = {"priority": ["events.last_seen", "times_seen"]}
     issue_only_fields = set(
         [
             "query",
@@ -159,20 +158,21 @@ class SnubaSearchBackend(SearchBackend):
     )
     # mapping from query parameter sort name to underlying scoring aggregation name
     sort_strategies = {
-        "date": "last_seen",
+        # TODO: If not using environment filters, could these sort methods use last_seen and first_seen from groups instead? so only add prefix conditionally?
+        "date": "events.last_seen",
         "freq": "times_seen",
-        "new": "first_seen",
+        "new": "events.first_seen",
         "priority": "priority",
     }
 
     aggregation_defs = {
         "times_seen": ["count()", ""],
-        "first_seen": ["multiply(toUInt64(min(timestamp)), 1000)", ""],
-        "last_seen": ["multiply(toUInt64(max(timestamp)), 1000)", ""],
+        "events.first_seen": ["multiply(toUInt64(min(events.timestamp)), 1000)", ""],
+        "events.last_seen": ["multiply(toUInt64(max(events.timestamp)), 1000)", ""],
         # https://github.com/getsentry/sentry/blob/804c85100d0003cfdda91701911f21ed5f66f67c/src/sentry/event_manager.py#L241-L271
-        "priority": ["toUInt64(plus(multiply(log(times_seen), 600), last_seen))", ""],
+        "priority": ["toUInt64(plus(multiply(log(times_seen), 600), `events.last_seen`))", ""],
         # Only makes sense with WITH TOTALS, returns 1 for an individual group.
-        "total": ["uniq", "issue"],
+        "total": ["uniq", "events.issue"],
     }
 
     def query(
@@ -557,13 +557,15 @@ class SnubaSearchBackend(SearchBackend):
         * a sorted list of (group_id, group_score) tuples sorted descending by score,
         * the count of total results (rows) available for this query.
         """
+        from sentry.api.event_search import convert_search_filter_to_snuba_query
+
         filters = {"project_id": project_ids}
 
         if environment_ids is not None:
             filters["environment"] = environment_ids
 
         if candidate_ids:
-            filters["issue"] = sorted(candidate_ids)
+            filters["events.issue"] = sorted(candidate_ids)
 
         conditions = []
         having = []
@@ -576,31 +578,53 @@ class SnubaSearchBackend(SearchBackend):
                 search_filter.key.name == "date"
             ):
                 continue
+            print ("search filter:", search_filter)
             converted_filter = convert_search_filter_to_snuba_query(search_filter)
-
+            print ("converted filter1:", converted_filter)
+            table_alias, converted_filter = self.modify_converted_filter(
+                search_filter, converted_filter, environment_ids
+            )
+            print ("converted filter2`:", converted_filter)
+            print ("search_filter.key.name`:", search_filter.key.name)
+            print (
+                "search_filter.key.name in self.aggregation_defs:`:",
+                search_filter.key.name in self.aggregation_defs,
+            )
+            print ("search_filter.key.is_tag", search_filter.key.is_tag)
             # Ensure that no user-generated tags that clashes with aggregation_defs is added to having
-            if search_filter.key.name in self.aggregation_defs and not search_filter.key.is_tag:
+            field_name = table_alias + search_filter.key.name
+            if field_name in self.aggregation_defs and not search_filter.key.is_tag:
+                print ("Going into having!", field_name)
                 having.append(converted_filter)
             else:
+                print ("Going into conditions!")
                 conditions.append(converted_filter)
 
+        print ("sort field:", sort_field)
         extra_aggregations = self.dependency_aggregations.get(sort_field, [])
+        print ("extra_aggregations:", extra_aggregations)
         required_aggregations = set([sort_field, "total"] + extra_aggregations)
+        print ("having:", having)
         for h in having:
             alias = h[0]
+            print ("adding to required aggregations:", alias)
             required_aggregations.add(alias)
 
         aggregations = []
+        print ("required aggregations:", required_aggregations)
         for alias in required_aggregations:
+            print ("alias is:", alias)
             aggregations.append(self.aggregation_defs[alias] + [alias])
-
+        print ("aggregations:", aggregations)
         if cursor is not None:
             having.append((sort_field, ">=" if cursor.is_prev else "<=", cursor.value))
 
         selected_columns = []
         if get_sample:
             query_hash = md5(repr(conditions)).hexdigest()[:8]
-            selected_columns.append(("cityHash64", ("'{}'".format(query_hash), "issue"), "sample"))
+            selected_columns.append(
+                ("cityHash64", ("'{}'".format(query_hash), "events.issue"), "sample")
+            )
             sort_field = "sample"
             orderby = [sort_field]
             referrer = "search_sample"
@@ -608,17 +632,34 @@ class SnubaSearchBackend(SearchBackend):
             # Get the top matching groups by score, i.e. the actual search results
             # in the order that we want them.
             orderby = [
-                "-{}".format(sort_field),
-                "issue",
+                "{}".format(sort_field),
+                # TODO: snuba has issues supporting - with aliased aggregates?
+                # when https://getsentry.atlassian.net/browse/SNS-290 is complete, remove above line and add below
+                # "-{}".format(sort_field),
+                "events.issue",
             ]  # ensure stable sort within the same score
             referrer = "search"
 
+        print ("")
+        print ("orderby:", orderby)
+        print ("start", start)
+        print ("end", end)
+        print ("selected_columns", selected_columns)
+        print ("conditions", conditions)
+        print ("having", having)
+        print ("filters", filters)
+        print ("aggregations", aggregations)
+        print ("orderby", orderby)
+        # print("referrer",referrer)
+        # print("limit",limit)
+        # print("offset",offset)
+        # print("groupby:",orderby)
         snuba_results = snuba.dataset_query(
-            dataset=snuba.Dataset.Events,
+            dataset=snuba.Dataset.Groups,
             start=start,
             end=end,
             selected_columns=selected_columns,
-            groupby=["issue"],
+            groupby=["events.issue"],
             conditions=conditions,
             having=having,
             filter_keys=filters,
@@ -637,11 +678,13 @@ class SnubaSearchBackend(SearchBackend):
         if not get_sample:
             metrics.timing("snuba.search.num_result_groups", len(rows))
 
-        return [(row["issue"], row[sort_field]) for row in rows], total
+        return [(row["events.issue"], row[sort_field]) for row in rows], total
 
     def build_environment_and_release_queryset(
         self, projects, group_queryset, environments, search_filters
     ):
+        # print("CALLING ORIGINAL BUILD_ENVIRONMENT FUNCTION")
+
         from sentry.models import Release, GroupEnvironment
 
         # TODO: It's possible `first_release` could be handled by Snuba.
@@ -713,6 +756,7 @@ class SnubaSearchBackend(SearchBackend):
         date_from=None,
         date_to=None,
     ):
+        # print("Calling original get_queryset_builder_conditions ")
         from sentry.models import GroupSubscription
 
         return {
@@ -735,3 +779,70 @@ class SnubaSearchBackend(SearchBackend):
             ),
             "active_at": ScalarCondition("active_at"),
         }
+
+    def modify_filter_if_date(self, search_filter, converted_filter):
+        import datetime
+
+        special_date_names = ["groups.active_at", "first_seen", "last_seen"]
+        if search_filter.key.name in special_date_names:
+            # Need to get '2018-02-06T03:35:54' out of 1517888878000
+            datetime_value = datetime.datetime.fromtimestamp(converted_filter[2] / 1000)
+            datetime_value = datetime_value.replace(microsecond=0).isoformat().replace("+00:00", "")
+            converted_filter[2] = datetime_value
+        return converted_filter
+
+    def modify_converted_filter(self, search_filter, converted_filter, environment_ids=None):
+        from sentry.api.event_search import TAG_KEY_RE
+
+        table_alias = ""
+        converted_filter = self.modify_filter_if_date(search_filter, converted_filter)
+
+        # TODO: VERIFY THIS IS OKAY TO HAPPEN WITH THE POSSIBILITY OF GOING INTO HAVING
+
+        # Because we are using the groups dataset, tags (retrieved from the event table) must be prefixed with `events.`.
+        # Other fields, such as first_seen, last_seen, and first_release will come from `groups` if there are no environment filters, and `events` if there are.
+        # Another spot to do this could be the convert_search_filter_to_snuba_query function (event_search.py  ~line 595 where it is returned)
+        # But that may have unintended consequences to it's other usages. So for now, I am doing it here as a "first draft"
+        # self.modify_converted_filter(converted_filter)
+
+        print (converted_filter)
+        print (converted_filter[0])
+        print (converted_filter[0][1])
+        print (converted_filter[0][1][0])
+
+        # This part of the if statement could be removed in favour of adding a prefix in constrain_column_to_dataset.
+        # TODO: Confirm above comment - have some tags come in wrapped already and see if they are handled properly.
+        # if isinstance(converted_filter[0], list) and TAG_KEY_RE.match(
+        # converted_filter[0][1][0]
+        # ):
+        # converted_filter[0][1][0] = "events." + converted_filter[0][1][0]
+        # el
+
+        # TODO: What is this still now doing and is it neccessary?
+        if search_filter.key.name in ["first_seen", "last_seen", "first_release"]:
+            if environment_ids is not None:
+                table_alias = "events."
+            else:
+                table_alias = "groups."
+
+            # TODO:
+            # What if [0][1][0] is a list like it was in this example:
+            # `[['match', [['ifNull', [u'tags[server]', "''"]], "'(?i)^.*net$'"]], '!=', 1]`
+            # (it's `['ifNull', [u'tags[server]', "''"]`)
+            # THIS WILL BUG OUT. SO LOOK FOR A SMARTER/BETTER WAY
+            if isinstance(converted_filter[0], list):
+                converted_filter[0][1][0] = table_alias + converted_filter[0][1][0]
+            else:
+                converted_filter[0] = table_alias + converted_filter[0]
+
+        # TODO: This could also go into HAVING!!!!
+        # We can't query on the aggregate functions in WHERE, so we actually want to query on the timestamp.
+        # if (
+        #         converted_filter[0] == "events.first_seen"
+        #         or converted_filter[0] == "events.last_seen"
+        #     ):
+        #         converted_filter[0] = "events.timestamp"
+        # # Need to add the aggregations (say for events.first_seen and events.last_seen?) so snuba knows what they are.
+        # if aggregation_defs.get(converted_filter[0], None) is not None:
+        #     extra_aggregations.append(converted_filter[0])
+        return table_alias, converted_filter

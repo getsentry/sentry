@@ -58,16 +58,37 @@ TRANSACTIONS_SENTRY_SNUBA_MAP = {
     if col.value.transaction_name is not None
 }
 
+GROUPS_SENTRY_SNUBA_MAP = {
+    # TODO: Add these into Columns properly like the other maps do?
+    # I think for if a field has different names/accessors across datasets?
+    # TODO:
+    # Make sure this isn't causing incorrect mapping (pointing to groups.last_seen instead of events.last_seen)
+    # when using the events table (ie environment filter active) for this data
+    "status": "groups.status",
+    "active_at": "groups.active_at",
+    "first_seen": "groups.first_seen",
+    "last_seen": "groups.last_seen",
+    "first_release": "groups.first_release",
+    # Added these here so constrain_column_to_dataset doesn't wrap it in "tags[]"
+    "timestamp": "events.timestamp",
+    "events.issue": "events.issue",
+}
+
 
 @unique
 class Dataset(Enum):
     Events = "events"
+    Groups = "groups"
     Transactions = "transactions"
     Outcomes = "outcomes"
     OutcomesRaw = "outcomes_raw"
 
 
-DATASETS = {Dataset.Events: SENTRY_SNUBA_MAP, Dataset.Transactions: TRANSACTIONS_SENTRY_SNUBA_MAP}
+DATASETS = {
+    Dataset.Events: SENTRY_SNUBA_MAP,
+    Dataset.Transactions: TRANSACTIONS_SENTRY_SNUBA_MAP,
+    Dataset.Groups: GROUPS_SENTRY_SNUBA_MAP,
+}
 
 # Store the internal field names to save work later on.
 # Add `group_id` to the events dataset list as we don't want to publically
@@ -75,6 +96,7 @@ DATASETS = {Dataset.Events: SENTRY_SNUBA_MAP, Dataset.Transactions: TRANSACTIONS
 DATASET_FIELDS = {
     Dataset.Events: list(SENTRY_SNUBA_MAP.values()) + ["group_id"],
     Dataset.Transactions: list(TRANSACTIONS_SENTRY_SNUBA_MAP.values()),
+    Dataset.Groups: list(GROUPS_SENTRY_SNUBA_MAP.values()),
 }
 
 
@@ -609,7 +631,7 @@ def _prepare_query_params(query_params):
             query_params.filter_keys, is_grouprelease=query_params.is_grouprelease
         )
 
-    if query_params.dataset in [Dataset.Events, Dataset.Transactions]:
+    if query_params.dataset in [Dataset.Events, Dataset.Transactions, Dataset.Groups]:
         (organization_id, params_to_update) = get_query_params_to_update_for_projects(query_params)
     elif query_params.dataset in [Dataset.Outcomes, Dataset.OutcomesRaw]:
         (organization_id, params_to_update) = get_query_params_to_update_for_organizations(
@@ -898,8 +920,12 @@ def constrain_column_to_dataset(col, dataset, value=None):
     dataset. Return none for conditions to be removed, and convert
     unknown columns into tags expressions.
     """
+    print ("constrain_column_to_dataset", col, dataset, value)
     if col.startswith("tags["):
-        return col
+        if dataset == Dataset.Events:
+            return col
+        else:  # This makes sure already wrapped tags are pointed to the events table.
+            return u"events.{}".format(col)
     # Special case for the type condition as we only want
     # to drop it when we are querying transactions.
     if dataset == Dataset.Transactions and col == "event.type" and value == "transaction":
@@ -910,7 +936,14 @@ def constrain_column_to_dataset(col, dataset, value=None):
         return DATASETS[dataset][col]
     if col in DATASET_FIELDS[dataset]:
         return col
-    return u"tags[{}]".format(col)
+
+    if dataset == Dataset.Events:
+        print ("returning column wrapped in tags")
+        return u"tags[{}]".format(col)
+    else:
+        print ("returning aliased (events.) column wrapped in tags")
+        # If we're not using the events dataset, we need to prefix the tags.
+        return u"events.tags[{}]".format(col)
 
 
 def constrain_condition_to_dataset(cond, dataset):
@@ -923,7 +956,9 @@ def constrain_condition_to_dataset(cond, dataset):
     We have the dataset context here, so we need to re-scope conditions to the
     current dataset.
     """
+    print ("constrain_condition_to_dataset", cond, dataset)
     index = get_function_index(cond)
+    print ("index:", index)
     if index is not None:
         # IN conditions are detected as a function but aren't really.
         if cond[index] == "IN":
@@ -946,7 +981,9 @@ def constrain_condition_to_dataset(cond, dataset):
         if isinstance(cond[0], six.string_types) and len(cond) == 3:
             # Map column name to current dataset removing
             # invalid conditions based on the dataset.
+            print ("getting name...")
             name = constrain_column_to_dataset(cond[0], dataset, cond[2])
+            print ("returning name:", name)
             if name is None:
                 return None
             cond[0] = name
@@ -1007,11 +1044,15 @@ def dataset_query(
         for aggregation in aggregations:
             derived_columns.append(aggregation[2])
 
+    print ("datasetquery conditions:", conditions)
     if conditions:
         for (i, condition) in enumerate(conditions):
+            print ("processing condition", i, condition)
             replacement = constrain_condition_to_dataset(condition, dataset)
+            print ("replacement:", replacement)
             conditions[i] = replacement
         conditions = list(filter(None, conditions))
+    print ("after datasetquery conditions:", conditions)
 
     if orderby:
         # Don't mutate in case we have a default order passed.
@@ -1022,6 +1063,16 @@ def dataset_query(
                 order_field = constrain_column_to_dataset(order_field, dataset)
             updated_order.append(u"{}{}".format("-" if order.startswith("-") else "", order_field))
         orderby = updated_order
+        print ("-----raw query -------")
+        print ("orderby:", orderby)
+        print ("start", start)
+        print ("end", end)
+        print ("groupby", groupby)
+        print ("selected_columns", selected_columns)
+        print ("conditions", conditions)
+        print ("having", having)
+        print ("aggregations", aggregations)
+        print ("orderby", orderby)
 
     return raw_query(
         start=start,

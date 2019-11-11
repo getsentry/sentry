@@ -153,6 +153,7 @@ SEARCH_MAP = {
 }
 SEARCH_MAP.update(**DATASETS[Dataset.Transactions])
 SEARCH_MAP.update(**DATASETS[Dataset.Events])
+SEARCH_MAP.update(**DATASETS[Dataset.Groups])
 
 no_conversion = set(["start", "end"])
 
