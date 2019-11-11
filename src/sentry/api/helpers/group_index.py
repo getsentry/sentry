@@ -710,20 +710,20 @@ def update_groups(request, projects, organization_id, search_fn):
                     "ignoreWindow": ignore_window,
                 }
 
-            groups_by_project_id = defaultdict(list)
-            for group in group_list:
-                groups_by_project_id[group.project_id].append(group)
+                groups_by_project_id = defaultdict(list)
+                for group in group_list:
+                    groups_by_project_id[group.project_id].append(group)
 
-            for project in projects:
-                project_groups = groups_by_project_id.get(project.id)
-                if project_groups:
-                    issue_ignored.send_robust(
-                        project=project,
-                        user=acting_user,
-                        group_list=project_groups,
-                        activity_data=activity_data,
-                        sender=update_groups,
-                    )
+                for project in projects:
+                    project_groups = groups_by_project_id.get(project.id)
+                    if project_groups:
+                        issue_ignored.send_robust(
+                            project=project,
+                            user=acting_user,
+                            group_list=project_groups,
+                            activity_data=activity_data,
+                            sender=update_groups,
+                        )
 
             for group in group_list:
                 group.status = new_status
