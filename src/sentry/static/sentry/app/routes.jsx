@@ -1292,7 +1292,6 @@ function routes() {
             component={errorHandler(LazyLoad)}
           />
           <Route path="/organizations/:orgId/">
-            <Redirect from="/organizations/:orgId/projects/" to="/:orgId/" />
             {hook('routes:organization')}
             <Redirect path="/organizations/:orgId/teams/" to="/settings/:orgId/teams/" />
             <Redirect
