@@ -634,10 +634,11 @@ class SnubaSearchBackend(SearchBackend):
             # Get the top matching groups by score, i.e. the actual search results
             # in the order that we want them.
             orderby = [
-                "{}".format(sort_field),
+                # "{}".format(sort_field),
                 # TODO: snuba has issues supporting - with aliased aggregates?
-                # when https://getsentry.atlassian.net/browse/SNS-290 is complete, remove above line and add below
-                # "-{}".format(sort_field),
+                # when https://github.com/getsentry/snuba/pull/573 is merged, remove above line and add below
+                #  https://getsentry.atlassian.net/browse/SNS-29
+                "-{}".format(sort_field),
                 self.ISSUE_FIELD_NAME,
             ]  # ensure stable sort within the same score
             referrer = "search"
