@@ -5,7 +5,6 @@ from sentry.models import (
     CommitAuthor,
     Environment,
     EnvironmentProject,
-    Event,
     EventAttachment,
     File,
     Group,
@@ -82,7 +81,6 @@ class DeleteProjectTest(TestCase):
         ).exists()
         assert Environment.objects.filter(id=env.id).exists()
         assert not Group.objects.filter(project_id=project.id).exists()
-        assert not Event.objects.filter(project_id=project.id).exists()
         assert not EventAttachment.objects.filter(project_id=project.id).exists()
         assert Release.objects.filter(id=release.id).exists()
         assert ReleaseCommit.objects.filter(release_id=release.id).exists()

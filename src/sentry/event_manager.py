@@ -15,7 +15,7 @@ from django.db.models import Func
 from django.utils import timezone
 from django.utils.encoding import force_text
 
-from sentry import buffer, eventtypes, eventstream, tsdb
+from sentry import buffer, eventtypes, eventstream, options, tsdb
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS,
@@ -719,23 +719,25 @@ class EventManager(object):
                 group=group, environment=environment
             )
 
-        # save the event
-        try:
-            with transaction.atomic(using=router.db_for_write(Event)):
-                if options.get("store.save-event-skips-nodestore", True):
+        event.data.save()
+
+        if not options.get("store.skip-pg-save", False):
+            # save the event
+            try:
+                with transaction.atomic(using=router.db_for_write(Event)):
                     event.data.save()
-                event.save()
-        except IntegrityError:
-            logger.info(
-                "duplicate.found",
-                exc_info=True,
-                extra={
-                    "event_uuid": event_id,
-                    "project_id": project.id,
-                    "group_id": group.id if group else None,
-                    "model": Event.__name__,
-                },
-            )
+                    event.save()
+            except IntegrityError:
+                logger.info(
+                    "duplicate.found",
+                    exc_info=True,
+                    extra={
+                        "event_uuid": event_id,
+                        "project_id": project.id,
+                        "group_id": group.id if group else None,
+                        "model": Event.__name__,
+                    },
+                )
 
         if event_user:
             counters = [
