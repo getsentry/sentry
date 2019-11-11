@@ -1,7 +1,8 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`RadioGroup render() can select a different item 1`] = `
+exports[`RadioGroup can select a different item 1`] = `
 <div
+  aria-labelledby="test"
   name="radio"
   role="radiogroup"
 >
@@ -54,8 +55,9 @@ exports[`RadioGroup render() can select a different item 1`] = `
 </div>
 `;
 
-exports[`RadioGroup render() renders 1`] = `
+exports[`RadioGroup renders 1`] = `
 <div
+  aria-labelledby="test"
   name="radio"
   role="radiogroup"
 >
@@ -108,7 +110,7 @@ exports[`RadioGroup render() renders 1`] = `
 </div>
 `;
 
-exports[`RadioGroup render() renders disabled 1`] = `
+exports[`RadioGroup renders disabled 1`] = `
 <RadioGroup
   choices={
     Array [
@@ -119,10 +121,13 @@ exports[`RadioGroup render() renders disabled 1`] = `
     ]
   }
   disabled={true}
+  label="test"
   name="radio"
+  onChange={[MockFunction]}
   value="choice_one"
 >
   <div
+    aria-labelledby="test"
     name="radio"
     role="radiogroup"
   >
