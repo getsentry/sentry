@@ -54,7 +54,8 @@ const StyledQueryCard = styled(Link)`
     box-shadow: 0px 0px 0px 6px rgba(209, 202, 216, 0.5);
   }
 
-  * {
+  /* This is to ensure the graph is visually clickable */
+  > * {
     cursor: pointer;
   }
 `;
