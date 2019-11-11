@@ -11,9 +11,9 @@ class SentryAppWebhookError(Model):
 
     date_added = models.DateTimeField(db_index=True, default=timezone.now)
 
-    sentry_app = BoundedBigIntegerField()
+    sentry_app = BoundedBigIntegerField(db_column="sentry_app_id")
 
-    organization = BoundedBigIntegerField()
+    organization = BoundedBigIntegerField(db_column="organization_id")
 
     request_body = EncryptedJsonField()
 
