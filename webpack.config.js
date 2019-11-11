@@ -14,7 +14,6 @@ const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const LodashModuleReplacementPlugin = require('lodash-webpack-plugin');
 const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
 const CopyPlugin = require('copy-webpack-plugin');
-const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
 
 const babelConfig = require('./babel.config');
 
@@ -188,7 +187,7 @@ const babelOptions = {...babelConfig, cacheDirectory: true};
 /**
  * Main Webpack config for Sentry React SPA.
  */
-const appConfig = {
+let appConfig = {
   mode: WEBPACK_MODE,
   entry: {
     /**
@@ -461,5 +460,10 @@ if (IS_PRODUCTION) {
   });
 }
 
-const smp = new SpeedMeasurePlugin({disable: !process.env.MEASURE});
-module.exports = smp.wrap(appConfig);
+if (process.env.MEASURE) {
+  const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
+  const smp = new SpeedMeasurePlugin();
+  appConfig = smp.wrap(appConfig);
+}
+
+module.exports = appConfig;
