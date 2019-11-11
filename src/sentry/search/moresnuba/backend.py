@@ -59,7 +59,6 @@ class MoreSnubaSearchBackend(SnubaSearchBackend):
         self.issue_only_fields.discard("first_release")
         self.issue_only_fields.discard("status")
 
-
     # def query(
     #     self,
     #     projects,
@@ -93,10 +92,10 @@ class MoreSnubaSearchBackend(SnubaSearchBackend):
         date_from=None,
         date_to=None,
     ):
-        print("Calling moresnuba get_queryset_builder_conditions ")
+        print ("Calling moresnuba get_queryset_builder_conditions ")
 
-        #We override this function to remove status and active_at
-        qs_builder_conditions = super(MoreSnubaSearchBackend,self).get_queryset_builder_conditions(
+        # We override this function to remove status and active_at
+        qs_builder_conditions = super(MoreSnubaSearchBackend, self).get_queryset_builder_conditions(
             projects,
             environments,
             sort_by,
@@ -106,7 +105,7 @@ class MoreSnubaSearchBackend(SnubaSearchBackend):
             paginator_options,
             search_filters,
             date_from,
-            date_to
+            date_to,
         )
 
         del qs_builder_conditions["status"]
@@ -117,7 +116,7 @@ class MoreSnubaSearchBackend(SnubaSearchBackend):
     def build_environment_and_release_queryset(
         self, projects, group_queryset, environments, search_filters
     ):
-        print("CALLING OVERRIDDEN BUILD_ENVIRONMENT FUNCTION")
+        print ("CALLING OVERRIDDEN BUILD_ENVIRONMENT FUNCTION")
         # Override the base function, which filters the group_queryset,
         # and do no postgres filter building for first_release and first_seen
         # Just return it unmodified. We do this filter in snuba now.
