@@ -71,10 +71,50 @@ class QueryList extends React.Component<Props> {
     return list;
   };
 
-  render() {
-    const list = this.renderPrebuiltQueries();
+  renderSavedQueries = () => {
+    const {savedQueries, location} = this.props;
 
-    return <QueryGrid>{list}</QueryGrid>;
+    if (!savedQueries || !Array.isArray(savedQueries) || savedQueries.length === 0) {
+      return [];
+    }
+
+    return savedQueries.map((savedQuery, index) => {
+      const eventView = EventView.fromSavedQuery(savedQuery);
+      const to = {
+        pathname: location.pathname,
+        query: {
+          ...location.query,
+          ...eventView.generateQueryStringObject(),
+        },
+      };
+
+      return (
+        <QueryCard
+          key={index}
+          to={to}
+          title={eventView.name}
+          subtitle={t('Saved Query')}
+          queryDetail={eventView.query}
+          onEventClick={() => {
+            trackAnalyticsEvent({
+              eventKey: 'discover_v2.prebuilt_query_click',
+              eventName: 'Discoverv2: Click a pre-built query',
+              organization_id: this.props.organization.id,
+              query_name: eventView.name,
+            });
+          }}
+        />
+      );
+    });
+  };
+
+  render() {
+    return (
+      <QueryGrid>
+        {this.renderPrebuiltQueries()}
+        {this.renderSavedQueries()}
+      </QueryGrid>
+    );
   }
 }
 
