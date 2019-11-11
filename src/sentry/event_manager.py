@@ -722,6 +722,8 @@ class EventManager(object):
         # save the event
         try:
             with transaction.atomic(using=router.db_for_write(Event)):
+                if options.get("store.save-event-skips-nodestore", True):
+                    event.data.save()
                 event.save()
         except IntegrityError:
             logger.info(
