@@ -39,6 +39,7 @@ from sentry.incidents.logic import (
     delete_alert_rule_trigger_action,
     DEFAULT_ALERT_RULE_RESOLUTION,
     get_actions_for_trigger,
+    get_available_action_integrations_for_org,
     get_excluded_projects_for_alert_rule,
     get_incident_aggregates,
     get_incident_event_stats,
@@ -1405,3 +1406,25 @@ class GetActionsForTriggerTest(BaseAlertRuleTriggerActionTest, TestCase):
             target_identifier=six.text_type(self.user.id),
         )
         assert list(get_actions_for_trigger(self.trigger)) == [action]
+
+
+class GetAvailableActionIntegrationsForOrgTest(TestCase):
+    def test_none(self):
+        assert list(get_available_action_integrations_for_org(self.organization)) == []
+
+    def test_unregistered(self):
+        integration = Integration.objects.create(external_id="1", provider="something_random")
+        integration.add_organization(self.organization)
+        assert list(get_available_action_integrations_for_org(self.organization)) == []
+
+    def test_registered(self):
+        integration = Integration.objects.create(external_id="1", provider="slack")
+        integration.add_organization(self.organization)
+        assert list(get_available_action_integrations_for_org(self.organization)) == [integration]
+
+    def test_mixed(self):
+        integration = Integration.objects.create(external_id="1", provider="slack")
+        integration.add_organization(self.organization)
+        other_integration = Integration.objects.create(external_id="12345", provider="random")
+        other_integration.add_organization(self.organization)
+        assert list(get_available_action_integrations_for_org(self.organization)) == [integration]
