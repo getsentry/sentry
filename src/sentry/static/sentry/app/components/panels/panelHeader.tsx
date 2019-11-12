@@ -1,21 +1,34 @@
-import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
-import React from 'react';
 import styled, {css} from 'react-emotion';
+
 import space from 'app/styles/space';
 
-const getPadding = ({disablePadding, hasButtons}) => css`
-  padding: ${hasButtons ? space(1) : space(2)} ${disablePadding ? 0 : space(2)};
+type Props = {
+  /**
+   * Do not add padding to left and right of the header
+   */
+  disablePadding?: boolean;
   /**
    * Usually we place controls at the right of a panel header, to make the
    * spacing between the edges correct we will want less padding on the right.
+   * Use this when the panel has somthing such as buttons living there.
    */
+  hasButtons?: boolean;
+  /**
+   * Use light text
+   */
+  lightText?: boolean;
+};
+
+const getPadding = ({disablePadding, hasButtons}: Props) => css`
+  padding: ${hasButtons ? space(1) : space(2)} ${disablePadding ? 0 : space(2)};
   padding-right: ${hasButtons ? space(1) : null};
 `;
 
-const PanelHeader = styled(({disablePadding, hasButtons, ...props}) => (
-  <Flex align="center" justify="space-between" {...props} />
-))`
+const PanelHeader = styled('div')<Props>`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   color: ${p => (p.lightText ? p.theme.gray2 : p.theme.gray3)};
   font-size: 13px;
   font-weight: 600;
@@ -32,7 +45,6 @@ PanelHeader.propTypes = {
   disablePadding: PropTypes.bool,
   hasButtons: PropTypes.bool,
   lightText: PropTypes.bool,
-  ...Flex.propTypes,
 };
 
 export default PanelHeader;

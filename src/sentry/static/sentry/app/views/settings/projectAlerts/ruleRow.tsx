@@ -87,7 +87,7 @@ class RuleRow extends React.Component<Props, State> {
 
     return (
       <Panel>
-        <PanelHeader align="center" justify="space-between" hasButtons>
+        <PanelHeader hasButtons>
           <TextColorLink to={editLink}>
             {data.name} - {environmentName}
           </TextColorLink>
@@ -184,11 +184,13 @@ const TextColorLink = styled(Link)`
 const RuleDescriptionRow = styled('div')`
   display: flex;
 `;
+
 const RuleDescriptionColumn = styled('div')`
   flex: 1;
   padding: ${p => p.theme.grid * 2}px;
   height: 100%;
 `;
+
 const Condition = styled('div')`
   display: flex;
   flex-direction: column;

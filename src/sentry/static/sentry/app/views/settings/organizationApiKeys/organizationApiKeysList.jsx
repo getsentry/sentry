@@ -64,7 +64,7 @@ class OrganizationApiKeysList extends React.Component {
         </div>
 
         <Panel>
-          <PanelHeader disablePadding align="center">
+          <PanelHeader disablePadding>
             <Flex align="center" flex="1">
               <Box px={2} flex="1">
                 {t('Name')}
