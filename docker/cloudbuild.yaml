@@ -19,10 +19,9 @@ steps:
   - '-c'
   - |
     mkdir onpremise && cd onpremise
-    # TODO(byk): This should fetch from master when the branch is merged
     # TODO(byk): We may also build this part as a builder image everytime
     #            there's a push to onpremise and use that image for
-    curl -L "https://github.com/getsentry/onpremise/archive/v10.tar.gz" | tar xzf - --strip-components=1
+    curl -L "https://github.com/getsentry/onpremise/archive/master.tar.gz" | tar xzf - --strip-components=1
     # The following trick is from https://stackoverflow.com/a/52400857/90297 with great gratuity
     echo '{"version": "3.4", "networks":{"default":{"external":{"name":"cloudbuild"}}}}' > docker-compose.override.yml
     ./install.sh
