@@ -6,7 +6,7 @@ from sentry import options
 from sentry.utils import json
 
 from six.moves.urllib.parse import urlencode, urlparse
-from sentry.models import Integration, OrganizationIntegration
+from sentry.models import Integration, OrganizationIntegration, PagerDutyService
 from sentry.testutils import IntegrationTestCase
 from sentry.integrations.pagerduty.integration import PagerDutyIntegrationProvider
 
@@ -86,3 +86,50 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
             integration=integration, organization=self.organization
         )
         assert oi.config == {}
+
+    @responses.activate
+    def test_update_organization_config(self):
+        with self.tasks():
+            self.assert_setup_flow()
+
+        integration = Integration.objects.get(provider=self.provider.key)
+        service = PagerDutyService.objects.get(
+            organization_integration=OrganizationIntegration.objects.get(
+                integration=integration, organization=self.organization
+            )
+        )
+        config_data = {
+            "service_table": [
+                {"service": "Mleep", "integration_key": "xxxxxxxxxxxxxxxx", "id": None},
+                {
+                    "service": service.service_name,
+                    "integration_key": service.integration_key,
+                    "id": service.id,
+                },
+            ]
+        }
+        integration.get_installation(self.organization).update_organization_config(config_data)
+        assert len(PagerDutyService.objects.all()) == 2
+        assert not PagerDutyService.objects.filter(id=service.id).exists()
+
+    @responses.activate
+    def test_get_config_data(self):
+        with self.tasks():
+            self.assert_setup_flow()
+
+        integration = Integration.objects.get(provider=self.provider.key)
+        service = PagerDutyService.objects.get(
+            organization_integration=OrganizationIntegration.objects.get(
+                integration=integration, organization=self.organization
+            )
+        )
+        config = integration.get_installation(self.organization).get_config_data()
+        assert config == {
+            "service_table": [
+                {
+                    "id": service.id,
+                    "service": service.service_name,
+                    "integration_key": service.integration_key,
+                }
+            ]
+        }

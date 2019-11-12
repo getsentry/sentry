@@ -11,6 +11,7 @@ export default class AddIntegration extends React.Component {
     provider: PropTypes.object.isRequired,
     onInstall: PropTypes.func.isRequired,
     reinstallId: PropTypes.string,
+    account: PropTypes.string,
   };
 
   componentDidMount() {
@@ -57,6 +58,10 @@ export default class AddIntegration extends React.Component {
       query.reinstall_id = this.props.reinstallId;
     }
 
+    if (this.props.account) {
+      query.account = this.props.account;
+    }
+
     const installUrl = `${url}?${queryString.stringify(query)}`;
     const opts = `scrollbars=yes,width=${width},height=${height},top=${top},left=${left}`;
 
@@ -84,7 +89,6 @@ export default class AddIntegration extends React.Component {
     if (!data) {
       return;
     }
-
     this.props.onInstall(data);
     IndicatorStore.addSuccess(t(`${this.props.provider.name} added`));
   };

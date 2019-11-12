@@ -18,6 +18,7 @@ export const FieldType = [
   'string',
   'text',
   'url',
+  'table',
 ] as const;
 
 export type FieldValue = any;

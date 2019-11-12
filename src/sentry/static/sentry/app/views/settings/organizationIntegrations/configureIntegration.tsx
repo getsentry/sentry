@@ -4,7 +4,9 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import {analytics} from 'app/utils/analytics';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
+import AddIntegration from 'app/views/organizationIntegrations/addIntegration';
 import BreadcrumbTitle from 'app/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
+import Button from 'app/components/button';
 import Form from 'app/views/settings/components/forms/form';
 import IntegrationAlertRules from 'app/views/organizationIntegrations/integrationAlertRules';
 import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
@@ -52,6 +54,35 @@ class ConfigureIntegration extends AsyncView<Props, State> {
       : 'Configure Integration';
   }
 
+  onUpdateIntegration = () => {
+    this.setState(this.getDefaultState(), this.fetchData);
+  };
+
+  getAction = (provider: IntegrationProvider | undefined) => {
+    const {integration} = this.state;
+    const action =
+      provider && provider.key === 'pagerduty' ? (
+        <AddIntegration
+          provider={provider}
+          onInstall={this.onUpdateIntegration}
+          account={integration.domainName}
+        >
+          {onClick => (
+            <Button
+              priority="primary"
+              size="small"
+              icon="icon-circle-add"
+              onClick={() => onClick()}
+            >
+              Add Services
+            </Button>
+          )}
+        </AddIntegration>
+      ) : null;
+
+    return action;
+  };
+
   renderBody() {
     const {orgId} = this.props.params;
     const {integration} = this.state;
@@ -64,7 +95,11 @@ class ConfigureIntegration extends AsyncView<Props, State> {
     return (
       <React.Fragment>
         <BreadcrumbTitle routes={this.props.routes} title={integration.provider.name} />
-        <SettingsPageHeader noTitleStyles title={title} />
+        <SettingsPageHeader
+          noTitleStyles
+          title={title}
+          action={this.getAction(provider)}
+        />
 
         {integration.configOrganization.length > 0 && (
           <Form
