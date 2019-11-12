@@ -465,7 +465,7 @@ class AlertRuleTriggerAction(Model):
         def inner(handler):
             if type not in cls._type_registrations:
                 cls._type_registrations[type] = cls.TypeRegistration(
-                    handler, slug, type, set(supported_target_types), integration_provider
+                    handler, slug, type, frozenset(supported_target_types), integration_provider
                 )
             else:
                 raise Exception(u"Handler already registered for type %s" % type)

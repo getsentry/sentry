@@ -12,7 +12,6 @@ from django.utils import timezone
 
 from sentry import analytics
 from sentry.api.event_search import get_filter
-from sentry.models import Commit, Project, Release
 from sentry.incidents import tasks
 from sentry.incidents.models import (
     AlertRule,
@@ -34,6 +33,7 @@ from sentry.incidents.models import (
     IncidentType,
     TimeSeriesSnapshot,
 )
+from sentry.models import Commit, Integration, Project, Release
 from sentry.snuba.models import QueryAggregations, QueryDatasets
 from sentry.snuba.subscriptions import (
     bulk_create_snuba_subscriptions,
@@ -1096,3 +1096,17 @@ def delete_alert_rule_trigger_action(trigger_action):
 
 def get_actions_for_trigger(trigger):
     return AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger)
+
+
+def get_available_action_integrations_for_org(organization):
+    """
+    Returns a list of integrations that the organization has installed. Integrations are
+    filtered by the list of registered providers.
+    :param organization:
+    """
+    providers = [
+        registration.integration_provider
+        for registration in AlertRuleTriggerAction.get_registered_types()
+        if registration.integration_provider is not None
+    ]
+    return Integration.objects.filter(organizations=organization, provider__in=providers)
