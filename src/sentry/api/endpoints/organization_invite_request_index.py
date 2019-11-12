@@ -10,6 +10,7 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize, OrganizationMemberWithTeamsSerializer
 from sentry.models import AuditLogEntryEvent, OrganizationMember, InviteStatus
+from sentry.tasks.members import send_invite_request_notification_email
 from sentry.utils.retries import TimedRetryPolicy
 
 from .organization_member_index import OrganizationMemberSerializer, save_team_assignments
@@ -95,6 +96,6 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
                 event=AuditLogEntryEvent.INVITE_REQUEST_ADD,
             )
 
-        om.send_request_notification_email()
+        send_invite_request_notification_email.delay(om.id)
 
         return Response(serialize(om), status=201)

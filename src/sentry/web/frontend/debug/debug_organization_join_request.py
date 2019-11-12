@@ -13,13 +13,10 @@ class DebugOrganizationJoinRequestEmailView(View):
     def get(self, request):
         org = Organization(id=1, slug="default", name="Default")
         context = {
-            "organization": org,
+            "organization_name": org.name,
             "email": "test@gmail.com",
             "pending_requests_link": absolute_uri(
-                reverse("sentry-organization-members", args=[org.slug])
-            ),
-            "organization_link": absolute_uri(
-                reverse("sentry-organization-index", args=[org.slug])
+                reverse("sentry-organization-members-requests", args=[org.slug])
             ),
             "settings_link": absolute_uri(reverse("sentry-organization-settings", args=[org.slug])),
         }

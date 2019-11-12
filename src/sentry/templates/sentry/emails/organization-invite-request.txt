@@ -1,6 +1,6 @@
 Request for Access
 
-{{ inviter.get_salutation_name }} has requested to invite {{ email }} to the {{ organization.name }} organization.
+{{ inviter_name }} has requested to invite {{ email }} to the {{ organization_name }} organization.
 
 View access requests by clicking the link below:
 
