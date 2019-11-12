@@ -5,9 +5,12 @@ from exam import fixture
 
 from sentry.auth.access import from_user
 from sentry.incidents.endpoints.serializers import (
+    action_target_type_to_string,
     AlertRuleSerializer,
     AlertRuleTriggerSerializer,
     AlertRuleTriggerActionSerializer,
+    string_to_action_type,
+    string_to_action_target_type,
 )
 from sentry.incidents.logic import (
     create_alert_rule,
@@ -296,8 +299,10 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
     @fixture
     def valid_params(self):
         return {
-            "type": AlertRuleTriggerAction.Type.EMAIL.value,
-            "target_type": AlertRuleTriggerAction.TargetType.SPECIFIC.value,
+            "type": AlertRuleTriggerAction.get_registered_type(
+                AlertRuleTriggerAction.Type.EMAIL
+            ).slug,
+            "target_type": action_target_type_to_string[AlertRuleTriggerAction.TargetType.SPECIFIC],
             "target_identifier": "test@test.com",
         }
 
@@ -333,20 +338,15 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
 
     def test_type(self):
         invalid_values = [
-            "Invalid type, valid values are %s"
-            % [item.value for item in AlertRuleTriggerAction.Type]
+            "Invalid type, valid values are [%s]" % ", ".join(string_to_action_type.keys())
         ]
-        self.run_fail_validation_test({"type": "a"}, {"type": ["A valid integer is required."]})
         self.run_fail_validation_test({"type": 50}, {"type": invalid_values})
 
     def test_target_type(self):
         invalid_values = [
-            "Invalid target_type, valid values are %s"
-            % [item.value for item in AlertRuleTriggerAction.TargetType]
+            "Invalid targetType, valid values are [%s]"
+            % ", ".join(string_to_action_target_type.keys())
         ]
-        self.run_fail_validation_test(
-            {"target_type": "a"}, {"targetType": ["A valid integer is required."]}
-        )
         self.run_fail_validation_test({"targetType": 50}, {"targetType": invalid_values})
 
     def _run_changed_fields_test(self, trigger, params, expected):
@@ -358,48 +358,61 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
 
     def test_remove_unchanged_fields(self):
         type = AlertRuleTriggerAction.Type.EMAIL
-        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
-        identifier = "hello"
+        target_type = AlertRuleTriggerAction.TargetType.USER
+        identifier = six.text_type(self.user.id)
         action = create_alert_rule_trigger_action(self.trigger, type, target_type, identifier)
 
         self._run_changed_fields_test(
             action,
-            {"type": type.value, "target_type": target_type.value, "target_identifier": identifier},
+            {
+                "type": AlertRuleTriggerAction.get_registered_type(type).slug,
+                "target_type": action_target_type_to_string[target_type],
+                "target_identifier": identifier,
+            },
             {},
         )
 
-        self._run_changed_fields_test(action, {"type": type.value}, {})
         integration = Integration.objects.create(external_id="1", provider="slack", metadata={})
 
         self._run_changed_fields_test(
             action,
             {
-                "type": AlertRuleTriggerAction.Type.SLACK.value,
-                "targetIdentifier": "hello",
-                "targetType": AlertRuleTriggerAction.TargetType.SPECIFIC.value,
+                "type": AlertRuleTriggerAction.get_registered_type(
+                    AlertRuleTriggerAction.Type.SLACK
+                ).slug,
+                "targetIdentifier": identifier,
+                "targetType": action_target_type_to_string[
+                    AlertRuleTriggerAction.TargetType.SPECIFIC
+                ],
                 "integration": integration.id,
             },
-            {"type": AlertRuleTriggerAction.Type.SLACK, "integration": integration},
+            {
+                "type": AlertRuleTriggerAction.Type.SLACK,
+                "integration": integration,
+                "target_identifier": identifier,
+                "target_type": AlertRuleTriggerAction.TargetType.SPECIFIC,
+            },
         )
-        self._run_changed_fields_test(
-            action, {"target_type": target_type.value, "target_identifier": identifier}, {}
-        )
+
+        new_team = self.create_team(self.organization)
         self._run_changed_fields_test(
             action,
             {
-                "target_type": AlertRuleTriggerAction.TargetType.USER.value,
-                "target_identifier": six.text_type(self.user.id),
+                "type": AlertRuleTriggerAction.get_registered_type(type).slug,
+                "target_type": action_target_type_to_string[AlertRuleTriggerAction.TargetType.TEAM],
+                "target_identifier": six.text_type(new_team.id),
             },
             {
-                "target_type": AlertRuleTriggerAction.TargetType.USER,
-                "target_identifier": six.text_type(self.user.id),
+                "type": type,
+                "target_type": AlertRuleTriggerAction.TargetType.TEAM,
+                "target_identifier": six.text_type(new_team.id),
             },
         )
 
     def test_user_perms(self):
         self.run_fail_validation_test(
             {
-                "target_type": AlertRuleTriggerAction.TargetType.USER.value,
+                "target_type": action_target_type_to_string[AlertRuleTriggerAction.TargetType.USER],
                 "target_identifier": "1234567",
             },
             {"nonFieldErrors": ["User does not exist"]},
@@ -407,7 +420,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
         other_user = self.create_user()
         self.run_fail_validation_test(
             {
-                "target_type": AlertRuleTriggerAction.TargetType.USER.value,
+                "target_type": action_target_type_to_string[AlertRuleTriggerAction.TargetType.USER],
                 "target_identifier": six.text_type(other_user.id),
             },
             {"nonFieldErrors": ["User does not belong to this organization"]},
@@ -416,16 +429,22 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
     def test_slack(self):
         self.run_fail_validation_test(
             {
-                "type": AlertRuleTriggerAction.Type.SLACK.value,
-                "target_type": AlertRuleTriggerAction.TargetType.USER.value,
+                "type": AlertRuleTriggerAction.get_registered_type(
+                    AlertRuleTriggerAction.Type.SLACK
+                ).slug,
+                "target_type": action_target_type_to_string[AlertRuleTriggerAction.TargetType.USER],
                 "target_identifier": "123",
             },
-            {"targetType": ["Must provide a specific channel for slack"]},
+            {"targetType": ["Invalid target type for slack. Valid types are [specific]"]},
         )
         self.run_fail_validation_test(
             {
-                "type": AlertRuleTriggerAction.Type.SLACK.value,
-                "targetType": AlertRuleTriggerAction.TargetType.SPECIFIC.value,
+                "type": AlertRuleTriggerAction.get_registered_type(
+                    AlertRuleTriggerAction.Type.SLACK
+                ).slug,
+                "targetType": action_target_type_to_string[
+                    AlertRuleTriggerAction.TargetType.SPECIFIC
+                ],
                 "targetIdentifier": "123",
             },
             {"integration": ["Integration must be provided for slack"]},
@@ -440,8 +459,12 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
         base_params = self.valid_params.copy()
         base_params.update(
             {
-                "type": AlertRuleTriggerAction.Type.SLACK.value,
-                "targetType": AlertRuleTriggerAction.TargetType.SPECIFIC.value,
+                "type": AlertRuleTriggerAction.get_registered_type(
+                    AlertRuleTriggerAction.Type.SLACK
+                ).slug,
+                "targetType": action_target_type_to_string[
+                    AlertRuleTriggerAction.TargetType.SPECIFIC
+                ],
                 "targetIdentifier": "123",
                 "integration": six.text_type(integration.id),
             }

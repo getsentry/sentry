@@ -167,11 +167,11 @@ class AlertRuleTriggerActionActivateTest(object):
     method = None
 
     def setUp(self):
-        self.old_handlers = AlertRuleTriggerAction.handlers
-        AlertRuleTriggerAction.handlers = {}
+        self.old_handlers = AlertRuleTriggerAction._type_registrations
+        AlertRuleTriggerAction._type_registrations = {}
 
     def tearDown(self):
-        AlertRuleTriggerAction.handlers = self.old_handlers
+        AlertRuleTriggerAction._type_registrations = self.old_handlers
 
     def test_no_handler(self):
         trigger = AlertRuleTriggerAction(type=AlertRuleTriggerAction.Type.EMAIL.value)
@@ -182,7 +182,7 @@ class AlertRuleTriggerActionActivateTest(object):
         mock_method = getattr(mock_handler.return_value, self.method)
         mock_method.return_value = "test"
         type = AlertRuleTriggerAction.Type.EMAIL
-        AlertRuleTriggerAction.register_type_handler(type)(mock_handler)
+        AlertRuleTriggerAction.register_type("something", type, [])(mock_handler)
         trigger = AlertRuleTriggerAction(type=type.value)
         assert getattr(trigger, self.method)(Mock(), Mock()) == mock_method.return_value
 
@@ -199,11 +199,11 @@ class AlertRuleTriggerActionActivateTest(TestCase):
     metrics = patcher("sentry.incidents.models.metrics")
 
     def setUp(self):
-        self.old_handlers = AlertRuleTriggerAction.handlers
-        AlertRuleTriggerAction.handlers = {}
+        self.old_handlers = AlertRuleTriggerAction._type_registrations
+        AlertRuleTriggerAction._type_registrations = {}
 
     def tearDown(self):
-        AlertRuleTriggerAction.handlers = self.old_handlers
+        AlertRuleTriggerAction._type_registrations = self.old_handlers
 
     def test_unhandled(self):
         trigger = AlertRuleTriggerAction(type=AlertRuleTriggerAction.Type.EMAIL.value)
@@ -213,7 +213,7 @@ class AlertRuleTriggerActionActivateTest(TestCase):
     def test_handled(self):
         mock_handler = Mock()
         type = AlertRuleTriggerAction.Type.EMAIL
-        AlertRuleTriggerAction.register_type_handler(type)(mock_handler)
+        AlertRuleTriggerAction.register_type("something", type, [])(mock_handler)
 
         trigger = AlertRuleTriggerAction(type=AlertRuleTriggerAction.Type.EMAIL.value)
         incident = Mock()

@@ -220,9 +220,9 @@ class HandleTriggerActionTest(TestCase):
         self.metrics.incr.assert_called_once_with("incidents.alert_rules.skipping_missing_project")
 
     def test(self):
-        with patch.object(AlertRuleTriggerAction, "handlers", new={}):
+        with patch.object(AlertRuleTriggerAction, "_type_registrations", new={}):
             mock_handler = Mock()
-            AlertRuleTriggerAction.register_type_handler(AlertRuleTriggerAction.Type.EMAIL)(
+            AlertRuleTriggerAction.register_type("email", AlertRuleTriggerAction.Type.EMAIL, [])(
                 mock_handler
             )
             incident = self.create_incident()

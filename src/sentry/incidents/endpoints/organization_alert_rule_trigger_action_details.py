@@ -29,7 +29,6 @@ class OrganizationAlertRuleTriggerActionDetailsEndpoint(OrganizationAlertRuleTri
             },
             instance=alert_rule_trigger_action,
             data=request.data,
-            partial=True,
         )
 
         if serializer.is_valid():

@@ -1,9 +1,11 @@
 from __future__ import absolute_import
 
+import six
 from exam import fixture
 from freezegun import freeze_time
 
 from sentry.api.serializers import serialize
+from sentry.incidents.endpoints.serializers import action_target_type_to_string
 from sentry.incidents.logic import create_alert_rule_trigger, create_alert_rule_trigger_action
 from sentry.incidents.models import AlertRuleThresholdType, AlertRuleTriggerAction
 from sentry.testutils import APITestCase
@@ -73,9 +75,11 @@ class AlertRuleTriggerActionCreateEndpointTest(AlertRuleTriggerActionIndexBase, 
                 self.organization.slug,
                 self.alert_rule.id,
                 self.trigger.id,
-                type=AlertRuleTriggerAction.Type.EMAIL.value,
-                targetType=AlertRuleTriggerAction.TargetType.SPECIFIC.value,
-                targetIdentifier="hello",
+                type=AlertRuleTriggerAction.get_registered_type(
+                    AlertRuleTriggerAction.Type.EMAIL
+                ).slug,
+                target_type=action_target_type_to_string[AlertRuleTriggerAction.TargetType.USER],
+                target_identifier=six.text_type(self.user.id),
                 status_code=201,
             )
         assert "id" in resp.data
