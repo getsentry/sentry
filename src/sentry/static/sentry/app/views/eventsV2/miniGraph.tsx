@@ -23,6 +23,8 @@ class MiniGraph extends React.Component<Props> {
     const {organization, api, selection, query} = this.props;
     const {start, end, period} = selection.datetime;
 
+    console.log('query', query);
+
     return (
       <EventsRequest
         organization={organization}
