@@ -29,7 +29,11 @@ class ActionHandler(object):
         pass
 
 
-@AlertRuleTriggerAction.register_type_handler(AlertRuleTriggerAction.Type.EMAIL)
+@AlertRuleTriggerAction.register_type(
+    "email",
+    AlertRuleTriggerAction.Type.EMAIL,
+    [AlertRuleTriggerAction.TargetType.USER, AlertRuleTriggerAction.TargetType.TEAM],
+)
 class EmailActionHandler(ActionHandler):
     query_aggregations_display = {
         QueryAggregations.TOTAL: "Total Events",
@@ -125,7 +129,12 @@ class EmailActionHandler(ActionHandler):
         }
 
 
-@AlertRuleTriggerAction.register_type_handler(AlertRuleTriggerAction.Type.SLACK)
+@AlertRuleTriggerAction.register_type(
+    "slack",
+    AlertRuleTriggerAction.Type.SLACK,
+    [AlertRuleTriggerAction.TargetType.SPECIFIC],
+    integration_provider="slack",
+)
 class SlackActionHandler(ActionHandler):
     def fire(self):
         self.send_alert()
