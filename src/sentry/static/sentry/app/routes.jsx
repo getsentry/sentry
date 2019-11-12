@@ -999,6 +999,27 @@ function routes() {
           </Route>
         </Route>
       </Route>
+      {/* A route tree for lightweight organizational detail views. We place
+      this above the heavyweight organization detail views because there
+      exist some redirects from deprecated routes which should not take
+      precedence over these lightweight routes*/}
+      <Route component={errorHandler(LightWeightOrganizationDetails)}>
+        <Route
+          path="/organizations/:orgId/projects/"
+          componentPromise={() =>
+            import(/* webpackChunkName: "ProjectsDashboard" */ 'app/views/projectsDashboard')
+          }
+          component={errorHandler(LazyLoad)}
+        />
+        <Route
+          path="/organizations/:orgId/user-feedback/"
+          componentPromise={() =>
+            import(/* webpackChunkName: "OrganizationUserFeedback" */ 'app/views/userFeedback/organizationUserFeedback')
+          }
+          component={errorHandler(LazyLoad)}
+        />
+      </Route>
+      {/* The heavyweight organization detail views */}
       <Route path="/:orgId/" component={errorHandler(OrganizationDetails)}>
         <Route component={errorHandler(OrganizationRoot)}>
           {hook('routes:organization-root')}
@@ -1597,23 +1618,6 @@ function routes() {
         <Route
           path=":projectId/events/:eventId/"
           component={errorHandler(ProjectEventRedirect)}
-        />
-      </Route>
-      {/* A route tree for lightweight organizational detail views */}
-      <Route component={errorHandler(LightWeightOrganizationDetails)}>
-        <Route
-          path="/organizations/:orgId/projects/"
-          componentPromise={() =>
-            import(/* webpackChunkName: "ProjectsDashboard" */ 'app/views/projectsDashboard')
-          }
-          component={errorHandler(LazyLoad)}
-        />
-        <Route
-          path="/organizations/:orgId/user-feedback/"
-          componentPromise={() =>
-            import(/* webpackChunkName: "OrganizationUserFeedback" */ 'app/views/userFeedback/organizationUserFeedback')
-          }
-          component={errorHandler(LazyLoad)}
         />
       </Route>
       {hook('routes')}

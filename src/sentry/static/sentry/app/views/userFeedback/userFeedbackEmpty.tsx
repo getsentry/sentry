@@ -13,7 +13,6 @@ import space from 'app/styles/space';
 import userFeedback from 'sentry-dreamy-components/dist/user-feedback.svg';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
-import LoadingIndicator from 'app/components/loadingIndicator';
 
 type Props = {
   organization: Organization;
@@ -85,18 +84,15 @@ class UserFeedbackEmpty extends React.Component<Props> {
   }
 
   render() {
-    if (this.props.loadingProjects) {
-      return <LoadingIndicator />;
-    }
-
-    if (this.hasAnyFeedback !== false) {
+    // Show no user reports if waiting for projects to load or if there is no feedback
+    if (this.props.loadingProjects || this.hasAnyFeedback !== false) {
       return (
         <EmptyStateWarning>
           <p>{t('Sorry, no user reports match your filters.')}</p>
         </EmptyStateWarning>
       );
     }
-
+    // Show landing page after projects have loaded and it is confirmed no projects have feedback
     return (
       <UserFeedbackLanding>
         <IllustrationContainer>
