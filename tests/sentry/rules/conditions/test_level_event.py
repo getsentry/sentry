@@ -56,10 +56,11 @@ class LevelConditionTest(RuleTestCase):
     #
     # Specifically here to make sure the check is properly checking the event's level
     def test_differing_levels(self):
+
         eevent = self.create_event(tags={"level": "error"})
         wevent = self.create_event(tags={"level": "warning"})
 
-        assert wevent.id != eevent.id
+        assert wevent.event_id != eevent.event_id
         assert wevent.group.id == eevent.group.id
 
         wevent.group.level = logging.WARNING
