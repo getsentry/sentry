@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import json
 import six
 
 from collections import OrderedDict
@@ -52,17 +51,8 @@ ATTR_CHOICES = [
 ]
 
 
-class FixedTypeaheadInput(forms.TextInput):
-    def __init__(self, choices, *args, **kwargs):
-        super(FixedTypeaheadInput, self).__init__(*args, **kwargs)
-        self.attrs["data-choices"] = json.dumps(choices)
-        self.attrs["class"] = self.attrs.get("class", "") + " typeahead"
-
-
 class EventAttributeForm(forms.Form):
-    attribute = forms.CharField(
-        widget=FixedTypeaheadInput(choices=[{"id": a, "text": a} for a in ATTR_CHOICES])
-    )
+    attribute = forms.ChoiceField((a, a) for a in ATTR_CHOICES)
     match = forms.ChoiceField(MATCH_CHOICES.items())
     value = forms.CharField(widget=forms.TextInput(), required=False)
 
