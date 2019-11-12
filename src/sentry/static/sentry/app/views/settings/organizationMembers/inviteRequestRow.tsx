@@ -168,18 +168,15 @@ const JoinRequestIndicator = styled(Tag)`
 
 const StyledPanelItem = styled(PanelItem)`
   display: grid;
-  grid-template-columns: auto 140px 180px max-content;
+  grid-template-columns: minmax(200px, auto) repeat(2, minmax(100px, 140px)) max-content;
   grid-gap: ${space(2)};
   align-items: center;
-
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-columns: auto 100px max-content;
-  }
 `;
 
 const UserName = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
-  word-break: break-all;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const Description = styled('div')`
