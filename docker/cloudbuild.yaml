@@ -19,7 +19,6 @@ steps:
   - '-c'
   - |
     mkdir onpremise && cd onpremise
-    # TODO(byk): This should fetch from master when the branch is merged
     # TODO(byk): We may also build this part as a builder image everytime
     #            there's a push to onpremise and use that image for
     curl -L "https://github.com/getsentry/onpremise/archive/master.tar.gz" | tar xzf - --strip-components=1
