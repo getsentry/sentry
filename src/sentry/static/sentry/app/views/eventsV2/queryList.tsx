@@ -38,6 +38,35 @@ class QueryList extends React.Component<Props> {
     fetchSavedQueries(api, organization.slug);
   }
 
+  handleDeleteQuery = (eventView: EventView) => (event: React.MouseEvent<Element>) => {
+    event.preventDefault();
+
+    const {api, location, organization} = this.props;
+
+    handleDeleteQuery(api, organization, eventView).then(() => {
+      browserHistory.push({
+        pathname: location.pathname,
+        query: {},
+      });
+    });
+  };
+
+  handleDuplicateQuery = (eventView: EventView) => (event: React.MouseEvent<Element>) => {
+    event.preventDefault();
+
+    const {api, location, organization} = this.props;
+
+    eventView = eventView.clone();
+    eventView.name = `${eventView.name} copy`;
+
+    handleCreateQuery(api, organization, eventView).then(() => {
+      browserHistory.push({
+        pathname: location.pathname,
+        query: {},
+      });
+    });
+  };
+
   renderPrebuiltQueries = () => {
     const {location, organization} = this.props;
     let views = ALL_VIEWS;
@@ -84,35 +113,6 @@ class QueryList extends React.Component<Props> {
     });
 
     return list;
-  };
-
-  handleDeleteQuery = (eventView: EventView) => (event: React.MouseEvent<Element>) => {
-    event.preventDefault();
-
-    const {api, location, organization} = this.props;
-
-    handleDeleteQuery(api, organization, eventView).then(() => {
-      browserHistory.push({
-        pathname: location.pathname,
-        query: {},
-      });
-    });
-  };
-
-  handleDuplicateQuery = (eventView: EventView) => (event: React.MouseEvent<Element>) => {
-    event.preventDefault();
-
-    const {api, location, organization} = this.props;
-
-    eventView = eventView.clone();
-    eventView.name = `${eventView.name} copy`;
-
-    handleCreateQuery(api, organization, eventView).then(() => {
-      browserHistory.push({
-        pathname: location.pathname,
-        query: {},
-      });
-    });
   };
 
   renderSavedQueries = () => {

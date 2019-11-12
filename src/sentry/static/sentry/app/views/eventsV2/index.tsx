@@ -122,7 +122,7 @@ class EventsV2 extends React.Component<Props> {
       <div>
         {this.renderBanner()}
         {DISPLAY_SEARCH_BAR_FLAG && <StyledSearchBar />}
-        {<QueryList location={location} organization={organization} />}
+        <QueryList location={location} organization={organization} />
       </div>
     );
   }
