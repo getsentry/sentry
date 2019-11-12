@@ -1050,12 +1050,27 @@ SENTRY_TAGSTORE = os.environ.get("SENTRY_TAGSTORE", "sentry.tagstore.snuba.Snuba
 SENTRY_TAGSTORE_OPTIONS = {}
 
 # Search backend
-SENTRY_SEARCH = os.environ.get("SENTRY_SEARCH", "sentry.search.snuba.SnubaSearchBackend")
-SENTRY_SEARCH_OPTIONS = {}
-# SENTRY_SEARCH_OPTIONS = {
-#     'urls': ['http://localhost:9200/'],
-#     'timeout': 5,
-# }
+SENTRY_USE_MORESNUBA = True
+SENTRY_SEARCH = os.environ.get("SENTRY_SEARCH", "sentry.utils.services.ServiceDelegator")
+SENTRY_SEARCH_OPTIONS = os.environ.get(
+    "SENTRY_SEARCH_OPTIONS",
+    {
+        "backend_base": "sentry.search.SearchBackend",
+        "backends": {
+            "default": {"path": "sentry.search.snuba.SnubaSearchBackend"},
+            "moresnuba": {
+                "path": "sentry.search.moresnuba.MoreSnubaSearchBackend",
+                # "options": {},
+                "executor": {
+                    "path": "sentry.utils.services.ThreadedExecutor",
+                    "options": {"worker_count": 1},
+                },
+            },
+        },
+        "selector_func": "sentry.search.base.selector_func",
+        "callback_func": "sentry.search.base.callback_func",
+    },
+)
 
 # Time-series storage backend
 SENTRY_TSDB = "sentry.tsdb.dummy.DummyTSDB"
