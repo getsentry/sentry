@@ -239,8 +239,8 @@ class SlackActionEndpoint(Endpoint):
         defer_attachment_update = False
 
         # Handle interaction actions
+        action_type = None
         try:
-            action_type = None
             for action in action_list:
                 action_type = action["name"]
 
