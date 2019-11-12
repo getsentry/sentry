@@ -222,7 +222,7 @@ class MultipleEnvironmentSelector extends React.PureComponent {
     return loadingProjects ? (
       <StyledHeaderItem
         data-test-id="global-header-environment-selector"
-        icon={<StyledInlineSvg src="icon-project" />}
+        icon={<StyledInlineSvg src="icon-window" />}
         loadingProjects
       >
         Loading...
