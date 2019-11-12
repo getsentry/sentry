@@ -17,7 +17,11 @@ export default class LightWeightNoProjectMessage extends React.Component<Props> 
   };
 
   render() {
-    return (
+    const {organization} = this.props;
+
+    return organization.projects ? (
+      <NoProjectMessage {...this.props} />
+    ) : (
       <Projects orgId={this.props.organization.slug} allProjects>
         {this.renderChildren}
       </Projects>

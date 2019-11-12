@@ -1229,13 +1229,6 @@ function routes() {
             />
           </Route>
           <Route
-            path="/organizations/:orgId/user-feedback/"
-            componentPromise={() =>
-              import(/* webpackChunkName: "OrganizationUserFeedback" */ 'app/views/userFeedback/organizationUserFeedback')
-            }
-            component={errorHandler(LazyLoad)}
-          />
-          <Route
             path="/organizations/:orgId/releases/"
             componentPromise={() =>
               import(/* webpackChunkName: "Releases" */ 'app/views/releases/list')
@@ -1612,6 +1605,13 @@ function routes() {
           path="/organizations/:orgId/projects/"
           componentPromise={() =>
             import(/* webpackChunkName: "ProjectsDashboard" */ 'app/views/projectsDashboard')
+          }
+          component={errorHandler(LazyLoad)}
+        />
+        <Route
+          path="/organizations/:orgId/user-feedback/"
+          componentPromise={() =>
+            import(/* webpackChunkName: "OrganizationUserFeedback" */ 'app/views/userFeedback/organizationUserFeedback')
           }
           component={errorHandler(LazyLoad)}
         />

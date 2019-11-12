@@ -17,6 +17,7 @@ type Props = {
   hasSelected: boolean;
   isOpen: boolean;
   locked: boolean;
+  loadingProjects: boolean;
   innerRef: React.Ref<HTMLDivElement>;
   onClear: () => void;
 } & HTMLDivElement;
@@ -55,15 +56,16 @@ class HeaderItem extends React.Component<Props> {
       lockedMessage,
       settingsLink,
       onClear, // eslint-disable-line no-unused-vars
+      loadingProjects,
       ...props
     } = this.props;
-
     return (
       <StyledHeaderItem
         className={className}
         isOpen={isOpen}
         hasSelected={hasSelected}
         locked={locked}
+        loadingProjects={loadingProjects}
         {...props}
       >
         <IconContainer hasSelected={hasSelected} locked={locked}>
@@ -83,7 +85,7 @@ class HeaderItem extends React.Component<Props> {
             <SettingsIcon src="icon-settings" />
           </SettingsIconLink>
         )}
-        {!locked && (
+        {!locked && !loadingProjects && (
           <StyledChevron isOpen={isOpen}>
             <InlineSvg src="icon-chevron-down" />
           </StyledChevron>
@@ -109,7 +111,7 @@ const StyledHeaderItem = styled('div')`
   display: flex;
   padding: 0 ${space(4)};
   align-items: center;
-  cursor: ${p => (p.locked ? 'text' : 'pointer')};
+  cursor: ${p => (p.loadingProjects ? 'progress' : p.locked ? 'text' : 'pointer')};
   color: ${getColor};
   transition: 0.1s color;
   user-select: none;

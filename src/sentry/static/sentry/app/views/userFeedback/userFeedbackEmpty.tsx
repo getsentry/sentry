@@ -3,7 +3,7 @@ import styled from 'react-emotion';
 import PropTypes from 'prop-types';
 import * as Sentry from '@sentry/browser';
 
-import {Organization} from 'app/types';
+import {Organization, Project} from 'app/types';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent, trackAdhocEvent} from 'app/utils/analytics';
 import Button from 'app/components/button';
@@ -12,9 +12,13 @@ import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import userFeedback from 'sentry-dreamy-components/dist/user-feedback.svg';
 import withOrganization from 'app/utils/withOrganization';
+import withProjects from 'app/utils/withProjects';
+import LoadingIndicator from 'app/components/loadingIndicator';
 
 type Props = {
   organization: Organization;
+  projects: Project[];
+  loadingProjects: boolean;
   projectIds?: string[];
 };
 
@@ -59,10 +63,7 @@ class UserFeedbackEmpty extends React.Component<Props> {
   }
 
   get hasAnyFeedback() {
-    const {
-      organization: {projects},
-      projectIds,
-    } = this.props;
+    const {projects, projectIds} = this.props;
 
     const selectedProjects =
       projectIds && projectIds.length
@@ -84,6 +85,10 @@ class UserFeedbackEmpty extends React.Component<Props> {
   }
 
   render() {
+    if (this.props.loadingProjects) {
+      return <LoadingIndicator />;
+    }
+
     if (this.hasAnyFeedback !== false) {
       return (
         <EmptyStateWarning>
@@ -200,4 +205,6 @@ const ButtonList = styled('div')`
   grid-gap: ${space(1)};
 `;
 
-export default withOrganization(UserFeedbackEmpty);
+export {UserFeedbackEmpty};
+
+export default withOrganization(withProjects(UserFeedbackEmpty));

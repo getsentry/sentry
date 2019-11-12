@@ -25,6 +25,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
     value: PropTypes.array,
     projects: PropTypes.array.isRequired,
     nonMemberProjects: PropTypes.array.isRequired,
+    loadingProjects: PropTypes.bool,
     onChange: PropTypes.func,
     onUpdate: PropTypes.func,
     multi: PropTypes.bool,
@@ -155,7 +156,15 @@ export default class MultipleProjectSelector extends React.PureComponent {
     // `forceProject` can be undefined if it is loading the project
     // We are intentionally using an empty string as its "loading" state
 
-    return shouldForceProject ? (
+    return this.props.loadingProjects ? (
+      <StyledHeaderItem
+        data-test-id="global-header-project-selector"
+        icon={<StyledInlineSvg src="icon-project" />}
+        loadingProjects
+      >
+        Loading...
+      </StyledHeaderItem>
+    ) : shouldForceProject ? (
       <StyledHeaderItem
         data-test-id="global-header-project-selector"
         icon={<StyledInlineSvg src="icon-project" />}

@@ -8,6 +8,7 @@ describe('LightWeightNoProjectMessage', function() {
     const project1 = TestStubs.Project();
     const project2 = TestStubs.Project();
     const organization = TestStubs.Organization({slug: 'org-slug'});
+    delete organization.projects;
     const getProjectsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [project1, project2],

@@ -35,6 +35,10 @@ class MultipleEnvironmentSelector extends React.PureComponent {
 
     organization: SentryTypes.Organization,
 
+    projects: PropTypes.arrayOf(SentryTypes.Project),
+
+    loadingProjects: PropTypes.bool,
+
     selectedProjects: PropTypes.arrayOf(PropTypes.number),
 
     // This component must be controlled using a value array
@@ -183,9 +187,9 @@ class MultipleEnvironmentSelector extends React.PureComponent {
   };
 
   getEnvironments() {
-    const {organization, selectedProjects} = this.props;
+    const {projects, selectedProjects} = this.props;
     let environments = [];
-    organization.projects.forEach(function(project) {
+    projects.forEach(function(project) {
       const projectId = parseInt(project.id, 10);
 
       // Include environments from:
@@ -207,7 +211,7 @@ class MultipleEnvironmentSelector extends React.PureComponent {
   }
 
   render() {
-    const {value} = this.props;
+    const {value, loadingProjects} = this.props;
     const environments = this.getEnvironments();
 
     const validatedValue = value.filter(env => environments.includes(env));
@@ -215,7 +219,15 @@ class MultipleEnvironmentSelector extends React.PureComponent {
       ? `${validatedValue.join(', ')}`
       : t('All Environments');
 
-    return (
+    return loadingProjects ? (
+      <StyledHeaderItem
+        data-test-id="global-header-project-selector"
+        icon={<StyledInlineSvg src="icon-project" />}
+        loadingProjects
+      >
+        Loading...
+      </StyledHeaderItem>
+    ) : (
       <StyledDropdownAutoComplete
         alignMenu="left"
         allowActorToggle

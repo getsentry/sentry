@@ -9,10 +9,12 @@ import {Project} from 'app/types';
 
 type InjectedProjectsProps = {
   projects: Project[];
+  loadingProjects?: boolean;
 };
 
 type State = {
   projects: Project[];
+  loadingProjects: boolean;
 };
 
 /**
