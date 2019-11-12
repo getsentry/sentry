@@ -10,9 +10,12 @@ from django.db.models import Q
 from django.utils import timezone
 
 from sentry import options, quotas
+from sentry.api.event_search import InvalidSearchQuery
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.search.base import SearchBackend
+from sentry.models import Group
 from sentry.utils import snuba, metrics
+from sentry.api.paginator import Paginator
 
 
 class QuerySetBuilder(object):
@@ -43,8 +46,6 @@ class QCallbackCondition(Condition):
         self.callback = callback
 
     def apply(self, queryset, search_filter):
-        from sentry.api.event_search import InvalidSearchQuery
-
         value = search_filter.value.raw_value
         q = self.callback(value)
         if search_filter.operator not in ("=", "!="):
@@ -143,6 +144,8 @@ def get_search_filter(search_filters, name, operator):
 class SnubaSearchBackend(SearchBackend):
     QUERY_DATASET = snuba.Dataset.Events
     ISSUE_FIELD_NAME = "issue"
+    EMPTY_RESULT = Paginator(Group.objects.none()).get_result()
+
     logger = logging.getLogger("sentry.search.snuba")
     dependency_aggregations = {"priority": ["last_seen", "times_seen"]}
     issue_only_fields = set(
@@ -190,8 +193,68 @@ class SnubaSearchBackend(SearchBackend):
         date_from=None,
         date_to=None,
     ):
-        from sentry.models import Group, GroupStatus
+        import sentry_sdk
 
+        with sentry_sdk.start_span(op="task", transaction="query?"):
+            # process_item may create more spans internally (see next examples)
+            search_filters, paginator_options, retention_window_start = self.initialize_query_variables(
+                projects,
+                environments,
+                sort_by,
+                limit,
+                cursor,
+                count_hits,
+                paginator_options,
+                search_filters,
+                date_from,
+                date_to,
+            )
+
+            group_queryset = self.build_queryset(
+                projects,
+                retention_window_start,
+                environments,
+                sort_by,
+                limit,
+                cursor,
+                count_hits,
+                paginator_options,
+                search_filters,
+                date_from,
+                date_to,
+            )
+
+            # This is a punt because the SnubaSearchBackend (a subclass) shares so much that it
+            # seemed better to handle all the shared initialization and then handoff to the
+            # actual backend.
+            return self.build_results(
+                projects,
+                retention_window_start,
+                group_queryset,
+                environments,
+                sort_by,
+                limit,
+                cursor,
+                count_hits,
+                paginator_options,
+                search_filters,
+                date_from,
+                date_to,
+            )
+
+    def initialize_query_variables(
+        self,
+        projects,
+        environments,
+        sort_by,
+        limit,
+        cursor,
+        count_hits,
+        paginator_options,
+        search_filters,
+        date_from,
+        date_to,
+    ):
         search_filters = search_filters if search_filters is not None else []
 
         # ensure projects are from same org
@@ -201,15 +264,29 @@ class SnubaSearchBackend(SearchBackend):
         if paginator_options is None:
             paginator_options = {}
 
-        group_queryset = Group.objects.filter(project__in=projects).exclude(
-            status__in=[
-                GroupStatus.PENDING_DELETION,
-                GroupStatus.DELETION_IN_PROGRESS,
-                GroupStatus.PENDING_MERGE,
-            ]
-        )
+        retention = quotas.get_event_retention(organization=projects[0].organization)
+        if retention:
+            retention_window_start = timezone.now() - timedelta(days=retention)
+        else:
+            retention_window_start = None
 
-        qs_builder_conditions = self.get_queryset_builder_conditions(
+        return search_filters, paginator_options, retention_window_start
+
+    def build_queryset(
+        self,
+        projects,
+        retention_window_start,
+        environments,
+        sort_by,
+        limit,
+        cursor,
+        count_hits,
+        paginator_options,
+        search_filters,
+        date_from,
+        date_to,
+    ):
+        group_queryset = self.initialize_group_queryset(
             projects,
             environments,
             sort_by,
@@ -222,30 +299,24 @@ class SnubaSearchBackend(SearchBackend):
             date_to,
         )
 
-        group_queryset = QuerySetBuilder(qs_builder_conditions).build(
-            group_queryset, search_filters
-        )
-        # filter out groups which are beyond the retention period
-        retention = quotas.get_event_retention(organization=projects[0].organization)
-        if retention:
-            retention_window_start = timezone.now() - timedelta(days=retention)
-        else:
-            retention_window_start = None
-        # TODO: This could be optimized when building querysets to identify
-        # criteria that are logically impossible (e.g. if the upper bound
-        # for last seen is before the retention window starts, no results
-        # exist.)
-        if retention_window_start:
-            group_queryset = group_queryset.filter(last_seen__gte=retention_window_start)
-
-        group_queryset = self.build_environment_and_release_queryset(
-            projects, group_queryset, environments, search_filters
+        qs_builder_modifiers = self.get_queryset_modifiers(
+            projects,
+            environments,
+            sort_by,
+            limit,
+            cursor,
+            count_hits,
+            paginator_options,
+            search_filters,
+            date_from,
+            date_to,
         )
 
-        # This is a punt because the SnubaSearchBackend (a subclass) shares so much that it
-        # seemed better to handle all the shared initialization and then handoff to the
-        # actual backend.
-        return self.paginator_results_estimator(
+        group_queryset = self.build_modifiers_into_queryset(
+            qs_builder_modifiers, group_queryset, search_filters
+        )
+
+        group_queryset = self.filter_groups_by_retention(
             projects,
             retention_window_start,
             group_queryset,
@@ -260,7 +331,16 @@ class SnubaSearchBackend(SearchBackend):
             date_to,
         )
 
-    def paginator_results_estimator(
+        group_queryset = self.filter_groups_by_environment_and_release(
+            projects, group_queryset, environments, search_filters
+        )
+
+        return group_queryset
+
+    def build_modifiers_into_queryset(self, qs_builder_modifiers, group_queryset, search_filters):
+        return QuerySetBuilder(qs_builder_modifiers).build(group_queryset, search_filters)
+
+    def filter_groups_by_retention(
         self,
         projects,
         retention_window_start,
@@ -275,10 +355,57 @@ class SnubaSearchBackend(SearchBackend):
         date_from,
         date_to,
     ):
-        from sentry.api.paginator import DateTimePaginator, SequencePaginator, Paginator
+        # filter out groups which are beyond the retention period
+        # TODO: This could be optimized when building querysets to identify
+        # criteria that are logically impossible (e.g. if the upper bound
+        # for last seen is before the retention window starts, no results
+        # exist.)
+        if retention_window_start:
+            return group_queryset.filter(last_seen__gte=retention_window_start)
+        else:
+            return group_queryset
+
+    def initialize_group_queryset(
+        self,
+        projects,
+        environments,
+        sort_by,
+        limit,
+        cursor,
+        count_hits,
+        paginator_options,
+        search_filters,
+        date_from,
+        date_to,
+    ):
+        from sentry.models import GroupStatus
+
+        return Group.objects.filter(project__in=projects).exclude(
+            status__in=[
+                GroupStatus.PENDING_DELETION,
+                GroupStatus.DELETION_IN_PROGRESS,
+                GroupStatus.PENDING_MERGE,
+            ]
+        )
+
+    def build_results(
+        self,
+        projects,
+        retention_window_start,
+        group_queryset,
+        environments,
+        sort_by,
+        limit,
+        cursor,
+        count_hits,
+        paginator_options,
+        search_filters,
+        date_from,
+        date_to,
+    ):
+        from sentry.api.paginator import DateTimePaginator, SequencePaginator
         from sentry.models import Group
 
-        EMPTY_RESULT = Paginator(Group.objects.none()).get_result()
         now = timezone.now()
         end = None
         end_params = filter(None, [date_to, get_search_filter(search_filters, "date", "<")])
@@ -328,13 +455,13 @@ class SnubaSearchBackend(SearchBackend):
             # so this entire search was against a time range that is outside of
             # retention. We'll return empty results to maintain backwards compatibility
             # with Django search (for now).
-            return EMPTY_RESULT
+            return self.EMPTY_RESULT
 
         if start >= end:
             # TODO: This maintains backwards compatibility with Django search, but
             # in the future we should find a way to notify the user that their search
             # is invalid.
-            return EMPTY_RESULT
+            return self.EMPTY_RESULT
 
         # Here we check if all the django filters reduce the set of groups down
         # to something that we can send down to Snuba in a `group_id IN (...)`
@@ -346,7 +473,7 @@ class SnubaSearchBackend(SearchBackend):
         if not candidate_ids:
             # no matches could possibly be found from this point on
             metrics.incr("snuba.search.no_candidates", skip_internal=False)
-            return EMPTY_RESULT
+            return self.EMPTY_RESULT
         elif len(candidate_ids) > max_candidates:
             # If the pre-filter query didn't include anything to significantly
             # filter down the number of results (from 'first_release', 'query',
@@ -369,7 +496,7 @@ class SnubaSearchBackend(SearchBackend):
         num_chunks = 0
         hits = None
 
-        paginator_results = EMPTY_RESULT
+        paginator_results = self.EMPTY_RESULT
         result_groups = []
         result_group_ids = set()
 
@@ -423,7 +550,7 @@ class SnubaSearchBackend(SearchBackend):
             )
             snuba_count = len(snuba_groups)
             if snuba_count == 0:
-                return EMPTY_RESULT
+                return self.EMPTY_RESULT
             else:
                 filtered_count = group_queryset.filter(
                     id__in=[gid for gid, _ in snuba_groups]
@@ -647,7 +774,7 @@ class SnubaSearchBackend(SearchBackend):
 
         return [(row[self.ISSUE_FIELD_NAME], row[sort_field]) for row in rows], total
 
-    def build_environment_and_release_queryset(
+    def filter_groups_by_environment_and_release(
         self, projects, group_queryset, environments, search_filters
     ):
         from sentry.models import Release, GroupEnvironment
@@ -708,7 +835,7 @@ class SnubaSearchBackend(SearchBackend):
             ).build(group_queryset, search_filters)
         return group_queryset
 
-    def get_queryset_builder_conditions(
+    def get_queryset_modifiers(
         self,
         projects,
         environments=None,

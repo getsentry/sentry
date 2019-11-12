@@ -1,14 +1,14 @@
 from __future__ import absolute_import
 import logging
+import datetime
 from sentry.search.snuba import SnubaSearchBackend
 from sentry.utils import snuba
 
 
 # TODO:
-# Let's give this backend a self explanatory name and a docstring that explains why it exists.
-# Written this way it would be very hard for someone reading the code to understand the design.
 # This backend is intended to "extend" the current events search backend.
-# The goal of it is to transition to searches that use snuba more heavily - perhaps ideally not using postgres/django models at all
+# The goal of it is to transition to searches that use snuba more heavily ,
+# perhaps ideally not using postgres/django models in some or all cases.
 
 # This file overrides certain methods, and variables in order to do this.
 # Feel free to break the base backend up more if you need to modify certain bits of functionality in here.
@@ -23,17 +23,7 @@ class MoreSnubaSearchBackend(SnubaSearchBackend):
     logger = logging.getLogger("sentry.search.moresnuba")
     dependency_aggregations = {"priority": ["events.last_seen", "times_seen"]}
     issue_only_fields = set(
-        [
-            "query",
-            "status",
-            "bookmarked_by",
-            "assigned_to",
-            "unassigned",
-            "subscribed_by",
-            "active_at",
-            "first_release",
-            "first_seen",
-        ]
+        ["query", "bookmarked_by", "assigned_to", "unassigned", "subscribed_by"]
     )
     sort_strategies = {
         # TODO: If not using environment filters, could these sort methods use last_seen and first_seen from groups instead? so only add prefix conditionally?
@@ -53,33 +43,10 @@ class MoreSnubaSearchBackend(SnubaSearchBackend):
         "total": ["uniq", "events.issue"],
     }
 
-    def __init__(self):
-        self.issue_only_fields.discard("active_at")
-        self.issue_only_fields.discard("first_seen")
-        self.issue_only_fields.discard("first_release")
-        self.issue_only_fields.discard("status")
+    # def initialize_group_queryset():
+    #     return Group.objects.all()
 
-    # def query(
-    #     self,
-    #     projects,
-    #     environments=None,
-    #     sort_by="date",
-    #     limit=100,
-    #     cursor=None,
-    #     count_hits=False,
-    #     paginator_options=None,
-    #     search_filters=None,
-    #     date_from=None,
-    #     date_to=None,
-    # ):
-    #     from sentry.models import Group, GroupStatus, GroupSubscription
-    #     alias_variable_definitions();
-    #     return super(MoreSnubaSearchBackend,self).query()
-
-    # def alias_variable_definitions():
-    #    pass
-
-    def get_queryset_builder_conditions(
+    def get_queryset_modifiers(
         self,
         projects,
         environments=None,
@@ -93,7 +60,7 @@ class MoreSnubaSearchBackend(SnubaSearchBackend):
         date_to=None,
     ):
         # We override this function to remove status and active_at
-        qs_builder_conditions = super(MoreSnubaSearchBackend, self).get_queryset_builder_conditions(
+        qs_builder_conditions = super(MoreSnubaSearchBackend, self).get_queryset_modifiers(
             projects,
             environments,
             sort_by,
@@ -111,7 +78,7 @@ class MoreSnubaSearchBackend(SnubaSearchBackend):
 
         return qs_builder_conditions
 
-    def build_environment_and_release_queryset(
+    def filter_groups_by_environment_and_release(
         self, projects, group_queryset, environments, search_filters
     ):
         # Override the base function, which filters the group_queryset,
@@ -138,7 +105,6 @@ class MoreSnubaSearchBackend(SnubaSearchBackend):
         return table_alias, converted_filter
 
     def modify_filter_if_date(self, search_filter, converted_filter):
-        import datetime
 
         special_date_names = ["groups.active_at", "first_seen", "last_seen"]
         if search_filter.key.name in special_date_names:
