@@ -719,10 +719,12 @@ class EventManager(object):
                 group=group, environment=environment
             )
 
-        event.data.save()
-
-        if not options.get("store.skip-pg-save", False):
-            # save the event
+        # Write the event to Nodestore if "store.skip-pg-save" is True
+        # If False, write to both Postgres and Nodestore (this path is temporary
+        # and will be removed after rollout)
+        if options.get("store.skip-pg-save", False):
+            event.data.save()
+        else:
             try:
                 with transaction.atomic(using=router.db_for_write(Event)):
                     event.data.save()
