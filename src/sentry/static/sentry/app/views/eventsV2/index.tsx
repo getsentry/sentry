@@ -20,7 +20,7 @@ import Banner from 'app/components/banner';
 import Button from 'app/components/button';
 import BetaTag from 'app/components/betaTag';
 import Feature from 'app/components/acl/feature';
-import Link from 'app/components/links/link';
+import SearchBar from 'app/views/events/searchBar';
 import NoProjectMessage from 'app/components/noProjectMessage';
 
 import {PageContent, PageHeader} from 'app/styles/organization';
@@ -32,7 +32,10 @@ import SavedQueryButtonGroup from './savedQuery';
 import EventView from './eventView';
 import EventInputName from './eventInputName';
 import {getFirstQueryString} from './utils';
-import {ALL_VIEWS, TRANSACTION_VIEWS, SAMPLE_VIEWS} from './data';
+import {SAMPLE_VIEWS} from './data';
+import QueryList from './queryList';
+
+const DISPLAY_SEARCH_BAR_FLAG = false;
 
 type Props = {
   organization: Organization;
@@ -62,45 +65,6 @@ class EventsV2 extends React.Component<Props> {
     localStorage.setItem('discover-banner-dismissed', true);
     this.setState({isBannerHidden: true});
   };
-
-  renderQueryList() {
-    const {location, organization} = this.props;
-    let views = ALL_VIEWS;
-    if (organization.features.includes('transaction-events')) {
-      views = [...ALL_VIEWS, ...TRANSACTION_VIEWS];
-    }
-
-    const list = views.map((eventViewv1, index) => {
-      const eventView = EventView.fromEventViewv1(eventViewv1);
-      const to = {
-        pathname: location.pathname,
-        query: {
-          ...location.query,
-          ...eventView.generateQueryStringObject(),
-        },
-      };
-
-      return (
-        <LinkContainer key={index}>
-          <Link
-            to={to}
-            onClick={() => {
-              trackAnalyticsEvent({
-                eventKey: 'discover_v2.prebuilt_query_click',
-                eventName: 'Discoverv2: Click a pre-built query',
-                organization_id: this.props.organization.id,
-                query_name: eventView.name,
-              });
-            }}
-          >
-            {eventView.name}
-          </Link>
-        </LinkContainer>
-      );
-    });
-
-    return <LinkList>{list}</LinkList>;
-  }
 
   renderBanner() {
     const bannerDismissed = localStorage.getItem('discover-banner-dismissed');
@@ -151,6 +115,18 @@ class EventsV2 extends React.Component<Props> {
     );
   }
 
+  renderNewQuery() {
+    const {location, organization} = this.props;
+
+    return (
+      <div>
+        {this.renderBanner()}
+        {DISPLAY_SEARCH_BAR_FLAG && <StyledSearchBar />}
+        <QueryList location={location} organization={organization} />
+      </div>
+    );
+  }
+
   render() {
     const {organization, location, router} = this.props;
 
@@ -192,8 +168,7 @@ class EventsV2 extends React.Component<Props> {
                     />
                   )}
                 </PageHeader>
-                {!hasQuery && this.renderBanner()}
-                {!hasQuery && this.renderQueryList()}
+                {!hasQuery && this.renderNewQuery()}
                 {hasQuery && (
                   <Events
                     organization={organization}
@@ -228,18 +203,8 @@ const BannerButton = styled(Button)`
   }
 `;
 
-const LinkList = styled('ul')`
-  list-style: none;
-  padding: 0;
-  margin: 0;
-`;
-const LinkContainer = styled('li')`
-  background: ${p => p.theme.white};
-  line-height: 1.4;
-  border: 1px solid ${p => p.theme.borderLight};
-  border-radius: ${p => p.theme.borderRadius};
-  margin-bottom: ${space(1)};
-  padding: ${space(1)};
+const StyledSearchBar = styled(SearchBar)`
+  margin-bottom: ${space(3)};
 `;
 
 // Wrapper is needed because BetaTag discards margins applied directly to it

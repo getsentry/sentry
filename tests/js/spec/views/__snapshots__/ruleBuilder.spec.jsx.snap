@@ -6,7 +6,7 @@ exports[`RuleBuilder renders 1`] = `
     [MockFunction] {
       "calls": Array [
         Array [
-          "path:some/path/* janedoe@example.com",
+          "path:some/path/* janebloggs@example.com",
         ],
       ],
       "results": Array [
@@ -724,7 +724,7 @@ exports[`RuleBuilder renders 1`] = `
                                 Object {
                                   "actor": Object {
                                     "id": "1",
-                                    "name": "Jane Doe",
+                                    "name": "Jane Bloggs",
                                     "type": "user",
                                   },
                                   "label": <IdBadge
@@ -733,27 +733,27 @@ exports[`RuleBuilder renders 1`] = `
                                     useLink={false}
                                     user={
                                       Object {
-                                        "email": "janedoe@example.com",
+                                        "email": "janebloggs@example.com",
                                         "flags": Object {
                                           "newsletter_consent_prompt": false,
                                         },
                                         "hasPasswordAuth": true,
                                         "id": "1",
                                         "isAuthenticated": true,
-                                        "name": "Jane Doe",
+                                        "name": "Jane Bloggs",
                                         "options": Object {
                                           "timezone": "UTC",
                                         },
                                         "user": Object {
-                                          "email": "janedoe@example.com",
+                                          "email": "janebloggs@example.com",
                                           "id": "1",
-                                          "name": "Jane Doe",
+                                          "name": "Jane Bloggs",
                                         },
                                         "username": "foo@example.com",
                                       }
                                     }
                                   />,
-                                  "searchKey": "janedoe@example.com jane doe",
+                                  "searchKey": "janebloggs@example.com jane bloggs",
                                   "value": "user:1",
                                 },
                                 Object {
@@ -1819,7 +1819,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                   Object {
                     "actor": Object {
                       "id": "1",
-                      "name": "Jane Doe",
+                      "name": "Jane Bloggs",
                       "type": "user",
                     },
                     "label": <IdBadge
@@ -1828,27 +1828,27 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                       useLink={false}
                       user={
                         Object {
-                          "email": "janedoe@example.com",
+                          "email": "janebloggs@example.com",
                           "flags": Object {
                             "newsletter_consent_prompt": false,
                           },
                           "hasPasswordAuth": true,
                           "id": "1",
                           "isAuthenticated": true,
-                          "name": "Jane Doe",
+                          "name": "Jane Bloggs",
                           "options": Object {
                             "timezone": "UTC",
                           },
                           "user": Object {
-                            "email": "janedoe@example.com",
+                            "email": "janebloggs@example.com",
                             "id": "1",
-                            "name": "Jane Doe",
+                            "name": "Jane Bloggs",
                           },
                           "username": "foo@example.com",
                         }
                       }
                     />,
-                    "searchKey": "janedoe@example.com jane doe",
+                    "searchKey": "janebloggs@example.com jane bloggs",
                     "value": "user:1",
                   },
                 ]
@@ -1870,7 +1870,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                     Object {
                       "actor": Object {
                         "id": "1",
-                        "name": "Jane Doe",
+                        "name": "Jane Bloggs",
                         "type": "user",
                       },
                       "label": <IdBadge
@@ -1879,27 +1879,27 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                         useLink={false}
                         user={
                           Object {
-                            "email": "janedoe@example.com",
+                            "email": "janebloggs@example.com",
                             "flags": Object {
                               "newsletter_consent_prompt": false,
                             },
                             "hasPasswordAuth": true,
                             "id": "1",
                             "isAuthenticated": true,
-                            "name": "Jane Doe",
+                            "name": "Jane Bloggs",
                             "options": Object {
                               "timezone": "UTC",
                             },
                             "user": Object {
-                              "email": "janedoe@example.com",
+                              "email": "janebloggs@example.com",
                               "id": "1",
-                              "name": "Jane Doe",
+                              "name": "Jane Bloggs",
                             },
                             "username": "foo@example.com",
                           }
                         }
                       />,
-                      "searchKey": "janedoe@example.com jane doe",
+                      "searchKey": "janebloggs@example.com jane bloggs",
                       "value": "user:1",
                     },
                   ]
@@ -1925,7 +1925,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                       Object {
                         "actor": Object {
                           "id": "1",
-                          "name": "Jane Doe",
+                          "name": "Jane Bloggs",
                           "type": "user",
                         },
                         "label": <IdBadge
@@ -1934,27 +1934,27 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                           useLink={false}
                           user={
                             Object {
-                              "email": "janedoe@example.com",
+                              "email": "janebloggs@example.com",
                               "flags": Object {
                                 "newsletter_consent_prompt": false,
                               },
                               "hasPasswordAuth": true,
                               "id": "1",
                               "isAuthenticated": true,
-                              "name": "Jane Doe",
+                              "name": "Jane Bloggs",
                               "options": Object {
                                 "timezone": "UTC",
                               },
                               "user": Object {
-                                "email": "janedoe@example.com",
+                                "email": "janebloggs@example.com",
                                 "id": "1",
-                                "name": "Jane Doe",
+                                "name": "Jane Bloggs",
                               },
                               "username": "foo@example.com",
                             }
                           }
                         />,
-                        "searchKey": "janedoe@example.com jane doe",
+                        "searchKey": "janebloggs@example.com jane bloggs",
                         "value": "user:1",
                       },
                     ]
@@ -1984,7 +1984,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                         Object {
                           "actor": Object {
                             "id": "1",
-                            "name": "Jane Doe",
+                            "name": "Jane Bloggs",
                             "type": "user",
                           },
                           "label": <IdBadge
@@ -1993,27 +1993,27 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                             useLink={false}
                             user={
                               Object {
-                                "email": "janedoe@example.com",
+                                "email": "janebloggs@example.com",
                                 "flags": Object {
                                   "newsletter_consent_prompt": false,
                                 },
                                 "hasPasswordAuth": true,
                                 "id": "1",
                                 "isAuthenticated": true,
-                                "name": "Jane Doe",
+                                "name": "Jane Bloggs",
                                 "options": Object {
                                   "timezone": "UTC",
                                 },
                                 "user": Object {
-                                  "email": "janedoe@example.com",
+                                  "email": "janebloggs@example.com",
                                   "id": "1",
-                                  "name": "Jane Doe",
+                                  "name": "Jane Bloggs",
                                 },
                                 "username": "foo@example.com",
                               }
                             }
                           />,
-                          "searchKey": "janedoe@example.com jane doe",
+                          "searchKey": "janebloggs@example.com jane bloggs",
                           "value": "user:1",
                         },
                       ]
@@ -2043,7 +2043,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                           Object {
                             "actor": Object {
                               "id": "1",
-                              "name": "Jane Doe",
+                              "name": "Jane Bloggs",
                               "type": "user",
                             },
                             "label": <IdBadge
@@ -2052,27 +2052,27 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                               useLink={false}
                               user={
                                 Object {
-                                  "email": "janedoe@example.com",
+                                  "email": "janebloggs@example.com",
                                   "flags": Object {
                                     "newsletter_consent_prompt": false,
                                   },
                                   "hasPasswordAuth": true,
                                   "id": "1",
                                   "isAuthenticated": true,
-                                  "name": "Jane Doe",
+                                  "name": "Jane Bloggs",
                                   "options": Object {
                                     "timezone": "UTC",
                                   },
                                   "user": Object {
-                                    "email": "janedoe@example.com",
+                                    "email": "janebloggs@example.com",
                                     "id": "1",
-                                    "name": "Jane Doe",
+                                    "name": "Jane Bloggs",
                                   },
                                   "username": "foo@example.com",
                                 }
                               }
                             />,
-                            "searchKey": "janedoe@example.com jane doe",
+                            "searchKey": "janebloggs@example.com jane bloggs",
                             "value": "user:1",
                           },
                         ]
@@ -2102,7 +2102,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                             Object {
                               "actor": Object {
                                 "id": "1",
-                                "name": "Jane Doe",
+                                "name": "Jane Bloggs",
                                 "type": "user",
                               },
                               "label": <IdBadge
@@ -2111,27 +2111,27 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                 useLink={false}
                                 user={
                                   Object {
-                                    "email": "janedoe@example.com",
+                                    "email": "janebloggs@example.com",
                                     "flags": Object {
                                       "newsletter_consent_prompt": false,
                                     },
                                     "hasPasswordAuth": true,
                                     "id": "1",
                                     "isAuthenticated": true,
-                                    "name": "Jane Doe",
+                                    "name": "Jane Bloggs",
                                     "options": Object {
                                       "timezone": "UTC",
                                     },
                                     "user": Object {
-                                      "email": "janedoe@example.com",
+                                      "email": "janebloggs@example.com",
                                       "id": "1",
-                                      "name": "Jane Doe",
+                                      "name": "Jane Bloggs",
                                     },
                                     "username": "foo@example.com",
                                   }
                                 }
                               />,
-                              "searchKey": "janedoe@example.com jane doe",
+                              "searchKey": "janebloggs@example.com jane bloggs",
                               "value": "user:1",
                             },
                           ]
@@ -2165,7 +2165,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                               Object {
                                 "actor": Object {
                                   "id": "1",
-                                  "name": "Jane Doe",
+                                  "name": "Jane Bloggs",
                                   "type": "user",
                                 },
                                 "label": <IdBadge
@@ -2174,27 +2174,27 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                   useLink={false}
                                   user={
                                     Object {
-                                      "email": "janedoe@example.com",
+                                      "email": "janebloggs@example.com",
                                       "flags": Object {
                                         "newsletter_consent_prompt": false,
                                       },
                                       "hasPasswordAuth": true,
                                       "id": "1",
                                       "isAuthenticated": true,
-                                      "name": "Jane Doe",
+                                      "name": "Jane Bloggs",
                                       "options": Object {
                                         "timezone": "UTC",
                                       },
                                       "user": Object {
-                                        "email": "janedoe@example.com",
+                                        "email": "janebloggs@example.com",
                                         "id": "1",
-                                        "name": "Jane Doe",
+                                        "name": "Jane Bloggs",
                                       },
                                       "username": "foo@example.com",
                                     }
                                   }
                                 />,
-                                "searchKey": "janedoe@example.com jane doe",
+                                "searchKey": "janebloggs@example.com jane bloggs",
                                 "value": "user:1",
                               },
                             ]
@@ -2248,7 +2248,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                 Object {
                                   "actor": Object {
                                     "id": "1",
-                                    "name": "Jane Doe",
+                                    "name": "Jane Bloggs",
                                     "type": "user",
                                   },
                                   "label": <IdBadge
@@ -2257,27 +2257,27 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                     useLink={false}
                                     user={
                                       Object {
-                                        "email": "janedoe@example.com",
+                                        "email": "janebloggs@example.com",
                                         "flags": Object {
                                           "newsletter_consent_prompt": false,
                                         },
                                         "hasPasswordAuth": true,
                                         "id": "1",
                                         "isAuthenticated": true,
-                                        "name": "Jane Doe",
+                                        "name": "Jane Bloggs",
                                         "options": Object {
                                           "timezone": "UTC",
                                         },
                                         "user": Object {
-                                          "email": "janedoe@example.com",
+                                          "email": "janebloggs@example.com",
                                           "id": "1",
-                                          "name": "Jane Doe",
+                                          "name": "Jane Bloggs",
                                         },
                                         "username": "foo@example.com",
                                       }
                                     }
                                   />,
-                                  "searchKey": "janedoe@example.com jane doe",
+                                  "searchKey": "janebloggs@example.com jane bloggs",
                                   "value": "user:1",
                                 },
                                 Object {
@@ -2398,7 +2398,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                 Object {
                                   "actor": Object {
                                     "id": "1",
-                                    "name": "Jane Doe",
+                                    "name": "Jane Bloggs",
                                     "type": "user",
                                   },
                                   "label": <IdBadge
@@ -2407,27 +2407,27 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                     useLink={false}
                                     user={
                                       Object {
-                                        "email": "janedoe@example.com",
+                                        "email": "janebloggs@example.com",
                                         "flags": Object {
                                           "newsletter_consent_prompt": false,
                                         },
                                         "hasPasswordAuth": true,
                                         "id": "1",
                                         "isAuthenticated": true,
-                                        "name": "Jane Doe",
+                                        "name": "Jane Bloggs",
                                         "options": Object {
                                           "timezone": "UTC",
                                         },
                                         "user": Object {
-                                          "email": "janedoe@example.com",
+                                          "email": "janebloggs@example.com",
                                           "id": "1",
-                                          "name": "Jane Doe",
+                                          "name": "Jane Bloggs",
                                         },
                                         "username": "foo@example.com",
                                       }
                                     }
                                   />,
-                                  "searchKey": "janedoe@example.com jane doe",
+                                  "searchKey": "janebloggs@example.com jane bloggs",
                                   "value": "user:1",
                                 },
                               ]
@@ -2462,7 +2462,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                       Object {
                                         "actor": Object {
                                           "id": "1",
-                                          "name": "Jane Doe",
+                                          "name": "Jane Bloggs",
                                           "type": "user",
                                         },
                                         "label": <IdBadge
@@ -2471,27 +2471,27 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                           useLink={false}
                                           user={
                                             Object {
-                                              "email": "janedoe@example.com",
+                                              "email": "janebloggs@example.com",
                                               "flags": Object {
                                                 "newsletter_consent_prompt": false,
                                               },
                                               "hasPasswordAuth": true,
                                               "id": "1",
                                               "isAuthenticated": true,
-                                              "name": "Jane Doe",
+                                              "name": "Jane Bloggs",
                                               "options": Object {
                                                 "timezone": "UTC",
                                               },
                                               "user": Object {
-                                                "email": "janedoe@example.com",
+                                                "email": "janebloggs@example.com",
                                                 "id": "1",
-                                                "name": "Jane Doe",
+                                                "name": "Jane Bloggs",
                                               },
                                               "username": "foo@example.com",
                                             }
                                           }
                                         />,
-                                        "searchKey": "janedoe@example.com jane doe",
+                                        "searchKey": "janebloggs@example.com jane bloggs",
                                         "value": "user:1",
                                       }
                                     }
@@ -2503,7 +2503,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                         actor={
                                           Object {
                                             "id": "1",
-                                            "name": "Jane Doe",
+                                            "name": "Jane Bloggs",
                                             "type": "user",
                                           }
                                         }
@@ -2514,21 +2514,21 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                           size={28}
                                           user={
                                             Object {
-                                              "email": "janedoe@example.com",
+                                              "email": "janebloggs@example.com",
                                               "flags": Object {
                                                 "newsletter_consent_prompt": false,
                                               },
                                               "hasPasswordAuth": true,
                                               "id": "1",
                                               "isAuthenticated": true,
-                                              "name": "Jane Doe",
+                                              "name": "Jane Bloggs",
                                               "options": Object {
                                                 "timezone": "UTC",
                                               },
                                               "user": Object {
-                                                "email": "janedoe@example.com",
+                                                "email": "janebloggs@example.com",
                                                 "id": "1",
-                                                "name": "Jane Doe",
+                                                "name": "Jane Bloggs",
                                               },
                                               "username": "foo@example.com",
                                             }
@@ -2540,35 +2540,35 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                             size={28}
                                             user={
                                               Object {
-                                                "email": "janedoe@example.com",
+                                                "email": "janebloggs@example.com",
                                                 "flags": Object {
                                                   "newsletter_consent_prompt": false,
                                                 },
                                                 "hasPasswordAuth": true,
                                                 "id": "1",
                                                 "isAuthenticated": true,
-                                                "name": "Jane Doe",
+                                                "name": "Jane Bloggs",
                                                 "options": Object {
                                                   "timezone": "UTC",
                                                 },
                                                 "user": Object {
-                                                  "email": "janedoe@example.com",
+                                                  "email": "janebloggs@example.com",
                                                   "id": "1",
-                                                  "name": "Jane Doe",
+                                                  "name": "Jane Bloggs",
                                                 },
                                                 "username": "foo@example.com",
                                               }
                                             }
                                           >
                                             <BaseAvatar
-                                              gravatarId="janedoe@example.com"
+                                              gravatarId="janebloggs@example.com"
                                               hasTooltip={true}
-                                              letterId="janedoe@example.com"
+                                              letterId="janebloggs@example.com"
                                               round={true}
                                               size={28}
                                               style={Object {}}
-                                              title="Jane Doe"
-                                              tooltip="Jane Doe (janedoe@example.com)"
+                                              title="Jane Bloggs"
+                                              tooltip="Jane Bloggs (janebloggs@example.com)"
                                               type="letter_avatar"
                                               uploadId=""
                                               uploadPath="avatar"
@@ -2577,7 +2577,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                                 containerDisplayMode="inline-block"
                                                 disabled={false}
                                                 position="top"
-                                                title="Jane Doe (janedoe@example.com)"
+                                                title="Jane Bloggs (janebloggs@example.com)"
                                               >
                                                 <Manager>
                                                   <Reference>
@@ -2622,14 +2622,14 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                                               }
                                                             >
                                                               <LetterAvatar
-                                                                displayName="Jane Doe"
-                                                                identifier="janedoe@example.com"
+                                                                displayName="Jane Bloggs"
+                                                                identifier="janebloggs@example.com"
                                                                 round={true}
                                                               >
                                                                 <Component
                                                                   className="css-vyy37i-LetterAvatar e12lgfev0"
-                                                                  displayName="Jane Doe"
-                                                                  identifier="janedoe@example.com"
+                                                                  displayName="Jane Bloggs"
+                                                                  identifier="janebloggs@example.com"
                                                                   round={true}
                                                                 >
                                                                   <svg
@@ -2637,7 +2637,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                                                     viewBox="0 0 120 120"
                                                                   >
                                                                     <rect
-                                                                      fill="#f868bc"
+                                                                      fill="#4e3fb4"
                                                                       height="120"
                                                                       rx="15"
                                                                       ry="15"
@@ -2657,7 +2657,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                                                       x="50%"
                                                                       y="50%"
                                                                     >
-                                                                      JD
+                                                                      JB
                                                                     </text>
                                                                   </svg>
                                                                 </Component>

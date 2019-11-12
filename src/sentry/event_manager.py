@@ -473,15 +473,7 @@ class EventManager(object):
         to eventstream these numbers may be larger than the total number of
         events if we receive duplicate event IDs that fall on the same day
         (that do not hit cache first).
-
-        Note that if "store.check-duplicates" is set to True, we instead check for
-        the event in Postgres first and do not proceed to update counters or
-        insert the event into the eventstream if the event ID is found in the
-        database. This option is intended to be temporary, whilst we move towards
-        the previously described last write wins approach.
         """
-
-        CHECK_DUPLICATES = options.get("store.check-duplicates")
 
         # Normalize if needed
         if not self._normalized:
@@ -495,32 +487,6 @@ class EventManager(object):
         project._organization_cache = Organization.objects.get_from_cache(
             id=project.organization_id
         )
-
-        if CHECK_DUPLICATES:
-            # Check to make sure we're not about to do a bunch of work that's
-            # already been done if we've processed an event with this ID. (This
-            # isn't a perfect solution -- this doesn't handle ``EventMapping`` and
-            # there's a race condition between here and when the event is actually
-            # saved, but it's an improvement. See GH-7677.)
-            try:
-                event = Event.objects.get(project_id=project.id, event_id=data["event_id"])
-            except Event.DoesNotExist:
-                pass
-            else:
-                # Make sure we cache on the project before returning
-                event._project_cache = project
-                logger.info(
-                    "duplicate.found",
-                    exc_info=True,
-                    extra={
-                        "event_uuid": data["event_id"],
-                        "project_id": project.id,
-                        "group_id": event.group_id,
-                        "platform": data.get("platform"),
-                        "model": Event.__name__,
-                    },
-                )
-                return event
 
         # Pull out the culprit
         culprit = self.get_culprit()
@@ -756,6 +722,8 @@ class EventManager(object):
         # save the event
         try:
             with transaction.atomic(using=router.db_for_write(Event)):
+                if options.get("store.save-event-skips-nodestore", True):
+                    event.data.save()
                 event.save()
         except IntegrityError:
             logger.info(
@@ -768,9 +736,6 @@ class EventManager(object):
                     "model": Event.__name__,
                 },
             )
-
-            if CHECK_DUPLICATES:
-                return event
 
         if event_user:
             counters = [

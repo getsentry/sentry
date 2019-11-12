@@ -1,4 +1,4 @@
-import {Link, browserHistory} from 'react-router';
+import {Link} from 'react-router';
 import LazyLoad from 'react-lazyload';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -15,7 +15,6 @@ import PageHeading from 'app/components/pageHeading';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 import SentryTypes from 'app/sentryTypes';
-import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import profiler from 'app/utils/profiler';
 import space from 'app/styles/space';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -28,7 +27,6 @@ import TeamSection from './teamSection';
 
 class Dashboard extends React.Component {
   static propTypes = {
-    routes: PropTypes.array,
     teams: PropTypes.array,
     organization: SentryTypes.Organization,
     finishProfile: PropTypes.func,
@@ -37,12 +35,7 @@ class Dashboard extends React.Component {
   };
 
   componentDidMount() {
-    const {organization, routes, finishProfile} = this.props;
-    const isOldRoute = getRouteStringFromRoutes(routes) === '/:orgId/';
-
-    if (isOldRoute) {
-      browserHistory.replace(`/organizations/${organization.slug}/`);
-    }
+    const {finishProfile} = this.props;
 
     if (finishProfile) {
       finishProfile();

@@ -25,6 +25,7 @@ type Props = {
   to?: string | object;
   href?: string;
   icon?: string;
+  iconSize?: string;
   title?: string;
   external?: boolean;
   borderless?: boolean;
@@ -115,6 +116,7 @@ class Button extends React.Component<ButtonProps, {}> {
       href,
       title,
       icon,
+      iconSize,
       children,
       label,
       borderless,
@@ -161,7 +163,11 @@ class Button extends React.Component<ButtonProps, {}> {
               <StyledInlineSvg
                 src={icon}
                 size={
-                  (size && size.endsWith('small')) || size === 'micro' ? '12px' : '16px'
+                  iconSize
+                    ? iconSize
+                    : (size && size.endsWith('small')) || size === 'micro'
+                    ? '12px'
+                    : '14px'
                 }
               />
             </Icon>
