@@ -59,7 +59,7 @@ class LevelConditionTest(RuleTestCase):
         eevent = self.create_event(tags={"level": "error"})
         wevent = self.create_event(tags={"level": "warning"})
 
-        assert wevent.id != eevent.id
+        assert wevent.event_id != eevent.event_id
         assert wevent.group.id == eevent.group.id
 
         wevent.group.level = logging.WARNING

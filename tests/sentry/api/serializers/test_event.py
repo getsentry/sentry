@@ -9,15 +9,19 @@ from sentry.api.serializers.models.event import SharedEventSerializer, SnubaEven
 from sentry.models import EventError
 from sentry.testutils import TestCase
 from sentry.utils.samples import load_data
+from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
 class EventSerializerTest(TestCase):
     def test_simple(self):
-        event = self.create_event(event_id="a")
-
+        event_id = "a" * 32
+        event = self.store_event(
+            data={"event_id": event_id, "timestamp": iso_format(before_now(minutes=1))},
+            project_id=self.project.id,
+        )
         result = serialize(event)
-        assert result["id"] == six.text_type(event.id)
-        assert result["eventID"] == "a"
+        assert result["id"] == event_id
+        assert result["eventID"] == event_id
 
     def test_eventerror(self):
         event = self.create_event(
@@ -186,7 +190,7 @@ class SharedEventSerializerTest(TestCase):
         event = self.create_event(event_id="a")
 
         result = serialize(event, None, SharedEventSerializer())
-        assert result["id"] == six.text_type(event.id)
+        assert result["id"] == six.text_type(event.event_id)
         assert result["eventID"] == "a"
         assert result.get("context") is None
         assert result.get("contexts") is None

@@ -232,9 +232,9 @@ class EventSerializer(Serializer):
                 received = None
 
         d = {
-            "id": six.text_type(obj.id),
+            "id": obj.event_id,
             "groupID": six.text_type(obj.group_id) if obj.group_id else None,
-            "eventID": six.text_type(obj.event_id),
+            "eventID": obj.event_id,
             "projectID": six.text_type(obj.project_id),
             "size": obj.size,
             "entries": attrs["entries"],

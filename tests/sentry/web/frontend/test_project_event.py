@@ -56,7 +56,7 @@ class ProjectEventTest(SnubaTestCase, TestCase):
         )
 
         url = reverse(
-            "sentry-project-event-redirect", args=[self.org.slug, self.project.slug, event.id]
+            "sentry-project-event-redirect", args=[self.org.slug, self.project.slug, event.event_id]
         )
         resp = self.client.get(url)
         assert resp.status_code == 404
