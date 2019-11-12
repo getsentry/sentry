@@ -11,7 +11,6 @@ import {
   addSuccessMessage,
   addErrorMessage,
   addLoadingMessage,
-  removeIndicator,
 } from 'app/actionCreators/indicator';
 import {getDisplayName} from 'app/utils/environment';
 import {t, tct} from 'app/locale';
@@ -60,13 +59,12 @@ class RuleRow extends React.Component<Props, State> {
       return;
     }
 
-    const loadingIndicator = addLoadingMessage();
+    addLoadingMessage();
     const {api, orgId, projectId, data} = this.props;
     api.request(`/projects/${orgId}/${projectId}/rules/${data.id}/`, {
       method: 'DELETE',
       success: () => {
         this.props.onDelete();
-        removeIndicator(loadingIndicator);
         addSuccessMessage(tct('Successfully deleted "[alert]"', {alert: data.name}));
       },
       error: () => {
@@ -74,7 +72,6 @@ class RuleRow extends React.Component<Props, State> {
           error: true,
           loading: false,
         });
-        removeIndicator(loadingIndicator);
         addErrorMessage(t('Unable to save changes. Please try again.'));
       },
     });

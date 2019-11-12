@@ -1,20 +1,30 @@
 import React from 'react';
-
 import styled from 'react-emotion';
+
 import space from 'app/styles/space';
 import Link from 'app/components/links/link';
-import InlineSvg from 'app/components/inlineSvg';
 
 type Props = {
   title?: string;
+  subtitle: string;
   queryDetail?: string;
   to?: string | object;
   onEventClick?: () => void;
+  renderGraph: () => React.ReactNode;
+  renderContextMenu?: () => React.ReactNode;
 };
 
 class QueryCard extends React.PureComponent<Props> {
   render() {
-    const {title, queryDetail, onEventClick, to} = this.props;
+    const {
+      title,
+      subtitle,
+      queryDetail,
+      onEventClick,
+      to,
+      renderContextMenu,
+      renderGraph,
+    } = this.props;
 
     return (
       <StyledQueryCard onClick={onEventClick} to={to}>
@@ -22,12 +32,12 @@ class QueryCard extends React.PureComponent<Props> {
           <StyledTitle>{title}</StyledTitle>
           <StyledQueryDetail>{queryDetail}</StyledQueryDetail>
         </QueryCardHeader>
-        <QueryCardBody />
+        <QueryCardBody>{renderGraph()}</QueryCardBody>
         <QueryCardFooter>
           <StyledCreator>
-            <small>Pre-Built Query</small>
+            <small>{subtitle}</small>
           </StyledCreator>
-          <InlineSvg src="icon-ellipsis-filled" />
+          {renderContextMenu && renderContextMenu()}
         </QueryCardFooter>
       </StyledQueryCard>
     );
@@ -51,6 +61,11 @@ const StyledQueryCard = styled(Link)`
 
   &:active {
     box-shadow: 0px 0px 0px 6px rgba(209, 202, 216, 0.5);
+  }
+
+  /* This is to ensure the graph is visually clickable */
+  * {
+    cursor: pointer;
   }
 `;
 

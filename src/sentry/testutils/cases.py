@@ -40,7 +40,7 @@ from django.core.cache import cache
 from django.core.urlresolvers import reverse
 from django.db import connections, DEFAULT_DB_ALIAS
 from django.http import HttpRequest
-from django.test import TestCase, TransactionTestCase
+from django.test import override_settings, TestCase, TransactionTestCase
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from exam import before, fixture, Exam
@@ -99,8 +99,6 @@ DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, li
 
 
 class BaseTestCase(Fixtures, Exam):
-    urls = "sentry.web.urls"
-
     def assertRequiresAuthentication(self, path, method="GET"):
         resp = getattr(self.client, method.lower())(path)
         assert resp.status_code == 302
@@ -436,6 +434,7 @@ class _AssertQueriesContext(CaptureQueriesContext):
             )
 
 
+@override_settings(ROOT_URLCONF="sentry.web.urls")
 class TestCase(BaseTestCase, TestCase):
     pass
 

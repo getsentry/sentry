@@ -52,7 +52,7 @@ DEFAULT_OPTIONS = {
 
 class UserReportForm(forms.ModelForm):
     name = forms.CharField(
-        max_length=128, widget=forms.TextInput(attrs={"placeholder": _("Jane Doe")})
+        max_length=128, widget=forms.TextInput(attrs={"placeholder": _("Jane Bloggs")})
     )
     email = forms.EmailField(
         max_length=75,

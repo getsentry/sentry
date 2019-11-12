@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
+from django.test import override_settings
 from six.moves.urllib.parse import quote
 from uuid import uuid4
 import logging
@@ -10,9 +11,8 @@ from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
+@override_settings(ROOT_URLCONF="sentry.conf.urls")
 class ErrorPageEmbedTest(TestCase):
-    urls = "sentry.conf.urls"
-
     def setUp(self):
         super(ErrorPageEmbedTest, self).setUp()
         self.project = self.create_project()
@@ -93,14 +93,14 @@ class ErrorPageEmbedTest(TestCase):
     def test_submission(self):
         resp = self.client.post(
             self.path_with_qs,
-            {"name": "Jane Doe", "email": "jane@example.com", "comments": "This is an example!"},
+            {"name": "Jane Bloggs", "email": "jane@example.com", "comments": "This is an example!"},
             HTTP_REFERER="http://example.com",
             HTTP_ACCEPT="application/json",
         )
         assert resp.status_code == 200, resp.content
 
         report = UserReport.objects.get()
-        assert report.name == "Jane Doe"
+        assert report.name == "Jane Bloggs"
         assert report.email == "jane@example.com"
         assert report.comments == "This is an example!"
         assert report.event_id == self.event_id
@@ -133,17 +133,15 @@ class ErrorPageEmbedTest(TestCase):
 
         resp = self.client.post(
             path,
-            {"name": "Jane Doe", "email": "jane@example.com", "comments": "This is an example!"},
+            {"name": "Jane Bloggs", "email": "jane@example.com", "comments": "This is an example!"},
             HTTP_REFERER="http://example.com",
             HTTP_ACCEPT="application/json",
         )
         assert resp.status_code == 400, resp.content
 
 
+@override_settings(ROOT_URLCONF="sentry.conf.urls")
 class ErrorPageEmbedEnvironmentTest(TestCase):
-
-    urls = "sentry.conf.urls"
-
     def setUp(self):
         self.project = self.create_project()
         self.project.update_option("sentry:origins", ["example.com"])
@@ -179,7 +177,7 @@ class ErrorPageEmbedEnvironmentTest(TestCase):
         self.login_as(user=self.user)
         response = self.client.post(
             self.path,
-            {"name": "Jane Doe", "email": "jane@example.com", "comments": "This is an example!"},
+            {"name": "Jane Bloggs", "email": "jane@example.com", "comments": "This is an example!"},
             HTTP_REFERER="http://example.com",
         )
 
@@ -190,7 +188,7 @@ class ErrorPageEmbedEnvironmentTest(TestCase):
         self.login_as(user=self.user)
         response = self.client.post(
             self.path,
-            {"name": "Jane Doe", "email": "jane@example.com", "comments": "This is an example!"},
+            {"name": "Jane Bloggs", "email": "jane@example.com", "comments": "This is an example!"},
             HTTP_REFERER="http://example.com",
         )
         self.make_event(environment=self.environment.name, event_id=self.event_id)
