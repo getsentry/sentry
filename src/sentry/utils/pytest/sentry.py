@@ -78,8 +78,8 @@ def pytest_configure(config):
 
     settings.SENTRY_ALLOW_ORIGIN = "*"
 
-    settings.SENTRY_TSDB = "sentry.tsdb.inmemory.InMemoryTSDB"
-    settings.SENTRY_TSDB_OPTIONS = {}
+    # settings.SENTRY_TSDB = "sentry.tsdb.inmemory.InMemoryTSDB"
+    # settings.SENTRY_TSDB_OPTIONS = {}
 
     if settings.SENTRY_NEWSLETTER == "sentry.newsletter.base.Newsletter":
         settings.SENTRY_NEWSLETTER = "sentry.newsletter.dummy.DummyNewsletter"
@@ -98,10 +98,10 @@ def pytest_configure(config):
 
     settings.CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
 
-    if os.environ.get("USE_SNUBA", False):
-        settings.SENTRY_SEARCH = "sentry.search.snuba.SnubaSearchBackend"
-        settings.SENTRY_TSDB = "sentry.tsdb.redissnuba.RedisSnubaTSDB"
-        settings.SENTRY_EVENTSTREAM = "sentry.eventstream.snuba.SnubaEventStream"
+    settings.SENTRY_SEARCH = "sentry.search.snuba.SnubaSearchBackend"
+    settings.SENTRY_TSDB = "sentry.tsdb.redissnuba.RedisSnubaTSDB"
+    settings.SENTRY_TSDB_OPTIONS = {}
+    settings.SENTRY_EVENTSTREAM = "sentry.eventstream.snuba.SnubaEventStream"
 
     if not hasattr(settings, "SENTRY_OPTIONS"):
         settings.SENTRY_OPTIONS = {}
@@ -216,11 +216,11 @@ def register_extensions():
 
 
 def pytest_runtest_teardown(item):
-    if not os.environ.get("USE_SNUBA", False):
-        from sentry import tsdb
+    # if not os.environ.get("USE_SNUBA", False):
+    #     from sentry import tsdb
 
-        # TODO(dcramer): this only works if this is the correct tsdb backend
-        tsdb.flush()
+    #     # TODO(dcramer): this only works if this is the correct tsdb backend
+    #     tsdb.flush()
 
     # XXX(dcramer): only works with DummyNewsletter
     from sentry import newsletter
