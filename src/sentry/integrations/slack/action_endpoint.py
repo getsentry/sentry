@@ -240,6 +240,7 @@ class SlackActionEndpoint(Endpoint):
 
         # Handle interaction actions
         try:
+            action_type = None
             for action in action_list:
                 action_type = action["name"]
 
