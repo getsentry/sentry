@@ -8,7 +8,7 @@ from sentry.similarity import _make_index_backend
 from sentry.testutils import TestCase
 from sentry.utils import redis
 from sentry.testutils.helpers.datetime import iso_format, before_now
-from sentry import eventstore
+from sentry import eventstream, eventstore
 
 # Use the default redis client as a cluster client in the similarity index
 index = _make_index_backend(redis.clusters.get("default").get_local_client(0))
@@ -60,8 +60,6 @@ class MergeGroupTest(TestCase):
             project_id=project.id,
         )
         group1 = event1.group
-        project2 = self.create_project()
-        group2 = self.create_group(project2)
         event2 = self.store_event(
             data={
                 "event_id": "b" * 32,
@@ -74,7 +72,9 @@ class MergeGroupTest(TestCase):
         group2 = event2.group
 
         with self.tasks():
+            eventstream_state = eventstream.start_merge(project.id, [group1.id], group2.id)
             merge_groups([group1.id], group2.id)
+            eventstream.end_merge(eventstream_state)
 
         assert not Group.objects.filter(id=group1.id).exists()
 
