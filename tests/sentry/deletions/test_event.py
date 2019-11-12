@@ -29,7 +29,7 @@ class DeleteEventTest(TestCase):
         with self.tasks():
             run_deletion(deletion.id)
 
-        assert not Event.objects.filter(id=event.id).exists()
+        assert not Event.objects.filter(event_id=event.event_id).exists()
         assert not EventAttachment.objects.filter(
             event_id=event.event_id, project_id=project.id
         ).exists()
