@@ -57,42 +57,42 @@ type RenderProps = {
 };
 
 type Props = {
-  onOpen: Function;
-  onClose: Function;
+  onOpen?: Function;
+  onClose?: Function;
   /**
    * Callback for when we get a click outside of dropdown menus.
    * Useful for when menu is controlled.
    */
-  onClickOutside: Function;
+  onClickOutside?: Function;
 
   /**
    * Callback function to check if we should ignore click outside to
    * hide dropdown menu
    */
-  shouldIgnoreClickOutside: (event: React.MouseEvent<HTMLElement>) => boolean;
+  shouldIgnoreClickOutside?: (event: React.MouseEvent<HTMLElement>) => boolean;
 
   /**
    * If this is set, then this will become a "controlled" component.
    * It will no longer set local state and dropdown visiblity will
    * only follow `isOpen`.
    */
-  isOpen: boolean;
+  isOpen?: boolean;
 
   /** Keeps dropdown menu open when menu is clicked */
-  keepMenuOpen: boolean;
+  keepMenuOpen?: boolean;
 
   // Compatibility for <DropdownLink>
   // This will change where we attach event handlers
-  alwaysRenderMenu: boolean;
+  alwaysRenderMenu?: boolean;
 
   // closes menu on "Esc" keypress
-  closeOnEscape: boolean;
+  closeOnEscape?: boolean;
 
   /**
    * If this is set to true, the dropdown behaves as a "nested dropdown" and is
    * triggered on mouse enter and mouse leave
    */
-  isNestedDropdown: boolean;
+  isNestedDropdown?: boolean;
 
   /**
    * Render function

@@ -27,7 +27,6 @@ import OnboardingStatus from './onboardingStatus';
 import SidebarDropdown from './sidebarDropdown';
 import SidebarHelp from './help';
 import SidebarItem from './sidebarItem';
-import Discover2Item from './discover2Item';
 
 class Sidebar extends React.Component {
   static propTypes = {
@@ -284,9 +283,8 @@ class Sidebar extends React.Component {
                   </Feature>
 
                   <Feature features={['events-v2']} organization={organization}>
-                    <Discover2Item
+                    <SidebarItem
                       {...sidebarItemProps}
-                      organization={organization}
                       onClick={(_id, evt) =>
                         this.navigateWithGlobalSelection(
                           `/organizations/${organization.slug}/eventsv2/`,
