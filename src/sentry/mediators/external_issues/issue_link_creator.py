@@ -25,11 +25,16 @@ class IssueLinkCreator(Mediator):
 
     def _verify_action(self):
         if self.action not in ["link", "create"]:
-            return APIUnauthorized()
+            raise APIUnauthorized(u"Invalid action '{}'".format(self.action))
 
     def _make_external_request(self):
         self.response = external_requests.IssueLinkRequester.run(
-            install=self.install, uri=self.uri, group=self.group, fields=self.fields, user=self.user
+            install=self.install,
+            uri=self.uri,
+            group=self.group,
+            fields=self.fields,
+            user=self.user,
+            action=self.action,
         )
 
     def _format_response_data(self):

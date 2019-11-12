@@ -104,9 +104,7 @@ def send_alert_event(event, rule, sentry_app_id):
         resource="event_alert", action="triggered", install=install, data=data
     )
 
-    safe_urlopen(
-        url=sentry_app.webhook_url, data=request_data.body, headers=request_data.headers, timeout=5
-    )
+    send_and_save_webhook_request(sentry_app.webhook_url, sentry_app, request_data)
 
 
 def _process_resource_change(action, sender, instance_id, retryer=None, *args, **kwargs):
@@ -274,29 +272,27 @@ def send_webhooks(installation, event, **kwargs):
 
         request_data = AppPlatformEvent(**kwargs)
 
-        buffer = SentryAppWebhookRequestsBuffer(installation.sentry_app)
-
-        try:
-            resp = safe_urlopen(
-                url=servicehook.sentry_app.webhook_url,
-                data=request_data.body,
-                headers=request_data.headers,
-                timeout=5,
-            )
-        except RequestException:
-            # Response code of 0 represents timeout
-            buffer.add_request(
-                response_code=0,
-                org_id=installation.organization_id,
-                event=event,
-                url=servicehook.sentry_app.webhook_url,
-            )
-            # Re-raise the exception because some of these tasks might retry on the exception
-            raise
-
-        buffer.add_request(
-            response_code=resp.status_code,
-            org_id=installation.organization_id,
-            event=event,
-            url=servicehook.sentry_app.webhook_url,
+        send_and_save_webhook_request(
+            servicehook.sentry_app.webhook_url, installation.sentry_app, request_data
         )
+
+
+def send_and_save_webhook_request(url, sentry_app, app_platform_event):
+    buffer = SentryAppWebhookRequestsBuffer(sentry_app)
+
+    org_id = app_platform_event.install.organization_id
+    event = "{}.{}".format(app_platform_event.resource, app_platform_event.action)
+
+    try:
+        resp = safe_urlopen(
+            url=url, data=app_platform_event.body, headers=app_platform_event.headers, timeout=5
+        )
+    except RequestException:
+        # Response code of 0 represents timeout
+        buffer.add_request(response_code=0, org_id=org_id, event=event, url=url)
+        # Re-raise the exception because some of these tasks might retry on the exception
+        raise
+
+    buffer.add_request(response_code=resp.status_code, org_id=org_id, event=event, url=url)
+
+    return resp

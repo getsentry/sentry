@@ -5,10 +5,10 @@ import logging
 from uuid import uuid4
 
 from six.moves.urllib.parse import urlparse, urlencode, urlunparse
-from sentry.http import safe_urlopen, safe_urlread
+from sentry.http import safe_urlread
 from sentry.coreapi import APIError
 from sentry.mediators import Mediator, Param
-from sentry.mediators.external_requests.util import validate
+from sentry.mediators.external_requests.util import validate, send_and_save_sentry_app_request
 from sentry.utils import json
 from sentry.utils.cache import memoize
 
@@ -50,7 +50,15 @@ class SelectRequester(Mediator):
 
     def _make_request(self):
         try:
-            body = safe_urlread(safe_urlopen(url=self._build_url(), headers=self._build_headers()))
+            body = safe_urlread(
+                send_and_save_sentry_app_request(
+                    self._build_url(),
+                    self.sentry_app,
+                    self.install.organization_id,
+                    "select_options.requested",
+                    headers=self._build_headers(),
+                )
+            )
 
             response = json.loads(body)
         except Exception as e:
