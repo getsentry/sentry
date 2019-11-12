@@ -32,7 +32,11 @@ class RewriteRecordTestCase(TestCase):
             project=self.event.project,
             groups={self.event.group.id: self.event.group},
             rules={self.rule.id: self.rule},
-        ) == Record(self.record.key, Notification(self.event, [self.rule]), self.record.timestamp)
+        ) == Record(
+            self.record.key,
+            Notification(self.record.value.event, [self.rule]),
+            self.record.timestamp,
+        )
 
     def test_without_group(self):
         # If the record can't be associated with a group, it should be returned as None.
@@ -44,13 +48,14 @@ class RewriteRecordTestCase(TestCase):
         )
 
     def test_filters_invalid_rules(self):
-        # If the record can't be associated with a group, it should be returned as None.
         assert rewrite_record(
             self.record,
             project=self.event.project,
             groups={self.event.group.id: self.event.group},
             rules={},
-        ) == Record(self.record.key, Notification(self.event, []), self.record.timestamp)
+        ) == Record(
+            self.record.key, Notification(self.record.value.event, []), self.record.timestamp
+        )
 
 
 class GroupRecordsTestCase(TestCase):
