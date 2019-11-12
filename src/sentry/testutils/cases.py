@@ -296,7 +296,7 @@ class BaseTestCase(Fixtures, Exam):
     def _postEventAttachmentWithHeader(self, attachment, **extra):
         path = reverse(
             "sentry-api-event-attachment",
-            kwargs={"project_id": self.project.id, "event_id": self.event.id},
+            kwargs={"project_id": self.project.id, "event_id": self.event.event_id},
         )
 
         key = self.projectkey.public_key
