@@ -251,7 +251,7 @@ exports[`ProjectDebugFiles renders 1`] = `
                 data-test-id="empty-state"
               >
                 <div
-                  className="css-eeziz4-EmptyStreamWrapper ernlsnc0"
+                  className="css-eeziz4-EmptyStreamWrapper e1107k000"
                   data-test-id="empty-state"
                 >
                   <HeroIcon

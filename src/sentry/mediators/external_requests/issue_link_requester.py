@@ -5,10 +5,10 @@ import logging
 from uuid import uuid4
 
 from six.moves.urllib.parse import urlparse
-from sentry.http import safe_urlopen, safe_urlread
+from sentry.http import safe_urlread
 from sentry.coreapi import APIError
 from sentry.mediators import Mediator, Param
-from sentry.mediators.external_requests.util import validate
+from sentry.mediators.external_requests.util import validate, send_and_save_sentry_app_request
 from sentry.utils import json
 from sentry.utils.cache import memoize
 
@@ -50,6 +50,7 @@ class IssueLinkRequester(Mediator):
     group = Param("sentry.models.Group")
     fields = Param(object)
     user = Param("sentry.models.User")
+    action = Param(six.string_types)
 
     def call(self):
         return self._make_request()
@@ -59,8 +60,15 @@ class IssueLinkRequester(Mediator):
         return u"{}://{}{}".format(urlparts.scheme, urlparts.netloc, self.uri)
 
     def _make_request(self):
-        req = safe_urlopen(
-            url=self._build_url(), headers=self._build_headers(), method="POST", data=self.body
+        action_to_past_tense = {"create": "created", "link": "linked"}
+        req = send_and_save_sentry_app_request(
+            self._build_url(),
+            self.sentry_app,
+            self.install.organization_id,
+            "external_issue.{}".format(action_to_past_tense[self.action]),
+            headers=self._build_headers(),
+            method="POST",
+            data=self.body,
         )
 
         try:

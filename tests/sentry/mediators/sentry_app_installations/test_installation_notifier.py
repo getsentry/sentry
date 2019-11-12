@@ -1,12 +1,17 @@
 from __future__ import absolute_import
 
 from mock import patch
+from collections import namedtuple
 
 from sentry.coreapi import APIUnauthorized
 from sentry.mediators.sentry_app_installations import InstallationNotifier
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.faux import faux
 from sentry.utils import json
+from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
+
+MockResponse = namedtuple("MockResponse", ["headers", "content", "ok", "status_code"])
+MockResponseInstance = MockResponse({}, {}, True, 200)
 
 
 class DictContaining(object):
@@ -32,7 +37,7 @@ class TestInstallationNotifier(TestCase):
             slug="foo", organization=self.org, user=self.user
         )
 
-    @patch("sentry.mediators.sentry_app_installations.installation_notifier.safe_urlopen")
+    @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponseInstance)
     def test_task_enqueued(self, safe_urlopen):
         InstallationNotifier.run(install=self.install, user=self.user, action="created")
 
@@ -66,7 +71,7 @@ class TestInstallationNotifier(TestCase):
             ),
         )
 
-    @patch("sentry.mediators.sentry_app_installations.installation_notifier.safe_urlopen")
+    @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponseInstance)
     def test_uninstallation_enqueued(self, safe_urlopen):
         InstallationNotifier.run(install=self.install, user=self.user, action="deleted")
 
@@ -100,9 +105,21 @@ class TestInstallationNotifier(TestCase):
             ),
         )
 
-    @patch("sentry.mediators.sentry_app_installations.installation_notifier.safe_urlopen")
+    @patch("sentry.tasks.sentry_apps.safe_urlopen")
     def test_invalid_installation_action(self, safe_urlopen):
         with self.assertRaises(APIUnauthorized):
             InstallationNotifier.run(install=self.install, user=self.user, action="updated")
 
         assert not safe_urlopen.called
+
+    @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponseInstance)
+    def test_webhook_request_saved(self, safe_urlopen):
+        InstallationNotifier.run(install=self.install, user=self.user, action="created")
+        InstallationNotifier.run(install=self.install, user=self.user, action="deleted")
+
+        buffer = SentryAppWebhookRequestsBuffer(self.sentry_app)
+        requests = buffer.get_requests()
+
+        assert len(requests) == 2
+        assert requests[0]["event_type"] == "installation.deleted"
+        assert requests[1]["event_type"] == "installation.created"

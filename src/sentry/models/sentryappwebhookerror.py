@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import EncryptedJsonField, FlexibleForeignKey, Model
+from sentry.db.models import EncryptedJsonField, BoundedBigIntegerField, Model
 
 
 class SentryAppWebhookError(Model):
@@ -11,11 +11,9 @@ class SentryAppWebhookError(Model):
 
     date_added = models.DateTimeField(db_index=True, default=timezone.now)
 
-    sentry_app = FlexibleForeignKey("sentry.SentryApp", related_name="webhook_errors")
+    sentry_app = BoundedBigIntegerField(db_column="sentry_app_id")
 
-    organization = FlexibleForeignKey(
-        "sentry.Organization", related_name="sentry_app_webhook_errors"
-    )
+    organization = BoundedBigIntegerField(db_column="organization_id")
 
     request_body = EncryptedJsonField()
 
