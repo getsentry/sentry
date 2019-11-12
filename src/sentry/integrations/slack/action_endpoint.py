@@ -215,6 +215,7 @@ class SlackActionEndpoint(Endpoint):
                 self.on_status(request, identity, group, action, data, integration)
             except client.ApiError as e:
                 return self.api_error(e, "status_dialog", logging_data)
+
             group = Group.objects.get(id=group.id)
             attachment = build_group_attachment(group, identity=identity, actions=[action])
 
