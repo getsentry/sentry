@@ -10,12 +10,15 @@ export type ObjectStatus =
   | 'pending_deletion'
   | 'deletion_in_progress';
 
-export type Organization = {
+export type LightWeightOrganization = {
   id: string;
   slug: string;
-  projects: Project[];
   access: string[];
   features: string[];
+};
+
+export type Organization = LightWeightOrganization & {
+  projects: Project[];
   teams: Team[];
 };
 

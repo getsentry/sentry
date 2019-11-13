@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {get, uniq} from 'lodash';
+import get from 'lodash/get';
+import uniq from 'lodash/uniq';
 
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';

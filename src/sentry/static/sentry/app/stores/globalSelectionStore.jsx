@@ -1,4 +1,5 @@
-import {isEqual, pick} from 'lodash';
+import isEqual from 'lodash/isEqual';
+import pick from 'lodash/pick';
 import Reflux from 'reflux';
 
 import {

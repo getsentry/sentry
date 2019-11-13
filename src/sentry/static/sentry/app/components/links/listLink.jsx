@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import _ from 'lodash';
+import omit from 'lodash/omit';
 import {Link} from 'react-router';
 import classNames from 'classnames';
 
@@ -51,7 +51,7 @@ class ListLink extends React.Component {
   };
 
   render() {
-    const carriedProps = _.omit(this.props, 'activeClassName', 'isActive', 'index');
+    const carriedProps = omit(this.props, 'activeClassName', 'isActive', 'index');
     return (
       <li className={this.getClassName()}>
         <Link {...carriedProps} onlyActiveOnIndex={this.props.index}>

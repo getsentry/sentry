@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment-timezone';
-import _ from 'lodash';
+import isEqual from 'lodash/isEqual';
 import styled, {cx} from 'react-emotion';
 
 import Tooltip from 'app/components/tooltip';
@@ -101,7 +101,7 @@ class StackedBarChart extends React.Component {
   }
 
   shouldComponentUpdate(nextProps, nextState) {
-    return !_.isEqual(this.props, nextProps);
+    return !isEqual(this.props, nextProps);
   }
 
   getInterval = series => {

@@ -1,4 +1,6 @@
-import {memoize, partition, uniqBy} from 'lodash';
+import memoize from 'lodash/memoize';
+import partition from 'lodash/partition';
+import uniqBy from 'lodash/uniqBy';
 import PropTypes from 'prop-types';
 import React from 'react';
 

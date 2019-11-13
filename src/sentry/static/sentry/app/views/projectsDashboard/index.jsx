@@ -3,7 +3,8 @@ import LazyLoad from 'react-lazyload';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import _ from 'lodash';
+import uniq from 'lodash/uniq';
+import flatten from 'lodash/flatten';
 
 import {sortProjects} from 'app/utils';
 import {t} from 'app/locale';
@@ -60,7 +61,7 @@ class Dashboard extends React.Component {
     const filteredTeams = teams.filter(team => team.projects.length);
     filteredTeams.sort((team1, team2) => team1.slug.localeCompare(team2.slug));
 
-    const projects = _.uniq(_.flatten(teams.map(teamObj => teamObj.projects)), 'id');
+    const projects = uniq(flatten(teams.map(teamObj => teamObj.projects)), 'id');
     const favorites = projects.filter(project => project.isBookmarked);
 
     const access = new Set(organization.access);

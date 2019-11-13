@@ -1,5 +1,5 @@
 import {browserHistory} from 'react-router';
-import {isEqual} from 'lodash';
+import isEqual from 'lodash/isEqual';
 import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';

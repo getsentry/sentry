@@ -5,6 +5,7 @@ import responses
 from six.moves.urllib.parse import parse_qs
 from mock import patch
 
+from sentry.api import client
 from sentry import options
 from sentry.models import (
     Integration,
@@ -333,6 +334,61 @@ class StatusActionTest(BaseEventTest):
 
         assert resp.data["response_type"] == "ephemeral"
         assert not resp.data["replace_original"]
+        assert resp.data["text"] == "Sentry can't perform that action right now on your behalf!"
+
+    @responses.activate
+    @patch("sentry.api.client.put")
+    def test_handle_submission_fail(self, client_put):
+        status_action = {"name": "resolve_dialog", "value": "resolve_dialog"}
+
+        # Expect request to open dialog on slack
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/dialog.open",
+            body='{"ok": true}',
+            status=200,
+            content_type="application/json",
+        )
+
+        resp = self.post_webhook(action_data=[status_action])
+        assert resp.status_code == 200, resp.content
+
+        # Opening dialog should *not* cause the current message to be updated
+        assert resp.content == ""
+
+        data = parse_qs(responses.calls[0].request.body)
+        assert data["token"][0] == self.integration.metadata["access_token"]
+        assert data["trigger_id"][0] == self.trigger_id
+        assert "dialog" in data
+
+        dialog = json.loads(data["dialog"][0])
+        callback_data = json.loads(dialog["callback_id"])
+        assert int(callback_data["issue"]) == self.group1.id
+        assert callback_data["orig_response_url"] == self.response_url
+
+        # Completing the dialog will update the message
+        responses.add(
+            method=responses.POST,
+            url=self.response_url,
+            body='{"ok": true}',
+            status=200,
+            content_type="application/json",
+        )
+
+        # make the client raise an API error
+        client_put.side_effect = client.ApiError(
+            403, '{"detail":"You do not have permission to perform this action."}'
+        )
+
+        resp = self.post_webhook(
+            type="dialog_submission",
+            callback_id=dialog["callback_id"],
+            data={"submission": {"resolve_type": "resolved"}},
+        )
+
+        client_put.asser_called()
+
+        assert resp.status_code == 200, resp.content
         assert resp.data["text"] == "Sentry can't perform that action right now on your behalf!"
 
     def test_invalid_token(self):

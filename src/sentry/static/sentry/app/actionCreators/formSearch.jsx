@@ -1,4 +1,6 @@
-import {flatten, flatMap} from 'lodash';
+import flatten from 'lodash/flatten';
+
+import flatMap from 'lodash/flatMap';
 
 import FormSearchActions from 'app/actions/formSearchActions';
 
