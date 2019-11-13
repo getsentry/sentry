@@ -10,26 +10,25 @@ describe('MultipleEnvironmentSelector', function() {
   const onUpdate = jest.fn();
 
   const envs = ['production', 'staging', 'dev'];
-  const organization = TestStubs.Organization({
-    projects: [
-      TestStubs.Project({
-        id: '1',
-        slug: 'first',
-        environments: ['production', 'staging'],
-      }),
-      TestStubs.Project({
-        id: '2',
-        slug: 'second',
-        environments: ['dev'],
-      }),
-      TestStubs.Project({
-        id: '3',
-        slug: 'no member',
-        environments: ['no-env'],
-        isMember: false,
-      }),
-    ],
-  });
+  const projects = [
+    TestStubs.Project({
+      id: '1',
+      slug: 'first',
+      environments: ['production', 'staging'],
+    }),
+    TestStubs.Project({
+      id: '2',
+      slug: 'second',
+      environments: ['dev'],
+    }),
+    TestStubs.Project({
+      id: '3',
+      slug: 'no member',
+      environments: ['no-env'],
+      isMember: false,
+    }),
+  ];
+  const organization = TestStubs.Organization({projects});
   const selectedProjects = [1, 2];
   const routerContext = TestStubs.routerContext([
     {
@@ -43,6 +42,8 @@ describe('MultipleEnvironmentSelector', function() {
     wrapper = mountWithTheme(
       <MultipleEnvironmentSelector
         organization={organization}
+        projects={projects}
+        loadingProjects={false}
         selectedProjects={selectedProjects}
         onChange={onChange}
         onUpdate={onUpdate}

@@ -383,6 +383,8 @@ describe('EventsContainer', function() {
 
   it('updates when changing projects', async function() {
     ProjectsStore.loadInitialData(organization.projects);
+    // ensure that the wrapper gets new project values from withProjects HOC
+    wrapper.update();
 
     expect(wrapper.find('MultipleProjectSelector').prop('value')).toEqual([]);
 

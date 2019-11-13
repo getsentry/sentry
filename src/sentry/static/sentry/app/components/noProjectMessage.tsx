@@ -3,7 +3,7 @@ import styled from 'react-emotion';
 import PropTypes from 'prop-types';
 
 import {t} from 'app/locale';
-import {Organization, Project} from 'app/types';
+import {LightWeightOrganization, Organization, Project} from 'app/types';
 import Button from 'app/components/button';
 import PageHeading from 'app/components/pageHeading';
 import Tooltip from 'app/components/tooltip';
@@ -14,7 +14,7 @@ import ConfigStore from 'app/stores/configStore';
 import img from '../../images/dashboard/hair-on-fire.svg';
 
 type Props = {
-  organization: Organization;
+  organization: LightWeightOrganization | Organization;
   projects?: Project[];
 };
 
@@ -34,14 +34,14 @@ export default class NoProjectMessage extends React.Component<Props> {
     const canJoinTeam = organization.access.includes('team:read');
 
     let hasProjects;
-    if (projects) {
-      hasProjects = projects.length > 0;
-    } else {
+    if ('projects' in organization) {
       const {isSuperuser} = ConfigStore.get('user');
 
       hasProjects = isSuperuser
         ? organization.projects.some(p => p.hasAccess)
         : organization.projects.some(p => p.isMember && p.hasAccess);
+    } else {
+      hasProjects = projects && projects.length > 0;
     }
 
     return hasProjects ? (

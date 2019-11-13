@@ -10,7 +10,7 @@ import CompactIssue from 'app/components/issues/compactIssue';
 import EventUserFeedback from 'app/components/events/userFeedback';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import NoProjectMessage from 'app/components/noProjectMessage';
+import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
@@ -112,7 +112,7 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
       <React.Fragment>
         <GlobalSelectionHeader organization={organization} />
         <PageContent>
-          <NoProjectMessage organization={organization}>
+          <LightWeightNoProjectMessage organization={organization}>
             <UserFeedbackContainer
               pageLinks={reportListPageLinks}
               status={status}
@@ -120,7 +120,7 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
             >
               {this.renderStreamBody()}
             </UserFeedbackContainer>
-          </NoProjectMessage>
+          </LightWeightNoProjectMessage>
         </PageContent>
       </React.Fragment>
     );
