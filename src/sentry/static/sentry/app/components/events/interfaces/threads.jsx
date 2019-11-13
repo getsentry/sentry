@@ -114,6 +114,8 @@ function getIntendedStackView(thread, event) {
 }
 
 function findBestThread(threads) {
+  // Search the enire threads list for a crashed, errored or thread with stack
+  // trace. Prefer any crashed thread over errored threads, etc.
   return (
     threads.find(thread => thread.crashed) ||
     threads.find(thread => thread.errored) ||
@@ -136,11 +138,11 @@ class Thread extends React.Component {
 
   renderMissingStacktrace = () => {
     const {crashed, errored} = this.props.data;
-    let message = 'No or unknown stacktrace';
+    let message = t('No or unknown stacktrace');
     if (crashed) {
-      message = 'Thread Crashed';
+      message = t('Thread Crashed');
     } else if (errored) {
-      message = 'Thread Errored';
+      message = t('Thread Errored');
     }
 
     return (
@@ -148,7 +150,7 @@ class Thread extends React.Component {
         <ul>
           <li className="frame missing-frame">
             <div className="title">
-              <span className="informal">{t(message)}</span>
+              <span className="informal">{message}</span>
             </div>
           </li>
         </ul>
