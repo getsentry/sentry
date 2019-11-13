@@ -31,6 +31,7 @@ const SENTRY_WEBPACK_PROXY_PORT = env.SENTRY_WEBPACK_PROXY_PORT;
 const USE_HOT_MODULE_RELOAD =
   !IS_PRODUCTION && SENTRY_BACKEND_PORT && SENTRY_WEBPACK_PROXY_PORT;
 const NO_DEV_SERVER = env.NO_DEV_SERVER;
+const IS_CI = !!env.CI || !!env.TRAVIS;
 
 // Deploy previews are built using netlify. We can check if we're in netlifys
 // build process by checking the existence of the PULL_REQUEST env var.
@@ -225,16 +226,21 @@ let appConfig = {
         include: [staticPrefix],
         exclude: /(vendor|node_modules|dist)/,
         use: [
-          {
-            loader: 'babel-loader',
-            options: babelOptions,
-          },
-          {
-            loader: 'ts-loader',
-            options: {
-              transpileOnly: true,
-            },
-          },
+          ...(!IS_CI
+            ? [
+                {
+                  loader: 'babel-loader',
+                  options: babelOptions,
+                },
+              ]
+            : [
+                {
+                  loader: 'ts-loader',
+                  options: {
+                    transpileOnly: false,
+                  },
+                },
+              ]),
         ],
       },
       {
@@ -321,9 +327,13 @@ let appConfig = {
 
     new SentryInstrumentation(),
 
-    new ForkTsCheckerWebpackPlugin({
-      tsconfig: path.resolve(__dirname, './tsconfig.json'),
-    }),
+    ...(!IS_CI
+      ? [
+          new ForkTsCheckerWebpackPlugin({
+            tsconfig: path.resolve(__dirname, './tsconfig.json'),
+          }),
+        ]
+      : []),
 
     ...localeRestrictionPlugins,
   ],
