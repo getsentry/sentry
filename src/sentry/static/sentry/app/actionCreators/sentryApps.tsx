@@ -5,6 +5,8 @@ import {
   clearIndicators,
 } from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
+import {Client} from 'app/api';
+import {SentryApp} from 'app/types';
 
 /**
  * Remove a Sentry Application
@@ -12,7 +14,7 @@ import {t} from 'app/locale';
  * @param {Object} client ApiClient
  * @param {Object} app SentryApp
  */
-export function removeSentryApp(client, app) {
+export function removeSentryApp(client: Client, app: SentryApp): Promise<undefined> {
   addLoadingMessage();
   const promise = client.requestPromise(`/sentry-apps/${app.slug}/`, {
     method: 'DELETE',
