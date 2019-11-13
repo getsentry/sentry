@@ -674,19 +674,6 @@ class PluginTestCase(TestCase):
         self.fail("Missing app from entry_points: %r" % (name,))
 
     # TODO (Steve): remove function
-    def assertTestOnlyAppInstalled(self, name, path):
-        for ep in iter_entry_points("sentry.test_only_apps"):
-            if ep.name == name:
-                ep_path = ep.module_name
-                if ep_path == path:
-                    return
-                self.fail(
-                    "Found app in entry_points, but wrong class. Got %r, expected %r"
-                    % (ep_path, path)
-                )
-        self.fail("Missing app from entry_points: %r" % (name,))
-
-    # TODO (Steve): remove function
     def assertNewAppInstalled(self, name, path):
         for ep in iter_entry_points("sentry.new_apps"):
             if ep.name == name:
