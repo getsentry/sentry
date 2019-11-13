@@ -1,11 +1,11 @@
 import React from 'react';
 
-import {Organization} from 'app/types';
+import {LightWeightOrganization, Organization} from 'app/types';
 import NoProjectMessage from 'app/components/noProjectMessage';
 import Projects from 'app/utils/projects';
 
 type Props = {
-  organization: Organization;
+  organization: LightWeightOrganization | Organization;
 };
 
 export default class LightWeightNoProjectMessage extends React.Component<Props> {
@@ -19,7 +19,7 @@ export default class LightWeightNoProjectMessage extends React.Component<Props> 
   render() {
     const {organization} = this.props;
 
-    return organization.projects ? (
+    return 'projects' in organization ? (
       <NoProjectMessage {...this.props} />
     ) : (
       <Projects orgId={this.props.organization.slug} allProjects>
