@@ -14,7 +14,7 @@ type InjectedProjectsProps = {
 
 type State = {
   projects: Project[];
-  loadingProjects: boolean;
+  loading: boolean;
 };
 
 /**

@@ -2,6 +2,7 @@ import React from 'react';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
+import ProjectsStore from 'app/stores/projectsStore';
 
 describe('LightWeightNoProjectMessage', function() {
   it('renders', async function() {
@@ -9,10 +10,7 @@ describe('LightWeightNoProjectMessage', function() {
     const project2 = TestStubs.Project();
     const organization = TestStubs.Organization({slug: 'org-slug'});
     delete organization.projects;
-    const getProjectsMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/projects/',
-      body: [project1, project2],
-    });
+    ProjectsStore.loadInitialData([project1, project2]);
     const wrapper = mountWithTheme(
       <LightWeightNoProjectMessage organization={organization}>
         {null}
@@ -20,10 +18,6 @@ describe('LightWeightNoProjectMessage', function() {
       TestStubs.routerContext()
     );
     expect(wrapper.prop('children')).toBe(null);
-    // await fetching projects
-    await tick();
-    wrapper.update();
-    expect(getProjectsMock).toHaveBeenCalled();
     expect(wrapper.find('NoProjectMessage').exists()).toBe(true);
   });
 });

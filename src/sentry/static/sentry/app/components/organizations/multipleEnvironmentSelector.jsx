@@ -225,7 +225,7 @@ class MultipleEnvironmentSelector extends React.PureComponent {
         icon={<StyledInlineSvg src="icon-window" />}
         loadingProjects
       >
-        Loading...
+        {t('Loading...')}
       </StyledHeaderItem>
     ) : (
       <StyledDropdownAutoComplete

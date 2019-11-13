@@ -1,30 +1,26 @@
 import React from 'react';
 
-import {LightWeightOrganization, Organization} from 'app/types';
+import {LightWeightOrganization, Organization, Project} from 'app/types';
 import NoProjectMessage from 'app/components/noProjectMessage';
-import Projects from 'app/utils/projects';
+import withProjects from 'app/utils/withProjects';
 
 type Props = {
   organization: LightWeightOrganization | Organization;
+  projects: Project[];
+  loadingProjects: boolean;
 };
 
-export default class LightWeightNoProjectMessage extends React.Component<Props> {
-  renderChildren = ({projects, fetching}) => {
-    if (fetching) {
+class LightWeightNoProjectMessage extends React.Component<Props> {
+  render() {
+    const {organization, projects, loadingProjects} = this.props;
+    if ('projects' in organization) {
+      return <NoProjectMessage {...this.props} />;
+    }
+    if (loadingProjects) {
       return this.props.children;
     }
     return <NoProjectMessage {...this.props} projects={projects} />;
-  };
-
-  render() {
-    const {organization} = this.props;
-
-    return 'projects' in organization ? (
-      <NoProjectMessage {...this.props} />
-    ) : (
-      <Projects orgId={this.props.organization.slug} allProjects>
-        {this.renderChildren}
-      </Projects>
-    );
   }
 }
+
+export default withProjects(LightWeightNoProjectMessage);
