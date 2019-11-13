@@ -71,21 +71,22 @@ def calculate_and_log_similarity(default_result, snuba_result):
 
     metrics.timing("snubasearch.match.score", overall_score)
 
-    if in_default_not_snuba:
-        log_key_difference("in_default", in_default_not_snuba)
-
-    if in_snuba_not_default:
-        log_key_difference("in_moresnuba", in_snuba_not_default)
+    if in_default_not_snuba or in_snuba_not_default:
+        log_key_difference(in_default_not_snuba, in_snuba_not_default)
 
     return
 
 
-def log_key_difference(mismatch_type, mismatch_keys):
+def log_key_difference(mismatch_in_default, mismatch_in_moresnuba):
     logger.error(
         "search.mismatch.keys",
         extra={
-            "search_mismatch_type": mismatch_type,
-            "search_mismatch_keys": list(mismatch_keys),
-            "search_mismatch_num_keys": len(mismatch_keys),
+            "search_mismatch_in_default": mismatch_in_default,
+            "search_mismatch_in_moresnuba": mismatch_in_moresnuba,
+            # "search_mismatch_type": mismatch_type,
+            "search_mismatch_default_keys": list(mismatch_in_default),
+            "search_mismatch_default_num_keys": len(mismatch_in_default),
+            "search_mismatch_moresnuba_keys": list(mismatch_in_moresnuba),
+            "search_mismatch_moresnuba_num_keys": len(mismatch_in_moresnuba),
         },
     )
