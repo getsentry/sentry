@@ -1,10 +1,10 @@
-import {Flex, Box} from 'grid-emotion';
 import {capitalize} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
+import space from 'app/styles/space';
 
 import {openCreateIncidentModal} from 'app/actionCreators/modal';
 import {t, tct, tn} from 'app/locale';
@@ -355,11 +355,11 @@ const IssueListActions = createReactClass({
 
     return (
       <Sticky>
-        <StyledFlex py={1}>
-          <ActionsCheckbox pl={2}>
+        <StyledFlex>
+          <ActionsCheckbox>
             <Checkbox onChange={this.handleSelectAll} checked={pageSelected} />
           </ActionsCheckbox>
-          <ActionSet w={[8 / 12, 8 / 12, 6 / 12]} mx={1} flex="1">
+          <ActionSet>
             <ResolveActions
               hasRelease={hasReleases}
               latestRelease={latestRelease}
@@ -379,7 +379,7 @@ const IssueListActions = createReactClass({
               confirmLabel={label('ignore')}
               disabled={!anySelected}
             />
-            <div className="btn-group hidden-sm hidden-xs">
+            <div className="btn-group hidden-md hidden-sm hidden-xs">
               <ActionLink
                 className="btn btn-default btn-sm action-merge"
                 disabled={mergeDisabled}
@@ -392,24 +392,10 @@ const IssueListActions = createReactClass({
                 {t('Merge')}
               </ActionLink>
             </div>
-            <div className="btn-group hidden-xs">
-              <ActionLink
-                className="btn btn-default btn-sm action-bookmark hidden-md hidden-sm hidden-xs"
-                onAction={() => this.handleUpdate({isBookmarked: true})}
-                shouldConfirm={this.shouldConfirm('bookmark')}
-                message={confirm('bookmark', false)}
-                confirmLabel={label('bookmark')}
-                title={t('Add to Bookmarks')}
-                disabled={!anySelected}
-              >
-                <i aria-hidden="true" className="icon-star-solid" />
-              </ActionLink>
-            </div>
-
             <Feature features={['incidents']}>
               <div className="btn-group hidden-xs">
                 <ActionLink
-                  className="btn btn-default btn-sm hidden-sm hidden-xs"
+                  className="btn btn-default btn-sm hidden-md hidden-sm hidden-xs"
                   title={t('Create new incident')}
                   disabled={createNewIncidentDisabled}
                   onAction={this.handleCreateIncident}
@@ -420,14 +406,11 @@ const IssueListActions = createReactClass({
                       size="16"
                       src="icon-siren-add"
                     />
-                    <CreateIncidentText className="hidden-md">
-                      {t('Create Incident')}
-                    </CreateIncidentText>
+                    <CreateIncidentText>{t('Create Incident')}</CreateIncidentText>
                   </IncidentLabel>
                 </ActionLink>
               </div>
             </Feature>
-
             <div className="btn-group">
               <DropdownLink
                 key="actions"
@@ -438,7 +421,7 @@ const IssueListActions = createReactClass({
               >
                 <MenuItem noAnchor>
                   <ActionLink
-                    className="action-merge hidden-md hidden-lg hidden-xl"
+                    className="action-merge hidden-lg hidden-xl"
                     disabled={mergeDisabled}
                     onAction={this.handleMerge}
                     shouldConfirm={this.shouldConfirm('merge')}
@@ -449,9 +432,10 @@ const IssueListActions = createReactClass({
                     {t('Merge')}
                   </ActionLink>
                 </MenuItem>
+                <MenuItem divider className="hidden-lg hidden-xl" />
                 <MenuItem noAnchor>
                   <ActionLink
-                    className="hidden-md hidden-lg hidden-xl"
+                    className="hidden-lg hidden-xl"
                     disabled={createNewIncidentDisabled}
                     onAction={this.handleCreateIncident}
                     title={t('Create new incident')}
@@ -459,10 +443,10 @@ const IssueListActions = createReactClass({
                     {t('Create Incident')}
                   </ActionLink>
                 </MenuItem>
-                <MenuItem divider className="hidden-md hidden-lg hidden-xl" />
+                <MenuItem divider className="hidden-lg hidden-xl" />
                 <MenuItem noAnchor>
                   <ActionLink
-                    className="action-bookmark hidden-lg hidden-xl"
+                    className="action-bookmark"
                     disabled={!anySelected}
                     onAction={() => this.handleUpdate({isBookmarked: true})}
                     shouldConfirm={this.shouldConfirm('bookmark')}
@@ -473,7 +457,7 @@ const IssueListActions = createReactClass({
                     {t('Add to Bookmarks')}
                   </ActionLink>
                 </MenuItem>
-                <MenuItem divider className="hidden-lg hidden-xl" />
+                <MenuItem divider />
                 <MenuItem noAnchor>
                   <ActionLink
                     className="action-remove-bookmark"
@@ -536,35 +520,29 @@ const IssueListActions = createReactClass({
               </Tooltip>
             </div>
           </ActionSet>
-          <Box w={160} mx={2} className="hidden-xs hidden-sm">
-            <Flex>
-              <StyledToolbarHeader>{t('Graph:')}</StyledToolbarHeader>
+          <LabelSet>
+            <BarGraph className="hidden-xs hidden-sm">
+              <ToolbarHeader>{t('Graph:')}</ToolbarHeader>
               <GraphToggle
                 active={statsPeriod === '24h'}
                 onClick={this.handleSelectStatsPeriod.bind(this, '24h')}
               >
                 {t('24h')}
               </GraphToggle>
-
               <GraphToggle
                 active={statsPeriod === '14d'}
                 onClick={this.handleSelectStatsPeriod.bind(this, '14d')}
               >
                 {t('14d')}
               </GraphToggle>
-            </Flex>
-          </Box>
-          <Box w={[40, 60, 80, 80]} mx={2} className="align-right">
-            <ToolbarHeader>{t('Events')}</ToolbarHeader>
-          </Box>
-          <Box w={[40, 60, 80, 80]} mx={2} className="align-right">
-            <ToolbarHeader>{t('Users')}</ToolbarHeader>
-          </Box>
-          <Box w={80} mx={2} className="align-right hidden-xs hidden-sm">
-            <ToolbarHeader>{t('Assignee')}</ToolbarHeader>
-          </Box>
+            </BarGraph>
+            <StyledToolbarHeader w={[40, 60, 80, 80]}>{t('Events')}</StyledToolbarHeader>
+            <StyledToolbarHeader w={[40, 60, 80, 80]}>{t('Users')}</StyledToolbarHeader>
+            <StyledToolbarHeader w={80} className="hidden-xs hidden-sm">
+              {t('Assignee')}
+            </StyledToolbarHeader>
+          </LabelSet>
         </StyledFlex>
-
         {!allResultsVisible && pageSelected && (
           <div className="row stream-select-all-notice">
             <div className="col-md-12">
@@ -616,31 +594,42 @@ const Sticky = styled('div')`
   top: -1px;
 `;
 
-const StyledFlex = styled(Flex)`
+const StyledFlex = styled('div')`
+  display: flex;
   align-items: center;
+  padding: ${space(1)} ${space(2)};
   background: ${p => p.theme.offWhite};
   border-bottom: 1px solid ${p => p.theme.borderDark};
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
   margin-bottom: -1px;
 `;
 
-const ActionsCheckbox = styled(Box)`
+const ActionsCheckbox = styled('div')`
   & input[type='checkbox'] {
-    margin: 0;
+    margin-right: ${space(1)};
     display: block;
   }
 `;
 
-const ActionSet = styled(Box)`
+const ActionSet = styled('div')`
   display: flex;
 
   .btn-group {
+    display: flex;
     margin-right: 6px;
   }
 `;
 
+const LabelSet = styled('div')`
+  display: flex;
+  flex-grow: 1;
+  justify-content: flex-end;
+  text-align: right;
+`;
+
 const StyledToolbarHeader = styled(ToolbarHeader)`
-  flex: 1;
+  margin-right: ${space(2)};
+  margin-left: ${space(2)};
 `;
 
 const GraphToggle = styled('a')`
@@ -653,6 +642,11 @@ const GraphToggle = styled('a')`
   &:active {
     color: ${p => (p.active ? p.theme.gray4 : p.theme.disabled)};
   }
+`;
+
+const BarGraph = styled('div')`
+  display: flex;
+  justify-content: space-between;
 `;
 
 const IncidentLabel = styled('div')`
