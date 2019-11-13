@@ -23,6 +23,14 @@ import {handleCreateQuery, handleUpdateQuery, handleDeleteQuery} from './utils';
 
 type Props = {
   api: Client;
+
+  /**
+   * DO NOT USE `Location` TO GENERATE `EventView` IN THIS COMPONENT.
+   *
+   * In this component, state is generated from EventView and SavedQueriesStore.
+   * Using Location to rebuild EventView will break the tests. `Location` is
+   * passed down only because it is needed for navigation.
+   */
   location: Location;
   organization: Organization;
   eventView: EventView;
@@ -106,10 +114,12 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
   };
 
   onBlurInput = (event: React.FormEvent<HTMLInputElement>) => {
-    this.setState({queryName: event.currentTarget.value});
+    const target = event.target as HTMLInputElement;
+    this.setState({queryName: target.value});
   };
   onChangeInput = (event: React.FormEvent<HTMLInputElement>) => {
-    this.setState({queryName: event.currentTarget.value});
+    const target = event.target as HTMLInputElement;
+    this.setState({queryName: target.value});
   };
 
   /**
@@ -121,20 +131,20 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     event.preventDefault();
     event.stopPropagation();
 
-    const {api, location, organization} = this.props;
-    const eventView = EventView.fromLocation({
-      ...location,
-      query: {
-        ...location.query,
-        name: this.state.queryName,
-      },
-    });
+    const {api, location, organization, eventView} = this.props;
+
+    if (!this.state.queryName) {
+      return;
+    }
+
+    const nextEventView = eventView.clone();
+    nextEventView.name = this.state.queryName;
 
     // Checks if "Save as" button is clicked from a clean state, or it is
     // clicked while modifying an existing query
-    const isNewQuery = !!this.state.queryId;
+    const isNewQuery = !this.state.queryId;
 
-    handleCreateQuery(api, organization, eventView, isNewQuery).then(
+    handleCreateQuery(api, organization, nextEventView, isNewQuery).then(
       (savedQuery: any) => {
         const view = EventView.fromSavedQuery(savedQuery);
 
@@ -151,8 +161,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     event.preventDefault();
     event.stopPropagation();
 
-    const {api, location, organization} = this.props;
-    const eventView = EventView.fromLocation(location);
+    const {api, organization, eventView} = this.props;
 
     handleUpdateQuery(api, organization, eventView).then(() => {
       this.setState({queryName: ''});
@@ -163,8 +172,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     event.preventDefault();
     event.stopPropagation();
 
-    const {api, location, organization} = this.props;
-    const eventView = EventView.fromLocation(location);
+    const {api, location, organization, eventView} = this.props;
 
     handleDeleteQuery(api, organization, eventView).then(() => {
       browserHistory.push({
@@ -191,7 +199,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
         alignRight
         menuWidth="220px"
         button={({isOpen, getActorProps}) => (
-          <ButtonSave
+          <ButtonSaveAs
             {...getActorProps({isStyled: true})}
             isOpen={isOpen}
             showChevron={false}
@@ -202,7 +210,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
               size="14"
             />
             {t('Save as...')}
-          </ButtonSave>
+          </ButtonSaveAs>
         )}
       >
         <ButtonSaveDropDown onClick={SavedQueryButtonGroup.stopEventPropagation}>
@@ -216,6 +224,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
           <Button
             onClick={this.handleCreateQuery}
             priority="primary"
+            disabled={!this.state.queryName}
             style={{width: '100%'}}
           >
             {t('Save')}
@@ -248,7 +257,10 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     }
 
     return (
-      <Button onClick={this.handleUpdateQuery}>
+      <Button
+        onClick={this.handleUpdateQuery}
+        data-test-id="discover2-savedquery-button-update"
+      >
         <ButtonUpdateIcon />
         {t('Update query')}
       </Button>
@@ -262,7 +274,13 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       return null;
     }
 
-    return <Button icon="icon-trash" onClick={this.handleDeleteQuery} />;
+    return (
+      <Button
+        data-test-id="discover2-savedquery-button-delete"
+        icon="icon-trash"
+        onClick={this.handleDeleteQuery}
+      />
+    );
   }
 
   render() {
@@ -286,7 +304,7 @@ const ButtonGroup = styled('div')`
   }
 `;
 
-const ButtonSave = styled(DropdownButton)`
+const ButtonSaveAs = styled(DropdownButton)`
   z-index: ${p => p.theme.zIndex.dropdownAutocomplete.actor};
   white-space: nowrap;
 `;
