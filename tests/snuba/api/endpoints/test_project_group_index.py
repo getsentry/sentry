@@ -1112,7 +1112,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
         response = self.client.put(url, data={"isPublic": "false"}, format="json")
         assert response.status_code == 200
-        assert response.data == {"isPublic": False}
+        assert response.data == {"isPublic": False, "shareId": None}
 
         new_group1 = Group.objects.get(id=group1.id)
         assert not bool(new_group1.get_share_id())
