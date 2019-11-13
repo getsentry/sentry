@@ -1,9 +1,15 @@
 from __future__ import absolute_import
 
+import logging
+import mock
+import six
+
 from sentry import eventstore
-from sentry.testutils import TestCase
+from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.eventstore.base import EventStorage
+
+from sentry.utils.samples import load_data
 
 
 class EventStorageTest(TestCase):
@@ -36,3 +42,53 @@ class EventStorageTest(TestCase):
         self.eventstorage.bind_nodes([event, event2], "data")
         assert event.data._node_data is not None
         assert event.data["user"]["id"] == u"user1"
+
+
+class ServiceDelegationTest(TestCase, SnubaTestCase):
+    def setUp(self):
+        super(ServiceDelegationTest, self).setUp()
+        self.min_ago = iso_format(before_now(minutes=1))
+        self.two_min_ago = iso_format(before_now(minutes=2))
+        self.project = self.create_project()
+
+        self.event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "type": "default",
+                "platform": "python",
+                "fingerprint": ["group1"],
+                "timestamp": self.two_min_ago,
+                "tags": {"foo": "1"},
+            },
+            project_id=self.project.id,
+        )
+
+        event_data = load_data("transaction")
+        event_data["timestamp"] = iso_format(before_now(minutes=1))
+        event_data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=1))
+        event_data["event_id"] = "b" * 32
+
+        self.transaction_event = self.store_event(data=event_data, project_id=self.project.id)
+
+    def test_logs_differences(self):
+
+        logger = logging.getLogger("sentry.eventstore")
+
+        with mock.patch.object(logger, "info") as mock_logger:
+            # No differences to log
+            filter = eventstore.Filter(project_ids=[self.project.id])
+            eventstore.get_events(filter=filter)
+            eventstore.get_event_by_id(self.project.id, "a" * 32)
+            assert mock_logger.call_count == 0
+
+            # Here we expect a difference since the original implementation handles type as a tag
+            event = eventstore.get_event_by_id(self.project.id, "a" * 32)
+            filter = eventstore.Filter(
+                project_ids=[self.project.id], conditions=[["type", "=", "transaction"]]
+            )
+            eventstore.get_next_event_id(event, filter)
+            assert mock_logger.call_count == 1
+            mock_logger.assert_called_with(
+                "discover.result-mismatch",
+                extra={"snuba": None, "snuba_discover": (six.text_type(self.project.id), "b" * 32)},
+            )
