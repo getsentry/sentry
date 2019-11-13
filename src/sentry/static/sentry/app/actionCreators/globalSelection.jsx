@@ -1,4 +1,6 @@
-import {isEqual, isInteger, omit} from 'lodash';
+import isEqual from 'lodash/isEqual';
+import isInteger from 'lodash/isInteger';
+import omit from 'lodash/omit';
 import * as Sentry from '@sentry/browser';
 
 import {defined} from 'app/utils';

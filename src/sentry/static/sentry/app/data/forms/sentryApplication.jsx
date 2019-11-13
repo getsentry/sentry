@@ -1,5 +1,4 @@
 import React from 'react';
-import _ from 'lodash';
 
 import {extractMultilineFields} from 'app/utils';
 import {tct} from 'app/locale';

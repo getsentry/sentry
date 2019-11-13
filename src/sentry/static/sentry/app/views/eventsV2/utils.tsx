@@ -1,4 +1,5 @@
-import {partial, pick} from 'lodash';
+import partial from 'lodash/partial';
+import pick from 'lodash/pick';
 import {Location, Query} from 'history';
 import {browserHistory} from 'react-router';
 

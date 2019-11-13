@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled, {css} from 'react-emotion';
 import isPropValid from '@emotion/is-prop-valid';
-import {pickBy} from 'lodash';
+import pickBy from 'lodash/pickBy';
 
 import ExternalLink from 'app/components/links/externalLink';
 import InlineSvg from 'app/components/inlineSvg';

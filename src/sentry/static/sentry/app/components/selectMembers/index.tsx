@@ -1,4 +1,4 @@
-import {debounce} from 'lodash';
+import debounce from 'lodash/debounce';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';

@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled, {css} from 'react-emotion';
-import {uniq} from 'lodash';
+import uniq from 'lodash/uniq';
 
 import {analytics} from 'app/utils/analytics';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
