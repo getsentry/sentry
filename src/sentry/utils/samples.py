@@ -145,7 +145,7 @@ def load_data(platform, default=None, sample_name=None):
     if platform == "transaction":
         now = timezone.now()
         now_time = to_timestamp(now)
-        start_time = to_timestamp(now - timedelta(seconds=-2))
+        start_time = to_timestamp(now - timedelta(seconds=2))
         data.setdefault("timestamp", now_time)
         data.setdefault("start_timestamp", start_time)
         for span in data["spans"]:
