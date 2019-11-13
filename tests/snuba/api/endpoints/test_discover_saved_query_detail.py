@@ -45,7 +45,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert response.data["id"] == six.text_type(self.query_id)
-        assert response.data["projects"] == self.project_ids
+        assert set(response.data["projects"]) == set(self.project_ids)
         assert response.data["fields"] == ["test"]
         assert response.data["conditions"] == []
         assert response.data["limit"] == 10

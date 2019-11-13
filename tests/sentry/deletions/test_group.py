@@ -91,7 +91,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         with self.tasks():
             delete_groups(object_ids=[group.id])
 
-        assert not Event.objects.filter(id=self.event.id).exists()
+        assert not Event.objects.filter(event_id=self.event.event_id).exists()
         assert not UserReport.objects.filter(group_id=group.id).exists()
         assert not UserReport.objects.filter(event_id=self.event.event_id).exists()
         assert not EventAttachment.objects.filter(event_id=self.event.event_id).exists()

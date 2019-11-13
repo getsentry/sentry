@@ -5,7 +5,7 @@
 {% block main %}
   <h3>Request for Access</h3>
 
-  <p><strong>{{ inviter.get_salutation_name }}</strong> has requested to invite <strong>{{ email }}</strong> to the <a href="{{ organization_link }}">{{ organization.name }}</a> organization.</p>
+  <p><strong>{{ inviter_name }}</strong> has requested to invite <strong>{{ email }}</strong> to the {{ organization_name }} organization.</p>
 
   <a href="{{ pending_requests_link }}" class="btn">View access requests</a>
 
