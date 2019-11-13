@@ -784,7 +784,7 @@ class MinidumpView(StoreView):
             # Merge additional form fields from the request with `extra` data
             # from the event payload and set defaults for processing. This is
             # sent by clients like Breakpad or Crashpad.
-            extra.update(data.get("extra", {}))
+            extra.update(data.get("extra") or ())
             data["extra"] = extra
 
         if not minidump:
