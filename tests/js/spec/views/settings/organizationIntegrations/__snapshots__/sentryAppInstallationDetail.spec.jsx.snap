@@ -142,7 +142,7 @@ exports[`Sentry App Installations displays all Apps owned by the Org 1`] = `
                   size={36}
                 >
                   <div
-                    className="css-19ydruf-PluginIcon e7e65lm0"
+                    className="css-1r07v7y-PluginIcon e7e65lm0"
                     size={36}
                   />
                 </PluginIcon>
