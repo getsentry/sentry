@@ -41,6 +41,12 @@ describe('SearchBar', function() {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
+      method: 'POST',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
       body: [],
     });
 
@@ -95,6 +101,37 @@ describe('SearchBar', function() {
     selectFirstAutocompleteItem(wrapper);
     wrapper.update();
     expect(wrapper.find('input').prop('value')).toBe('gpu:"Nvidia 1080ti" ');
+  });
+
+  it('if `useFormWrapper` is false, pressing enter when there are no dropdown items selected should blur and call `onSearch` callback', async function() {
+    const onBlur = jest.fn();
+    const onSearch = jest.fn();
+    const wrapper = mountWithTheme(
+      <SearchBar {...props} useFormWrapper={false} onSearch={onSearch} onBlur={onBlur} />,
+      options
+    );
+    await tick();
+    setQuery(wrapper, 'gpu:');
+
+    expect(tagValuesMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/tags/gpu/values/',
+      expect.objectContaining({query: {}})
+    );
+
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('SearchDropdown').prop('searchSubstring')).toEqual('');
+    expect(
+      wrapper
+        .find('SearchDropdown Description')
+        .first()
+        .text()
+    ).toEqual('"Nvidia 1080ti"');
+
+    wrapper.find('input').simulate('keydown', {key: 'Enter'});
+
+    expect(onSearch).toHaveBeenCalledTimes(1);
   });
 
   it('does not requery for event field values if query does not change', async function() {
