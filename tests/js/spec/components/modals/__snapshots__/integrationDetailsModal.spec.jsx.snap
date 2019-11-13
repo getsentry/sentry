@@ -86,7 +86,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
           size={50}
         >
           <div
-            className="css-6ynrd7-PluginIcon e7e65lm0"
+            className="css-1pi7709-PluginIcon e7e65lm0"
             size={50}
           />
         </PluginIcon>
