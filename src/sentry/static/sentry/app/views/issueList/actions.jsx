@@ -379,7 +379,7 @@ const IssueListActions = createReactClass({
               confirmLabel={label('ignore')}
               disabled={!anySelected}
             />
-            <div className="btn-group hidden-sm hidden-xs">
+            <div className="btn-group hidden-md hidden-sm hidden-xs">
               <ActionLink
                 className="btn btn-default btn-sm action-merge"
                 disabled={mergeDisabled}
@@ -392,24 +392,10 @@ const IssueListActions = createReactClass({
                 {t('Merge')}
               </ActionLink>
             </div>
-            <div className="btn-group hidden-xs">
-              <ActionLink
-                className="btn btn-default btn-sm action-bookmark hidden-md hidden-sm hidden-xs"
-                onAction={() => this.handleUpdate({isBookmarked: true})}
-                shouldConfirm={this.shouldConfirm('bookmark')}
-                message={confirm('bookmark', false)}
-                confirmLabel={label('bookmark')}
-                title={t('Add to Bookmarks')}
-                disabled={!anySelected}
-              >
-                <i aria-hidden="true" className="icon-star-solid" />
-              </ActionLink>
-            </div>
-
             <Feature features={['incidents']}>
               <div className="btn-group hidden-xs">
                 <ActionLink
-                  className="btn btn-default btn-sm hidden-sm hidden-xs"
+                  className="btn btn-default btn-sm hidden-md hidden-sm hidden-xs"
                   title={t('Create new incident')}
                   disabled={createNewIncidentDisabled}
                   onAction={this.handleCreateIncident}
@@ -420,14 +406,13 @@ const IssueListActions = createReactClass({
                       size="16"
                       src="icon-siren-add"
                     />
-                    <CreateIncidentText className="hidden-md">
+                    <CreateIncidentText>
                       {t('Create Incident')}
                     </CreateIncidentText>
                   </IncidentLabel>
                 </ActionLink>
               </div>
             </Feature>
-
             <div className="btn-group">
               <DropdownLink
                 key="actions"
@@ -438,7 +423,7 @@ const IssueListActions = createReactClass({
               >
                 <MenuItem noAnchor>
                   <ActionLink
-                    className="action-merge hidden-md hidden-lg hidden-xl"
+                    className="action-merge hidden-lg hidden-xl"
                     disabled={mergeDisabled}
                     onAction={this.handleMerge}
                     shouldConfirm={this.shouldConfirm('merge')}
@@ -449,9 +434,10 @@ const IssueListActions = createReactClass({
                     {t('Merge')}
                   </ActionLink>
                 </MenuItem>
+                <MenuItem divider className="hidden-lg hidden-xl" />
                 <MenuItem noAnchor>
                   <ActionLink
-                    className="hidden-md hidden-lg hidden-xl"
+                    className="hidden-lg hidden-xl"
                     disabled={createNewIncidentDisabled}
                     onAction={this.handleCreateIncident}
                     title={t('Create new incident')}
@@ -459,10 +445,10 @@ const IssueListActions = createReactClass({
                     {t('Create Incident')}
                   </ActionLink>
                 </MenuItem>
-                <MenuItem divider className="hidden-md hidden-lg hidden-xl" />
+                <MenuItem divider className="hidden-lg hidden-xl" />
                 <MenuItem noAnchor>
                   <ActionLink
-                    className="action-bookmark hidden-lg hidden-xl"
+                    className="action-bookmark"
                     disabled={!anySelected}
                     onAction={() => this.handleUpdate({isBookmarked: true})}
                     shouldConfirm={this.shouldConfirm('bookmark')}
@@ -473,7 +459,7 @@ const IssueListActions = createReactClass({
                     {t('Add to Bookmarks')}
                   </ActionLink>
                 </MenuItem>
-                <MenuItem divider className="hidden-lg hidden-xl" />
+                <MenuItem divider />
                 <MenuItem noAnchor>
                   <ActionLink
                     className="action-remove-bookmark"
@@ -635,6 +621,7 @@ const ActionSet = styled(Box)`
   display: flex;
 
   .btn-group {
+    display: flex;
     margin-right: 6px;
   }
 `;
