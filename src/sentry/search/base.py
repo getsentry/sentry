@@ -79,7 +79,7 @@ def calculate_and_log_similarity(default_result, snuba_result):
 
 def log_key_difference(mismatch_in_default, mismatch_in_moresnuba):
     logger.error(
-        "search.mismatch.keys",
+        "snubasearch.mismatch.keys",
         extra={
             "search_mismatch_in_default": mismatch_in_default,
             "search_mismatch_in_moresnuba": mismatch_in_moresnuba,
