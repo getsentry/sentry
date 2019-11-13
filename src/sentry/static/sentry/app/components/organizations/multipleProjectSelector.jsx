@@ -161,9 +161,9 @@ export default class MultipleProjectSelector extends React.PureComponent {
       <StyledHeaderItem
         data-test-id="global-header-project-selector"
         icon={<StyledInlineSvg src="icon-project" />}
-        loadingProjects
+        loading={loadingProjects}
       >
-        {t('Loading...')}
+        {t('Loading\u2026')}
       </StyledHeaderItem>
     ) : shouldForceProject ? (
       <StyledHeaderItem
