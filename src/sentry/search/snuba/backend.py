@@ -184,10 +184,10 @@ class SnubaSearchBackend(SearchBackend):
     transaction_name = "SnubaSearchBackend"
 
     def __init__(self):
-        # sentry_sdk.init(
-        #     dsn="http://c634da8347d94f5ca84f0a3964b9b0b5@dev.getsentry.net:8000/3",
-        #     traces_sample_rate=1,
-        # )
+        sentry_sdk.init(
+            dsn="http://c634da8347d94f5ca84f0a3964b9b0b5@dev.getsentry.net:8000/3",
+            traces_sample_rate=1,
+        )
         self.transaction_name = self.__class__.__name__ + "::query"
 
     def query(

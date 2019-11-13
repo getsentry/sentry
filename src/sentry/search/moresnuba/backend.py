@@ -1,6 +1,9 @@
 from __future__ import absolute_import
 import logging
 import datetime
+
+from sentry_sdk import Hub
+
 from sentry.search.snuba import SnubaSearchBackend
 from sentry.utils import snuba
 
@@ -59,24 +62,25 @@ class MoreSnubaSearchBackend(SnubaSearchBackend):
         date_from=None,
         date_to=None,
     ):
-        # We override this function to remove status and active_at
-        qs_builder_conditions = super(MoreSnubaSearchBackend, self).get_queryset_modifiers(
-            projects,
-            environments,
-            sort_by,
-            limit,
-            cursor,
-            count_hits,
-            paginator_options,
-            search_filters,
-            date_from,
-            date_to,
-        )
+        with Hub.current.start_span(op="func", description="override_get_queryset_modifiers"):
+            # We override this function to remove status and active_at
+            qs_builder_conditions = super(MoreSnubaSearchBackend, self).get_queryset_modifiers(
+                projects,
+                environments,
+                sort_by,
+                limit,
+                cursor,
+                count_hits,
+                paginator_options,
+                search_filters,
+                date_from,
+                date_to,
+            )
 
-        del qs_builder_conditions["status"]
-        del qs_builder_conditions["active_at"]
+            del qs_builder_conditions["status"]
+            del qs_builder_conditions["active_at"]
 
-        return qs_builder_conditions
+            return qs_builder_conditions
 
     def filter_groups_by_environment_and_release(
         self, projects, group_queryset, environments, search_filters
@@ -87,29 +91,32 @@ class MoreSnubaSearchBackend(SnubaSearchBackend):
         return group_queryset
 
     def modify_converted_filter(self, search_filter, converted_filter, environment_ids=None):
-        table_alias = ""
-        converted_filter = self.modify_filter_if_date(search_filter, converted_filter)
+        with Hub.current.start_span(op="func", description="override_modify_converted_filter"):
+            table_alias = ""
+            converted_filter = self.modify_filter_if_date(search_filter, converted_filter)
 
-        # TODO: What is this still now doing and is it neccessary?
-        if search_filter.key.name in ["first_seen", "last_seen", "first_release"]:
-            if environment_ids is not None:
-                table_alias = "events."
-            else:
-                table_alias = "groups."
+            # TODO: What is this still now doing and is it neccessary?
+            if search_filter.key.name in ["first_seen", "last_seen", "first_release"]:
+                if environment_ids is not None:
+                    table_alias = "events."
+                else:
+                    table_alias = "groups."
 
-            if isinstance(converted_filter[0], list):
-                converted_filter[0][1][0] = table_alias + converted_filter[0][1][0]
-            else:
-                converted_filter[0] = table_alias + converted_filter[0]
+                if isinstance(converted_filter[0], list):
+                    converted_filter[0][1][0] = table_alias + converted_filter[0][1][0]
+                else:
+                    converted_filter[0] = table_alias + converted_filter[0]
 
-        return table_alias, converted_filter
+            return table_alias, converted_filter
 
     def modify_filter_if_date(self, search_filter, converted_filter):
-
-        special_date_names = ["groups.active_at", "first_seen", "last_seen"]
-        if search_filter.key.name in special_date_names:
-            # Need to get '2018-02-06T03:35:54' out of 1517888878000
-            datetime_value = datetime.datetime.fromtimestamp(converted_filter[2] / 1000)
-            datetime_value = datetime_value.replace(microsecond=0).isoformat().replace("+00:00", "")
-            converted_filter[2] = datetime_value
-        return converted_filter
+        with Hub.current.start_span(op="func", description="override_modify_filter_if_date"):
+            special_date_names = ["groups.active_at", "first_seen", "last_seen"]
+            if search_filter.key.name in special_date_names:
+                # Need to get '2018-02-06T03:35:54' out of 1517888878000
+                datetime_value = datetime.datetime.fromtimestamp(converted_filter[2] / 1000)
+                datetime_value = (
+                    datetime_value.replace(microsecond=0).isoformat().replace("+00:00", "")
+                )
+                converted_filter[2] = datetime_value
+            return converted_filter
