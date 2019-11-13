@@ -183,7 +183,7 @@ class CalculateIncidentSuspectsTest(TestCase):
         commit = Commit.objects.filter(releasecommit__release__in=[release])
         incident = self.create_incident(self.organization, groups=[group])
         calculate_incident_suspects(incident.id)
-        assert IncidentSuspectCommit.objects.filter(incident=incident, commit=commit).exists()
+        assert IncidentSuspectCommit.objects.filter(incident=incident, commit__in=commit).exists()
 
 
 class HandleTriggerActionTest(TestCase):
