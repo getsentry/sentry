@@ -38,6 +38,9 @@ const SentryAppComponentsStore = Reflux.createStore({
 type SentryAppComponentsStoreType = Reflux.Store & {
   onLoadComponents: (items: SentryAppComponent[]) => void;
   getComponentByType: (type: string | undefined) => SentryAppComponent[];
+  getAll: () => SentryAppComponent[];
+  getInitialState: () => SentryAppComponent[];
+  get: () => SentryAppComponent | undefined;
 };
 
 export default SentryAppComponentsStore as SentryAppComponentsStoreType;
