@@ -12,7 +12,7 @@ exports[`Tooltip renders 1`] = `
         setReferenceNode={[Function]}
       >
         <span
-          aria-describedby="tooltip-123456"
+          aria-describedby=""
           onBlur={[Function]}
           onFocus={[Function]}
           onMouseEnter={[Function]}

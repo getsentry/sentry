@@ -731,7 +731,7 @@ exports[`ProjectCard renders 1`] = `
                                               setReferenceNode={[Function]}
                                             >
                                               <g
-                                                aria-describedby="tooltip-123456"
+                                                aria-describedby=""
                                                 onBlur={[Function]}
                                                 onFocus={[Function]}
                                                 onMouseEnter={[Function]}
@@ -800,7 +800,7 @@ exports[`ProjectCard renders 1`] = `
                                               setReferenceNode={[Function]}
                                             >
                                               <g
-                                                aria-describedby="tooltip-123456"
+                                                aria-describedby=""
                                                 onBlur={[Function]}
                                                 onFocus={[Function]}
                                                 onMouseEnter={[Function]}

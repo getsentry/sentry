@@ -136,7 +136,7 @@ exports[`CrashContent renders with meta data 1`] = `
                               setReferenceNode={[Function]}
                             >
                               <Container
-                                aria-describedby="tooltip-123456"
+                                aria-describedby=""
                                 containerDisplayMode="inline-block"
                                 innerRef={[Function]}
                                 onBlur={[Function]}
@@ -145,7 +145,7 @@ exports[`CrashContent renders with meta data 1`] = `
                                 onMouseLeave={[Function]}
                               >
                                 <span
-                                  aria-describedby="tooltip-123456"
+                                  aria-describedby=""
                                   className="css-1vf31z4-Container eowlwvy0"
                                   onBlur={[Function]}
                                   onFocus={[Function]}

@@ -246,7 +246,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                             setReferenceNode={[Function]}
                           >
                             <Container
-                              aria-describedby="tooltip-123456"
+                              aria-describedby=""
                               containerDisplayMode="block"
                               innerRef={[Function]}
                               onBlur={[Function]}
@@ -255,7 +255,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                               onMouseLeave={[Function]}
                             >
                               <span
-                                aria-describedby="tooltip-123456"
+                                aria-describedby=""
                                 className="css-1v55bsv-Container eowlwvy0"
                                 onBlur={[Function]}
                                 onFocus={[Function]}
@@ -355,7 +355,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                             setReferenceNode={[Function]}
                           >
                             <Container
-                              aria-describedby="tooltip-123456"
+                              aria-describedby=""
                               containerDisplayMode="block"
                               innerRef={[Function]}
                               onBlur={[Function]}
@@ -364,7 +364,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                               onMouseLeave={[Function]}
                             >
                               <span
-                                aria-describedby="tooltip-123456"
+                                aria-describedby=""
                                 className="css-1v55bsv-Container eowlwvy0"
                                 onBlur={[Function]}
                                 onFocus={[Function]}
@@ -464,7 +464,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                             setReferenceNode={[Function]}
                           >
                             <Container
-                              aria-describedby="tooltip-123456"
+                              aria-describedby=""
                               containerDisplayMode="block"
                               innerRef={[Function]}
                               onBlur={[Function]}
@@ -473,7 +473,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                               onMouseLeave={[Function]}
                             >
                               <span
-                                aria-describedby="tooltip-123456"
+                                aria-describedby=""
                                 className="css-1v55bsv-Container eowlwvy0"
                                 onBlur={[Function]}
                                 onFocus={[Function]}
@@ -710,7 +710,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
                             setReferenceNode={[Function]}
                           >
                             <Container
-                              aria-describedby="tooltip-123456"
+                              aria-describedby=""
                               containerDisplayMode="block"
                               innerRef={[Function]}
                               onBlur={[Function]}
@@ -719,7 +719,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
                               onMouseLeave={[Function]}
                             >
                               <span
-                                aria-describedby="tooltip-123456"
+                                aria-describedby=""
                                 className="css-1v55bsv-Container eowlwvy0"
                                 onBlur={[Function]}
                                 onFocus={[Function]}
@@ -765,7 +765,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
                             setReferenceNode={[Function]}
                           >
                             <Container
-                              aria-describedby="tooltip-123456"
+                              aria-describedby=""
                               containerDisplayMode="block"
                               innerRef={[Function]}
                               onBlur={[Function]}
@@ -774,7 +774,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
                               onMouseLeave={[Function]}
                             >
                               <span
-                                aria-describedby="tooltip-123456"
+                                aria-describedby=""
                                 className="css-1v55bsv-Container eowlwvy0"
                                 onBlur={[Function]}
                                 onFocus={[Function]}
@@ -820,7 +820,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
                             setReferenceNode={[Function]}
                           >
                             <Container
-                              aria-describedby="tooltip-123456"
+                              aria-describedby=""
                               containerDisplayMode="block"
                               innerRef={[Function]}
                               onBlur={[Function]}
@@ -829,7 +829,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
                               onMouseLeave={[Function]}
                             >
                               <span
-                                aria-describedby="tooltip-123456"
+                                aria-describedby=""
                                 className="css-1v55bsv-Container eowlwvy0"
                                 onBlur={[Function]}
                                 onFocus={[Function]}

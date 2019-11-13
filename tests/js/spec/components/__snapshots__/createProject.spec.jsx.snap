@@ -1488,7 +1488,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                       setReferenceNode={[Function]}
                     >
                       <Container
-                        aria-describedby="tooltip-123456"
+                        aria-describedby=""
                         containerDisplayMode="inline-block"
                         innerRef={[Function]}
                         onBlur={[Function]}
@@ -1497,7 +1497,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                         onMouseLeave={[Function]}
                       >
                         <span
-                          aria-describedby="tooltip-123456"
+                          aria-describedby=""
                           className="css-1vf31z4-Container eowlwvy0"
                           onBlur={[Function]}
                           onFocus={[Function]}
@@ -2464,7 +2464,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                       setReferenceNode={[Function]}
                     >
                       <Container
-                        aria-describedby="tooltip-123456"
+                        aria-describedby=""
                         containerDisplayMode="inline-block"
                         innerRef={[Function]}
                         onBlur={[Function]}
@@ -2473,7 +2473,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                         onMouseLeave={[Function]}
                       >
                         <span
-                          aria-describedby="tooltip-123456"
+                          aria-describedby=""
                           className="css-1vf31z4-Container eowlwvy0"
                           onBlur={[Function]}
                           onFocus={[Function]}

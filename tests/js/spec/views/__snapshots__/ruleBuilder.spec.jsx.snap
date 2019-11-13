@@ -2500,7 +2500,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                         Object {
                                           "actor": Object {
                                             "id": "1",
-                                            "name": "Jane Doe",
+                                            "name": "Jane Bloggs",
                                             "type": "user",
                                           },
                                           "label": <IdBadge
@@ -2509,27 +2509,27 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                             useLink={false}
                                             user={
                                               Object {
-                                                "email": "janedoe@example.com",
+                                                "email": "janebloggs@example.com",
                                                 "flags": Object {
                                                   "newsletter_consent_prompt": false,
                                                 },
                                                 "hasPasswordAuth": true,
                                                 "id": "1",
                                                 "isAuthenticated": true,
-                                                "name": "Jane Doe",
+                                                "name": "Jane Bloggs",
                                                 "options": Object {
                                                   "timezone": "UTC",
                                                 },
                                                 "user": Object {
-                                                  "email": "janedoe@example.com",
+                                                  "email": "janebloggs@example.com",
                                                   "id": "1",
-                                                  "name": "Jane Doe",
+                                                  "name": "Jane Bloggs",
                                                 },
                                                 "username": "foo@example.com",
                                               }
                                             }
                                           />,
-                                          "searchKey": "janedoe@example.com jane doe",
+                                          "searchKey": "janebloggs@example.com jane bloggs",
                                           "value": "user:1",
                                         },
                                       ]
