@@ -406,9 +406,7 @@ const IssueListActions = createReactClass({
                       size="16"
                       src="icon-siren-add"
                     />
-                    <CreateIncidentText>
-                      {t('Create Incident')}
-                    </CreateIncidentText>
+                    <CreateIncidentText>{t('Create Incident')}</CreateIncidentText>
                   </IncidentLabel>
                 </ActionLink>
               </div>
