@@ -1,12 +1,14 @@
 from __future__ import absolute_import
 
 from django.db.models import F
-from rest_framework import serializers, status
+from rest_framework import status
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
+from sentry.api.serializers.rest_framework import ProjectKeySerializer
 from sentry.models import AuditLogEntryEvent, ProjectKey, ProjectKeyStatus
 from sentry.utils.apidocs import scenario, attach_scenarios
 
@@ -25,12 +27,6 @@ def create_key_scenario(runner):
         path="/projects/%s/%s/keys/" % (runner.org.slug, runner.default_project.slug),
         data={"name": "Fabulous Key"},
     )
-
-
-class KeySerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=64, required=False, allow_blank=True, allow_null=True)
-    public = serializers.RegexField(r"^[a-f0-9]{32}$", required=False, allow_null=True)
-    secret = serializers.RegexField(r"^[a-f0-9]{32}$", required=False, allow_null=True)
 
 
 class ProjectKeysEndpoint(ProjectEndpoint):
@@ -82,16 +78,27 @@ class ProjectKeysEndpoint(ProjectEndpoint):
                                      belong to.
         :param string name: the name for the new key.
         """
-        serializer = KeySerializer(data=request.data)
+        serializer = ProjectKeySerializer(data=request.data)
 
         if serializer.is_valid():
             result = serializer.validated_data
+
+            rate_limit_count = None
+            rate_limit_window = None
+
+            if features.has("projects:rate-limits", project):
+                ratelimit = result.get("rateLimit", -1)
+                if ratelimit != -1 and (ratelimit["count"] and ratelimit["window"]):
+                    rate_limit_count = result["rateLimit"]["count"]
+                    rate_limit_window = result["rateLimit"]["window"]
 
             key = ProjectKey.objects.create(
                 project=project,
                 label=result.get("name"),
                 public_key=result.get("public"),
                 secret_key=result.get("secret"),
+                rate_limit_count=rate_limit_count,
+                rate_limit_window=rate_limit_window,
             )
 
             self.create_audit_entry(
