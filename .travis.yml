@@ -268,7 +268,6 @@ matrix:
     - name: 'Django 1.9 Backend [Postgres] (1/2)'
     - name: 'Django 1.9 Backend [Postgres] (2/2)'
     - name: 'Django 1.9 Acceptance'
-    - name: 'Plugins'
     - name: 'Django 1.9 Plugins'
 
 notifications:
