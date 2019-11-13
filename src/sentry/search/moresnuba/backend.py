@@ -105,7 +105,6 @@ class MoreSnubaSearchBackend(SnubaSearchBackend):
         return table_alias, converted_filter
 
     def modify_filter_if_date(self, search_filter, converted_filter):
-
         special_date_names = ["groups.active_at", "first_seen", "last_seen"]
         if search_filter.key.name in special_date_names:
             # Need to get '2018-02-06T03:35:54' out of 1517888878000
