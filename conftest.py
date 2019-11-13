@@ -32,7 +32,8 @@ def log_sql():
 
     interesting_lines = [line for line in log.split("\n") if "= (SELECT" in line]
     if interesting_lines:
-        pytest.fail("\n\n" + "\n".join(interesting_lines) + "\n\n")
+        test_name = os.environ.get("PYTEST_CURRENT_TEST").split()[0]
+        pytest.fail("\n\n" + test_name + "\n" + "=" * len(test_name) + "\n\n" +  "\n".join(interesting_lines) + "\n\n")
 
 
 def pytest_configure(config):
