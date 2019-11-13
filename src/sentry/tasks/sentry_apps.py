@@ -304,6 +304,13 @@ def send_and_save_webhook_request(url, sentry_app, app_platform_event):
         # Re-raise the exception because some of these tasks might retry on the exception
         raise
 
-    buffer.add_request(response_code=resp.status_code, org_id=org_id, event=event, url=url, error=resp.headers.get("Sentry-Hook-Error"))
+    buffer.add_request(
+        response_code=resp.status_code,
+        org_id=org_id,
+        event=event,
+        url=url,
+        error=resp.headers.get("Sentry-Hook-Error"),
+        project=resp.headers.get("Sentry-Hook-Project"),
+    )
 
     return resp

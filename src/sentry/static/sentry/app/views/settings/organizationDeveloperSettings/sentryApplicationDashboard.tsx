@@ -130,7 +130,6 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
 
   renderRequestLog() {
     const {requests, app} = this.state;
-    const {orgId} = this.props.params;
     return (
       <React.Fragment>
         <h5>{t('Request Log')}</h5>
@@ -153,10 +152,9 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
           <PanelBody>
             {requests.length > 0 ? (
               requests.map((request, idx) => {
-                const LinkOrDiv = request.errorId ? Link : 'div';
-                const linkTo = request.errorId
-                  ? `/organizations/${orgId}/events/?query=${request.errorId}`
-                  : '';
+                const LinkOrDiv = request.errorUrl ? Link : 'div';
+                const linkTo = request.errorUrl;
+
                 return (
                   <PanelItem key={idx}>
                     <TableLayout>

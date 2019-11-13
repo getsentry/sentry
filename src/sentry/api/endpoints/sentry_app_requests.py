@@ -6,7 +6,7 @@ from sentry.api.bases import SentryAppBaseEndpoint, SentryAppStatsPermission
 
 from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
 
-from sentry.models import Organization
+from sentry.models import Organization, Project
 
 
 class SentryAppRequestsEndpoint(SentryAppBaseEndpoint):
@@ -21,8 +21,12 @@ class SentryAppRequestsEndpoint(SentryAppBaseEndpoint):
             "responseCode": request.get("response_code"),
         }
 
-        if "error_id" in request:
-            formatted_request["errorId"] = request.get("error_id")
+        if "error_id" in request and "project_id" in request:
+            project = Project.objects.get(id=request["project_id"])
+            error_url = "/organizations/{}/projects/{}/events/{}".format(
+                sentry_app.owner.slug, project.slug, request["error_id"]
+            )
+            formatted_request["errorUrl"] = error_url
 
         if "organization_id" in request:
             try:
