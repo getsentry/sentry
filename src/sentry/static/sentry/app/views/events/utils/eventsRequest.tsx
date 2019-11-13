@@ -1,4 +1,5 @@
-import {isEqual, omitBy} from 'lodash';
+import isEqual from 'lodash/isEqual';
+import omitBy from 'lodash/omitBy';
 import PropTypes from 'prop-types';
 import React from 'react';
 

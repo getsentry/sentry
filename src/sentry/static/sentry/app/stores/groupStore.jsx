@@ -1,4 +1,5 @@
-import _ from 'lodash';
+import isArray from 'lodash/isArray';
+import isUndefined from 'lodash/isUndefined';
 import Reflux from 'reflux';
 
 import GroupActions from 'app/actions/groupActions';
@@ -39,7 +40,7 @@ const GroupStore = Reflux.createStore({
   },
 
   add(items) {
-    if (!_.isArray(items)) {
+    if (!isArray(items)) {
       items = [items];
     }
 
@@ -80,21 +81,21 @@ const GroupStore = Reflux.createStore({
   },
 
   addStatus(id, status) {
-    if (_.isUndefined(this.statuses[id])) {
+    if (isUndefined(this.statuses[id])) {
       this.statuses[id] = {};
     }
     this.statuses[id][status] = true;
   },
 
   clearStatus(id, status) {
-    if (_.isUndefined(this.statuses[id])) {
+    if (isUndefined(this.statuses[id])) {
       return;
     }
     this.statuses[id][status] = false;
   },
 
   hasStatus(id, status) {
-    if (_.isUndefined(this.statuses[id])) {
+    if (isUndefined(this.statuses[id])) {
       return false;
     }
     return this.statuses[id][status] || false;
@@ -208,7 +209,7 @@ const GroupStore = Reflux.createStore({
     // regroup pending changes by their itemID
     const pendingById = {};
     this.pendingChanges.forEach(change => {
-      if (_.isUndefined(pendingById[change.id])) {
+      if (isUndefined(pendingById[change.id])) {
         pendingById[change.id] = [];
       }
       pendingById[change.id].push(change);
@@ -216,7 +217,7 @@ const GroupStore = Reflux.createStore({
 
     return this.items.map(item => {
       let rItem = item;
-      if (!_.isUndefined(pendingById[item.id])) {
+      if (!isUndefined(pendingById[item.id])) {
         // copy the object so dirty state doesnt mutate original
         rItem = {...rItem};
         pendingById[item.id].forEach(change => {
@@ -350,7 +351,7 @@ const GroupStore = Reflux.createStore({
    * If itemIds is undefined, returns all ids in the store
    */
   _itemIdsOrAll(itemIds) {
-    if (_.isUndefined(itemIds)) {
+    if (isUndefined(itemIds)) {
       itemIds = this.items.map(item => item.id);
     }
     return itemIds;

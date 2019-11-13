@@ -1,4 +1,4 @@
-import {isString} from 'lodash';
+import isString from 'lodash/isString';
 import PropTypes from 'prop-types';
 import React from 'react';
 

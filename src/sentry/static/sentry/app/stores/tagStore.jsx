@@ -1,5 +1,5 @@
 import Reflux from 'reflux';
-import _ from 'lodash';
+import reduce from 'lodash/reduce';
 
 import TagActions from 'app/actions/tagActions';
 import MemberListStore from 'app/stores/memberListStore';
@@ -119,7 +119,7 @@ const TagStore = Reflux.createStore({
   onLoadTagsSuccess(data) {
     Object.assign(
       this.tags,
-      _.reduce(
+      reduce(
         data,
         (obj, tag) => {
           tag = Object.assign(

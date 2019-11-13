@@ -1,4 +1,4 @@
-import {throttle} from 'lodash';
+import throttle from 'lodash/throttle';
 import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';

@@ -1,4 +1,7 @@
-import {flatten, isEqual, pick, partition} from 'lodash';
+import flatten from 'lodash/flatten';
+import isEqual from 'lodash/isEqual';
+import pick from 'lodash/pick';
+import partition from 'lodash/partition';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';

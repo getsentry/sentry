@@ -1,5 +1,7 @@
 import React from 'react';
-import {get, set, isNumber} from 'lodash';
+import get from 'lodash/get';
+import set from 'lodash/set';
+import isNumber from 'lodash/isNumber';
 
 import {t} from 'app/locale';
 import EmptyStateWarning from 'app/components/emptyStateWarning';

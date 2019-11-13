@@ -1,7 +1,8 @@
 import $ from 'jquery';
 import {ThemeProvider} from 'emotion-theming';
 import {browserHistory} from 'react-router';
-import {get, isEqual} from 'lodash';
+import isEqual from 'lodash/isEqual';
+import get from 'lodash/get';
 import {injectGlobal} from 'emotion';
 import Cookies from 'js-cookie';
 import PropTypes from 'prop-types';

@@ -1,5 +1,5 @@
 import {browserHistory} from 'react-router';
-import {clonedeep} from 'lodash';
+import cloneDeep from 'lodash/cloneDeep';
 import React from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -1220,10 +1220,10 @@ describe('IssueList,', function() {
 
     it('fetches data on location change', function() {
       const queryAttrs = ['query', 'sort', 'statsPeriod', 'cursor', 'groupStatsPeriod'];
-      let location = clonedeep(props.location);
+      let location = cloneDeep(props.location);
       queryAttrs.forEach(async (attr, i) => {
         // reclone each iteration so that only one property changes.
-        location = clonedeep(location);
+        location = cloneDeep(location);
         location.query[attr] = 'newValue';
         wrapper.setProps({location});
         await tick();

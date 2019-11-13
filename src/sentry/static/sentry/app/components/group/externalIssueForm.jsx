@@ -2,7 +2,7 @@ import $ from 'jquery';
 import React from 'react';
 import PropTypes from 'prop-types';
 import queryString from 'query-string';
-import {debounce} from 'lodash';
+import debounce from 'lodash/debounce';
 
 import {addSuccessMessage} from 'app/actionCreators/indicator';
 import AsyncComponent from 'app/components/asyncComponent';

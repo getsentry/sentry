@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import _ from 'lodash';
+import isNil from 'lodash/isNil';
 
 import {getMeta} from 'app/components/events/meta/metaProxy';
 import ErrorBoundary from 'app/components/errorBoundary';
@@ -30,7 +30,7 @@ export default class MetaData extends React.Component {
 
     return (
       <ErrorBoundary mini>
-        {required && _.isNil(value) && !meta ? null : children(value, meta)}
+        {required && isNil(value) && !meta ? null : children(value, meta)}
       </ErrorBoundary>
     );
   }

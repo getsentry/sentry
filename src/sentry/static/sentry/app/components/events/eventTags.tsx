@@ -1,6 +1,6 @@
 import React from 'react';
 import {Link} from 'react-router';
-import _ from 'lodash';
+import isEmpty from 'lodash/isEmpty';
 import queryString from 'query-string';
 
 import {Location} from 'history';
@@ -75,7 +75,7 @@ class EventTags extends React.Component<EventTagsProps> {
     const {event, orgId, hideGuide} = this.props;
     const {tags} = event;
 
-    if (_.isEmpty(tags)) {
+    if (isEmpty(tags)) {
       return null;
     }
 

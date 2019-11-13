@@ -6,7 +6,7 @@ import Link from 'app/components/links/link';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import SentryTypes from 'app/sentryTypes';
-import {omit} from 'lodash';
+import omit from 'lodash/omit';
 
 const UserBadge = ({
   displayName,

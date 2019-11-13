@@ -1,5 +1,5 @@
 import React from 'react';
-import _ from 'lodash';
+import pick from 'lodash/pick';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
@@ -30,8 +30,8 @@ describe('SentryAppExternalInstallation', () => {
       name: 'Organization 2',
     });
 
-    org1Lite = _.pick(org1, ['slug', 'name', 'id']);
-    org2Lite = _.pick(org2, ['slug', 'name', 'id']);
+    org1Lite = pick(org1, ['slug', 'name', 'id']);
+    org2Lite = pick(org2, ['slug', 'name', 'id']);
 
     sentryApp = TestStubs.SentryApp({
       status: 'published',

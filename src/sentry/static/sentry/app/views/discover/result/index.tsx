@@ -1,6 +1,6 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
-import {throttle} from 'lodash';
+import throttle from 'lodash/throttle';
 
 import {t} from 'app/locale';
 import getDynamicText from 'app/utils/getDynamicText';

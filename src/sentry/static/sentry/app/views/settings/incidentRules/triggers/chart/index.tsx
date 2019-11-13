@@ -1,4 +1,4 @@
-import {maxBy} from 'lodash';
+import maxBy from 'lodash/maxBy';
 import React from 'react';
 import moment from 'moment-timezone';
 import styled from 'react-emotion';

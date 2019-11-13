@@ -1,4 +1,4 @@
-import _ from 'lodash';
+import pickBy from 'lodash/pickBy';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -49,7 +49,7 @@ const RichListProps = {
 };
 
 function getDefinedProps(propTypes, props) {
-  return _.pickBy(props, (_prop, key) => key in propTypes);
+  return pickBy(props, (_prop, key) => key in propTypes);
 }
 
 class RichList extends React.PureComponent {

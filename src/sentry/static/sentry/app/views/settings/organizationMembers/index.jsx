@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {debounce} from 'lodash';
+import debounce from 'lodash/debounce';
 
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';

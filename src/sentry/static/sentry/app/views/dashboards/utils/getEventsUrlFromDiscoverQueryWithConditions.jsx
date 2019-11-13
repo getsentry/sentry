@@ -7,7 +7,7 @@
  *   e.g. if the query has multiple fields (browser, device), values could be ["Chrome", "iPhone"]
  * @return {String} Returns a url to the "events" page with any discover conditions tranformed to search query syntax
  */
-import {zipWith} from 'lodash';
+import zipWith from 'lodash/zipWith';
 
 import {OPERATOR} from 'app/views/discover/data';
 import {escapeQuotes} from 'app/components/events/interfaces/utils';

@@ -1,4 +1,4 @@
-import {findIndex} from 'lodash';
+import findIndex from 'lodash/findIndex';
 import React from 'react';
 
 import {Project} from 'app/types';

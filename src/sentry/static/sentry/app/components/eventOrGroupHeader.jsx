@@ -3,7 +3,7 @@ import React from 'react';
 import {withRouter} from 'react-router';
 import styled, {css} from 'react-emotion';
 import classNames from 'classnames';
-import {capitalize} from 'lodash';
+import capitalize from 'lodash/capitalize';
 
 import SentryTypes from 'app/sentryTypes';
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';

@@ -1,4 +1,4 @@
-import {get} from 'lodash';
+import get from 'lodash/get';
 
 import {t} from 'app/locale';
 import {CommitAuthor, User} from 'app/types';

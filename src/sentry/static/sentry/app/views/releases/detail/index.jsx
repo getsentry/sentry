@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {pick} from 'lodash';
+import pick from 'lodash/pick';
 
 import SentryTypes from 'app/sentryTypes';
 import LoadingError from 'app/components/loadingError';

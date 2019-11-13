@@ -1,4 +1,5 @@
-import {flatten, debounce} from 'lodash';
+import flatten from 'lodash/flatten';
+import debounce from 'lodash/debounce';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';

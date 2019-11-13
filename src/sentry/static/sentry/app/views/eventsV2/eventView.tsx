@@ -1,5 +1,8 @@
 import {Location, Query} from 'history';
-import {isString, cloneDeep, pick, isEqual} from 'lodash';
+import isString from 'lodash/isString';
+import cloneDeep from 'lodash/cloneDeep';
+import pick from 'lodash/pick';
+import isEqual from 'lodash/isEqual';
 import moment from 'moment';
 
 import {DEFAULT_PER_PAGE} from 'app/constants';

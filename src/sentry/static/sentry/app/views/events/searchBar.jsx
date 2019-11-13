@@ -1,5 +1,6 @@
 import {css} from 'react-emotion';
-import {flatten, memoize} from 'lodash';
+import flatten from 'lodash/flatten';
+import memoize from 'lodash/memoize';
 import PropTypes from 'prop-types';
 import React from 'react';
 

@@ -1,6 +1,6 @@
 import {Location} from 'history';
 import {Params} from 'react-router/lib/Router';
-import {omit} from 'lodash';
+import omit from 'lodash/omit';
 import DocumentTitle from 'react-document-title';
 import React from 'react';
 import moment from 'moment';

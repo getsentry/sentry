@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {groupBy} from 'lodash';
+import groupBy from 'lodash/groupBy';
 
 import {tct} from 'app/locale';
 import AddIntegration from 'app/views/organizationIntegrations/addIntegration';

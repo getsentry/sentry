@@ -1,5 +1,5 @@
 import {Flex} from 'grid-emotion';
-import {omit} from 'lodash';
+import omit from 'lodash/omit';
 import PropTypes from 'prop-types';
 import React from 'react';
 

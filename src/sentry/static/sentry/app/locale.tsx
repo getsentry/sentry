@@ -1,7 +1,9 @@
 import React from 'react';
 import Jed from 'jed';
 import {sprintf} from 'sprintf-js';
-import {isString, isArray, isObject} from 'lodash';
+import isString from 'lodash/isString';
+import isArray from 'lodash/isArray';
+import isObject from 'lodash/isObject';
 import {css} from 'react-emotion';
 
 import {getTranslations} from 'app/translations';

@@ -1,4 +1,4 @@
-import {orderBy} from 'lodash';
+import orderBy from 'lodash/orderBy';
 import Papa from 'papaparse';
 import React from 'react';
 import styled from 'react-emotion';

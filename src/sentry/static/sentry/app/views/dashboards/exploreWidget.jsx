@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'react-emotion';
-import {omit} from 'lodash';
+import omit from 'lodash/omit';
 
 import {getDiscoverUrlPathFromDiscoverQuery} from 'app/views/dashboards/utils/getDiscoverUrlPathFromDiscoverQuery';
 import {getEventsUrlPathFromDiscoverQuery} from 'app/views/dashboards/utils/getEventsUrlPathFromDiscoverQuery';

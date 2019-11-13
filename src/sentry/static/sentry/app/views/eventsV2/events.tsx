@@ -2,7 +2,8 @@ import React from 'react';
 import styled from 'react-emotion';
 import * as ReactRouter from 'react-router';
 import {Location} from 'history';
-import {omit, uniqBy} from 'lodash';
+import omit from 'lodash/omit';
+import uniqBy from 'lodash/uniqBy';
 
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {Organization} from 'app/types';

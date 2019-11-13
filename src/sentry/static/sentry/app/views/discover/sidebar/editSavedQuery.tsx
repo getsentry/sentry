@@ -1,5 +1,5 @@
 import React from 'react';
-import {isEqual} from 'lodash';
+import isEqual from 'lodash/isEqual';
 
 import Button from 'app/components/button';
 import {t} from 'app/locale';

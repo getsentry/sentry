@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import _ from 'lodash';
+import isEqual from 'lodash/isEqual';
 import styled from 'react-emotion';
 
 import {Form, FormState} from 'app/components/forms';
@@ -112,7 +112,7 @@ class PluginSettings extends PluginComponentBase {
       return <LoadingIndicator />;
     }
     const isSaving = this.state.state === FormState.SAVING;
-    const hasChanges = !_.isEqual(this.state.initialData, this.state.formData);
+    const hasChanges = !isEqual(this.state.initialData, this.state.formData);
 
     const data = this.state.rawData;
     if (data.config_error) {

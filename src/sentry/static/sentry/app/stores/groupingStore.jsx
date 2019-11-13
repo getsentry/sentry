@@ -1,5 +1,5 @@
 import Reflux from 'reflux';
-import {pick} from 'lodash';
+import pick from 'lodash/pick';
 
 import IndicatorStore from 'app/stores/indicatorStore';
 import {Client} from 'app/api';

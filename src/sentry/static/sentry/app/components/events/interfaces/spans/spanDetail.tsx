@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from 'react-emotion';
-import {get, map} from 'lodash';
+import get from 'lodash/get';
+import map from 'lodash/map';
 
 import DateTime from 'app/components/dateTime';
 import Pills from 'app/components/pills';

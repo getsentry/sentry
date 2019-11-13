@@ -1,4 +1,4 @@
-import {uniqBy} from 'lodash';
+import uniqBy from 'lodash/uniqBy';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';

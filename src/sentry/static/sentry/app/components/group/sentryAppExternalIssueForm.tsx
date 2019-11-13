@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {debounce} from 'lodash';
+import debounce from 'lodash/debounce';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {addQueryParamsToExistingUrl} from 'app/utils/queryString';

@@ -1,5 +1,5 @@
 import {Flex, Box} from 'grid-emotion';
-import {capitalize} from 'lodash';
+import capitalize from 'lodash/capitalize';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';

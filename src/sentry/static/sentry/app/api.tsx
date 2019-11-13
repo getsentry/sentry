@@ -1,4 +1,6 @@
-import {isUndefined, isNil, get} from 'lodash';
+import isUndefined from 'lodash/isUndefined';
+import isNil from 'lodash/isNil';
+import get from 'lodash/get';
 import $ from 'jquery';
 import * as Sentry from '@sentry/browser';
 

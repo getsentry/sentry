@@ -1,5 +1,5 @@
 import React from 'react';
-import _ from 'lodash';
+import keyBy from 'lodash/keyBy';
 import ConfigStore from 'app/stores/configStore';
 import {t, tct} from 'app/locale';
 import {
@@ -159,7 +159,7 @@ const definitions = [
   },
 ];
 
-const definitionsMap = _.keyBy(definitions, def => def.key);
+const definitionsMap = keyBy(definitions, def => def.key);
 
 const disabledReasons = {
   diskPriority:

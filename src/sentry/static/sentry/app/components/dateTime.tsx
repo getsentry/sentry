@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import moment from 'moment-timezone';
-import _ from 'lodash';
 
 import ConfigStore from 'app/stores/configStore';
 

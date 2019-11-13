@@ -1,5 +1,6 @@
 import {ECharts, EChartOption} from 'echarts';
-import {debounce, maxBy} from 'lodash';
+import debounce from 'lodash/debounce';
+import maxBy from 'lodash/maxBy';
 import React from 'react';
 import styled from 'react-emotion';
 

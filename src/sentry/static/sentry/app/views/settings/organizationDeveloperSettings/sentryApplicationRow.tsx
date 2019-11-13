@@ -1,7 +1,8 @@
 import React from 'react';
 import {Box, Flex} from 'grid-emotion';
 import {Link} from 'react-router';
-import {capitalize, omit} from 'lodash';
+import capitalize from 'lodash/capitalize';
+import omit from 'lodash/omit';
 import styled from 'react-emotion';
 import PropTypes from 'prop-types';
 

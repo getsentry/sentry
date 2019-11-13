@@ -1,5 +1,5 @@
 import Reflux from 'reflux';
-import _ from 'lodash';
+import isUndefined from 'lodash/isUndefined';
 import * as Sentry from '@sentry/browser';
 
 import {Hooks, HookName} from 'app/types/hooks';
@@ -79,7 +79,7 @@ const hookStoreConfig: Reflux.StoreDefinition & HookStoreInterface = {
       });
     }
 
-    if (_.isUndefined(this.hooks[hookName])) {
+    if (isUndefined(this.hooks[hookName])) {
       this.hooks[hookName] = [];
     }
 
@@ -88,7 +88,7 @@ const hookStoreConfig: Reflux.StoreDefinition & HookStoreInterface = {
   },
 
   remove(hookName, callback) {
-    if (_.isUndefined(this.hooks[hookName])) {
+    if (isUndefined(this.hooks[hookName])) {
       return;
     }
     this.hooks[hookName] = this.hooks[hookName]!.filter(cb => {
