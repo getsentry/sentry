@@ -51,12 +51,6 @@ script:
   # installing dependencies for after_* steps here ensures they get cached
   # since those steps execute after travis runs `store build cache`
 
-after_failure:
-  - dmesg | tail -n 100
-
-after_script:
-  - cat /tmp/shitty_sql_log
-
 base_postgres: &postgres_default
   python: 2.7
   services:

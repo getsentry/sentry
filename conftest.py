@@ -15,8 +15,6 @@ from django.conf import settings
 from django.db import connection, reset_queries
 from django.template import Template, Context
 
-sql_log = open("/tmp/shitty_sql_log", "w")
-
 
 @pytest.fixture(scope="function", autouse=True)
 def log_sql():
@@ -24,19 +22,17 @@ def log_sql():
 
     time = sum([float(q["time"]) for q in connection.queries])
     t = Template(
-        '{{count}} quer{{count|pluralize:"y,ies"}} in {{time}} seconds:\n\n{% for sql in sqllog %}[{{forloop.counter}}] {{sql.time}}s: {{sql.sql|safe}}{% if not forloop.last %}\n\n{% endif %}{% endfor %}'
+        "{% for sql in sqllog %}{{sql.sql|safe}}{% if not forloop.last %}\n\n{% endif %}{% endfor %}"
     )
     log = t.render(
         Context({"sqllog": connection.queries, "count": len(connection.queries), "time": time})
     )
 
+    reset_queries()
+
     interesting_lines = [line for line in log.split("\n") if "= (SELECT" in line]
     if interesting_lines:
-        test_name = os.environ.get("PYTEST_CURRENT_TEST").split()[0]
-        sql_log.write(test_name + "\n" + "=" * len(test_name) + "\n\n")
-        sql_log.write("\n".join(interesting_lines) + "\n\n")
-
-    reset_queries()
+        pytest.fail("\n\n" + "\n".join(interesting_lines) + "\n\n")
 
 
 def pytest_configure(config):
