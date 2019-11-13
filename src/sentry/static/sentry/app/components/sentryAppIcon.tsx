@@ -2,7 +2,11 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import InlineSvg from 'app/components/inlineSvg';
 
-export default class SentryAppIcon extends React.Component {
+type Props = {
+  slug: string;
+} & Omit<React.ComponentPropsWithoutRef<typeof InlineSvg>, 'src'>;
+
+export default class SentryAppIcon extends React.Component<Props> {
   static propTypes = {
     slug: PropTypes.string.isRequired,
   };
