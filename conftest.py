@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import itertools
 import os
 import sys
 from hashlib import md5
@@ -12,7 +13,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
 
 from django.conf import settings
-from django.db import connection, reset_queries
+from django.db import connection, connections, reset_queries
 from django.template import Template, Context
 
 
@@ -27,9 +28,8 @@ def log_sql():
     t = Template(
         "{% for sql in sqllog %}{{sql.sql|safe}}{% if not forloop.last %}\n\n{% endif %}{% endfor %}"
     )
-    log = t.render(
-        Context({"sqllog": connection.queries, "count": len(connection.queries), "time": time})
-    )
+    queries = list(itertools.chain.from_iterable([conn.queries for conn in connections.all()]))
+    log = t.render(Context({"sqllog": queries, "count": len(queries), "time": time}))
 
     interesting_lines = [line for line in log.split("\n") if "= (SELECT" in line]
     if interesting_lines:
