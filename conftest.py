@@ -18,7 +18,10 @@ from django.template import Template, Context
 
 @pytest.fixture(scope="function", autouse=True)
 def log_sql():
+    reset_queries()
     settings.DEBUG = True
+
+    yield
 
     time = sum([float(q["time"]) for q in connection.queries])
     t = Template(
@@ -28,12 +31,18 @@ def log_sql():
         Context({"sqllog": connection.queries, "count": len(connection.queries), "time": time})
     )
 
-    reset_queries()
-
     interesting_lines = [line for line in log.split("\n") if "= (SELECT" in line]
     if interesting_lines:
         test_name = os.environ.get("PYTEST_CURRENT_TEST").split()[0]
-        pytest.fail("\n\n" + test_name + "\n" + "=" * len(test_name) + "\n\n" +  "\n".join(interesting_lines) + "\n\n")
+        pytest.fail(
+            "\n\n"
+            + test_name
+            + "\n"
+            + "=" * len(test_name)
+            + "\n\n"
+            + "\n".join(interesting_lines)
+            + "\n\n"
+        )
 
 
 def pytest_configure(config):
