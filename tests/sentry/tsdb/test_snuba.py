@@ -236,4 +236,5 @@ class SnubaTSDBTest(OutcomesSnubaTest):
 
         models = filter(lambda x: is_an_outcome(x), list(TSDBModel))
         for model in models:
+            print (SnubaTSDB.lower_rollup_query_settings)
             assert model in SnubaTSDB.lower_rollup_query_settings
