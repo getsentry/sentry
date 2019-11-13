@@ -54,7 +54,10 @@ describe('GlobalSelectionHeader', function() {
   });
 
   beforeEach(function() {
-    jest.spyOn(ProjectsStore, 'getAll').mockImplementation(() => organization.projects);
+    jest.spyOn(ProjectsStore, 'getState').mockImplementation(() => ({
+      projects: organization.projects,
+      loadingProjects: false,
+    }));
     GlobalSelectionStore.reset();
     [
       globalActions.updateDateTime,
@@ -453,7 +456,9 @@ describe('GlobalSelectionHeader', function() {
     it('selects first project if none (i.e. all) is requested', function() {
       const project = TestStubs.Project({id: '3'});
       const org = TestStubs.Organization({projects: [project]});
-      jest.spyOn(ProjectsStore, 'getAll').mockImplementation(() => org.projects);
+      jest
+        .spyOn(ProjectsStore, 'getState')
+        .mockImplementation(() => ({projects: org.projects, loadingProjects: false}));
 
       const initializationObj = initializeOrg({
         organization: org,
@@ -483,6 +488,10 @@ describe('GlobalSelectionHeader', function() {
         location: {query: {}},
       },
     });
+    jest.spyOn(ProjectsStore, 'getState').mockImplementation(() => ({
+      projects: initialData.organization.projects,
+      loadingProjects: false,
+    }));
 
     const wrapper = mountWithTheme(
       <GlobalSelectionHeader
@@ -536,9 +545,10 @@ describe('GlobalSelectionHeader', function() {
       };
 
       beforeEach(function() {
-        jest
-          .spyOn(ProjectsStore, 'getAll')
-          .mockImplementation(() => initialData.organization.projects);
+        jest.spyOn(ProjectsStore, 'getState').mockImplementation(() => ({
+          projects: initialData.organization.projects,
+          loadingProjects: false,
+        }));
         initialData.router.push.mockClear();
         initialData.router.replace.mockClear();
       });
@@ -668,7 +678,9 @@ describe('GlobalSelectionHeader', function() {
       memberProject = TestStubs.Project({id: '3', isMember: true});
       nonMemberProject = TestStubs.Project({id: '4', isMember: false});
       const org = TestStubs.Organization({projects: [memberProject, nonMemberProject]});
-      jest.spyOn(ProjectsStore, 'getAll').mockImplementation(() => org.projects);
+      jest
+        .spyOn(ProjectsStore, 'getState')
+        .mockImplementation(() => ({projects: org.projects, loadingProjects: false}));
 
       initialData = initializeOrg({
         organization: org,

@@ -10,7 +10,6 @@ These are additional urls used by the Sentry-provided web server
 from __future__ import absolute_import
 
 from django.conf import settings
-import debug_toolbar
 
 try:
     from django.conf.urls import include, patterns, url
@@ -31,7 +30,6 @@ urlpatterns = patterns(
     url(r"^500/", handler500, name="error-500"),
     url(r"^404/", handler404, name="error-404"),
     url(r"^403-csrf-failure/", CsrfFailureView.as_view(), name="error-403-csrf-failure"),
-    url(r"^__debug__/", include(debug_toolbar.urls)),
 )
 
 if "django.contrib.admin" in settings.INSTALLED_APPS:

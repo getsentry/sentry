@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
-import {omit} from 'lodash';
+import omit from 'lodash/omit';
 
 import {Client} from 'app/api';
 import {t} from 'app/locale';

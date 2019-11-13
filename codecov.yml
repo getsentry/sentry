@@ -19,7 +19,6 @@ coverage:
   - src/.*?/migrations/.*
   - src/.*?/south_migrations/.*
   - src/bitfield/.*
-  - src/debug_toolbar/.*
   - src/social_auth/.*
   - src/south/.*
   - src/sentry/static/sentry/app/routes.jsx

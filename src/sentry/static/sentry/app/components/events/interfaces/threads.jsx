@@ -1,4 +1,4 @@
-import {isNil} from 'lodash';
+import isNil from 'lodash/isNil';
 import PropTypes from 'prop-types';
 import React from 'react';
 import {t} from 'app/locale';

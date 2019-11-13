@@ -7,6 +7,7 @@ import HiddenField from './hiddenField';
 import NumberField from './numberField';
 import RangeField from './rangeField';
 import SelectField from './selectField';
+import TableField from './tableField';
 import TextField from './textField';
 import TextareaField from './textareaField';
 import RadioField from './radioField';
@@ -50,6 +51,7 @@ export default class FieldFromConfig extends React.Component<Props> {
         'text',
         'textarea',
         'url',
+        'table',
       ]),
       required: PropTypes.bool,
       multiline: PropTypes.bool,
@@ -128,6 +130,8 @@ export default class FieldFromConfig extends React.Component<Props> {
         return <RadioField {...props} />;
       case 'rich_list':
         return <RichListField {...props} />;
+      case 'table':
+        return <TableField {...props} />;
       case 'custom':
         return field.Component(props);
       default:

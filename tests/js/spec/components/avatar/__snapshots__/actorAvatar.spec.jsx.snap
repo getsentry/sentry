@@ -23,9 +23,9 @@ exports[`Avatar render() should show a gravatar when actor type is a user 1`] = 
   hasTooltip={true}
   user={
     Object {
-      "email": "janedoe@example.com",
+      "email": "janebloggs@example.com",
       "id": "1",
-      "name": "Jane Doe",
+      "name": "Jane Bloggs",
     }
   }
 />

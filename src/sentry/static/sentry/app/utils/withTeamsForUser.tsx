@@ -1,5 +1,4 @@
 import React from 'react';
-import _ from 'lodash';
 
 import {Client} from 'app/api';
 import {Organization, Project, Team, TeamWithProjects} from 'app/types';

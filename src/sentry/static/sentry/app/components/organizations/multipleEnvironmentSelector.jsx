@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled, {css} from 'react-emotion';
-import {uniq} from 'lodash';
+import uniq from 'lodash/uniq';
 
 import {analytics} from 'app/utils/analytics';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
@@ -34,6 +34,10 @@ class MultipleEnvironmentSelector extends React.PureComponent {
     onChange: PropTypes.func.isRequired,
 
     organization: SentryTypes.Organization,
+
+    projects: PropTypes.arrayOf(SentryTypes.Project),
+
+    loadingProjects: PropTypes.bool,
 
     selectedProjects: PropTypes.arrayOf(PropTypes.number),
 
@@ -183,9 +187,9 @@ class MultipleEnvironmentSelector extends React.PureComponent {
   };
 
   getEnvironments() {
-    const {organization, selectedProjects} = this.props;
+    const {projects, selectedProjects} = this.props;
     let environments = [];
-    organization.projects.forEach(function(project) {
+    projects.forEach(function(project) {
       const projectId = parseInt(project.id, 10);
 
       // Include environments from:
@@ -207,7 +211,7 @@ class MultipleEnvironmentSelector extends React.PureComponent {
   }
 
   render() {
-    const {value} = this.props;
+    const {value, loadingProjects} = this.props;
     const environments = this.getEnvironments();
 
     const validatedValue = value.filter(env => environments.includes(env));
@@ -215,7 +219,15 @@ class MultipleEnvironmentSelector extends React.PureComponent {
       ? `${validatedValue.join(', ')}`
       : t('All Environments');
 
-    return (
+    return loadingProjects ? (
+      <StyledHeaderItem
+        data-test-id="global-header-environment-selector"
+        icon={<StyledInlineSvg src="icon-window" />}
+        loading={loadingProjects}
+      >
+        {t('Loading\u2026')}
+      </StyledHeaderItem>
+    ) : (
       <StyledDropdownAutoComplete
         alignMenu="left"
         allowActorToggle

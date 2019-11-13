@@ -10,12 +10,15 @@ export type ObjectStatus =
   | 'pending_deletion'
   | 'deletion_in_progress';
 
-export type Organization = {
+export type LightWeightOrganization = {
   id: string;
   slug: string;
-  projects: Project[];
   access: string[];
   features: string[];
+};
+
+export type Organization = LightWeightOrganization & {
+  projects: Project[];
   teams: Team[];
 };
 
@@ -252,8 +255,8 @@ export type GlobalSelection = {
   environments: string[];
   forceUrlSync?: boolean;
   datetime: {
-    start: string;
-    end: string;
+    start: Date | null;
+    end: Date | null;
     period: string;
     utc: boolean;
   };

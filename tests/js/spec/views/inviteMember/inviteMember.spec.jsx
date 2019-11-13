@@ -1,6 +1,6 @@
 import React from 'react';
 import {shallow, mountWithTheme} from 'sentry-test/enzyme';
-import _ from 'lodash';
+import cloneDeep from 'lodash/cloneDeep';
 import {InviteMember} from 'app/views/settings/organizationMembers/inviteMember';
 import ConfigStore from 'app/stores/configStore';
 
@@ -76,7 +76,7 @@ describe('InviteMember', function() {
       },
     });
 
-    const context = _.cloneDeep(baseContext);
+    const context = cloneDeep(baseContext);
 
     const team = organization.teams.slice(0, 1);
     organization.teams = team;

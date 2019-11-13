@@ -1,4 +1,4 @@
-import _ from 'lodash';
+import debounce from 'lodash/debounce';
 import PropTypes from 'prop-types';
 import React from 'react';
 import * as Sentry from '@sentry/browser';
@@ -75,7 +75,7 @@ class NoteInputWithStorage extends React.Component {
     return onLoad(storageObj[itemKey]);
   };
 
-  save = _.debounce(value => {
+  save = debounce(value => {
     const {itemKey, onSave} = this.props;
 
     const currentObj = this.fetchFromStorage() || {};

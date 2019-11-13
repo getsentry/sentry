@@ -127,9 +127,8 @@ class OrganizationJoinRequestTest(APITestCase):
         assert not any(c[0][0] == "join_request.created" for c in mock_record.call_args_list)
 
     @patch("sentry.analytics.record")
-    @patch("sentry.api.endpoints.organization_join_request.logger")
     @patch("sentry.experiments.get", return_value="join_request")
-    def test_request_to_join(self, mock_experiment, mock_log, mock_record):
+    def test_request_to_join(self, mock_experiment, mock_record):
         with self.tasks():
             resp = self.get_response(self.org.slug, email=self.email)
 
@@ -141,16 +140,6 @@ class OrganizationJoinRequestTest(APITestCase):
         assert join_request.user is None
         assert join_request.role == "member"
         assert not join_request.invite_approved
-
-        mock_log.info.assert_called_once_with(
-            "org-join-request.created",
-            extra={
-                "organization_id": self.org.id,
-                "member_id": join_request.id,
-                "email": self.email,
-                "ip_address": "127.0.0.1",
-            },
-        )
 
         mock_record.assert_called_with(
             "join_request.created", member_id=join_request.id, organization_id=self.org.id

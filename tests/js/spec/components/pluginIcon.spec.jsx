@@ -6,8 +6,8 @@ import PluginIcon from 'app/plugins/components/pluginIcon';
 
 // For some reason jest only respects the last mocked, so we can't test
 // two different images here
-// jest.mock('images/integrations/integration-default.png', () => 'default', {});
-jest.mock('images/integrations/github-logo.png', () => 'github', {});
+// jest.mock('images/logos/logo-default.svg', () => 'default', {});
+jest.mock('images/logos/logo-github.svg', () => 'github', {});
 
 describe('PluginIcon', function() {
   it('renders', function() {

@@ -11,7 +11,6 @@ const IntegrationDocsFetchPlugin = require('./build-utils/integration-docs-fetch
 const ExtractTextPlugin = require('mini-css-extract-plugin');
 const CompressionPlugin = require('compression-webpack-plugin');
 const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
-const LodashModuleReplacementPlugin = require('lodash-webpack-plugin');
 const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
 const CopyPlugin = require('copy-webpack-plugin');
 
@@ -187,7 +186,7 @@ const babelOptions = {...babelConfig, cacheDirectory: true};
 /**
  * Main Webpack config for Sentry React SPA.
  */
-const appConfig = {
+let appConfig = {
   mode: WEBPACK_MODE,
   entry: {
     /**
@@ -281,17 +280,6 @@ const appConfig = {
   },
   plugins: [
     new CleanWebpackPlugin(),
-    /**
-     * Used to make our lodash modules even smaller
-     */
-    new LodashModuleReplacementPlugin({
-      collections: true,
-      currying: true, // these are enabled to support lodash/fp/ features
-      flattening: true, // used by a dependency of react-mentions
-      shorthands: true,
-      paths: true,
-      exotics: true,
-    }),
 
     /**
      * jQuery must be provided in the global scope specifically and only for
@@ -305,13 +293,6 @@ const appConfig = {
      * Extract CSS into separate files.
      */
     new ExtractTextPlugin(),
-
-    /**
-     * Generate a index.html file used for running the app in pure client mode.
-     * This is currently used for PR deploy previews, where only the frontend
-     * is deployed.
-     */
-    new CopyPlugin([{from: path.join(staticPrefix, 'app', 'index.html')}]),
 
     /**
      * Defines environment specific flags.
@@ -371,6 +352,17 @@ const appConfig = {
   },
   devtool: IS_PRODUCTION ? 'source-map' : 'cheap-module-eval-source-map',
 };
+
+if (DEPLOY_PREVIEW_CONFIG) {
+  /**
+   * Generate a index.html file used for running the app in pure client mode.
+   * This is currently used for PR deploy previews, where only the frontend
+   * is deployed.
+   */
+  appConfig.plugins.push(
+    new CopyPlugin([{from: path.join(staticPrefix, 'app', 'index.html')}])
+  );
+}
 
 if (IS_TEST || IS_STORYBOOK) {
   appConfig.resolve.alias['integration-docs-platforms'] = path.join(
@@ -458,6 +450,12 @@ if (IS_PRODUCTION) {
   minificationPlugins.forEach(function(plugin) {
     appConfig.plugins.push(plugin);
   });
+}
+
+if (process.env.MEASURE) {
+  const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
+  const smp = new SpeedMeasurePlugin();
+  appConfig = smp.wrap(appConfig);
 }
 
 module.exports = appConfig;
