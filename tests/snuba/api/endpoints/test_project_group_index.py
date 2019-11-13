@@ -4,7 +4,6 @@ import json
 from datetime import timedelta
 from uuid import uuid4
 
-import django
 import six
 from django.utils import timezone
 from exam import fixture
