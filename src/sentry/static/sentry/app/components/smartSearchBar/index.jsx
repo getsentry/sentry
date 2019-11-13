@@ -332,6 +332,7 @@ class SmartSearchBar extends React.Component {
       return;
     }
 
+    const {useFormWrapper} = this.props;
     const {key} = evt;
     const isSelectingDropdownItems = this.state.activeSearchItem !== -1;
 
@@ -396,6 +397,12 @@ class SmartSearchBar extends React.Component {
       if (item && !this.isDefaultDropdownItem(item)) {
         this.onAutoComplete(item.value, item);
       }
+    } else if (key === 'Enter' && !useFormWrapper && !isSelectingDropdownItems) {
+      // If enter is pressed, and we are not wrapping input in a `<form>`, and
+      // we are not selecting an item from the dropdown, then we should consider
+      // the user as finished selecting and perform a "search" since there is no
+      // `<form>` to catch and call `this.onSubmit`
+      this.doSearch();
     }
   };
 
