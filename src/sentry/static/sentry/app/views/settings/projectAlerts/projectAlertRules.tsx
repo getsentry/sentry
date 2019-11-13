@@ -14,8 +14,6 @@ import RuleRow from 'app/views/settings/projectAlerts/ruleRow';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import SentryTypes from 'app/sentryTypes';
 
-import ProjectAlertHeader from './projectAlertHeader';
-
 type Props = {
   params: Params;
   location: Location;
@@ -44,7 +42,7 @@ class ProjectAlertRules extends AsyncView<
     return [['ruleList', `/projects/${orgId}/${projectId}/rules/`]];
   }
 
-  handleDeleteRule = rule => {
+  handleDeleteRule = (rule: IssueAlertRule) => {
     this.setState({
       ruleList: this.state.ruleList.filter(r => r.id !== rule.id),
     });
@@ -94,7 +92,6 @@ class ProjectAlertRules extends AsyncView<
     return (
       <React.Fragment>
         <SentryDocumentTitle title={t('Alerts Rules')} objSlug={projectId} />
-        <ProjectAlertHeader projectId={projectId} />
         <PermissionAlert />
         {!!ruleList.length && this.renderResults()}
         {!ruleList.length && this.renderEmpty()}

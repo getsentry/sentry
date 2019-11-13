@@ -65,16 +65,7 @@ if (window.__initialData) {
 // APM -------------------------------------------------------------
 const config = ConfigStore.getConfig();
 // This is just a simple gatekeeper to not enable apm for whole sentry.io at first
-if (
-  config &&
-  ((config.userIdentity &&
-    config.userIdentity.email &&
-    config.userIdentity.email.includes('sentry')) ||
-    (config.urlPrefix &&
-      (config.urlPrefix.includes('localhost') ||
-        config.urlPrefix.includes('127.0.0.1') ||
-        config.urlPrefix.includes('dev.getsentry.net'))))
-) {
+if (config && config.isApmDataSamplingEnabled) {
   startApm();
 }
 // -----------------------------------------------------------------

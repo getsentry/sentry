@@ -1,19 +1,16 @@
 import {Link} from 'react-router';
-import {Params} from 'react-router/lib/Router';
-import {PlainRoute} from 'react-router/lib/Route';
+import {RouteComponentProps} from 'react-router/lib/Router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
 import {Client} from 'app/api';
 import {IssueAlertRule} from 'app/types/alerts';
-import {Location} from 'history';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {
   addSuccessMessage,
   addErrorMessage,
   addLoadingMessage,
-  removeIndicator,
 } from 'app/actionCreators/indicator';
 import {getDisplayName} from 'app/utils/environment';
 import {t, tct} from 'app/locale';
@@ -35,12 +32,10 @@ type Props = {
 
   // Is the alert rule editable?
   canEdit?: boolean;
-
-  // react-router params
-  params: Params;
-  location: Location;
-  routes: PlainRoute[];
-};
+} & Pick<
+  RouteComponentProps<{orgId: string; projectId: string}, {}>,
+  'params' | 'routes' | 'location'
+>;
 
 type State = {
   loading: boolean;
@@ -64,13 +59,12 @@ class RuleRow extends React.Component<Props, State> {
       return;
     }
 
-    const loadingIndicator = addLoadingMessage();
+    addLoadingMessage();
     const {api, orgId, projectId, data} = this.props;
     api.request(`/projects/${orgId}/${projectId}/rules/${data.id}/`, {
       method: 'DELETE',
       success: () => {
         this.props.onDelete();
-        removeIndicator(loadingIndicator);
         addSuccessMessage(tct('Successfully deleted "[alert]"', {alert: data.name}));
       },
       error: () => {
@@ -78,15 +72,14 @@ class RuleRow extends React.Component<Props, State> {
           error: true,
           loading: false,
         });
-        removeIndicator(loadingIndicator);
         addErrorMessage(t('Unable to save changes. Please try again.'));
       },
     });
   };
 
   render() {
-    const {data, canEdit} = this.props;
-    const editLink = recreateRoute(`${data.id}/`, this.props);
+    const {params, routes, location, data, canEdit} = this.props;
+    const editLink = recreateRoute(`${data.id}/`, {params, routes, location});
 
     const environmentName = data.environment
       ? getDisplayName({name: data.environment})
@@ -94,7 +87,7 @@ class RuleRow extends React.Component<Props, State> {
 
     return (
       <Panel>
-        <PanelHeader align="center" justify="space-between" hasButtons>
+        <PanelHeader hasButtons>
           <TextColorLink to={editLink}>
             {data.name} - {environmentName}
           </TextColorLink>
@@ -191,11 +184,13 @@ const TextColorLink = styled(Link)`
 const RuleDescriptionRow = styled('div')`
   display: flex;
 `;
+
 const RuleDescriptionColumn = styled('div')`
   flex: 1;
   padding: ${p => p.theme.grid * 2}px;
   height: 100%;
 `;
+
 const Condition = styled('div')`
   display: flex;
   flex-direction: column;

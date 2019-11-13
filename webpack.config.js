@@ -187,7 +187,7 @@ const babelOptions = {...babelConfig, cacheDirectory: true};
 /**
  * Main Webpack config for Sentry React SPA.
  */
-const appConfig = {
+let appConfig = {
   mode: WEBPACK_MODE,
   entry: {
     /**
@@ -230,6 +230,9 @@ const appConfig = {
           },
           {
             loader: 'ts-loader',
+            options: {
+              transpileOnly: false,
+            },
           },
         ],
       },
@@ -304,13 +307,6 @@ const appConfig = {
     new ExtractTextPlugin(),
 
     /**
-     * Generate a index.html file used for running the app in pure client mode.
-     * This is currently used for PR deploy previews, where only the frontend
-     * is deployed.
-     */
-    new CopyPlugin([{from: path.join(staticPrefix, 'app', 'index.html')}]),
-
-    /**
      * Defines environment specific flags.
      */
     new webpack.DefinePlugin({
@@ -368,6 +364,17 @@ const appConfig = {
   },
   devtool: IS_PRODUCTION ? 'source-map' : 'cheap-module-eval-source-map',
 };
+
+if (DEPLOY_PREVIEW_CONFIG) {
+  /**
+   * Generate a index.html file used for running the app in pure client mode.
+   * This is currently used for PR deploy previews, where only the frontend
+   * is deployed.
+   */
+  appConfig.plugins.push(
+    new CopyPlugin([{from: path.join(staticPrefix, 'app', 'index.html')}])
+  );
+}
 
 if (IS_TEST || IS_STORYBOOK) {
   appConfig.resolve.alias['integration-docs-platforms'] = path.join(
@@ -455,6 +462,12 @@ if (IS_PRODUCTION) {
   minificationPlugins.forEach(function(plugin) {
     appConfig.plugins.push(plugin);
   });
+}
+
+if (process.env.MEASURE) {
+  const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
+  const smp = new SpeedMeasurePlugin();
+  appConfig = smp.wrap(appConfig);
 }
 
 module.exports = appConfig;

@@ -42,7 +42,7 @@ class NotifyEventServiceAction(EventAction):
     def after(self, event, state):
         service = self.get_option("service")
 
-        extra = {"event_id": event.id}
+        extra = {"event_id": event.event_id}
         if not service:
             self.logger.info("rules.fail.is_configured", extra=extra)
             return

@@ -216,8 +216,6 @@ exports[`OrganizationApiKeysList renders 1`] = `
           <ForwardRef
             href="https://docs.sentry.io/hosted/api/"
             key="2"
-            rel="noreferrer noopener"
-            target="_blank"
           >
             <a
               href="https://docs.sentry.io/hosted/api/"
@@ -288,99 +286,79 @@ exports[`OrganizationApiKeysList renders 1`] = `
           className="css-10qfvek-Panel e119nu470"
         >
           <PanelHeader
-            align="center"
             disablePadding={true}
           >
-            <Component
-              align="center"
-              className="css-1uisq4f-PanelHeader-getPadding e1p8v8nv0"
-              disablePadding={true}
+            <div
+              className="css-1g96y21-PanelHeader-getPadding en8g1d30"
             >
               <Flex
                 align="center"
-                className="css-1uisq4f-PanelHeader-getPadding e1p8v8nv0"
-                justify="space-between"
+                flex="1"
               >
                 <Base
                   align="center"
-                  className="e1p8v8nv0 css-3e5jt6-PanelHeader-getPadding"
-                  justify="space-between"
+                  className="css-1yrw3fm"
+                  flex="1"
                 >
                   <div
-                    className="e1p8v8nv0 css-3e5jt6-PanelHeader-getPadding"
+                    className="css-1yrw3fm"
                     is={null}
                   >
-                    <Flex
-                      align="center"
+                    <Box
                       flex="1"
+                      px={2}
                     >
                       <Base
-                        align="center"
-                        className="css-1yrw3fm"
+                        className="css-pcjga5"
                         flex="1"
+                        px={2}
                       >
                         <div
-                          className="css-1yrw3fm"
+                          className="css-pcjga5"
                           is={null}
                         >
-                          <Box
-                            flex="1"
-                            px={2}
-                          >
-                            <Base
-                              className="css-pcjga5"
-                              flex="1"
-                              px={2}
-                            >
-                              <div
-                                className="css-pcjga5"
-                                is={null}
-                              >
-                                Name
-                              </div>
-                            </Base>
-                          </Box>
-                          <Box
-                            flex="2"
-                            px={2}
-                          >
-                            <Base
-                              className="css-1dp2adt"
-                              flex="2"
-                              px={2}
-                            >
-                              <div
-                                className="css-1dp2adt"
-                                is={null}
-                              >
-                                Key
-                              </div>
-                            </Base>
-                          </Box>
+                          Name
                         </div>
                       </Base>
-                    </Flex>
+                    </Box>
                     <Box
+                      flex="2"
                       px={2}
-                      w={100}
                     >
                       <Base
-                        className="css-j9rhnd"
+                        className="css-1dp2adt"
+                        flex="2"
                         px={2}
-                        w={100}
                       >
                         <div
-                          className="css-j9rhnd"
+                          className="css-1dp2adt"
                           is={null}
                         >
-                          Actions
+                          Key
                         </div>
                       </Base>
                     </Box>
                   </div>
                 </Base>
               </Flex>
-            </Component>
+              <Box
+                px={2}
+                w={100}
+              >
+                <Base
+                  className="css-j9rhnd"
+                  px={2}
+                  w={100}
+                >
+                  <div
+                    className="css-j9rhnd"
+                    is={null}
+                  >
+                    Actions
+                  </div>
+                </Base>
+              </Box>
+            </div>
           </PanelHeader>
           <PanelBody
             direction="column"

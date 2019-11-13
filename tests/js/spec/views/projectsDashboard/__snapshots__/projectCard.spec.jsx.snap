@@ -844,22 +844,12 @@ exports[`ProjectCard renders 1`] = `
                     <div
                       className="css-1m9okvh-Container e1acggzn0"
                     >
-                      <EmptyText
-                        align="center"
-                        justify="center"
-                      >
-                        <Base
-                          align="center"
-                          className="css-k1bbsy-EmptyText e1acggzn1"
-                          justify="center"
+                      <EmptyText>
+                        <div
+                          className="css-jwuatb-EmptyText e1acggzn1"
                         >
-                          <div
-                            className="css-k1bbsy-EmptyText e1acggzn1"
-                            is={null}
-                          >
-                            No activity yet.
-                          </div>
-                        </Base>
+                          No activity yet.
+                        </div>
                       </EmptyText>
                     </div>
                   </Container>
@@ -978,10 +968,8 @@ exports[`ProjectCard renders 1`] = `
                                     className="css-z6hjis-StyledButton-getColors edwq9my0"
                                     href="https://docs.sentry.io/learn/releases/"
                                     onClick={[Function]}
-                                    rel="noreferrer noopener"
                                     role="button"
                                     size="xsmall"
-                                    target="_blank"
                                   >
                                     <a
                                       aria-disabled={false}

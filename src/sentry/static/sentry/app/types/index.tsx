@@ -252,8 +252,8 @@ export type GlobalSelection = {
   environments: string[];
   forceUrlSync?: boolean;
   datetime: {
-    start: string;
-    end: string;
+    start: Date | null;
+    end: Date | null;
     period: string;
     utc: boolean;
   };
@@ -376,6 +376,7 @@ export type Member = {
   dateCreated: string;
   inviteStatus: 'approved' | 'requested_to_be_invited' | 'requested_to_join';
   inviterName: string | null;
+  teams: string[];
 };
 
 export type AccessRequest = {
@@ -393,6 +394,7 @@ export type EventViewv1 = {
     query?: string;
   };
   tags: string[];
+  statsPeriod?: string;
 };
 
 export type Repository = {
@@ -499,27 +501,16 @@ export type SentryAppInstallation = {
   code?: string;
 };
 
-export type SentryAppWebhookError = {
+export type SentryAppWebhookRequest = {
   webhookUrl: string;
-  app: {
-    uuid: string;
-    slug: string;
-    name: string;
-  };
-  request: {
-    body: object;
-    headers: object;
-  };
+  sentryAppSlug: string;
   eventType: string;
   date: string;
-  organization: {
+  organization?: {
     slug: string;
     name: string;
   };
-  response: {
-    body: string;
-    statusCode: number;
-  };
+  responseCode: number;
 };
 
 export type PermissionValue = 'no-access' | 'read' | 'write' | 'admin';

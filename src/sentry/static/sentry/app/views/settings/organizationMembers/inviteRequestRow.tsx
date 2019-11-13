@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {Member, Organization} from 'app/types';
+import {Member, Organization, Team, MemberRole} from 'app/types';
 import {PanelItem} from 'app/components/panels';
 import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
@@ -11,6 +11,8 @@ import HookOrDefault from 'app/components/hookOrDefault';
 import Tag from 'app/views/settings/components/tag';
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
+import SelectControl from 'app/components/forms/selectControl';
+import RoleSelectControl from 'app/components/roleSelectControl';
 
 type Props = {
   inviteRequest: Member;
@@ -18,6 +20,9 @@ type Props = {
   organization: Organization;
   onApprove: (inviteRequest: Member) => void;
   onDeny: (inviteRequest: Member) => void;
+  onUpdate: (data: Partial<Member>) => void;
+  allTeams: Team[];
+  allRoles: MemberRole[];
 };
 
 const InviteModalHook = HookOrDefault({
@@ -34,7 +39,13 @@ const InviteRequestRow = ({
   organization,
   onApprove,
   onDeny,
+  onUpdate,
+  allTeams,
+  allRoles,
 }: Props) => {
+  const role = allRoles.find(r => r.id === inviteRequest.role);
+  const roleDisallowed = !(role && role.allowed);
+
   // eslint-disable-next-line react/prop-types
   const hookRenderer: InviteModalRenderFunc = ({sendInvites, canSend, headerInfo}) => (
     <StyledPanelItem>
@@ -62,11 +73,30 @@ const InviteRequestRow = ({
           </Tooltip>
         )}
       </div>
-      <div>{inviteRequest.roleName}</div>
+      <RoleSelectControl
+        name="role"
+        disableUnallowed
+        onChange={r => onUpdate({role: r.value})}
+        value={inviteRequest.role}
+        roles={allRoles}
+      />
+      <TeamSelectControl
+        name="teams"
+        placeholder={t('Add to teams...')}
+        onChange={teams => onUpdate({teams: teams.map(team => team.value)})}
+        value={inviteRequest.teams}
+        options={allTeams.map(({slug}) => ({
+          value: slug,
+          label: `#${slug}`,
+        }))}
+        multiple
+        clearable
+      />
       <ButtonGroup>
         <Confirm
           onConfirm={sendInvites}
           disableConfirmButton={!canSend}
+          disabled={roleDisallowed}
           message={
             <React.Fragment>
               {tct('Are you sure you want to invite [email] to your organization?', {
@@ -80,6 +110,14 @@ const InviteRequestRow = ({
             priority="primary"
             size="small"
             busy={inviteRequestBusy[inviteRequest.id]}
+            title={
+              roleDisallowed
+                ? t(
+                    `You do not have permission to approve a user of this role.
+                     Select a different role to approve this user.`
+                  )
+                : undefined
+            }
           >
             {t('Approve')}
           </Button>
@@ -112,11 +150,14 @@ InviteRequestRow.propTypes = {
     id: PropTypes.string,
     inviterName: PropTypes.string,
     inviteStatus: PropTypes.string,
-    roleName: PropTypes.string,
+    role: PropTypes.string,
+    teams: PropTypes.arrayOf(PropTypes.string),
   }),
   onApprove: PropTypes.func,
   onDeny: PropTypes.func,
   inviteRequestBusy: PropTypes.object,
+  allRoles: PropTypes.arrayOf(PropTypes.object),
+  allTeams: PropTypes.arrayOf(PropTypes.object),
 };
 
 const JoinRequestIndicator = styled(Tag)`
@@ -127,13 +168,9 @@ const JoinRequestIndicator = styled(Tag)`
 
 const StyledPanelItem = styled(PanelItem)`
   display: grid;
-  grid-template-columns: auto 140px max-content;
+  grid-template-columns: minmax(200px, auto) minmax(100px, 140px) 220px max-content;
   grid-gap: ${space(2)};
   align-items: center;
-
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-columns: auto 100px max-content;
-  }
 `;
 
 const UserName = styled('div')`
@@ -144,6 +181,13 @@ const UserName = styled('div')`
 const Description = styled('div')`
   color: ${p => p.theme.gray3};
   font-size: 14px;
+`;
+
+const TeamSelectControl = styled(SelectControl)`
+  .Select-value-label {
+    max-width: 150px;
+    word-break: break-all;
+  }
 `;
 
 const ButtonGroup = styled('div')`

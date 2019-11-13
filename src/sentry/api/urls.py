@@ -247,7 +247,7 @@ from .endpoints.sentry_app_installations import SentryAppInstallationsEndpoint
 from .endpoints.sentry_apps import SentryAppsEndpoint
 from .endpoints.sentry_apps_stats import SentryAppsStatsEndpoint
 from .endpoints.sentry_app_stats import SentryAppStatsEndpoint
-from .endpoints.sentry_app_errors import SentryAppErrorsEndpoint
+from .endpoints.sentry_app_requests import SentryAppRequestsEndpoint
 from .endpoints.sentry_app_interaction import SentryAppInteractionEndpoint
 from .endpoints.setup_wizard import SetupWizard
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
@@ -1480,9 +1480,9 @@ urlpatterns = patterns(
         name="sentry-api-0-sentry-app-stats",
     ),
     url(
-        r"^sentry-apps/(?P<sentry_app_slug>[^\/]+)/errors/$",
-        SentryAppErrorsEndpoint.as_view(),
-        name="sentry-api-0-sentry-app-errors",
+        r"^sentry-apps/(?P<sentry_app_slug>[^\/]+)/requests/$",
+        SentryAppRequestsEndpoint.as_view(),
+        name="sentry-api-0-sentry-app-requests",
     ),
     url(
         r"^sentry-apps/(?P<sentry_app_slug>[^\/]+)/interaction/$",

@@ -19,13 +19,16 @@ type Props = {
   config: Config;
   organization: Organization;
   projects: Project[];
-  rule: IncidentRule;
-  isInverted: boolean;
-  timeWindow: number;
-  alertThreshold: number | null;
-  resolveThreshold: number | null;
-  onChangeIncidentThreshold: (alertThreshold: number) => void;
-  onChangeResolutionThreshold: (resolveThreshold: number) => void;
+
+  query: IncidentRule['query'];
+  timeWindow: IncidentRule['timeWindow'];
+  aggregations: IncidentRule['aggregations'];
+
+  isInverted?: boolean;
+  alertThreshold?: number | null;
+  resolveThreshold?: number | null;
+  onChangeIncidentThreshold?: (alertThreshold: number) => void;
+  onChangeResolutionThreshold?: (resolveThreshold: number) => void;
 };
 
 class TriggersChart extends React.Component<Props> {
@@ -38,26 +41,21 @@ class TriggersChart extends React.Component<Props> {
       alertThreshold,
       resolveThreshold,
       isInverted,
-      rule,
+      timeWindow,
+      query,
+      aggregations,
     } = this.props;
-    const {timeWindow} = rule;
-
-    const projectIdsFromRule = rule.projects.map(project => {
-      const found = projects.find(({slug}) => project === slug);
-      return found ? Number(found.id) : -1;
-    });
 
     return (
       <EventsRequest
         api={api}
         organization={organization}
-        project={projectIdsFromRule}
+        query={query}
+        project={projects.map(({id}) => Number(id))}
         interval={`${timeWindow}s`}
         period={getPeriodForTimeWindow(timeWindow)}
         yAxis={
-          rule.aggregations[0] === AlertRuleAggregations.TOTAL
-            ? 'event_count'
-            : 'user_count'
+          aggregations[0] === AlertRuleAggregations.TOTAL ? 'event_count' : 'user_count'
         }
         includePrevious={false}
       >

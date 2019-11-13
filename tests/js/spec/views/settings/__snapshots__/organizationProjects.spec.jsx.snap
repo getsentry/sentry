@@ -246,130 +246,112 @@ exports[`OrganizationProjects should render the projects in the store 1`] = `
                 <PanelHeader
                   hasButtons={true}
                 >
-                  <Component
-                    className="css-1m2bast-PanelHeader-getPadding e1p8v8nv0"
-                    hasButtons={true}
+                  <div
+                    className="css-113w9ek-PanelHeader-getPadding en8g1d30"
                   >
-                    <Flex
-                      align="center"
-                      className="css-1m2bast-PanelHeader-getPadding e1p8v8nv0"
-                      justify="space-between"
+                    Projects
+                    <withRouter(AsyncComponentSearchInput)
+                      api={
+                        Client {
+                          "_chain": [Function],
+                          "_wrapRequest": [Function],
+                          "bulkUpdate": [Function],
+                          "handleRequestError": [Function],
+                          "hasProjectBeenRenamed": [Function],
+                        }
+                      }
+                      className="search"
+                      onError={[Function]}
+                      onSuccess={[Function]}
+                      placeholder="Search Projects"
+                      stateKey="projectList"
+                      updateRoute={true}
+                      url="/organizations/org-slug/projects/"
                     >
-                      <Base
-                        align="center"
-                        className="e1p8v8nv0 css-yowjp-PanelHeader-getPadding"
-                        justify="space-between"
+                      <AsyncComponentSearchInput
+                        api={
+                          Client {
+                            "_chain": [Function],
+                            "_wrapRequest": [Function],
+                            "bulkUpdate": [Function],
+                            "handleRequestError": [Function],
+                            "hasProjectBeenRenamed": [Function],
+                          }
+                        }
+                        className="search"
+                        debounceWait={200}
+                        location={
+                          Object {
+                            "query": Object {},
+                          }
+                        }
+                        onError={[Function]}
+                        onSuccess={[Function]}
+                        placeholder="Search Projects"
+                        router={
+                          Object {
+                            "createHref": [MockFunction] {
+                              "calls": Array [
+                                Array [
+                                  "/organizations/org-slug/projects/new/",
+                                ],
+                                Array [
+                                  "/settings/org-slug/projects/project-slug/",
+                                ],
+                              ],
+                              "results": Array [
+                                Object {
+                                  "type": "return",
+                                  "value": undefined,
+                                },
+                                Object {
+                                  "type": "return",
+                                  "value": undefined,
+                                },
+                              ],
+                            },
+                            "go": [MockFunction],
+                            "goBack": [MockFunction],
+                            "goForward": [MockFunction],
+                            "isActive": [MockFunction],
+                            "listen": [MockFunction],
+                            "location": Object {
+                              "query": Object {},
+                            },
+                            "push": [MockFunction],
+                            "replace": [MockFunction],
+                            "setRouteLeaveHook": [MockFunction],
+                          }
+                        }
+                        stateKey="projectList"
+                        updateRoute={true}
+                        url="/organizations/org-slug/projects/"
                       >
-                        <div
-                          className="e1p8v8nv0 css-yowjp-PanelHeader-getPadding"
-                          is={null}
+                        <Form
+                          onSubmit={[Function]}
                         >
-                          Projects
-                          <withRouter(AsyncComponentSearchInput)
-                            api={
-                              Client {
-                                "_chain": [Function],
-                                "_wrapRequest": [Function],
-                                "bulkUpdate": [Function],
-                                "handleRequestError": [Function],
-                                "hasProjectBeenRenamed": [Function],
-                              }
-                            }
-                            className="search"
-                            onError={[Function]}
-                            onSuccess={[Function]}
-                            placeholder="Search Projects"
-                            stateKey="projectList"
-                            updateRoute={true}
-                            url="/organizations/org-slug/projects/"
+                          <form
+                            className="css-vfrmj7-Form et3a3ng1"
+                            onSubmit={[Function]}
                           >
-                            <AsyncComponentSearchInput
-                              api={
-                                Client {
-                                  "_chain": [Function],
-                                  "_wrapRequest": [Function],
-                                  "bulkUpdate": [Function],
-                                  "handleRequestError": [Function],
-                                  "hasProjectBeenRenamed": [Function],
-                                }
-                              }
+                            <Input
                               className="search"
-                              debounceWait={200}
-                              location={
-                                Object {
-                                  "query": Object {},
-                                }
-                              }
-                              onError={[Function]}
-                              onSuccess={[Function]}
+                              onChange={[Function]}
                               placeholder="Search Projects"
-                              router={
-                                Object {
-                                  "createHref": [MockFunction] {
-                                    "calls": Array [
-                                      Array [
-                                        "/organizations/org-slug/projects/new/",
-                                      ],
-                                      Array [
-                                        "/settings/org-slug/projects/project-slug/",
-                                      ],
-                                    ],
-                                    "results": Array [
-                                      Object {
-                                        "type": "return",
-                                        "value": undefined,
-                                      },
-                                      Object {
-                                        "type": "return",
-                                        "value": undefined,
-                                      },
-                                    ],
-                                  },
-                                  "go": [MockFunction],
-                                  "goBack": [MockFunction],
-                                  "goForward": [MockFunction],
-                                  "isActive": [MockFunction],
-                                  "listen": [MockFunction],
-                                  "location": Object {
-                                    "query": Object {},
-                                  },
-                                  "push": [MockFunction],
-                                  "replace": [MockFunction],
-                                  "setRouteLeaveHook": [MockFunction],
-                                }
-                              }
-                              stateKey="projectList"
-                              updateRoute={true}
-                              url="/organizations/org-slug/projects/"
+                              value=""
                             >
-                              <Form
-                                onSubmit={[Function]}
-                              >
-                                <form
-                                  className="css-vfrmj7-Form et3a3ng1"
-                                  onSubmit={[Function]}
-                                >
-                                  <Input
-                                    className="search"
-                                    onChange={[Function]}
-                                    placeholder="Search Projects"
-                                    value=""
-                                  >
-                                    <input
-                                      className="search css-1b7nva7-Input-inputStyles e1xej46s0"
-                                      onChange={[Function]}
-                                      placeholder="Search Projects"
-                                      value=""
-                                    />
-                                  </Input>
-                                </form>
-                              </Form>
-                            </AsyncComponentSearchInput>
-                          </withRouter(AsyncComponentSearchInput)>
-                        </div>
-                      </Base>
-                    </Flex>
-                  </Component>
+                              <input
+                                className="search css-1b7nva7-Input-inputStyles e1xej46s0"
+                                onChange={[Function]}
+                                placeholder="Search Projects"
+                                value=""
+                              />
+                            </Input>
+                          </form>
+                        </Form>
+                      </AsyncComponentSearchInput>
+                    </withRouter(AsyncComponentSearchInput)>
+                  </div>
                 </PanelHeader>
                 <PanelBody
                   className="css-8atqhb"
@@ -644,18 +626,6 @@ exports[`OrganizationProjects should render the projects in the store 1`] = `
                                           >
                                             <span
                                               className="project-label"
-                                              project={
-                                                Object {
-                                                  "environments": Array [],
-                                                  "hasAccess": true,
-                                                  "id": "2",
-                                                  "isBookmarked": false,
-                                                  "isMember": true,
-                                                  "name": "Project Name",
-                                                  "slug": "project-slug",
-                                                  "teams": Array [],
-                                                }
-                                              }
                                             >
                                               <span
                                                 className="project-name"

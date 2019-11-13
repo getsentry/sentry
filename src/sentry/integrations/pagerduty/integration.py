@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+
 from django.utils.translation import ugettext_lazy as _
 from django.db import transaction
 
@@ -14,7 +15,12 @@ from sentry.integrations.base import (
     IntegrationProvider,
     FeatureDescription,
 )
-from sentry.models import OrganizationIntegration, PagerDutyService
+
+from sentry.models import (
+    OrganizationIntegration,
+    PagerDutyService,
+)
+
 from sentry.pipeline import PipelineView
 from .client import PagerDutyClient
 
@@ -45,6 +51,42 @@ metadata = IntegrationMetadata(
 class PagerDutyIntegration(IntegrationInstallation):
     def get_client(self, integration_key):
         return PagerDutyClient(integration_key=integration_key)
+
+    def get_organization_config(self):
+        fields = [
+            {
+                "name": "service_table",
+                "type": "table",
+                "label": "PagerDuty services with the Sentry integration enabled",
+                "help": "If a services needs to be updated, deleted, or added manually please do so here. Alert rules will need to be individually updated for any additions or deletions of services.",
+                "addButtonText": "",
+                "columnLabels": {"service": "Service", "integration_key": "Integration Key"},
+                "columnKeys": ["service", "integration_key"]
+            }
+        ]
+
+        return fields
+
+    def update_organization_config(self, data):
+        if "service_table" in data:
+            with transaction.atomic():
+                PagerDutyService.objects.filter(organization_integration=self.org_integration).delete()
+                for item in data["service_table"]:
+                    service_name = item["service"]
+                    key = item["integration_key"]
+
+                    if key and service_name:
+                        PagerDutyService.objects.create(
+                            organization_integration=self.org_integration,
+                            service_name=service_name,
+                            integration_key=key,
+                        )
+
+    def get_config_data(self):
+        service_list = []
+        for s in self.services:
+            service_list.append({"service": s.service_name, "integration_key": s.integration_key, "id": s.id})
+        return {"service_table": service_list}
 
     @property
     def services(self):
@@ -79,7 +121,6 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
                 PagerDutyService.objects.create_or_update(
                     organization_integration=org_integration,
                     integration_key=service["integration_key"],
-                    service_id=service["id"],
                     service_name=service["name"],
                 )
 
@@ -93,18 +134,24 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
         return {
             "name": account["name"],
             "external_id": account["subdomain"],
-            "metadata": {"services": services},
+            "metadata": {
+                "services": services,
+                "domain_name": account["subdomain"],
+            },
         }
 
 
 class PagerDutyInstallationRedirect(PipelineView):
-    def get_app_url(self):
+    def get_app_url(self, account_name=None):
+        if not account_name:
+            account_name = "app"
+
         app_id = options.get("pagerduty.app-id")
         setup_url = absolute_uri("/extensions/pagerduty/setup/")
 
         return (
-            u"https://app.pagerduty.com/install/integration?app_id=%s&redirect_url=%s&version=1"
-            % (app_id, setup_url)
+            u"https://%s.pagerduty.com/install/integration?app_id=%s&redirect_url=%s&version=1"
+            % (account_name, app_id, setup_url)
         )
 
     def dispatch(self, request, pipeline):
@@ -112,4 +159,6 @@ class PagerDutyInstallationRedirect(PipelineView):
             pipeline.bind_state("config", request.GET["config"])
             return pipeline.next_step()
 
-        return self.redirect(self.get_app_url())
+        account_name = getattr(request, "account", None)
+
+        return self.redirect(self.get_app_url(account_name))

@@ -205,13 +205,19 @@ class HandleTriggerActionTest(TestCase):
 
     def test_missing_trigger_action(self):
         with self.tasks():
-            handle_trigger_action.delay(1000, 1001, "hello")
+            handle_trigger_action.delay(1000, 1001, self.project.id, "hello")
         self.metrics.incr.assert_called_once_with("incidents.alert_rules.skipping_missing_action")
 
     def test_missing_incident(self):
         with self.tasks():
-            handle_trigger_action.delay(self.action.id, 1001, "hello")
+            handle_trigger_action.delay(self.action.id, 1001, self.project.id, "hello")
         self.metrics.incr.assert_called_once_with("incidents.alert_rules.skipping_missing_incident")
+
+    def test_missing_project(self):
+        incident = self.create_incident()
+        with self.tasks():
+            handle_trigger_action.delay(self.action.id, incident.id, 1002, "hello")
+        self.metrics.incr.assert_called_once_with("incidents.alert_rules.skipping_missing_project")
 
     def test(self):
         with patch.object(AlertRuleTriggerAction, "handlers", new={}):
@@ -221,6 +227,6 @@ class HandleTriggerActionTest(TestCase):
             )
             incident = self.create_incident()
             with self.tasks():
-                handle_trigger_action.delay(self.action.id, incident.id, "fire")
-            mock_handler.assert_called_once_with(self.action, incident)
+                handle_trigger_action.delay(self.action.id, incident.id, self.project.id, "fire")
+            mock_handler.assert_called_once_with(self.action, incident, self.project)
             mock_handler.return_value.fire.assert_called_once_with()

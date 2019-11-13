@@ -15,12 +15,9 @@ class DebugOrganizationInviteRequestEmailView(View):
         user = User(name="Rick Swan")
 
         context = {
-            "organization": org,
-            "inviter": user,
+            "organization_name": org.name,
+            "inviter_name": user.get_salutation_name,
             "email": "test@gmail.com",
-            "organization_link": absolute_uri(
-                reverse("sentry-organization-index", args=[org.slug])
-            ),
             "pending_requests_link": absolute_uri(
                 reverse("sentry-organization-members-requests", args=[org.slug])
             ),

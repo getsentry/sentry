@@ -15,7 +15,7 @@ from django.db.models import Func
 from django.utils import timezone
 from django.utils.encoding import force_text
 
-from sentry import buffer, eventtypes, eventstream, tsdb
+from sentry import buffer, eventtypes, eventstream, options, tsdb
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS,
@@ -462,6 +462,19 @@ class EventManager(object):
         return trim(message.strip(), settings.SENTRY_MAX_MESSAGE_LENGTH)
 
     def save(self, project_id, raw=False, assume_normalized=False):
+        """
+        We re-insert events with duplicate IDs into Snuba, which is responsible
+        for deduplicating events. Since deduplication in Snuba is on the primary
+        key (based on event ID, project ID and day), events with same IDs are only
+        deduplicated if their timestamps fall on the same day. The latest event
+        always wins and overwrites the value of events received earlier in that day.
+
+        Since we increment counters and frequencies here before events get inserted
+        to eventstream these numbers may be larger than the total number of
+        events if we receive duplicate event IDs that fall on the same day
+        (that do not hit cache first).
+        """
+
         # Normalize if needed
         if not self._normalized:
             if not assume_normalized:
@@ -474,30 +487,6 @@ class EventManager(object):
         project._organization_cache = Organization.objects.get_from_cache(
             id=project.organization_id
         )
-
-        # Check to make sure we're not about to do a bunch of work that's
-        # already been done if we've processed an event with this ID. (This
-        # isn't a perfect solution -- this doesn't handle ``EventMapping`` and
-        # there's a race condition between here and when the event is actually
-        # saved, but it's an improvement. See GH-7677.)
-        try:
-            event = Event.objects.get(project_id=project.id, event_id=data["event_id"])
-        except Event.DoesNotExist:
-            pass
-        else:
-            # Make sure we cache on the project before returning
-            event._project_cache = project
-            logger.info(
-                "duplicate.found",
-                exc_info=True,
-                extra={
-                    "event_uuid": data["event_id"],
-                    "project_id": project.id,
-                    "platform": data.get("platform"),
-                    "model": Event.__name__,
-                },
-            )
-            return event
 
         # Pull out the culprit
         culprit = self.get_culprit()
@@ -711,18 +700,7 @@ class EventManager(object):
 
         tsdb.incr_multi(counters, timestamp=event.datetime, environment_id=environment.id)
 
-        frequencies = [
-            # (tsdb.models.frequent_projects_by_organization, {
-            #     project.organization_id: {
-            #         project.id: 1,
-            #     },
-            # }),
-            # (tsdb.models.frequent_issues_by_project, {
-            #     project.id: {
-            #         group.id: 1,
-            #     },
-            # })
-        ]
+        frequencies = []
 
         if group:
             frequencies.append(
@@ -744,6 +722,8 @@ class EventManager(object):
         # save the event
         try:
             with transaction.atomic(using=router.db_for_write(Event)):
+                if options.get("store.save-event-skips-nodestore", True):
+                    event.data.save()
                 event.save()
         except IntegrityError:
             logger.info(
@@ -756,7 +736,6 @@ class EventManager(object):
                     "model": Event.__name__,
                 },
             )
-            return event
 
         if event_user:
             counters = [
@@ -913,7 +892,7 @@ class EventManager(object):
             )
 
         else:
-            group = Group.objects.get(id=existing_group_id)
+            group = Group.objects.get_from_cache(id=existing_group_id)
 
             group_is_new = False
 

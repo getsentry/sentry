@@ -1,4 +1,3 @@
-import {Flex} from 'grid-emotion';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -89,6 +88,7 @@ class RedirectToProjectModal extends React.Component {
 export default withRouter(RedirectToProjectModal);
 export {RedirectToProjectModal};
 
-const ButtonWrapper = styled(Flex)`
+const ButtonWrapper = styled('div')`
+  display: flex;
   justify-content: flex-end;
 `;

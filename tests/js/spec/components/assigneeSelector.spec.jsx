@@ -4,6 +4,7 @@ import {
   AssigneeSelectorComponent,
   putSessionUserFirst,
 } from 'app/components/assigneeSelector';
+import {browserHistory} from 'react-router';
 import {Client} from 'app/api';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import ConfigStore from 'app/stores/configStore';
@@ -11,6 +12,11 @@ import GroupStore from 'app/stores/groupStore';
 import MemberListStore from 'app/stores/memberListStore';
 import ProjectsStore from 'app/stores/projectsStore';
 import TeamStore from 'app/stores/teamStore';
+import {openInviteMembersModal} from 'app/actionCreators/modal';
+
+jest.mock('app/actionCreators/modal', () => ({
+  openInviteMembersModal: jest.fn(),
+}));
 
 describe('AssigneeSelector', function() {
   let assigneeSelector;
@@ -24,8 +30,8 @@ describe('AssigneeSelector', function() {
   beforeEach(function() {
     USER_1 = TestStubs.User({
       id: '1',
-      name: 'Jane Doe',
-      email: 'janedoe@example.com',
+      name: 'Jane Bloggs',
+      email: 'janebloggs@example.com',
     });
     USER_2 = TestStubs.User({
       id: '2',
@@ -261,7 +267,7 @@ describe('AssigneeSelector', function() {
   });
 
   it('shows invite member button', async function() {
-    const routerContext = TestStubs.routerContext();
+    const organization = TestStubs.Organization();
 
     openMenu();
     MemberListStore.loadInitialData([USER_1, USER_2]);
@@ -275,14 +281,17 @@ describe('AssigneeSelector', function() {
     jest.spyOn(ConfigStore, 'get').mockImplementation(() => true);
     assigneeSelector = mountWithTheme(
       <AssigneeSelectorComponent id={GROUP_1.id} />,
-      routerContext
+      TestStubs.routerContext([{organization}])
     );
     await tick();
     assigneeSelector.update();
     openMenu();
-    expect(
-      assigneeSelector.find('InviteMemberLink[data-test-id="invite-member"]')
-    ).toHaveLength(1);
+    assigneeSelector
+      .find('InviteMemberLink[data-test-id="invite-member"]')
+      .simulate('click');
+    expect(browserHistory.push).toHaveBeenCalledWith(
+      `/settings/${organization.slug}/members/new/?referrer=assignee_selector`
+    );
     ConfigStore.get.mockRestore();
   });
 
@@ -302,6 +311,24 @@ describe('AssigneeSelector', function() {
       assigneeSelector.find('InviteMemberLink[data-test-id="invite-member"]')
     ).toHaveLength(0);
     ConfigStore.get.mockRestore();
+  });
+
+  it('can invite member with invite request experiment', async function() {
+    const organization = TestStubs.Organization({
+      experiments: {ImprovedInvitesExperiment: 'invite_request'},
+    });
+
+    assigneeSelector.unmount();
+    assigneeSelector = mountWithTheme(
+      <AssigneeSelectorComponent id={GROUP_1.id} />,
+      TestStubs.routerContext([{organization}])
+    );
+    openMenu();
+    assigneeSelector.update();
+    assigneeSelector
+      .find('InviteMemberLink[data-test-id="invite-member"]')
+      .simulate('click');
+    expect(openInviteMembersModal).toHaveBeenCalled();
   });
 
   it('filters user by email and selects with keyboard', async function() {

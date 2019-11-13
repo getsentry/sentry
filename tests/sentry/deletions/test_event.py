@@ -20,7 +20,7 @@ class DeleteEventTest(TestCase):
             name="hello.png",
         )
         UserReport.objects.create(
-            event_id=event.event_id, project_id=event.project_id, name="Jane Doe"
+            event_id=event.event_id, project_id=event.project_id, name="Jane Bloggs"
         )
         assert nodestore.get(node_id) is not None
         deletion = ScheduledDeletion.schedule(event, days=0)
@@ -29,7 +29,7 @@ class DeleteEventTest(TestCase):
         with self.tasks():
             run_deletion(deletion.id)
 
-        assert not Event.objects.filter(id=event.id).exists()
+        assert not Event.objects.filter(event_id=event.event_id).exists()
         assert not EventAttachment.objects.filter(
             event_id=event.event_id, project_id=project.id
         ).exists()

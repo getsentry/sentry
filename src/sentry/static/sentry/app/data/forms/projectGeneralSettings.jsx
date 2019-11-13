@@ -1,6 +1,4 @@
-import {Flex} from 'grid-emotion';
 import React from 'react';
-import marked from 'marked';
 import styled from 'react-emotion';
 
 import {extractMultilineFields} from 'app/utils';
@@ -8,6 +6,7 @@ import {t, tct, tn} from 'app/locale';
 import HintPanelItem from 'app/components/panels/hintPanelItem';
 import PlatformIcon from 'app/components/platformIcon';
 import getDynamicText from 'app/utils/getDynamicText';
+import marked from 'app/utils/marked';
 import platforms from 'app/data/platforms';
 import slugify from 'app/utils/slugify';
 import space from 'app/styles/space';
@@ -413,7 +412,8 @@ export const fields = {
   },
 };
 
-const PlatformWrapper = styled(Flex)`
+const PlatformWrapper = styled('div')`
+  display: flex;
   align-items: center;
 `;
 const StyledPlatformIcon = styled(PlatformIcon)`

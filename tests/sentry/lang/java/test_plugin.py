@@ -98,7 +98,6 @@ class BasicResolvingIntegrationTest(TestCase):
                 "sentry_eventuser": 1,
                 "sentry_groupedmessage": 1,
                 "sentry_message": 1,
-                "sentry_userip": 1,
                 "sentry_userreport": 1,
             }
         ):
