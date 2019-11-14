@@ -106,6 +106,7 @@ class Incident(Model):
     detection_uuid = UUIDField(null=True, db_index=True)
     status = models.PositiveSmallIntegerField(default=IncidentStatus.OPEN.value)
     type = models.PositiveSmallIntegerField(default=IncidentType.CREATED.value)
+    aggregation = models.PositiveSmallIntegerField(default=QueryAggregations.TOTAL.value)
     title = models.TextField()
     # Query used to fetch events related to an incident
     query = models.TextField()

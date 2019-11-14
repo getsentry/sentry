@@ -384,18 +384,24 @@ class EventView {
       };
     });
 
+    const {start, end, statsPeriod} = getParams({
+      start: undefined,
+      end: undefined,
+      statsPeriod: eventViewV1.statsPeriod,
+    });
+
     return new EventView({
       fields,
+      id: undefined,
       name: eventViewV1.name,
       sorts: fromSorts(eventViewV1.data.sort),
       tags: eventViewV1.tags,
       query: eventViewV1.data.query || '',
       project: [],
-      id: undefined,
-      start: undefined,
-      end: undefined,
-      statsPeriod: eventViewV1.statsPeriod,
       environment: [],
+      start: decodeScalar(start),
+      end: decodeScalar(end),
+      statsPeriod: decodeScalar(statsPeriod),
       yAxis: undefined,
     });
   }
@@ -417,7 +423,6 @@ class EventView {
     }
 
     // normalize datetime selection
-
     const {start, end, statsPeriod} = getParams({
       start: saved.start,
       end: saved.end,
