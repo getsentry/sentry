@@ -65,8 +65,8 @@ def send_and_save_sentry_app_request(url, sentry_app, org_id, event, **kwargs):
         org_id=org_id,
         event=event,
         url=url,
-        error=resp.headers.get("Sentry-Hook-Error"),
-        project=resp.headers.get("Sentry-Hook-Project"),
+        error_id=resp.headers.get("Sentry-Hook-Error"),
+        project_id=resp.headers.get("Sentry-Hook-Project"),
     )
 
     return resp

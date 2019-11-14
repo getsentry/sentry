@@ -22,7 +22,7 @@ class SentryAppRequestsEndpoint(SentryAppBaseEndpoint):
         }
 
         if "error_id" in request and "project_id" in request:
-            project = Project.objects.get(id=request["project_id"])
+            project = Project.objects.get_from_cache(id=request["project_id"])
             error_url = "/organizations/{}/projects/{}/events/{}".format(
                 sentry_app.owner.slug, project.slug, request["error_id"]
             )

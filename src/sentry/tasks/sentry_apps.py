@@ -312,8 +312,8 @@ def send_and_save_webhook_request(url, sentry_app, app_platform_event):
         org_id=org_id,
         event=event,
         url=url,
-        error=resp.headers.get("Sentry-Hook-Error"),
-        project=resp.headers.get("Sentry-Hook-Project"),
+        error_id=resp.headers.get("Sentry-Hook-Error"),
+        project_id=resp.headers.get("Sentry-Hook-Project"),
     )
 
     return resp

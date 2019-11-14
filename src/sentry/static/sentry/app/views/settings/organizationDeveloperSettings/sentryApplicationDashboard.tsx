@@ -151,24 +151,19 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
 
           <PanelBody>
             {requests.length > 0 ? (
-              requests.map((request, idx) => {
-                const LinkOrDiv = request.errorUrl ? Link : 'div';
-                const linkTo = request.errorUrl;
-
-                return (
-                  <PanelItem key={idx}>
-                    <TableLayout>
-                      <DateTime date={request.date} />
-                      <LinkOrDiv to={linkTo}>{request.responseCode}</LinkOrDiv>
-                      {app.status !== 'internal' && request.organization && (
-                        <div>{request.organization.name}</div>
-                      )}
-                      <div>{request.eventType}</div>
-                      <OverflowBox>{request.webhookUrl}</OverflowBox>
-                    </TableLayout>
-                  </PanelItem>
-                );
-              })
+              requests.map((request, idx) => (
+                <PanelItem key={idx}>
+                  <TableLayout>
+                    <DateTime date={request.date} />
+                    <div>{request.responseCode}</div>
+                    {app.status !== 'internal' && request.organization && (
+                      <div>{request.organization.name}</div>
+                    )}
+                    <div>{request.eventType}</div>
+                    <OverflowBox>{request.webhookUrl}</OverflowBox>
+                  </TableLayout>
+                </PanelItem>
+              ))
             ) : (
               <EmptyMessage icon="icon-circle-exclamation">
                 {t('No requests found.')}
