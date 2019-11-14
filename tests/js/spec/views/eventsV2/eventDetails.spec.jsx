@@ -162,7 +162,7 @@ describe('EventsV2 > EventDetails', function() {
     const content = wrapper.find('EventHeader');
     expect(content.text()).toContain('Oh no something bad');
 
-    const graph = wrapper.find('ModalLineGraph');
+    const graph = wrapper.find('LineGraph');
     expect(graph).toHaveLength(0);
   });
 
@@ -196,7 +196,7 @@ describe('EventsV2 > EventDetails', function() {
     const content = wrapper.find('EventHeader');
     expect(content.text()).toContain('Oh no something bad');
 
-    const graph = wrapper.find('ModalLineGraph');
+    const graph = wrapper.find('LineGraph');
     expect(graph).toHaveLength(1);
   });
 
