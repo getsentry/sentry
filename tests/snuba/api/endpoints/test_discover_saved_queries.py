@@ -29,8 +29,8 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
     feature_name = "organizations:discover"
 
     def test_get(self):
+        url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
         with self.feature(self.feature_name):
-            url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
             response = self.client.get(url)
 
         assert response.status_code == 200, response.content
@@ -40,6 +40,29 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         assert response.data[0]["fields"] == ["test"]
         assert response.data[0]["conditions"] == []
         assert response.data[0]["limit"] == 10
+
+    def test_get_name_filter(self):
+        url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
+        with self.feature(self.feature_name):
+            response = self.client.get(url, format="json", data={"query": "Test"})
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["name"] == "Test query"
+
+        with self.feature(self.feature_name):
+            # Also available as the name: filter.
+            response = self.client.get(url, format="json", data={"query": "name:Test"})
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["name"] == "Test query"
+
+        with self.feature(self.feature_name):
+            response = self.client.get(url, format="json", data={"query": "name:Nope"})
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
 
     def test_post(self):
         with self.feature(self.feature_name):
