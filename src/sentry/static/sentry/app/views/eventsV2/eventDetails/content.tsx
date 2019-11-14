@@ -107,6 +107,14 @@ class EventDetailsContent extends AsyncComponent<Props, State & AsyncComponent['
       return this.renderWrapper(<NotFound />);
     }
 
+    // metrics
+    trackAnalyticsEvent({
+      eventKey: 'discover_v2.event_details',
+      eventName: 'Discoverv2: Opened Event Details',
+      event_type: event.type,
+      organization_id: organization.id,
+    });
+
     // Having an aggregate field means we want to show pagination/graphs
     const isGroupedView = hasAggregateField(eventView);
     const eventJsonUrl = `/api/0/projects/${organization.slug}/${this.projectId}/events/${
@@ -234,13 +242,6 @@ export class EventDetailsContent2 extends React.Component<Props, State2> {
       })
       .then(([data, _, _jqXHR]) => {
         const event: Event = data;
-        // metrics
-        trackAnalyticsEvent({
-          eventKey: 'discover_v2.event_details',
-          eventName: 'Discoverv2: Opened Event Details',
-          event_type: event.type,
-          organization_id: organization.id,
-        });
 
         this.setState({
           isLoading: false,
