@@ -29,6 +29,7 @@ class DiscoverSavedQuery(Model):
     created_by = FlexibleForeignKey("sentry.User", null=True, on_delete=models.SET_NULL)
     name = models.CharField(max_length=255)
     query = JSONField()
+    version = models.IntegerField(null=True)
     date_created = models.DateTimeField(auto_now_add=True)
     date_updated = models.DateTimeField(auto_now=True)
 
