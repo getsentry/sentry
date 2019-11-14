@@ -37,7 +37,7 @@ class Columns(Enum):
     TRANSACTION = Column("transaction", "transaction_name", "transaction", "transaction")
     USER = Column("tags[sentry:user]", "user", "user", "user")
     USER_ID = Column("user_id", "user_id", "user_id", "user.id")
-    USER_EMAIL = Column("email", "user_email", "user.email")
+    USER_EMAIL = Column("email", "user_email", "email", "user.email")
     USER_USERNAME = Column("username", "user_name", "username" "user.username")
     USER_IP_ADDRESS = Column("ip_address", "ip_address_v4", "ip_address", "user.ip")
     SDK_NAME = Column("sdk_name", None, "sdk_name", "sdk.name")
