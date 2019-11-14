@@ -7,9 +7,7 @@ import {Params} from 'react-router/lib/Router';
 import {Location} from 'history';
 
 import {t} from 'app/locale';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
 import SentryTypes from 'app/sentryTypes';
-import theme from 'app/utils/theme';
 import {Organization} from 'app/types';
 import localStorage from 'app/utils/localStorage';
 import withOrganization from 'app/utils/withOrganization';
@@ -32,10 +30,9 @@ import SavedQueryButtonGroup from './savedQuery';
 import EventView from './eventView';
 import EventInputName from './eventInputName';
 import {getFirstQueryString} from './utils';
-import {SAMPLE_VIEWS} from './data';
 import QueryList from './queryList';
 
-const DISPLAY_SEARCH_BAR_FLAG = false;
+const DISPLAY_SEARCH_BAR_FLAG = true;
 
 type Props = {
   organization: Organization;
@@ -73,45 +70,23 @@ class EventsV2 extends React.Component<Props> {
       return null;
     }
 
-    const {location} = this.props;
-
-    const sampleQueries = SAMPLE_VIEWS.map((view, index) => {
-      const eventView = EventView.fromEventViewv1(view);
-
-      const to = {
-        pathname: location.pathname,
-        query: {
-          ...eventView.generateQueryStringObject(),
-        },
-      };
-
-      return (
-        <BannerButton
-          to={to}
-          icon="icon-circle-add"
-          key={index}
-          onClick={() => {
-            trackAnalyticsEvent({
-              eventKey: 'discover_v2.prebuilt_query_click',
-              eventName: 'Discoverv2: Click a pre-built query',
-              organization_id: this.props.organization.id,
-              query_name: eventView.name,
-            });
-          }}
-        >
-          {view.buttonLabel || eventView.name}
-        </BannerButton>
-      );
-    });
-
     return (
       <Banner
         title={t('Discover')}
-        subtitle={t('Here are a few sample queries to kick things off')}
+        subtitle={t('Customize your query searches')}
         onCloseClick={this.handleClick}
       >
-        {sampleQueries}
+        <Button>Build a new query</Button>
       </Banner>
+    );
+  }
+
+  renderActions() {
+    return (
+      <StyledActions>
+        <StyledSearchBar />
+        <Button priority="primary">Build a new query</Button>
+      </StyledActions>
     );
   }
 
@@ -121,7 +96,7 @@ class EventsV2 extends React.Component<Props> {
     return (
       <div>
         {this.renderBanner()}
-        {DISPLAY_SEARCH_BAR_FLAG && <StyledSearchBar />}
+        {DISPLAY_SEARCH_BAR_FLAG && this.renderActions()}
         <QueryList location={location} organization={organization} />
       </div>
     );
@@ -195,16 +170,14 @@ class EventsV2 extends React.Component<Props> {
   }
 }
 
-const BannerButton = styled(Button)`
-  margin: ${space(1)} 0;
-
-  @media (min-width: ${theme.breakpoints[1]}) {
-    margin: 0 ${space(1)};
-  }
+const StyledActions = styled('div')`
+  display: flex;
+  margin-bottom: ${space(3)};
 `;
 
 const StyledSearchBar = styled(SearchBar)`
-  margin-bottom: ${space(3)};
+  margin-right: ${space(1)};
+  flex-grow: 1;
 `;
 
 // Wrapper is needed because BetaTag discards margins applied directly to it
