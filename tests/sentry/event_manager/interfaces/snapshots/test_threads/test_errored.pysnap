@@ -1,5 +1,5 @@
 ---
-created: '2019-11-14T11:21:19.912555Z'
+created: '2019-11-14T11:21:19.993917Z'
 creator: sentry
 source: tests/sentry/event_manager/interfaces/test_threads.py
 ---
@@ -7,7 +7,7 @@ api_context:
   values:
   - crashed: false
     current: true
-    errored: false
+    errored: true
     id: 42
     name: Main Thread
     rawStacktrace:
@@ -59,7 +59,7 @@ to_json:
   values:
   - crashed: false
     current: true
-    errored: false
+    errored: true
     id: 42
     name: Main Thread
     raw_stacktrace:
