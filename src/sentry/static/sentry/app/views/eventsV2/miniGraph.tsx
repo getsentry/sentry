@@ -1,4 +1,5 @@
 import React from 'react';
+import isEqual from 'lodash/isEqual';
 
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -19,6 +20,11 @@ type Props = {
 };
 
 class MiniGraph extends React.Component<Props> {
+
+  shouldComponentUpdate(nextProps) {
+    return !isEqual(this.props, nextProps);
+  }
+
   render() {
     const {organization, api, selection, query} = this.props;
     const {start, end, period} = selection.datetime;
