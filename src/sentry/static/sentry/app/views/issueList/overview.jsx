@@ -1,15 +1,15 @@
 import {browserHistory} from 'react-router';
-import isEqual from 'lodash/isEqual';
-import omit from 'lodash/omit';
-import pickBy from 'lodash/pickBy';
-import uniq from 'lodash/uniq';
 import Cookies from 'js-cookie';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import classNames from 'classnames';
 import createReactClass from 'create-react-class';
+import isEqual from 'lodash/isEqual';
+import omit from 'lodash/omit';
+import pickBy from 'lodash/pickBy';
 import qs from 'query-string';
+import uniq from 'lodash/uniq';
 
 import {Client} from 'app/api';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
@@ -41,6 +41,7 @@ import StreamManager from 'app/utils/streamManager';
 import TagStore from 'app/stores/tagStore';
 import parseApiError from 'app/utils/parseApiError';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
+import profiler from 'app/utils/profiler';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withSavedSearches from 'app/utils/withSavedSearches';
@@ -61,8 +62,8 @@ const CongratsRobots = React.lazy(() =>
   import(/* webpackChunkName: "CongratsRobots" */ 'app/views/issueList/congratsRobots')
 );
 
-const IssueList = createReactClass({
-  displayName: 'IssueList',
+const IssueListOverview = createReactClass({
+  displayName: 'IssueListOverview',
 
   propTypes: {
     organization: SentryTypes.Organization,
@@ -70,6 +71,9 @@ const IssueList = createReactClass({
     savedSearch: SentryTypes.SavedSearch,
     savedSearches: PropTypes.arrayOf(SentryTypes.SavedSearch),
     savedSearchLoading: PropTypes.bool.isRequired,
+
+    // TODO(apm): manual profiling
+    finishProfile: PropTypes.func,
   },
 
   mixins: [
@@ -167,6 +171,14 @@ const IssueList = createReactClass({
       // Reload if we issues are loading or their loading state changed.
       // This can happen when transitionTo is called
       this.fetchData();
+    }
+
+    if (
+      prevState.issuesLoading &&
+      !this.state.issuesLoading &&
+      typeof this.props.finishProfile === 'function'
+    ) {
+      this.props.finishProfile();
     }
   },
 
@@ -754,5 +766,7 @@ const IssueList = createReactClass({
   },
 });
 
-export default withSavedSearches(withGlobalSelection(withOrganization(IssueList)));
-export {IssueList};
+export default withSavedSearches(
+  withGlobalSelection(withOrganization(profiler()(IssueListOverview)))
+);
+export {IssueListOverview};

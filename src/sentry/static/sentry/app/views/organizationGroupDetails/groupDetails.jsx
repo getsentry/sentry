@@ -1,21 +1,22 @@
 import {browserHistory} from 'react-router';
-import isEqual from 'lodash/isEqual';
 import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import * as Sentry from '@sentry/browser';
 import createReactClass from 'create-react-class';
+import isEqual from 'lodash/isEqual';
 
 import {PageContent} from 'app/styles/organization';
 import {t} from 'app/locale';
-import withApi from 'app/utils/withApi';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import GroupStore from 'app/stores/groupStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import ProjectsStore from 'app/stores/projectsStore';
 import SentryTypes from 'app/sentryTypes';
+import profiler from 'app/utils/profiler';
+import withApi from 'app/utils/withApi';
 
 import {ERROR_TYPES} from './constants';
 import GroupHeader from './header';
@@ -33,6 +34,8 @@ const GroupDetails = createReactClass({
     environments: PropTypes.arrayOf(PropTypes.string),
     enableSnuba: PropTypes.bool,
     showGlobalHeader: PropTypes.bool,
+
+    finishProfile: PropTypes.func,
   },
 
   childContextTypes: {
@@ -74,12 +77,20 @@ const GroupDetails = createReactClass({
     }
   },
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps, prevState) {
     if (
       prevProps.params.groupId !== this.props.params.groupId ||
       !isEqual(prevProps.environments, this.props.environments)
     ) {
       this.fetchData();
+    }
+
+    if (
+      prevState.loading &&
+      !this.state.loading &&
+      typeof this.props.finishProfile === 'function'
+    ) {
+      this.props.finishProfile();
     }
   },
 
@@ -123,7 +134,7 @@ const GroupDetails = createReactClass({
         const project = this.props.project || ProjectsStore.getById(data.project.id);
 
         if (!project) {
-          Sentry.withScope(scope => {
+          Sentry.withScope(() => {
             Sentry.captureException(new Error('Project not found'));
           });
         } else {
@@ -284,4 +295,4 @@ const GroupDetails = createReactClass({
 
 export {GroupDetails};
 
-export default withApi(GroupDetails);
+export default withApi(profiler()(GroupDetails));
