@@ -21,9 +21,10 @@ import FileSize from 'app/components/fileSize';
 import {PageHeader} from 'app/styles/organization';
 import NotFound from 'app/components/errors/notFound';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import AsyncComponent from 'app/components/asyncComponent';
 
 import EventView from '../eventView';
-import {hasAggregateField} from '../utils';
+import {hasAggregateField, EventQuery} from '../utils';
 import ModalPagination from '../modalPagination';
 import ModalLineGraph from '../modalLineGraph';
 import RelatedEvents from '../relatedEvents';
@@ -55,19 +56,152 @@ type Props = {
 };
 
 type State = {
-  isLoading: boolean;
-  error: null | {status?: number};
   event: Event | undefined;
 };
 
-class EventDetailsContent extends React.Component<Props, State> {
+class EventDetailsContent extends AsyncComponent<Props, State & AsyncComponent['state']> {
   static propTypes: any = {
     organization: SentryTypes.Organization.isRequired,
     eventSlug: slugValidator,
     location: PropTypes.object.isRequired,
   };
 
-  state: State = {
+  getEventView(): EventView {
+    const {location} = this.props;
+
+    return EventView.fromLocation(location);
+  }
+
+  getEndpoints(): Array<[string, string, {query: EventQuery}]> {
+    const {organization, params, location} = this.props;
+    const {eventSlug} = params;
+    const eventView = this.getEventView();
+
+    const query = eventView.getEventsAPIPayload(location);
+    const url = `/organizations/${organization.slug}/events/${eventSlug}/`;
+
+    // Get a specific event. This could be coming from
+    // a paginated group or standalone event.
+    return [['event', url, {query}]];
+  }
+
+  get projectId() {
+    return this.props.eventSlug.split(':')[0];
+  }
+
+  renderBody() {
+    const {event} = this.state;
+
+    if (!event) {
+      return this.renderWrapper(<NotFound />);
+    }
+
+    return this.renderWrapper(this.renderContent(event));
+  }
+
+  renderContent(event: Event) {
+    const {organization, location} = this.props;
+    const eventView = this.getEventView();
+
+    if (!event) {
+      return this.renderWrapper(<NotFound />);
+    }
+
+    // Having an aggregate field means we want to show pagination/graphs
+    const isGroupedView = hasAggregateField(eventView);
+    const eventJsonUrl = `/api/0/projects/${organization.slug}/${this.projectId}/events/${
+      event.eventID
+    }/json/`;
+
+    return (
+      <ColumnGrid>
+        <HeaderBox>
+          <EventHeader event={event} />
+          {isGroupedView && <ModalPagination event={event} location={location} />}
+          {isGroupedView &&
+            getDynamicText({
+              value: (
+                <ModalLineGraph
+                  organization={organization}
+                  currentEvent={event}
+                  location={location}
+                  eventView={eventView}
+                />
+              ),
+              fixed: 'events chart',
+            })}
+        </HeaderBox>
+        <ContentColumn>
+          <EventInterfaces event={event} projectId={this.projectId} />
+        </ContentColumn>
+        <SidebarColumn>
+          {event.groupID && (
+            <LinkedIssuePreview groupId={event.groupID} eventId={event.eventID} />
+          )}
+          {event.type === 'transaction' && (
+            <RelatedEvents
+              organization={organization}
+              event={event}
+              location={location}
+            />
+          )}
+          <EventMetadata event={event} eventJsonUrl={eventJsonUrl} />
+          <SidebarBlock>
+            <TagsTable tags={event.tags} />
+          </SidebarBlock>
+        </SidebarColumn>
+      </ColumnGrid>
+    );
+  }
+
+  renderError(error) {
+    const notFound = Object.values(this.state.errors).find(
+      resp => resp && resp.status === 404
+    );
+
+    if (notFound) {
+      return this.renderWrapper(<NotFound />);
+    }
+
+    return this.renderWrapper(super.renderError(error, true, true));
+  }
+
+  renderLoading() {
+    return this.renderWrapper(super.renderLoading());
+  }
+
+  renderWrapper(children: React.ReactNode) {
+    const {organization, location} = this.props;
+    const eventView = this.getEventView();
+    const {event} = this.state;
+
+    return (
+      <EventDetailsWrapper
+        organization={organization}
+        location={location}
+        eventView={eventView}
+        event={event}
+      >
+        {children}
+      </EventDetailsWrapper>
+    );
+  }
+}
+
+type State2 = {
+  isLoading: boolean;
+  error: null | {status?: number};
+  event: Event | undefined;
+};
+
+export class EventDetailsContent2 extends React.Component<Props, State2> {
+  static propTypes: any = {
+    organization: SentryTypes.Organization.isRequired,
+    eventSlug: slugValidator,
+    location: PropTypes.object.isRequired,
+  };
+
+  state: State2 = {
     isLoading: true,
     error: null,
     event: undefined,
@@ -234,6 +368,55 @@ class EventDetailsContent extends React.Component<Props, State> {
             />
           </PageHeader>
           {this.renderBody({eventView})}
+        </React.Fragment>
+      </DocumentTitle>
+    );
+  }
+}
+
+type EventDetailsWrapperProps = {
+  organization: Organization;
+  location: Location;
+  eventView: EventView;
+  event: Event | undefined;
+  children: React.ReactNode;
+};
+
+class EventDetailsWrapper extends React.Component<EventDetailsWrapperProps> {
+  getDocumentTitle = (): string => {
+    const {event, eventView} = this.props;
+
+    const titles = [t('Discover')];
+
+    const eventViewName = eventView.name;
+    if (typeof eventViewName === 'string' && String(eventViewName).trim().length > 0) {
+      titles.push(String(eventViewName).trim());
+    }
+
+    const eventTitle = event ? getTitle(event).title : undefined;
+
+    if (eventTitle) {
+      titles.push(eventTitle);
+    }
+
+    return titles.join(' - ');
+  };
+
+  render() {
+    const {organization, location, eventView, event, children} = this.props;
+
+    return (
+      <DocumentTitle title={`${this.getDocumentTitle()} - ${organization.slug} - Sentry`}>
+        <React.Fragment>
+          <PageHeader>
+            <DiscoverBreadcrumb
+              eventView={eventView}
+              event={event}
+              organization={organization}
+              location={location}
+            />
+          </PageHeader>
+          {children}
         </React.Fragment>
       </DocumentTitle>
     );
