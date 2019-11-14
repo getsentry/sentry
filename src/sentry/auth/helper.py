@@ -167,8 +167,14 @@ def handle_new_membership(auth_provider, organization, request, auth_identity):
     # If we are able to accept an existing invite for the user for this
     # organization, do so, otherwise handle new membership
     if invite_helper:
-        invite_helper.accept_invite(user)
-        return
+        if invite_helper.invite_approved:
+            invite_helper.accept_invite(user)
+            return
+
+        # It's possible the user has an _invite request_ that hasn't been approved yet,
+        # and is able to join the organization without an invite through the SSO flow.
+        # In that case, delete the invite request and create a new membership.
+        invite_helper.handle_invite_not_approved()
 
     # Otherwise create a new membership
     om = OrganizationMember.objects.create(
