@@ -104,7 +104,7 @@ def pytest_configure(config):
         settings.SENTRY_TSDB = "sentry.tsdb.redissnuba.RedisSnubaTSDB"
         settings.SENTRY_EVENTSTREAM = "sentry.eventstream.snuba.SnubaEventStream"
 
-    # Use the synchronous executor to make backends easier to test
+    # Use the synchronous executor to make multiple backends easier to test
     eventstore_options = deepcopy(settings.SENTRY_EVENTSTORE_OPTIONS)
     eventstore_options["backends"]["snuba_discover"]["executor"][
         "path"
