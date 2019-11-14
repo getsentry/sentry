@@ -20,6 +20,7 @@ import ExternalLink from 'app/components/links/externalLink';
 import FileSize from 'app/components/fileSize';
 import {PageHeader} from 'app/styles/organization';
 import NotFound from 'app/components/errors/notFound';
+import LoadingIndicator from 'app/components/loadingIndicator';
 
 import EventView from '../eventView';
 import {hasAggregateField} from '../utils';
@@ -125,27 +126,29 @@ class EventDetailsContent extends React.Component<Props, State> {
     this.fetchData();
   }
 
-  getDocumentTitle = ({
-    eventTitle,
-    eventViewName,
-  }: {
-    eventTitle: string | undefined;
-    eventViewName: string | undefined;
-  }): Array<string> => {
+  getDocumentTitle = (eventView: EventView): string => {
     const titles = [t('Discover')];
 
+    const eventViewName = eventView.name;
     if (typeof eventViewName === 'string' && String(eventViewName).trim().length > 0) {
       titles.push(String(eventViewName).trim());
     }
+
+    const {event} = this.state;
+    const eventTitle = event ? getTitle(event).title : undefined;
 
     if (eventTitle) {
       titles.push(eventTitle);
     }
 
-    return titles;
+    return titles.join(' - ');
   };
 
   renderBody = ({eventView}: {eventView: EventView}) => {
+    if (this.state.isLoading) {
+      return <LoadingIndicator />;
+    }
+
     if (this.state.error) {
       console.log('this.state.error', Object.keys(this.state.error));
 
@@ -212,23 +215,15 @@ class EventDetailsContent extends React.Component<Props, State> {
   };
 
   render() {
-    if (this.state.isLoading) {
-      // TODO: flesh out
-      return 'loading';
-    }
-
     const {event} = this.state;
 
     const {organization, location} = this.props;
     const eventView = this.getEventView();
 
-    const documentTitle = this.getDocumentTitle({
-      eventTitle: event ? getTitle(event).title : undefined,
-      eventViewName: eventView.name,
-    }).join(' - ');
-
     return (
-      <DocumentTitle title={`${documentTitle} - ${organization.slug} - Sentry`}>
+      <DocumentTitle
+        title={`${this.getDocumentTitle(eventView)} - ${organization.slug} - Sentry`}
+      >
         <React.Fragment>
           <PageHeader>
             <DiscoverBreadcrumb
