@@ -132,13 +132,8 @@ class IssueRuleEditor extends React.Component<Props, State> {
 
       this.setState({error: null, loading: false, rule: resp});
 
-      // Redirect to correct ID if new
-      if (isNew) {
-        browserHistory.replace(
-          recreateRoute(`${resp.id}/`, {...this.props, stepBack: -1})
-        );
-      }
       addSuccessMessage(isNew ? t('Created alert rule') : t('Updated alert rule'));
+      browserHistory.replace(recreateRoute('', {...this.props, stepBack: -1}));
     } catch (err) {
       this.setState({
         error: err.responseJSON || {__all__: 'Unknown error'},

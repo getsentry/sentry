@@ -21,10 +21,10 @@ type Props = {
 };
 
 class IncidentRulesCreate extends React.Component<RouteComponentProps<{}, {}> & Props> {
-  handleSubmitSuccess = data => {
+  handleSubmitSuccess = () => {
     const {params, routes, router, location} = this.props;
 
-    router.push(recreateRoute(`${data.id}/`, {params, routes, location, stepBack: -1}));
+    router.push(recreateRoute('metric-rules/', {params, routes, location, stepBack: -1}));
   };
 
   render() {
