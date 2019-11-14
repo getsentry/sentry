@@ -1,7 +1,6 @@
 import React from 'react';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {browserHistory} from 'react-router';
 
 import EventDetails from 'app/views/eventsV2/eventDetails';
 import {ALL_VIEWS, DEFAULT_EVENT_VIEW_V1} from 'app/views/eventsV2/data';
