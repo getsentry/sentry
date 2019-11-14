@@ -1,5 +1,6 @@
 import styled from 'react-emotion';
 
+import Alert from 'app/components/alert';
 import InlineSvg from 'app/components/inlineSvg';
 import {Panel, PanelBody} from 'app/components/panels';
 import space from 'app/styles/space';
@@ -291,6 +292,10 @@ export const GridBodyCellSpan = styled(GridBodyCell)`
 `;
 export const GridBodyCellLoading = styled('div')`
   min-height: 220px;
+`;
+
+export const GridBodyErrorAlert = styled(Alert)`
+  margin: 0;
 `;
 
 /**
