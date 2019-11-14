@@ -1,5 +1,8 @@
-import _ from 'lodash';
 import {Query} from 'history';
+import isArray from 'lodash/isArray';
+import isObject from 'lodash/isObject';
+import isString from 'lodash/isString';
+import isUndefined from 'lodash/isUndefined';
 
 import {NewQuery} from 'app/stores/discoverSavedQueriesStore';
 import {Project} from 'app/types/index';
@@ -26,11 +29,11 @@ function arrayIsEqual(arr?: any[], other?: any[], deep?: boolean): boolean {
 export function valueIsEqual(value?: any, other?: any, deep?: boolean): boolean {
   if (value === other) {
     return true;
-  } else if (_.isArray(value) || _.isArray(other)) {
+  } else if (isArray(value) || isArray(other)) {
     if (arrayIsEqual(value, other, deep)) {
       return true;
     }
-  } else if (_.isObject(value) || _.isObject(other)) {
+  } else if (isObject(value) || isObject(other)) {
     if (objectMatchesSubset(value, other, deep)) {
       return true;
     }
@@ -111,7 +114,7 @@ export function explodeSlug(slug: string): string {
 }
 
 export function defined(item: any): boolean {
-  return !_.isUndefined(item) && item !== null;
+  return !isUndefined(item) && item !== null;
 }
 
 export function nl2br(str: string): string {
@@ -125,7 +128,7 @@ export function nl2br(str: string): string {
 export function isUrl(str: any): boolean {
   return (
     !!str &&
-    _.isString(str) &&
+    isString(str) &&
     (str.indexOf('http://') === 0 || str.indexOf('https://') === 0)
   );
 }

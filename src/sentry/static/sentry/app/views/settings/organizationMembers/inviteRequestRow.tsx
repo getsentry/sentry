@@ -80,7 +80,7 @@ const InviteRequestRow = ({
         value={inviteRequest.role}
         roles={allRoles}
       />
-      <SelectControl
+      <TeamSelectControl
         name="teams"
         placeholder={t('Add to teams...')}
         onChange={teams => onUpdate({teams: teams.map(team => team.value)})}
@@ -168,13 +168,9 @@ const JoinRequestIndicator = styled(Tag)`
 
 const StyledPanelItem = styled(PanelItem)`
   display: grid;
-  grid-template-columns: auto 140px 180px max-content;
+  grid-template-columns: minmax(200px, auto) minmax(100px, 140px) 220px max-content;
   grid-gap: ${space(2)};
   align-items: center;
-
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-columns: auto 100px max-content;
-  }
 `;
 
 const UserName = styled('div')`
@@ -185,6 +181,13 @@ const UserName = styled('div')`
 const Description = styled('div')`
   color: ${p => p.theme.gray3};
   font-size: 14px;
+`;
+
+const TeamSelectControl = styled(SelectControl)`
+  .Select-value-label {
+    max-width: 150px;
+    word-break: break-all;
+  }
 `;
 
 const ButtonGroup = styled('div')`

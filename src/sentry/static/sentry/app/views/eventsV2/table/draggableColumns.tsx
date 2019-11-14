@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import styled from 'react-emotion';
-import {debounce} from 'lodash';
+import debounce from 'lodash/debounce';
 
 import space from 'app/styles/space';
 import {

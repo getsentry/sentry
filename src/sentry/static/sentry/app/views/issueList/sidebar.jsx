@@ -1,7 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import _ from 'lodash';
+import isEqual from 'lodash/isEqual';
+import debounce from 'lodash/debounce';
+import map from 'lodash/map';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {queryToObj, objToQuery} from 'app/utils/stream';
 import {t} from 'app/locale';
@@ -43,7 +45,7 @@ const IssueListSidebar = createReactClass({
     // clobber state of sidebar with new query.
     const query = objToQuery(this.state.queryObj);
 
-    if (!_.isEqual(nextProps.query, query)) {
+    if (!isEqual(nextProps.query, query)) {
       const queryObj = queryToObj(nextProps.query);
       this.setState({
         queryObj,
@@ -72,7 +74,7 @@ const IssueListSidebar = createReactClass({
     this.setState({textFilter: evt.target.value});
   },
 
-  debouncedTextChange: _.debounce(function(text) {
+  debouncedTextChange: debounce(function(text) {
     this.setState(
       {
         queryObj: {...this.state.queryObj, __text: text},
@@ -137,7 +139,7 @@ const IssueListSidebar = createReactClass({
               <hr />
             </div>
 
-            {_.map(tags, tag => {
+            {map(tags, tag => {
               return (
                 <IssueListTagFilter
                   value={this.state.queryObj[tag.key]}

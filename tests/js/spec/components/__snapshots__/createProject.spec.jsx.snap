@@ -1563,19 +1563,19 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                                               className="css-ljhpxy-Icon edwq9my2"
                                             >
                                               <StyledInlineSvg
-                                                size="16px"
+                                                size="14px"
                                                 src="icon-circle-add"
                                               >
                                                 <ForwardRef
                                                   className="css-52zz4j-InlineSvg-StyledInlineSvg edwq9my3"
-                                                  size="16px"
+                                                  size="14px"
                                                   src="icon-circle-add"
                                                 >
                                                   <svg
                                                     className="css-52zz4j-InlineSvg-StyledInlineSvg edwq9my3"
-                                                    height="16px"
+                                                    height="14px"
                                                     viewBox={Object {}}
-                                                    width="16px"
+                                                    width="14px"
                                                   >
                                                     <use
                                                       href="#test"
@@ -2539,19 +2539,19 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                                               className="css-ljhpxy-Icon edwq9my2"
                                             >
                                               <StyledInlineSvg
-                                                size="16px"
+                                                size="14px"
                                                 src="icon-circle-add"
                                               >
                                                 <ForwardRef
                                                   className="css-52zz4j-InlineSvg-StyledInlineSvg edwq9my3"
-                                                  size="16px"
+                                                  size="14px"
                                                   src="icon-circle-add"
                                                 >
                                                   <svg
                                                     className="css-52zz4j-InlineSvg-StyledInlineSvg edwq9my3"
-                                                    height="16px"
+                                                    height="14px"
                                                     viewBox={Object {}}
-                                                    width="16px"
+                                                    width="14px"
                                                   >
                                                     <use
                                                       href="#test"
@@ -4215,19 +4215,19 @@ exports[`CreateProject should fill in project name if its empty when platform is
                                               className="css-ljhpxy-Icon edwq9my2"
                                             >
                                               <StyledInlineSvg
-                                                size="16px"
+                                                size="14px"
                                                 src="icon-circle-add"
                                               >
                                                 <ForwardRef
                                                   className="css-52zz4j-InlineSvg-StyledInlineSvg edwq9my3"
-                                                  size="16px"
+                                                  size="14px"
                                                   src="icon-circle-add"
                                                 >
                                                   <svg
                                                     className="css-52zz4j-InlineSvg-StyledInlineSvg edwq9my3"
-                                                    height="16px"
+                                                    height="14px"
                                                     viewBox={Object {}}
-                                                    width="16px"
+                                                    width="14px"
                                                   >
                                                     <use
                                                       href="#test"

@@ -74,7 +74,6 @@ MAINTENANCE = False
 ADMINS = ()
 
 # Hosts that are considered in the same network (including VPNs).
-# This gives access to functionality like the debug toolbar.
 INTERNAL_IPS = ()
 
 # List of IP subnets which should not be accessible
@@ -280,7 +279,6 @@ MIDDLEWARE_CLASSES = (
     # TODO(dcramer): kill this once we verify its safe
     # 'sentry.middleware.social_auth.SentrySocialAuthExceptionMiddleware',
     "django.contrib.messages.middleware.MessageMiddleware",
-    "sentry.debug.middleware.DebugMiddleware",
 )
 
 ROOT_URLCONF = "sentry.conf.urls"
@@ -311,7 +309,6 @@ INSTALLED_APPS = (
     "django.contrib.sessions",
     "django.contrib.sites",
     "crispy_forms",
-    "debug_toolbar",
     "rest_framework",
     "sentry",
     "sentry.analytics",
@@ -533,6 +530,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.deletion",
     "sentry.tasks.digests",
     "sentry.tasks.email",
+    "sentry.tasks.members",
     "sentry.tasks.merge",
     "sentry.tasks.options",
     "sentry.tasks.ping",
@@ -782,19 +780,6 @@ CRISPY_TEMPLATE_PACK = "bootstrap3"
 # Percy config for visual regression testing.
 
 PERCY_DEFAULT_TESTING_WIDTHS = (1280, 375)
-
-# Debugger
-
-DEBUG_TOOLBAR_PANELS = (
-    "debug_toolbar.panels.timer.TimerPanel",
-    "sentry.debug.panels.route.RoutePanel",
-    "debug_toolbar.panels.templates.TemplatesPanel",
-    "debug_toolbar.panels.sql.SQLPanel",
-    # TODO(dcramer): https://github.com/getsentry/sentry/issues/1722
-    # 'sentry.debug.panels.redis.RedisPanel',
-)
-
-DEBUG_TOOLBAR_PATCH_SETTINGS = False
 
 # Sentry and internal client configuration
 
@@ -1351,7 +1336,7 @@ SENTRY_DEVSERVICES = {
         "volumes": {"kafka": {"bind": "/var/lib/kafka"}},
     },
     "clickhouse": {
-        "image": "yandex/clickhouse-server:19.3",
+        "image": "yandex/clickhouse-server:19.11",
         "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
         "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
         "volumes": {"clickhouse": {"bind": "/var/lib/clickhouse"}},

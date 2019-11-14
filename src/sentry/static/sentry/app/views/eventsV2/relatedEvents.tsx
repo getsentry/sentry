@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from 'react-emotion';
 import PropTypes from 'prop-types';
-import {omit} from 'lodash';
+import omit from 'lodash/omit';
 import {Location} from 'history';
 
 import {Organization, Event, Project} from 'app/types';

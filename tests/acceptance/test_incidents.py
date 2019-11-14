@@ -8,6 +8,7 @@ from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.incidents.logic import create_incident
 from sentry.incidents.models import IncidentType
+from sentry.snuba.models import QueryAggregations
 
 FEATURE_NAME = "organizations:incidents"
 
@@ -32,6 +33,7 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
             type=IncidentType.CREATED,
             title="Incident #1",
             query="",
+            aggregation=QueryAggregations.TOTAL,
             date_started=timezone.now(),
             projects=[self.project],
             groups=[self.group],

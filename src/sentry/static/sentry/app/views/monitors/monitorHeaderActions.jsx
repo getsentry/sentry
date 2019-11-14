@@ -1,17 +1,17 @@
+import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import {browserHistory} from 'react-router';
 
-import {t} from 'app/locale';
 import {
   addErrorMessage,
   addLoadingMessage,
-  removeIndicator,
+  clearIndicators,
 } from 'app/actionCreators/indicator';
 import {logException} from 'app/utils/logging';
-import SentryTypes from 'app/sentryTypes';
+import {t} from 'app/locale';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
+import SentryTypes from 'app/sentryTypes';
 import withApi from 'app/utils/withApi';
 
 class MonitorHeaderActions extends React.Component {
@@ -35,7 +35,6 @@ class MonitorHeaderActions extends React.Component {
         browserHistory.push(redirectPath);
       })
       .catch(() => {
-        removeIndicator();
         addErrorMessage(t('Unable to remove monitor.'));
       });
   };
@@ -49,12 +48,11 @@ class MonitorHeaderActions extends React.Component {
         data,
       })
       .then(resp => {
-        removeIndicator();
+        clearIndicators();
         this.props.onUpdate && this.props.onUpdate(resp);
       })
       .catch(err => {
         logException(err);
-        removeIndicator();
         addErrorMessage(t('Unable to update monitor.'));
       });
   };

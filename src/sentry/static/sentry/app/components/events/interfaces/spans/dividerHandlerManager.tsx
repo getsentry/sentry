@@ -173,7 +173,7 @@ export class Provider extends React.Component<PropType, StateType> {
     this.isDragging = false;
 
     selectRefs(this.dividerLineRefs, (dividerDOM: HTMLDivElement) => {
-      dividerDOM.style.backgroundColor = null;
+      dividerDOM.style.backgroundColor = '';
     });
 
     selectRefs(this.ghostDividerLineRefs, (dividerDOM: HTMLDivElement) => {

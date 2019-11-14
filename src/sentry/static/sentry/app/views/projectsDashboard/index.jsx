@@ -1,9 +1,10 @@
-import {Link, browserHistory} from 'react-router';
+import {Link} from 'react-router';
 import LazyLoad from 'react-lazyload';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import _ from 'lodash';
+import uniq from 'lodash/uniq';
+import flatten from 'lodash/flatten';
 
 import {sortProjects} from 'app/utils';
 import {t} from 'app/locale';
@@ -15,7 +16,6 @@ import PageHeading from 'app/components/pageHeading';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 import SentryTypes from 'app/sentryTypes';
-import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import profiler from 'app/utils/profiler';
 import space from 'app/styles/space';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -28,7 +28,6 @@ import TeamSection from './teamSection';
 
 class Dashboard extends React.Component {
   static propTypes = {
-    routes: PropTypes.array,
     teams: PropTypes.array,
     organization: SentryTypes.Organization,
     finishProfile: PropTypes.func,
@@ -37,12 +36,7 @@ class Dashboard extends React.Component {
   };
 
   componentDidMount() {
-    const {organization, routes, finishProfile} = this.props;
-    const isOldRoute = getRouteStringFromRoutes(routes) === '/:orgId/';
-
-    if (isOldRoute) {
-      browserHistory.replace(`/organizations/${organization.slug}/`);
-    }
+    const {finishProfile} = this.props;
 
     if (finishProfile) {
       finishProfile();
@@ -67,7 +61,7 @@ class Dashboard extends React.Component {
     const filteredTeams = teams.filter(team => team.projects.length);
     filteredTeams.sort((team1, team2) => team1.slug.localeCompare(team2.slug));
 
-    const projects = _.uniq(_.flatten(teams.map(teamObj => teamObj.projects)), 'id');
+    const projects = uniq(flatten(teams.map(teamObj => teamObj.projects)), 'id');
     const favorites = projects.filter(project => project.isBookmarked);
 
     const access = new Set(organization.access);

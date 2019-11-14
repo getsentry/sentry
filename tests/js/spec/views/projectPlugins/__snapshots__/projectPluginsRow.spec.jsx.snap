@@ -127,7 +127,7 @@ exports[`ProjectPluginRow renders 1`] = `
                     size={48}
                   >
                     <div
-                      className="css-188xbn-PluginIcon-StyledPluginIcon e1y7j6vq2"
+                      className="css-3pocio-PluginIcon-StyledPluginIcon e1y7j6vq2"
                       size={48}
                     />
                   </StyledPluginIcon>
@@ -162,8 +162,6 @@ exports[`ProjectPluginRow renders 1`] = `
                           <ForwardRef
                             className="css-8vm1xp-grayText"
                             href="https://github.com/getsentry/sentry"
-                            rel="noreferrer noopener"
-                            target="_blank"
                           >
                             <a
                               className="css-8vm1xp-grayText"

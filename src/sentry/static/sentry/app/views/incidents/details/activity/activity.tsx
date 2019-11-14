@@ -1,4 +1,4 @@
-import {groupBy} from 'lodash';
+import groupBy from 'lodash/groupBy';
 import React from 'react';
 import moment from 'moment';
 import styled from 'react-emotion';

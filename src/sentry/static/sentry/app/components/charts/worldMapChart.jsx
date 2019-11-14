@@ -1,4 +1,4 @@
-import {max} from 'lodash';
+import max from 'lodash/max';
 import PropTypes from 'prop-types';
 import React from 'react';
 

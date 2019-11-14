@@ -5,6 +5,7 @@ import OrganizationDetails, {
   LightWeightOrganizationDetails,
 } from 'app/views/organizationDetails';
 import OrganizationStore from 'app/stores/organizationStore';
+import ProjectsStore from 'app/stores/projectsStore';
 
 let tree;
 
@@ -115,6 +116,7 @@ describe('OrganizationDetails', function() {
     });
   });
   it('can render a lightweight version of itself and fetches teams', async function() {
+    ProjectsStore.reset();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/',
       body: TestStubs.Organization({

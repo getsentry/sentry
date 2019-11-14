@@ -556,8 +556,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         project = self.create_project()
         data = load_data("transaction")
-        data["timestamp"] = iso_format(before_now(minutes=1, seconds=5))
-        data["start_timestamp"] = iso_format(before_now(minutes=1))
+        data["timestamp"] = iso_format(before_now(minutes=1))
+        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
         self.store_event(data=data, project_id=project.id)
 
         with self.feature("organizations:events-v2"):

@@ -30,8 +30,8 @@ describe('AssigneeSelector', function() {
   beforeEach(function() {
     USER_1 = TestStubs.User({
       id: '1',
-      name: 'Jane Doe',
-      email: 'janedoe@example.com',
+      name: 'Jane Bloggs',
+      email: 'janebloggs@example.com',
     });
     USER_2 = TestStubs.User({
       id: '2',

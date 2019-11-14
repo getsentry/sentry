@@ -103,7 +103,7 @@ class TestSendAlertEvent(TestCase):
 
         assert not safe_urlopen.called
 
-    @patch("sentry.tasks.sentry_apps.safe_urlopen")
+    @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponseInstance)
     def test_send_alert_event(self, safe_urlopen):
         group = self.create_group(project=self.project)
         event = self.create_event(group=group)
@@ -149,6 +149,13 @@ class TestSendAlertEvent(TestCase):
                 "Sentry-Hook-Signature",
             ),
         )
+
+        buffer = SentryAppWebhookRequestsBuffer(self.sentry_app)
+        requests = buffer.get_requests()
+
+        assert len(requests) == 1
+        assert requests[0]["response_code"] == 200
+        assert requests[0]["event_type"] == "event_alert.triggered"
 
 
 @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponseInstance)

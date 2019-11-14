@@ -1149,37 +1149,30 @@ exports[`Sidebar SidebarPanel can display Broadcasts panel and mark as seen 1`] 
 >
   <SidebarPanelItemRoot>
     <div
-      className="css-11zw7jo-SidebarPanelItemRoot er110870"
+      className="css-11zw7jo-SidebarPanelItemRoot ekutvbl0"
     >
       <Title
         hasSeen={false}
       >
-        <Component
-          className="css-hs42c5-Title er110871"
-          hasSeen={false}
+        <div
+          className="css-hs42c5-Title ekutvbl2"
         >
-          <div
-            className="css-hs42c5-Title er110871"
-          >
-            Learn about Source Maps
-          </div>
-        </Component>
+          Learn about Source Maps
+        </div>
       </Title>
       <Message>
         <div
-          className="css-1rszf37-Text-Message er110873"
+          className="css-1rszf37-Text-Message ekutvbl4"
         >
           Source maps are JSON files that contain information on how to map your transpiled source code back to their original source.
         </div>
       </Message>
       <Text>
         <div
-          className="css-7bhqyd-Text er110872"
+          className="css-7bhqyd-Text ekutvbl3"
         >
           <ForwardRef
             href="https://docs.sentry.io/hosted/clients/javascript/sourcemaps/#uploading-source-maps-to-sentry"
-            rel="noreferrer noopener"
-            target="_blank"
           >
             <a
               href="https://docs.sentry.io/hosted/clients/javascript/sourcemaps/#uploading-source-maps-to-sentry"
@@ -1284,10 +1277,8 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
                   className="css-z6hjis-StyledButton-getColors edwq9my0"
                   href="https://status.sentry.io"
                   onClick={[Function]}
-                  rel="noreferrer noopener"
                   role="button"
                   size="small"
-                  target="_blank"
                 >
                   <a
                     aria-disabled={false}

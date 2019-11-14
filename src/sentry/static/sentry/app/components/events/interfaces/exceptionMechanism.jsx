@@ -1,4 +1,6 @@
-import _ from 'lodash';
+import isNil from 'lodash/isNil';
+import forOwn from 'lodash/forOwn';
+import isObject from 'lodash/isObject';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Pills from 'app/components/pills';
@@ -68,7 +70,7 @@ class ExceptionMechanism extends React.Component {
       </Pill>,
     ];
 
-    if (!_.isNil(handled)) {
+    if (!isNil(handled)) {
       pills.push(<Pill key="handled" name="handled" value={handled} />);
     }
 
@@ -85,12 +87,12 @@ class ExceptionMechanism extends React.Component {
     if (signal) {
       const code = signal.code_name || `${t('code')} ${signal.code}`;
       const name = signal.name || signal.number;
-      const value = _.isNil(signal.code) ? name : `${name} (${code})`;
+      const value = isNil(signal.code) ? name : `${name} (${code})`;
       pills.push(<Pill key="signal" name="signal" value={value} />);
     }
 
-    _.forOwn(data, (value, key) => {
-      if (!_.isObject(value)) {
+    forOwn(data, (value, key) => {
+      if (!isObject(value)) {
         pills.push(<Pill key={`data:${key}`} name={key} value={value} />);
       }
     });

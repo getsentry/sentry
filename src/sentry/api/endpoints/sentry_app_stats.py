@@ -46,10 +46,10 @@ class SentryAppStatsEndpoint(SentryAppBaseEndpoint, StatsMixin):
                     uninstall_stats[uninstall_norm_epoch] += 1
 
         result = {
-            "total_installs": install_count,
-            "total_uninstalls": uninstall_count,
-            "install_stats": sorted(install_stats.items(), key=lambda x: x[0]),
-            "uninstall_stats": sorted(uninstall_stats.items(), key=lambda x: x[0]),
+            "totalInstalls": install_count,
+            "totalUninstalls": uninstall_count,
+            "installStats": sorted(install_stats.items(), key=lambda x: x[0]),
+            "uninstallStats": sorted(uninstall_stats.items(), key=lambda x: x[0]),
         }
 
         return Response(result)
