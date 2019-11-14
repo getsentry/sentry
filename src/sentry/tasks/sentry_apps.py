@@ -271,7 +271,10 @@ def send_webhooks(installation, event, **kwargs):
     ):
         # TODO: Just don't send error.created to the project that the integration lives in
         # Need to first implement project mapping for integration partners
-        metrics.incr("webhook_request.dropped", tags={"sentry_app": installation.sentry_app.id})
+        metrics.incr(
+            "webhook_request.dropped",
+            tags={"sentry_app": installation.sentry_app.id, "event": event},
+        )
         return
 
     if not project_limited:
