@@ -42,8 +42,8 @@ class GetSentryAppStatsTest(SentryAppStatsTest):
         url = reverse("sentry-api-0-sentry-app-stats", args=[self.unowned_published_app.slug])
         response = self.client.get(url, format="json")
         assert response.status_code == 200
-        assert response.data["total_installs"] == 1
-        assert response.data["total_uninstalls"] == 0
+        assert response.data["totalInstalls"] == 1
+        assert response.data["totalUninstalls"] == 0
         install_epoch = int(
             to_timestamp(
                 self.unowned_published_app_install.date_added.replace(
@@ -51,7 +51,7 @@ class GetSentryAppStatsTest(SentryAppStatsTest):
                 )
             )
         )
-        assert (install_epoch, 1) in response.data["install_stats"]
+        assert (install_epoch, 1) in response.data["installStats"]
 
     def test_superuser_sees_unowned_unpublished_stats(self):
         self.login_as(user=self.superuser, superuser=True)
@@ -59,8 +59,8 @@ class GetSentryAppStatsTest(SentryAppStatsTest):
         url = reverse("sentry-api-0-sentry-app-stats", args=[self.unowned_unpublished_app.slug])
         response = self.client.get(url, format="json")
         assert response.status_code == 200
-        assert response.data["total_installs"] == 0
-        assert response.data["total_uninstalls"] == 0
+        assert response.data["totalInstalls"] == 0
+        assert response.data["totalUninstalls"] == 0
 
     def test_user_sees_owned_published_stats(self):
         self.login_as(self.user)
@@ -68,14 +68,14 @@ class GetSentryAppStatsTest(SentryAppStatsTest):
         url = reverse("sentry-api-0-sentry-app-stats", args=[self.published_app.slug])
         response = self.client.get(url, format="json")
         assert response.status_code == 200
-        assert response.data["total_installs"] == 1
-        assert response.data["total_uninstalls"] == 0
+        assert response.data["totalInstalls"] == 1
+        assert response.data["totalUninstalls"] == 0
         install_epoch = int(
             to_timestamp(
                 self.published_app_install.date_added.replace(microsecond=0, second=0, minute=0)
             )
         )
-        assert (install_epoch, 1) in response.data["install_stats"]
+        assert (install_epoch, 1) in response.data["installStats"]
 
     def test_user_does_not_see_unowned_published_stats(self):
         self.login_as(self.user)
@@ -91,8 +91,8 @@ class GetSentryAppStatsTest(SentryAppStatsTest):
         url = reverse("sentry-api-0-sentry-app-stats", args=[self.unpublished_app.slug])
         response = self.client.get(url, format="json")
         assert response.status_code == 200
-        assert response.data["total_installs"] == 0
-        assert response.data["total_uninstalls"] == 0
+        assert response.data["totalInstalls"] == 0
+        assert response.data["totalUninstalls"] == 0
 
     def test_user_sees_internal_stats(self):
         self.login_as(self.user)
@@ -100,8 +100,8 @@ class GetSentryAppStatsTest(SentryAppStatsTest):
         url = reverse("sentry-api-0-sentry-app-stats", args=[self.internal_app.slug])
         response = self.client.get(url, format="json")
         assert response.status_code == 200
-        assert response.data["total_installs"] == 1
-        assert response.data["total_uninstalls"] == 0
+        assert response.data["totalInstalls"] == 1
+        assert response.data["totalUninstalls"] == 0
 
     def test_invalid_startend_throws_error(self):
         self.login_as(self.user)

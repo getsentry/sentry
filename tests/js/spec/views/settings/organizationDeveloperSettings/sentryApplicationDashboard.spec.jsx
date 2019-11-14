@@ -35,10 +35,10 @@ describe('Sentry Application Dashboard', function() {
       Client.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/stats/`,
         body: {
-          total_installs: NUM_INSTALLS,
-          total_uninstalls: NUM_UNINSTALLS,
-          install_stats: [[1569783600, NUM_INSTALLS]],
-          uninstall_stats: [[1569783600, NUM_UNINSTALLS]],
+          totalInstalls: NUM_INSTALLS,
+          totalUninstalls: NUM_UNINSTALLS,
+          installStats: [[1569783600, NUM_INSTALLS]],
+          uninstallStats: [[1569783600, NUM_UNINSTALLS]],
         },
       });
 
@@ -50,7 +50,7 @@ describe('Sentry Application Dashboard', function() {
       Client.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/interaction/`,
         body: {
-          component_interactions: {
+          componentInteractions: {
             'stacktrace-link': [[1569783600, 1]],
             'issue-link': [[1569783600, 1]],
           },
@@ -176,10 +176,10 @@ describe('Sentry Application Dashboard', function() {
       Client.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/stats/`,
         body: {
-          total_installs: 1,
-          total_uninstalls: 0,
-          install_stats: [[1569783600, 1]],
-          uninstall_stats: [[1569783600, 0]],
+          totalInstalls: 1,
+          totalUninstalls: 0,
+          installStats: [[1569783600, 1]],
+          uninstallStats: [[1569783600, 0]],
         },
       });
 
@@ -191,7 +191,7 @@ describe('Sentry Application Dashboard', function() {
       Client.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/interaction/`,
         body: {
-          component_interactions: {
+          componentInteractions: {
             'stacktrace-link': [[1569783600, 1]],
           },
           views: [[1569783600, 1]],

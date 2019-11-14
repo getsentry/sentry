@@ -48,6 +48,7 @@ class OpenInContextLine extends React.Component {
         data-test-id={`stacktrace-link-${slug}`}
         href={url}
         onClick={recordStacktraceLinkInteraction}
+        onContextMenu={recordStacktraceLinkInteraction}
       >
         <OpenInIcon slug={slug} />
         <OpenInName>{t(`${component.sentryApp.name}`)}</OpenInName>

@@ -44,7 +44,7 @@ class SentryAppInteractionEndpoint(SentryAppBaseEndpoint, StatsMixin):
         return Response(
             {
                 "views": views,
-                "component_interactions": {
+                "componentInteractions": {
                     k.split(":")[1]: v for k, v in component_interactions.items()
                 },
             }
