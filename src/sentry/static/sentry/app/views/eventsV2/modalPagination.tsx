@@ -1,18 +1,15 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 import isPropValid from '@emotion/is-prop-valid';
-import omit from 'lodash/omit';
-import {Location} from 'history';
 
 import {t} from 'app/locale';
 import Link from 'app/components/links/link';
-import SentryTypes from 'app/sentryTypes';
 import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
-import {Event} from 'app/types';
+import {Event, Organization} from 'app/types';
 
-import {MODAL_QUERY_KEYS} from './data';
+import {generateEventDetailsRoute} from './eventDetails/utils';
+import EventView from './eventView';
 
 type LinksType = {
   oldest: null;
@@ -25,10 +22,11 @@ type LinksType = {
 /**
  * Generate a mapping of link names => link targets for pagination
  */
-function buildTargets(event: Event, location: Location): LinksType {
-  // Remove slug related keys as we need to create new ones
-  const baseQuery = omit(location.query, MODAL_QUERY_KEYS);
-
+function buildTargets(
+  event: Event,
+  eventView: EventView,
+  organization: Organization
+): LinksType {
   const urlMap: {[k in keyof LinksType]: string | undefined | null} = {
     previous: event.previousEventID,
     next: event.nextEventID,
@@ -43,12 +41,11 @@ function buildTargets(event: Event, location: Location): LinksType {
     if (!value) {
       links[key] = null;
     } else {
+      const eventSlug = `${event.projectSlug}:${value}`;
+
       links[key] = {
-        pathname: location.pathname,
-        query: {
-          ...baseQuery,
-          eventSlug: `${event.projectSlug}:${value}`,
-        },
+        pathname: generateEventDetailsRoute({eventSlug, organization}),
+        query: eventView.generateQueryStringObject(),
       };
     }
   });
@@ -58,12 +55,13 @@ function buildTargets(event: Event, location: Location): LinksType {
 
 type Props = {
   event: Event;
-  location: Location;
+  organization: Organization;
+  eventView: EventView;
 };
 
 const ModalPagination = (props: Props) => {
-  const {event, location} = props;
-  const links = buildTargets(event, location);
+  const {event, organization, eventView} = props;
+  const links = buildTargets(event, eventView, organization);
 
   return (
     <Wrapper>
@@ -98,10 +96,6 @@ const ModalPagination = (props: Props) => {
       </ShadowBox>
     </Wrapper>
   );
-};
-ModalPagination.propTypes = {
-  location: PropTypes.object.isRequired,
-  event: SentryTypes.Event.isRequired,
 };
 
 const StyledLink = styled(Link, {

@@ -124,7 +124,13 @@ class EventDetailsContent extends AsyncComponent<Props, State & AsyncComponent['
       <ColumnGrid>
         <HeaderBox>
           <EventHeader event={event} />
-          {isGroupedView && <ModalPagination event={event} location={location} />}
+          {isGroupedView && (
+            <ModalPagination
+              event={event}
+              organization={organization}
+              eventView={eventView}
+            />
+          )}
           {isGroupedView &&
             getDynamicText({
               value: (
@@ -150,6 +156,7 @@ class EventDetailsContent extends AsyncComponent<Props, State & AsyncComponent['
               organization={organization}
               event={event}
               location={location}
+              eventView={eventView}
             />
           )}
           <EventMetadata event={event} eventJsonUrl={eventJsonUrl} />

@@ -2,7 +2,6 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
-import omit from 'lodash/omit';
 
 import {Client} from 'app/api';
 import {t} from 'app/locale';
@@ -22,7 +21,8 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import theme from 'app/utils/theme';
 import {Event, Organization, GlobalSelection} from 'app/types';
 
-import {MODAL_QUERY_KEYS, PIN_ICON} from './data';
+import {generateEventDetailsRoute} from './eventDetails/utils';
+import {PIN_ICON} from './data';
 import EventView from './eventView';
 
 /**
@@ -75,7 +75,25 @@ const getCurrentEventMarker = (currentEvent: Event) => {
  */
 const handleClick = async function(
   series,
-  {api, currentEvent, organization, queryString, field, interval, selection, location}
+  {
+    api,
+    currentEvent,
+    organization,
+    queryString,
+    field,
+    interval,
+    selection,
+    eventView,
+  }: {
+    api: Client;
+    currentEvent: Event;
+    organization: Organization;
+    queryString: string;
+    field: string[];
+    interval: string;
+    selection: GlobalSelection;
+    eventView: EventView;
+  }
 ) {
   // Get the timestamp that was clicked.
   const value = series.value[0];
@@ -121,12 +139,11 @@ const handleClick = async function(
   }
 
   const event = response.data[0];
+  const eventSlug = `${event['project.name']}:${event.id || event.latest_event}`;
+
   browserHistory.push({
-    pathname: location.pathname,
-    query: {
-      ...omit(location.query, MODAL_QUERY_KEYS),
-      eventSlug: `${event['project.name']}:${event.id || event.latest_event}`,
-    },
+    pathname: generateEventDetailsRoute({eventSlug, organization}),
+    query: eventView.generateQueryStringObject(),
   });
 };
 
@@ -205,8 +222,8 @@ const ModalLineGraph = (props: ModalLineGraphProps) => {
                 currentEvent,
                 interval,
                 selection,
-                location,
                 queryString,
+                eventView,
               })
             }
             tooltip={tooltip}

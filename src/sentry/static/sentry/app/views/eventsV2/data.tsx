@@ -17,7 +17,6 @@ import Duration from 'app/components/duration';
 import {QueryLink} from './styles';
 import {generateEventDetailsRoute} from './eventDetails/utils';
 
-export const MODAL_QUERY_KEYS = ['eventSlug'] as const;
 export const PIN_ICON = `image://${pinIcon}`;
 export const AGGREGATE_ALIASES = ['p95', 'p75', 'last_seen', 'latest_event'] as const;
 
