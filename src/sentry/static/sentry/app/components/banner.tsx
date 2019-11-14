@@ -55,7 +55,7 @@ const BannerWrapper = styled('div')`
 
   @media (min-width: ${theme.breakpoints[3]}) {
     padding-top: 0;
-    min-height: 280px;
+    min-height: 260px;
   }
 `;
 

@@ -7,6 +7,7 @@ import {Params} from 'react-router/lib/Router';
 import {Location} from 'history';
 
 import {t} from 'app/locale';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import SentryTypes from 'app/sentryTypes';
 import {Organization} from 'app/types';
 import localStorage from 'app/utils/localStorage';
@@ -31,8 +32,9 @@ import EventView from './eventView';
 import EventInputName from './eventInputName';
 import {getFirstQueryString} from './utils';
 import QueryList from './queryList';
+import {DEFAULT_EVENT_VIEW_V1} from './data';
 
-const DISPLAY_SEARCH_BAR_FLAG = true;
+const DISPLAY_SEARCH_BAR_FLAG = false;
 
 type Props = {
   organization: Organization;
@@ -76,16 +78,38 @@ class EventsV2 extends React.Component<Props> {
         subtitle={t('Customize your query searches')}
         onCloseClick={this.handleClick}
       >
-        <Button>Build a new query</Button>
+        <Button>{t('Build a new query')}</Button>
       </Banner>
     );
   }
 
   renderActions() {
+    const eventView = EventView.fromEventViewv1(DEFAULT_EVENT_VIEW_V1);
+
+    const to = {
+      pathname: location.pathname,
+      query: {
+        ...eventView.generateQueryStringObject(),
+      },
+    };
+
     return (
       <StyledActions>
         <StyledSearchBar />
-        <Button priority="primary">Build a new query</Button>
+        <Button
+          priority="primary"
+          to={to}
+          onClick={() => {
+            trackAnalyticsEvent({
+              eventKey: 'discover_v2.prebuilt_query_click',
+              eventName: 'Discoverv2: Click a pre-built query',
+              organization_id: this.props.organization.id,
+              query_name: eventView.name,
+            });
+          }}
+        >
+          {t('Build a new query')}
+        </Button>
       </StyledActions>
     );
   }
