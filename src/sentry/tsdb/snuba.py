@@ -20,15 +20,6 @@ SnubaModelQuerySettings = collections.namedtuple(
 )
 
 
-def to_project_filter_model_query(item, dataset, aggregate):
-    reason = item[0]
-    model = item[1]
-    return [
-        model,
-        SnubaModelQuerySettings(dataset, "project_id", aggregate, [["reason", "=", reason]]),
-    ]
-
-
 class SnubaTSDB(BaseTSDB):
     """
     A time series query interface to Snuba
@@ -40,12 +31,12 @@ class SnubaTSDB(BaseTSDB):
     will return empty results for unsupported models.
     """
 
-    project_filter_model_query_settings = dict(
-        map(
-            lambda item: to_project_filter_model_query(item, snuba.Dataset.Outcomes, "times_seen"),
-            FILTER_STAT_KEYS_TO_VALUES.items(),
+    project_filter_model_query_settings = {
+        model: SnubaModelQuerySettings(
+            snuba.Dataset.Outcomes, "project_id", "times_seen", [["reason", "=", reason]]
         )
-    )
+        for reason, model in FILTER_STAT_KEYS_TO_VALUES.items()
+    }
 
     # ``model_query_settings`` is a translation of TSDB models into required settings for querying snuba
     other_model_query_settings = {
@@ -135,12 +126,12 @@ class SnubaTSDB(BaseTSDB):
 
     model_being_upgraded_query_settings2 = {}
 
-    project_filter_model_query_settings_lower_rollup = dict(
-        map(
-            lambda item: to_project_filter_model_query(item, snuba.Dataset.OutcomesRaw, None),
-            FILTER_STAT_KEYS_TO_VALUES.items(),
+    project_filter_model_query_settings_lower_rollup = {
+        model: SnubaModelQuerySettings(
+            snuba.Dataset.OutcomesRaw, "project_id", None, [["reason", "=", reason]]
         )
-    )
+        for reason, model in FILTER_STAT_KEYS_TO_VALUES.items()
+    }
 
     # The Outcomes dataset aggregates outcomes into chunks of an hour. So, for rollups less than an hour, we want to
     # query the raw outcomes dataset, with a few different settings (defined in lower_rollup_query_settings).
