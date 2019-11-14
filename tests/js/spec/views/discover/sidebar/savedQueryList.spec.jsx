@@ -30,7 +30,7 @@ describe('savedQueryList', function() {
     const savedQueries = [
       TestStubs.DiscoverSavedQuery({id: '1', name: 'one'}),
       TestStubs.DiscoverSavedQuery({id: '2', name: '2two'}),
-      TestStubs.DiscoverSavedQuery({id: '2', name: 'three v2', version: 2}),
+      TestStubs.DiscoverSavedQuery({id: '3', name: 'three v2', version: 2}),
     ];
     mockResponse.push(...savedQueries);
     const wrapper = mount(<SavedQueryList organization={organization} />);
