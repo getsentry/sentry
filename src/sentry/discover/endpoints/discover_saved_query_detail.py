@@ -53,7 +53,12 @@ class DiscoverSavedQueryDetailEndpoint(OrganizationEndpoint):
 
         data = serializer.validated_data
 
-        model.update(organization=organization, name=data["name"], query=data["query"])
+        model.update(
+            organization=organization,
+            name=data["name"],
+            query=data["query"],
+            version=data["version"],
+        )
 
         model.set_projects(data["project_ids"])
 
