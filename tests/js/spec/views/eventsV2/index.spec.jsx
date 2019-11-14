@@ -3,7 +3,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {EventsV2} from 'app/views/eventsV2';
+import {DiscoverLanding} from 'app/views/eventsV2/landing';
 
 const FIELDS = [
   {
@@ -78,7 +78,7 @@ describe('EventsV2', function() {
   it('renders a link list', function() {
     /* TODO(leedongwei)
     const wrapper = mountWithTheme(
-      <EventsV2
+      <DiscoverLanding
         organization={TestStubs.Organization({features, projects: [TestStubs.Project()]})}
         location={{query: {}}}
         router={{}}
@@ -94,7 +94,7 @@ describe('EventsV2', function() {
   it('renders a list of events', function() {
     /* TODO(leedongwei)
     const wrapper = mountWithTheme(
-      <EventsV2
+      <DiscoverLanding
         organization={TestStubs.Organization({features, projects: [TestStubs.Project()]})}
         location={{query: {...generateFields()}}}
         router={{}}
@@ -109,7 +109,7 @@ describe('EventsV2', function() {
 
   it('handles no projects', function() {
     const wrapper = mountWithTheme(
-      <EventsV2
+      <DiscoverLanding
         organization={TestStubs.Organization({features})}
         location={{query: {...generateFields()}}}
         router={{}}
@@ -124,7 +124,7 @@ describe('EventsV2', function() {
   it('generates an active sort link based on default sort', function() {
     /* TODO(leedongwei)
     const wrapper = mountWithTheme(
-      <EventsV2
+      <DiscoverLanding
         organization={TestStubs.Organization({features, projects: [TestStubs.Project()]})}
         location={{query: {...generateFields(), sort: ['-timestamp']}}}
         router={{}}
@@ -167,7 +167,7 @@ describe('EventsV2', function() {
   it('generates links to modals', async function() {
     /* TODO(leedongwei)
     const wrapper = mountWithTheme(
-      <EventsV2
+      <DiscoverLanding
         organization={TestStubs.Organization({features, projects: [TestStubs.Project()]})}
         location={{query: {...generateFields()}}}
         router={{}}
@@ -189,7 +189,7 @@ describe('EventsV2', function() {
       projects: [TestStubs.Project()],
     });
     const wrapper = mountWithTheme(
-      <EventsV2
+      <DiscoverLanding
         organization={organization}
         params={{orgId: organization.slug}}
         location={{query: {eventSlug: 'project-slug:deadbeef'}}}
@@ -202,7 +202,7 @@ describe('EventsV2', function() {
     expect(modal).toHaveLength(1);
   });
 
-  it('pagination cursor should be cleared when making a search', function() {
+  it.only('pagination cursor should be cleared when making a search', function() {
     const organization = TestStubs.Organization({
       features,
       projects: [TestStubs.Project()],
@@ -216,7 +216,7 @@ describe('EventsV2', function() {
     });
 
     const wrapper = mountWithTheme(
-      <EventsV2
+      <DiscoverLanding
         organization={organization}
         params={{orgId: organization.slug}}
         location={initialData.router.location}
