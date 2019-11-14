@@ -20,7 +20,7 @@ from sentry.models import (
 )
 from sentry.testutils import TestCase
 
-from test_only_plugins.heroku.plugin import HerokuReleaseHook
+from new_sentry_plugins.heroku.plugin import HerokuReleaseHook
 
 
 class SetRefsTest(TestCase):

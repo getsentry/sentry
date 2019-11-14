@@ -1,4 +1,6 @@
-import {isDate, isEqualWith} from 'lodash';
+import isDate from 'lodash/isDate';
+
+import isEqualWith from 'lodash/isEqualWith';
 
 // `lodash.isEqual` does not compare date objects
 const dateComparator = (value, other) => {

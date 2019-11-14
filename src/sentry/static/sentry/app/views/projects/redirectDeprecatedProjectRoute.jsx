@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import _ from 'lodash';
+import isString from 'lodash/isString';
 
 import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
@@ -64,7 +64,7 @@ class ProjectDetailsInner extends React.Component {
 
   hasProjectId = () => {
     const projectID = this.getProjectId(this.state.project);
-    return _.isString(projectID) && projectID.length > 0;
+    return isString(projectID) && projectID.length > 0;
   };
 
   getOrganizationId = () => {

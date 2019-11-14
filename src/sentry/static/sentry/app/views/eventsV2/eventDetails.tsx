@@ -1,7 +1,7 @@
 import {Params} from 'react-router/lib/Router';
 import {browserHistory} from 'react-router';
 import styled, {css} from 'react-emotion';
-import {omit} from 'lodash';
+import omit from 'lodash/omit';
 import PropTypes from 'prop-types';
 import React from 'react';
 

@@ -3,7 +3,6 @@ module.exports = {
   presets: ['@babel/react', '@babel/env', '@babel/preset-typescript'],
   plugins: [
     'emotion',
-    'lodash',
     'react-hot-loader/babel',
     '@babel/plugin-syntax-dynamic-import',
     '@babel/plugin-proposal-object-rest-spread',

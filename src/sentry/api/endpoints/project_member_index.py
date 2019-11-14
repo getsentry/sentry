@@ -14,7 +14,7 @@ class ProjectMemberIndexEndpoint(ProjectEndpoint):
             OrganizationMember.objects.filter(
                 Q(user__is_active=True) | Q(user__isnull=True),
                 organization=project.organization,
-                teams=project.teams.all(),
+                teams__in=project.teams.all(),
             )
             .select_related("user")
             .distinct()

@@ -1,5 +1,8 @@
 import {browserHistory} from 'react-router';
-import {isEqual, omit, pickBy, uniq} from 'lodash';
+import isEqual from 'lodash/isEqual';
+import omit from 'lodash/omit';
+import pickBy from 'lodash/pickBy';
+import uniq from 'lodash/uniq';
 import Cookies from 'js-cookie';
 import PropTypes from 'prop-types';
 import React from 'react';

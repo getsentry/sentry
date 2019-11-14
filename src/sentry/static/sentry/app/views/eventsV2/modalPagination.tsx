@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 import isPropValid from '@emotion/is-prop-valid';
-import {omit} from 'lodash';
+import omit from 'lodash/omit';
 import {Location} from 'history';
 
 import {t} from 'app/locale';

@@ -1,4 +1,5 @@
-import {isEmpty, isString} from 'lodash';
+import isEmpty from 'lodash/isEmpty';
+import isString from 'lodash/isString';
 import * as Sentry from '@sentry/browser';
 import queryString from 'query-string';
 

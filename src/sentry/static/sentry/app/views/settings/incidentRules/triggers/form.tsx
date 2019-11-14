@@ -1,6 +1,6 @@
 import FormModel from 'app/views/settings/components/forms/model';
 
-import {debounce} from 'lodash';
+import debounce from 'lodash/debounce';
 import PropTypes from 'prop-types';
 import React from 'react';
 

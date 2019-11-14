@@ -1,5 +1,6 @@
 import React from 'react';
-import {uniq, partition} from 'lodash';
+import uniq from 'lodash/uniq';
+import partition from 'lodash/partition';
 import moment from 'moment-timezone';
 
 import {Client} from 'app/api';
