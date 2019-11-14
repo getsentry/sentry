@@ -18,7 +18,7 @@ class OrganizationHasProjectsEndpoint(OrganizationEndpoint):
         ``````````````````````````````````````````````````````````
 
         Returns true if there are any projects within the organization that
-        the user has access to via team membership
+        the user has access to via team membership or superuser access
 
         :pparam string organization_slug: the slug of the organization
                                           to check

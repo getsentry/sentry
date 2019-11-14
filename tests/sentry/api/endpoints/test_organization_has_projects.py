@@ -51,7 +51,7 @@ class OrganizationHasProjectsTest(APITestCase):
         assert not response.data["hasProjects"]
 
     def test_super_user_belongs_to_no_projects(self):
-        # there are projects in the org, and the user is super user
+        # there are projects in the org, and the user is superuser
         self.create_project(teams=[self.team])
         self.create_member(organization=self.org, user=self.foo)
 
