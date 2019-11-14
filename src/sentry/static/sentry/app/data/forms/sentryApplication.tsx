@@ -2,8 +2,9 @@ import React from 'react';
 
 import {extractMultilineFields} from 'app/utils';
 import {tct} from 'app/locale';
+import {Field} from 'app/views/settings/components/forms/type';
 
-const getPublicFormFields = () => [
+const getPublicFormFields = (): Field[] => [
   {
     name: 'name',
     type: 'string',
@@ -61,10 +62,10 @@ const getPublicFormFields = () => [
     label: 'Schema',
     autosize: true,
     help: 'Schema for your UI components',
-    getValue: val => {
+    getValue: (val: string) => {
       return val === '' ? {} : JSON.parse(val);
     },
-    setValue: val => {
+    setValue: (val: string) => {
       const schema = JSON.stringify(val, null, 2);
       if (schema === '{}') {
         return '';
@@ -98,8 +99,9 @@ const getPublicFormFields = () => [
     placeholder: 'e.g. example.com',
     label: 'Authorized JavaScript Origins',
     help: 'Separate multiple entries with a newline.',
-    getValue: val => extractMultilineFields(val),
-    setValue: val => (val && typeof val.join === 'function' && val.join('\n')) || '',
+    getValue: (val: string) => extractMultilineFields(val),
+    setValue: (val: string[] | undefined | null) =>
+      (val && typeof val.join === 'function' && val.join('\n')) || '',
   },
 ];
 
@@ -118,10 +120,13 @@ const getInternalFormFields = () => {
    ***/
 
   const internalFormFields = getPublicFormFields().filter(
-    formField => !['redirectUrl', 'verifyInstall', 'author'].includes(formField.name)
+    formField =>
+      !['redirectUrl', 'verifyInstall', 'author'].includes(formField.name || '')
   );
   const webhookField = internalFormFields.find(field => field.name === 'webhookUrl');
-  webhookField.required = false;
+  if (webhookField) {
+    webhookField.required = false;
+  }
   return internalFormFields;
 };
 

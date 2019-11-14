@@ -297,7 +297,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
     const endpoint = app ? `/sentry-apps/${app.slug}/` : '/sentry-apps/';
 
     const forms = this.isInternal ? internalIntegrationForms : publicIntegrationForms;
-    let verifyInstall;
+    let verifyInstall: boolean;
     if (this.isInternal) {
       //force verifyInstall to false for all internal apps
       verifyInstall = false;
