@@ -1,6 +1,8 @@
 import React from 'react';
 import styled from 'react-emotion';
 
+import moment from 'moment-timezone';
+
 import AsyncView from 'app/views/asyncView';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import LineChart from 'app/components/charts/lineChart';
@@ -29,6 +31,16 @@ const ResponseCode = ({code}: {code: number}) => {
         {code === 0 ? 'timeout' : code}
       </Tag>
     </div>
+  );
+};
+
+const TimestampLink = ({date, link}: {date: moment.MomentInput; link?: string}) => {
+  return link ? (
+    <Link to={link}>
+      <DateTime date={date} />
+    </Link>
+  ) : (
+    <DateTime date={date} />
   );
 };
 
@@ -165,7 +177,7 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
               requests.map((request, idx) => (
                 <PanelItem key={idx}>
                   <TableLayout>
-                    <DateTime date={request.date} />
+                    <TimestampLink date={request.date} />
                     <ResponseCode code={request.responseCode} />
                     {app.status !== 'internal' && request.organization && (
                       <div>{request.organization.name}</div>
