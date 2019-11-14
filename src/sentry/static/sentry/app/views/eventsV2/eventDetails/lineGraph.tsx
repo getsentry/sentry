@@ -21,9 +21,9 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import theme from 'app/utils/theme';
 import {Event, Organization, GlobalSelection} from 'app/types';
 
-import {generateEventDetailsRoute} from './eventDetails/utils';
-import {PIN_ICON} from './data';
-import EventView from './eventView';
+import {generateEventDetailsRoute} from './utils';
+import {PIN_ICON} from '../data';
+import EventView from '../eventView';
 
 /**
  * Generate the data to display a vertical line for the current
@@ -68,7 +68,7 @@ const getCurrentEventMarker = (currentEvent: Event) => {
 /**
  * Handle click events on line markers
  *
- * When a user clicks on a marker we want to update the modal
+ * When a user clicks on a marker we want to update the events details page
  * to display an event from that time slice. While each graph slice
  * could contain thousands of events, we do a search to get the latest
  * event in the slice.
@@ -147,7 +147,7 @@ const handleClick = async function(
   });
 };
 
-type ModalLineGraphProps = {
+type LineGraphProps = {
   api: Client;
   organization: Organization;
   location: Location;
@@ -159,7 +159,7 @@ type ModalLineGraphProps = {
 /**
  * Render a graph of event volumes for the current group + event.
  */
-const ModalLineGraph = (props: ModalLineGraphProps) => {
+const LineGraph = (props: LineGraphProps) => {
   const {api, organization, location, selection, currentEvent, eventView} = props;
 
   const isUtc = selection.datetime.utc;
@@ -238,7 +238,7 @@ const ModalLineGraph = (props: ModalLineGraphProps) => {
     </Panel>
   );
 };
-ModalLineGraph.propTypes = {
+LineGraph.propTypes = {
   api: PropTypes.object.isRequired,
   currentEvent: SentryTypes.Event.isRequired,
   location: PropTypes.object.isRequired,
@@ -246,4 +246,4 @@ ModalLineGraph.propTypes = {
   selection: PropTypes.object.isRequired,
 } as any;
 
-export default withGlobalSelection(withApi(ModalLineGraph));
+export default withGlobalSelection(withApi(LineGraph));

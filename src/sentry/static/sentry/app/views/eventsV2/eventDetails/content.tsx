@@ -25,7 +25,7 @@ import AsyncComponent from 'app/components/asyncComponent';
 import EventView from '../eventView';
 import {hasAggregateField, EventQuery} from '../utils';
 import Pagination from './pagination';
-import ModalLineGraph from '../modalLineGraph';
+import LineGraph from './lineGraph';
 import RelatedEvents from '../relatedEvents';
 import TagsTable from '../tagsTable';
 import EventInterfaces from '../eventInterfaces';
@@ -130,7 +130,7 @@ class EventDetailsContent extends AsyncComponent<Props, State & AsyncComponent['
           {isGroupedView &&
             getDynamicText({
               value: (
-                <ModalLineGraph
+                <LineGraph
                   organization={organization}
                   currentEvent={event}
                   location={location}
