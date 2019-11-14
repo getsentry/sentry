@@ -47,6 +47,7 @@ class DiscoverBreadcrumb extends React.Component<Props> {
 
     if (event) {
       let eventType = event.type;
+      eventType = typeof eventType === 'string' ? eventType : '';
       eventType = eventType.charAt(0).toUpperCase() + eventType.slice(1);
 
       crumbs.push(
