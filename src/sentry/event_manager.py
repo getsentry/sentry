@@ -47,6 +47,7 @@ from sentry.models import (
     Activity,
     Environment,
     Event,
+    EventNew,
     EventDict,
     EventError,
     EventUser,
@@ -390,7 +391,7 @@ class EventManager(object):
 
         data["node_id"] = Event.generate_node_id(project_id, event_id)
 
-        return Event(
+        return EventNew(
             project_id=project_id or self._project.id,
             event_id=event_id,
             data=EventDict(data, skip_renormalization=True),
@@ -713,27 +714,7 @@ class EventManager(object):
                 group=group, environment=environment
             )
 
-        # Write the event to Nodestore if "store.skip-pg-save" is True
-        # If False, write to both Postgres and Nodestore (this path is temporary
-        # and will be removed after rollout)
-        if options.get("store.skip-pg-save", False):
-            event.data.save()
-        else:
-            try:
-                with transaction.atomic(using=router.db_for_write(Event)):
-                    event.data.save()
-                    event.save()
-            except IntegrityError:
-                logger.info(
-                    "duplicate.found",
-                    exc_info=True,
-                    extra={
-                        "event_uuid": event_id,
-                        "project_id": project.id,
-                        "group_id": group.id if group else None,
-                        "model": Event.__name__,
-                    },
-                )
+        event.data.save()
 
         if event_user:
             counters = [
