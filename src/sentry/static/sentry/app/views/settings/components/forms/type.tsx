@@ -31,7 +31,7 @@ type BaseField = {
   placeholder?: string | (() => string);
   multiline?: boolean;
   visible?: boolean | ((props: any) => boolean);
-  disabled?: boolean | (() => boolean);
+  disabled?: boolean | ((props: any) => boolean);
   disabledReason?: string;
   defaultValue?: FieldValue;
 
@@ -54,6 +54,8 @@ type BaseField = {
   setValue?: (value: FieldValue) => any;
 
   onChange?: (value: FieldValue) => void;
+
+  validate?: ({id: String, form: object}) => string[][];
 
   // TODO(ts): FormField prop?
   inline?: boolean;
