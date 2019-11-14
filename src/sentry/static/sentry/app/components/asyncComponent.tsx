@@ -34,6 +34,22 @@ type AsyncComponentState = {
   [key: string]: any;
 };
 
+function wrapErrorHandling(component, fn) {
+  return (...args) => {
+    try {
+      return fn(...args);
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
+      setTimeout(() => {
+        throw error;
+      });
+      component.setState({error});
+      return null;
+    }
+  };
+}
+
 export default class AsyncComponent<
   P extends AsyncComponentProps = AsyncComponentProps,
   S extends AsyncComponentState = AsyncComponentState
@@ -46,22 +62,6 @@ export default class AsyncComponent<
   static contextTypes = {
     router: PropTypes.object,
   };
-
-  static errorHandler(component, fn) {
-    return (...args) => {
-      try {
-        return fn(...args);
-      } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error(error);
-        setTimeout(() => {
-          throw error;
-        });
-        component.setState({error});
-        return null;
-      }
-    };
-  }
 
   // Override this flag to have the component reload it's state when the window
   // becomes visible again. This will set the loading and reloading state, but
@@ -89,8 +89,8 @@ export default class AsyncComponent<
   constructor(props, context) {
     super(props, context);
 
-    this.fetchData = AsyncComponent.errorHandler(this, this.fetchData.bind(this));
-    this.render = AsyncComponent.errorHandler(this, this.render.bind(this));
+    this.fetchData = wrapErrorHandling(this, this.fetchData.bind(this));
+    this.render = wrapErrorHandling(this, this.render.bind(this));
 
     this.state = this.getDefaultState() as Readonly<S>;
 
@@ -350,11 +350,10 @@ export default class AsyncComponent<
    * Return a list of endpoint queries to make.
    *
    * return [
-   *   ['stateKeyName', '/endpoint/', {optional: 'query params'}]
+   *   ['stateKeyName', '/endpoint/', {optional: 'query params'}, {options}]
    * ]
    */
-
-  getEndpoints(): ([string, string, any] | [string, string])[] {
+  getEndpoints(): [string, string, any?, any?][] {
     const endpoint = this.getEndpoint();
     if (!endpoint) {
       return [];
@@ -362,7 +361,13 @@ export default class AsyncComponent<
     return [['data', endpoint, this.getEndpointParams()]];
   }
 
-  renderSearchInput({onSearchSubmit, stateKey, url, updateRoute, ...other}) {
+  renderSearchInput({
+    onSearchSubmit,
+    stateKey,
+    url,
+    updateRoute,
+    ...other
+  }: React.ComponentProps<typeof AsyncComponentSearchInput>) {
     const [firstEndpoint]: any = this.getEndpoints() || [];
     const stateKeyOrDefault = stateKey || (firstEndpoint && firstEndpoint[0]);
     const urlOrDefault = url || (firstEndpoint && firstEndpoint[1]);
