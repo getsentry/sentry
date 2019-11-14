@@ -76,7 +76,7 @@ def is_signal_sent(project_id, event_id):
 
 
 def _process_signal(msg):
-    project_id = int(msg.get("project_id", 0))
+    project_id = int(msg.get("project_id") or 0)
     if project_id == 0:
         metrics.incr("outcomes_consumer.skip_outcome", tags={"reason": "project_zero"})
         return  # no project. this is valid, so ignore silently.
