@@ -139,7 +139,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.browser.snapshot("events-v2 - single error details view")
 
     @patch("django.utils.timezone.now")
-    def test_modal_from_errors_view(self, mock_now):
+    def test_event_detail_view_from_errors_view(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
         event_source = (("a", 1), ("b", 39), ("c", 69))
         event_ids = []
@@ -163,11 +163,11 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.browser.get(self.path + "?" + error_view + "&statsPeriod=24h")
             self.wait_until_loaded()
 
-            # Click the event link to open the modal
+            # Click the event link to open the event detail view
             self.browser.element('[aria-label="{}"]'.format(event.title)).click()
             self.wait_until_loaded()
 
-            self.browser.snapshot("events-v2 - grouped error modal")
+            self.browser.snapshot("events-v2 - grouped error event detail view")
 
             # Check that the newest event is loaded first and that pagination
             # controls display
