@@ -25,14 +25,14 @@ type Props = AsyncView['props'];
 
 type State = AsyncView['state'] & {
   stats: {
-    total_uninstalls: number;
-    total_installs: number;
-    install_stats: [number, number][];
-    uninstall_stats: [number, number][];
+    totalUninstalls: number;
+    totalInstalls: number;
+    installStats: [number, number][];
+    uninstallStats: [number, number][];
   };
   requests: SentryAppWebhookRequest[];
   interactions: {
-    component_interactions: {
+    componentInteractions: {
       [key: string]: [number, number][];
     };
     views: [number, number][];
@@ -67,18 +67,18 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
   }
 
   renderInstallData() {
-    const {total_uninstalls, total_installs} = this.state.stats;
+    const {totalUninstalls, totalInstalls} = this.state.stats;
     return (
       <React.Fragment>
         <h5>{t('Installation Data')}</h5>
         <Row>
           <StatsSection>
             <StatsHeader>{t('Total installs')}</StatsHeader>
-            <p>{total_installs}</p>
+            <p>{totalInstalls}</p>
           </StatsSection>
           <StatsSection>
             <StatsHeader>{t('Total uninstalls')}</StatsHeader>
-            <p>{total_uninstalls}</p>
+            <p>{totalUninstalls}</p>
           </StatsSection>
         </Row>
         {this.renderInstallCharts()}
@@ -87,17 +87,17 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
   }
 
   renderInstallCharts() {
-    const {install_stats, uninstall_stats} = this.state.stats;
+    const {installStats, uninstallStats} = this.state.stats;
 
     const installSeries = {
-      data: install_stats.map(point => ({
+      data: installStats.map(point => ({
         name: point[0] * 1000,
         value: point[1],
       })),
       seriesName: t('installed'),
     };
     const uninstallSeries = {
-      data: uninstall_stats.map(point => ({
+      data: uninstallStats.map(point => ({
         name: point[0] * 1000,
         value: point[1],
       })),
@@ -201,14 +201,14 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
   }
 
   renderComponentInteractions() {
-    const {component_interactions} = this.state.interactions;
+    const {componentInteractions} = this.state.interactions;
 
     return (
       <Panel>
         <PanelHeader>{t('Component Interactions')}</PanelHeader>
 
         <PanelBody>
-          <InteractionsChart data={component_interactions} />
+          <InteractionsChart data={componentInteractions} />
         </PanelBody>
 
         <PanelFooter>
