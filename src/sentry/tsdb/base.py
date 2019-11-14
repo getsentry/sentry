@@ -52,7 +52,7 @@ class TSDBModel(Enum):
     # frequent_values_by_issue_tag = 405
 
     # number of events seen for a project, by organization
-    frequent_projects_by_organization = 403
+    # frequent_projects_by_organization = 403  # DEPRECATED
     # number of issues seen for a project, by project
     frequent_issues_by_project = 404
     # number of events seen for a release, by issue

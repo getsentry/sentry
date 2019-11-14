@@ -999,14 +999,11 @@ function routes() {
           </Route>
         </Route>
       </Route>
-      {/* A route tree for lightweight organizational detail views */}
-      <Route path="/:orgId/" component={errorHandler(LightWeightOrganizationDetails)}>
-        <IndexRoute
-          componentPromise={() =>
-            import(/* webpackChunkName: "ProjectsDashboard" */ 'app/views/projectsDashboard')
-          }
-          component={errorHandler(LazyLoad)}
-        />
+      {/* A route tree for lightweight organizational detail views. We place
+      this above the heavyweight organization detail views because there
+      exist some redirects from deprecated routes which should not take
+      precedence over these lightweight routes*/}
+      <Route component={errorHandler(LightWeightOrganizationDetails)}>
         <Route
           path="/organizations/:orgId/projects/"
           componentPromise={() =>
@@ -1014,11 +1011,18 @@ function routes() {
           }
           component={errorHandler(LazyLoad)}
         />
+        <Route
+          path="/organizations/:orgId/user-feedback/"
+          componentPromise={() =>
+            import(/* webpackChunkName: "OrganizationUserFeedback" */ 'app/views/userFeedback/organizationUserFeedback')
+          }
+          component={errorHandler(LazyLoad)}
+        />
       </Route>
+      {/* The heavyweight organization detail views */}
       <Route path="/:orgId/" component={errorHandler(OrganizationDetails)}>
         <Route component={errorHandler(OrganizationRoot)}>
           {hook('routes:organization-root')}
-          />
           <Route
             path="/organizations/:orgId/stats/"
             componentPromise={() =>
@@ -1246,13 +1250,6 @@ function routes() {
             />
           </Route>
           <Route
-            path="/organizations/:orgId/user-feedback/"
-            componentPromise={() =>
-              import(/* webpackChunkName: "OrganizationUserFeedback" */ 'app/views/userFeedback/organizationUserFeedback')
-            }
-            component={errorHandler(LazyLoad)}
-          />
-          <Route
             path="/organizations/:orgId/releases/"
             componentPromise={() =>
               import(/* webpackChunkName: "Releases" */ 'app/views/releases/list')
@@ -1309,7 +1306,6 @@ function routes() {
             component={errorHandler(LazyLoad)}
           />
           <Route path="/organizations/:orgId/">
-            <Redirect from="/organizations/:orgId/projects/" to="/:orgId/" />
             {hook('routes:organization')}
             <Redirect path="/organizations/:orgId/teams/" to="/settings/:orgId/teams/" />
             <Redirect

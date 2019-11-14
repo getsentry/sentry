@@ -8,13 +8,7 @@ describe('Incident Rules Form', function() {
   const {organization, project, routerContext} = initializeOrg();
   const createWrapper = props =>
     mountWithTheme(
-      <RuleFormContainer
-        organization={organization}
-        orgId={organization.slug}
-        projectId="project-slug"
-        projects={[project, TestStubs.Project({slug: 'project-2', id: '3'})]}
-        {...props}
-      />,
+      <RuleFormContainer organization={organization} project={project} {...props} />,
       routerContext
     );
 
@@ -39,7 +33,15 @@ describe('Incident Rules Form', function() {
      * Note this isn't necessarily the desired behavior, as it is just documenting the behavior
      */
     it('creates a rule', async function() {
-      const wrapper = createWrapper();
+      const wrapper = createWrapper({
+        rule: {
+          aggregations: [0],
+          query: '',
+          projects: [project.slug],
+          timeWindow: 60,
+          triggers: [],
+        },
+      });
 
       // Enter in name so we can submit
       wrapper
@@ -52,10 +54,6 @@ describe('Incident Rules Form', function() {
         expect.objectContaining({
           data: expect.objectContaining({
             name: 'Incident Rule',
-
-            // Note, backend handles this when ideally `includeAllProjects: true` should only send excludedProjects,
-            // and `includeAllProjects: false` send `projects`
-            includeAllProjects: false,
             projects: ['project-slug'],
           }),
         })
@@ -78,21 +76,21 @@ describe('Incident Rules Form', function() {
     it('edits metric', async function() {
       const wrapper = createWrapper({
         incidentRuleId: rule.id,
-        initialData: rule,
-        saveOnBlur: true,
+        rule,
       });
 
       wrapper
         .find('input[name="name"]')
-        .simulate('change', {target: {value: 'new name'}})
-        .simulate('blur');
+        .simulate('change', {target: {value: 'new name'}});
+
+      wrapper.find('form').simulate('submit');
 
       expect(editRule).toHaveBeenLastCalledWith(
         expect.anything(),
         expect.objectContaining({
-          data: {
+          data: expect.objectContaining({
             name: 'new name',
-          },
+          }),
         })
       );
       editRule.mockReset();

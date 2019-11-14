@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from django.conf.urls import patterns, url
+from django.test import override_settings
 from rest_framework.permissions import AllowAny
 
 from sentry.api.base import Endpoint
@@ -18,9 +19,9 @@ class RateLimitedEndpoint(Endpoint):
 urlpatterns = patterns("", url(r"^/$", RateLimitedEndpoint.as_view(), name="sentry-test"))
 
 
+@override_settings(ROOT_URLCONF="tests.sentry.api.test_handlers")
 class TestRateLimited(APITestCase):
     endpoint = "sentry-test"
-    urls = "tests.sentry.api.test_handlers"
 
     def test_simple(self):
         self.login_as(self.user)

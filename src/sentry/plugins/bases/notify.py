@@ -74,7 +74,7 @@ class NotificationPlugin(Plugin):
 
     def rule_notify(self, event, futures):
         rules = []
-        extra = {"event_id": event.id, "group_id": event.group_id, "plugin": self.slug}
+        extra = {"event_id": event.event_id, "group_id": event.group_id, "plugin": self.slug}
         log_event = "dispatched"
         for future in futures:
             rules.append(future.rule)

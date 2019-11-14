@@ -955,14 +955,10 @@ exports[`SharedGroupDetails renders 1`] = `
                           <FooterLink
                             className="hidden-xs"
                             href="/api/"
-                            rel="noreferrer noopener"
-                            target="_blank"
                           >
                             <ForwardRef
                               className="hidden-xs css-ry1asy-FooterLink e1xhjlxg0"
                               href="/api/"
-                              rel="noreferrer noopener"
-                              target="_blank"
                             >
                               <a
                                 className="hidden-xs css-ry1asy-FooterLink e1xhjlxg0"
@@ -976,14 +972,10 @@ exports[`SharedGroupDetails renders 1`] = `
                           </FooterLink>
                           <FooterLink
                             href="/docs/"
-                            rel="noreferrer noopener"
-                            target="_blank"
                           >
                             <ForwardRef
                               className="css-ry1asy-FooterLink e1xhjlxg0"
                               href="/docs/"
-                              rel="noreferrer noopener"
-                              target="_blank"
                             >
                               <a
                                 className="css-ry1asy-FooterLink e1xhjlxg0"
@@ -999,13 +991,11 @@ exports[`SharedGroupDetails renders 1`] = `
                             className="hidden-xs"
                             href="https://github.com/getsentry/sentry"
                             rel="noreferrer"
-                            target="_blank"
                           >
                             <ForwardRef
                               className="hidden-xs css-ry1asy-FooterLink e1xhjlxg0"
                               href="https://github.com/getsentry/sentry"
                               rel="noreferrer"
-                              target="_blank"
                             >
                               <a
                                 className="hidden-xs css-ry1asy-FooterLink e1xhjlxg0"

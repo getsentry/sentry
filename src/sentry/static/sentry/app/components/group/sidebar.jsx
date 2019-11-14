@@ -1,6 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {isEqual, pickBy, keyBy, isObject} from 'lodash';
+import isEqual from 'lodash/isEqual';
+import pickBy from 'lodash/pickBy';
+import keyBy from 'lodash/keyBy';
+import isObject from 'lodash/isObject';
 
 import ErrorBoundary from 'app/components/errorBoundary';
 import SentryTypes from 'app/sentryTypes';

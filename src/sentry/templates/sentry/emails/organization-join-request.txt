@@ -1,6 +1,6 @@
 Request for Access
 
-{{ email }} is requesting to join the {{ organization.name }} organization.
+{{ email }} is requesting to join the {{ organization_name }} organization.
 
 View access requests by clicking the link below:
 

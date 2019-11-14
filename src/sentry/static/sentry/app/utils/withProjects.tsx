@@ -9,10 +9,12 @@ import {Project} from 'app/types';
 
 type InjectedProjectsProps = {
   projects: Project[];
+  loadingProjects?: boolean;
 };
 
 type State = {
   projects: Project[];
+  loading: boolean;
 };
 
 /**
@@ -32,18 +34,20 @@ const withProjects = <P extends InjectedProjectsProps>(
     },
     mixins: [Reflux.listenTo(ProjectsStore, 'onProjectUpdate') as any],
     getInitialState() {
-      return {
-        projects: ProjectsStore.getAll() as Project[],
-      };
+      return ProjectsStore.getState();
     },
 
     onProjectUpdate() {
-      this.setState({
-        projects: ProjectsStore.getAll() as Project[],
-      });
+      this.setState(ProjectsStore.getState());
     },
     render() {
-      return <WrappedComponent {...this.props} projects={this.state.projects} />;
+      return (
+        <WrappedComponent
+          {...this.props}
+          projects={this.state.projects}
+          loadingProjects={this.state.loading}
+        />
+      );
     },
   });
 

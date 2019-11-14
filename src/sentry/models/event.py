@@ -619,6 +619,7 @@ class Event(EventCommon, Model):
         ref_func=lambda x: x.project_id or x.project.id,
         ref_version=2,
         wrapper=EventDict,
+        skip_nodestore_save=True,
     )
 
     objects = EventManager()

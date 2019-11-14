@@ -1,4 +1,4 @@
-import {flatten} from 'lodash';
+import flatten from 'lodash/flatten';
 import PropTypes from 'prop-types';
 import React from 'react';
 

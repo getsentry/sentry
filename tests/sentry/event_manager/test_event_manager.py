@@ -629,12 +629,6 @@ class EventManagerTest(TestCase):
             tsdb.models.frequent_issues_by_project, (event.project.id,), event.datetime
         ) == {event.project.id: [(event.group_id, 1.0)]}
 
-        assert tsdb.get_most_frequent(
-            tsdb.models.frequent_projects_by_organization,
-            (event.project.organization_id,),
-            event.datetime,
-        ) == {event.project.organization_id: [(event.project_id, 1.0)]}
-
     def test_event_user(self):
         manager = EventManager(
             make_event(

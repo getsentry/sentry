@@ -6,10 +6,11 @@ from celery.task import current
 from django.core.urlresolvers import reverse
 from requests.exceptions import RequestException
 
-from sentry.http import safe_urlopen, safe_urlread
+from sentry.http import safe_urlopen
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
+from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
 from sentry.api.serializers import serialize, AppPlatformEvent
 from sentry.models import (
     SentryAppInstallation,
@@ -22,7 +23,6 @@ from sentry.models import (
     ServiceHookProject,
     SentryApp,
     SnubaEvent,
-    SentryAppWebhookError,
 )
 from sentry.models.sentryapp import VALID_EVENTS
 
@@ -40,14 +40,6 @@ TASK_OPTIONS = {
 RESOURCE_RENAMES = {"Group": "issue"}
 
 TYPES = {"Group": Group, "Error": SnubaEvent}
-
-
-def _save_webhook_error(**kwargs):
-    event = kwargs.get("event_type")
-
-    # Track any webhook errors for these event types
-    if event in ["issue.assigned", "issue.ignored", "issue.resolved"]:
-        SentryAppWebhookError.objects.create(**kwargs)
 
 
 def _webhook_event_data(event, group_id, project_id):
@@ -112,9 +104,7 @@ def send_alert_event(event, rule, sentry_app_id):
         resource="event_alert", action="triggered", install=install, data=data
     )
 
-    safe_urlopen(
-        url=sentry_app.webhook_url, data=request_data.body, headers=request_data.headers, timeout=5
-    )
+    send_and_save_webhook_request(sentry_app.webhook_url, sentry_app, request_data)
 
 
 def _process_resource_change(action, sender, instance_id, retryer=None, *args, **kwargs):
@@ -282,30 +272,27 @@ def send_webhooks(installation, event, **kwargs):
 
         request_data = AppPlatformEvent(**kwargs)
 
-        potential_error_kwargs = {
-            "sentry_app_id": installation.sentry_app_id,
-            "organization_id": installation.organization_id,
-            "request_body": request_data.body,
-            "request_headers": request_data.headers,
-            "event_type": event,
-            "webhook_url": servicehook.sentry_app.webhook_url,
-        }
+        send_and_save_webhook_request(
+            servicehook.sentry_app.webhook_url, installation.sentry_app, request_data
+        )
 
-        try:
-            resp = safe_urlopen(
-                url=servicehook.sentry_app.webhook_url,
-                data=request_data.body,
-                headers=request_data.headers,
-                timeout=5,
-            )
-        except RequestException as exc:
-            potential_error_kwargs["response_body"] = repr(exc)
-            _save_webhook_error(**potential_error_kwargs)
-            # Re-raise the exception because some of these tasks might retry on the exception
-            raise
 
-        if not resp.ok:
-            body = safe_urlread(resp)
-            potential_error_kwargs["response_body"] = body
-            potential_error_kwargs["response_code"] = resp.status_code
-            _save_webhook_error(**potential_error_kwargs)
+def send_and_save_webhook_request(url, sentry_app, app_platform_event):
+    buffer = SentryAppWebhookRequestsBuffer(sentry_app)
+
+    org_id = app_platform_event.install.organization_id
+    event = "{}.{}".format(app_platform_event.resource, app_platform_event.action)
+
+    try:
+        resp = safe_urlopen(
+            url=url, data=app_platform_event.body, headers=app_platform_event.headers, timeout=5
+        )
+    except RequestException:
+        # Response code of 0 represents timeout
+        buffer.add_request(response_code=0, org_id=org_id, event=event, url=url)
+        # Re-raise the exception because some of these tasks might retry on the exception
+        raise
+
+    buffer.add_request(response_code=resp.status_code, org_id=org_id, event=event, url=url)
+
+    return resp

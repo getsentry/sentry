@@ -1,5 +1,6 @@
 import {ECharts, EChartOption} from 'echarts';
-import {debounce, maxBy} from 'lodash';
+import debounce from 'lodash/debounce';
+import maxBy from 'lodash/maxBy';
 import React from 'react';
 import styled from 'react-emotion';
 
@@ -12,11 +13,11 @@ import theme from 'app/utils/theme';
 type Props = {
   xAxis: EChartOption.XAxis;
   data: Series[];
-  alertThreshold: number | null;
-  resolveThreshold: number | null;
-  isInverted: boolean;
-  onChangeIncidentThreshold: (alertThreshold: number) => void;
-  onChangeResolutionThreshold: (resolveThreshold: number) => void;
+  alertThreshold?: number | null;
+  resolveThreshold?: number | null;
+  isInverted?: boolean;
+  onChangeIncidentThreshold?: (alertThreshold: number) => void;
+  onChangeResolutionThreshold?: (resolveThreshold: number) => void;
   maxValue?: number;
 };
 
@@ -88,8 +89,12 @@ export default class IncidentRulesChart extends React.Component<Props, State> {
       return;
     }
 
+    const {onChangeIncidentThreshold} = this.props;
     const alertThreshold = this.chartRef.convertFromPixel({gridIndex: 0}, pos)[1];
-    this.props.onChangeIncidentThreshold(alertThreshold);
+
+    if (typeof onChangeIncidentThreshold === 'function') {
+      onChangeIncidentThreshold(alertThreshold);
+    }
   };
 
   setResolutionThreshold = (pos: [number, number]) => {
@@ -97,8 +102,12 @@ export default class IncidentRulesChart extends React.Component<Props, State> {
       return;
     }
 
+    const {onChangeResolutionThreshold} = this.props;
     const boundary = this.chartRef.convertFromPixel({gridIndex: 0}, pos)[1];
-    this.props.onChangeResolutionThreshold(boundary);
+
+    if (typeof onChangeResolutionThreshold === 'function') {
+      onChangeResolutionThreshold(boundary);
+    }
   };
 
   handleRef = (ref: ReactEchartsRef): void => {

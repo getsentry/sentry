@@ -2,7 +2,6 @@ import {SpanEntry} from 'app/components/events/interfaces/spans/types';
 import {API_SCOPES} from 'app/constants';
 import {Field} from 'app/views/settings/components/forms/type';
 import {Params} from 'react-router/lib/Router';
-import {PlainRoute} from 'react-router/lib/Route';
 import {Location} from 'history';
 
 export type ObjectStatus =
@@ -11,12 +10,15 @@ export type ObjectStatus =
   | 'pending_deletion'
   | 'deletion_in_progress';
 
-export type Organization = {
+export type LightWeightOrganization = {
   id: string;
   slug: string;
-  projects: Project[];
   access: string[];
   features: string[];
+};
+
+export type Organization = LightWeightOrganization & {
+  projects: Project[];
   teams: Team[];
 };
 
@@ -253,8 +255,8 @@ export type GlobalSelection = {
   environments: string[];
   forceUrlSync?: boolean;
   datetime: {
-    start: string;
-    end: string;
+    start: Date | null;
+    end: Date | null;
     period: string;
     utc: boolean;
   };
@@ -395,6 +397,7 @@ export type EventViewv1 = {
     query?: string;
   };
   tags: string[];
+  statsPeriod?: string;
 };
 
 export type Repository = {
@@ -501,27 +504,16 @@ export type SentryAppInstallation = {
   code?: string;
 };
 
-export type SentryAppWebhookError = {
+export type SentryAppWebhookRequest = {
   webhookUrl: string;
-  app: {
-    uuid: string;
-    slug: string;
-    name: string;
-  };
-  request: {
-    body: object;
-    headers: object;
-  };
+  sentryAppSlug: string;
   eventType: string;
   date: string;
-  organization: {
+  organization?: {
     slug: string;
     name: string;
   };
-  response: {
-    body: string;
-    statusCode: number;
-  };
+  responseCode: number;
 };
 
 export type PermissionValue = 'no-access' | 'read' | 'write' | 'admin';
@@ -599,7 +591,6 @@ export type SentryAppComponent = {
 export type RouterProps = {
   params: Params;
   location: Location;
-  routes: PlainRoute[];
 };
 
 export type ActiveExperiments = {

@@ -348,7 +348,7 @@ storiesOf('Forms|Fields', module)
         <SelectField
           name="select"
           label="Multi Select"
-          multiple={true}
+          multiple
           choices={[
             ['choice_one', 'Choice One'],
             ['choice_two', 'Choice Two'],
@@ -372,8 +372,8 @@ storiesOf('Forms|Fields', module)
               label={label}
               value={value}
               choices={[
-                ['choice_one', 'Choice One'],
-                ['choice_two', 'Choice Two'],
+                ['choice_one', 'Choice One', 'Description for Choice One'],
+                ['choice_two', 'Choice Two', 'Description for Choice Two'],
                 ['choice_three', 'Choice Three'],
               ]}
             />

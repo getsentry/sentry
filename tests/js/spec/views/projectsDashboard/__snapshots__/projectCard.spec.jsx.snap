@@ -968,10 +968,8 @@ exports[`ProjectCard renders 1`] = `
                                     className="css-z6hjis-StyledButton-getColors edwq9my0"
                                     href="https://docs.sentry.io/learn/releases/"
                                     onClick={[Function]}
-                                    rel="noreferrer noopener"
                                     role="button"
                                     size="xsmall"
-                                    target="_blank"
                                   >
                                     <a
                                       aria-disabled={false}
