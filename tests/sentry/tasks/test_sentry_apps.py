@@ -34,6 +34,12 @@ RuleFuture = namedtuple("RuleFuture", ["rule", "kwargs"])
 MockResponse = namedtuple("MockResponse", ["headers", "content", "ok", "status_code"])
 MockResponseInstance = MockResponse({}, {}, True, 200)
 MockFailureResponseInstance = MockResponse({}, {}, False, 400)
+MockResponseWithHeadersInstance = MockResponse(
+    {"Sentry-Hook-Error": "d5111da2c28645c5889d072017e3445d", "Sentry-Hook-Project": "1"},
+    {},
+    False,
+    400,
+)
 
 
 class DictContaining(object):
@@ -430,3 +436,20 @@ class TestWebhookRequests(TestCase):
         assert first_request["response_code"] == 0
         assert first_request["event_type"] == "issue.assigned"
         assert first_request["organization_id"] == self.install.organization.id
+
+    @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponseWithHeadersInstance)
+    def test_saves_error_event_id_if_in_header(self, safe_urlopen):
+        data = {"issue": serialize(self.issue)}
+        send_webhooks(installation=self.install, event="issue.assigned", data=data, actor=self.user)
+
+        requests = self.buffer.get_requests()
+        requests_count = len(requests)
+        first_request = requests[0]
+
+        assert safe_urlopen.called
+        assert requests_count == 1
+        assert first_request["response_code"] == 400
+        assert first_request["event_type"] == "issue.assigned"
+        assert first_request["organization_id"] == self.install.organization.id
+        assert first_request["error_id"] == "d5111da2c28645c5889d072017e3445d"
+        assert first_request["project_id"] == "1"

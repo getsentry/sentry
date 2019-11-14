@@ -22,11 +22,17 @@ class SentryAppRequestsEndpoint(SentryAppBaseEndpoint):
         }
 
         if "error_id" in request and "project_id" in request:
-            project = Project.objects.get_from_cache(id=request["project_id"])
-            error_url = "/organizations/{}/projects/{}/events/{}".format(
-                sentry_app.owner.slug, project.slug, request["error_id"]
-            )
-            formatted_request["errorUrl"] = error_url
+            try:
+                project = Project.objects.get_from_cache(id=request["project_id"])
+                # Make sure the project actually belongs to the org that owns the Sentry App
+                if project.organization_id == sentry_app.owner_id:
+                    error_url = "/organizations/{}/projects/{}/events/{}".format(
+                        sentry_app.owner.slug, project.slug, request["error_id"]
+                    )
+                    formatted_request["errorUrl"] = error_url
+            except Project.DoesNotExist:
+                # If the project doesn't exist, don't add the error to the result
+                pass
 
         if "organization_id" in request:
             try:
