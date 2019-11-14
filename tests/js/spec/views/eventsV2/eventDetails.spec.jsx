@@ -154,9 +154,8 @@ describe('EventsV2 > EventDetails', function() {
     const wrapper = mountWithTheme(
       <EventDetails
         organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
-        eventSlug="project-slug:deadbeef"
-        location={{query: {eventSlug: 'project-slug:deadbeef'}}}
-        eventView={allEventsView}
+        params={{eventSlug: 'project-slug:deadbeef'}}
+        location={{query: allEventsView.generateQueryStringObject()}}
       />,
       TestStubs.routerContext()
     );
@@ -171,9 +170,8 @@ describe('EventsV2 > EventDetails', function() {
     const wrapper = mountWithTheme(
       <EventDetails
         organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
-        eventSlug="project-slug:abad1"
-        location={{query: {eventSlug: 'project-slug:abad1'}}}
-        eventView={allEventsView}
+        params={{eventSlug: 'project-slug:abad1'}}
+        location={{query: allEventsView.generateQueryStringObject()}}
       />,
       TestStubs.routerContext()
     );
@@ -181,42 +179,25 @@ describe('EventsV2 > EventDetails', function() {
     expect(content).toHaveLength(1);
   });
 
-  it('renders a chart in grouped view', function() {
+  it('renders a chart in grouped view', async function() {
     const wrapper = mountWithTheme(
       <EventDetails
         organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
-        eventSlug="project-slug:deadbeef"
-        location={{query: {eventSlug: 'project-slug:deadbeef'}}}
-        eventView={errorsView}
+        params={{eventSlug: 'project-slug:deadbeef'}}
+        location={{query: errorsView.generateQueryStringObject()}}
       />,
       TestStubs.routerContext()
     );
+
+    // loading state
+    await tick();
+    await wrapper.update();
+
     const content = wrapper.find('EventHeader');
     expect(content.text()).toContain('Oh no something bad');
 
     const graph = wrapper.find('ModalLineGraph');
     expect(graph).toHaveLength(1);
-  });
-
-  it('removes eventSlug when close button is clicked', function() {
-    const wrapper = mountWithTheme(
-      <EventDetails
-        organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
-        eventSlug="project-slug:deadbeef"
-        location={{
-          pathname: '/organizations/org-slug/events/',
-          query: {eventSlug: 'project-slug:deadbeef'},
-        }}
-        eventView={allEventsView}
-      />,
-      TestStubs.routerContext()
-    );
-    const button = wrapper.find('DismissButton');
-    button.simulate('click');
-    expect(browserHistory.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/events/',
-      query: {},
-    });
   });
 
   it('navigates when tag values are clicked', async function() {
@@ -234,9 +215,8 @@ describe('EventsV2 > EventDetails', function() {
     const wrapper = mountWithTheme(
       <EventDetails
         organization={organization}
-        eventSlug="project-slug:deadbeef"
-        location={{query: {eventSlug: 'project-slug:deadbeef'}}}
-        eventView={allEventsView}
+        params={{eventSlug: 'project-slug:deadbeef'}}
+        location={{query: allEventsView.generateQueryStringObject()}}
       />,
       routerContext
     );
@@ -270,9 +250,8 @@ describe('EventsV2 > EventDetails', function() {
     const wrapper = mountWithTheme(
       <EventDetails
         organization={organization}
-        eventSlug="project-slug:deadbeef"
-        location={{query: {eventSlug: 'project-slug:deadbeef'}}}
-        eventView={allEventsView}
+        params={{eventSlug: 'project-slug:deadbeef'}}
+        location={{query: allEventsView.generateQueryStringObject()}}
       />,
       routerContext
     );
