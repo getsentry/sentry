@@ -202,6 +202,12 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
 
   renderComponentInteractions() {
     const {componentInteractions} = this.state.interactions;
+    const componentInteractionsDetails = {
+      'stacktrace-link': t(
+        'Each link click or context menu open counts as one interaction'
+      ),
+      'issue-link': t('Each open of the issue link modal counts as one interaction'),
+    };
 
     return (
       <Panel>
@@ -213,11 +219,16 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
 
         <PanelFooter>
           <StyledFooter>
-            <strong>{t('stacktrace-link:')}</strong>{' '}
-            {t('Each click on the link counts as one interaction')}
-            <br />
-            <strong>{t('issue-link:')}</strong>{' '}
-            {t('Each open of the issue link modal counts as one interaction')}
+            {Object.keys(componentInteractions).map(
+              (component, idx) =>
+                componentInteractionsDetails[component] && (
+                  <React.Fragment key={idx}>
+                    <strong>{`${component}: `}</strong>
+                    {componentInteractionsDetails[component]}
+                    <br />
+                  </React.Fragment>
+                )
+            )}
           </StyledFooter>
         </PanelFooter>
       </Panel>
