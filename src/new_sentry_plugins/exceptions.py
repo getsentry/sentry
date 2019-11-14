@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from BeautifulSoup import BeautifulStoneSoup
+from bs4 import BeautifulSoup
 from collections import OrderedDict
 from simplejson.decoder import JSONDecodeError
 from six.moves.urllib.parse import urlparse
@@ -24,7 +24,7 @@ class ApiError(Exception):
             except (JSONDecodeError, ValueError):
                 if self.text[:5] == "<?xml":
                     # perhaps it's XML?
-                    self.xml = BeautifulStoneSoup(self.text)
+                    self.xml = BeautifulSoup(self.text, "xml")
                 # must be an awful code.
                 self.json = None
         else:
