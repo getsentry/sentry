@@ -51,6 +51,7 @@ class Threads(Interface):
                 "id": data["id"],
                 "current": data["current"],
                 "crashed": data["crashed"],
+                "errored": data.get("errored"),
                 "name": data["name"],
                 "stacktrace": None,
             }
@@ -68,6 +69,7 @@ class Threads(Interface):
                 "id": data["id"],
                 "current": data["current"],
                 "crashed": data["crashed"],
+                "errored": data.get("errored"),
                 "name": data["name"],
                 "stacktrace": None,
                 "rawStacktrace": None,
