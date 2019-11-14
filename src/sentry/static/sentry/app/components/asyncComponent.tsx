@@ -18,6 +18,11 @@ type AsyncComponentProps = {
   location?: Location;
   router?: any;
   params?: any;
+
+  // optional sentry APM profiling
+  // Note we don't decorate `AsyncComponent` but rather the subclass
+  // so we can get its component name
+  finishProfile?: () => void;
 };
 
 type AsyncComponentState = {
@@ -146,6 +151,11 @@ export default class AsyncComponent<
         },
       });
       this._measurement.hasMeasured = true;
+
+      // sentry apm profiling
+      if (typeof this.props.finishProfile === 'function') {
+        this.props.finishProfile();
+      }
     }
 
     // Re-fetch data when router params change.
