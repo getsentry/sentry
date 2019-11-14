@@ -132,7 +132,7 @@ class EventDetailsContent extends React.Component<Props, State> {
     eventTitle: string | undefined;
     eventViewName: string | undefined;
   }): Array<string> => {
-    let titles = [t('Discover')];
+    const titles = [t('Discover')];
 
     if (typeof eventViewName === 'string' && String(eventViewName).trim().length > 0) {
       titles.push(String(eventViewName).trim());
@@ -154,6 +154,12 @@ class EventDetailsContent extends React.Component<Props, State> {
       }
 
       return 'error';
+    }
+
+    const {event} = this.state;
+
+    if (!event) {
+      return <NotFound />;
     }
 
     const {organization, location} = this.props;
