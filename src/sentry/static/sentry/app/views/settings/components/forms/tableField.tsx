@@ -183,7 +183,6 @@ const Header = styled('div')`
   flex: 1 0 0;
   align-items: center;
   justify-content: space-between;
-  margin-left: ${space(1)};
 `;
 
 const RowContainer = styled('div')`
@@ -201,6 +200,7 @@ const Row = styled('div')`
 
 const RowInput = styled('div')`
   flex: 1;
+  margin-right: ${space(1)};
 `;
 
 const RemoveButton = styled('div')`
