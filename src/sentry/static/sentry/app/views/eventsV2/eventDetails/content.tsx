@@ -78,11 +78,6 @@ class EventDetailsContent extends AsyncComponent<Props, State & AsyncComponent['
 
     const query = eventView.getEventsAPIPayload(location);
 
-    // TODO: whats this for?
-    delete query.statsPeriod;
-    delete query.start;
-    delete query.end;
-
     const url = `/organizations/${organization.slug}/events/${eventSlug}/`;
 
     // Get a specific event. This could be coming from
