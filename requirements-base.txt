@@ -34,7 +34,7 @@ ipaddress>=1.0.16,<1.1.0
 jsonschema==2.6.0
 kombu==3.0.35
 loremipsum>=1.0.5,<1.1.0
-lxml>=3.4.1
+lxml>=4.3.3,<4.4.0
 # optional
 maxminddb==1.4.1
 # for vsts repo
