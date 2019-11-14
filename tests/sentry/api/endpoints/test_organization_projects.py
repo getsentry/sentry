@@ -162,3 +162,22 @@ class OrganizationProjectsTest(APITestCase):
         response = self.client.get(self.path + "?all_projects=1&per_page=1")
         # Verify all projects in the org are returned in sorted order
         self.check_valid_response(response, sorted_projects)
+
+    def test_user_projects(self):
+        self.foo_user = self.create_user("foo@example.com")
+        self.login_as(user=self.foo_user)
+
+        other_team = self.create_team(organization=self.org)
+
+        project_bar = self.create_project(teams=[self.team], name="bar", slug="bar")
+        self.create_project(teams=[other_team], name="foo", slug="foo")
+        self.create_project(teams=[other_team], name="baz", slug="baz")
+
+        # Make foo_user a part of the org and self.team
+        self.create_member(organization=self.org, user=self.foo_user, teams=[self.team])
+
+        foo_user_projects = [project_bar]
+
+        response = self.client.get(self.path + "?query=user_projects:1")
+        # Verify projects were returned were foo_users projects
+        self.check_valid_response(response, foo_user_projects)
