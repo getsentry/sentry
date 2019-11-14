@@ -7,6 +7,7 @@ export function IncidentTrigger(params) {
     label: 'Trigger',
     resolveThreshold: 36,
     thresholdType: 0,
+    actions: [],
     ...params,
   };
 }

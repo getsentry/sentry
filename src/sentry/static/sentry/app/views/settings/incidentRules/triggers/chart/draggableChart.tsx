@@ -2,7 +2,6 @@ import {ECharts, EChartOption} from 'echarts';
 import debounce from 'lodash/debounce';
 import maxBy from 'lodash/maxBy';
 import React from 'react';
-import styled from 'react-emotion';
 
 import {ReactEchartsRef, Series, SeriesDataUnit} from 'app/types/echarts';
 import Graphic from 'app/components/charts/components/graphic';
@@ -34,7 +33,7 @@ const CHART_GRID = {
   bottom: space(1),
 };
 
-export default class IncidentRulesChart extends React.Component<Props, State> {
+export default class IncidentRulesChart extends React.PureComponent<Props, State> {
   static defaultProps = {
     data: [],
   };
@@ -246,37 +245,30 @@ export default class IncidentRulesChart extends React.Component<Props, State> {
       this.chartRef.convertToPixel({yAxisIndex: 0}, `${this.props.resolveThreshold}`);
 
     return (
-      <Wrapper>
-        <LineChart
-          isGroupedByDate
-          forwardedRef={this.handleRef}
-          grid={CHART_GRID}
-          xAxis={xAxis}
-          yAxis={{
-            max: this.state.yAxisMax,
-          }}
-          graphic={Graphic({
-            elements: [
-              ...this.getThresholdLine(
-                alertThresholdPosition,
-                false,
-                this.setIncidentThreshold
-              ),
-              ...this.getThresholdLine(
-                resolveThresholdPosition,
-                true,
-                this.setResolutionThreshold
-              ),
-            ],
-          })}
-          series={data}
-        />
-      </Wrapper>
+      <LineChart
+        isGroupedByDate
+        forwardedRef={this.handleRef}
+        grid={CHART_GRID}
+        xAxis={xAxis}
+        yAxis={{
+          max: this.state.yAxisMax,
+        }}
+        graphic={Graphic({
+          elements: [
+            ...this.getThresholdLine(
+              alertThresholdPosition,
+              false,
+              this.setIncidentThreshold
+            ),
+            ...this.getThresholdLine(
+              resolveThresholdPosition,
+              true,
+              this.setResolutionThreshold
+            ),
+          ],
+        })}
+        series={data}
+      />
     );
   }
 }
-
-const Wrapper = styled('div')`
-  position: relative;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
-`;

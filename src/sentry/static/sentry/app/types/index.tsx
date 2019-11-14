@@ -644,3 +644,8 @@ export type SavedQueryState = {
   hasError: boolean;
   isLoading: boolean;
 };
+
+export type SelectValue<T> = {
+  label: string;
+  value: T;
+};
