@@ -35,7 +35,7 @@ class DiscoverBreadcrumb extends React.Component<Props> {
 
       crumbs.push(
         <span key="eventview-sep">
-          <InlineSvg height={'20px'} width={'20px'} src={'icon-chevron-right'} />
+          <InlineSvg height="20px" width="20px" src="icon-chevron-right" />
         </span>
       );
       crumbs.push(
@@ -51,7 +51,7 @@ class DiscoverBreadcrumb extends React.Component<Props> {
 
       crumbs.push(
         <span key="event-sep">
-          <InlineSvg height={'20px'} width={'20px'} src={'icon-chevron-right'} />
+          <InlineSvg height="20px" width="20px" src="icon-chevron-right" />
         </span>
       );
       crumbs.push(<span key="event-name">{t(`${eventType} Event Detail`)}</span>);

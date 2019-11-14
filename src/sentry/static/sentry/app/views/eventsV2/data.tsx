@@ -427,7 +427,7 @@ export const SPECIAL_FIELDS: SpecialFields = {
       });
 
       const target = {
-        pathname: pathname,
+        pathname,
         query: {...location.query},
       };
       return (
