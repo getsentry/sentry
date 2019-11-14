@@ -179,5 +179,5 @@ class OrganizationProjectsTest(APITestCase):
         foo_user_projects = [project_bar]
 
         response = self.client.get(self.path + "?query=user_projects:1")
-        # Verify projects were returned were foo_users projects
+        # Verify projects that were returned were foo_users projects
         self.check_valid_response(response, foo_user_projects)
