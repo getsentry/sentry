@@ -20,7 +20,6 @@ type Props = {
 };
 
 class MiniGraph extends React.Component<Props> {
-
   shouldComponentUpdate(nextProps) {
     return !isEqual(this.props, nextProps);
   }
