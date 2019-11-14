@@ -202,7 +202,7 @@ describe('EventsV2', function() {
     expect(modal).toHaveLength(1);
   });
 
-  it.only('pagination cursor should be cleared when making a search', function() {
+  it('pagination cursor should be cleared when making a search', function() {
     const organization = TestStubs.Organization({
       features,
       projects: [TestStubs.Project()],
