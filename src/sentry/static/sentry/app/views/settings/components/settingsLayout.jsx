@@ -1,4 +1,3 @@
-import {Box, Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -27,16 +26,8 @@ class SettingsLayout extends React.Component {
       <React.Fragment>
         <SettingsColumn>
           <SettingsHeader>
-            <Flex align="center" width={1}>
-              <Box flex="1">
-                <SettingsBreadcrumb
-                  params={params}
-                  routes={childRoutes}
-                  route={childRoute}
-                />
-              </Box>
-              <SettingsSearch routes={routes} router={router} params={params} />
-            </Flex>
+            <SettingsBreadcrumb params={params} routes={childRoutes} route={childRoute} />
+            <SettingsSearch routes={routes} router={router} params={params} />
           </SettingsHeader>
 
           <MaxWidthContainer>
@@ -67,6 +58,7 @@ const SidebarWrapper = styled('div')`
 
 const SettingsColumn = styled('div')`
   display: flex;
+  max-width: 100%;
   flex-direction: column;
   flex: 1; /* so this stretches vertically so that footer is fixed at bottom */
   footer {
