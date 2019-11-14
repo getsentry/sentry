@@ -251,7 +251,7 @@ class EventDetailsWrapper extends React.Component<EventDetailsWrapperProps> {
 const EventHeader = props => {
   const {title} = getTitle(props.event);
   return (
-    <div>
+    <div data-test-id="event-header">
       <OverflowHeader>{title}</OverflowHeader>
       <p>{getMessage(props.event)}</p>
     </div>
