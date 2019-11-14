@@ -183,25 +183,6 @@ describe('EventsV2', function() {
     */
   });
 
-  it('opens a modal when eventSlug is present', async function() {
-    const organization = TestStubs.Organization({
-      features,
-      projects: [TestStubs.Project()],
-    });
-    const wrapper = mountWithTheme(
-      <DiscoverLanding
-        organization={organization}
-        params={{orgId: organization.slug}}
-        location={{query: {eventSlug: 'project-slug:deadbeef'}}}
-        router={{}}
-      />,
-      TestStubs.routerContext()
-    );
-
-    const modal = wrapper.find('EventDetails');
-    expect(modal).toHaveLength(1);
-  });
-
   it('pagination cursor should be cleared when making a search', function() {
     const organization = TestStubs.Organization({
       features,
