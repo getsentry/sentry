@@ -24,7 +24,7 @@ import AsyncComponent from 'app/components/asyncComponent';
 
 import EventView from '../eventView';
 import {hasAggregateField, EventQuery} from '../utils';
-import ModalPagination from '../modalPagination';
+import Pagination from './pagination';
 import ModalLineGraph from '../modalLineGraph';
 import RelatedEvents from '../relatedEvents';
 import TagsTable from '../tagsTable';
@@ -125,11 +125,7 @@ class EventDetailsContent extends AsyncComponent<Props, State & AsyncComponent['
         <HeaderBox>
           <EventHeader event={event} />
           {isGroupedView && (
-            <ModalPagination
-              event={event}
-              organization={organization}
-              eventView={eventView}
-            />
+            <Pagination event={event} organization={organization} eventView={eventView} />
           )}
           {isGroupedView &&
             getDynamicText({

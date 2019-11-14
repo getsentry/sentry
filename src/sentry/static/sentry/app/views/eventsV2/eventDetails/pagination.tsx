@@ -8,8 +8,8 @@ import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
 import {Event, Organization} from 'app/types';
 
-import {generateEventDetailsRoute} from './eventDetails/utils';
-import EventView from './eventView';
+import {generateEventDetailsRoute} from './utils';
+import EventView from '../eventView';
 
 type LinksType = {
   oldest: null;
@@ -59,7 +59,7 @@ type Props = {
   eventView: EventView;
 };
 
-const ModalPagination = (props: Props) => {
+const Pagination = (props: Props) => {
   const {event, organization, eventView} = props;
   const links = buildTargets(event, eventView, organization);
 
@@ -135,4 +135,4 @@ const ShadowBox = styled('div')`
   }
 `;
 
-export default ModalPagination;
+export default Pagination;
