@@ -19,6 +19,7 @@ import DateTime from 'app/components/dateTime';
 import ExternalLink from 'app/components/links/externalLink';
 import FileSize from 'app/components/fileSize';
 import {PageHeader} from 'app/styles/organization';
+import NotFound from 'app/components/errors/notFound';
 
 import EventView from '../eventView';
 import {hasAggregateField} from '../utils';
@@ -54,7 +55,7 @@ type Props = {
 
 type State = {
   isLoading: boolean;
-  error: null | string;
+  error: null | {status?: number};
   event: Event | undefined;
 };
 
@@ -115,7 +116,7 @@ class EventDetailsContent extends React.Component<Props, State> {
       .catch(err => {
         this.setState({
           isLoading: false,
-          error: err.responseJSON.detail,
+          error: err,
         });
       });
   };
@@ -128,12 +129,80 @@ class EventDetailsContent extends React.Component<Props, State> {
     eventTitle,
     eventViewName,
   }: {
-    eventTitle: string;
+    eventTitle: string | undefined;
     eventViewName: string | undefined;
   }): Array<string> => {
-    return typeof eventViewName === 'string' && String(eventViewName).trim().length > 0
-      ? [eventTitle, String(eventViewName).trim(), t('Discover')]
-      : [eventTitle, t('Discover')];
+    let titles = [t('Discover')];
+
+    if (typeof eventViewName === 'string' && String(eventViewName).trim().length > 0) {
+      titles.push(String(eventViewName).trim());
+    }
+
+    if (eventTitle) {
+      titles.push(eventTitle);
+    }
+
+    return titles;
+  };
+
+  renderBody = ({eventView}: {eventView: EventView}) => {
+    if (this.state.error) {
+      console.log('this.state.error', Object.keys(this.state.error));
+
+      if (this.state.error.status === 404) {
+        return <NotFound />;
+      }
+
+      return 'error';
+    }
+
+    const {organization, location} = this.props;
+
+    // Having an aggregate field means we want to show pagination/graphs
+    const isGroupedView = hasAggregateField(eventView);
+    const eventJsonUrl = `/api/0/projects/${organization.slug}/${this.projectId}/events/${
+      event.eventID
+    }/json/`;
+
+    return (
+      <ColumnGrid>
+        <HeaderBox>
+          <EventHeader event={event} />
+          {isGroupedView && <ModalPagination event={event} location={location} />}
+          {isGroupedView &&
+            getDynamicText({
+              value: (
+                <ModalLineGraph
+                  organization={organization}
+                  currentEvent={event}
+                  location={location}
+                  eventView={eventView}
+                />
+              ),
+              fixed: 'events chart',
+            })}
+        </HeaderBox>
+        <ContentColumn>
+          <EventInterfaces event={event} projectId={this.projectId} />
+        </ContentColumn>
+        <SidebarColumn>
+          {event.groupID && (
+            <LinkedIssuePreview groupId={event.groupID} eventId={event.eventID} />
+          )}
+          {event.type === 'transaction' && (
+            <RelatedEvents
+              organization={organization}
+              event={event}
+              location={location}
+            />
+          )}
+          <EventMetadata event={event} eventJsonUrl={eventJsonUrl} />
+          <SidebarBlock>
+            <TagsTable tags={event.tags} />
+          </SidebarBlock>
+        </SidebarColumn>
+      </ColumnGrid>
+    );
   };
 
   render() {
@@ -142,32 +211,15 @@ class EventDetailsContent extends React.Component<Props, State> {
       return 'loading';
     }
 
-    if (this.state.error) {
-      // TODO: flesh out
-      return 'error';
-    }
-
     const {event} = this.state;
 
-    if (!event) {
-      // TODO: flesh out
-      return 'no event';
-    }
-
     const {organization, location} = this.props;
-    const {title} = getTitle(event);
     const eventView = this.getEventView();
 
     const documentTitle = this.getDocumentTitle({
-      eventTitle: title,
+      eventTitle: event ? getTitle(event).title : undefined,
       eventViewName: eventView.name,
     }).join(' - ');
-
-    // Having an aggregate field means we want to show pagination/graphs
-    const isGroupedView = hasAggregateField(eventView);
-    const eventJsonUrl = `/api/0/projects/${organization.slug}/${this.projectId}/events/${
-      event.eventID
-    }/json/`;
 
     return (
       <DocumentTitle title={`${documentTitle} - ${organization.slug} - Sentry`}>
@@ -180,43 +232,7 @@ class EventDetailsContent extends React.Component<Props, State> {
               location={location}
             />
           </PageHeader>
-          <ColumnGrid>
-            <HeaderBox>
-              <EventHeader event={event} />
-              {isGroupedView && <ModalPagination event={event} location={location} />}
-              {isGroupedView &&
-                getDynamicText({
-                  value: (
-                    <ModalLineGraph
-                      organization={organization}
-                      currentEvent={event}
-                      location={location}
-                      eventView={eventView}
-                    />
-                  ),
-                  fixed: 'events chart',
-                })}
-            </HeaderBox>
-            <ContentColumn>
-              <EventInterfaces event={event} projectId={this.projectId} />
-            </ContentColumn>
-            <SidebarColumn>
-              {event.groupID && (
-                <LinkedIssuePreview groupId={event.groupID} eventId={event.eventID} />
-              )}
-              {event.type === 'transaction' && (
-                <RelatedEvents
-                  organization={organization}
-                  event={event}
-                  location={location}
-                />
-              )}
-              <EventMetadata event={event} eventJsonUrl={eventJsonUrl} />
-              <SidebarBlock>
-                <TagsTable tags={event.tags} />
-              </SidebarBlock>
-            </SidebarColumn>
-          </ColumnGrid>
+          {this.renderBody({eventView})}
         </React.Fragment>
       </DocumentTitle>
     );
