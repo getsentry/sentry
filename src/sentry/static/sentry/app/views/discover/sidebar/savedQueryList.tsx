@@ -75,6 +75,7 @@ export default class SavedQueries extends React.Component<
   fetchAll() {
     fetchSavedQueries(this.props.organization)
       .then((data: SavedQuery[]) => {
+        data = data.filter(item => item.version === 1 || item.version === undefined);
         this.setState({isLoading: false, data});
       })
       .catch(() => {

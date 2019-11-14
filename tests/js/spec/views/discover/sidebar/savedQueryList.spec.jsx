@@ -30,13 +30,17 @@ describe('savedQueryList', function() {
     const savedQueries = [
       TestStubs.DiscoverSavedQuery({id: '1', name: 'one'}),
       TestStubs.DiscoverSavedQuery({id: '2', name: '2two'}),
+      TestStubs.DiscoverSavedQuery({id: '3', name: 'three v2', version: 2}),
     ];
     mockResponse.push(...savedQueries);
     const wrapper = mount(<SavedQueryList organization={organization} />);
     await tick();
-    savedQueries.forEach(query => {
-      expect(wrapper.text()).toContain(query.name);
-      expect(wrapper.text()).toContain('Updated Sep 24 00:00:00 (UTC)');
-    });
+
+    const text = wrapper.text();
+    expect(text).toContain('Updated Sep 24 00:00:00 (UTC)');
+    expect(text).toContain(savedQueries[0].name);
+    expect(text).toContain(savedQueries[1].name);
+    // v2 queries should not be present.
+    expect(text).not.toContain(savedQueries[2].name);
   });
 });
