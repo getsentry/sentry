@@ -78,7 +78,7 @@ class OrganizationGeneralSettings extends React.Component<Props> {
               <Field
                 label={t('Remove Organization')}
                 help={t(
-                  'Removing this organization will delete all organization including projects and their associated events.'
+                  'Removing this organization will delete all data including projects and their associated events.'
                 )}
               >
                 <div>
