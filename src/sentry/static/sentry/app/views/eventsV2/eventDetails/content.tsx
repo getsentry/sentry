@@ -1,6 +1,5 @@
 import React from 'react';
 import {Params} from 'react-router/lib/Router';
-import DocumentTitle from 'react-document-title';
 import {Location} from 'history';
 import styled from 'react-emotion';
 import PropTypes from 'prop-types';
@@ -21,6 +20,7 @@ import FileSize from 'app/components/fileSize';
 import {PageHeader} from 'app/styles/organization';
 import NotFound from 'app/components/errors/notFound';
 import AsyncComponent from 'app/components/asyncComponent';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 
 import EventView from '../eventView';
 import {hasAggregateField, EventQuery} from '../utils';
@@ -213,6 +213,8 @@ class EventDetailsWrapper extends React.Component<EventDetailsWrapperProps> {
       titles.push(eventTitle);
     }
 
+    titles.reverse();
+
     return titles.join(' - ');
   };
 
@@ -220,7 +222,7 @@ class EventDetailsWrapper extends React.Component<EventDetailsWrapperProps> {
     const {organization, location, eventView, event, children} = this.props;
 
     return (
-      <DocumentTitle title={`${this.getDocumentTitle()} - ${organization.slug} - Sentry`}>
+      <SentryDocumentTitle title={this.getDocumentTitle()} objSlug={organization.slug}>
         <React.Fragment>
           <PageHeader>
             <DiscoverBreadcrumb
@@ -232,7 +234,7 @@ class EventDetailsWrapper extends React.Component<EventDetailsWrapperProps> {
           </PageHeader>
           {children}
         </React.Fragment>
-      </DocumentTitle>
+      </SentryDocumentTitle>
     );
   }
 }

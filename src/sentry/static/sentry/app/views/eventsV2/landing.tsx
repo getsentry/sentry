@@ -1,5 +1,4 @@
 import React from 'react';
-import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 import * as ReactRouter from 'react-router';
@@ -12,7 +11,7 @@ import SentryTypes from 'app/sentryTypes';
 import {Organization} from 'app/types';
 import localStorage from 'app/utils/localStorage';
 import withOrganization from 'app/utils/withOrganization';
-
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import Banner from 'app/components/banner';
 import Button from 'app/components/button';
@@ -65,10 +64,21 @@ class DiscoverLanding extends React.Component<Props> {
     }
   }
 
-  getDocumentTitle = (name: string | undefined): Array<string> => {
-    return typeof name === 'string' && String(name).trim().length > 0
-      ? [String(name).trim(), t('Discover')]
-      : [t('Discover')];
+  getDocumentTitle = (eventView: EventView): string => {
+    const titles = [t('Discover')];
+
+    const eventViewName = eventView.name;
+    if (
+      eventView.isValid() &&
+      typeof eventViewName === 'string' &&
+      String(eventViewName).trim().length > 0
+    ) {
+      titles.push(String(eventViewName).trim());
+    }
+
+    titles.reverse();
+
+    return titles.join(' - ');
   };
 
   handleClick = () => {
@@ -153,13 +163,15 @@ class DiscoverLanding extends React.Component<Props> {
   render() {
     const {organization, location, router} = this.props;
     const eventView = EventView.fromLocation(location);
-    const documentTitle = this.getDocumentTitle(eventView.name).join(' - ');
 
     const hasQuery = eventView.isValid();
 
     return (
       <Feature features={['events-v2']} organization={organization} renderDisabled>
-        <DocumentTitle title={`${documentTitle} - ${organization.slug} - Sentry`}>
+        <SentryDocumentTitle
+          title={this.getDocumentTitle(eventView)}
+          objSlug={organization.slug}
+        >
           <React.Fragment>
             <GlobalSelectionHeader organization={organization} />
             <PageContent>
@@ -191,7 +203,7 @@ class DiscoverLanding extends React.Component<Props> {
               </NoProjectMessage>
             </PageContent>
           </React.Fragment>
-        </DocumentTitle>
+        </SentryDocumentTitle>
       </Feature>
     );
   }

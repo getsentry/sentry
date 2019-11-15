@@ -1,7 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {Params} from 'react-router/lib/Router';
-import DocumentTitle from 'react-document-title';
 import {Location} from 'history';
 
 import {t} from 'app/locale';
@@ -11,6 +10,7 @@ import NoProjectMessage from 'app/components/noProjectMessage';
 import {Organization} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
 import withOrganization from 'app/utils/withOrganization';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 
 import EventView from '../eventView';
 import EventDetailsContent from './content';
@@ -56,7 +56,7 @@ class EventDetails extends React.Component<Props> {
     const documentTitle = this.getDocumentTitle(eventView.name).join(' - ');
 
     return (
-      <DocumentTitle title={`${documentTitle} - ${organization.slug} - Sentry`}>
+      <SentryDocumentTitle title={documentTitle} objSlug={organization.slug}>
         <React.Fragment>
           <GlobalSelectionHeader organization={organization} />
           <PageContent>
@@ -71,7 +71,7 @@ class EventDetails extends React.Component<Props> {
             </NoProjectMessage>
           </PageContent>
         </React.Fragment>
-      </DocumentTitle>
+      </SentryDocumentTitle>
     );
   }
 }
