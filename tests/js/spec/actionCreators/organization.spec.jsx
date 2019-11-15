@@ -57,6 +57,14 @@ describe('OrganizationActionCreator', function() {
       url: `/organizations/${lightOrg.slug}/`,
       body: lightOrg,
     });
+    const getProjectsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${lightOrg.slug}/projects/`,
+      body: [],
+    });
+    const getTeamsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${lightOrg.slug}/teams/`,
+      body: [],
+    });
 
     fetchOrganizationDetails(api, lightOrg.slug, false);
     await tick();
@@ -64,6 +72,14 @@ describe('OrganizationActionCreator', function() {
 
     expect(getOrgMock).toHaveBeenCalledWith(
       `/organizations/${lightOrg.slug}/`,
+      expect.anything()
+    );
+    expect(getProjectsMock).toHaveBeenCalledWith(
+      `/organizations/${lightOrg.slug}/projects/`,
+      expect.anything()
+    );
+    expect(getTeamsMock).toHaveBeenCalledWith(
+      `/organizations/${lightOrg.slug}/teams/`,
       expect.anything()
     );
     expect(OrganizationActions.update).toHaveBeenCalledWith(lightOrg);
