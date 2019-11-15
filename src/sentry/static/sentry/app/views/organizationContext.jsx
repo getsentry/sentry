@@ -89,12 +89,16 @@ const OrganizationContext = createReactClass({
     // protect against the case where we finish fetching org details
     // and then `OrganizationsStore` finishes loading:
     // only fetch in the case where we don't have an orgId
+    //
+    // Compare `getOrganizationSlug`  because we may have a last used org from server
+    // if there is no orgId in the URL
     const organizationLoadingChanged =
       prevProps.organizationsLoading !== this.props.organizationsLoading &&
       this.props.organizationsLoading === false;
 
     if (
-      hasOrgIdAndChanged ||
+      (hasOrgIdAndChanged &&
+        this.getOrganizationSlug(prevProps) !== this.getOrganizationSlug(this.props)) ||
       (!this.props.params.orgId && organizationLoadingChanged) ||
       (this.props.location.state === 'refresh' && prevProps.location.state !== 'refresh')
     ) {
@@ -117,14 +121,14 @@ const OrganizationContext = createReactClass({
     fetchOrganizationDetails(this.props.api, this.getOrganizationSlug(), true);
   },
 
-  getOrganizationSlug() {
+  getOrganizationSlug(props = this.props) {
     return (
-      this.props.params.orgId ||
-      (this.props.useLastOrganization &&
+      props.params.orgId ||
+      (props.useLastOrganization &&
         (ConfigStore.get('lastOrganization') ||
-          (this.props.organizations &&
-            this.props.organizations.length &&
-            this.props.organizations[0].slug)))
+          (props.organizations &&
+            props.organizations.length &&
+            props.organizations[0].slug)))
     );
   },
 
