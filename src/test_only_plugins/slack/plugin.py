@@ -5,7 +5,7 @@ from sentry.plugins.bases import notify
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
-from new_sentry_plugins.base import CorePluginMixin
+from test_only_plugins.base import CorePluginMixin
 
 LEVEL_TO_COLOR = {
     "debug": "cfd3da",
