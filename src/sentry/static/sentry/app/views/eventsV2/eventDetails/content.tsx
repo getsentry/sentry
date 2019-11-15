@@ -113,9 +113,6 @@ class EventDetailsContent extends AsyncComponent<Props, State & AsyncComponent['
 
     // Having an aggregate field means we want to show pagination/graphs
     const isGroupedView = hasAggregateField(eventView);
-    const eventJsonUrl = `/api/0/projects/${organization.slug}/${this.projectId}/events/${
-      event.eventID
-    }/json/`;
 
     return (
       <ColumnGrid>
@@ -152,7 +149,11 @@ class EventDetailsContent extends AsyncComponent<Props, State & AsyncComponent['
               eventView={eventView}
             />
           )}
-          <EventMetadata event={event} eventJsonUrl={eventJsonUrl} />
+          <EventMetadata
+            event={event}
+            organization={organization}
+            projectId={this.projectId}
+          />
           <SidebarBlock>
             <TagsTable tags={event.tags} />
           </SidebarBlock>
@@ -270,8 +271,16 @@ const MetadataContainer = styled('div')`
 /**
  * Render metadata about the event and provide a link to the JSON blob
  */
-const EventMetadata = (props: {event: Event; eventJsonUrl: string}) => {
-  const {event, eventJsonUrl} = props;
+const EventMetadata = (props: {
+  event: Event;
+  organization: Organization;
+  projectId: string;
+}) => {
+  const {event, organization, projectId} = props;
+
+  const eventJsonUrl = `/api/0/projects/${organization.slug}/${projectId}/events/${
+    event.eventID
+  }/json/`;
 
   return (
     <SidebarBlock withSeparator>
@@ -289,10 +298,6 @@ const EventMetadata = (props: {event: Event; eventJsonUrl: string}) => {
       </MetadataContainer>
     </SidebarBlock>
   );
-};
-EventMetadata.propTypes = {
-  event: SentryTypes.Event.isRequired,
-  eventJsonUrl: PropTypes.string.isRequired,
 };
 
 const ColumnGrid = styled('div')`
