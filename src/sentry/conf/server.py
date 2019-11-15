@@ -293,8 +293,8 @@ TEMPLATE_DIRS = (
 TEMPLATE_CONTEXT_PROCESSORS = (
     "django.contrib.auth.context_processors.auth",
     "django.contrib.messages.context_processors.messages",
-    "django.core.context_processors.csrf",
-    "django.core.context_processors.request",
+    "django.template.context_processors.csrf",
+    "django.template.context_processors.request",
     "social_auth.context_processors.social_auth_by_name_backends",
     "social_auth.context_processors.social_auth_backends",
     "social_auth.context_processors.social_auth_by_type_backends",

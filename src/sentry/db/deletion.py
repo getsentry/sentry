@@ -86,7 +86,7 @@ class BulkDeleteQuery(object):
             cutoff = timezone.now() - timedelta(days=self.days)
             qs = qs.filter(**{u"{}__lte".format(self.dtfield): cutoff})
         if self.project_id:
-            if "project" in self.model._meta.get_all_field_names():
+            if "project" in [f.name for f in self.model._meta.get_fields()]:
                 qs = qs.filter(project=self.project_id)
             else:
                 qs = qs.filter(project_id=self.project_id)

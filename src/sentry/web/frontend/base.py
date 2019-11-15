@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import logging
 import six
 
-from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.http import (
     HttpResponse,
@@ -12,6 +11,7 @@ from django.http import (
     HttpResponseRedirect,
 )
 from django.middleware.csrf import CsrfViewMiddleware
+from django.template.context_processors import csrf
 from django.views.generic import View
 from django.views.decorators.csrf import csrf_exempt
 from sudo.views import redirect_to_sudo

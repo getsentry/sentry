@@ -223,7 +223,7 @@ def _get_event_environment(event, project, cache):
 def merge_objects(models, group, new_group, limit=1000, logger=None, transaction_id=None):
     has_more = False
     for model in models:
-        all_fields = model._meta.get_all_field_names()
+        all_fields = [f.name for f in model._meta.get_fields()]
 
         # not all models have a 'project' or 'project_id' field, but we make a best effort
         # to filter on one if it is available

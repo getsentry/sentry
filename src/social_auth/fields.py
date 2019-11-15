@@ -7,12 +7,22 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.encoding import smart_text
 
+from sentry.db.models.utils import Creator
 
-@six.add_metaclass(models.SubfieldBase)
+
+# @six.add_metaclass(models.SubfieldBase)
 class JSONField(models.TextField):
     """Simple JSON field that stores python structures as JSON strings
     on database.
     """
+
+    def contribute_to_class(self, cls, name):
+        """
+        Add a descriptor for backwards compatibility
+        with previous Django behavior.
+        """
+        super(JSONField, self).contribute_to_class(cls, name)
+        setattr(cls, name, Creator(self))
 
     def to_python(self, value):
         """
