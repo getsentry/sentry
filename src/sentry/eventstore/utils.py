@@ -27,5 +27,10 @@ def callback_func(context, method, callargs, backends, results):
         if results[0].result() != results[1].result():
             logger.info(
                 "discover.result-mismatch",
-                extra={"snuba": results[0].result(), "snuba_discover": results[1].result()},
+                extra={
+                    "method": method,
+                    "callargs": callargs,
+                    "snuba": results[0].result(),
+                    "snuba_discover": results[1].result(),
+                },
             )
