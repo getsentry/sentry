@@ -32,7 +32,7 @@ import EventView from './eventView';
 import EventInputName from './eventInputName';
 import {getFirstQueryString} from './utils';
 import QueryList from './queryList';
-import {DEFAULT_EVENT_VIEW_V1} from './data';
+import {DEFAULT_EVENT_VIEW} from './data';
 
 const DISPLAY_SEARCH_BAR_FLAG = false;
 
@@ -84,7 +84,7 @@ class EventsV2 extends React.Component<Props> {
   }
 
   renderActions() {
-    const eventView = EventView.fromEventViewv1(DEFAULT_EVENT_VIEW_V1);
+    const eventView = EventView.fromSavedQuery(DEFAULT_EVENT_VIEW);
 
     const to = {
       pathname: location.pathname,
