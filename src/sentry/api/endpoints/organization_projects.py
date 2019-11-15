@@ -97,6 +97,8 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                 elif key == "!team":
                     team_list = list(Team.objects.filter(slug__in=value))
                     queryset = queryset.exclude(teams__in=team_list)
+                elif key == "is_member":
+                    queryset = queryset.filter(teams__organizationmember__user=request.user)
                 else:
                     queryset = queryset.none()
 
