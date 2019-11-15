@@ -90,5 +90,10 @@ class ServiceDelegationTest(TestCase, SnubaTestCase):
             assert mock_logger.call_count == 1
             mock_logger.assert_called_with(
                 "discover.result-mismatch",
-                extra={"snuba": None, "snuba_discover": (six.text_type(self.project.id), "b" * 32)},
+                extra={
+                    "snuba": None,
+                    "snuba_discover": (six.text_type(self.project.id), "b" * 32),
+                    "method": "get_next_event_id",
+                    "callargs": {"self": None, "filter": filter, "event": event},
+                },
             )
