@@ -7,7 +7,6 @@ import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
 import {ORGANIZATION_FETCH_ERROR_TYPES} from 'app/constants';
-import {Client} from 'app/api';
 import {fetchOrganizationDetails} from 'app/actionCreators/organization';
 import {metric, logExperiment} from 'app/utils/analytics';
 import {openSudo} from 'app/actionCreators/modal';
@@ -20,7 +19,6 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import OrganizationStore from 'app/stores/organizationStore';
 import ProjectActions from 'app/actions/projectActions';
-import TeamActions from 'app/actions/teamActions';
 import SentryTypes from 'app/sentryTypes';
 import Sidebar from 'app/components/sidebar';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
@@ -169,24 +167,6 @@ const OrganizationContext = createReactClass({
       this.props.detailed,
       true // silent
     );
-    // create a request for all teams and all projects if in lightweight org
-    if (!this.props.detailed) {
-      // create a new client so when this context unmounts the requests continue
-      const persistedAPI = new Client();
-      const projects = await persistedAPI.requestPromise(
-        this.getOrganizationProjectsEndpoint(),
-        {
-          query: {
-            all_projects: 1,
-          },
-        }
-      );
-      ProjectActions.loadProjects(projects);
-      const teams = await persistedAPI.requestPromise(
-        this.getOrganizationTeamsEndpoint()
-      );
-      TeamActions.loadTeams(teams);
-    }
   },
 
   loadOrganization(orgData) {
@@ -256,14 +236,6 @@ const OrganizationContext = createReactClass({
 
   getOrganizationDetailsEndpoint() {
     return `/organizations/${this.getOrganizationSlug()}/`;
-  },
-
-  getOrganizationTeamsEndpoint() {
-    return `/organizations/${this.getOrganizationSlug()}/teams/`;
-  },
-
-  getOrganizationProjectsEndpoint() {
-    return `/organizations/${this.getOrganizationSlug()}/projects/`;
   },
 
   getTitle() {

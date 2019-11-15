@@ -1,9 +1,11 @@
 import {setActiveOrganization} from 'app/actionCreators/organizations';
 
+import {Client} from 'app/api';
 import OrganizationActions from 'app/actions/organizationActions';
-import TeamStore from 'app/stores/teamStore';
+import ProjectActions from 'app/actions/projectActions';
 import ProjectsStore from 'app/stores/projectsStore';
-
+import TeamActions from 'app/actions/teamActions';
+import TeamStore from 'app/stores/teamStore';
 /**
  * Fetches an organization's details with an option for the detailed representation
  * with teams and projects
@@ -28,6 +30,22 @@ export async function fetchOrganizationDetails(api, slug, detailed, silent) {
     if (!org) {
       OrganizationActions.fetchOrgError(new Error('retrieved organization is falsey'));
       return;
+    }
+
+    // create a request for all teams and all projects if in lightweight org
+    if (!detailed) {
+      // create a new client so when this context unmounts the requests continue
+      const persistedAPI = new Client();
+      persistedAPI
+        .requestPromise(`/organizations/${slug}/projects/`, {
+          query: {
+            all_projects: 1,
+          },
+        })
+        .then(ProjectActions.loadProjects);
+      persistedAPI
+        .requestPromise(`/organizations/${slug}/teams/`)
+        .then(TeamActions.loadTeams);
     }
 
     OrganizationActions.update(org);
