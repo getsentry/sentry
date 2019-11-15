@@ -1,7 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
-import {OrganizationUserFeedback} from 'app/views/userFeedback/organizationUserFeedback';
+import OrganizationUserFeedback from 'app/views/userFeedback';
 
 describe('OrganizationUserFeedback', function() {
   let organization, routerContext;
