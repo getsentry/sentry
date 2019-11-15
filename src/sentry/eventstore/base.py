@@ -27,7 +27,7 @@ class Columns(Enum):
     MESSAGE = Column("message", "transaction_name", "message", "message")
     PLATFORM = Column("platform", "platform", "platform", "platform.name")
     ENVIRONMENT = Column("environment", "environment", "environment", "environment")
-    RELEASE = Column("tags[sentry:release]", "release", "sentry:release", "release")
+    RELEASE = Column("tags[sentry:release]", "release", "release", "release")
     TITLE = Column("title", "transaction_name", "title", "title")
     TYPE = Column("type", None, "type", "event.type")
     TAGS_KEY = Column("tags.key", "tags.key", "tags.key", "tags.key")
