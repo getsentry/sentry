@@ -44,9 +44,9 @@ const BannerWrapper = styled('div')`
   background-size: cover;
   background-position: center center;
   position: relative;
-  min-height: 320px;
+  min-height: 200px;
   margin-bottom: ${space(3)};
-  padding-top: 24%;
+  padding-top: 22%;
   box-shadow: ${p => p.theme.dropShadowLight};
 
   @media (min-width: ${theme.breakpoints[1]}) {
@@ -55,7 +55,7 @@ const BannerWrapper = styled('div')`
 
   @media (min-width: ${theme.breakpoints[3]}) {
     padding-top: 0;
-    height: 300px;
+    min-height: 260px;
   }
 `;
 
@@ -96,14 +96,11 @@ const BannerSubtitle = styled('h4')`
 
 const BannerActions = styled('div')`
   display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  justify-content: center;
   width: 100%;
 
   @media (min-width: ${theme.breakpoints[1]}) {
     width: auto;
-    flex-direction: row;
-    min-width: 650px;
   }
 `;
 

@@ -2,22 +2,23 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {PageContent} from 'app/styles/organization';
 import {Organization, UserReport} from 'app/types';
+import {PageContent} from 'app/styles/organization';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import CompactIssue from 'app/components/issues/compactIssue';
 import EventUserFeedback from 'app/components/events/userFeedback';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import LoadingIndicator from 'app/components/loadingIndicator';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import SentryTypes from 'app/sentryTypes';
+import profiler from 'app/utils/profiler';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 
+import {getQuery} from './utils';
 import UserFeedbackContainer from './container';
 import UserFeedbackEmpty from './userFeedbackEmpty';
-import {getQuery} from './utils';
 
 type State = AsyncView['state'] & {
   reportList: UserReport[];
@@ -128,7 +129,7 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
 }
 
 export {OrganizationUserFeedback};
-export default withOrganization(OrganizationUserFeedback);
+export default withOrganization(profiler()(OrganizationUserFeedback));
 
 const StyledEventUserFeedback = styled(EventUserFeedback)`
   margin: ${space(2)} 0 0;

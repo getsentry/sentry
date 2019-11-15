@@ -389,8 +389,8 @@ def validate_options(settings):
 
 
 def monkeypatch_django_migrations():
-    # This monkey patches the django 1.8 migration executor with a backported 1.9
-    # executor. This improves the speed that Django builds the migration state.
+    # This monkeypatches django's migration executor with our own, which
+    # adds some small but important customizations.
     import sentry.new_migrations.monkey  # NOQA
 
 

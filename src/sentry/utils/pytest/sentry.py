@@ -128,9 +128,9 @@ def pytest_configure(config):
     patcher.start()
 
     if not settings.MIGRATIONS_TEST_MIGRATE:
-        # TODO: In Django 1.9 the value can be set to `None` rather than a nonexistent
-        # module.
-        settings.MIGRATION_MODULES["sentry"] = "sentry.migrations_not_used_in_tests"
+        # Migrations for the "sentry" app take a long time to run, which makes test startup time slow in dev.
+        # This is a hack to force django to sync the database state from the models rather than use migrations.
+        settings.MIGRATION_MODULES["sentry"] = None
 
     from sentry.runner.initializer import (
         bind_cache_to_option_store,

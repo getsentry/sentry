@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import six
 from exam import fixture
 
 from sentry.api.serializers import serialize
@@ -115,12 +116,14 @@ class AlertRuleTriggerActionDetailsPutEndpointTest(AlertRuleTriggerActionDetails
                 self.alert_rule.id,
                 self.trigger.id,
                 self.action.id,
-                target_identifier="wat",
+                target_type=AlertRuleTriggerAction.TargetType.USER.value,
+                target_identifier=six.text_type(self.user.id),
             )
 
-        self.action.target_identifier = "wat"
+        self.action.target_type = AlertRuleTriggerAction.TargetType.USER.value
+        self.action.target_identifier = six.text_type(self.user.id)
         assert resp.data == serialize(self.action)
-        assert resp.data["targetIdentifier"] == "wat"
+        assert resp.data["targetIdentifier"] == six.text_type(self.user.id)
 
     def test_not_updated_fields(self):
         self.create_member(
