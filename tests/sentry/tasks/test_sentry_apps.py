@@ -224,7 +224,7 @@ class TestProcessResourceChange(TestCase):
     @with_feature("organizations:integrations-event-hooks")
     def test_error_created_sends_webhook(self, safe_urlopen):
         sentry_app = self.create_sentry_app(
-            organization=self.create_organization(), events=["error.created"]
+            organization=self.project.organization, events=["error.created"]
         )
         install = self.create_sentry_app_installation(
             organization=self.project.organization, slug=sentry_app.slug
@@ -258,33 +258,34 @@ class TestProcessResourceChange(TestCase):
         assert faux(safe_urlopen).kwargs_contain("headers.Sentry-Hook-Timestamp")
         assert faux(safe_urlopen).kwargs_contain("headers.Sentry-Hook-Signature")
 
-    @with_feature("organizations:integrations-event-hooks")
-    def test_integration_org_error_created_doesnt_send_webhook(self, safe_urlopen):
-        sentry_app = self.create_sentry_app(
-            organization=self.project.organization, events=["error.created"]
-        )
-        self.create_sentry_app_installation(
-            organization=self.project.organization, slug=sentry_app.slug
-        )
+    # TODO(nola): Enable this test whenever we prevent infinite loops w/ error.created integrations
+    # @with_feature("organizations:integrations-event-hooks")
+    # def test_integration_org_error_created_doesnt_send_webhook(self, safe_urlopen):
+    #     sentry_app = self.create_sentry_app(
+    #         organization=self.project.organization, events=["error.created"]
+    #     )
+    #     self.create_sentry_app_installation(
+    #         organization=self.project.organization, slug=sentry_app.slug
+    #     )
 
-        one_min_ago = iso_format(before_now(minutes=1))
-        event = self.store_event(
-            data={
-                "message": "Foo bar",
-                "exception": {"type": "Foo", "value": "shits on fiah yo"},
-                "level": "error",
-                "timestamp": one_min_ago,
-            },
-            project_id=self.project.id,
-            assert_no_errors=False,
-        )
+    #     one_min_ago = iso_format(before_now(minutes=1))
+    #     event = self.store_event(
+    #         data={
+    #             "message": "Foo bar",
+    #             "exception": {"type": "Foo", "value": "shits on fiah yo"},
+    #             "level": "error",
+    #             "timestamp": one_min_ago,
+    #         },
+    #         project_id=self.project.id,
+    #         assert_no_errors=False,
+    #     )
 
-        with self.tasks():
-            post_process_group(
-                event=event, is_new=False, is_regression=False, is_new_group_environment=False
-            )
+    #     with self.tasks():
+    #         post_process_group(
+    #             event=event, is_new=False, is_regression=False, is_new_group_environment=False
+    #         )
 
-        assert not safe_urlopen.called
+    #     assert not safe_urlopen.called
 
 
 @patch("sentry.mediators.sentry_app_installations.InstallationNotifier.run")
