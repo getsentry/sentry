@@ -53,7 +53,7 @@ class IncidentActivitySerializerTest(TestCase, SnubaTestCase):
         assert result["comment"] == activity.comment
         assert result["dateCreated"] == activity.date_added
 
-    @freeze_time(datetime(2019, 10, 16, 12, 30, 25))
+    @freeze_time(datetime(2019, 11, 14, 12, 30, 25))
     def test_event_stats(self):
         for _ in range(2):
             self.store_event(
