@@ -4,7 +4,6 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 
 import {Panel, PanelHeader} from 'app/components/panels';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {addLoadingMessage} from 'app/actionCreators/indicator';
 import {
   changeOrganizationSlug,
@@ -12,13 +11,14 @@ import {
   updateOrganization,
 } from 'app/actionCreators/organizations';
 import {t, tct} from 'app/locale';
-import withApi from 'app/utils/withApi';
 import Field from 'app/views/settings/components/forms/field';
 import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
+import withApi from 'app/utils/withApi';
+import withOrganization from 'app/utils/withOrganization';
 
 import OrganizationSettingsForm from './organizationSettingsForm';
 
@@ -27,6 +27,7 @@ const OrganizationGeneralSettings = createReactClass({
 
   propTypes: {
     api: PropTypes.object,
+    organization: SentryTypes.Organization.isRequired,
     routes: PropTypes.arrayOf(PropTypes.object),
   },
 
@@ -36,31 +37,6 @@ const OrganizationGeneralSettings = createReactClass({
       error: false,
       data: null,
     };
-  },
-
-  componentDidMount() {
-    Promise.all([this.fetchData()]).then(
-      ([data]) => {
-        this.setState({data, loading: false});
-      },
-      () => {
-        this.setState({error: true, loading: false});
-      }
-    );
-  },
-
-  fetchData() {
-    return new Promise((resolve, reject) => {
-      this.props.api.request(`/organizations/${this.props.params.orgId}/`, {
-        method: 'GET',
-        success: data => {
-          resolve(data);
-        },
-        error: () => {
-          reject();
-        },
-      });
-    });
   },
 
   handleRemoveOrganization() {
@@ -82,94 +58,88 @@ const OrganizationGeneralSettings = createReactClass({
       changeOrganizationSlug(prevData, data);
       browserHistory.replace(`/settings/${data.slug}/`);
     } else {
-      // TODO(dcramer): this should propagate
-      this.setState({data});
-      // Ugh `data` here is different than data in OrganizationsStore
+      // This will update OrganizationStore (as well as OrganizationsStore
+      // which is slightly incorrect because it has summaries vs a detailed org)
       updateOrganization(data);
     }
   },
 
   render() {
-    const {data, loading, error} = this.state;
+    const {organization: data} = this.props;
     const orgId = this.props.params.orgId;
     const access = data && new Set(data.access);
 
     const hasProjects = data && data.projects && !!data.projects.length;
 
     return (
-      <div>
+      <React.Fragment>
         <SentryDocumentTitle title={t('General Settings')} objSlug={orgId} />
-        {error && <LoadingError />}
-        {loading && !error && <LoadingIndicator />}
+        <div>
+          <SettingsPageHeader title={t('Organization Settings')} />
+          <OrganizationSettingsForm
+            {...this.props}
+            initialData={data}
+            orgId={orgId}
+            access={access}
+            onSave={this.handleSave}
+          />
 
-        {data && !loading && !error && (
-          <div>
-            <SettingsPageHeader title={t('Organization Settings')} />
-            <OrganizationSettingsForm
-              {...this.props}
-              initialData={data}
-              orgId={orgId}
-              access={access}
-              onSave={this.handleSave}
-            />
-
-            {access.has('org:admin') && !data.isDefault && (
-              <Panel>
-                <PanelHeader>{t('Remove Organization')}</PanelHeader>
-                <Field
-                  label={t('Remove Organization')}
-                  help={t(
-                    'Removing this organization will delete all data including projects and their associated events.'
-                  )}
-                >
-                  <div>
-                    <LinkWithConfirmation
-                      className="btn btn-danger"
-                      priority="danger"
-                      size="small"
-                      title={t('Remove %s organization', data && data.name)}
-                      message={
-                        <div>
-                          <TextBlock>
-                            {tct(
-                              'Removing the organization, [name] is permanent and cannot be undone! Are you sure you want to continue?',
-                              {
-                                name: data && <strong>{data.name}</strong>,
-                              }
-                            )}
-                          </TextBlock>
-
-                          {hasProjects && (
-                            <div>
-                              <TextBlock noMargin>
-                                {t(
-                                  'This will also remove the following associated projects:'
-                                )}
-                              </TextBlock>
-                              <ul className="ref-projects">
-                                {data.projects.map(project => (
-                                  <li key={project.slug}>{project.slug}</li>
-                                ))}
-                              </ul>
-                            </div>
+          {access.has('org:admin') && !data.isDefault && (
+            <Panel>
+              <PanelHeader>{t('Remove Organization')}</PanelHeader>
+              <Field
+                label={t('Remove Organization')}
+                help={t(
+                  'Removing this organization will delete all data including projects and their associated events.'
+                )}
+              >
+                <div>
+                  <LinkWithConfirmation
+                    className="btn btn-danger"
+                    priority="danger"
+                    size="small"
+                    title={t('Remove %s organization', data && data.name)}
+                    message={
+                      <div>
+                        <TextBlock>
+                          {tct(
+                            'Removing the organization, [name] is permanent and cannot be undone! Are you sure you want to continue?',
+                            {
+                              name: data && <strong>{data.name}</strong>,
+                            }
                           )}
-                        </div>
-                      }
-                      onConfirm={this.handleRemoveOrganization}
-                    >
-                      {t('Remove Organization')}
-                    </LinkWithConfirmation>
-                  </div>
-                </Field>
-              </Panel>
-            )}
-          </div>
-        )}
-      </div>
+                        </TextBlock>
+
+                        {hasProjects && (
+                          <div>
+                            <TextBlock noMargin>
+                              {t(
+                                'This will also remove the following associated projects:'
+                              )}
+                            </TextBlock>
+                            <ul className="ref-projects">
+                              {data.projects.map(project => (
+                                <li key={project.slug}>{project.slug}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    }
+                    onConfirm={this.handleRemoveOrganization}
+                  >
+                    {t('Remove Organization')}
+                  </LinkWithConfirmation>
+                </div>
+              </Field>
+            </Panel>
+          )}
+        </div>
+      </React.Fragment>
     );
   },
 });
 
 export {OrganizationGeneralSettings};
 
-export default withApi(OrganizationGeneralSettings);
+export default withApi(withOrganization(OrganizationGeneralSettings));
