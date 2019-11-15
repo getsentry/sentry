@@ -85,6 +85,9 @@ const OrganizationContext = createReactClass({
       prevProps.params.orgId &&
       this.props.params.orgId &&
       prevProps.params.orgId !== this.props.params.orgId;
+    const hasOrgId =
+      this.props.params.org ||
+      (this.props.useLastOrganization && ConfigStore.get('lastOrganization'));
 
     // protect against the case where we finish fetching org details
     // and then `OrganizationsStore` finishes loading:
@@ -97,9 +100,8 @@ const OrganizationContext = createReactClass({
       this.props.organizationsLoading === false;
 
     if (
-      (hasOrgIdAndChanged &&
-        this.getOrganizationSlug(prevProps) !== this.getOrganizationSlug(this.props)) ||
-      (!this.props.params.orgId && organizationLoadingChanged) ||
+      hasOrgIdAndChanged ||
+      (!hasOrgId && organizationLoadingChanged) ||
       (this.props.location.state === 'refresh' && prevProps.location.state !== 'refresh')
     ) {
       this.remountComponent();
@@ -121,14 +123,14 @@ const OrganizationContext = createReactClass({
     fetchOrganizationDetails(this.props.api, this.getOrganizationSlug(), true);
   },
 
-  getOrganizationSlug(props = this.props) {
+  getOrganizationSlug() {
     return (
-      props.params.orgId ||
-      (props.useLastOrganization &&
+      this.props.params.orgId ||
+      (this.props.useLastOrganization &&
         (ConfigStore.get('lastOrganization') ||
-          (props.organizations &&
-            props.organizations.length &&
-            props.organizations[0].slug)))
+          (this.props.organizations &&
+            this.props.organizations.length &&
+            this.props.organizations[0].slug)))
     );
   },
 
