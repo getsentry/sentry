@@ -5,8 +5,8 @@ import six
 from sentry.plugins.bases.notify import NotifyPlugin
 from sentry.utils.http import absolute_uri
 
-from new_sentry_plugins.base import CorePluginMixin
-from new_sentry_plugins.utils import get_secret_field_config
+from test_only_plugins.base import CorePluginMixin
+from test_only_plugins.utils import get_secret_field_config
 
 from .client import PagerDutyClient
 

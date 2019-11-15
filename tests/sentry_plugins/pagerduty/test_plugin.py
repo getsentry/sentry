@@ -10,7 +10,7 @@ from sentry.plugins.base import Notification
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
 
-from new_sentry_plugins.pagerduty.plugin import PagerDutyPlugin
+from test_only_plugins.pagerduty.plugin import PagerDutyPlugin
 
 INVALID_METHOD = (
     '{"status":"invalid method","message":"You must use HTTP POST to submit your event"}'
@@ -32,7 +32,7 @@ class PagerDutyPluginTest(PluginTestCase):
         assert self.plugin.conf_key == "pagerduty"
 
     def test_entry_point(self):
-        self.assertNewPluginInstalled("pagerduty", self.plugin)
+        self.assertTestOnlyPluginInstalled("pagerduty", self.plugin)
 
     def test_is_configured(self):
         assert self.plugin.is_configured(self.project) is False
