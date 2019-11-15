@@ -1,4 +1,4 @@
-import React, {FunctionComponent, ReactChildren} from 'react';
+import React, {FunctionComponent} from 'react';
 import DocumentTitle from 'react-document-title';
 
 type DocumentTitleProps = {
@@ -6,7 +6,7 @@ type DocumentTitleProps = {
   title: string;
   // Organization or project slug to give title some context
   objSlug: string;
-  children?: ReactChildren;
+  children?: React.ReactNode;
 };
 
 const SentryDocumentTitle: FunctionComponent<DocumentTitleProps> = (

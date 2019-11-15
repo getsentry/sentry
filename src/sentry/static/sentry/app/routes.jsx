@@ -1087,10 +1087,24 @@ function routes() {
           <Route
             path="/organizations/:orgId/eventsv2/"
             componentPromise={() =>
-              import(/* webpackChunkName: "EventsV2" */ 'app/views/eventsV2')
+              import(/* webpackChunkName: "DiscoverV2Container" */ 'app/views/eventsV2')
             }
             component={errorHandler(LazyLoad)}
-          />
+          >
+            <IndexRoute
+              componentPromise={() =>
+                import(/* webpackChunkName: "DiscoverV2Landing" */ 'app/views/eventsV2/landing')
+              }
+              component={errorHandler(LazyLoad)}
+            />
+            <Route
+              path=":eventSlug/"
+              componentPromise={() =>
+                import(/* webpackChunkName: "DiscoverV2Details" */ 'app/views/eventsV2/eventDetails')
+              }
+              component={errorHandler(LazyLoad)}
+            />
+          </Route>
           <Route
             path="/organizations/:orgId/monitors/"
             componentPromise={() =>

@@ -2,7 +2,6 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
-import omit from 'lodash/omit';
 
 import {Client} from 'app/api';
 import {t} from 'app/locale';
@@ -22,8 +21,9 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import theme from 'app/utils/theme';
 import {Event, Organization, GlobalSelection} from 'app/types';
 
-import {MODAL_QUERY_KEYS, PIN_ICON} from './data';
-import EventView from './eventView';
+import {generateEventDetailsRoute, generateEventSlug} from './utils';
+import {PIN_ICON} from '../data';
+import EventView from '../eventView';
 
 /**
  * Generate the data to display a vertical line for the current
@@ -68,14 +68,32 @@ const getCurrentEventMarker = (currentEvent: Event) => {
 /**
  * Handle click events on line markers
  *
- * When a user clicks on a marker we want to update the modal
+ * When a user clicks on a marker we want to update the events details page
  * to display an event from that time slice. While each graph slice
  * could contain thousands of events, we do a search to get the latest
  * event in the slice.
  */
 const handleClick = async function(
   series,
-  {api, currentEvent, organization, queryString, field, interval, selection, location}
+  {
+    api,
+    currentEvent,
+    organization,
+    queryString,
+    field,
+    interval,
+    selection,
+    eventView,
+  }: {
+    api: Client;
+    currentEvent: Event;
+    organization: Organization;
+    queryString: string;
+    field: string[];
+    interval: string;
+    selection: GlobalSelection;
+    eventView: EventView;
+  }
 ) {
   // Get the timestamp that was clicked.
   const value = series.value[0];
@@ -121,16 +139,15 @@ const handleClick = async function(
   }
 
   const event = response.data[0];
+  const eventSlug = generateEventSlug(event);
+
   browserHistory.push({
-    pathname: location.pathname,
-    query: {
-      ...omit(location.query, MODAL_QUERY_KEYS),
-      eventSlug: `${event['project.name']}:${event.id || event.latest_event}`,
-    },
+    pathname: generateEventDetailsRoute({eventSlug, organization}),
+    query: eventView.generateQueryStringObject(),
   });
 };
 
-type ModalLineGraphProps = {
+type LineGraphProps = {
   api: Client;
   organization: Organization;
   location: Location;
@@ -142,7 +159,7 @@ type ModalLineGraphProps = {
 /**
  * Render a graph of event volumes for the current group + event.
  */
-const ModalLineGraph = (props: ModalLineGraphProps) => {
+const LineGraph = (props: LineGraphProps) => {
   const {api, organization, location, selection, currentEvent, eventView} = props;
 
   const isUtc = selection.datetime.utc;
@@ -205,8 +222,8 @@ const ModalLineGraph = (props: ModalLineGraphProps) => {
                 currentEvent,
                 interval,
                 selection,
-                location,
                 queryString,
+                eventView,
               })
             }
             tooltip={tooltip}
@@ -221,7 +238,7 @@ const ModalLineGraph = (props: ModalLineGraphProps) => {
     </Panel>
   );
 };
-ModalLineGraph.propTypes = {
+LineGraph.propTypes = {
   api: PropTypes.object.isRequired,
   currentEvent: SentryTypes.Event.isRequired,
   location: PropTypes.object.isRequired,
@@ -229,4 +246,4 @@ ModalLineGraph.propTypes = {
   selection: PropTypes.object.isRequired,
 } as any;
 
-export default withGlobalSelection(withApi(ModalLineGraph));
+export default withGlobalSelection(withApi(LineGraph));
