@@ -262,7 +262,7 @@ function routes() {
       </Route>
 
       <Route
-        name="Alerts"
+        name="Alert Rules"
         path="alerts-v2/"
         component={errorHandler(LazyLoad)}
         componentPromise={() =>
@@ -278,7 +278,16 @@ function routes() {
             import(/* webpackChunkName: "ProjectAlertSettings" */ 'app/views/settings/projectAlerts/projectAlertSettings')
           }
         />
-        <Route path="issue-rules/" name="Rules" component={null}>
+        <Route
+          path="new/"
+          name="New Alert Rule"
+          component={errorHandler(LazyLoad)}
+          componentPromise={() =>
+            import(/* webpackChunkName: "ProjectAlertsRuleDetails" */ 'app/views/settings/projectAlerts/ruleDetailsNew')
+          }
+        />
+
+        <Route path="issue-rules/" component={null}>
           <IndexRoute
             component={errorHandler(LazyLoad)}
             componentPromise={() =>
@@ -287,23 +296,23 @@ function routes() {
           />
           <Route
             path="new/"
-            name="New"
+            name="New Alert Rule"
             component={errorHandler(LazyLoad)}
             componentPromise={() =>
-              import(/* webpackChunkName: "ProjectAlertRuleDetails" */ 'app/views/settings/projectAlerts/projectAlertRuleDetails')
+              import(/* webpackChunkName: "ProjectAlertRuleDetails" */ 'app/views/settings/projectAlerts/ruleDetailsNew')
             }
           />
           <Route
             path=":ruleId/"
-            name="Edit"
+            name="Edit Alert Rule"
             componentPromise={() =>
-              import(/* webpackChunkName: "ProjectAlertRuleDetails" */ 'app/views/settings/projectAlerts/projectAlertRuleDetails')
+              import(/* webpackChunkName: "ProjectAlertRuleDetails" */ 'app/views/settings/projectAlerts/ruleDetailsNew')
             }
             component={errorHandler(LazyLoad)}
           />
         </Route>
 
-        <Route path="event-rules/" name="Event Rules" component={null}>
+        <Route path="metric-rules/" name="Metric Rules" component={null}>
           <IndexRoute
             componentPromise={() =>
               import(/* webpackChunkName: "IncidentRulesList" */ 'app/views/settings/incidentRules/list')
@@ -1014,7 +1023,7 @@ function routes() {
         <Route
           path="/organizations/:orgId/user-feedback/"
           componentPromise={() =>
-            import(/* webpackChunkName: "OrganizationUserFeedback" */ 'app/views/userFeedback/organizationUserFeedback')
+            import(/* webpackChunkName: "UserFeedback" */ 'app/views/userFeedback')
           }
           component={errorHandler(LazyLoad)}
         />
@@ -1078,10 +1087,24 @@ function routes() {
           <Route
             path="/organizations/:orgId/eventsv2/"
             componentPromise={() =>
-              import(/* webpackChunkName: "EventsV2" */ 'app/views/eventsV2')
+              import(/* webpackChunkName: "DiscoverV2Container" */ 'app/views/eventsV2')
             }
             component={errorHandler(LazyLoad)}
-          />
+          >
+            <IndexRoute
+              componentPromise={() =>
+                import(/* webpackChunkName: "DiscoverV2Landing" */ 'app/views/eventsV2/landing')
+              }
+              component={errorHandler(LazyLoad)}
+            />
+            <Route
+              path=":eventSlug/"
+              componentPromise={() =>
+                import(/* webpackChunkName: "DiscoverV2Details" */ 'app/views/eventsV2/eventDetails')
+              }
+              component={errorHandler(LazyLoad)}
+            />
+          </Route>
           <Route
             path="/organizations/:orgId/monitors/"
             componentPromise={() =>

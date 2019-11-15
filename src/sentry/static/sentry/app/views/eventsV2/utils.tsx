@@ -3,7 +3,10 @@ import pick from 'lodash/pick';
 import {Location, Query} from 'history';
 import {browserHistory} from 'react-router';
 
+import {t} from 'app/locale';
+import {Event} from 'app/types';
 import {Client} from 'app/api';
+import {getTitle} from 'app/utils/events';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {generateQueryWithTag} from 'app/utils';
 
@@ -235,33 +238,6 @@ export function getAggregateAlias(field: string): string {
     .toLowerCase();
 }
 
-/**
- * Get the first query string of a given name if there are multiple occurrences of it
- * e.g. foo=42&foo=bar    ==>    foo=42 is the first occurrence for 'foo' and "42" will be returned.
- *
- * @param query     query string map
- * @param name      name of the query string field
- */
-export function getFirstQueryString(
-  query: {[key: string]: string | string[] | null | undefined} = {},
-  name: string,
-  defaultValue?: string
-): string | undefined {
-  const needle = query[name];
-
-  if (typeof needle === 'string') {
-    return needle;
-  }
-
-  if (Array.isArray(needle) && needle.length > 0) {
-    if (typeof needle[0] === 'string') {
-      return needle[0];
-    }
-  }
-
-  return defaultValue;
-}
-
 export type QueryWithColumnState =
   | Query
   | {
@@ -344,4 +320,23 @@ export function pushEventViewToLocation(props: {
       ...queryStringObject,
     },
   });
+}
+
+export function generateTitle({eventView, event}: {eventView: EventView; event?: Event}) {
+  const titles = [t('Discover')];
+
+  const eventViewName = eventView.name;
+  if (typeof eventViewName === 'string' && String(eventViewName).trim().length > 0) {
+    titles.push(String(eventViewName).trim());
+  }
+
+  const eventTitle = event ? getTitle(event).title : undefined;
+
+  if (eventTitle) {
+    titles.push(eventTitle);
+  }
+
+  titles.reverse();
+
+  return titles.join(' - ');
 }

@@ -1,6 +1,8 @@
 import React from 'react';
 import styled from 'react-emotion';
 
+import moment from 'moment-timezone';
+
 import AsyncView from 'app/views/asyncView';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import LineChart from 'app/components/charts/lineChart';
@@ -16,10 +18,36 @@ import BarChart from 'app/components/charts/barChart';
 import DateTime from 'app/components/dateTime';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import Link from 'app/components/links/link';
+import Tag from 'app/views/settings/components/tag';
 
 import space from 'app/styles/space';
 import {SentryApp, SentryAppWebhookRequest} from 'app/types';
 import {t} from 'app/locale';
+
+const ResponseCode = ({code}: {code: number}) => {
+  let priority = 'error';
+  if (code <= 399 && code >= 300) {
+    priority = 'warning';
+  } else if (code <= 299 && code >= 100) {
+    priority = 'success';
+  }
+
+  return (
+    <div>
+      <Tag priority={priority}>{code === 0 ? 'timeout' : code}</Tag>
+    </div>
+  );
+};
+
+const TimestampLink = ({date, link}: {date: moment.MomentInput; link?: string}) => {
+  return link ? (
+    <Link to={link}>
+      <DateTime date={date} />
+    </Link>
+  ) : (
+    <DateTime date={date} />
+  );
+};
 
 type Props = AsyncView['props'];
 
@@ -154,8 +182,8 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
               requests.map((request, idx) => (
                 <PanelItem key={idx}>
                   <TableLayout>
-                    <DateTime date={request.date} />
-                    <div>{request.responseCode}</div>
+                    <TimestampLink date={request.date} />
+                    <ResponseCode code={request.responseCode} />
                     {app.status !== 'internal' && request.organization && (
                       <div>{request.organization.name}</div>
                     )}

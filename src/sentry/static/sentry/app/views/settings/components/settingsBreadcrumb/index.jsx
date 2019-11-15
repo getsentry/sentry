@@ -106,5 +106,6 @@ export {CrumbLink};
 
 const Breadcrumbs = styled('div')`
   display: flex;
+  flex: 1;
   align-items: center;
 `;
