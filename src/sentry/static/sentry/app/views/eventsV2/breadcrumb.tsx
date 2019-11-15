@@ -45,16 +45,12 @@ class DiscoverBreadcrumb extends React.Component<Props> {
     }
 
     if (event) {
-      let eventType = event.type;
-      eventType = typeof eventType === 'string' ? eventType : '';
-      eventType = eventType.charAt(0).toUpperCase() + eventType.slice(1);
-
       crumbs.push(
         <span key="event-sep">
           <InlineSvg height="20px" width="20px" src="icon-chevron-right" />
         </span>
       );
-      crumbs.push(<span key="event-name">{t(`${eventType} Event Detail`)}</span>);
+      crumbs.push(<span key="event-name">{t('Event Detail')}</span>);
     }
 
     return crumbs;
