@@ -32,6 +32,11 @@ import QueryList from './queryList';
 import DiscoverBreadcrumb from './breadcrumb';
 
 const DISPLAY_SEARCH_BAR_FLAG = false;
+const BANNER_DISMISSED_KEY = 'discover-banner-dismissed';
+
+function checkIsBannerHidden(): boolean {
+  return localStorage.getItem(BANNER_DISMISSED_KEY) === 'true';
+}
 
 type Props = {
   organization: Organization;
@@ -48,8 +53,17 @@ class DiscoverLanding extends React.Component<Props> {
   };
 
   state = {
-    isBannerHidden: localStorage.getItem('discover-banner-dismissed'),
+    isBannerHidden: checkIsBannerHidden(),
   };
+
+  componentDidUpdate() {
+    const isBannerHidden = checkIsBannerHidden();
+    if (isBannerHidden !== this.state.isBannerHidden) {
+      this.setState({
+        isBannerHidden,
+      });
+    }
+  }
 
   getDocumentTitle = (name: string | undefined): Array<string> => {
     return typeof name === 'string' && String(name).trim().length > 0
@@ -58,12 +72,12 @@ class DiscoverLanding extends React.Component<Props> {
   };
 
   handleClick = () => {
-    localStorage.setItem('discover-banner-dismissed', true);
+    localStorage.setItem(BANNER_DISMISSED_KEY, 'true');
     this.setState({isBannerHidden: true});
   };
 
   renderBanner() {
-    const bannerDismissed = localStorage.getItem('discover-banner-dismissed');
+    const bannerDismissed = this.state.isBannerHidden;
 
     if (bannerDismissed) {
       return null;
