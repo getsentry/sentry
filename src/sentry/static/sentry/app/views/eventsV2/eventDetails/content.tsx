@@ -52,6 +52,7 @@ type Props = {
   params: Params;
   api: Client;
   eventSlug: string;
+  eventView: EventView;
 };
 
 type State = {
@@ -65,16 +66,9 @@ class EventDetailsContent extends AsyncComponent<Props, State & AsyncComponent['
     location: PropTypes.object.isRequired,
   };
 
-  getEventView(): EventView {
-    const {location} = this.props;
-
-    return EventView.fromLocation(location);
-  }
-
   getEndpoints(): Array<[string, string, {query: EventQuery}]> {
-    const {organization, params, location} = this.props;
+    const {organization, params, location, eventView} = this.props;
     const {eventSlug} = params;
-    const eventView = this.getEventView();
 
     const query = eventView.getEventsAPIPayload(location);
 
@@ -100,8 +94,7 @@ class EventDetailsContent extends AsyncComponent<Props, State & AsyncComponent['
   }
 
   renderContent(event: Event) {
-    const {organization, location} = this.props;
-    const eventView = this.getEventView();
+    const {organization, location, eventView} = this.props;
 
     // metrics
     trackAnalyticsEvent({
@@ -179,8 +172,7 @@ class EventDetailsContent extends AsyncComponent<Props, State & AsyncComponent['
   }
 
   renderWrapper(children: React.ReactNode) {
-    const {organization, location} = this.props;
-    const eventView = this.getEventView();
+    const {organization, location, eventView} = this.props;
     const {event} = this.state;
 
     return (

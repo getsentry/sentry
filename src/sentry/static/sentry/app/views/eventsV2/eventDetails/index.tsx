@@ -65,6 +65,7 @@ class EventDetails extends React.Component<Props> {
                 organization={organization}
                 location={location}
                 params={params}
+                eventView={eventView}
                 eventSlug={this.getEventSlug()}
               />
             </NoProjectMessage>
