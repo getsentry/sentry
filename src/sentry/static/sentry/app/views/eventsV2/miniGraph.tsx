@@ -1,5 +1,6 @@
 import React from 'react';
 import isEqual from 'lodash/isEqual';
+import omit from 'lodash/omit';
 
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -19,9 +20,17 @@ type Props = {
   query: string;
 };
 
+const omitProps = (props: Props) => {
+  return omit(props, ['api']);
+};
+
 class MiniGraph extends React.Component<Props> {
   shouldComponentUpdate(nextProps) {
-    return !isEqual(this.props, nextProps);
+    // We pay for the cost of the deep comparison here since it is cheaper
+    // than the cost for rendering the graph, which can take ~200ms to ~300ms to
+    // render.
+
+    return !isEqual(omitProps(this.props), omitProps(nextProps));
   }
 
   render() {
