@@ -102,7 +102,7 @@ export default class Form extends React.Component<Props> {
     cancelLabel: t('Cancel'),
     submitLabel: t('Save Changes'),
     submitDisabled: false,
-    submitPriority: 'primary',
+    submitPriority: 'primary' as 'primary',
     className: 'form-stacked',
     requireChanges: false,
     allowUndo: false,

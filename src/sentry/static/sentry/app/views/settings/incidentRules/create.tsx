@@ -4,8 +4,6 @@ import React from 'react';
 import {AlertRuleAggregations} from 'app/views/settings/incidentRules/types';
 import {Organization, Project} from 'app/types';
 import recreateRoute from 'app/utils/recreateRoute';
-import withOrganization from 'app/utils/withOrganization';
-import withProject from 'app/utils/withProject';
 
 import RuleForm from './ruleForm';
 
@@ -23,10 +21,10 @@ type Props = {
 };
 
 class IncidentRulesCreate extends React.Component<RouteComponentProps<{}, {}> & Props> {
-  handleSubmitSuccess = data => {
+  handleSubmitSuccess = () => {
     const {params, routes, router, location} = this.props;
 
-    router.push(recreateRoute(`${data.id}/`, {params, routes, location, stepBack: -1}));
+    router.push(recreateRoute('metric-rules/', {params, routes, location, stepBack: -1}));
   };
 
   render() {
@@ -42,4 +40,4 @@ class IncidentRulesCreate extends React.Component<RouteComponentProps<{}, {}> & 
   }
 }
 
-export default withOrganization(withProject(IncidentRulesCreate));
+export default IncidentRulesCreate;

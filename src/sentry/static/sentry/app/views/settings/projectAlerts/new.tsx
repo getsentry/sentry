@@ -1,12 +1,11 @@
+import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
-
-import {RouterProps} from 'app/types';
 
 import ProjectAlertHeader from './projectAlertHeaderNew';
 
-type Props = RouterProps & {
+type Props = {
   children: React.ReactNode;
-};
+} & RouteComponentProps<{organizationId: string; projectId: string}, {}>;
 
 function ProjectAlerts({children, ...props}: Props) {
   return (
