@@ -263,7 +263,7 @@ def send_webhooks(installation, event, **kwargs):
     # the event is within the allowed projects.
     project_limited = ServiceHookProject.objects.filter(service_hook_id=servicehook.id).exists()
 
-    # TODO: This is disabled for now, because it could potentially affect internal integrations w/ error.created
+    # TODO(nola): This is disabled for now, because it could potentially affect internal integrations w/ error.created
     # # If the event is error.created & the request is going out to the Org that owns the Sentry App,
     # # Make sure we don't send the request, to prevent potential infinite loops
     # if (
