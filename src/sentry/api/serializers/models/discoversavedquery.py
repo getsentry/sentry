@@ -22,7 +22,6 @@ class DiscoverSavedQuerySerializer(Serializer):
             "end",
             "orderby",
             "limit",
-            "version",
             "tags",
             "yAxis",
         ]
@@ -31,6 +30,7 @@ class DiscoverSavedQuerySerializer(Serializer):
             "id": six.text_type(obj.id),
             "name": obj.name,
             "projects": [project.id for project in obj.projects.all()],
+            "version": obj.version or obj.query.get("version", 1),
             "dateCreated": obj.date_created,
             "dateUpdated": obj.date_updated,
             "createdBy": six.text_type(obj.created_by_id) if obj.created_by_id else None,

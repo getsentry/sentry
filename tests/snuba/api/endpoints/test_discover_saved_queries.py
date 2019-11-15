@@ -40,6 +40,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         assert response.data[0]["fields"] == ["test"]
         assert response.data[0]["conditions"] == []
         assert response.data[0]["limit"] == 10
+        assert response.data[0]["version"] == 1
 
     def test_get_version_filter(self):
         url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
@@ -239,6 +240,7 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
         assert data["query"] == "event.type:error browser.name:Firefox"
         assert data["tags"] == ["release", "environment"]
         assert data["yAxis"] == "count(id)"
+        assert data["version"] == 2
 
     def test_post_success_no_fieldnames(self):
         with self.feature(self.feature_name):
