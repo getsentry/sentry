@@ -5,7 +5,6 @@ import six
 from datetime import timedelta
 from uuid import uuid4
 
-import django
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 from mock import patch, Mock
@@ -1181,15 +1180,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         response = self.get_valid_response(
             qs_params={"id": [group1.id, group2.id]}, isPublic="false"
         )
-        if django.VERSION < (1, 9):
-            assert response.data == {"isPublic": False}
-        else:
-            # In Django < 1.9 `.delete()` returns nothing, even if it manages to delete
-            # rows. In 1.9+ it returns information about how many rows were deleted.
-            # We use `.delete()` in an if statement when setting `isPublic`, and it was
-            # always returning False due to this. Since this is fixed we now have this
-            # extra attribute.
-            assert response.data == {"isPublic": False, "shareId": None}
+        assert response.data == {"isPublic": False, "shareId": None}
 
         new_group1 = Group.objects.get(id=group1.id)
         assert not bool(new_group1.get_share_id())

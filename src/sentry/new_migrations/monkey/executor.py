@@ -3,15 +3,12 @@ from __future__ import absolute_import
 import logging
 import os
 
-from sentry.new_migrations.django_19_executor.django import Django19MigrationExecutor
+from django.db.migrations.executor import MigrationExecutor
 
 logger = logging.getLogger(__name__)
 
 
-class SentryMigrationExecutor(Django19MigrationExecutor):
-    # TODO: Once we're on Django 1.9, just inherit from
-    # `django.db.migrations.executor.MigrationExecutor`
-
+class SentryMigrationExecutor(MigrationExecutor):
     def _check_fake(self, migration, fake):
         if (
             os.environ.get("MIGRATION_SKIP_DANGEROUS", "0") == "1"

@@ -5,13 +5,7 @@ import six
 from django.conf import settings
 from django.db import connections, DEFAULT_DB_ALIAS
 
-# TODO: (Django 1.9) Remove once on Django 1.9+
-try:
-    from django.db.models.fields.related_descriptors import ReverseOneToOneDescriptor
-except ImportError:
-    from django.db.models.fields.related import (
-        SingleRelatedObjectDescriptor as ReverseOneToOneDescriptor,
-    )
+from django.db.models.fields.related_descriptors import ReverseOneToOneDescriptor
 
 
 def get_db_engine(alias="default"):

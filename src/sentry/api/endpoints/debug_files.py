@@ -7,6 +7,7 @@ import posixpath
 
 from django.db import transaction
 from django.db.models import Q
+from django.http import StreamingHttpResponse, HttpResponse, Http404
 from rest_framework.response import Response
 from symbolic import normalize_debug_id, SymbolicError
 
@@ -25,15 +26,6 @@ from sentry.tasks.assemble import (
     ChunkFileState,
 )
 from sentry.utils import json
-
-try:
-    from django.http import (
-        CompatibleStreamingHttpResponse as StreamingHttpResponse,
-        HttpResponse,
-        Http404,
-    )
-except ImportError:
-    from django.http import StreamingHttpResponse, HttpResponse, Http404
 
 
 logger = logging.getLogger("sentry.api")

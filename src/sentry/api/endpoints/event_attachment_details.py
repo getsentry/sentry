@@ -3,10 +3,7 @@ from __future__ import absolute_import
 import posixpath
 import six
 
-try:
-    from django.http import CompatibleStreamingHttpResponse as StreamingHttpResponse
-except ImportError:
-    from django.http import StreamingHttpResponse
+from django.http import StreamingHttpResponse
 
 from sentry import eventstore, features, roles
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
