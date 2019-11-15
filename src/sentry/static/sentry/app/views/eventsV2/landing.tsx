@@ -59,6 +59,7 @@ class DiscoverLanding extends React.Component<Props> {
   componentDidUpdate() {
     const isBannerHidden = checkIsBannerHidden();
     if (isBannerHidden !== this.state.isBannerHidden) {
+      // eslint-disable-next-line react/no-did-update-set-state
       this.setState({
         isBannerHidden,
       });
