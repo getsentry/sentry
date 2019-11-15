@@ -140,7 +140,7 @@ const OrganizationContext = createReactClass({
   },
 
   isLoading() {
-    // In the absence of an organization slug, then the loading state should be
+    // In the absence of an organization slug, the loading state should be
     // derived from this.props.organizationsLoading from OrganizationsStore
     if (!this.getOrganizationSlug()) {
       return this.props.organizationsLoading;
