@@ -146,6 +146,7 @@ export function fetchSavedQueries(organization: any): Promise<any> {
 
   return api.requestPromise(endpoint, {
     method: 'GET',
+    query: {all: 1, query: 'version:1'},
   } as any); // TODO: Remove as any
 }
 
