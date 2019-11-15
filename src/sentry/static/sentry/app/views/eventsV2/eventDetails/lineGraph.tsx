@@ -21,7 +21,7 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import theme from 'app/utils/theme';
 import {Event, Organization, GlobalSelection} from 'app/types';
 
-import {generateEventDetailsRoute} from './utils';
+import {generateEventDetailsRoute, generateEventSlug} from './utils';
 import {PIN_ICON} from '../data';
 import EventView from '../eventView';
 
@@ -139,7 +139,7 @@ const handleClick = async function(
   }
 
   const event = response.data[0];
-  const eventSlug = `${event['project.name']}:${event.id || event.latest_event}`;
+  const eventSlug = generateEventSlug(event);
 
   browserHistory.push({
     pathname: generateEventDetailsRoute({eventSlug, organization}),

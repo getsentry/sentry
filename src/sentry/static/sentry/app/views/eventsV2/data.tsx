@@ -15,7 +15,7 @@ import {EventViewv1, Organization} from 'app/types';
 import Duration from 'app/components/duration';
 
 import {QueryLink} from './styles';
-import {generateEventDetailsRoute} from './eventDetails/utils';
+import {generateEventDetailsRoute, generateEventSlug} from './eventDetails/utils';
 
 export const PIN_ICON = `image://${pinIcon}`;
 export const AGGREGATE_ALIASES = ['p95', 'p75', 'last_seen', 'latest_event'] as const;
@@ -190,7 +190,7 @@ export const ALL_VIEWS: Readonly<Array<EventViewv1>> = [
   },
 ];
 
-type EventData = {[key: string]: any};
+export type EventData = {[key: string]: any};
 
 type RenderFunctionBaggage = {
   organization: Organization;
@@ -311,9 +311,7 @@ const eventLink = (
   data: EventData,
   content: string | React.ReactNode
 ): React.ReactNode => {
-  const id = data.id || data.latest_event;
-
-  const eventSlug = `${data['project.name']}:${id}`;
+  const eventSlug = generateEventSlug(data);
   const pathname = generateEventDetailsRoute({
     organization,
     eventSlug,
@@ -417,9 +415,7 @@ export const SPECIAL_FIELDS: SpecialFields = {
   transaction: {
     sortField: 'transaction',
     renderFunc: (data, {location, organization}) => {
-      const id = data.id || data.latest_event;
-
-      const eventSlug = `${data['project.name']}:${id}`;
+      const eventSlug = generateEventSlug(data);
       const pathname = generateEventDetailsRoute({
         organization,
         eventSlug,
@@ -441,9 +437,7 @@ export const SPECIAL_FIELDS: SpecialFields = {
   title: {
     sortField: 'title',
     renderFunc: (data, {location, organization}) => {
-      const id = data.id || data.latest_event;
-
-      const eventSlug = `${data['project.name']}:${id}`;
+      const eventSlug = generateEventSlug(data);
       const pathname = generateEventDetailsRoute({
         organization,
         eventSlug,

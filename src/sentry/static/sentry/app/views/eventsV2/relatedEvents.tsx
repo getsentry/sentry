@@ -16,7 +16,7 @@ import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import withProjects from 'app/utils/withProjects';
 
-import {generateEventDetailsRoute} from './eventDetails/utils';
+import {generateEventDetailsRoute, generateEventSlug} from './eventDetails/utils';
 import {EventQuery} from './utils';
 import EventView from './eventView';
 
@@ -98,7 +98,7 @@ class RelatedEvents extends AsyncComponent<Props> {
           <Card>{t('No related events found.')}</Card>
         ) : (
           events.data.map(item => {
-            const eventSlug = `${item['project.name']}:${item.id}`;
+            const eventSlug = generateEventSlug(item);
             const eventUrl = {
               pathname: generateEventDetailsRoute({eventSlug, organization}),
               query: eventView.generateQueryStringObject(),
