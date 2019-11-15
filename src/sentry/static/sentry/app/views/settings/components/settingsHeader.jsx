@@ -8,8 +8,6 @@ const SettingsHeader = styled('div')`
   padding: ${space(3)} ${space(4)};
   border-bottom: 1px solid ${p => p.theme.borderLight};
   background: #fff;
-  display: flex;
-  align-items: center;
 `;
 
 export default SettingsHeader;
