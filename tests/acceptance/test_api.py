@@ -7,6 +7,7 @@ class ApiTokensTest(AcceptanceTestCase):
     def setUp(self):
         super(ApiTokensTest, self).setUp()
         self.user = self.create_user(email="foo@example.com", name="User Name")
+        self.org = self.create_organization(owner=self.user, name="foo")
         self.login_as(self.user)
         self.path = "/api/"
 
@@ -28,6 +29,7 @@ class ApiApplicationTest(AcceptanceTestCase):
     def setUp(self):
         super(ApiApplicationTest, self).setUp()
         self.user = self.create_user(email="foo@example.com", name="User Name")
+        self.org = self.create_organization(owner=self.user, name="foo")
         self.login_as(self.user)
         self.path = "/api/applications/"
 
