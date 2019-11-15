@@ -22,6 +22,27 @@ const generateSorts = sorts => {
   });
 };
 
+describe('EventView constructor', function() {
+  it('instantiates default values', function() {
+    const eventView = new EventView({});
+
+    expect(eventView).toMatchObject({
+      id: undefined,
+      name: undefined,
+      fields: [],
+      sorts: [],
+      tags: [],
+      query: '',
+      project: [],
+      start: undefined,
+      end: undefined,
+      statsPeriod: undefined,
+      environment: [],
+      yAxis: undefined,
+    });
+  });
+});
+
 describe('EventView.fromLocation()', function() {
   it('maps query strings', function() {
     const location = {
@@ -2166,6 +2187,56 @@ describe('isAPIPayloadSimilar', function() {
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
 
       expect(results).toBe(true);
+    });
+  });
+
+  describe('getGlobalSelection', function() {
+    it('return default global selection', function() {
+      const eventView = new EventView({});
+
+      expect(eventView.getGlobalSelection()).toMatchObject({
+        project: [],
+        start: undefined,
+        end: undefined,
+        statsPeriod: undefined,
+        environment: [],
+      });
+    });
+
+    it('returns global selection', function() {
+      const state2 = {
+        project: [42],
+        start: 'start',
+        end: 'end',
+        statsPeriod: '42d',
+        environment: ['prod'],
+      };
+
+      const eventView = new EventView(state2);
+
+      expect(eventView.getGlobalSelection()).toMatchObject(state2);
+    });
+  });
+
+  describe('generateBlankQueryStringObject', function() {
+    it('should return blank values', function() {
+      const eventView = new EventView({});
+
+      expect(eventView.generateBlankQueryStringObject()).toEqual({
+        id: undefined,
+        name: undefined,
+        fields: undefined,
+        sorts: undefined,
+        tags: undefined,
+        query: undefined,
+        project: undefined,
+        start: undefined,
+        end: undefined,
+        statsPeriod: undefined,
+        environment: undefined,
+        yAxis: undefined,
+        cursor: undefined,
+      });
     });
   });
 });
