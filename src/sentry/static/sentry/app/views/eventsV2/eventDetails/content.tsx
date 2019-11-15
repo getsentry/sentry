@@ -244,7 +244,7 @@ class EventDetailsWrapper extends React.Component<EventDetailsWrapperProps> {
   }
 }
 
-const EventHeader = props => {
+const EventHeader = (props: {event: Event}) => {
   const {title} = getTitle(props.event);
   return (
     <div data-test-id="event-header">
@@ -252,9 +252,6 @@ const EventHeader = props => {
       <p>{getMessage(props.event)}</p>
     </div>
   );
-};
-EventHeader.propTypes = {
-  event: SentryTypes.Event.isRequired,
 };
 
 const OverflowHeader = styled('h2')`
