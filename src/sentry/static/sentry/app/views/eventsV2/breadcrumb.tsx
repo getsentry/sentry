@@ -23,7 +23,7 @@ class DiscoverBreadcrumb extends React.Component<Props> {
     event: undefined,
   };
 
-  getCrumbs = (): React.ReactNode => {
+  getCrumbs(): React.ReactNode {
     const {eventView, event, organization} = this.props;
     const crumbs: React.ReactNode[] = [];
 
@@ -59,7 +59,7 @@ class DiscoverBreadcrumb extends React.Component<Props> {
     }
 
     return crumbs;
-  };
+  }
 
   render() {
     const {organization, location} = this.props;
