@@ -39,6 +39,9 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
                 if key == "name" or key == "query":
                     value = " ".join(value)
                     queryset = queryset.filter(name__icontains=value)
+                elif key == "version":
+                    value = " ".join(value)
+                    queryset = queryset.filter(version=value)
                 else:
                     queryset = queryset.none()
 
