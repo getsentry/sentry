@@ -103,10 +103,6 @@ class EventDetailsContent extends AsyncComponent<Props, State & AsyncComponent['
     const {organization, location} = this.props;
     const eventView = this.getEventView();
 
-    if (!event) {
-      return this.renderWrapper(<NotFound />);
-    }
-
     // metrics
     trackAnalyticsEvent({
       eventKey: 'discover_v2.event_details',
