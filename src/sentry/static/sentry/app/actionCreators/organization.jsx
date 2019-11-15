@@ -32,9 +32,14 @@ export async function fetchOrganizationDetails(api, slug, detailed, silent) {
       return;
     }
 
-    // create a request for all teams and all projects if in lightweight org
-    if (!detailed) {
-      // create a new client so when this context unmounts the requests continue
+    OrganizationActions.update(org);
+    setActiveOrganization(org);
+
+    if (detailed) {
+      TeamStore.loadInitialData(org.teams);
+      ProjectsStore.loadInitialData(org.projects);
+    } else {
+      // create a new client so the request is not cancelled
       const uncancelableApi = new Client();
       const [projects, teams] = await Promise.all([
         uncancelableApi.requestPromise(`/organizations/${slug}/projects/`, {
@@ -46,14 +51,6 @@ export async function fetchOrganizationDetails(api, slug, detailed, silent) {
       ]);
       ProjectActions.loadProjects(projects);
       TeamActions.loadTeams(teams);
-    }
-
-    OrganizationActions.update(org);
-    setActiveOrganization(org);
-
-    if (detailed) {
-      TeamStore.loadInitialData(org.teams);
-      ProjectsStore.loadInitialData(org.projects);
     }
   } catch (err) {
     OrganizationActions.fetchOrgError(err);
