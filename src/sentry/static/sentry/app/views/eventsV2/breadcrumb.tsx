@@ -12,14 +12,13 @@ import InlineSvg from 'app/components/inlineSvg';
 import EventView from './eventView';
 
 type Props = {
-  eventView: EventView | undefined;
+  eventView: EventView;
   event: Event | undefined;
   organization: Organization;
   location: Location;
 };
 class DiscoverBreadcrumb extends React.Component<Props> {
   static defaultProps = {
-    eventView: undefined,
     event: undefined,
   };
 
@@ -62,18 +61,14 @@ class DiscoverBreadcrumb extends React.Component<Props> {
   }
 
   render() {
-    const {organization, location} = this.props;
+    const {organization, location, eventView} = this.props;
 
     const target = {
       pathname: `/organizations/${organization.slug}/eventsv2/`,
       query: {
         ...location.query,
-        field: undefined,
-        fieldnames: undefined,
-        tag: undefined,
-        sort: undefined,
-        name: undefined,
-        query: undefined,
+        ...eventView.generateBlankQueryStringObject(),
+        ...eventView.getGlobalSelection(),
       },
     };
 
