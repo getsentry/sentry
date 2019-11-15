@@ -140,11 +140,13 @@ const OrganizationContext = createReactClass({
   },
 
   isLoading() {
-    // A custom loading function because we could either by waiting for the
-    // whole organization object to come in or just the teams and projects
+    // In the absence of an organization slug, then the loading state should be
+    // derived from this.props.organizationsLoading from OrganizationsStore
     if (!this.getOrganizationSlug()) {
       return this.props.organizationsLoading;
     }
+    // The following loading logic exists because we could either be waiting for
+    // the whole organization object to come in or just the teams and projects.
     const {loading, error, organization} = this.state;
     const {detailed} = this.props;
     return (
@@ -167,7 +169,7 @@ const OrganizationContext = createReactClass({
       this.props.api,
       this.getOrganizationSlug(),
       this.props.detailed,
-      true // silent
+      true // silent, to not reset a lightweight org that was fetched
     );
   },
 

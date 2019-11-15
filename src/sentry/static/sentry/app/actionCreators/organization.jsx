@@ -35,17 +35,17 @@ export async function fetchOrganizationDetails(api, slug, detailed, silent) {
     // create a request for all teams and all projects if in lightweight org
     if (!detailed) {
       // create a new client so when this context unmounts the requests continue
-      const persistedAPI = new Client();
-      persistedAPI
-        .requestPromise(`/organizations/${slug}/projects/`, {
+      const uncancelableApi = new Client();
+      const [projects, teams] = await Promise.all([
+        uncancelableApi.requestPromise(`/organizations/${slug}/projects/`, {
           query: {
             all_projects: 1,
           },
-        })
-        .then(ProjectActions.loadProjects);
-      persistedAPI
-        .requestPromise(`/organizations/${slug}/teams/`)
-        .then(TeamActions.loadTeams);
+        }),
+        uncancelableApi.requestPromise(`/organizations/${slug}/teams/`),
+      ]);
+      ProjectActions.loadProjects(projects);
+      TeamActions.loadTeams(teams);
     }
 
     OrganizationActions.update(org);
