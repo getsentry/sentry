@@ -25,11 +25,16 @@ import {SentryApp, SentryAppWebhookRequest} from 'app/types';
 import {t} from 'app/locale';
 
 const ResponseCode = ({code}: {code: number}) => {
+  let priority = 'error';
+  if (code <= 399 && code >= 300) {
+    priority = 'warning';
+  } else if (code <= 299 && code >= 100) {
+    priority = 'success';
+  }
+
   return (
     <div>
-      <Tag priority={code >= 100 && code <= 399 ? 'success' : 'error'}>
-        {code === 0 ? 'timeout' : code}
-      </Tag>
+      <Tag priority={priority}>{code === 0 ? 'timeout' : code}</Tag>
     </div>
   );
 };
