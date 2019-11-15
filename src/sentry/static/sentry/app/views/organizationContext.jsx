@@ -142,6 +142,9 @@ const OrganizationContext = createReactClass({
   isLoading() {
     // A custom loading function because we could either by waiting for the
     // whole organization object to come in or just the teams and projects
+    if (!this.getOrganizationSlug()) {
+      return this.props.organizationsLoading;
+    }
     const {loading, error, organization} = this.state;
     const {detailed} = this.props;
     return (
@@ -153,7 +156,6 @@ const OrganizationContext = createReactClass({
 
   async fetchData() {
     if (!this.getOrganizationSlug()) {
-      this.setState({loading: this.props.organizationsLoading});
       return;
     }
     // fetch from the store, then fetch from the API if necessary
