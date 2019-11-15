@@ -19,7 +19,6 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import OrganizationStore from 'app/stores/organizationStore';
 import ProjectActions from 'app/actions/projectActions';
-import TeamActions from 'app/actions/teamActions';
 import SentryTypes from 'app/sentryTypes';
 import Sidebar from 'app/components/sidebar';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
@@ -146,9 +145,25 @@ const OrganizationContext = createReactClass({
     );
   },
 
+  isLoading() {
+    // In the absence of an organization slug, the loading state should be
+    // derived from this.props.organizationsLoading from OrganizationsStore
+    if (!this.getOrganizationSlug()) {
+      return this.props.organizationsLoading;
+    }
+    // The following loading logic exists because we could either be waiting for
+    // the whole organization object to come in or just the teams and projects.
+    const {loading, error, organization} = this.state;
+    const {detailed} = this.props;
+    return (
+      loading ||
+      (!error &&
+        (detailed && (!organization || !organization.projects || !organization.teams)))
+    );
+  },
+
   async fetchData() {
     if (!this.getOrganizationSlug()) {
-      this.setState({loading: this.props.organizationsLoading});
       return;
     }
     // fetch from the store, then fetch from the API if necessary
@@ -159,15 +174,9 @@ const OrganizationContext = createReactClass({
     fetchOrganizationDetails(
       this.props.api,
       this.getOrganizationSlug(),
-      this.props.detailed
+      this.props.detailed,
+      true // silent, to not reset a lightweight org that was fetched
     );
-    // create a request for all teams if in lightweight org
-    if (!this.props.detailed) {
-      const teams = await this.props.api.requestPromise(
-        this.getOrganizationTeamsEndpoint()
-      );
-      TeamActions.loadTeams(teams);
-    }
   },
 
   loadOrganization(orgData) {
@@ -239,10 +248,6 @@ const OrganizationContext = createReactClass({
     return `/organizations/${this.getOrganizationSlug()}/`;
   },
 
-  getOrganizationTeamsEndpoint() {
-    return `/organizations/${this.getOrganizationSlug()}/teams/`;
-  },
-
   getTitle() {
     if (this.state.organization) {
       return this.state.organization.name;
@@ -277,7 +282,7 @@ const OrganizationContext = createReactClass({
   },
 
   render() {
-    if (this.state.loading) {
+    if (this.isLoading()) {
       return (
         <LoadingIndicator triangle>
           {t('Loading data for your organization.')}
