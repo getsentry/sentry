@@ -245,7 +245,6 @@ matrix:
 
   allow_failures:
     - name: 'Storybook Deploy'
-    - name: 'Plugins'
 
 notifications:
   webhooks:
