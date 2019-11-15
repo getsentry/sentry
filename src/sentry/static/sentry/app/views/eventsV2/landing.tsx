@@ -29,6 +29,7 @@ import EventInputName from './eventInputName';
 import {DEFAULT_EVENT_VIEW_V1} from './data';
 import QueryList from './queryList';
 import DiscoverBreadcrumb from './breadcrumb';
+import {generateTitle} from './utils';
 
 const DISPLAY_SEARCH_BAR_FLAG = false;
 const BANNER_DISMISSED_KEY = 'discover-banner-dismissed';
@@ -65,20 +66,9 @@ class DiscoverLanding extends React.Component<Props> {
   }
 
   getDocumentTitle = (eventView: EventView): string => {
-    const titles = [t('Discover')];
-
-    const eventViewName = eventView.name;
-    if (
-      eventView.isValid() &&
-      typeof eventViewName === 'string' &&
-      String(eventViewName).trim().length > 0
-    ) {
-      titles.push(String(eventViewName).trim());
-    }
-
-    titles.reverse();
-
-    return titles.join(' - ');
+    return generateTitle({
+      eventView,
+    });
   };
 
   handleClick = () => {

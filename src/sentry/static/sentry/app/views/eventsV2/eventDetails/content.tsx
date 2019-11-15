@@ -4,7 +4,6 @@ import {Location} from 'history';
 import styled from 'react-emotion';
 import PropTypes from 'prop-types';
 
-import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {Client} from 'app/api';
@@ -23,7 +22,7 @@ import AsyncComponent from 'app/components/asyncComponent';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 
 import EventView from '../eventView';
-import {hasAggregateField, EventQuery} from '../utils';
+import {hasAggregateField, EventQuery, generateTitle} from '../utils';
 import Pagination from './pagination';
 import LineGraph from './lineGraph';
 import RelatedEvents from '../relatedEvents';
@@ -200,22 +199,10 @@ class EventDetailsWrapper extends React.Component<EventDetailsWrapperProps> {
   getDocumentTitle = (): string => {
     const {event, eventView} = this.props;
 
-    const titles = [t('Discover')];
-
-    const eventViewName = eventView.name;
-    if (typeof eventViewName === 'string' && String(eventViewName).trim().length > 0) {
-      titles.push(String(eventViewName).trim());
-    }
-
-    const eventTitle = event ? getTitle(event).title : undefined;
-
-    if (eventTitle) {
-      titles.push(eventTitle);
-    }
-
-    titles.reverse();
-
-    return titles.join(' - ');
+    return generateTitle({
+      eventView,
+      event,
+    });
   };
 
   render() {

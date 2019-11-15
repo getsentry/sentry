@@ -3,7 +3,10 @@ import pick from 'lodash/pick';
 import {Location, Query} from 'history';
 import {browserHistory} from 'react-router';
 
+import {t} from 'app/locale';
+import {Event} from 'app/types';
 import {Client} from 'app/api';
+import {getTitle} from 'app/utils/events';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {generateQueryWithTag} from 'app/utils';
 
@@ -317,4 +320,23 @@ export function pushEventViewToLocation(props: {
       ...queryStringObject,
     },
   });
+}
+
+export function generateTitle({eventView, event}: {eventView: EventView; event?: Event}) {
+  const titles = [t('Discover')];
+
+  const eventViewName = eventView.name;
+  if (typeof eventViewName === 'string' && String(eventViewName).trim().length > 0) {
+    titles.push(String(eventViewName).trim());
+  }
+
+  const eventTitle = event ? getTitle(event).title : undefined;
+
+  if (eventTitle) {
+    titles.push(eventTitle);
+  }
+
+  titles.reverse();
+
+  return titles.join(' - ');
 }
