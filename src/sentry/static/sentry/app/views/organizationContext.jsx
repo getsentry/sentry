@@ -85,17 +85,23 @@ const OrganizationContext = createReactClass({
       prevProps.params.orgId &&
       this.props.params.orgId &&
       prevProps.params.orgId !== this.props.params.orgId;
+    const hasOrgId =
+      this.props.params.orgId ||
+      (this.props.useLastOrganization && ConfigStore.get('lastOrganization'));
 
     // protect against the case where we finish fetching org details
     // and then `OrganizationsStore` finishes loading:
     // only fetch in the case where we don't have an orgId
+    //
+    // Compare `getOrganizationSlug`  because we may have a last used org from server
+    // if there is no orgId in the URL
     const organizationLoadingChanged =
       prevProps.organizationsLoading !== this.props.organizationsLoading &&
       this.props.organizationsLoading === false;
 
     if (
       hasOrgIdAndChanged ||
-      (!this.props.params.orgId && organizationLoadingChanged) ||
+      (!hasOrgId && organizationLoadingChanged) ||
       (this.props.location.state === 'refresh' && prevProps.location.state !== 'refresh')
     ) {
       this.remountComponent();
