@@ -7,6 +7,7 @@ import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
 import {ORGANIZATION_FETCH_ERROR_TYPES} from 'app/constants';
+import {Client} from 'app/api';
 import {fetchOrganizationDetails} from 'app/actionCreators/organization';
 import {metric, logExperiment} from 'app/utils/analytics';
 import {openSudo} from 'app/actionCreators/modal';
@@ -140,6 +141,18 @@ const OrganizationContext = createReactClass({
     );
   },
 
+  isLoading() {
+    // A custom loading function because we could either by waiting for the
+    // whole organization object to come in or just the teams and projects
+    const {loading, error, organization} = this.state;
+    const {detailed} = this.props;
+    return (
+      loading ||
+      (!error &&
+        (detailed && (!organization || !organization.projects || !organization.teams)))
+    );
+  },
+
   async fetchData() {
     if (!this.getOrganizationSlug()) {
       this.setState({loading: this.props.organizationsLoading});
@@ -153,11 +166,23 @@ const OrganizationContext = createReactClass({
     fetchOrganizationDetails(
       this.props.api,
       this.getOrganizationSlug(),
-      this.props.detailed
+      this.props.detailed,
+      true // silent
     );
-    // create a request for all teams if in lightweight org
+    // create a request for all teams and all projects if in lightweight org
     if (!this.props.detailed) {
-      const teams = await this.props.api.requestPromise(
+      // create a new client so when this context unmounts the requests continue
+      const persistedAPI = new Client();
+      const projects = await persistedAPI.requestPromise(
+        this.getOrganizationProjectsEndpoint(),
+        {
+          query: {
+            all_projects: 1,
+          },
+        }
+      );
+      ProjectActions.loadProjects(projects);
+      const teams = await persistedAPI.requestPromise(
         this.getOrganizationTeamsEndpoint()
       );
       TeamActions.loadTeams(teams);
@@ -237,6 +262,10 @@ const OrganizationContext = createReactClass({
     return `/organizations/${this.getOrganizationSlug()}/teams/`;
   },
 
+  getOrganizationProjectsEndpoint() {
+    return `/organizations/${this.getOrganizationSlug()}/projects/`;
+  },
+
   getTitle() {
     if (this.state.organization) {
       return this.state.organization.name;
@@ -271,7 +300,7 @@ const OrganizationContext = createReactClass({
   },
 
   render() {
-    if (this.state.loading) {
+    if (this.isLoading()) {
       return (
         <LoadingIndicator triangle>
           {t('Loading data for your organization.')}

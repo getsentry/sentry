@@ -86,6 +86,7 @@ describe('OrganizationContext', function() {
     expect(OrganizationActionCreator.fetchOrganizationDetails).toHaveBeenCalledWith(
       api,
       'org-slug',
+      true,
       true
     );
     expect(GlobalSelectionStore.loadInitialData).toHaveBeenCalledWith(org, {});
