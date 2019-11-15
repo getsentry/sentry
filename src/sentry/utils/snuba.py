@@ -30,7 +30,7 @@ from sentry.models import (
 from sentry.net.http import connection_from_url
 from sentry.utils import metrics, json
 from sentry.utils.dates import to_timestamp
-from sentry.eventstore.base import Columns
+from sentry.snuba.events import Columns
 
 # TODO remove this when Snuba accepts more than 500 issues
 MAX_ISSUES = 500
