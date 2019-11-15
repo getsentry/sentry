@@ -86,7 +86,7 @@ const OrganizationContext = createReactClass({
       this.props.params.orgId &&
       prevProps.params.orgId !== this.props.params.orgId;
     const hasOrgId =
-      this.props.params.org ||
+      this.props.params.orgId ||
       (this.props.useLastOrganization && ConfigStore.get('lastOrganization'));
 
     // protect against the case where we finish fetching org details
