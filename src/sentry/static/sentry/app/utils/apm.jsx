@@ -1,4 +1,3 @@
-import * as Router from 'react-router';
 import * as Sentry from '@sentry/browser';
 import {TransactionActivity} from '@sentry/integrations';
 
@@ -7,9 +6,7 @@ import {TransactionActivity} from '@sentry/integrations';
  */
 export function setTransactionName(name) {
   TransactionActivity.updateTransactionName(`${name}`);
-  Sentry.configureScope(scope => {
-    scope.setTag('ui.route', name);
-  });
+  Sentry.setTag('ui.route', name);
 }
 
 /**
@@ -17,17 +14,11 @@ export function setTransactionName(name) {
  * and creates a router listener to create a new transaction as user navigates.
  */
 export function startApm() {
+  // `${window.location.href}` will be used a temp transaction name
+  // Internally once our <App> is mounted and the Router is initalized
+  // we call `setTransactionName` to update the full URL to the route name
   TransactionActivity.startIdleTransaction(`${window.location.href}`, {
     op: 'pageload',
     sampled: true,
-  });
-  Sentry.configureScope(scope => {
-    scope.setTag('ui.nav', 'pageload');
-  });
-  Router.browserHistory.listen(() => {
-    TransactionActivity.startIdleTransaction(`${window.location.href}`, {
-      op: 'navigation',
-      sampled: true,
-    });
   });
 }

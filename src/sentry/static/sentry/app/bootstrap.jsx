@@ -35,20 +35,16 @@ Sentry.init({
     new Tracing({
       tracingOrigins: ['localhost', 'sentry.io', /^\//],
     }),
-    new TransactionActivity({
-      idleTimeout: 500,
-    }),
+    new TransactionActivity(),
   ],
 });
 
-Sentry.configureScope(scope => {
-  if (window.__SENTRY__USER) {
-    scope.setUser(window.__SENTRY__USER);
-  }
-  if (window.__SENTRY__VERSION) {
-    scope.setTag('sentry_version', window.__SENTRY__VERSION);
-  }
-});
+if (window.__SENTRY__USER) {
+  Sentry.setUser(window.__SENTRY__USER);
+}
+if (window.__SENTRY__VERSION) {
+  Sentry.setTag('sentry_version', window.__SENTRY__VERSION);
+}
 
 // Used for operational metrics to determine that the application js
 // bundle was loaded by browser.
