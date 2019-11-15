@@ -13,6 +13,7 @@ export type ObjectStatus =
 export type LightWeightOrganization = {
   id: string;
   slug: string;
+  name: string;
   access: string[];
   features: string[];
 };

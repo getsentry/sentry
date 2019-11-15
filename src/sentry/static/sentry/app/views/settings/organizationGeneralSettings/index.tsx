@@ -1,8 +1,9 @@
+import {RouteComponentProps} from 'react-router/lib/Router';
 import {browserHistory} from 'react-router';
-import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 
+import {Client} from 'app/api';
+import {OrganizationDetailed} from 'app/types';
 import {Panel, PanelHeader} from 'app/components/panels';
 import {addLoadingMessage} from 'app/actionCreators/indicator';
 import {
@@ -14,7 +15,6 @@ import {t, tct} from 'app/locale';
 import Field from 'app/views/settings/components/forms/field';
 import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import withApi from 'app/utils/withApi';
@@ -22,38 +22,27 @@ import withOrganization from 'app/utils/withOrganization';
 
 import OrganizationSettingsForm from './organizationSettingsForm';
 
-const OrganizationGeneralSettings = createReactClass({
-  displayName: 'OrganizationGeneralSettings',
+type Props = {
+  api: Client;
+  organization: OrganizationDetailed;
+} & RouteComponentProps<{orgId: string}, {}>;
 
-  propTypes: {
-    api: PropTypes.object,
-    organization: SentryTypes.Organization.isRequired,
-    routes: PropTypes.arrayOf(PropTypes.object),
-  },
-
-  getInitialState() {
-    return {
-      loading: true,
-      error: false,
-      data: null,
-    };
-  },
-
-  handleRemoveOrganization() {
-    const {data} = this.state || {};
-    if (!data) {
+class OrganizationGeneralSettings extends React.Component<Props> {
+  handleRemoveOrganization = () => {
+    const {api, organization, params} = this.props;
+    if (!organization) {
       return;
     }
 
     addLoadingMessage();
-    removeAndRedirectToRemainingOrganization(this.props.api, {
-      orgId: this.props.params.orgId,
-      successMessage: `${data.name} is queued for deletion.`,
-      errorMessage: `Error removing the ${data && data.name} organization`,
+    removeAndRedirectToRemainingOrganization(api, {
+      orgId: params.orgId,
+      successMessage: `${organization.name} is queued for deletion.`,
+      errorMessage: `Error removing the ${organization.name} organization`,
     });
-  },
+  };
 
-  handleSave(prevData, data) {
+  handleSave = (prevData: OrganizationDetailed, data: OrganizationDetailed) => {
     if (data.slug && data.slug !== prevData.slug) {
       changeOrganizationSlug(prevData, data);
       browserHistory.replace(`/settings/${data.slug}/`);
@@ -62,14 +51,13 @@ const OrganizationGeneralSettings = createReactClass({
       // which is slightly incorrect because it has summaries vs a detailed org)
       updateOrganization(data);
     }
-  },
+  };
 
   render() {
-    const {organization: data} = this.props;
-    const orgId = this.props.params.orgId;
-    const access = data && new Set(data.access);
-
-    const hasProjects = data && data.projects && !!data.projects.length;
+    const {organization, params} = this.props;
+    const {orgId} = params;
+    const access = new Set(organization.access);
+    const hasProjects = organization.projects && !!organization.projects.length;
 
     return (
       <React.Fragment>
@@ -78,19 +66,19 @@ const OrganizationGeneralSettings = createReactClass({
           <SettingsPageHeader title={t('Organization Settings')} />
           <OrganizationSettingsForm
             {...this.props}
-            initialData={data}
+            initialData={organization}
             orgId={orgId}
             access={access}
             onSave={this.handleSave}
           />
 
-          {access.has('org:admin') && !data.isDefault && (
+          {access.has('org:admin') && !organization.isDefault && (
             <Panel>
               <PanelHeader>{t('Remove Organization')}</PanelHeader>
               <Field
                 label={t('Remove Organization')}
                 help={t(
-                  'Removing this organization will delete all data including projects and their associated events.'
+                  'Removing this organization will delete all organization including projects and their associated events.'
                 )}
               >
                 <div>
@@ -98,14 +86,14 @@ const OrganizationGeneralSettings = createReactClass({
                     className="btn btn-danger"
                     priority="danger"
                     size="small"
-                    title={t('Remove %s organization', data && data.name)}
+                    title={t('Remove %s organization', organization && organization.name)}
                     message={
                       <div>
                         <TextBlock>
                           {tct(
                             'Removing the organization, [name] is permanent and cannot be undone! Are you sure you want to continue?',
                             {
-                              name: data && <strong>{data.name}</strong>,
+                              name: organization && <strong>{organization.name}</strong>,
                             }
                           )}
                         </TextBlock>
@@ -118,7 +106,7 @@ const OrganizationGeneralSettings = createReactClass({
                               )}
                             </TextBlock>
                             <ul className="ref-projects">
-                              {data.projects.map(project => (
+                              {organization.projects.map(project => (
                                 <li key={project.slug}>{project.slug}</li>
                               ))}
                             </ul>
@@ -137,9 +125,7 @@ const OrganizationGeneralSettings = createReactClass({
         </div>
       </React.Fragment>
     );
-  },
-});
-
-export {OrganizationGeneralSettings};
+  }
+}
 
 export default withApi(withOrganization(OrganizationGeneralSettings));
