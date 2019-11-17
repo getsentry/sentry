@@ -46,8 +46,35 @@ class MoreSnubaSearchBackend(SnubaSearchBackend):
         "total": ["uniq", "events.issue"],
     }
 
-    # def initialize_group_queryset():
-    #     return Group.objects.all()
+    def build_group_queryset(
+        self, projects, environments, search_filters, retention_window_start, date_from, date_to
+    ):
+        # This is an override to see if we need to hit Postgres at all.
+        # If we don't, we just return None for a group_queryset and the result builder will not
+        # estimate the results or run pre/post filtering.
+
+        # We only need to hit postgres if search_filters contains certain fields.
+
+        search_postgres = False
+        for search_filter in search_filters:
+            if search_filter in self.issue_only_fields:
+                search_postgres = True
+                break
+
+        if search_postgres is True:
+            return super(MoreSnubaSearchBackend, self).build_group_queryset(
+                projects, environments, search_filters, retention_window_start, date_from, date_to
+            )
+        else:
+            return None
+
+    def initialize_group_queryset():
+        # No longer initializing with a filter on status - we can do this in Snuba.
+        # TODO: Add `status` filter to snuba query to exlcude status:
+        # GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS, GroupStatus.PENDING_MERGE,
+        from sentry.models import Group
+
+        return Group.objects.all()
 
     def get_queryset_modifiers(
         self,
@@ -76,19 +103,9 @@ class MoreSnubaSearchBackend(SnubaSearchBackend):
                 date_from,
                 date_to,
             )
-
             del qs_builder_conditions["status"]
             del qs_builder_conditions["active_at"]
-
             return qs_builder_conditions
-
-    def filter_groups_by_environment_and_release(
-        self, projects, group_queryset, environments, search_filters
-    ):
-        # Override the base function, which filters the group_queryset,
-        # and do no postgres filter building for first_release and first_seen
-        # Just return it unmodified. We do this filter in snuba now.
-        return group_queryset
 
     def modify_converted_filter(self, search_filter, converted_filter, environment_ids=None):
         with Hub.current.start_span(op="func", description="override_modify_converted_filter"):

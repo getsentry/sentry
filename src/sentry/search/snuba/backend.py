@@ -9,7 +9,7 @@ from hashlib import md5
 from django.db.models import Q
 from django.utils import timezone
 
-import sentry_sdk
+# import sentry_sdk
 from sentry_sdk import Hub
 from sentry import options, quotas
 from sentry.api.event_search import InvalidSearchQuery
@@ -184,6 +184,7 @@ class SnubaSearchBackend(SearchBackend):
     transaction_name = "SnubaSearchBackend"
 
     def __init__(self):
+        self.transaction_name = self.__class__.__name__ + "::query"
         pass
 
     def query(
@@ -199,37 +200,27 @@ class SnubaSearchBackend(SearchBackend):
         date_from=None,
         date_to=None,
     ):
-        with sentry_sdk.start_span(op="func", transaction=self.transaction_name) as span:
-            search_filters, paginator_options, retention_window_start = self.initialize_variables(
-                projects,
-                environments,
-                sort_by,
-                limit,
-                cursor,
-                count_hits,
-                paginator_options,
-                search_filters,
-                date_from,
-                date_to,
+        with Hub.current.start_span(op="func", transaction=self.transaction_name) as span:
+            # with sentry_sdk.start_span(op="func", transaction=self.transaction_name) as span:
+            search_filters = search_filters if search_filters is not None else []
+
+            # ensure projects are from same org
+            if len({p.organization_id for p in projects}) != 1:
+                raise RuntimeError("Cross organization search not supported")
+
+            if paginator_options is None:
+                paginator_options = {}
+
+            retention = quotas.get_event_retention(organization=projects[0].organization)
+            if retention:
+                retention_window_start = timezone.now() - timedelta(days=retention)
+            else:
+                retention_window_start = None
+
+            group_queryset = self.build_group_queryset(
+                projects, environments, search_filters, retention_window_start, date_from, date_to
             )
 
-            group_queryset = self.build_queryset(
-                projects,
-                retention_window_start,
-                environments,
-                sort_by,
-                limit,
-                cursor,
-                count_hits,
-                paginator_options,
-                search_filters,
-                date_from,
-                date_to,
-            )
-
-            # This is a punt because the SnubaSearchBackend (a subclass) shares so much that it
-            # seemed better to handle all the shared initialization and then handoff to the
-            # actual backend.
             results = self.build_results(
                 projects,
                 retention_window_start,
@@ -248,158 +239,31 @@ class SnubaSearchBackend(SearchBackend):
             span.finish()
             return results
 
-    def initialize_variables(
-        self,
-        projects,
-        environments,
-        sort_by,
-        limit,
-        cursor,
-        count_hits,
-        paginator_options,
-        search_filters,
-        date_from,
-        date_to,
-    ):
-        with Hub.current.start_span(op="func", description="initialize_variables"):
-            search_filters = search_filters if search_filters is not None else []
-
-            # ensure projects are from same org
-            if len({p.organization_id for p in projects}) != 1:
-                raise RuntimeError("Cross organization search not supported")
-
-            if paginator_options is None:
-                paginator_options = {}
-
-            retention = quotas.get_event_retention(organization=projects[0].organization)
-            if retention:
-                retention_window_start = timezone.now() - timedelta(days=retention)
-            else:
-                retention_window_start = None
-
-            return search_filters, paginator_options, retention_window_start
-
-    def build_queryset(
-        self,
-        projects,
-        retention_window_start,
-        environments,
-        sort_by,
-        limit,
-        cursor,
-        count_hits,
-        paginator_options,
-        search_filters,
-        date_from,
-        date_to,
+    def build_group_queryset(
+        self, projects, environments, search_filters, retention_window_start, date_from, date_to
     ):
         with Hub.current.start_span(op="func", description="build_queryset"):
-            group_queryset = self.initialize_group_queryset(
-                projects,
-                environments,
-                sort_by,
-                limit,
-                cursor,
-                count_hits,
-                paginator_options,
-                search_filters,
-                date_from,
-                date_to,
-            )
+            group_queryset = self.initialize_group_queryset(projects, environments, search_filters)
 
             qs_builder_modifiers = self.get_queryset_modifiers(
-                projects,
-                environments,
-                sort_by,
-                limit,
-                cursor,
-                count_hits,
-                paginator_options,
-                search_filters,
-                date_from,
-                date_to,
+                projects, environments, search_filters, date_from, date_to
             )
 
             group_queryset = self.build_modifiers_into_queryset(
                 qs_builder_modifiers, group_queryset, search_filters
             )
 
-            group_queryset = self.filter_groups_by_retention(
+            group_queryset = self.filter_group_queryset(
                 projects,
                 retention_window_start,
                 group_queryset,
                 environments,
-                sort_by,
-                limit,
-                cursor,
-                count_hits,
-                paginator_options,
                 search_filters,
                 date_from,
                 date_to,
             )
 
-            group_queryset = self.filter_groups_by_environment_and_release(
-                projects, group_queryset, environments, search_filters
-            )
-
             return group_queryset
-
-    def build_modifiers_into_queryset(self, qs_builder_modifiers, group_queryset, search_filters):
-        with Hub.current.start_span(op="func", description="build_modifiers_into_queryset"):
-            return QuerySetBuilder(qs_builder_modifiers).build(group_queryset, search_filters)
-
-    def filter_groups_by_retention(
-        self,
-        projects,
-        retention_window_start,
-        group_queryset,
-        environments,
-        sort_by,
-        limit,
-        cursor,
-        count_hits,
-        paginator_options,
-        search_filters,
-        date_from,
-        date_to,
-    ):
-        with Hub.current.start_span(op="func", description="filter_groups_by_retention"):
-
-            # filter out groups which are beyond the retention period
-            # TODO: This could be optimized when building querysets to identify
-            # criteria that are logically impossible (e.g. if the upper bound
-            # for last seen is before the retention window starts, no results
-            # exist.)
-            if retention_window_start:
-                return group_queryset.filter(last_seen__gte=retention_window_start)
-            else:
-                return group_queryset
-
-    def initialize_group_queryset(
-        self,
-        projects,
-        environments,
-        sort_by,
-        limit,
-        cursor,
-        count_hits,
-        paginator_options,
-        search_filters,
-        date_from,
-        date_to,
-    ):
-        with Hub.current.start_span(op="func", description="initialize_group_queryset"):
-
-            from sentry.models import GroupStatus
-
-            return Group.objects.filter(project__in=projects).exclude(
-                status__in=[
-                    GroupStatus.PENDING_DELETION,
-                    GroupStatus.DELETION_IN_PROGRESS,
-                    GroupStatus.PENDING_MERGE,
-                ]
-            )
 
     def build_results(
         self,
@@ -487,29 +351,34 @@ class SnubaSearchBackend(SearchBackend):
             # clause.
             max_candidates = options.get("snuba.search.max-pre-snuba-candidates")
             too_many_candidates = False
-            with Hub.current.start_span(op="task", description="flattening candidate IDs"):
-                candidate_ids = list(
-                    group_queryset.values_list("id", flat=True)[: max_candidates + 1]
-                )
-
-            metrics.timing("snuba.search.num_candidates", len(candidate_ids))
-            if not candidate_ids:
-                # no matches could possibly be found from this point on
-                metrics.incr("snuba.search.no_candidates", skip_internal=False)
-                return self.EMPTY_RESULT
-            elif len(candidate_ids) > max_candidates:
-                # If the pre-filter query didn't include anything to significantly
-                # filter down the number of results (from 'first_release', 'query',
-                # 'status', 'bookmarked_by', 'assigned_to', 'unassigned',
-                # 'subscribed_by', 'active_at_from', or 'active_at_to') then it
-                # might have surpassed the `max_candidates`. In this case,
-                # we *don't* want to pass candidates down to Snuba, and instead we
-                # want Snuba to do all the filtering/sorting it can and *then* apply
-                # this queryset to the results from Snuba, which we call
-                # post-filtering.
-                metrics.incr("snuba.search.too_many_candidates", skip_internal=False)
-                too_many_candidates = True
+            skip_postgres_search = False
+            if group_queryset is not None:
+                with Hub.current.start_span(op="task", description="flattening candidate IDs"):
+                    candidate_ids = list(
+                        group_queryset.values_list("id", flat=True)[: max_candidates + 1]
+                    )
+                metrics.timing("snuba.search.num_candidates", len(candidate_ids))
+                if not candidate_ids:
+                    # no matches could possibly be found from this point on
+                    metrics.incr("snuba.search.no_candidates", skip_internal=False)
+                    return self.EMPTY_RESULT
+                elif len(candidate_ids) > max_candidates:
+                    # If the pre-filter query didn't include anything to significantly
+                    # filter down the number of results (from 'first_release', 'query',
+                    # 'status', 'bookmarked_by', 'assigned_to', 'unassigned',
+                    # 'subscribed_by', 'active_at_from', or 'active_at_to') then it
+                    # might have surpassed the `max_candidates`. In this case,
+                    # we *don't* want to pass candidates down to Snuba, and instead we
+                    # want Snuba to do all the filtering/sorting it can and *then* apply
+                    # this queryset to the results from Snuba, which we call
+                    # post-filtering.
+                    metrics.incr("snuba.search.too_many_candidates", skip_internal=False)
+                    too_many_candidates = True
+                    candidate_ids = []
+            else:
                 candidate_ids = []
+                skip_postgres_search = True
+                metrics.incr("snuba.search.no_postgres", skip_internal=False)
 
             sort_field = self.sort_strategies[sort_by]
             chunk_growth = options.get("snuba.search.chunk-growth-rate")
@@ -620,7 +489,24 @@ class SnubaSearchBackend(SearchBackend):
                 if not snuba_groups:
                     break
 
-                if candidate_ids:
+                if skip_postgres_search:
+                    # We are not doing a pre or post filter, just append all snuba results to result_groups
+                    # and get total hits.
+                    hits = total  # ???
+
+                    group_to_score = dict(snuba_groups)
+                    for group_id in snuba_groups:
+                        if group_id in result_group_ids:
+                            # because we're doing multiple Snuba queries, which
+                            # happen outside of a transaction, there is a small possibility
+                            # of groups moving around in the sort scoring underneath us,
+                            # so we at least want to protect against duplicates
+                            continue
+                        group_score = group_to_score[group_id]
+                        result_group_ids.add(group_id)
+                        result_groups.append((group_id, group_score))
+
+                elif candidate_ids:
                     # pre-filtered candidates were passed down to Snuba, so we're
                     # finished with filtering and these are the only results. Note
                     # that because we set the chunk size to at least the size of
@@ -805,12 +691,43 @@ class SnubaSearchBackend(SearchBackend):
 
             return [(row[self.ISSUE_FIELD_NAME], row[sort_field]) for row in rows], total
 
-    def filter_groups_by_environment_and_release(
-        self, projects, group_queryset, environments, search_filters
+    def initialize_group_queryset(self, projects, environments, search_filters):
+        with Hub.current.start_span(op="func", description="initialize_group_queryset"):
+            from sentry.models import GroupStatus
+
+            return Group.objects.filter(project__in=projects).exclude(
+                status__in=[
+                    GroupStatus.PENDING_DELETION,
+                    GroupStatus.DELETION_IN_PROGRESS,
+                    GroupStatus.PENDING_MERGE,
+                ]
+            )
+
+    def build_modifiers_into_queryset(self, qs_builder_modifiers, group_queryset, search_filters):
+        with Hub.current.start_span(op="func", description="build_modifiers_into_queryset"):
+            return QuerySetBuilder(qs_builder_modifiers).build(group_queryset, search_filters)
+
+    def filter_group_queryset(
+        self,
+        projects,
+        retention_window_start,
+        group_queryset,
+        environments,
+        search_filters,
+        date_from,
+        date_to,
     ):
         with Hub.current.start_span(
-            op="task", description="filter_groups_by_environment_and_release"
-        ):
+            op="func", description="filter_groups; retention"
+        ):  # filter out groups which are beyond the retention period
+            # TODO: This could be optimized when building querysets to identify
+            # criteria that are logically impossible (e.g. if the upper bound
+            # for last seen is before the retention window starts, no results
+            # exist.)
+            if retention_window_start:
+                group_queryset = group_queryset.filter(last_seen__gte=retention_window_start)
+
+        with Hub.current.start_span(op="task", description="filter_groups; env&release"):
             from sentry.models import Release, GroupEnvironment
 
             # TODO: It's possible `first_release` could be handled by Snuba.
@@ -867,20 +784,11 @@ class SnubaSearchBackend(SearchBackend):
                         "first_seen": ScalarCondition("first_seen"),
                     }
                 ).build(group_queryset, search_filters)
-            return group_queryset
+
+        return group_queryset
 
     def get_queryset_modifiers(
-        self,
-        projects,
-        environments=None,
-        sort_by="date",
-        limit=100,
-        cursor=None,
-        count_hits=False,
-        paginator_options=None,
-        search_filters=None,
-        date_from=None,
-        date_to=None,
+        self, projects, environments=None, search_filters=None, date_from=None, date_to=None
     ):
         with Hub.current.start_span(op="task", description="get_queryset_modifiers"):
 
