@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import six
 import uuid
-import sentry.utils as utils
 
 from sentry_sdk import Hub
 
@@ -11,13 +10,14 @@ from pytz import utc
 
 from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
-from sentry.message_filters import get_all_filters, get_filter_key
-from sentry import quotas
+from sentry.message_filters import get_all_filters
+from sentry import quotas, utils
 
 from sentry.models.organizationoption import OrganizationOption
-from sentry.utils.data_filters import FilterTypes, FilterStatKeys
+from sentry.utils.data_filters import FilterTypes, FilterStatKeys, get_filter_key
 from sentry.utils.http import get_origins
 from sentry.utils.sdk import configure_scope
+from sentry.relay.utils import to_camel_case_name
 
 
 def get_project_key_config(project_key):
@@ -99,11 +99,11 @@ def get_project_config(project, org_options=None, full_config=True, project_keys
         for flt in get_all_filters():
             filter_id = get_filter_key(flt)
             settings = _load_filter_settings(flt, project)
-            filter_settings[_to_camel_case_name(filter_id)] = settings
+            filter_settings[filter_id] = settings
 
         invalid_releases = project.get_option(u"sentry:{}".format(FilterTypes.RELEASES))
         if invalid_releases:
-            filter_settings[FilterTypes.RELEASES] = {"releases": invalid_releases}
+            filter_settings["releases"] = {"releases": invalid_releases}
 
         blacklisted_ips = project.get_option("sentry:blacklisted_ips")
         if blacklisted_ips:
@@ -111,7 +111,7 @@ def get_project_config(project, org_options=None, full_config=True, project_keys
 
         error_messages = project.get_option(u"sentry:{}".format(FilterTypes.ERROR_MESSAGES))
         if error_messages:
-            filter_settings[FilterTypes.ERROR_MESSAGES] = {"patterns": error_messages}
+            filter_settings["errorMessages"] = {"patterns": error_messages}
 
         csp_disallowed_sources = []
         if bool(project.get_option("sentry:csp_ignored_sources_defaults", True)):
@@ -159,7 +159,7 @@ class _ConfigBase(object):
 
     def __getattr__(self, name):
         data = self.__get_data()
-        return data.get(name)
+        return data.get(to_camel_case_name(name))
 
     def to_dict(self):
         """
@@ -281,45 +281,6 @@ def _get_datascrubbing_settings(project, org_options):
     ) or project.get_option("sentry:scrub_defaults", True)
 
     return rv
-
-
-def _to_camel_case_name(name):
-    """
-    Converts a string from snake_case to camelCase
-
-    :param name: the string to convert
-    :return: the name converted to camelCase
-
-    >>> _to_camel_case_name(22)
-    22
-    >>> _to_camel_case_name("hello_world")
-    'helloWorld'
-    >>> _to_camel_case_name("_hello_world")
-    'helloWorld'
-    >>> _to_camel_case_name("__hello___world___")
-    'helloWorld'
-    >>> _to_camel_case_name("hello")
-    'hello'
-    >>> _to_camel_case_name("Hello_world")
-    'helloWorld'
-    >>> _to_camel_case_name("one_two_three_four")
-    'oneTwoThreeFour'
-    >>> _to_camel_case_name("oneTwoThreeFour")
-    'oneTwoThreeFour'
-    """
-
-    def first_lower(s):
-        return s[:1].lower() + s[1:]
-
-    def first_upper(s):
-        return s[:1].upper() + s[1:]
-
-    if not isinstance(name, six.string_types):
-        return name
-    else:
-        name = name.strip("_")
-        pieces = name.split("_")
-        return first_lower(pieces[0]) + "".join(first_upper(x) for x in pieces[1:])
 
 
 def _load_filter_settings(flt, project):

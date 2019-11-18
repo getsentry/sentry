@@ -351,7 +351,7 @@ class StoreViewTest(TestCase):
         resp = self._postWithHeader(body)
         assert resp.status_code == 403, (resp.status_code, resp.content)
 
-    def test_request_with_beggining_glob(self):
+    def test_request_with_beginning_glob(self):
         self.project.update_option(
             u"sentry:{}".format(FilterTypes.ERROR_MESSAGES),
             ["*: integer division or modulo by zero"],

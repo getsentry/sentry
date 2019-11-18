@@ -15,6 +15,14 @@ from sentry.testutils import APITestCase
 from semaphore.auth import generate_key_pair
 
 
+def _get_all_keys(config):
+    for key in config:
+        yield key
+        if isinstance(config[key], dict):
+            for key in _get_all_keys(config[key]):
+                yield key
+
+
 class RelayQueryGetProjectConfigTest(APITestCase):
     _date_regex = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z$")
 
@@ -70,7 +78,7 @@ class RelayQueryGetProjectConfigTest(APITestCase):
 
         # Sweeping assertion that we do not have any snake_case in that config.
         # Might need refining.
-        assert "_" not in repr(result)
+        assert not set(x for x in _get_all_keys(result) if "-" in x or "_" in x)
 
         cfg = safe.get_path(result, "configs", six.text_type(self.project.id))
         assert safe.get_path(cfg, "config", "filterSettings") is None
@@ -84,7 +92,7 @@ class RelayQueryGetProjectConfigTest(APITestCase):
 
         # Sweeping assertion that we do not have any snake_case in that config.
         # Might need refining.
-        assert "_" not in repr(result)
+        assert not set(x for x in _get_all_keys(result) if "-" in x or "_" in x)
 
         cfg = safe.get_path(result, "configs", six.text_type(self.project.id))
         assert safe.get_path(cfg, "disabled") is False
