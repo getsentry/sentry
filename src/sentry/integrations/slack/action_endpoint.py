@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from sentry import analytics
 from sentry import http
 from sentry.api import client
@@ -35,6 +37,7 @@ class SlackActionEndpoint(Endpoint):
         logging_data = logging_data.copy()
         logging_data["response"] = error.body
         logging_data["action_type"] = action_type
+        logger.info("slack.action.api-error-pre-message: %s" % six.text_type(logging_data))
         logger.info("slack.action.api-error", extra=logging_data)
         return self.respond(
             {
