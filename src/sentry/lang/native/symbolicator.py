@@ -277,11 +277,29 @@ def get_sources_for_project(project):
             # processing at this point.
             logger.error("Invalid symbolicator source config", exc_info=True)
 
+    def resolve_alias(source):
+        for key in source.get("sources") or ():
+            other_source = settings.SENTRY_BUILTIN_SOURCES.get(key)
+            if other_source:
+                if other_source.get("type") == "alias":
+                    for item in resolve_alias(other_source):
+                        yield item
+                else:
+                    yield other_source
+
     # Add builtin sources last to ensure that custom sources have precedence
     # over our defaults.
     builtin_sources = project.get_option("sentry:builtin_symbol_sources")
     for key, source in six.iteritems(settings.SENTRY_BUILTIN_SOURCES):
-        if key in builtin_sources:
+        if key not in builtin_sources:
+            continue
+
+        # special internal alias type expands to more than one item.  This
+        # is used to make `apple` expand to `ios`/`macos` and other
+        # sources if configured as such.
+        if source.get("type") == "alias":
+            sources.extend(resolve_alias(source))
+        else:
             sources.append(source)
 
     return sources
