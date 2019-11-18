@@ -63,16 +63,14 @@ if getattr(settings, "DEBUG_VIEWS", settings.DEBUG):
 # Special favicon in debug mode
 if settings.DEBUG:
     urlpatterns += [
-        "",
         url(
             r"^_static/[^/]+/[^/]+/images/favicon\.ico$",
             generic.dev_favicon,
             name="sentry-dev-favicon",
-        ),
+        )
     ]
 
 urlpatterns += [
-    "",
     # Store endpoints first since they are the most active
     url(r"^api/store/$", api.StoreView.as_view(), name="sentry-api-store"),
     url(r"^api/(?P<project_id>[\w_-]+)/store/$", api.StoreView.as_view(), name="sentry-api-store"),
