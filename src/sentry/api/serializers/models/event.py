@@ -377,3 +377,36 @@ class SimpleEventSerializer(EventSerializer):
             # Needed to generate minidump links in UI
             "crashFile": attrs["crash_file"],
         }
+
+
+class ExternalEventSerializer(EventSerializer):
+    """
+    Event serializer for the minimum event data needed to send to an external service. This
+    can be used for Integrations and the Integration Platform. If the full event is needed,
+    use `event.as_dict()` instead.
+    """
+
+    def serialize(self, obj, attrs, user):
+        tags = [{"key": key.split("sentry:", 1)[-1], "value": value} for key, value in obj.tags]
+        for tag in tags:
+            query = convert_user_tag_to_query(tag["key"], tag["value"])
+            if query:
+                tag["query"] = query
+
+        user = obj.get_minimal_user()
+
+        return {
+            "group_id": six.text_type(obj.group_id) if obj.group_id else None,
+            "event_id": six.text_type(obj.event_id),
+            "project": six.text_type(obj.project_id),
+            # XXX for 'message' this doesn't do the proper resolution of logentry
+            # etc. that _get_legacy_message_with_meta does.
+            "message": obj.message,
+            "title": obj.title,
+            "location": obj.location,
+            "culprit": obj.culprit,
+            "user": user and user.get_api_context(),
+            "tags": tags,
+            "platform": obj.platform,
+            "datetime": obj.datetime.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+        }

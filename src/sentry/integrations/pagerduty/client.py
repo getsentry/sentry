@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from sentry.utils import json
 from sentry.integrations.client import ApiClient
 from sentry.models import EventCommon
+from sentry.api.serializers import serialize, ExternalEventSerializer
 
 
 class PagerDutyClient(ApiClient):
@@ -27,16 +28,17 @@ class PagerDutyClient(ApiClient):
         if isinstance(data, EventCommon):
             source = data.transaction or data.culprit or "<unknown>"
             group = data.group
+            custom_details = serialize(data, None, ExternalEventSerializer())
             payload = {
                 "routing_key": self.integration_key,
                 "event_action": "trigger",
                 "dedup_key": group.qualified_short_id,
                 "payload": {
                     "summary": data.message or data.title,
-                    "severity": "error",
+                    "severity": data.get_tag("level") or "error",
                     "source": source,
                     "component": group.project.slug,
-                    "custom_details": data.as_dict(),
+                    "custom_details": custom_details,
                 },
                 "links": [
                     {
