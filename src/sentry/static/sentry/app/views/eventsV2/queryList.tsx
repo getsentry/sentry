@@ -74,8 +74,8 @@ class QueryList extends React.Component<Props> {
       views = [...ALL_VIEWS, ...TRANSACTION_VIEWS];
     }
 
-    const list = views.map((eventViewv1, index) => {
-      const eventView = EventView.fromEventViewv1(eventViewv1);
+    const list = views.map((view, index) => {
+      const eventView = EventView.fromSavedQuery(view);
       const to = {
         pathname: location.pathname,
         query: {

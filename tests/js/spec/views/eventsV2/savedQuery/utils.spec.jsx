@@ -12,7 +12,7 @@ describe('SavedQueries API helpers', () => {
   const organization = TestStubs.Organization();
 
   const errorsQuery = ALL_VIEWS.find(view => view.name === 'Errors');
-  const errorsView = EventView.fromEventViewv1(errorsQuery);
+  const errorsView = EventView.fromSavedQuery(errorsQuery);
   errorsView.id = '1'; // set id manually as errorsView.id is undefined
 
   afterEach(() => {

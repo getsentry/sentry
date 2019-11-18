@@ -33,12 +33,12 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
   };
 
   const errorsQuery = ALL_VIEWS.find(view => view.name === 'Errors');
-  const errorsView = EventView.fromEventViewv1(errorsQuery);
+  const errorsView = EventView.fromSavedQuery(errorsQuery);
 
-  const errorsViewSaved = EventView.fromEventViewv1(errorsQuery);
+  const errorsViewSaved = EventView.fromSavedQuery(errorsQuery);
   errorsViewSaved.id = '1';
 
-  const errorsViewModified = EventView.fromEventViewv1(errorsQuery);
+  const errorsViewModified = EventView.fromSavedQuery(errorsQuery);
   errorsViewModified.id = '1';
   errorsViewModified.name = 'Modified Name';
   errorsViewModified.fields[0].title = 'Modified Field Name';

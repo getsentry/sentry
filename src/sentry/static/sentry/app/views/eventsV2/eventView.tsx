@@ -6,7 +6,6 @@ import isEqual from 'lodash/isEqual';
 import moment from 'moment';
 
 import {DEFAULT_PER_PAGE} from 'app/constants';
-import {EventViewv1} from 'app/types';
 import {SavedQuery as LegacySavedQuery} from 'app/views/discover/types';
 import {SavedQuery, NewQuery} from 'app/stores/discoverSavedQueriesStore';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
@@ -271,12 +270,12 @@ const decodeScalar = (
 };
 
 function isLegacySavedQuery(
-  query: LegacySavedQuery | SavedQuery
+  query: LegacySavedQuery | NewQuery
 ): query is LegacySavedQuery {
   return (query as LegacySavedQuery).conditions !== undefined;
 }
 
-const queryStringFromSavedQuery = (saved: LegacySavedQuery | SavedQuery): string => {
+const queryStringFromSavedQuery = (saved: NewQuery | LegacySavedQuery): string => {
   if (!isLegacySavedQuery(saved) && saved.query) {
     return saved.query || '';
   }
@@ -382,37 +381,7 @@ class EventView {
     });
   }
 
-  static fromEventViewv1(eventViewV1: EventViewv1): EventView {
-    const fields = eventViewV1.data.fields.map((fieldName: string, index: number) => {
-      return {
-        field: fieldName,
-        title: eventViewV1.data.fieldnames[index],
-      };
-    });
-
-    const {start, end, statsPeriod} = getParams({
-      start: undefined,
-      end: undefined,
-      statsPeriod: eventViewV1.statsPeriod,
-    });
-
-    return new EventView({
-      fields,
-      id: undefined,
-      name: eventViewV1.name,
-      sorts: fromSorts(eventViewV1.data.sort),
-      tags: eventViewV1.tags,
-      query: eventViewV1.data.query || '',
-      project: [],
-      environment: [],
-      start: decodeScalar(start),
-      end: decodeScalar(end),
-      statsPeriod: decodeScalar(statsPeriod),
-      yAxis: undefined,
-    });
-  }
-
-  static fromSavedQuery(saved: SavedQuery | LegacySavedQuery): EventView {
+  static fromSavedQuery(saved: NewQuery | LegacySavedQuery): EventView {
     let fields, yAxis;
     if (isLegacySavedQuery(saved)) {
       fields = saved.fields.map(field => {
