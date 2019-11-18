@@ -351,7 +351,17 @@ class StoreViewTest(TestCase):
         resp = self._postWithHeader(body)
         assert resp.status_code == 403, (resp.status_code, resp.content)
 
-    def test_request_with_beggining_glob(self):
+    @mock.patch("sentry.relay.config.get_origins")
+    def test_request_with_bad_origin(self, get_origins):
+        get_origins.return_value = ["foo.com"]
+
+        body = {"logentry": {"formatted": "hello world"}}
+
+        resp = self._postWithHeader(body, HTTP_ORIGIN="lolnope.com")
+        assert resp.status_code == 403, (resp.status_code, resp.content)
+        assert "Invalid origin" in resp.content
+
+    def test_request_with_beginning_glob(self):
         self.project.update_option(
             u"sentry:{}".format(FilterTypes.ERROR_MESSAGES),
             ["*: integer division or modulo by zero"],

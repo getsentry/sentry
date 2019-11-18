@@ -490,7 +490,7 @@ class APIView(BaseView):
 
         project = project_config.project
         config = project_config.config
-        allowed = config.get("allowed_domains")
+        allowed = config.get("allowedDomains")
 
         if origin is not None:
             if not is_valid_origin(origin, allowed=allowed):
