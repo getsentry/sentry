@@ -103,7 +103,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.browser.snapshot("events-v2 - errors")
 
     @patch("django.utils.timezone.now")
-    def test_modal_from_all_events(self, mock_now):
+    def test_event_detail_view_from_all_events(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
         min_ago = iso_format(before_now(minutes=1))
 
@@ -125,21 +125,21 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.browser.get(self.path + "?" + all_view)
             self.wait_until_loaded()
 
-            # Click the event link to open the modal
+            # Click the event link to open the events detail view
             self.browser.element('[aria-label="{}"]'.format(event.title)).click()
             self.wait_until_loaded()
 
-            header = self.browser.element('[data-test-id="modal-dialog"] h2')
+            header = self.browser.element('[data-test-id="event-header"] h2')
             assert event_data["message"] in header.text
 
             issue_link = self.browser.element('[data-test-id="linked-issue"]')
             issue_event_url_fragment = "/issues/%s/events/%s/" % (event.group_id, event.event_id)
             assert issue_event_url_fragment in issue_link.get_attribute("href")
 
-            self.browser.snapshot("events-v2 - single error modal")
+            self.browser.snapshot("events-v2 - single error details view")
 
     @patch("django.utils.timezone.now")
-    def test_modal_from_errors_view(self, mock_now):
+    def test_event_detail_view_from_errors_view(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
         event_source = (("a", 1), ("b", 39), ("c", 69))
         event_ids = []
@@ -163,11 +163,11 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.browser.get(self.path + "?" + error_view + "&statsPeriod=24h")
             self.wait_until_loaded()
 
-            # Click the event link to open the modal
+            # Click the event link to open the event detail view
             self.browser.element('[aria-label="{}"]'.format(event.title)).click()
             self.wait_until_loaded()
 
-            self.browser.snapshot("events-v2 - grouped error modal")
+            self.browser.snapshot("events-v2 - grouped error event detail view")
 
             # Check that the newest event is loaded first and that pagination
             # controls display

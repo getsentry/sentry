@@ -108,6 +108,10 @@ class ApiInviteHelper(object):
                 extra={"organization_id": self.om.organization.id, "user_id": self.request.user.id},
             )
 
+    def handle_invite_not_approved(self):
+        if not self.invite_approved:
+            self.om.delete()
+
     @property
     def organization_member(self):
         return OrganizationMember.objects.select_related("organization").get(pk=self.member_id)
@@ -115,6 +119,10 @@ class ApiInviteHelper(object):
     @property
     def member_pending(self):
         return self.om.is_pending
+
+    @property
+    def invite_approved(self):
+        return self.om.invite_approved
 
     @property
     def valid_token(self):
@@ -147,7 +155,7 @@ class ApiInviteHelper(object):
     def valid_request(self):
         return (
             self.member_pending
-            and self.om.invite_approved
+            and self.invite_approved
             and self.valid_token
             and self.user_authenticated
             and not self.needs_2fa

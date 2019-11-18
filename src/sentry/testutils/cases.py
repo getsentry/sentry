@@ -231,7 +231,7 @@ class BaseTestCase(Fixtures, Exam):
     def _makePostMessage(self, data):
         return base64.b64encode(self._makeMessage(data))
 
-    def _postWithHeader(self, data, key=None, secret=None, protocol=None):
+    def _postWithHeader(self, data, key=None, secret=None, protocol=None, **extra):
         if key is None:
             key = self.projectkey.public_key
             secret = self.projectkey.secret_key
@@ -243,6 +243,7 @@ class BaseTestCase(Fixtures, Exam):
                 message,
                 content_type="application/octet-stream",
                 HTTP_X_SENTRY_AUTH=get_auth_header("_postWithHeader/0.0.0", key, secret, protocol),
+                **extra
             )
         return resp
 

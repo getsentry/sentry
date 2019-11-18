@@ -14,7 +14,7 @@ cssutils==1.0.2
 django-crispy-forms==1.6.1
 django-picklefield>=0.3.0,<1.1.0
 django-sudo>=2.1.0,<3.0.0
-Django>=1.8,<1.9
+Django>=1.9,<1.10
 djangorestframework==3.4.7
 email-reply-parser>=0.2.0,<0.3.0
 enum34>=1.1.6,<1.2.0

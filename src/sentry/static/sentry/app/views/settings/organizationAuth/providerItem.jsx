@@ -1,10 +1,10 @@
-import {Box, Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
 import {PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
 import Feature from 'app/components/acl/feature';
@@ -54,7 +54,9 @@ export default class ProviderItem extends React.PureComponent {
     // TODO(epurkhiser): We should probably use a more explicit hook name,
     // instead of just the feature names (sso-basic, sso-saml2, etc).
     const featureKey = provider.requiredFeature;
-    const featureProps = featureKey ? {hookName: descopeFeatureName(featureKey)} : {};
+    const featureProps = featureKey
+      ? {hookName: `feature-disabled:${descopeFeatureName(featureKey)}`}
+      : {};
 
     return (
       <Feature
@@ -66,31 +68,40 @@ export default class ProviderItem extends React.PureComponent {
       >
         {({hasFeature, features, renderDisabled, renderInstallButton}) => (
           <PanelItem align="center">
-            <Flex flex={1}>
+            <ProviderInfo>
               <ProviderLogo className={`provider-logo ${provider.name.toLowerCase()}`} />
-              <Box px={2} flex={1}>
+              <div>
                 <ProviderName>{provider.name}</ProviderName>
                 <ProviderDescription>
                   {t('Enable your organization to sign in with %s.', provider.name)}
                 </ProviderDescription>
-              </Box>
-            </Flex>
+              </div>
+            </ProviderInfo>
 
-            <Box flex={1}>{!hasFeature && renderDisabled({provider, features})}</Box>
+            <FeatureBadge>
+              {!hasFeature && renderDisabled({provider, features})}
+            </FeatureBadge>
 
-            <Box>
+            <div>
               {active ? (
                 <ActiveIndicator />
               ) : (
                 (renderInstallButton || this.renderInstallButton)({provider, hasFeature})
               )}
-            </Box>
+            </div>
           </PanelItem>
         )}
       </Feature>
     );
   }
 }
+
+const ProviderInfo = styled('div')`
+  flex: 1;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  grid-gap: ${space(2)};
+`;
 
 const ProviderLogo = styled('div')`
   height: 36px;
@@ -109,7 +120,11 @@ const ProviderDescription = styled('div')`
   font-size: 0.8em;
 `;
 
-const ActiveIndicator = styled(p => <div className={p.className}>Active</div>)`
+const FeatureBadge = styled('div')`
+  flex: 1;
+`;
+
+const ActiveIndicator = styled(p => <div className={p.className}>{t('Active')}</div>)`
   background: ${p => p.theme.green};
   color: #fff;
   padding: 8px 12px;

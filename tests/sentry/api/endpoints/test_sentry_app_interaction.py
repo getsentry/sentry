@@ -35,7 +35,7 @@ class GetSentryAppInteractionTest(SentryAppInteractionTest):
         response = self.client.get(self.unowned_url, format="json")
         assert response.status_code == 200
         assert len(response.data["views"]) > 0
-        assert response.data["component_interactions"] == {}
+        assert response.data["componentInteractions"] == {}
 
     def test_user_sees_owned_interactions(self):
         self.login_as(user=self.user)
@@ -43,7 +43,7 @@ class GetSentryAppInteractionTest(SentryAppInteractionTest):
         response = self.client.get(self.owned_url, format="json")
         assert response.status_code == 200
         assert len(response.data["views"]) > 0
-        assert "issue-link" in response.data["component_interactions"]
+        assert "issue-link" in response.data["componentInteractions"]
 
     def test_user_does_not_see_unowned_interactions(self):
         self.login_as(user=self.user)

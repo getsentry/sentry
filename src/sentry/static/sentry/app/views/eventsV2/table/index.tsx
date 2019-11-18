@@ -10,7 +10,7 @@ import withApi from 'app/utils/withApi';
 import Pagination from 'app/components/pagination';
 import {fetchOrganizationTags} from 'app/actionCreators/tags';
 
-import {DEFAULT_EVENT_VIEW_V1} from '../data';
+import {DEFAULT_EVENT_VIEW} from '../data';
 import EventView, {isAPIPayloadSimilar} from '../eventView';
 import TableView from './tableView';
 import {TableData} from './types';
@@ -53,7 +53,7 @@ class Table extends React.PureComponent<TableProps, TableState> {
     const {location, eventView} = this.props;
 
     if (!eventView.isValid()) {
-      const nextEventView = EventView.fromEventViewv1(DEFAULT_EVENT_VIEW_V1);
+      const nextEventView = EventView.fromSavedQuery(DEFAULT_EVENT_VIEW);
 
       browserHistory.replace({
         pathname: location.pathname,

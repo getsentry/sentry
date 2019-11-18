@@ -14,11 +14,12 @@ describe('Incident Rules Create', function() {
   });
 
   it('renders', function() {
-    const {organization, routerContext} = initializeOrg();
+    const {organization, project, routerContext} = initializeOrg();
     mountWithTheme(
       <IncidentRulesCreate
         params={{orgId: organization.slug}}
         organization={organization}
+        project={project}
       />,
       routerContext
     );

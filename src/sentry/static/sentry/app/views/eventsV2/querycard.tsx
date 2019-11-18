@@ -51,7 +51,7 @@ const StyledQueryCard = styled(Link)`
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  height: 220px;
+  height: 205px;
   transition: all 0.2s ease;
 
   &:hover {
@@ -73,10 +73,11 @@ const QueryCardHeader = styled('div')`
   padding: ${space(1.5)} ${space(2)};
   height: 80px;
   overflow: hidden;
+  line-height: 1.4;
 `;
 
 const StyledTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.gray5};
   overflow: hidden;
   text-overflow: ellipsis;
@@ -86,7 +87,7 @@ const StyledTitle = styled('div')`
 
 const StyledQueryDetail = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray2};
   overflow: hidden;
   text-overflow: ellipsis;
@@ -105,7 +106,7 @@ const QueryCardFooter = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${space(1)} ${space(2)};
   color: ${p => p.theme.gray5};
 `;
 

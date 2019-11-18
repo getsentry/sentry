@@ -1,7 +1,7 @@
 import React from 'react';
 
 import {Client} from 'app/api';
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import SentryApplicationDashboard from 'app/views/settings/organizationDeveloperSettings/sentryApplicationDashboard';
 
 describe('Sentry Application Dashboard', function() {
@@ -35,10 +35,10 @@ describe('Sentry Application Dashboard', function() {
       Client.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/stats/`,
         body: {
-          total_installs: NUM_INSTALLS,
-          total_uninstalls: NUM_UNINSTALLS,
-          install_stats: [[1569783600, NUM_INSTALLS]],
-          uninstall_stats: [[1569783600, NUM_UNINSTALLS]],
+          totalInstalls: NUM_INSTALLS,
+          totalUninstalls: NUM_UNINSTALLS,
+          installStats: [[1569783600, NUM_INSTALLS]],
+          uninstallStats: [[1569783600, NUM_UNINSTALLS]],
         },
       });
 
@@ -50,7 +50,7 @@ describe('Sentry Application Dashboard', function() {
       Client.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/interaction/`,
         body: {
-          component_interactions: {
+          componentInteractions: {
             'stacktrace-link': [[1569783600, 1]],
             'issue-link': [[1569783600, 1]],
           },
@@ -63,7 +63,7 @@ describe('Sentry Application Dashboard', function() {
         body: sentryApp,
       });
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <SentryApplicationDashboard params={{appSlug: sentryApp.slug, orgId}} />,
         TestStubs.routerContext()
       );
@@ -120,7 +120,7 @@ describe('Sentry Application Dashboard', function() {
         body: [],
       });
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <SentryApplicationDashboard params={{appSlug: sentryApp.slug, orgId}} />,
         TestStubs.routerContext()
       );
@@ -176,10 +176,10 @@ describe('Sentry Application Dashboard', function() {
       Client.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/stats/`,
         body: {
-          total_installs: 1,
-          total_uninstalls: 0,
-          install_stats: [[1569783600, 1]],
-          uninstall_stats: [[1569783600, 0]],
+          totalInstalls: 1,
+          totalUninstalls: 0,
+          installStats: [[1569783600, 1]],
+          uninstallStats: [[1569783600, 0]],
         },
       });
 
@@ -191,7 +191,7 @@ describe('Sentry Application Dashboard', function() {
       Client.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/interaction/`,
         body: {
-          component_interactions: {
+          componentInteractions: {
             'stacktrace-link': [[1569783600, 1]],
           },
           views: [[1569783600, 1]],
@@ -203,7 +203,7 @@ describe('Sentry Application Dashboard', function() {
         body: sentryApp,
       });
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <SentryApplicationDashboard params={{appSlug: sentryApp.slug, orgId}} />,
         TestStubs.routerContext()
       );
@@ -233,7 +233,7 @@ describe('Sentry Application Dashboard', function() {
         body: [],
       });
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <SentryApplicationDashboard params={{appSlug: sentryApp.slug, orgId}} />,
         TestStubs.routerContext()
       );

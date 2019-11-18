@@ -26,6 +26,9 @@ from sentry.incidents.models import (
     AlertRuleTriggerAction,
 )
 from sentry.models.project import Project
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.snuba.models import QueryAggregations
 
 
@@ -223,8 +226,12 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
 
     class Meta:
         model = AlertRuleTriggerAction
-        fields = ["type", "target_type", "target_identifier"]
-        extra_kwargs = {"target_identifier": {"required": True}}
+        fields = ["type", "target_type", "target_identifier", "target_display", "integration"]
+        extra_kwargs = {
+            "target_identifier": {"required": True},
+            "target_display": {"required": False},
+            "integration": {"required": False, "allow_null": False},
+        }
 
     def validate_type(self, type):
         try:
@@ -244,10 +251,57 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                 % [item.value for item in AlertRuleTriggerAction.TargetType]
             )
 
+    def validate(self, attrs):
+        if ("target_type" in attrs) != ("target_identifier" in attrs):
+            raise serializers.ValidationError(
+                "targetType and targetIdentifier must be passed together"
+            )
+        target_type = attrs.get("target_type")
+        access = self.context["access"]
+        identifier = attrs.get("target_identifier")
+        if attrs.get("type") == AlertRuleTriggerAction.Type.EMAIL:
+            if target_type == AlertRuleTriggerAction.TargetType.TEAM:
+                try:
+                    team = Team.objects.get(id=identifier)
+                except Team.DoesNotExist:
+                    raise serializers.ValidationError("Team does not exist")
+                if not access.has_team(team):
+                    raise serializers.ValidationError("Team does not exist")
+            elif target_type == AlertRuleTriggerAction.TargetType.USER:
+                try:
+                    user = User.objects.get(id=identifier)
+                except User.DoesNotExist:
+                    raise serializers.ValidationError("User does not exist")
+
+                if not OrganizationMember.objects.filter(
+                    organization=self.context["organization"], user=user
+                ).exists():
+                    raise serializers.ValidationError("User does not belong to this organization")
+            elif target_type == AlertRuleTriggerAction.TargetType.SPECIFIC:
+                # Compare with `type` and perform a specific validation as needed
+                pass
+        elif attrs.get("type") == AlertRuleTriggerAction.Type.SLACK:
+            if target_type != AlertRuleTriggerAction.TargetType.SPECIFIC:
+                raise serializers.ValidationError(
+                    {"target_type": "Must provide a specific channel for slack"}
+                )
+            if "integration" not in attrs:
+                raise serializers.ValidationError(
+                    {"integration": "Integration must be provided for slack"}
+                )
+
+        return attrs
+
     def create(self, validated_data):
         return create_alert_rule_trigger_action(trigger=self.context["trigger"], **validated_data)
 
     def _remove_unchanged_fields(self, instance, validated_data):
+        if validated_data.get("type", instance.type) == AlertRuleTriggerAction.Type.SLACK.value:
+            if (
+                "target_identifier" in validated_data
+                and validated_data["target_identifier"] == instance.target_display
+            ):
+                validated_data.pop("target_identifier")
         for field_name, value in list(six.iteritems(validated_data)):
             # Remove any fields that haven't actually changed
             if isinstance(value, Enum):

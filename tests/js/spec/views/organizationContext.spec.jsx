@@ -86,6 +86,7 @@ describe('OrganizationContext', function() {
     expect(OrganizationActionCreator.fetchOrganizationDetails).toHaveBeenCalledWith(
       api,
       'org-slug',
+      true,
       true
     );
     expect(GlobalSelectionStore.loadInitialData).toHaveBeenCalledWith(org, {});
@@ -194,6 +195,39 @@ describe('OrganizationContext', function() {
     expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
 
     expect(getOrgMock).toHaveBeenLastCalledWith('/organizations/foo/', expect.anything());
+  });
+
+  it('uses last organization when no orgId in URL - and fetches org details once', async function() {
+    ConfigStore.get.mockImplementation(() => 'my-last-org');
+    getOrgMock = MockApiClient.addMockResponse({
+      url: '/organizations/my-last-org/',
+      body: TestStubs.Organization({slug: 'my-last-org'}),
+    });
+
+    wrapper = createWrapper({
+      params: {},
+      useLastOrganization: true,
+      organizations: [],
+    });
+    // await dispatching action
+    await tick();
+    // await resolving api, and updating component
+    await tick();
+    wrapper.update();
+    expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
+    expect(getOrgMock).toHaveBeenCalledTimes(1);
+
+    // Simulate OrganizationsStore being loaded *after* `OrganizationContext` finishes
+    // org details fetch
+    wrapper.setProps({
+      organizationsLoading: false,
+      organizations: [
+        TestStubs.Organization({slug: 'foo'}),
+        TestStubs.Organization({slug: 'bar'}),
+      ],
+    });
+
+    expect(getOrgMock).toHaveBeenCalledTimes(1);
   });
 
   it('fetches org details only once if organizations loading store changes', async function() {

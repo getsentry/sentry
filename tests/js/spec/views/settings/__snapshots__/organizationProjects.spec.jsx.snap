@@ -264,7 +264,6 @@ exports[`OrganizationProjects should render the projects in the store 1`] = `
                       onError={[Function]}
                       onSuccess={[Function]}
                       placeholder="Search Projects"
-                      stateKey="projectList"
                       updateRoute={true}
                       url="/organizations/org-slug/projects/"
                     >
@@ -323,7 +322,6 @@ exports[`OrganizationProjects should render the projects in the store 1`] = `
                             "setRouteLeaveHook": [MockFunction],
                           }
                         }
-                        stateKey="projectList"
                         updateRoute={true}
                         url="/organizations/org-slug/projects/"
                       >
@@ -331,7 +329,7 @@ exports[`OrganizationProjects should render the projects in the store 1`] = `
                           onSubmit={[Function]}
                         >
                           <form
-                            className="css-vfrmj7-Form et3a3ng1"
+                            className="css-vfrmj7-Form e6xwo1"
                             onSubmit={[Function]}
                           >
                             <Input

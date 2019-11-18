@@ -5,6 +5,7 @@ import logging
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
 
+from sentry import http
 from sentry import tagstore
 from sentry.api.fields.actor import Actor
 from sentry.incidents.logic import get_incident_aggregates
@@ -20,6 +21,7 @@ from sentry.models import (
     Project,
     User,
     Identity,
+    Integration,
     Team,
     ReleaseProject,
 )
@@ -35,6 +37,9 @@ LEVEL_TO_COLOR = {
     "error": "#E03E2F",
     "fatal": "#d20f2a",
 }
+MEMBER_PREFIX = "@"
+CHANNEL_PREFIX = "#"
+strip_channel_chars = "".join([MEMBER_PREFIX, CHANNEL_PREFIX])
 
 
 def format_actor_option(actor):
@@ -308,3 +313,56 @@ def build_incident_attachment(incident):
         "color": LEVEL_TO_COLOR["error"],
         "actions": [],
     }
+
+
+# Different list types in slack that we'll use to resolve a channel name. Format is
+# (<list_name>, <result_name>, <prefix>).
+LIST_TYPES = [
+    ("channels", "channels", CHANNEL_PREFIX),
+    ("groups", "groups", CHANNEL_PREFIX),
+    ("users", "members", MEMBER_PREFIX),
+]
+
+
+def get_channel_id(organization, integration_id, name):
+    """
+    Fetches the internal slack id of a channel.
+    :param organization: The organization that is using this integration
+    :param integration_id: The integration id of this slack integration
+    :param name: The name of the channel
+    :return:
+    """
+    name = name.lstrip(strip_channel_chars)
+    try:
+        integration = Integration.objects.get(
+            provider="slack", organizations=organization, id=integration_id
+        )
+    except Integration.DoesNotExist:
+        return None
+
+    token_payload = {"token": integration.metadata["access_token"]}
+
+    # Look for channel ID
+    payload = dict(token_payload, **{"exclude_archived": False, "exclude_members": True})
+
+    session = http.build_session()
+    for list_type, result_name, prefix in LIST_TYPES:
+        # Slack limits the response of `<list_type>.list` to 1000 channels, paginate if
+        # needed
+        cursor = ""
+        while cursor is not None:
+            items = session.get(
+                "https://slack.com/api/%s.list" % list_type,
+                params=dict(payload, **{"cursor": cursor}),
+            )
+            items = items.json()
+            if not items.get("ok"):
+                logger.info(
+                    "rule.slack.%s_list_failed" % list_type, extra={"error": items.get("error")}
+                )
+                return None
+
+            cursor = items.get("response_metadata", {}).get("next_cursor", None)
+            item_id = {c["name"]: c["id"] for c in items[result_name]}.get(name)
+            if item_id:
+                return prefix, item_id
