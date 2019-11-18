@@ -391,18 +391,6 @@ export type AccessRequest = {
   member: Member;
 };
 
-export type EventViewv1 = {
-  name: string;
-  data: {
-    fields: string[];
-    fieldnames: string[];
-    sort: string[];
-    query?: string;
-  };
-  tags: string[];
-  statsPeriod?: string;
-};
-
 export type Repository = {
   dateCreated: string;
   externalSlug: string;

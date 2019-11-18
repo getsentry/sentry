@@ -3,12 +3,12 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import EventDetails from 'app/views/eventsV2/eventDetails';
-import {ALL_VIEWS, DEFAULT_EVENT_VIEW_V1} from 'app/views/eventsV2/data';
+import {ALL_VIEWS, DEFAULT_EVENT_VIEW} from 'app/views/eventsV2/data';
 import EventView from 'app/views/eventsV2/eventView';
 
 describe('EventsV2 > EventDetails', function() {
-  const allEventsView = EventView.fromEventViewv1(DEFAULT_EVENT_VIEW_V1);
-  const errorsView = EventView.fromEventViewv1(
+  const allEventsView = EventView.fromSavedQuery(DEFAULT_EVENT_VIEW);
+  const errorsView = EventView.fromSavedQuery(
     ALL_VIEWS.find(view => view.name === 'Errors')
   );
 

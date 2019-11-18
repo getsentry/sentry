@@ -26,7 +26,7 @@ import Events from './events';
 import SavedQueryButtonGroup from './savedQuery';
 import EventView from './eventView';
 import EventInputName from './eventInputName';
-import {DEFAULT_EVENT_VIEW_V1} from './data';
+import {DEFAULT_EVENT_VIEW} from './data';
 import QueryList from './queryList';
 import DiscoverBreadcrumb from './breadcrumb';
 import {generateTitle} from './utils';
@@ -84,7 +84,7 @@ class DiscoverLanding extends React.Component<Props> {
       return null;
     }
 
-    const eventView = EventView.fromEventViewv1(DEFAULT_EVENT_VIEW_V1);
+    const eventView = EventView.fromSavedQuery(DEFAULT_EVENT_VIEW);
 
     const to = {
       pathname: location.pathname,
