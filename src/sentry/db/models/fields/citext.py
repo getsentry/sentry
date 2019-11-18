@@ -36,17 +36,14 @@ if hasattr(models, "SubfieldBase"):
 
 
 def create_citext_extension(using, **kwargs):
-    from sentry.utils.db import is_postgres
-
     # We always need the citext extension installed for Postgres,
     # and for tests, it's not always guaranteed that we will have
     # run full migrations which installed it.
-    if is_postgres(using):
-        cursor = connections[using].cursor()
-        try:
-            cursor.execute("CREATE EXTENSION IF NOT EXISTS citext")
-        except Exception:
-            pass
+    cursor = connections[using].cursor()
+    try:
+        cursor.execute("CREATE EXTENSION IF NOT EXISTS citext")
+    except Exception:
+        pass
 
 
 pre_migrate.connect(create_citext_extension)
