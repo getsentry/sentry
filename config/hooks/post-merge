@@ -9,26 +9,38 @@ trap "rm -f ${files_changed_upstream}" EXIT
 
 git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD > "$files_changed_upstream"
 
-grep -E --quiet 'requirements.*\.txt' "$files_changed_upstream" && py=true
-grep -E --quiet 'yarn.lock' "$files_changed_upstream"           && js=true
-grep -E --quiet 'south_migrations' "$files_changed_upstream"    && migrations=true
+grep -E --quiet 'requirements.*\.txt' "$files_changed_upstream" && py="install-sentry-dev "
+grep -E --quiet 'yarn.lock' "$files_changed_upstream"           && js="install-yarn-pkgs "
+grep -E --quiet 'migrations' "$files_changed_upstream"          && migrations="apply-migrations "
+
+update_command="make ${py}${js}${migrations}"
 
 [[ "$py" || "$js" || "$migrations" ]] && cat <<EOF
 
-[${red}${bold}!!!${reset}] ${red}It looks like some dependencies have changed that will require your intervention.${reset}
-
+[${red}${bold}!!!${reset}] ${red}The following dependencies have changed and require your intervention${reset}
 EOF
 
 [[ "$py" ]] && cat <<EOF
-    ${red}Run "${bold}make install-sentry-dev${reset}${red}" to refresh your python virtual environment${reset}
+    ${red}* python virtual environment${reset}
 EOF
 
 [[ "$js" ]] && cat <<EOF
-    ${red}Run "${bold}yarn${reset}${red}" to update your javascript dependencies${reset}
+    ${red}* javascript dependencies${reset}
 EOF
 
 [[ "$migrations" ]] && cat <<EOF
-    ${red}Run "${bold}sentry upgrade${reset}${red}" to run database migrations${reset}
+    ${red}* database migrations${reset}
 EOF
 
-echo
+[[ "$py" || "$js" || "$migrations" ]] && cat <<EOF
+
+${red}Run ${bold}${update_command}${reset}${red}to update necessary dependencies${reset}
+
+EOF
+
+
+echo "Do you want to run updates now? [y/n] "
+read answer
+if [ "$answer" = "y" ]; then
+  $update_command
+fi
