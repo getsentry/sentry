@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from django import forms
 from django.conf import settings
+from django.conf.urls import url
 from django.contrib import admin, messages
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm, AdminPasswordChangeForm
 from django.core.exceptions import PermissionDenied
@@ -225,8 +226,7 @@ class UserAdmin(admin.ModelAdmin):
 
     def get_urls(self):
         return [
-            "",
-            (r"^(\d+)/password/$", self.admin_site.admin_view(self.user_change_password)),
+            url(r"^(\d+)/password/$", self.admin_site.admin_view(self.user_change_password))
         ] + super(UserAdmin, self).get_urls()
 
     def lookup_allowed(self, lookup, value):
