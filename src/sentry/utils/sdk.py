@@ -103,7 +103,7 @@ def configure_sdk():
             return
 
         # Make sure we log to upstream when available first
-        if upstream_transport is not None:
+        if upstream_transport is not None and event.get("type") != "transaction":
             # TODO(mattrobenolt): Bring this back safely.
             # from sentry import options
             # install_id = options.get('sentry:install-id')
