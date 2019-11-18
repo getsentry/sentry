@@ -4,6 +4,7 @@ from sentry.testutils import APITestCase, SnubaTestCase
 from django.core.urlresolvers import reverse
 
 from sentry.discover.models import DiscoverSavedQuery
+from sentry.testutils.helpers.datetime import before_now
 
 
 class DiscoverSavedQueryBase(APITestCase, SnubaTestCase):
@@ -79,6 +80,63 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
+
+    def test_get_all_paginated(self):
+        for i in range(0, 10):
+            query = {"fields": ["test"], "conditions": [], "limit": 10}
+            model = DiscoverSavedQuery.objects.create(
+                organization=self.org,
+                created_by=self.user,
+                name="My query {}".format(i),
+                query=query,
+                version=1,
+            )
+            model.set_projects(self.project_ids)
+
+        url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
+        with self.feature(self.feature_name):
+            response = self.client.get(url, data={"per_page": 1})
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+
+        url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
+        with self.feature(self.feature_name):
+            # The all parameter ignores pagination and returns all values.
+            response = self.client.get(url, data={"per_page": 1, "all": 1})
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 11
+
+    def test_get_sortby(self):
+        query = {"fields": ["message"], "query": "", "limit": 10}
+        model = DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            created_by=self.user,
+            name="My query",
+            query=query,
+            version=2,
+            date_created=before_now(minutes=10),
+            date_updated=before_now(minutes=10),
+        )
+        model.set_projects(self.project_ids)
+
+        url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
+        sort_options = {
+            "dateCreated": True,
+            "-dateCreated": False,
+            "dateUpdated": True,
+            "-dateUpdated": False,
+            "name": True,
+            "-name": False,
+        }
+        for sorting, forward_sort in sort_options.items():
+            with self.feature(self.feature_name):
+                response = self.client.get(url, data={"sortBy": sorting})
+            assert response.status_code == 200
+
+            values = [row[sorting.strip("-")] for row in response.data]
+            if not forward_sort:
+                values = list(reversed(values))
+            assert list(sorted(values)) == values
 
     def test_post(self):
         with self.feature(self.feature_name):

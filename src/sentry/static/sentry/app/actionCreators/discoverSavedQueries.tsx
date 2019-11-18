@@ -12,6 +12,7 @@ export function fetchSavedQueries(api: Client, orgId: string): Promise<SavedQuer
     `/organizations/${orgId}/discover/saved/`,
     {
       method: 'GET',
+      query: {query: 'version:2'},
     }
   );
 
