@@ -8,6 +8,7 @@ from django.utils.encoding import force_text
 
 from sentry import tsdb
 from sentry.utils.safe import get_path
+from sentry.relay.utils import to_camel_case_name
 
 
 class FilterStatKeys(object):
@@ -52,7 +53,7 @@ def is_valid_ip(project_config, ip_address):
     Verify that an IP address is not being blacklisted
     for the given project.
     """
-    blacklist = get_path(project_config.config, "filter_settings", "client_ips", "blacklisted_ips")
+    blacklist = get_path(project_config.config, "filterSettings", "clientIps", "blacklistedIps")
     if not blacklist:
         return True
 
@@ -80,9 +81,7 @@ def is_valid_release(project_config, release):
     Verify that a release is not being filtered
     for the given project.
     """
-    invalid_versions = get_path(
-        project_config.config, "filter_settings", FilterTypes.RELEASES, "releases"
-    )
+    invalid_versions = get_path(project_config.config, "filterSettings", "releases", "releases")
 
     if not invalid_versions:
         return True
@@ -101,9 +100,7 @@ def is_valid_error_message(project_config, message):
     Verify that an error message is not being filtered
     for the given project.
     """
-    filtered_errors = get_path(
-        project_config.config, "filter_settings", FilterTypes.ERROR_MESSAGES, "patterns"
-    )
+    filtered_errors = get_path(project_config.config["filterSettings"], "errorMessages", "patterns")
 
     if not filtered_errors:
         return True
@@ -120,3 +117,7 @@ def is_valid_error_message(project_config, message):
             pass
 
     return True
+
+
+def get_filter_key(flt):
+    return to_camel_case_name(flt.spec.id.replace("-", "_"))

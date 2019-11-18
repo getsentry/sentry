@@ -91,6 +91,6 @@ class RelayProjectConfigsEndpoint(Endpoint):
                         project_keys=project_keys.get(project.id, []),
                     )
 
-            configs[six.text_type(project_id)] = project_config.to_camel_case_dict()
+            configs[six.text_type(project_id)] = project_config.to_dict()
 
         return Response({"configs": configs}, status=200)

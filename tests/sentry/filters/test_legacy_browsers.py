@@ -232,7 +232,7 @@ class LegacyBrowsersFilterTest(TestCase):
         ret_val = ProjectConfig(self.project, config={})
         config = ret_val.config
         filter_settings = {}
-        config["filter_settings"] = filter_settings
+        config["filterSettings"] = filter_settings
         if filter_opt is not None:
             key = get_filter_key(_legacy_browsers_filter)
             filter_settings[key] = _filter_option_to_config_setting(
