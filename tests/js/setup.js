@@ -103,6 +103,10 @@ jest.mock('@sentry/browser', () => {
   return {
     init: jest.fn(),
     configureScope: jest.fn(),
+    setTag: jest.fn(),
+    setTags: jest.fn(),
+    setExtra: jest.fn(),
+    setExtras: jest.fn(),
     captureBreadcrumb: jest.fn(),
     addBreadcrumb: jest.fn(),
     captureMessage: jest.fn(),

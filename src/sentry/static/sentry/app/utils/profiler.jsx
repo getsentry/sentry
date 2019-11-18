@@ -1,8 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import * as Sentry from '@sentry/browser';
+import {TransactionActivity} from '@sentry/integrations';
 
-import {startRender, finishRender} from 'app/utils/apm';
 import getDisplayName from 'app/utils/getDisplayName';
 
 export default function profiler() {
@@ -20,33 +19,19 @@ export default function profiler() {
         this.finishProfile();
       }
 
-      span = this.initializeSpan();
-
-      initializeSpan() {
-        const span = Sentry.startSpan({
-          data: {},
-          op: 'react',
-          description: `<${displayName}>`,
-        });
-        startRender(displayName);
-
-        // TODO(apm): We could try to associate this component with API client
-        // e.g:
-        // if (this.props.api) {
-        // this.props.api.setParentSpan(span);
-        // }
-
-        return span;
-      }
+      activity = TransactionActivity.pushActivity(displayName, {
+        data: {},
+        op: 'react',
+        description: `<${displayName}>`,
+      });
 
       finishProfile = () => {
-        if (!this.span) {
+        if (!this.activity) {
           return;
         }
 
-        this.span.finish();
-        finishRender(displayName);
-        this.span = null;
+        TransactionActivity.popActivity(this.activity);
+        this.activity = null;
       };
 
       render() {

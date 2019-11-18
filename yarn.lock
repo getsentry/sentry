@@ -1830,78 +1830,65 @@
     hey-listen "^1.0.8"
     style-value-types "^3.1.4"
 
-"@sentry/browser@5.7.0-beta.1":
-  version "5.7.0-beta.1"
-  resolved "https://registry.yarnpkg.com/@sentry/browser/-/browser-5.7.0-beta.1.tgz#937ff3d35d1b0d66e52382b4349947fa5b9fedff"
-  integrity sha512-OsuqdkiwcbGtKIo8/Z75N+jQell3YWbt+BwePm2HDgojOsoZiSORytVM5yyCuQGNOF/n7/YkQMICoMPvHyh1qA==
+"@sentry/browser@5.10.0-beta.0":
+  version "5.10.0-beta.0"
+  resolved "https://registry.yarnpkg.com/@sentry/browser/-/browser-5.10.0-beta.0.tgz#5f65a032fede5288814e0a2ab045159b78fa8482"
+  integrity sha512-IYhUAoYTrO9mlYwYNK1kaxfyUGrdMwauxKrY4l92z8bSExFEax/KqPsfPnfZdx5v9w4b9l+hKNe/7qYOH2Fryg==
   dependencies:
-    "@sentry/core" "5.7.0-beta.1"
-    "@sentry/types" "5.7.0-beta.1"
-    "@sentry/utils" "5.7.0-beta.1"
+    "@sentry/core" "5.10.0-beta.0"
+    "@sentry/types" "5.10.0-beta.0"
+    "@sentry/utils" "5.10.0-beta.0"
     tslib "^1.9.3"
 
-"@sentry/core@5.7.0-beta.1":
-  version "5.7.0-beta.1"
-  resolved "https://registry.yarnpkg.com/@sentry/core/-/core-5.7.0-beta.1.tgz#fa6e206574e72f4cb2520ea7881b5dbc7f947fd9"
-  integrity sha512-pbiO2MsV7VikKuERvYJwaQspt6egvTkoYyExdYXXb2Ja8uXD+bm94wdIvZbTpQuSrhqDWbxyaIsGWNJyzQgadQ==
+"@sentry/core@5.10.0-beta.0":
+  version "5.10.0-beta.0"
+  resolved "https://registry.yarnpkg.com/@sentry/core/-/core-5.10.0-beta.0.tgz#f96d07a74ddeb13d0bc1e774409556a50b042358"
+  integrity sha512-vc84lh1/AbPTvHTpPK1SN9EXaLqUzm4RQcURqPxC2fUo38zGRBU36GLlYBzYp4aZNdXAj3pgtO1JV3yHNGWaug==
   dependencies:
-    "@sentry/hub" "5.7.0-beta.1"
-    "@sentry/minimal" "5.7.0-beta.1"
-    "@sentry/types" "5.7.0-beta.1"
-    "@sentry/utils" "5.7.0-beta.1"
+    "@sentry/hub" "5.10.0-beta.0"
+    "@sentry/minimal" "5.10.0-beta.0"
+    "@sentry/types" "5.10.0-beta.0"
+    "@sentry/utils" "5.10.0-beta.0"
     tslib "^1.9.3"
 
-"@sentry/hub@5.7.0-beta.1":
-  version "5.7.0-beta.1"
-  resolved "https://registry.yarnpkg.com/@sentry/hub/-/hub-5.7.0-beta.1.tgz#a07813b28a7c7ad04097da9af65d95f5e81a0265"
-  integrity sha512-SAx8+arIfP59c4L7EIXtxJ1G0HbdRObUGoxNaNOCOnIEfTLBDYcrEU1RqKUcdpDjYc+hclBB5KsbdhDEEXvj0g==
+"@sentry/hub@5.10.0-beta.0":
+  version "5.10.0-beta.0"
+  resolved "https://registry.yarnpkg.com/@sentry/hub/-/hub-5.10.0-beta.0.tgz#b58c8049782866207322153f1b100cd54347c2f5"
+  integrity sha512-40PN15dc1FECXaaCOs6k6I97YjtjVR28x5U0JeQs18bZyarpUixj3bTMi8xcMpHREg5NJEwmGoyrBARqYG6p2Q==
   dependencies:
-    "@sentry/types" "5.7.0-beta.1"
-    "@sentry/utils" "5.7.0-beta.1"
+    "@sentry/types" "5.10.0-beta.0"
+    "@sentry/utils" "5.10.0-beta.0"
     tslib "^1.9.3"
 
-"@sentry/integrations@5.6.0-beta.4":
-  version "5.6.0-beta.4"
-  resolved "https://registry.yarnpkg.com/@sentry/integrations/-/integrations-5.6.0-beta.4.tgz#0d4cc40d1191c4f3b9f68f1fa20a0caa5611186a"
-  integrity sha512-D0f7sVP3DQ/4OXmoCg4t7BSOUPeSZrageShfYH4/i8RGP5qMnucyZ1yJQnga59xF1hJ9mpdDiKmtXxN5gmaNcQ==
+"@sentry/integrations@5.10.0-beta.0":
+  version "5.10.0-beta.0"
+  resolved "https://registry.yarnpkg.com/@sentry/integrations/-/integrations-5.10.0-beta.0.tgz#81179bf295598669951a13d2ff2448f82b37750a"
+  integrity sha512-+/xxSkby0lLbzA8VOrHL/LF4AM8Zqa76EVP3hIcxGuh22LiGwJzARrrxcz64Bx3G/JqpjvzA/XfS3M4EnLnqIg==
   dependencies:
-    "@sentry/types" "5.6.0-beta.4"
-    "@sentry/utils" "5.6.0-beta.4"
+    "@sentry/types" "5.10.0-beta.0"
+    "@sentry/utils" "5.10.0-beta.0"
     tslib "^1.9.3"
 
-"@sentry/minimal@5.7.0-beta.1":
-  version "5.7.0-beta.1"
-  resolved "https://registry.yarnpkg.com/@sentry/minimal/-/minimal-5.7.0-beta.1.tgz#886e9b7498613186c74d7dadcf137126de49a127"
-  integrity sha512-WiMmy6u6uuzpulynJRAlSKz07dAMSC5LeD+n2ZF17f8FHUSsgvcPnizxSjtKzxycf43xD3B26wrZQyFaSHfXoQ==
+"@sentry/minimal@5.10.0-beta.0":
+  version "5.10.0-beta.0"
+  resolved "https://registry.yarnpkg.com/@sentry/minimal/-/minimal-5.10.0-beta.0.tgz#0bf7834b0346454b9cc73cfbbc4535cad273ba1b"
+  integrity sha512-5qqO3Bq3d5B0Qh4hrF+vi0GcsjihEZ/tGwjqDwsKIzrkvByL1WTr5E4VHCg8pAzltgIQtvvQQDGdKwMz28s3rw==
   dependencies:
-    "@sentry/hub" "5.7.0-beta.1"
-    "@sentry/types" "5.7.0-beta.1"
+    "@sentry/hub" "5.10.0-beta.0"
+    "@sentry/types" "5.10.0-beta.0"
     tslib "^1.9.3"
 
-"@sentry/types@5.6.0-beta.4":
-  version "5.6.0-beta.4"
-  resolved "https://registry.yarnpkg.com/@sentry/types/-/types-5.6.0-beta.4.tgz#7ad453fd6969cc38c97c85c4d7e5e1f7588276b2"
-  integrity sha512-YVloNOyyek0Qackamn1kDyFpVTRysj8CBUJwZx774VMtYHMy48Lre2rxz3s1j/XztsaZEqn0nO86aP8DzlNNzg==
+"@sentry/types@5.10.0-beta.0":
+  version "5.10.0-beta.0"
+  resolved "https://registry.yarnpkg.com/@sentry/types/-/types-5.10.0-beta.0.tgz#c065ca0f61ef289c7fe3ec744907f030439f94ee"
+  integrity sha512-KaOOvzEAYpKRJ7arMpjzCGzazU+YnQcPWfbBVuwWN+Ofaz6oDaJ4DU1iEKopWg35gW6hwZyUb2/MrQm8N118Ew==
 
-"@sentry/types@5.7.0-beta.1":
-  version "5.7.0-beta.1"
-  resolved "https://registry.yarnpkg.com/@sentry/types/-/types-5.7.0-beta.1.tgz#91e79fb3862a285275b094330c2d44d93c2af927"
-  integrity sha512-0qbS4TzD1/JJy7YEHONA5ItXiTdDPOk9svjj1/+VuBv95yjmlRJ8fIrpv4woN9Lijas+uUB1tDxOpPCpq8InwQ==
-
-"@sentry/utils@5.6.0-beta.4":
-  version "5.6.0-beta.4"
-  resolved "https://registry.yarnpkg.com/@sentry/utils/-/utils-5.6.0-beta.4.tgz#d3e2ffc7487590af7555da836d17f3a19ff07a8d"
-  integrity sha512-ysrXMsbdiB3rogh4sridexazJKZRIJdSYarj8fGMKryPsF7FwvVu8i3VGCz4nmGqxtFhyDDUu0udhxgx9wQhZA==
+"@sentry/utils@5.10.0-beta.0":
+  version "5.10.0-beta.0"
+  resolved "https://registry.yarnpkg.com/@sentry/utils/-/utils-5.10.0-beta.0.tgz#2070e2fe3b209bcc18bd931f46060540c2b159c2"
+  integrity sha512-6r5wdgC8iEIe37sSe4t2dg4li5KLb5RysrwhSD8FBvinJSSQAIbKsVMtcj6Ydh02KBk12KGDLiZXRrutriXOIw==
   dependencies:
-    "@sentry/types" "5.6.0-beta.4"
-    tslib "^1.9.3"
-
-"@sentry/utils@5.7.0-beta.1":
-  version "5.7.0-beta.1"
-  resolved "https://registry.yarnpkg.com/@sentry/utils/-/utils-5.7.0-beta.1.tgz#fd7a0235617f177a5e36028c19a0a15a4ff9d51f"
-  integrity sha512-Mf4Hm+dykF817ybspVuevsEfFAWgogtnwOUDkue1iUFZBJiYUJoJS76Auaw8VA/Us2tj1bIcZkCEQsG/93EqvA==
-  dependencies:
-    "@sentry/types" "5.7.0-beta.1"
+    "@sentry/types" "5.10.0-beta.0"
     tslib "^1.9.3"
 
 "@storybook/addon-a11y@^4.1.3":
