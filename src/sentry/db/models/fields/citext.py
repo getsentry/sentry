@@ -10,11 +10,8 @@ __all__ = ("CITextField", "CICharField", "CIEmailField")
 
 
 class CIText(object):
-    def db_type(self, connection):
-        engine = connection.settings_dict["ENGINE"]
-        if "postgres" in engine:
-            return "citext"
-        return super(CIText, self).db_type(connection)
+    def db_type(self):
+        return "citext"
 
 
 class CITextField(CIText, models.TextField):
