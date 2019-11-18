@@ -2,7 +2,6 @@ export const URL_PARAM = {
   START: 'start',
   END: 'end',
   UTC: 'utc',
-  SORT: 'sort',
   PERIOD: 'statsPeriod',
   PROJECT: 'project',
   ENVIRONMENT: 'environment',
