@@ -1,10 +1,15 @@
 import React from 'react';
 
+import {Organization} from 'app/types';
 import {explodeSlug} from 'app/utils';
 import BaseAvatar from 'app/components/avatar/baseAvatar';
 import SentryTypes from 'app/sentryTypes';
 
-class OrganizationAvatar extends React.Component {
+type Props = {
+  organization: Organization;
+} & BaseAvatar['props'];
+
+class OrganizationAvatar extends React.Component<Props> {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
     ...BaseAvatar.propTypes,

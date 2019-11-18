@@ -10,6 +10,11 @@ export type ObjectStatus =
   | 'pending_deletion'
   | 'deletion_in_progress';
 
+export type Avatar = {
+  avatarUuid: string | null;
+  avatarType: 'letter_avatar' | 'upload' | 'gravatar';
+};
+
 export type LightWeightOrganization = {
   id: string;
   slug: string;
@@ -20,6 +25,7 @@ export type LightWeightOrganization = {
 export type Organization = LightWeightOrganization & {
   projects: Project[];
   teams: Team[];
+  avatar: Avatar;
 };
 
 export type OrganizationDetailed = Organization & {
@@ -175,10 +181,7 @@ export type AvatarUser = {
   username: string;
   email: string;
   avatarUrl: string;
-  avatar: {
-    avatarUuid: string | null;
-    avatarType: 'letter_avatar' | 'upload';
-  };
+  avatar: Avatar;
   ip_address: string;
   options?: {
     avatarType: string;
