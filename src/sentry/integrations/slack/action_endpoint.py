@@ -1,12 +1,13 @@
 from __future__ import absolute_import
 
+import six
+
 from sentry import analytics
 from sentry import http
 from sentry.api import client
 from sentry.api.base import Endpoint
 from sentry.models import Group, Project, Identity, IdentityProvider, ApiKey
 from sentry.utils import json
-import six
 
 from .link_identity import build_linking_url
 from .requests import SlackActionRequest, SlackRequestError
