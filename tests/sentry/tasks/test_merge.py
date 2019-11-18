@@ -8,6 +8,7 @@ from sentry.similarity import _make_index_backend
 from sentry.testutils import TestCase
 from sentry.utils import redis
 from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry import eventstream, eventstore
 
 # Use the default redis client as a cluster client in the similarity index
 index = _make_index_backend(redis.clusters.get("default").get_local_client(0))
@@ -48,26 +49,41 @@ class MergeGroupTest(TestCase):
         ) == [1, 2]
 
     def test_merge_with_event_integrity(self):
-        project1 = self.create_project()
-        group1 = self.create_group(project1)
-        event1 = self.create_event("a" * 32, group=group1, data={"extra": {"foo": "bar"}})
-        project2 = self.create_project()
-        group2 = self.create_group(project2)
-        event2 = self.create_event("b" * 32, group=group2, data={"extra": {"foo": "baz"}})
+        project = self.create_project()
+        event1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": iso_format(before_now(seconds=1)),
+                "fingerprint": ["group-1"],
+                "extra": {"foo": "bar"},
+            },
+            project_id=project.id,
+        )
+        group1 = event1.group
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "timestamp": iso_format(before_now(seconds=1)),
+                "fingerprint": ["group-2"],
+                "extra": {"foo": "baz"},
+            },
+            project_id=project.id,
+        )
+        group2 = event2.group
 
         with self.tasks():
+            eventstream_state = eventstream.start_merge(project.id, [group1.id], group2.id)
             merge_groups([group1.id], group2.id)
+            eventstream.end_merge(eventstream_state)
 
         assert not Group.objects.filter(id=group1.id).exists()
 
-        # this previously would error with NodeIntegrityError due to the
-        # reference check being bound to a group
-        event1 = Event.objects.get(id=event1.id)
+        event1 = eventstore.get_event_by_id(project.id, event1.event_id)
         assert event1.group_id == group2.id
         Event.objects.bind_nodes([event1], "data")
         assert event1.data["extra"]["foo"] == "bar"
 
-        event2 = Event.objects.get(id=event2.id)
+        event2 = eventstore.get_event_by_id(project.id, event2.event_id)
         assert event2.group_id == group2.id
         Event.objects.bind_nodes([event2], "data")
         assert event2.data["extra"]["foo"] == "baz"

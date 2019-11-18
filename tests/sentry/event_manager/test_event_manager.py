@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 from time import time
 
+from sentry import nodestore
 from sentry.app import tsdb
 from sentry.constants import MAX_VERSION_LENGTH
 from sentry.event_manager import HashDiscarded, EventManager, EventUser
@@ -83,21 +84,24 @@ class EventManagerTest(TestCase):
         assert group.platform == "python"
         assert event.platform == "python"
 
-    def test_dupe_message_id(self):
+    @mock.patch("sentry.event_manager.eventstream.insert")
+    def test_dupe_message_id(self, eventstream_insert):
+        # Saves the latest event to nodestore and eventstream
+        project_id = 1
         event_id = "a" * 32
+        node_id = Event.generate_node_id(project_id, event_id)
 
-        manager = EventManager(make_event(event_id=event_id))
+        manager = EventManager(make_event(event_id=event_id, message="first"))
         manager.normalize()
-        manager.save(1)
+        manager.save(project_id)
+        assert nodestore.get(node_id)["logentry"]["formatted"] == "first"
 
-        assert Event.objects.count() == 1
-
-        # ensure that calling it again doesn't raise a db error
-        manager = EventManager(make_event(event_id=event_id))
+        manager = EventManager(make_event(event_id=event_id, message="second"))
         manager.normalize()
-        manager.save(1)
+        manager.save(project_id)
+        assert nodestore.get(node_id)["logentry"]["formatted"] == "second"
 
-        assert Event.objects.count() == 1
+        assert eventstream_insert.call_count == 2
 
     def test_updates_group(self):
         timestamp = time() - 300
@@ -741,7 +745,7 @@ class EventManagerTest(TestCase):
             manager = EventManager(
                 make_event(
                     **{
-                        "event_id": uuid.uuid1().hex,  # don't deduplicate
+                        "event_id": uuid.uuid1().hex,
                         "environment": "beta",
                         "release": release_version,
                     }

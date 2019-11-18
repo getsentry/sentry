@@ -63,7 +63,6 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
                 "nodestore_node": 2,
                 "sentry_eventuser": 1,
                 "sentry_groupedmessage": 1,
-                "sentry_message": 1,
                 "sentry_userreport": 1,
             },
             debug=True,

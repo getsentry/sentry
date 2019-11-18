@@ -67,7 +67,9 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
         )
 
         events.pop(0)  # remove event with same group
-        assert get_event_from_groups_in_digest(digest) == set(events)
+        assert set([e.event_id for e in get_event_from_groups_in_digest(digest)]) == set(
+            [e.event_id for e in events]
+        )
 
     def test_team_actors_to_user_ids(self):
         team1 = self.create_team()
@@ -234,7 +236,9 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         result_user_ids = []
         for user_id, user_digest in get_personalized_digests(project.id, digest, user_ids):
             assert user_id in expected_result
-            assert expected_result[user_id] == get_event_from_groups_in_digest(user_digest)
+            assert set([e.event_id for e in get_event_from_groups_in_digest(user_digest)]) == set(
+                [e.event_id for e in expected_result[user_id]]
+            )
             result_user_ids.append(user_id)
 
         assert sorted(expected_result.keys()) == sorted(result_user_ids)

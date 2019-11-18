@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import mock
-import os
 from uuid import uuid4
 
 from sentry.models import (
@@ -91,7 +90,6 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         with self.tasks():
             delete_groups(object_ids=[group.id])
 
-        assert not Event.objects.filter(event_id=self.event.event_id).exists()
         assert not UserReport.objects.filter(group_id=group.id).exists()
         assert not UserReport.objects.filter(event_id=self.event.event_id).exists()
         assert not EventAttachment.objects.filter(event_id=self.event.event_id).exists()
@@ -103,15 +101,13 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         assert not nodestore.get(self.node_id2)
         assert nodestore.get(self.node_id3), "Does not remove from second group"
 
+    @mock.patch("os.environ.get")
     @mock.patch("sentry.nodestore.delete_multi")
-    def test_cleanup(self, nodestore_delete_multi):
-        # Skip EventDataDeletionTask if _SENTRY_CLEANUP is set
-        os.environ["_SENTRY_CLEANUP"] = "1"
+    def test_cleanup(self, nodestore_delete_multi, os_environ):
+        os_environ.side_effect = lambda key: "1" if key == "_SENTRY_CLEANUP" else None
         group = self.event.group
 
         with self.tasks():
             delete_groups(object_ids=[group.id])
 
-        # Eventually this will be 0, nodestore deletions are currently still
-        # being triggered from event deletions
-        assert nodestore_delete_multi.call_count == 1
+        assert nodestore_delete_multi.call_count == 0
