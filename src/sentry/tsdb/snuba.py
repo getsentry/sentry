@@ -6,6 +6,7 @@ import six
 
 from sentry.tsdb.base import BaseTSDB, TSDBModel
 from sentry.utils import snuba, outcomes
+from sentry.utils.data_filters import FILTER_STAT_KEYS_TO_VALUES
 from sentry.utils.dates import to_datetime
 
 
@@ -30,11 +31,15 @@ class SnubaTSDB(BaseTSDB):
     will return empty results for unsupported models.
     """
 
-    # The ``model_query_settings`` and ``model_being_upgraded_query_settings`` are translations of
-    # TSDB models into required settings for querying snuba. Queries for ``model_columns``
-    # directly hit snuba, while queries for ``model_columns_being_upgraded`` hit
-    # redis in the main thread and snuba in a background thread.
-    model_query_settings = {
+    project_filter_model_query_settings = {
+        model: SnubaModelQuerySettings(
+            snuba.Dataset.Outcomes, "project_id", "times_seen", [["reason", "=", reason]]
+        )
+        for reason, model in FILTER_STAT_KEYS_TO_VALUES.items()
+    }
+
+    # ``model_query_settings`` is a translation of TSDB models into required settings for querying snuba
+    other_model_query_settings = {
         TSDBModel.project: SnubaModelQuerySettings(snuba.Dataset.Events, "project_id", None, None),
         TSDBModel.group: SnubaModelQuerySettings(snuba.Dataset.Events, "issue", None, None),
         TSDBModel.release: SnubaModelQuerySettings(
@@ -55,17 +60,6 @@ class SnubaTSDB(BaseTSDB):
         TSDBModel.frequent_issues_by_project: SnubaModelQuerySettings(
             snuba.Dataset.Events, "project_id", "issue", None
         ),
-    }
-
-    # In getsentry/getsentry:tsdb.py, we check ``model_columns`` to see if a request
-    # should go to snuba. So, for now, for backwards compatibility, alias
-    # ``model_columns`` to ``model_query_settings``.
-    # TODO(manu): use model_query_settings instead of model_columns in getsentry
-    model_columns = model_query_settings
-
-    # ``model_columns_being_upgraded`` are models that currently use Redis but are being
-    # transitioned to use Snuba.
-    model_being_upgraded_query_settings = {
         TSDBModel.organization_total_received: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,
             "org_id",
@@ -102,9 +96,6 @@ class SnubaTSDB(BaseTSDB):
             "times_seen",
             [["outcome", "=", outcomes.Outcome.FILTERED]],
         ),
-    }
-
-    model_being_upgraded_query_settings2 = {
         TSDBModel.key_total_received: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,
             "key_id",
@@ -125,9 +116,26 @@ class SnubaTSDB(BaseTSDB):
         ),
     }
 
+    model_query_settings = dict(
+        project_filter_model_query_settings.items() + other_model_query_settings.items()
+    )
+
+    # ``model_columns_being_upgraded`` are models that currently use Redis but are being
+    # transitioned to use Snuba.
+    model_being_upgraded_query_settings = {}
+
+    model_being_upgraded_query_settings2 = {}
+
+    project_filter_model_query_settings_lower_rollup = {
+        model: SnubaModelQuerySettings(
+            snuba.Dataset.OutcomesRaw, "project_id", None, [["reason", "=", reason]]
+        )
+        for reason, model in FILTER_STAT_KEYS_TO_VALUES.items()
+    }
+
     # The Outcomes dataset aggregates outcomes into chunks of an hour. So, for rollups less than an hour, we want to
     # query the raw outcomes dataset, with a few different settings (defined in lower_rollup_query_settings).
-    lower_rollup_query_settings = {
+    other_lower_rollup_query_settings = {
         TSDBModel.organization_total_received: SnubaModelQuerySettings(
             snuba.Dataset.OutcomesRaw, "org_id", None, [["outcome", "!=", outcomes.Outcome.INVALID]]
         ),
@@ -172,10 +180,9 @@ class SnubaTSDB(BaseTSDB):
         ),
     }
 
-    all_model_query_settings = dict(
-        model_columns.items()
-        + model_being_upgraded_query_settings.items()
-        + model_being_upgraded_query_settings2.items()
+    lower_rollup_query_settings = dict(
+        project_filter_model_query_settings_lower_rollup.items()
+        + other_lower_rollup_query_settings.items()
     )
 
     def __init__(self, **options):
@@ -200,14 +207,18 @@ class SnubaTSDB(BaseTSDB):
         `group_on_model`: whether to add a GROUP BY clause on the primary model.
         """
         # XXX: to counteract the hack in project_key_stats.py
-        if model in self.model_being_upgraded_query_settings2.keys():
+        if model in [
+            TSDBModel.key_total_received,
+            TSDBModel.key_total_blacklisted,
+            TSDBModel.key_total_rejected,
+        ]:
             keys = list(set(map(lambda x: int(x), keys)))
 
         # 10s is the only rollup under an hour that we support
         if rollup and rollup == 10 and model in self.lower_rollup_query_settings.keys():
             model_query_settings = self.lower_rollup_query_settings.get(model)
         else:
-            model_query_settings = self.all_model_query_settings.get(model)
+            model_query_settings = self.model_query_settings.get(model)
 
         if model_query_settings is None:
             raise Exception(u"Unsupported TSDBModel: {}".format(model.name))
@@ -311,7 +322,7 @@ class SnubaTSDB(BaseTSDB):
         if rollup and rollup == 10 and model in self.lower_rollup_query_settings.keys():
             model_query_settings = self.lower_rollup_query_settings.get(model)
         else:
-            model_query_settings = self.all_model_query_settings.get(model)
+            model_query_settings = self.model_query_settings.get(model)
 
         assert model_query_settings is not None, u"Unsupported TSDBModel: {}".format(model.name)
 
