@@ -6,6 +6,7 @@ from sentry.api import client
 from sentry.api.base import Endpoint
 from sentry.models import Group, Project, Identity, IdentityProvider, ApiKey
 from sentry.utils import json
+import six
 
 from .link_identity import build_linking_url
 from .requests import SlackActionRequest, SlackRequestError
@@ -32,10 +33,10 @@ class SlackActionEndpoint(Endpoint):
     permission_classes = ()
 
     def api_error(self, error, action_type, logging_data):
-        logger.info("slack.action.api-error-pre-message")
         logging_data = logging_data.copy()
         logging_data["response"] = error.body
         logging_data["action_type"] = action_type
+        logger.info("slack.action.api-error-pre-message: %s" % six.text_type(logging_data))
         logger.info("slack.action.api-error", extra=logging_data)
         return self.respond(
             {
