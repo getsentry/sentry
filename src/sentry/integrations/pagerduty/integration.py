@@ -25,17 +25,24 @@ from sentry.pipeline import PipelineView
 from .client import PagerDutyClient
 
 DESCRIPTION = """
-PagerDuty Description
+Connect your Sentry organization with one or more PagerDuty accounts, and start getting
+incidents triggered from Sentry alerts.
 """
 
 FEATURES = [
     FeatureDescription(
         """
-        Configure rule based PagerDuty notifications!!
+        Configure rule based PagerDuty alerts to automatically be triggered in a specific
+        service - or in multiple services!
         """,
         IntegrationFeatures.ALERT_RULE,
     )
 ]
+
+setup_alert = {
+    "type": "info",
+    "text": "The PagerDuty integration adds a new Alert Rule action to all projects. To enable automatic notifications sent to PagerDuty you must create a rule using the PagerDuty action in your project settings.",
+}
 
 metadata = IntegrationMetadata(
     description=_(DESCRIPTION.strip()),
@@ -44,7 +51,7 @@ metadata = IntegrationMetadata(
     noun=_("Installation"),
     issue_url="https://github.com/getsentry/sentry/issues/new?title=PagerDuty%20Integration:%20&labels=Component%3A%20Integrations",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/pagerduty",
-    aspects={},
+    aspects={"alerts": [setup_alert]},
 )
 
 
