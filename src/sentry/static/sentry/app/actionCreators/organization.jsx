@@ -36,6 +36,9 @@ export async function fetchOrganizationDetails(api, slug, detailed, silent) {
     setActiveOrganization(org);
 
     if (detailed) {
+      // TODO(davidenwang): Change these to actions after organization.projects
+      // and organization.teams no longer exists. Currently if they were changed
+      // to actions it would cause OrganizationContext to rerender many times
       TeamStore.loadInitialData(org.teams);
       ProjectsStore.loadInitialData(org.projects);
     } else {
