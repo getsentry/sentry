@@ -95,4 +95,25 @@ describe('GlobalSelectionLink', function() {
 
     expect(updatedToProp).toEqual({pathname: path, query});
   });
+
+  it('has sort in query', function() {
+    const query = {
+      sort: 'freq',
+    };
+
+    const wrapper = shallow(
+      <GlobalSelectionLink to={{pathname: path}}>Go somewhere!</GlobalSelectionLink>,
+      {
+        context: {
+          location: {
+            query,
+          },
+        },
+      }
+    );
+
+    const updatedToProp = wrapper.find('Link').prop('to');
+
+    expect(updatedToProp).toEqual({pathname: path, query});
+  });
 });
