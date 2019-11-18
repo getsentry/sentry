@@ -55,26 +55,22 @@ class MoreSnubaSearchBackend(SnubaSearchBackend):
 
         # We only need to hit postgres if search_filters contains certain fields.
 
-        search_postgres = False
+        self.search_postgres = False
         for search_filter in search_filters:
             if search_filter in self.issue_only_fields:
-                search_postgres = True
+                self.search_postgres = True
                 break
 
-        if search_postgres is True:
+        if self.search_postgres is True:
             return super(MoreSnubaSearchBackend, self).build_group_queryset(
                 projects, environments, search_filters, retention_window_start, date_from, date_to
             )
         else:
+            # TODO: Add `status` filter to snuba query to exlcude status:
+            # GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS, GroupStatus.PENDING_MERGE,
+            # as well as project_id must be in PROJECTS
+            # Not done here, maybe another function hook.
             return None
-
-    def initialize_group_queryset():
-        # No longer initializing with a filter on status - we can do this in Snuba.
-        # TODO: Add `status` filter to snuba query to exlcude status:
-        # GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS, GroupStatus.PENDING_MERGE,
-        from sentry.models import Group
-
-        return Group.objects.all()
 
     def get_queryset_modifiers(
         self,
