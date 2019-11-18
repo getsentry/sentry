@@ -20,6 +20,7 @@ from sentry.search.utils import (
     parse_datetime_value,
     InvalidQuery,
 )
+from sentry.snuba.events import get_columns_from_aliases
 from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import Dataset, DATASETS, get_snuba_column_name
 
@@ -852,7 +853,7 @@ def get_reference_event_conditions(organization, snuba_args, event_slug):
     summary graph navigation.
     """
     groupby = snuba_args.get("groupby", [])
-    columns = eventstore.get_columns_from_aliases(groupby)
+    columns = get_columns_from_aliases(groupby)
     field_names = [get_snuba_column_name(field) for field in groupby]
 
     # Fetch the reference event ensuring the fields in the groupby
