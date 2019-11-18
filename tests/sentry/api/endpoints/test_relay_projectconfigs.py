@@ -68,6 +68,10 @@ class RelayQueryGetProjectConfigTest(APITestCase):
 
         assert status_code < 400
 
+        # Sweeping assertion that we do not have any snake_case in that config.
+        # Might need refining.
+        assert "_" not in repr(result)
+
         cfg = safe.get_path(result, "configs", six.text_type(self.project.id))
         assert safe.get_path(cfg, "config", "filterSettings") is None
         assert safe.get_path(cfg, "config", "groupingConfig") is None
@@ -77,6 +81,10 @@ class RelayQueryGetProjectConfigTest(APITestCase):
         result, status_code = self._call_endpoint(full_config=True)
 
         assert status_code < 400
+
+        # Sweeping assertion that we do not have any snake_case in that config.
+        # Might need refining.
+        assert "_" not in repr(result)
 
         cfg = safe.get_path(result, "configs", six.text_type(self.project.id))
         assert safe.get_path(cfg, "disabled") is False
