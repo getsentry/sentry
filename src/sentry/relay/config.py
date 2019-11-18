@@ -73,7 +73,7 @@ def get_project_config(project, org_options=None, full_config=True, project_keys
             "rev": project.get_option("sentry:relay-rev", uuid.uuid4().hex),
             "publicKeys": public_keys,
             "config": {
-                "allowedDomains": project.get_option("sentry:origins", ["*"]),
+                "allowedDomains": list(get_origins(project)),
                 "trustedRelays": org_options.get("sentry:trusted-relays", []),
                 "piiConfig": _get_pii_config(project),
                 "datascrubbingSettings": _get_datascrubbing_settings(project, org_options),
@@ -122,9 +122,6 @@ def get_project_config(project, org_options=None, full_config=True, project_keys
 
     with Hub.current.start_span(op="get_grouping_config_dict_for_project"):
         project_cfg["groupingConfig"] = get_grouping_config_dict_for_project(project)
-
-    with Hub.current.start_span(op="get_origins"):
-        project_cfg["allowedDomains"] = list(get_origins(project))
 
     return ProjectConfig(project, **cfg)
 
