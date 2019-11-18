@@ -8,7 +8,7 @@ from sentry.rules.actions.base import EventAction
 from sentry.utils import metrics, json
 from sentry.models import Integration
 
-from .utils import build_group_attachment, get_channel_id
+from .utils import build_group_attachment, get_channel_id, strip_channel_name
 
 
 class SlackNotifyServiceForm(forms.Form):
@@ -37,6 +37,7 @@ class SlackNotifyServiceForm(forms.Form):
         channel = cleaned_data.get("channel", "")
 
         channel_id = self.channel_transformer(workspace, channel)
+        channel = strip_channel_name(channel)
 
         if channel_id is None and workspace is not None:
             params = {

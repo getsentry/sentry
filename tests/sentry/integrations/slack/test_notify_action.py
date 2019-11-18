@@ -24,6 +24,11 @@ class SlackNotifyActionTest(RuleTestCase):
         )
         self.integration.add_organization(event.project.organization, self.user)
 
+    def assert_form_valid(self, form, expected_channel_id, expected_channel):
+        assert form.is_valid()
+        assert form.cleaned_data["channel_id"] == expected_channel_id
+        assert form.cleaned_data["channel"] == expected_channel
+
     @responses.activate
     def test_applies_correctly(self):
         event = self.get_event()
@@ -98,6 +103,7 @@ class SlackNotifyActionTest(RuleTestCase):
 
         form = rule.get_form_instance()
         assert form.is_valid()
+        self.assert_form_valid(form, "chan-id", "#my-channel")
 
     @responses.activate
     def test_valid_private_channel_selected(self):
@@ -132,7 +138,7 @@ class SlackNotifyActionTest(RuleTestCase):
         )
 
         form = rule.get_form_instance()
-        assert form.is_valid()
+        self.assert_form_valid(form, "chan-id", "#my-private-channel")
 
     @responses.activate
     def test_valid_member_selected(self):
@@ -183,7 +189,7 @@ class SlackNotifyActionTest(RuleTestCase):
         )
 
         form = rule.get_form_instance()
-        assert form.is_valid()
+        self.assert_form_valid(form, "morty-id", "@morty")
 
     @responses.activate
     def test_invalid_channel_selected(self):
