@@ -151,10 +151,8 @@ describe('getFieldRenderer', function() {
     const value = wrapper.find('OverflowLink');
     expect(value).toHaveLength(1);
     expect(value.props().to).toEqual({
-      pathname: location.pathname,
-      query: {
-        eventSlug: `${project.slug}:deadbeef`,
-      },
+      pathname: `/organizations/org-slug/eventsv2/${project.slug}:deadbeef/`,
+      query: {},
     });
     expect(value.text()).toEqual(data.transaction);
   });
@@ -167,10 +165,8 @@ describe('getFieldRenderer', function() {
     const value = wrapper.find('OverflowLink');
     expect(value).toHaveLength(1);
     expect(value.props().to).toEqual({
-      pathname: location.pathname,
-      query: {
-        eventSlug: `${project.slug}:deadbeef`,
-      },
+      pathname: `/organizations/org-slug/eventsv2/${project.slug}:deadbeef/`,
+      query: {},
     });
     expect(value.text()).toEqual(data.title);
   });
@@ -201,10 +197,8 @@ describe('getFieldRenderer', function() {
 
     const link = wrapper.find('OverflowLink');
     expect(link.props().to).toEqual({
-      pathname: location.pathname,
-      query: {
-        eventSlug: `${project.slug}:deadbeef`,
-      },
+      pathname: `/organizations/org-slug/eventsv2/${project.slug}:deadbeef/`,
+      query: {},
     });
     expect(link.text()).toEqual('/example');
   });
@@ -219,10 +213,8 @@ describe('getFieldRenderer', function() {
 
     const link = wrapper.find('OverflowLink');
     expect(link.props().to).toEqual({
-      pathname: location.pathname,
-      query: {
-        eventSlug: `${project.slug}:deadbeef`,
-      },
+      pathname: `/organizations/org-slug/eventsv2/${project.slug}:deadbeef/`,
+      query: {},
     });
     expect(link.find('Count').props().value).toEqual(data.numeric);
   });
@@ -237,10 +229,8 @@ describe('getFieldRenderer', function() {
 
     const link = wrapper.find('OverflowLink');
     expect(link.props().to).toEqual({
-      pathname: location.pathname,
-      query: {
-        eventSlug: `${project.slug}:deadbeef`,
-      },
+      pathname: `/organizations/org-slug/eventsv2/${project.slug}:deadbeef/`,
+      query: {},
     });
     expect(link.find('StyledDateTime').props().date).toEqual(data.createdAt);
   });

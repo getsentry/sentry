@@ -48,6 +48,7 @@ class IncidentSerializer(Serializer):
             "type": obj.type,
             "title": obj.title,
             "query": obj.query,
+            "aggregation": obj.aggregation,
             "dateStarted": obj.date_started,
             "dateDetected": obj.date_detected,
             "dateAdded": obj.date_added,

@@ -9,7 +9,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.incidents.endpoints.bases import OrganizationAlertRuleTriggerEndpoint
 from sentry.incidents.endpoints.serializers import AlertRuleTriggerActionSerializer
-from sentry.incidents.logic import get_actions_for_trigger
+from sentry.incidents.logic import get_actions_for_trigger, InvalidTriggerActionError
 
 
 class OrganizationAlertRuleTriggerActionIndexEndpoint(OrganizationAlertRuleTriggerEndpoint):
@@ -47,7 +47,10 @@ class OrganizationAlertRuleTriggerActionIndexEndpoint(OrganizationAlertRuleTrigg
         )
 
         if serializer.is_valid():
-            action = serializer.save()
+            try:
+                action = serializer.save()
+            except InvalidTriggerActionError as e:
+                return Response(e.message, status=status.HTTP_400_BAD_REQUEST)
             return Response(serialize(action, request.user), status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

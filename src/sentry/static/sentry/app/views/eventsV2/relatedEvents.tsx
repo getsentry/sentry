@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from 'react-emotion';
 import PropTypes from 'prop-types';
-import omit from 'lodash/omit';
 import {Location} from 'history';
 
 import {Organization, Event, Project} from 'app/types';
@@ -17,14 +16,16 @@ import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import withProjects from 'app/utils/withProjects';
 
-import {MODAL_QUERY_KEYS} from './data';
+import {generateEventDetailsRoute, generateEventSlug} from './eventDetails/utils';
 import {EventQuery} from './utils';
+import EventView from './eventView';
 
 type Props = {
   location: Location;
   organization: Organization;
   event: Event;
   projects: Array<Project>;
+  eventView: EventView;
 };
 
 class RelatedEvents extends AsyncComponent<Props> {
@@ -82,7 +83,7 @@ class RelatedEvents extends AsyncComponent<Props> {
   }
 
   renderBody() {
-    const {location, projects, event} = this.props;
+    const {organization, projects, event, eventView} = this.props;
     const {events} = this.state;
     if (!events || !events.data) {
       return null;
@@ -97,12 +98,10 @@ class RelatedEvents extends AsyncComponent<Props> {
           <Card>{t('No related events found.')}</Card>
         ) : (
           events.data.map(item => {
+            const eventSlug = generateEventSlug(item);
             const eventUrl = {
-              pathname: location.pathname,
-              query: {
-                ...omit(location.query, MODAL_QUERY_KEYS),
-                eventSlug: `${item['project.name']}:${item.id}`,
-              },
+              pathname: generateEventDetailsRoute({eventSlug, organization}),
+              query: eventView.generateQueryStringObject(),
             };
             const project = projects.find(p => p.slug === item['project.name']);
 

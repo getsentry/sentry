@@ -145,7 +145,6 @@ exports[`ProjectDebugFiles renders 1`] = `
                     onError={[Function]}
                     onSuccess={[Function]}
                     placeholder="Search DIFs"
-                    stateKey="project"
                     updateRoute={true}
                     url="/projects/org/project/"
                   >
@@ -185,7 +184,6 @@ exports[`ProjectDebugFiles renders 1`] = `
                           "setRouteLeaveHook": [MockFunction],
                         }
                       }
-                      stateKey="project"
                       updateRoute={true}
                       url="/projects/org/project/"
                     >
@@ -193,7 +191,7 @@ exports[`ProjectDebugFiles renders 1`] = `
                         onSubmit={[Function]}
                       >
                         <form
-                          className="css-vfrmj7-Form et3a3ng1"
+                          className="css-vfrmj7-Form e6xwo1"
                           onSubmit={[Function]}
                         >
                           <Input
@@ -325,7 +323,6 @@ exports[`ProjectDebugFiles renders empty 1`] = `
           onError={[Function]}
           onSuccess={[Function]}
           placeholder="Search DIFs"
-          stateKey="project"
           updateRoute={true}
           url="/projects/org/project/"
         />

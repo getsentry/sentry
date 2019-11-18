@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import six
 from exam import fixture
 
 from sentry.auth.access import from_user
@@ -12,8 +13,10 @@ from sentry.incidents.logic import (
     create_alert_rule,
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
+    InvalidTriggerActionError,
 )
 from sentry.incidents.models import AlertRuleThresholdType, AlertRuleTriggerAction
+from sentry.models import Integration
 from sentry.snuba.models import QueryAggregations
 from sentry.testutils import TestCase
 
@@ -366,19 +369,84 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
         )
 
         self._run_changed_fields_test(action, {"type": type.value}, {})
+        integration = Integration.objects.create(external_id="1", provider="slack", metadata={})
+
         self._run_changed_fields_test(
             action,
-            {"type": AlertRuleTriggerAction.Type.SLACK.value},
-            {"type": AlertRuleTriggerAction.Type.SLACK},
+            {
+                "type": AlertRuleTriggerAction.Type.SLACK.value,
+                "targetIdentifier": "hello",
+                "targetType": AlertRuleTriggerAction.TargetType.SPECIFIC.value,
+                "integration": integration.id,
+            },
+            {"type": AlertRuleTriggerAction.Type.SLACK, "integration": integration},
         )
-        self._run_changed_fields_test(action, {"target_type": target_type.value}, {})
+        self._run_changed_fields_test(
+            action, {"target_type": target_type.value, "target_identifier": identifier}, {}
+        )
         self._run_changed_fields_test(
             action,
-            {"target_type": AlertRuleTriggerAction.TargetType.USER.value},
-            {"target_type": AlertRuleTriggerAction.TargetType.USER},
+            {
+                "target_type": AlertRuleTriggerAction.TargetType.USER.value,
+                "target_identifier": six.text_type(self.user.id),
+            },
+            {
+                "target_type": AlertRuleTriggerAction.TargetType.USER,
+                "target_identifier": six.text_type(self.user.id),
+            },
         )
 
-        self._run_changed_fields_test(action, {"target_identifier": identifier}, {})
-        self._run_changed_fields_test(
-            action, {"target_identifier": "bye"}, {"target_identifier": "bye"}
+    def test_user_perms(self):
+        self.run_fail_validation_test(
+            {
+                "target_type": AlertRuleTriggerAction.TargetType.USER.value,
+                "target_identifier": "1234567",
+            },
+            {"nonFieldErrors": ["User does not exist"]},
         )
+        other_user = self.create_user()
+        self.run_fail_validation_test(
+            {
+                "target_type": AlertRuleTriggerAction.TargetType.USER.value,
+                "target_identifier": six.text_type(other_user.id),
+            },
+            {"nonFieldErrors": ["User does not belong to this organization"]},
+        )
+
+    def test_slack(self):
+        self.run_fail_validation_test(
+            {
+                "type": AlertRuleTriggerAction.Type.SLACK.value,
+                "target_type": AlertRuleTriggerAction.TargetType.USER.value,
+                "target_identifier": "123",
+            },
+            {"targetType": ["Must provide a specific channel for slack"]},
+        )
+        self.run_fail_validation_test(
+            {
+                "type": AlertRuleTriggerAction.Type.SLACK.value,
+                "targetType": AlertRuleTriggerAction.TargetType.SPECIFIC.value,
+                "targetIdentifier": "123",
+            },
+            {"integration": ["Integration must be provided for slack"]},
+        )
+        integration = Integration.objects.create(
+            external_id="1",
+            provider="slack",
+            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+        )
+        integration.add_organization(self.organization, self.user)
+
+        base_params = self.valid_params.copy()
+        base_params.update(
+            {
+                "type": AlertRuleTriggerAction.Type.SLACK.value,
+                "targetType": AlertRuleTriggerAction.TargetType.SPECIFIC.value,
+                "targetIdentifier": "123",
+                "integration": six.text_type(integration.id),
+            }
+        )
+        serializer = AlertRuleTriggerActionSerializer(context=self.context, data=base_params)
+        assert serializer.is_valid()
+        with self.assertRaises(InvalidTriggerActionError):
+            serializer.save()

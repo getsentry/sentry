@@ -35,7 +35,7 @@ env:
     - SENTRY_SKIP_BACKEND_VALIDATION=1
     - MIGRATIONS_TEST_MIGRATE=0
     # Use this to override the django version in the requirements file.
-    - DJANGO_VERSION=">=1.8,<1.9"
+    - DJANGO_VERSION=">=1.9,<1.10"
     # node's version is pinned by .nvmrc and is autodetected by `nvm install`.
     - NODE_DIR="${HOME}/.nvm/versions/node/v$(< .nvmrc)"
     - NODE_OPTIONS=--max-old-space-size=4096
@@ -78,7 +78,7 @@ base_postgres: &postgres_default
     - postgresql
   before_install:
     - *pip_install
-    - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:19.4
+    - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:19.11
     - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
     - docker ps -a
   install:
@@ -98,7 +98,7 @@ base_acceptance: &acceptance_default
     - *pip_install
     - find "$NODE_DIR" -type d -empty -delete
     - nvm install
-    - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:19.4
+    - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:19.11
     - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
     - docker ps -a
   install:
@@ -159,29 +159,9 @@ matrix:
       env: TEST_SUITE=acceptance USE_SNUBA=1
 
     # allowed to fail
-    - <<: *postgres_default
-      name: 'Django 1.9 Backend [Postgres] (1/2)'
-      env: DJANGO_VERSION=">=1.9,<1.10" TEST_SUITE=postgres DB=postgres TOTAL_TEST_GROUPS=2 TEST_GROUP=0
-
-    # allowed to fail
-    - <<: *postgres_default
-      name: 'Django 1.9 Backend [Postgres] (2/2)'
-      env: DJANGO_VERSION=">=1.9,<1.10" TEST_SUITE=postgres DB=postgres TOTAL_TEST_GROUPS=2 TEST_GROUP=1
-
-    # allowed to fail
-    - <<: *acceptance_default
-      name: 'Django 1.9 Acceptance'
-      env: DJANGO_VERSION=">=1.9,<1.10" TEST_SUITE=acceptance USE_SNUBA=1
-
-    # allowed to fail
     - <<: *acceptance_default
       name: 'Plugins'
       env: TEST_SUITE=plugins DB=postgres PERCY_TOKEN=${PLUGIN_PERCY_TOKEN}
-
-    # allowed to fail
-    - <<: *acceptance_default
-      name: 'Django 1.9 Plugins'
-      env: DJANGO_VERSION=">=1.9,<1.10" TEST_SUITE=plugins DB=postgres PERCY_TOKEN=${PLUGIN_PERCY_TOKEN}
 
     - python: 2.7
       name: 'Frontend'
@@ -217,7 +197,7 @@ matrix:
       name: 'Symbolicator Integration'
       env: TEST_SUITE=symbolicator
       before_install:
-        - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:19.4
+        - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:19.11
         - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
         - docker run -d --network host --name symbolicator us.gcr.io/sentryio/symbolicator:latest run
         - docker ps -a
@@ -234,7 +214,7 @@ matrix:
         - *pip_install
         - docker run -d --network host --name zookeeper -e ZOOKEEPER_CLIENT_PORT=2181 confluentinc/cp-zookeeper:4.1.0
         - docker run -d --network host --name kafka -e KAFKA_ZOOKEEPER_CONNECT=localhost:2181 -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092 -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 confluentinc/cp-kafka:4.1.0
-        - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:19.4
+        - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:19.11
         - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
         - docker ps -a
       install:
@@ -265,11 +245,7 @@ matrix:
 
   allow_failures:
     - name: 'Storybook Deploy'
-    - name: 'Django 1.9 Backend [Postgres] (1/2)'
-    - name: 'Django 1.9 Backend [Postgres] (2/2)'
-    - name: 'Django 1.9 Acceptance'
     - name: 'Plugins'
-    - name: 'Django 1.9 Plugins'
 
 notifications:
   webhooks:

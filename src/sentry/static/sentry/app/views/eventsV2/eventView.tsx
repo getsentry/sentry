@@ -323,9 +323,15 @@ class EventView {
     environment: Readonly<string[]>;
     yAxis: string | undefined;
   }) {
+    const fields = Array.isArray(props.fields) ? props.fields : [];
+    let sorts = Array.isArray(props.sorts) ? props.sorts : [];
+    const tags = Array.isArray(props.tags) ? props.tags : [];
+    const project = Array.isArray(props.project) ? props.project : [];
+    const environment = Array.isArray(props.environment) ? props.environment : [];
+
     // only include sort keys that are included in the fields
 
-    const sortKeys = props.fields
+    const sortKeys = fields
       .map(field => {
         return getSortKeyFromFieldWithoutMeta(field);
       })
@@ -335,25 +341,25 @@ class EventView {
         }
       );
 
-    const sort = props.sorts.find(currentSort => {
+    const sort = sorts.find(currentSort => {
       return sortKeys.includes(currentSort.field);
     });
 
-    const sorts = sort ? [sort] : [];
+    sorts = sort ? [sort] : [];
 
     const id = props.id !== null && props.id !== void 0 ? String(props.id) : void 0;
 
     this.id = id;
     this.name = props.name;
-    this.fields = props.fields;
+    this.fields = fields;
     this.sorts = sorts;
-    this.tags = props.tags;
+    this.tags = tags;
     this.query = typeof props.query === 'string' ? props.query : '';
-    this.project = props.project;
+    this.project = project;
     this.start = props.start;
     this.end = props.end;
     this.statsPeriod = props.statsPeriod;
-    this.environment = props.environment;
+    this.environment = environment;
     this.yAxis = props.yAxis;
   }
 
@@ -384,18 +390,24 @@ class EventView {
       };
     });
 
+    const {start, end, statsPeriod} = getParams({
+      start: undefined,
+      end: undefined,
+      statsPeriod: eventViewV1.statsPeriod,
+    });
+
     return new EventView({
       fields,
+      id: undefined,
       name: eventViewV1.name,
       sorts: fromSorts(eventViewV1.data.sort),
       tags: eventViewV1.tags,
       query: eventViewV1.data.query || '',
       project: [],
-      id: undefined,
-      start: undefined,
-      end: undefined,
-      statsPeriod: eventViewV1.statsPeriod,
       environment: [],
+      start: decodeScalar(start),
+      end: decodeScalar(end),
+      statsPeriod: decodeScalar(statsPeriod),
       yAxis: undefined,
     });
   }
@@ -417,7 +429,6 @@ class EventView {
     }
 
     // normalize datetime selection
-
     const {start, end, statsPeriod} = getParams({
       start: saved.start,
       end: saved.end,
@@ -520,6 +531,35 @@ class EventView {
     }
 
     return newQuery;
+  }
+
+  getGlobalSelection() {
+    return {
+      start: this.start,
+      end: this.end,
+      statsPeriod: this.statsPeriod,
+      project: this.project,
+      environment: this.environment,
+    };
+  }
+
+  generateBlankQueryStringObject(): Query {
+    const output = {
+      id: undefined,
+      name: undefined,
+      field: undefined,
+      fieldnames: undefined,
+      sort: undefined,
+      tag: undefined,
+      query: undefined,
+      yAxis: undefined,
+    };
+
+    for (const field of EXTERNAL_QUERY_STRING_KEYS) {
+      output[field] = undefined;
+    }
+
+    return cloneDeep(output as any);
   }
 
   generateQueryStringObject(): Query {
