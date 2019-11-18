@@ -46,7 +46,9 @@ export const fields = {
     ),
     choices: ({builtinSymbolSources}) =>
       builtinSymbolSources &&
-      builtinSymbolSources.map(source => [source.sentry_key, t(source.name)]),
+      builtinSymbolSources
+        .filter(source => !source.hidden)
+        .map(source => [source.sentry_key, t(source.name)]),
   },
   symbolSources: {
     name: 'symbolSources',
