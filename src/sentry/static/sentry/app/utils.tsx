@@ -4,8 +4,7 @@ import isObject from 'lodash/isObject';
 import isString from 'lodash/isString';
 import isUndefined from 'lodash/isUndefined';
 
-import {NewQuery} from 'app/stores/discoverSavedQueriesStore';
-import {Project} from 'app/types/index';
+import {NewQuery, Project} from 'app/types';
 import {appendTagCondition} from 'app/utils/queryString';
 
 function arrayIsEqual(arr?: any[], other?: any[], deep?: boolean): boolean {

@@ -8,9 +8,9 @@ import {Location} from 'history';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import SentryTypes from 'app/sentryTypes';
-import {Organization} from 'app/types';
+import {Organization, SavedQuery} from 'app/types';
 import localStorage from 'app/utils/localStorage';
-import withOrganization from 'app/utils/withOrganization';
+import AsyncComponent from 'app/components/asyncComponent';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import Banner from 'app/components/banner';
@@ -21,6 +21,7 @@ import NoProjectMessage from 'app/components/noProjectMessage';
 
 import {PageContent, PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
+import withOrganization from 'app/utils/withOrganization';
 
 import Events from './events';
 import SavedQueryButtonGroup from './savedQuery';
@@ -43,9 +44,13 @@ type Props = {
   location: Location;
   router: ReactRouter.InjectedRouter;
   params: Params;
-};
+} & AsyncComponent['props'];
 
-class DiscoverLanding extends React.Component<Props> {
+type State = {
+  savedQueries: SavedQuery[];
+} & AsyncComponent['state'];
+
+class DiscoverLanding extends AsyncComponent<Props, State> {
   static propTypes: any = {
     organization: SentryTypes.Organization.isRequired,
     location: PropTypes.object.isRequired,
@@ -53,8 +58,26 @@ class DiscoverLanding extends React.Component<Props> {
   };
 
   state = {
+    loading: true,
+    reloading: false,
+    error: false,
+    errors: [],
     isBannerHidden: checkIsBannerHidden(),
+    savedQueries: [],
   };
+
+  shouldReload = true;
+
+  getEndpoints(): [string, string, any][] {
+    const {organization} = this.props;
+    return [
+      [
+        'savedQueries',
+        `/organizations/${organization.slug}/discover/saved/`,
+        {query: {query: 'version:2'}},
+      ],
+    ];
+  }
 
   componentDidUpdate() {
     const isBannerHidden = checkIsBannerHidden();
@@ -75,6 +98,12 @@ class DiscoverLanding extends React.Component<Props> {
   handleClick = () => {
     localStorage.setItem(BANNER_DISMISSED_KEY, 'true');
     this.setState({isBannerHidden: true});
+  };
+
+  // When a query is saved we need to re-fetch the
+  // saved query list as we don't use a reflux store.
+  handleQuerySave = () => {
+    this.fetchData({reloading: true});
   };
 
   renderBanner() {
@@ -127,12 +156,17 @@ class DiscoverLanding extends React.Component<Props> {
 
   renderNewQuery() {
     const {location, organization} = this.props;
+    const {savedQueries} = this.state;
 
     return (
       <div>
         {this.renderBanner()}
         {DISPLAY_SEARCH_BAR_FLAG && this.renderActions()}
-        <QueryList location={location} organization={organization} />
+        <QueryList
+          savedQueries={savedQueries}
+          location={location}
+          organization={organization}
+        />
       </div>
     );
   }
@@ -143,19 +177,63 @@ class DiscoverLanding extends React.Component<Props> {
     }
 
     const {organization} = this.props;
+    const {savedQueries} = this.state;
 
     return (
       <div>
-        <EventInputName organization={organization} eventView={eventView} />
+        <EventInputName
+          savedQueries={savedQueries}
+          organization={organization}
+          eventView={eventView}
+          onQuerySave={this.handleQuerySave}
+        />
       </div>
     );
   };
 
-  render() {
+  renderBody() {
     const {organization, location, router} = this.props;
     const eventView = EventView.fromLocation(location);
+    const {savedQueries, reloading} = this.state;
 
     const hasQuery = eventView.isValid();
+
+    return (
+      <React.Fragment>
+        <PageHeader>
+          <DiscoverBreadcrumb
+            eventView={eventView}
+            organization={organization}
+            location={location}
+          />
+          {hasQuery && (
+            <SavedQueryButtonGroup
+              location={location}
+              organization={organization}
+              eventView={eventView}
+              savedQueries={savedQueries}
+              savedQueriesLoading={reloading}
+              onQuerySave={this.handleQuerySave}
+            />
+          )}
+        </PageHeader>
+        {this.renderQueryRename(hasQuery, eventView)}
+        {!hasQuery && this.renderNewQuery()}
+        {hasQuery && (
+          <Events
+            organization={organization}
+            location={location}
+            router={router}
+            eventView={eventView}
+          />
+        )}
+      </React.Fragment>
+    );
+  }
+
+  render() {
+    const {organization, location} = this.props;
+    const eventView = EventView.fromLocation(location);
 
     return (
       <Feature features={['events-v2']} organization={organization} renderDisabled>
@@ -167,30 +245,7 @@ class DiscoverLanding extends React.Component<Props> {
             <GlobalSelectionHeader organization={organization} />
             <PageContent>
               <NoProjectMessage organization={organization}>
-                <PageHeader>
-                  <DiscoverBreadcrumb
-                    eventView={eventView}
-                    organization={organization}
-                    location={location}
-                  />
-                  {hasQuery && (
-                    <SavedQueryButtonGroup
-                      location={location}
-                      organization={organization}
-                      eventView={eventView}
-                    />
-                  )}
-                </PageHeader>
-                {this.renderQueryRename(hasQuery, eventView)}
-                {!hasQuery && this.renderNewQuery()}
-                {hasQuery && (
-                  <Events
-                    organization={organization}
-                    location={location}
-                    router={router}
-                    eventView={eventView}
-                  />
-                )}
+                {super.render()}
               </NoProjectMessage>
             </PageContent>
           </React.Fragment>

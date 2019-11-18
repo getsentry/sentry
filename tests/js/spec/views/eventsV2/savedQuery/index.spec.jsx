@@ -1,8 +1,6 @@
 import React from 'react';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import SavedQueriesStore from 'app/stores/discoverSavedQueriesStore';
-
 import SavedQueryButtonGroup from 'app/views/eventsV2/savedQuery';
 import {ALL_VIEWS} from 'app/views/eventsV2/data';
 import EventView from 'app/views/eventsV2/eventView';
@@ -13,12 +11,20 @@ const SELECTOR_BUTTON_SAVED = 'ButtonSaved';
 const SELECTOR_BUTTON_UPDATE = '[data-test-id="discover2-savedquery-button-update"]';
 const SELECTOR_BUTTON_DELETE = '[data-test-id="discover2-savedquery-button-delete"]';
 
-function generateWrappedComponent(location, organization, eventView) {
+function generateWrappedComponent(
+  location,
+  organization,
+  eventView,
+  savedQueries,
+  onQuerySave
+) {
   return mountWithTheme(
     <SavedQueryButtonGroup
       location={location}
       organization={organization}
       eventView={eventView}
+      savedQueries={savedQueries}
+      onQuerySave={onQuerySave}
     />,
     TestStubs.routerContext()
   );
@@ -44,19 +50,15 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
   errorsViewModified.fields[0].title = 'Modified Field Name';
 
   const errorsSavedQuery = errorsViewSaved.toNewQuery();
-
-  SavedQueriesStore.state = {
-    isLoading: false,
-    hasError: false,
-    savedQueries: [errorsSavedQuery],
-  };
+  const savedQueries = [errorsSavedQuery];
 
   describe('building on a new query', () => {
-    let mockUtils;
+    let mockUtils, onQuerySave;
     beforeAll(() => {
       mockUtils = jest
         .spyOn(utils, 'handleCreateQuery')
         .mockImplementation(() => Promise.resolve(errorsSavedQuery));
+      onQuerySave = jest.fn();
     });
 
     afterEach(() => {
@@ -64,7 +66,13 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
     });
 
     it('renders the correct set of buttons', () => {
-      const wrapper = generateWrappedComponent(location, organization, errorsView);
+      const wrapper = generateWrappedComponent(
+        location,
+        organization,
+        errorsView,
+        savedQueries,
+        onQuerySave
+      );
 
       const buttonSaveAs = wrapper.find(SELECTOR_BUTTON_SAVE_AS);
       const buttonSaved = wrapper.find(SELECTOR_BUTTON_SAVED);
@@ -79,7 +87,13 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
 
     describe('saving the new query', () => {
       it('accepts a well-formed query', async () => {
-        const wrapper = generateWrappedComponent(location, organization, errorsView);
+        const wrapper = generateWrappedComponent(
+          location,
+          organization,
+          errorsView,
+          savedQueries,
+          onQuerySave
+        );
 
         // Click on ButtonSaveAs to open dropdown
         const buttonSaveAs = wrapper.find('DropdownControl').first();
@@ -103,10 +117,17 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
           }),
           true
         );
+        expect(onQuerySave).toHaveBeenCalled();
       });
 
       it('rejects if query.name is empty', async () => {
-        const wrapper = generateWrappedComponent(location, organization, errorsView);
+        const wrapper = generateWrappedComponent(
+          location,
+          organization,
+          errorsView,
+          savedQueries,
+          onQuerySave
+        );
 
         // Click on ButtonSaveAs to open dropdown
         const buttonSaveAs = wrapper.find('DropdownControl').first();
@@ -130,17 +151,19 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
         // expect(wrapper.state('queryName')).toBe('');
 
         expect(mockUtils).not.toHaveBeenCalled();
+        expect(onQuerySave).not.toHaveBeenCalled();
       });
     });
   });
 
   describe('viewing a saved query', () => {
-    let mockUtils;
+    let mockUtils, onQuerySave;
 
     beforeEach(() => {
       mockUtils = jest
         .spyOn(utils, 'handleDeleteQuery')
         .mockImplementation(() => Promise.resolve(errorsSavedQuery));
+      onQuerySave = jest.fn();
     });
 
     afterEach(() => {
@@ -148,7 +171,13 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
     });
 
     it('renders the correct set of buttons', () => {
-      const wrapper = generateWrappedComponent(location, organization, errorsViewSaved);
+      const wrapper = generateWrappedComponent(
+        location,
+        organization,
+        errorsViewSaved,
+        savedQueries,
+        onQuerySave
+      );
 
       const buttonSaveAs = wrapper.find(SELECTOR_BUTTON_SAVE_AS);
       const buttonSaved = wrapper.find(SELECTOR_BUTTON_SAVED);
@@ -162,7 +191,13 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
     });
 
     it('deletes the saved query', () => {
-      const wrapper = generateWrappedComponent(location, organization, errorsViewSaved);
+      const wrapper = generateWrappedComponent(
+        location,
+        organization,
+        errorsViewSaved,
+        savedQueries,
+        onQuerySave
+      );
 
       const buttonDelete = wrapper.find(SELECTOR_BUTTON_DELETE).first();
       buttonDelete.simulate('click');
@@ -172,22 +207,20 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
         organization,
         expect.objectContaining({id: '1'})
       );
+      expect(onQuerySave).toHaveBeenCalled();
     });
   });
 
   describe('modifying a saved query', () => {
-    let mockUtils;
+    let mockUtils, onQuerySave;
 
     it('renders the correct set of buttons', () => {
-      SavedQueriesStore.state = {
-        isLoading: false,
-        hasError: false,
-        savedQueries: [errorsViewSaved.toNewQuery()],
-      };
       const wrapper = generateWrappedComponent(
         location,
         organization,
-        errorsViewModified
+        errorsViewModified,
+        [errorsViewSaved.toNewQuery()],
+        onQuerySave
       );
 
       const buttonSaveAs = wrapper.find(SELECTOR_BUTTON_SAVE_AS);
@@ -206,6 +239,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
         mockUtils = jest
           .spyOn(utils, 'handleUpdateQuery')
           .mockImplementation(() => Promise.resolve(errorsSavedQuery));
+        onQuerySave = jest.fn();
       });
 
       afterEach(() => {
@@ -216,7 +250,9 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
         const wrapper = generateWrappedComponent(
           location,
           organization,
-          errorsViewModified
+          errorsViewModified,
+          savedQueries,
+          onQuerySave
         );
 
         // Click on Save in the Dropdown
@@ -230,6 +266,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
             ...errorsViewModified,
           })
         );
+        expect(onQuerySave).toHaveBeenCalled();
       });
     });
 
@@ -248,7 +285,9 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
         const wrapper = generateWrappedComponent(
           location,
           organization,
-          errorsViewModified
+          errorsViewModified,
+          savedQueries,
+          onQuerySave
         );
 
         // Click on ButtonSaveAs to open dropdown
@@ -273,6 +312,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
           }),
           false
         );
+        expect(onQuerySave).toHaveBeenCalled();
       });
     });
   });

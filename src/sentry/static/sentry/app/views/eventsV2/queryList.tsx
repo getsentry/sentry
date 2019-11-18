@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {MouseEvent} from 'react';
 import {Location} from 'history';
 import styled from 'react-emotion';
 import classNames from 'classnames';
@@ -6,17 +6,15 @@ import {browserHistory} from 'react-router';
 
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization} from 'app/types';
+import {Organization, SavedQuery} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import theme from 'app/utils/theme';
-import withDiscoverSavedQueries from 'app/utils/withDiscoverSavedQueries';
-import {SavedQuery} from 'app/stores/discoverSavedQueriesStore';
-import withApi from 'app/utils/withApi';
+
 import {Client} from 'app/api';
-import {fetchSavedQueries} from 'app/actionCreators/discoverSavedQueries';
 import InlineSvg from 'app/components/inlineSvg';
 import DropdownMenu from 'app/components/dropdownMenu';
 import MenuItem from 'app/components/menuItem';
+import withApi from 'app/utils/withApi';
 
 import EventView from './eventView';
 import {ALL_VIEWS, TRANSACTION_VIEWS} from './data';
@@ -29,15 +27,9 @@ type Props = {
   organization: Organization;
   location: Location;
   savedQueries: SavedQuery[];
-  savedQueriesLoading: boolean;
 };
 
 class QueryList extends React.Component<Props> {
-  componentDidMount() {
-    const {api, organization} = this.props;
-    fetchSavedQueries(api, organization.slug);
-  }
-
   handleDeleteQuery = (eventView: EventView) => (event: React.MouseEvent<Element>) => {
     event.preventDefault();
 
@@ -228,7 +220,7 @@ class ContextMenu extends React.Component {
             >
               <ContextMenuButton
                 {...getActorProps({
-                  onClick: event => {
+                  onClick: (event: MouseEvent) => {
                     event.stopPropagation();
                     event.preventDefault();
                   },
@@ -261,4 +253,4 @@ const ContextMenuButton = styled('div')`
   }
 `;
 
-export default withApi(withDiscoverSavedQueries(QueryList));
+export default withApi(QueryList);
