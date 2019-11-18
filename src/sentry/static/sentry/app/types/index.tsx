@@ -18,6 +18,7 @@ export type Avatar = {
 export type LightWeightOrganization = {
   id: string;
   slug: string;
+  name: string;
   access: string[];
   features: string[];
 };

@@ -1,7 +1,8 @@
 import {browserHistory} from 'react-router';
-import {mountWithTheme} from 'sentry-test/enzyme';
 import React from 'react';
 
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import OrganizationGeneralSettings from 'app/views/settings/organizationGeneralSettings';
 
 jest.mock('jquery');
@@ -16,47 +17,29 @@ jest.mock('react-router', () => {
 });
 
 describe('OrganizationGeneralSettings', function() {
-  const org = TestStubs.Organization();
-  const ENDPOINT = `/organizations/${org.slug}/`;
+  let organization;
+  let routerContext;
+  const ENDPOINT = '/organizations/org-slug/';
+
   beforeEach(function() {
-    MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: ENDPOINT,
-      body: TestStubs.Organization(),
-    });
     browserHistory.push.mockReset();
     browserHistory.replace.mockReset();
-  });
-
-  it('has LoadingError on error', async function() {
-    MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: ENDPOINT,
-      statusCode: 500,
-      body: {},
-    });
-    const wrapper = mountWithTheme(
-      <OrganizationGeneralSettings params={{orgId: org.slug}} />,
-      TestStubs.routerContext()
-    );
-
-    await tick();
-    wrapper.update();
-    expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
-    expect(wrapper.find('LoadingError')).toHaveLength(1);
+    ({organization, routerContext} = initializeOrg());
   });
 
   it('can enable "early adopter"', async function() {
     const wrapper = mountWithTheme(
-      <OrganizationGeneralSettings params={{orgId: org.slug}} />,
-      TestStubs.routerContext()
+      <OrganizationGeneralSettings
+        params={{orgId: organization.slug}}
+        organization={organization}
+      />,
+      routerContext
     );
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',
     });
 
-    wrapper.setState({loading: false});
     await tick();
     wrapper.update();
     wrapper.find('Switch[id="isEarlyAdopter"]').simulate('click');
@@ -70,15 +53,16 @@ describe('OrganizationGeneralSettings', function() {
 
   it('changes org slug and redirects to new slug', async function() {
     const wrapper = mountWithTheme(
-      <OrganizationGeneralSettings params={{orgId: org.slug}} />,
-      TestStubs.routerContext()
+      <OrganizationGeneralSettings
+        params={{orgId: organization.slug}}
+        organization={organization}
+      />,
+      routerContext
     );
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',
     });
-
-    wrapper.setState({loading: false});
 
     await tick();
     wrapper.update();
@@ -102,18 +86,18 @@ describe('OrganizationGeneralSettings', function() {
   });
 
   it('disables the entire form if user does not have write access', async function() {
-    const readOnlyOrg = TestStubs.Organization({access: ['org:read']});
-    MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: ENDPOINT,
-      body: readOnlyOrg,
-    });
+    ({organization, routerContext} = initializeOrg({
+      organization: TestStubs.Organization({access: ['org:read']}),
+    }));
     const wrapper = mountWithTheme(
-      <OrganizationGeneralSettings routes={[]} params={{orgId: readOnlyOrg.slug}} />,
-      TestStubs.routerContext([{organization: readOnlyOrg}])
+      <OrganizationGeneralSettings
+        routes={[]}
+        params={{orgId: organization.slug}}
+        organization={organization}
+      />,
+      routerContext
     );
 
-    wrapper.setState({loading: false});
     await tick();
     wrapper.update();
 
@@ -129,44 +113,38 @@ describe('OrganizationGeneralSettings', function() {
   });
 
   it('does not have remove organization button', async function() {
-    MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: ENDPOINT,
-      body: TestStubs.Organization({
-        projects: [{slug: 'project'}],
-        access: ['org:write'],
-      }),
-    });
     const wrapper = mountWithTheme(
-      <OrganizationGeneralSettings params={{orgId: org.slug}} />,
-      TestStubs.routerContext()
+      <OrganizationGeneralSettings
+        params={{orgId: organization.slug}}
+        organization={TestStubs.Organization({
+          projects: [{slug: 'project'}],
+          access: ['org:write'],
+        })}
+      />,
+      routerContext
     );
 
-    wrapper.setState({loading: false});
     await tick();
     wrapper.update();
     expect(wrapper.find('Confirm[priority="danger"]')).toHaveLength(0);
   });
 
   it('can remove organization when org admin', async function() {
-    MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: ENDPOINT,
-      body: TestStubs.Organization({
-        projects: [{slug: 'project'}],
-        access: ['org:admin'],
-      }),
-    });
     const wrapper = mountWithTheme(
-      <OrganizationGeneralSettings params={{orgId: org.slug}} />,
-      TestStubs.routerContext()
+      <OrganizationGeneralSettings
+        params={{orgId: organization.slug}}
+        organization={TestStubs.Organization({
+          projects: [{slug: 'project'}],
+          access: ['org:admin'],
+        })}
+      />,
+      routerContext
     );
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'DELETE',
     });
 
-    wrapper.setState({loading: false});
     await tick();
     wrapper.update();
     wrapper.find('Confirm[priority="danger"]').simulate('click');
@@ -187,11 +165,13 @@ describe('OrganizationGeneralSettings', function() {
 
   it('shows require2fa switch', async function() {
     const wrapper = mountWithTheme(
-      <OrganizationGeneralSettings params={{orgId: org.slug}} />,
-      TestStubs.routerContext()
+      <OrganizationGeneralSettings
+        params={{orgId: organization.slug}}
+        organization={organization}
+      />,
+      routerContext
     );
 
-    wrapper.setState({loading: false});
     await tick();
     wrapper.update();
     expect(wrapper.find('Switch[name="require2FA"]')).toHaveLength(1);
@@ -203,11 +183,13 @@ describe('OrganizationGeneralSettings', function() {
       method: 'PUT',
     });
     const wrapper = mountWithTheme(
-      <OrganizationGeneralSettings params={{orgId: org.slug}} />,
-      TestStubs.routerContext()
+      <OrganizationGeneralSettings
+        params={{orgId: organization.slug}}
+        organization={organization}
+      />,
+      routerContext
     );
 
-    wrapper.setState({loading: false});
     await tick();
     wrapper.update();
     expect(wrapper.find('Switch[name="require2FA"]')).toHaveLength(1);
@@ -231,11 +213,13 @@ describe('OrganizationGeneralSettings', function() {
     });
 
     const wrapper = mountWithTheme(
-      <OrganizationGeneralSettings params={{orgId: org.slug}} />,
-      TestStubs.routerContext()
+      <OrganizationGeneralSettings
+        params={{orgId: organization.slug}}
+        organization={organization}
+      />,
+      routerContext
     );
 
-    wrapper.setState({loading: false});
     await tick();
     wrapper.update();
     expect(wrapper.find('Switch[name="require2FA"]')).toHaveLength(1);
@@ -269,11 +253,13 @@ describe('OrganizationGeneralSettings', function() {
     });
 
     const wrapper = mountWithTheme(
-      <OrganizationGeneralSettings params={{orgId: org.slug}} />,
-      TestStubs.routerContext()
+      <OrganizationGeneralSettings
+        params={{orgId: organization.slug}}
+        organization={organization}
+      />,
+      routerContext
     );
 
-    wrapper.setState({loading: false});
     await tick();
     wrapper.update();
     wrapper.find('Switch[name="require2FA"]').simulate('click');
@@ -295,7 +281,7 @@ describe('OrganizationGeneralSettings', function() {
   });
 
   it('renders join request switch with experiment', async function() {
-    const organization = TestStubs.Organization({
+    organization = TestStubs.Organization({
       experiments: {ImprovedInvitesExperiment: 'join_request'},
     });
     const wrapper = mountWithTheme(
@@ -303,14 +289,13 @@ describe('OrganizationGeneralSettings', function() {
       TestStubs.routerContext([{organization}])
     );
 
-    wrapper.setState({loading: false});
     await tick();
     wrapper.update();
     expect(wrapper.find('Switch[name="allowJoinRequests"]').exists()).toBe(true);
   });
 
   it('does not render join request switch in experiment control', async function() {
-    const organization = TestStubs.Organization({
+    organization = TestStubs.Organization({
       experiments: {ImprovedInvitesExperiment: 'none'},
     });
     const wrapper = mountWithTheme(
@@ -318,7 +303,6 @@ describe('OrganizationGeneralSettings', function() {
       TestStubs.routerContext([{organization}])
     );
 
-    wrapper.setState({loading: false});
     await tick();
     wrapper.update();
     expect(wrapper.find('Switch[name="allowJoinRequests"]').exists()).toBe(false);
@@ -326,11 +310,13 @@ describe('OrganizationGeneralSettings', function() {
 
   it('does not render join request switch without experiments', async function() {
     const wrapper = mountWithTheme(
-      <OrganizationGeneralSettings params={{orgId: org.slug}} />,
-      TestStubs.routerContext()
+      <OrganizationGeneralSettings
+        params={{orgId: organization.slug}}
+        organization={organization}
+      />,
+      routerContext
     );
 
-    wrapper.setState({loading: false});
     await tick();
     wrapper.update();
     expect(wrapper.find('Switch[name="allowJoinRequests"]').exists()).toBe(false);
