@@ -6,7 +6,6 @@ exclude='''
 (
       \.venv/
     | node_modules/
-    | south_migrations/
     | migrations/
 )
 '''
