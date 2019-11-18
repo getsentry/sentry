@@ -148,6 +148,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
       // expect(wrapper.state('queryName')).toBe('');
 
       expect(mockUtils).not.toHaveBeenCalled();
+      expect(onQuerySave).not.toHaveBeenCalled();
     });
   });
 
