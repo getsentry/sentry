@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from 'react-emotion';
 import moment from 'moment-timezone';
+import memoize from 'lodash/memoize';
 
 import AsyncComponent from 'app/components/asyncComponent';
 
@@ -17,10 +18,60 @@ import Button from 'app/components/button';
 import theme from 'app/utils/theme';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
-import {SentryApp, SentryAppWebhookRequest} from 'app/types';
+import {SentryApp, SentryAppWebhookRequest, SentryAppSchemaIssueLink} from 'app/types';
 
 const ALL_EVENTS = t('All Events');
 const MAX_PER_PAGE = 10;
+
+const componentHasSelectUri = (issueLinkComponent: SentryAppSchemaIssueLink): boolean => {
+  const hasSelectUri = (fields: any[]): boolean =>
+    fields.some(field => field.type === 'select' && 'uri' in field);
+
+  const createHasSelectUri =
+    hasSelectUri(issueLinkComponent.create.required_fields) ||
+    hasSelectUri(issueLinkComponent.create.optional_fields || []);
+
+  const linkHasSelectUri =
+    hasSelectUri(issueLinkComponent.link.required_fields) ||
+    hasSelectUri(issueLinkComponent.link.optional_fields || []);
+
+  return createHasSelectUri || linkHasSelectUri;
+};
+
+const getEventTypes = memoize((app: SentryApp) => {
+  // TODO(nola): ideally this would be kept in sync with EXTENDED_VALID_EVENTS on the backend
+
+  let events = [ALL_EVENTS, 'installation.created', 'installation.deleted'];
+
+  if (app.events.includes('error')) {
+    events = [...events, 'error.created'];
+  }
+  if (app.events.includes('issue')) {
+    events = [
+      ...events,
+      'issue.created',
+      'issue.resolved',
+      'issue.ignored',
+      'issue.assigned',
+    ];
+  }
+  if (app.isAlertable) {
+    events = [...events, 'event_alert.triggered'];
+  }
+
+  const issueLinkComponent = (app.schema.elements || []).find(
+    element => element.type === 'issue-link'
+  );
+  if (issueLinkComponent) {
+    const issueLinkEvents = ['external_issue.created', 'external_issue.linked'];
+    if (componentHasSelectUri(issueLinkComponent as SentryAppSchemaIssueLink)) {
+      issueLinkEvents.push('select_options.requested');
+    }
+    events = [...events, ...issueLinkEvents];
+  }
+
+  return events;
+});
 
 const ResponseCode = ({code}: {code: number}) => {
   let priority = 'error';
@@ -60,45 +111,6 @@ type State = AsyncComponent['state'] & {
 
 export default class RequestLog extends AsyncComponent<Props, State> {
   shouldReload = true;
-
-  get eventTypes() {
-    // TODO(nola): ideally this would be kept in sync with EXTENDED_VALID_EVENTS on the backend
-
-    const {app} = this.props;
-    let events = [ALL_EVENTS, 'installation.created', 'installation.deleted'];
-
-    if (app.events.includes('error')) {
-      events = [...events, 'error.created'];
-    }
-    if (app.events.includes('issue')) {
-      events = [
-        ...events,
-        'issue.created',
-        'issue.resolved',
-        'issue.ignored',
-        'issue.assigned',
-      ];
-    }
-    if (app.isAlertable) {
-      events = [...events, 'event_alert.triggered'];
-    }
-
-    const issueLinkComponent: any = (app.schema.elements || []).find(
-      (element: any) => element.type === 'issue-link'
-    );
-    if (issueLinkComponent) {
-      const issueLinkEvents = ['external_issue.created', 'external_issue.linked'];
-      if (
-        (issueLinkComponent.create && issueLinkComponent.create.uri) ||
-        (issueLinkComponent.link && issueLinkComponent.link.uri)
-      ) {
-        issueLinkEvents.push('select_options.requested');
-      }
-      events = [...events, ...issueLinkEvents];
-    }
-
-    return events;
-  }
 
   get hasNextPage() {
     return (this.state.currentPage + 1) * MAX_PER_PAGE < this.state.requests.length;
@@ -192,7 +204,7 @@ export default class RequestLog extends AsyncComponent<Props, State> {
               menuWidth="220px"
               buttonProps={{style: {zIndex: theme.zIndex.header - 1}}}
             >
-              {this.eventTypes.map(type => (
+              {getEventTypes(app).map(type => (
                 <DropdownItem
                   key={type}
                   onSelect={this.onChangeEventType}

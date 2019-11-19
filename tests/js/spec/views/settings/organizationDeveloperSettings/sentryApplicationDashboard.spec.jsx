@@ -27,7 +27,14 @@ describe('Sentry Application Dashboard', function() {
       sentryApp = TestStubs.SentryApp({
         status: 'published',
         schema: {
-          elements: [{type: 'stacktrace-link', uri: '/test'}, {type: 'issue-link'}],
+          elements: [
+            {type: 'stacktrace-link', uri: '/test'},
+            {
+              type: 'issue-link',
+              create: {uri: '/test', required_fields: []},
+              link: {uri: '/test', required_fields: []},
+            },
+          ],
         },
       });
       request = TestStubs.SentryAppWebhookRequest();
