@@ -110,7 +110,7 @@ const StyledTextLink = styled(Link, {shouldForwardProp: isPropValid})<{
   ${p => (p.disabled ? 'pointer-events: none;' : '')}
 `;
 
-const StyledIconLink = styled(StyledTextLink)`
+const StyledIconLink = styled(StyledTextLink, {shouldForwardProp: isPropValid})`
   flex-grow: 1;
 `;
 
