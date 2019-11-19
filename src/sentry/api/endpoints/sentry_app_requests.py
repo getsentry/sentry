@@ -4,7 +4,10 @@ from rest_framework.response import Response
 
 from sentry.api.bases import SentryAppBaseEndpoint, SentryAppStatsPermission
 
-from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
+from sentry.utils.sentryappwebhookrequests import (
+    SentryAppWebhookRequestsBuffer,
+    EXTENDED_VALID_EVENTS,
+)
 
 from sentry.models import Organization
 
@@ -32,12 +35,25 @@ class SentryAppRequestsEndpoint(SentryAppBaseEndpoint):
         return formatted_request
 
     def get(self, request, sentry_app):
+        """
+        :qparam string eventType: Optionally specify a specific event type to filter requests
+        :qparam bool errorsOnly: If this is true, only return error/warning requests (300-599)
+        """
 
-        # TODO add optional query params for event type
-        # for now I'm just getting all requests for all events
+        event_type = request.GET.get("eventType")
+        errors_only = request.GET.get("errorsOnly")
+
+        kwargs = {}
+        # if somehow the event type is invalid, just ignore it and return all events
+        if event_type and event_type in EXTENDED_VALID_EVENTS:
+            kwargs["event"] = event_type
+        if errors_only:
+            kwargs["errors_only"] = True
 
         buffer = SentryAppWebhookRequestsBuffer(sentry_app)
 
-        formatted_requests = [self.format_request(req, sentry_app) for req in buffer.get_requests()]
+        formatted_requests = [
+            self.format_request(req, sentry_app) for req in buffer.get_requests(**kwargs)
+        ]
 
         return Response(formatted_requests)

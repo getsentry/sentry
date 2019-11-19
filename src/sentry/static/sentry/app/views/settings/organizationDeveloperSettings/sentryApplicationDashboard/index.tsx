@@ -1,53 +1,19 @@
 import React from 'react';
 import styled from 'react-emotion';
 
-import moment from 'moment-timezone';
-
 import AsyncView from 'app/views/asyncView';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import LineChart from 'app/components/charts/lineChart';
 
-import {
-  Panel,
-  PanelBody,
-  PanelHeader,
-  PanelFooter,
-  PanelItem,
-} from 'app/components/panels';
+import {Panel, PanelBody, PanelHeader, PanelFooter} from 'app/components/panels';
 import BarChart from 'app/components/charts/barChart';
-import DateTime from 'app/components/dateTime';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import Link from 'app/components/links/link';
-import Tag from 'app/views/settings/components/tag';
 
 import space from 'app/styles/space';
-import {SentryApp, SentryAppWebhookRequest} from 'app/types';
 import {t} from 'app/locale';
+import {SentryApp} from 'app/types';
 
-const ResponseCode = ({code}: {code: number}) => {
-  let priority = 'error';
-  if (code <= 399 && code >= 300) {
-    priority = 'warning';
-  } else if (code <= 299 && code >= 100) {
-    priority = 'success';
-  }
-
-  return (
-    <div>
-      <Tag priority={priority}>{code === 0 ? 'timeout' : code}</Tag>
-    </div>
-  );
-};
-
-const TimestampLink = ({date, link}: {date: moment.MomentInput; link?: string}) => {
-  return link ? (
-    <Link to={link}>
-      <DateTime date={date} />
-    </Link>
-  ) : (
-    <DateTime date={date} />
-  );
-};
+import RequestLog from './requestLog';
 
 type Props = AsyncView['props'];
 
@@ -58,7 +24,6 @@ type State = AsyncView['state'] & {
     installStats: [number, number][];
     uninstallStats: [number, number][];
   };
-  requests: SentryAppWebhookRequest[];
   interactions: {
     componentInteractions: {
       [key: string]: [number, number][];
@@ -71,16 +36,18 @@ type State = AsyncView['state'] & {
 export default class SentryApplicationDashboard extends AsyncView<Props, State> {
   getEndpoints(): Array<[string, string, any] | [string, string]> {
     const {appSlug} = this.props.params;
+
     // Default time range for now: 90 days ago to now
     const now = Math.floor(new Date().getTime() / 1000);
     const ninety_days_ago = 3600 * 24 * 90;
+
     return [
       [
         'stats',
         `/sentry-apps/${appSlug}/stats/`,
         {query: {since: now - ninety_days_ago, until: now}},
       ],
-      ['requests', `/sentry-apps/${appSlug}/requests/`],
+
       [
         'interactions',
         `/sentry-apps/${appSlug}/interaction/`,
@@ -98,7 +65,7 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
     const {totalUninstalls, totalInstalls} = this.state.stats;
     return (
       <React.Fragment>
-        <h5>{t('Installation Data')}</h5>
+        <h4>{t('Installation & Interaction Data')}</h4>
         <Row>
           <StatsSection>
             <StatsHeader>{t('Total installs')}</StatsHeader>
@@ -153,53 +120,6 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
           />
         </ChartWrapper>
       </Panel>
-    );
-  }
-
-  renderRequestLog() {
-    const {requests, app} = this.state;
-    return (
-      <React.Fragment>
-        <h5>{t('Request Log')}</h5>
-        <p>
-          {t(
-            'This log shows outgoing webhook requests for the following events: issue.assigned, issue.ignored, issue.resolved, issue.created, error.created'
-          )}
-        </p>
-        <Panel>
-          <PanelHeader>
-            <TableLayout>
-              <div>{t('Time')}</div>
-              <div>{t('Status Code')}</div>
-              {app.status !== 'internal' && <div>{t('Organization')}</div>}
-              <div>{t('Event Type')}</div>
-              <div>{t('Webhook URL')}</div>
-            </TableLayout>
-          </PanelHeader>
-
-          <PanelBody>
-            {requests.length > 0 ? (
-              requests.map((request, idx) => (
-                <PanelItem key={idx}>
-                  <TableLayout>
-                    <TimestampLink date={request.date} />
-                    <ResponseCode code={request.responseCode} />
-                    {app.status !== 'internal' && request.organization && (
-                      <div>{request.organization.name}</div>
-                    )}
-                    <div>{request.eventType}</div>
-                    <OverflowBox>{request.webhookUrl}</OverflowBox>
-                  </TableLayout>
-                </PanelItem>
-              ))
-            ) : (
-              <EmptyMessage icon="icon-circle-exclamation">
-                {t('No requests found.')}
-              </EmptyMessage>
-            )}
-          </PanelBody>
-        </Panel>
-      </React.Fragment>
     );
   }
 
@@ -268,11 +188,11 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
 
     return (
       <div>
-        {<SettingsPageHeader title={app.name} />}
+        <SettingsPageHeader title={`${t('Integration Dashboard')} - ${app.name}`} />
         {app.status === 'published' && this.renderInstallData()}
-        {this.renderRequestLog()}
         {app.status === 'published' && this.renderIntegrationViews()}
         {app.schema.elements && this.renderComponentInteractions()}
+        <RequestLog app={app} />
       </div>
     );
   }
@@ -323,18 +243,6 @@ const StatsHeader = styled('h6')`
   font-size: 12px;
   text-transform: uppercase;
   color: ${p => p.theme.gray3};
-`;
-
-const TableLayout = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 0.5fr 1fr 1fr 1fr;
-  grid-column-gap: ${space(1.5)};
-  width: 100%;
-  align-items: center;
-`;
-
-const OverflowBox = styled('div')`
-  word-break: break-word;
 `;
 
 const StyledFooter = styled('div')`

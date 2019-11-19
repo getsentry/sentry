@@ -127,7 +127,7 @@ describe('Sentry Application Dashboard', function() {
 
       expect(wrapper.find('PanelBody').exists('PanelItem')).toBeFalsy();
       expect(wrapper.find('EmptyMessage').text()).toEqual(
-        expect.stringContaining('No requests found.')
+        expect.stringContaining('No requests found in the last 30 days.')
       );
     });
 
@@ -240,7 +240,7 @@ describe('Sentry Application Dashboard', function() {
 
       expect(wrapper.find('PanelBody').exists('PanelItem')).toBeFalsy();
       expect(wrapper.find('EmptyMessage').text()).toEqual(
-        expect.stringContaining('No requests found.')
+        expect.stringContaining('No requests found in the last 30 days.')
       );
     });
 
