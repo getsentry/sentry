@@ -14,19 +14,40 @@ import SentryAppDetailsModal from 'app/components/modals/sentryAppDetailsModal';
 import {installSentryApp} from 'app/actionCreators/sentryAppInstallations';
 import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
 import {recordInteraction} from 'app/utils/recordSentryAppInteraction';
+import {
+  LightWeightOrganization,
+  OrganizationDetailed,
+  SentryApp,
+  SentryAppInstallation,
+} from 'app/types';
 
-export default class SentryAppExternalInstallation extends AsyncView {
+type Props = AsyncView['props'];
+
+type State = AsyncView['state'] & {
+  selectedOrgSlug: string | null;
+  organization: OrganizationDetailed | null;
+  organizations: LightWeightOrganization[];
+  reloading: boolean;
+  sentryApp: SentryApp;
+};
+
+export default class SentryAppExternalInstallation extends AsyncView<Props, State> {
   componentDidMount() {
     recordInteraction(this.sentryAppSlug, 'sentry_app_viewed');
   }
 
-  state = {
-    selectedOrgSlug: null,
-    organization: null,
-    reloading: false,
-  };
+  getDefaultState() {
+    const state = super.getDefaultState();
+    return {
+      ...state,
+      selectedOrgSlug: null,
+      organization: null,
+      organizations: [],
+      reloading: false,
+    };
+  }
 
-  getEndpoints() {
+  getEndpoints(): [string, string][] {
     return [
       ['organizations', '/organizations/'],
       ['sentryApp', `/sentry-apps/${this.sentryAppSlug}/`],
@@ -65,7 +86,7 @@ export default class SentryAppExternalInstallation extends AsyncView {
     return isInstalled || reloading || this.isSentryAppUnavailableForOrg;
   }
 
-  hasAccess = org => org.access.includes('org:integrations');
+  hasAccess = (org: LightWeightOrganization) => org.access.includes('org:integrations');
 
   onClose = () => {
     //if we came from somewhere, go back there. Otherwise, back to the integrations page
@@ -74,8 +95,11 @@ export default class SentryAppExternalInstallation extends AsyncView {
     window.location.assign(newUrl);
   };
 
-  onInstall = async () => {
+  onInstall = async (): Promise<any | undefined> => {
     const {organization, sentryApp} = this.state;
+    if (!organization || !sentryApp) {
+      return undefined;
+    }
     const install = await installSentryApp(this.api, organization.slug, sentryApp);
     if (sentryApp.redirectUrl) {
       const queryParams = {
@@ -89,11 +113,14 @@ export default class SentryAppExternalInstallation extends AsyncView {
     return this.onClose();
   };
 
-  onSelectOrg = async orgSlug => {
+  onSelectOrg = async (orgSlug: string) => {
     this.setState({selectedOrgSlug: orgSlug, reloading: true});
 
     try {
-      const [organization, installations] = await Promise.all([
+      const [organization, installations]: [
+        OrganizationDetailed,
+        SentryAppInstallation[]
+      ] = await Promise.all([
         this.api.requestPromise(`/organizations/${orgSlug}/`),
         this.api.requestPromise(`/organizations/${orgSlug}/sentry-app-installations/`),
       ]);
@@ -157,7 +184,7 @@ export default class SentryAppExternalInstallation extends AsyncView {
         </Alert>
       );
     }
-    if (isInstalled) {
+    if (isInstalled && organization) {
       return (
         <Alert type="error" icon="icon-circle-exclamation">
           {tct('Integration [sentryAppName] already installed for [organization]', {
