@@ -214,9 +214,9 @@ describe('GlobalSelectionHeader', function() {
     expect(GlobalSelectionStore.get()).toEqual({
       datetime: {
         period: '14d',
-        utc: null,
-        start: null,
-        end: null,
+        utc: undefined,
+        start: undefined,
+        end: undefined,
       },
       environments: ['staging'],
       projects: [2, 3],
@@ -243,9 +243,9 @@ describe('GlobalSelectionHeader', function() {
     expect(GlobalSelectionStore.get()).toEqual({
       datetime: {
         period: '14d',
-        utc: null,
-        start: null,
-        end: null,
+        utc: undefined,
+        start: undefined,
+        end: undefined,
       },
       environments: [],
       projects: [2],
@@ -304,9 +304,9 @@ describe('GlobalSelectionHeader', function() {
     expect(GlobalSelectionStore.get()).toEqual({
       datetime: {
         period: '14d',
-        utc: null,
-        start: null,
-        end: null,
+        utc: undefined,
+        start: undefined,
+        end: undefined,
       },
       environments: ['prod'],
       projects: [],
