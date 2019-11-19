@@ -130,8 +130,8 @@ class EventEntries extends React.Component {
         return (
           <Component
             key={'entry-' + entryIdx}
-            projectId={project.slug}
-            orgId={organization.slug}
+            projectId={project ? project.slug : null}
+            orgId={organization ? organization.slug : null}
             event={event}
             type={entry.type}
             data={entry.data}

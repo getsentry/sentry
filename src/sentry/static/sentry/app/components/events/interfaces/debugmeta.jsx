@@ -113,13 +113,16 @@ function combineStatus(debugStatus, unwindStatus) {
 class DebugImage extends React.PureComponent {
   static propTypes = {
     image: PropTypes.object.isRequired,
-    orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
+    orgId: PropTypes.string,
+    projectId: PropTypes.string,
     showDetails: PropTypes.bool.isRequired,
   };
 
   getSettingsLink(image) {
     const {orgId, projectId} = this.props;
+    if (!orgId || !projectId || !image.debug_id) {
+      return null;
+    }
 
     return `/settings/${orgId}/projects/${projectId}/debug-symbols/?query=${
       image.debug_id
@@ -263,15 +266,16 @@ class DebugImage extends React.PureComponent {
           )}
         </ImageInfoGroup>
 
-        {/* enumerate errors */}
-
         <Access access={['project:releases']}>
           {({hasAccess}) => {
             if (!hasAccess) {
-              return <div />;
+              return null;
             }
 
             const settingsUrl = this.getSettingsLink(image);
+            if (!settingsUrl) {
+              return null;
+            }
 
             return (
               <ImageActions>
@@ -291,8 +295,8 @@ class DebugMetaInterface extends React.PureComponent {
   static propTypes = {
     event: SentryTypes.Event.isRequired,
     data: PropTypes.object.isRequired,
-    orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
+    orgId: PropTypes.string,
+    projectId: PropTypes.string,
   };
 
   constructor(props) {
