@@ -11,3 +11,9 @@ export const QueryLink = styled(Link)`
     background-color: ${p => p.theme.offWhite};
   }
 `;
+
+export const SectionHeading = styled('h4')`
+  color: ${p => p.theme.gray3};
+  font-size: ${p => p.theme.fontSizeMedium};
+  margin: ${space(1)} 0;
+`;

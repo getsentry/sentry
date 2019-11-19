@@ -25,10 +25,8 @@ import EventView from '../eventView';
 import {hasAggregateField, EventQuery, generateTitle} from '../utils';
 import Pagination from './pagination';
 import LineGraph from './lineGraph';
-import RelatedEvents from '../relatedEvents';
 import TagsTable from '../tagsTable';
-import EventInterfaces from '../eventInterfaces';
-import LinkedIssuePreview from '../linkedIssuePreview';
+import EventInterfaces from './eventInterfaces';
 import DiscoverBreadcrumb from '../breadcrumb';
 
 const slugValidator = function(
@@ -128,9 +126,9 @@ class EventDetailsContent extends AsyncComponent<Props, State & AsyncComponent['
               fixed: 'events chart',
             })}
           <EventInterfaces
+            organization={organization}
             event={event}
             projectId={this.projectId}
-            orgId={organization.slug}
           />
         </MainBox>
         <SidebarBox>
