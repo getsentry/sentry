@@ -136,23 +136,13 @@ class DebugImage extends React.PureComponent {
       return null;
     }
 
-    let iconElement = null;
-    switch (status) {
-      case 'unused':
-        iconElement = <ImageIcon type="info" src="icon-circle-info" />;
-        break;
-      case 'found':
-        iconElement = <ImageIcon type="success" src="icon-circle-check" />;
-        break;
-      default:
-        iconElement = <ImageIcon type="error" src="icon-circle-close" />;
-        break;
-    }
-
     return (
       <SymbolicationStatus>
-        <ImageProp>{title}</ImageProp>: {text}
-        <Tooltip title={getImageStatusDetails(status)}>{iconElement}</Tooltip>
+        <Tooltip title={getImageStatusDetails(status)}>
+          <span>
+            <ImageProp>{title}</ImageProp>: {text}
+          </span>
+        </Tooltip>
       </SymbolicationStatus>
     );
   }
