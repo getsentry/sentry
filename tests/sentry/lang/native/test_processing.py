@@ -32,7 +32,13 @@ def test_merge_symbolicator_image_basic():
     _merge_image(raw_image, complete_image, sdk_info, errors.append)
 
     assert not errors
-    assert raw_image == {"instruction_addr": 0xFEEBEE, "other": "foo", "other2": "bar"}
+    assert raw_image == {
+        "debug_status": "found",
+        "unwind_status": "found",
+        "instruction_addr": 0xFEEBEE,
+        "other": "foo",
+        "other2": "bar",
+    }
 
 
 def test_merge_symbolicator_image_basic_success():
@@ -50,6 +56,8 @@ def test_merge_symbolicator_image_basic_success():
 
     assert not errors
     assert raw_image == {
+        "debug_status": "found",
+        "unwind_status": "found",
         "instruction_addr": 0xFEEBEE,
         "other": "foo",
         "other2": "bar",
@@ -66,7 +74,11 @@ def test_merge_symbolicator_image_remove_unknown_arch():
     _merge_image(raw_image, complete_image, sdk_info, errors.append)
 
     assert not errors
-    assert raw_image == {"instruction_addr": 0xFEEBEE}
+    assert raw_image == {
+        "debug_status": "found",
+        "unwind_status": "found",
+        "instruction_addr": 0xFEEBEE,
+    }
 
 
 @pytest.mark.parametrize(
@@ -98,6 +110,8 @@ def test_merge_symbolicator_image_errors(code_file, error):
     assert e.type == error
 
     assert raw_image == {
+        "debug_status": "found",
+        "unwind_status": "missing",
         "instruction_addr": 0xFEEBEE,
         "other": "foo",
         "other2": "bar",
