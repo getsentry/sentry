@@ -41,9 +41,9 @@ class DiscoverBreadcrumb extends React.Component<Props> {
       );
 
       crumbs.push(
-        <StyledBreadcrumbLink to={target} key="eventview-link">
+        <BreadcrumbItem to={target} key="eventview-link">
           {eventView.name}
-        </StyledBreadcrumbLink>
+        </BreadcrumbItem>
       );
     }
 
@@ -54,7 +54,7 @@ class DiscoverBreadcrumb extends React.Component<Props> {
         </span>
       );
 
-      crumbs.push(<span key="event-name">{t('Event Detail')}</span>);
+      crumbs.push(<BreadcrumbItem key="event-name">{t('Event Detail')}</BreadcrumbItem>);
     }
 
     return crumbs;
@@ -74,7 +74,7 @@ class DiscoverBreadcrumb extends React.Component<Props> {
 
     return (
       <BreadcrumbList>
-        <StyledBreadcrumbLink to={target}>{t('Discover')}</StyledBreadcrumbLink>
+        <BreadcrumbItem to={target}>{t('Discover')}</BreadcrumbItem>
         {this.getCrumbs()}
         <BetaTag />
       </BreadcrumbList>
@@ -82,19 +82,25 @@ class DiscoverBreadcrumb extends React.Component<Props> {
   }
 }
 
-const BreadcrumbList = styled('div')`
-  color: ${theme.gray4};
+const BreadcrumbList = styled('span')`
+  display: flex;
+  align-items: center;
   height: 40px;
 `;
 
-const StyledBreadcrumbLink = styled(Link)`
+const BreadcrumbItem = styled(Link)`
   color: ${theme.gray2};
+
+  &:nth-last-child(2) {
+    color: ${theme.gray4};
+  }
 `;
 
 const StyledIcon = styled(InlineSvg)`
+  color: inherit;
   height: 12px;
   width: 12px;
-  margin: 0 ${space(1)};
+  margin: 0 ${space(1)} ${space(0.5)} ${space(1)};
 `;
 
 export default DiscoverBreadcrumb;

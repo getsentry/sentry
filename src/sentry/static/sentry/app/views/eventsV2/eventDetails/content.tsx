@@ -5,6 +5,7 @@ import styled from 'react-emotion';
 import PropTypes from 'prop-types';
 
 import space from 'app/styles/space';
+import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {Client} from 'app/api';
 import withApi from 'app/utils/withApi';
@@ -106,12 +107,14 @@ class EventDetailsContent extends AsyncComponent<Props, State & AsyncComponent['
     const isGroupedView = hasAggregateField(eventView);
 
     return (
-      <ColumnGrid>
+      <ContentGrid>
         <HeaderBox>
           <EventHeader event={event} />
-          {isGroupedView && (
-            <Pagination event={event} organization={organization} eventView={eventView} />
-          )}
+        </HeaderBox>
+        {isGroupedView && (
+          <Pagination event={event} organization={organization} eventView={eventView} />
+        )}
+        <MainBox>
           {isGroupedView &&
             getDynamicText({
               value: (
@@ -124,15 +127,19 @@ class EventDetailsContent extends AsyncComponent<Props, State & AsyncComponent['
               ),
               fixed: 'events chart',
             })}
-        </HeaderBox>
-        <ContentColumn>
           <EventInterfaces
             event={event}
             projectId={this.projectId}
             orgId={organization.slug}
           />
-        </ContentColumn>
-        <SidebarColumn>
+        </MainBox>
+        <SidebarBox>
+          <EventMetadata
+            event={event}
+            organization={organization}
+            projectId={this.projectId}
+          />
+          <TagsTable tags={event.tags} />
           {event.groupID && (
             <LinkedIssuePreview groupId={event.groupID} eventId={event.eventID} />
           )}
@@ -144,16 +151,8 @@ class EventDetailsContent extends AsyncComponent<Props, State & AsyncComponent['
               eventView={eventView}
             />
           )}
-          <EventMetadata
-            event={event}
-            organization={organization}
-            projectId={this.projectId}
-          />
-          <SidebarBlock>
-            <TagsTable tags={event.tags} />
-          </SidebarBlock>
-        </SidebarColumn>
-      </ColumnGrid>
+        </SidebarBox>
+      </ContentGrid>
     );
   }
 
@@ -270,8 +269,11 @@ const EventMetadata = (props: {
   }/json/`;
 
   return (
-    <SidebarBlock withSeparator>
-      <MetadataContainer data-test-id="event-id">ID {event.eventID}</MetadataContainer>
+    <StyledMetadata>
+      <MetadataHeading>
+        <span>Event ID</span>
+      </MetadataHeading>
+      <MetadataContainer data-test-id="event-id">{event.eventID}</MetadataContainer>
       <MetadataContainer>
         <DateTime
           date={getDynamicText({
@@ -279,47 +281,43 @@ const EventMetadata = (props: {
             fixed: 'Dummy timestamp',
           })}
         />
-        <ExternalLink href={eventJsonUrl} className="json-link">
-          JSON (<FileSize bytes={event.size} />)
-        </ExternalLink>
       </MetadataContainer>
-    </SidebarBlock>
+      <MetadataJSON href={eventJsonUrl} className="json-link">
+        {t('Preview JSON')} (<FileSize bytes={event.size} />)
+      </MetadataJSON>
+    </StyledMetadata>
   );
 };
 
-const ColumnGrid = styled('div')`
+const MetadataJSON = styled(ExternalLink)`
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const MetadataHeading = styled('h6')`
+  color: ${p => p.theme.gray3};
+  margin: ${space(1)} 0;
+`;
+
+const StyledMetadata = styled('div')`
+  margin-bottom: ${space(4)};
+`;
+
+const ContentGrid = styled('div')`
   display: grid;
-
-  grid-template-columns: 70% 28%;
-  grid-template-rows: auto;
-  grid-column-gap: 2%;
-
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-columns: 60% 38%;
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    display: flex;
-    flex-direction: column;
-  }
+  grid-gap: ${space(2)};
+  grid-template-columns: 72% auto;
 `;
 
 const HeaderBox = styled('div')`
-  grid-column: 1 / 3;
-  margin-bottom: ${space(3)};
-`;
-const ContentColumn = styled('div')`
-  grid-column: 1 / 2;
+  color: inherit;
 `;
 
-const SidebarColumn = styled('div')`
-  grid-column: 2 / 3;
+const MainBox = styled('div')`
+  grid-column: 1/2;
 `;
 
-const SidebarBlock = styled('div')<{withSeparator?: boolean; theme?: any}>`
-  margin: 0 0 ${space(2)} 0;
-  padding: 0 0 ${space(2)} 0;
-  ${p => (p.withSeparator ? `border-bottom: 1px solid ${p.theme.borderLight};` : '')}
+const SidebarBox = styled('div')`
+  grid-column: 2/3;
 `;
 
 export default withApi(EventDetailsContent);
