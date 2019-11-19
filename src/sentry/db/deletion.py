@@ -17,7 +17,7 @@ class BulkDeleteQuery(object):
         self.order_by = order_by
         self.using = router.db_for_write(model)
 
-    def execute_postgres(self, chunk_size=10000):
+    def execute(self, chunk_size=10000):
         quote_name = connections[self.using].ops.quote_name
 
         where = []
@@ -73,14 +73,7 @@ class BulkDeleteQuery(object):
             cursor.execute(query)
             results = cursor.rowcount > 0
 
-    def execute(self, chunk_size=10000):
-        self.execute_postgres(chunk_size)
-
-    def iterator(self, chunk_size=100):
-        for chunk in self.iterator_postgres(chunk_size):
-            yield chunk
-
-    def iterator_postgres(self, chunk_size, batch_size=100000):
+    def iterator(self, chunk_size=100, batch_size=100000):
         assert self.days is not None
         assert self.dtfield is not None and self.dtfield == self.order_by
 
