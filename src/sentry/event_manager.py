@@ -77,7 +77,6 @@ from sentry.utils.data_filters import (
     FilterStatKeys,
 )
 from sentry.utils.dates import to_timestamp
-from sentry.utils.db import is_postgres
 from sentry.utils.safe import safe_execute, trim, get_path, setdefault_path
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.culprit import generate_culprit
@@ -187,19 +186,14 @@ class ScoreClause(Func):
         return self.group.get_score() if self.group else 0
 
     def as_sql(self, compiler, connection, function=None, template=None):
-        db = getattr(connection, "alias", "default")
         has_values = self.last_seen is not None and self.times_seen is not None
-        if is_postgres(db):
-            if has_values:
-                sql = "log(times_seen + %d) * 600 + %d" % (
-                    self.times_seen,
-                    to_timestamp(self.last_seen),
-                )
-            else:
-                sql = "log(times_seen) * 600 + last_seen::abstime::int"
+        if has_values:
+            sql = "log(times_seen + %d) * 600 + %d" % (
+                self.times_seen,
+                to_timestamp(self.last_seen),
+            )
         else:
-            # XXX: if we cant do it atomically let's do it the best we can
-            sql = int(self)
+            sql = "log(times_seen) * 600 + last_seen::abstime::int"
 
         return (sql, [])
 

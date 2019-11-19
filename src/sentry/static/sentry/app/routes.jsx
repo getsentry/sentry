@@ -587,7 +587,7 @@ function routes() {
         <Route component={OrganizationMembersWrapper}>
           <IndexRoute
             componentPromise={() =>
-              import(/* webpackChunkName: "OrganizationMembers" */ 'app/views/settings/organizationMembers')
+              import(/* webpackChunkName: "OrganizationMembersList" */ 'app/views/settings/organizationMembers/organizationMembersList')
             }
             component={errorHandler(LazyLoad)}
           />
