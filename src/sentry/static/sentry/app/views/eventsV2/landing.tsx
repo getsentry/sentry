@@ -257,7 +257,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
 
 const StyledInput = styled('span')`
   font-size: ${p => p.theme.headerFontSize};
-  color: ${theme.gray4};
+  color: ${p => p.theme.gray4};
 `;
 
 const StyledActions = styled('div')`

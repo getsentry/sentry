@@ -5,7 +5,6 @@ import styled from 'react-emotion';
 import PropTypes from 'prop-types';
 
 import space from 'app/styles/space';
-import theme from 'app/utils/theme';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {Client} from 'app/api';
@@ -307,7 +306,7 @@ const StyledMetadata = styled('div')`
 `;
 
 const ContentGrid = styled('div')`
-  @media (min-width: ${theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
     display: grid;
     grid-gap: ${space(2)};
     grid-template-columns: 72% auto;

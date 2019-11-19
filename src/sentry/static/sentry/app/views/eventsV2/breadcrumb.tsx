@@ -24,14 +24,25 @@ class DiscoverBreadcrumb extends React.Component<Props> {
   };
 
   getCrumbs(): React.ReactNode {
-    const {eventView, event, organization} = this.props;
+    const {eventView, event, organization, location} = this.props;
     const crumbs: React.ReactNode[] = [];
 
     if (eventView && eventView.isValid()) {
-      const target = {
+      const eventTarget = {
         pathname: `/organizations/${organization.slug}/eventsv2/`,
         query: eventView.generateQueryStringObject(),
       };
+
+      const discoverTarget = {
+        pathname: `/organizations/${organization.slug}/eventsv2/`,
+        query: {
+          ...location.query,
+          ...eventView.generateBlankQueryStringObject(),
+          ...eventView.getGlobalSelection(),
+        },
+      };
+
+      crumbs.push(<BreadcrumbItem to={discoverTarget}>{t('Discover')}</BreadcrumbItem>);
 
       crumbs.push(
         <span key="eventview-sep">
@@ -40,7 +51,7 @@ class DiscoverBreadcrumb extends React.Component<Props> {
       );
 
       crumbs.push(
-        <BreadcrumbItem to={target} key="eventview-link">
+        <BreadcrumbItem to={eventTarget} key="eventview-link">
           {eventView.name}
         </BreadcrumbItem>
       );
@@ -60,26 +71,25 @@ class DiscoverBreadcrumb extends React.Component<Props> {
   }
 
   render() {
-    const {organization, location, eventView} = this.props;
-
-    const target = {
-      pathname: `/organizations/${organization.slug}/eventsv2/`,
-      query: {
-        ...location.query,
-        ...eventView.generateBlankQueryStringObject(),
-        ...eventView.getGlobalSelection(),
-      },
-    };
+    const {eventView} = this.props;
 
     return (
       <BreadcrumbList>
-        <BreadcrumbItem to={target}>{t('Discover')}</BreadcrumbItem>
-        {this.getCrumbs()}
+        {eventView && eventView.isValid() ? (
+          this.getCrumbs()
+        ) : (
+          <StyledHeader>{t('Discover')}</StyledHeader>
+        )}
         <BetaTag />
       </BreadcrumbList>
     );
   }
 }
+
+const StyledHeader = styled('span')`
+  font-size: ${p => p.theme.headerFontSize};
+  color: ${p => p.theme.gray4};
+`;
 
 const BreadcrumbList = styled('span')`
   display: flex;
