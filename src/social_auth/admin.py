@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from django.contrib import admin
 
 from social_auth.models import UserSocialAuth
-from social_auth.django_compat import get_all_field_names
 
 _User = UserSocialAuth.user_model()
 
@@ -15,7 +14,7 @@ else:
     username_field = None
 
 fieldnames = ("first_name", "last_name", "email") + (username_field,)
-all_names = get_all_field_names(_User)
+all_names = _User._meta.get_all_field_names()
 user_search_fields = ["user__" + name for name in fieldnames if name in all_names]
 
 
