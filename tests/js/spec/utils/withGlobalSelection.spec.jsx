@@ -30,8 +30,8 @@ describe('withGlobalSelection HoC', function() {
 
     selection = wrapper.find('MyComponent').prop('selection');
     expect(selection.datetime.period).toEqual('14d');
-    expect(selection.datetime.start).toEqual(undefined);
-    expect(selection.datetime.end).toEqual(undefined);
+    expect(selection.datetime.start).toEqual(null);
+    expect(selection.datetime.end).toEqual(null);
 
     GlobalSelectionStore.updateDateTime({
       period: '7d',

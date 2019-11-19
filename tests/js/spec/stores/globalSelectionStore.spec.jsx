@@ -26,7 +26,7 @@ describe('GlobalSelectionStore', function() {
     expect(GlobalSelectionStore.get()).toEqual({
       projects: [],
       environments: [],
-      datetime: {period: '14d', start: undefined, end: undefined, utc: undefined},
+      datetime: {period: '14d', start: null, end: null, utc: null},
     });
   });
 
@@ -40,9 +40,9 @@ describe('GlobalSelectionStore', function() {
   it('updateDateTime()', async function() {
     expect(GlobalSelectionStore.get().datetime).toEqual({
       period: '14d',
-      start: undefined,
-      end: undefined,
-      utc: undefined,
+      start: null,
+      end: null,
+      utc: null,
     });
     updateDateTime({period: '2h', start: null, end: null});
     await tick();
