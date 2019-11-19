@@ -24,6 +24,7 @@ const OTHER_SECTIONS = {
 
 type ActiveTabProps = {
   projectId: string;
+  orgId: string;
   event: Event;
   activeTab: string;
 };
@@ -33,7 +34,7 @@ type ActiveTabProps = {
  * Some but not all interface elements require a projectId.
  */
 const ActiveTab = (props: ActiveTabProps) => {
-  const {projectId, event, activeTab} = props;
+  const {projectId, orgId, event, activeTab} = props;
   if (!activeTab) {
     return null;
   }
@@ -43,6 +44,7 @@ const ActiveTab = (props: ActiveTabProps) => {
     return (
       <Component
         projectId={projectId}
+        orgId={orgId}
         event={event}
         type={entry.type}
         data={entry.data}
@@ -78,6 +80,7 @@ ActiveTab.propTypes = {
 type EventInterfacesProps = {
   event: Event;
   projectId: string;
+  orgId: string;
 };
 type EventInterfacesState = {
   activeTab: string;
@@ -102,7 +105,7 @@ class EventInterfaces extends React.Component<
   handleTabChange = tab => this.setState({activeTab: tab});
 
   render() {
-    const {event, projectId} = this.props;
+    const {event, projectId, orgId} = this.props;
     const {activeTab} = this.state;
 
     return (
@@ -153,7 +156,12 @@ class EventInterfaces extends React.Component<
           })}
         </NavTabs>
         <ErrorBoundary message={t('Could not render event details')}>
-          <ActiveTab event={event} activeTab={activeTab} projectId={projectId} />
+          <ActiveTab
+            event={event}
+            activeTab={activeTab}
+            projectId={projectId}
+            orgId={orgId}
+          />
         </ErrorBoundary>
       </React.Fragment>
     );

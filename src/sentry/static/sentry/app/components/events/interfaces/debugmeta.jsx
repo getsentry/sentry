@@ -415,7 +415,7 @@ class DebugMetaInterface extends React.PureComponent {
 
         <SearchBox
           onChange={this.handleChangeFilter}
-          placeholder={t('Search loaded images...')}
+          placeholder={t('Search loaded images\u2026')}
         />
       </Toolbar>
     );
