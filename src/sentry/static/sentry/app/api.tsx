@@ -3,7 +3,6 @@ import isNil from 'lodash/isNil';
 import get from 'lodash/get';
 import $ from 'jquery';
 import * as Sentry from '@sentry/browser';
-import {TransactionActivity} from '@sentry/integrations';
 
 import {
   PROJECT_MOVED,
@@ -268,14 +267,6 @@ export class Client {
       }
     }
 
-    const xhrActivity = TransactionActivity.pushActivity('xhr', {
-      data: {
-        request_data: data,
-      },
-      op: 'http',
-      description: `${method} ${fullUrl}`,
-    });
-
     const errorObject = new Error();
 
     this.activeRequests[id] = new Request(
@@ -343,8 +334,6 @@ export class Client {
           );
         },
         complete: (jqXHR: JQueryXHR, textStatus: string) => {
-          TransactionActivity.popActivity(xhrActivity);
-
           return this.wrapCallback<[JQueryXHR, string]>(id, options.complete, true)(
             jqXHR,
             textStatus
