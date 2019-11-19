@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from django.conf.urls import patterns, url
+from django.conf.urls import url
 from django.test import override_settings
 from rest_framework.permissions import AllowAny
 
@@ -16,7 +16,7 @@ class RateLimitedEndpoint(Endpoint):
         raise RateLimitExceeded()
 
 
-urlpatterns = patterns("", url(r"^/$", RateLimitedEndpoint.as_view(), name="sentry-test"))
+urlpatterns = [url(r"^/$", RateLimitedEndpoint.as_view(), name="sentry-test")]
 
 
 @override_settings(ROOT_URLCONF="tests.sentry.api.test_handlers")

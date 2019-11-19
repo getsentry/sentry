@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from copy import copy
 from django.contrib import admin
-from django.conf.urls import include, patterns, url
+from django.conf.urls import include, url
 
 from sentry.auth.superuser import is_active_superuser
 
@@ -33,4 +33,4 @@ def make_site():
 
 site = make_site()
 
-urlpatterns = patterns("", url(r"^admin/", include(site.urls)))
+urlpatterns = [url(r"^admin/", include(site.urls))]

@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from django.conf.urls import patterns, url
+from django.conf.urls import url
 from django.views.generic import TemplateView
 
 import sentry.web.frontend.debug.mail
@@ -62,8 +62,7 @@ from sentry.web.frontend.debug.debug_oauth_authorize import (
     DebugOAuthAuthorizeErrorView,
 )
 
-urlpatterns = patterns(
-    "",
+urlpatterns = [
     url(r"^debug/mail/alert/$", sentry.web.frontend.debug.mail.alert),
     url(r"^debug/mail/note/$", DebugNoteEmailView.as_view()),
     url(r"^debug/mail/new-release/$", DebugNewReleaseEmailView.as_view()),
@@ -118,4 +117,4 @@ urlpatterns = patterns(
     url(r"^debug/sudo/$", TemplateView.as_view(template_name="sentry/account/sudo.html")),
     url(r"^debug/oauth/authorize/$", DebugOAuthAuthorizeView.as_view()),
     url(r"^debug/oauth/authorize/error/$", DebugOAuthAuthorizeErrorView.as_view()),
-)
+]

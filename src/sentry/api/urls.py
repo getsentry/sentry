@@ -1,6 +1,6 @@
 from __future__ import absolute_import, print_function
 
-from django.conf.urls import include, patterns, url
+from django.conf.urls import include, url
 
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
 from .endpoints.api_application_details import ApiApplicationDetailsEndpoint
@@ -339,8 +339,7 @@ GROUP_URLS = [
     url(r"^(?P<issue_id>[^\/]+)/plugins?/", include("sentry.plugins.base.group_api_urls")),
 ]
 
-urlpatterns = patterns(
-    "",
+urlpatterns = [
     # Relay
     url(
         r"^relays/",
@@ -1555,4 +1554,4 @@ urlpatterns = patterns(
     url(r"^$", IndexEndpoint.as_view(), name="sentry-api-index"),
     url(r"^", CatchallEndpoint.as_view(), name="sentry-api-catchall"),
     # url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework'))
-)
+]
