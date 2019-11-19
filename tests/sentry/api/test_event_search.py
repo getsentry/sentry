@@ -1016,13 +1016,15 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["groupby"] == ["title"]
 
     def test_field_alias_duration_expansion(self):
-        fields = ["avg(transaction.duration)", "p95", "p75"]
+        fields = ["avg(transaction.duration)", "apdex", "p75", "p95", "p99"]
         result = resolve_field_list(fields, {})
         assert result["selected_columns"] == []
         assert result["aggregations"] == [
             ["avg", "transaction.duration", "avg_transaction_duration"],
-            ["quantileTiming(0.95)(duration)", "", "p95"],
+            ["apdex(duration, 300)", "", "apdex"],
             ["quantileTiming(0.75)(duration)", "", "p75"],
+            ["quantileTiming(0.95)(duration)", "", "p95"],
+            ["quantileTiming(0.99)(duration)", "", "p99"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["argMax", ["project_id", "timestamp"], "projectid"],
         ]
