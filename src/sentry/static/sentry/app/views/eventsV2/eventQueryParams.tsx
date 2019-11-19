@@ -1,6 +1,7 @@
 export type ColumnValueType =
   | '*' // Matches to everything
   | 'string'
+  | 'integer'
   | 'number'
   | 'duration'
   | 'timestamp'
