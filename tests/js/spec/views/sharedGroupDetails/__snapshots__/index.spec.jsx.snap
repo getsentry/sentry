@@ -853,6 +853,7 @@ exports[`SharedGroupDetails renders 1`] = `
                                 }
                                 isShare={true}
                                 key="entry-0"
+                                orgId="org-slug"
                                 projectId="project-slug"
                                 type="message"
                               >

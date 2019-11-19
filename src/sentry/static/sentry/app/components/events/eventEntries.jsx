@@ -109,7 +109,7 @@ class EventEntries extends React.Component {
   }
 
   renderEntries() {
-    const {event, project, isShare} = this.props;
+    const {event, project, organization, isShare} = this.props;
 
     const entries = event && event.entries;
 
@@ -131,6 +131,7 @@ class EventEntries extends React.Component {
           <Component
             key={'entry-' + entryIdx}
             projectId={project.slug}
+            orgId={organization.slug}
             event={event}
             type={entry.type}
             data={entry.data}
