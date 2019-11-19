@@ -284,7 +284,7 @@ describe('OrganizationMembers', function() {
 
     expect(resendMemberInvite).not.toHaveBeenCalled();
 
-    wrapper.find('button[aria-label="Resend invite"]').simulate('click');
+    wrapper.find('StyledButton[aria-label="Resend invite"]').simulate('click');
 
     await tick();
     expect(resendMemberInvite).toHaveBeenCalled();

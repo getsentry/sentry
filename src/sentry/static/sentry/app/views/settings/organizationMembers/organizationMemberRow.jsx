@@ -115,7 +115,7 @@ export default class OrganizationMemberRow extends React.PureComponent {
               {expired ? t('Expired Invite') : tct('Invited [roleName]', {roleName})}
             </InvitedRole>
           ) : (
-            tct('[roleName]', {roleName})
+            t(roleName)
           )}
         </div>
 
@@ -123,9 +123,9 @@ export default class OrganizationMemberRow extends React.PureComponent {
           {showResendButton ? (
             <React.Fragment>
               {isInviting && (
-                <div style={{padding: '4px 0 3px'}}>
+                <LoadingContainer>
                   <LoadingIndicator mini />
-                </div>
+                </LoadingContainer>
               )}
               {isInviteSuccessful && <span>Sent!</span>}
               {!isInviting && !isInviteSuccessful && (
@@ -261,6 +261,11 @@ const Email = styled('div')`
 `;
 
 const InvitedRole = styled(Section)``;
+const LoadingContainer = styled('div')`
+  margin-top: 0;
+  margin-bottom: ${space(1.5)};
+`;
+
 const AuthStatus = styled(Section)``;
 const AuthIcon = styled(p => (
   <InlineSvg {...p} src={p.has2fa ? 'icon-circle-check' : 'icon-circle-exclamation'} />

@@ -42,6 +42,11 @@ describe('OrganizationMemberRow', function() {
     onLeave: () => {},
   };
 
+  const resendButton = 'StyledButton[aria-label="Resend invite"]';
+  const resendSsoButton = 'StyledButton[aria-label="Resend SSO link"]';
+  const leaveButton = 'StyledButton[aria-label="Leave"]';
+  const removeButton = 'StyledButton[aria-label="Remove"]';
+
   beforeEach(function() {});
 
   it('does not have 2fa warning if user has 2fa', function() {
@@ -97,24 +102,20 @@ describe('OrganizationMemberRow', function() {
       );
 
       expect(wrapper.find('[data-test-id="member-role"]').text()).toBe('Invited Member');
-      expect(
-        wrapper.find('StyledButton[aria-label="Resend invite"]').prop('disabled')
-      ).toBe(true);
+      expect(wrapper.find(resendButton).prop('disabled')).toBe(true);
     });
 
     it('has "Resend Invite" button only if `canAddMembers` is true', function() {
       const wrapper = mountWithTheme(<OrganizationMemberRow {...props} canAddMembers />);
 
       expect(wrapper.find('[data-test-id="member-role"]').text()).toBe('Invited Member');
-      expect(
-        wrapper.find('StyledButton[aria-label="Resend invite"]').prop('disabled')
-      ).toBe(false);
+      expect(wrapper.find(resendButton).prop('disabled')).toBe(false);
     });
 
     it('has the right inviting states', function() {
       let wrapper = mountWithTheme(<OrganizationMemberRow {...props} canAddMembers />);
 
-      expect(wrapper.find('button[aria-label="Resend invite"]').exists()).toBe(true);
+      expect(wrapper.find(resendButton).exists()).toBe(true);
 
       wrapper = mountWithTheme(
         <OrganizationMemberRow {...props} canAddMembers status="loading" />
@@ -123,7 +124,7 @@ describe('OrganizationMemberRow', function() {
       // Should have loader
       expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
       // No Resend Invite button
-      expect(wrapper.find('button[aria-label="Resend invite"]').exists()).toBe(false);
+      expect(wrapper.find(resendButton).exists()).toBe(false);
 
       wrapper = mountWithTheme(
         <OrganizationMemberRow {...props} canAddMembers status="success" />
@@ -132,7 +133,7 @@ describe('OrganizationMemberRow', function() {
       // Should have loader
       expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
       // No Resend Invite button
-      expect(wrapper.find('button[aria-label="Resend invite"]').exists()).toBe(false);
+      expect(wrapper.find(resendButton).exists()).toBe(false);
       expect(wrapper.find('[data-test-id="member-status"]').text()).toBe('Sent!');
     });
   });
@@ -152,9 +153,7 @@ describe('OrganizationMemberRow', function() {
       );
 
       expect(wrapper.find('[data-test-id="member-role"]').text()).toBe('Expired Invite');
-      expect(
-        wrapper.find('StyledButton[aria-label="Resend invite"]').prop('disabled')
-      ).toBe(false);
+      expect(wrapper.find(resendButton).prop('disabled')).toBe(false);
     });
   });
 
@@ -165,13 +164,13 @@ describe('OrganizationMemberRow', function() {
         'sso:link': false,
       },
       requireLink: true,
-      canAddMembers: true,
     };
 
     it('shows "Invited" status if user has not registered and not linked', function() {
       const wrapper = mountWithTheme(
         <OrganizationMemberRow
           {...props}
+          canAddMembers
           member={{
             ...member,
             pending: true,
@@ -180,9 +179,7 @@ describe('OrganizationMemberRow', function() {
       );
 
       expect(wrapper.find('[data-test-id="member-role"]').text()).toBe('Invited Member');
-      expect(
-        wrapper.find('StyledButton[aria-label="Resend invite"]').prop('disabled')
-      ).toBe(false);
+      expect(wrapper.find(resendButton).prop('disabled')).toBe(false);
     });
 
     it('shows "missing SSO link" message if user is registered and needs link', function() {
@@ -196,9 +193,7 @@ describe('OrganizationMemberRow', function() {
       );
 
       expect(wrapper.find('[data-test-id="member-role"]').text()).toBe('Member');
-      expect(
-        wrapper.find('StyledButton[aria-label="Resend SSO link"]').prop('disabled')
-      ).toBe(false);
+      expect(wrapper.find(resendSsoButton).prop('disabled')).toBe(true);
     });
 
     it('has "Resend SSO link" button only if `canAddMembers` is true and no link', function() {
@@ -212,9 +207,7 @@ describe('OrganizationMemberRow', function() {
         />
       );
 
-      expect(
-        wrapper.find('StyledButton[aria-label="Resend SSO link"]').prop('disabled')
-      ).toBe(false);
+      expect(wrapper.find(resendSsoButton).prop('disabled')).toBe(false);
     });
 
     it('has 2fa warning if user is linked does not have 2fa enabled', function() {
@@ -233,6 +226,7 @@ describe('OrganizationMemberRow', function() {
           }}
         />
       );
+
       expect(wrapper.find('AuthIcon').prop('has2fa')).toBe(false);
     });
   });
@@ -248,8 +242,9 @@ describe('OrganizationMemberRow', function() {
 
     it('has button to leave organization and no button to remove', function() {
       const wrapper = mountWithTheme(<OrganizationMemberRow {...props} memberCanLeave />);
-      expect(wrapper.find('button[aria-label="Leave"]').exists()).toBe(true);
-      expect(wrapper.find('button[aria-label="Remove"]').exists()).toBe(false);
+
+      expect(wrapper.find(leaveButton).exists()).toBe(true);
+      expect(wrapper.find(removeButton).exists()).toBe(false);
     });
 
     it('has disabled button to leave organization and no button to remove when member can not leave', function() {
@@ -257,10 +252,8 @@ describe('OrganizationMemberRow', function() {
         <OrganizationMemberRow {...props} memberCanLeave={false} />
       );
 
-      expect(wrapper.find('StyledButton[aria-label="Leave"]').prop('disabled')).toBe(
-        true
-      );
-      expect(wrapper.find('button[aria-label="Remove"]').exists()).toBe(false);
+      expect(wrapper.find(leaveButton).prop('disabled')).toBe(true);
+      expect(wrapper.find(removeButton).exists()).toBe(false);
     });
   });
 
@@ -272,15 +265,13 @@ describe('OrganizationMemberRow', function() {
     it('does not have Leave button', function() {
       const wrapper = mountWithTheme(<OrganizationMemberRow {...props} memberCanLeave />);
 
-      expect(wrapper.find('button[aria-label="Leave"]').exists()).toBe(false);
+      expect(wrapper.find(leaveButton).exists()).toBe(false);
     });
 
     it('has Remove disabled button when `canRemoveMembers` is false', function() {
       const wrapper = mountWithTheme(<OrganizationMemberRow {...props} />);
 
-      expect(wrapper.find('StyledButton[aria-label="Remove"]').prop('disabled')).toBe(
-        true
-      );
+      expect(wrapper.find(removeButton).prop('disabled')).toBe(true);
     });
 
     it('has Remove button when `canRemoveMembers` is true', function() {
@@ -288,9 +279,7 @@ describe('OrganizationMemberRow', function() {
         <OrganizationMemberRow {...props} canRemoveMembers />
       );
 
-      expect(wrapper.find('StyledButton[aria-label="Remove"]').prop('disabled')).toBe(
-        false
-      );
+      expect(wrapper.find(removeButton).prop('disabled')).toBe(false);
     });
   });
 });

@@ -171,7 +171,7 @@ const JoinRequestIndicator = styled(Tag)`
 
 const StyledPanelItem = styled(PanelItem)`
   display: grid;
-  grid-template-columns: minmax(150px, 2fr) minmax(100px, 150px) 220px max-content;
+  grid-template-columns: minmax(150px, auto) minmax(100px, 140px) 220px max-content;
   grid-gap: ${space(2)};
   align-items: center;
 
@@ -196,7 +196,7 @@ const Description = styled('div')`
 `;
 
 const StyledRoleSelectControl = styled(RoleSelectControl)`
-  max-width: 150px;
+  max-width: 140px;
 `;
 
 const TeamSelectControl = styled(SelectControl)`
