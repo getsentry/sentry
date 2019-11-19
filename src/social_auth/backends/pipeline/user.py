@@ -6,7 +6,6 @@ from uuid import uuid4
 
 from social_auth.utils import setting, module_member
 from social_auth.models import UserSocialAuth
-from social_auth.django_compat import get_all_field_names
 
 
 slugify = module_member(
@@ -88,7 +87,7 @@ def django_orm_maxlength_truncate(backend, details, user=None, is_new=False, *ar
     if user is None:
         return
     out = {}
-    names = get_all_field_names(user)
+    names = user._meta.get_all_field_names()
     for name, value in six.iteritems(details):
         if name in names and not _ignore_field(name, is_new):
             max_length = user._meta.get_field(name).max_length
