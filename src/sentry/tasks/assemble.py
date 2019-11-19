@@ -13,7 +13,7 @@ from sentry.cache import default_cache
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
 from sentry.utils.files import get_max_file_size
-from sentry.utils.sdk import configure_scope
+from sentry.utils.sdk import configure_scope, bind_organization_context
 
 logger = logging.getLogger(__name__)
 
@@ -167,10 +167,10 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
     from sentry.utils.zip import safe_extract_zip
     from sentry.models import File, Organization, Release, ReleaseFile
 
-    with configure_scope() as scope:
-        scope.set_tag("organization", org_id)
+    organization = Organization.objects.get(id=org_id)
 
-    organization = Organization.objects.filter(id=org_id).get()
+    bind_organization_context(organization)
+
     set_assemble_status(AssembleTask.ARTIFACTS, org_id, checksum, ChunkFileState.ASSEMBLING)
 
     # Assemble the chunks into a temporary file
