@@ -41,34 +41,28 @@ const componentHasSelectUri = (issueLinkComponent: SentryAppSchemaIssueLink): bo
 const getEventTypes = memoize((app: SentryApp) => {
   // TODO(nola): ideally this would be kept in sync with EXTENDED_VALID_EVENTS on the backend
 
-  let events = [ALL_EVENTS, 'installation.created', 'installation.deleted'];
-
-  if (app.events.includes('error')) {
-    events = [...events, 'error.created'];
-  }
-  if (app.events.includes('issue')) {
-    events = [
-      ...events,
-      'issue.created',
-      'issue.resolved',
-      'issue.ignored',
-      'issue.assigned',
-    ];
-  }
-  if (app.isAlertable) {
-    events = [...events, 'event_alert.triggered'];
-  }
-
+  let issueLinkEvents: string[] = [];
   const issueLinkComponent = (app.schema.elements || []).find(
     element => element.type === 'issue-link'
   );
   if (issueLinkComponent) {
-    const issueLinkEvents = ['external_issue.created', 'external_issue.linked'];
+    issueLinkEvents = ['external_issue.created', 'external_issue.linked'];
     if (componentHasSelectUri(issueLinkComponent as SentryAppSchemaIssueLink)) {
       issueLinkEvents.push('select_options.requested');
     }
-    events = [...events, ...issueLinkEvents];
   }
+
+  const events = [
+    ALL_EVENTS,
+    'installation.created',
+    'installation.deleted',
+    ...(app.events.includes('error') ? ['error.created'] : []),
+    ...(app.events.includes('issue')
+      ? ['issue.created', 'issue.resolved', 'issue.ignored', 'issue.assigned']
+      : []),
+    ...(app.isAlertable ? ['event_alert.triggered'] : []),
+    ...issueLinkEvents,
+  ];
 
   return events;
 });
@@ -146,7 +140,7 @@ export default class RequestLog extends AsyncComponent<Props, State> {
     };
   }
 
-  onChangeEventType = eventType => {
+  handleChangeEventType = (eventType: string) => {
     this.setState({
       eventType,
       currentPage: 0,
@@ -154,7 +148,7 @@ export default class RequestLog extends AsyncComponent<Props, State> {
     this.remountComponent();
   };
 
-  onChangeErrorsOnly = () => {
+  handleChangeErrorsOnly = () => {
     this.setState({
       errorsOnly: !this.state.errorsOnly,
       currentPage: 0,
@@ -162,13 +156,13 @@ export default class RequestLog extends AsyncComponent<Props, State> {
     this.remountComponent();
   };
 
-  onNextPage = () => {
+  handleNextPage = () => {
     this.setState({
       currentPage: this.state.currentPage + 1,
     });
   };
 
-  onPrevPage = () => {
+  handlePrevPage = () => {
     this.setState({
       currentPage: this.state.currentPage - 1,
     });
@@ -207,7 +201,7 @@ export default class RequestLog extends AsyncComponent<Props, State> {
               {getEventTypes(app).map(type => (
                 <DropdownItem
                   key={type}
-                  onSelect={this.onChangeEventType}
+                  onSelect={this.handleChangeEventType}
                   eventKey={type}
                   isActive={eventType === type}
                 >
@@ -217,7 +211,7 @@ export default class RequestLog extends AsyncComponent<Props, State> {
             </DropdownControl>
 
             <Button
-              onClick={this.onChangeErrorsOnly}
+              onClick={this.handleChangeErrorsOnly}
               priority={errorsOnly ? 'primary' : 'default'}
             >
               <ErrorsOnlyCheckbox>
@@ -269,15 +263,15 @@ export default class RequestLog extends AsyncComponent<Props, State> {
         <PaginationButtons>
           <Button
             icon="icon-chevron-left"
-            onClick={this.onPrevPage}
+            onClick={this.handlePrevPage}
             disabled={!this.hasPrevPage}
-            label="Previous page"
+            label={t('Previous page')}
           />
           <Button
             icon="icon-chevron-right"
-            onClick={this.onNextPage}
+            onClick={this.handleNextPage}
             disabled={!this.hasNextPage}
-            label="Next page"
+            label={t('Next page')}
           />
         </PaginationButtons>
       </React.Fragment>
