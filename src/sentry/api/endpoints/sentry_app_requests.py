@@ -44,8 +44,9 @@ class SentryAppRequestsEndpoint(SentryAppBaseEndpoint):
         errors_only = request.GET.get("errorsOnly")
 
         kwargs = {}
-        # if somehow the event type is invalid, just ignore it and return all events
-        if event_type and event_type in EXTENDED_VALID_EVENTS:
+        if event_type:
+            if event_type not in EXTENDED_VALID_EVENTS:
+                return Response({"detail": "Invalid event type."}, status=400)
             kwargs["event"] = event_type
         if errors_only:
             kwargs["errors_only"] = True
