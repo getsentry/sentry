@@ -53,15 +53,13 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
   const savedQueries = [errorsSavedQuery];
 
   describe('building on a new query', () => {
-    let mockUtils, onQuerySave;
-    beforeAll(() => {
-      mockUtils = jest
-        .spyOn(utils, 'handleCreateQuery')
-        .mockImplementation(() => Promise.resolve(errorsSavedQuery));
-      onQuerySave = jest.fn();
-    });
+    let onQuerySave;
+    const mockUtils = jest
+      .spyOn(utils, 'handleCreateQuery')
+      .mockImplementation(() => Promise.resolve(errorsSavedQuery));
 
-    afterEach(() => {
+    beforeEach(() => {
+      onQuerySave = jest.fn();
       mockUtils.mockClear();
     });
 
@@ -85,74 +83,71 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
       expect(buttonDelete.exists()).toBe(false);
     });
 
-    describe('saving the new query', () => {
-      it('accepts a well-formed query', async () => {
-        const wrapper = generateWrappedComponent(
-          location,
-          organization,
-          errorsView,
-          savedQueries,
-          onQuerySave
-        );
+    it('saves a well-formed query', async () => {
+      const wrapper = generateWrappedComponent(
+        location,
+        organization,
+        errorsView,
+        savedQueries,
+        onQuerySave
+      );
 
-        // Click on ButtonSaveAs to open dropdown
-        const buttonSaveAs = wrapper.find('DropdownControl').first();
-        buttonSaveAs.simulate('click');
+      // Click on ButtonSaveAs to open dropdown
+      const buttonSaveAs = wrapper.find('DropdownControl').first();
+      buttonSaveAs.simulate('click');
 
-        // Fill in the Input
-        buttonSaveAs
-          .find('ButtonSaveInput')
-          .simulate('change', {target: {value: 'My New Query Name'}}); // currentTarget.value does not work
-        await tick();
+      // Fill in the Input
+      buttonSaveAs
+        .find('ButtonSaveInput')
+        .simulate('change', {target: {value: 'My New Query Name'}}); // currentTarget.value does not work
+      await tick();
 
-        // Click on Save in the Dropdown
-        buttonSaveAs.find('ButtonSaveDropDown Button').simulate('click');
+      // Click on Save in the Dropdown
+      await buttonSaveAs.find('ButtonSaveDropDown Button').simulate('click');
 
-        expect(mockUtils).toHaveBeenCalledWith(
-          expect.anything(), // api
-          organization,
-          expect.objectContaining({
-            ...errorsView,
-            name: 'My New Query Name',
-          }),
-          true
-        );
-        expect(onQuerySave).toHaveBeenCalled();
-      });
+      expect(mockUtils).toHaveBeenCalledWith(
+        expect.anything(), // api
+        organization,
+        expect.objectContaining({
+          ...errorsView,
+          name: 'My New Query Name',
+        }),
+        true
+      );
+      expect(onQuerySave).toHaveBeenCalled();
+    });
 
-      it('rejects if query.name is empty', async () => {
-        const wrapper = generateWrappedComponent(
-          location,
-          organization,
-          errorsView,
-          savedQueries,
-          onQuerySave
-        );
+    it('rejects if query.name is empty', async () => {
+      const wrapper = generateWrappedComponent(
+        location,
+        organization,
+        errorsView,
+        savedQueries,
+        onQuerySave
+      );
 
-        // Click on ButtonSaveAs to open dropdown
-        const buttonSaveAs = wrapper.find('DropdownControl').first();
-        buttonSaveAs.simulate('click');
+      // Click on ButtonSaveAs to open dropdown
+      const buttonSaveAs = wrapper.find('DropdownControl').first();
+      buttonSaveAs.simulate('click');
 
-        // Do not fill in Input
-        await tick();
+      // Do not fill in Input
+      await tick();
 
-        // Click on Save in the Dropdown
-        buttonSaveAs.find('ButtonSaveDropDown Button').simulate('click');
+      // Click on Save in the Dropdown
+      buttonSaveAs.find('ButtonSaveDropDown Button').simulate('click');
 
-        // Check that EventView has a name
-        expect(errorsView.name).toBe('Errors');
+      // Check that EventView has a name
+      expect(errorsView.name).toBe('Errors');
 
-        /**
-         * This does not work because SavedQueryButtonGroup is wrapped by 2 HOCs
-         * and we cannot access the state of the inner component. But it should
-         * be empty because we didn't fill in Input. If it has a value, then the
-         * test will fail anyway
-         */
-        // expect(wrapper.state('queryName')).toBe('');
+      /**
+       * This does not work because SavedQueryButtonGroup is wrapped by 2 HOCs
+       * and we cannot access the state of the inner component. But it should
+       * be empty because we didn't fill in Input. If it has a value, then the
+       * test will fail anyway
+       */
+      // expect(wrapper.state('queryName')).toBe('');
 
-        expect(mockUtils).not.toHaveBeenCalled();
-        expect(onQuerySave).not.toHaveBeenCalled();
-      });
+      expect(mockUtils).not.toHaveBeenCalled();
     });
   });
 
@@ -190,7 +185,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
       expect(buttonDelete.exists()).toBe(true);
     });
 
-    it('deletes the saved query', () => {
+    it('deletes the saved query', async () => {
       const wrapper = generateWrappedComponent(
         location,
         organization,
@@ -200,7 +195,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
       );
 
       const buttonDelete = wrapper.find(SELECTOR_BUTTON_DELETE).first();
-      buttonDelete.simulate('click');
+      await buttonDelete.simulate('click');
 
       expect(mockUtils).toHaveBeenCalledWith(
         expect.anything(), // api
@@ -257,7 +252,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
 
         // Click on Save in the Dropdown
         const buttonUpdate = wrapper.find(SELECTOR_BUTTON_UPDATE).first();
-        buttonUpdate.simulate('click');
+        await buttonUpdate.simulate('click');
 
         expect(mockUtils).toHaveBeenCalledWith(
           expect.anything(), // api
@@ -301,7 +296,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
         await tick();
 
         // Click on Save in the Dropdown
-        buttonSaveAs.find('ButtonSaveDropDown Button').simulate('click');
+        await buttonSaveAs.find('ButtonSaveDropDown Button').simulate('click');
 
         expect(mockUtils).toHaveBeenCalledWith(
           expect.anything(), // api
