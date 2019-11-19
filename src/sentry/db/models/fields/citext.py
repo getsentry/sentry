@@ -10,7 +10,7 @@ __all__ = ("CITextField", "CICharField", "CIEmailField")
 
 
 class CIText(object):
-    def db_type(self):
+    def db_type(self, connection):
         return "citext"
 
 

@@ -64,7 +64,7 @@ if settings.SENTRY_USE_BIG_INTS:
 
         MAX_VALUE = 9223372036854775807
 
-        def db_type(self):
+        def db_type(self, connection):
             return "bigserial"
 
         def get_related_db_type(self, connection):
