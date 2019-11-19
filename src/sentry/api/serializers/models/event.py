@@ -7,7 +7,15 @@ from django.utils import timezone
 from semaphore import meta_with_chunks
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import Event, EventError, EventAttachment, Release, UserReport, SnubaEvent
+from sentry.models import (
+    Event,
+    EventAttachment,
+    EventError,
+    EventNew,
+    Release,
+    UserReport,
+    SnubaEvent,
+)
 from sentry.search.utils import convert_user_tag_to_query
 from sentry.utils.safe import get_path
 from sentry.sdk_updates import get_suggested_updates, SdkSetupState
@@ -29,6 +37,7 @@ def get_crash_files(events):
 
 @register(SnubaEvent)
 @register(Event)
+@register(EventNew)
 class EventSerializer(Serializer):
     _reserved_keys = frozenset(["user", "sdk", "device", "contexts"])
 
