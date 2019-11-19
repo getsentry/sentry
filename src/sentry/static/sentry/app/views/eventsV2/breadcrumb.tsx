@@ -8,7 +8,6 @@ import BetaTag from 'app/components/betaTag';
 import Link from 'app/components/links/link';
 import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
-import theme from 'app/utils/theme';
 
 import EventView from './eventView';
 
@@ -89,15 +88,15 @@ const BreadcrumbList = styled('span')`
 `;
 
 const BreadcrumbItem = styled(Link)`
-  color: ${theme.gray2};
+  color: ${p => p.theme.gray2};
 
   &:nth-last-child(2) {
-    color: ${theme.gray4};
+    color: ${p => p.theme.gray4};
   }
 
   &:hover,
   &:active {
-    color: ${theme.gray3};
+    color: ${p => p.theme.gray3};
   }
 `;
 
