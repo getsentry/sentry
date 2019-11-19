@@ -234,7 +234,7 @@ class TableView extends React.Component<TableViewProps> {
     const field = column.eventViewField;
 
     // establish alignment based on the type
-    const alignedTypes: ColumnValueType[] = ['number', 'duration'];
+    const alignedTypes: ColumnValueType[] = ['number', 'duration', 'integer'];
     let align: 'right' | 'left' = alignedTypes.includes(column.type) ? 'right' : 'left';
 
     if (column.type === 'never' || column.type === '*') {
