@@ -58,9 +58,6 @@ class ProjectDeletionTask(ModelDeletionTask):
             ]
         )
 
-        # special case event due to nodestore
-        relations.extend([ModelRelation(models.Event, {"project_id": instance.id})])
-
         # in bulk
         # Release needs to handle deletes after Group is cleaned up as the foreign
         # key is protected
