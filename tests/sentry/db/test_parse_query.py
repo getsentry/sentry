@@ -18,10 +18,6 @@ class ParseQuery(TestCase):
                     u"sql": u'SELECT "sentry_reprocessingreport"."id", "sentry_reprocessingreport"."project_id", "sentry_reprocessingreport"."event_id", "sentry_reprocessingreport"."datetime" FROM "sentry_reprocessingreport" WHERE ("sentry_reprocessingreport"."event_id" = \'1fba9e314001443b93285dc4411f1593\'  AND "sentry_reprocessingreport"."project_id" = 864 )',
                     u"time": u"0.001",
                 },
-                {
-                    u"sql": u'SELECT "sentry_message"."id", "sentry_message"."group_id", "sentry_message"."message_id", "sentry_message"."project_id", "sentry_message"."message", "sentry_message"."platform", "sentry_message"."datetime", "sentry_message"."time_spent", "sentry_message"."data" FROM "sentry_message" WHERE ("sentry_message"."message_id" = \'1fba9e314001443b93285dc4411f1593\'  AND "sentry_message"."project_id" = 864 )',
-                    u"time": u"0.001",
-                },
                 {u"sql": u'SAVEPOINT "s47890194282880_x50"', u"time": u"0.000"},
                 {
                     u"sql": u'INSERT INTO "sentry_eventuser" ("project_id", "hash", "ident", "email", "username", "name", "ip_address", "date_added") VALUES (864, \'f528764d624db129b32c21fbca0cb8d6\', NULL, NULL, NULL, NULL, \'127.0.0.1\', \'2018-05-22 09:12:12.357888+00:00\') RETURNING "sentry_eventuser"."id"',
@@ -69,10 +65,6 @@ class ParseQuery(TestCase):
                     u"time": u"0.000",
                 },
                 {u"sql": u'RELEASE SAVEPOINT "s47890194282880_x53"', u"time": u"0.000"},
-                {
-                    u"sql": u'INSERT INTO "sentry_message" ("group_id", "message_id", "project_id", "message", "platform", "datetime", "time_spent", "data") VALUES (662, \'1fba9e314001443b93285dc4411f1593\', 864, \'hello http://example.com\', \'javascript\', \'2018-05-22 09:12:12+00:00\', NULL, \'eJzTSCkw5ApWz8tPSY3PTFHnKjAC8kotM8sMPTNMglwKq0zdS3LKI4y1QxxtbYHSxlzFegCZxA8W\') RETURNING "sentry_message"."id"',
-                    u"time": u"0.000",
-                },
                 {u"sql": u'RELEASE SAVEPOINT "s47890194282880_x52"', u"time": u"0.000"},
                 {u"sql": u'SAVEPOINT "s47890194282880_x54"', u"time": u"0.000"},
                 {u"sql": u'RELEASE SAVEPOINT "s47890194282880_x54"', u"time": u"0.000"},
@@ -98,6 +90,5 @@ class ParseQuery(TestCase):
             "sentry_environmentproject": 1,
             "sentry_eventuser": 1,
             "sentry_groupedmessage": 1,
-            "sentry_message": 1,
             "sentry_userreport": 1,
         }

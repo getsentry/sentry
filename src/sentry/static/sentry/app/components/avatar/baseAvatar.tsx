@@ -36,7 +36,7 @@ type Props = {
    * Path to uploaded avatar (differs based on model type)
    */
   uploadPath?: 'avatar' | 'team-avatar' | 'organization-avatar' | 'project-avatar';
-  uploadId?: string;
+  uploadId?: string | null | undefined;
   gravatarId?: string;
   letterId?: string;
   title?: string;

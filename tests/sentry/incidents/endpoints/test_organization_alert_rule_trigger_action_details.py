@@ -4,6 +4,7 @@ import six
 from exam import fixture
 
 from sentry.api.serializers import serialize
+from sentry.incidents.endpoints.serializers import action_target_type_to_string
 from sentry.incidents.logic import (
     create_alert_rule,
     create_alert_rule_trigger,
@@ -52,8 +53,8 @@ class AlertRuleTriggerActionDetailsBase(object):
         return create_alert_rule_trigger_action(
             self.trigger,
             AlertRuleTriggerAction.Type.EMAIL,
-            AlertRuleTriggerAction.TargetType.SPECIFIC,
-            "hello",
+            AlertRuleTriggerAction.TargetType.USER,
+            six.text_type(self.user.id),
         )
 
     def test_invalid_action_id(self):
@@ -116,14 +117,17 @@ class AlertRuleTriggerActionDetailsPutEndpointTest(AlertRuleTriggerActionDetails
                 self.alert_rule.id,
                 self.trigger.id,
                 self.action.id,
-                target_type=AlertRuleTriggerAction.TargetType.USER.value,
-                target_identifier=six.text_type(self.user.id),
+                type=AlertRuleTriggerAction.get_registered_type(
+                    AlertRuleTriggerAction.Type(self.action.type)
+                ).slug,
+                target_type=action_target_type_to_string[AlertRuleTriggerAction.TargetType.TEAM],
+                target_identifier=six.text_type(self.team.id),
             )
 
-        self.action.target_type = AlertRuleTriggerAction.TargetType.USER.value
-        self.action.target_identifier = six.text_type(self.user.id)
+        self.action.target_type = AlertRuleTriggerAction.TargetType.TEAM.value
+        self.action.target_identifier = six.text_type(self.team.id)
         assert resp.data == serialize(self.action)
-        assert resp.data["targetIdentifier"] == six.text_type(self.user.id)
+        assert resp.data["targetIdentifier"] == six.text_type(self.team.id)
 
     def test_not_updated_fields(self):
         self.create_member(
@@ -136,7 +140,13 @@ class AlertRuleTriggerActionDetailsPutEndpointTest(AlertRuleTriggerActionDetails
                 self.alert_rule.id,
                 self.trigger.id,
                 self.action.id,
-                type=self.action.type,
+                type=AlertRuleTriggerAction.get_registered_type(
+                    AlertRuleTriggerAction.Type(self.action.type)
+                ).slug,
+                targetType=action_target_type_to_string[
+                    AlertRuleTriggerAction.TargetType(self.action.target_type)
+                ],
+                targetIdentifier=self.action.target_identifier,
             )
 
         # Alert rule should be exactly the same

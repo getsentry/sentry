@@ -13,6 +13,8 @@ from sentry.utils.linksign import generate_signed_link
 
 @six.add_metaclass(abc.ABCMeta)
 class ActionHandler(object):
+    status_display = {TriggerStatus.ACTIVE: "Fired", TriggerStatus.RESOLVED: "Resolved"}
+
     def __init__(self, action, incident, project):
         self.action = action
         self.incident = incident
@@ -27,13 +29,16 @@ class ActionHandler(object):
         pass
 
 
-@AlertRuleTriggerAction.register_type_handler(AlertRuleTriggerAction.Type.EMAIL)
+@AlertRuleTriggerAction.register_type(
+    "email",
+    AlertRuleTriggerAction.Type.EMAIL,
+    [AlertRuleTriggerAction.TargetType.USER, AlertRuleTriggerAction.TargetType.TEAM],
+)
 class EmailActionHandler(ActionHandler):
     query_aggregations_display = {
         QueryAggregations.TOTAL: "Total Events",
         QueryAggregations.UNIQUE_USERS: "Total Unique Users",
     }
-    status_display = {TriggerStatus.ACTIVE: "Fired", TriggerStatus.RESOLVED: "Resolved"}
 
     def get_targets(self):
         target = self.action.target
@@ -122,3 +127,25 @@ class EmailActionHandler(ActionHandler):
             else trigger.resolve_threshold,
             "status": self.status_display[status],
         }
+
+
+@AlertRuleTriggerAction.register_type(
+    "slack",
+    AlertRuleTriggerAction.Type.SLACK,
+    [AlertRuleTriggerAction.TargetType.SPECIFIC],
+    integration_provider="slack",
+)
+class SlackActionHandler(ActionHandler):
+    def fire(self):
+        self.send_alert()
+
+    def resolve(self):
+        self.send_alert()
+
+    def send_alert(self):
+        from sentry.integrations.slack.utils import send_incident_alert_notification
+
+        # TODO: We should include more information about the trigger/severity etc.
+        send_incident_alert_notification(
+            self.action.integration, self.incident, self.action.target_identifier
+        )

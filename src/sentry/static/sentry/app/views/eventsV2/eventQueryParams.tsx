@@ -139,9 +139,11 @@ export const FIELDS: {[key: string]: ColumnValueType} = {
 
   'transaction.duration': 'duration',
   'transaction.op': 'string',
+  apdex: 'number',
   // duration aliases
   p75: 'number',
   p95: 'number',
+  p99: 'number',
 };
 export type Field = keyof typeof FIELDS | string | '';
 
@@ -151,12 +153,14 @@ export const TRACING_FIELDS = [
   'sum',
   'transaction.duration',
   'transaction.op',
+  'apdex',
+  'p99',
   'p95',
   'p75',
 ];
 
 // list of fields that are duration-like
-export const DURATION_FIELDS = ['transaction.duration', 'p95', 'p75'];
+export const DURATION_FIELDS = ['transaction.duration', 'p99', 'p95', 'p75'];
 // acceptable list of aggregate functions, that, when applied to any of the duration-like
 // fields in DURATION_FIELDS, the resulting expression is still duration-like
 export const DURATION_AGGREGATION_WHITELIST = ['min', 'max', 'sum', 'avg'];

@@ -1,30 +1,21 @@
 import {Client} from 'app/api';
 
-import {SavedQuery, NewQuery} from 'app/stores/discoverSavedQueriesStore';
-import DiscoverSavedQueryActions from 'app/actions/discoverSavedQueryActions';
+import {SavedQuery, NewQuery} from 'app/types';
 import {t} from 'app/locale';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 
 export function fetchSavedQueries(api: Client, orgId: string): Promise<SavedQuery[]> {
-  DiscoverSavedQueryActions.startFetchSavedQueries();
-
   const promise: Promise<SavedQuery[]> = api.requestPromise(
     `/organizations/${orgId}/discover/saved/`,
     {
       method: 'GET',
+      query: {query: 'version:2'},
     }
   );
 
-  DiscoverSavedQueryActions.startFetchSavedQueries();
-
-  promise
-    .then(resp => {
-      DiscoverSavedQueryActions.fetchSavedQueriesSuccess(resp);
-    })
-    .catch(() => {
-      DiscoverSavedQueryActions.fetchSavedQueriesError();
-      addErrorMessage(t('Unable to load saved queries'));
-    });
+  promise.catch(() => {
+    addErrorMessage(t('Unable to load saved queries'));
+  });
   return promise;
 }
 
@@ -41,15 +32,9 @@ export function createSavedQuery(
     }
   );
 
-  DiscoverSavedQueryActions.startFetchSavedQueries();
-
-  promise
-    .then(resp => {
-      DiscoverSavedQueryActions.createSavedQuerySuccess(resp);
-    })
-    .catch(() => {
-      addErrorMessage(t('Unable to create your saved query'));
-    });
+  promise.catch(() => {
+    addErrorMessage(t('Unable to create your saved query'));
+  });
   return promise;
 }
 
@@ -66,15 +51,9 @@ export function updateSavedQuery(
     }
   );
 
-  DiscoverSavedQueryActions.startFetchSavedQueries();
-
-  promise
-    .then(resp => {
-      DiscoverSavedQueryActions.updateSavedQuerySuccess(resp);
-    })
-    .catch(() => {
-      addErrorMessage(t('Unable to update your saved query'));
-    });
+  promise.catch(() => {
+    addErrorMessage(t('Unable to update your saved query'));
+  });
   return promise;
 }
 
@@ -88,14 +67,8 @@ export function deleteSavedQuery(
     {method: 'DELETE'}
   );
 
-  DiscoverSavedQueryActions.startFetchSavedQueries();
-
-  promise
-    .then(() => {
-      DiscoverSavedQueryActions.deleteSavedQuerySuccess(queryId);
-    })
-    .catch(() => {
-      addErrorMessage(t('Unable to delete the saved query'));
-    });
+  promise.catch(() => {
+    addErrorMessage(t('Unable to delete the saved query'));
+  });
   return promise;
 }

@@ -12,7 +12,12 @@ import ReactDOM from 'react-dom';
 import Reflux from 'reflux';
 import * as Router from 'react-router';
 import * as Sentry from '@sentry/browser';
-import {ExtraErrorData, Tracing} from '@sentry/integrations';
+import {
+  ExtraErrorData,
+  Tracing,
+  TransactionActivity,
+  TransactionActivityHandlers,
+} from '@sentry/integrations';
 import createReactClass from 'create-react-class';
 import jQuery from 'jquery';
 import moment from 'moment';
@@ -22,7 +27,19 @@ import ConfigStore from 'app/stores/configStore';
 import Main from 'app/main';
 import ajaxCsrfSetup from 'app/utils/ajaxCsrfSetup';
 import plugins from 'app/plugins';
-import {startApm} from 'app/utils/apm';
+
+// App setup
+if (window.__initialData) {
+  ConfigStore.loadInitialData(window.__initialData);
+}
+
+// APM -------------------------------------------------------------
+const config = ConfigStore.getConfig();
+// This is just a simple gatekeeper to not enable apm for whole sentry.io at first
+const forceTracingEnabled = config && config.isApmDataSamplingEnabled ? 1 : 0;
+
+const tracesSampleRate = Math.max(0.1, forceTracingEnabled);
+// -------------------------------^ 10% Sample rate for enabling transactions in frontend
 
 // SDK INIT  --------------------------------------------------------
 Sentry.init({
@@ -35,17 +52,24 @@ Sentry.init({
     new Tracing({
       tracingOrigins: ['localhost', 'sentry.io', /^\//],
     }),
+    new Sentry.Integrations.Breadcrumbs({
+      // This handlers will be removed here in a future version
+      // What they do is auto instrument history and XHR API
+      // creating Transactions and Spans out of it
+      handlers: TransactionActivityHandlers,
+    }),
+    new TransactionActivity({
+      tracesSampleRate,
+    }),
   ],
 });
 
-Sentry.configureScope(scope => {
-  if (window.__SENTRY__USER) {
-    scope.setUser(window.__SENTRY__USER);
-  }
-  if (window.__SENTRY__VERSION) {
-    scope.setTag('sentry_version', window.__SENTRY__VERSION);
-  }
-});
+if (window.__SENTRY__USER) {
+  Sentry.setUser(window.__SENTRY__USER);
+}
+if (window.__SENTRY__VERSION) {
+  Sentry.setTag('sentry_version', window.__SENTRY__VERSION);
+}
 
 // Used for operational metrics to determine that the application js
 // bundle was loaded by browser.
@@ -56,22 +80,6 @@ jQuery.ajaxSetup({
   //jQuery won't allow using the ajaxCsrfSetup function directly
   beforeSend: ajaxCsrfSetup,
 });
-
-// App setup
-if (window.__initialData) {
-  ConfigStore.loadInitialData(window.__initialData);
-}
-
-// APM -------------------------------------------------------------
-const config = ConfigStore.getConfig();
-// This is just a simple gatekeeper to not enable apm for whole sentry.io at first
-if (config && config.isApmDataSamplingEnabled) {
-  startApm();
-}
-// -----------------------------------------------------------------
-
-// these get exported to a global variable, which is important as its the only
-// way we can call into scoped objects
 
 const render = Component => {
   const rootEl = document.getElementById('blk_router');

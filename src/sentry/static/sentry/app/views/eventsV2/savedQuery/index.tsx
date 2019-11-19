@@ -5,11 +5,8 @@ import {Location} from 'history';
 
 import {Client} from 'app/api';
 import {t} from 'app/locale';
-import {Organization} from 'app/types';
+import {Organization, SavedQuery} from 'app/types';
 import withApi from 'app/utils/withApi';
-import withDiscoverSavedQueries from 'app/utils/withDiscoverSavedQueries';
-
-import {SavedQuery} from 'app/stores/discoverSavedQueriesStore';
 
 import Button from 'app/components/button';
 import DropdownButton from 'app/components/dropdownButton';
@@ -36,7 +33,9 @@ type Props = {
   eventView: EventView;
   savedQueries: SavedQuery[];
   savedQueriesLoading: boolean;
+  onQuerySave: () => void;
 };
+
 type State = {
   isNewQuery: boolean;
   isEditingQuery: boolean;
@@ -117,6 +116,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     const target = event.target as HTMLInputElement;
     this.setState({queryName: target.value});
   };
+
   onChangeInput = (event: React.FormEvent<HTMLInputElement>) => {
     const target = event.target as HTMLInputElement;
     this.setState({queryName: target.value});
@@ -148,11 +148,12 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       (savedQuery: any) => {
         const view = EventView.fromSavedQuery(savedQuery);
 
+        this.props.onQuerySave();
+        this.setState({queryName: ''});
         browserHistory.push({
           pathname: location.pathname,
           query: view.generateQueryStringObject(),
         });
-        this.setState({queryName: ''});
       }
     );
   };
@@ -164,6 +165,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     const {api, organization, eventView} = this.props;
 
     handleUpdateQuery(api, organization, eventView).then(() => {
+      this.props.onQuerySave();
       this.setState({queryName: ''});
     });
   };
@@ -175,6 +177,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     const {api, location, organization, eventView} = this.props;
 
     handleDeleteQuery(api, organization, eventView).then(() => {
+      this.props.onQuerySave();
       browserHistory.push({
         pathname: location.pathname,
         query: {},
@@ -335,4 +338,4 @@ const ButtonUpdateIcon = styled('div')`
   background-color: ${p => p.theme.yellow};
 `;
 
-export default withApi(withDiscoverSavedQueries(SavedQueryButtonGroup));
+export default withApi(SavedQueryButtonGroup);

@@ -494,7 +494,6 @@ class Factories(object):
         event = Event(event_id=event_id, group=group, **kwargs)
         # emulate EventManager refs
         event.data.bind_ref(event)
-        event.save()
         event.data.save()
         return event
 
@@ -959,9 +958,8 @@ class Factories(object):
         type=AlertRuleTriggerAction.Type.EMAIL,
         target_type=AlertRuleTriggerAction.TargetType.USER,
         target_identifier=None,
-        target_display=None,
         integration=None,
     ):
         return create_alert_rule_trigger_action(
-            trigger, type, target_type, target_identifier, target_display, integration
+            trigger, type, target_type, target_identifier, integration
         )

@@ -20,6 +20,7 @@ from sentry.search.utils import (
     parse_datetime_value,
     InvalidQuery,
 )
+from sentry.snuba.events import get_columns_from_aliases
 from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import Dataset, DATASETS, get_snuba_column_name
 
@@ -682,8 +683,10 @@ FIELD_ALIASES = {
     "user": {"fields": ["user.id", "user.name", "user.username", "user.email", "user.ip"]},
     # Long term these will become more complex functions but these are
     # field aliases.
+    "apdex": {"aggregations": [["apdex(duration, 300)", "", "apdex"]]},
     "p75": {"aggregations": [["quantileTiming(0.75)(duration)", "", "p75"]]},
     "p95": {"aggregations": [["quantileTiming(0.95)(duration)", "", "p95"]]},
+    "p99": {"aggregations": [["quantileTiming(0.99)(duration)", "", "p99"]]},
 }
 
 VALID_AGGREGATES = {
@@ -852,7 +855,7 @@ def get_reference_event_conditions(organization, snuba_args, event_slug):
     summary graph navigation.
     """
     groupby = snuba_args.get("groupby", [])
-    columns = eventstore.get_columns_from_aliases(groupby)
+    columns = get_columns_from_aliases(groupby)
     field_names = [get_snuba_column_name(field) for field in groupby]
 
     # Fetch the reference event ensuring the fields in the groupby
