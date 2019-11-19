@@ -62,6 +62,14 @@ class GroupDatasetSearchBackend(SnubaSearchBackend):
             if search_filter.key.name in self.issue_only_fields:
                 search_postgres = True
                 break
+            elif (
+                search_filter.key.name in ["first_seen", "last_seen", "first_release"]
+                and environments
+            ):
+                # we can't query snuba on first_seen, last_seen, and first_release if we have environment filters - we need postgres for this data
+                # because snuba events might have been deleted due to retention, but GroupEnvironment model still holds this information.
+                search_postgres = True
+                break
 
         if search_postgres is True:
             return super(GroupDatasetSearchBackend, self).build_group_queryset(
@@ -92,6 +100,8 @@ class GroupDatasetSearchBackend(SnubaSearchBackend):
             converted_filter = self.modify_filter_if_date(search_filter, converted_filter)
 
             # TODO: What is this still now doing and is it neccessary?
+            # we can't query snuba on first_seen, last_seen, and first_relesae if we have environment filters - we need postgres for this data
+            # because events might have been deleted due to retention, but GroupEnvironment model still holds this information.
             if search_filter.key.name in ["first_seen", "last_seen", "first_release"]:
                 if environment_ids is not None:
                     table_alias = "events."
@@ -109,7 +119,7 @@ class GroupDatasetSearchBackend(SnubaSearchBackend):
         with Hub.current.start_span(op="func", description="override_modify_filter_if_date"):
             special_date_names = ["groups.active_at", "first_seen", "last_seen"]
             if search_filter.key.name in special_date_names:
-                # Need to get '2018-02-06T03:35:54' out of 1517888878000
+                # Need to get '2018-02-06T03:35:54' format out of 1517888878000 format
                 datetime_value = datetime.datetime.fromtimestamp(converted_filter[2] / 1000)
                 datetime_value = (
                     datetime_value.replace(microsecond=0).isoformat().replace("+00:00", "")
