@@ -162,7 +162,8 @@ class OrganizationMembersList extends AsyncView<Props, State> {
 
     // Find out if current user is the only owner
     const isOnlyOwner = !members.find(
-      ({role, email}) => role === 'owner' && email !== currentUser.email
+      ({role, email, pending}) =>
+        role === 'owner' && email !== currentUser.email && !pending
     );
 
     // Only admins/owners can remove members
