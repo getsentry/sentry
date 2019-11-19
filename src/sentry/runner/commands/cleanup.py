@@ -65,7 +65,6 @@ def multiprocess_worker(task_queue):
 
             skip_models = [
                 # Handled by other parts of cleanup
-                models.Event,
                 models.EventAttachment,
                 models.UserReport,
                 models.Group,
@@ -183,7 +182,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
 
     # Deletions that use the `deletions` code path (which handles their child relations)
     # (model, datetime_field, order_by)
-    DELETES = ((models.Event, "datetime", "datetime"), (models.Group, "last_seen", "last_seen"))
+    DELETES = (models.Group, "last_seen", "last_seen")
 
     if not silent:
         click.echo("Removing expired values for LostPasswordHash")
