@@ -8,7 +8,7 @@ import six
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login as login_user, authenticate
-from django.core.context_processors import csrf
+from django.template.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.db import transaction
 from django.http import HttpResponseRedirect, Http404, HttpResponse
