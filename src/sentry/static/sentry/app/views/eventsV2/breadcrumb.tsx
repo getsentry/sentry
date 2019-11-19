@@ -94,6 +94,11 @@ const BreadcrumbItem = styled(Link)`
   &:nth-last-child(2) {
     color: ${theme.gray4};
   }
+
+  &:hover,
+  &:active {
+    color: ${theme.gray3};
+  }
 `;
 
 const StyledIcon = styled(InlineSvg)`

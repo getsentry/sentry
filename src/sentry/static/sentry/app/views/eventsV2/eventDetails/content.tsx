@@ -5,6 +5,7 @@ import styled from 'react-emotion';
 import PropTypes from 'prop-types';
 
 import space from 'app/styles/space';
+import theme from 'app/utils/theme';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {Client} from 'app/api';
@@ -274,7 +275,7 @@ const EventMetadata = (props: {
   return (
     <StyledMetadata>
       <MetadataHeading>
-        <span>Event ID</span>
+        <span>{t('Event ID')}</span>
       </MetadataHeading>
       <MetadataContainer data-test-id="event-id">{event.eventID}</MetadataContainer>
       <MetadataContainer>
@@ -306,9 +307,11 @@ const StyledMetadata = styled('div')`
 `;
 
 const ContentGrid = styled('div')`
-  display: grid;
-  grid-gap: ${space(2)};
-  grid-template-columns: 72% auto;
+  @media (min-width: ${theme.breakpoints[2]}) {
+    display: grid;
+    grid-gap: ${space(2)};
+    grid-template-columns: 72% auto;
+  }
 `;
 
 const HeaderBox = styled('div')`
