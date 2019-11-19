@@ -4,10 +4,11 @@ import {Location} from 'history';
 
 import {t} from 'app/locale';
 import {Event, Organization} from 'app/types';
-import PageHeading from 'app/components/pageHeading';
 import BetaTag from 'app/components/betaTag';
 import Link from 'app/components/links/link';
 import InlineSvg from 'app/components/inlineSvg';
+import space from 'app/styles/space';
+import theme from 'app/utils/theme';
 
 import EventView from './eventView';
 
@@ -17,6 +18,7 @@ type Props = {
   organization: Organization;
   location: Location;
 };
+
 class DiscoverBreadcrumb extends React.Component<Props> {
   static defaultProps = {
     event: undefined,
@@ -34,22 +36,24 @@ class DiscoverBreadcrumb extends React.Component<Props> {
 
       crumbs.push(
         <span key="eventview-sep">
-          <InlineSvg height="20px" width="20px" src="icon-chevron-right" />
+          <StyledIcon src="icon-chevron-right" />
         </span>
       );
+
       crumbs.push(
-        <CrumbLink to={target} key="eventview-link">
+        <StyledBreadcrumbLink to={target} key="eventview-link">
           {eventView.name}
-        </CrumbLink>
+        </StyledBreadcrumbLink>
       );
     }
 
     if (event) {
       crumbs.push(
         <span key="event-sep">
-          <InlineSvg height="20px" width="20px" src="icon-chevron-right" />
+          <StyledIcon src="icon-chevron-right" />
         </span>
       );
+
       crumbs.push(<span key="event-name">{t('Event Detail')}</span>);
     }
 
@@ -69,26 +73,28 @@ class DiscoverBreadcrumb extends React.Component<Props> {
     };
 
     return (
-      <PageHeading>
-        <CrumbLink to={target}>{t('Discover')}</CrumbLink>
-        <BetaTagWrapper>
-          <BetaTag />
-        </BetaTagWrapper>
+      <BreadcrumbList>
+        <StyledBreadcrumbLink to={target}>{t('Discover')}</StyledBreadcrumbLink>
         {this.getCrumbs()}
-      </PageHeading>
+        <BetaTag />
+      </BreadcrumbList>
     );
   }
 }
 
-const BetaTagWrapper = styled('span')`
-  margin-right: 0.4em;
+const BreadcrumbList = styled('div')`
+  color: ${theme.gray4};
+  height: 40px;
 `;
 
-const CrumbLink = styled(Link)`
-  color: ${p => p.theme.gray2};
-  &:hover {
-    color: ${p => p.theme.gray2};
-  }
+const StyledBreadcrumbLink = styled(Link)`
+  color: ${theme.gray2};
+`;
+
+const StyledIcon = styled(InlineSvg)`
+  height: 12px;
+  width: 12px;
+  margin: 0 ${space(1)};
 `;
 
 export default DiscoverBreadcrumb;

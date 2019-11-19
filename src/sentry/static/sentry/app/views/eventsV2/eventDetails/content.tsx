@@ -12,7 +12,6 @@ import {getMessage, getTitle} from 'app/utils/events';
 import {Organization, Event} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
 import getDynamicText from 'app/utils/getDynamicText';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 import DateTime from 'app/components/dateTime';
 import ExternalLink from 'app/components/links/externalLink';
 import FileSize from 'app/components/fileSize';
@@ -233,22 +232,25 @@ class EventDetailsWrapper extends React.Component<EventDetailsWrapperProps> {
 const EventHeader = (props: {event: Event}) => {
   const {title} = getTitle(props.event);
   return (
-    <div data-test-id="event-header">
-      <OverflowHeader>{title}</OverflowHeader>
-      <p>{getMessage(props.event)}</p>
-    </div>
+    <StyledEventHeader data-test-id="event-header">
+      <StyledTitle>{title}</StyledTitle>
+      <span>{getMessage(props.event)}</span>
+    </StyledEventHeader>
   );
 };
 
-const OverflowHeader = styled('h2')`
-  line-height: 1.2;
-  ${overflowEllipsis}
+const StyledEventHeader = styled('div')`
+  font-size: ${p => p.theme.headerFontSize};
+`;
+
+const StyledTitle = styled('span')`
+  color: ${p => p.theme.purple};
+  margin-right: ${space(1)};
 `;
 
 const MetadataContainer = styled('div')`
   display: flex;
   justify-content: space-between;
-
   color: ${p => p.theme.gray3};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
@@ -304,6 +306,7 @@ const ColumnGrid = styled('div')`
 
 const HeaderBox = styled('div')`
   grid-column: 1 / 3;
+  margin-bottom: ${space(3)};
 `;
 const ContentColumn = styled('div')`
   grid-column: 1 / 2;
