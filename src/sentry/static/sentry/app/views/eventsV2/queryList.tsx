@@ -71,7 +71,10 @@ class QueryList extends React.Component<Props> {
     const {location, organization} = this.props;
     let views = ALL_VIEWS;
     if (organization.features.includes('transaction-events')) {
-      views = [...ALL_VIEWS, ...TRANSACTION_VIEWS];
+      // insert transactions queries at index 2
+      const cloned = [...ALL_VIEWS];
+      cloned.splice(2, 0, ...TRANSACTION_VIEWS);
+      views = cloned;
     }
 
     const list = views.map((view, index) => {
