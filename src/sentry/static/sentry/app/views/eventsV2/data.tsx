@@ -13,6 +13,7 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import pinIcon from 'app/../images/location-pin.png';
 import {Organization, NewQuery} from 'app/types';
 import Duration from 'app/components/duration';
+import floatFormat from 'app/utils/floatFormat';
 
 import {QueryLink} from './styles';
 import {generateEventDetailsRoute, generateEventSlug} from './eventDetails/utils';
@@ -195,7 +196,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     sortField: true,
     renderFunc: (field, data) => (
       <NumberContainer>
-        {typeof data[field] === 'number' ? <Count value={data[field]} /> : emptyValue}
+        {typeof data[field] === 'number' ? floatFormat(data[field], 5) : emptyValue}
       </NumberContainer>
     ),
   },
