@@ -27,9 +27,6 @@ const GroupDetails = createReactClass({
   propTypes: {
     api: PropTypes.object,
 
-    // Provided in the project version of group details
-    project: SentryTypes.Project,
-
     organization: SentryTypes.Organization,
     environments: PropTypes.arrayOf(PropTypes.string),
     enableSnuba: PropTypes.bool,
@@ -130,7 +127,7 @@ const GroupDetails = createReactClass({
           );
           return;
         }
-        const project = this.props.project || data.project;
+        const project = data.project;
 
         if (!project) {
           Sentry.withScope(() => {
