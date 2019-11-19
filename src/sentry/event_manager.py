@@ -46,8 +46,6 @@ from sentry.interfaces.base import get_interface
 from sentry.models import (
     Activity,
     Environment,
-    Event,
-    EventNew,
     EventDict,
     EventError,
     EventUser,
@@ -81,6 +79,7 @@ from sentry.utils.dates import to_timestamp
 from sentry.utils.safe import safe_execute, trim, get_path, setdefault_path
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.culprit import generate_culprit
+from sentry.eventstore.models import Event
 
 logger = logging.getLogger("sentry.events")
 
@@ -391,7 +390,7 @@ class EventManager(object):
 
         data["node_id"] = Event.generate_node_id(project_id, event_id)
 
-        return EventNew(
+        return Event(
             project_id=project_id or self._project.id,
             event_id=event_id,
             data=EventDict(data, skip_renormalization=True),
