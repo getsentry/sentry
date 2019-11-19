@@ -13,7 +13,7 @@ import GlobalSelectionHeader from 'app/components/organizations/globalSelectionH
 import GroupStore from 'app/stores/groupStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import ProjectsStore from 'app/stores/projectsStore';
+import Projects from 'app/utils/projects';
 import SentryTypes from 'app/sentryTypes';
 import profiler from 'app/utils/profiler';
 import withApi from 'app/utils/withApi';
@@ -130,8 +130,7 @@ const GroupDetails = createReactClass({
           );
           return;
         }
-
-        const project = this.props.project || ProjectsStore.getById(data.project.id);
+        const project = this.props.project || data.project;
 
         if (!project) {
           Sentry.withScope(() => {
@@ -226,9 +225,9 @@ const GroupDetails = createReactClass({
     }
   },
 
-  renderContent(shouldShowGlobalHeader) {
+  renderContent(shouldShowGlobalHeader, project) {
     const {environments} = this.props;
-    const {group, project} = this.state;
+    const {group} = this.state;
 
     const Content = (
       <DocumentTitle title={this.getTitle()}>
@@ -286,7 +285,19 @@ const GroupDetails = createReactClass({
             <LoadingIndicator />
           </PageContent>
         ) : (
-          this.renderContent(showGlobalHeader)
+          <Projects orgId={organization.slug} slugs={[project.slug]}>
+            {({projects, initiallyLoaded, fetchError}) => {
+              return initiallyLoaded ? (
+                fetchError ? (
+                  <LoadingError message={t('Error loading the specified project')} />
+                ) : (
+                  this.renderContent(showGlobalHeader, projects[0])
+                )
+              ) : (
+                <LoadingIndicator />
+              );
+            }}
+          </Projects>
         )}
       </React.Fragment>
     );
