@@ -286,8 +286,8 @@ const GroupDetails = createReactClass({
           </PageContent>
         ) : (
           <Projects orgId={organization.slug} slugs={[project.slug]}>
-            {({projects, initiallyLoaded, fetchError}) => {
-              return initiallyLoaded ? (
+            {({projects, initiallyLoaded, fetchError}) =>
+              initiallyLoaded ? (
                 fetchError ? (
                   <LoadingError message={t('Error loading the specified project')} />
                 ) : (
@@ -295,8 +295,8 @@ const GroupDetails = createReactClass({
                 )
               ) : (
                 <LoadingIndicator />
-              );
-            }}
+              )
+            }
           </Projects>
         )}
       </React.Fragment>
