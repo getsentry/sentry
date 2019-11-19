@@ -82,10 +82,6 @@ class UUIDField(models.Field):
         # Convert our value to a UUID.
         return UUID(value)
 
-    def get_db_prep_value(self, value, connection, prepared=False):
-        """Return a UUID object."""
-        return super(UUIDField, self).get_db_prep_value(value, connection, prepared=prepared)
-
     def pre_save(self, instance, add):
         """If auto is set, generate a UUID at random."""
 

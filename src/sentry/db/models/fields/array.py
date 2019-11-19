@@ -37,9 +37,6 @@ class ArrayField(models.Field):
             value = json.loads(value)
         return map(self.of.to_python, value)
 
-    def get_db_prep_value(self, value, connection, prepared=False):
-        return super(ArrayField, self).get_db_prep_value(value, connection, prepared=prepared)
-
     def get_prep_lookup(self, lookup_type, value):
         raise NotImplementedError(
             u"{!r} lookup type for {!r} is not supported".format(lookup_type, self)
