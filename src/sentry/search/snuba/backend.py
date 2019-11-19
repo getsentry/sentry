@@ -584,12 +584,12 @@ class SnubaSearchBackend(SearchBackend):
         hits = None
         if not count_hits:
             return hits
-
         if skip_postgres_search is True:
             # We're not hitting postgres, thus no pre/post filtering, thus no cross-database approximation needed.
             # We can get the result count directly from Snuba.
             # TODO: THIS IS NOT CORRECT.  I think the easiest way to get hits is to perform a separate Snuba query
-            snuba_groups, snuba_total = self.snuba_search(
+            # TODO: ONLY SELECT THE AGGREGATE COUNT - DON'T GET ALL THE RESULTS. ONLY ONE INTEGER IS REQUIRED AS A RESULT.
+            _, snuba_total = self.snuba_search(
                 start=start,
                 end=end,
                 project_ids=[p.id for p in projects],
@@ -600,7 +600,8 @@ class SnubaSearchBackend(SearchBackend):
                 get_sample=False,
                 search_filters=search_filters,
             )
-            hits = snuba_groups  # ???
+
+            hits = snuba_total
 
         elif (
             not skip_postgres_search and count_hits and (too_many_candidates or cursor is not None)
