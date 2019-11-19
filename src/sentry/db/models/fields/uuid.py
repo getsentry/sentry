@@ -59,10 +59,7 @@ class UUIDField(models.Field):
         super(UUIDField, self).__init__(**kwargs)
 
     def db_type(self, connection):
-        engine = connection.settings_dict["ENGINE"]
-        if "postgres" in engine:
-            return "uuid"
-        return super(UUIDField, self).db_type(connection)
+        return "uuid"
 
     def get_internal_type(self):
         return "CharField"
@@ -84,18 +81,6 @@ class UUIDField(models.Field):
 
         # Convert our value to a UUID.
         return UUID(value)
-
-    def get_db_prep_value(self, value, connection, prepared=False):
-        """Return a UUID object. Also, ensure that psycopg2 is
-        aware how to address that object.
-        """
-        engine = connection.settings_dict["ENGINE"]
-        if "postgres" not in engine:
-            if not prepared:
-                value = self.get_prep_value(value)
-            return six.text_type(value.hex) if value else None
-        # Run the normal functionality.
-        return super(UUIDField, self).get_db_prep_value(value, connection, prepared=prepared)
 
     def pre_save(self, instance, add):
         """If auto is set, generate a UUID at random."""

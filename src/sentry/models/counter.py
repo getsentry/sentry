@@ -4,7 +4,6 @@ from django.db import connection, connections
 from django.db.models.signals import post_migrate
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr, BoundedBigIntegerField
-from sentry.utils.db import is_postgres
 
 
 class Counter(Model):
@@ -32,16 +31,13 @@ def increment_project_counter(project, delta=1):
 
     cur = connection.cursor()
     try:
-        if is_postgres():
-            cur.execute(
-                """
-                select sentry_increment_project_counter(%s, %s)
-            """,
-                [project.id, delta],
-            )
-            return cur.fetchone()[0]
-        else:
-            raise AssertionError("Not implemented database engine path")
+        cur.execute(
+            """
+            select sentry_increment_project_counter(%s, %s)
+        """,
+            [project.id, delta],
+        )
+        return cur.fetchone()[0]
     finally:
         cur.close()
 

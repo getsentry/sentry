@@ -25,10 +25,7 @@ class ArrayField(models.Field):
         super(ArrayField, self).__init__(**kwargs)
 
     def db_type(self, connection):
-        engine = connection.settings_dict["ENGINE"]
-        if "postgres" in engine:
-            return u"{}[]".format(self.of.db_type(connection))
-        return super(ArrayField, self).db_type(connection)
+        return u"{}[]".format(self.of.db_type(connection))
 
     def get_internal_type(self):
         return "TextField"
@@ -39,14 +36,6 @@ class ArrayField(models.Field):
         if isinstance(value, six.text_type):
             value = json.loads(value)
         return map(self.of.to_python, value)
-
-    def get_db_prep_value(self, value, connection, prepared=False):
-        if not prepared:
-            engine = connection.settings_dict["ENGINE"]
-            if "postgres" in engine:
-                return value
-            return json.dumps(value) if value else None
-        return value
 
     def get_prep_lookup(self, lookup_type, value):
         raise NotImplementedError(
