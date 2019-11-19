@@ -7,7 +7,7 @@ import moment from 'moment';
 
 import {DEFAULT_PER_PAGE} from 'app/constants';
 import {SavedQuery as LegacySavedQuery} from 'app/views/discover/types';
-import {SavedQuery, NewQuery} from 'app/stores/discoverSavedQueriesStore';
+import {SavedQuery, NewQuery} from 'app/types';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 
 import {AUTOLINK_FIELDS, SPECIAL_FIELDS, FIELD_FORMATTERS} from './data';

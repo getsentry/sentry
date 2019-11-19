@@ -255,7 +255,7 @@ describe('EventsErrors', function() {
 
       // After zooming, line chart should re-render once, but table does
       expect(chartRender).toHaveBeenCalledTimes(1);
-      expect(tableRender).toHaveBeenCalledTimes(3);
+      expect(tableRender).toHaveBeenCalledTimes(2);
 
       newParams = {
         start: '2018-11-29T00:00:00',

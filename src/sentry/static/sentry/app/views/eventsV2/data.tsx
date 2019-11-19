@@ -11,9 +11,8 @@ import UserBadge from 'app/components/idBadge/userBadge';
 import getDynamicText from 'app/utils/getDynamicText';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import pinIcon from 'app/../images/location-pin.png';
-import {Organization} from 'app/types';
+import {Organization, NewQuery} from 'app/types';
 import Duration from 'app/components/duration';
-import {NewQuery} from 'app/stores/discoverSavedQueriesStore';
 
 import {QueryLink} from './styles';
 import {generateEventDetailsRoute, generateEventSlug} from './eventDetails/utils';

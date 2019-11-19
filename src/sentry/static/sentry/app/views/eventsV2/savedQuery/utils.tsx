@@ -1,6 +1,6 @@
 import {Client} from 'app/api';
 import {t} from 'app/locale';
-import {Organization} from 'app/types';
+import {Organization, SavedQuery} from 'app/types';
 import {extractAnalyticsQueryFields} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 
@@ -10,7 +10,6 @@ import {
   updateSavedQuery,
 } from 'app/actionCreators/discoverSavedQueries';
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
-import {SavedQuery} from 'app/stores/discoverSavedQueriesStore';
 
 import EventView from '../eventView';
 
