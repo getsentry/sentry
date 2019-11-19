@@ -10,8 +10,9 @@ from sentry import features
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
 from sentry.api.event_search import resolve_field_list, InvalidSearchQuery
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
+from sentry.cache import default_cache
 from sentry.utils.dates import parse_stats_period
-from sentry.utils import snuba
+from sentry.utils import snuba, json
 
 
 class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
@@ -34,6 +35,16 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
 
         snuba_args = self.get_field(request, snuba_args)
 
+        cache_key = cache_key_for_snuba_args(organization, params, snuba_args)
+
+        snuba_data = default_cache.get(cache_key)
+
+        import logging
+
+        if snuba_data is not None:
+            logging.info("foo cache: %s", cache_key)
+            return Response(snuba_data, status=200)
+
         result = snuba.transform_aliases_and_query(
             aggregations=snuba_args.get("aggregations"),
             conditions=snuba_args.get("conditions"),
@@ -47,12 +58,16 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
             limit=10000,
         )
         serializer = SnubaTSResultSerializer(organization, None, request.user)
-        return Response(
-            serializer.serialize(
-                snuba.SnubaTSResult(result, snuba_args["start"], snuba_args["end"], rollup)
-            ),
-            status=200,
+
+        snuba_data = serializer.serialize(
+            snuba.SnubaTSResult(result, snuba_args["start"], snuba_args["end"], rollup)
         )
+
+        cache_timeout = 900  # 15 minutes = 900 seconds
+        default_cache.set(cache_key, snuba_data, cache_timeout)
+        logging.info("foo cache miss: %s", cache_key)
+
+        return Response(snuba_data, status=200)
 
     def get_field(self, request, snuba_args):
         y_axis = request.GET.get("yAxis", None)
@@ -74,3 +89,29 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
         snuba_args["aggregations"] = [aggregate]
 
         return snuba_args
+
+
+def cache_key_for_snuba_args(organization, params, snuba_args):
+
+    lol = json.dumps(
+        [
+            snuba_args.get("aggregations"),
+            snuba_args.get("conditions"),
+            snuba_args.get("filter_keys"),
+            params,
+        ]
+    )
+
+    import logging
+
+    logging.info("payload: %s", lol)
+
+    hash_result = hash(lol)
+
+    hash_rrr = u"e:{org_slug}:{hash}".format(
+        org_slug=organization.slug, hash=six.binary_type(hash_result)
+    )
+
+    logging.info("hash_rrr: %s", hash_rrr)
+
+    return hash_rrr
