@@ -9,8 +9,6 @@ from django.db.models import ForeignKey
 from django.db.models.deletion import Collector
 from django.db.models.signals import pre_delete, pre_save, post_save, post_delete
 
-from sentry.utils import db
-
 _leaf_re = re.compile(r"^(UserReport|Event|Group)(.+)")
 
 
@@ -298,29 +296,20 @@ def bulk_delete_objects(
         query.append("%s = %%s" % (quote_name(column),))
         params.append(value)
 
-    if db.is_postgres():
-        query = """
-            delete from %(table)s
-            where %(partition_query)s id = any(array(
-                select id
-                from %(table)s
-                where (%(query)s)
-                limit %(limit)d
-            ))
-        """ % dict(
-            partition_query=(" AND ".join(partition_query)) + (" AND " if partition_query else ""),
-            query=" AND ".join(query),
-            table=model._meta.db_table,
-            limit=limit,
-        )
-    else:
-        if logger is not None:
-            logger.warning("Using slow deletion strategy due to unknown database")
-        has_more = False
-        for obj in model.objects.filter(**filters)[:limit]:
-            obj.delete()
-            has_more = True
-        return has_more
+    query = """
+        delete from %(table)s
+        where %(partition_query)s id = any(array(
+            select id
+            from %(table)s
+            where (%(query)s)
+            limit %(limit)d
+        ))
+    """ % dict(
+        partition_query=(" AND ".join(partition_query)) + (" AND " if partition_query else ""),
+        query=" AND ".join(query),
+        table=model._meta.db_table,
+        limit=limit,
+    )
 
     cursor = connection.cursor()
     cursor.execute(query, params)

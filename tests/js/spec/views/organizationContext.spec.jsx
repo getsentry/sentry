@@ -120,6 +120,7 @@ describe('OrganizationContext', function() {
     await tick();
     // await resolving api, and updating component
     await tick();
+    await tick();
     wrapper.update();
     expect(wrapper.find('LoadingError')).toHaveLength(1);
     console.error.mockRestore(); // eslint-disable-line no-console
@@ -137,6 +138,7 @@ describe('OrganizationContext', function() {
     // await dispatching action
     await tick();
     // await resolving api, and updating component
+    await tick();
     await tick();
     wrapper.update();
 

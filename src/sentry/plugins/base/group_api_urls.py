@@ -4,7 +4,7 @@ import logging
 import re
 
 from django.core.urlresolvers import RegexURLResolver, RegexURLPattern
-from django.conf.urls import patterns, include, url
+from django.conf.urls import include, url
 
 from sentry.plugins.base import plugins
 
@@ -22,7 +22,7 @@ def ensure_url(u):
 
 
 def load_plugin_urls(plugins):
-    urlpatterns = patterns("")
+    urlpatterns = []
     for plugin in plugins:
         try:
             urls = plugin.get_group_urls()
