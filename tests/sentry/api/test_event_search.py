@@ -15,6 +15,7 @@ from sentry.api.event_search import (
     resolve_field_list,
     get_reference_event_conditions,
     parse_search_query,
+    get_json_meta_type,
     InvalidSearchQuery,
     SearchBoolean,
     SearchFilter,
@@ -25,6 +26,25 @@ from sentry.api.event_search import (
 from sentry.utils.samples import load_data
 from sentry.testutils import TestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+
+
+def test_get_json_meta_type():
+    assert get_json_meta_type("project_id", "UInt8") == "boolean"
+    assert get_json_meta_type("project_id", "UInt16") == "integer"
+    assert get_json_meta_type("project_id", "UInt32") == "integer"
+    assert get_json_meta_type("project_id", "UInt64") == "integer"
+    assert get_json_meta_type("project_id", "Float32") == "number"
+    assert get_json_meta_type("project_id", "Float64") == "number"
+    assert get_json_meta_type("value", "Nullable(Float64)") == "number"
+    assert get_json_meta_type("exception_stacks.type", "Array(String)") == "array"
+    assert get_json_meta_type("transaction", "Char") == "string"
+    assert get_json_meta_type("foo", "unknown") == "string"
+    assert get_json_meta_type("other", "") == "string"
+    assert get_json_meta_type("p99", "number") == "duration"
+    assert get_json_meta_type("p95", "number") == "duration"
+    assert get_json_meta_type("p75", "number") == "duration"
+    assert get_json_meta_type("avg_duration", "number") == "duration"
+    assert get_json_meta_type("duration", "number") == "duration"
 
 
 class ParseSearchQueryTest(unittest.TestCase):

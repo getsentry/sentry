@@ -571,3 +571,4 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             )
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
+        assert response.data["meta"]["transaction_duration"] == "duration"
