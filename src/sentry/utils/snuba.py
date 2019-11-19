@@ -63,7 +63,7 @@ GROUPS_SENTRY_SNUBA_MAP = {
     "active_at": "groups.active_at",
     "first_seen": "groups.first_seen",
     "last_seen": "groups.last_seen",
-    "first_release": "groups.first_release",
+    "first_release": "groups.first_release_id",
     "timestamp": "events.timestamp",
     "events.issue": "events.issue",
 }

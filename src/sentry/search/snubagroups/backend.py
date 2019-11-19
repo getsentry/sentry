@@ -20,10 +20,12 @@ from sentry.utils import snuba
 
 # We are running this backend alongside the original one and logging results.
 # Eventually, we hope to remove the original backend and use this if it performs well.
-class MoreSnubaSearchBackend(SnubaSearchBackend):
+
+
+class GroupDatasetSearchBackend(SnubaSearchBackend):
     QUERY_DATASET = snuba.Dataset.Groups
     ISSUE_FIELD_NAME = "events.issue"
-    logger = logging.getLogger("sentry.search.moresnuba")
+    logger = logging.getLogger("sentry.search.snubagroups")
     dependency_aggregations = {"priority": ["events.last_seen", "times_seen"]}
     issue_only_fields = set(
         ["query", "bookmarked_by", "assigned_to", "unassigned", "subscribed_by"]
@@ -55,49 +57,30 @@ class MoreSnubaSearchBackend(SnubaSearchBackend):
 
         # We only need to hit postgres if search_filters contains certain fields.
 
-        self.search_postgres = False
+        search_postgres = False
         for search_filter in search_filters:
-            if search_filter in self.issue_only_fields:
-                self.search_postgres = True
+            if search_filter.key.name in self.issue_only_fields:
+                search_postgres = True
                 break
 
-        if self.search_postgres is True:
-            return super(MoreSnubaSearchBackend, self).build_group_queryset(
+        if search_postgres is True:
+            return super(GroupDatasetSearchBackend, self).build_group_queryset(
                 projects, environments, search_filters, retention_window_start, date_from, date_to
             )
         else:
-            # TODO: Add `status` filter to snuba query to exlcude status:
-            # GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS, GroupStatus.PENDING_MERGE,
+            # TODO: Add `status` filter to snuba query to exlcude status' in:
+            # GroupStatus.PENDING_DESLETION, GroupStatus.DELETION_IN_PROGRESS, GroupStatus.PENDING_MERGE,
             # as well as project_id must be in PROJECTS
             # Not done here, maybe another function hook.
             return None
 
     def get_queryset_modifiers(
-        self,
-        projects,
-        environments=None,
-        sort_by="date",
-        limit=100,
-        cursor=None,
-        count_hits=False,
-        paginator_options=None,
-        search_filters=None,
-        date_from=None,
-        date_to=None,
+        self, projects, environments=None, search_filters=None, date_from=None, date_to=None
     ):
         with Hub.current.start_span(op="func", description="override_get_queryset_modifiers"):
             # We override this function to remove status and active_at
-            qs_builder_conditions = super(MoreSnubaSearchBackend, self).get_queryset_modifiers(
-                projects,
-                environments,
-                sort_by,
-                limit,
-                cursor,
-                count_hits,
-                paginator_options,
-                search_filters,
-                date_from,
-                date_to,
+            qs_builder_conditions = super(GroupDatasetSearchBackend, self).get_queryset_modifiers(
+                projects, environments, search_filters, date_from, date_to
             )
             del qs_builder_conditions["status"]
             del qs_builder_conditions["active_at"]

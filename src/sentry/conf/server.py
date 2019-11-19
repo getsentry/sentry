@@ -1050,7 +1050,7 @@ SENTRY_TAGSTORE = os.environ.get("SENTRY_TAGSTORE", "sentry.tagstore.snuba.Snuba
 SENTRY_TAGSTORE_OPTIONS = {}
 
 # Search backend
-SENTRY_USE_MORESNUBA = True
+SENTRY_USE_SNUBAGROUPS = True
 SENTRY_SEARCH = os.environ.get("SENTRY_SEARCH", "sentry.utils.services.ServiceDelegator")
 SENTRY_SEARCH_OPTIONS = os.environ.get(
     "SENTRY_SEARCH_OPTIONS",
@@ -1058,8 +1058,8 @@ SENTRY_SEARCH_OPTIONS = os.environ.get(
         "backend_base": "sentry.search.SearchBackend",
         "backends": {
             "default": {"path": "sentry.search.snuba.SnubaSearchBackend"},
-            "moresnuba": {
-                "path": "sentry.search.moresnuba.MoreSnubaSearchBackend",
+            "snubagroups": {
+                "path": "sentry.search.snubagroups.GroupDatasetSearchBackend",
                 # "options": {},
                 "executor": {
                     "path": "sentry.utils.services.ThreadedExecutor",

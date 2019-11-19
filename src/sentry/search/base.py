@@ -36,17 +36,17 @@ class SearchBackend(Service):
 
 def selector_func(context, method, callargs):
     backends = ["default"]
-    if settings.SENTRY_USE_MORESNUBA:
-        backends.append("moresnuba")
+    if settings.SENTRY_USE_SNUBAGROUPS:
+        backends.append("snubagroups")
 
     return backends
 
 
 def callback_func(context, method, callargs, backends, results):
-    if backends == ["default", "moresnuba"] and method == "query":
+    if backends == ["default", "snubagroups"] and method == "query":
         default_result = results[0].result().results
-        moresnuba_result = results[1].result().results
-        calculate_and_log_similarity(default_result, moresnuba_result)
+        snubagroups_result = results[1].result().results
+        calculate_and_log_similarity(default_result, snubagroups_result)
     return
 
 
@@ -77,16 +77,16 @@ def calculate_and_log_similarity(default_result, snuba_result):
     return
 
 
-def log_key_difference(mismatch_in_default, mismatch_in_moresnuba):
+def log_key_difference(mismatch_in_default, mismatch_in_snubagroups):
     logger.error(
         "snubasearch.mismatch.keys",
         extra={
             "search_mismatch_in_default": mismatch_in_default,
-            "search_mismatch_in_moresnuba": mismatch_in_moresnuba,
+            "search_mismatch_in_snubagroups": mismatch_in_snubagroups,
             # "search_mismatch_type": mismatch_type,
             "search_mismatch_default_keys": list(mismatch_in_default),
             "search_mismatch_default_num_keys": len(mismatch_in_default),
-            "search_mismatch_moresnuba_keys": list(mismatch_in_moresnuba),
-            "search_mismatch_moresnuba_num_keys": len(mismatch_in_moresnuba),
+            "search_mismatch_snubagroups_keys": list(mismatch_in_snubagroups),
+            "search_mismatch_snubagroups_num_keys": len(mismatch_in_snubagroups),
         },
     )
