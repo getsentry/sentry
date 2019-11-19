@@ -36,7 +36,7 @@ def install_sentry_plugins():
 
     from sentry.runner.initializer import register_plugins
 
-    register_plugins(settings, test_plugins=True, raise_on_plugin_load_failure=True)
+    register_plugins(settings, raise_on_plugin_load_failure=True)
 
     settings.ASANA_CLIENT_ID = "abc"
     settings.ASANA_CLIENT_SECRET = "123"
