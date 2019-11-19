@@ -159,6 +159,21 @@ matrix:
       env: TEST_SUITE=acceptance USE_SNUBA=1
 
     # allowed to fail
+    - <<: *postgres_default
+      name: '[Django 1.10] Backend [Postgres] (1/2)'
+      env: DJANGO_VERSION=">=1.10,<1.11" TEST_SUITE=postgres DB=postgres TOTAL_TEST_GROUPS=2 TEST_GROUP=0
+
+    # allowed to fail
+    - <<: *postgres_default
+      name: '[Django 1.10] Backend [Postgres] (2/2)'
+      env: DJANGO_VERSION=">=1.10,<1.11" TEST_SUITE=postgres DB=postgres TOTAL_TEST_GROUPS=2 TEST_GROUP=1
+
+    # allowed to fail
+    - <<: *acceptance_default
+      name: '[Django 1.10] Acceptance'
+      env: DJANGO_VERSION=">=1.10,<1.11" TEST_SUITE=acceptance USE_SNUBA=1
+
+    # allowed to fail
     - <<: *acceptance_default
       name: 'Plugins'
       env: TEST_SUITE=plugins DB=postgres PERCY_TOKEN=${PLUGIN_PERCY_TOKEN}
@@ -224,6 +239,29 @@ matrix:
       before_script:
         - psql -c 'create database sentry;' -U postgres
 
+    # allowed to fail
+    - python: 2.7
+      name: '[Django 1.10] Snuba Integration'
+      env: DJANGO_VERSION=">=1.10,<1.11" TEST_SUITE=snuba USE_SNUBA=1 SENTRY_ZOOKEEPER_HOSTS=localhost:2181 SENTRY_KAFKA_HOSTS=localhost:9092
+      services:
+        - docker
+        - memcached
+        - redis-server
+        - postgresql
+      before_install:
+        - *pip_install
+        - docker run -d --network host --name zookeeper -e ZOOKEEPER_CLIENT_PORT=2181 confluentinc/cp-zookeeper:4.1.0
+        - docker run -d --network host --name kafka -e KAFKA_ZOOKEEPER_CONNECT=localhost:2181 -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092 -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 confluentinc/cp-kafka:4.1.0
+        - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:19.11
+        - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
+        - docker ps -a
+      install:
+        - python setup.py install_egg_info
+        - pip install -U -e ".[dev]"
+        - pip install confluent-kafka
+      before_script:
+        - psql -c 'create database sentry;' -U postgres
+
     # Deploy 'storybook' (component & style guide) - allowed to fail
     - name: 'Storybook Deploy'
       language: node_js
@@ -246,6 +284,10 @@ matrix:
   allow_failures:
     - name: 'Storybook Deploy'
     - name: 'Plugins'
+    - name: '[Django 1.10] Backend [Postgres] (1/2)'
+    - name: '[Django 1.10] Backend [Postgres] (2/2)'
+    - name: '[Django 1.10] Acceptance'
+    - name: '[Django 1.10] Snuba Integration'
 
 notifications:
   webhooks:
