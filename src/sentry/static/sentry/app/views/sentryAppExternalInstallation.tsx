@@ -21,7 +21,7 @@ import {
   SentryAppInstallation,
 } from 'app/types';
 
-type Props = AsyncView['props'] & {};
+type Props = AsyncView['props'];
 
 type State = AsyncView['state'] & {
   selectedOrgSlug: string | null;
@@ -95,10 +95,10 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
     window.location.assign(newUrl);
   };
 
-  onInstall = async () => {
+  onInstall = async (): Promise<any | undefined> => {
     const {organization, sentryApp} = this.state;
     if (!organization || !sentryApp) {
-      return;
+      return undefined;
     }
     const install = await installSentryApp(this.api, organization.slug, sentryApp);
     if (sentryApp.redirectUrl) {
