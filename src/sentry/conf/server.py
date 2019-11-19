@@ -1423,6 +1423,14 @@ def get_sentry_sdk_config():
 
 SENTRY_SDK_CONFIG = get_sentry_sdk_config()
 
+# Callable to bind additional context for the Sentry SDK
+#
+# def get_org_context(scope, organization, **kwargs):
+#    scope.set_tag('organization.cool', '1')
+#
+# SENTRY_ORGANIZATION_CONTEXT_HELPER = get_org_context
+SENTRY_ORGANIZATION_CONTEXT_HELPER = None
+
 # Config options that are explicitly disabled from Django
 DEAD = object()
 

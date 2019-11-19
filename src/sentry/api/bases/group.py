@@ -5,7 +5,7 @@ import logging
 from sentry.api.base import Endpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.utils.sdk import configure_scope
+from sentry.utils.sdk import configure_scope, bind_organization_context
 from sentry.models import Group, GroupLink, GroupStatus, get_group_with_redirect, Organization
 from sentry.tasks.integrations import create_comment, update_comment
 
@@ -50,8 +50,7 @@ class GroupEndpoint(Endpoint):
             except Organization.DoesNotExist:
                 raise ResourceDoesNotExist
 
-            with configure_scope() as scope:
-                scope.set_tag("organization", organization.id)
+            bind_organization_context(organization)
 
             request._request.organization = organization
         else:
@@ -70,7 +69,10 @@ class GroupEndpoint(Endpoint):
 
         with configure_scope() as scope:
             scope.set_tag("project", group.project_id)
-            scope.set_tag("organization", group.project.organization_id)
+
+        # we didnt bind context above, so do it now
+        if not organization:
+            bind_organization_context(group.project.organization)
 
         if group.status in EXCLUDED_STATUSES:
             raise ResourceDoesNotExist

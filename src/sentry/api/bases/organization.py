@@ -21,7 +21,7 @@ from sentry.models import (
 )
 from sentry.utils import auth
 from sentry.utils.hashlib import hash_values
-from sentry.utils.sdk import configure_scope
+from sentry.utils.sdk import bind_organization_context
 
 
 class OrganizationEventsError(Exception):
@@ -266,8 +266,7 @@ class OrganizationEndpoint(Endpoint):
 
         self.check_object_permissions(request, organization)
 
-        with configure_scope() as scope:
-            scope.set_tag("organization", organization.id)
+        bind_organization_context(organization)
 
         request._request.organization = organization
 

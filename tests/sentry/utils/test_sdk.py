@@ -3,7 +3,7 @@ from __future__ import absolute_import, print_function
 from sentry_sdk import Hub
 
 from django.conf import settings
-from sentry.utils.sdk import configure_sdk
+from sentry.utils.sdk import configure_sdk, bind_organization_context
 from sentry.app import raven
 
 from sentry.models import Event
@@ -42,3 +42,42 @@ class SentryInternalClientTest(TestCase):
         assert event["project"] == settings.SENTRY_PROJECT
         assert event["logentry"]["formatted"] == "check the req"
         assert "NotJSONSerializable" in event["extra"]["request"]
+
+    def test_bind_organization_context(self):
+        configure_sdk()
+        Hub.current.bind_client(Hub.main.client)
+
+        org = self.create_organization()
+        bind_organization_context(org)
+
+        assert Hub.current.scope._tags["organization"] == org.id
+        assert Hub.current.scope._tags["organization.slug"] == org.slug
+        assert Hub.current.scope._contexts["organization"] == {"id": org.id, "slug": org.slug}
+
+    def test_bind_organization_context_with_callback(self):
+        configure_sdk()
+        Hub.current.bind_client(Hub.main.client)
+
+        org = self.create_organization()
+
+        def add_context(scope, organization, **kwargs):
+            scope.set_tag("organization.test", "1")
+
+        with self.settings(SENTRY_ORGANIZATION_CONTEXT_HELPER=add_context):
+            bind_organization_context(org)
+
+        assert Hub.current.scope._tags["organization.test"] == "1"
+
+    def test_bind_organization_context_with_callback_error(self):
+        configure_sdk()
+        Hub.current.bind_client(Hub.main.client)
+
+        org = self.create_organization()
+
+        def add_context(scope, organization, **kwargs):
+            1 / 0
+
+        with self.settings(SENTRY_ORGANIZATION_CONTEXT_HELPER=add_context):
+            bind_organization_context(org)
+
+        assert Hub.current.scope._tags["organization"] == org.id
