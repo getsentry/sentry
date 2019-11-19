@@ -109,6 +109,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
 
         if get_all_projects:
             queryset = queryset.order_by("slug")
+            queryset = queryset.select_related("organization")
             return Response(serialize(list(queryset), request.user, ProjectSummarySerializer()))
         else:
             return self.paginate(
