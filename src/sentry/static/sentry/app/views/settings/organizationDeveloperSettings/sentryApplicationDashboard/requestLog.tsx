@@ -302,10 +302,6 @@ const PaginationButtons = styled('div')`
   }
 `;
 
-// const ButtonGroup = styled('div')`
-
-// `
-
 const RequestLogFilters = styled('div')`
   display: flex;
   align-items: center;
@@ -325,7 +321,3 @@ const ErrorsOnlyCheckbox = styled('div')`
     margin: 0 ${space(1)} 0 0;
   }
 `;
-
-// const EventTypeDropdown = styled(DropdownControl)`
-//   z-index: ${p => p.theme.zIndex.header - 1};
-// `;
