@@ -1,18 +1,18 @@
 from __future__ import absolute_import
 
 import pkg_resources
-import test_only_plugins
+import new_sentry_plugins
 import six
 import sys
 
 from sentry.exceptions import InvalidIdentity, PluginError
 
-from test_only_plugins.constants import (
+from new_sentry_plugins.constants import (
     ERR_INTERNAL,
     ERR_UNAUTHORIZED,
     ERR_UNSUPPORTED_RESPONSE_TYPE,
 )
-from test_only_plugins.exceptions import (
+from new_sentry_plugins.exceptions import (
     ApiError,
     ApiHostError,
     ApiUnauthorized,
@@ -23,7 +23,7 @@ from test_only_plugins.exceptions import (
 class CorePluginMixin(object):
     author = "Sentry Team"
     author_url = "https://github.com/getsentry/sentry-plugins"
-    version = test_only_plugins.VERSION
+    version = new_sentry_plugins.VERSION
     resource_links = [
         ("Bug Tracker", "https://github.com/getsentry/sentry-plugins/issues"),
         ("Source", "https://github.com/getsentry/sentry-plugins"),

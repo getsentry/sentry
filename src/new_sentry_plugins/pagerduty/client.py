@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from sentry.utils.http import absolute_uri
-from test_only_plugins.client import ApiClient
+from new_sentry_plugins.client import ApiClient
 
 # https://v2.developer.pagerduty.com/docs/events-api
 INTEGRATION_API_URL = "https://events.pagerduty.com/generic/2010-04-15/create_event.json"
