@@ -10,6 +10,7 @@ import withApi from 'app/utils/withApi';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 
 import InlineInput from 'app/components/inputInline';
+import space from 'app/styles/space';
 import {handleUpdateQueryName} from './savedQuery/utils';
 
 import EventView from './eventView';
