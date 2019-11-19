@@ -240,6 +240,9 @@ const EventHeader = (props: {event: Event}) => {
 
 const StyledEventHeader = styled('div')`
   font-size: ${p => p.theme.headerFontSize};
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledTitle = styled('span')`
@@ -309,7 +312,7 @@ const ContentGrid = styled('div')`
 `;
 
 const HeaderBox = styled('div')`
-  color: inherit;
+  margin-bottom: ${space(1)};
 `;
 
 const MainBox = styled('div')`
