@@ -4,7 +4,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import ConfigStore from 'app/stores/configStore';
-import OrganizationMembers from 'app/views/settings/organizationMembers';
+import OrganizationMembers from 'app/views/settings/organizationMembers/organizationMembersList';
 import OrganizationsStore from 'app/stores/organizationsStore';
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 
@@ -18,7 +18,7 @@ describe('OrganizationMembers', function() {
     orgId: 'org-slug',
     orgName: 'Organization Name',
     status: '',
-    routes: [],
+    router: {routes: []},
     requireLink: false,
     memberCanLeave: false,
     canAddMembers: false,

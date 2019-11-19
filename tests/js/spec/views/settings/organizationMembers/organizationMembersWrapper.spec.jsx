@@ -3,11 +3,12 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {openInviteMembersModal} from 'app/actionCreators/modal';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import OrganizationMembers from 'app/views/settings/organizationMembers';
+import OrganizationMembersList from 'app/views/settings/organizationMembers/organizationMembersList';
 import OrganizationMembersWrapper from 'app/views/settings/organizationMembers/organizationMembersWrapper';
 
 jest.mock('app/utils/analytics', () => ({
   trackAnalyticsEvent: jest.fn(),
+  metric: {mark: jest.fn()},
 }));
 jest.mock('app/actionCreators/modal', () => ({
   openInviteMembersModal: jest.fn(),
@@ -236,12 +237,12 @@ describe('OrganizationMembersWrapper', function() {
     });
     const wrapper = mountWithTheme(
       <OrganizationMembersWrapper organization={organization} {...defaultProps}>
-        <OrganizationMembers {...defaultProps} />
+        <OrganizationMembersList {...defaultProps} router={{routes: []}} />
       </OrganizationMembersWrapper>,
       TestStubs.routerContext()
     );
 
-    expect(wrapper.find('OrganizationMembersView').exists()).toBe(true);
+    expect(wrapper.find('OrganizationMembersList').exists()).toBe(true);
     expect(
       wrapper
         .find('PanelHeader')
