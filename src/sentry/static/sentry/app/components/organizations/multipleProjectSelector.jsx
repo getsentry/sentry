@@ -157,15 +157,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
     // `forceProject` can be undefined if it is loading the project
     // We are intentionally using an empty string as its "loading" state
 
-    return loadingProjects ? (
-      <StyledHeaderItem
-        data-test-id="global-header-project-selector"
-        icon={<StyledInlineSvg src="icon-project" />}
-        loading={loadingProjects}
-      >
-        {t('Loading\u2026')}
-      </StyledHeaderItem>
-    ) : shouldForceProject ? (
+    return shouldForceProject ? (
       <StyledHeaderItem
         data-test-id="global-header-project-selector"
         icon={<StyledInlineSvg src="icon-project" />}
@@ -180,6 +172,14 @@ export default class MultipleProjectSelector extends React.PureComponent {
         }
       >
         {forceProject ? forceProject.slug : ''}
+      </StyledHeaderItem>
+    ) : loadingProjects ? (
+      <StyledHeaderItem
+        data-test-id="global-header-project-selector"
+        icon={<StyledInlineSvg src="icon-project" />}
+        loading={loadingProjects}
+      >
+        {t('Loading\u2026')}
       </StyledHeaderItem>
     ) : (
       <StyledProjectSelector

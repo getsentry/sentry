@@ -92,7 +92,8 @@ class Projects extends React.Component {
     this.setState({
       // placeholders for projects we need to fetch
       fetchedProjects: notInStore.map(slug => ({slug})),
-      initiallyLoaded: true,
+      // set initallyLoaded if any projects were fetched from store
+      initiallyLoaded: !!inStore.length,
       projectsFromStore,
     });
 
@@ -254,6 +255,13 @@ class Projects extends React.Component {
       //
       // fn(searchTerm, {append: bool})
       onSearch: this.handleSearch,
+
+      // Reflects whether or not the initial fetch for the requested projects
+      // was fulfilled
+      initiallyLoaded: this.state.initiallyLoaded,
+
+      // The error that occurred if fetching failed
+      fetchError: this.state.fetchError,
     });
   }
 }
