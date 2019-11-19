@@ -609,6 +609,7 @@ class EventNew(EventCommon):
         self.datetime = kwargs.get("datetime", timezone.now())
         self.group = None
         self.group_id = None
+        super(EventNew, self).__init__()
 
     def __getstate__(self):
         state = self.__dict__.copy()
