@@ -223,16 +223,12 @@ def _get_event_environment(event, project, cache):
 def merge_objects(models, group, new_group, limit=1000, logger=None, transaction_id=None):
     has_more = False
     for model in models:
-        all_fields = [f.name for f in model._meta.get_fields()]
+        all_fields = model._meta.get_all_field_names()
 
-        # Not all models have a 'project' or 'project_id' field, but we make a best effort
-        # to filter on one if it is available.
-        # Also note that all_fields doesn't contain f.attname
-        # (django ForeignKeys have only attribute "attname" where "_id" is implicitly appended)
-        # but we still want to check for "project_id" because some models define a project_id bigint.
-        has_project = "project_id" in all_fields or "project" in all_fields
-
+        # not all models have a 'project' or 'project_id' field, but we make a best effort
+        # to filter on one if it is available
         # HACK(mattrobenolt): Our Event table can't handle the extra project_id bit on the query
+        has_project = "project_id" in all_fields or "project" in all_fields
         if has_project and model.__name__ != "Event":
             project_qs = model.objects.filter(project_id=group.project_id)
         else:
