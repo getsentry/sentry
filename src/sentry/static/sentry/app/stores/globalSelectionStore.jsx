@@ -80,10 +80,10 @@ const GlobalSelectionStore = Reflux.createStore({
         projects: parsed.project || [],
         environments: parsed.environment || [],
         datetime: {
-          [DATE_TIME.START]: parsed.start || null,
-          [DATE_TIME.END]: parsed.end || null,
-          [DATE_TIME.PERIOD]: parsed.period || null,
-          [DATE_TIME.UTC]: parsed.utc || null,
+          [DATE_TIME.START]: parsed.start || undefined,
+          [DATE_TIME.END]: parsed.end || undefined,
+          [DATE_TIME.PERIOD]: parsed.period || undefined,
+          [DATE_TIME.UTC]: parsed.utc || undefined,
         },
       };
     } else {
