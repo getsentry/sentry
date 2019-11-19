@@ -11,6 +11,7 @@ import Pagination from 'app/components/pagination';
 import routeTitleGen from 'app/utils/routeTitle';
 import SentryTypes from 'app/sentryTypes';
 import {redirectToRemainingOrganization} from 'app/actionCreators/organizations';
+import {resendMemberInvite} from 'app/actionCreators/members';
 import withOrganization from 'app/utils/withOrganization';
 
 import OrganizationMemberRow from './organizationMemberRow';
@@ -130,16 +131,17 @@ class OrganizationMembersList extends AsyncView<Props, State> {
     addSuccessMessage(tct('You left [orgName]', {orgName}));
   };
 
-  handleSendInvite = async ({id}: Member) => {
+  handleSendInvite = async ({id, expired}) => {
     this.setState(state => ({
       invited: {...state.invited, [id]: 'loading'},
     }));
 
     try {
-      await this.api.requestPromise(
-        `/organizations/${this.props.params.orgId}/members/${id}/`,
-        {method: 'PUT', data: {reinvite: 1}}
-      );
+      await resendMemberInvite(this.api, {
+        orgId: this.props.params.orgId,
+        memberId: id,
+        regenerate: expired,
+      });
     } catch {
       this.setState(state => ({invited: {...state.invited, [id]: null}}));
       addErrorMessage(t('Error sending invite'));

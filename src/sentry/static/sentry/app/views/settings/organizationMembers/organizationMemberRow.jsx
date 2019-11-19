@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import {browserHistory} from 'react-router';
 import {PanelItem} from 'app/components/panels';
 import {t, tct} from 'app/locale';
 import Avatar from 'app/components/avatar';
@@ -12,17 +13,7 @@ import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
-import Tooltip from 'app/components/tooltip';
 import recreateRoute from 'app/utils/recreateRoute';
-
-const UserName = styled(Link)`
-  font-size: 16px;
-`;
-
-const Email = styled('div')`
-  color: ${p => p.theme.gray3};
-  font-size: 14px;
-`;
 
 export default class OrganizationMemberRow extends React.PureComponent {
   static propTypes = {
@@ -66,13 +57,13 @@ export default class OrganizationMemberRow extends React.PureComponent {
   };
 
   handleSendInvite = e => {
-    const {onSendInvite} = this.props;
+    const {onSendInvite, member} = this.props;
 
     if (typeof onSendInvite !== 'function') {
       return;
     }
 
-    onSendInvite(this.props.member, e);
+    onSendInvite(member, e);
   };
 
   render() {
@@ -103,66 +94,61 @@ export default class OrganizationMemberRow extends React.PureComponent {
     const detailsUrl = recreateRoute(id, {routes, params});
     const isInviteSuccessful = status === 'success';
     const isInviting = status === 'loading';
-    const canResend = !expired && canAddMembers && (pending || needsSso);
+    const showResendButton = pending || needsSso;
 
     return (
       <StyledPanelItem>
-        <StyledAvatar size={32} user={user ? user : {id: email, email}} />
+        <MemberHeading>
+          <Avatar size={32} user={user ? user : {id: email, email}} />
+          <MemberDescription onClick={() => browserHistory.push(detailsUrl)}>
+            <h5 style={{margin: '0 0 3px'}}>
+              <UserName to={detailsUrl}>{name}</UserName>
+            </h5>
+            <Email>{email}</Email>
+          </MemberDescription>
+        </MemberHeading>
 
-        <MemberDescription>
-          <h5 style={{margin: '0 0 3px'}}>
-            <UserName to={detailsUrl}>{name}</UserName>
-          </h5>
-          <Email>{email}</Email>
-        </MemberDescription>
+        <div data-test-id="member-role">
+          {pending ? (
+            <InvitedRole>
+              <InlineSvg src="icon-mail" size="1.2em" />
+              {expired ? t('Expired Invite') : tct('Invited [roleName]', {roleName})}
+            </InvitedRole>
+          ) : (
+            tct('[roleName]', {roleName})
+          )}
+        </div>
 
-        <AuthenticationStatus>
-          {needsSso || pending ? (
-            <div>
-              <div>
-                {expired ? (
-                  <strong>{t('Expired')}</strong>
-                ) : pending ? (
-                  <strong>{t('Invited')}</strong>
-                ) : (
-                  <strong>{t('Missing SSO Link')}</strong>
-                )}
-              </div>
-
+        <div data-test-id="member-status">
+          {showResendButton ? (
+            <React.Fragment>
               {isInviting && (
                 <div style={{padding: '4px 0 3px'}}>
                   <LoadingIndicator mini />
                 </div>
               )}
               {isInviteSuccessful && <span>Sent!</span>}
-              {!isInviting && !isInviteSuccessful && canResend && (
-                <ResendInviteButton
+              {!isInviting && !isInviteSuccessful && (
+                <Button
+                  disabled={!canAddMembers}
                   priority="primary"
-                  size="xsmall"
+                  size="small"
                   onClick={this.handleSendInvite}
-                  data-test-id="resend-invite"
                 >
-                  {t('Resend invite')}
-                </ResendInviteButton>
+                  {pending ? t('Resend invite') : t('Resend SSO link')}
+                </Button>
               )}
-            </div>
+            </React.Fragment>
           ) : (
-            <div>
-              {!has2fa ? (
-                <Tooltip title={t('Two-factor auth not enabled')}>
-                  <NoTwoFactorIcon />
-                </Tooltip>
-              ) : (
-                <HasTwoFactorIcon />
-              )}
-            </div>
+            <AuthStatus>
+              <AuthIcon has2fa={has2fa} />
+              {has2fa ? t('2FA Enabled') : t('2FA Not Enabled')}
+            </AuthStatus>
           )}
-        </AuthenticationStatus>
-
-        <MemberRole>{roleName}</MemberRole>
+        </div>
 
         {showRemoveButton || showLeaveButton ? (
-          <RemoveMember>
+          <div>
             {showRemoveButton && canRemoveMember && (
               <Confirm
                 message={tct('Are you sure you want to remove [name] from [orgName]?', {
@@ -227,7 +213,7 @@ export default class OrganizationMemberRow extends React.PureComponent {
                 {t('Leave')}
               </Button>
             )}
-          </RemoveMember>
+          </div>
         ) : null}
       </StyledPanelItem>
     );
@@ -235,49 +221,51 @@ export default class OrganizationMemberRow extends React.PureComponent {
 }
 
 const StyledPanelItem = styled(PanelItem)`
+  display: grid;
+  grid-template-columns: minmax(150px, 2fr) minmax(90px, 1fr) minmax(120px, 1fr) 90px;
+  grid-gap: ${space(2)};
   align-items: center;
-  padding: ${space(2)} 0;
+
+  /* Stack columns at smaller screen sizes */
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: auto;
+    grid-gap: ${space(1)};
+  }
 `;
 
-const StyledAvatar = styled(Avatar)`
-  margin-left: ${space(2)};
+const Section = styled('div')`
+  display: inline-grid;
+  grid-template-columns: max-content auto;
+  grid-gap: ${space(1)};
+  align-items: center;
 `;
 
+const MemberHeading = styled(Section)``;
 const MemberDescription = styled('div')`
-  flex: 1;
-  padding-left: ${space(1)};
-  padding-right: ${space(2)};
+  cursor: pointer;
+  overflow: hidden;
 `;
 
-const AuthenticationStatus = styled('div')`
-  width: 180px;
-  padding: 0 ${space(2)};
+const UserName = styled(Link)`
+  display: block;
+  font-size: ${p => p.theme.fontSizeLarge};
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
-const MemberRole = styled('div')`
-  width: 140px;
-  padding: 0 ${space(2)};
+const Email = styled('div')`
+  color: ${p => p.theme.gray4};
+  font-size: ${p => p.theme.fontSizeMedium};
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
-const RemoveMember = styled('div')`
-  width: 140px;
-  padding: 0 ${space(2)};
-`;
-
-const NoTwoFactorIcon = styled(props => (
-  <InlineSvg {...props} src="icon-circle-exclamation" />
+const InvitedRole = styled(Section)``;
+const AuthStatus = styled(Section)``;
+const AuthIcon = styled(p => (
+  <InlineSvg {...p} src={p.has2fa ? 'icon-circle-check' : 'icon-circle-exclamation'} />
 ))`
-  color: ${p => p.theme.error};
+  color: ${p => (p.has2fa ? p.theme.success : p.theme.error)};
   font-size: 18px;
-`;
-const HasTwoFactorIcon = styled(props => (
-  <InlineSvg {...props} src="icon-circle-check" />
-))`
-  color: ${p => p.theme.success};
-  font-size: 18px;
-`;
-
-const ResendInviteButton = styled(Button)`
-  padding: 0 4px;
-  margin-top: 2px;
+  margin-bottom: 1px;
 `;

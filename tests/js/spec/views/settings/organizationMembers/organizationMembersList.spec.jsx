@@ -7,9 +7,13 @@ import ConfigStore from 'app/stores/configStore';
 import OrganizationMembers from 'app/views/settings/organizationMembers/organizationMembersList';
 import OrganizationsStore from 'app/stores/organizationsStore';
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
+import {resendMemberInvite} from 'app/actionCreators/members';
 
 jest.mock('app/api');
 jest.mock('app/actionCreators/indicator');
+jest.mock('app/actionCreators/members', () => ({
+  resendMemberInvite: jest.fn(),
+}));
 
 describe('OrganizationMembers', function() {
   const members = TestStubs.Members();
@@ -268,13 +272,6 @@ describe('OrganizationMembers', function() {
   });
 
   it('can re-send invite to member', async function() {
-    const inviteMock = MockApiClient.addMockResponse({
-      url: `/organizations/org-id/members/${members[0].id}/`,
-      method: 'PUT',
-      body: {
-        id: '1234',
-      },
-    });
     const wrapper = mountWithTheme(
       <OrganizationMembers
         {...defaultProps}
@@ -285,15 +282,12 @@ describe('OrganizationMembers', function() {
       TestStubs.routerContext([{organization}])
     );
 
-    expect(inviteMock).not.toHaveBeenCalled();
+    expect(resendMemberInvite).not.toHaveBeenCalled();
 
-    wrapper
-      .find('ResendInviteButton')
-      .first()
-      .simulate('click');
+    wrapper.find('button[aria-label="Resend invite"]').simulate('click');
 
     await tick();
-    expect(inviteMock).toHaveBeenCalled();
+    expect(resendMemberInvite).toHaveBeenCalled();
   });
 
   it('can search organization members', async function() {
