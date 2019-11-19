@@ -1,57 +1,556 @@
+import isNil from 'lodash/isNil';
 import PropTypes from 'prop-types';
 import React from 'react';
-import SentryTypes from 'app/sentryTypes';
-import EventDataSection from 'app/components/events/eventDataSection';
-import ClippedBox from 'app/components/clippedBox';
-import KeyValueList from 'app/components/events/interfaces/keyValueList';
-import {t} from 'app/locale';
+import styled from 'react-emotion';
 
-class DebugMetaInterface extends React.Component {
+import Access from 'app/components/acl/access';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
+import Button from 'app/components/button';
+import Checkbox from 'app/components/checkbox';
+import DebugFileFeature from 'app/components/debugFileFeature';
+import EventDataSection from 'app/components/events/eventDataSection';
+import InlineSvg from 'app/components/inlineSvg';
+import Input from 'app/components/forms/input';
+import {Panel, PanelBody, PanelItem} from 'app/components/panels';
+import Tooltip from 'app/components/tooltip';
+
+import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
+
+const IMAGE_ADDR_LEN = 12;
+const MIN_FILTER_LEN = 3;
+
+function formatAddr(addr) {
+  return `0x${addr.toString(16).padStart(IMAGE_ADDR_LEN, '0')}`;
+}
+
+function parseAddr(addr) {
+  try {
+    return parseInt(addr, 16) || 0;
+  } catch (_e) {
+    return 0;
+  }
+}
+
+function getImageRange(image) {
+  // The start address is normalized to a `0x` prefixed hex string. The event
+  // schema also allows ingesting plain numbers, but this is converted during
+  // ingestion.
+  const startAddress = parseAddr(image.image_addr);
+
+  // The image size is normalized to a regular number. However, it can also be
+  // `null`, in which case we assume that it counts up to the next image.
+  const endAddress = startAddress + (image.image_size || 0);
+
+  return [startAddress, endAddress];
+}
+
+function getFileName(path) {
+  const directorySeparator = /^([a-z]:\\|\\\\)/i.test(path) ? '\\' : '/';
+  return path.split(directorySeparator).pop();
+}
+
+function getStatusWeight(status) {
+  switch (status) {
+    case null:
+    case undefined:
+    case 'unused':
+      return 0;
+    case 'found':
+      return 1;
+    default:
+      return 2;
+  }
+}
+
+function getImageStatusText(status) {
+  switch (status) {
+    case 'found':
+      return t('ok');
+    case 'unused':
+      return t('unused');
+    case 'missing':
+      return t('missing');
+    case 'malformed':
+    case 'fetching_failed':
+    case 'timeout':
+    case 'other':
+      return t('failed');
+    default:
+      return null;
+  }
+}
+
+function getImageStatusDetails(status) {
+  switch (status) {
+    case 'found':
+      return t('The file was found and successfully processed.');
+    case 'unused':
+      return t('The file was not required for processing the stack trace.');
+    case 'missing':
+      return t('The file could not be found in any of the specified sources.');
+    case 'malformed':
+      return t('The file failed to process.');
+    case 'fetching_failed':
+      return t('The file could not be downloaded.');
+    case 'timeout':
+      return t('Downloading or processing the file took too long.');
+    case 'other':
+      return t('An internal error occurred while handling this image.');
+    default:
+      return null;
+  }
+}
+
+function combineStatus(debugStatus, unwindStatus) {
+  const debugWeight = getStatusWeight(debugStatus);
+  const unwindWeight = getStatusWeight(unwindStatus);
+
+  const combined = debugWeight >= unwindWeight ? debugStatus : unwindStatus;
+  return combined || 'unused';
+}
+
+class DebugImage extends React.PureComponent {
   static propTypes = {
-    event: SentryTypes.Event.isRequired,
-    data: PropTypes.object.isRequired,
+    image: PropTypes.object.isRequired,
+    orgId: PropTypes.string,
+    projectId: PropTypes.string,
+    showDetails: PropTypes.bool.isRequired,
   };
 
-  getImageDetail(img) {
-    // in particular proguard images do not have a code file, skip them
-    if (img === null || img.code_file === null || img.type === 'proguard') {
+  getSettingsLink(image) {
+    const {orgId, projectId} = this.props;
+    if (!orgId || !projectId || !image.debug_id) {
       return null;
     }
 
-    const directorySeparator = /^([a-z]:\\|\\\\)/i.test(img.code_file) ? '\\' : '/';
-    const code_file = img.code_file.split(directorySeparator).pop();
-    if (code_file === 'dyld_sim') {
-      // this is only for simulator builds
-      return null;
-    }
-
-    const version = img.debug_id || '<none>';
-    return [code_file, version];
+    return `/settings/${orgId}/projects/${projectId}/debug-symbols/?query=${
+      image.debug_id
+    }`;
   }
 
-  render() {
-    const data = this.props.data;
+  renderStatus(title, status) {
+    if (isNil(status)) {
+      return null;
+    }
 
-    // skip null values indicating invalid debug images
-    const images = data.images.map(img => this.getImageDetail(img)).filter(img => img);
-    if (images.length === 0) {
+    const text = getImageStatusText(status);
+    if (!text) {
       return null;
     }
 
     return (
-      <div>
-        <EventDataSection
-          event={this.props.event}
-          type="packages"
-          title={t('Images Loaded')}
-        >
-          <ClippedBox>
-            <KeyValueList data={images} isSorted={false} />
-          </ClippedBox>
-        </EventDataSection>
-      </div>
+      <SymbolicationStatus>
+        <Tooltip title={getImageStatusDetails(status)}>
+          <span>
+            <ImageProp>{title}</ImageProp>: {text}
+          </span>
+        </Tooltip>
+      </SymbolicationStatus>
+    );
+  }
+
+  render() {
+    const {image, showDetails} = this.props;
+
+    const combinedStatus = combineStatus(image.debug_status, image.unwind_status);
+    const [startAddress, endAddress] = getImageRange(image);
+
+    let iconElement = null;
+    switch (combinedStatus) {
+      case 'unused':
+        iconElement = <ImageIcon type="muted" src="icon-circle-empty" />;
+        break;
+      case 'found':
+        iconElement = <ImageIcon type="success" src="icon-circle-check" />;
+        break;
+      default:
+        iconElement = <ImageIcon type="error" src="icon-circle-exclamation" />;
+        break;
+    }
+
+    const codeFile = getFileName(image.code_file);
+    const debugFile = image.debug_file && getFileName(image.debug_file);
+
+    // The debug file is only realistically set on Windows. All other platforms
+    // either leave it empty or set it to a filename thats equal to the code
+    // file name. In this case, do not show it.
+    const showDebugFile = debugFile && codeFile !== debugFile;
+
+    // Availability only makes sense if the image is actually referenced.
+    // Otherwise, the processing pipeline does not resolve this kind of
+    // information and it will always be false.
+    const showAvailability = !isNil(image.features) && combinedStatus !== 'unused';
+
+    // The code id is sometimes missing, and sometimes set to the equivalent of
+    // the debug id (e.g. for Mach symbols). In this case, it is redundant
+    // information and we do not want to show it.
+    const showCodeId = !!image.code_id && image.code_id !== image.debug_id;
+
+    // Old versions of the event pipeline did not store the symbolication
+    // status. In this case, default to display the debug_id instead of stack
+    // unwind information.
+    const legacyRender = isNil(image.debug_status);
+
+    const debugIdElement = (
+      <ImageSubtext>
+        <ImageProp>{t('Debug ID')}</ImageProp>: <Formatted>{image.debug_id}</Formatted>
+      </ImageSubtext>
+    );
+
+    return (
+      <DebugImageItem>
+        <ImageInfoGroup>{iconElement}</ImageInfoGroup>
+
+        <ImageInfoGroup>
+          <Formatted>{formatAddr(startAddress)}</Formatted> &ndash; <br />
+          <Formatted>{formatAddr(endAddress)}</Formatted>
+        </ImageInfoGroup>
+
+        <ImageInfoGroup fullWidth>
+          <ImageTitle>
+            <Tooltip title={image.code_file}>
+              <CodeFile>{codeFile}</CodeFile>
+            </Tooltip>
+            {showDebugFile && <DebugFile> ({debugFile})</DebugFile>}
+          </ImageTitle>
+
+          {legacyRender ? (
+            debugIdElement
+          ) : (
+            <StatusLine>
+              {this.renderStatus(t('Stack Unwinding'), image.unwind_status)}
+              {this.renderStatus(t('Symbolication'), image.debug_status)}
+            </StatusLine>
+          )}
+
+          {showDetails && (
+            <React.Fragment>
+              {showAvailability && (
+                <ImageSubtext>
+                  <ImageProp>{t('Availability')}</ImageProp>:
+                  <DebugFileFeature
+                    feature="symtab"
+                    available={image.features.has_symbols}
+                  />
+                  <DebugFileFeature
+                    feature="debug"
+                    available={image.features.has_debug_info}
+                  />
+                  <DebugFileFeature
+                    feature="unwind"
+                    available={image.features.has_unwind_info}
+                  />
+                  <DebugFileFeature
+                    feature="sources"
+                    available={image.features.has_sources}
+                  />
+                </ImageSubtext>
+              )}
+
+              {!legacyRender && debugIdElement}
+
+              {showCodeId && (
+                <ImageSubtext>
+                  <ImageProp>{t('Code ID')}</ImageProp>:{' '}
+                  <Formatted>{image.code_id}</Formatted>
+                </ImageSubtext>
+              )}
+
+              {!!image.arch && (
+                <ImageSubtext>
+                  <ImageProp>{t('Architecture')}</ImageProp>: {image.arch}
+                </ImageSubtext>
+              )}
+            </React.Fragment>
+          )}
+        </ImageInfoGroup>
+
+        <Access access={['project:releases']}>
+          {({hasAccess}) => {
+            if (!hasAccess) {
+              return null;
+            }
+
+            const settingsUrl = this.getSettingsLink(image);
+            if (!settingsUrl) {
+              return null;
+            }
+
+            return (
+              <ImageActions>
+                <Tooltip title={t('Search for debug files in settings')}>
+                  <Button size="xsmall" icon="icon-settings" href={settingsUrl} />
+                </Tooltip>
+              </ImageActions>
+            );
+          }}
+        </Access>
+      </DebugImageItem>
     );
   }
 }
+
+class DebugMetaInterface extends React.PureComponent {
+  static propTypes = {
+    event: SentryTypes.Event.isRequired,
+    data: PropTypes.object.isRequired,
+    orgId: PropTypes.string,
+    projectId: PropTypes.string,
+  };
+
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      filter: null,
+      showUnused: false,
+      showDetails: false,
+    };
+  }
+
+  filterImage(image) {
+    const {showUnused, filter} = this.state;
+    if (!filter || filter.length < MIN_FILTER_LEN) {
+      if (showUnused) {
+        return true;
+      }
+
+      // A debug status of `null` indicates that this information is not yet
+      // available in an old event. Default to showing the image.
+      if (image.debug_status !== 'unused') {
+        return true;
+      }
+
+      // An unwind status of `null` indicates that symbolicator did not unwind.
+      // Ignore the status in this case.
+      if (!isNil(image.unwind_status) && image.unwind_status !== 'unused') {
+        return true;
+      }
+
+      return false;
+    }
+
+    // When searching for an address, check for the address range of the image
+    // instead of an exact match.
+    if (filter.indexOf('0x') === 0) {
+      const needle = parseAddr(filter);
+      if (needle > 0) {
+        const [startAddress, endAddress] = getImageRange(image);
+        return needle >= startAddress && needle < endAddress;
+      }
+    }
+
+    return (
+      // Prefix match for identifiers
+      (image.code_id || '').indexOf(filter) === 0 ||
+      (image.debug_id || '').indexOf(filter) === 0 ||
+      // Any match for file paths
+      (image.code_file || '').indexOf(filter) >= 0 ||
+      (image.debug_file || '').indexOf(filter) >= 0
+    );
+  }
+
+  handleChangeShowUnused = e => {
+    const showUnused = e.target.checked;
+    this.setState({showUnused});
+  };
+
+  handleChangeShowDetails = e => {
+    const showDetails = e.target.checked;
+    this.setState({showDetails});
+  };
+
+  handleChangeFilter = e => {
+    this.setState({filter: e.target.value});
+  };
+
+  isValidImage(image) {
+    // in particular proguard images do not have a code file, skip them
+    if (image === null || image.code_file === null || image.type === 'proguard') {
+      return false;
+    }
+
+    if (getFileName(image.code_file) === 'dyld_sim') {
+      // this is only for simulator builds
+      return false;
+    }
+
+    return true;
+  }
+
+  getDebugImages() {
+    const images = this.props.data.images || [];
+
+    // There are a bunch of images in debug_meta that are not relevant to this
+    // component. Filter those out to reduce the noise. Most importantly, this
+    // includes proguard images, which are rendered separately.
+    const filtered = images.filter(image => this.isValidImage(image));
+
+    // Sort images by their start address. We assume that images have
+    // non-overlapping ranges. Each address is given as hex string (e.g.
+    // "0xbeef").
+    filtered.sort((a, b) => parseAddr(a.image_addr) - parseAddr(b.image_addr));
+
+    return filtered;
+  }
+
+  renderToolbar() {
+    const {filter, showDetails, showUnused} = this.state;
+    return (
+      <Toolbar>
+        <Label>
+          <Checkbox checked={showDetails} onChange={this.handleChangeShowDetails} />
+          {t('details')}
+        </Label>
+
+        <Label>
+          <Checkbox
+            checked={showUnused || !!filter}
+            disabled={!!filter}
+            onChange={this.handleChangeShowUnused}
+          />
+          {t('show unreferenced')}
+        </Label>
+
+        <SearchBox
+          onChange={this.handleChangeFilter}
+          placeholder={t('Search loaded images\u2026')}
+        />
+      </Toolbar>
+    );
+  }
+
+  render() {
+    // skip null values indicating invalid debug images
+    const images = this.getDebugImages();
+    if (images.length === 0) {
+      return null;
+    }
+
+    const filteredImages = images.filter(image => this.filterImage(image));
+
+    const titleElement = (
+      <div>
+        <GuideAnchor target="packages" position="top">
+          <Title>
+            <strong>{t('Images Loaded')}</strong>
+          </Title>
+          {this.renderToolbar()}
+        </GuideAnchor>
+      </div>
+    );
+
+    return (
+      <React.Fragment>
+        <EventDataSection
+          event={this.props.event}
+          type="packages"
+          title={titleElement}
+          wrapTitle={false}
+        >
+          <DebugImagesPanel>
+            <PanelBody>
+              {filteredImages.map(image => (
+                <DebugImage
+                  key={image.debug_id}
+                  image={image}
+                  orgId={this.props.orgId}
+                  projectId={this.props.projectId}
+                  showDetails={this.state.showDetails}
+                />
+              ))}
+            </PanelBody>
+          </DebugImagesPanel>
+        </EventDataSection>
+      </React.Fragment>
+    );
+  }
+}
+
+const Title = styled('h3')`
+  float: left;
+`;
+
+const Toolbar = styled('div')`
+  float: right;
+`;
+
+const Label = styled('label')`
+  font-weight: normal;
+  margin-right: 1em;
+
+  > input {
+    margin-right: 1ex;
+  }
+`;
+
+const SearchBox = styled(Input)`
+  width: auto;
+  display: inline;
+`;
+
+const DebugImagesPanel = styled(Panel)`
+  max-height: 600px;
+  overflow-y: auto;
+`;
+
+const DebugImageItem = styled(PanelItem)`
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const ImageIcon = styled(InlineSvg)`
+  font-size: ${p => p.theme.fontSizeLarge};
+  color: ${p => p.theme.alert[p.type].iconColor};
+`;
+
+const Formatted = styled('span')`
+  font-family: ${p => p.theme.text.familyMono};
+`;
+
+const ImageInfoGroup = styled('div')`
+  margin-left: 1em;
+  flex-grow: ${p => (p.fullWidth ? 1 : null)};
+
+  &:first-child {
+    margin-left: 0;
+  }
+`;
+
+const ImageActions = styled(ImageInfoGroup)``;
+
+const ImageTitle = styled('div')`
+  font-size: ${p => p.theme.fontSizeLarge};
+`;
+
+const CodeFile = styled('span')`
+  font-weight: bold;
+`;
+
+const DebugFile = styled('span')`
+  color: ${p => p.theme.gray2};
+`;
+
+const ImageSubtext = styled('div')`
+  color: ${p => p.theme.gray2};
+`;
+
+const ImageProp = styled('span')`
+  font-weight: bold;
+`;
+
+const StatusLine = styled(ImageSubtext)`
+  display: flex;
+`;
+
+const SymbolicationStatus = styled('span')`
+  flex-grow: 1;
+  flex-basis: 0;
+  margin-right: 1em;
+
+  ${ImageIcon} {
+    margin-left: 0.66ex;
+  }
+`;
 
 export default DebugMetaInterface;

@@ -331,6 +331,10 @@ LIST_TYPES = [
 ]
 
 
+def strip_channel_name(name):
+    return name.lstrip(strip_channel_chars)
+
+
 def get_channel_id(organization, integration_id, name):
     """
     Fetches the internal slack id of a channel.
@@ -339,7 +343,7 @@ def get_channel_id(organization, integration_id, name):
     :param name: The name of the channel
     :return:
     """
-    name = name.lstrip(strip_channel_chars)
+    name = strip_channel_name(name)
     try:
         integration = Integration.objects.get(
             provider="slack", organizations=organization, id=integration_id
