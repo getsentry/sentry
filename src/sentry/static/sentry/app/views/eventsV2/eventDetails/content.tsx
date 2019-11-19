@@ -127,7 +127,11 @@ class EventDetailsContent extends AsyncComponent<Props, State & AsyncComponent['
             })}
         </HeaderBox>
         <ContentColumn>
-          <EventInterfaces event={event} projectId={this.projectId} />
+          <EventInterfaces
+            event={event}
+            projectId={this.projectId}
+            orgId={organization.slug}
+          />
         </ContentColumn>
         <SidebarColumn>
           {event.groupID && (
