@@ -67,18 +67,18 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
 
         order_by = ["slug"]
 
-        if request.user.is_authenticated():
-            queryset = queryset.extra(
-                select={
-                    "is_bookmarked": """exists (
-                        select *
-                        from sentry_projectbookmark spb
-                        where spb.project_id = sentry_project.id and spb.user_id = %s
-                    )"""
-                },
-                select_params=(request.user.id,),
-            )
-            order_by.insert(0, "-is_bookmarked")
+        # if request.user.is_authenticated():
+        #     queryset = queryset.extra(
+        #         select={
+        #             "is_bookmarked": """exists (
+        #                 select *
+        #                 from sentry_projectbookmark spb
+        #                 where spb.project_id = sentry_project.id and spb.user_id = %s
+        #             )"""
+        #         },
+        #         select_params=(request.user.id,),
+        #     )
+        #     order_by.insert(0, "-is_bookmarked")
 
         query = request.GET.get("query")
         if query:
@@ -108,7 +108,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
         get_all_projects = request.GET.get("all_projects") == "1"
 
         if get_all_projects:
-            queryset = queryset.order_by("slug")
+            # queryset = queryset.order_by("slug")
             queryset = queryset.select_related("organization")
             return Response(serialize(list(queryset), request.user, ProjectSummarySerializer()))
         else:
