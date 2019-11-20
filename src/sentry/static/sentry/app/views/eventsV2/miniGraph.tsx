@@ -1,14 +1,15 @@
 import React from 'react';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
+import {Location} from 'history';
 
 import withApi from 'app/utils/withApi';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
 import {Client} from 'app/api';
-import {GlobalSelection, Organization} from 'app/types';
+import {Organization} from 'app/types';
 import EventsRequest from 'app/views/events/utils/eventsRequest';
 import AreaChart from 'app/components/charts/areaChart';
 import {getInterval} from 'app/components/charts/utils';
+import {getUtcToLocalDateObject} from 'app/utils/dates';
 
 import EventView from './eventView';
 
@@ -16,8 +17,7 @@ type Props = {
   organization: Organization;
   eventView: EventView;
   api: Client;
-  selection: GlobalSelection;
-  query: string;
+  location: Location;
 };
 
 const omitProps = (props: Props) => {
@@ -34,8 +34,13 @@ class MiniGraph extends React.Component<Props> {
   }
 
   render() {
-    const {organization, api, selection, query} = this.props;
-    const {start, end, period} = selection.datetime;
+    const {organization, api, location, eventView} = this.props;
+
+    const apiPayload = eventView.getEventsAPIPayload(location);
+    const query = apiPayload.query;
+    const start = getUtcToLocalDateObject(apiPayload.start);
+    const end = getUtcToLocalDateObject(apiPayload.end);
+    const period: string | undefined = apiPayload.statsPeriod as any;
 
     return (
       <EventsRequest
@@ -46,8 +51,8 @@ class MiniGraph extends React.Component<Props> {
         end={end}
         period={period}
         interval={getInterval({start, end, period}, true)}
-        project={selection.projects || []}
-        environment={selection.environments || []}
+        project={eventView.project as number[]}
+        environment={eventView.environment as string[]}
         includePrevious={false}
       >
         {({loading, timeseriesData}) => {
@@ -106,4 +111,4 @@ class MiniGraph extends React.Component<Props> {
   }
 }
 
-export default withApi(withGlobalSelection(MiniGraph));
+export default withApi(MiniGraph);

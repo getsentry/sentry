@@ -99,7 +99,7 @@ class QueryList extends React.Component<Props> {
           renderGraph={() => {
             return (
               <MiniGraph
-                query={eventView.getEventsAPIPayload(location).query}
+                location={location}
                 eventView={eventView}
                 organization={organization}
               />
@@ -155,7 +155,7 @@ class QueryList extends React.Component<Props> {
           renderGraph={() => {
             return (
               <MiniGraph
-                query={eventView.getEventsAPIPayload(location).query}
+                location={location}
                 eventView={eventView}
                 organization={organization}
               />
