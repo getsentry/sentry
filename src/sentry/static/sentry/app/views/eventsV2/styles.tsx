@@ -1,6 +1,7 @@
 import styled from 'react-emotion';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import Link from 'app/components/links/link';
+import space from 'app/styles/space';
 
 export const QueryLink = styled(Link)`
   ${overflowEllipsis};

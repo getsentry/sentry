@@ -28,6 +28,7 @@ import LineGraph from './lineGraph';
 import TagsTable from '../tagsTable';
 import EventInterfaces from './eventInterfaces';
 import DiscoverBreadcrumb from '../breadcrumb';
+import {SectionHeading} from '../styles';
 
 const slugValidator = function(
   props: {[key: string]: any},
@@ -138,17 +139,6 @@ class EventDetailsContent extends AsyncComponent<Props, State & AsyncComponent['
             projectId={this.projectId}
           />
           <TagsTable tags={event.tags} />
-          {event.groupID && (
-            <LinkedIssuePreview groupId={event.groupID} eventId={event.eventID} />
-          )}
-          {event.type === 'transaction' && (
-            <RelatedEvents
-              organization={organization}
-              event={event}
-              location={location}
-              eventView={eventView}
-            />
-          )}
         </SidebarBox>
       </ContentGrid>
     );
@@ -271,9 +261,7 @@ const EventMetadata = (props: {
 
   return (
     <StyledMetadata>
-      <MetadataHeading>
-        <span>{t('Event ID')}</span>
-      </MetadataHeading>
+      <SectionHeading>{t('Event ID')}</SectionHeading>
       <MetadataContainer data-test-id="event-id">{event.eventID}</MetadataContainer>
       <MetadataContainer>
         <DateTime
@@ -292,11 +280,6 @@ const EventMetadata = (props: {
 
 const MetadataJSON = styled(ExternalLink)`
   font-size: ${p => p.theme.fontSizeMedium};
-`;
-
-const MetadataHeading = styled('h6')`
-  color: ${p => p.theme.gray3};
-  margin: ${space(1)} 0;
 `;
 
 const StyledMetadata = styled('div')`
