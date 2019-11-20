@@ -6,6 +6,7 @@ import {Location} from 'history';
 import {t} from 'app/locale';
 import * as Sentry from '@sentry/browser';
 
+import space from 'app/styles/space';
 import {Client} from 'app/api';
 import SentryTypes from 'app/sentryTypes';
 import Placeholder from 'app/components/placeholder';
@@ -13,6 +14,7 @@ import TagDistributionMeter from 'app/components/tagDistributionMeter';
 import withApi from 'app/utils/withApi';
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {SectionHeading} from './styles';
 
 import {
   fetchTagDistribution,
@@ -145,18 +147,19 @@ class Tags extends React.Component<Props, State> {
   render() {
     return (
       <TagSection>
-        <TagSectionHeading>{t('Event Tag Summary')}</TagSectionHeading>
+        <StyledHeading>{t('Event Tag Summary')}</StyledHeading>
         {this.props.eventView.tags.map(tag => this.renderTag(tag))}
       </TagSection>
     );
   }
 }
 
-const TagSection = styled('div')`
-  margin: 16px 0;
+const StyledHeading = styled(SectionHeading)`
+  margin: 0 0 ${space(2)} 0;
 `;
-const TagSectionHeading = styled('h6')`
-  color: ${p => p.theme.gray3};
+
+const TagSection = styled('div')`
+  margin: ${space(2)} 0;
 `;
 
 const StyledPlaceholder = styled(Placeholder)`

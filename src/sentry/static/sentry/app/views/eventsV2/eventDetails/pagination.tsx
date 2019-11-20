@@ -119,7 +119,6 @@ const Paginator = styled('div')`
   background: ${p => p.theme.offWhite};
   border: 1px solid ${p => p.theme.borderDark};
   border-radius: ${p => p.theme.borderRadius};
-  margin-bottom: ${space(1)};
 `;
 
 export default Pagination;

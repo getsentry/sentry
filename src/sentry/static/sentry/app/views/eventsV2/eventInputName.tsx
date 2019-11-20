@@ -6,11 +6,11 @@ import {Client} from 'app/api';
 import {t} from 'app/locale';
 import {Organization, SavedQuery} from 'app/types';
 import withApi from 'app/utils/withApi';
+import space from 'app/styles/space';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 
 import InlineInput from 'app/components/inputInline';
-import space from 'app/styles/space';
 import {handleUpdateQueryName} from './savedQuery/utils';
 
 import EventView from './eventView';
@@ -93,7 +93,10 @@ class EventInputName extends React.Component<Props> {
 }
 
 const StyledHeader = styled('div')`
-  margin-bottom: ${space(3)};
+  display: flex;
+  align-items: center;
+  height: 40px;
+  margin-bottom: ${space(1.5)};
 `;
 
 export default withApi(EventInputName);

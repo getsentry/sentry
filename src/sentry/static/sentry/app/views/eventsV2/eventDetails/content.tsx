@@ -107,9 +107,7 @@ class EventDetailsContent extends AsyncComponent<Props, State & AsyncComponent['
 
     return (
       <ContentGrid>
-        <HeaderBox>
-          <EventHeader event={event} />
-        </HeaderBox>
+        <EventHeader event={event} />
         {isGroupedView && (
           <Pagination event={event} organization={organization} eventView={eventView} />
         )}
@@ -227,6 +225,8 @@ const EventHeader = (props: {event: Event}) => {
 };
 
 const StyledEventHeader = styled('div')`
+  display: flex;
+  align-items: center;
   font-size: ${p => p.theme.headerFontSize};
   white-space: nowrap;
   overflow: hidden;
@@ -292,10 +292,6 @@ const ContentGrid = styled('div')`
     grid-gap: ${space(2)};
     grid-template-columns: 72% auto;
   }
-`;
-
-const HeaderBox = styled('div')`
-  margin-bottom: ${space(1)};
 `;
 
 const MainBox = styled('div')`
