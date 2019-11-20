@@ -180,14 +180,14 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     const {savedQueries} = this.state;
 
     return (
-      <div>
+      <StyledInput>
         <EventInputName
           savedQueries={savedQueries}
           organization={organization}
           eventView={eventView}
           onQuerySave={this.handleQuerySave}
         />
-      </div>
+      </StyledInput>
     );
   };
 
@@ -254,6 +254,11 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     );
   }
 }
+
+const StyledInput = styled('span')`
+  font-size: ${p => p.theme.headerFontSize};
+  color: ${p => p.theme.gray4};
+`;
 
 const StyledActions = styled('div')`
   display: flex;

@@ -155,6 +155,7 @@ const CardHeader = styled('div')`
 
 const EventLink = styled(Link)`
   margin-left: ${space(1)};
+  max-width: 250px;
   ${overflowEllipsis};
 `;
 
