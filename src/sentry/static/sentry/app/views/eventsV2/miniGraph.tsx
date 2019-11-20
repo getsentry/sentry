@@ -1,6 +1,5 @@
 import React from 'react';
 import isEqual from 'lodash/isEqual';
-import omit from 'lodash/omit';
 import {Location} from 'history';
 
 import withApi from 'app/utils/withApi';
@@ -20,27 +19,40 @@ type Props = {
   location: Location;
 };
 
-const omitProps = (props: Props) => {
-  return omit(props, ['api']);
-};
-
 class MiniGraph extends React.Component<Props> {
   shouldComponentUpdate(nextProps) {
     // We pay for the cost of the deep comparison here since it is cheaper
     // than the cost for rendering the graph, which can take ~200ms to ~300ms to
     // render.
 
-    return !isEqual(omitProps(this.props), omitProps(nextProps));
+    return !isEqual(
+      this.getPropsICareAbout(this.props),
+      this.getPropsICareAbout(nextProps)
+    );
   }
 
-  render() {
-    const {organization, api, location, eventView} = this.props;
+  getPropsICareAbout(props: Props) {
+    const {organization, location, eventView} = props;
 
     const apiPayload = eventView.getEventsAPIPayload(location);
     const query = apiPayload.query;
     const start = getUtcToLocalDateObject(apiPayload.start);
     const end = getUtcToLocalDateObject(apiPayload.end);
     const period: string | undefined = apiPayload.statsPeriod as any;
+
+    return {
+      organization,
+      apiPayload,
+      query,
+      start,
+      end,
+      period,
+    };
+  }
+
+  render() {
+    const {eventView, api} = this.props;
+    const {query, start, end, period, organization} = this.getPropsICareAbout(this.props);
 
     return (
       <EventsRequest
