@@ -5,14 +5,18 @@ from django.utils import timezone
 
 from sentry.models import EventCommon, EventDict
 from sentry.db.models import NodeData
+from sentry.db.models.manager import EventManager
 
 
 class Event(EventCommon):
+
+    objects = EventManager()
+
     def __init__(self, project_id, event_id, data):
         self.project_id = project_id
         self.event_id = event_id
         node_id = Event.generate_node_id(self.project_id, event_id)
-        self.data = NodeData(None, node_id, data=data, wrapper=EventDict)
+        self._data = NodeData(None, node_id, data=data, wrapper=EventDict)
         self.group_id = None
         self._group_cache = None
         super(Event, self).__init__()
@@ -49,3 +53,17 @@ class Event(EventCommon):
         date = datetime.fromtimestamp(recorded_timestamp)
         date = date.replace(tzinfo=timezone.utc)
         return date
+
+    @property
+    def data(self):
+        return self._data
+
+    @data.setter
+    def data(self, value):
+        self._data = value
+
+    def save(self):
+        """
+        Saves event to nodestore.
+        """
+        self._data.save()

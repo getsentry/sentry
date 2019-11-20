@@ -494,7 +494,7 @@ class Factories(object):
         event = Event(event_id=event_id, group=group, **kwargs)
         # emulate EventManager refs
         event.data.bind_ref(event)
-        event.data.save()
+        event.save()
         return event
 
     @staticmethod
