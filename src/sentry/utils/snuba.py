@@ -63,6 +63,7 @@ TRANSACTIONS_SENTRY_SNUBA_MAP = {
 class Dataset(Enum):
     Events = "events"
     Transactions = "transactions"
+    Discover = "discover"
     Outcomes = "outcomes"
     OutcomesRaw = "outcomes_raw"
 
@@ -609,7 +610,7 @@ def _prepare_query_params(query_params):
             query_params.filter_keys, is_grouprelease=query_params.is_grouprelease
         )
 
-    if query_params.dataset in [Dataset.Events, Dataset.Transactions]:
+    if query_params.dataset in [Dataset.Events, Dataset.Transactions, Dataset.Discover]:
         (organization_id, params_to_update) = get_query_params_to_update_for_projects(query_params)
     elif query_params.dataset in [Dataset.Outcomes, Dataset.OutcomesRaw]:
         (organization_id, params_to_update) = get_query_params_to_update_for_organizations(
