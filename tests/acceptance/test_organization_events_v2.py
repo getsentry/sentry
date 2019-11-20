@@ -129,7 +129,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.browser.element('[aria-label="{}"]'.format(event.title)).click()
             self.wait_until_loaded()
 
-            header = self.browser.element('[data-test-id="event-header"] h2')
+            header = self.browser.element('[data-test-id="event-header"] span')
             assert event_data["message"] in header.text
 
             issue_link = self.browser.element('[data-test-id="linked-issue"]')
