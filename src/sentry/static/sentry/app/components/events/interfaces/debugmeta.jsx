@@ -84,17 +84,16 @@ function getImageStatusText(status) {
 function getImageStatusDetails(status) {
   switch (status) {
     case 'found':
-      return t('The file was found and successfully processed.');
+      return t('Debug information for this image was found and successfully processed.');
     case 'unused':
-      return t('The file was not required for processing the stack trace.');
+      return t('The image was not required for processing the stack trace.');
     case 'missing':
-      return t('The file could not be found in any of the specified sources.');
+      return t('No debug information could not be in any of the specified sources.');
     case 'malformed':
-      return t('The file failed to process.');
-    case 'fetching_failed':
-      return t('The file could not be downloaded.');
+      return t('The debug information file for this image failed to process.');
     case 'timeout':
-      return t('Downloading or processing the file took too long.');
+    case 'fetching_failed':
+      return t('The debug information file for this image could not be downloaded.');
     case 'other':
       return t('An internal error occurred while handling this image.');
     default:
