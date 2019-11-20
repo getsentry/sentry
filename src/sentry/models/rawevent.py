@@ -8,6 +8,10 @@ from sentry.db.models.manager import EventManager
 from sentry.utils.canonical import CanonicalKeyView
 
 
+def ref_func(x):
+    return x.project_id or x.project.id
+
+
 class RawEvent(Model):
     __core__ = False
 

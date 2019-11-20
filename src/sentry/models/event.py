@@ -598,6 +598,10 @@ class SnubaEvent(EventCommon):
         raise NotImplementedError
 
 
+def ref_func(self, x):
+    return x.project_id or x.project.id
+
+
 class Event(EventCommon, Model):
     """
     An event backed by data stored in postgres.
@@ -616,7 +620,7 @@ class Event(EventCommon, Model):
     data = NodeField(
         blank=True,
         null=True,
-        ref_func=lambda x: x.project_id or x.project.id,
+        ref_func=ref_func,
         ref_version=2,
         wrapper=EventDict,
         skip_nodestore_save=True,
