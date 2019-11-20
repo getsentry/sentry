@@ -10,18 +10,18 @@ function PhabricatorPlugin(params) {
     assets: [],
     name: 'Phabricator',
     author: {
-      url: 'https://github.com/getsentry/sentry-plugins',
+      url: 'https://github.com/getsentry/sentry',
       name: 'Sentry Team',
     },
     contexts: [],
     doc: '',
     resourceLinks: [
       {
-        url: 'https://github.com/getsentry/sentry-plugins/issues',
+        url: 'https://github.com/getsentry/sentry/issues',
         title: 'Bug Tracker',
       },
       {
-        url: 'https://github.com/getsentry/sentry-plugins',
+        url: 'https://github.com/getsentry/sentry',
         title: 'Source',
       },
     ],
