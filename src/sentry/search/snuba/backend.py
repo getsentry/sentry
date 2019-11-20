@@ -179,7 +179,14 @@ class QuerySetBuilder(object):
         return queryset
 
 
+# This
 class AbstractQueryExecutor:
+    """This class serves as a template for Query Executors.
+    We subclass it in order to implement query methods (we use it to implement two classes: joined Postgres+Snuba queries, and Snuba only queries)
+    It's used to keep the query logic out of the actual search backend,
+    which can now just build query parameters and use the appropriate query executor to run the query
+    """
+
     def query(
         self,
         projects,
@@ -580,8 +587,6 @@ def snuba_search(
 
 
 class SnubaSearchBackend(SearchBackend):
-    query_executor = PostgresSnubaQueryExecutor()
-
     def query(
         self,
         projects,
@@ -706,7 +711,9 @@ class SnubaSearchBackend(SearchBackend):
                 }
             ).build(group_queryset, search_filters)
 
-        return self.query_executor.query(
+        query_executor = PostgresSnubaQueryExecutor()
+
+        return query_executor.query(
             projects,
             retention_window_start,
             group_queryset,
