@@ -104,7 +104,7 @@ class Access extends React.Component<Props> {
     const method = requireAll ? 'every' : 'some';
 
     const hasAccess = !access || access[method](acc => orgAccess.includes(acc));
-    const hasSuperuser = !!config.user.isSuperuser;
+    const hasSuperuser = !!(config.user && config.user.isSuperuser);
 
     const renderProps: ChildRenderProps = {
       hasAccess,

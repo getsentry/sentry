@@ -95,6 +95,20 @@ describe('Access', function() {
       });
     });
 
+    it('handles no user', function() {
+      // Regression test for the share sheet.
+      ConfigStore.config = {
+        user: null,
+      };
+
+      mount(<Access>{childrenMock}</Access>, routerContext);
+
+      expect(childrenMock).toHaveBeenCalledWith({
+        hasAccess: true,
+        hasSuperuser: false,
+      });
+    });
+
     it('is superuser', function() {
       ConfigStore.config = {
         user: {isSuperuser: true},
