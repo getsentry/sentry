@@ -63,7 +63,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                     {"detail": "Current access does not point to " "organization."}, status=400
                 )
         else:
-            queryset = Project.objects.filter(organization=organization).prefetch_related("teams")
+            queryset = Project.objects.filter(organization=organization)
 
         order_by = ["slug"]
 
