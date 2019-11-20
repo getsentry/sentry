@@ -108,7 +108,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
         get_all_projects = request.GET.get("all_projects") == "1"
 
         if get_all_projects:
-            # queryset = queryset.order_by("slug")
+            queryset = queryset.order_by("slug")
             queryset = queryset.select_related("organization")
             return Response(serialize(list(queryset), request.user, ProjectSummarySerializer()))
         else:
