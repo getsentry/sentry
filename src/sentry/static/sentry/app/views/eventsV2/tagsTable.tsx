@@ -60,11 +60,6 @@ const StyledTable = styled('table')`
   margin-bottom: 30px;
 `;
 
-const SectionHeading = styled('h6')`
-  color: ${p => p.theme.gray3};
-  margin-bottom: ${space(1)};
-`;
-
 const StyledTr = styled('tr')`
   &:nth-child(2n + 1) td {
     background: #f4f2f7;
