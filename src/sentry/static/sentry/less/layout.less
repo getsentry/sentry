@@ -202,7 +202,9 @@ body.auth {
 
   .auth-org-name {
     margin: 0;
-    padding-left: 12px;
+    max-width: 330px;
+    padding-right: 15px;
+    overflow-wrap: break-word;
   }
 
   .join-request-megaphone {
@@ -213,11 +215,13 @@ body.auth {
 
   .btn-join-request {
     margin-left: auto;
+    min-width: 138px;
   }
 
-  .join-request-avatar {
+  .join-request-org-avatar {
     .square(56px);
     border-radius: 3px;
+    margin: 5px 15px 5px 0;
   }
 
   .auth-provider-column {
@@ -568,9 +572,14 @@ footer {
 
     .auth-header {
       display: flex;
-      justify-content: space-between;
+      flex-wrap: wrap;
       align-items: center;
       padding: 30px 20px 20px 20px;
+    }
+
+    .btn-join-request {
+      width: 100%;
+      margin-top: 15px;
     }
   }
 
