@@ -5,6 +5,7 @@ import six
 from datetime import timedelta
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
+from sentry.utils.hashlib import sha1_text
 
 from sentry import features
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
@@ -35,15 +36,18 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
 
         snuba_args = self.get_field(request, snuba_args)
 
-        cache_key = cache_key_for_snuba_args(organization, params, snuba_args)
+        should_cache = request.query_params.get("cache") == "1"
 
-        snuba_data = default_cache.get(cache_key)
+        cache_key = cache_key_for_snuba_args(organization, request) if should_cache else ""
 
-        import logging
+        if should_cache:
+            snuba_data = default_cache.get(cache_key)
 
-        if snuba_data is not None:
-            logging.info("foo cache: %s", cache_key)
-            return Response(snuba_data, status=200)
+            import logging
+
+            if snuba_data is not None:
+                logging.info("foo cache: %s", cache_key)
+                return Response(snuba_data, status=200)
 
         result = snuba.transform_aliases_and_query(
             aggregations=snuba_args.get("aggregations"),
@@ -63,9 +67,10 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
             snuba.SnubaTSResult(result, snuba_args["start"], snuba_args["end"], rollup)
         )
 
-        cache_timeout = 900  # 15 minutes = 900 seconds
-        default_cache.set(cache_key, snuba_data, cache_timeout)
-        logging.info("foo cache miss: %s", cache_key)
+        if should_cache:
+            cache_timeout = 900  # 15 minutes = 900 seconds
+            default_cache.set(cache_key, snuba_data, cache_timeout)
+            logging.info("foo cache miss: %s", cache_key)
 
         return Response(snuba_data, status=200)
 
@@ -91,27 +96,14 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
         return snuba_args
 
 
-def cache_key_for_snuba_args(organization, params, snuba_args):
+def cache_key_for_snuba_args(organization, request):
 
-    lol = json.dumps(
-        [
-            snuba_args.get("aggregations"),
-            snuba_args.get("conditions"),
-            snuba_args.get("filter_keys"),
-            params,
-        ]
-    )
+    payload = json.dumps(request.query_params.lists())
 
-    import logging
+    hash_result = sha1_text(payload).hexdigest()
 
-    logging.info("payload: %s", lol)
-
-    hash_result = hash(lol)
-
-    hash_rrr = u"e:{org_slug}:{hash}".format(
+    cache_key = u"e:{org_slug}:{hash}".format(
         org_slug=organization.slug, hash=six.binary_type(hash_result)
     )
 
-    logging.info("hash_rrr: %s", hash_rrr)
-
-    return hash_rrr
+    return cache_key
