@@ -501,7 +501,7 @@ class Runner(object):
 
     @contextmanager
     def isolated_project(self, project_name):
-        from sentry.models import Group, Event
+        from sentry.models import Group
 
         project = self.utils.create_project(project_name, teams=[self.default_team], org=self.org)
         release = self.utils.create_release(project=project, user=self.me)
@@ -510,22 +510,20 @@ class Runner(object):
         try:
             yield project
         finally:
-            # Enforce safe cascades into Group/Event
+            # Enforce safe cascades into Group
             Group.objects.filter(project=project).delete()
-            Event.objects.filter(project_id=project.id).delete()
             project.delete()
 
     @contextmanager
     def isolated_org(self, org_name):
-        from sentry.models import Group, Event
+        from sentry.models import Group
 
         org = self.utils.create_org(org_name, owner=self.me)
         try:
             yield org
         finally:
-            # Enforce safe cascades into Group/Event
+            # Enforce safe cascades into Group
             Group.objects.filter(project__organization=org).delete()
-            Event.objects.filter(project_id__in=org.project_set.values("id")).delete()
             org.delete()
 
     def request(self, method, path, headers=None, data=None, api_token=None, format="json"):
