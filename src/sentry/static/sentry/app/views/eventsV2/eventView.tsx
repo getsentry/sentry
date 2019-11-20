@@ -918,7 +918,7 @@ class EventView {
         field: [...new Set(fields)],
         sort,
         per_page: DEFAULT_PER_PAGE,
-        query: this.getQuery(query.query),
+        query: this.query,
       }
     );
 
