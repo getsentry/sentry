@@ -76,6 +76,10 @@ export const doEventsRequest = (
   // the tradeoff for now.
   const periodObj = getPeriod({period, start, end}, {shouldDoublePeriod});
 
+  const foo = {...urlQuery, ...periodObj};
+
+  console.log('foo', JSON.stringify(foo));
+
   return api.requestPromise(`${getBaseUrl(organization)}`, {
     query: {
       ...urlQuery,

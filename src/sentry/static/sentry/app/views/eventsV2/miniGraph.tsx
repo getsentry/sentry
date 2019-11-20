@@ -42,8 +42,11 @@ class MiniGraph extends React.Component<Props> {
     const end = getUtcToLocalDateObject(apiPayload.end);
     const period: string | undefined = apiPayload.statsPeriod as any;
 
+    const shouldCache = !!(location.query.cache && location.query.cache.length);
+
     return (
       <EventsRequest
+        shouldCache={shouldCache}
         organization={organization}
         api={api}
         query={query}
