@@ -19,7 +19,13 @@ import {QueryLink} from './styles';
 import {generateEventDetailsRoute, generateEventSlug} from './eventDetails/utils';
 
 export const PIN_ICON = `image://${pinIcon}`;
-export const AGGREGATE_ALIASES = ['p95', 'p75', 'last_seen', 'latest_event'] as const;
+export const AGGREGATE_ALIASES = [
+  'apdex',
+  'p95',
+  'p75',
+  'last_seen',
+  'latest_event',
+] as const;
 
 export const DEFAULT_EVENT_VIEW: Readonly<NewQuery> = {
   id: undefined,
