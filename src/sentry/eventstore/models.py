@@ -44,6 +44,14 @@ class Event(EventCommon):
         self.group_id = value.id if value else None
 
     @property
+    def data(self):
+        return self._data
+
+    @data.setter
+    def data(self, value):
+        self._data = value
+
+    @property
     def platform(self):
         return self.data.get("platform", None)
 
@@ -53,14 +61,6 @@ class Event(EventCommon):
         date = datetime.fromtimestamp(recorded_timestamp)
         date = date.replace(tzinfo=timezone.utc)
         return date
-
-    @property
-    def data(self):
-        return self._data
-
-    @data.setter
-    def data(self, value):
-        self._data = value
 
     def save(self):
         """
