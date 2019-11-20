@@ -56,17 +56,59 @@ issue_only_fields = set(
 )
 
 
-class QuerySetBuilder(object):
-    def __init__(self, conditions):
-        self.conditions = conditions
+def assigned_to_filter(actor, projects):
+    from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
 
-    def build(self, queryset, search_filters):
-        for search_filter in search_filters:
-            name = search_filter.key.name
-            if name in self.conditions:
-                condition = self.conditions[name]
-                queryset = condition.apply(queryset, search_filter)
-        return queryset
+    if isinstance(actor, Team):
+        return Q(assignee_set__team=actor)
+
+    teams = Team.objects.filter(
+        id__in=OrganizationMemberTeam.objects.filter(
+            organizationmember__in=OrganizationMember.objects.filter(
+                user=actor, organization_id=projects[0].organization_id
+            ),
+            is_active=True,
+        ).values("team")
+    )
+
+    return Q(
+        Q(assignee_set__user=actor, assignee_set__project__in=projects)
+        | Q(assignee_set__team__in=teams)
+    )
+
+
+def unassigned_filter(unassigned, projects):
+    from sentry.models.groupassignee import GroupAssignee
+
+    query = Q(
+        id__in=GroupAssignee.objects.filter(project_id__in=[p.id for p in projects]).values_list(
+            "group_id", flat=True
+        )
+    )
+    if unassigned:
+        query = ~query
+    return query
+
+
+def get_search_filter(search_filters, name, operator):
+    """
+    Finds the value of a search filter with the passed name and operator. If
+    multiple values are found, returns the most restrictive value
+    :param search_filters: collection of `SearchFilter` objects
+    :param name: Name of the field to find
+    :param operator: '<' or '>'
+    :return: The value of the field if found, else None
+    """
+    assert operator in ("<", ">")
+    comparator = max if operator.startswith(">") else min
+    found_val = None
+    for search_filter in search_filters:
+        # Note that we check operator with `startswith` here so that we handle
+        # <, <=, >, >=
+        if search_filter.key.name == name and search_filter.operator.startswith(operator):
+            val = search_filter.value.raw_value
+            found_val = comparator(val, found_val) if found_val else val
+    return found_val
 
 
 class Condition(object):
@@ -124,150 +166,21 @@ class ScalarCondition(Condition):
         return qs_method(**q_dict)
 
 
-def assigned_to_filter(actor, projects):
-    from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
+class QuerySetBuilder(object):
+    def __init__(self, conditions):
+        self.conditions = conditions
 
-    if isinstance(actor, Team):
-        return Q(assignee_set__team=actor)
-
-    teams = Team.objects.filter(
-        id__in=OrganizationMemberTeam.objects.filter(
-            organizationmember__in=OrganizationMember.objects.filter(
-                user=actor, organization_id=projects[0].organization_id
-            ),
-            is_active=True,
-        ).values("team")
-    )
-
-    return Q(
-        Q(assignee_set__user=actor, assignee_set__project__in=projects)
-        | Q(assignee_set__team__in=teams)
-    )
+    def build(self, queryset, search_filters):
+        for search_filter in search_filters:
+            name = search_filter.key.name
+            if name in self.conditions:
+                condition = self.conditions[name]
+                queryset = condition.apply(queryset, search_filter)
+        return queryset
 
 
-def unassigned_filter(unassigned, projects):
-    from sentry.models.groupassignee import GroupAssignee
-
-    query = Q(
-        id__in=GroupAssignee.objects.filter(project_id__in=[p.id for p in projects]).values_list(
-            "group_id", flat=True
-        )
-    )
-    if unassigned:
-        query = ~query
-    return query
-
-
-def get_search_filter(search_filters, name, operator):
-    """
-    Finds the value of a search filter with the passed name and operator. If
-    multiple values are found, returns the most restrictive value
-    :param search_filters: collection of `SearchFilter` objects
-    :param name: Name of the field to find
-    :param operator: '<' or '>'
-    :return: The value of the field if found, else None
-    """
-    assert operator in ("<", ">")
-    comparator = max if operator.startswith(">") else min
-    found_val = None
-    for search_filter in search_filters:
-        # Note that we check operator with `startswith` here so that we handle
-        # <, <=, >, >=
-        if search_filter.key.name == name and search_filter.operator.startswith(operator):
-            val = search_filter.value.raw_value
-            found_val = comparator(val, found_val) if found_val else val
-    return found_val
-
-
-class SnubaSearchBackend(SearchBackend):
+class AbstractQueryExecutor:
     def query(
-        self,
-        projects,
-        environments=None,
-        sort_by="date",
-        limit=100,
-        cursor=None,
-        count_hits=False,
-        paginator_options=None,
-        search_filters=None,
-        date_from=None,
-        date_to=None,
-    ):
-        from sentry.models import Group, GroupStatus, GroupSubscription
-
-        search_filters = search_filters if search_filters is not None else []
-
-        # ensure projects are from same org
-        if len({p.organization_id for p in projects}) != 1:
-            raise RuntimeError("Cross organization search not supported")
-
-        if paginator_options is None:
-            paginator_options = {}
-
-        group_queryset = Group.objects.filter(project__in=projects).exclude(
-            status__in=[
-                GroupStatus.PENDING_DELETION,
-                GroupStatus.DELETION_IN_PROGRESS,
-                GroupStatus.PENDING_MERGE,
-            ]
-        )
-
-        qs_builder_conditions = {
-            "status": QCallbackCondition(lambda status: Q(status=status)),
-            "bookmarked_by": QCallbackCondition(
-                lambda user: Q(bookmark_set__project__in=projects, bookmark_set__user=user)
-            ),
-            "assigned_to": QCallbackCondition(
-                functools.partial(assigned_to_filter, projects=projects)
-            ),
-            "unassigned": QCallbackCondition(
-                functools.partial(unassigned_filter, projects=projects)
-            ),
-            "subscribed_by": QCallbackCondition(
-                lambda user: Q(
-                    id__in=GroupSubscription.objects.filter(
-                        project__in=projects, user=user, is_active=True
-                    ).values_list("group")
-                )
-            ),
-            "active_at": ScalarCondition("active_at"),
-        }
-
-        group_queryset = QuerySetBuilder(qs_builder_conditions).build(
-            group_queryset, search_filters
-        )
-        # filter out groups which are beyond the retention period
-        retention = quotas.get_event_retention(organization=projects[0].organization)
-        if retention:
-            retention_window_start = timezone.now() - timedelta(days=retention)
-        else:
-            retention_window_start = None
-        # TODO: This could be optimized when building querysets to identify
-        # criteria that are logically impossible (e.g. if the upper bound
-        # for last seen is before the retention window starts, no results
-        # exist.)
-        if retention_window_start:
-            group_queryset = group_queryset.filter(last_seen__gte=retention_window_start)
-
-        # This is a punt because the SnubaSearchBackend (a subclass) shares so much that it
-        # seemed better to handle all the shared initialization and then handoff to the
-        # actual backend.
-        return self._query(
-            projects,
-            retention_window_start,
-            group_queryset,
-            environments,
-            sort_by,
-            limit,
-            cursor,
-            count_hits,
-            paginator_options,
-            search_filters,
-            date_from,
-            date_to,
-        )
-
-    def _query(
         self,
         projects,
         retention_window_start,
@@ -282,7 +195,25 @@ class SnubaSearchBackend(SearchBackend):
         date_from,
         date_to,
     ):
+        raise NotImplementedError
 
+
+class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
+    def query(
+        self,
+        projects,
+        retention_window_start,
+        group_queryset,
+        environments,
+        sort_by,
+        limit,
+        cursor,
+        count_hits,
+        paginator_options,
+        search_filters,
+        date_from,
+        date_to,
+    ):
         # TODO: It's possible `first_release` could be handled by Snuba.
         if environments is not None:
             environment_ids = [environment.id for environment in environments]
@@ -596,6 +527,10 @@ class SnubaSearchBackend(SearchBackend):
         return paginator_results
 
 
+class SnubaOnlyQueryExecutor(AbstractQueryExecutor):
+    pass
+
+
 def snuba_search(
     start,
     end,
@@ -696,3 +631,100 @@ def snuba_search(
         metrics.timing("snuba.search.num_result_groups", len(rows))
 
     return [(row["issue"], row[sort_field]) for row in rows], total
+
+
+class SnubaSearchBackend(SearchBackend):
+    query_backend = PostgresSnubaQueryExecutor()
+
+    def query(
+        self,
+        projects,
+        environments=None,
+        sort_by="date",
+        limit=100,
+        cursor=None,
+        count_hits=False,
+        paginator_options=None,
+        search_filters=None,
+        date_from=None,
+        date_to=None,
+    ):
+        from sentry.models import Group, GroupStatus, GroupSubscription
+
+        search_filters = search_filters if search_filters is not None else []
+
+        # ensure projects are from same org
+        if len({p.organization_id for p in projects}) != 1:
+            raise RuntimeError("Cross organization search not supported")
+
+        if paginator_options is None:
+            paginator_options = {}
+
+        group_queryset = Group.objects.filter(project__in=projects).exclude(
+            status__in=[
+                GroupStatus.PENDING_DELETION,
+                GroupStatus.DELETION_IN_PROGRESS,
+                GroupStatus.PENDING_MERGE,
+            ]
+        )
+
+        qs_builder_conditions = {
+            "status": QCallbackCondition(lambda status: Q(status=status)),
+            "bookmarked_by": QCallbackCondition(
+                lambda user: Q(bookmark_set__project__in=projects, bookmark_set__user=user)
+            ),
+            "assigned_to": QCallbackCondition(
+                functools.partial(assigned_to_filter, projects=projects)
+            ),
+            "unassigned": QCallbackCondition(
+                functools.partial(unassigned_filter, projects=projects)
+            ),
+            "subscribed_by": QCallbackCondition(
+                lambda user: Q(
+                    id__in=GroupSubscription.objects.filter(
+                        project__in=projects, user=user, is_active=True
+                    ).values_list("group")
+                )
+            ),
+            "active_at": ScalarCondition("active_at"),
+        }
+
+        group_queryset = QuerySetBuilder(qs_builder_conditions).build(
+            group_queryset, search_filters
+        )
+        # filter out groups which are beyond the retention period
+        retention = quotas.get_event_retention(organization=projects[0].organization)
+        if retention:
+            retention_window_start = timezone.now() - timedelta(days=retention)
+        else:
+            retention_window_start = None
+        # TODO: This could be optimized when building querysets to identify
+        # criteria that are logically impossible (e.g. if the upper bound
+        # for last seen is before the retention window starts, no results
+        # exist.)
+        if retention_window_start:
+            group_queryset = group_queryset.filter(last_seen__gte=retention_window_start)
+
+        # This is a punt because the SnubaSearchBackend (a subclass) shares so much that it
+        # seemed better to handle all the shared initialization and then handoff to the
+        # actual backend.
+
+        return self.query_backend.query(
+            projects,
+            retention_window_start,
+            group_queryset,
+            environments,
+            sort_by,
+            limit,
+            cursor,
+            count_hits,
+            paginator_options,
+            search_filters,
+            date_from,
+            date_to,
+        )
+
+
+# This class will have logic to use the groups dataset, and to also determine which QueryBackend to use.
+class SnubaGroupsSearchBackend(SearchBackend):
+    pass
