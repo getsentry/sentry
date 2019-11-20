@@ -4,6 +4,7 @@ import six
 
 from django.db import models
 
+from sentry.db.models.utils import Creator
 from sentry.utils import json
 
 
@@ -23,6 +24,14 @@ class ArrayField(models.Field):
         kwargs["null"] = True
 
         super(ArrayField, self).__init__(**kwargs)
+
+    def contribute_to_class(self, cls, name):
+        """
+        Add a descriptor for backwards compatibility
+        with previous Django behavior.
+        """
+        super(ArrayField, self).contribute_to_class(cls, name)
+        setattr(cls, name, Creator(self))
 
     def db_type(self, connection):
         return u"{}[]".format(self.of.db_type(connection))
