@@ -475,6 +475,7 @@ describe('IssueList,', function() {
             environment: [],
             project: [],
             sort: 'freq',
+            statsPeriod: '14d',
           },
         })
       );
@@ -514,6 +515,7 @@ describe('IssueList,', function() {
             environment: [],
             project: [],
             query: 'dogs',
+            statsPeriod: '14d',
           },
         })
       );
@@ -656,6 +658,7 @@ describe('IssueList,', function() {
           query: {
             environment: [],
             project: ['3559'],
+            statsPeriod: '14d',
           },
         })
       );
@@ -711,6 +714,7 @@ describe('IssueList,', function() {
           query: {
             project: [],
             environment: [],
+            statsPeriod: '14d',
           },
         })
       );
@@ -913,6 +917,7 @@ describe('IssueList,', function() {
           environment: [],
           project: [],
           query: 'is:unresolved',
+          statsPeriod: '14d',
         },
       };
       expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
@@ -940,6 +945,7 @@ describe('IssueList,', function() {
           environment: [],
           project: [],
           query: 'is:unresolved',
+          statsPeriod: '14d',
         },
       };
       expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
@@ -960,6 +966,7 @@ describe('IssueList,', function() {
           environment: [],
           project: [],
           query: 'is:unresolved',
+          statsPeriod: '14d',
         },
       };
       expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
@@ -977,9 +984,12 @@ describe('IssueList,', function() {
       expect(browserHistory.push).toHaveBeenLastCalledWith({
         pathname: '/organizations/org-slug/issues/',
         query: {
+          cursor: undefined,
           environment: [],
+          page: undefined,
           project: [],
           query: 'is:unresolved',
+          statsPeriod: '14d',
         },
       });
     });

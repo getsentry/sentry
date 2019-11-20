@@ -26,7 +26,7 @@ describe('GlobalSelectionStore', function() {
     expect(GlobalSelectionStore.get()).toEqual({
       projects: [],
       environments: [],
-      datetime: {period: null, start: null, end: null, utc: null},
+      datetime: {period: '14d', start: null, end: null, utc: null},
     });
   });
 
@@ -39,7 +39,7 @@ describe('GlobalSelectionStore', function() {
 
   it('updateDateTime()', async function() {
     expect(GlobalSelectionStore.get().datetime).toEqual({
-      period: null,
+      period: '14d',
       start: null,
       end: null,
       utc: null,
