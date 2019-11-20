@@ -200,6 +200,12 @@ body.auth {
     padding: 30px 40px;
   }
 
+  .join-request-org-avatar {
+    .square(56px);
+    border-radius: 3px;
+    margin-right: 15px;
+  }
+
   .auth-org-name {
     margin: 0;
     padding-right: 15px;
@@ -215,17 +221,6 @@ body.auth {
   .btn-join-request {
     margin-left: auto;
     min-width: 138px;
-  }
-
-  .join-request-org-avatar {
-    .square(56px);
-    border-radius: 3px;
-    margin-right: 15px;
-  }
-
-  .join-request-org-name {
-    display: flex;
-    align-items: center;
   }
 
   .auth-provider-column {
@@ -575,15 +570,22 @@ footer {
     }
 
     .auth-header {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
+      display: block;
+      text-align: center;
       padding: 30px 20px 20px 20px;
     }
 
+    .join-request-org-avatar {
+      margin-right: 0;
+    }
+
+    .auth-org-name {
+      padding-top: 15px;
+      padding-right: 0;
+    }
+
     .btn-join-request {
-      width: 100%;
-      margin-top: 15px;
+      padding-top: 15px;
     }
   }
 
