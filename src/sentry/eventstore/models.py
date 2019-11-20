@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from datetime import datetime
 from django.utils import timezone
 
 from sentry.models import EventCommon, EventDict
@@ -7,16 +8,13 @@ from sentry.db.models import NodeData
 
 
 class Event(EventCommon):
-    def __init__(self, **kwargs):
-        self.project_id = kwargs["project_id"]
-        self.event_id = kwargs["event_id"]
-        node_id = Event.generate_node_id(self.project_id, self.event_id)
-        self.data = NodeData(None, node_id, data=kwargs["data"], wrapper=EventDict)
-        self.time_spent = kwargs.get("time_spent", None)
-        self.platform = kwargs.get("platform", None)
-        self.datetime = kwargs.get("datetime", timezone.now())
-        self.group = None
+    def __init__(self, project_id, event_id, data):
+        self.project_id = project_id
+        self.event_id = event_id
+        node_id = Event.generate_node_id(self.project_id, event_id)
+        self.data = NodeData(None, node_id, data=data, wrapper=EventDict)
         self.group_id = None
+        self._group_cache = None
         super(Event, self).__init__()
 
     def __getstate__(self):
@@ -40,3 +38,14 @@ class Event(EventCommon):
     def group(self, value):
         self._group_cache = value
         self.group_id = value.id if value else None
+
+    @property
+    def platform(self):
+        return self.data.get("platform", None)
+
+    @property
+    def datetime(self):
+        recorded_timestamp = self.data.get("timestamp")
+        date = datetime.fromtimestamp(recorded_timestamp)
+        date = date.replace(tzinfo=timezone.utc)
+        return date

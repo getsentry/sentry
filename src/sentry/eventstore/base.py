@@ -5,6 +5,8 @@ from sentry import nodestore
 from sentry.snuba.events import Columns
 from sentry.utils.services import Service
 
+from .models import Event
+
 
 class Filter(object):
     """
@@ -160,6 +162,12 @@ class EventStorage(Service):
         filter (Filter): Filter
         """
         raise NotImplementedError
+
+    def from_raw_data(self, data):
+        """
+        Returns an Event from raw data
+        """
+        return Event(**data)
 
     def bind_nodes(self, object_list, node_name="data"):
         """
