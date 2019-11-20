@@ -8,13 +8,8 @@ from sentry.db.models import NodeData
 from sentry.db.models.manager import EventManager
 
 
-class FakeNodeField(object):
-    @property
-    def ref_version(self):
-        return 2
-
-    def ref_func(self, x):
-        return x.project_id or x.project.id
+def ref_func(x):
+    return x.project_id or x.project.id
 
 
 class Event(EventCommon):
@@ -59,7 +54,9 @@ class Event(EventCommon):
     @data.setter
     def data(self, value):
         node_id = Event.generate_node_id(self.project_id, self.event_id)
-        self._data = NodeData(FakeNodeField(), node_id, data=value, wrapper=EventDict)
+        self._data = NodeData(
+            node_id, data=value, wrapper=EventDict, ref_version=2, ref_func=ref_func
+        )
 
     @property
     def platform(self):
