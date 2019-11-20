@@ -701,20 +701,6 @@ class PluginTestCase(TestCase):
         self.fail("Missing plugin from entry_points: %r" % (name,))
 
     # TODO (Steve): remove function
-    def assertTestOnlyPluginInstalled(self, name, plugin):
-        path = type(plugin).__module__ + ":" + type(plugin).__name__
-        for ep in iter_entry_points("sentry.test_only_plugins"):
-            if ep.name == name:
-                ep_path = ep.module_name + ":" + ".".join(ep.attrs)
-                if ep_path == path:
-                    return
-                self.fail(
-                    "Found plugin in entry_points, but wrong class. Got %r, expected %r"
-                    % (ep_path, path)
-                )
-        self.fail("Missing plugin from entry_points: %r" % (name,))
-
-    # TODO (Steve): remove function
     def assertNewPluginInstalled(self, name, plugin):
         path = type(plugin).__module__ + ":" + type(plugin).__name__
         for ep in iter_entry_points("sentry.new_plugins"):

@@ -3,12 +3,10 @@ import {browserHistory} from 'react-router';
 
 import {Client} from 'app/api';
 import {t} from 'app/locale';
-import {Organization} from 'app/types';
+import {Organization, SavedQuery} from 'app/types';
 import withApi from 'app/utils/withApi';
-import withDiscoverSavedQueries from 'app/utils/withDiscoverSavedQueries';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {SavedQuery} from 'app/stores/discoverSavedQueriesStore';
 
 import InlineInput from 'app/components/inputInline';
 import {handleUpdateQueryName} from './savedQuery/utils';
@@ -20,7 +18,7 @@ type Props = {
   organization: Organization;
   eventView: EventView;
   savedQueries: SavedQuery[];
-  savedQueriesLoading: boolean;
+  onQuerySave: () => void;
 };
 
 const NAME_DEFAULT = t('Untitled query');
@@ -65,8 +63,8 @@ class EventInputName extends React.Component<Props> {
 
     handleUpdateQueryName(api, organization, nextEventView).then(
       (updatedQuery: SavedQuery) => {
+        this.props.onQuerySave();
         const view = EventView.fromSavedQuery(updatedQuery);
-        // May have to delay this for the store to update.
         browserHistory.push({
           pathname: location.pathname,
           query: view.generateQueryStringObject(),
@@ -90,4 +88,4 @@ class EventInputName extends React.Component<Props> {
   }
 }
 
-export default withApi(withDiscoverSavedQueries(EventInputName));
+export default withApi(EventInputName);

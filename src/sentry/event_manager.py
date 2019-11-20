@@ -713,6 +713,7 @@ class EventManager(object):
                 group=group, environment=environment
             )
 
+        # Write the event to Nodestore
         event.data.save()
 
         if event_user:
