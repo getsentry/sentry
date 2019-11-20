@@ -22,11 +22,11 @@ from new_sentry_plugins.exceptions import (
 
 class CorePluginMixin(object):
     author = "Sentry Team"
-    author_url = "https://github.com/getsentry/sentry-plugins"
+    author_url = "https://github.com/getsentry/sentry"
     version = new_sentry_plugins.VERSION
     resource_links = [
-        ("Bug Tracker", "https://github.com/getsentry/sentry-plugins/issues"),
-        ("Source", "https://github.com/getsentry/sentry-plugins"),
+        ("Bug Tracker", "https://github.com/getsentry/sentry/issues"),
+        ("Source", "https://github.com/getsentry/sentry"),
     ]
 
     # HACK(dcramer): work around MRO issue with plugin metaclass

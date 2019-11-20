@@ -12,15 +12,15 @@ function VstsPlugin(params) {
     contexts: [],
     doc: '',
     resourceLinks: [
-      {url: 'https://github.com/getsentry/sentry-plugins/issues', title: 'Bug Tracker'},
-      {url: 'https://github.com/getsentry/sentry-plugins', title: 'Source'},
+      {url: 'https://github.com/getsentry/sentry/issues', title: 'Bug Tracker'},
+      {url: 'https://github.com/getsentry/sentry', title: 'Source'},
     ],
     allowed_actions: ['create', 'link', 'unlink'],
     enabled: true,
     id: 'vsts',
     version: '9.1.0.dev0',
     canDisable: true,
-    author: {url: 'https://github.com/getsentry/sentry-plugins', name: 'Sentry Team'},
+    author: {url: 'https://github.com/getsentry/sentry', name: 'Sentry Team'},
     type: 'issue-tracking',
     metadata: {},
   };
