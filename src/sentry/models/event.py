@@ -598,7 +598,7 @@ class SnubaEvent(EventCommon):
         raise NotImplementedError
 
 
-def ref_func(self, x):
+def ref_func(x):
     return x.project_id or x.project.id
 
 
