@@ -1,10 +1,13 @@
 from __future__ import absolute_import
 
 import six
+import copy
+import logging
 
 from datetime import timedelta
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
+from django.http import QueryDict
 
 from sentry import features
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
@@ -18,6 +21,45 @@ from sentry.utils.hashlib import sha1_text
 
 class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
     def get(self, request, organization):
+
+        should_fetch_bulk = request.query_params.get("bulk") == "1"
+
+        if should_fetch_bulk:
+            stats_requests = request.query_params.getlist("g")
+
+            collect = []
+
+            for stats_request in stats_requests:
+
+                logging.info("g: %s", stats_request)
+
+                payload = json.loads(stats_request)
+
+                if isinstance(payload, dict):
+
+                    new_query_params = QueryDict("", mutable=True)
+
+                    for key, value in payload.items():
+                        if isinstance(value, list):
+                            new_query_params.setlist(key, value)
+                        else:
+                            new_query_params.setlist(key, [value])
+
+                    logging.info("g: %s", new_query_params.lists())
+
+                    # TODO: is this right?
+                    # request_copy = copy.copy(request)
+                    request.GET = new_query_params
+
+                    response = self.get_stats(request, organization)
+
+                    collect.append(response.data)
+
+            return Response(collect, status=200)
+
+        return self.get_stats(request, organization)
+
+    def get_stats(self, request, organization):
         try:
             if features.has("organizations:events-v2", organization, actor=request.user):
                 params = self.get_filter_params(request, organization)
