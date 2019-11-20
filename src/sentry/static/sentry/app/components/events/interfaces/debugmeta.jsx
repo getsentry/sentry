@@ -441,16 +441,16 @@ class DebugMetaInterface extends React.PureComponent {
     );
 
     return (
-      <React.Fragment>
-        <EventDataSection
-          event={this.props.event}
-          type="packages"
-          title={titleElement}
-          wrapTitle={false}
-        >
-          <DebugImagesPanel>
-            <PanelBody>
-              {filteredImages.map(image => (
+      <EventDataSection
+        event={this.props.event}
+        type="packages"
+        title={titleElement}
+        wrapTitle={false}
+      >
+        <DebugImagesPanel>
+          <PanelBody>
+            {filteredImages.length > 0 ? (
+              filteredImages.map(image => (
                 <DebugImage
                   key={image.debug_id}
                   image={image}
@@ -458,11 +458,16 @@ class DebugMetaInterface extends React.PureComponent {
                   projectId={this.props.projectId}
                   showDetails={this.state.showDetails}
                 />
-              ))}
-            </PanelBody>
-          </DebugImagesPanel>
-        </EventDataSection>
-      </React.Fragment>
+              ))
+            ) : (
+              <EmptyItem>
+                <ImageIcon type="muted" src="icon-circle-exclamation" />{' '}
+                {t('Sorry, no images match your query.')}
+              </EmptyItem>
+            )}
+          </PanelBody>
+        </DebugImagesPanel>
+      </EventDataSection>
     );
   }
 }
@@ -549,6 +554,17 @@ const SymbolicationStatus = styled('span')`
 
   ${ImageIcon} {
     margin-left: 0.66ex;
+  }
+`;
+
+const EmptyItem = styled(PanelItem)`
+  display: block;
+  text-align: center;
+
+  ${ImageIcon} {
+    opacity: 0.4;
+    margin-right: 1ex;
+    vertical-align: text-bottom;
   }
 `;
 
