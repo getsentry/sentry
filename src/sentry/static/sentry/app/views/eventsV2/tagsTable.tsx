@@ -11,6 +11,7 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {EventTag} from 'app/types';
 
 import {getEventTagSearchUrl} from './utils';
+import {SectionHeading} from './styles';
 
 type Props = {
   tags: Array<EventTag>;
@@ -20,7 +21,7 @@ const TagsTable = (props: Props) => {
   const {location, tags} = props;
   return (
     <div>
-      <TagHeading>{t('Event Tag Details')}</TagHeading>
+      <SectionHeading>{t('Event Tag Details')}</SectionHeading>
       <StyledTable>
         <tbody>
           {tags.map(tag => {
@@ -57,11 +58,6 @@ const StyledTable = styled('table')`
   table-layout: fixed;
   width: 100%;
   max-width: 100%;
-`;
-
-const TagHeading = styled('h6')`
-  color: ${p => p.theme.gray3};
-  margin: ${space(1)} 0;
 `;
 
 const StyledTr = styled('tr')`
