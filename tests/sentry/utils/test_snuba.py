@@ -329,7 +329,7 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
         transform_aliases_and_query(
             selected_columns=["transaction"],
             aggregations=[
-                ["quantileTiming(0.95)(duration)", "", "p95"],
+                ["quantile(0.95)(duration)", "", "p95"],
                 ["uniq", "transaction", "uniq_transaction"],
             ],
             filter_keys={"project_id": [self.project.id]},
@@ -337,7 +337,7 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
         mock_query.assert_called_with(
             selected_columns=["transaction_name"],
             aggregations=[
-                ["quantileTiming(0.95)(duration)", "", "p95"],
+                ["quantile(0.95)(duration)", "", "p95"],
                 ["uniq", "transaction_name", "uniq_transaction"],
             ],
             filter_keys={"project_id": [self.project.id]},
@@ -582,7 +582,7 @@ class DetectDatasetTest(TestCase):
         query = {"aggregations": [["argMax", ["id", "duration"], "longest"]]}
         assert detect_dataset(query) == Dataset.Events
 
-        query = {"aggregations": [["quantileTiming(0.95)", "transaction.duration", "p95_duration"]]}
+        query = {"aggregations": [["quantile(0.95)", "transaction.duration", "p95_duration"]]}
         assert detect_dataset(query) == Dataset.Transactions
 
         query = {"aggregations": [["uniq", "transaction.op", "uniq_transaction_op"]]}

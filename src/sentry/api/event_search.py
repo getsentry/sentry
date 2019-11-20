@@ -686,15 +686,15 @@ FIELD_ALIASES = {
     "apdex": {"result_type": "number", "aggregations": [["apdex(duration, 300)", "", "apdex"]]},
     "p75": {
         "result_type": "duration",
-        "aggregations": [["quantileTiming(0.75)(duration)", "", "p75"]],
+        "aggregations": [["quantile(0.75)(duration)", "", "p75"]],
     },
     "p95": {
         "result_type": "duration",
-        "aggregations": [["quantileTiming(0.95)(duration)", "", "p95"]],
+        "aggregations": [["quantile(0.95)(duration)", "", "p95"]],
     },
     "p99": {
         "result_type": "duration",
-        "aggregations": [["quantileTiming(0.99)(duration)", "", "p99"]],
+        "aggregations": [["quantile(0.99)(duration)", "", "p99"]],
     },
 }
 
