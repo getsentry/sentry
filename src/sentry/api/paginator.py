@@ -371,8 +371,8 @@ class FooOffsetPaginator(object):
 
         assert limit > 0
 
-        # offset is page #
-        # value is page limit
+        # cursors are:
+        #   (identifier(integer), row offset, is_prev)
         if cursor is None:
             cursor = Cursor(0, 0, 0)
 
