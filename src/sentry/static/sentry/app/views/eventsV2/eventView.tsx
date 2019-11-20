@@ -21,8 +21,6 @@ import {
 import {TableColumn, TableColumnSort} from './table/types';
 
 type LocationQuery = {
-  project?: string | string[];
-  environment?: string | string[];
   start?: string | string[];
   end?: string | string[];
   utc?: string | string[];
@@ -32,8 +30,6 @@ type LocationQuery = {
 };
 
 const EXTERNAL_QUERY_STRING_KEYS: Readonly<Array<keyof LocationQuery>> = [
-  'project',
-  'environment',
   'start',
   'end',
   'utc',
@@ -908,6 +904,8 @@ class EventView {
 
     const sort = this.sorts.length > 0 ? encodeSort(this.sorts[0]) : undefined;
     const fields = this.getFields();
+    const project = this.project.map(proj => String(proj));
+    const environment = this.environment as string[];
 
     // generate event query
 
@@ -915,6 +913,8 @@ class EventView {
       picked,
       normalizedTimeWindowParams,
       {
+        project,
+        environment,
         field: [...new Set(fields)],
         sort,
         per_page: DEFAULT_PER_PAGE,
