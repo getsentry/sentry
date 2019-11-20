@@ -62,10 +62,6 @@ class Event(EventCommon):
         date = date.replace(tzinfo=timezone.utc)
         return date
 
-    @property
-    def time_spent(self):
-        return None
-
     def save(self):
         """
         Saves event to nodestore.

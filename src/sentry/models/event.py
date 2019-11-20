@@ -343,7 +343,6 @@ class EventCommon(object):
         data["platform"] = self.platform
         data["message"] = self.real_message
         data["datetime"] = self.datetime
-        data["time_spent"] = self.time_spent
         data["tags"] = [(k.split("sentry:", 1)[-1], v) for (k, v) in self.tags]
         for k, v in sorted(six.iteritems(self.data)):
             if k in data:
