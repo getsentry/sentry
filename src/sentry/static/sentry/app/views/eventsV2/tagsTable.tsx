@@ -61,12 +61,12 @@ const StyledTable = styled('table')`
 
 const TagHeading = styled('h6')`
   color: ${p => p.theme.gray3};
-  margin-bottom: 16px;
+  margin: ${space(1)} 0;
 `;
 
 const StyledTr = styled('tr')`
-  &:nth-child(2n) td {
-    background: ${p => p.theme.offWhite};
+  &:nth-child(2n + 1) td {
+    background: #f4f2f7;
   }
 `;
 

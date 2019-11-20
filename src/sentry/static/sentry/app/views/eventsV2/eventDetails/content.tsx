@@ -5,6 +5,7 @@ import styled from 'react-emotion';
 import PropTypes from 'prop-types';
 
 import space from 'app/styles/space';
+import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {Client} from 'app/api';
 import withApi from 'app/utils/withApi';
@@ -12,7 +13,6 @@ import {getMessage, getTitle} from 'app/utils/events';
 import {Organization, Event} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
 import getDynamicText from 'app/utils/getDynamicText';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 import DateTime from 'app/components/dateTime';
 import ExternalLink from 'app/components/links/externalLink';
 import FileSize from 'app/components/fileSize';
@@ -107,12 +107,14 @@ class EventDetailsContent extends AsyncComponent<Props, State & AsyncComponent['
     const isGroupedView = hasAggregateField(eventView);
 
     return (
-      <ColumnGrid>
+      <ContentGrid>
         <HeaderBox>
           <EventHeader event={event} />
-          {isGroupedView && (
-            <Pagination event={event} organization={organization} eventView={eventView} />
-          )}
+        </HeaderBox>
+        {isGroupedView && (
+          <Pagination event={event} organization={organization} eventView={eventView} />
+        )}
+        <MainBox>
           {isGroupedView &&
             getDynamicText({
               value: (
@@ -125,15 +127,19 @@ class EventDetailsContent extends AsyncComponent<Props, State & AsyncComponent['
               ),
               fixed: 'events chart',
             })}
-        </HeaderBox>
-        <ContentColumn>
           <EventInterfaces
             event={event}
             projectId={this.projectId}
             orgId={organization.slug}
           />
-        </ContentColumn>
-        <SidebarColumn>
+        </MainBox>
+        <SidebarBox>
+          <EventMetadata
+            event={event}
+            organization={organization}
+            projectId={this.projectId}
+          />
+          <TagsTable tags={event.tags} />
           {event.groupID && (
             <LinkedIssuePreview groupId={event.groupID} eventId={event.eventID} />
           )}
@@ -145,16 +151,8 @@ class EventDetailsContent extends AsyncComponent<Props, State & AsyncComponent['
               eventView={eventView}
             />
           )}
-          <EventMetadata
-            event={event}
-            organization={organization}
-            projectId={this.projectId}
-          />
-          <SidebarBlock>
-            <TagsTable tags={event.tags} />
-          </SidebarBlock>
-        </SidebarColumn>
-      </ColumnGrid>
+        </SidebarBox>
+      </ContentGrid>
     );
   }
 
@@ -233,22 +231,28 @@ class EventDetailsWrapper extends React.Component<EventDetailsWrapperProps> {
 const EventHeader = (props: {event: Event}) => {
   const {title} = getTitle(props.event);
   return (
-    <div data-test-id="event-header">
-      <OverflowHeader>{title}</OverflowHeader>
-      <p>{getMessage(props.event)}</p>
-    </div>
+    <StyledEventHeader data-test-id="event-header">
+      <StyledTitle>{title}</StyledTitle>
+      <span>{getMessage(props.event)}</span>
+    </StyledEventHeader>
   );
 };
 
-const OverflowHeader = styled('h2')`
-  line-height: 1.2;
-  ${overflowEllipsis}
+const StyledEventHeader = styled('div')`
+  font-size: ${p => p.theme.headerFontSize};
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const StyledTitle = styled('span')`
+  color: ${p => p.theme.purple};
+  margin-right: ${space(1)};
 `;
 
 const MetadataContainer = styled('div')`
   display: flex;
   justify-content: space-between;
-
   color: ${p => p.theme.gray3};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
@@ -268,8 +272,11 @@ const EventMetadata = (props: {
   }/json/`;
 
   return (
-    <SidebarBlock withSeparator>
-      <MetadataContainer data-test-id="event-id">ID {event.eventID}</MetadataContainer>
+    <StyledMetadata>
+      <MetadataHeading>
+        <span>{t('Event ID')}</span>
+      </MetadataHeading>
+      <MetadataContainer data-test-id="event-id">{event.eventID}</MetadataContainer>
       <MetadataContainer>
         <DateTime
           date={getDynamicText({
@@ -277,46 +284,45 @@ const EventMetadata = (props: {
             fixed: 'Dummy timestamp',
           })}
         />
-        <ExternalLink href={eventJsonUrl} className="json-link">
-          JSON (<FileSize bytes={event.size} />)
-        </ExternalLink>
       </MetadataContainer>
-    </SidebarBlock>
+      <MetadataJSON href={eventJsonUrl} className="json-link">
+        {t('Preview JSON')} (<FileSize bytes={event.size} />)
+      </MetadataJSON>
+    </StyledMetadata>
   );
 };
 
-const ColumnGrid = styled('div')`
-  display: grid;
+const MetadataJSON = styled(ExternalLink)`
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
 
-  grid-template-columns: 70% 28%;
-  grid-template-rows: auto;
-  grid-column-gap: 2%;
+const MetadataHeading = styled('h6')`
+  color: ${p => p.theme.gray3};
+  margin: ${space(1)} 0;
+`;
 
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-columns: 60% 38%;
-  }
+const StyledMetadata = styled('div')`
+  margin-bottom: ${space(4)};
+`;
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    display: flex;
-    flex-direction: column;
+const ContentGrid = styled('div')`
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    display: grid;
+    grid-gap: ${space(2)};
+    grid-template-columns: 72% auto;
   }
 `;
 
 const HeaderBox = styled('div')`
-  grid-column: 1 / 3;
-`;
-const ContentColumn = styled('div')`
-  grid-column: 1 / 2;
+  margin-bottom: ${space(1)};
 `;
 
-const SidebarColumn = styled('div')`
-  grid-column: 2 / 3;
+const MainBox = styled('div')`
+  grid-column: 1/2;
 `;
 
-const SidebarBlock = styled('div')<{withSeparator?: boolean; theme?: any}>`
-  margin: 0 0 ${space(2)} 0;
-  padding: 0 0 ${space(2)} 0;
-  ${p => (p.withSeparator ? `border-bottom: 1px solid ${p.theme.borderLight};` : '')}
+const SidebarBox = styled('div')`
+  grid-column: 2/3;
 `;
 
 export default withApi(EventDetailsContent);

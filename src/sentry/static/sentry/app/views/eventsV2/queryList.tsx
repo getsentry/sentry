@@ -8,8 +8,6 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, SavedQuery} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import theme from 'app/utils/theme';
-
 import {Client} from 'app/api';
 import InlineSvg from 'app/components/inlineSvg';
 import DropdownMenu from 'app/components/dropdownMenu';
@@ -189,15 +187,15 @@ const QueryGrid = styled('div')`
   grid-template-columns: minmax(100px, 1fr);
   grid-gap: ${space(3)};
 
-  @media (min-width: ${theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
     grid-template-columns: repeat(2, minmax(100px, 1fr));
   }
 
-  @media (min-width: ${theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
     grid-template-columns: repeat(3, minmax(100px, 1fr));
   }
 
-  @media (min-width: ${theme.breakpoints[4]}) {
+  @media (min-width: ${p => p.theme.breakpoints[4]}) {
     grid-template-columns: repeat(5, minmax(100px, 1fr));
   }
 `;

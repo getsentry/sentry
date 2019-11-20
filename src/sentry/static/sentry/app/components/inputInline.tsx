@@ -190,9 +190,7 @@ const Input = styled('div')<{
   isHovering?: boolean;
   isDisabled?: boolean;
 }>`
-  min-width: 100px;
-
-  padding: ${space(0.25)} ${space(1)};
+  min-width: 40px;
   margin: 0;
   border: 1px solid ${p => (p.isHovering ? p.theme.borderDark : 'transparent')};
   outline: none;
