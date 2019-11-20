@@ -634,7 +634,7 @@ def snuba_search(
 
 
 class SnubaSearchBackend(SearchBackend):
-    query_backend = PostgresSnubaQueryExecutor()
+    query_executor = PostgresSnubaQueryExecutor()
 
     def query(
         self,
@@ -709,7 +709,7 @@ class SnubaSearchBackend(SearchBackend):
         # seemed better to handle all the shared initialization and then handoff to the
         # actual backend.
 
-        return self.query_backend.query(
+        return self.query_executor.query(
             projects,
             retention_window_start,
             group_queryset,

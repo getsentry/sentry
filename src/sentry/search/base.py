@@ -9,7 +9,7 @@ class SearchBackend(Service):
     __read_methods__ = frozenset(["query"])
     __write_methods__ = frozenset()
     __all__ = __read_methods__ | __write_methods__
-    query_backend = None
+    query_executor = None
 
     def __init__(self, **options):
         pass
