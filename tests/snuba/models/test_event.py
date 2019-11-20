@@ -1,12 +1,12 @@
 from __future__ import absolute_import
 
-import calendar
 from datetime import datetime, timedelta
 
 from sentry.api.serializers import serialize
 from sentry.models.event import Event, SnubaEvent
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry import eventstore, nodestore
+from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
 class SnubaEventTest(TestCase, SnubaTestCase):
@@ -17,19 +17,13 @@ class SnubaEventTest(TestCase, SnubaTestCase):
         self.now = datetime.utcnow().replace(microsecond=0) - timedelta(seconds=10)
         self.proj1 = self.create_project()
         self.proj1env1 = self.create_environment(project=self.proj1, name="test")
-        self.proj1group1 = self.create_group(
-            self.proj1, first_seen=self.now, last_seen=self.now + timedelta(seconds=14400)
-        )
 
         # Raw event data
         self.data = {
             "event_id": self.event_id,
-            "primary_hash": "1" * 32,
-            "project_id": self.proj1.id,
             "message": "message 1",
             "platform": "python",
-            "timestamp": calendar.timegm(self.now.timetuple()),
-            "received": calendar.timegm(self.now.timetuple()),
+            "timestamp": iso_format(before_now(minutes=1)),
             "tags": {
                 "foo": "bar",
                 "baz": "quux",
@@ -40,26 +34,8 @@ class SnubaEventTest(TestCase, SnubaTestCase):
             "user": {"id": u"user1", "email": u"user1@sentry.io"},
         }
 
-        # Create a regular django Event from the data, which will save the.
-        # data in nodestore too. Once Postgres events are deprecated, we can
-        # turn this off and just put the payload in nodestore.
-        make_django_event = True
-        if make_django_event:
-            self.create_event(
-                event_id=self.data["event_id"],
-                datetime=self.now,
-                project=self.proj1,
-                group=self.proj1group1,
-                data=self.data,
-            )
-            nodestore_data = nodestore.get(
-                SnubaEvent.generate_node_id(self.proj1.id, self.event_id)
-            )
-            assert self.data["event_id"] == nodestore_data["event_id"]
-        else:
-            node_id = SnubaEvent.generate_node_id(self.proj1.id, self.event_id)
-            nodestore.set(node_id, self.data)
-            assert nodestore.get(node_id) == self.data
+        event1 = self.store_event(data=self.data, project_id=self.proj1.id)
+        self.proj1group1 = event1.group
 
     def test_fetch(self):
         event = eventstore.get_event_by_id(self.proj1.id, self.event_id)
@@ -119,7 +95,9 @@ class SnubaEventTest(TestCase, SnubaTestCase):
         # Check that the regular serializer still gives us back tags
         assert serialized["tags"] == [
             {"_meta": None, "key": "baz", "value": "quux"},
+            {"_meta": None, "key": "environment", "value": "prod"},
             {"_meta": None, "key": "foo", "value": "bar"},
+            {"_meta": None, "key": "level", "value": "error"},
             {"_meta": None, "key": "release", "value": "release1"},
             {"_meta": None, "key": "user", "query": "user.id:user1", "value": "id:user1"},
         ]
