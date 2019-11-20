@@ -194,8 +194,30 @@ body.auth {
     flex: 1;
   }
 
-  .auth-join-request {
-    padding-top: 20px;
+  .auth-header {
+    display: flex;
+    align-items: center;
+    padding: 30px 40px;
+  }
+
+  .auth-org-name {
+    margin: 0;
+    padding-left: 12px;
+  }
+
+  .join-request-megaphone {
+    .square(20px);
+    margin-right: 4px;
+    border-radius: 2px;
+  }
+
+  .btn-join-request {
+    margin-left: auto;
+  }
+
+  .join-request-avatar {
+    .square(56px);
+    border-radius: 3px;
   }
 
   .auth-provider-column {
@@ -542,6 +564,13 @@ footer {
       .auth-container {
         padding: 20px;
       }
+    }
+
+    .auth-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 30px 20px 20px 20px;
     }
   }
 

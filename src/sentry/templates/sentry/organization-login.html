@@ -23,10 +23,20 @@
 
 {% block auth_container %}
 <div>
+  {% if join_request_link %}
+  <div class="auth-header">
+    <img class="join-request-avatar" src="{% asset_url "sentry" "images/default-organization-logo.png" %}">
+    <h3 class="auth-org-name">{{ organization.name }}</h3>
+    <a class="btn btn-default btn-sm btn-join-request" href="{{ join_request_link }}">
+      <img class="join-request-megaphone" src="{% asset_url "sentry" "app/icons/icon-megaphone.svg" %}"></img> Request to Join
+    </a>
+  </div>
+  {% else %}
   <div class="align-center p-t-2">
     <img src="{% asset_url "sentry" "images/default-organization-logo.png" %}" class="org-avatar">
     <h3>{{ organization.name }}</h3>
   </div>
+  {% endif %}
 
   {% if provider_name %}
     <form class="form-stacked m-b-2" action="" method="post" autocomplete="off">
@@ -81,11 +91,6 @@
                 <a class="secondary" href="{% url 'sentry-account-recover' %}">{% trans "Lost your password?" %}</a>
               </div>
             </form>
-            {% if join_request_link %}
-              <div class="auth-join-request">{% trans "No access? "%}
-                <a href="{{ join_request_link }}">{% trans "Request to join" %}</a>
-              </div>
-            {% endif %}
           </div>
           {% if github_login_link or vsts_login_link %}
           <div class="auth-provider-column">
