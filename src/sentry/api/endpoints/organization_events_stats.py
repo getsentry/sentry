@@ -5,15 +5,15 @@ import six
 from datetime import timedelta
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
-from sentry.utils.hashlib import sha1_text
 
 from sentry import features
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
 from sentry.api.event_search import resolve_field_list, InvalidSearchQuery
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
-from sentry.cache import default_cache
+from sentry.utils.cache import cache
 from sentry.utils.dates import parse_stats_period
 from sentry.utils import snuba, json
+from sentry.utils.hashlib import sha1_text
 
 
 class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
@@ -41,7 +41,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
         cache_key = cache_key_for_snuba_args(organization, request) if should_cache else ""
 
         if should_cache:
-            snuba_data = default_cache.get(cache_key)
+            snuba_data = cache.get(cache_key)
 
             import logging
 
@@ -69,7 +69,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
 
         if should_cache:
             cache_timeout = 900  # 15 minutes = 900 seconds
-            default_cache.set(cache_key, snuba_data, cache_timeout)
+            cache.set(cache_key, snuba_data, cache_timeout)
             logging.info("foo cache miss: %s", cache_key)
 
         return Response(snuba_data, status=200)
