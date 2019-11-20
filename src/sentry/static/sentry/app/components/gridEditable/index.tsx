@@ -30,8 +30,6 @@ import {
   GridBodyCellSpan,
   GridBodyCellLoading,
   GridBodyErrorAlert,
-  GridEditGroup,
-  GridEditGroupButton,
 } from './styles';
 
 type GridEditableProps<DataRow, ColumnKey> = {
@@ -179,7 +177,7 @@ class GridEditable<
     return (
       <HeaderButton onClick={() => this.openModalAddColumnAt()}>
         <InlineSvg src="icon-circle-add" />
-        Add Column
+        {t('Add Column')}
       </HeaderButton>
     );
   };
@@ -189,31 +187,31 @@ class GridEditable<
       return null;
     }
 
+    const sorryMessage = t('This will be improved soon! Please bear with us!');
+
     if (!this.state.isEditing) {
       return (
-        <GridEditGroup>
-          <GridEditGroupButton onClick={this.toggleEdit} data-test-id="grid-edit-enable">
-            <ToolTip title={t('Edit Columns')}>
-              <InlineSvg src="icon-edit-pencil" />
-            </ToolTip>
-          </GridEditGroupButton>
-        </GridEditGroup>
+        <ToolTip title={sorryMessage}>
+          <HeaderButton onClick={this.toggleEdit}>
+            <InlineSvg src="icon-edit-pencil" />
+            Edit Columns
+          </HeaderButton>
+        </ToolTip>
       );
     }
 
     return (
-      <GridEditGroup>
-        <GridEditGroupButton onClick={this.toggleEdit}>
-          <ToolTip title={t('Exit Edit')}>
-            <InlineSvg src="icon-close" />
-          </ToolTip>
-        </GridEditGroupButton>
-      </GridEditGroup>
+      <ToolTip title={sorryMessage}>
+        <HeaderButton onClick={this.toggleEdit}>
+          <InlineSvg src="icon-circle-close" />
+          Exit Edit
+        </HeaderButton>
+      </ToolTip>
     );
   };
 
   renderGridHead = () => {
-    const {isEditable, columnOrder, actions, grid} = this.props;
+    const {columnOrder, actions, grid} = this.props;
     const {isEditing} = this.state;
 
     // Ensure that the last column cannot be removed
@@ -222,25 +220,6 @@ class GridEditable<
     return (
       <GridHead>
         <GridRow>
-          {/* GridHeadEdit must come first.
-
-              It is a <th> that uses `position: absolute` to set its placement.
-              The CSS selectors captures the last GridHeadCell and put a
-              padding-right to provide space for GridHeadEdit to be displayed.
-
-              FAQ:
-              Instead of using `position: absolute`, why can't we just put
-              GridHeadEdit at the end so it appears on the right?
-              Because CSS Grids need to have the same number of Head/Body cells
-              for everything to align properly. Sub-grids are new and may not be
-              well supported in older browsers/
-
-              Why can't we just put GridHeadEdit somewhere else?
-              Because HTML rules mandate that <div> cannot be a nested child of
-              a <table>. This seems the best way to make it correct to satisfy
-              HTML semantics. */
-          isEditable && this.renderGridHeadEditButtons()}
-
           {columnOrder.map((column, columnIndex) => (
             <GridHeadCell
               openModalAddColumnAt={this.openModalAddColumnAt}
@@ -346,7 +325,7 @@ class GridEditable<
   };
 
   render() {
-    const {title} = this.props;
+    const {title, isEditable} = this.props;
 
     return (
       <React.Fragment>
@@ -354,7 +333,16 @@ class GridEditable<
           {/* TODO(leedongwei): Check with Bowen/Dora on what they want the
           default title to be */}
           <HeaderTitle>{title || 'Query Builder'}</HeaderTitle>
-          {this.renderHeaderButton()}
+
+          {/* TODO(leedongwei): This is ugly but I need to move it to work on
+          resizing columns. It will be refactored in a upcoming PR */}
+          <div style={{display: 'flex', flexDirection: 'row'}}>
+            {this.renderHeaderButton()}
+
+            <div style={{marginLeft: '16px'}}>
+              {isEditable && this.renderGridHeadEditButtons()}
+            </div>
+          </div>
         </Header>
 
         <Body>
