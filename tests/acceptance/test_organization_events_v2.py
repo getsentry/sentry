@@ -132,10 +132,6 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             header = self.browser.element('[data-test-id="event-header"] span')
             assert event_data["message"] in header.text
 
-            issue_link = self.browser.element('[data-test-id="linked-issue"]')
-            issue_event_url_fragment = "/issues/%s/events/%s/" % (event.group_id, event.event_id)
-            assert issue_event_url_fragment in issue_link.get_attribute("href")
-
             self.browser.snapshot("events-v2 - single error details view")
 
     @patch("django.utils.timezone.now")
