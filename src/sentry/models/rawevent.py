@@ -19,11 +19,7 @@ class RawEvent(Model):
     event_id = models.CharField(max_length=32, null=True)
     datetime = models.DateTimeField(default=timezone.now)
     data = NodeField(
-        blank=True,
-        null=True,
-        ref_func=lambda x: x.project_id or x.project.id,
-        ref_version=1,
-        wrapper=CanonicalKeyView,
+        blank=True, null=True, ref_func=ref_func, ref_version=1, wrapper=CanonicalKeyView
     )
 
     objects = EventManager()
