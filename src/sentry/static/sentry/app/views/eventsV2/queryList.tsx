@@ -191,7 +191,23 @@ class QueryList extends React.Component<Props> {
     return (
       <React.Fragment>
         <QueryGrid>{this.renderQueries()}</QueryGrid>
-        <Pagination pageLinks={pageLinks} />
+        <Pagination
+          pageLinks={pageLinks}
+          onCursor={(cursor, path, query, direction) => {
+            const offset = Number(cursor.split(':')[1]);
+
+            const isPrevious = direction === -1;
+
+            if (offset <= 0 && isPrevious) {
+              cursor = undefined;
+            }
+
+            browserHistory.push({
+              pathname: path,
+              query: {...query, cursor},
+            });
+          }}
+        />
       </React.Fragment>
     );
   }

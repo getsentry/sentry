@@ -353,6 +353,55 @@ class SequencePaginator(object):
         )
 
 
+class FooOffsetPaginator(object):
+    def __init__(
+        self, queryset, order_by=None, max_limit=MAX_LIMIT, max_offset=None, on_results=None
+    ):
+        self.key = (
+            order_by
+            if order_by is None or isinstance(order_by, (list, tuple, set))
+            else (order_by,)
+        )
+        self.queryset = queryset
+        self.max_limit = max_limit
+        self.max_offset = max_offset
+        self.on_results = on_results
+
+    def get_result(self, limit=100, cursor=None):
+
+        assert limit > 0
+
+        # offset is page #
+        # value is page limit
+        if cursor is None:
+            cursor = Cursor(0, 0, 0)
+
+        limit = min(limit, self.max_limit)
+
+        queryset = self.queryset
+        if self.key:
+            queryset = queryset.order_by(*self.key)
+
+        offset = cursor.offset if cursor is not None else 0
+        stop = offset + (limit) + 1
+
+        if self.max_offset is not None and offset >= self.max_offset:
+            raise BadPaginationError("Pagination offset too large")
+
+        results = list(queryset[offset:stop])
+        if cursor.value != limit:
+            results = results[-(limit + 1) :]
+
+        next_cursor = Cursor(limit, max(0, offset + limit), False, len(results) > limit)
+        prev_cursor = Cursor(limit, max(0, offset - limit), True, offset > 0)
+
+        results = list(results[:limit])
+        if self.on_results:
+            results = self.on_results(results)
+
+        return CursorResult(results=results, next=next_cursor, prev=prev_cursor)
+
+
 class GenericOffsetPaginator(object):
     """
     A paginator for getting pages of results for a query using the OFFSET/LIMIT
