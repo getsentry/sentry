@@ -1,9 +1,6 @@
-BeautifulSoup>=3.2.1
+beautifulsoup4>=4.7.1,<4.8
 boto3>=1.4.1,<1.4.6
 botocore<1.5.71
-
-# sentry-plugins specific dependencies
-cached-property
 celery>=3.1.8,<3.1.19
 cffi>=1.11.5,<2.0
 click>=5.0,<7.0
@@ -37,7 +34,7 @@ ipaddress>=1.0.16,<1.1.0
 jsonschema==2.6.0
 kombu==3.0.35
 loremipsum>=1.0.5,<1.1.0
-lxml>=3.4.1
+lxml>=4.3.3,<4.4.0
 # optional
 maxminddb==1.4.1
 # for vsts repo

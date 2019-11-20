@@ -7,7 +7,7 @@ import requests
 from collections import OrderedDict
 from time import time
 
-from BeautifulSoup import BeautifulStoneSoup
+from bs4 import BeautifulSoup
 from django.utils.functional import cached_property
 from requests.exceptions import ConnectionError, Timeout, HTTPError
 from sentry.exceptions import InvalidIdentity
@@ -93,7 +93,7 @@ class TextApiResponse(BaseApiResponse):
 
 class XmlApiResponse(BaseApiResponse):
     def __init__(self, text, *args, **kwargs):
-        self.xml = BeautifulStoneSoup(text)
+        self.xml = BeautifulSoup(text, "xml")
         super(XmlApiResponse, self).__init__(*args, **kwargs)
 
 

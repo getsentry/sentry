@@ -5,7 +5,7 @@ import logging
 import json
 import requests
 
-from BeautifulSoup import BeautifulStoneSoup
+from bs4 import BeautifulSoup
 from cached_property import cached_property
 from requests.exceptions import ConnectionError, HTTPError
 
@@ -85,7 +85,7 @@ class TextApiResponse(BaseApiResponse):
 
 class XmlApiResponse(BaseApiResponse):
     def __init__(self, text, *args, **kwargs):
-        self.xml = BeautifulStoneSoup(text)
+        self.xml = BeautifulSoup(text, "xml")
         super(XmlApiResponse, self).__init__(*args, **kwargs)
 
 
