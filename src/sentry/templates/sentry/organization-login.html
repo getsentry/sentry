@@ -25,7 +25,10 @@
 <div>
   {% if True %}
     <div class="auth-header">
-      <img class="join-request-org-avatar" src="{% asset_url "sentry" "images/default-organization-logo.png" %}"><h4 class="auth-org-name">{{ organization.name }}</h4>
+      <div class="join-request-org-name">
+        <img class="join-request-org-avatar" src="{% asset_url "sentry" "images/default-organization-logo.png" %}">
+        <h4 class="auth-org-name">{{ organization.name }}</h4>
+      </div>
       <div class="btn-join-request">
         <a class="btn btn-default btn-sm" href="{{ join_request_link }}">
           <img class="join-request-megaphone" src="{% asset_url "sentry" "app/icons/icon-megaphone.svg" %}"></img> Request to Join
