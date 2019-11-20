@@ -194,35 +194,6 @@ body.auth {
     flex: 1;
   }
 
-  .auth-header {
-    display: flex;
-    align-items: center;
-    padding: 30px 40px;
-  }
-
-  .join-request-org-avatar {
-    .square(56px);
-    border-radius: 3px;
-    margin-right: 15px;
-  }
-
-  .auth-org-name {
-    margin: 0;
-    padding-right: 15px;
-    overflow-wrap: break-word;
-  }
-
-  .join-request-megaphone {
-    .square(20px);
-    margin-right: 4px;
-    border-radius: 2px;
-  }
-
-  .btn-join-request {
-    margin-left: auto;
-    min-width: 138px;
-  }
-
   .auth-provider-column {
     width: 46%;
     padding-left: 30px;
@@ -266,6 +237,34 @@ body.auth {
         color: @gray-dark;
       }
     }
+  }
+
+  .join-request-header {
+    display: flex;
+    align-items: center;
+    padding: 30px 40px;
+  }
+
+  .join-request-org-avatar {
+    .square(56px);
+    border-radius: 3px;
+  }
+
+  .join-request-org-name {
+    margin: 0 15px;
+    max-width: 330px;
+    overflow-wrap: break-word;
+  }
+
+  .join-request-megaphone {
+    .square(20px);
+    margin-right: 4px;
+    border-radius: 2px;
+  }
+
+  .btn-join-request {
+    margin-left: auto;
+    min-width: 138px;
   }
 }
 
@@ -563,29 +562,21 @@ footer {
       }
     }
 
-    .tab-pane {
-      .auth-container {
-        padding: 20px;
-      }
-    }
-
-    .auth-header {
+    .join-request-header {
       display: block;
       text-align: center;
       padding: 30px 20px 20px 20px;
     }
 
-    .join-request-org-avatar {
-      margin-right: 0;
+    .join-request-org-name {
+      max-width: none;
+      margin: 15px 0;
     }
 
-    .auth-org-name {
-      padding-top: 15px;
-      padding-right: 0;
-    }
-
-    .btn-join-request {
-      padding-top: 15px;
+    .tab-pane {
+      .auth-container {
+        padding: 20px;
+      }
     }
   }
 

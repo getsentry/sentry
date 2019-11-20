@@ -23,15 +23,13 @@
 
 {% block auth_container %}
 <div>
-  {% if True %}
-    <div class="auth-header">
+  {% if join_request_link %}
+    <div class="join-request-header">
       <img class="join-request-org-avatar" src="{% asset_url "sentry" "images/default-organization-logo.png" %}">
-      <h4 class="auth-org-name">{{ organization.name }}</h4>
-      <div class="btn-join-request">
-        <a class="btn btn-default btn-sm" href="{{ join_request_link }}">
-          <img class="join-request-megaphone" src="{% asset_url "sentry" "app/icons/icon-megaphone.svg" %}"></img> Request to Join
-        </a>
-      </div>
+      <h4 class="join-request-org-name">{{ organization.name }}</h4>
+      <a class="btn btn-default btn-sm btn-join-request" href="{{ join_request_link }}">
+        <img class="join-request-megaphone" src="{% asset_url "sentry" "app/icons/icon-megaphone.svg" %}"></img> Request to Join
+      </a>
     </div>
   {% else %}
     <div class="align-center p-t-2">
@@ -94,9 +92,9 @@
               </div>
             </form>
           </div>
-          {% if True %}
+          {% if github_login_link or vsts_login_link %}
           <div class="auth-provider-column">
-            {% if True %}
+            {% if github_login_link %}
               <p>
                 <a class="btn btn-default btn-login-github" href="{{ github_login_link }}" style="display: block">
                   <span class="provider-logo github"></span> Sign in with GitHub
@@ -104,7 +102,7 @@
               </p>
             {% endif %}
 
-            {% if True %}
+            {% if vsts_login_link %}
               <p>
                 <a class="btn btn-default btn-login-vsts" href="{{ vsts_login_link }}" style="display: block">
                   <span class="provider-logo vsts"></span> Sign in with Azure DevOps
