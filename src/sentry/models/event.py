@@ -23,7 +23,7 @@ from sentry.db.models import (
     NodeField,
     sane_repr,
 )
-from sentry.db.models.manager import EventManager
+from sentry.db.models.manager import BaseManager
 from sentry.interfaces.base import get_interfaces
 from sentry.utils import json
 from sentry.utils.cache import memoize
@@ -622,7 +622,7 @@ class Event(EventCommon, Model):
         skip_nodestore_save=True,
     )
 
-    objects = EventManager()
+    objects = BaseManager()
 
     class Meta:
         app_label = "sentry"

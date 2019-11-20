@@ -3,7 +3,8 @@ from __future__ import absolute_import, division
 from django.http import Http404, HttpResponse
 
 from sentry import eventstore
-from sentry.models import Event, Group, GroupMeta, get_group_with_redirect
+from sentry.models import Group, GroupMeta, get_group_with_redirect
+
 from sentry.utils import json
 from sentry.web.frontend.base import OrganizationView
 
@@ -27,7 +28,7 @@ class GroupEventJsonView(OrganizationView):
         if event is None:
             raise Http404
 
-        Event.objects.bind_nodes([event], "data")
+        event.data.bind_node_data()
 
         GroupMeta.objects.populate_cache([group])
 

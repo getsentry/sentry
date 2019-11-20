@@ -109,13 +109,16 @@ class NodeData(collections.MutableMapping):
 
         elif self.id:
             warnings.warn("You should populate node data before accessing it.")
-            self.bind_data(nodestore.get(self.id) or {})
+            self.bind_node_data()
             return self._node_data
 
         rv = {}
         if self.field is not None and self.field.wrapper is not None:
             rv = self.field.wrapper(rv)
         return rv
+
+    def bind_node_data(self):
+        self.bind_data(nodestore.get(self.id) or {})
 
     def bind_data(self, data, ref=None):
         self.ref = data.pop("_ref", ref)

@@ -175,6 +175,9 @@ class EventStorage(Service):
         (unfetched) NodeData on those objects, fetch all the data blobs for
         those NodeDatas with a single multi-get command to nodestore, and bind
         the returned blobs to the NodeDatas
+
+        For binding a single Event object (most use cases), it's easier to use
+        event.data.bind_node_data().
         """
         object_node_list = [
             (i, getattr(i, node_name)) for i in object_list if getattr(i, node_name).id

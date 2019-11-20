@@ -4,7 +4,7 @@ from rest_framework.response import Response
 
 from sentry import eventstore
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.models import Commit, Event, Release
+from sentry.models import Commit, Release
 from sentry.utils.committers import get_serialized_event_file_committers
 
 
@@ -27,7 +27,7 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
             return Response({"detail": "Event not found"}, status=404)
 
         # populate event data
-        Event.objects.bind_nodes([event], "data")
+        event.data.bind_node_data()
 
         try:
             committers = get_serialized_event_file_committers(

@@ -7,7 +7,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.fields.actor import Actor
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer
-from sentry.models import Event, ProjectOwnership
+from sentry.models import ProjectOwnership
 
 
 class EventOwnersEndpoint(ProjectEndpoint):
@@ -26,7 +26,7 @@ class EventOwnersEndpoint(ProjectEndpoint):
             return Response({"detail": "Event not found"}, status=404)
 
         # populate event data
-        Event.objects.bind_nodes([event], "data")
+        event.data.bind_node_data()
 
         owners, rules = ProjectOwnership.get_owners(project.id, event.data)
 
