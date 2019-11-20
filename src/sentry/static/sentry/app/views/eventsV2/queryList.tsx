@@ -21,6 +21,7 @@ import QueryCard from './querycard';
 import MiniGraph from './miniGraph';
 import {getPrebuiltQueries} from './utils';
 import {handleDeleteQuery, handleCreateQuery} from './savedQuery/utils';
+import {Params} from 'react-router/lib/Router';
 
 type Props = {
   api: Client;
@@ -189,7 +190,24 @@ class QueryList extends React.Component<Props> {
     return (
       <React.Fragment>
         <QueryGrid>{this.renderQueries()}</QueryGrid>
-        <Pagination pageLinks={pageLinks} />
+        <Pagination
+          pageLinks={pageLinks}
+          onCursor={(cursor: string, path: string, query: Params, direction: number) => {
+            const offset = Number(cursor.split(':')[1]);
+
+            const newQuery = {...query, cursor};
+            const isPrevious = direction === -1;
+
+            if (offset <= 0 && isPrevious) {
+              delete newQuery.cursor;
+            }
+
+            browserHistory.push({
+              pathname: path,
+              query: newQuery,
+            });
+          }}
+        />
       </React.Fragment>
     );
   }
