@@ -13,7 +13,9 @@ import EventExtraData from 'app/components/events/extraData';
 import EventPackageData from 'app/components/events/packageData';
 import NavTabs from 'app/components/navTabs';
 import {objectIsEmpty, toTitleCase} from 'app/utils';
-import {Event} from 'app/types';
+import {Event, Organization} from 'app/types';
+
+import RelatedItems from './relatedItems';
 
 const OTHER_SECTIONS = {
   contexts: EventContexts,
@@ -23,8 +25,8 @@ const OTHER_SECTIONS = {
 };
 
 type ActiveTabProps = {
+  organization: Organization;
   projectId: string;
-  orgId: string;
   event: Event;
   activeTab: string;
 };
@@ -34,7 +36,7 @@ type ActiveTabProps = {
  * Some but not all interface elements require a projectId.
  */
 const ActiveTab = (props: ActiveTabProps) => {
-  const {projectId, orgId, event, activeTab} = props;
+  const {organization, projectId, event, activeTab} = props;
   if (!activeTab) {
     return null;
   }
@@ -44,7 +46,7 @@ const ActiveTab = (props: ActiveTabProps) => {
     return (
       <Component
         projectId={projectId}
-        orgId={orgId}
+        orgId={organization.slug}
         event={event}
         type={entry.type}
         data={entry.data}
@@ -55,6 +57,10 @@ const ActiveTab = (props: ActiveTabProps) => {
   } else if (OTHER_SECTIONS[activeTab]) {
     const Component = OTHER_SECTIONS[activeTab];
     return <Component event={event} isShare={false} hideGuide />;
+  } else if (activeTab === 'related') {
+    return (
+      <RelatedItems event={event} projectId={projectId} organization={organization} />
+    );
   } else {
     /*eslint no-console:0*/
     window.console &&
@@ -80,7 +86,7 @@ ActiveTab.propTypes = {
 type EventInterfacesProps = {
   event: Event;
   projectId: string;
-  orgId: string;
+  organization: Organization;
 };
 type EventInterfacesState = {
   activeTab: string;
@@ -90,11 +96,6 @@ class EventInterfaces extends React.Component<
   EventInterfacesProps,
   EventInterfacesState
 > {
-  static propTypes = {
-    event: SentryTypes.Event.isRequired,
-    projectId: PropTypes.string.isRequired,
-  };
-
   constructor(props: EventInterfacesProps) {
     super(props);
     this.state = {
@@ -105,7 +106,7 @@ class EventInterfaces extends React.Component<
   handleTabChange = tab => this.setState({activeTab: tab});
 
   render() {
-    const {event, projectId, orgId} = this.props;
+    const {event, projectId, organization} = this.props;
     const {activeTab} = this.state;
 
     return (
@@ -154,13 +155,24 @@ class EventInterfaces extends React.Component<
               </li>
             );
           })}
+          <li key="related" className={activeTab === 'related' ? 'active' : undefined}>
+            <a
+              href="#"
+              onClick={evt => {
+                evt.preventDefault();
+                this.handleTabChange('related');
+              }}
+            >
+              {t('Related')}
+            </a>
+          </li>
         </NavTabs>
         <ErrorBoundary message={t('Could not render event details')}>
           <ActiveTab
             event={event}
             activeTab={activeTab}
             projectId={projectId}
-            orgId={orgId}
+            organization={organization}
           />
         </ErrorBoundary>
       </React.Fragment>
