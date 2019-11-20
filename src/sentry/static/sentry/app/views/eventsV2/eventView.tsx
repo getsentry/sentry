@@ -381,6 +381,22 @@ class EventView {
     });
   }
 
+  static fromSavedQueryWithLocation(
+    saved: NewQuery | LegacySavedQuery,
+    location: Location
+  ): EventView {
+    const query = location.query;
+
+    saved = {
+      ...saved,
+      start: saved.start || decodeScalar(query.start),
+      end: saved.end || decodeScalar(query.end),
+      range: saved.range || decodeScalar(query.statsPeriod),
+    };
+
+    return EventView.fromSavedQuery(saved);
+  }
+
   static fromSavedQuery(saved: NewQuery | LegacySavedQuery): EventView {
     let fields, yAxis;
     if (isLegacySavedQuery(saved)) {
@@ -883,10 +899,10 @@ class EventView {
     // normalize datetime selection
 
     const normalizedTimeWindowParams = getParams({
-      start: this.start,
-      end: this.end,
+      start: this.start || picked.start,
+      end: this.end || picked.end,
       period: decodeScalar(query.period),
-      statsPeriod: this.statsPeriod,
+      statsPeriod: this.statsPeriod || picked.statsPeriod,
       utc: decodeScalar(query.utc),
     });
 
