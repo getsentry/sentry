@@ -4,7 +4,7 @@ import {Location, Query} from 'history';
 import {browserHistory} from 'react-router';
 
 import {t} from 'app/locale';
-import {Event} from 'app/types';
+import {Event, Organization} from 'app/types';
 import {Client} from 'app/api';
 import {getTitle} from 'app/utils/events';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
@@ -17,6 +17,8 @@ import {
   FIELD_FORMATTERS,
   FieldTypes,
   FieldFormatterRenderFunctionPartial,
+  ALL_VIEWS,
+  TRANSACTION_VIEWS,
 } from './data';
 import EventView, {Field as FieldType} from './eventView';
 import {
@@ -339,4 +341,16 @@ export function generateTitle({eventView, event}: {eventView: EventView; event?:
   titles.reverse();
 
   return titles.join(' - ');
+}
+
+export function getPrebuiltQueries(organization: Organization) {
+  let views = ALL_VIEWS;
+  if (organization.features.includes('transaction-events')) {
+    // insert transactions queries at index 2
+    const cloned = [...ALL_VIEWS];
+    cloned.splice(2, 0, ...TRANSACTION_VIEWS);
+    views = cloned;
+  }
+
+  return views;
 }

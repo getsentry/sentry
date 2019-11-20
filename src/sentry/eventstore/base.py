@@ -94,7 +94,15 @@ class EventStorage(Service):
         Columns.USER_USERNAME,
     ]
 
-    def get_events(self, filter, additional_columns, orderby, limit, offset, referrer):
+    def get_events(
+        self,
+        filter,
+        additional_columns=None,
+        orderby=None,
+        limit=100,
+        offset=0,
+        referrer="eventstore.get_events",
+    ):
         """
         Fetches a list of events given a set of criteria.
 
@@ -108,7 +116,7 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
-    def get_event_by_id(self, project_id, event_id, additional_columns):
+    def get_event_by_id(self, project_id, event_id, additional_columns=None):
         """
         Gets a single event given a project_id and event_id.
 
