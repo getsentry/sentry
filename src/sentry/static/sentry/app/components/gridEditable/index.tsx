@@ -17,10 +17,11 @@ import {
 } from './types';
 import GridHeadCell from './gridHeadCell';
 import GridModalEditColumn from './gridModalEditColumn';
-import AddColumnButton from './addColumnButton';
 import {
-  GridPanel,
-  GridPanelBody,
+  Header,
+  HeaderTitle,
+  HeaderButton,
+  Body,
   Grid,
   GridRow,
   GridHead,
@@ -52,6 +53,7 @@ type GridEditableProps<DataRow, ColumnKey> = {
    * - `columnSortBy` is not used at the moment, however it might be better to
    *   move sorting into Grid for performance
    */
+  title?: string;
   columnOrder: GridColumnOrder<ColumnKey>[];
   columnSortBy: GridColumnSortBy<ColumnKey>[];
   data: DataRow[];
@@ -141,7 +143,14 @@ class GridEditable<
     this.setState({isEditing: nextValue});
   };
 
-  openModalAddColumnAt = (insertIndex: number) => {
+  /**
+   * Leave `insertIndex` as undefined to add new column to the end.
+   */
+  openModalAddColumnAt = (insertIndex: number = -1) => {
+    if (insertIndex < 0) {
+      insertIndex = this.props.columnOrder.length;
+    }
+
     return this.toggleModalEditColumn(insertIndex);
   };
 
@@ -149,73 +158,57 @@ class GridEditable<
     indexColumnOrder?: number,
     column?: GridColumn<ColumnKey>
   ): void => {
-    if (this.state.isEditing) {
-      const {modalEditColumn} = this.props;
+    const {modalEditColumn} = this.props;
 
-      openModal(openModalProps => (
-        <GridModalEditColumn
-          {...openModalProps}
-          indexColumnOrder={indexColumnOrder}
-          column={column}
-          renderBodyWithForm={modalEditColumn.renderBodyWithForm}
-          renderFooter={modalEditColumn.renderFooter}
-        />
-      ));
+    openModal(openModalProps => (
+      <GridModalEditColumn
+        {...openModalProps}
+        indexColumnOrder={indexColumnOrder}
+        column={column}
+        renderBodyWithForm={modalEditColumn.renderBodyWithForm}
+        renderFooter={modalEditColumn.renderFooter}
+      />
+    ));
+  };
+
+  renderHeaderButton = () => {
+    if (!this.props.isEditable) {
+      return null;
     }
-  };
-
-  renderError = () => {
-    const {error} = this.props;
 
     return (
-      <React.Fragment>
-        <GridPanel>
-          <Grid
-            isEditable={this.props.isEditable}
-            isEditing={this.state.isEditing}
-            numColumn={this.state.numColumn}
-          >
-            {this.renderGridHead()}
-            <GridBody>
-              <GridRow>
-                <GridBodyCellSpan>
-                  <GridBodyErrorAlert type="error" icon="icon-circle-exclamation">
-                    {error}
-                  </GridBodyErrorAlert>
-                </GridBodyCellSpan>
-              </GridRow>
-            </GridBody>
-          </Grid>
-        </GridPanel>
-      </React.Fragment>
+      <HeaderButton onClick={() => this.openModalAddColumnAt()}>
+        <InlineSvg src="icon-circle-add" />
+        Add Column
+      </HeaderButton>
     );
   };
 
-  renderLoading = () => {
-    return (
-      <GridBody>
-        <GridRow>
-          <GridBodyCellSpan>
-            <GridBodyCellLoading>
-              <LoadingContainer isLoading />
-            </GridBodyCellLoading>
-          </GridBodyCellSpan>
-        </GridRow>
-      </GridBody>
-    );
-  };
+  renderGridHeadEditButtons = () => {
+    if (!this.props.isEditable) {
+      return null;
+    }
 
-  renderEmptyData = () => {
+    if (!this.state.isEditing) {
+      return (
+        <GridEditGroup>
+          <GridEditGroupButton onClick={this.toggleEdit} data-test-id="grid-edit-enable">
+            <ToolTip title={t('Edit Columns')}>
+              <InlineSvg src="icon-edit-pencil" />
+            </ToolTip>
+          </GridEditGroupButton>
+        </GridEditGroup>
+      );
+    }
+
     return (
-      <GridBody>
-        <GridRow>
-          <GridBodyCellSpan>
-            <EmptyStateWarning>
-              <p>{t('No results found')}</p>
-            </EmptyStateWarning>
-          </GridBodyCellSpan>
-        </GridRow>
-      </GridBody>
+      <GridEditGroup>
+        <GridEditGroupButton onClick={this.toggleEdit}>
+          <ToolTip title={t('Exit Edit')}>
+            <InlineSvg src="icon-close" />
+          </ToolTip>
+        </GridEditGroupButton>
+      </GridEditGroup>
     );
   };
 
@@ -276,41 +269,16 @@ class GridEditable<
     );
   };
 
-  renderGridHeadEditButtons = () => {
-    if (!this.props.isEditable) {
-      return null;
-    }
-
-    if (!this.state.isEditing) {
-      return (
-        <GridEditGroup>
-          <GridEditGroupButton onClick={this.toggleEdit} data-test-id="grid-edit-enable">
-            <ToolTip title={t('Edit Columns')}>
-              <InlineSvg src="icon-edit-pencil" />
-            </ToolTip>
-          </GridEditGroupButton>
-        </GridEditGroup>
-      );
-    }
-
-    return (
-      <GridEditGroup>
-        <AddColumnButton
-          align="left"
-          onClick={() => this.toggleModalEditColumn()}
-          data-test-id="grid-add-column-right-end"
-        />
-        <GridEditGroupButton onClick={this.toggleEdit}>
-          <ToolTip title={t('Exit Edit')}>
-            <InlineSvg src="icon-close" />
-          </ToolTip>
-        </GridEditGroupButton>
-      </GridEditGroup>
-    );
-  };
-
   renderGridBody = () => {
-    const {data} = this.props;
+    const {data, error, isLoading} = this.props;
+
+    if (error) {
+      return this.renderError();
+    }
+
+    if (isLoading) {
+      return this.renderLoading();
+    }
 
     if (!data || data.length === 0) {
       return this.renderEmptyData();
@@ -333,24 +301,73 @@ class GridEditable<
     );
   };
 
-  render() {
-    if (this.props.error) {
-      return this.renderError();
-    }
+  renderError = () => {
+    const {error} = this.props;
 
     return (
-      <GridPanel>
-        <GridPanelBody>
+      <GridBody>
+        <GridRow>
+          <GridBodyCellSpan>
+            <GridBodyErrorAlert type="error" icon="icon-circle-exclamation">
+              {error}
+            </GridBodyErrorAlert>
+          </GridBodyCellSpan>
+        </GridRow>
+      </GridBody>
+    );
+  };
+
+  renderLoading = () => {
+    return (
+      <GridBody>
+        <GridRow>
+          <GridBodyCellSpan>
+            <GridBodyCellLoading>
+              <LoadingContainer isLoading />
+            </GridBodyCellLoading>
+          </GridBodyCellSpan>
+        </GridRow>
+      </GridBody>
+    );
+  };
+
+  renderEmptyData = () => {
+    return (
+      <GridBody>
+        <GridRow>
+          <GridBodyCellSpan>
+            <EmptyStateWarning>
+              <p>{t('No results found')}</p>
+            </EmptyStateWarning>
+          </GridBodyCellSpan>
+        </GridRow>
+      </GridBody>
+    );
+  };
+
+  render() {
+    const {title} = this.props;
+
+    return (
+      <React.Fragment>
+        <Header>
+          {/* TODO(leedongwei): Check with Bowen/Dora on what they want the
+          default title to be */}
+          <HeaderTitle>{title || 'Query Builder'}</HeaderTitle>
+          {this.renderHeaderButton()}
+        </Header>
+
+        <Body>
           <Grid
             isEditable={this.props.isEditable}
             isEditing={this.state.isEditing}
             numColumn={this.state.numColumn}
           >
             {this.renderGridHead()}
-            {this.props.isLoading ? this.renderLoading() : this.renderGridBody()}
+            {this.renderGridBody()}
           </Grid>
-        </GridPanelBody>
-      </GridPanel>
+        </Body>
+      </React.Fragment>
     );
   }
 }

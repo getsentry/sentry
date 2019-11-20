@@ -1,3 +1,4 @@
+import React from 'react';
 import styled from 'react-emotion';
 
 import Alert from 'app/components/alert';
@@ -28,10 +29,48 @@ type GridEditableProps = {
   isDragging?: boolean;
 };
 
-export const GridPanel = styled(Panel)`
-  /* overflow: hidden; */
+/**
+ *
+ * As
+ *
+ */
+export const Header = styled('div')`
+  display: flex;
+  /* flex-direction: ; */
+  justify-content: space-between;
+  align-items: center;
+
+  margin-bottom: ${space(1)};
 `;
-export const GridPanelBody = styled(PanelBody)``;
+export const HeaderTitle = styled('h2')`
+  margin: 0;
+
+  font-size: 20px;
+  font-weight: normal;
+  color: ${p => p.theme.gray3};
+`;
+export const HeaderButton = styled('div')`
+  display: flex;
+  align-items: center;
+
+  color: ${p => p.theme.gray3};
+  cursor: pointer;
+
+  > svg {
+    margin-right: ${space(1)};
+  }
+
+  &:hover,
+  &:active {
+    color: ${p => p.theme.gray4};
+  }
+`;
+
+export const Body: React.FC = props => (
+  <Panel>
+    <PanelBody>{props.children}</PanelBody>
+  </Panel>
+);
 
 /**
  *
