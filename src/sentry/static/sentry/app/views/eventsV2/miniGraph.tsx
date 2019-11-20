@@ -48,6 +48,7 @@ class MiniGraph extends React.Component<Props> {
         interval={getInterval({start, end, period}, true)}
         project={selection.projects || []}
         environment={selection.environments || []}
+        includePrevious={false}
       >
         {({loading, timeseriesData}) => {
           if (loading) {
