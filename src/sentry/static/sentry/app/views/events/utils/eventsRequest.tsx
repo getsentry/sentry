@@ -50,6 +50,8 @@ type EventsRequestPartialProps = {
   showLoading?: boolean;
   yAxis?: string;
   children: (renderProps: RenderProps) => React.ReactNode;
+
+  shouldCache?: boolean;
 };
 
 type TimeAggregationProps =
@@ -69,6 +71,8 @@ const omitIgnoredProps = (props: EventsRequestProps) =>
 
 class EventsRequest extends React.PureComponent<EventsRequestProps, EventsRequestState> {
   static propTypes = {
+    shouldCache: PropTypes.bool,
+
     /**
      * API client instance
      */

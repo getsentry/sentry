@@ -19,6 +19,7 @@ type Options = {
   yAxis?: string;
   field?: string[];
   referenceEvent?: string;
+  shouldCache?: boolean;
 };
 
 /**
@@ -50,6 +51,7 @@ export const doEventsRequest = (
     yAxis,
     field,
     referenceEvent,
+    shouldCache,
   }: Options
 ): Promise<EventsStats> => {
   const shouldDoublePeriod = canIncludePreviousPeriod(includePrevious, period);
@@ -64,6 +66,10 @@ export const doEventsRequest = (
       referenceEvent,
     }).filter(([, value]) => typeof value !== 'undefined')
   );
+
+  if (shouldCache === true) {
+    urlQuery.cache = '1';
+  }
 
   // Doubling period for absolute dates is not accurate unless starting and
   // ending times are the same (at least for daily intervals). This is
