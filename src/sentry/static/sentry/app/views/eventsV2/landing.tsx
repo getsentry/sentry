@@ -30,7 +30,7 @@ import EventInputName from './eventInputName';
 import {DEFAULT_EVENT_VIEW} from './data';
 import QueryList from './queryList';
 import DiscoverBreadcrumb from './breadcrumb';
-import {generateTitle} from './utils';
+import {getPrebuiltQueries, generateTitle} from './utils';
 
 const DISPLAY_SEARCH_BAR_FLAG = false;
 const BANNER_DISMISSED_KEY = 'discover-banner-dismissed';
@@ -48,6 +48,7 @@ type Props = {
 
 type State = {
   savedQueries: SavedQuery[];
+  savedQueriesPageLinks: string;
 } & AsyncComponent['state'];
 
 class DiscoverLanding extends AsyncComponent<Props, State> {
@@ -64,28 +65,57 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     errors: [],
     isBannerHidden: checkIsBannerHidden(),
     savedQueries: [],
+    savedQueriesPageLinks: '',
   };
 
   shouldReload = true;
 
   getEndpoints(): [string, string, any][] {
-    const {organization} = this.props;
+    const {organization, location} = this.props;
+    const views = getPrebuiltQueries(organization);
+    const cursor = location.query.cursor;
+    // XXX(mark) Pagination here is a bit wonky as we include the pre-built queries
+    // on the first page and aim to always have 9 results showing. If there are more than
+    // 9 pre-built queries we'll have more results on the first page. Furthermore, going
+    // back and forth between the first and second page is non-determinsitic due to the shifting
+    // per_page value.
+    let perPage = 9;
+    if (!cursor) {
+      perPage = Math.max(1, perPage - views.length);
+    }
+
+    const queryParams = {
+      cursor,
+      query: 'version:2',
+      per_page: perPage,
+      sortBy: '-dateUpdated',
+    };
+    if (!cursor) {
+      delete queryParams.cursor;
+    }
+
     return [
       [
         'savedQueries',
         `/organizations/${organization.slug}/discover/saved/`,
-        {query: {query: 'version:2'}},
+        {
+          query: queryParams,
+        },
       ],
     ];
   }
 
-  componentDidUpdate() {
+  componentDidUpdate(prevProps: Props) {
     const isBannerHidden = checkIsBannerHidden();
     if (isBannerHidden !== this.state.isBannerHidden) {
       // eslint-disable-next-line react/no-did-update-set-state
       this.setState({
         isBannerHidden,
       });
+    }
+
+    if (prevProps.location.query.cursor !== this.props.location.query.cursor) {
+      this.fetchData();
     }
   }
 
@@ -154,86 +184,74 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     );
   }
 
-  renderNewQuery() {
+  renderQueryList() {
     const {location, organization} = this.props;
-    const {savedQueries} = this.state;
+    const {loading, savedQueries, savedQueriesPageLinks} = this.state;
 
     return (
       <div>
         {this.renderBanner()}
         {DISPLAY_SEARCH_BAR_FLAG && this.renderActions()}
-        <QueryList
-          savedQueries={savedQueries}
-          location={location}
-          organization={organization}
-        />
+        {loading && this.renderLoading()}
+        {!loading && (
+          <QueryList
+            pageLinks={savedQueriesPageLinks}
+            savedQueries={savedQueries}
+            location={location}
+            organization={organization}
+          />
+        )}
       </div>
     );
   }
 
-  renderQueryRename = (hasQuery: boolean, eventView: EventView) => {
-    if (!hasQuery) {
-      return null;
-    }
-
-    const {organization} = this.props;
+  renderResults(eventView: EventView) {
+    const {organization, location, router} = this.props;
     const {savedQueries} = this.state;
 
     return (
-      <StyledInput>
-        <EventInputName
-          savedQueries={savedQueries}
-          organization={organization}
-          eventView={eventView}
-          onQuerySave={this.handleQuerySave}
-        />
-      </StyledInput>
-    );
-  };
-
-  renderBody() {
-    const {organization, location, router} = this.props;
-    const eventView = EventView.fromLocation(location);
-    const {savedQueries, reloading} = this.state;
-
-    const hasQuery = eventView.isValid();
-
-    return (
       <React.Fragment>
-        <PageHeader>
-          <DiscoverBreadcrumb
-            eventView={eventView}
-            organization={organization}
-            location={location}
-          />
-          {hasQuery && (
-            <SavedQueryButtonGroup
-              location={location}
+        <div>
+          <StyledInput>
+            <EventInputName
+              savedQueries={savedQueries}
               organization={organization}
               eventView={eventView}
-              savedQueries={savedQueries}
-              savedQueriesLoading={reloading}
               onQuerySave={this.handleQuerySave}
             />
-          )}
-        </PageHeader>
-        {this.renderQueryRename(hasQuery, eventView)}
-        {!hasQuery && this.renderNewQuery()}
-        {hasQuery && (
-          <Events
-            organization={organization}
-            location={location}
-            router={router}
-            eventView={eventView}
-          />
-        )}
+          </StyledInput>
+        </div>
+        <Events
+          organization={organization}
+          location={location}
+          router={router}
+          eventView={eventView}
+        />
       </React.Fragment>
+    );
+  }
+
+  renderSavedQueryControls(eventView: EventView) {
+    const {organization, location} = this.props;
+    const {savedQueries, reloading} = this.state;
+
+    return (
+      <SavedQueryButtonGroup
+        location={location}
+        organization={organization}
+        eventView={eventView}
+        savedQueries={savedQueries}
+        savedQueriesLoading={reloading}
+        onQuerySave={this.handleQuerySave}
+      />
     );
   }
 
   render() {
     const {organization, location} = this.props;
+
     const eventView = EventView.fromLocation(location);
+    const hasQuery = eventView.isValid();
 
     return (
       <Feature features={['events-v2']} organization={organization} renderDisabled>
@@ -245,7 +263,16 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
             <GlobalSelectionHeader organization={organization} />
             <PageContent>
               <NoProjectMessage organization={organization}>
-                {super.render()}
+                <PageHeader>
+                  <DiscoverBreadcrumb
+                    eventView={eventView}
+                    organization={organization}
+                    location={location}
+                  />
+                  {hasQuery && this.renderSavedQueryControls(eventView)}
+                </PageHeader>
+                {!hasQuery && this.renderQueryList()}
+                {hasQuery && this.renderResults(eventView)}
               </NoProjectMessage>
             </PageContent>
           </React.Fragment>

@@ -12,12 +12,14 @@ import {Client} from 'app/api';
 import InlineSvg from 'app/components/inlineSvg';
 import DropdownMenu from 'app/components/dropdownMenu';
 import MenuItem from 'app/components/menuItem';
+import Pagination from 'app/components/pagination';
 import withApi from 'app/utils/withApi';
+import parseLinkHeader from 'app/utils/parseLinkHeader';
 
 import EventView from './eventView';
-import {ALL_VIEWS, TRANSACTION_VIEWS} from './data';
 import QueryCard from './querycard';
 import MiniGraph from './miniGraph';
+import {getPrebuiltQueries} from './utils';
 import {handleDeleteQuery, handleCreateQuery} from './savedQuery/utils';
 
 type Props = {
@@ -25,6 +27,7 @@ type Props = {
   organization: Organization;
   location: Location;
   savedQueries: SavedQuery[];
+  pageLinks: string;
 };
 
 class QueryList extends React.Component<Props> {
@@ -57,15 +60,24 @@ class QueryList extends React.Component<Props> {
     });
   };
 
-  renderPrebuiltQueries = () => {
-    const {location, organization} = this.props;
-    let views = ALL_VIEWS;
-    if (organization.features.includes('transaction-events')) {
-      // insert transactions queries at index 2
-      const cloned = [...ALL_VIEWS];
-      cloned.splice(2, 0, ...TRANSACTION_VIEWS);
-      views = cloned;
+  renderQueries() {
+    const {pageLinks} = this.props;
+    const links = parseLinkHeader(pageLinks);
+    let cards: React.ReactNode[] = [];
+
+    // If we're on the first page (no-previous page exists)
+    // include the pre-built queries.
+    if (!links.previous || links.previous.results === false) {
+      cards = cards.concat(this.renderPrebuiltQueries());
     }
+    cards = cards.concat(this.renderSavedQueries());
+
+    return cards;
+  }
+
+  renderPrebuiltQueries() {
+    const {location, organization} = this.props;
+    const views = getPrebuiltQueries(organization);
 
     const list = views.map((view, index) => {
       const eventView = EventView.fromSavedQuery(view);
@@ -106,9 +118,9 @@ class QueryList extends React.Component<Props> {
     });
 
     return list;
-  };
+  }
 
-  renderSavedQueries = () => {
+  renderSavedQueries() {
     const {savedQueries, location, organization} = this.props;
 
     if (!savedQueries || !Array.isArray(savedQueries) || savedQueries.length === 0) {
@@ -170,14 +182,15 @@ class QueryList extends React.Component<Props> {
         />
       );
     });
-  };
+  }
 
   render() {
+    const {pageLinks} = this.props;
     return (
-      <QueryGrid>
-        {this.renderPrebuiltQueries()}
-        {this.renderSavedQueries()}
-      </QueryGrid>
+      <React.Fragment>
+        <QueryGrid>{this.renderQueries()}</QueryGrid>
+        <Pagination pageLinks={pageLinks} />
+      </React.Fragment>
     );
   }
 }
