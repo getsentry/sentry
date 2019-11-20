@@ -97,33 +97,33 @@ class OrganizationProjectsTest(APITestCase):
 
         self.check_valid_response(response, [project_bar, project_foo])
 
-    def test_bookmarks_appear_first_across_pages(self):
-        self.login_as(user=self.user)
+    # def test_bookmarks_appear_first_across_pages(self):
+    #     self.login_as(user=self.user)
 
-        projects = [self.create_project(teams=[self.team], name=i, slug=i) for i in range(3)]
-        projects.sort(key=lambda project: project.slug)
+    #     projects = [self.create_project(teams=[self.team], name=i, slug=i) for i in range(3)]
+    #     projects.sort(key=lambda project: project.slug)
 
-        response = self.client.get(self.path)
-        self.check_valid_response(response, [project for project in projects])
+    #     response = self.client.get(self.path)
+    #     self.check_valid_response(response, [project for project in projects])
 
-        response = self.client.get(self.path + "?per_page=2")
-        self.check_valid_response(response, [project for project in projects[:2]])
+    #     response = self.client.get(self.path + "?per_page=2")
+    #     self.check_valid_response(response, [project for project in projects[:2]])
 
-        self.create_project_bookmark(projects[-1], user=self.user)
-        # Move the bookmarked project to the front
-        projects.insert(0, projects.pop())
-        response = self.client.get(self.path)
-        self.check_valid_response(response, [project for project in projects])
+    #     self.create_project_bookmark(projects[-1], user=self.user)
+    #     # Move the bookmarked project to the front
+    #     projects.insert(0, projects.pop())
+    #     response = self.client.get(self.path)
+    #     self.check_valid_response(response, [project for project in projects])
 
-        # Make sure that it's at the front when on the second page as well
-        response = self.client.get(self.path + "?per_page=2")
-        self.check_valid_response(response, [project for project in projects[:2]])
+    #     # Make sure that it's at the front when on the second page as well
+    #     response = self.client.get(self.path + "?per_page=2")
+    #     self.check_valid_response(response, [project for project in projects[:2]])
 
-        # Make sure that other user's bookmarks don't interfere with this user
-        other_user = self.create_user()
-        self.create_project_bookmark(projects[1], user=other_user)
-        response = self.client.get(self.path)
-        self.check_valid_response(response, [project for project in projects])
+    #     # Make sure that other user's bookmarks don't interfere with this user
+    #     other_user = self.create_user()
+    #     self.create_project_bookmark(projects[1], user=other_user)
+    #     response = self.client.get(self.path)
+    #     self.check_valid_response(response, [project for project in projects])
 
     def test_team_filter(self):
         self.login_as(user=self.user)
