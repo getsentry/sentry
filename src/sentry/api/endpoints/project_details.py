@@ -94,7 +94,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     team = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50)
     digestsMinDelay = serializers.IntegerField(min_value=60, max_value=3600)
     digestsMaxDelay = serializers.IntegerField(min_value=60, max_value=3600)
-    subjectPrefix = serializers.CharField(max_length=200)
+    subjectPrefix = serializers.CharField(max_length=200, allow_blank=True)
     subjectTemplate = serializers.CharField(max_length=200)
     securityToken = serializers.RegexField(
         r"^[-a-zA-Z0-9+/=\s]+$", max_length=255, allow_blank=True
