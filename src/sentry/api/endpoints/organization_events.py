@@ -6,6 +6,7 @@ from functools import partial
 from rest_framework.response import Response
 
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
+from sentry.api.event_search import get_json_meta_type
 from sentry.api.helpers.events import get_direct_hit_response
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerializer
@@ -140,7 +141,10 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
         if not data:
             return {"data": [], "meta": {}}
 
-        meta = {value["name"]: snuba.get_json_type(value["type"]) for value in results["meta"]}
+        meta = {
+            value["name"]: get_json_meta_type(value["name"], value["type"])
+            for value in results["meta"]
+        }
         # Ensure all columns in the result have types.
         for key in data[0]:
             if key not in meta:
