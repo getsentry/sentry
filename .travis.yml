@@ -283,7 +283,6 @@ matrix:
 
   allow_failures:
     - name: 'Storybook Deploy'
-    - name: 'Plugins'
     - name: '[Django 1.10] Backend [Postgres] (1/2)'
     - name: '[Django 1.10] Backend [Postgres] (2/2)'
     - name: '[Django 1.10] Acceptance'
