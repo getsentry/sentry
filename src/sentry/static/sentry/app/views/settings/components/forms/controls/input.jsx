@@ -1,8 +1,14 @@
 import styled from 'react-emotion';
+import isPropValid from '@emotion/is-prop-valid';
 
 import {inputStyles} from 'app/styles/input';
 
-const Input = styled('input')`
+/**
+ * Do not forward required to `input` to avoid default browser behavior
+ */
+const Input = styled('input', {
+  shouldForwardProp: prop => isPropValid(prop) && prop !== 'required',
+})`
   ${inputStyles};
 `;
 
