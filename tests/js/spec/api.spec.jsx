@@ -129,7 +129,7 @@ describe('api', function() {
   });
 
   it('handles error callback', function() {
-    jest.spyOn(api, 'wrapCallback').mockImplementation((id, func) => func);
+    jest.spyOn(api, 'wrapCallback').mockImplementation((_id, func) => func);
     const errorCb = jest.fn();
     const args = ['test', true, 1];
     api.handleRequestError(
