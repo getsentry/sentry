@@ -922,7 +922,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
         assert query_mock.call_args == mock.call(
             orderby=["-priority", "issue"],
             aggregations=[
-                ["toUInt64(plus(multiply(log(times_seen), 600), last_seen))", "", "priority"],
+                ["toUInt64(plus(multiply(log(times_seen), 600), `last_seen`))", "", "priority"],
                 ["count()", "", "times_seen"],
                 ["uniq", "issue", "total"],
                 ["multiply(toUInt64(max(timestamp)), 1000)", "", "last_seen"],
