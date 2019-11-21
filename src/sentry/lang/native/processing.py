@@ -4,8 +4,6 @@ import logging
 import posixpath
 import six
 
-from symbolic.utils import make_buffered_slice_reader
-
 from sentry.event_manager import validate_and_set_timestamp
 from sentry.lang.native.error import write_error, SymbolicationFailed
 from sentry.lang.native.minidump import MINIDUMP_ATTACHMENT_TYPE
@@ -240,7 +238,7 @@ def process_minidump(data):
 
     symbolicator = Symbolicator(project=project, event_id=data["event_id"])
 
-    response = symbolicator.process_minidump(make_buffered_slice_reader(minidump.data, None))
+    response = symbolicator.process_minidump(minidump.data)
 
     if _handle_response_status(data, response):
         _merge_full_response(data, response)
@@ -258,7 +256,7 @@ def process_applecrashreport(data):
 
     symbolicator = Symbolicator(project=project, event_id=data["event_id"])
 
-    response = symbolicator.process_applecrashreport(make_buffered_slice_reader(report.data, None))
+    response = symbolicator.process_applecrashreport(report.data)
 
     if _handle_response_status(data, response):
         _merge_full_response(data, response)
