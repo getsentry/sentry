@@ -112,7 +112,7 @@ def _merge_image(raw_image, complete_image, sdk_info, handle_symbolication_faile
     for k, v in six.iteritems(complete_image):
         if k in IMAGE_STATUS_FIELDS:
             statuses.add(v)
-        if not (v is None or (k, v) == ("arch", "unknown")):
+        if not (v is None or (v == "unknown" and k in ("arch", "type"))):
             raw_image[k] = v
 
     for status in set(statuses):
