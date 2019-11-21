@@ -20,9 +20,9 @@ type Props = {
 const TagsTable = (props: Props) => {
   const {location, tags} = props;
   return (
-    <StyledTable>
+    <StyledTagsTable>
       <SectionHeading>{t('Event Tag Details')}</SectionHeading>
-      <table>
+      <StyledTable>
         <tbody>
           {tags.map(tag => {
             const tagInQuery =
@@ -45,8 +45,8 @@ const TagsTable = (props: Props) => {
             );
           })}
         </tbody>
-      </table>
-    </StyledTable>
+      </StyledTable>
+    </StyledTagsTable>
   );
 };
 
@@ -55,11 +55,14 @@ TagsTable.propTypes = {
   location: PropTypes.object,
 } as any;
 
-const StyledTable = styled('div')`
+const StyledTagsTable = styled('div')`
+  margin-bottom: ${space(3)};
+`;
+
+const StyledTable = styled('table')`
   table-layout: fixed;
   width: 100%;
   max-width: 100%;
-  margin-bottom: ${space(3)};
 `;
 
 const StyledTr = styled('tr')`
