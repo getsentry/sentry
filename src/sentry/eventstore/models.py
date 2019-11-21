@@ -12,12 +12,11 @@ def ref_func(x):
 
 
 class Event(EventCommon):
-    def __init__(self, project_id, event_id, data=None):
+    def __init__(self, project_id, event_id, group_id=None, data=None):
         self.project_id = project_id
         self.event_id = event_id
+        self.group_id = group_id
         self.data = data
-        self.group_id = None
-        self._group_cache = None
         super(Event, self).__init__()
 
     def __getstate__(self):
@@ -32,15 +31,6 @@ class Event(EventCommon):
         state.pop("interfaces", None)
 
         return state
-
-    @property
-    def group(self):
-        return self._group_cache
-
-    @group.setter
-    def group(self, value):
-        self._group_cache = value
-        self.group_id = value.id if value else None
 
     @property
     def data(self):

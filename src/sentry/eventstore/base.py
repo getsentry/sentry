@@ -67,6 +67,7 @@ class EventStorage(Service):
         "get_earliest_event_id",
         "get_latest_event_id",
         "bind_nodes",
+        "from_data",
     )
 
     # The minimal list of columns we need to get from snuba to bootstrap an
@@ -171,11 +172,11 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
-    def from_raw_data(self, data):
+    def from_data(self, project_id, event_id, group_id, data):
         """
-        Returns an Event from raw data
+        Returns an Event from processed data
         """
-        return Event(**data)
+        return Event(project_id=project_id, event_id=event_id, group_id=group_id, data=data)
 
     def bind_nodes(self, object_list, node_name="data"):
         """
