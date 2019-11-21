@@ -268,8 +268,8 @@ describe('api', function() {
       $.ajax.mockImplementation(async ({error}) => {
         await tick();
         error({
-          status: 404,
-          statusText: 'Not Found',
+          status: 500,
+          statusText: 'Internal server error',
           responseJSON: {detail: 'Item was not found'},
         });
 
@@ -282,8 +282,8 @@ describe('api', function() {
       await tick();
 
       const errorObjectSentryCalled = Sentry.captureException.mock.calls[0][0];
-      expect(errorObjectSentryCalled.name).toBe('NotFoundError');
-      expect(errorObjectSentryCalled.message).toBe('GET /some/url/ 404');
+      expect(errorObjectSentryCalled.name).toBe('InternalServerError');
+      expect(errorObjectSentryCalled.message).toBe('GET /some/url/ 500');
 
       // First line of stack should be this test case
       expect(errorObjectSentryCalled.stack.split('\n')[1]).toContain('api.spec.jsx');
@@ -292,7 +292,7 @@ describe('api', function() {
     it('reports correct error and stacktrace to Sentry when using promises', async function() {
       await expect(
         api.requestPromise('/some/url/')
-      ).rejects.toThrowErrorMatchingInlineSnapshot('"GET /some/url/ 404"');
+      ).rejects.toThrowErrorMatchingInlineSnapshot('"GET /some/url/ 500"');
       expect(Sentry.captureException).toHaveBeenCalled();
     });
   });
