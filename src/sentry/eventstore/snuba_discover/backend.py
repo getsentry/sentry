@@ -78,17 +78,22 @@ class SnubaDiscoverEventStorage(EventStorage):
 
     def __get_event_id_from_filter(self, filter=None, orderby=None):
         columns = ["event_id", "project_id", "timestamp"]
-        result = snuba.raw_query(
-            selected_columns=columns,
-            conditions=filter.conditions,
-            filter_keys=filter.filter_keys,
-            start=filter.start,
-            end=filter.end,
-            limit=1,
-            referrer="eventstore.discover_dataset.get_next_or_prev_event_id",
-            orderby=orderby,
-            dataset=snuba.Dataset.Discover,
-        )
+        try:
+            result = snuba.raw_query(
+                selected_columns=columns,
+                conditions=filter.conditions,
+                filter_keys=filter.filter_keys,
+                start=filter.start,
+                end=filter.end,
+                limit=1,
+                referrer="eventstore.discover_dataset.get_next_or_prev_event_id",
+                orderby=orderby,
+                dataset=snuba.Dataset.Discover,
+            )
+        except (snuba.QueryOutsideRetentionError, snuba.QueryOutsideGroupActivityError):
+            # This can happen when the date conditions for paging
+            # and the current event generate impossible conditions.
+            return None
 
         if "error" in result or len(result["data"]) == 0:
             return None
