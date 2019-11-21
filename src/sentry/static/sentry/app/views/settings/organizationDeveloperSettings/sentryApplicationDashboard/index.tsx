@@ -65,7 +65,7 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
     const {totalUninstalls, totalInstalls} = this.state.stats;
     return (
       <React.Fragment>
-        <h4>{t('Installation & Interaction Data')}</h4>
+        <h5>{t('Installation & Interaction Data')}</h5>
         <Row>
           <StatsSection>
             <StatsHeader>{t('Total installs')}</StatsHeader>

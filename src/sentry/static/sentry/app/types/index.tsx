@@ -457,7 +457,7 @@ export type SentryApp = {
   author: string;
   events: WebhookEvent[];
   schema: {
-    elements?: SentryAppSchemaElement[]; //TODO(ts)
+    elements?: SentryAppSchemaElement[];
   };
   //possible null params
   webhookUrl: string | null;

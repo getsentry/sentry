@@ -9,13 +9,13 @@ import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import DateTime from 'app/components/dateTime';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
+import DropdownButton from 'app/components/dropdownButton';
 import Tag from 'app/views/settings/components/tag';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Checkbox from 'app/components/checkbox';
 import Button from 'app/components/button';
 
-import theme from 'app/utils/theme';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 import {SentryApp, SentryAppWebhookRequest, SentryAppSchemaIssueLink} from 'app/types';
@@ -183,7 +183,7 @@ export default class RequestLog extends AsyncComponent<Props, State> {
 
     return (
       <React.Fragment>
-        <h4>{t('Request Log')}</h4>
+        <h5>{t('Request Log')}</h5>
 
         <div>
           <p>
@@ -196,7 +196,14 @@ export default class RequestLog extends AsyncComponent<Props, State> {
             <DropdownControl
               label={eventType}
               menuWidth="220px"
-              buttonProps={{style: {zIndex: theme.zIndex.header - 1}}}
+              button={({isOpen, getActorProps}) => (
+                <StyledDropdownButton
+                  {...getActorProps({isStyled: true})}
+                  isOpen={isOpen}
+                >
+                  {eventType}
+                </StyledDropdownButton>
+              )}
             >
               {getEventTypes(app).map(type => (
                 <DropdownItem
@@ -210,15 +217,12 @@ export default class RequestLog extends AsyncComponent<Props, State> {
               ))}
             </DropdownControl>
 
-            <Button
-              onClick={this.handleChangeErrorsOnly}
-              priority={errorsOnly ? 'primary' : 'default'}
-            >
+            <StyledErrorsOnlyButton onClick={this.handleChangeErrorsOnly}>
               <ErrorsOnlyCheckbox>
-                <Checkbox onChange={() => {}} checked={errorsOnly} />
+                <Checkbox checked={errorsOnly} />
                 {t('Errors Only')}
               </ErrorsOnlyCheckbox>
-            </Button>
+            </StyledErrorsOnlyButton>
           </RequestLogFilters>
         </div>
 
@@ -312,18 +316,29 @@ const RequestLogFilters = styled('div')`
   display: flex;
   align-items: center;
   padding-bottom: ${space(1)};
-
-  > * + * {
-    margin-left: ${space(1)};
-  }
 `;
 
 const ErrorsOnlyCheckbox = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-
-  > input {
+  input {
     margin: 0 ${space(1)} 0 0;
   }
+
+  display: flex;
+  align-items: center;
+`;
+
+const StyledDropdownButton = styled(
+  React.forwardRef((prop, ref) => <DropdownButton innerRef={ref} {...prop} />)
+)`
+  z-index: ${p => p.theme.zIndex.header - 1};
+  white-space: nowrap;
+
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+`;
+
+const StyledErrorsOnlyButton = styled(Button)`
+  margin-left: -1px;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
 `;
