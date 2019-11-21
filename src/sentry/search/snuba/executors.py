@@ -488,8 +488,8 @@ class SnubaOnlyQueryExecutor(AbstractQueryExecutor):
     ISSUE_FIELD_NAME = TABLE_ALIAS + "issue"
     logger = logging.getLogger("sentry.search.snubagroups")
 
-    # TODO: DEFINE THESE USING TABLE_ALIAS???
-    # SINCE THEY ARE THE EXACT SAME OTHER THAN THE ALIAS IS ADDED TO SOME!?
+    # TODO: Define these using table alias somehow?
+    # Since I think that is the only difference, other than issue_only_fields having less items
 
     dependency_aggregations = {"priority": ["events.last_seen", "times_seen"]}
     issue_only_fields = set(
