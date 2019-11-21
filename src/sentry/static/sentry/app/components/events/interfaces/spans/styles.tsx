@@ -1,11 +1,12 @@
 import styled from 'react-emotion';
 
 import space from 'app/styles/space';
+import theme from 'app/utils/theme';
 
 export const zIndex = {
-  minimapContainer: 999999998,
-  dividerLine: 999999,
-  spanTreeToggler: 99999,
+  minimapContainer: theme.zIndex.traceView.minimapContainer,
+  dividerLine: theme.zIndex.traceView.dividerLine,
+  spanTreeToggler: theme.zIndex.traceView.spanTreeToggler,
 };
 
 export const SPAN_ROW_HEIGHT = 24;
