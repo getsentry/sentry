@@ -22,28 +22,30 @@ const TagsTable = (props: Props) => {
   return (
     <StyledTable>
       <SectionHeading>{t('Event Tag Details')}</SectionHeading>
-      <tbody>
-        {tags.map(tag => {
-          const tagInQuery =
-            location.query.query && location.query.query.indexOf(`${tag.key}:`) !== -1;
-          return (
-            <StyledTr key={tag.key}>
-              <TagKey>{tag.key}</TagKey>
-              <TagValue>
-                {tagInQuery ? (
-                  <Tooltip title={t('This tag is in the current filter conditions')}>
-                    <span>{tag.value}</span>
-                  </Tooltip>
-                ) : (
-                  <Link to={getEventTagSearchUrl(tag.key, tag.value, location)}>
-                    {tag.value}
-                  </Link>
-                )}
-              </TagValue>
-            </StyledTr>
-          );
-        })}
-      </tbody>
+      <table>
+        <tbody>
+          {tags.map(tag => {
+            const tagInQuery =
+              location.query.query && location.query.query.indexOf(`${tag.key}:`) !== -1;
+            return (
+              <StyledTr key={tag.key}>
+                <TagKey>{tag.key}</TagKey>
+                <TagValue>
+                  {tagInQuery ? (
+                    <Tooltip title={t('This tag is in the current filter conditions')}>
+                      <span>{tag.value}</span>
+                    </Tooltip>
+                  ) : (
+                    <Link to={getEventTagSearchUrl(tag.key, tag.value, location)}>
+                      {tag.value}
+                    </Link>
+                  )}
+                </TagValue>
+              </StyledTr>
+            );
+          })}
+        </tbody>
+      </table>
     </StyledTable>
   );
 };
@@ -53,7 +55,7 @@ TagsTable.propTypes = {
   location: PropTypes.object,
 } as any;
 
-const StyledTable = styled('table')`
+const StyledTable = styled('div')`
   table-layout: fixed;
   width: 100%;
   max-width: 100%;
