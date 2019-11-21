@@ -227,6 +227,12 @@ const theme = {
 
   // Try to keep these ordered plz
   zIndex: {
+    traceView: {
+      spanTreeToggler: 900,
+      dividerLine: 909,
+      minimapContainer: 999,
+    },
+
     header: 1000,
     errorMessage: 1000,
     dropdown: 1001,
