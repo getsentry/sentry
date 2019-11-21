@@ -36,7 +36,7 @@ type MenuProps = {
 };
 
 // XXX(epurkhiser): these types aren't completely correct as it doesn't include
-// the fact that a innerRef / ref is required to be availbe on the component
+// the fact that a innerRef / ref is required to be available on the component
 // the props are passed to.
 type GetActorPropsFn = (opts: GetActorArgs) => ActorProps;
 type GetMenuPropsFn = (opts: GetMenuArgs) => MenuProps;
