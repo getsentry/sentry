@@ -694,18 +694,9 @@ FIELD_ALIASES = {
             ]
         ],
     },
-    "p75": {
-        "result_type": "duration",
-        "aggregations": [["quantile(0.75)(duration)", "", "p75"]],
-    },
-    "p95": {
-        "result_type": "duration",
-        "aggregations": [["quantile(0.95)(duration)", "", "p95"]],
-    },
-    "p99": {
-        "result_type": "duration",
-        "aggregations": [["quantile(0.99)(duration)", "", "p99"]],
-    },
+    "p75": {"result_type": "duration", "aggregations": [["quantile(0.75)(duration)", "", "p75"]]},
+    "p95": {"result_type": "duration", "aggregations": [["quantile(0.95)(duration)", "", "p95"]]},
+    "p99": {"result_type": "duration", "aggregations": [["quantile(0.99)(duration)", "", "p99"]]},
 }
 
 VALID_AGGREGATES = {
@@ -827,6 +818,7 @@ def resolve_field_list(fields, snuba_args):
         # generates invalid queries.
         if not aggregations and "id" not in columns:
             columns.append("id")
+        if not aggregations and "project.id" not in columns:
             columns.append("project.id")
         if aggregations and "latest_event" not in fields:
             aggregations.extend(deepcopy(FIELD_ALIASES["latest_event"]["aggregations"]))
