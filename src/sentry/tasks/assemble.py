@@ -167,7 +167,7 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
     from sentry.utils.zip import safe_extract_zip
     from sentry.models import File, Organization, Release, ReleaseFile
 
-    organization = Organization.objects.get(id=org_id)
+    organization = Organization.objects.get_from_cache(pk=org_id)
 
     bind_organization_context(organization)
 
