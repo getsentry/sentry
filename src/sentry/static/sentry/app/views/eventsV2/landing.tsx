@@ -251,7 +251,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     `;
 
     return (
-      <React.Fragment>
+      <div>
         <HeaderBox>
           <DiscoverBreadcrumb
             eventView={eventView}
@@ -283,7 +283,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
             eventView={eventView}
           />
         </ContentBox>
-      </React.Fragment>
+      </div>
     );
   }
 
