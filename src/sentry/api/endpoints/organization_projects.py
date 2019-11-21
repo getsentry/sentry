@@ -51,19 +51,17 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
             # TODO: remove this, no longer supported probably
             if hasattr(request.auth, "project"):
                 team_list = list(request.auth.project.teams.all())
-                queryset = Project.objects.filter(id=request.auth.project.id).prefetch_related(
-                    "teams"
-                )
+                queryset = Project.objects.filter(id=request.auth.project.id)
             elif request.auth.organization is not None:
                 org = request.auth.organization
                 team_list = list(Team.objects.filter(organization=org))
-                queryset = Project.objects.filter(teams__in=team_list).prefetch_related("teams")
+                queryset = Project.objects.filter(teams__in=team_list)
             else:
                 return Response(
                     {"detail": "Current access does not point to " "organization."}, status=400
                 )
         else:
-            queryset = Project.objects.filter(organization=organization).prefetch_related("teams")
+            queryset = Project.objects.filter(organization=organization)
 
         order_by = ["slug"]
 
@@ -108,7 +106,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
         get_all_projects = request.GET.get("all_projects") == "1"
 
         if get_all_projects:
-            queryset = queryset.order_by("slug")
+            queryset = queryset.order_by("slug").select_related("organization")
             return Response(serialize(list(queryset), request.user, ProjectSummarySerializer()))
         else:
             return self.paginate(
