@@ -1,5 +1,5 @@
 import React, {MouseEvent} from 'react';
-import {Location} from 'history';
+import {Location, Query} from 'history';
 import styled from 'react-emotion';
 import classNames from 'classnames';
 import {browserHistory} from 'react-router';
@@ -189,7 +189,24 @@ class QueryList extends React.Component<Props> {
     return (
       <React.Fragment>
         <QueryGrid>{this.renderQueries()}</QueryGrid>
-        <Pagination pageLinks={pageLinks} />
+        <Pagination
+          pageLinks={pageLinks}
+          onCursor={(cursor: string, path: string, query: Query, direction: number) => {
+            const offset = Number(cursor.split(':')[1]);
+
+            const newQuery = {...query, cursor};
+            const isPrevious = direction === -1;
+
+            if (offset <= 0 && isPrevious) {
+              delete newQuery.cursor;
+            }
+
+            browserHistory.push({
+              pathname: path,
+              query: newQuery,
+            });
+          }}
+        />
       </React.Fragment>
     );
   }

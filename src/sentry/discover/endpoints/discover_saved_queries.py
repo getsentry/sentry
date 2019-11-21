@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.serializers import serialize
 from sentry.api.bases import OrganizationEndpoint
-from sentry.api.paginator import DateTimePaginator, OffsetPaginator
+from sentry.api.paginator import GenericOffsetPaginator
 from sentry.discover.models import DiscoverSavedQuery
 from sentry.discover.endpoints.bases import DiscoverSavedQueryPermission
 from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
@@ -47,26 +47,25 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
         sort_by = request.query_params.get("sortBy")
         if sort_by in ("name", "-name"):
             order_by = sort_by
-            paginator_cls = OffsetPaginator
         elif sort_by in ("dateCreated", "-dateCreated"):
             order_by = "-date_created" if sort_by.startswith("-") else "date_created"
-            paginator_cls = DateTimePaginator
         elif sort_by in ("dateUpdated", "-dateUpdated"):
             order_by = "-date_updated" if sort_by.startswith("-") else "date_updated"
-            paginator_cls = DateTimePaginator
         else:
             order_by = "name"
-            paginator_cls = OffsetPaginator
+        queryset = queryset.order_by(order_by)
 
         # Old discover expects all queries and uses this parameter.
         if request.query_params.get("all") == "1":
             saved_queries = list(queryset.all())
             return Response(serialize(saved_queries), status=200)
+
+        def data_fn(offset, limit):
+            return list(queryset[offset : offset + limit])
+
         return self.paginate(
             request=request,
-            queryset=queryset,
-            order_by=order_by,
-            paginator_cls=paginator_cls,
+            paginator=GenericOffsetPaginator(data_fn=data_fn),
             on_results=lambda x: serialize(x, request.user),
             default_per_page=25,
         )
