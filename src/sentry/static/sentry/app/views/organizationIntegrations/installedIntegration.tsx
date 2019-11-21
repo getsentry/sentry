@@ -123,7 +123,7 @@ export default class InstalledIntegration extends React.Component<Props> {
     return (
       <Access access={['org:integrations']}>
         {({hasAccess}) => (
-          <Flex align="center" key={integration.id} className={className}>
+          <IntegrationFlex align="center" key={integration.id} className={className}>
             <Box flex={1}>
               <IntegrationItem compact integration={integration} />
             </Box>
@@ -133,7 +133,6 @@ export default class InstalledIntegration extends React.Component<Props> {
                   size="xsmall"
                   priority="success"
                   provider={provider}
-                  integration={integration}
                   onAddIntegration={this.reinstallIntegration}
                   reinstall
                 />
@@ -170,7 +169,7 @@ export default class InstalledIntegration extends React.Component<Props> {
                 </StyledButton>
               </Confirm>
             </Box>
-          </Flex>
+          </IntegrationFlex>
         )}
       </Access>
     );
@@ -179,4 +178,9 @@ export default class InstalledIntegration extends React.Component<Props> {
 
 const StyledButton = styled(Button)`
   color: ${p => p.theme.gray2};
+`;
+
+const IntegrationFlex = styled('div')`
+  display: flex;
+  align-items: center;
 `;

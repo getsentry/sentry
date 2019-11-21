@@ -4,8 +4,18 @@ import queryString from 'query-string';
 
 import {t} from 'app/locale';
 import IndicatorStore from 'app/stores/indicatorStore';
+import {IntegrationProvider, Integration} from 'app/types';
 
-export default class AddIntegration extends React.Component {
+type Props = {
+  children: (openDialog: (urlParams?: any) => void) => React.ReactNode;
+  provider: IntegrationProvider;
+  onInstall: (data: Integration) => void;
+  reinstallId?: string;
+  account?: string;
+};
+
+export default class AddIntegration extends React.Component<Props> {
+  dialog: any | null;
   static propTypes = {
     children: PropTypes.func.isRequired,
     provider: PropTypes.object.isRequired,
@@ -24,10 +34,11 @@ export default class AddIntegration extends React.Component {
     this.dialog && this.dialog.close();
   }
 
-  computeCenteredWindow(width, height) {
-    const screenLeft = window.screenLeft !== undefined ? window.screenLeft : screen.left;
+  computeCenteredWindow(width: number, height: number) {
+    const screenLeft =
+      window.screenLeft !== undefined ? window.screenLeft : window.screenX;
 
-    const screenTop = window.screenTop !== undefined ? window.screenTop : screen.top;
+    const screenTop = window.screenTop !== undefined ? window.screenTop : window.screenY;
 
     const innerWidth = window.innerWidth
       ? window.innerWidth
@@ -47,7 +58,7 @@ export default class AddIntegration extends React.Component {
     return {left, top};
   }
 
-  openDialog = urlParams => {
+  openDialog = (urlParams?: any) => {
     const name = 'sentryAddIntegration';
     const {url, width, height} = this.props.provider.setupDialog;
     const {left, top} = this.computeCenteredWindow(width, height);
@@ -69,7 +80,7 @@ export default class AddIntegration extends React.Component {
     this.dialog.focus();
   };
 
-  didReceiveMessage = message => {
+  didReceiveMessage = (message: MessageEvent) => {
     if (message.origin !== document.location.origin) {
       return;
     }
