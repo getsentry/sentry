@@ -292,7 +292,7 @@ class SimpleEventSerializerTest(TestCase):
         assert result["user"]["username"] == event.username
         assert result["user"]["ip_address"] == event.ip_address
         assert result["tags"] == [
-            {"key": "user", "value": "email:test@test.com", "query": "user.email:test@test.com"}
+            {"key": "user", "value": "email:test@test.com", "query": 'user.email:"test@test.com"'}
         ]
 
     def test_no_group(self):

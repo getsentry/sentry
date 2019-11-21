@@ -99,5 +99,5 @@ class SnubaEventTest(TestCase, SnubaTestCase):
             {"_meta": None, "key": "foo", "value": "bar"},
             {"_meta": None, "key": "level", "value": "error"},
             {"_meta": None, "key": "release", "value": "release1"},
-            {"_meta": None, "key": "user", "query": "user.id:user1", "value": "id:user1"},
+            {"_meta": None, "key": "user", "query": 'user.id:"user1"', "value": "id:user1"},
         ]

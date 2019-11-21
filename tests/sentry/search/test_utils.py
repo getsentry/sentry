@@ -20,6 +20,7 @@ from sentry.search.utils import (
     parse_query,
     get_latest_release,
     get_numeric_field_value,
+    convert_user_tag_to_query,
     InvalidQuery,
 )
 
@@ -514,3 +515,17 @@ class GetLatestReleaseTest(TestCase):
             environment = self.create_environment()
             result = get_latest_release([self.project], [environment])
             assert result == new.version
+
+
+class ConvertUserTagTest(TestCase):
+    def test_simple_user_tag(self):
+        assert convert_user_tag_to_query("user", "id:123456") == 'user.id:"123456"'
+
+    def test_user_tag_with_quote(self):
+        assert convert_user_tag_to_query("user", 'id:123"456') == 'user.id:"123\\"456"'
+
+    def test_user_tag_with_space(self):
+        assert convert_user_tag_to_query("user", "id:123 456") == 'user.id:"123 456"'
+
+    def test_non_user_tag(self):
+        assert convert_user_tag_to_query("user", 'fake:123"456') is None
