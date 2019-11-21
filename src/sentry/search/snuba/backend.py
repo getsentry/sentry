@@ -115,7 +115,7 @@ class QuerySetBuilder(object):
         return queryset
 
 
-class SnubaSearchBackend(SearchBackend):
+class EventsDatasetSnubaSearchBackend(SearchBackend):
     def query(
         self,
         projects,

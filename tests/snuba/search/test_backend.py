@@ -17,7 +17,7 @@ from sentry.models import (
     GroupStatus,
     GroupSubscription,
 )
-from sentry.search.snuba.backend import SnubaSearchBackend
+from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
 from sentry.testutils import SnubaTestCase, TestCase, xfail_if_not_postgres
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.utils.snuba import Dataset, SENTRY_SNUBA_MAP, SnubaError
@@ -30,7 +30,7 @@ def date_to_query_format(date):
 class SnubaSearchTest(TestCase, SnubaTestCase):
     def setUp(self):
         super(SnubaSearchTest, self).setUp()
-        self.backend = SnubaSearchBackend()
+        self.backend = EventsDatasetSnubaSearchBackend()
         self.base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
 
         event1_timestamp = iso_format(self.base_datetime - timedelta(days=21))
