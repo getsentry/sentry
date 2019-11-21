@@ -16,8 +16,6 @@ grep -E --quiet 'migrations' "$files_changed_upstream"          && migrations="a
 [[ "$py" || "$js" || "$migrations" ]] && needs_update=1
 update_command="make ${py}${js}${migrations}"
 
-echo $needs_update
-
 [[ "$needs_update" ]] && cat <<EOF
 
 [${red}${bold}!!!${reset}] ${red} It looks like some dependencies have changed that will require your intervention. Run the following to update:${reset}
