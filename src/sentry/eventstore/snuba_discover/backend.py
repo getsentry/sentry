@@ -79,7 +79,7 @@ class SnubaDiscoverEventStorage(EventStorage):
     def __get_event_id_from_filter(self, filter=None, orderby=None):
         columns = ["event_id", "project_id", "timestamp"]
         try:
-            result = snuba.raw_query(
+            result = snuba.dataset_query(
                 selected_columns=columns,
                 conditions=filter.conditions,
                 filter_keys=filter.filter_keys,
