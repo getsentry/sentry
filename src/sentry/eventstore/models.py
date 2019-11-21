@@ -5,7 +5,6 @@ from django.utils import timezone
 
 from sentry.models import EventCommon, EventDict
 from sentry.db.models import NodeData
-from sentry.db.models.manager import EventManager
 
 
 def ref_func(x):
@@ -13,10 +12,6 @@ def ref_func(x):
 
 
 class Event(EventCommon):
-
-    # TODO: Remove this
-    objects = EventManager()
-
     def __init__(self, project_id, event_id, data=None):
         self.project_id = project_id
         self.event_id = event_id
