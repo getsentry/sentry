@@ -19,8 +19,6 @@ test.conf
 pip-log.txt
 celerybeat-schedule
 sentry-package.json
-/docker/Dockerfile
-/docker/cloudbuild.yaml
 /.artifacts
 /coverage/
 /cover
