@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import six
 import string
+import warnings
 import pytz
 
 from collections import OrderedDict
@@ -382,6 +383,14 @@ class EventCommon(object):
             return self.group.get_level_display()
         else:
             return None
+
+    # TODO: This is currently used in the Twilio and Flowdock plugins
+    # Remove this after usage has been removed there.
+    def error(self):  # TODO why is this not a property?
+        warnings.warn("Event.error is deprecated, use Event.title", DeprecationWarning)
+        return self.title
+
+    error.short_description = _("error")
 
 
 class SnubaEvent(EventCommon):
