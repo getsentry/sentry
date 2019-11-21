@@ -303,7 +303,7 @@ export class Client {
             },
           });
 
-          if (resp.status !== 0 && resp.status !== 404) {
+          if (resp && resp.status !== 0 && resp.status !== 404) {
             Sentry.withScope(scope => {
               // `requestPromise` can pass its error object
               const preservedError = options.preservedError || errorObject;
