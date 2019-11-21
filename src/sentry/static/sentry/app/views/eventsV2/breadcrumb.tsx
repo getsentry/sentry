@@ -75,25 +75,14 @@ class DiscoverBreadcrumb extends React.Component<Props> {
   }
 
   render() {
-    const {eventView} = this.props;
-
     return (
       <BreadcrumbList>
-        {eventView && eventView.isValid() ? (
-          this.getCrumbs()
-        ) : (
-          <StyledHeader>{t('Discover')}</StyledHeader>
-        )}
+        {this.getCrumbs()}
         <BetaTag />
       </BreadcrumbList>
     );
   }
 }
-
-const StyledHeader = styled('span')`
-  font-size: ${p => p.theme.headerFontSize};
-  color: ${p => p.theme.gray4};
-`;
 
 const BreadcrumbList = styled('span')`
   display: flex;

@@ -90,7 +90,7 @@ describe('EventsV2', function() {
       TestStubs.routerContext()
     );
 
-    const content = wrapper.find('PageContent');
+    const content = wrapper.find('SentryDocumentTitle');
     expect(content.text()).toContain('You need at least one project to use this view');
   });
 

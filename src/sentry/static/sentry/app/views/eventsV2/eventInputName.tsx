@@ -6,7 +6,6 @@ import {Client} from 'app/api';
 import {t} from 'app/locale';
 import {Organization, SavedQuery} from 'app/types';
 import withApi from 'app/utils/withApi';
-import space from 'app/styles/space';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 
@@ -95,8 +94,10 @@ class EventInputName extends React.Component<Props> {
 const StyledHeader = styled('div')`
   display: flex;
   align-items: center;
-  height: 40px;
-  margin-bottom: ${space(1.5)};
+  height: 24px;
+  font-size: ${p => p.theme.headerFontSize};
+  color: ${p => p.theme.gray4};
+  grid-column: 1/2;
 `;
 
 export default withApi(EventInputName);

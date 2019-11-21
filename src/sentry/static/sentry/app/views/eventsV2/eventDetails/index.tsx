@@ -5,7 +5,6 @@ import {Location} from 'history';
 
 import {t} from 'app/locale';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import {PageContent} from 'app/styles/organization';
 import NoProjectMessage from 'app/components/noProjectMessage';
 import {Organization} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
@@ -59,17 +58,15 @@ class EventDetails extends React.Component<Props> {
       <SentryDocumentTitle title={documentTitle} objSlug={organization.slug}>
         <React.Fragment>
           <GlobalSelectionHeader organization={organization} />
-          <PageContent>
-            <NoProjectMessage organization={organization}>
-              <EventDetailsContent
-                organization={organization}
-                location={location}
-                params={params}
-                eventView={eventView}
-                eventSlug={this.getEventSlug()}
-              />
-            </NoProjectMessage>
-          </PageContent>
+          <NoProjectMessage organization={organization}>
+            <EventDetailsContent
+              organization={organization}
+              location={location}
+              params={params}
+              eventView={eventView}
+              eventSlug={this.getEventSlug()}
+            />
+          </NoProjectMessage>
         </React.Fragment>
       </SentryDocumentTitle>
     );
