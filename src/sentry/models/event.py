@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import six
 import string
-import warnings
 import pytz
 
 from collections import OrderedDict
@@ -383,41 +382,6 @@ class EventCommon(object):
             return self.group.get_level_display()
         else:
             return None
-
-    # deprecated accessors
-
-    @property
-    def logger(self):
-        warnings.warn("Event.logger is deprecated. Use Event.tags instead.", DeprecationWarning)
-        return self.get_tag("logger")
-
-    @property
-    def site(self):
-        warnings.warn("Event.site is deprecated. Use Event.tags instead.", DeprecationWarning)
-        return self.get_tag("site")
-
-    @property
-    def server_name(self):
-        warnings.warn(
-            "Event.server_name is deprecated. Use Event.tags instead.", DeprecationWarning
-        )
-        return self.get_tag("server_name")
-
-    @property
-    def checksum(self):
-        warnings.warn("Event.checksum is no longer used", DeprecationWarning)
-        return ""
-
-    def error(self):  # TODO why is this not a property?
-        warnings.warn("Event.error is deprecated, use Event.title", DeprecationWarning)
-        return self.title
-
-    error.short_description = _("error")
-
-    @property
-    def message_short(self):
-        warnings.warn("Event.message_short is deprecated, use Event.title", DeprecationWarning)
-        return self.title
 
 
 class SnubaEvent(EventCommon):
