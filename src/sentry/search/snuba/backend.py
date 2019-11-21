@@ -8,47 +8,9 @@ from django.utils import timezone
 
 from sentry import quotas
 from sentry.api.event_search import InvalidSearchQuery
-from sentry.api.paginator import Paginator
-from sentry.models import Group, Release, GroupEnvironment
+from sentry.models import Release, GroupEnvironment
 from sentry.search.base import SearchBackend
 from sentry.search.snuba.executors import PostgresSnubaQueryExecutor
-
-datetime_format = "%Y-%m-%dT%H:%M:%S+00:00"
-
-EMPTY_RESULT = Paginator(Group.objects.none()).get_result()
-
-# mapping from query parameter sort name to underlying scoring aggregation name
-sort_strategies = {
-    "date": "last_seen",
-    "freq": "times_seen",
-    "new": "first_seen",
-    "priority": "priority",
-}
-
-dependency_aggregations = {"priority": ["last_seen", "times_seen"]}
-
-aggregation_defs = {
-    "times_seen": ["count()", ""],
-    "first_seen": ["multiply(toUInt64(min(timestamp)), 1000)", ""],
-    "last_seen": ["multiply(toUInt64(max(timestamp)), 1000)", ""],
-    # https://github.com/getsentry/sentry/blob/804c85100d0003cfdda91701911f21ed5f66f67c/src/sentry/event_manager.py#L241-L271
-    "priority": ["toUInt64(plus(multiply(log(times_seen), 600), last_seen))", ""],
-    # Only makes sense with WITH TOTALS, returns 1 for an individual group.
-    "total": ["uniq", "issue"],
-}
-issue_only_fields = set(
-    [
-        "query",
-        "status",
-        "bookmarked_by",
-        "assigned_to",
-        "unassigned",
-        "subscribed_by",
-        "active_at",
-        "first_release",
-        "first_seen",
-    ]
-)
 
 
 def assigned_to_filter(actor, projects):
