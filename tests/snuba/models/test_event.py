@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from datetime import datetime, timedelta
 
 from sentry.api.serializers import serialize
-from sentry.models.event import Event, SnubaEvent
+from sentry.models.event import SnubaEvent
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry import eventstore, nodestore
 from sentry.testutils.helpers.datetime import iso_format, before_now
@@ -75,7 +75,7 @@ class SnubaEventTest(TestCase, SnubaTestCase):
         """
         event = eventstore.get_event_by_id(self.proj1.id, self.event_id)
         assert event.data._node_data is None
-        Event.objects.bind_nodes([event], "data")
+        event.data.bind_node_data()
         assert event.data._node_data is not None
         assert event.data["user"]["id"] == u"user1"
 

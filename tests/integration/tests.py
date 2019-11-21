@@ -24,7 +24,7 @@ from sentry_sdk.integrations.django import DjangoIntegration
 from six import StringIO
 from werkzeug.test import Client as WerkzeugClient
 
-from sentry.models import Group, Event
+from sentry.models import Group
 from sentry.testutils import SnubaTestCase, TestCase, TransactionTestCase
 from sentry.testutils.helpers import get_auth_header
 from sentry.testutils.helpers.datetime import iso_format, before_now
@@ -177,7 +177,7 @@ class SentryRemoteTest(SnubaTestCase):
 
     def get_event(self, event_id):
         instance = eventstore.get_event_by_id(self.project.id, event_id, eventstore.full_columns)
-        Event.objects.bind_nodes([instance], "data")
+        instance.data.bind_node_data()
         return instance
 
     def test_minimal(self):
@@ -614,7 +614,7 @@ class CspReportTest(TestCase, SnubaTestCase):
         )
         assert len(events) == 1
         e = events[0]
-        Event.objects.bind_nodes([e], "data")
+        e.data.bind_node_data()
         assert output["message"] == e.data["logentry"]["formatted"]
         for key, value in six.iteritems(output["tags"]):
             assert e.get_tag(key) == value
