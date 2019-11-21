@@ -343,7 +343,6 @@ class EventCommon(object):
         data["platform"] = self.platform
         data["message"] = self.real_message
         data["datetime"] = self.datetime
-        data["time_spent"] = self.time_spent
         data["tags"] = [(k.split("sentry:", 1)[-1], v) for (k, v) in self.tags]
         for k, v in sorted(six.iteritems(self.data)):
             if k in data:
@@ -543,10 +542,6 @@ class SnubaEvent(EventCommon):
         # ends with '+00:00', so just replace the TZ with UTC because we know
         # all timestamps from snuba are UTC.
         return parse_date(self.timestamp).replace(tzinfo=pytz.utc)
-
-    @property
-    def time_spent(self):
-        return None
 
     @property
     def message(self):
