@@ -19,7 +19,7 @@ import Feature from 'app/components/acl/feature';
 import SearchBar from 'app/views/events/searchBar';
 import NoProjectMessage from 'app/components/noProjectMessage';
 
-import {PageContent, PageHeader} from 'app/styles/organization';
+import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -176,6 +176,16 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
   }
 
   renderActions() {
+    const StyledSearchBar = styled(SearchBar)`
+      margin-right: ${space(1)};
+      flex-grow: 1;
+    `;
+
+    const StyledActions = styled('div')`
+      display: flex;
+      margin-bottom: ${space(3)};
+    `;
+
     return (
       <StyledActions>
         <StyledSearchBar />
@@ -187,9 +197,18 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
   renderQueryList() {
     const {location, organization} = this.props;
     const {loading, savedQueries, savedQueriesPageLinks} = this.state;
+    const StyledPageHeader = styled('div')`
+      display: flex;
+      align-items: center;
+      font-size: ${p => p.theme.headerFontSize};
+      color: ${p => p.theme.gray4};
+      height: 40px;
+      margin-bottom: ${space(1)};
+    `;
 
     return (
-      <div>
+      <PageContent>
+        <StyledPageHeader>{t('Discover')}</StyledPageHeader>
         {this.renderBanner()}
         {DISPLAY_SEARCH_BAR_FLAG && this.renderActions()}
         {loading && this.renderLoading()}
@@ -201,55 +220,75 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
             organization={organization}
           />
         )}
-      </div>
+      </PageContent>
     );
   }
 
   renderResults(eventView: EventView) {
     const {organization, location, router} = this.props;
-    const {savedQueries} = this.state;
+    const {savedQueries, reloading} = this.state;
+    const ContentBox = styled(PageContent)`
+      margin: 0;
+
+      @media (min-width: ${p => p.theme.breakpoints[1]}) {
+        display: grid;
+        grid-template-rows: 1fr auto;
+        grid-template-columns: 70% auto;
+        grid-column-gap: ${space(3)};
+      }
+    `;
+
+    const HeaderBox = styled(ContentBox)`
+      background-color: ${p => p.theme.white};
+      border-bottom: 1px solid ${p => p.theme.borderDark};
+      grid-row-gap: ${space(1)};
+    `;
+
+    const Controller = styled('div')`
+      justify-self: end;
+      grid-row: 1/3;
+      grid-column: 2/3;
+    `;
 
     return (
-      <React.Fragment>
-        <div>
-          <StyledInput>
-            <EventInputName
-              savedQueries={savedQueries}
+      <div>
+        <HeaderBox>
+          <DiscoverBreadcrumb
+            eventView={eventView}
+            organization={organization}
+            location={location}
+          />
+          <EventInputName
+            savedQueries={savedQueries}
+            organization={organization}
+            eventView={eventView}
+            onQuerySave={this.handleQuerySave}
+          />
+          <Controller>
+            <SavedQueryButtonGroup
+              location={location}
               organization={organization}
               eventView={eventView}
+              savedQueries={savedQueries}
+              savedQueriesLoading={reloading}
               onQuerySave={this.handleQuerySave}
             />
-          </StyledInput>
-        </div>
-        <Events
-          organization={organization}
-          location={location}
-          router={router}
-          eventView={eventView}
-        />
-      </React.Fragment>
-    );
-  }
-
-  renderSavedQueryControls(eventView: EventView) {
-    const {organization, location} = this.props;
-    const {savedQueries, reloading} = this.state;
-
-    return (
-      <SavedQueryButtonGroup
-        location={location}
-        organization={organization}
-        eventView={eventView}
-        savedQueries={savedQueries}
-        savedQueriesLoading={reloading}
-        onQuerySave={this.handleQuerySave}
-      />
+          </Controller>
+        </HeaderBox>
+        <ContentBox>
+          <Events
+            organization={organization}
+            location={location}
+            router={router}
+            eventView={eventView}
+          />
+        </ContentBox>
+      </div>
     );
   }
 
   render() {
     const {organization, location} = this.props;
-
     const eventView = EventView.fromLocation(location);
     const hasQuery = eventView.isValid();
 
@@ -261,41 +300,16 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
         >
           <React.Fragment>
             <GlobalSelectionHeader organization={organization} />
-            <PageContent>
-              <NoProjectMessage organization={organization}>
-                <PageHeader>
-                  <DiscoverBreadcrumb
-                    eventView={eventView}
-                    organization={organization}
-                    location={location}
-                  />
-                  {hasQuery && this.renderSavedQueryControls(eventView)}
-                </PageHeader>
-                {!hasQuery && this.renderQueryList()}
-                {hasQuery && this.renderResults(eventView)}
-              </NoProjectMessage>
-            </PageContent>
+            <NoProjectMessage organization={organization}>
+              {!hasQuery && this.renderQueryList()}
+              {hasQuery && this.renderResults(eventView)}
+            </NoProjectMessage>
           </React.Fragment>
         </SentryDocumentTitle>
       </Feature>
     );
   }
 }
-
-const StyledInput = styled('span')`
-  font-size: ${p => p.theme.headerFontSize};
-  color: ${p => p.theme.gray4};
-`;
-
-const StyledActions = styled('div')`
-  display: flex;
-  margin-bottom: ${space(3)};
-`;
-
-const StyledSearchBar = styled(SearchBar)`
-  margin-right: ${space(1)};
-  flex-grow: 1;
-`;
 
 export default withOrganization(DiscoverLanding);
 export {DiscoverLanding};

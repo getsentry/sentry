@@ -20,31 +20,33 @@ type Props = {
 const TagsTable = (props: Props) => {
   const {location, tags} = props;
   return (
-    <StyledTable>
+    <StyledTagsTable>
       <SectionHeading>{t('Event Tag Details')}</SectionHeading>
-      <tbody>
-        {tags.map(tag => {
-          const tagInQuery =
-            location.query.query && location.query.query.indexOf(`${tag.key}:`) !== -1;
-          return (
-            <StyledTr key={tag.key}>
-              <TagKey>{tag.key}</TagKey>
-              <TagValue>
-                {tagInQuery ? (
-                  <Tooltip title={t('This tag is in the current filter conditions')}>
-                    <span>{tag.value}</span>
-                  </Tooltip>
-                ) : (
-                  <Link to={getEventTagSearchUrl(tag.key, tag.value, location)}>
-                    {tag.value}
-                  </Link>
-                )}
-              </TagValue>
-            </StyledTr>
-          );
-        })}
-      </tbody>
-    </StyledTable>
+      <StyledTable>
+        <tbody>
+          {tags.map(tag => {
+            const tagInQuery =
+              location.query.query && location.query.query.indexOf(`${tag.key}:`) !== -1;
+            return (
+              <StyledTr key={tag.key}>
+                <TagKey>{tag.key}</TagKey>
+                <TagValue>
+                  {tagInQuery ? (
+                    <Tooltip title={t('This tag is in the current filter conditions')}>
+                      <span>{tag.value}</span>
+                    </Tooltip>
+                  ) : (
+                    <Link to={getEventTagSearchUrl(tag.key, tag.value, location)}>
+                      {tag.value}
+                    </Link>
+                  )}
+                </TagValue>
+              </StyledTr>
+            );
+          })}
+        </tbody>
+      </StyledTable>
+    </StyledTagsTable>
   );
 };
 
@@ -53,11 +55,14 @@ TagsTable.propTypes = {
   location: PropTypes.object,
 } as any;
 
+const StyledTagsTable = styled('div')`
+  margin-bottom: ${space(3)};
+`;
+
 const StyledTable = styled('table')`
   table-layout: fixed;
   width: 100%;
   max-width: 100%;
-  margin-bottom: 30px;
 `;
 
 const StyledTr = styled('tr')`
