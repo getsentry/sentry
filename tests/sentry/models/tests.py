@@ -13,7 +13,7 @@ from django.http import HttpRequest
 from django.utils import timezone
 from exam import fixture
 
-from sentry import nodestore
+from sentry import eventstore, nodestore
 from sentry.db.models.fields.node import NodeIntegrityFailure
 from sentry.models import ProjectKey, LostPasswordHash
 from sentry.testutils import TestCase
@@ -107,7 +107,7 @@ class EventNodeStoreTest(TestCase):
         e2 = Event(project_id=1, event_id="mno", data=None)
         e2_node_id = e2.data.id
         assert e2.data.data == {}  # NodeData returns {} by default
-        Event.objects.bind_nodes([e2], "data")
+        eventstore.bind_nodes([e2], "data")
         assert e2.data.data == {}
         e2_body = nodestore.get(e2_node_id)
         assert e2_body is None
@@ -137,13 +137,13 @@ class EventNodeStoreTest(TestCase):
         assert event.data.get_ref(event) != event.data.get_ref(invalid_event)
 
         with pytest.raises(NodeIntegrityFailure):
-            Event.objects.bind_nodes([event], "data")
+            eventstore.bind_nodes([event], "data")
 
     def test_accepts_valid_ref(self):
         event = self.create_event()
         event.data.bind_ref(event)
 
-        Event.objects.bind_nodes([event], "data")
+        eventstore.bind_nodes([event], "data")
 
         assert event.data.ref == event.project.id
 
