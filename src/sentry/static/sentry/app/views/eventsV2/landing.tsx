@@ -263,14 +263,14 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
             <GlobalSelectionHeader organization={organization} />
             <PageContent>
               <NoProjectMessage organization={organization}>
-                <PageHeader>
+                <StyledPageHeader>
                   <DiscoverBreadcrumb
                     eventView={eventView}
                     organization={organization}
                     location={location}
                   />
                   {hasQuery && this.renderSavedQueryControls(eventView)}
-                </PageHeader>
+                </StyledPageHeader>
                 {!hasQuery && this.renderQueryList()}
                 {hasQuery && this.renderResults(eventView)}
               </NoProjectMessage>
@@ -281,6 +281,10 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     );
   }
 }
+
+const StyledPageHeader = styled(PageHeader)`
+  margin-bottom: ${space(1)};
+`;
 
 const StyledInput = styled('span')`
   font-size: ${p => p.theme.headerFontSize};

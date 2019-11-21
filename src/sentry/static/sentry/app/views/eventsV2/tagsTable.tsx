@@ -57,7 +57,7 @@ const StyledTable = styled('table')`
   table-layout: fixed;
   width: 100%;
   max-width: 100%;
-  margin-bottom: 30px;
+  margin-bottom: ${space(3)};
 `;
 
 const StyledTr = styled('tr')`
