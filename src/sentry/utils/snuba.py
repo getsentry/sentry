@@ -336,7 +336,13 @@ def detect_dataset(query_args, aliased_conditions=False):
             if is_transaction:
                 return Dataset.Transactions
         # Check for transaction only field aliases
-        if isinstance(field[2], six.string_types) and field[2] in ("apdex", "p95", "p75", "p99"):
+        if isinstance(field[2], six.string_types) and field[2] in (
+            "apdex",
+            "impact",
+            "p75",
+            "p95",
+            "p99",
+        ):
             return Dataset.Transactions
 
     for field in query_args.get("groupby") or []:

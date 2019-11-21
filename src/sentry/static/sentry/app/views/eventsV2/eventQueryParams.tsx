@@ -141,7 +141,7 @@ export const FIELDS: {[key: string]: ColumnValueType} = {
   'transaction.duration': 'duration',
   'transaction.op': 'string',
   apdex: 'number',
-
+  impact: 'number',
   // duration aliases
   p75: 'duration',
   p95: 'duration',
@@ -156,6 +156,7 @@ export const TRACING_FIELDS = [
   'transaction.duration',
   'transaction.op',
   'apdex',
+  'impact',
   'p99',
   'p95',
   'p75',
