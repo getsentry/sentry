@@ -23,20 +23,10 @@
 
 {% block auth_container %}
 <div>
-  {% if join_request_link %}
-    <div class="join-request-header">
-      <img class="join-request-org-avatar" src="{% asset_url "sentry" "images/default-organization-logo.png" %}">
-      <h4 class="join-request-org-name">{{ organization.name }}</h4>
-      <a class="btn btn-default btn-sm btn-join-request" href="{{ join_request_link }}">
-        <img class="join-request-megaphone" src="{% asset_url "sentry" "app/icons/icon-megaphone.svg" %}"></img> Request to Join
-      </a>
-    </div>
-  {% else %}
-    <div class="align-center p-t-2">
-      <img src="{% asset_url "sentry" "images/default-organization-logo.png" %}" class="org-avatar">
-      <h3>{{ organization.name }}</h3>
-    </div>
-  {% endif %}
+  <div class="align-center p-t-2">
+    <img src="{% asset_url "sentry" "images/default-organization-logo.png" %}" class="org-avatar">
+    <h3>{{ organization.name }}</h3>
+  </div>
 
   {% if provider_name %}
     <form class="form-stacked m-b-2" action="" method="post" autocomplete="off">
@@ -66,6 +56,13 @@
         {% if CAN_REGISTER %}
           <li{% if op == "register" %} class="active"{% endif %}>
             <a href="#register" data-toggle="tab">{% trans "Register" %}</a>
+          </li>
+        {% endif %}
+        {% if join_request_link %}
+          <li class="join-request">
+            <a href="{{ join_request_link }}">
+              {% include "sentry/partial/megaphone.html" %} Request to Join
+            </a>
           </li>
         {% endif %}
       </ul>

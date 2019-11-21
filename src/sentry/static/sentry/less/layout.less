@@ -239,32 +239,23 @@ body.auth {
     }
   }
 
-  .join-request-header {
+  .auth-toggle {
     display: flex;
-    align-items: center;
-    padding: 30px 40px;
   }
 
-  .join-request-org-avatar {
-    .square(56px);
-    border-radius: 3px;
-  }
-
-  .join-request-org-name {
-    margin: 0 15px;
-    max-width: 330px;
-    overflow-wrap: break-word;
-  }
-
-  .join-request-megaphone {
-    .square(20px);
-    margin-right: 4px;
-    border-radius: 2px;
-  }
-
-  .btn-join-request {
+  .join-request {
     margin-left: auto;
-    min-width: 138px;
+    margin-right: 0;
+
+    > a > svg {
+      display: inline-block;
+      height: 17px;
+      width: 20px;
+      vertical-align: text-top;
+      position: relative;
+      top: 1px;
+      margin-right: 1px;
+    }
   }
 }
 
@@ -562,15 +553,13 @@ footer {
       }
     }
 
-    .join-request-header {
-      display: block;
-      text-align: center;
-      padding: 30px 20px 20px 20px;
-    }
+    .join-request {
+      margin-left: auto;
 
-    .join-request-org-name {
-      max-width: none;
-      margin: 15px 0;
+      > a > svg {
+        height: 16px;
+        width: 19px;
+      }
     }
 
     .tab-pane {
