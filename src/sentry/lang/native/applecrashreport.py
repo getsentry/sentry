@@ -124,7 +124,7 @@ class AppleCrashReport(object):
         offset = ""
         if frame.get("image_addr") is not None and (
             not self.symbolicated
-            or frame.get("function", NATIVE_UNKNOWN_STRING) == NATIVE_UNKNOWN_STRING
+            or (frame.get("function") or NATIVE_UNKNOWN_STRING) == NATIVE_UNKNOWN_STRING
         ):
             offset = " + %s" % (
                 instruction_addr - slide_value - parse_addr(frame.get("symbol_addr"))
@@ -134,17 +134,17 @@ class AppleCrashReport(object):
             file = ""
             if frame.get("filename") and frame.get("lineno"):
                 file = " (%s:%s)" % (
-                    posixpath.basename(frame.get("filename", NATIVE_UNKNOWN_STRING)),
+                    posixpath.basename(frame.get("filename") or NATIVE_UNKNOWN_STRING),
                     frame["lineno"],
                 )
-            symbol = "%s%s" % (frame.get("function", NATIVE_UNKNOWN_STRING), file)
+            symbol = "%s%s" % (frame.get("function") or NATIVE_UNKNOWN_STRING, file)
             if next and parse_addr(frame.get("instruction_addr")) == parse_addr(
                 next.get("instruction_addr")
             ):
                 symbol = "[inlined] " + symbol
         return "%s%s%s%s%s" % (
             str(number).ljust(4, " "),
-            image_name(frame.get("package", NATIVE_UNKNOWN_STRING)).ljust(32, " "),
+            image_name(frame.get("package") or NATIVE_UNKNOWN_STRING).ljust(32, " "),
             hex(instruction_addr).ljust(20, " "),
             symbol,
             offset,
@@ -173,8 +173,8 @@ class AppleCrashReport(object):
         return "%s - %s %s %s  <%s> %s" % (
             hex(image_addr),
             hex(image_addr + debug_image["image_size"] - 1),
-            image_name(debug_image.get("name", NATIVE_UNKNOWN_STRING)),
+            image_name(debug_image["name"]),
             self.context["device"]["arch"],
             (debug_image.get("id") or debug_image.get("uuid")).replace("-", "").lower(),
-            debug_image.get("name", NATIVE_UNKNOWN_STRING),
+            debug_image["name"],
         )
