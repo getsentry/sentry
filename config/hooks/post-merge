@@ -13,9 +13,10 @@ grep -E --quiet 'requirements.*\.txt' "$files_changed_upstream" && py="install-s
 grep -E --quiet 'yarn.lock' "$files_changed_upstream"           && js="install-yarn-pkgs "
 grep -E --quiet 'migrations' "$files_changed_upstream"          && migrations="apply-migrations "
 
+[[ "$py" || "$js" || "$migrations" ]] && needs_update=1
 update_command="make ${py}${js}${migrations}"
 
-[[ "$py" || "$js" || "$migrations" ]] && cat <<EOF
+[[ "$needs_update" ]] && cat <<EOF
 
 [${red}${bold}!!!${reset}] ${red} It looks like some dependencies have changed that will require your intervention. Run the following to update:${reset}
 
@@ -23,6 +24,6 @@ update_command="make ${py}${js}${migrations}"
 
 EOF
 
-if [[ "$SENTRY_POST_MERGE_AUTO_UPDATE" ]]; then
+if [[ "$SENTRY_POST_MERGE_AUTO_UPDATE" && "$needs_update" ]]; then
   $update_command
 fi
