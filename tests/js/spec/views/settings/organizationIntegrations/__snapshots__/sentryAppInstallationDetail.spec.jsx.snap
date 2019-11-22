@@ -113,6 +113,7 @@ exports[`Sentry App Installations displays all Apps owned by the Org 1`] = `
         "teams": Array [],
       }
     }
+    showAppDashboardLink={false}
     showInstallationStatus={true}
   >
     <SentryAppItem
