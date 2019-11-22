@@ -219,7 +219,7 @@ export default class RequestLog extends AsyncComponent<Props, State> {
 
             <StyledErrorsOnlyButton onClick={this.handleChangeErrorsOnly}>
               <ErrorsOnlyCheckbox>
-                <Checkbox checked={errorsOnly} />
+                <Checkbox checked={errorsOnly} onChange={() => {}} />
                 {t('Errors Only')}
               </ErrorsOnlyCheckbox>
             </StyledErrorsOnlyButton>
