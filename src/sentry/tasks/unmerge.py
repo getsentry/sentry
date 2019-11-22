@@ -12,7 +12,6 @@ from sentry.event_manager import generate_culprit
 from sentry.models import (
     Activity,
     Environment,
-    Event,
     EventUser,
     Group,
     GroupEnvironment,
@@ -519,7 +518,7 @@ def unmerge(
 
         return destination_id
 
-    Event.objects.bind_nodes(events, "data")
+    eventstore.bind_nodes(events, "data")
 
     source_events = []
     destination_events = []

@@ -60,7 +60,7 @@ class ProcessingIssueManager(BaseManager):
         a list of raw events that are now resolved and a bool that indicates
         if there are more.
         """
-        from sentry.models import RawEvent
+        from sentry import eventstore
 
         rv = list(self.find_resolved_queryset([project_id])[:limit])
         if len(rv) > limit:
@@ -70,7 +70,7 @@ class ProcessingIssueManager(BaseManager):
             has_more = False
 
         rv = list(rv)
-        RawEvent.objects.bind_nodes(rv, "data")
+        eventstore.bind_nodes(rv, "data")
         return rv, has_more
 
     def record_processing_issue(self, raw_event, scope, object, type, data=None):
