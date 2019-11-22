@@ -5,6 +5,14 @@ from sentry.integrations.client import ApiClient
 from sentry.models import EventCommon
 from sentry.api.serializers import serialize, ExternalEventSerializer
 
+LEVEL_SEVERITY_MAP = {
+    "debug": "Info",
+    "info": "Info",
+    "warning": "Warning",
+    "error": "Error",
+    "fatal": "Critical",
+}
+
 
 class PagerDutyClient(ApiClient):
     allow_redirects = False
@@ -28,6 +36,7 @@ class PagerDutyClient(ApiClient):
         if isinstance(data, EventCommon):
             source = data.transaction or data.culprit or "<unknown>"
             group = data.group
+            level = data.get_tag("level") or "error"
             custom_details = serialize(data, None, ExternalEventSerializer())
             payload = {
                 "routing_key": self.integration_key,
@@ -35,7 +44,7 @@ class PagerDutyClient(ApiClient):
                 "dedup_key": group.qualified_short_id,
                 "payload": {
                     "summary": data.message or data.title,
-                    "severity": data.get_tag("level") or "error",
+                    "severity": LEVEL_SEVERITY_MAP[level],
                     "source": source,
                     "component": group.project.slug,
                     "custom_details": custom_details,

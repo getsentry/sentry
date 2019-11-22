@@ -5,6 +5,7 @@ import copy
 from sentry.utils import json
 from mock import patch
 
+from sentry.api.serializers import serialize, ExternalEventSerializer
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.models import Integration, PagerDutyService
@@ -57,6 +58,7 @@ class PagerDutyClientTest(APITestCase):
 
         integration_key = self.service.integration_key
         client = self.installation.get_client(integration_key=integration_key)
+        custom_details = serialize(event, None, ExternalEventSerializer())
 
         client.send_trigger(event)
         data = {
@@ -65,10 +67,10 @@ class PagerDutyClientTest(APITestCase):
             "dedup_key": group.qualified_short_id,
             "payload": {
                 "summary": event.message,
-                "severity": "error",
+                "severity": "Error",
                 "source": event.transaction or event.culprit,
                 "component": self.project.slug,
-                "custom_details": event.as_dict(),
+                "custom_details": custom_details,
             },
             "links": [
                 {

@@ -382,8 +382,7 @@ class SimpleEventSerializer(EventSerializer):
 class ExternalEventSerializer(EventSerializer):
     """
     Event serializer for the minimum event data needed to send to an external service. This
-    can be used for Integrations and the Integration Platform. If the full event is needed,
-    use `event.as_dict()` instead.
+    should be used for Integrations that need to include event data.
     """
 
     def serialize(self, obj, attrs, user):
@@ -396,8 +395,8 @@ class ExternalEventSerializer(EventSerializer):
         user = obj.get_minimal_user()
 
         return {
-            "group_id": six.text_type(obj.group_id) if obj.group_id else None,
-            "event_id": six.text_type(obj.event_id),
+            "groupID": six.text_type(obj.group_id) if obj.group_id else None,
+            "eventID": six.text_type(obj.event_id),
             "project": six.text_type(obj.project_id),
             # XXX for 'message' this doesn't do the proper resolution of logentry
             # etc. that _get_legacy_message_with_meta does.
