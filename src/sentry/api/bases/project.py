@@ -8,7 +8,7 @@ from sentry.api.exceptions import ResourceDoesNotExist, ProjectMoved
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.models import OrganizationMember, Project, ProjectStatus, ProjectRedirect
-from sentry.utils.sdk import configure_scope
+from sentry.utils.sdk import configure_scope, bind_organization_context
 
 from .organization import OrganizationPermission
 from .team import has_team_permission
@@ -147,7 +147,8 @@ class ProjectEndpoint(Endpoint):
 
         with configure_scope() as scope:
             scope.set_tag("project", project.id)
-            scope.set_tag("organization", project.organization_id)
+
+        bind_organization_context(project.organization)
 
         request._request.organization = project.organization
 

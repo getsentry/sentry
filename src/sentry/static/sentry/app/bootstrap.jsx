@@ -12,12 +12,8 @@ import ReactDOM from 'react-dom';
 import Reflux from 'reflux';
 import * as Router from 'react-router';
 import * as Sentry from '@sentry/browser';
-import {
-  ExtraErrorData,
-  Tracing,
-  TransactionActivity,
-  TransactionActivityHandlers,
-} from '@sentry/integrations';
+import {ExtraErrorData} from '@sentry/integrations';
+import {Integrations} from '@sentry/apm';
 import createReactClass from 'create-react-class';
 import jQuery from 'jquery';
 import moment from 'moment';
@@ -33,14 +29,6 @@ if (window.__initialData) {
   ConfigStore.loadInitialData(window.__initialData);
 }
 
-// APM -------------------------------------------------------------
-const config = ConfigStore.getConfig();
-// This is just a simple gatekeeper to not enable apm for whole sentry.io at first
-const forceTracingEnabled = config && config.isApmDataSamplingEnabled ? 1 : 0;
-
-const tracesSampleRate = Math.max(0.1, forceTracingEnabled);
-// -------------------------------^ 10% Sample rate for enabling transactions in frontend
-
 // SDK INIT  --------------------------------------------------------
 Sentry.init({
   ...window.__SENTRY__OPTIONS,
@@ -49,17 +37,14 @@ Sentry.init({
       // 6 is arbitrary, seems like a nice number
       depth: 6,
     }),
-    new Tracing({
+    new Integrations.Tracing({
       tracingOrigins: ['localhost', 'sentry.io', /^\//],
     }),
     new Sentry.Integrations.Breadcrumbs({
       // This handlers will be removed here in a future version
       // What they do is auto instrument history and XHR API
       // creating Transactions and Spans out of it
-      handlers: TransactionActivityHandlers,
-    }),
-    new TransactionActivity({
-      tracesSampleRate,
+      handlers: Integrations.TracingHandlers,
     }),
   ],
 });

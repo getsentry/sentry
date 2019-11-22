@@ -3,11 +3,12 @@ import isString from 'lodash/isString';
 import cloneDeep from 'lodash/cloneDeep';
 import pick from 'lodash/pick';
 import isEqual from 'lodash/isEqual';
+import omit from 'lodash/omit';
 import moment from 'moment';
 
 import {DEFAULT_PER_PAGE} from 'app/constants';
 import {SavedQuery as LegacySavedQuery} from 'app/views/discover/types';
-import {SavedQuery, NewQuery} from 'app/stores/discoverSavedQueriesStore';
+import {SavedQuery, NewQuery} from 'app/types';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 
 import {AUTOLINK_FIELDS, SPECIAL_FIELDS, FIELD_FORMATTERS} from './data';
@@ -21,23 +22,17 @@ import {
 import {TableColumn, TableColumnSort} from './table/types';
 
 type LocationQuery = {
-  project?: string | string[];
-  environment?: string | string[];
   start?: string | string[];
   end?: string | string[];
   utc?: string | string[];
   statsPeriod?: string | string[];
   cursor?: string | string[];
-  yAxis?: string | string[];
 };
 
+const DATETIME_QUERY_STRING_KEYS = ['start', 'end', 'utc', 'statsPeriod'] as const;
+
 const EXTERNAL_QUERY_STRING_KEYS: Readonly<Array<keyof LocationQuery>> = [
-  'project',
-  'environment',
-  'start',
-  'end',
-  'utc',
-  'statsPeriod',
+  ...DATETIME_QUERY_STRING_KEYS,
   'cursor',
 ];
 
@@ -381,6 +376,22 @@ class EventView {
     });
   }
 
+  static fromSavedQueryWithLocation(
+    saved: NewQuery | LegacySavedQuery,
+    location: Location
+  ): EventView {
+    const query = location.query;
+
+    saved = {
+      ...saved,
+      start: saved.start || decodeScalar(query.start),
+      end: saved.end || decodeScalar(query.end),
+      range: saved.range || decodeScalar(query.statsPeriod),
+    };
+
+    return EventView.fromSavedQuery(saved);
+  }
+
   static fromSavedQuery(saved: NewQuery | LegacySavedQuery): EventView {
     let fields, yAxis;
     if (isLegacySavedQuery(saved)) {
@@ -539,6 +550,8 @@ class EventView {
       fieldnames: this.getFieldNames(),
       sort: encodeSorts(this.sorts),
       tag: this.tags,
+      environment: this.environment,
+      project: this.project,
       query: this.query,
       yAxis: this.yAxis,
     };
@@ -883,26 +896,30 @@ class EventView {
     // normalize datetime selection
 
     const normalizedTimeWindowParams = getParams({
-      start: this.start,
-      end: this.end,
+      start: this.start || picked.start,
+      end: this.end || picked.end,
       period: decodeScalar(query.period),
-      statsPeriod: this.statsPeriod,
+      statsPeriod: this.statsPeriod || picked.statsPeriod,
       utc: decodeScalar(query.utc),
     });
 
     const sort = this.sorts.length > 0 ? encodeSort(this.sorts[0]) : undefined;
     const fields = this.getFields();
+    const project = this.project.map(proj => String(proj));
+    const environment = this.environment as string[];
 
     // generate event query
 
     const eventQuery: EventQuery & LocationQuery = Object.assign(
-      picked,
+      omit(picked, DATETIME_QUERY_STRING_KEYS),
       normalizedTimeWindowParams,
       {
+        project,
+        environment,
         field: [...new Set(fields)],
         sort,
         per_page: DEFAULT_PER_PAGE,
-        query: this.getQuery(query.query),
+        query: this.query,
       }
     );
 

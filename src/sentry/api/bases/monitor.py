@@ -5,7 +5,7 @@ from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.bases.project import ProjectPermission
 from sentry.models import Monitor, Project, ProjectStatus
-from sentry.utils.sdk import configure_scope
+from sentry.utils.sdk import configure_scope, bind_organization_context
 
 
 class MonitorEndpoint(Endpoint):
@@ -30,8 +30,9 @@ class MonitorEndpoint(Endpoint):
         self.check_object_permissions(request, project)
 
         with configure_scope() as scope:
-            scope.set_tag("organization", project.organization_id)
             scope.set_tag("project", project.id)
+
+        bind_organization_context(project.organization)
 
         request._request.organization = project.organization
 
