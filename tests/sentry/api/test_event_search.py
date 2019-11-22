@@ -1042,9 +1042,9 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["aggregations"] == [
             ["avg", "transaction.duration", "avg_transaction_duration"],
             ["apdex(duration, 300)", "", "apdex"],
-            ["quantileTiming(0.75)(duration)", "", "p75"],
-            ["quantileTiming(0.95)(duration)", "", "p95"],
-            ["quantileTiming(0.99)(duration)", "", "p99"],
+            ["quantile(0.75)(duration)", "", "p75"],
+            ["quantile(0.95)(duration)", "", "p95"],
+            ["quantile(0.99)(duration)", "", "p99"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["argMax", ["project_id", "timestamp"], "projectid"],
         ]
