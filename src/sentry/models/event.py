@@ -484,8 +484,8 @@ class SnubaEvent(EventCommon):
         tag deletions without having to rewrite nodestore blobs.
         """
         if "tags.key" in self.snuba_data and "tags.value" in self.snuba_data:
-            keys = getattr(self, "tags.key")
-            values = getattr(self, "tags.value")
+            keys = self.snuba_data["tags.key"]
+            values = self.snuba_data["tags.value"]
             if keys and values and len(keys) == len(values):
                 return sorted(zip(keys, values))
             else:
