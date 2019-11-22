@@ -2,7 +2,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {browserHistory} from 'react-router';
 import {PanelItem} from 'app/components/panels';
 import {t, tct} from 'app/locale';
 import Avatar from 'app/components/avatar';
@@ -100,9 +99,9 @@ export default class OrganizationMemberRow extends React.PureComponent {
       <StyledPanelItem>
         <MemberHeading>
           <Avatar size={32} user={user ? user : {id: email, email}} />
-          <MemberDescription onClick={() => browserHistory.push(detailsUrl)}>
+          <MemberDescription to={detailsUrl}>
             <h5 style={{margin: '0 0 3px'}}>
-              <UserName to={detailsUrl}>{name}</UserName>
+              <UserName>{name}</UserName>
             </h5>
             <Email>{email}</Email>
           </MemberDescription>
@@ -241,12 +240,11 @@ const Section = styled('div')`
 `;
 
 const MemberHeading = styled(Section)``;
-const MemberDescription = styled('div')`
-  cursor: pointer;
+const MemberDescription = styled(Link)`
   overflow: hidden;
 `;
 
-const UserName = styled(Link)`
+const UserName = styled('div')`
   display: block;
   font-size: ${p => p.theme.fontSizeLarge};
   overflow: hidden;
