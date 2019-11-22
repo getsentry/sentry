@@ -82,6 +82,7 @@ def _process_signal(msg):
 
     event_id = msg.get("event_id")
     if not event_id:
+        metrics.incr("outcomes_consumer.skip_outcome", tags={"reason": "missing_event_id"})
         return
 
     if is_signal_sent(project_id=project_id, event_id=event_id):
@@ -91,6 +92,7 @@ def _process_signal(msg):
     try:
         project = Project.objects.get_from_cache(id=project_id)
     except Project.DoesNotExist:
+        metrics.incr("outcomes_consumer.skip_outcome", tags={"reason": "unknown_project"})
         logger.error("OutcomesConsumer could not find project with id: %s", project_id)
         return
 
