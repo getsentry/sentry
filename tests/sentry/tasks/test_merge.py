@@ -80,12 +80,12 @@ class MergeGroupTest(TestCase):
 
         event1 = eventstore.get_event_by_id(project.id, event1.event_id)
         assert event1.group_id == group2.id
-        event1.data.bind_node_data()
+        event1.bind_node_data()
         assert event1.data["extra"]["foo"] == "bar"
 
         event2 = eventstore.get_event_by_id(project.id, event2.event_id)
         assert event2.group_id == group2.id
-        event2.data.bind_node_data()
+        event2.bind_node_data()
         assert event2.data["extra"]["foo"] == "baz"
 
     def test_merge_creates_redirect(self):

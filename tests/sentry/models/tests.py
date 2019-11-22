@@ -146,7 +146,7 @@ class EventNodeStoreTest(TestCase):
         e4 = Event.objects.get(project_id=1, event_id="mno")
         assert e4.data.id is None
         assert e4.data.data == {}  # NodeData returns {} by default
-        e4.data.bind_node_data()
+        e4.bind_node_data()
         assert e4.data.id is None
         assert e4.data.data == {}
 
@@ -157,7 +157,7 @@ class EventNodeStoreTest(TestCase):
         invalid_event = self.create_event(group=group1)
         group2 = self.create_group(project2)
         event = self.create_event(group=group2)
-        event.data.bind_ref(invalid_event)
+        event.bind_ref(invalid_event)
         event.data.save()
 
         assert event.data.get_ref(event) != event.data.get_ref(invalid_event)
@@ -167,9 +167,9 @@ class EventNodeStoreTest(TestCase):
 
     def test_accepts_valid_ref(self):
         event = self.create_event()
-        event.data.bind_ref(event)
+        event.bind_ref(event)
 
-        event.data.bind_node_data()
+        event.bind_node_data()
 
         assert event.data.ref == event.project.id
 

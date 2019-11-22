@@ -75,7 +75,7 @@ class SnubaEventTest(TestCase, SnubaTestCase):
         """
         event = eventstore.get_event_by_id(self.proj1.id, self.event_id)
         assert event.data._node_data is None
-        event.data.bind_node_data()
+        event.bind_node_data()
         assert event.data._node_data is not None
         assert event.data["user"]["id"] == u"user1"
 
