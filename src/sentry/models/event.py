@@ -455,20 +455,20 @@ class SnubaEvent(EventCommon):
         )
         self.data = NodeData(None, node_id, data=None, wrapper=EventDict)
 
-    def __getattr__(self, name):
-        """
-        Depending on what snuba data this event was initialized with, we may
-        have the data available to return, or we may have to look in the
-        `data` dict (which would force a nodestore load). All unresolved
-        self.foo type accesses will come through here.
-        """
-        if name in ("_project_cache", "_group_cache", "_environment_cache"):
-            raise AttributeError()
+    # def __getattr__(self, name):
+    #     """
+    #     Depending on what snuba data this event was initialized with, we may
+    #     have the data available to return, or we may have to look in the
+    #     `data` dict (which would force a nodestore load). All unresolved
+    #     self.foo type accesses will come through here.
+    #     """
+    #     if name in ("_project_cache", "_group_cache", "_environment_cache"):
+    #         raise AttributeError()
 
-        if name in self.snuba_data:
-            return self.snuba_data[name]
-        else:
-            return self.data[name]
+    #     if name in self.snuba_data:
+    #         return self.snuba_data[name]
+    #     else:
+    #         return self.data[name]
 
     # ============================================
     # Snuba-only implementations of properties that
