@@ -25,13 +25,12 @@ class MiniGraph extends React.Component<Props> {
     // than the cost for rendering the graph, which can take ~200ms to ~300ms to
     // render.
 
-    return !isEqual(
-      this.getPropsICareAbout(this.props),
-      this.getPropsICareAbout(nextProps)
-    );
+    return !isEqual(this.getRelevantProps(this.props), this.getRelevantProps(nextProps));
   }
 
-  getPropsICareAbout(props: Props) {
+  getRelevantProps(props: Props) {
+    // get props that are relevant to the API payload for the graph
+
     const {organization, location, eventView} = props;
 
     const apiPayload = eventView.getEventsAPIPayload(location);
@@ -52,7 +51,7 @@ class MiniGraph extends React.Component<Props> {
 
   render() {
     const {eventView, api} = this.props;
-    const {query, start, end, period, organization} = this.getPropsICareAbout(this.props);
+    const {query, start, end, period, organization} = this.getRelevantProps(this.props);
 
     return (
       <EventsRequest
