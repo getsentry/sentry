@@ -73,38 +73,11 @@ describe('EventsV2', function() {
         tags: [{key: 'browser', value: 'Firefox'}],
       },
     });
-  });
-
-  it('renders a link list', function() {
-    /* TODO(leedongwei)
-    const wrapper = mountWithTheme(
-      <DiscoverLanding
-        organization={TestStubs.Organization({features, projects: [TestStubs.Project()]})}
-        location={{query: {}}}
-        router={{}}
-      />,
-      TestStubs.routerContext()
-    );
-    const content = wrapper.find('PageContent');
-    expect(content.text()).toContain('Events');
-    expect(content.find('LinkContainer').length).toBeGreaterThanOrEqual(3);
-    */
-  });
-
-  it('renders a list of events', function() {
-    /* TODO(leedongwei)
-    const wrapper = mountWithTheme(
-      <DiscoverLanding
-        organization={TestStubs.Organization({features, projects: [TestStubs.Project()]})}
-        location={{query: {...generateFields()}}}
-        router={{}}
-      />,
-      TestStubs.routerContext()
-    );
-    const content = wrapper.find('PageContent');
-    expect(content.find('Events PanelHeaderCell').length).toBeGreaterThan(0);
-    expect(content.find('Events PanelItemCell').length).toBeGreaterThan(0);
-    */
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/discover/saved/',
+      method: 'GET',
+      body: [],
+    });
   });
 
   it('handles no projects', function() {
@@ -117,70 +90,8 @@ describe('EventsV2', function() {
       TestStubs.routerContext()
     );
 
-    const content = wrapper.find('PageContent');
+    const content = wrapper.find('SentryDocumentTitle');
     expect(content.text()).toContain('You need at least one project to use this view');
-  });
-
-  it('generates an active sort link based on default sort', function() {
-    /* TODO(leedongwei)
-    const wrapper = mountWithTheme(
-      <DiscoverLanding
-        organization={TestStubs.Organization({features, projects: [TestStubs.Project()]})}
-        location={{query: {...generateFields(), sort: ['-timestamp']}}}
-        router={{}}
-      />,
-      TestStubs.routerContext()
-    );
-
-    const findLink = sortKey =>
-      wrapper
-        .find('Table SortLink')
-        .find({sortKey})
-        .find('StyledLink');
-
-    const timestamp = findLink('timestamp');
-
-    // Sort should be active
-    expect(
-      timestamp
-        .find('InlineSvg')
-        .first()
-        .props().src
-    ).toEqual('icon-chevron-down');
-
-    // Sort link should reverse.
-    expect(timestamp.props().to.query).toEqual({
-      ...generateFields(),
-      sort: 'timestamp',
-    });
-
-    const userlink = findLink('user.id');
-
-    // User link should be descending.
-    expect(userlink.props().to.query).toEqual({
-      ...generateFields(),
-      sort: '-user.id',
-    });
-    */
-  });
-
-  it('generates links to modals', async function() {
-    /* TODO(leedongwei)
-    const wrapper = mountWithTheme(
-      <DiscoverLanding
-        organization={TestStubs.Organization({features, projects: [TestStubs.Project()]})}
-        location={{query: {...generateFields()}}}
-        router={{}}
-      />,
-      TestStubs.routerContext()
-    );
-
-    const link = wrapper.find(`Table Link[aria-label="${eventTitle}"]`).first();
-    expect(link.props().to.query).toEqual({
-      eventSlug: 'project-slug:deadbeef',
-      ...generateFields(),
-    });
-    */
   });
 
   it('pagination cursor should be cleared when making a search', function() {

@@ -85,8 +85,13 @@ class EventCommon(object):
 
     @group.setter
     def group(self, group):
-        self.group_id = group.id
-        self._group_cache = group
+        # guard against None to not fail on AttributeError
+        # otherwise Django 1.10 will swallow it in db.models.base init, but
+        # consequently fail to remove from kwargs, and you'll get the red herring
+        # TypeError: 'group' is an invalid keyword argument for this function.
+        if group is not None:
+            self.group_id = group.id
+            self._group_cache = group
 
     @property
     def project(self):
@@ -343,7 +348,6 @@ class EventCommon(object):
         data["platform"] = self.platform
         data["message"] = self.real_message
         data["datetime"] = self.datetime
-        data["time_spent"] = self.time_spent
         data["tags"] = [(k.split("sentry:", 1)[-1], v) for (k, v) in self.tags]
         for k, v in sorted(six.iteritems(self.data)):
             if k in data:
@@ -384,40 +388,13 @@ class EventCommon(object):
         else:
             return None
 
-    # deprecated accessors
-
-    @property
-    def logger(self):
-        warnings.warn("Event.logger is deprecated. Use Event.tags instead.", DeprecationWarning)
-        return self.get_tag("logger")
-
-    @property
-    def site(self):
-        warnings.warn("Event.site is deprecated. Use Event.tags instead.", DeprecationWarning)
-        return self.get_tag("site")
-
-    @property
-    def server_name(self):
-        warnings.warn(
-            "Event.server_name is deprecated. Use Event.tags instead.", DeprecationWarning
-        )
-        return self.get_tag("server_name")
-
-    @property
-    def checksum(self):
-        warnings.warn("Event.checksum is no longer used", DeprecationWarning)
-        return ""
-
+    # TODO: This is currently used in the Twilio and Flowdock plugins
+    # Remove this after usage has been removed there.
     def error(self):  # TODO why is this not a property?
         warnings.warn("Event.error is deprecated, use Event.title", DeprecationWarning)
         return self.title
 
     error.short_description = _("error")
-
-    @property
-    def message_short(self):
-        warnings.warn("Event.message_short is deprecated, use Event.title", DeprecationWarning)
-        return self.title
 
 
 class SnubaEvent(EventCommon):
@@ -570,10 +547,6 @@ class SnubaEvent(EventCommon):
         # ends with '+00:00', so just replace the TZ with UTC because we know
         # all timestamps from snuba are UTC.
         return parse_date(self.timestamp).replace(tzinfo=pytz.utc)
-
-    @property
-    def time_spent(self):
-        return None
 
     @property
     def message(self):

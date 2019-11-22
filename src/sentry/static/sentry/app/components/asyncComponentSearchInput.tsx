@@ -7,6 +7,13 @@ import Input from 'app/views/settings/components/forms/controls/input';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {Client} from 'app/api';
 
+type RenderProps = {
+  defaultSearchBar: React.ReactNode;
+  busy: boolean;
+  handleChange: (value: string) => void;
+  value: string;
+};
+
 type Props = ReactRouter.WithRouterProps & {
   api: Client;
   className?: string;
@@ -30,6 +37,11 @@ type Props = ReactRouter.WithRouterProps & {
   onSearchSubmit?: (query: string, event: React.FormEvent) => void;
   onSuccess: (data: object, jqXHR: JQueryXHR | undefined) => void;
   onError: () => void;
+
+  /**
+   * A render-prop child may be passed to handle custom rendering of the input.
+   */
+  children?: (otps: RenderProps) => React.ReactNode;
 };
 
 type State = {
@@ -76,11 +88,13 @@ class AsyncComponentSearchInput extends React.Component<Props, State> {
 
   query = debounce(this.immediateQuery, this.props.debounceWait);
 
-  handleChange = (evt: React.ChangeEvent<HTMLInputElement>) => {
-    const searchQuery = evt.target.value;
-    this.query(searchQuery);
-    this.setState({query: searchQuery});
+  handleChange = (query: string) => {
+    this.query(query);
+    this.setState({query});
   };
+
+  handleInputChange = (evt: React.ChangeEvent<HTMLInputElement>) =>
+    this.handleChange(evt.target.value);
 
   /**
    * This is called when "Enter" (more specifically a form "submit" event) is pressed.
@@ -107,18 +121,24 @@ class AsyncComponentSearchInput extends React.Component<Props, State> {
   };
 
   render() {
-    const {placeholder, className} = this.props;
-    return (
+    const {placeholder, children, className} = this.props;
+    const {busy, query} = this.state;
+
+    const defaultSearchBar = (
       <Form onSubmit={this.handleSearch}>
         <Input
-          value={this.state.query}
-          onChange={this.handleChange}
+          value={query}
+          onChange={this.handleInputChange}
           className={className}
           placeholder={placeholder}
         />
-        {this.state.busy && <StyledLoadingIndicator size={18} hideMessage mini />}
+        {busy && <StyledLoadingIndicator size={18} hideMessage mini />}
       </Form>
     );
+
+    return children === undefined
+      ? defaultSearchBar
+      : children({defaultSearchBar, busy, value: query, handleChange: this.handleChange});
   }
 }
 

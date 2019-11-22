@@ -215,6 +215,18 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
             raise serializers.ValidationError("This label is already in use for this alert rule")
 
 
+string_to_action_type = {
+    registration.slug: registration.type
+    for registration in AlertRuleTriggerAction.get_registered_types()
+}
+action_target_type_to_string = {
+    AlertRuleTriggerAction.TargetType.USER: "user",
+    AlertRuleTriggerAction.TargetType.TEAM: "team",
+    AlertRuleTriggerAction.TargetType.SPECIFIC: "specific",
+}
+string_to_action_target_type = {v: k for (k, v) in action_target_type_to_string.items()}
+
+
 class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
     """
     Serializer for creating/updating a trigger action. Required context:
@@ -223,6 +235,9 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
      - `organization`: The organization related to this action.
      - `access`: An access object (from `request.access`)
     """
+
+    type = serializers.CharField()
+    target_type = serializers.CharField()
 
     class Meta:
         model = AlertRuleTriggerAction
@@ -234,31 +249,46 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
         }
 
     def validate_type(self, type):
-        try:
-            return AlertRuleTriggerAction.Type(type)
-        except ValueError:
+        if type not in string_to_action_type:
             raise serializers.ValidationError(
-                "Invalid type, valid values are %s"
-                % [item.value for item in AlertRuleTriggerAction.Type]
+                "Invalid type, valid values are [%s]" % ", ".join(string_to_action_type.keys())
             )
+        return string_to_action_type[type]
 
     def validate_target_type(self, target_type):
-        try:
-            return AlertRuleTriggerAction.TargetType(target_type)
-        except ValueError:
+        if target_type not in string_to_action_target_type:
             raise serializers.ValidationError(
-                "Invalid target_type, valid values are %s"
-                % [item.value for item in AlertRuleTriggerAction.TargetType]
+                "Invalid targetType, valid values are [%s]"
+                % ", ".join(string_to_action_target_type.keys())
             )
+        return string_to_action_target_type[target_type]
 
     def validate(self, attrs):
-        if ("target_type" in attrs) != ("target_identifier" in attrs):
+        if ("type" in attrs) != ("target_type" in attrs) != ("target_identifier" in attrs):
             raise serializers.ValidationError(
-                "targetType and targetIdentifier must be passed together"
+                "type, targetType and targetIdentifier must be passed together"
             )
+        type = attrs.get("type")
         target_type = attrs.get("target_type")
         access = self.context["access"]
         identifier = attrs.get("target_identifier")
+
+        if type is not None:
+            type_info = AlertRuleTriggerAction.get_registered_type(type)
+            if target_type not in type_info.supported_target_types:
+                allowed_target_types = ",".join(
+                    [
+                        action_target_type_to_string[type_name]
+                        for type_name in type_info.supported_target_types
+                    ]
+                )
+                raise serializers.ValidationError(
+                    {
+                        "target_type": "Invalid target type for %s. Valid types are [%s]"
+                        % (type_info.slug, allowed_target_types)
+                    }
+                )
+
         if attrs.get("type") == AlertRuleTriggerAction.Type.EMAIL:
             if target_type == AlertRuleTriggerAction.TargetType.TEAM:
                 try:
@@ -277,14 +307,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                     organization=self.context["organization"], user=user
                 ).exists():
                     raise serializers.ValidationError("User does not belong to this organization")
-            elif target_type == AlertRuleTriggerAction.TargetType.SPECIFIC:
-                # Compare with `type` and perform a specific validation as needed
-                pass
         elif attrs.get("type") == AlertRuleTriggerAction.Type.SLACK:
-            if target_type != AlertRuleTriggerAction.TargetType.SPECIFIC:
-                raise serializers.ValidationError(
-                    {"target_type": "Must provide a specific channel for slack"}
-                )
             if "integration" not in attrs:
                 raise serializers.ValidationError(
                     {"integration": "Integration must be provided for slack"}
@@ -296,19 +319,20 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
         return create_alert_rule_trigger_action(trigger=self.context["trigger"], **validated_data)
 
     def _remove_unchanged_fields(self, instance, validated_data):
-        if validated_data.get("type", instance.type) == AlertRuleTriggerAction.Type.SLACK.value:
-            if (
-                "target_identifier" in validated_data
-                and validated_data["target_identifier"] == instance.target_display
-            ):
-                validated_data.pop("target_identifier")
+        changed = False
+        if (
+            validated_data.get("type", instance.type) == AlertRuleTriggerAction.Type.SLACK.value
+            and validated_data["target_identifier"] != instance.target_display
+        ):
+            changed = True
         for field_name, value in list(six.iteritems(validated_data)):
             # Remove any fields that haven't actually changed
             if isinstance(value, Enum):
                 value = value.value
-            if getattr(instance, field_name) == value:
-                validated_data.pop(field_name)
-        return validated_data
+            if getattr(instance, field_name) != value:
+                changed = True
+                break
+        return validated_data if changed else {}
 
     def update(self, instance, validated_data):
         validated_data = self._remove_unchanged_fields(instance, validated_data)

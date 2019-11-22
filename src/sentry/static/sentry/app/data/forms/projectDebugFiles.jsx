@@ -44,6 +44,17 @@ export const fields = {
     help: t(
       'Configures which built-in repositories Sentry should use to resolve debug files.'
     ),
+    formatMessageValue: (value, {builtinSymbolSources}) => {
+      const rv = [];
+      value.forEach(key => {
+        builtinSymbolSources.forEach(source => {
+          if (source.sentry_key === key) {
+            rv.push(source.name);
+          }
+        });
+      });
+      return rv.join(', ');
+    },
     choices: ({builtinSymbolSources}) =>
       builtinSymbolSources &&
       builtinSymbolSources

@@ -15,6 +15,7 @@ from sentry.api.event_search import (
     resolve_field_list,
     get_reference_event_conditions,
     parse_search_query,
+    get_json_meta_type,
     InvalidSearchQuery,
     SearchBoolean,
     SearchFilter,
@@ -25,6 +26,25 @@ from sentry.api.event_search import (
 from sentry.utils.samples import load_data
 from sentry.testutils import TestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+
+
+def test_get_json_meta_type():
+    assert get_json_meta_type("project_id", "UInt8") == "boolean"
+    assert get_json_meta_type("project_id", "UInt16") == "integer"
+    assert get_json_meta_type("project_id", "UInt32") == "integer"
+    assert get_json_meta_type("project_id", "UInt64") == "integer"
+    assert get_json_meta_type("project_id", "Float32") == "number"
+    assert get_json_meta_type("project_id", "Float64") == "number"
+    assert get_json_meta_type("value", "Nullable(Float64)") == "number"
+    assert get_json_meta_type("exception_stacks.type", "Array(String)") == "array"
+    assert get_json_meta_type("transaction", "Char") == "string"
+    assert get_json_meta_type("foo", "unknown") == "string"
+    assert get_json_meta_type("other", "") == "string"
+    assert get_json_meta_type("p99", "number") == "duration"
+    assert get_json_meta_type("p95", "number") == "duration"
+    assert get_json_meta_type("p75", "number") == "duration"
+    assert get_json_meta_type("avg_duration", "number") == "duration"
+    assert get_json_meta_type("duration", "number") == "duration"
 
 
 class ParseSearchQueryTest(unittest.TestCase):
@@ -1016,13 +1036,15 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["groupby"] == ["title"]
 
     def test_field_alias_duration_expansion(self):
-        fields = ["avg(transaction.duration)", "p95", "p75"]
+        fields = ["avg(transaction.duration)", "apdex", "p75", "p95", "p99"]
         result = resolve_field_list(fields, {})
         assert result["selected_columns"] == []
         assert result["aggregations"] == [
             ["avg", "transaction.duration", "avg_transaction_duration"],
-            ["quantileTiming(0.95)(duration)", "", "p95"],
-            ["quantileTiming(0.75)(duration)", "", "p75"],
+            ["apdex(duration, 300)", "", "apdex"],
+            ["quantile(0.75)(duration)", "", "p75"],
+            ["quantile(0.95)(duration)", "", "p95"],
+            ["quantile(0.99)(duration)", "", "p99"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["argMax", ["project_id", "timestamp"], "projectid"],
         ]

@@ -58,16 +58,31 @@ TRANSACTIONS_SENTRY_SNUBA_MAP = {
     if col.value.transaction_name is not None
 }
 
+# This maps the public column aliases to the discover dataset column names.
+# Longer term we would like to not expose the transactions dataset directly
+# to end users and instead have all ad-hoc queries go through the discover
+# dataset.
+DISCOVER_COLUMN_MAP = {
+    col.value.alias: col.value.discover_name
+    for col in Columns
+    if col.value.discover_name is not None
+}
+
 
 @unique
 class Dataset(Enum):
     Events = "events"
     Transactions = "transactions"
+    Discover = "discover"
     Outcomes = "outcomes"
     OutcomesRaw = "outcomes_raw"
 
 
-DATASETS = {Dataset.Events: SENTRY_SNUBA_MAP, Dataset.Transactions: TRANSACTIONS_SENTRY_SNUBA_MAP}
+DATASETS = {
+    Dataset.Events: SENTRY_SNUBA_MAP,
+    Dataset.Transactions: TRANSACTIONS_SENTRY_SNUBA_MAP,
+    Dataset.Discover: DISCOVER_COLUMN_MAP,
+}
 
 # Store the internal field names to save work later on.
 # Add `group_id` to the events dataset list as we don't want to publically
@@ -75,6 +90,7 @@ DATASETS = {Dataset.Events: SENTRY_SNUBA_MAP, Dataset.Transactions: TRANSACTIONS
 DATASET_FIELDS = {
     Dataset.Events: list(SENTRY_SNUBA_MAP.values()) + ["group_id"],
     Dataset.Transactions: list(TRANSACTIONS_SENTRY_SNUBA_MAP.values()),
+    Dataset.Discover: list(DISCOVER_COLUMN_MAP.values()),
 }
 
 
@@ -320,7 +336,7 @@ def detect_dataset(query_args, aliased_conditions=False):
             if is_transaction:
                 return Dataset.Transactions
         # Check for transaction only field aliases
-        if isinstance(field[2], six.string_types) and field[2] in ("p95", "p75"):
+        if isinstance(field[2], six.string_types) and field[2] in ("apdex", "p95", "p75", "p99"):
             return Dataset.Transactions
 
     for field in query_args.get("groupby") or []:
@@ -609,7 +625,7 @@ def _prepare_query_params(query_params):
             query_params.filter_keys, is_grouprelease=query_params.is_grouprelease
         )
 
-    if query_params.dataset in [Dataset.Events, Dataset.Transactions]:
+    if query_params.dataset in [Dataset.Events, Dataset.Transactions, Dataset.Discover]:
         (organization_id, params_to_update) = get_query_params_to_update_for_projects(query_params)
     elif query_params.dataset in [Dataset.Outcomes, Dataset.OutcomesRaw]:
         (organization_id, params_to_update) = get_query_params_to_update_for_organizations(

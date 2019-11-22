@@ -263,7 +263,8 @@ class FormModel {
   isValidRequiredField(id: string) {
     // Check field descriptor to see if field is required
     const isRequired = this.getDescriptor(id, 'required');
-    return !isRequired || this.getValue(id) !== '';
+    const value = this.getValue(id);
+    return !isRequired || (value !== '' && defined(value));
   }
 
   isValidField(id: string) {

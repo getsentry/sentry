@@ -4,8 +4,7 @@ import isObject from 'lodash/isObject';
 import isString from 'lodash/isString';
 import isUndefined from 'lodash/isUndefined';
 
-import {NewQuery} from 'app/stores/discoverSavedQueriesStore';
-import {Project} from 'app/types/index';
+import {NewQuery, Project} from 'app/types';
 import {appendTagCondition} from 'app/utils/queryString';
 
 function arrayIsEqual(arr?: any[], other?: any[], deep?: boolean): boolean {
@@ -113,7 +112,7 @@ export function explodeSlug(slug: string): string {
   return trim(slug.replace(/[-_]+/g, ' '));
 }
 
-export function defined(item: any): boolean {
+export function defined<T>(item: T): item is Exclude<T, null | undefined> {
   return !isUndefined(item) && item !== null;
 }
 

@@ -282,6 +282,9 @@ from .endpoints.useravatar import UserAvatarEndpoint
 from sentry.discover.endpoints.discover_query import DiscoverQueryEndpoint
 from sentry.discover.endpoints.discover_saved_queries import DiscoverSavedQueriesEndpoint
 from sentry.discover.endpoints.discover_saved_query_detail import DiscoverSavedQueryDetailEndpoint
+from sentry.incidents.endpoints.organization_alert_rule_available_action_index import (
+    OrganizationAlertRuleAvailableActionIndexEndpoint,
+)
 from sentry.incidents.endpoints.organization_alert_rule_details import (
     OrganizationAlertRuleDetailsEndpoint,
 )
@@ -555,6 +558,11 @@ urlpatterns = [
                     name="sentry-api-0-organization-details",
                 ),
                 # Alert Rules
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/alert-rules/available-actions/$",
+                    OrganizationAlertRuleAvailableActionIndexEndpoint.as_view(),
+                    name="sentry-api-0-organization-alert-rule-available-actions",
+                ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/$",
                     OrganizationAlertRuleDetailsEndpoint.as_view(),

@@ -50,10 +50,10 @@ class ProcessUpdateTest(TestCase):
 
     def setUp(self):
         super(ProcessUpdateTest, self).setUp()
-        self.old_handlers = AlertRuleTriggerAction.handlers
-        AlertRuleTriggerAction.handlers = {}
+        self.old_handlers = AlertRuleTriggerAction._type_registrations
+        AlertRuleTriggerAction._type_registrations = {}
         self.email_action_handler = Mock()
-        AlertRuleTriggerAction.register_type_handler(AlertRuleTriggerAction.Type.EMAIL)(
+        AlertRuleTriggerAction.register_type("email", AlertRuleTriggerAction.Type.EMAIL, [])(
             self.email_action_handler
         )
         self._run_tasks = self.tasks()
@@ -61,7 +61,7 @@ class ProcessUpdateTest(TestCase):
 
     def tearDown(self):
         super(ProcessUpdateTest, self).tearDown()
-        AlertRuleTriggerAction.handlers = self.old_handlers
+        AlertRuleTriggerAction._type_registrations = self.old_handlers
         self._run_tasks.__exit__(None, None, None)
 
     @fixture

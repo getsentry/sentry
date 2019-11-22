@@ -68,7 +68,6 @@ ENVIRONMENT = os.environ.get("SENTRY_ENVIRONMENT", "production")
 IS_DEV = ENVIRONMENT == "development"
 
 DEBUG = IS_DEV
-TEMPLATE_DEBUG = True
 MAINTENANCE = False
 
 ADMINS = ()
@@ -250,12 +249,6 @@ USE_L10N = True
 
 USE_TZ = True
 
-# List of callables that know how to import templates from various sources.
-TEMPLATE_LOADERS = (
-    "django.template.loaders.filesystem.Loader",
-    "django.template.loaders.app_directories.Loader",
-)
-
 MIDDLEWARE_CLASSES = (
     "sentry.middleware.proxy.ChunkedMiddleware",
     "sentry.middleware.proxy.DecompressBodyMiddleware",
@@ -283,23 +276,25 @@ MIDDLEWARE_CLASSES = (
 
 ROOT_URLCONF = "sentry.conf.urls"
 
-TEMPLATE_DIRS = (
-    # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
-    # Always use forward slashes, even on Windows.
-    # Don't forget to use absolute paths, not relative paths.
-    os.path.join(PROJECT_ROOT, "templates"),
-)
-
-TEMPLATE_CONTEXT_PROCESSORS = (
-    "django.contrib.auth.context_processors.auth",
-    "django.contrib.messages.context_processors.messages",
-    "django.core.context_processors.csrf",
-    "django.core.context_processors.request",
-    "social_auth.context_processors.social_auth_by_name_backends",
-    "social_auth.context_processors.social_auth_backends",
-    "social_auth.context_processors.social_auth_by_type_backends",
-    "social_auth.context_processors.social_auth_login_redirect",
-)
+TEMPLATES = [
+    {
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [os.path.join(PROJECT_ROOT, "templates")],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+                "django.template.context_processors.csrf",
+                "django.template.context_processors.request",
+                "social_auth.context_processors.social_auth_by_name_backends",
+                "social_auth.context_processors.social_auth_backends",
+                "social_auth.context_processors.social_auth_by_type_backends",
+                "social_auth.context_processors.social_auth_login_redirect",
+            ]
+        },
+    }
+]
 
 INSTALLED_APPS = (
     "django.contrib.admin",
@@ -1042,6 +1037,24 @@ SENTRY_SEARCH_OPTIONS = {}
 SENTRY_TSDB = "sentry.tsdb.dummy.DummyTSDB"
 SENTRY_TSDB_OPTIONS = {}
 
+# Event storage backend
+SENTRY_EVENTSTORE = "sentry.utils.services.ServiceDelegator"
+SENTRY_EVENTSTORE_OPTIONS = {
+    "backend_base": "sentry.eventstore.base.EventStorage",
+    "backends": {
+        "snuba": {
+            "path": "sentry.eventstore.snuba.SnubaEventStorage",
+            "executor": {"path": "sentry.utils.concurrent.SynchronousExecutor"},
+        },
+        "snuba_discover": {
+            "path": "sentry.eventstore.snuba_discover.SnubaDiscoverEventStorage",
+            "executor": {"path": "sentry.utils.services.ThreadedExecutor"},
+        },
+    },
+    "selector_func": "sentry.eventstore.utils.selector_func",
+    "callback_func": "sentry.eventstore.utils.callback_func",
+}
+
 SENTRY_NEWSLETTER = "sentry.newsletter.base.Newsletter"
 SENTRY_NEWSLETTER_OPTIONS = {}
 
@@ -1409,6 +1422,14 @@ def get_sentry_sdk_config():
 
 
 SENTRY_SDK_CONFIG = get_sentry_sdk_config()
+
+# Callable to bind additional context for the Sentry SDK
+#
+# def get_org_context(scope, organization, **kwargs):
+#    scope.set_tag('organization.cool', '1')
+#
+# SENTRY_ORGANIZATION_CONTEXT_HELPER = get_org_context
+SENTRY_ORGANIZATION_CONTEXT_HELPER = None
 
 # Config options that are explicitly disabled from Django
 DEAD = object()

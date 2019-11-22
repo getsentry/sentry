@@ -22,7 +22,7 @@ from sentry.search.utils import (
 )
 from sentry.snuba.events import get_columns_from_aliases
 from sentry.utils.dates import to_timestamp
-from sentry.utils.snuba import Dataset, DATASETS, get_snuba_column_name
+from sentry.utils.snuba import Dataset, DATASETS, get_snuba_column_name, get_json_type
 
 WILDCARD_CHARS = re.compile(r"[\*]")
 
@@ -683,8 +683,19 @@ FIELD_ALIASES = {
     "user": {"fields": ["user.id", "user.name", "user.username", "user.email", "user.ip"]},
     # Long term these will become more complex functions but these are
     # field aliases.
-    "p75": {"aggregations": [["quantileTiming(0.75)(duration)", "", "p75"]]},
-    "p95": {"aggregations": [["quantileTiming(0.95)(duration)", "", "p95"]]},
+    "apdex": {"result_type": "number", "aggregations": [["apdex(duration, 300)", "", "apdex"]]},
+    "p75": {
+        "result_type": "duration",
+        "aggregations": [["quantile(0.75)(duration)", "", "p75"]],
+    },
+    "p95": {
+        "result_type": "duration",
+        "aggregations": [["quantile(0.95)(duration)", "", "p95"]],
+    },
+    "p99": {
+        "result_type": "duration",
+        "aggregations": [["quantile(0.99)(duration)", "", "p99"]],
+    },
 }
 
 VALID_AGGREGATES = {
@@ -696,6 +707,15 @@ VALID_AGGREGATES = {
 }
 
 AGGREGATE_PATTERN = re.compile(r"^(?P<function>[^\(]+)\((?P<column>[a-z\._]*)\)$")
+
+
+def get_json_meta_type(field, snuba_type):
+    alias_definition = FIELD_ALIASES.get(field)
+    if alias_definition and alias_definition.get("result_type"):
+        return alias_definition.get("result_type")
+    if "duration" in field:
+        return "duration"
+    return get_json_type(snuba_type)
 
 
 def validate_aggregate(field, match):
