@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from copy import deepcopy
 import mock
 import os
 
@@ -44,8 +45,6 @@ def pytest_configure(config):
             # an actual migration.
         else:
             raise RuntimeError("oops, wrong database: %r" % test_db)
-
-    settings.TEMPLATE_DEBUG = True
 
     # Disable static compiling in tests
     settings.STATIC_BUNDLES = {}
@@ -102,6 +101,13 @@ def pytest_configure(config):
         settings.SENTRY_SEARCH = "sentry.search.snuba.SnubaSearchBackend"
         settings.SENTRY_TSDB = "sentry.tsdb.redissnuba.RedisSnubaTSDB"
         settings.SENTRY_EVENTSTREAM = "sentry.eventstream.snuba.SnubaEventStream"
+
+    # Use the synchronous executor to make multiple backends easier to test
+    eventstore_options = deepcopy(settings.SENTRY_EVENTSTORE_OPTIONS)
+    eventstore_options["backends"]["snuba_discover"]["executor"][
+        "path"
+    ] = "sentry.utils.concurrent.SynchronousExecutor"
+    settings.SENTRY_EVENTSTORE_OPTIONS = eventstore_options
 
     if not hasattr(settings, "SENTRY_OPTIONS"):
         settings.SENTRY_OPTIONS = {}

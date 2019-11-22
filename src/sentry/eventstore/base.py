@@ -92,7 +92,15 @@ class EventStorage(Service):
         Columns.USER_USERNAME,
     ]
 
-    def get_events(self, filter, additional_columns, orderby, limit, offset, referrer):
+    def get_events(
+        self,
+        filter,
+        additional_columns=None,
+        orderby=None,
+        limit=100,
+        offset=0,
+        referrer="eventstore.get_events",
+    ):
         """
         Fetches a list of events given a set of criteria.
 
@@ -106,7 +114,7 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
-    def get_event_by_id(self, project_id, event_id, additional_columns):
+    def get_event_by_id(self, project_id, event_id, additional_columns=None):
         """
         Gets a single event given a project_id and event_id.
 
@@ -167,6 +175,9 @@ class EventStorage(Service):
         (unfetched) NodeData on those objects, fetch all the data blobs for
         those NodeDatas with a single multi-get command to nodestore, and bind
         the returned blobs to the NodeDatas
+
+        For binding a single Event object (most use cases), it's easier to use
+        event.bind_node_data().
         """
         object_node_list = [
             (i, getattr(i, node_name)) for i in object_list if getattr(i, node_name).id

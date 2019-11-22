@@ -15,7 +15,7 @@ from django.db.models import Func
 from django.utils import timezone
 from django.utils.encoding import force_text
 
-from sentry import buffer, eventtypes, eventstream, options, tsdb
+from sentry import buffer, eventtypes, eventstream, tsdb
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS,
@@ -713,27 +713,8 @@ class EventManager(object):
                 group=group, environment=environment
             )
 
-        # Write the event to Nodestore if "store.skip-pg-save" is True
-        # If False, write to both Postgres and Nodestore (this path is temporary
-        # and will be removed after rollout)
-        if options.get("store.skip-pg-save", False):
-            event.data.save()
-        else:
-            try:
-                with transaction.atomic(using=router.db_for_write(Event)):
-                    event.data.save()
-                    event.save()
-            except IntegrityError:
-                logger.info(
-                    "duplicate.found",
-                    exc_info=True,
-                    extra={
-                        "event_uuid": event_id,
-                        "project_id": project.id,
-                        "group_id": group.id if group else None,
-                        "model": Event.__name__,
-                    },
-                )
+        # Write the event to Nodestore
+        event.data.save()
 
         if event_user:
             counters = [
@@ -890,7 +871,7 @@ class EventManager(object):
             )
 
         else:
-            group = Group.objects.get_from_cache(id=existing_group_id)
+            group = Group.objects.get(id=existing_group_id)
 
             group_is_new = False
 

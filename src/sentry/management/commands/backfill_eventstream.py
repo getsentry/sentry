@@ -7,6 +7,7 @@ import six
 from django.core.management.base import BaseCommand, CommandError
 from django.utils.dateparse import parse_datetime
 
+from sentry import eventstore
 from sentry.models import Event, Project, Group
 
 
@@ -54,7 +55,7 @@ class Command(BaseCommand):
             for event in _events:
                 event.project = projects[event.project_id]
                 event.group = groups[event.group_id]
-            Event.objects.bind_nodes(_events, "data")
+            eventstore.bind_nodes(_events, "data")
 
         from sentry import eventstream
         from sentry.utils.query import RangeQuerySetWrapper

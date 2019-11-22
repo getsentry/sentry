@@ -79,7 +79,6 @@ class Importer(object):
         load_settings(self.config_path, settings=settings_mod, silent=True)
 
         install_plugin_apps("sentry.apps", settings_mod)
-        install_plugin_apps("sentry.new_apps", settings_mod)
 
         return settings_mod
 
@@ -132,9 +131,7 @@ def add_settings(mod, settings):
             continue
 
         setting_value = getattr(mod, setting)
-        if setting in ("INSTALLED_APPS", "TEMPLATE_DIRS") and isinstance(
-            setting_value, six.string_types
-        ):
+        if setting in ("INSTALLED_APPS",) and isinstance(setting_value, six.string_types):
             setting_value = (setting_value,)  # In case the user forgot the comma.
 
         # Any setting that starts with EXTRA_ and matches a setting that is a list or tuple

@@ -9,7 +9,7 @@ from sentry.testutils import PluginTestCase
 from sentry.utils import json
 from six.moves.urllib.parse import parse_qs
 
-from test_only_plugins.slack.plugin import SlackPlugin
+from sentry_plugins.slack.plugin import SlackPlugin
 
 
 class SlackPluginTest(PluginTestCase):
@@ -21,7 +21,7 @@ class SlackPluginTest(PluginTestCase):
         assert self.plugin.conf_key == "slack"
 
     def test_entry_point(self):
-        self.assertTestOnlyPluginInstalled("slack", self.plugin)
+        self.assertPluginInstalled("slack", self.plugin)
 
     @responses.activate
     def test_simple_notification(self):

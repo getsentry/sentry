@@ -303,24 +303,26 @@ export class Client {
             },
           });
 
-          Sentry.withScope(scope => {
-            // `requestPromise` can pass its error object
-            const preservedError = options.preservedError || errorObject;
+          if (resp && resp.status !== 0 && resp.status !== 404) {
+            Sentry.withScope(scope => {
+              // `requestPromise` can pass its error object
+              const preservedError = options.preservedError || errorObject;
 
-            const errorObjectToUse = createRequestError(
-              resp,
-              preservedError.stack,
-              method,
-              path
-            );
+              const errorObjectToUse = createRequestError(
+                resp,
+                preservedError.stack,
+                method,
+                path
+              );
 
-            errorObjectToUse.removeFrames(2);
+              errorObjectToUse.removeFrames(2);
 
-            // Setting this to warning because we are going to capture all failed requests
-            scope.setLevel(Sentry.Severity.Warning);
-            scope.setTag('http.statusCode', String(resp.status));
-            Sentry.captureException(errorObjectToUse);
-          });
+              // Setting this to warning because we are going to capture all failed requests
+              scope.setLevel(Sentry.Severity.Warning);
+              scope.setTag('http.statusCode', String(resp.status));
+              Sentry.captureException(errorObjectToUse);
+            });
+          }
 
           this.handleRequestError(
             {

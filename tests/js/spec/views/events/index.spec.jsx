@@ -261,7 +261,7 @@ describe('EventsContainer', function() {
     it('updates router when changing periods', async function() {
       expect(wrapper.find('TimeRangeSelector').prop('start')).toEqual(null);
       expect(wrapper.find('TimeRangeSelector').prop('end')).toEqual(null);
-      expect(wrapper.find('TimeRangeSelector').prop('relative')).toEqual(null);
+      expect(wrapper.find('TimeRangeSelector').prop('relative')).toEqual('14d');
 
       wrapper.find('TimeRangeSelector HeaderItem').simulate('click');
 

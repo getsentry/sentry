@@ -1,8 +1,6 @@
 import React from 'react';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import SavedQueriesStore from 'app/stores/discoverSavedQueriesStore';
-
 import SavedQueryButtonGroup from 'app/views/eventsV2/savedQuery';
 import {ALL_VIEWS} from 'app/views/eventsV2/data';
 import EventView from 'app/views/eventsV2/eventView';
@@ -13,12 +11,20 @@ const SELECTOR_BUTTON_SAVED = 'ButtonSaved';
 const SELECTOR_BUTTON_UPDATE = '[data-test-id="discover2-savedquery-button-update"]';
 const SELECTOR_BUTTON_DELETE = '[data-test-id="discover2-savedquery-button-delete"]';
 
-function generateWrappedComponent(location, organization, eventView) {
+function generateWrappedComponent(
+  location,
+  organization,
+  eventView,
+  savedQueries,
+  onQuerySave
+) {
   return mountWithTheme(
     <SavedQueryButtonGroup
       location={location}
       organization={organization}
       eventView={eventView}
+      savedQueries={savedQueries}
+      onQuerySave={onQuerySave}
     />,
     TestStubs.routerContext()
   );
@@ -44,27 +50,27 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
   errorsViewModified.fields[0].title = 'Modified Field Name';
 
   const errorsSavedQuery = errorsViewSaved.toNewQuery();
-
-  SavedQueriesStore.state = {
-    isLoading: false,
-    hasError: false,
-    savedQueries: [errorsSavedQuery],
-  };
+  const savedQueries = [errorsSavedQuery];
 
   describe('building on a new query', () => {
-    let mockUtils;
-    beforeAll(() => {
-      mockUtils = jest
-        .spyOn(utils, 'handleCreateQuery')
-        .mockImplementation(() => Promise.resolve(errorsSavedQuery));
-    });
+    let onQuerySave;
+    const mockUtils = jest
+      .spyOn(utils, 'handleCreateQuery')
+      .mockImplementation(() => Promise.resolve(errorsSavedQuery));
 
-    afterEach(() => {
+    beforeEach(() => {
+      onQuerySave = jest.fn();
       mockUtils.mockClear();
     });
 
     it('renders the correct set of buttons', () => {
-      const wrapper = generateWrappedComponent(location, organization, errorsView);
+      const wrapper = generateWrappedComponent(
+        location,
+        organization,
+        errorsView,
+        savedQueries,
+        onQuerySave
+      );
 
       const buttonSaveAs = wrapper.find(SELECTOR_BUTTON_SAVE_AS);
       const buttonSaved = wrapper.find(SELECTOR_BUTTON_SAVED);
@@ -77,70 +83,83 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
       expect(buttonDelete.exists()).toBe(false);
     });
 
-    describe('saving the new query', () => {
-      it('accepts a well-formed query', async () => {
-        const wrapper = generateWrappedComponent(location, organization, errorsView);
+    it('saves a well-formed query', async () => {
+      const wrapper = generateWrappedComponent(
+        location,
+        organization,
+        errorsView,
+        savedQueries,
+        onQuerySave
+      );
 
-        // Click on ButtonSaveAs to open dropdown
-        const buttonSaveAs = wrapper.find('DropdownControl').first();
-        buttonSaveAs.simulate('click');
+      // Click on ButtonSaveAs to open dropdown
+      const buttonSaveAs = wrapper.find('DropdownControl').first();
+      buttonSaveAs.simulate('click');
 
-        // Fill in the Input
-        buttonSaveAs
-          .find('ButtonSaveInput')
-          .simulate('change', {target: {value: 'My New Query Name'}}); // currentTarget.value does not work
-        await tick();
+      // Fill in the Input
+      buttonSaveAs
+        .find('ButtonSaveInput')
+        .simulate('change', {target: {value: 'My New Query Name'}}); // currentTarget.value does not work
+      await tick();
 
-        // Click on Save in the Dropdown
-        buttonSaveAs.find('ButtonSaveDropDown Button').simulate('click');
+      // Click on Save in the Dropdown
+      await buttonSaveAs.find('ButtonSaveDropDown Button').simulate('click');
 
-        expect(mockUtils).toHaveBeenCalledWith(
-          expect.anything(), // api
-          organization,
-          expect.objectContaining({
-            ...errorsView,
-            name: 'My New Query Name',
-          }),
-          true
-        );
-      });
+      expect(mockUtils).toHaveBeenCalledWith(
+        expect.anything(), // api
+        organization,
+        expect.objectContaining({
+          ...errorsView,
+          name: 'My New Query Name',
+        }),
+        true
+      );
+      expect(onQuerySave).toHaveBeenCalled();
+    });
 
-      it('rejects if query.name is empty', async () => {
-        const wrapper = generateWrappedComponent(location, organization, errorsView);
+    it('rejects if query.name is empty', async () => {
+      const wrapper = generateWrappedComponent(
+        location,
+        organization,
+        errorsView,
+        savedQueries,
+        onQuerySave
+      );
 
-        // Click on ButtonSaveAs to open dropdown
-        const buttonSaveAs = wrapper.find('DropdownControl').first();
-        buttonSaveAs.simulate('click');
+      // Click on ButtonSaveAs to open dropdown
+      const buttonSaveAs = wrapper.find('DropdownControl').first();
+      buttonSaveAs.simulate('click');
 
-        // Do not fill in Input
-        await tick();
+      // Do not fill in Input
+      await tick();
 
-        // Click on Save in the Dropdown
-        buttonSaveAs.find('ButtonSaveDropDown Button').simulate('click');
+      // Click on Save in the Dropdown
+      buttonSaveAs.find('ButtonSaveDropDown Button').simulate('click');
 
-        // Check that EventView has a name
-        expect(errorsView.name).toBe('Errors');
+      // Check that EventView has a name
+      expect(errorsView.name).toBe('Errors');
 
-        /**
-         * This does not work because SavedQueryButtonGroup is wrapped by 2 HOCs
-         * and we cannot access the state of the inner component. But it should
-         * be empty because we didn't fill in Input. If it has a value, then the
-         * test will fail anyway
-         */
-        // expect(wrapper.state('queryName')).toBe('');
+      /**
+       * This does not work because SavedQueryButtonGroup is wrapped by 2 HOCs
+       * and we cannot access the state of the inner component. But it should
+       * be empty because we didn't fill in Input. If it has a value, then the
+       * test will fail anyway
+       */
+      // expect(wrapper.state('queryName')).toBe('');
 
-        expect(mockUtils).not.toHaveBeenCalled();
-      });
+      expect(mockUtils).not.toHaveBeenCalled();
+      expect(onQuerySave).not.toHaveBeenCalled();
     });
   });
 
   describe('viewing a saved query', () => {
-    let mockUtils;
+    let mockUtils, onQuerySave;
 
     beforeEach(() => {
       mockUtils = jest
         .spyOn(utils, 'handleDeleteQuery')
         .mockImplementation(() => Promise.resolve(errorsSavedQuery));
+      onQuerySave = jest.fn();
     });
 
     afterEach(() => {
@@ -148,7 +167,13 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
     });
 
     it('renders the correct set of buttons', () => {
-      const wrapper = generateWrappedComponent(location, organization, errorsViewSaved);
+      const wrapper = generateWrappedComponent(
+        location,
+        organization,
+        errorsViewSaved,
+        savedQueries,
+        onQuerySave
+      );
 
       const buttonSaveAs = wrapper.find(SELECTOR_BUTTON_SAVE_AS);
       const buttonSaved = wrapper.find(SELECTOR_BUTTON_SAVED);
@@ -161,33 +186,37 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
       expect(buttonDelete.exists()).toBe(true);
     });
 
-    it('deletes the saved query', () => {
-      const wrapper = generateWrappedComponent(location, organization, errorsViewSaved);
+    it('deletes the saved query', async () => {
+      const wrapper = generateWrappedComponent(
+        location,
+        organization,
+        errorsViewSaved,
+        savedQueries,
+        onQuerySave
+      );
 
       const buttonDelete = wrapper.find(SELECTOR_BUTTON_DELETE).first();
-      buttonDelete.simulate('click');
+      await buttonDelete.simulate('click');
 
       expect(mockUtils).toHaveBeenCalledWith(
         expect.anything(), // api
         organization,
         expect.objectContaining({id: '1'})
       );
+      expect(onQuerySave).toHaveBeenCalled();
     });
   });
 
   describe('modifying a saved query', () => {
-    let mockUtils;
+    let mockUtils, onQuerySave;
 
     it('renders the correct set of buttons', () => {
-      SavedQueriesStore.state = {
-        isLoading: false,
-        hasError: false,
-        savedQueries: [errorsViewSaved.toNewQuery()],
-      };
       const wrapper = generateWrappedComponent(
         location,
         organization,
-        errorsViewModified
+        errorsViewModified,
+        [errorsViewSaved.toNewQuery()],
+        onQuerySave
       );
 
       const buttonSaveAs = wrapper.find(SELECTOR_BUTTON_SAVE_AS);
@@ -206,6 +235,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
         mockUtils = jest
           .spyOn(utils, 'handleUpdateQuery')
           .mockImplementation(() => Promise.resolve(errorsSavedQuery));
+        onQuerySave = jest.fn();
       });
 
       afterEach(() => {
@@ -216,12 +246,14 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
         const wrapper = generateWrappedComponent(
           location,
           organization,
-          errorsViewModified
+          errorsViewModified,
+          savedQueries,
+          onQuerySave
         );
 
         // Click on Save in the Dropdown
         const buttonUpdate = wrapper.find(SELECTOR_BUTTON_UPDATE).first();
-        buttonUpdate.simulate('click');
+        await buttonUpdate.simulate('click');
 
         expect(mockUtils).toHaveBeenCalledWith(
           expect.anything(), // api
@@ -230,6 +262,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
             ...errorsViewModified,
           })
         );
+        expect(onQuerySave).toHaveBeenCalled();
       });
     });
 
@@ -248,7 +281,9 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
         const wrapper = generateWrappedComponent(
           location,
           organization,
-          errorsViewModified
+          errorsViewModified,
+          savedQueries,
+          onQuerySave
         );
 
         // Click on ButtonSaveAs to open dropdown
@@ -262,7 +297,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
         await tick();
 
         // Click on Save in the Dropdown
-        buttonSaveAs.find('ButtonSaveDropDown Button').simulate('click');
+        await buttonSaveAs.find('ButtonSaveDropDown Button').simulate('click');
 
         expect(mockUtils).toHaveBeenCalledWith(
           expect.anything(), // api
@@ -273,6 +308,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
           }),
           false
         );
+        expect(onQuerySave).toHaveBeenCalled();
       });
     });
   });

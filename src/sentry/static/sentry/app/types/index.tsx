@@ -612,3 +612,35 @@ export type ActiveExperiments = {
   ImprovedInvitesExperiment: 'none' | 'all' | 'join_request' | 'invite_request';
   TrialUpgradeV2Experiment: 'upgrade' | 'trial' | -1;
 };
+
+type SavedQueryVersions = 1 | 2;
+
+export type NewQuery = {
+  id: string | undefined;
+  version: SavedQueryVersions;
+  name: string;
+  projects: Readonly<number[]>;
+  fields: Readonly<string[]>;
+  fieldnames: Readonly<string[]>;
+  query: string;
+  orderby?: string;
+  range?: string;
+  start?: string;
+  end?: string;
+  environment?: Readonly<string[]>;
+  tags?: Readonly<string[]>;
+  yAxis?: string;
+};
+
+export type SavedQuery = NewQuery & {
+  id: string;
+  dateCreated: string;
+  dateUpdated: string;
+  createdBy?: string;
+};
+
+export type SavedQueryState = {
+  savedQueries: SavedQuery[];
+  hasError: boolean;
+  isLoading: boolean;
+};

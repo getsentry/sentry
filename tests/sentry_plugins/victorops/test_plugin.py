@@ -8,7 +8,7 @@ from sentry.plugins.base import Notification
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
 
-from new_sentry_plugins.victorops.plugin import VictorOpsPlugin
+from sentry_plugins.victorops.plugin import VictorOpsPlugin
 
 SUCCESS = """{
   "result":"success",
@@ -37,7 +37,7 @@ class VictorOpsPluginTest(PluginTestCase):
         assert self.plugin.conf_key == "victorops"
 
     def test_entry_point(self):
-        self.assertNewPluginInstalled("victorops", self.plugin)
+        self.assertPluginInstalled("victorops", self.plugin)
 
     def test_is_configured(self):
         assert self.plugin.is_configured(self.project) is False
