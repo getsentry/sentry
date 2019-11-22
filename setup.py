@@ -143,6 +143,7 @@ setup(
         "sentry.apps": [
             "jira_ac = sentry_plugins.jira_ac",
             "jira = sentry_plugins.jira",
+            "freight = sentry_plugins.freight",
             "sessionstack = sentry_plugins.sessionstack",
         ],
         "sentry.plugins": [
@@ -150,6 +151,7 @@ setup(
             "asana = sentry_plugins.asana.plugin:AsanaPlugin",
             "bitbucket = sentry_plugins.bitbucket.plugin:BitbucketPlugin",
             "clubhouse = sentry_plugins.clubhouse.plugin:ClubhousePlugin",
+            "freight = sentry_plugins.freight.plugin:FreightPlugin",
             "github = sentry_plugins.github.plugin:GitHubPlugin",
             "gitlab = sentry_plugins.gitlab.plugin:GitLabPlugin",
             "heroku = sentry_plugins.heroku.plugin:HerokuPlugin",
