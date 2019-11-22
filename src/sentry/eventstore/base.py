@@ -177,7 +177,7 @@ class EventStorage(Service):
         the returned blobs to the NodeDatas
 
         For binding a single Event object (most use cases), it's easier to use
-        event.data.bind_node_data().
+        event.bind_node_data().
         """
         object_node_list = [
             (i, getattr(i, node_name)) for i in object_list if getattr(i, node_name).id

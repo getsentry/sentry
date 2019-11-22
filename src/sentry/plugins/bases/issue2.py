@@ -237,7 +237,7 @@ class IssueTrackingPlugin2(Plugin):
                 },
                 status=400,
             )
-        event.data.bind_node_data()
+        event.bind_node_data()
         try:
             fields = self.get_new_issue_fields(request, group, event, **kwargs)
         except Exception as e:
@@ -307,7 +307,7 @@ class IssueTrackingPlugin2(Plugin):
                 status=400,
             )
 
-        event.data.bind_node_data()
+        event.bind_node_data()
 
         try:
             fields = self.get_link_existing_issue_fields(request, group, event, **kwargs)

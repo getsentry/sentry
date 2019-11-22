@@ -49,7 +49,7 @@ def process_inbound_email(mailfrom, group_id, payload):
     event = group.get_latest_event()
 
     if event:
-        event.data.bind_node_data()
+        event.bind_node_data()
         event.group = group
         event.project = group.project
 

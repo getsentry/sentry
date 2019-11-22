@@ -24,7 +24,7 @@ class EventGroupingInfoEndpoint(ProjectEndpoint):
         if event is None:
             raise ResourceDoesNotExist
 
-        event.data.bind_node_data()
+        event.bind_node_data()
 
         rv = {}
         config_name = request.GET.get("config") or None

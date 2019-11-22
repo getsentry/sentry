@@ -27,7 +27,7 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
             return Response({"detail": "Event not found"}, status=404)
 
         # populate event data
-        event.data.bind_node_data()
+        event.bind_node_data()
 
         try:
             committers = get_serialized_event_file_committers(

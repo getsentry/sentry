@@ -14,7 +14,7 @@ from hashlib import md5
 
 from semaphore.processing import StoreNormalizer
 
-from sentry import eventtypes
+from sentry import eventtypes, nodestore
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedIntegerField,
@@ -362,6 +362,12 @@ class EventCommon(object):
         data["location"] = self.location
 
         return data
+
+    def bind_node_data(self):
+        node_id = Event.generate_node_id(self.project_id, self.event_id)
+        node_data = nodestore.get(node_id) or {}
+        ref = self.data.get_ref(self)
+        self.data.bind_data(node_data, ref=ref)
 
     # ============================================
     # DEPRECATED

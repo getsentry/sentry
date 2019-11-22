@@ -24,7 +24,7 @@ class EventAppleCrashReportEndpoint(ProjectEndpoint):
         if event is None:
             raise ResourceDoesNotExist
 
-        event.data.bind_node_data()
+        event.bind_node_data()
 
         if event.platform not in ("cocoa", "native"):
             return HttpResponse(
