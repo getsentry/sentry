@@ -1,4 +1,3 @@
-import {Box, Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -123,11 +122,11 @@ export default class InstalledIntegration extends React.Component<Props> {
     return (
       <Access access={['org:integrations']}>
         {({hasAccess}) => (
-          <IntegrationFlex align="center" key={integration.id} className={className}>
-            <Box flex={1}>
+          <IntegrationFlex key={integration.id} className={className}>
+            <IntegrationItemBox>
               <IntegrationItem compact integration={integration} />
-            </Box>
-            <Box>
+            </IntegrationItemBox>
+            <div>
               {integration.status === 'disabled' && (
                 <AddIntegrationButton
                   size="xsmall"
@@ -156,8 +155,8 @@ export default class InstalledIntegration extends React.Component<Props> {
                   </StyledButton>
                 </Tooltip>
               )}
-            </Box>
-            <Box>
+            </div>
+            <div>
               <Confirm priority="danger" disabled={!hasAccess} {...removeConfirmProps}>
                 <StyledButton
                   disabled={!hasAccess}
@@ -168,7 +167,7 @@ export default class InstalledIntegration extends React.Component<Props> {
                   Uninstall
                 </StyledButton>
               </Confirm>
-            </Box>
+            </div>
           </IntegrationFlex>
         )}
       </Access>
@@ -183,4 +182,8 @@ const StyledButton = styled(Button)`
 const IntegrationFlex = styled('div')`
   display: flex;
   align-items: center;
+`;
+
+const IntegrationItemBox = styled('div')`
+  display: flex;
 `;
