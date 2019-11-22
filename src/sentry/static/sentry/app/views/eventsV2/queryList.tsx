@@ -80,7 +80,7 @@ class QueryList extends React.Component<Props> {
     const views = getPrebuiltQueries(organization);
 
     const list = views.map((view, index) => {
-      const eventView = EventView.fromSavedQuery(view);
+      const eventView = EventView.fromSavedQueryWithLocation(view, location);
       const to = {
         pathname: location.pathname,
         query: {
@@ -99,7 +99,7 @@ class QueryList extends React.Component<Props> {
           renderGraph={() => {
             return (
               <MiniGraph
-                query={eventView.getEventsAPIPayload(location).query}
+                location={location}
                 eventView={eventView}
                 organization={organization}
               />
@@ -155,7 +155,7 @@ class QueryList extends React.Component<Props> {
           renderGraph={() => {
             return (
               <MiniGraph
-                query={eventView.getEventsAPIPayload(location).query}
+                location={location}
                 eventView={eventView}
                 organization={organization}
               />
