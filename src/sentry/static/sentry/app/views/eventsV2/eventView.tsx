@@ -58,14 +58,21 @@ export type Field = {
 const isSortEqualToField = (
   sort: Sort,
   field: Field,
-  tableDataMeta: MetaType
+  tableDataMeta: MetaType | undefined
 ): boolean => {
-  const sortKey = getSortKeyFromField(field, tableDataMeta);
+  const sortKey = tableDataMeta
+    ? getSortKeyFromField(field, tableDataMeta)
+    : getSortKeyFromFieldWithoutMeta(field);
   return sort.field === sortKey;
 };
 
-const fieldToSort = (field: Field, tableDataMeta: MetaType): Sort | undefined => {
-  const sortKey = getSortKeyFromField(field, tableDataMeta);
+const fieldToSort = (
+  field: Field,
+  tableDataMeta: MetaType | undefined
+): Sort | undefined => {
+  const sortKey = tableDataMeta
+    ? getSortKeyFromField(field, tableDataMeta)
+    : getSortKeyFromFieldWithoutMeta(field);
 
   if (!sortKey) {
     return void 0;
@@ -102,8 +109,15 @@ function getSortKeyFromField(field: Field, tableDataMeta: MetaType): string | nu
   return null;
 }
 
-export function isFieldSortable(field: Field, tableDataMeta: MetaType): boolean {
-  return !!getSortKeyFromField(field, tableDataMeta);
+export function isFieldSortable(
+  field: Field,
+  tableDataMeta: MetaType | undefined
+): boolean {
+  if (tableDataMeta) {
+    return !!getSortKeyFromField(field, tableDataMeta);
+  }
+
+  return !!getSortKeyFromFieldWithoutMeta(field);
 }
 
 const generateFieldAsString = (props: {aggregation: string; field: string}): string => {
@@ -756,11 +770,15 @@ class EventView {
     return newEventView;
   }
 
-  withDeletedColumn(columnIndex: number, tableDataMeta: MetaType): EventView {
+  withDeletedColumn(columnIndex: number, tableDataMeta: MetaType | undefined): EventView {
     // Disallow removal of the orphan column, and check for out-of-bounds
     if (this.fields.length <= 1 || this.fields.length <= columnIndex || columnIndex < 0) {
       return this;
     }
+
+    // ensure tableDataMeta is non-empty
+    tableDataMeta =
+      tableDataMeta && Object.keys(tableDataMeta).length > 0 ? tableDataMeta : undefined;
 
     // delete the column
 

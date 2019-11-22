@@ -170,10 +170,9 @@ class TableView extends React.Component<TableViewProps> {
   _deleteColumn = (columnIndex: number) => {
     const {location, eventView, tableData, organization} = this.props;
 
-    const tableMeta = (tableData && tableData.meta) || {};
-
     const prevField = explodeField(eventView.fields[columnIndex]);
 
+    const tableMeta = (tableData && tableData.meta) || undefined;
     const nextEventView = eventView.withDeletedColumn(columnIndex, tableMeta);
 
     // metrics
