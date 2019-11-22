@@ -52,8 +52,7 @@ class Refresher(Mediator):
             scope_list=self.sentry_app.scope_list,
             expires_at=token_expiration(),
         )
-        self.install.api_token = token
-        self.install.save()
+        self.install.update(api_token=token)
         return token
 
     @memoize
