@@ -3,6 +3,7 @@ import isString from 'lodash/isString';
 import cloneDeep from 'lodash/cloneDeep';
 import pick from 'lodash/pick';
 import isEqual from 'lodash/isEqual';
+import omit from 'lodash/omit';
 import moment from 'moment';
 
 import {DEFAULT_PER_PAGE} from 'app/constants';
@@ -911,7 +912,7 @@ class EventView {
     // generate event query
 
     const eventQuery: EventQuery & LocationQuery = Object.assign(
-      picked,
+      omit(picked, ['start', 'end', 'utc', 'statsPeriod']),
       normalizedTimeWindowParams,
       {
         project,

@@ -570,8 +570,6 @@ describe('EventView.getEventsAPIPayload()', function() {
     expect(eventView.getEventsAPIPayload(location)).toEqual({
       project: [],
       environment: [],
-      start: 'start',
-      end: 'end',
       utc: 'true',
       statsPeriod: '14d',
 
@@ -607,8 +605,6 @@ describe('EventView.getEventsAPIPayload()', function() {
     expect(eventView.getEventsAPIPayload(location)).toEqual({
       project: ['1234'],
       environment: ['staging'],
-      start: 'start',
-      end: 'end',
       utc: 'true',
       statsPeriod: '14d',
 
@@ -632,8 +628,6 @@ describe('EventView.getEventsAPIPayload()', function() {
     expect(eventView.getEventsAPIPayload(location2)).toEqual({
       project: ['1234'],
       environment: ['staging'],
-      start: 'start',
-      end: 'end',
       utc: 'true',
       statsPeriod: '14d',
 
@@ -668,7 +662,6 @@ describe('EventView.getEventsAPIPayload()', function() {
       project: ['1234'],
       environment: ['staging'],
       utc: 'true',
-      start: 'start',
       statsPeriod: '14d',
 
       field: ['title', 'count()'],
@@ -691,7 +684,6 @@ describe('EventView.getEventsAPIPayload()', function() {
       project: ['1234'],
       environment: ['staging'],
       utc: 'true',
-      end: 'end',
       statsPeriod: '14d',
 
       field: ['title', 'count()'],
@@ -759,8 +751,6 @@ describe('EventView.getTagsAPIPayload()', function() {
     expect(eventView.getTagsAPIPayload(location)).toEqual({
       project: [],
       environment: [],
-      start: 'start',
-      end: 'end',
       utc: 'true',
       statsPeriod: '14d',
 
