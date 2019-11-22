@@ -7,7 +7,7 @@ import ipaddress
 import jsonschema
 import six
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from django.conf import settings
 from django.core.cache import cache
 from django.db import connection, IntegrityError, router, transaction
@@ -923,7 +923,9 @@ class EventManager(object):
 
         # we now think its a regression, rely on the database to validate that
         # no one beat us to this
-        date = max(event.datetime, group.last_seen)
+        from django.db.models.expressions import RawSQL
+
+        date_sql = RawSQL("GREATEST(%s, last_seen)", [event.datetime])
         is_regression = bool(
             Group.objects.filter(
                 id=group.id,
@@ -933,19 +935,22 @@ class EventManager(object):
             )
             .exclude(
                 # add to the regression window to account for races here
-                active_at__gte=date
-                - timedelta(seconds=5)
+                active_at__gte=RawSQL(
+                    "GREATEST(%s, last_seen) - interval '5 second'", [event.datetime]
+                )
             )
             .update(
-                active_at=date,
+                active_at=date_sql,
                 # explicitly set last_seen here as ``is_resolved()`` looks
                 # at the value
-                last_seen=date,
+                last_seen=date_sql,
                 status=GroupStatus.UNRESOLVED,
             )
         )
 
-        group.active_at = date
+        # XXX(dcramer): this date will potentially likely wrong from what is stored
+        # in the database
+        group.active_at = max(event.datetime, group.last_seen)
         group.status = GroupStatus.UNRESOLVED
 
         if is_regression and release:
