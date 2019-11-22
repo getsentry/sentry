@@ -7,7 +7,9 @@ import IndicatorStore from 'app/stores/indicatorStore';
 import {IntegrationProvider, Integration} from 'app/types';
 
 type Props = {
-  children: (openDialog: (urlParams?: any) => void) => React.ReactNode;
+  children: (
+    openDialog: (urlParams?: {[key: string]: string}) => void
+  ) => React.ReactNode;
   provider: IntegrationProvider;
   onInstall: (data: Integration) => void;
   reinstallId?: string;
@@ -23,11 +25,6 @@ export default class AddIntegration extends React.Component<Props> {
     account: PropTypes.string,
   };
 
-  constructor(props: Props) {
-    super(props);
-    this.dialog = null;
-  }
-
   componentDidMount() {
     window.addEventListener('message', this.didReceiveMessage);
   }
@@ -37,7 +34,7 @@ export default class AddIntegration extends React.Component<Props> {
     this.dialog && this.dialog.close();
   }
 
-  dialog: Window | null;
+  dialog: Window | null = null;
 
   computeCenteredWindow(width: number, height: number) {
     //Taken from: https://stackoverflow.com/questions/4068373/center-a-popup-window-on-screen
@@ -64,12 +61,12 @@ export default class AddIntegration extends React.Component<Props> {
     return {left, top};
   }
 
-  openDialog = (urlParams?: any) => {
+  openDialog = (urlParams?: {[key: string]: string}) => {
     const name = 'sentryAddIntegration';
     const {url, width, height} = this.props.provider.setupDialog;
     const {left, top} = this.computeCenteredWindow(width, height);
 
-    const query = {...urlParams};
+    const query: {[key: string]: string} = {...urlParams};
 
     if (this.props.reinstallId) {
       query.reinstall_id = this.props.reinstallId;
