@@ -112,7 +112,7 @@ export default class ProviderRow extends React.Component<Props> {
   }
 
   render() {
-    const isBeta = this.props.provider.key === 'pagerduty' ? true : false;
+    const isBeta = this.props.provider.key === 'pagerduty';
     return (
       <PanelItem p={0} direction="column" data-test-id={this.props.provider.key}>
         <Flex align="center" p={2}>
