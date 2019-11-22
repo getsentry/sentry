@@ -98,7 +98,7 @@ describe('PasswordForm', function() {
       .find('input[name="passwordVerify"]')
       .simulate('change', {target: {value: 'nottest-mismatch'}});
 
-    const error = wrapper.find('Field[id="passwordVerify"] FormFieldErrorReason');
+    const error = wrapper.find('Field[id="passwordVerify"] FieldErrorReason');
 
     expect(error.exists()).toBe(true);
     expect(error.text()).toBe('Passwords do not match');
@@ -107,7 +107,7 @@ describe('PasswordForm', function() {
       .find('input[name="passwordVerify"]')
       .simulate('change', {target: {value: 'nottest'}});
 
-    expect(wrapper.find('Field[id="passwordVerify"] FormFieldErrorReason').exists()).toBe(
+    expect(wrapper.find('Field[id="passwordVerify"] FieldErrorReason').exists()).toBe(
       false
     );
   });

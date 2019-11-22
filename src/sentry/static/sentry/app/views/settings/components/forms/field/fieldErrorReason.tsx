@@ -10,7 +10,7 @@ const FieldErrorReason = styled('div')`
   background: #fff;
   padding: 6px 8px;
   font-weight: 600;
-  font-size: 12px;
+  font-size: ${p => p.theme.fontSizeSmall};
   border-radius: 3px;
   box-shadow: 0 0 0 1px rgba(64, 11, 54, 0.15), 0 4px 20px 0 rgba(64, 11, 54, 0.36);
   z-index: ${p => p.theme.zIndex.errorMessage};
