@@ -67,7 +67,7 @@ class PagerDutyClientTest(APITestCase):
             "dedup_key": group.qualified_short_id,
             "payload": {
                 "summary": event.message,
-                "severity": "Error",
+                "severity": "error",
                 "source": event.transaction or event.culprit,
                 "component": self.project.slug,
                 "custom_details": custom_details,

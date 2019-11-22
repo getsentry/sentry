@@ -6,11 +6,11 @@ from sentry.models import EventCommon
 from sentry.api.serializers import serialize, ExternalEventSerializer
 
 LEVEL_SEVERITY_MAP = {
-    "debug": "Info",
-    "info": "Info",
-    "warning": "Warning",
-    "error": "Error",
-    "fatal": "Critical",
+    "debug": "info",
+    "info": "info",
+    "warning": "warning",
+    "error": "error",
+    "fatal": "critical",
 }
 
 
