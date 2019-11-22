@@ -1,10 +1,12 @@
 from __future__ import absolute_import
 
+import json
+from uuid import uuid4
+
+import responses
 from datetime import timedelta
 from exam import fixture, patcher
 from freezegun import freeze_time
-
-from uuid import uuid4
 
 import six
 from django.utils import timezone
@@ -37,6 +39,7 @@ from sentry.incidents.logic import (
     delete_alert_rule_trigger_action,
     DEFAULT_ALERT_RULE_RESOLUTION,
     get_actions_for_trigger,
+    get_available_action_integrations_for_org,
     get_excluded_projects_for_alert_rule,
     get_incident_aggregates,
     get_incident_event_stats,
@@ -73,6 +76,7 @@ from sentry.incidents.models import (
 )
 from sentry.snuba.models import QueryAggregations, QueryDatasets, QuerySubscription
 from sentry.models.commit import Commit
+from sentry.models.integration import Integration
 from sentry.models.repository import Repository
 from sentry.testutils import TestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
@@ -1280,19 +1284,45 @@ class CreateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         type = AlertRuleTriggerAction.Type.EMAIL
         target_type = AlertRuleTriggerAction.TargetType.USER
         target_identifier = six.text_type(self.user.id)
-        target_display = "hello"
         action = create_alert_rule_trigger_action(
-            self.trigger,
-            type,
-            target_type,
-            target_identifier=target_identifier,
-            target_display=target_display,
+            self.trigger, type, target_type, target_identifier=target_identifier
         )
         assert action.alert_rule_trigger == self.trigger
         assert action.type == type.value
         assert action.target_type == target_type.value
         assert action.target_identifier == target_identifier
-        assert action.target_display == target_display
+
+    @responses.activate
+    def test_slack(self):
+        integration = Integration.objects.create(
+            external_id="1",
+            provider="slack",
+            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+        )
+        integration.add_organization(self.organization, self.user)
+        type = AlertRuleTriggerAction.Type.SLACK
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+        channel_name = "#some_channel"
+        channel_id = "s_c"
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/channels.list",
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {"ok": "true", "channels": [{"name": channel_name[1:], "id": channel_id}]}
+            ),
+        )
+
+        action = create_alert_rule_trigger_action(
+            self.trigger, type, target_type, target_identifier=channel_name, integration=integration
+        )
+        assert action.alert_rule_trigger == self.trigger
+        assert action.type == type.value
+        assert action.target_type == target_type.value
+        assert action.target_identifier == channel_id
+        assert action.target_display == channel_name
+        assert action.integration == integration
 
 
 class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
@@ -1303,25 +1333,50 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             AlertRuleTriggerAction.Type.EMAIL,
             AlertRuleTriggerAction.TargetType.USER,
             target_identifier=six.text_type(self.user.id),
-            target_display="hello",
         )
 
     def test(self):
-        type = AlertRuleTriggerAction.Type.SLACK
-        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
-        target_identifier = "#ruhroh"
-        target_display = "Alert Channel"
+        type = AlertRuleTriggerAction.Type.EMAIL
+        target_type = AlertRuleTriggerAction.TargetType.TEAM
+        target_identifier = six.text_type(self.team.id)
         update_alert_rule_trigger_action(
-            self.action,
-            type=type,
-            target_type=target_type,
-            target_identifier=target_identifier,
-            target_display=target_display,
+            self.action, type=type, target_type=target_type, target_identifier=target_identifier
         )
         assert self.action.type == type.value
         assert self.action.target_type == target_type.value
         assert self.action.target_identifier == target_identifier
-        assert self.action.target_display == target_display
+
+    @responses.activate
+    def test_slack(self):
+        integration = Integration.objects.create(
+            external_id="1",
+            provider="slack",
+            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+        )
+        integration.add_organization(self.organization, self.user)
+        type = AlertRuleTriggerAction.Type.SLACK
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+        channel_name = "#some_channel"
+        channel_id = "s_c"
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/channels.list",
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {"ok": "true", "channels": [{"name": channel_name[1:], "id": channel_id}]}
+            ),
+        )
+
+        action = update_alert_rule_trigger_action(
+            self.action, type, target_type, target_identifier=channel_name, integration=integration
+        )
+        assert action.alert_rule_trigger == self.trigger
+        assert action.type == type.value
+        assert action.target_type == target_type.value
+        assert action.target_identifier == channel_id
+        assert action.target_display == channel_name
+        assert action.integration == integration
 
 
 class DeleteAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
@@ -1332,7 +1387,6 @@ class DeleteAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             AlertRuleTriggerAction.Type.EMAIL,
             AlertRuleTriggerAction.TargetType.USER,
             target_identifier=six.text_type(self.user.id),
-            target_display="hello",
         )
 
     def test(self):
@@ -1350,6 +1404,27 @@ class GetActionsForTriggerTest(BaseAlertRuleTriggerActionTest, TestCase):
             AlertRuleTriggerAction.Type.EMAIL,
             AlertRuleTriggerAction.TargetType.USER,
             target_identifier=six.text_type(self.user.id),
-            target_display="hello",
         )
         assert list(get_actions_for_trigger(self.trigger)) == [action]
+
+
+class GetAvailableActionIntegrationsForOrgTest(TestCase):
+    def test_none(self):
+        assert list(get_available_action_integrations_for_org(self.organization)) == []
+
+    def test_unregistered(self):
+        integration = Integration.objects.create(external_id="1", provider="something_random")
+        integration.add_organization(self.organization)
+        assert list(get_available_action_integrations_for_org(self.organization)) == []
+
+    def test_registered(self):
+        integration = Integration.objects.create(external_id="1", provider="slack")
+        integration.add_organization(self.organization)
+        assert list(get_available_action_integrations_for_org(self.organization)) == [integration]
+
+    def test_mixed(self):
+        integration = Integration.objects.create(external_id="1", provider="slack")
+        integration.add_organization(self.organization)
+        other_integration = Integration.objects.create(external_id="12345", provider="random")
+        other_integration.add_organization(self.organization)
+        assert list(get_available_action_integrations_for_org(self.organization)) == [integration]

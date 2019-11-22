@@ -3,7 +3,10 @@ import pick from 'lodash/pick';
 import {Location, Query} from 'history';
 import {browserHistory} from 'react-router';
 
+import {t} from 'app/locale';
+import {Event, Organization} from 'app/types';
 import {Client} from 'app/api';
+import {getTitle} from 'app/utils/events';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {generateQueryWithTag} from 'app/utils';
 
@@ -14,6 +17,8 @@ import {
   FIELD_FORMATTERS,
   FieldTypes,
   FieldFormatterRenderFunctionPartial,
+  ALL_VIEWS,
+  TRANSACTION_VIEWS,
 } from './data';
 import EventView, {Field as FieldType} from './eventView';
 import {
@@ -22,14 +27,12 @@ import {
   AGGREGATIONS,
   FIELDS,
   ColumnValueType,
-  DURATION_FIELDS,
-  DURATION_AGGREGATION_WHITELIST,
 } from './eventQueryParams';
 import {TableColumn} from './table/types';
 
 export type EventQuery = {
-  field: Array<string>;
-  project?: string;
+  field: string[];
+  project?: string | string[];
   sort?: string | string[];
   query: string;
   per_page?: number;
@@ -54,16 +57,6 @@ export function explodeField(
   const results = explodeFieldString(field.field);
 
   return {aggregation: results.aggregation, field: results.field, fieldname: field.title};
-}
-
-function isDuration(input: {aggregation: string; field: string}): boolean {
-  if (input.aggregation !== '') {
-    if (!DURATION_AGGREGATION_WHITELIST.includes(input.aggregation)) {
-      return false;
-    }
-  }
-
-  return DURATION_FIELDS.includes(input.field);
 }
 
 /**
@@ -209,12 +202,6 @@ export function getFieldRenderer(
     return partial(LINK_FORMATTERS[fieldType], fieldName);
   }
 
-  const explodedField = explodeFieldString(field);
-
-  if (isDuration(explodedField)) {
-    return partial(FIELD_FORMATTERS.duration.renderFunc, fieldName);
-  }
-
   if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
     return partial(FIELD_FORMATTERS[fieldType].renderFunc, fieldName);
   }
@@ -233,33 +220,6 @@ export function getAggregateAlias(field: string): string {
     .replace('.', '_')
     .replace(/_+$/, '')
     .toLowerCase();
-}
-
-/**
- * Get the first query string of a given name if there are multiple occurrences of it
- * e.g. foo=42&foo=bar    ==>    foo=42 is the first occurrence for 'foo' and "42" will be returned.
- *
- * @param query     query string map
- * @param name      name of the query string field
- */
-export function getFirstQueryString(
-  query: {[key: string]: string | string[] | null | undefined} = {},
-  name: string,
-  defaultValue?: string
-): string | undefined {
-  const needle = query[name];
-
-  if (typeof needle === 'string') {
-    return needle;
-  }
-
-  if (Array.isArray(needle) && needle.length > 0) {
-    if (typeof needle[0] === 'string') {
-      return needle[0];
-    }
-  }
-
-  return defaultValue;
 }
 
 export type QueryWithColumnState =
@@ -344,4 +304,35 @@ export function pushEventViewToLocation(props: {
       ...queryStringObject,
     },
   });
+}
+
+export function generateTitle({eventView, event}: {eventView: EventView; event?: Event}) {
+  const titles = [t('Discover')];
+
+  const eventViewName = eventView.name;
+  if (typeof eventViewName === 'string' && String(eventViewName).trim().length > 0) {
+    titles.push(String(eventViewName).trim());
+  }
+
+  const eventTitle = event ? getTitle(event).title : undefined;
+
+  if (eventTitle) {
+    titles.push(eventTitle);
+  }
+
+  titles.reverse();
+
+  return titles.join(' - ');
+}
+
+export function getPrebuiltQueries(organization: Organization) {
+  let views = ALL_VIEWS;
+  if (organization.features.includes('transaction-events')) {
+    // insert transactions queries at index 2
+    const cloned = [...ALL_VIEWS];
+    cloned.splice(2, 0, ...TRANSACTION_VIEWS);
+    views = cloned;
+  }
+
+  return views;
 }

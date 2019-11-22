@@ -1,7 +1,7 @@
 import React from 'react';
 
 import {Client} from 'app/api';
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import SentryApplicationDashboard from 'app/views/settings/organizationDeveloperSettings/sentryApplicationDashboard';
 
 describe('Sentry Application Dashboard', function() {
@@ -27,7 +27,14 @@ describe('Sentry Application Dashboard', function() {
       sentryApp = TestStubs.SentryApp({
         status: 'published',
         schema: {
-          elements: [{type: 'stacktrace-link', uri: '/test'}, {type: 'issue-link'}],
+          elements: [
+            {type: 'stacktrace-link', uri: '/test'},
+            {
+              type: 'issue-link',
+              create: {uri: '/test', required_fields: []},
+              link: {uri: '/test', required_fields: []},
+            },
+          ],
         },
       });
       request = TestStubs.SentryAppWebhookRequest();
@@ -63,7 +70,7 @@ describe('Sentry Application Dashboard', function() {
         body: sentryApp,
       });
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <SentryApplicationDashboard params={{appSlug: sentryApp.slug, orgId}} />,
         TestStubs.routerContext()
       );
@@ -120,14 +127,14 @@ describe('Sentry Application Dashboard', function() {
         body: [],
       });
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <SentryApplicationDashboard params={{appSlug: sentryApp.slug, orgId}} />,
         TestStubs.routerContext()
       );
 
       expect(wrapper.find('PanelBody').exists('PanelItem')).toBeFalsy();
       expect(wrapper.find('EmptyMessage').text()).toEqual(
-        expect.stringContaining('No requests found.')
+        expect.stringContaining('No requests found in the last 30 days.')
       );
     });
 
@@ -203,7 +210,7 @@ describe('Sentry Application Dashboard', function() {
         body: sentryApp,
       });
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <SentryApplicationDashboard params={{appSlug: sentryApp.slug, orgId}} />,
         TestStubs.routerContext()
       );
@@ -233,14 +240,14 @@ describe('Sentry Application Dashboard', function() {
         body: [],
       });
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <SentryApplicationDashboard params={{appSlug: sentryApp.slug, orgId}} />,
         TestStubs.routerContext()
       );
 
       expect(wrapper.find('PanelBody').exists('PanelItem')).toBeFalsy();
       expect(wrapper.find('EmptyMessage').text()).toEqual(
-        expect.stringContaining('No requests found.')
+        expect.stringContaining('No requests found in the last 30 days.')
       );
     });
 

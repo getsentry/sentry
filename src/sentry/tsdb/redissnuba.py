@@ -59,7 +59,9 @@ assert (
 
 model_backends = {
     # model: (read, write)
-    model: ("redis", "redis") if model not in SnubaTSDB.model_columns else ("snuba", "dummy")
+    model: ("redis", "redis")
+    if model not in SnubaTSDB.non_outcomes_query_settings
+    else ("snuba", "dummy")
     for model in BaseTSDB.models
 }
 

@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import logging
 import six
 
-from django.core.context_processors import csrf
+from django.template.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.http import (
     HttpResponse,

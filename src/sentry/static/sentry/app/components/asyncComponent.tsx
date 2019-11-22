@@ -224,7 +224,7 @@ export default class AsyncComponent<
 
   remountComponent = () => {
     if (this.shouldReload) {
-      this.setState({reloading: true}, this.fetchData);
+      this.reloadData();
     } else {
       this.setState(this.getDefaultState(), this.fetchData);
     }

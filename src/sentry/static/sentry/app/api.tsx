@@ -15,8 +15,6 @@ import {uniqueId} from 'app/utils/guid';
 import GroupActions from 'app/actions/groupActions';
 import createRequestError from 'app/utils/requestError/createRequestError';
 
-import {startRequest, finishRequest} from 'app/utils/apm';
-
 export class Request {
   alive: boolean;
   xhr: JQueryXHR;
@@ -269,18 +267,6 @@ export class Client {
       }
     }
 
-    // TODO(kamil): We forgot to add this to Spans interface
-    const requestSpan = Sentry.startSpan({
-      data: {
-        request_data: data,
-      },
-      op: 'http',
-      description: `${method} ${fullUrl}`,
-    }) as Sentry.Span;
-
-    // notify apm utils that a request has started
-    startRequest(id);
-
     const errorObject = new Error();
 
     this.activeRequests[id] = new Request(
@@ -317,24 +303,26 @@ export class Client {
             },
           });
 
-          Sentry.withScope(scope => {
-            // `requestPromise` can pass its error object
-            const preservedError = options.preservedError || errorObject;
+          if (resp && resp.status !== 0 && resp.status !== 404) {
+            Sentry.withScope(scope => {
+              // `requestPromise` can pass its error object
+              const preservedError = options.preservedError || errorObject;
 
-            const errorObjectToUse = createRequestError(
-              resp,
-              preservedError.stack,
-              method,
-              path
-            );
+              const errorObjectToUse = createRequestError(
+                resp,
+                preservedError.stack,
+                method,
+                path
+              );
 
-            errorObjectToUse.removeFrames(2);
+              errorObjectToUse.removeFrames(2);
 
-            // Setting this to warning because we are going to capture all failed requests
-            scope.setLevel(Sentry.Severity.Warning);
-            scope.setTag('http.statusCode', String(resp.status));
-            Sentry.captureException(errorObjectToUse);
-          });
+              // Setting this to warning because we are going to capture all failed requests
+              scope.setLevel(Sentry.Severity.Warning);
+              scope.setTag('http.statusCode', String(resp.status));
+              Sentry.captureException(errorObjectToUse);
+            });
+          }
 
           this.handleRequestError(
             {
@@ -348,9 +336,6 @@ export class Client {
           );
         },
         complete: (jqXHR: JQueryXHR, textStatus: string) => {
-          requestSpan.finish();
-          finishRequest(id);
-
           return this.wrapCallback<[JQueryXHR, string]>(id, options.complete, true)(
             jqXHR,
             textStatus

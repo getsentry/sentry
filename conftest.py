@@ -32,11 +32,11 @@ def install_sentry_plugins():
     from sentry.runner.importer import install_plugin_apps
     from django.conf import settings
 
-    install_plugin_apps("sentry.new_apps", settings)
+    install_plugin_apps("sentry.apps", settings)
 
     from sentry.runner.initializer import register_plugins
 
-    register_plugins(settings)
+    register_plugins(settings, raise_on_plugin_load_failure=True)
 
     settings.ASANA_CLIENT_ID = "abc"
     settings.ASANA_CLIENT_SECRET = "123"

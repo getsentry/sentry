@@ -7,7 +7,7 @@ from django.conf import settings
 from django.utils.html import format_html
 from social_auth.models import UserSocialAuth
 
-from sentry.models import Activity, Event, GroupMeta
+from sentry.models import Activity, GroupMeta
 from sentry.plugins.base.v1 import Plugin
 from sentry.signals import issue_tracker_used
 from sentry.utils.auth import get_auth_providers
@@ -205,7 +205,7 @@ class IssueTrackingPlugin(Plugin):
 
         prefix = self.get_conf_key()
         event = group.get_latest_event()
-        Event.objects.bind_nodes([event], "data")
+        event.bind_node_data()
 
         op = request.POST.get("op", "create")
 

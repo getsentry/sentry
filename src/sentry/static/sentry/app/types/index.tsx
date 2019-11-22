@@ -10,9 +10,15 @@ export type ObjectStatus =
   | 'pending_deletion'
   | 'deletion_in_progress';
 
+export type Avatar = {
+  avatarUuid: string | null;
+  avatarType: 'letter_avatar' | 'upload' | 'gravatar';
+};
+
 export type LightWeightOrganization = {
   id: string;
   slug: string;
+  name: string;
   access: string[];
   features: string[];
 };
@@ -20,6 +26,7 @@ export type LightWeightOrganization = {
 export type Organization = LightWeightOrganization & {
   projects: Project[];
   teams: Team[];
+  avatar: Avatar;
 };
 
 export type OrganizationDetailed = Organization & {
@@ -175,10 +182,7 @@ export type AvatarUser = {
   username: string;
   email: string;
   avatarUrl: string;
-  avatar: {
-    avatarUuid: string | null;
-    avatarType: 'letter_avatar' | 'upload';
-  };
+  avatar: Avatar;
   ip_address: string;
   options?: {
     avatarType: string;
@@ -388,18 +392,6 @@ export type AccessRequest = {
   member: Member;
 };
 
-export type EventViewv1 = {
-  name: string;
-  data: {
-    fields: string[];
-    fieldnames: string[];
-    sort: string[];
-    query?: string;
-  };
-  tags: string[];
-  statsPeriod?: string;
-};
-
 export type Repository = {
   dateCreated: string;
   externalSlug: string;
@@ -418,7 +410,7 @@ export type IntegrationProvider = {
   canDisable: boolean;
   features: string[];
   aspects: any; //TODO(ts)
-  setupDialog: object; //TODO(ts)
+  setupDialog: {url: string; width: number; height: number};
   metadata: any; //TODO(ts)
 };
 
@@ -431,6 +423,29 @@ export type WebhookEvent = 'issue' | 'error';
 
 export type Scope = typeof API_SCOPES[number];
 
+export type SentryAppSchemaIssueLink = {
+  type: 'issue-link';
+  create: {
+    uri: string;
+    required_fields: any[];
+    optional_fields?: any[];
+  };
+  link: {
+    uri: string;
+    required_fields: any[];
+    optional_fields?: any[];
+  };
+};
+
+export type SentryAppSchemaStacktraceLink = {
+  type: 'stacktrace-link';
+  uri: string;
+};
+
+export type SentryAppSchemaElement =
+  | SentryAppSchemaIssueLink
+  | SentryAppSchemaStacktraceLink;
+
 export type SentryApp = {
   status: 'unpublished' | 'published' | 'internal';
   scopes: Scope[];
@@ -442,7 +457,7 @@ export type SentryApp = {
   author: string;
   events: WebhookEvent[];
   schema: {
-    elements?: object[]; //TODO(ts)
+    elements?: SentryAppSchemaElement[];
   };
   //possible null params
   webhookUrl: string | null;
@@ -597,4 +612,36 @@ export type RouterProps = {
 export type ActiveExperiments = {
   ImprovedInvitesExperiment: 'none' | 'all' | 'join_request' | 'invite_request';
   TrialUpgradeV2Experiment: 'upgrade' | 'trial' | -1;
+};
+
+type SavedQueryVersions = 1 | 2;
+
+export type NewQuery = {
+  id: string | undefined;
+  version: SavedQueryVersions;
+  name: string;
+  projects: Readonly<number[]>;
+  fields: Readonly<string[]>;
+  fieldnames: Readonly<string[]>;
+  query: string;
+  orderby?: string;
+  range?: string;
+  start?: string;
+  end?: string;
+  environment?: Readonly<string[]>;
+  tags?: Readonly<string[]>;
+  yAxis?: string;
+};
+
+export type SavedQuery = NewQuery & {
+  id: string;
+  dateCreated: string;
+  dateUpdated: string;
+  createdBy?: string;
+};
+
+export type SavedQueryState = {
+  savedQueries: SavedQuery[];
+  hasError: boolean;
+  isLoading: boolean;
 };

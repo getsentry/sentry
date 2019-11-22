@@ -235,3 +235,20 @@ class RavenShim(object):
             scope.set_tag(key, value)
         if fingerprint is not None:
             scope.fingerprint = fingerprint
+
+
+def bind_organization_context(organization):
+    helper = settings.SENTRY_ORGANIZATION_CONTEXT_HELPER
+
+    with sentry_sdk.configure_scope() as scope:
+        scope.set_tag("organization", organization.id)
+        scope.set_tag("organization.slug", organization.slug)
+        scope.set_context("organization", {"id": organization.id, "slug": organization.slug})
+        if helper:
+            try:
+                helper(scope=scope, organization=organization)
+            except Exception:
+                sdk_logger.exception(
+                    "internal-error.organization-context",
+                    extra={"organization_id": organization.id},
+                )

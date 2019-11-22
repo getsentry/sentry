@@ -200,3 +200,40 @@ class SnubaTSDBTest(OutcomesSnubaTest):
             for time, count in response[project_key.id]:
                 if time not in [floor_func(self.start_time), floor_func(self.one_day_later)]:
                     assert count == 0
+
+    def test_all_tsdb_models_have_an_entry_in_model_query_settings(self):
+        # Ensure that the models we expect to be using Snuba are using Snuba
+        exceptions = [
+            TSDBModel.project_total_forwarded  # this is not outcomes and will be moved separately
+        ]
+
+        # does not include the internal TSDB model
+        models = filter(
+            lambda model: 0 < model.value < 700 and model not in exceptions, list(TSDBModel)
+        )
+        for model in models:
+            assert model in SnubaTSDB.model_query_settings
+
+    def test_outcomes_have_a_10s_setting(self):
+        exceptions = [
+            TSDBModel.project_total_forwarded  # this is not outcomes and will be moved separately
+        ]
+
+        def is_an_outcome(model):
+            if model in exceptions:
+                return False
+
+            # 100 - 200: project outcomes
+            # 200 - 300: organization outcomes
+            # 500 - 600: key outcomes
+            # 600 - 700: filtered project based outcomes
+            return (
+                (100 <= model.value < 200)
+                or (200 <= model.value < 300)
+                or (500 <= model.value < 600)
+                or (600 <= model.value < 700)
+            )
+
+        models = filter(lambda x: is_an_outcome(x), list(TSDBModel))
+        for model in models:
+            assert model in SnubaTSDB.lower_rollup_query_settings

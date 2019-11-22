@@ -3,12 +3,12 @@ import isString from 'lodash/isString';
 import cloneDeep from 'lodash/cloneDeep';
 import pick from 'lodash/pick';
 import isEqual from 'lodash/isEqual';
+import omit from 'lodash/omit';
 import moment from 'moment';
 
 import {DEFAULT_PER_PAGE} from 'app/constants';
-import {EventViewv1} from 'app/types';
 import {SavedQuery as LegacySavedQuery} from 'app/views/discover/types';
-import {SavedQuery, NewQuery} from 'app/stores/discoverSavedQueriesStore';
+import {SavedQuery, NewQuery} from 'app/types';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 
 import {AUTOLINK_FIELDS, SPECIAL_FIELDS, FIELD_FORMATTERS} from './data';
@@ -22,23 +22,17 @@ import {
 import {TableColumn, TableColumnSort} from './table/types';
 
 type LocationQuery = {
-  project?: string | string[];
-  environment?: string | string[];
   start?: string | string[];
   end?: string | string[];
   utc?: string | string[];
   statsPeriod?: string | string[];
   cursor?: string | string[];
-  yAxis?: string | string[];
 };
 
+const DATETIME_QUERY_STRING_KEYS = ['start', 'end', 'utc', 'statsPeriod'] as const;
+
 const EXTERNAL_QUERY_STRING_KEYS: Readonly<Array<keyof LocationQuery>> = [
-  'project',
-  'environment',
-  'start',
-  'end',
-  'utc',
-  'statsPeriod',
+  ...DATETIME_QUERY_STRING_KEYS,
   'cursor',
 ];
 
@@ -64,14 +58,14 @@ export type Field = {
 const isSortEqualToField = (
   sort: Sort,
   field: Field,
-  tableDataMeta: MetaType
+  tableMeta: MetaType | undefined
 ): boolean => {
-  const sortKey = getSortKeyFromField(field, tableDataMeta);
+  const sortKey = getSortKeyFromField(field, tableMeta);
   return sort.field === sortKey;
 };
 
-const fieldToSort = (field: Field, tableDataMeta: MetaType): Sort | undefined => {
-  const sortKey = getSortKeyFromField(field, tableDataMeta);
+const fieldToSort = (field: Field, tableMeta: MetaType | undefined): Sort | undefined => {
+  const sortKey = getSortKeyFromField(field, tableMeta);
 
   if (!sortKey) {
     return void 0;
@@ -83,24 +77,21 @@ const fieldToSort = (field: Field, tableDataMeta: MetaType): Sort | undefined =>
   };
 };
 
-function getSortKeyFromFieldWithoutMeta(field: Field): string | null {
+function getSortKeyFromField(
+  field: Field,
+  tableMeta: MetaType | undefined
+): string | null {
   const column = getAggregateAlias(field.field);
   if (SPECIAL_FIELDS.hasOwnProperty(column)) {
     return SPECIAL_FIELDS[column as keyof typeof SPECIAL_FIELDS].sortField;
   }
 
-  return column;
-}
-
-function getSortKeyFromField(field: Field, tableDataMeta: MetaType): string | null {
-  const column = getAggregateAlias(field.field);
-  if (SPECIAL_FIELDS.hasOwnProperty(column)) {
-    return SPECIAL_FIELDS[column as keyof typeof SPECIAL_FIELDS].sortField;
+  if (!tableMeta) {
+    return column;
   }
 
-  if (FIELD_FORMATTERS.hasOwnProperty(tableDataMeta[column])) {
-    return FIELD_FORMATTERS[tableDataMeta[column] as keyof typeof FIELD_FORMATTERS]
-      .sortField
+  if (FIELD_FORMATTERS.hasOwnProperty(tableMeta[column])) {
+    return FIELD_FORMATTERS[tableMeta[column] as keyof typeof FIELD_FORMATTERS].sortField
       ? column
       : null;
   }
@@ -108,8 +99,8 @@ function getSortKeyFromField(field: Field, tableDataMeta: MetaType): string | nu
   return null;
 }
 
-export function isFieldSortable(field: Field, tableDataMeta: MetaType): boolean {
-  return !!getSortKeyFromField(field, tableDataMeta);
+export function isFieldSortable(field: Field, tableMeta: MetaType | undefined): boolean {
+  return !!getSortKeyFromField(field, tableMeta);
 }
 
 const generateFieldAsString = (props: {aggregation: string; field: string}): string => {
@@ -271,12 +262,12 @@ const decodeScalar = (
 };
 
 function isLegacySavedQuery(
-  query: LegacySavedQuery | SavedQuery
+  query: LegacySavedQuery | NewQuery
 ): query is LegacySavedQuery {
   return (query as LegacySavedQuery).conditions !== undefined;
 }
 
-const queryStringFromSavedQuery = (saved: LegacySavedQuery | SavedQuery): string => {
+const queryStringFromSavedQuery = (saved: NewQuery | LegacySavedQuery): string => {
   if (!isLegacySavedQuery(saved) && saved.query) {
     return saved.query || '';
   }
@@ -294,6 +285,10 @@ const queryStringFromSavedQuery = (saved: LegacySavedQuery | SavedQuery): string
   }
   return '';
 };
+
+function validateTableMeta(tableMeta: MetaType | undefined): MetaType | undefined {
+  return tableMeta && Object.keys(tableMeta).length > 0 ? tableMeta : undefined;
+}
 
 class EventView {
   id: string | undefined;
@@ -323,11 +318,17 @@ class EventView {
     environment: Readonly<string[]>;
     yAxis: string | undefined;
   }) {
+    const fields = Array.isArray(props.fields) ? props.fields : [];
+    let sorts = Array.isArray(props.sorts) ? props.sorts : [];
+    const tags = Array.isArray(props.tags) ? props.tags : [];
+    const project = Array.isArray(props.project) ? props.project : [];
+    const environment = Array.isArray(props.environment) ? props.environment : [];
+
     // only include sort keys that are included in the fields
 
-    const sortKeys = props.fields
+    const sortKeys = fields
       .map(field => {
-        return getSortKeyFromFieldWithoutMeta(field);
+        return getSortKeyFromField(field, undefined);
       })
       .filter(
         (sortKey): sortKey is string => {
@@ -335,25 +336,25 @@ class EventView {
         }
       );
 
-    const sort = props.sorts.find(currentSort => {
+    const sort = sorts.find(currentSort => {
       return sortKeys.includes(currentSort.field);
     });
 
-    const sorts = sort ? [sort] : [];
+    sorts = sort ? [sort] : [];
 
     const id = props.id !== null && props.id !== void 0 ? String(props.id) : void 0;
 
     this.id = id;
     this.name = props.name;
-    this.fields = props.fields;
+    this.fields = fields;
     this.sorts = sorts;
-    this.tags = props.tags;
+    this.tags = tags;
     this.query = typeof props.query === 'string' ? props.query : '';
-    this.project = props.project;
+    this.project = project;
     this.start = props.start;
     this.end = props.end;
     this.statsPeriod = props.statsPeriod;
-    this.environment = props.environment;
+    this.environment = environment;
     this.yAxis = props.yAxis;
   }
 
@@ -376,37 +377,23 @@ class EventView {
     });
   }
 
-  static fromEventViewv1(eventViewV1: EventViewv1): EventView {
-    const fields = eventViewV1.data.fields.map((fieldName: string, index: number) => {
-      return {
-        field: fieldName,
-        title: eventViewV1.data.fieldnames[index],
-      };
-    });
+  static fromSavedQueryWithLocation(
+    saved: NewQuery | LegacySavedQuery,
+    location: Location
+  ): EventView {
+    const query = location.query;
 
-    const {start, end, statsPeriod} = getParams({
-      start: undefined,
-      end: undefined,
-      statsPeriod: eventViewV1.statsPeriod,
-    });
+    saved = {
+      ...saved,
+      start: saved.start || decodeScalar(query.start),
+      end: saved.end || decodeScalar(query.end),
+      range: saved.range || decodeScalar(query.statsPeriod),
+    };
 
-    return new EventView({
-      fields,
-      id: undefined,
-      name: eventViewV1.name,
-      sorts: fromSorts(eventViewV1.data.sort),
-      tags: eventViewV1.tags,
-      query: eventViewV1.data.query || '',
-      project: [],
-      environment: [],
-      start: decodeScalar(start),
-      end: decodeScalar(end),
-      statsPeriod: decodeScalar(statsPeriod),
-      yAxis: undefined,
-    });
+    return EventView.fromSavedQuery(saved);
   }
 
-  static fromSavedQuery(saved: SavedQuery | LegacySavedQuery): EventView {
+  static fromSavedQuery(saved: NewQuery | LegacySavedQuery): EventView {
     let fields, yAxis;
     if (isLegacySavedQuery(saved)) {
       fields = saved.fields.map(field => {
@@ -527,6 +514,35 @@ class EventView {
     return newQuery;
   }
 
+  getGlobalSelection() {
+    return {
+      start: this.start,
+      end: this.end,
+      statsPeriod: this.statsPeriod,
+      project: this.project,
+      environment: this.environment,
+    };
+  }
+
+  generateBlankQueryStringObject(): Query {
+    const output = {
+      id: undefined,
+      name: undefined,
+      field: undefined,
+      fieldnames: undefined,
+      sort: undefined,
+      tag: undefined,
+      query: undefined,
+      yAxis: undefined,
+    };
+
+    for (const field of EXTERNAL_QUERY_STRING_KEYS) {
+      output[field] = undefined;
+    }
+
+    return cloneDeep(output as any);
+  }
+
   generateQueryStringObject(): Query {
     const output = {
       id: this.id,
@@ -535,6 +551,8 @@ class EventView {
       fieldnames: this.getFieldNames(),
       sort: encodeSorts(this.sorts),
       tag: this.tags,
+      environment: this.environment,
+      project: this.project,
       query: this.query,
       yAxis: this.yAxis,
     };
@@ -658,7 +676,7 @@ class EventView {
       field: string;
       fieldname: string;
     },
-    tableDataMeta: MetaType
+    tableMeta: MetaType | undefined
   ): EventView {
     const {field, aggregation, fieldname} = updatedColumn;
 
@@ -672,6 +690,9 @@ class EventView {
     if (!updateField && !updateFieldName) {
       return this;
     }
+
+    // ensure tableMeta is non-empty
+    tableMeta = validateTableMeta(tableMeta);
 
     const newEventView = this.clone();
 
@@ -689,14 +710,14 @@ class EventView {
     // it from the list of sorts
 
     const needleSortIndex = this.sorts.findIndex(sort => {
-      return isSortEqualToField(sort, columnToBeUpdated, tableDataMeta);
+      return isSortEqualToField(sort, columnToBeUpdated, tableMeta);
     });
 
     if (needleSortIndex >= 0) {
       const needleSort = this.sorts[needleSortIndex];
 
       const numOfColumns = this.fields.reduce((sum, currentField) => {
-        if (isSortEqualToField(needleSort, currentField, tableDataMeta)) {
+        if (isSortEqualToField(needleSort, currentField, tableMeta)) {
           return sum + 1;
         }
 
@@ -715,9 +736,9 @@ class EventView {
       if (newEventView.sorts.length <= 0 && newEventView.fields.length > 0) {
         // establish a default sort by finding the first sortable field
 
-        if (isFieldSortable(updatedField, tableDataMeta)) {
+        if (isFieldSortable(updatedField, tableMeta)) {
           // use the current updated field as the sort key
-          const sort = fieldToSort(updatedField, tableDataMeta)!;
+          const sort = fieldToSort(updatedField, tableMeta)!;
 
           // preserve the sort kind
           sort.kind = needleSort.kind;
@@ -725,11 +746,11 @@ class EventView {
           newEventView.sorts = [sort];
         } else {
           const sortableFieldIndex = newEventView.fields.findIndex(currentField => {
-            return isFieldSortable(currentField, tableDataMeta);
+            return isFieldSortable(currentField, tableMeta);
           });
           if (sortableFieldIndex >= 0) {
             const fieldToBeSorted = newEventView.fields[sortableFieldIndex];
-            const sort = fieldToSort(fieldToBeSorted, tableDataMeta)!;
+            const sort = fieldToSort(fieldToBeSorted, tableMeta)!;
             newEventView.sorts = [sort];
           }
         }
@@ -739,11 +760,14 @@ class EventView {
     return newEventView;
   }
 
-  withDeletedColumn(columnIndex: number, tableDataMeta: MetaType): EventView {
+  withDeletedColumn(columnIndex: number, tableMeta: MetaType | undefined): EventView {
     // Disallow removal of the orphan column, and check for out-of-bounds
     if (this.fields.length <= 1 || this.fields.length <= columnIndex || columnIndex < 0) {
       return this;
     }
+
+    // ensure tableMeta is non-empty
+    tableMeta = validateTableMeta(tableMeta);
 
     // delete the column
 
@@ -759,14 +783,14 @@ class EventView {
     const columnToBeDeleted = this.fields[columnIndex];
 
     const needleSortIndex = this.sorts.findIndex(sort => {
-      return isSortEqualToField(sort, columnToBeDeleted, tableDataMeta);
+      return isSortEqualToField(sort, columnToBeDeleted, tableMeta);
     });
 
     if (needleSortIndex >= 0) {
       const needleSort = this.sorts[needleSortIndex];
 
       const numOfColumns = this.fields.reduce((sum, field) => {
-        if (isSortEqualToField(needleSort, field, tableDataMeta)) {
+        if (isSortEqualToField(needleSort, field, tableMeta)) {
           return sum + 1;
         }
 
@@ -785,12 +809,12 @@ class EventView {
           // establish a default sort by finding the first sortable field
 
           const sortableFieldIndex = newEventView.fields.findIndex(field => {
-            return isFieldSortable(field, tableDataMeta);
+            return isFieldSortable(field, tableMeta);
           });
 
           if (sortableFieldIndex >= 0) {
             const fieldToBeSorted = newEventView.fields[sortableFieldIndex];
-            const sort = fieldToSort(fieldToBeSorted, tableDataMeta)!;
+            const sort = fieldToSort(fieldToBeSorted, tableMeta)!;
             newEventView.sorts = [sort];
           }
         }
@@ -879,26 +903,30 @@ class EventView {
     // normalize datetime selection
 
     const normalizedTimeWindowParams = getParams({
-      start: this.start,
-      end: this.end,
+      start: this.start || picked.start,
+      end: this.end || picked.end,
       period: decodeScalar(query.period),
-      statsPeriod: this.statsPeriod,
+      statsPeriod: this.statsPeriod || picked.statsPeriod,
       utc: decodeScalar(query.utc),
     });
 
     const sort = this.sorts.length > 0 ? encodeSort(this.sorts[0]) : undefined;
     const fields = this.getFields();
+    const project = this.project.map(proj => String(proj));
+    const environment = this.environment as string[];
 
     // generate event query
 
     const eventQuery: EventQuery & LocationQuery = Object.assign(
-      picked,
+      omit(picked, DATETIME_QUERY_STRING_KEYS),
       normalizedTimeWindowParams,
       {
+        project,
+        environment,
         field: [...new Set(fields)],
         sort,
         per_page: DEFAULT_PER_PAGE,
-        query: this.getQuery(query.query),
+        query: this.query,
       }
     );
 
@@ -909,22 +937,22 @@ class EventView {
     return eventQuery;
   }
 
-  isFieldSorted(field: Field, tableDataMeta: MetaType): Sort | undefined {
+  isFieldSorted(field: Field, tableMeta: MetaType): Sort | undefined {
     const needle = this.sorts.find(sort => {
-      return isSortEqualToField(sort, field, tableDataMeta);
+      return isSortEqualToField(sort, field, tableMeta);
     });
 
     return needle;
   }
 
-  sortOnField(field: Field, tableDataMeta: MetaType): EventView {
+  sortOnField(field: Field, tableMeta: MetaType): EventView {
     // check if field can be sorted
-    if (!isFieldSortable(field, tableDataMeta)) {
+    if (!isFieldSortable(field, tableMeta)) {
       return this;
     }
 
     const needleIndex = this.sorts.findIndex(sort => {
-      return isSortEqualToField(sort, field, tableDataMeta);
+      return isSortEqualToField(sort, field, tableMeta);
     });
 
     if (needleIndex >= 0) {
@@ -945,7 +973,7 @@ class EventView {
     const newEventView = this.clone();
 
     // invariant: this is not falsey, since sortKey exists
-    const sort = fieldToSort(field, tableDataMeta)!;
+    const sort = fieldToSort(field, tableMeta)!;
 
     newEventView.sorts = [sort];
 

@@ -1,6 +1,6 @@
 from __future__ import absolute_import, print_function
 
-from django.conf.urls import include, patterns, url
+from django.conf.urls import include, url
 
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
 from .endpoints.api_application_details import ApiApplicationDetailsEndpoint
@@ -282,6 +282,9 @@ from .endpoints.useravatar import UserAvatarEndpoint
 from sentry.discover.endpoints.discover_query import DiscoverQueryEndpoint
 from sentry.discover.endpoints.discover_saved_queries import DiscoverSavedQueriesEndpoint
 from sentry.discover.endpoints.discover_saved_query_detail import DiscoverSavedQueryDetailEndpoint
+from sentry.incidents.endpoints.organization_alert_rule_available_action_index import (
+    OrganizationAlertRuleAvailableActionIndexEndpoint,
+)
 from sentry.incidents.endpoints.organization_alert_rule_details import (
     OrganizationAlertRuleDetailsEndpoint,
 )
@@ -339,8 +342,7 @@ GROUP_URLS = [
     url(r"^(?P<issue_id>[^\/]+)/plugins?/", include("sentry.plugins.base.group_api_urls")),
 ]
 
-urlpatterns = patterns(
-    "",
+urlpatterns = [
     # Relay
     url(
         r"^relays/",
@@ -556,6 +558,11 @@ urlpatterns = patterns(
                     name="sentry-api-0-organization-details",
                 ),
                 # Alert Rules
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/alert-rules/available-actions/$",
+                    OrganizationAlertRuleAvailableActionIndexEndpoint.as_view(),
+                    name="sentry-api-0-organization-alert-rule-available-actions",
+                ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/$",
                     OrganizationAlertRuleDetailsEndpoint.as_view(),
@@ -1555,4 +1562,4 @@ urlpatterns = patterns(
     url(r"^$", IndexEndpoint.as_view(), name="sentry-api-index"),
     url(r"^", CatchallEndpoint.as_view(), name="sentry-api-catchall"),
     # url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework'))
-)
+]

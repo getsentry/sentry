@@ -144,5 +144,55 @@ describe('EventOrGroupHeader', function() {
 
       expect(toJson(component)).toMatchSnapshot();
     });
+
+    it('keeps sort in link when query has sort', function() {
+      const query = {
+        sort: 'freq',
+      };
+
+      const component = shallow(
+        <EventOrGroupHeader
+          params={{orgId: 'orgId'}}
+          data={{
+            ...eventData,
+            ...{
+              type: 'default',
+            },
+          }}
+          location={{query}}
+        />
+      );
+
+      const title = component
+        .dive()
+        .instance()
+        .getTitle();
+
+      expect(title.props.to.query.sort).toEqual('freq');
+    });
+
+    it('lack of project adds allp parameter', function() {
+      const query = {};
+
+      const component = shallow(
+        <EventOrGroupHeader
+          params={{orgId: 'orgId'}}
+          data={{
+            ...eventData,
+            ...{
+              type: 'default',
+            },
+          }}
+          location={{query}}
+        />
+      );
+
+      const title = component
+        .dive()
+        .instance()
+        .getTitle();
+
+      expect(title.props.to.query._allp).toEqual(1);
+    });
   });
 });

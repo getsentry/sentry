@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import Team, TeamStatus
-from sentry.utils.sdk import configure_scope
+from sentry.utils.sdk import bind_organization_context
 
 from .organization import OrganizationPermission
 
@@ -47,8 +47,7 @@ class TeamEndpoint(Endpoint):
 
         self.check_object_permissions(request, team)
 
-        with configure_scope() as scope:
-            scope.set_tag("organization", team.organization_id)
+        bind_organization_context(team.organization)
 
         request._request.organization = team.organization
 
