@@ -295,7 +295,7 @@ class EventManager(object):
                 "message": instance.get_message(),
                 "culprit": instance.get_culprit(),
                 instance.path: instance.to_json(),
-                "tags": instance.get_tags(),
+                "tags": instance.tags,
                 "errors": [],
                 "user": {"ip_address": self._client_ip},
                 # Construct a faux Http interface based on the little information we have
