@@ -185,5 +185,5 @@ const IntegrationFlex = styled('div')`
 `;
 
 const IntegrationItemBox = styled('div')`
-  display: flex;
+  flex: 1;
 `;

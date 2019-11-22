@@ -23,8 +23,12 @@ export default class AddIntegration extends React.Component<Props> {
     account: PropTypes.string,
   };
 
-  componentDidMount() {
+  constructor(props: Props) {
+    super(props);
     this.dialog = null;
+  }
+
+  componentDidMount() {
     window.addEventListener('message', this.didReceiveMessage);
   }
 
@@ -33,7 +37,7 @@ export default class AddIntegration extends React.Component<Props> {
     this.dialog && this.dialog.close();
   }
 
-  dialog: any | null;
+  dialog: Window | null;
 
   computeCenteredWindow(width: number, height: number) {
     //Taken from: https://stackoverflow.com/questions/4068373/center-a-popup-window-on-screen
@@ -79,7 +83,7 @@ export default class AddIntegration extends React.Component<Props> {
     const opts = `scrollbars=yes,width=${width},height=${height},top=${top},left=${left}`;
 
     this.dialog = window.open(installUrl, name, opts);
-    this.dialog.focus();
+    this.dialog && this.dialog.focus();
   };
 
   didReceiveMessage = (message: MessageEvent) => {
