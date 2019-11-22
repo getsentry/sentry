@@ -58,17 +58,14 @@ export type Field = {
 const isSortEqualToField = (
   sort: Sort,
   field: Field,
-  tableDataMeta: MetaType | undefined
+  tableMeta: MetaType | undefined
 ): boolean => {
-  const sortKey = getSortKeyFromField(field, tableDataMeta);
+  const sortKey = getSortKeyFromField(field, tableMeta);
   return sort.field === sortKey;
 };
 
-const fieldToSort = (
-  field: Field,
-  tableDataMeta: MetaType | undefined
-): Sort | undefined => {
-  const sortKey = getSortKeyFromField(field, tableDataMeta);
+const fieldToSort = (field: Field, tableMeta: MetaType | undefined): Sort | undefined => {
+  const sortKey = getSortKeyFromField(field, tableMeta);
 
   if (!sortKey) {
     return void 0;
@@ -82,20 +79,19 @@ const fieldToSort = (
 
 function getSortKeyFromField(
   field: Field,
-  tableDataMeta: MetaType | undefined
+  tableMeta: MetaType | undefined
 ): string | null {
   const column = getAggregateAlias(field.field);
   if (SPECIAL_FIELDS.hasOwnProperty(column)) {
     return SPECIAL_FIELDS[column as keyof typeof SPECIAL_FIELDS].sortField;
   }
 
-  if (!tableDataMeta) {
+  if (!tableMeta) {
     return column;
   }
 
-  if (FIELD_FORMATTERS.hasOwnProperty(tableDataMeta[column])) {
-    return FIELD_FORMATTERS[tableDataMeta[column] as keyof typeof FIELD_FORMATTERS]
-      .sortField
+  if (FIELD_FORMATTERS.hasOwnProperty(tableMeta[column])) {
+    return FIELD_FORMATTERS[tableMeta[column] as keyof typeof FIELD_FORMATTERS].sortField
       ? column
       : null;
   }
@@ -103,11 +99,8 @@ function getSortKeyFromField(
   return null;
 }
 
-export function isFieldSortable(
-  field: Field,
-  tableDataMeta: MetaType | undefined
-): boolean {
-  return !!getSortKeyFromField(field, tableDataMeta);
+export function isFieldSortable(field: Field, tableMeta: MetaType | undefined): boolean {
+  return !!getSortKeyFromField(field, tableMeta);
 }
 
 const generateFieldAsString = (props: {aggregation: string; field: string}): string => {
@@ -683,7 +676,7 @@ class EventView {
       field: string;
       fieldname: string;
     },
-    tableDataMeta: MetaType | undefined
+    tableMeta: MetaType | undefined
   ): EventView {
     const {field, aggregation, fieldname} = updatedColumn;
 
@@ -698,8 +691,8 @@ class EventView {
       return this;
     }
 
-    // ensure tableDataMeta is non-empty
-    tableDataMeta = validateTableMeta(tableDataMeta);
+    // ensure tableMeta is non-empty
+    tableMeta = validateTableMeta(tableMeta);
 
     const newEventView = this.clone();
 
@@ -717,14 +710,14 @@ class EventView {
     // it from the list of sorts
 
     const needleSortIndex = this.sorts.findIndex(sort => {
-      return isSortEqualToField(sort, columnToBeUpdated, tableDataMeta);
+      return isSortEqualToField(sort, columnToBeUpdated, tableMeta);
     });
 
     if (needleSortIndex >= 0) {
       const needleSort = this.sorts[needleSortIndex];
 
       const numOfColumns = this.fields.reduce((sum, currentField) => {
-        if (isSortEqualToField(needleSort, currentField, tableDataMeta)) {
+        if (isSortEqualToField(needleSort, currentField, tableMeta)) {
           return sum + 1;
         }
 
@@ -743,9 +736,9 @@ class EventView {
       if (newEventView.sorts.length <= 0 && newEventView.fields.length > 0) {
         // establish a default sort by finding the first sortable field
 
-        if (isFieldSortable(updatedField, tableDataMeta)) {
+        if (isFieldSortable(updatedField, tableMeta)) {
           // use the current updated field as the sort key
-          const sort = fieldToSort(updatedField, tableDataMeta)!;
+          const sort = fieldToSort(updatedField, tableMeta)!;
 
           // preserve the sort kind
           sort.kind = needleSort.kind;
@@ -753,11 +746,11 @@ class EventView {
           newEventView.sorts = [sort];
         } else {
           const sortableFieldIndex = newEventView.fields.findIndex(currentField => {
-            return isFieldSortable(currentField, tableDataMeta);
+            return isFieldSortable(currentField, tableMeta);
           });
           if (sortableFieldIndex >= 0) {
             const fieldToBeSorted = newEventView.fields[sortableFieldIndex];
-            const sort = fieldToSort(fieldToBeSorted, tableDataMeta)!;
+            const sort = fieldToSort(fieldToBeSorted, tableMeta)!;
             newEventView.sorts = [sort];
           }
         }
@@ -767,14 +760,14 @@ class EventView {
     return newEventView;
   }
 
-  withDeletedColumn(columnIndex: number, tableDataMeta: MetaType | undefined): EventView {
+  withDeletedColumn(columnIndex: number, tableMeta: MetaType | undefined): EventView {
     // Disallow removal of the orphan column, and check for out-of-bounds
     if (this.fields.length <= 1 || this.fields.length <= columnIndex || columnIndex < 0) {
       return this;
     }
 
-    // ensure tableDataMeta is non-empty
-    tableDataMeta = validateTableMeta(tableDataMeta);
+    // ensure tableMeta is non-empty
+    tableMeta = validateTableMeta(tableMeta);
 
     // delete the column
 
@@ -790,14 +783,14 @@ class EventView {
     const columnToBeDeleted = this.fields[columnIndex];
 
     const needleSortIndex = this.sorts.findIndex(sort => {
-      return isSortEqualToField(sort, columnToBeDeleted, tableDataMeta);
+      return isSortEqualToField(sort, columnToBeDeleted, tableMeta);
     });
 
     if (needleSortIndex >= 0) {
       const needleSort = this.sorts[needleSortIndex];
 
       const numOfColumns = this.fields.reduce((sum, field) => {
-        if (isSortEqualToField(needleSort, field, tableDataMeta)) {
+        if (isSortEqualToField(needleSort, field, tableMeta)) {
           return sum + 1;
         }
 
@@ -816,12 +809,12 @@ class EventView {
           // establish a default sort by finding the first sortable field
 
           const sortableFieldIndex = newEventView.fields.findIndex(field => {
-            return isFieldSortable(field, tableDataMeta);
+            return isFieldSortable(field, tableMeta);
           });
 
           if (sortableFieldIndex >= 0) {
             const fieldToBeSorted = newEventView.fields[sortableFieldIndex];
-            const sort = fieldToSort(fieldToBeSorted, tableDataMeta)!;
+            const sort = fieldToSort(fieldToBeSorted, tableMeta)!;
             newEventView.sorts = [sort];
           }
         }
@@ -944,22 +937,22 @@ class EventView {
     return eventQuery;
   }
 
-  isFieldSorted(field: Field, tableDataMeta: MetaType): Sort | undefined {
+  isFieldSorted(field: Field, tableMeta: MetaType): Sort | undefined {
     const needle = this.sorts.find(sort => {
-      return isSortEqualToField(sort, field, tableDataMeta);
+      return isSortEqualToField(sort, field, tableMeta);
     });
 
     return needle;
   }
 
-  sortOnField(field: Field, tableDataMeta: MetaType): EventView {
+  sortOnField(field: Field, tableMeta: MetaType): EventView {
     // check if field can be sorted
-    if (!isFieldSortable(field, tableDataMeta)) {
+    if (!isFieldSortable(field, tableMeta)) {
       return this;
     }
 
     const needleIndex = this.sorts.findIndex(sort => {
-      return isSortEqualToField(sort, field, tableDataMeta);
+      return isSortEqualToField(sort, field, tableMeta);
     });
 
     if (needleIndex >= 0) {
@@ -980,7 +973,7 @@ class EventView {
     const newEventView = this.clone();
 
     // invariant: this is not falsey, since sortKey exists
-    const sort = fieldToSort(field, tableDataMeta)!;
+    const sort = fieldToSort(field, tableMeta)!;
 
     newEventView.sorts = [sort];
 
