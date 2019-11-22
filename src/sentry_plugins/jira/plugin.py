@@ -40,9 +40,6 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
     conf_title = title
     conf_key = slug
 
-    asset_key = "jira"
-    assets = ["dist/jira.js"]
-
     def get_group_urls(self):
         _patterns = super(JiraPlugin, self).get_group_urls()
         _patterns.append(
