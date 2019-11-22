@@ -381,13 +381,20 @@ describe('EventView.generateQueryStringObject()', function() {
       end: undefined,
       yAxis: undefined,
     });
-    const query = eventView.generateQueryStringObject();
-    expect(query.environment).toBeUndefined();
-    expect(query.statsPeriod).toBeUndefined();
-    expect(query.start).toBeUndefined();
-    expect(query.end).toBeUndefined();
-    expect(query.project).toBeUndefined();
-    expect(query.yAxis).toBeUndefined();
+
+    const expected = {
+      id: undefined,
+      name: undefined,
+      field: ['id', 'title'],
+      fieldnames: ['id', 'title'],
+      sort: [],
+      tag: [],
+      query: '',
+      project: [],
+      environment: [],
+    };
+
+    expect(eventView.generateQueryStringObject()).toEqual(expected);
   });
 
   it('generates query string object', function() {
@@ -461,20 +468,31 @@ describe('EventView.generateQueryStringObject()', function() {
 });
 
 describe('EventView.getEventsAPIPayload()', function() {
-  it('appends any additional conditions defined for view', function() {
+  it('generates the API payload', function() {
     const eventView = new EventView({
+      id: 34,
+      name: 'amazing query',
       fields: generateFields(['id']),
-      sorts: [],
-      tags: [],
+      sorts: generateSorts(['id']),
+      tags: ['project'],
       query: 'event.type:csp',
+      project: [567],
+      environment: ['prod'],
+      yAxis: 'users',
     });
 
-    const location = {};
-
-    expect(eventView.getEventsAPIPayload(location).query).toEqual('event.type:csp');
+    expect(eventView.getEventsAPIPayload({})).toEqual({
+      field: ['id'],
+      per_page: 50,
+      sort: '-id',
+      query: 'event.type:csp',
+      project: ['567'],
+      environment: ['prod'],
+      statsPeriod: '14d',
+    });
   });
 
-  it('appends query conditions in location', function() {
+  it('does not append query conditions in location', function() {
     const eventView = new EventView({
       fields: generateFields(['id']),
       sorts: [],
@@ -485,24 +503,6 @@ describe('EventView.getEventsAPIPayload()', function() {
     const location = {
       query: {
         query: 'TypeError',
-      },
-    };
-    expect(eventView.getEventsAPIPayload(location).query).toEqual(
-      'event.type:csp TypeError'
-    );
-  });
-
-  it('does not duplicate conditions', function() {
-    const eventView = new EventView({
-      fields: generateFields(['id']),
-      sorts: [],
-      tags: [],
-      query: 'event.type:csp',
-    });
-
-    const location = {
-      query: {
-        query: 'event.type:csp',
       },
     };
     expect(eventView.getEventsAPIPayload(location).query).toEqual('event.type:csp');
@@ -548,8 +548,6 @@ describe('EventView.getEventsAPIPayload()', function() {
 
     const location = {
       query: {
-        project: '1234',
-        environment: ['staging'],
         start: 'start',
         end: 'end',
         utc: 'true',
@@ -557,16 +555,16 @@ describe('EventView.getEventsAPIPayload()', function() {
         cursor: 'some cursor',
         yAxis: 'count(id)',
 
-        // non-relevant query strings
+        // irrelevant query strings
         bestCountry: 'canada',
+        project: '1234',
+        environment: ['staging'],
       },
     };
 
     expect(eventView.getEventsAPIPayload(location)).toEqual({
-      project: '1234',
-      environment: ['staging'],
-      start: 'start',
-      end: 'end',
+      project: [],
+      environment: [],
       utc: 'true',
       statsPeriod: '14d',
 
@@ -584,12 +582,12 @@ describe('EventView.getEventsAPIPayload()', function() {
       sorts: generateSorts(['project', 'count']),
       tags: [],
       query: 'event.type:csp',
+      project: [1234],
+      environment: ['staging'],
     });
 
     const location = {
       query: {
-        project: '1234',
-        environment: ['staging'],
         start: 'start',
         end: 'end',
         utc: 'true',
@@ -600,10 +598,8 @@ describe('EventView.getEventsAPIPayload()', function() {
     };
 
     expect(eventView.getEventsAPIPayload(location)).toEqual({
-      project: '1234',
+      project: ['1234'],
       environment: ['staging'],
-      start: 'start',
-      end: 'end',
       utc: 'true',
       statsPeriod: '14d',
 
@@ -616,8 +612,6 @@ describe('EventView.getEventsAPIPayload()', function() {
 
     const location2 = {
       query: {
-        project: '1234',
-        environment: ['staging'],
         start: 'start',
         end: 'end',
         utc: 'true',
@@ -627,10 +621,8 @@ describe('EventView.getEventsAPIPayload()', function() {
     };
 
     expect(eventView.getEventsAPIPayload(location2)).toEqual({
-      project: '1234',
+      project: ['1234'],
       environment: ['staging'],
-      start: 'start',
-      end: 'end',
       utc: 'true',
       statsPeriod: '14d',
 
@@ -648,12 +640,12 @@ describe('EventView.getEventsAPIPayload()', function() {
       sorts: generateSorts(['project', 'count']),
       tags: [],
       query: 'event.type:csp',
+      project: [1234],
+      environment: ['staging'],
     });
 
     const location = {
       query: {
-        project: '1234',
-        environment: ['staging'],
         start: 'start',
         utc: 'true',
         statsPeriod: 'invalid',
@@ -662,10 +654,9 @@ describe('EventView.getEventsAPIPayload()', function() {
     };
 
     expect(eventView.getEventsAPIPayload(location)).toEqual({
-      project: '1234',
+      project: ['1234'],
       environment: ['staging'],
       utc: 'true',
-      start: 'start',
       statsPeriod: '14d',
 
       field: ['title', 'count()'],
@@ -677,8 +668,6 @@ describe('EventView.getEventsAPIPayload()', function() {
 
     const location2 = {
       query: {
-        project: '1234',
-        environment: ['staging'],
         end: 'end',
         utc: 'true',
         statsPeriod: 'invalid',
@@ -687,10 +676,9 @@ describe('EventView.getEventsAPIPayload()', function() {
     };
 
     expect(eventView.getEventsAPIPayload(location2)).toEqual({
-      project: '1234',
+      project: ['1234'],
       environment: ['staging'],
       utc: 'true',
-      end: 'end',
       statsPeriod: '14d',
 
       field: ['title', 'count()'],
@@ -709,6 +697,8 @@ describe('EventView.getEventsAPIPayload()', function() {
       query: 'event.type:csp',
       start: '2019-10-01T00:00:00',
       end: '2019-10-02T00:00:00',
+      environment: [],
+      project: [],
     });
 
     const location = {
@@ -722,6 +712,8 @@ describe('EventView.getEventsAPIPayload()', function() {
       start: '2019-10-01T00:00:00.000',
       end: '2019-10-02T00:00:00.000',
       per_page: 50,
+      project: [],
+      environment: [],
     });
   });
 });
@@ -737,25 +729,23 @@ describe('EventView.getTagsAPIPayload()', function() {
 
     const location = {
       query: {
-        project: '1234',
-        environment: ['staging'],
         start: 'start',
         end: 'end',
         utc: 'true',
         statsPeriod: '14d',
 
-        // non-relevant query strings
+        // irrelevant query strings
         bestCountry: 'canada',
         cursor: 'some cursor',
         sort: 'the world',
+        project: '1234',
+        environment: ['staging'],
       },
     };
 
     expect(eventView.getTagsAPIPayload(location)).toEqual({
-      project: '1234',
-      environment: ['staging'],
-      start: 'start',
-      end: 'end',
+      project: [],
+      environment: [],
       utc: 'true',
       statsPeriod: '14d',
 
@@ -2261,8 +2251,6 @@ describe('pickRelevantLocationQueryStrings', function() {
     const actual = pickRelevantLocationQueryStrings(location);
 
     const expected = {
-      project: 'project',
-      environment: 'environment',
       start: 'start',
       end: 'end',
       utc: 'utc',

@@ -1,14 +1,14 @@
 import React from 'react';
 import isEqual from 'lodash/isEqual';
-import omit from 'lodash/omit';
+import {Location} from 'history';
 
 import withApi from 'app/utils/withApi';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
 import {Client} from 'app/api';
-import {GlobalSelection, Organization} from 'app/types';
+import {Organization} from 'app/types';
 import EventsRequest from 'app/views/events/utils/eventsRequest';
 import AreaChart from 'app/components/charts/areaChart';
 import {getInterval} from 'app/components/charts/utils';
+import {getUtcToLocalDateObject} from 'app/utils/dates';
 
 import EventView from './eventView';
 
@@ -16,12 +16,7 @@ type Props = {
   organization: Organization;
   eventView: EventView;
   api: Client;
-  selection: GlobalSelection;
-  query: string;
-};
-
-const omitProps = (props: Props) => {
-  return omit(props, ['api']);
+  location: Location;
 };
 
 class MiniGraph extends React.Component<Props> {
@@ -30,12 +25,33 @@ class MiniGraph extends React.Component<Props> {
     // than the cost for rendering the graph, which can take ~200ms to ~300ms to
     // render.
 
-    return !isEqual(omitProps(this.props), omitProps(nextProps));
+    return !isEqual(this.getRefreshProps(this.props), this.getRefreshProps(nextProps));
+  }
+
+  getRefreshProps(props: Props) {
+    // get props that are relevant to the API payload for the graph
+
+    const {organization, location, eventView} = props;
+
+    const apiPayload = eventView.getEventsAPIPayload(location);
+    const query = apiPayload.query;
+    const start = getUtcToLocalDateObject(apiPayload.start);
+    const end = getUtcToLocalDateObject(apiPayload.end);
+    const period: string | undefined = apiPayload.statsPeriod as any;
+
+    return {
+      organization,
+      apiPayload,
+      query,
+      start,
+      end,
+      period,
+    };
   }
 
   render() {
-    const {organization, api, selection, query} = this.props;
-    const {start, end, period} = selection.datetime;
+    const {eventView, api} = this.props;
+    const {query, start, end, period, organization} = this.getRefreshProps(this.props);
 
     return (
       <EventsRequest
@@ -46,6 +62,9 @@ class MiniGraph extends React.Component<Props> {
         end={end}
         period={period}
         interval={getInterval({start, end, period}, true)}
+        project={eventView.project as number[]}
+        environment={eventView.environment as string[]}
+        includePrevious={false}
       >
         {({loading, timeseriesData}) => {
           if (loading) {
@@ -103,4 +122,4 @@ class MiniGraph extends React.Component<Props> {
   }
 }
 
-export default withApi(withGlobalSelection(MiniGraph));
+export default withApi(MiniGraph);

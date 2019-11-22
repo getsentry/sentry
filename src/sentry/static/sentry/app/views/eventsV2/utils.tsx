@@ -31,8 +31,8 @@ import {
 import {TableColumn} from './table/types';
 
 export type EventQuery = {
-  field: Array<string>;
-  project?: string;
+  field: string[];
+  project?: string | string[];
   sort?: string | string[];
   query: string;
   per_page?: number;

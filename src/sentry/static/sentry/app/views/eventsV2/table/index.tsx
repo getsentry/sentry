@@ -57,7 +57,10 @@ class Table extends React.PureComponent<TableProps, TableState> {
     const {location, eventView} = this.props;
 
     if (!eventView.isValid()) {
-      const nextEventView = EventView.fromSavedQuery(DEFAULT_EVENT_VIEW);
+      const nextEventView = EventView.fromSavedQueryWithLocation(
+        DEFAULT_EVENT_VIEW,
+        location
+      );
 
       browserHistory.replace({
         pathname: location.pathname,
