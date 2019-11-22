@@ -31,9 +31,6 @@ class SessionStackPlugin(CorePluginMixin, Plugin2):
     conf_title = title
     conf_key = slug
 
-    asset_key = "sessionstack"
-    assets = ["dist/sessionstack.js"]
-
     sessionstack_resource_links = [
         ("Documentation", "http://docs.sessionstack.com/integrations/sentry/")
     ]
