@@ -410,7 +410,7 @@ export type IntegrationProvider = {
   canDisable: boolean;
   features: string[];
   aspects: any; //TODO(ts)
-  setupDialog: object; //TODO(ts)
+  setupDialog: {url: string; width: number; height: number};
   metadata: any; //TODO(ts)
 };
 
