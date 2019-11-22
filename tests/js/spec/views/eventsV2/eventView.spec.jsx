@@ -497,22 +497,6 @@ describe('EventView.getEventsAPIPayload()', function() {
     expect(eventView.getEventsAPIPayload(location).query).toEqual('event.type:csp');
   });
 
-  it('does not duplicate conditions', function() {
-    const eventView = new EventView({
-      fields: generateFields(['id']),
-      sorts: [],
-      tags: [],
-      query: 'event.type:csp',
-    });
-
-    const location = {
-      query: {
-        query: 'event.type:csp',
-      },
-    };
-    expect(eventView.getEventsAPIPayload(location).query).toEqual('event.type:csp');
-  });
-
   it('only includes at most one sort key', function() {
     const eventView = new EventView({
       fields: generateFields(['count()', 'title']),
