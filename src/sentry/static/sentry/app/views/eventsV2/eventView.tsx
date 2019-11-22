@@ -293,6 +293,10 @@ const queryStringFromSavedQuery = (saved: NewQuery | LegacySavedQuery): string =
   return '';
 };
 
+function validateTableMeta(tableMeta: MetaType | undefined): MetaType | undefined {
+  return tableMeta && Object.keys(tableMeta).length > 0 ? tableMeta : undefined;
+}
+
 class EventView {
   id: string | undefined;
   name: string | undefined;
@@ -695,8 +699,7 @@ class EventView {
     }
 
     // ensure tableDataMeta is non-empty
-    tableDataMeta =
-      tableDataMeta && Object.keys(tableDataMeta).length > 0 ? tableDataMeta : undefined;
+    tableDataMeta = validateTableMeta(tableDataMeta);
 
     const newEventView = this.clone();
 
@@ -771,8 +774,7 @@ class EventView {
     }
 
     // ensure tableDataMeta is non-empty
-    tableDataMeta =
-      tableDataMeta && Object.keys(tableDataMeta).length > 0 ? tableDataMeta : undefined;
+    tableDataMeta = validateTableMeta(tableDataMeta);
 
     // delete the column
 
