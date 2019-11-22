@@ -85,8 +85,13 @@ class EventCommon(object):
 
     @group.setter
     def group(self, group):
-        self.group_id = group.id
-        self._group_cache = group
+        # guard against None to not fail on AttributeError
+        # otherwise Django 1.10 will swallow it in db.models.base init, but
+        # consequently fail to remove from kwargs, and you'll get the red herring
+        # TypeError: 'group' is an invalid keyword argument for this function.
+        if group is not None:
+            self.group_id = group.id
+            self._group_cache = group
 
     @property
     def project(self):
