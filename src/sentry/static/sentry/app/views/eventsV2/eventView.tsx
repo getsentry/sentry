@@ -29,11 +29,10 @@ type LocationQuery = {
   cursor?: string | string[];
 };
 
+const DATETIME_QUERY_STRING_KEYS = ['start', 'end', 'utc', 'statsPeriod'] as const;
+
 const EXTERNAL_QUERY_STRING_KEYS: Readonly<Array<keyof LocationQuery>> = [
-  'start',
-  'end',
-  'utc',
-  'statsPeriod',
+  ...DATETIME_QUERY_STRING_KEYS,
   'cursor',
 ];
 
@@ -912,7 +911,7 @@ class EventView {
     // generate event query
 
     const eventQuery: EventQuery & LocationQuery = Object.assign(
-      omit(picked, ['start', 'end', 'utc', 'statsPeriod']),
+      omit(picked, DATETIME_QUERY_STRING_KEYS),
       normalizedTimeWindowParams,
       {
         project,
