@@ -6,10 +6,6 @@ import omit from 'lodash/omit';
 import styled from 'react-emotion';
 import PropTypes from 'prop-types';
 
-import Access from 'app/components/acl/access';
-import Button from 'app/components/button';
-import Confirm from 'app/components/confirm';
-import ConfirmDelete from 'app/components/confirmDelete';
 import SentryTypes from 'app/sentryTypes';
 import {PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
@@ -21,6 +17,7 @@ import SentryAppPublishRequestModal from 'app/components/modals/sentryAppPublish
 import {Organization, SentryApp, SentryAppInstallation} from 'app/types';
 import {recordInteraction} from 'app/utils/recordSentryAppInteraction';
 import theme from 'app/utils/theme';
+import SentryApplicationRowButtons from './sentryApplicationRowButtons';
 
 const INSTALLED = 'Installed';
 const NOT_INSTALLED = 'Not Installed';
@@ -33,8 +30,7 @@ type Props = {
   onInstall?: () => void;
   onUninstall?: (install: SentryAppInstallation) => void;
   onRemoveApp?: (app: SentryApp) => void;
-  showInstallationStatus: boolean;
-  showAppDashboardLink?: boolean;
+  isOnIntegrationPage: boolean;
   ['data-test-id']?: string;
 };
 
@@ -46,57 +42,26 @@ export default class SentryApplicationRow extends React.PureComponent<Props> {
     onInstall: PropTypes.func,
     onUninstall: PropTypes.func,
     onRemoveApp: PropTypes.func,
-    showInstallationStatus: PropTypes.bool, //false if we are on the developer settings page where we don't show installation status
-    showAppDashboardLink: PropTypes.bool,
-  };
-
-  static defaultProps = {
-    showInstallationStatus: true,
-    showAppDashboardLink: false,
+    isOnIntegrationPage: PropTypes.bool,
   };
 
   get isInternal() {
     return this.props.app.status === 'internal';
   }
 
-  // public but unpublished
-  get isUnpublished() {
-    return this.props.app.status === 'unpublished';
-  }
-
-  get isPublished() {
-    return this.props.app.status === 'published';
-  }
-
-  renderUninstallButton() {
-    const {install, app, onUninstall} = this.props;
-    const message = t(`Are you sure you want to remove the ${app.slug} installation?`);
-    return (
-      <Confirm
-        message={message}
-        priority="danger"
-        onConfirm={() => onUninstall && install && onUninstall(install)}
-      >
-        <StyledButton borderless icon="icon-trash" data-test-id="sentry-app-uninstall">
-          {t('Uninstall')}
-        </StyledButton>
-      </Confirm>
-    );
-  }
-
   hideStatus() {
     //no publishing for internal apps so hide the status on the developer settings page
-    return this.isInternal && !this.props.showInstallationStatus;
+    return this.isInternal && !this.props.isOnIntegrationPage;
   }
 
   renderStatus() {
-    const {app, showInstallationStatus} = this.props;
+    const {app, isOnIntegrationPage} = this.props;
     const isInternal = this.isInternal;
     const status = this.installationStatus;
     if (this.hideStatus()) {
       return null;
     }
-    if (showInstallationStatus) {
+    if (isOnIntegrationPage) {
       //if internal and we show installation status, we don't show the learn more
       if (isInternal) {
         return <StatusIndicator status={status} isInternal={isInternal} />;
@@ -146,84 +111,22 @@ export default class SentryApplicationRow extends React.PureComponent<Props> {
       });
   };
 
-  renderInstallButton() {
-    return (
-      <Button
-        onClick={() => this.openLearnMore()}
-        size="small"
-        icon="icon-circle-add"
-        className="btn btn-default"
-      >
-        {t('Install')}
-      </Button>
-    );
-  }
-
   linkToEdit() {
-    const {showInstallationStatus} = this.props;
+    const {isOnIntegrationPage} = this.props;
     // show the link if the app is internal or we are on the developer settings page
-    return this.isInternal || !showInstallationStatus;
-  }
-
-  renderButtons() {
-    const {
-      showInstallationStatus,
-      organization,
-      app,
-      onRemoveApp,
-      showAppDashboardLink,
-    } = this.props;
-    const isInstalled = this.isInstalled;
-
-    //showInstallationStatus = true on integrations page
-    if (showInstallationStatus) {
-      //no installation buttons to show if internal
-      if (this.isInternal) {
-        return null;
-      }
-      //if installed, render the uninstall button and if installed, render install button
-      return isInstalled ? this.renderUninstallButton() : this.renderInstallButton();
-    }
-
-    return (
-      <Access access={['org:admin']}>
-        {({hasAccess}) => {
-          let disablePublishReason = '';
-          let disableDeleteReason = '';
-
-          // Publish & Delete buttons will always be disabled if the app is published
-          if (this.isPublished) {
-            disablePublishReason = t('Published integrations cannot be re-published.');
-            disableDeleteReason = t('Published integrations cannot be removed.');
-          } else if (!hasAccess) {
-            disablePublishReason = t(
-              'Organization owner permissions are required for this action.'
-            );
-            disableDeleteReason = t(
-              'Organization owner permissions are required for this action.'
-            );
-          }
-
-          return (
-            <ActionButtons
-              org={organization}
-              app={app}
-              showDashboard={!!showAppDashboardLink}
-              showPublish={!this.isInternal}
-              showDelete
-              onPublish={this.handlePublish}
-              onDelete={onRemoveApp}
-              disablePublishReason={disablePublishReason}
-              disableDeleteReason={disableDeleteReason}
-            />
-          );
-        }}
-      </Access>
-    );
+    // We don't want to show the link to edit on the main integrations list unless the app is internal
+    return this.isInternal || !isOnIntegrationPage;
   }
 
   render() {
-    const {app, organization} = this.props;
+    const {
+      app,
+      organization,
+      install,
+      isOnIntegrationPage,
+      onUninstall,
+      onRemoveApp,
+    } = this.props;
     return (
       <SentryAppItem data-test-id={app.slug}>
         <StyledFlex>
@@ -243,7 +146,18 @@ export default class SentryApplicationRow extends React.PureComponent<Props> {
             <SentryAppDetails>{this.renderStatus()}</SentryAppDetails>
           </SentryAppBox>
 
-          <Box>{this.renderButtons()}</Box>
+          <Box>
+            <SentryApplicationRowButtons
+              organization={organization}
+              app={app}
+              install={install}
+              isOnIntegrationPage={isOnIntegrationPage}
+              onClickInstall={this.openLearnMore}
+              onClickUninstall={onUninstall}
+              onClickRemove={onRemoveApp}
+              onClickPublish={this.handlePublish}
+            />
+          </Box>
         </StyledFlex>
       </SentryAppItem>
     );
@@ -283,10 +197,6 @@ const StyledLink = styled(Link)`
 
 const SentryAppLink = styled(Link)`
   color: ${props => props.theme.textColor};
-`;
-
-const StyledButton = styled(Button)`
-  color: ${p => p.theme.gray2};
 `;
 
 const color = {
@@ -333,83 +243,3 @@ const PublishStatus = styled(({status, ...props}: PublishStatusProps) => {
   font-weight: light;
   margin-right: ${space(0.75)};
 `;
-
-const ButtonHolder = styled('div')`
-  flex-direction: row;
-  display: flex;
-  & > * {
-    margin-left: ${space(0.5)};
-  }
-`;
-
-type ActionButtonsProps = {
-  org: Organization;
-  app: SentryApp;
-
-  showDashboard: boolean;
-  showPublish: boolean;
-  showDelete: boolean;
-  onPublish?: () => void;
-  onDelete?: (app: SentryApp) => void;
-  // If you want to disable the publish or delete buttons, pass in a reason to display to the user in a tooltip
-  disablePublishReason?: string;
-  disableDeleteReason?: string;
-};
-const ActionButtons = ({
-  org,
-  app,
-  showDashboard,
-  showPublish,
-  showDelete,
-  onPublish,
-  onDelete,
-  disablePublishReason,
-  disableDeleteReason,
-}: ActionButtonsProps) => {
-  const appDashboardButton = (
-    <StyledButton
-      size="small"
-      icon="icon-stats"
-      to={`/settings/${org.slug}/developer-settings/${app.slug}/dashboard`}
-    >
-      {t('Dashboard')}
-    </StyledButton>
-  );
-
-  const publishRequestButton = (
-    <StyledButton
-      disabled={!!disablePublishReason}
-      title={disablePublishReason}
-      icon="icon-upgrade"
-      size="small"
-      onClick={onPublish}
-    >
-      {t('Publish')}
-    </StyledButton>
-  );
-
-  const deleteConfirmMessage = t(
-    `Deleting ${app.slug} will also delete any and all of its installations. \
-     This is a permanent action. Do you wish to continue?`
-  );
-  const deleteButton = disableDeleteReason ? (
-    <StyledButton disabled title={disableDeleteReason} size="small" icon="icon-trash" />
-  ) : (
-    <ConfirmDelete
-      message={deleteConfirmMessage}
-      confirmInput={app.slug}
-      priority="danger"
-      onConfirm={() => onDelete && onDelete(app)}
-    >
-      <StyledButton size="small" icon="icon-trash" />
-    </ConfirmDelete>
-  );
-
-  return (
-    <ButtonHolder>
-      {showDashboard && appDashboardButton}
-      {showPublish && publishRequestButton}
-      {showDelete && deleteButton}
-    </ButtonHolder>
-  );
-};

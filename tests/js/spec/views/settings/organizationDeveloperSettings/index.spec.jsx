@@ -19,8 +19,8 @@ describe('Organization Developer Settings', function() {
   });
   const routerContext = TestStubs.routerContext();
 
-  const publishButtonSelector = 'StyledButton[icon="icon-upgrade"]';
-  const deleteButtonSelector = 'StyledButton[icon="icon-trash"]';
+  const publishButtonSelector = 'StyledButton[aria-label="Publish"]';
+  const deleteButtonSelector = 'StyledButton[aria-label="Delete"]';
 
   beforeEach(() => {
     Client.clearMockResponses();
