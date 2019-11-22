@@ -31,15 +31,10 @@ class SnubaTSDB(BaseTSDB):
     will return empty results for unsupported models.
     """
 
-    project_filter_model_query_settings = {
-        model: SnubaModelQuerySettings(
-            snuba.Dataset.Outcomes, "project_id", "times_seen", [["reason", "=", reason]]
-        )
-        for reason, model in FILTER_STAT_KEYS_TO_VALUES.items()
-    }
-
-    # ``model_query_settings`` is a translation of TSDB models into required settings for querying snuba
-    other_model_query_settings = {
+    # ``non_outcomes_query_settings`` are all the query settings for for non outcomes based TSDB models.
+    # Single tenant reads Snuba for these models, and writes to DummyTSDB. It reads and writes to Redis for all the
+    # other models.
+    non_outcomes_query_settings = {
         TSDBModel.project: SnubaModelQuerySettings(snuba.Dataset.Events, "project_id", None, None),
         TSDBModel.group: SnubaModelQuerySettings(snuba.Dataset.Events, "issue", None, None),
         TSDBModel.release: SnubaModelQuerySettings(
@@ -60,6 +55,18 @@ class SnubaTSDB(BaseTSDB):
         TSDBModel.frequent_issues_by_project: SnubaModelQuerySettings(
             snuba.Dataset.Events, "project_id", "issue", None
         ),
+    }
+
+    # ``project_filter_model_query_settings`` and ``outcomes_partial_query_settings`` are all the TSDB models for
+    # outcomes
+    project_filter_model_query_settings = {
+        model: SnubaModelQuerySettings(
+            snuba.Dataset.Outcomes, "project_id", "times_seen", [["reason", "=", reason]]
+        )
+        for reason, model in FILTER_STAT_KEYS_TO_VALUES.items()
+    }
+
+    outcomes_partial_query_settings = {
         TSDBModel.organization_total_received: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,
             "org_id",
@@ -116,8 +123,11 @@ class SnubaTSDB(BaseTSDB):
         ),
     }
 
+    # ``model_query_settings`` is a translation of TSDB models into required settings for querying snuba
     model_query_settings = dict(
-        project_filter_model_query_settings.items() + other_model_query_settings.items()
+        project_filter_model_query_settings.items()
+        + outcomes_partial_query_settings.items()
+        + non_outcomes_query_settings.items()
     )
 
     # ``model_columns_being_upgraded`` are models that currently use Redis but are being
