@@ -1255,6 +1255,34 @@ describe('EventView.withUpdatedColumn()', function() {
 
       expect(eventView2).toMatchObject(nextState);
     });
+
+    it('using no provided table meta', function() {
+      // table meta may not be provided in the invalid query state;
+      // we will still want to be able to update columns
+
+      const eventView = new EventView(state);
+
+      const expected = {
+        ...state,
+        sorts: [{field: 'title', kind: 'desc'}],
+        fields: [{field: 'title', title: 'event title'}, state.fields[1]],
+      };
+
+      const newColumn = {
+        aggregation: '',
+        field: 'title',
+        fieldname: 'event title',
+      };
+
+      const eventView2 = eventView.withUpdatedColumn(0, newColumn, {});
+      expect(eventView2).toMatchObject(expected);
+
+      const eventView3 = eventView.withUpdatedColumn(0, newColumn);
+      expect(eventView3).toMatchObject(expected);
+
+      const eventView4 = eventView.withUpdatedColumn(0, newColumn, null);
+      expect(eventView4).toMatchObject(expected);
+    });
   });
 
   describe('update a column to a non-sortable column', function() {
@@ -1363,6 +1391,41 @@ describe('EventView.withDeletedColumn()', function() {
   });
 
   describe('deletes column, and use any remaining sortable column', function() {
+    it('using no provided table meta', function() {
+      // table meta may not be provided in the invalid query state;
+      // we will still want to be able to delete columns
+
+      const state2 = {
+        ...state,
+        fields: [
+          {field: 'title', title: 'title'},
+          {field: 'timestamp', title: 'timestamp'},
+          {field: 'count(id)', title: 'count(id)'},
+        ],
+        sorts: generateSorts(['timestamp']),
+      };
+
+      const eventView = new EventView(state2);
+
+      const expected = {
+        ...state,
+        sorts: generateSorts(['title']),
+        fields: [
+          {field: 'title', title: 'title'},
+          {field: 'count(id)', title: 'count(id)'},
+        ],
+      };
+
+      const eventView2 = eventView.withDeletedColumn(1, {});
+      expect(eventView2).toMatchObject(expected);
+
+      const eventView3 = eventView.withDeletedColumn(1);
+      expect(eventView3).toMatchObject(expected);
+
+      const eventView4 = eventView.withDeletedColumn(1, null);
+      expect(eventView4).toMatchObject(expected);
+    });
+
     it('has no remaining sortable column', function() {
       const eventView = new EventView(state);
 
