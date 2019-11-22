@@ -26,7 +26,6 @@ type LocationQuery = {
   utc?: string | string[];
   statsPeriod?: string | string[];
   cursor?: string | string[];
-  yAxis?: string | string[];
 };
 
 const EXTERNAL_QUERY_STRING_KEYS: Readonly<Array<keyof LocationQuery>> = [
