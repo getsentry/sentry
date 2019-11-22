@@ -4,16 +4,10 @@ import logging
 import pytest
 import six.moves
 
-from sentry.ingest.outcomes_consumer import (
-    get_outcomes_consumer,
-    mark_signal_sent,
-    is_signal_sent,
-    _get_tsdb_cache_key,
-    mark_tsdb_incremented_many,
-)
+from sentry.ingest.outcomes_consumer import get_outcomes_consumer, mark_signal_sent, is_signal_sent
 from sentry.signals import event_filtered, event_dropped
 from sentry.testutils.factories import Factories
-from sentry.utils.outcomes import Outcome
+from sentry.utils.outcomes import Outcome, _get_tsdb_cache_key, mark_tsdb_incremented_many
 from django.core.cache import cache
 from django.conf import settings
 from django.utils import timezone
