@@ -293,7 +293,7 @@ export const GridBodyCell = styled('td')`
   /* By default, a grid item cannot be smaller than the size of its content.
      We override this by setting min-width to be 0. */
   min-width: 0;
-  padding: ${space(2)} ${space(2)};
+  padding: ${space(1)} ${space(2)};
 
   background-color: ${p => p.theme.white};
   border-bottom: 1px solid ${p => p.theme.borderLight};
