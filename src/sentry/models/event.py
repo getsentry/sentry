@@ -496,13 +496,19 @@ class SnubaEvent(EventCommon):
     def get_minimal_user(self):
         from sentry.interfaces.user import User
 
+        if all(key in self.snuba_data for key in ["user_id", "email", "username", "ip_address"]):
+            user_id = self.snuba_data["user_id"]
+            email = self.snuba_data["email"]
+            username = self.snuba_data["username"]
+            ip_address = self.snuba_data["ip_address"]
+        else:
+            user_id = self.data["user_id"]
+            email = self.data["email"]
+            username = self.data["username"]
+            ip_address = self.data["ip_address"]
+
         return User.to_python(
-            {
-                "id": self.user_id,
-                "email": self.email,
-                "username": self.username,
-                "ip_address": self.ip_address,
-            }
+            {"id": user_id, "email": email, "username": username, "ip_address": ip_address}
         )
 
     # If the data for these is available from snuba, we assume
