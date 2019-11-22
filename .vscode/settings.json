@@ -67,5 +67,9 @@
   "python.linting.enabled": true,
   "python.linting.flake8Path": "${workspaceFolder}/.venv/bin/flake8",
   "python.linting.pycodestylePath": "${workspaceFolder}/.venv/bin/pep8",
-  "python.testing.pytestPath": "${workspaceFolder}/.venv/bin/pytest"
+  "python.testing.pytestPath": "${workspaceFolder}/.venv/bin/pytest",
+  "workbench.iconTheme": "material-icon-theme",
+  "breadcrumbs.enabled": false,
+  "workbench.colorTheme": "One Dark Pro",
+  "workbench.fontAliasing": "antialiased"
 }
