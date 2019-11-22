@@ -60,6 +60,20 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
         return self.get_stats(request, organization)
 
     def get_stats(self, request, organization):
+
+        should_cache = request.query_params.get("cache") == "1"
+
+        cache_key = cache_key_for_snuba_args(organization, request) if should_cache else ""
+
+        if should_cache:
+            snuba_data = cache.get(cache_key)
+
+            import logging
+
+            if snuba_data is not None:
+                logging.info("foo cache: %s", cache_key)
+                return Response(snuba_data, status=200)
+
         try:
             if features.has("organizations:events-v2", organization, actor=request.user):
                 params = self.get_filter_params(request, organization)
@@ -77,19 +91,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
         rollup = int(interval.total_seconds())
 
         snuba_args = self.get_field(request, snuba_args)
-
-        should_cache = request.query_params.get("cache") == "1"
-
-        cache_key = cache_key_for_snuba_args(organization, request) if should_cache else ""
-
-        if should_cache:
-            snuba_data = cache.get(cache_key)
-
-            import logging
-
-            if snuba_data is not None:
-                logging.info("foo cache: %s", cache_key)
-                return Response(snuba_data, status=200)
 
         result = snuba.transform_aliases_and_query(
             aggregations=snuba_args.get("aggregations"),
