@@ -468,17 +468,28 @@ describe('EventView.generateQueryStringObject()', function() {
 });
 
 describe('EventView.getEventsAPIPayload()', function() {
-  it('appends any additional conditions defined for view', function() {
+  it('generates the API payload', function() {
     const eventView = new EventView({
+      id: 34,
+      name: 'amazing query',
       fields: generateFields(['id']),
-      sorts: [],
-      tags: [],
+      sorts: generateSorts(['id']),
+      tags: ['project'],
       query: 'event.type:csp',
+      project: [567],
+      environment: ['prod'],
+      yAxis: 'users',
     });
 
-    const location = {};
-
-    expect(eventView.getEventsAPIPayload(location).query).toEqual('event.type:csp');
+    expect(eventView.getEventsAPIPayload({})).toEqual({
+      field: ['id'],
+      per_page: 50,
+      sort: '-id',
+      query: 'event.type:csp',
+      project: ['567'],
+      environment: ['prod'],
+      statsPeriod: '14d',
+    });
   });
 
   it('does not append query conditions in location', function() {
