@@ -1,6 +1,7 @@
 import React from 'react';
 import isEqual from 'lodash/isEqual';
 import {Location} from 'history';
+import styled from 'react-emotion';
 
 import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
@@ -9,6 +10,7 @@ import EventsRequest from 'app/views/events/utils/eventsRequest';
 import AreaChart from 'app/components/charts/areaChart';
 import {getInterval} from 'app/components/charts/utils';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
+import LoadingIndicator from 'app/components/loadingIndicator';
 
 import EventView from './eventView';
 
@@ -68,7 +70,11 @@ class MiniGraph extends React.Component<Props> {
       >
         {({loading, timeseriesData}) => {
           if (loading) {
-            return null;
+            return (
+              <LoadingContainer>
+                <LoadingIndicator mini />
+              </LoadingContainer>
+            );
           }
 
           const data = (timeseriesData || []).map(series => {
@@ -121,5 +127,13 @@ class MiniGraph extends React.Component<Props> {
     );
   }
 }
+
+const LoadingContainer = styled('div')`
+  height: 100px;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+`;
 
 export default withApi(MiniGraph);
