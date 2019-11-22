@@ -61,7 +61,8 @@
         {% if join_request_link %}
           <li class="join-request">
             <a href="{{ join_request_link }}">
-              {% include "sentry/partial/megaphone.html" %} Request to Join
+              {% include "sentry/partial/megaphone.html" %}
+              {% trans "Request to Join" %}
             </a>
           </li>
         {% endif %}
