@@ -15,7 +15,6 @@ type Props = {
 };
 
 export default class AddIntegration extends React.Component<Props> {
-  dialog: any | null;
   static propTypes = {
     children: PropTypes.func.isRequired,
     provider: PropTypes.object.isRequired,
@@ -34,7 +33,10 @@ export default class AddIntegration extends React.Component<Props> {
     this.dialog && this.dialog.close();
   }
 
+  dialog: any | null;
+
   computeCenteredWindow(width: number, height: number) {
+    //Taken from: https://stackoverflow.com/questions/4068373/center-a-popup-window-on-screen
     const screenLeft =
       window.screenLeft !== undefined ? window.screenLeft : window.screenX;
 
