@@ -548,9 +548,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         integration = Integration.objects.create(provider="example", name="Example")
         integration.add_organization(org, self.user)
-        group = self.create_group(
-            status=GroupStatus.UNRESOLVED, organization=org, first_seen=self.min_ago
-        )
+        group = self.create_group(status=GroupStatus.UNRESOLVED, first_seen=self.min_ago)
         self.create_event(group=group, datetime=self.min_ago)
 
         OrganizationIntegration.objects.filter(

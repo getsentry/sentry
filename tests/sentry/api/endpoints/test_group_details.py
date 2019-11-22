@@ -142,7 +142,7 @@ class GroupDetailsTest(APITestCase):
         superuser = self.create_user(is_superuser=True)
         self.login_as(user=superuser, superuser=True)
 
-        group = self.create_group(title="Oh no")
+        group = self.create_group()
         url = u"/api/0/issues/{}/".format(group.id)
         response = self.client.get(url, format="json")
 

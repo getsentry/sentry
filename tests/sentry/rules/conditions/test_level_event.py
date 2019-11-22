@@ -38,7 +38,7 @@ class LevelConditionTest(RuleTestCase):
         self.assertPasses(rule, event)
 
     def test_without_tag(self):
-        event = self.create_event(event_id="a" * 32, tags={})
+        event = self.create_event(event_id="a" * 32)
         rule = self.get_rule(data={"match": MatchType.EQUAL, "level": "30"})
         self.assertDoesNotPass(rule, event)
 

@@ -65,7 +65,7 @@ class SubscribeTest(TestCase):
 
     def test_actor_team(self):
         org = self.create_organization()
-        group = self.create_group(organization=org)
+        group = self.create_group()
         user = self.create_user()
         team = self.create_team(organization=org)
         self.create_member(
