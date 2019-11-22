@@ -52,98 +52,20 @@ export default class SentryApplicationRow extends React.PureComponent<Props> {
 
   static defaultProps = {
     showInstallationStatus: true,
+    showAppDashboardLink: false,
   };
 
   get isInternal() {
     return this.props.app.status === 'internal';
   }
 
-  renderUnpublishedAdminButtons() {
-    return (
-      <ButtonHolder>
-        {this.isInternal ? null : this.renderPublishRequest()}
-        {this.renderRemoveApp()}
-      </ButtonHolder>
-    );
+  // public but unpublished
+  get isUnpublished() {
+    return this.props.app.status === 'unpublished';
   }
 
-  renderDisabledPublishRequestButton(message: string) {
-    return (
-      <StyledButton disabled title={t(message)} size="small" icon="icon-upgrade">
-        {t('Publish')}
-      </StyledButton>
-    );
-  }
-
-  renderDisabledRemoveButton(message: string) {
-    return <Button disabled title={t(message)} size="small" icon="icon-trash" />;
-  }
-
-  renderAppDashboardLink() {
-    const {app, organization} = this.props;
-
-    return (
-      <Access isSuperuser>
-        <StyledButton
-          size="small"
-          icon="icon-stats"
-          to={`/settings/${organization.slug}/developer-settings/${app.slug}/dashboard`}
-        >
-          {t('Dashboard')}
-        </StyledButton>
-      </Access>
-    );
-  }
-
-  renderUnpublishedNonAdminButtons() {
-    return (
-      <ButtonHolder>
-        {this.renderDisabledPublishRequestButton(
-          'Organization owner permissions are required for this action.'
-        )}
-        {this.renderDisabledRemoveButton(
-          'Organization owner permissions are required for this action.'
-        )}
-      </ButtonHolder>
-    );
-  }
-
-  renderPublishedAppButtons() {
-    return (
-      <ButtonHolder>
-        {this.props.showAppDashboardLink && this.renderAppDashboardLink()}
-        {this.renderDisabledPublishRequestButton(
-          'Published integrations cannot be re-published.'
-        )}
-        {this.renderDisabledRemoveButton('Published integrations cannot be removed.')}
-      </ButtonHolder>
-    );
-  }
-
-  renderRemoveApp() {
-    const {app, onRemoveApp} = this.props;
-    const message = t(
-      `Deleting ${app.slug} will also delete any and all of its installations. \
-       This is a permanent action. Do you wish to continue?`
-    );
-    return (
-      <ConfirmDelete
-        message={message}
-        confirmInput={app.slug}
-        priority="danger"
-        onConfirm={() => onRemoveApp && onRemoveApp(app)}
-      >
-        <Button size="small" icon="icon-trash" />
-      </ConfirmDelete>
-    );
-  }
-
-  renderPublishRequest() {
-    return (
-      <StyledButton icon="icon-upgrade" size="small" onClick={this.handlePublish}>
-        {t('Publish')}
-      </StyledButton>
-    );
+  get isPublished() {
+    return this.props.app.status === 'published';
   }
 
   renderUninstallButton() {
@@ -237,28 +159,20 @@ export default class SentryApplicationRow extends React.PureComponent<Props> {
     );
   }
 
-  renderUnpublishedAppButtons() {
-    return (
-      <Access access={['org:admin']}>
-        {({hasAccess}) => (
-          <React.Fragment>
-            {hasAccess
-              ? this.renderUnpublishedAdminButtons()
-              : this.renderUnpublishedNonAdminButtons()}
-          </React.Fragment>
-        )}
-      </Access>
-    );
-  }
-
   linkToEdit() {
-    const {app, showInstallationStatus} = this.props;
+    const {showInstallationStatus} = this.props;
     // show the link if the app is internal or we are on the developer settings page
-    return app.status === 'internal' || !showInstallationStatus;
+    return this.isInternal || !showInstallationStatus;
   }
 
   renderButtons() {
-    const {app, showInstallationStatus} = this.props;
+    const {
+      showInstallationStatus,
+      organization,
+      app,
+      onRemoveApp,
+      showAppDashboardLink,
+    } = this.props;
     const isInstalled = this.isInstalled;
 
     //showInstallationStatus = true on integrations page
@@ -271,9 +185,41 @@ export default class SentryApplicationRow extends React.PureComponent<Props> {
       return isInstalled ? this.renderUninstallButton() : this.renderInstallButton();
     }
 
-    return app.status === 'published'
-      ? this.renderPublishedAppButtons()
-      : this.renderUnpublishedAppButtons();
+    return (
+      <Access access={['org:admin']}>
+        {({hasAccess}) => {
+          let disablePublishReason = '';
+          let disableDeleteReason = '';
+
+          // Publish & Delete buttons will always be disabled if the app is published
+          if (this.isPublished) {
+            disablePublishReason = t('Published integrations cannot be re-published.');
+            disableDeleteReason = t('Published integrations cannot be removed.');
+          } else if (!hasAccess) {
+            disablePublishReason = t(
+              'Organization owner permissions are required for this action.'
+            );
+            disableDeleteReason = t(
+              'Organization owner permissions are required for this action.'
+            );
+          }
+
+          return (
+            <ActionButtons
+              org={organization}
+              app={app}
+              showDashboard={!!showAppDashboardLink}
+              showPublish={!this.isInternal}
+              showDelete
+              onPublish={this.handlePublish}
+              onDelete={onRemoveApp}
+              disablePublishReason={disablePublishReason}
+              disableDeleteReason={disableDeleteReason}
+            />
+          );
+        }}
+      </Access>
+    );
   }
 
   render() {
@@ -395,3 +341,75 @@ const ButtonHolder = styled('div')`
     margin-left: ${space(0.5)};
   }
 `;
+
+type ActionButtonsProps = {
+  org: Organization;
+  app: SentryApp;
+
+  showDashboard: boolean;
+  showPublish: boolean;
+  showDelete: boolean;
+  onPublish?: () => void;
+  onDelete?: (app: SentryApp) => void;
+  // If you want to disable the publish or delete buttons, pass in a reason to display to the user in a tooltip
+  disablePublishReason?: string;
+  disableDeleteReason?: string;
+};
+const ActionButtons = ({
+  org,
+  app,
+  showDashboard,
+  showPublish,
+  showDelete,
+  onPublish,
+  onDelete,
+  disablePublishReason,
+  disableDeleteReason,
+}: ActionButtonsProps) => {
+  const appDashboardButton = (
+    <StyledButton
+      size="small"
+      icon="icon-stats"
+      to={`/settings/${org.slug}/developer-settings/${app.slug}/dashboard`}
+    >
+      {t('Dashboard')}
+    </StyledButton>
+  );
+
+  const publishRequestButton = (
+    <StyledButton
+      disabled={!!disablePublishReason}
+      title={disablePublishReason}
+      icon="icon-upgrade"
+      size="small"
+      onClick={onPublish}
+    >
+      {t('Publish')}
+    </StyledButton>
+  );
+
+  const deleteConfirmMessage = t(
+    `Deleting ${app.slug} will also delete any and all of its installations. \
+     This is a permanent action. Do you wish to continue?`
+  );
+  const deleteButton = disableDeleteReason ? (
+    <StyledButton disabled title={disableDeleteReason} size="small" icon="icon-trash" />
+  ) : (
+    <ConfirmDelete
+      message={deleteConfirmMessage}
+      confirmInput={app.slug}
+      priority="danger"
+      onConfirm={() => onDelete && onDelete(app)}
+    >
+      <StyledButton size="small" icon="icon-trash" />
+    </ConfirmDelete>
+  );
+
+  return (
+    <ButtonHolder>
+      {showDashboard && appDashboardButton}
+      {showPublish && publishRequestButton}
+      {showDelete && deleteButton}
+    </ButtonHolder>
+  );
+};
