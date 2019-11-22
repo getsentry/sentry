@@ -60,9 +60,7 @@ const isSortEqualToField = (
   field: Field,
   tableDataMeta: MetaType | undefined
 ): boolean => {
-  const sortKey = tableDataMeta
-    ? getSortKeyFromField(field, tableDataMeta)
-    : getSortKeyFromFieldWithoutMeta(field);
+  const sortKey = getSortKeyFromField(field, tableDataMeta);
   return sort.field === sortKey;
 };
 
@@ -70,9 +68,7 @@ const fieldToSort = (
   field: Field,
   tableDataMeta: MetaType | undefined
 ): Sort | undefined => {
-  const sortKey = tableDataMeta
-    ? getSortKeyFromField(field, tableDataMeta)
-    : getSortKeyFromFieldWithoutMeta(field);
+  const sortKey = getSortKeyFromField(field, tableDataMeta);
 
   if (!sortKey) {
     return void 0;
@@ -84,19 +80,17 @@ const fieldToSort = (
   };
 };
 
-function getSortKeyFromFieldWithoutMeta(field: Field): string | null {
+function getSortKeyFromField(
+  field: Field,
+  tableDataMeta: MetaType | undefined
+): string | null {
   const column = getAggregateAlias(field.field);
   if (SPECIAL_FIELDS.hasOwnProperty(column)) {
     return SPECIAL_FIELDS[column as keyof typeof SPECIAL_FIELDS].sortField;
   }
 
-  return column;
-}
-
-function getSortKeyFromField(field: Field, tableDataMeta: MetaType): string | null {
-  const column = getAggregateAlias(field.field);
-  if (SPECIAL_FIELDS.hasOwnProperty(column)) {
-    return SPECIAL_FIELDS[column as keyof typeof SPECIAL_FIELDS].sortField;
+  if (!tableDataMeta) {
+    return column;
   }
 
   if (FIELD_FORMATTERS.hasOwnProperty(tableDataMeta[column])) {
@@ -113,11 +107,7 @@ export function isFieldSortable(
   field: Field,
   tableDataMeta: MetaType | undefined
 ): boolean {
-  if (tableDataMeta) {
-    return !!getSortKeyFromField(field, tableDataMeta);
-  }
-
-  return !!getSortKeyFromFieldWithoutMeta(field);
+  return !!getSortKeyFromField(field, tableDataMeta);
 }
 
 const generateFieldAsString = (props: {aggregation: string; field: string}): string => {
@@ -341,7 +331,7 @@ class EventView {
 
     const sortKeys = fields
       .map(field => {
-        return getSortKeyFromFieldWithoutMeta(field);
+        return getSortKeyFromField(field, undefined);
       })
       .filter(
         (sortKey): sortKey is string => {
