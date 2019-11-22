@@ -42,7 +42,6 @@ def load_defaults():
     default_manager.register(models.CommitFileChange, BulkModelDeletionTask)
     default_manager.register(models.Dashboard, ModelDeletionTask)
     default_manager.register(models.EnvironmentProject, BulkModelDeletionTask)
-    default_manager.register(models.Event, defaults.EventDeletionTask)
     default_manager.register(models.EventUser, BulkModelDeletionTask)
     default_manager.register(models.Group, defaults.GroupDeletionTask)
     default_manager.register(models.GroupAssignee, BulkModelDeletionTask)
