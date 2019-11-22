@@ -120,21 +120,21 @@ exports[`Sentry App Installations displays all Apps owned by the Org 1`] = `
       p={2}
     >
       <Base
-        className="css-13p7dw9-PanelItem-SentryAppItem e6pby8e0"
+        className="css-13p7dw9-PanelItem-SentryAppItem e5fmmf40"
         data-test-id="sample-app"
         p={2}
       >
         <div
-          className="css-13p7dw9-PanelItem-SentryAppItem e6pby8e0"
+          className="css-13p7dw9-PanelItem-SentryAppItem e5fmmf40"
           data-test-id="sample-app"
           is={null}
         >
           <StyledFlex>
             <Base
-              className="css-14n192s-StyledFlex e6pby8e1"
+              className="css-14n192s-StyledFlex e5fmmf41"
             >
               <div
-                className="css-14n192s-StyledFlex e6pby8e1"
+                className="css-14n192s-StyledFlex e5fmmf41"
                 is={null}
               >
                 <PluginIcon
@@ -148,27 +148,27 @@ exports[`Sentry App Installations displays all Apps owned by the Org 1`] = `
                 </PluginIcon>
                 <SentryAppBox>
                   <Base
-                    className="css-161g25b-SentryAppBox e6pby8e2"
+                    className="css-161g25b-SentryAppBox e5fmmf42"
                   >
                     <div
-                      className="css-161g25b-SentryAppBox e6pby8e2"
+                      className="css-161g25b-SentryAppBox e5fmmf42"
                       is={null}
                     >
                       <SentryAppName
                         hideStatus={false}
                       >
                         <div
-                          className="css-4cu42i-SentryAppName e6pby8e4"
+                          className="css-4cu42i-SentryAppName e5fmmf44"
                         >
                           Sample App
                         </div>
                       </SentryAppName>
                       <SentryAppDetails>
                         <Base
-                          className="css-f0t6d-SentryAppDetails e6pby8e3"
+                          className="css-f0t6d-SentryAppDetails e5fmmf43"
                         >
                           <div
-                            className="css-f0t6d-SentryAppDetails e6pby8e3"
+                            className="css-f0t6d-SentryAppDetails e5fmmf43"
                             is={null}
                           >
                             <StatusIndicator
@@ -176,7 +176,7 @@ exports[`Sentry App Installations displays all Apps owned by the Org 1`] = `
                               status="Not Installed"
                             >
                               <Component
-                                className="css-tr2f8g-StatusIndicator e6pby8e7"
+                                className="css-tr2f8g-StatusIndicator e5fmmf47"
                                 isInternal={false}
                                 status="Not Installed"
                               >
@@ -203,7 +203,7 @@ exports[`Sentry App Installations displays all Apps owned by the Org 1`] = `
                                         />
                                       </CircleIndicator>
                                       <div
-                                        className="css-tr2f8g-StatusIndicator e6pby8e7"
+                                        className="css-tr2f8g-StatusIndicator e5fmmf47"
                                       >
                                         Not Installed
                                       </div>
@@ -219,14 +219,14 @@ exports[`Sentry App Installations displays all Apps owned by the Org 1`] = `
                               to=""
                             >
                               <Link
-                                className="css-u3fgwp-StyledLink e6pby8e5"
+                                className="css-u3fgwp-StyledLink e5fmmf45"
                                 onClick={[Function]}
                                 onlyActiveOnIndex={false}
                                 style={Object {}}
                                 to=""
                               >
                                 <a
-                                  className="css-u3fgwp-StyledLink e6pby8e5"
+                                  className="css-u3fgwp-StyledLink e5fmmf45"
                                   onClick={[Function]}
                                   style={Object {}}
                                 >
