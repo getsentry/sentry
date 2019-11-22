@@ -551,6 +551,8 @@ class EventView {
       fieldnames: this.getFieldNames(),
       sort: encodeSorts(this.sorts),
       tag: this.tags,
+      environment: this.environment,
+      project: this.project,
       query: this.query,
       yAxis: this.yAxis,
     };
