@@ -48,9 +48,7 @@ Sentry.init({
     }),
   ],
 });
-setTimeout(() => {
-  fetch('http://localhost:8000/api/0/internal/health/');
-}, 100);
+
 if (window.__SENTRY__USER) {
   Sentry.setUser(window.__SENTRY__USER);
 }
