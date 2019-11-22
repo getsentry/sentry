@@ -101,8 +101,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         results).
 
         The ``statsPeriod`` parameter can be used to select the timeline
-        stats which should be present. Possible values are: '' (disable),
-        '24h', '14d'
+        stats which should be present. Possible values are: ``""`` (disable),
+        ``"24h"``, ``"14d"``
 
         :qparam string statsPeriod: an optional stat period (can be one of
                                     ``"24h"``, ``"14d"``, and ``""``).
@@ -115,6 +115,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         :qparam querystring query: an optional Sentry structured search
                                    query.  If not provided an implied
                                    ``"is:unresolved"`` is assumed.)
+        :qparam string environment: this restricts the issues to ones containing
+                                    events from this environment
         :pparam string organization_slug: the slug of the organization the
                                           issues belong to.
         :pparam string project_slug: the slug of the project the issues
