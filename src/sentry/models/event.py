@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import six
 import string
+import warnings
 import pytz
 
 from collections import OrderedDict
@@ -13,7 +14,7 @@ from hashlib import md5
 
 from semaphore.processing import StoreNormalizer
 
-from sentry import eventtypes
+from sentry import eventtypes, nodestore
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedIntegerField,
@@ -22,7 +23,7 @@ from sentry.db.models import (
     NodeField,
     sane_repr,
 )
-from sentry.db.models.manager import EventManager
+from sentry.db.models.manager import BaseManager
 from sentry.interfaces.base import get_interfaces
 from sentry.utils import json
 from sentry.utils.cache import memoize
@@ -84,8 +85,13 @@ class EventCommon(object):
 
     @group.setter
     def group(self, group):
-        self.group_id = group.id
-        self._group_cache = group
+        # guard against None to not fail on AttributeError
+        # otherwise Django 1.10 will swallow it in db.models.base init, but
+        # consequently fail to remove from kwargs, and you'll get the red herring
+        # TypeError: 'group' is an invalid keyword argument for this function.
+        if group is not None:
+            self.group_id = group.id
+            self._group_cache = group
 
     @property
     def project(self):
@@ -342,7 +348,6 @@ class EventCommon(object):
         data["platform"] = self.platform
         data["message"] = self.real_message
         data["datetime"] = self.datetime
-        data["time_spent"] = self.time_spent
         data["tags"] = [(k.split("sentry:", 1)[-1], v) for (k, v) in self.tags]
         for k, v in sorted(six.iteritems(self.data)):
             if k in data:
@@ -361,6 +366,12 @@ class EventCommon(object):
         data["location"] = self.location
 
         return data
+
+    def bind_node_data(self):
+        node_id = Event.generate_node_id(self.project_id, self.event_id)
+        node_data = nodestore.get(node_id) or {}
+        ref = self.data.get_ref(self)
+        self.data.bind_data(node_data, ref=ref)
 
     # ============================================
     # DEPRECATED
@@ -382,6 +393,14 @@ class EventCommon(object):
             return self.group.get_level_display()
         else:
             return None
+
+    # TODO: This is currently used in the Twilio and Flowdock plugins
+    # Remove this after usage has been removed there.
+    def error(self):  # TODO why is this not a property?
+        warnings.warn("Event.error is deprecated, use Event.title", DeprecationWarning)
+        return self.title
+
+    error.short_description = _("error")
 
 
 class SnubaEvent(EventCommon):
@@ -536,10 +555,6 @@ class SnubaEvent(EventCommon):
         return parse_date(self.timestamp).replace(tzinfo=pytz.utc)
 
     @property
-    def time_spent(self):
-        return None
-
-    @property
     def message(self):
         if "message" in self.snuba_data:
             return self.snuba_data["message"]
@@ -586,7 +601,7 @@ class Event(EventCommon, Model):
         skip_nodestore_save=True,
     )
 
-    objects = EventManager()
+    objects = BaseManager()
 
     class Meta:
         app_label = "sentry"

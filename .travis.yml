@@ -171,7 +171,7 @@ matrix:
     # allowed to fail
     - <<: *acceptance_default
       name: '[Django 1.10] Acceptance'
-      env: DJANGO_VERSION=">=1.10,<1.11" TEST_SUITE=acceptance USE_SNUBA=1
+      env: DJANGO_VERSION=">=1.10,<1.11" TEST_SUITE=acceptance USE_SNUBA=1 PERCY_ENABLE=0
 
     # allowed to fail
     - <<: *acceptance_default

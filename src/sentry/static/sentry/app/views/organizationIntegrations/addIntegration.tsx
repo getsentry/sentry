@@ -4,8 +4,19 @@ import queryString from 'query-string';
 
 import {t} from 'app/locale';
 import IndicatorStore from 'app/stores/indicatorStore';
+import {IntegrationProvider, Integration} from 'app/types';
 
-export default class AddIntegration extends React.Component {
+type Props = {
+  children: (
+    openDialog: (urlParams?: {[key: string]: string}) => void
+  ) => React.ReactNode;
+  provider: IntegrationProvider;
+  onInstall: (data: Integration) => void;
+  reinstallId?: string;
+  account?: string;
+};
+
+export default class AddIntegration extends React.Component<Props> {
   static propTypes = {
     children: PropTypes.func.isRequired,
     provider: PropTypes.object.isRequired,
@@ -15,7 +26,6 @@ export default class AddIntegration extends React.Component {
   };
 
   componentDidMount() {
-    this.dialog = null;
     window.addEventListener('message', this.didReceiveMessage);
   }
 
@@ -24,10 +34,14 @@ export default class AddIntegration extends React.Component {
     this.dialog && this.dialog.close();
   }
 
-  computeCenteredWindow(width, height) {
-    const screenLeft = window.screenLeft !== undefined ? window.screenLeft : screen.left;
+  dialog: Window | null = null;
 
-    const screenTop = window.screenTop !== undefined ? window.screenTop : screen.top;
+  computeCenteredWindow(width: number, height: number) {
+    //Taken from: https://stackoverflow.com/questions/4068373/center-a-popup-window-on-screen
+    const screenLeft =
+      window.screenLeft !== undefined ? window.screenLeft : window.screenX;
+
+    const screenTop = window.screenTop !== undefined ? window.screenTop : window.screenY;
 
     const innerWidth = window.innerWidth
       ? window.innerWidth
@@ -47,12 +61,12 @@ export default class AddIntegration extends React.Component {
     return {left, top};
   }
 
-  openDialog = urlParams => {
+  openDialog = (urlParams?: {[key: string]: string}) => {
     const name = 'sentryAddIntegration';
     const {url, width, height} = this.props.provider.setupDialog;
     const {left, top} = this.computeCenteredWindow(width, height);
 
-    const query = {...urlParams};
+    const query: {[key: string]: string} = {...urlParams};
 
     if (this.props.reinstallId) {
       query.reinstall_id = this.props.reinstallId;
@@ -66,10 +80,10 @@ export default class AddIntegration extends React.Component {
     const opts = `scrollbars=yes,width=${width},height=${height},top=${top},left=${left}`;
 
     this.dialog = window.open(installUrl, name, opts);
-    this.dialog.focus();
+    this.dialog && this.dialog.focus();
   };
 
-  didReceiveMessage = message => {
+  didReceiveMessage = (message: MessageEvent) => {
     if (message.origin !== document.location.origin) {
       return;
     }

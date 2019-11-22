@@ -1,55 +1,51 @@
-import React from "react";
-import ReactDOM from "react-dom";
-import PropTypes from "prop-types";
+import $ from 'jquery';
+import React from 'react';
+import ReactDOM from 'react-dom';
+import PropTypes from 'prop-types';
 
 const ASPECT_RATIO = 16 / 9;
 
 class SessionStackContextType extends React.Component {
-  static propTypes() {
-    return {
-      alias: PropTypes.string.isRequired,
-      data: PropTypes.object.isRequired
-    };
-  }
+  propTypes = {
+    data: PropTypes.object.isRequired,
+  };
 
-  constructor(props) {
-    super(props);
-    this.state = {
-      showIframe: false
-    };
-  }
+  state = {
+    showIframe: false,
+  };
 
   componentDidMount() {
+    // eslint-disable-next-line react/no-find-dom-node
     this.parentNode = ReactDOM.findDOMNode(this).parentNode;
-    window.addEventListener("resize", () => this.setIframeSize(), false);
+    window.addEventListener('resize', () => this.setIframeSize(), false);
     this.setIframeSize();
   }
 
   componentWillUnmount() {
-    window.removeEventListener("resize", () => this.setIframeSize(), false);
+    window.removeEventListener('resize', () => this.setIframeSize(), false);
   }
 
   setIframeSize() {
     if (!this.showIframe) {
-      let parentWidth = $(this.parentNode).width();
+      const parentWidth = $(this.parentNode).width();
 
       this.setState({
         width: parentWidth,
-        height: parentWidth / ASPECT_RATIO
+        height: parentWidth / ASPECT_RATIO,
       });
     }
   }
 
   playSession() {
     this.setState({
-      showIframe: true
+      showIframe: true,
     });
 
     this.setIframeSize();
   }
 
   render() {
-    let { session_url } = this.props.data;
+    const {session_url} = this.props.data;
 
     if (!session_url) {
       return <h4>Session not found.</h4>;
@@ -78,8 +74,6 @@ class SessionStackContextType extends React.Component {
   }
 }
 
-SessionStackContextType.getTitle = function(value) {
-  return "SessionStack";
-};
+SessionStackContextType.getTitle = () => 'SessionStack';
 
 export default SessionStackContextType;

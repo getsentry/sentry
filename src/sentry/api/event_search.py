@@ -684,17 +684,27 @@ FIELD_ALIASES = {
     # Long term these will become more complex functions but these are
     # field aliases.
     "apdex": {"result_type": "number", "aggregations": [["apdex(duration, 300)", "", "apdex"]]},
+    "impact": {
+        "result_type": "number",
+        "aggregations": [
+            [
+                "(1 - ((countIf(duration < 300) + (countIf((duration > 300) AND (duration < 1200)) / 2)) / count())) + ((1 - 1 / sqrt(uniq(user))) * 3)",
+                "",
+                "impact",
+            ]
+        ],
+    },
     "p75": {
         "result_type": "duration",
-        "aggregations": [["quantileTiming(0.75)(duration)", "", "p75"]],
+        "aggregations": [["quantile(0.75)(duration)", "", "p75"]],
     },
     "p95": {
         "result_type": "duration",
-        "aggregations": [["quantileTiming(0.95)(duration)", "", "p95"]],
+        "aggregations": [["quantile(0.95)(duration)", "", "p95"]],
     },
     "p99": {
         "result_type": "duration",
-        "aggregations": [["quantileTiming(0.99)(duration)", "", "p99"]],
+        "aggregations": [["quantile(0.99)(duration)", "", "p99"]],
     },
 }
 
