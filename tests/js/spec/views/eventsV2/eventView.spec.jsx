@@ -1255,6 +1255,34 @@ describe('EventView.withUpdatedColumn()', function() {
 
       expect(eventView2).toMatchObject(nextState);
     });
+
+    it('using no provided table meta', function() {
+      // table meta may not be provided in the invalid query state;
+      // we will still want to be able to update columns
+
+      const eventView = new EventView(state);
+
+      const expected = {
+        ...state,
+        sorts: [{field: 'title', kind: 'desc'}],
+        fields: [{field: 'title', title: 'event title'}, state.fields[1]],
+      };
+
+      const newColumn = {
+        aggregation: '',
+        field: 'title',
+        fieldname: 'event title',
+      };
+
+      const eventView2 = eventView.withUpdatedColumn(0, newColumn, {});
+      expect(eventView2).toMatchObject(expected);
+
+      const eventView3 = eventView.withUpdatedColumn(0, newColumn);
+      expect(eventView3).toMatchObject(expected);
+
+      const eventView4 = eventView.withUpdatedColumn(0, newColumn, null);
+      expect(eventView4).toMatchObject(expected);
+    });
   });
 
   describe('update a column to a non-sortable column', function() {

@@ -689,7 +689,7 @@ class EventView {
       field: string;
       fieldname: string;
     },
-    tableDataMeta: MetaType
+    tableDataMeta: MetaType | undefined
   ): EventView {
     const {field, aggregation, fieldname} = updatedColumn;
 
@@ -703,6 +703,10 @@ class EventView {
     if (!updateField && !updateFieldName) {
       return this;
     }
+
+    // ensure tableDataMeta is non-empty
+    tableDataMeta =
+      tableDataMeta && Object.keys(tableDataMeta).length > 0 ? tableDataMeta : undefined;
 
     const newEventView = this.clone();
 
