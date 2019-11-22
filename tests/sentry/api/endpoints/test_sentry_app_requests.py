@@ -142,3 +142,55 @@ class GetSentryAppRequestsTest(SentryAppRequestsTest):
         assert "organization" not in response.data[0]
         assert response.data[0]["sentryAppSlug"] == self.internal_app.slug
         assert response.data[0]["responseCode"] == 200
+
+    def test_event_type_filter(self):
+        self.login_as(user=self.user)
+        buffer = SentryAppWebhookRequestsBuffer(self.published_app)
+        buffer.add_request(
+            response_code=200,
+            org_id=self.org.id,
+            event="issue.assigned",
+            url=self.published_app.webhook_url,
+        )
+
+        url = reverse("sentry-api-0-sentry-app-requests", args=[self.published_app.slug])
+        response1 = self.client.get("{}?eventType=issue.created".format(url), format="json")
+        assert response1.status_code == 200
+        assert len(response1.data) == 0
+
+        response2 = self.client.get("{}?eventType=issue.assigned".format(url), format="json")
+        assert response2.status_code == 200
+        assert len(response2.data) == 1
+
+    def test_invalid_event_type(self):
+        self.login_as(user=self.user)
+
+        url = reverse("sentry-api-0-sentry-app-requests", args=[self.published_app.slug])
+        response = self.client.get("{}?eventType=invalid_type".format(url), format="json")
+
+        assert response.status_code == 400
+
+    def test_errors_only_filter(self):
+        self.login_as(user=self.user)
+        buffer = SentryAppWebhookRequestsBuffer(self.published_app)
+        buffer.add_request(
+            response_code=200,
+            org_id=self.org.id,
+            event="issue.assigned",
+            url=self.published_app.webhook_url,
+        )
+        buffer.add_request(
+            response_code=500,
+            org_id=self.org.id,
+            event="issue.assigned",
+            url=self.published_app.webhook_url,
+        )
+
+        url = reverse("sentry-api-0-sentry-app-requests", args=[self.published_app.slug])
+        errors_only_response = self.client.get("{}?errorsOnly=true".format(url), format="json")
+        assert errors_only_response.status_code == 200
+        assert len(errors_only_response.data) == 1
+
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200
+        assert len(response.data) == 2

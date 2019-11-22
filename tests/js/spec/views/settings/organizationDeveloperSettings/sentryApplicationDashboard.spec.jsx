@@ -27,7 +27,14 @@ describe('Sentry Application Dashboard', function() {
       sentryApp = TestStubs.SentryApp({
         status: 'published',
         schema: {
-          elements: [{type: 'stacktrace-link', uri: '/test'}, {type: 'issue-link'}],
+          elements: [
+            {type: 'stacktrace-link', uri: '/test'},
+            {
+              type: 'issue-link',
+              create: {uri: '/test', required_fields: []},
+              link: {uri: '/test', required_fields: []},
+            },
+          ],
         },
       });
       request = TestStubs.SentryAppWebhookRequest();
@@ -127,7 +134,7 @@ describe('Sentry Application Dashboard', function() {
 
       expect(wrapper.find('PanelBody').exists('PanelItem')).toBeFalsy();
       expect(wrapper.find('EmptyMessage').text()).toEqual(
-        expect.stringContaining('No requests found.')
+        expect.stringContaining('No requests found in the last 30 days.')
       );
     });
 
@@ -240,7 +247,7 @@ describe('Sentry Application Dashboard', function() {
 
       expect(wrapper.find('PanelBody').exists('PanelItem')).toBeFalsy();
       expect(wrapper.find('EmptyMessage').text()).toEqual(
-        expect.stringContaining('No requests found.')
+        expect.stringContaining('No requests found in the last 30 days.')
       );
     });
 

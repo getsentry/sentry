@@ -423,6 +423,29 @@ export type WebhookEvent = 'issue' | 'error';
 
 export type Scope = typeof API_SCOPES[number];
 
+export type SentryAppSchemaIssueLink = {
+  type: 'issue-link';
+  create: {
+    uri: string;
+    required_fields: any[];
+    optional_fields?: any[];
+  };
+  link: {
+    uri: string;
+    required_fields: any[];
+    optional_fields?: any[];
+  };
+};
+
+export type SentryAppSchemaStacktraceLink = {
+  type: 'stacktrace-link';
+  uri: string;
+};
+
+export type SentryAppSchemaElement =
+  | SentryAppSchemaIssueLink
+  | SentryAppSchemaStacktraceLink;
+
 export type SentryApp = {
   status: 'unpublished' | 'published' | 'internal';
   scopes: Scope[];
@@ -434,7 +457,7 @@ export type SentryApp = {
   author: string;
   events: WebhookEvent[];
   schema: {
-    elements?: object[]; //TODO(ts)
+    elements?: SentryAppSchemaElement[];
   };
   //possible null params
   webhookUrl: string | null;
