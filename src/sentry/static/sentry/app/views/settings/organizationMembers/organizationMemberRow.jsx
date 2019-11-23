@@ -96,7 +96,7 @@ export default class OrganizationMemberRow extends React.PureComponent {
     const showResendButton = pending || needsSso;
 
     return (
-      <StyledPanelItem>
+      <StyledPanelItem data-test-id={email}>
         <MemberHeading>
           <Avatar size={32} user={user ? user : {id: email, email}} />
           <MemberDescription to={detailsUrl}>
@@ -114,7 +114,7 @@ export default class OrganizationMemberRow extends React.PureComponent {
               {expired ? t('Expired Invite') : tct('Invited [roleName]', {roleName})}
             </InvitedRole>
           ) : (
-            t(roleName)
+            roleName
           )}
         </div>
 

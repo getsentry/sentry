@@ -7,13 +7,9 @@ import ConfigStore from 'app/stores/configStore';
 import OrganizationMembers from 'app/views/settings/organizationMembers/organizationMembersList';
 import OrganizationsStore from 'app/stores/organizationsStore';
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
-import {resendMemberInvite} from 'app/actionCreators/members';
 
 jest.mock('app/api');
 jest.mock('app/actionCreators/indicator');
-jest.mock('app/actionCreators/members', () => ({
-  resendMemberInvite: jest.fn(),
-}));
 
 describe('OrganizationMembers', function() {
   const members = TestStubs.Members();
@@ -271,7 +267,15 @@ describe('OrganizationMembers', function() {
     expect(OrganizationsStore.getAll()).toEqual([organization]);
   });
 
-  it('can re-send invite to member', async function() {
+  it('can re-send SSO link to member', async function() {
+    const inviteMock = MockApiClient.addMockResponse({
+      url: `/organizations/org-id/members/${members[0].id}/`,
+      method: 'PUT',
+      body: {
+        id: '1234',
+      },
+    });
+
     const wrapper = mountWithTheme(
       <OrganizationMembers
         {...defaultProps}
@@ -282,12 +286,39 @@ describe('OrganizationMembers', function() {
       TestStubs.routerContext([{organization}])
     );
 
-    expect(resendMemberInvite).not.toHaveBeenCalled();
+    expect(inviteMock).not.toHaveBeenCalled();
+
+    wrapper.find('StyledButton[aria-label="Resend SSO link"]').simulate('click');
+
+    await tick();
+    expect(inviteMock).toHaveBeenCalled();
+  });
+
+  it('can re-send invite to member', async function() {
+    const inviteMock = MockApiClient.addMockResponse({
+      url: `/organizations/org-id/members/${members[1].id}/`,
+      method: 'PUT',
+      body: {
+        id: '1234',
+      },
+    });
+
+    const wrapper = mountWithTheme(
+      <OrganizationMembers
+        {...defaultProps}
+        params={{
+          orgId: 'org-id',
+        }}
+      />,
+      TestStubs.routerContext([{organization}])
+    );
+
+    expect(inviteMock).not.toHaveBeenCalled();
 
     wrapper.find('StyledButton[aria-label="Resend invite"]').simulate('click');
 
     await tick();
-    expect(resendMemberInvite).toHaveBeenCalled();
+    expect(inviteMock).toHaveBeenCalled();
   });
 
   it('can search organization members', async function() {
