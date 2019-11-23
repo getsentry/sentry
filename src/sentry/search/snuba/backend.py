@@ -132,6 +132,7 @@ class SnubaSearchBackendBase(SearchBackend):
         date_from=None,
         date_to=None,
     ):
+        print ("in backend!", projects)
         search_filters = search_filters if search_filters is not None else []
 
         # ensure projects are from same org
@@ -212,6 +213,8 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
     def _initialize_group_queryset(
         self, projects, environments, retention_window_start, search_filters
     ):
+        print ("projects:", projects)
+        print ("environments:", environments)
         group_queryset = Group.objects.filter(project__in=projects).exclude(
             status__in=[
                 GroupStatus.PENDING_DELETION,
@@ -327,6 +330,7 @@ class GroupsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
     def build_group_queryset(
         self, search_filters, environments, projects, retention_window_start, *args, **kwargs
     ):
+        print ("build_group_queryset", projects)
         search_postgres = False
 
         for search_filter in search_filters:
@@ -345,7 +349,7 @@ class GroupsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
 
         if search_postgres is True:
             group_queryset = self._build_group_queryset(
-                projects, environments, retention_window_start, search_filters, *args, **kwargs
+                search_filters, environments, projects, retention_window_start, *args, **kwargs
             )
         else:
             group_queryset = None
@@ -369,6 +373,8 @@ class GroupsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
     def _initialize_group_queryset(
         self, projects, environments, retention_window_start, search_filters
     ):
+        print ("projects:", projects)
+        print ("environments:", environments)
         group_queryset = Group.objects.filter(project__in=projects).exclude(
             status__in=[
                 GroupStatus.PENDING_DELETION,
@@ -376,6 +382,7 @@ class GroupsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
                 GroupStatus.PENDING_MERGE,
             ]
         )
+        print ("meow")
 
         if retention_window_start:
             group_queryset = group_queryset.filter(last_seen__gte=retention_window_start)

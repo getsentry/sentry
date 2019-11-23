@@ -52,6 +52,15 @@ OVERRIDE_OPTIONS = {
 SENTRY_SNUBA_MAP = {
     col.value.alias: col.value.event_name for col in Columns if col.value.event_name is not None
 }
+GROUPS_SENTRY_SNUBA_MAP = {
+    "status": "groups.status",
+    "active_at": "groups.active_at",
+    "first_seen": "groups.first_seen",
+    "last_seen": "groups.last_seen",
+    "first_release": "groups.first_release_id",
+    "timestamp": "events.timestamp",
+    "events.issue": "events.issue",
+}
 TRANSACTIONS_SENTRY_SNUBA_MAP = {
     col.value.alias: col.value.transaction_name
     for col in Columns
@@ -73,6 +82,7 @@ DATASETS = {
     Dataset.Events: SENTRY_SNUBA_MAP,
     Dataset.Transactions: TRANSACTIONS_SENTRY_SNUBA_MAP,
     Dataset.Discover: DISCOVER_COLUMN_MAP,
+    Dataset.Groups: GROUPS_SENTRY_SNUBA_MAP,
 }
 
 # Store the internal field names to save work later on.
@@ -82,6 +92,7 @@ DATASET_FIELDS = {
     Dataset.Events: list(SENTRY_SNUBA_MAP.values()) + ["group_id"],
     Dataset.Transactions: list(TRANSACTIONS_SENTRY_SNUBA_MAP.values()),
     Dataset.Discover: list(DISCOVER_COLUMN_MAP.values()),
+    Dataset.Groups: list(GROUPS_SENTRY_SNUBA_MAP.values()),
 }
 
 
@@ -622,7 +633,12 @@ def _prepare_query_params(query_params):
             query_params.filter_keys, is_grouprelease=query_params.is_grouprelease
         )
 
-    if query_params.dataset in [Dataset.Events, Dataset.Transactions, Dataset.Discover]:
+    if query_params.dataset in [
+        Dataset.Events,
+        Dataset.Transactions,
+        Dataset.Discover,
+        Dataset.Groups,
+    ]:
         (organization_id, params_to_update) = get_query_params_to_update_for_projects(query_params)
     elif query_params.dataset in [Dataset.Outcomes, Dataset.OutcomesRaw]:
         (organization_id, params_to_update) = get_query_params_to_update_for_organizations(
