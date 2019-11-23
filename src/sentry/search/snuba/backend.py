@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
+from abc import ABCMeta, abstractmethod
 import functools
+import six
 from datetime import timedelta
 
 from django.db.models import Q
@@ -8,9 +10,9 @@ from django.utils import timezone
 
 from sentry import quotas
 from sentry.api.event_search import InvalidSearchQuery
-from sentry.models import Release, GroupEnvironment
+from sentry.models import Release, GroupEnvironment, Group, GroupStatus, GroupSubscription
 from sentry.search.base import SearchBackend
-from sentry.search.snuba.executors import PostgresSnubaQueryExecutor
+from sentry.search.snuba.executors import PostgresSnubaQueryExecutor, SnubaOnlyQueryExecutor
 
 
 def assigned_to_filter(actor, projects):
@@ -115,7 +117,8 @@ class QuerySetBuilder(object):
         return queryset
 
 
-class EventsDatasetSnubaSearchBackend(SearchBackend):
+@six.add_metaclass(ABCMeta)
+class SnubaSearchBackendBase(SearchBackend):
     def query(
         self,
         projects,
@@ -129,8 +132,6 @@ class EventsDatasetSnubaSearchBackend(SearchBackend):
         date_from=None,
         date_to=None,
     ):
-        from sentry.models import Group, GroupStatus, GroupSubscription
-
         search_filters = search_filters if search_filters is not None else []
 
         # ensure projects are from same org
@@ -140,6 +141,77 @@ class EventsDatasetSnubaSearchBackend(SearchBackend):
         if paginator_options is None:
             paginator_options = {}
 
+        # filter out groups which are beyond the retention period
+        retention = quotas.get_event_retention(organization=projects[0].organization)
+        if retention:
+            retention_window_start = timezone.now() - timedelta(days=retention)
+        else:
+            retention_window_start = None
+
+        group_queryset = self.build_group_queryset(
+            projects=projects,
+            environments=environments,
+            search_filters=search_filters,
+            retention_window_start=retention_window_start,
+            date_from=date_from,
+            date_to=date_to,
+        )
+
+        query_executor = self.get_query_executor(
+            group_queryset=group_queryset,
+            projects=projects,
+            environments=environments,
+            search_filters=search_filters,
+            date_from=date_from,
+            date_to=date_to,
+        )
+
+        return query_executor.query(
+            projects=projects,
+            retention_window_start=retention_window_start,
+            group_queryset=group_queryset,
+            environments=environments,
+            sort_by=sort_by,
+            limit=limit,
+            cursor=cursor,
+            count_hits=count_hits,
+            paginator_options=paginator_options,
+            search_filters=search_filters,
+            date_from=date_from,
+            date_to=date_to,
+        )
+
+    @abstractmethod
+    def build_group_queryset(self, *args, **kwargs):
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_query_executor(self, *args, **kwargs):
+        raise NotImplementedError
+
+
+class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
+    def get_query_executor(self, *args, **kwargs):
+        return PostgresSnubaQueryExecutor()
+
+    def build_group_queryset(
+        self, projects, environments, search_filters, retention_window_start, *args, **kwargs
+    ):
+
+        group_queryset = self._initialize_group_queryset(
+            projects, environments, retention_window_start, search_filters
+        )
+        qs_builder_conditions = self._get_queryset_conditions(
+            projects, environments, search_filters
+        )
+        group_queryset = QuerySetBuilder(qs_builder_conditions).build(
+            group_queryset, search_filters
+        )
+        return group_queryset
+
+    def _initialize_group_queryset(
+        self, projects, environments, retention_window_start, search_filters
+    ):
         group_queryset = Group.objects.filter(project__in=projects).exclude(
             status__in=[
                 GroupStatus.PENDING_DELETION,
@@ -148,7 +220,18 @@ class EventsDatasetSnubaSearchBackend(SearchBackend):
             ]
         )
 
-        qs_builder_conditions = {
+        if retention_window_start:
+            group_queryset = group_queryset.filter(last_seen__gte=retention_window_start)
+
+        if environments is not None:
+            environment_ids = [environment.id for environment in environments]
+            group_queryset = group_queryset.filter(
+                groupenvironment__environment_id__in=environment_ids
+            )
+        return group_queryset
+
+    def _get_queryset_conditions(self, projects, environments, search_filters):
+        queryset_conditions = {
             "status": QCallbackCondition(lambda status: Q(status=status)),
             "bookmarked_by": QCallbackCondition(
                 lambda user: Q(bookmark_set__project__in=projects, bookmark_set__user=user)
@@ -169,29 +252,13 @@ class EventsDatasetSnubaSearchBackend(SearchBackend):
             "active_at": ScalarCondition("active_at"),
         }
 
-        group_queryset = QuerySetBuilder(qs_builder_conditions).build(
-            group_queryset, search_filters
-        )
-        # filter out groups which are beyond the retention period
-        retention = quotas.get_event_retention(organization=projects[0].organization)
-        if retention:
-            retention_window_start = timezone.now() - timedelta(days=retention)
-        else:
-            retention_window_start = None
-        # TODO: This could be optimized when building querysets to identify
-        # criteria that are logically impossible (e.g. if the upper bound
-        # for last seen is before the retention window starts, no results
-        # exist.)
-        if retention_window_start:
-            group_queryset = group_queryset.filter(last_seen__gte=retention_window_start)
-
         # TODO: It's possible `first_release` could be handled by Snuba.
         if environments is not None:
             environment_ids = [environment.id for environment in environments]
-            group_queryset = group_queryset.filter(
-                groupenvironment__environment_id__in=environment_ids
-            )
-            group_queryset = QuerySetBuilder(
+            # group_queryset = group_queryset.filter(
+            #     groupenvironment__environment_id__in=environment_ids
+            # )
+            queryset_conditions.update(
                 {
                     "first_release": QCallbackCondition(
                         lambda version: Q(
@@ -209,9 +276,9 @@ class EventsDatasetSnubaSearchBackend(SearchBackend):
                         {"groupenvironment__environment_id__in": environment_ids},
                     ),
                 }
-            ).build(group_queryset, search_filters)
+            )
         else:
-            group_queryset = QuerySetBuilder(
+            queryset_conditions.update(
                 {
                     "first_release": QCallbackCondition(
                         lambda release_version: Q(
@@ -238,26 +305,126 @@ class EventsDatasetSnubaSearchBackend(SearchBackend):
                     ),
                     "first_seen": ScalarCondition("first_seen"),
                 }
-            ).build(group_queryset, search_filters)
+            )
+        return queryset_conditions
 
-        query_executor = PostgresSnubaQueryExecutor()
 
-        return query_executor.query(
-            projects,
-            retention_window_start,
-            group_queryset,
-            environments,
-            sort_by,
-            limit,
-            cursor,
-            count_hits,
-            paginator_options,
-            search_filters,
-            date_from,
-            date_to,
-        )
+# IMPORTANT!!! Retaining backwards compatible for getsentry while we rename this class.
+# We will deploy with `SnubaSearchBackend` pointing to `EventsDatasetSnubaSearchBackend`, and then deploy getsentry to use `EventsDatasetSnubaSearchBackend`
+# and then delete this class.
+class SnubaSearchBackend(EventsDatasetSnubaSearchBackend):
+    pass
 
 
 # This class will have logic to use the groups dataset, and to also determine which QueryBackend to use.
-class SnubaGroupsSearchBackend(SearchBackend):
-    pass
+class GroupsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
+    def get_query_executor(self, group_queryset, *args, **kwargs):
+        if group_queryset is None:
+            return SnubaOnlyQueryExecutor()
+        else:
+            return PostgresSnubaQueryExecutor()
+
+    def build_group_queryset(
+        self, search_filters, environments, projects, retention_window_start, *args, **kwargs
+    ):
+        for search_filter in search_filters:
+            if search_filter.key.name in [
+                "query",
+                "bookmarked_by",
+                "assigned_to",
+                "unassigned",
+                "subscribed_by",
+            ] or (
+                environments
+                and search_filter.key.name in ["first_seen", "last_seen", "first_release"]
+            ):
+                search_postgres = True
+                break
+
+        if search_postgres is True:
+            group_queryset = self._build_group_queryset(
+                projects, environments, retention_window_start, search_filters, *args, **kwargs
+            )
+        else:
+            group_queryset = None
+        return group_queryset
+
+    def _build_group_queryset(
+        self, search_filters, environments, projects, retention_window_start, *args, **kwargs
+    ):
+        group_queryset = self._initialize_group_queryset(
+            projects, environments, retention_window_start, search_filters
+        )
+        qs_builder_conditions = self._get_queryset_conditions(
+            projects, environments, search_filters
+        )
+        group_queryset = QuerySetBuilder(qs_builder_conditions).build(
+            group_queryset, search_filters
+        )
+        return group_queryset
+
+    def _initialize_group_queryset(
+        self, projects, environments, retention_window_start, search_filters
+    ):
+        group_queryset = Group.objects.filter(project__in=projects).exclude(
+            status__in=[
+                GroupStatus.PENDING_DELETION,
+                GroupStatus.DELETION_IN_PROGRESS,
+                GroupStatus.PENDING_MERGE,
+            ]
+        )
+
+        if retention_window_start:
+            group_queryset = group_queryset.filter(last_seen__gte=retention_window_start)
+
+        if environments is not None:
+            environment_ids = [environment.id for environment in environments]
+            group_queryset = group_queryset.filter(
+                groupenvironment__environment_id__in=environment_ids
+            )
+        return group_queryset
+
+    def _get_queryset_conditions(self, projects, environments, search_filters):
+        queryset_conditions = {
+            "bookmarked_by": QCallbackCondition(
+                lambda user: Q(bookmark_set__project__in=projects, bookmark_set__user=user)
+            ),
+            "assigned_to": QCallbackCondition(
+                functools.partial(assigned_to_filter, projects=projects)
+            ),
+            "unassigned": QCallbackCondition(
+                functools.partial(unassigned_filter, projects=projects)
+            ),
+            "subscribed_by": QCallbackCondition(
+                lambda user: Q(
+                    id__in=GroupSubscription.objects.filter(
+                        project__in=projects, user=user, is_active=True
+                    ).values_list("group")
+                )
+            ),
+        }
+
+        # TODO: It's possible `first_release` could be handled by Snuba.
+        if environments is not None:
+            environment_ids = [environment.id for environment in environments]
+            queryset_conditions.update(
+                {
+                    "first_release": QCallbackCondition(
+                        lambda version: Q(
+                            # if environment(s) are selected, we just filter on the group
+                            # environment's first_release attribute.
+                            groupenvironment__first_release__organization_id=projects[
+                                0
+                            ].organization_id,
+                            groupenvironment__first_release__version=version,
+                            groupenvironment__environment_id__in=environment_ids,
+                        )
+                    ),
+                    "first_seen": ScalarCondition(
+                        "groupenvironment__first_seen",
+                        {"groupenvironment__environment_id__in": environment_ids},
+                    ),
+                }
+            )
+
+        return queryset_conditions

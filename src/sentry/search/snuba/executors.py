@@ -52,7 +52,7 @@ class AbstractQueryExecutor:
     TABLE_ALIAS = ""
 
     @abstractmethod
-    def query(self):
+    def query(self, *args, **kwargs):
         raise NotImplementedError
 
     def snuba_search(
@@ -325,6 +325,8 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         search_filters,
         date_from,
         date_to,
+        *args,
+        **kwargs
     ):
 
         now = timezone.now()
@@ -628,6 +630,8 @@ class SnubaOnlyQueryExecutor(AbstractQueryExecutor):
         search_filters,
         date_from,
         date_to,
+        *args,
+        **kwargs
     ):
 
         now = timezone.now()
