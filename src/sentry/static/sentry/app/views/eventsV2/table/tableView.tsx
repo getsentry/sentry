@@ -257,12 +257,18 @@ class TableView extends React.Component<TableViewProps> {
       return dataRow[column.key];
     }
 
-    const hasLinkField = eventView.hasAutolinkField();
-    const forceLink =
-      !hasLinkField && eventView.getFields().indexOf(String(column.field)) === 0;
+    // TODO: remove this
+    // const hasLinkField = eventView.hasAutolinkField();
+    // const forceLink =
+    //   !hasLinkField && eventView.getFields().indexOf(String(column.field)) === 0;
+    const forceLink = false;
 
     const fieldRenderer = getFieldRenderer(String(column.key), tableData.meta, forceLink);
-    return fieldRenderer(dataRow, {organization, location});
+    return (
+      <ExpandAggregateRow eventView={eventView} column={column} dataRow={dataRow}>
+        {fieldRenderer(dataRow, {organization, location})}
+      </ExpandAggregateRow>
+    );
   };
 
   generateColumnOrder = ({
@@ -397,5 +403,18 @@ class TableView extends React.Component<TableViewProps> {
     );
   }
 }
+
+const ExpandAggregateRow = (props: {
+  children: React.ReactNode;
+  eventView: EventView;
+  column: TableColumn<keyof TableDataRow>;
+  dataRow: TableDataRow;
+}) => {
+  const {children, column, dataRow} = props;
+
+  console.log('column', column, 'dataRow', dataRow);
+
+  return <React.Fragment>{children}</React.Fragment>;
+};
 
 export default TableView;
