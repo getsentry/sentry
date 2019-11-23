@@ -63,17 +63,13 @@ class AbstractQueryExecutor:
         environment_ids,
         sort_field,
         cursor=None,
-        candidate_ids=None,
+        group_ids=None,
         limit=None,
         offset=0,
         get_sample=False,
         search_filters=None,
     ):
         """
-        This function doesn't strictly benefit from or require being pulled out of the main
-        query method above, but the query method is already large and this function at least
-        extracts most of the Snuba-specific logic.
-
         Returns a tuple of:
         * a sorted list of (group_id, group_score) tuples sorted descending by score,
         * the count of total results (rows) available for this query.
@@ -86,8 +82,8 @@ class AbstractQueryExecutor:
         if environment_ids is not None:
             filters["environment"] = environment_ids
 
-        if candidate_ids:
-            filters[self.TABLE_ALIAS + "issue"] = sorted(candidate_ids)
+        if group_ids:
+            filters[self.TABLE_ALIAS + "issue"] = sorted(group_ids)
 
         conditions = []
         having = []
@@ -391,13 +387,13 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         # clause.
         max_candidates = options.get("snuba.search.max-pre-snuba-candidates")
         too_many_candidates = False
-        candidate_ids = list(group_queryset.values_list("id", flat=True)[: max_candidates + 1])
-        metrics.timing("snuba.search.num_candidates", len(candidate_ids))
-        if not candidate_ids:
+        group_ids = list(group_queryset.values_list("id", flat=True)[: max_candidates + 1])
+        metrics.timing("snuba.search.num_candidates", len(group_ids))
+        if not group_ids:
             # no matches could possibly be found from this point on
             metrics.incr("snuba.search.no_candidates", skip_internal=False)
             return self.EMPTY_RESULT
-        elif len(candidate_ids) > max_candidates:
+        elif len(group_ids) > max_candidates:
             # If the pre-filter query didn't include anything to significantly
             # filter down the number of results (from 'first_release', 'query',
             # 'status', 'bookmarked_by', 'assigned_to', 'unassigned',
@@ -409,7 +405,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # post-filtering.
             metrics.incr("snuba.search.too_many_candidates", skip_internal=False)
             too_many_candidates = True
-            candidate_ids = []
+            group_ids = []
 
         sort_field = self.sort_strategies[sort_by]
         chunk_growth = options.get("snuba.search.chunk-growth-rate")
@@ -494,8 +490,8 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # grow the chunk size on each iteration to account for huge projects
             # and weird queries, up to a max size
             chunk_limit = min(int(chunk_limit * chunk_growth), max_chunk_size)
-            # but if we have candidate_ids always query for at least that many items
-            chunk_limit = max(chunk_limit, len(candidate_ids))
+            # but if we have group_ids always query for at least that many items
+            chunk_limit = max(chunk_limit, len(group_ids))
 
             # {group_id: group_score, ...}
             snuba_groups, total = self.snuba_search(
@@ -505,7 +501,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 environment_ids=environments and [environment.id for environment in environments],
                 sort_field=sort_field,
                 cursor=cursor,
-                candidate_ids=candidate_ids,
+                group_ids=group_ids,
                 limit=chunk_limit,
                 offset=offset,
                 search_filters=search_filters,
@@ -518,11 +514,11 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             if not snuba_groups:
                 break
 
-            if candidate_ids:
+            if group_ids:
                 # pre-filtered candidates were passed down to Snuba, so we're
                 # finished with filtering and these are the only results. Note
                 # that because we set the chunk size to at least the size of
-                # the candidate_ids, we know we got all of them (ie there are
+                # the group_ids, we know we got all of them (ie there are
                 # no more chunks after the first)
                 result_groups = snuba_groups
                 if count_hits and hits is None:
@@ -557,7 +553,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # * we started with Postgres candidates and so only do one Snuba query max
             # * the paginator is returning enough results to satisfy the query (>= the limit)
             # * there are no more groups in Snuba to post-filter
-            if candidate_ids or len(paginator_results.results) >= limit or not more_results:
+            if group_ids or len(paginator_results.results) >= limit or not more_results:
                 break
 
         # HACK: We're using the SequencePaginator to mask the complexities of going
@@ -697,8 +693,8 @@ class SnubaOnlyQueryExecutor(AbstractQueryExecutor):
             # grow the chunk size on each iteration to account for huge projects
             # and weird queries, up to a max size
             chunk_limit = min(int(chunk_limit * chunk_growth), max_chunk_size)
-            # but if we have candidate_ids always query for at least that many items
-            # chunk_limit = max(chunk_limit, len(candidate_ids))
+            # but if we have group_ids always query for at least that many items
+            # chunk_limit = max(chunk_limit, len(group_ids))
 
             # {group_id: group_score, ...}
             snuba_groups, total = self.snuba_search(
@@ -707,7 +703,7 @@ class SnubaOnlyQueryExecutor(AbstractQueryExecutor):
                 project_ids=[p.id for p in projects],
                 environment_ids=environments and [environment.id for environment in environments],
                 sort_field=sort_field,
-                # candidate_ids=candidate_ids,
+                # group_ids=group_ids,
                 cursor=cursor,
                 limit=chunk_limit,
                 offset=offset,
