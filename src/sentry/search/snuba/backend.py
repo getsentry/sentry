@@ -327,6 +327,8 @@ class GroupsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
     def build_group_queryset(
         self, search_filters, environments, projects, retention_window_start, *args, **kwargs
     ):
+        search_postgres = False
+
         for search_filter in search_filters:
             if search_filter.key.name in [
                 "query",
@@ -347,6 +349,7 @@ class GroupsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             )
         else:
             group_queryset = None
+
         return group_queryset
 
     def _build_group_queryset(
