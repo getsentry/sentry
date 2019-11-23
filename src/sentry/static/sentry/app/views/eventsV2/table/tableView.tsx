@@ -4,6 +4,8 @@ import {Location} from 'history';
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import GridEditable from 'app/components/gridEditable';
+import Tooltip from 'app/components/tooltip';
+import {t} from 'app/locale';
 
 import {
   getFieldRenderer,
@@ -11,7 +13,7 @@ import {
   pushEventViewToLocation,
   explodeField,
 } from '../utils';
-import EventView, {pickRelevantLocationQueryStrings} from '../eventView';
+import EventView, {pickRelevantLocationQueryStrings, Field} from '../eventView';
 import SortLink from '../sortLink';
 import renderTableModalEditColumnFactory from './tableModalEditColumn';
 import {TableColumn, TableData, TableDataRow} from './types';
@@ -265,7 +267,12 @@ class TableView extends React.Component<TableViewProps> {
 
     const fieldRenderer = getFieldRenderer(String(column.key), tableData.meta, forceLink);
     return (
-      <ExpandAggregateRow eventView={eventView} column={column} dataRow={dataRow}>
+      <ExpandAggregateRow
+        eventView={eventView}
+        column={column}
+        dataRow={dataRow}
+        location={location}
+      >
         {fieldRenderer(dataRow, {organization, location})}
       </ExpandAggregateRow>
     );
@@ -404,15 +411,87 @@ class TableView extends React.Component<TableViewProps> {
   }
 }
 
+const UNSEARCHABLE_FIELDS = ['p99', 'p75', 'p95', 'last_seen'];
+
 const ExpandAggregateRow = (props: {
   children: React.ReactNode;
   eventView: EventView;
   column: TableColumn<keyof TableDataRow>;
   dataRow: TableDataRow;
+  location: Location;
 }) => {
-  const {children, column, dataRow} = props;
+  const {children, column, dataRow, eventView, location} = props;
 
-  console.log('column', column, 'dataRow', dataRow);
+  const {eventViewField} = column;
+
+  const exploded = explodeField(eventViewField);
+  const {aggregation} = exploded;
+
+  if (aggregation === 'count') {
+    return (
+      <Tooltip title={t('Expand aggregated row')}>
+        <a
+          href="#expand"
+          onClick={event => {
+            event.preventDefault();
+
+            const nextEventView = eventView.clone();
+
+            const additionalSearchConditions: string[] = [];
+
+            nextEventView.fields = nextEventView.fields.map(
+              (field: Field): Field => {
+                if (eventViewField.field === field.field) {
+                  // convert all instances of count(exploded.field) to exploded.field
+                  return {
+                    field: exploded.field,
+                    // enforce the renamed title
+                    // e.g "# of events" to become "id"
+                    title: exploded.field,
+                  };
+                }
+
+                const currentExplodedField = explodeField(field);
+                if (currentExplodedField.aggregation) {
+                  // this is a column with an aggregation; we skip this
+                  return field;
+                }
+
+                if (UNSEARCHABLE_FIELDS.includes(currentExplodedField.field)) {
+                  return field;
+                }
+
+                // add this field to the search conditions
+
+                const dataKey = getAggregateAlias(field.field);
+                const value = dataRow[dataKey];
+
+                if (value) {
+                  additionalSearchConditions.push(
+                    `${currentExplodedField.field}:"${value}"`
+                  );
+                }
+
+                return field;
+              }
+            );
+
+            nextEventView.query = `${
+              nextEventView.query
+            } ${additionalSearchConditions.join(' ')}`.trim();
+
+            pushEventViewToLocation({
+              location,
+              nextEventView,
+              extraQuery: pickRelevantLocationQueryStrings(location),
+            });
+          }}
+        >
+          {children}
+        </a>
+      </Tooltip>
+    );
+  }
 
   return <React.Fragment>{children}</React.Fragment>;
 };
