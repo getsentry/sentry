@@ -1,3 +1,4 @@
+import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
@@ -26,6 +27,7 @@ import HeaderSeparator from 'app/components/organizations/headerSeparator';
 import InlineSvg from 'app/components/inlineSvg';
 import MultipleEnvironmentSelector from 'app/components/organizations/multipleEnvironmentSelector';
 import MultipleProjectSelector from 'app/components/organizations/multipleProjectSelector';
+import Projects from 'app/utils/projects';
 import SentryTypes from 'app/sentryTypes';
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 import Tooltip from 'app/components/tooltip';
@@ -35,6 +37,8 @@ import withProjects from 'app/utils/withProjects';
 
 import {getStateFromQuery} from './utils';
 import Header from './header';
+
+const PROJECTS_PER_PAGE = 50;
 
 function getProjectIdFromProject(project) {
   return parseInt(project.id, 10);
@@ -487,6 +491,13 @@ class GlobalSelectionHeader extends React.Component {
     );
   };
 
+  searchDispatcher = debounce((onSearch, searchQuery, options) => {
+    onSearch(searchQuery, options);
+    this.setState({
+      searchQuery,
+    });
+  }, 200);
+
   render() {
     const {
       className,
@@ -511,18 +522,42 @@ class GlobalSelectionHeader extends React.Component {
       <Header className={className}>
         <HeaderItemPosition>
           {shouldForceProject && this.getBackButton()}
-          <MultipleProjectSelector
-            organization={organization}
-            shouldForceProject={shouldForceProject}
-            forceProject={forceProject}
-            projects={memberProjects}
-            loadingProjects={loadingProjects}
-            nonMemberProjects={nonMemberProjects}
-            value={this.state.projects || this.props.selection.projects}
-            onChange={this.handleChangeProjects}
-            onUpdate={this.handleUpdateProjects}
-            multi={this.hasMultipleProjectSelection()}
-          />
+          <Projects orgId={organization.slug} limit={PROJECTS_PER_PAGE} globalSelection>
+            {({projects, initiallyLoaded, hasMore, onSearch, fetching}) => {
+              const paginatedProjectSelectorCallbacks = {
+                onScroll: ({clientHeight, scrollHeight, scrollTop}) => {
+                  if (
+                    !fetching &&
+                    scrollTop + clientHeight >= scrollHeight - clientHeight
+                  ) {
+                    onSearch(this.state.searchQuery, {append: true});
+                  }
+                },
+                onFilterChange: event => {
+                  this.searchDispatcher(onSearch, event.target.value, {
+                    append: false,
+                  });
+                },
+                hasMore,
+                searching: fetching,
+              };
+              return (
+                <MultipleProjectSelector
+                  organization={organization}
+                  shouldForceProject={shouldForceProject}
+                  forceProject={forceProject}
+                  projects={loadingProjects ? projects : memberProjects}
+                  loadingProjects={!initiallyLoaded && loadingProjects}
+                  {...(loadingProjects ? paginatedProjectSelectorCallbacks : {})}
+                  nonMemberProjects={nonMemberProjects}
+                  value={this.state.projects || this.props.selection.projects}
+                  onChange={this.handleChangeProjects}
+                  onUpdate={this.handleUpdateProjects}
+                  multi={this.hasMultipleProjectSelection()}
+                />
+              );
+            }}
+          </Projects>
         </HeaderItemPosition>
 
         {showEnvironmentSelector && (
