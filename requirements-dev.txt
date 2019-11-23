@@ -4,6 +4,7 @@ docker>=3.7.0,<3.8.0
 exam>=0.5.1
 freezegun==0.3.11
 honcho>=1.0.0,<1.1.0
+httpretty>=0.5.9
 isort>=4.3.4,<4.4.0
 pytest==4.6.5
 pytest-cov==2.5.1
