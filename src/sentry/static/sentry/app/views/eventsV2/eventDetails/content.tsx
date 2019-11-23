@@ -197,8 +197,12 @@ const ContentBox = styled(PageContent)`
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     display: grid;
     grid-template-rows: 1fr auto;
-    grid-template-columns: 70% auto;
+    grid-template-columns: 65% auto;
     grid-column-gap: ${space(3)};
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    grid-template-columns: auto 350px;
   }
 `;
 

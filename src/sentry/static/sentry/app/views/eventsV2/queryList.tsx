@@ -94,7 +94,7 @@ class QueryList extends React.Component<Props> {
           key={`${index}-${eventView.name}`}
           to={to}
           title={eventView.name}
-          subtitle={t('Pre-Built Query')}
+          subtitle={t('Starter Query')}
           queryDetail={eventView.query}
           renderGraph={() => {
             return (
@@ -142,7 +142,7 @@ class QueryList extends React.Component<Props> {
           key={`${index}-${eventView.id}`}
           to={to}
           title={eventView.name}
-          subtitle={t('Saved Query')}
+          subtitle={t('Custom Query')}
           queryDetail={eventView.query}
           onEventClick={() => {
             trackAnalyticsEvent({

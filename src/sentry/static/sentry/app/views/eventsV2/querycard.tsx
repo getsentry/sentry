@@ -6,7 +6,7 @@ import Link from 'app/components/links/link';
 
 type Props = {
   title?: string;
-  subtitle: string;
+  subtitle?: string;
   queryDetail?: string;
   to?: string | object;
   onEventClick?: () => void;
