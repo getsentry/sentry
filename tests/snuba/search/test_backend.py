@@ -17,7 +17,10 @@ from sentry.models import (
     GroupStatus,
     GroupSubscription,
 )
-from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
+from sentry.search.snuba.backend import (
+    EventsDatasetSnubaSearchBackend,
+    GroupsDatasetSnubaSearchBackend,
+)
 from sentry.testutils import SnubaTestCase, TestCase, xfail_if_not_postgres
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.utils.snuba import Dataset, SENTRY_SNUBA_MAP, SnubaError
@@ -30,7 +33,7 @@ def date_to_query_format(date):
 class SnubaSearchTest(TestCase, SnubaTestCase):
     def setUp(self):
         super(SnubaSearchTest, self).setUp()
-        self.backend = EventsDatasetSnubaSearchBackend()
+        self.backend = GroupsDatasetSnubaSearchBackend()
         self.base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
 
         event1_timestamp = iso_format(self.base_datetime - timedelta(days=21))
@@ -156,7 +159,9 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
         date_to=None,
     ):
         search_filters = []
+        print ("self.project:", self.project)
         projects = projects if projects is not None else [self.project]
+        print ("projects is:", projects)
         if search_filter_query is not None:
             search_filters = self.build_search_filter(
                 search_filter_query, projects, environments=environments
@@ -166,6 +171,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
         if limit is not None:
             kwargs["limit"] = limit
 
+        print ("projects:", projects)
         return self.backend.query(
             projects,
             search_filters=search_filters,

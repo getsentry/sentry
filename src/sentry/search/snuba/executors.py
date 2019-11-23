@@ -5,6 +5,7 @@ from abc import ABCMeta, abstractmethod
 import logging
 import time
 import six
+import datetime
 from datetime import timedelta
 from hashlib import md5
 
@@ -96,24 +97,29 @@ class AbstractQueryExecutor:
             ):
                 continue
             converted_filter = convert_search_filter_to_snuba_query(search_filter)
-            converted_filter = self.modify_converted_filter(
+            converted_filter, converted_name = self.modify_converted_filter(
                 search_filter, converted_filter, environment_ids
             )
-            field_name = self.TABLE_ALIAS + search_filter.key.name
+            # field_name = self.TABLE_ALIAS + search_filter.key.name
             # Ensure that no user-generated tags that clashes with aggregation_defs is added to having
-            if field_name in self.aggregation_defs and not search_filter.key.is_tag:
+            if converted_name in self.aggregation_defs and not search_filter.key.is_tag:
                 having.append(converted_filter)
             else:
                 conditions.append(converted_filter)
 
+        print ("sort field:", sort_field)
         extra_aggregations = self.dependency_aggregations.get(sort_field, [])
+        print ("extra aggregations:", extra_aggregations)
         required_aggregations = set([sort_field, "total"] + extra_aggregations)
         for h in having:
             alias = h[0]
+            print ("adding alias to required agg:", alias)
             required_aggregations.add(alias)
 
         aggregations = []
+        print ("required aggregatopms:", required_aggregations)
         for alias in required_aggregations:
+            print ("alias:", alias)
             aggregations.append(self.aggregation_defs[alias] + [alias])
 
         if cursor is not None:
@@ -165,7 +171,7 @@ class AbstractQueryExecutor:
 
     def modify_converted_filter(self, search_filter, converted_filter, environment_ids=None):
         # No modification done by default. Simply for override.
-        return converted_filter
+        return converted_filter, search_filter.key.name
 
 
 class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
@@ -481,7 +487,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
 
 
 class SnubaOnlyQueryExecutor(AbstractQueryExecutor):
-    # QUERY_DATASET = snuba.Dataset.Groups
+    QUERY_DATASET = snuba.Dataset.Groups
     TABLE_ALIAS = "events."
     ISSUE_FIELD_NAME = TABLE_ALIAS + "issue"
     logger = logging.getLogger("sentry.search.snubagroups")
@@ -508,6 +514,31 @@ class SnubaOnlyQueryExecutor(AbstractQueryExecutor):
         "priority": ["toUInt64(plus(multiply(log(times_seen), 600), `events.last_seen`))", ""],
         "total": ["uniq", "events.issue"],
     }
+
+    def modify_converted_filter(self, search_filter, converted_filter, environment_ids=None):
+        converted_name = search_filter.key.name
+
+        special_date_names = ["groups.active_at", "first_seen", "last_seen"]
+        if search_filter.key.name in special_date_names:
+            # Need to get '2018-02-06T03:35:54' format out of 1517888878000 format
+            datetime_value = datetime.datetime.fromtimestamp(converted_filter[2] / 1000)
+            datetime_value = datetime_value.replace(microsecond=0).isoformat().replace("+00:00", "")
+            converted_filter[2] = datetime_value
+
+        if search_filter.key.name in ["first_seen", "last_seen", "first_release"]:
+            if environment_ids is not None:
+                table_alias = "events."
+            else:
+                table_alias = "groups."
+
+            if isinstance(converted_filter[0], list):
+                converted_filter[0][1][0] = table_alias + converted_filter[0][1][0]
+                converted_name = converted_filter[0][1][0]
+            else:
+                converted_filter[0] = table_alias + converted_filter[0]
+                converted_name = converted_filter[0]
+
+        return converted_filter, converted_name
 
     def query(
         self,
