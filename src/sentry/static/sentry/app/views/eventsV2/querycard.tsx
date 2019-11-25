@@ -28,7 +28,7 @@ class QueryCard extends React.PureComponent<Props> {
     const {title, subtitle, queryDetail, renderContextMenu, renderGraph} = this.props;
 
     return (
-      <StyledQueryCard tabIndex={1} onClick={this.handleClick}>
+      <StyledQueryCard onClick={this.handleClick}>
         <QueryCardHeader>
           <StyledTitle>{title}</StyledTitle>
           <StyledQueryDetail>{queryDetail}</StyledQueryDetail>
@@ -45,21 +45,25 @@ class QueryCard extends React.PureComponent<Props> {
   }
 }
 
-const StyledQueryCard = styled('div')`
+const StyledQueryCard = styled('button')`
   background: ${p => p.theme.white};
   border: 1px solid ${p => p.theme.borderLight};
   border-radius: ${p => p.theme.borderRadius};
   display: flex;
+  align-items: stretch;
   flex-direction: column;
   justify-content: space-between;
   height: 205px;
   transition: all 0.2s ease;
   cursor: pointer;
+  text-align: left;
+  padding: 0;
 
   &:focus,
   &:hover {
     box-shadow: 0px 0px 0px 6px rgba(209, 202, 216, 0.2);
     transform: translateY(-2px);
+    outline: none;
   }
 
   &:active {
@@ -74,7 +78,6 @@ const StyledQueryCard = styled('div')`
 
 const QueryCardHeader = styled('div')`
   padding: ${space(1.5)} ${space(2)};
-  height: 80px;
   overflow: hidden;
   line-height: 1.4;
 `;
