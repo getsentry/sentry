@@ -3,10 +3,15 @@ import React from 'react';
 import {explodeSlug} from 'app/utils';
 import BaseAvatar from 'app/components/avatar/baseAvatar';
 import SentryTypes from 'app/sentryTypes';
+import {Team} from 'app/types';
 
-class TeamAvatar extends React.Component {
+type Props = {
+  team: Team | null;
+} & BaseAvatar['props'];
+
+class TeamAvatar extends React.Component<Props> {
   static propTypes = {
-    team: SentryTypes.Team.isRequired,
+    team: SentryTypes.Team,
     ...BaseAvatar.propTypes,
   };
 
