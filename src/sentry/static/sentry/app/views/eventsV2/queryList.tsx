@@ -2,6 +2,7 @@ import React, {MouseEvent} from 'react';
 import {Location, Query} from 'history';
 import styled from 'react-emotion';
 import classNames from 'classnames';
+import moment from 'moment';
 import {browserHistory} from 'react-router';
 
 import {t} from 'app/locale';
@@ -83,6 +84,11 @@ class QueryList extends React.Component<Props> {
 
     const list = views.map((view, index) => {
       const eventView = EventView.fromSavedQueryWithLocation(view, location);
+      const recentTimeline = t('Last ') + eventView.statsPeriod;
+      const customTimeline =
+        moment(eventView.start).format('MMM D, YYYY h:mm A') +
+        ' - ' +
+        moment(eventView.end).format('MMM D, YYYY h:mm A');
       const to = {
         pathname: location.pathname,
         query: {
@@ -96,7 +102,7 @@ class QueryList extends React.Component<Props> {
           key={`${index}-${eventView.name}`}
           to={to}
           title={eventView.name}
-          subtitle={t('Pre-Built Query')}
+          subtitle={eventView.statsPeriod ? recentTimeline : customTimeline}
           queryDetail={eventView.query}
           renderGraph={() => {
             return (
@@ -131,6 +137,11 @@ class QueryList extends React.Component<Props> {
 
     return savedQueries.map((savedQuery, index) => {
       const eventView = EventView.fromSavedQuery(savedQuery);
+      const recentTimeline = t('Last ') + eventView.statsPeriod;
+      const customTimeline =
+        moment(eventView.start).format('MMM D, YYYY h:mm A') +
+        ' - ' +
+        moment(eventView.end).format('MMM D, YYYY h:mm A');
       const to = {
         pathname: location.pathname,
         query: {
@@ -144,7 +155,7 @@ class QueryList extends React.Component<Props> {
           key={`${index}-${eventView.id}`}
           to={to}
           title={eventView.name}
-          subtitle={t('Saved Query')}
+          subtitle={eventView.statsPeriod ? recentTimeline : customTimeline}
           queryDetail={eventView.query}
           onEventClick={() => {
             trackAnalyticsEvent({

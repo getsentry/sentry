@@ -5,12 +5,6 @@ import space from 'app/styles/space';
 
 export const QueryLink = styled(Link)`
   ${overflowEllipsis};
-  color: ${p => p.theme.foreground};
-  border-radius: ${p => p.theme.borderRadius};
-  &:hover {
-    color: ${p => p.theme.foreground};
-    background-color: ${p => p.theme.offWhite};
-  }
 `;
 
 export const SectionHeading = styled('h4')`
