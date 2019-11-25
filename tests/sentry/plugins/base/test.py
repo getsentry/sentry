@@ -21,7 +21,7 @@ def test_json_response_with_status_kwarg():
 def test_load_plugin_urls():
     class BadPluginA(Plugin2):
         def get_project_urls(self):
-            assert False
+            return [("foo", "bar")]
 
     class BadPluginB(Plugin2):
         def get_project_urls(self):
@@ -35,15 +35,9 @@ def test_load_plugin_urls():
         def get_project_urls(self):
             return [url("", None)]
 
-    class GoodPluginB(Plugin2):
-        def get_project_urls(self):
-            return [("foo", "bar")]
+    patterns = load_plugin_urls((BadPluginA(), BadPluginB(), BadPluginC(), GoodPluginA()))
 
-    patterns = load_plugin_urls(
-        (BadPluginA(), BadPluginB(), BadPluginC(), GoodPluginA(), GoodPluginB())
-    )
-
-    assert len(patterns) == 2
+    assert len(patterns) == 1
 
 
 class Plugin2TestCase(TestCase):
