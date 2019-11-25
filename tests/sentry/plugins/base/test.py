@@ -32,7 +32,14 @@ def test_load_plugin_project_urls():
 
     class GoodPluginA(Plugin2):
         def get_project_urls(self):
-            return [url("", None)]
+            # XXX: Django 1.10 requires a view callable. I was too lazy to figure out
+            # how to mock one, so just using this random low-level thing.
+            # As far as I can see, none of our plugins use get_project_urls, so
+            # all this can probably even be removed, but I'm keeping it here for now
+            # for fear of breakage.
+            from django.views.generic.list import BaseListView
+
+            return [url("", BaseListView.as_view())]
 
     from sentry.plugins.base.project_api_urls import load_plugin_urls
 
