@@ -33,6 +33,7 @@ type Props = {
 class QueryList extends React.Component<Props> {
   handleDeleteQuery = (eventView: EventView) => (event: React.MouseEvent<Element>) => {
     event.preventDefault();
+    event.stopPropagation();
 
     const {api, location, organization} = this.props;
 
@@ -46,6 +47,7 @@ class QueryList extends React.Component<Props> {
 
   handleDuplicateQuery = (eventView: EventView) => (event: React.MouseEvent<Element>) => {
     event.preventDefault();
+    event.stopPropagation();
 
     const {api, location, organization} = this.props;
 
