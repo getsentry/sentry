@@ -139,7 +139,7 @@ def query(selected_columns, query, params, orderby=None, referrer=None):
     """
     High-level API for doing arbitrary user queries against events.
 
-    This function operates on the public event schema and
+    This function operates on the Discover public event schema and
     virtual fields/aggregate functions for selected columns and
     conditions are supported through this function.
 
