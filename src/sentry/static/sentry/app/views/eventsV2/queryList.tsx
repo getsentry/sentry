@@ -8,6 +8,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, SavedQuery} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {Client} from 'app/api';
 import InlineSvg from 'app/components/inlineSvg';
 import DropdownMenu from 'app/components/dropdownMenu';
@@ -88,13 +89,18 @@ class QueryList extends React.Component<Props> {
           ...eventView.generateQueryStringObject(),
         },
       };
+      const recentTimeline = t('Last ') + eventView.statsPeriod;
+      const customTimeline =
+        getUtcToLocalDateObject(eventView.start) +
+        '-' +
+        getUtcToLocalDateObject(eventView.end);
 
       return (
         <QueryCard
           key={`${index}-${eventView.name}`}
           to={to}
           title={eventView.name}
-          subtitle={t('Last ') + eventView.statsPeriod}
+          subtitle={eventView.statsPeriod ? recentTimeline : customTimeline}
           queryDetail={eventView.query}
           renderGraph={() => {
             return (
@@ -137,7 +143,10 @@ class QueryList extends React.Component<Props> {
         },
       };
       const recentTimeline = t('Last ') + eventView.statsPeriod;
-      const customTimeline = eventView.start + '-' + eventView.end;
+      const customTimeline =
+        getUtcToLocalDateObject(eventView.start) +
+        '-' +
+        getUtcToLocalDateObject(eventView.end);
 
       return (
         <QueryCard
