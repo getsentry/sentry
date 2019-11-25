@@ -84,9 +84,9 @@ class QueryList extends React.Component<Props> {
       const eventView = EventView.fromSavedQueryWithLocation(view, location);
       const recentTimeline = t('Last ') + eventView.statsPeriod;
       const customTimeline =
-        moment(eventView.start).format('MMM D, YYYY h:mm:ss A') +
-        '-' +
-        moment(eventView.end).format('MMM D, YYYY h:mm:ss A');
+        moment(eventView.start).format('MMM D, YYYY h:mm A') +
+        ' - ' +
+        moment(eventView.end).format('MMM D, YYYY h:mm A');
       const to = {
         pathname: location.pathname,
         query: {
@@ -137,9 +137,9 @@ class QueryList extends React.Component<Props> {
       const eventView = EventView.fromSavedQuery(savedQuery);
       const recentTimeline = t('Last ') + eventView.statsPeriod;
       const customTimeline =
-        moment(eventView.start).format('MMM D, YYYY h:mm:ss A') +
-        '-' +
-        moment(eventView.end).format('MMM D, YYYY h:mm:ss A');
+        moment(eventView.start).format('MMM D, YYYY h:mm A') +
+        ' - ' +
+        moment(eventView.end).format('MMM D, YYYY h:mm A');
       const to = {
         pathname: location.pathname,
         query: {
