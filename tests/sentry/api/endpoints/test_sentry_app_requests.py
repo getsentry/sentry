@@ -214,7 +214,7 @@ class GetSentryAppRequestsTest(SentryAppRequestsTest):
         assert len(response.data) == 1
         assert response.data[0]["organization"]["slug"] == self.org.slug
         assert response.data[0]["sentryAppSlug"] == self.published_app.slug
-        assert response.data[0]["errorUrl"] == "/organizations/{}/projects/{}/events/{}".format(
+        assert response.data[0]["errorUrl"] == "/organizations/{}/projects/{}/events/{}/".format(
             self.org.slug, self.project.slug, "d5111da2c28645c5889d072017e3445d"
         )
 
