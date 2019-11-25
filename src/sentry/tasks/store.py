@@ -26,7 +26,7 @@ from sentry.utils.data_filters import FilterStatKeys
 from sentry.utils.canonical import CanonicalKeyDict, CANONICAL_TYPES
 from sentry.utils.dates import to_datetime
 from sentry.utils.sdk import configure_scope
-from sentry.models import EventAttachment, File, ProjectOption, Activity, Organization, Project
+from sentry.models import EventAttachment, File, ProjectOption, Activity, Project
 
 error_logger = logging.getLogger("sentry.errors.events")
 info_logger = logging.getLogger("sentry.store")
@@ -408,22 +408,6 @@ def create_failed_event(
     default_cache.delete(cache_key)
 
     return True
-
-
-def save_attachment(event, attachment):
-    """
-    Saves an event attachment to blob storage.
-    """
-
-    # If the attachment is a crash report (e.g. minidump), we need to honor the
-    # store_crash_reports setting. Otherwise, we assume that the client has
-    # already verified PII and just store the attachment.
-    if attachment.type in CRASH_REPORT_TYPES:
-        project = Project.objects.get_from_cache(id=event.project_id)
-        if not project.get_option("sentry:store_crash_reports"):
-            organization = Organization.objects.get_from_cache(id=project.organization_id)
-            if not organization.get_option("sentry:store_crash_reports"):
-                return
 
 
 def get_max_crashreports(model):
