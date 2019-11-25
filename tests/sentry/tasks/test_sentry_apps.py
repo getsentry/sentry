@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import six
+import pytest
 
 from celery import Task
 from collections import namedtuple
@@ -34,6 +35,12 @@ RuleFuture = namedtuple("RuleFuture", ["rule", "kwargs"])
 MockResponse = namedtuple("MockResponse", ["headers", "content", "ok", "status_code"])
 MockResponseInstance = MockResponse({}, {}, True, 200)
 MockFailureResponseInstance = MockResponse({}, {}, False, 400)
+MockResponseWithHeadersInstance = MockResponse(
+    {"Sentry-Hook-Error": "d5111da2c28645c5889d072017e3445d", "Sentry-Hook-Project": "1"},
+    {},
+    False,
+    400,
+)
 
 
 class DictContaining(object):
@@ -252,6 +259,36 @@ class TestProcessResourceChange(TestCase):
         assert faux(safe_urlopen).kwargs_contain("headers.Sentry-Hook-Timestamp")
         assert faux(safe_urlopen).kwargs_contain("headers.Sentry-Hook-Signature")
 
+    # TODO(nola): Enable this test whenever we prevent infinite loops w/ error.created integrations
+    @pytest.mark.skip(reason="enable this when/if we do prevent infinite error.created loops")
+    @with_feature("organizations:integrations-event-hooks")
+    def test_integration_org_error_created_doesnt_send_webhook(self, safe_urlopen):
+        sentry_app = self.create_sentry_app(
+            organization=self.project.organization, events=["error.created"]
+        )
+        self.create_sentry_app_installation(
+            organization=self.project.organization, slug=sentry_app.slug
+        )
+
+        one_min_ago = iso_format(before_now(minutes=1))
+        event = self.store_event(
+            data={
+                "message": "Foo bar",
+                "exception": {"type": "Foo", "value": "shits on fiah yo"},
+                "level": "error",
+                "timestamp": one_min_ago,
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+
+        with self.tasks():
+            post_process_group(
+                event=event, is_new=False, is_regression=False, is_new_group_environment=False
+            )
+
+        assert not safe_urlopen.called
+
 
 @patch("sentry.mediators.sentry_app_installations.InstallationNotifier.run")
 class TestInstallationWebhook(TestCase):
@@ -402,3 +439,20 @@ class TestWebhookRequests(TestCase):
         assert first_request["response_code"] == 0
         assert first_request["event_type"] == "issue.assigned"
         assert first_request["organization_id"] == self.install.organization.id
+
+    @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponseWithHeadersInstance)
+    def test_saves_error_event_id_if_in_header(self, safe_urlopen):
+        data = {"issue": serialize(self.issue)}
+        send_webhooks(installation=self.install, event="issue.assigned", data=data, actor=self.user)
+
+        requests = self.buffer.get_requests()
+        requests_count = len(requests)
+        first_request = requests[0]
+
+        assert safe_urlopen.called
+        assert requests_count == 1
+        assert first_request["response_code"] == 400
+        assert first_request["event_type"] == "issue.assigned"
+        assert first_request["organization_id"] == self.install.organization.id
+        assert first_request["error_id"] == "d5111da2c28645c5889d072017e3445d"
+        assert first_request["project_id"] == "1"

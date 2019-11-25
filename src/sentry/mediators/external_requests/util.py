@@ -60,6 +60,13 @@ def send_and_save_sentry_app_request(url, sentry_app, org_id, event, **kwargs):
         # Re-raise the exception because some of these tasks might retry on the exception
         raise
 
-    buffer.add_request(response_code=resp.status_code, org_id=org_id, event=event, url=url)
+    buffer.add_request(
+        response_code=resp.status_code,
+        org_id=org_id,
+        event=event,
+        url=url,
+        error_id=resp.headers.get("Sentry-Hook-Error"),
+        project_id=resp.headers.get("Sentry-Hook-Project"),
+    )
 
     return resp
