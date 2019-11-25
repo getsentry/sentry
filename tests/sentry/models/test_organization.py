@@ -197,7 +197,7 @@ class OrganizationTest(TestCase):
         )
         p = OrganizationOption.objects.get(organization=org, key="sentry:store_crash_reports")
         p.value = 10
-        assert p.has_changed("value") == 10
+        assert p.has_changed("value") is True
 
 
 class Require2fa(TestCase):
