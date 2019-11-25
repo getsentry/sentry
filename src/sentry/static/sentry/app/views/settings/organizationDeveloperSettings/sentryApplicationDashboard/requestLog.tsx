@@ -141,19 +141,23 @@ export default class RequestLog extends AsyncComponent<Props, State> {
   }
 
   handleChangeEventType = (eventType: string) => {
-    this.setState({
-      eventType,
-      currentPage: 0,
-    });
-    this.remountComponent();
+    this.setState(
+      {
+        eventType,
+        currentPage: 0,
+      },
+      this.remountComponent
+    );
   };
 
   handleChangeErrorsOnly = () => {
-    this.setState({
-      errorsOnly: !this.state.errorsOnly,
-      currentPage: 0,
-    });
-    this.remountComponent();
+    this.setState(
+      {
+        errorsOnly: !this.state.errorsOnly,
+        currentPage: 0,
+      },
+      this.remountComponent
+    );
   };
 
   handleNextPage = () => {
