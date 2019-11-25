@@ -94,7 +94,7 @@ class QueryList extends React.Component<Props> {
           key={`${index}-${eventView.name}`}
           to={to}
           title={eventView.name}
-          subtitle={t('Last ') + `${eventView.statsPeriod}`}
+          subtitle={eventView.statsPeriod}
           queryDetail={eventView.query}
           renderGraph={() => {
             return (
@@ -136,13 +136,15 @@ class QueryList extends React.Component<Props> {
           ...eventView.generateQueryStringObject(),
         },
       };
+      const recentTimeline = t('Last ') + eventView.statsPeriod;
+      const customTimeline = eventView.start + '-' + eventView.end;
 
       return (
         <QueryCard
           key={`${index}-${eventView.id}`}
           to={to}
           title={eventView.name}
-          subtitle={t('Last ') + `${eventView.statsPeriod}`}
+          subtitle={eventView.statsPeriod ? recentTimeline : customTimeline}
           queryDetail={eventView.query}
           onEventClick={() => {
             trackAnalyticsEvent({
