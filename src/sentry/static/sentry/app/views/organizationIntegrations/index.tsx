@@ -245,6 +245,7 @@ class OrganizationIntegrations extends AsyncComponent<
           organization={organization}
           install={this.getAppInstall(app)}
           app={app}
+          isOnIntegrationPage
         />
       );
     }
