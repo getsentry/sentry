@@ -8,7 +8,7 @@ from django.core import mail
 from sentry import roles
 from sentry.api.endpoints.organization_member_index import OrganizationMemberSerializer
 from sentry.testutils import APITestCase, TestCase
-from sentry.models import InviteStatus, OrganizationMember, OrganizationMemberTeam
+from sentry.models import InviteStatus, OrganizationMember, OrganizationMemberTeam, Authenticator
 from sentry.testutils.helpers import Feature
 
 
@@ -145,6 +145,73 @@ class OrganizationMemberListTest(APITestCase):
         assert response.status_code == 200
         assert len(response.data) == 1
         assert response.data[0]["email"] == self.owner_user.email
+
+    def test_is_invited_query(self):
+        response = self.client.get(self.url + "?query=isInvited:true")
+        assert response.status_code == 200
+        assert len(response.data) == 0
+
+        invited_member = self.create_member(
+            organization=self.org,
+            email="invited-member@example.com",
+            invite_status=InviteStatus.APPROVED.value,
+        )
+
+        response = self.client.get(self.url + "?query=isInvited:true")
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["email"] == invited_member.email
+
+        response = self.client.get(self.url + "?query=isInvited:false")
+        assert response.status_code == 200
+        assert len(response.data) == 2
+
+    def test_sso_linked_query(self):
+        response = self.client.get(self.url + "?query=ssoLinked:true")
+        assert response.status_code == 200
+        assert len(response.data) == 0
+
+        user = self.create_user("morty@localhost", username="morty")
+        sso_member = self.create_member(
+            organization=self.org,
+            user=user,
+            email=user.email,
+            invite_status=InviteStatus.APPROVED.value,
+            flags=OrganizationMember.flags["sso:linked"],
+        )
+
+        response = self.client.get(self.url + "?query=ssoLinked:true")
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["email"] == sso_member.email
+
+        response = self.client.get(self.url + "?query=ssoLinked:false")
+        assert response.status_code == 200
+        assert len(response.data) == 2
+
+    def test_2fa_enabled_query(self):
+        response = self.client.get(self.url + "?query=has2fa:true")
+        assert response.status_code == 200
+        assert len(response.data) == 0
+
+        user = self.create_user("morty@localhost", username="morty")
+        member_2fa = self.create_member(
+            organization=self.org,
+            user=user,
+            email=user.email,
+            invite_status=InviteStatus.APPROVED.value,
+        )
+
+        Authenticator.objects.create(user=member_2fa.user, type=1)
+
+        response = self.client.get(self.url + "?query=has2fa:true")
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["email"] == member_2fa.email
+
+        response = self.client.get(self.url + "?query=has2fa:false")
+        assert response.status_code == 200
+        assert len(response.data) == 2
 
     def test_cannot_get_unapproved_invites(self):
         join_request = "test@email.com"
