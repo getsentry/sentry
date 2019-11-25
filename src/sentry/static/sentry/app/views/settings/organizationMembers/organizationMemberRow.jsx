@@ -224,12 +224,6 @@ const StyledPanelItem = styled(PanelItem)`
   grid-template-columns: minmax(150px, 2fr) minmax(90px, 1fr) minmax(120px, 1fr) 90px;
   grid-gap: ${space(2)};
   align-items: center;
-
-  /* Stack columns at smaller screen sizes */
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: auto;
-    grid-gap: ${space(1)};
-  }
 `;
 
 const Section = styled('div')`

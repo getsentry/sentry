@@ -55,17 +55,17 @@ const InviteRequestRow = ({
         </h5>
         {inviteRequest.inviteStatus === 'requested_to_be_invited' ? (
           inviteRequest.inviterName && (
-            <Tooltip
-              title={t(
-                'An existing member has asked to invite this user to your organization'
-              )}
-            >
-              <Description>
+            <Description>
+              <Tooltip
+                title={t(
+                  'An existing member has asked to invite this user to your organization'
+                )}
+              >
                 {tct('Requested by [inviterName]', {
                   inviterName: inviteRequest.inviterName,
                 })}
-              </Description>
-            </Tooltip>
+              </Tooltip>
+            </Description>
           )
         ) : (
           <Tooltip title={t('This user has asked to join your organization.')}>
@@ -174,12 +174,6 @@ const StyledPanelItem = styled(PanelItem)`
   grid-template-columns: minmax(150px, auto) minmax(100px, 140px) 220px max-content;
   grid-gap: ${space(2)};
   align-items: center;
-
-  /* Stack columns at smaller screen sizes */
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: auto;
-    grid-gap: ${space(1)};
-  }
 `;
 
 const UserName = styled('div')`
@@ -189,6 +183,7 @@ const UserName = styled('div')`
 `;
 
 const Description = styled('div')`
+  display: block;
   color: ${p => p.theme.gray3};
   font-size: 14px;
   overflow: hidden;
