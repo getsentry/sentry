@@ -473,7 +473,6 @@ def transform_aliases_and_query(**kwargs):
     conditions = kwargs.get("conditions")
     filter_keys = kwargs["filter_keys"]
     arrayjoin = kwargs.get("arrayjoin")
-    rollup = kwargs.get("rollup")
     orderby = kwargs.get("orderby")
     having = kwargs.get("having", [])
     dataset = detect_dataset(kwargs)
@@ -546,6 +545,16 @@ def transform_aliases_and_query(**kwargs):
 
     result = dataset_query(**kwargs)
 
+    return transform_results(result, translated_columns, kwargs)
+
+
+def transform_results(result, translated_columns, snuba_args):
+    """
+    Transform internal names back to the public schema ones.
+
+    When getting timeseries results via rollup, this function will
+    zerofill the output results.
+    """
     # Translate back columns that were converted to snuba format
     for col in result["meta"]:
         col["name"] = translated_columns.get(col["name"], col["name"])
@@ -555,10 +564,12 @@ def transform_aliases_and_query(**kwargs):
 
     if len(translated_columns):
         result["data"] = [get_row(row) for row in result["data"]]
-        if rollup and rollup > 0:
-            result["data"] = zerofill(
-                result["data"], kwargs["start"], kwargs["end"], kwargs["rollup"], kwargs["orderby"]
-            )
+
+    rollup = snuba_args.get("rollup")
+    if rollup and rollup > 0:
+        result["data"] = zerofill(
+            result["data"], snuba_args["start"], snuba_args["end"], rollup, snuba_args["orderby"]
+        )
 
     return result
 

@@ -113,6 +113,35 @@ class QueryTransformTest(TestCase):
         assert mock_query.call_count == 0
 
     @patch("sentry.snuba.discover.raw_query")
+    def test_selected_columns_field_alias_macro(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "user_id"}, {"name": "email"}],
+            "data": [{"user_id": "1", "email": "a@example.org"}],
+        }
+        discover.query(
+            selected_columns=["user", "project"], query="", params={"project_id": [self.project.id]}
+        )
+        mock_query.assert_called_with(
+            selected_columns=[
+                "user_id",
+                "username",
+                "email",
+                "ip_address",
+                "project_id",
+                "event_id",
+            ],
+            aggregations=[],
+            filter_keys={"project_id": [self.project.id]},
+            dataset=Dataset.Discover,
+            end=None,
+            start=None,
+            conditions=[],
+            groupby=[],
+            orderby=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
     def test_selected_columns_aliasing_in_function(self, mock_query):
         mock_query.return_value = {
             "meta": [{"name": "transaction"}, {"name": "duration"}],
@@ -245,7 +274,7 @@ class QueryTransformTest(TestCase):
         }
         discover.query(
             selected_columns=["timestamp", "transaction", "transaction.duration", "count()"],
-            query="transaction.duration:200 sdk.name:python",
+            query="transaction.duration:200 sdk.name:python tags[projectid]:123",
             params={"project_id": [self.project.id]},
             orderby=["-timestamp", "-count"],
         )
@@ -256,7 +285,11 @@ class QueryTransformTest(TestCase):
                 ["argMax", ["event_id", "timestamp"], "latest_event"],
                 ["argMax", ["project_id", "timestamp"], "projectid"],
             ],
-            conditions=[["duration", "=", 200], ["sdk_name", "=", "python"]],
+            conditions=[
+                ["duration", "=", 200],
+                ["sdk_name", "=", "python"],
+                [["ifNull", ["tags[projectid]", "''"]], "=", "123"],
+            ],
             filter_keys={"project_id": [self.project.id]},
             groupby=["timestamp", "transaction", "duration"],
             orderby=["-timestamp", "-count"],

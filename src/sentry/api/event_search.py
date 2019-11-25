@@ -680,7 +680,7 @@ FIELD_ALIASES = {
     "last_seen": {"aggregations": [["max", "timestamp", "last_seen"]]},
     "latest_event": {"aggregations": [["argMax", ["id", "timestamp"], "latest_event"]]},
     "project": {"fields": ["project.id"]},
-    "user": {"fields": ["user.id", "user.name", "user.username", "user.email", "user.ip"]},
+    "user": {"fields": ["user.id", "user.username", "user.email", "user.ip"]},
     # Long term these will become more complex functions but these are
     # field aliases.
     "apdex": {"result_type": "number", "aggregations": [["apdex(duration, 300)", "", "apdex"]]},

@@ -10,6 +10,7 @@ from sentry.utils.snuba import (
     QUOTED_LITERAL_RE,
     get_function_index,
     raw_query,
+    transform_results,
 )
 
 ALLOWED_INTERNALS = set(["project_id", "event_id"])
@@ -20,7 +21,7 @@ def resolve_column(col):
     Resolve a public schema name to the discover dataset.
     unknown columns are converted into tags expressions.
     """
-    if not col:
+    if col == "":
         return ""
     if col.startswith("tags[") or col in ALLOWED_INTERNALS or QUOTED_LITERAL_RE.match(col):
         return col
@@ -86,17 +87,11 @@ def resolve_discover_aliases(snuba_args):
     if selected_columns:
         for (idx, col) in enumerate(selected_columns):
             if isinstance(col, (list, tuple)):
-                # if list, means there are potentially nested functions and need to
-                # iterate and translate potential columns which is the same process
-                # as handling a condition.
-                selected_columns[idx] = resolve_condition(col, Dataset.Discover)
-                derived_columns.append(col[2])
-            else:
-                name = resolve_column(col)
-                selected_columns[idx] = name
-                translated_columns[name] = col
+                raise ValueError("discover selected_columns should only be str. got %s" % col)
+            name = resolve_column(col)
+            selected_columns[idx] = name
+            translated_columns[name] = col
         resolved["selected_columns"] = selected_columns
-    resolved["translated_columns"] = translated_columns
 
     groupby = resolved.get("groupby")
     if groupby:
@@ -139,22 +134,7 @@ def resolve_discover_aliases(snuba_args):
                 )
             )
         resolved["orderby"] = resolved_orderby
-    return resolved
-
-
-def transform_results(result, translated_columns):
-    # Translate back columns that were converted to snuba format
-    for col in result["meta"]:
-        col["name"] = translated_columns.get(col["name"], col["name"])
-
-    def get_row(row):
-        return {translated_columns.get(key, key): value for key, value in row.items()}
-
-    if len(translated_columns):
-        result["data"] = [get_row(row) for row in result["data"]]
-
-    # TODO(mark) add zerofill for timeseries data.
-    return result
+    return resolved, translated_columns
 
 
 def query(selected_columns, query, params, orderby=None, referrer=None):
@@ -187,8 +167,7 @@ def query(selected_columns, query, params, orderby=None, referrer=None):
     snuba_args.update(resolve_field_list(selected_columns, snuba_args))
 
     # Resolve the public aliases into the discover dataset names.
-    snuba_args = resolve_discover_aliases(snuba_args)
-    translated_columns = snuba_args.pop("translated_columns")
+    snuba_args, translated_columns = resolve_discover_aliases(snuba_args)
 
     result = raw_query(
         start=snuba_args.get("start"),
@@ -203,7 +182,7 @@ def query(selected_columns, query, params, orderby=None, referrer=None):
         referrer=referrer,
     )
 
-    return transform_results(result, translated_columns)
+    return transform_results(result, translated_columns, snuba_args)
 
 
 def timeseries_query(selected_columns, query, params, rollup):
