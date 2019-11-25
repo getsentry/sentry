@@ -8,13 +8,17 @@ export type ColumnValueType =
   | 'boolean'
   | 'never'; // Matches to nothing
 
+type AGGREGATION_KEYS = 'count' | 'count_unique' | 'min' | 'max' | 'sum' | 'avg';
+
 // Refer to src/sentry/utils/snuba.py
-export const AGGREGATIONS: {
-  [key: string]: {
-    type: '*' | ColumnValueType[];
-    isSortable: boolean;
-  };
-} = {
+export const AGGREGATIONS: Readonly<
+  {
+    [key in AGGREGATION_KEYS]: {
+      type: '*' | ColumnValueType[];
+      isSortable: boolean;
+    }
+  }
+> = {
   count: {
     type: '*',
     isSortable: true,
@@ -64,7 +68,7 @@ export type Aggregation = keyof typeof AGGREGATIONS | '';
 /**
  * Refer to src/sentry/utils/snuba.py, search for SENTRY_SNUBA_MAP
  */
-export const FIELDS: {[key: string]: ColumnValueType} = {
+export const FIELDS = {
   id: 'string',
 
   title: 'string',
@@ -146,7 +150,7 @@ export const FIELDS: {[key: string]: ColumnValueType} = {
   p75: 'duration',
   p95: 'duration',
   p99: 'duration',
-};
+} as const;
 export type Field = keyof typeof FIELDS | string | '';
 
 // This list should be removed with the tranaction-events feature flag.
