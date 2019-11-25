@@ -5,7 +5,6 @@ import pickle
 
 from sentry.models import Environment
 from sentry.db.models.fields.node import NodeData
-from sentry.event_manager import EventManager
 from sentry.testutils import TestCase
 from sentry.testutils.factories import Factories
 
@@ -168,47 +167,3 @@ def test_renormalization(monkeypatch, factories, task_runner, default_project):
     # that you will encounter severe performance issues during event processing
     # or postprocessing.
     assert len(normalize_mock_calls) == 1
-
-
-class EventGetLegacyMessageTest(TestCase):
-    def test_message(self):
-        event = self.create_event(message="foo bar")
-        assert event.get_legacy_message() == "foo bar"
-
-    def test_message_interface(self):
-        event = self.create_event(message="biz baz", data={"logentry": {"message": "foo bar"}})
-        assert event.get_legacy_message() == "foo bar"
-
-    def test_message_interface_with_formatting(self):
-        event = self.create_event(
-            message="biz baz",
-            data={"logentry": {"message": "foo %s", "formatted": "foo bar", "params": ["bar"]}},
-        )
-        assert event.get_legacy_message() == "foo bar"
-
-    def test_none(self):
-        event = self.create_event(data={"logentry": None})
-        assert event.get_legacy_message() == "<unlabeled event>"
-
-        event = self.create_event(data={"logentry": {"formatted": None, "message": None}})
-        assert event.get_legacy_message() == "<unlabeled event>"
-
-    def test_get_hashes(self):
-        manager = EventManager({"message": "Hello World!"})
-        manager.normalize()
-        event = manager.save(1)
-
-        # Have hashes by default
-        hashes = event.get_hashes()
-        assert hashes == ["ed076287532e86365e841e92bfc50d8c"]
-        assert event.data.data["hashes"] == ["ed076287532e86365e841e92bfc50d8c"]
-
-        # if hashes are reset, generate new ones
-        event.data.data["hashes"] = None
-        hashes = event.get_hashes()
-        assert hashes == ["ed076287532e86365e841e92bfc50d8c"]
-        assert event.data.data["hashes"] is None
-
-        # Use stored hashes
-        event.data.data["hashes"] = ["x"]
-        assert event.get_hashes() == ["x"]

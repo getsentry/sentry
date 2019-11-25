@@ -119,17 +119,6 @@ class EventCommon(object):
     def get_interface(self, name):
         return self.interfaces.get(name)
 
-    def get_legacy_message(self):
-        # TODO(mitsuhiko): remove this code once it's unused.  It's still
-        # being used by plugin code and once the message rename is through
-        # plugins should instead swithc to the actual message attribute or
-        # this method could return what currently is real_message.
-        return (
-            get_path(self.data, "logentry", "formatted")
-            or get_path(self.data, "logentry", "message")
-            or self.message
-        )
-
     def get_event_type(self):
         """
         Return the type of this event.
