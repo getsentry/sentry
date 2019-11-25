@@ -7,7 +7,7 @@ import {callIfFunction} from 'app/utils/callIfFunction';
 
 type Props = {
   title?: string;
-  subtitle: string;
+  subtitle?: string;
   queryDetail?: string;
   to: object;
   onEventClick?: () => void;
