@@ -8,6 +8,7 @@ from django.core.cache import cache
 from sentry.integrations.exceptions import ApiError, IntegrationError
 from sentry.models import Integration
 from sentry.plugins import providers
+from sentry.utils.hashlib import md5_text
 
 WEBHOOK_EVENTS = ["push", "pull_request"]
 
@@ -111,7 +112,7 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
     def _get_patchset(self, client, repo_name, sha):
         """Get the modified files for a commit
         """
-        key = "get_commit:{}:{}".format(repo_name, sha)
+        key = u"get_commit:{}:{}".format(md5_text(repo_name).hexdigest(), sha)
         commit_files = cache.get(key)
         if commit_files is None:
             commit_files = client.get_commit(repo_name, sha)["files"]
