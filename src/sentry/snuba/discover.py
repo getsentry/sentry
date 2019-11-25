@@ -13,8 +13,6 @@ from sentry.utils.snuba import (
     transform_results,
 )
 
-ALLOWED_INTERNALS = set(["project_id", "event_id"])
-
 
 def resolve_column(col):
     """
@@ -23,7 +21,7 @@ def resolve_column(col):
     """
     if col == "":
         return ""
-    if col.startswith("tags[") or col in ALLOWED_INTERNALS or QUOTED_LITERAL_RE.match(col):
+    if col.startswith("tags[") or QUOTED_LITERAL_RE.match(col):
         return col
     return DISCOVER_COLUMN_MAP.get(col, u"tags[{}]".format(col))
 

@@ -823,7 +823,7 @@ def resolve_field_list(fields, snuba_args):
         if aggregations and "latest_event" not in fields:
             aggregations.extend(deepcopy(FIELD_ALIASES["latest_event"]["aggregations"]))
         if aggregations and "project.id" not in columns:
-            aggregations.append(["argMax", ["project_id", "timestamp"], "projectid"])
+            aggregations.append(["argMax", ["project.id", "timestamp"], "projectid"])
 
     if rollup and columns and not aggregations:
         raise InvalidSearchQuery("You cannot use rollup without an aggregate field.")

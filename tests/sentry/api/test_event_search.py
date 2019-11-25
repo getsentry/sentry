@@ -1031,7 +1031,7 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["aggregations"] == [
             ["max", "timestamp", "last_seen"],
             ["argMax", ["id", "timestamp"], "latest_event"],
-            ["argMax", ["project_id", "timestamp"], "projectid"],
+            ["argMax", ["project.id", "timestamp"], "projectid"],
         ]
         assert result["groupby"] == ["title"]
 
@@ -1051,7 +1051,7 @@ class ResolveFieldListTest(unittest.TestCase):
             ["quantile(0.95)(duration)", "", "p95"],
             ["quantile(0.99)(duration)", "", "p99"],
             ["argMax", ["id", "timestamp"], "latest_event"],
-            ["argMax", ["project_id", "timestamp"], "projectid"],
+            ["argMax", ["project.id", "timestamp"], "projectid"],
         ]
         assert result["groupby"] == []
 
@@ -1062,7 +1062,6 @@ class ResolveFieldListTest(unittest.TestCase):
             "title",
             "project.id",
             "user.id",
-            "user.name",
             "user.username",
             "user.email",
             "user.ip",
@@ -1076,7 +1075,6 @@ class ResolveFieldListTest(unittest.TestCase):
             "title",
             "project.id",
             "user.id",
-            "user.name",
             "user.username",
             "user.email",
             "user.ip",
@@ -1093,7 +1091,7 @@ class ResolveFieldListTest(unittest.TestCase):
             ["count", "id", "count_id"],
             ["min", "timestamp", "min_timestamp"],
             ["argMax", ["id", "timestamp"], "latest_event"],
-            ["argMax", ["project_id", "timestamp"], "projectid"],
+            ["argMax", ["project.id", "timestamp"], "projectid"],
         ]
         assert result["groupby"] == []
 
@@ -1103,7 +1101,7 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["aggregations"] == [
             ["uniq", "user.id", "count_unique_user_id"],
             ["argMax", ["id", "timestamp"], "latest_event"],
-            ["argMax", ["project_id", "timestamp"], "projectid"],
+            ["argMax", ["project.id", "timestamp"], "projectid"],
         ]
 
     def test_aggregate_function_invalid_name(self):
@@ -1171,7 +1169,7 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["aggregations"] == [
             ["max", "timestamp", "last_seen"],
             ["argMax", ["id", "timestamp"], "latest_event"],
-            ["argMax", ["project_id", "timestamp"], "projectid"],
+            ["argMax", ["project.id", "timestamp"], "projectid"],
         ]
         assert result["groupby"] == []
 
@@ -1184,7 +1182,7 @@ class ResolveFieldListTest(unittest.TestCase):
             ["count", "id", "count_id"],
             ["uniq", "user", "count_unique_user"],
             ["argMax", ["id", "timestamp"], "latest_event"],
-            ["argMax", ["project_id", "timestamp"], "projectid"],
+            ["argMax", ["project.id", "timestamp"], "projectid"],
         ]
         assert result["groupby"] == []
 
