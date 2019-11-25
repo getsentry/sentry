@@ -53,7 +53,7 @@ exports[`RadioBooleanField render() renders new field without form context 1`] =
                   <FieldControl
                     alignRight={false}
                     controlState={
-                      <ControlState
+                      <FormFieldControlState
                         model={
                           MockModel {
                             "initialData": Object {
@@ -237,7 +237,7 @@ exports[`RadioBooleanField render() renders new field without form context 1`] =
                                                   className="e1rziqw00 css-1fqbh7r-FieldControlState"
                                                   is={null}
                                                 >
-                                                  <ControlState
+                                                  <FormFieldControlState
                                                     model={
                                                       MockModel {
                                                         "initialData": Object {
@@ -257,9 +257,13 @@ exports[`RadioBooleanField render() renders new field without form context 1`] =
                                                     }
                                                     name="fieldName"
                                                   >
-                                                    <Observer />
-                                                    <Observer />
-                                                  </ControlState>
+                                                    <Observer>
+                                                      <ControlState
+                                                        isSaved={false}
+                                                        isSaving={false}
+                                                      />
+                                                    </Observer>
+                                                  </FormFieldControlState>
                                                 </div>
                                               </Base>
                                             </Flex>
