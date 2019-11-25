@@ -56,7 +56,8 @@ const StyledQueryCard = styled(Link)`
 
   &:hover {
     box-shadow: 0px 0px 0px 6px rgba(209, 202, 216, 0.2);
-    transform: translateY(-2px);
+    position: relative;
+    top: -2px;
   }
 
   &:active {
