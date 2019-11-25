@@ -13,6 +13,11 @@ from sentry import features, reprocessing
 from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
 from sentry.attachments import attachment_cache
 from sentry.cache import default_cache
+from sentry.lang.native.utils import (
+    STORE_CRASH_REPORTS_ALL,
+    convert_crashreport_count,
+    get_crashreport_key,
+)
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
@@ -31,6 +36,9 @@ REPROCESSING_DEFAULT = False
 
 # Attachment file types that are considered a crash report (PII relevant)
 CRASH_REPORT_TYPES = ("event.minidump",)
+
+# Timeout for cached group crash report counts
+CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
 
 
 class RetryProcessing(Exception):
@@ -417,16 +425,104 @@ def save_attachment(event, attachment):
             if not organization.get_option("sentry:store_crash_reports"):
                 return
 
-    file = File.objects.create(
-        name=attachment.name,
-        type=attachment.type,
-        headers={"Content-Type": attachment.content_type},
-    )
-    file.putfile(six.BytesIO(attachment.data))
 
-    EventAttachment.objects.create(
-        event_id=event.event_id, project_id=event.project_id, name=attachment.name, file=file
-    )
+def get_max_crashreports(model):
+    value = model.get_option("sentry:store_crash_reports")
+    return convert_crashreport_count(value)
+
+
+def crashreports_exceeded(current_count, max_count):
+    if max_count == STORE_CRASH_REPORTS_ALL:
+        return False
+    return current_count >= max_count
+
+
+def get_stored_crashreports(cache_key, event, max_crashreports):
+    # There are two common cases: Storing crash reports is disabled, or is
+    # unbounded. In both cases, there is no need in caching values or querying
+    # the database.
+    if max_crashreports in (0, STORE_CRASH_REPORTS_ALL):
+        return max_crashreports
+
+    cached_reports = default_cache.get(cache_key, None)
+    if cached_reports >= max_crashreports:
+        return cached_reports
+
+    # Fall-through if max_crashreports was bumped to get a more accurate number.
+    return EventAttachment.objects.filter(
+        group_id=event.group_id, file__type__in=CRASH_REPORT_TYPES
+    ).count()
+
+
+def save_attachments(cache_key, event):
+    """
+    Persists cached event attachments into the file store.
+
+    This method checks whether event attachments are available and sends them to
+    the blob store. There is special handling for crash reports which may
+    contain unstripped PII. If the project or organization is configured to
+    limit the amount of crash reports per group, the number of stored crashes is
+    limited.
+
+    :param cache_key: The cache key at which the event payload is stored in the
+                      cache. This is used to retrieve attachments.
+    :param event:     The event model instance.
+    """
+    if not features.has("organizations:event-attachments", event.project.organization, actor=None):
+        return
+
+    attachments = attachment_cache.get(cache_key) or []
+    if not attachments:
+        return
+
+    # The setting is both an organization and project setting. The project
+    # setting strictly overrides the organization setting, unless set to the
+    # default.
+    max_crashreports = get_max_crashreports(event.project)
+    if not max_crashreports:
+        max_crashreports = get_max_crashreports(event.project.organization)
+
+    # The number of crash reports is cached per group
+    crashreports_key = get_crashreport_key(event.group_id)
+
+    # Only fetch the number of stored crash reports if there is a crash report
+    # in the list of attachments. Otherwise, we won't require this number.
+    if any(attachment.type in CRASH_REPORT_TYPES for attachment in attachments):
+        cached_reports = get_stored_crashreports(crashreports_key, event, max_crashreports)
+    else:
+        cached_reports = 0
+    stored_reports = cached_reports
+
+    for attachment in attachments:
+        # If the attachment is a crash report (e.g. minidump), we need to honor
+        # the store_crash_reports setting. Otherwise, we assume that the client
+        # has already verified PII and just store the attachment.
+        if attachment.type in CRASH_REPORT_TYPES:
+            if crashreports_exceeded(stored_reports, max_crashreports):
+                continue
+            stored_reports += 1
+
+        file = File.objects.create(
+            name=attachment.name,
+            type=attachment.type,
+            headers={"Content-Type": attachment.content_type},
+        )
+        file.putfile(six.BytesIO(attachment.data))
+
+        EventAttachment.objects.create(
+            event_id=event.event_id,
+            project_id=event.project_id,
+            group_id=event.group_id,
+            name=attachment.name,
+            file=file,
+        )
+
+    # Check if we have exceeded the stored crash reports count. If so, we
+    # persist the current maximum (not the actual number!) into the cache. Next
+    # time when loading from the cache, we will validate that this number has
+    # not changed, or otherwise re-fetch from the database.
+    if crashreports_exceeded(stored_reports, max_crashreports) and stored_reports > cached_reports:
+        default_cache.set(crashreports_key, max_crashreports, CRASH_REPORT_TIMEOUT)
 
 
 def _do_save_event(
@@ -491,13 +587,6 @@ def _do_save_event(
         # event.project.organization is populated after this statement.
         event = manager.save(project_id, assume_normalized=True)
 
-        # Always load attachments from the cache so we can later prune them.
-        # Only save them if the event-attachments feature is active, though.
-        if features.has("organizations:event-attachments", event.project.organization, actor=None):
-            attachments = attachment_cache.get(cache_key) or []
-            for attachment in attachments:
-                save_attachment(event, attachment)
-
         # This is where we can finally say that we have accepted the event.
         track_outcome(
             event.project.organization_id,
@@ -535,6 +624,11 @@ def _do_save_event(
             timestamp,
             event_id,
         )
+
+    else:
+        if cache_key:
+            # Note that event is now a model, and no longer the data
+            save_attachments(cache_key, event)
 
     finally:
         if cache_key:
