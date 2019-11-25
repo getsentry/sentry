@@ -5,6 +5,7 @@ from datetime import datetime
 import six
 
 from time import time
+from django.core.cache import cache
 from django.utils import timezone
 
 from semaphore.processing import StoreNormalizer
@@ -428,7 +429,7 @@ def get_stored_crashreports(cache_key, event, max_crashreports):
     if max_crashreports in (0, STORE_CRASH_REPORTS_ALL):
         return max_crashreports
 
-    cached_reports = default_cache.get(cache_key, None)
+    cached_reports = cache.get(cache_key, None)
     if cached_reports >= max_crashreports:
         return cached_reports
 
@@ -506,7 +507,7 @@ def save_attachments(cache_key, event):
     # time when loading from the cache, we will validate that this number has
     # not changed, or otherwise re-fetch from the database.
     if crashreports_exceeded(stored_reports, max_crashreports) and stored_reports > cached_reports:
-        default_cache.set(crashreports_key, max_crashreports, CRASH_REPORT_TIMEOUT)
+        cache.set(crashreports_key, max_crashreports, CRASH_REPORT_TIMEOUT)
 
 
 def _do_save_event(
