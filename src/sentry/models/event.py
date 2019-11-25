@@ -419,24 +419,6 @@ class SnubaEvent(EventCommon):
     # avoid duplicated work.
     minimal_columns = ["event_id", "group_id", "project_id", "timestamp"]
 
-    # A list of all useful columns we can get from snuba.
-    selected_columns = minimal_columns + [
-        "culprit",
-        "location",
-        "message",
-        "platform",
-        "title",
-        "type",
-        # Required to provide snuba-only tags
-        "tags.key",
-        "tags.value",
-        # Required to provide snuba-only 'user' interface
-        "email",
-        "ip_address",
-        "user_id",
-        "username",
-    ]
-
     __repr__ = sane_repr("project_id", "group_id")
 
     def __init__(self, snuba_values):
