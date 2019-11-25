@@ -3,6 +3,8 @@ from __future__ import absolute_import
 import logging
 import six
 
+from django.core.cache import cache
+
 from sentry.integrations.exceptions import ApiError, IntegrationError
 from sentry.models import Integration
 from sentry.plugins import providers
@@ -109,8 +111,13 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
     def _get_patchset(self, client, repo_name, sha):
         """Get the modified files for a commit
         """
-        commit = client.get_commit(repo_name, sha)
-        return self._transform_patchset(commit["files"])
+        key = "get_commit:{}:{}".format(repo_name, sha)
+        commit_files = cache.get(key)
+        if commit_files is None:
+            commit_files = client.get_commit(repo_name, sha)["files"]
+            cache.set(key, commit_files, 900)
+
+        return self._transform_patchset(commit_files)
 
     def _transform_patchset(self, diff):
         """Convert the patch data from GitHub into our internal format
