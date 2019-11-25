@@ -94,7 +94,7 @@ class QueryList extends React.Component<Props> {
           key={`${index}-${eventView.name}`}
           to={to}
           title={eventView.name}
-          subtitle={eventView.statsPeriod}
+          subtitle={t('Last ') + eventView.statsPeriod}
           queryDetail={eventView.query}
           renderGraph={() => {
             return (
