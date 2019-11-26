@@ -50,7 +50,7 @@ class OAuthAuthorizeView(AuthLoginView):
         )
         return self.redirect_response(response_type, redirect_uri, {"error": name, "state": state})
 
-    def respond_login(self, request, context, application, **kwargs):
+    def respond_login(self, context, application, **kwargs):
         context["banner"] = u"Connect Sentry to {}".format(application.name)
         return self.respond("sentry/login.html", context)
 

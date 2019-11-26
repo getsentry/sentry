@@ -12,7 +12,7 @@ from sentry.web.frontend.auth_login import AuthLoginView
 
 
 class AuthOrganizationLoginView(AuthLoginView):
-    def respond_login(self, request, context, *args, **kwargs):
+    def respond_login(self, context, *args, **kwargs):
         return self.respond("sentry/organization-login.html", context)
 
     def handle_sso(self, request, organization, auth_provider):
