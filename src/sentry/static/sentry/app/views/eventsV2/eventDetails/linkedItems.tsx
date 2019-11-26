@@ -35,10 +35,10 @@ type Props = {
 
 type State = {
   issue: Group;
-  relatedEvents: {data: DiscoverResult[]};
+  linkedEvents: {data: DiscoverResult[]};
 } & AsyncComponent['state'];
 
-class RelatedItems extends AsyncComponent<Props, State> {
+class LinkedItems extends AsyncComponent<Props, State> {
   getEndpoints(): [string, string, any][] {
     const {event, organization} = this.props;
     const endpoints: any = [];
@@ -50,7 +50,7 @@ class RelatedItems extends AsyncComponent<Props, State> {
     const trace = event.tags.find(tag => tag.key === 'trace');
     if (trace) {
       endpoints.push([
-        'relatedEvents',
+        'linkedEvents',
         `/organizations/${organization.slug}/eventsv2/`,
         {
           query: {
@@ -72,14 +72,14 @@ class RelatedItems extends AsyncComponent<Props, State> {
     return endpoints;
   }
 
-  renderRelatedIssue() {
+  renderLinkedIssue() {
     const {event} = this.props;
     const {issue} = this.state;
     const issueUrl = `${issue.permalink}events/${event.eventID}/`;
 
     return (
       <Section>
-        <SectionHeading>{t('Related Issue')}</SectionHeading>
+        <SectionHeading>{t('Linked Issue')}</SectionHeading>
         <StyledCard>
           <StyledLink to={issueUrl} data-test-id="linked-issue">
             <StyledShortId
@@ -96,16 +96,16 @@ class RelatedItems extends AsyncComponent<Props, State> {
     );
   }
 
-  renderRelatedEvents() {
+  renderLinkedEvents() {
     const {event, organization, projects} = this.props;
-    const {relatedEvents} = this.state;
+    const {linkedEvents} = this.state;
     return (
       <Section>
-        <SectionHeading>{t('Related Trace Events')}</SectionHeading>
-        {relatedEvents.data.length < 1 ? (
-          <StyledCard>{t('No related events found.')}</StyledCard>
+        <SectionHeading>{t('Linked Trace Events')}</SectionHeading>
+        {linkedEvents.data.length < 1 ? (
+          <StyledCard>{t('No linked events found.')}</StyledCard>
         ) : (
-          relatedEvents.data.map((item: DiscoverResult) => {
+          linkedEvents.data.map((item: DiscoverResult) => {
             const eventSlug = generateEventSlug(item);
             const eventUrl = {
               pathname: generateEventDetailsRoute({eventSlug, organization}),
@@ -133,8 +133,8 @@ class RelatedItems extends AsyncComponent<Props, State> {
   renderBody() {
     return (
       <React.Fragment>
-        {this.state.issue && this.renderRelatedIssue()}
-        {this.state.relatedEvents && this.renderRelatedEvents()}
+        {this.state.issue && this.renderLinkedIssue()}
+        {this.state.linkedEvents && this.renderLinkedEvents()}
       </React.Fragment>
     );
   }
@@ -193,4 +193,4 @@ const StyledShortId = styled(ShortId)`
   }
 `;
 
-export default withProjects(RelatedItems);
+export default withProjects(LinkedItems);

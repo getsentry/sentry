@@ -15,7 +15,7 @@ import NavTabs from 'app/components/navTabs';
 import {objectIsEmpty, toTitleCase} from 'app/utils';
 import {Event, Organization} from 'app/types';
 
-import RelatedItems from './relatedItems';
+import LinkedItems from './linkedItems';
 
 const OTHER_SECTIONS = {
   contexts: EventContexts,
@@ -65,9 +65,9 @@ const ActiveTab = (props: ActiveTabProps) => {
   } else if (OTHER_SECTIONS[activeTab]) {
     const Component = OTHER_SECTIONS[activeTab];
     return <Component event={event} isShare={false} hideGuide />;
-  } else if (activeTab === 'related') {
+  } else if (activeTab === 'linked') {
     return (
-      <RelatedItems event={event} projectId={projectId} organization={organization} />
+      <LinkedItems event={event} projectId={projectId} organization={organization} />
     );
   } else {
     /*eslint no-console:0*/
@@ -163,15 +163,15 @@ class EventInterfaces extends React.Component<
               </li>
             );
           })}
-          <li key="related" className={activeTab === 'related' ? 'active' : undefined}>
+          <li key="linked" className={activeTab === 'linked' ? 'active' : undefined}>
             <a
               href="#"
               onClick={evt => {
                 evt.preventDefault();
-                this.handleTabChange('related');
+                this.handleTabChange('linked');
               }}
             >
-              {t('Related')}
+              {t('Linked')}
             </a>
           </li>
         </NavTabs>
