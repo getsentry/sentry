@@ -9,6 +9,10 @@ import getDynamicText from 'app/utils/getDynamicText';
 import marked from 'app/utils/marked';
 import platforms from 'app/data/platforms';
 import slugify from 'app/utils/slugify';
+import {
+  STORE_CRASH_REPORTS_VALUES,
+  formatStoreCrashReports,
+} from 'app/utils/crashReports';
 import space from 'app/styles/space';
 import {GroupingConfigItem} from 'app/components/events/groupingInfo';
 
@@ -330,12 +334,14 @@ export const fields = {
   },
   storeCrashReports: {
     name: 'storeCrashReports',
-    type: 'boolean',
+    type: 'range',
     label: t('Store Native Crash Reports'),
     help: t(
-      'Store native crash reports such as Minidumps for improved processing and download in issue details'
+      'Store native crash reports such as Minidumps for improved processing and download in issue details.  Overrides organization settings when enabled.'
     ),
     visible: ({features}) => features.has('event-attachments'),
+    formatLabel: formatStoreCrashReports,
+    allowedValues: STORE_CRASH_REPORTS_VALUES,
   },
   relayPiiConfig: {
     name: 'relayPiiConfig',
