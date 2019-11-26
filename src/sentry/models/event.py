@@ -377,23 +377,6 @@ class EventCommon(object):
     # DEPRECATED
     # ============================================
 
-    @property
-    def level(self):
-        # we might want to move to this:
-        # return LOG_LEVELS_MAP.get(self.get_level_display()) or self.group.level
-        if self.group:
-            return self.group.level
-        else:
-            return None
-
-    def get_level_display(self):
-        # we might want to move to this:
-        # return self.get_tag('level') or self.group.get_level_display()
-        if self.group:
-            return self.group.get_level_display()
-        else:
-            return None
-
     # TODO: This is currently used in the Twilio and Flowdock plugins
     # Remove this after usage has been removed there.
     def error(self):  # TODO why is this not a property?
