@@ -100,8 +100,8 @@ def render_to_string(template, context=None, request=None):
     return loader.render_to_string(template, context)
 
 
-def render_to_response(template, context=None, request=None, status=200, content_type="text/html"):
-    response = HttpResponse(render_to_string(template, context, request))
+def render_to_response(template, context, request, status=200, content_type="text/html"):
+    response = HttpResponse(template.render(context, request))
     response.status_code = status
     response["Content-Type"] = content_type
     return response

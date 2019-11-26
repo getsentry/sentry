@@ -6,6 +6,7 @@ from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.core.urlresolvers import reverse
 from django.db import transaction
 from django.http import HttpResponseRedirect
+from django.template.loader import get_template
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.cache import never_cache
 
@@ -100,8 +101,8 @@ class AuthLoginView(BaseView):
             next_uri_fallback = request.session.pop("_next")
         return request.GET.get(REDIRECT_FIELD_NAME, next_uri_fallback)
 
-    def respond_login(self, request, context, **kwargs):
-        return self.respond("sentry/login.html", context)
+    def respond_login(self, context, **kwargs):
+        return self.respond(get_template("sentry/login.html"), context)
 
     def handle_basic_auth(self, request, **kwargs):
         can_register = self.can_register(request)
@@ -199,7 +200,7 @@ class AuthLoginView(BaseView):
         }
         context.update(additional_context.run_callbacks(request))
 
-        return self.respond_login(request, context, **kwargs)
+        return self.respond_login(context, **kwargs)
 
     def handle_authenticated(self, request):
         next_uri = self.get_next_uri(request)
