@@ -1105,7 +1105,7 @@ class ResolveFieldListTest(unittest.TestCase):
             ["count", "", "count_user"],
             ["count", "", "count_transaction_duration"],
             ["argMax", ["id", "timestamp"], "latest_event"],
-            ["argMax", ["project_id", "timestamp"], "projectid"],
+            ["argMax", ["project.id", "timestamp"], "projectid"],
         ]
         assert result["groupby"] == []
 
