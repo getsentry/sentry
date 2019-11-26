@@ -1,9 +1,6 @@
-const numberFormats = [[1000000000, 'b'], [1000000, 'm'], [1000, 'k']];
+import floatFormat from './floatFormat';
 
-function floatFormat(number, places) {
-  const multi = Math.pow(10, places);
-  return parseInt(number * multi, 10) / multi;
-}
+const numberFormats = [[1000000000, 'b'], [1000000, 'm'], [1000, 'k']];
 
 export default function formatNumber(number) {
   let b, x, y, o, p;

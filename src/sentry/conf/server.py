@@ -1037,6 +1037,24 @@ SENTRY_SEARCH_OPTIONS = {}
 SENTRY_TSDB = "sentry.tsdb.dummy.DummyTSDB"
 SENTRY_TSDB_OPTIONS = {}
 
+# Event storage backend
+SENTRY_EVENTSTORE = "sentry.utils.services.ServiceDelegator"
+SENTRY_EVENTSTORE_OPTIONS = {
+    "backend_base": "sentry.eventstore.base.EventStorage",
+    "backends": {
+        "snuba": {
+            "path": "sentry.eventstore.snuba.SnubaEventStorage",
+            "executor": {"path": "sentry.utils.concurrent.SynchronousExecutor"},
+        },
+        "snuba_discover": {
+            "path": "sentry.eventstore.snuba_discover.SnubaDiscoverEventStorage",
+            "executor": {"path": "sentry.utils.services.ThreadedExecutor"},
+        },
+    },
+    "selector_func": "sentry.eventstore.utils.selector_func",
+    "callback_func": "sentry.eventstore.utils.callback_func",
+}
+
 SENTRY_NEWSLETTER = "sentry.newsletter.base.Newsletter"
 SENTRY_NEWSLETTER_OPTIONS = {}
 
@@ -1229,7 +1247,7 @@ SENTRY_ROLES = (
     },
     {
         "id": "owner",
-        "name": "Organization Owner",
+        "name": "Owner",
         "desc": "Unrestricted access to the organization, its data, and its settings. Can add, modify, and delete projects and members, as well as make billing and plan changes.",
         "is_global": True,
         "scopes": set(
@@ -1404,6 +1422,14 @@ def get_sentry_sdk_config():
 
 
 SENTRY_SDK_CONFIG = get_sentry_sdk_config()
+
+# Callable to bind additional context for the Sentry SDK
+#
+# def get_org_context(scope, organization, **kwargs):
+#    scope.set_tag('organization.cool', '1')
+#
+# SENTRY_ORGANIZATION_CONTEXT_HELPER = get_org_context
+SENTRY_ORGANIZATION_CONTEXT_HELPER = None
 
 # Config options that are explicitly disabled from Django
 DEAD = object()

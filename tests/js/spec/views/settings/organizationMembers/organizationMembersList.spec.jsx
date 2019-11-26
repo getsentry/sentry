@@ -267,7 +267,7 @@ describe('OrganizationMembers', function() {
     expect(OrganizationsStore.getAll()).toEqual([organization]);
   });
 
-  it('can re-send invite to member', async function() {
+  it('can re-send SSO link to member', async function() {
     const inviteMock = MockApiClient.addMockResponse({
       url: `/organizations/org-id/members/${members[0].id}/`,
       method: 'PUT',
@@ -275,6 +275,7 @@ describe('OrganizationMembers', function() {
         id: '1234',
       },
     });
+
     const wrapper = mountWithTheme(
       <OrganizationMembers
         {...defaultProps}
@@ -287,10 +288,34 @@ describe('OrganizationMembers', function() {
 
     expect(inviteMock).not.toHaveBeenCalled();
 
-    wrapper
-      .find('ResendInviteButton')
-      .first()
-      .simulate('click');
+    wrapper.find('StyledButton[aria-label="Resend SSO link"]').simulate('click');
+
+    await tick();
+    expect(inviteMock).toHaveBeenCalled();
+  });
+
+  it('can re-send invite to member', async function() {
+    const inviteMock = MockApiClient.addMockResponse({
+      url: `/organizations/org-id/members/${members[1].id}/`,
+      method: 'PUT',
+      body: {
+        id: '1234',
+      },
+    });
+
+    const wrapper = mountWithTheme(
+      <OrganizationMembers
+        {...defaultProps}
+        params={{
+          orgId: 'org-id',
+        }}
+      />,
+      TestStubs.routerContext([{organization}])
+    );
+
+    expect(inviteMock).not.toHaveBeenCalled();
+
+    wrapper.find('StyledButton[aria-label="Resend invite"]').simulate('click');
 
     await tick();
     expect(inviteMock).toHaveBeenCalled();

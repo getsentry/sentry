@@ -24,6 +24,7 @@ from sentry.api.serializers.rest_framework.list import ListField
 from sentry.api.serializers.rest_framework.origin import OriginField
 from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.lang.native.symbolicator import parse_sources, InvalidSourcesError
+from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
     AuditLogEntryEvent,
     Group,
@@ -94,7 +95,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     team = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50)
     digestsMinDelay = serializers.IntegerField(min_value=60, max_value=3600)
     digestsMaxDelay = serializers.IntegerField(min_value=60, max_value=3600)
-    subjectPrefix = serializers.CharField(max_length=200)
+    subjectPrefix = serializers.CharField(max_length=200, allow_blank=True)
     subjectTemplate = serializers.CharField(max_length=200)
     securityToken = serializers.RegexField(
         r"^[-a-zA-Z0-9+/=\s]+$", max_length=255, allow_blank=True
@@ -109,7 +110,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     dataScrubberDefaults = serializers.BooleanField(required=False)
     sensitiveFields = ListField(child=serializers.CharField(), required=False)
     safeFields = ListField(child=serializers.CharField(), required=False)
-    storeCrashReports = serializers.BooleanField(required=False)
+    storeCrashReports = serializers.IntegerField(min_value=-1, max_value=20, required=False)
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     builtinSymbolSources = ListField(child=serializers.CharField(), required=False)
     symbolSources = serializers.CharField(required=False, allow_blank=True, allow_null=True)
@@ -532,7 +533,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 )
             if "sentry:store_crash_reports" in options:
                 project.update_option(
-                    "sentry:store_crash_reports", bool(options["sentry:store_crash_reports"])
+                    "sentry:store_crash_reports",
+                    convert_crashreport_count(options["sentry:store_crash_reports"]),
                 )
             if "sentry:relay_pii_config" in options:
                 project.update_option(

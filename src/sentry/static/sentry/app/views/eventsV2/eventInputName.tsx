@@ -1,14 +1,13 @@
 import React from 'react';
+import styled from 'react-emotion';
 import {browserHistory} from 'react-router';
 
 import {Client} from 'app/api';
 import {t} from 'app/locale';
-import {Organization} from 'app/types';
+import {Organization, SavedQuery} from 'app/types';
 import withApi from 'app/utils/withApi';
-import withDiscoverSavedQueries from 'app/utils/withDiscoverSavedQueries';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {SavedQuery} from 'app/stores/discoverSavedQueriesStore';
 
 import InlineInput from 'app/components/inputInline';
 import {handleUpdateQueryName} from './savedQuery/utils';
@@ -20,7 +19,7 @@ type Props = {
   organization: Organization;
   eventView: EventView;
   savedQueries: SavedQuery[];
-  savedQueriesLoading: boolean;
+  onQueryChange: () => void;
 };
 
 const NAME_DEFAULT = t('Untitled query');
@@ -65,8 +64,8 @@ class EventInputName extends React.Component<Props> {
 
     handleUpdateQueryName(api, organization, nextEventView).then(
       (updatedQuery: SavedQuery) => {
+        this.props.onQueryChange();
         const view = EventView.fromSavedQuery(updatedQuery);
-        // May have to delay this for the store to update.
         browserHistory.push({
           pathname: location.pathname,
           query: view.generateQueryStringObject(),
@@ -79,15 +78,26 @@ class EventInputName extends React.Component<Props> {
     const {eventView} = this.props;
 
     return (
-      <InlineInput
-        ref={this.refInput}
-        name="discover2-query-name"
-        disabled={!eventView.id}
-        value={eventView.name || NAME_DEFAULT}
-        onBlur={this.onBlur}
-      />
+      <StyledHeader>
+        <InlineInput
+          ref={this.refInput}
+          name="discover2-query-name"
+          disabled={!eventView.id}
+          value={eventView.name || NAME_DEFAULT}
+          onBlur={this.onBlur}
+        />
+      </StyledHeader>
     );
   }
 }
 
-export default withApi(withDiscoverSavedQueries(EventInputName));
+const StyledHeader = styled('div')`
+  display: flex;
+  align-items: center;
+  height: 24px;
+  font-size: ${p => p.theme.headerFontSize};
+  color: ${p => p.theme.gray4};
+  grid-column: 1/2;
+`;
+
+export default withApi(EventInputName);

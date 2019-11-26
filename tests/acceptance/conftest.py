@@ -57,5 +57,10 @@ def pytest_configure(config):
     )
 
     subprocess.call(
-        ["yarn", "webpack"], env={"NODE_ENV": "development", "PATH": os.environ["PATH"]}
+        ["yarn", "webpack"],
+        env={
+            "NODE_ENV": "development",
+            "PATH": os.environ["PATH"],
+            "NODE_OPTIONS": "--max-old-space-size=4096",
+        },
     )
