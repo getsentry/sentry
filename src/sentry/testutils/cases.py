@@ -780,7 +780,8 @@ class SnubaTestCase(BaseTestCase):
         ):
             stored_event = Factories.store_event(*args, **kwargs)
             stored_group = stored_event.group
-            self.store_group(stored_group)
+            if stored_group is not None:
+                self.store_group(stored_group)
             return stored_event
 
     def store_group(self, group):
