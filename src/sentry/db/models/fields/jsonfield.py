@@ -150,7 +150,7 @@ class ContainsLookupMixin(object):
             )
         if isinstance(self.rhs, dict):
             return self.lhs.output_field.get_prep_value(self.rhs)[1:-1]
-        return self.lhs.output_field.get_prep_value(self.rhs)
+        return self.lhs.output_field.to_python(self.lhs.output_field.get_prep_value(self.rhs))
 
 
 class JSONFieldContainsLookup(ContainsLookupMixin, Contains):
