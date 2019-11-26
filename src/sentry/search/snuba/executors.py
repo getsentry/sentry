@@ -15,7 +15,7 @@ from sentry import options
 from sentry.api.event_search import convert_search_filter_to_snuba_query
 from sentry.api.paginator import DateTimePaginator, SequencePaginator, Paginator
 from sentry.constants import ALLOWED_FUTURE_DELTA
-from sentry.models import Group
+from sentry.models import Group, Release, Project
 from sentry.utils import snuba, metrics
 from sentry.snuba.dataset import Dataset
 
@@ -99,7 +99,7 @@ class AbstractQueryExecutor:
                 continue
             converted_filter = convert_search_filter_to_snuba_query(search_filter)
             converted_filter, converted_name = self.modify_converted_filter(
-                search_filter, converted_filter, environment_ids
+                search_filter, converted_filter, project_ids, environment_ids
             )
             # field_name = self.TABLE_ALIAS + search_filter.key.name
             # Ensure that no user-generated tags that clashes with aggregation_defs is added to having
@@ -108,19 +108,14 @@ class AbstractQueryExecutor:
             else:
                 conditions.append(converted_filter)
 
-        print ("sort field:", sort_field)
         extra_aggregations = self.dependency_aggregations.get(sort_field, [])
-        print ("extra aggregations:", extra_aggregations)
         required_aggregations = set([sort_field, "total"] + extra_aggregations)
         for h in having:
             alias = h[0]
-            print ("adding alias to required agg:", alias)
             required_aggregations.add(alias)
 
         aggregations = []
-        print ("required aggregatopms:", required_aggregations)
         for alias in required_aggregations:
-            print ("alias:", alias)
             aggregations.append(self.aggregation_defs[alias] + [alias])
 
         if cursor is not None:
@@ -170,7 +165,9 @@ class AbstractQueryExecutor:
 
         return [(row[self.TABLE_ALIAS + "issue"], row[sort_field]) for row in rows], total
 
-    def modify_converted_filter(self, search_filter, converted_filter, environment_ids=None):
+    def modify_converted_filter(
+        self, search_filter, converted_filter, project_ids, environment_ids=None
+    ):
         # No modification done by default. Simply for override.
         return converted_filter, search_filter.key.name
 
@@ -615,22 +612,26 @@ class SnubaOnlyQueryExecutor(AbstractQueryExecutor):
         "events.first_seen": ["multiply(toUInt64(min(events.timestamp)), 1000)", ""],
         "events.last_seen": ["multiply(toUInt64(max(events.timestamp)), 1000)", ""],
         "priority": ["toUInt64(plus(multiply(log(times_seen), 600), `events.last_seen`))", ""],
-        "total": ["uniq", "events.issue"],
+        "total": ["uniq", ISSUE_FIELD_NAME],
     }
 
-    def modify_converted_filter(self, search_filter, converted_filter, environment_ids=None):
+    def modify_converted_filter(
+        self, search_filter, converted_filter, project_ids=None, environment_ids=None
+    ):
         converted_name = search_filter.key.name
 
-        special_date_names = ["groups.active_at", "first_seen", "last_seen"]
+        special_date_names = ["active_at", "first_seen", "last_seen"]
         if search_filter.key.name in special_date_names:
             # Need to get '2018-02-06T03:35:54' format out of 1517888878000 format
             datetime_value = datetime.datetime.fromtimestamp(converted_filter[2] / 1000)
             datetime_value = datetime_value.replace(microsecond=0).isoformat().replace("+00:00", "")
             converted_filter[2] = datetime_value
 
-        if search_filter.key.name in ["first_seen", "last_seen", "first_release"]:
+        # TODO: There is a better way to do this...the issue is that the table/alias is forked on environments, which can't be used in constrain_column_to_dataset
+        if search_filter.key.name in ["first_seen", "last_seen"]:  # , "first_release"]:
             if environment_ids is not None:
                 table_alias = "events."
+                # return None, None #??? remove as a filter, since we are going to pre/post filter?
             else:
                 table_alias = "groups."
 
@@ -640,6 +641,29 @@ class SnubaOnlyQueryExecutor(AbstractQueryExecutor):
             else:
                 converted_filter[0] = table_alias + converted_filter[0]
                 converted_name = converted_filter[0]
+
+        if search_filter.key.name == "first_release":
+            # The filter's value will be the release's "version". Snuba only knows about ID. So we convert version to id here.
+            release = Release.objects.filter(
+                version=converted_filter[2],
+                organization_id=Project.objects.get(id=project_ids[0]).organization_id,
+            )
+            if not release:
+                # TODO: This means there will be no results and we do not need to run this query!
+                # right now it could lead to undesired results...if -1 is a real release id
+                converted_filter[
+                    2
+                ] = -1  # this is a number im hoping will never be a real release id
+            else:
+                converted_filter[2] = release[0].id
+
+        # if search_filter.key.name.startswith("tags["):
+        #     if isinstance(converted_filter[0], list):
+        #         converted_filter[0][1][0] = "events." + converted_filter[0][1][0]
+        #         converted_name = converted_filter[0][1][0]
+        #     else:
+        #         converted_filter[0] = "events." + converted_filter[0]
+        #         converted_name = converted_filter[0]
 
         return converted_filter, converted_name
 
@@ -704,7 +728,20 @@ class SnubaOnlyQueryExecutor(AbstractQueryExecutor):
         offset = 0
         num_chunks = 0
         hits = None
-
+        # Calculate hits #
+        # TODO: This needs a proper aggregate added to it to just count the results - I don't this this is correct.
+        _, hits = self.snuba_search(
+            start=start,
+            end=end,
+            project_ids=[p.id for p in projects],
+            environment_ids=environments and [environment.id for environment in environments],
+            sort_field=sort_field,
+            limit=None,
+            offset=0,
+            get_sample=False,
+            search_filters=search_filters,
+        )
+        ######################
         paginator_results = self.EMPTY_RESULT
         result_groups = []
         result_group_ids = set()
@@ -749,14 +786,13 @@ class SnubaOnlyQueryExecutor(AbstractQueryExecutor):
                 break
 
             group_to_score = dict(snuba_groups)
-            for group_id in snuba_groups:
+            for group_id in group_to_score:
                 if group_id in result_group_ids:
                     # because we're doing multiple Snuba queries, which
                     # happen outside of a transaction, there is a small possibility
                     # of groups moving around in the sort scoring underneath us,
                     # so we at least want to protect against duplicates
                     continue
-
                 group_score = group_to_score[group_id]
                 result_group_ids.add(group_id)
                 result_groups.append((group_id, group_score))

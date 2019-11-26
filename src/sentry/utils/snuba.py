@@ -52,7 +52,9 @@ OVERRIDE_OPTIONS = {
 SENTRY_SNUBA_MAP = {
     col.value.alias: col.value.event_name for col in Columns if col.value.event_name is not None
 }
+
 GROUPS_SENTRY_SNUBA_MAP = {
+    # col.value.alias: col.value.group_name for col in Columns if col.value.group_name is not None
     "status": "groups.status",
     "active_at": "groups.active_at",
     "first_seen": "groups.first_seen",
@@ -60,6 +62,7 @@ GROUPS_SENTRY_SNUBA_MAP = {
     "first_release": "groups.first_release_id",
     "timestamp": "events.timestamp",
     "events.issue": "events.issue",
+    "message": "events.message",
 }
 TRANSACTIONS_SENTRY_SNUBA_MAP = {
     col.value.alias: col.value.transaction_name
@@ -928,7 +931,11 @@ def constrain_column_to_dataset(col, dataset, value=None):
     unknown columns into tags expressions.
     """
     if col.startswith("tags["):
-        return col
+        if dataset == Dataset.Events:
+            return col
+        else:  # This makes sure already wrapped tags are pointed to the events table.
+            return u"events.{}".format(col)
+
     # Special case for the type condition as we only want
     # to drop it when we are querying transactions.
     if dataset == Dataset.Transactions and col == "event.type" and value == "transaction":
@@ -939,7 +946,12 @@ def constrain_column_to_dataset(col, dataset, value=None):
         return DATASETS[dataset][col]
     if col in DATASET_FIELDS[dataset]:
         return col
-    return u"tags[{}]".format(col)
+
+    if dataset == Dataset.Events:
+        return u"tags[{}]".format(col)
+    else:
+        # If we're not using the events dataset, we need to prefix the tags.
+        return u"events.tags[{}]".format(col)
 
 
 def constrain_condition_to_dataset(cond, dataset):
