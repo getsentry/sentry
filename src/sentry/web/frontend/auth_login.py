@@ -100,7 +100,7 @@ class AuthLoginView(BaseView):
             next_uri_fallback = request.session.pop("_next")
         return request.GET.get(REDIRECT_FIELD_NAME, next_uri_fallback)
 
-    def respond_login(self, context, **kwargs):
+    def respond_login(self, request, context, **kwargs):
         return self.respond("sentry/login.html", context)
 
     def handle_basic_auth(self, request, **kwargs):
@@ -199,7 +199,7 @@ class AuthLoginView(BaseView):
         }
         context.update(additional_context.run_callbacks(request))
 
-        return self.respond_login(context, **kwargs)
+        return self.respond_login(request, context, **kwargs)
 
     def handle_authenticated(self, request):
         next_uri = self.get_next_uri(request)
