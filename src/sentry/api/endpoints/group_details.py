@@ -8,7 +8,7 @@ from uuid import uuid4
 from django.utils import timezone
 from rest_framework.response import Response
 
-from sentry import eventstream, tsdb, tagstore
+from sentry import eventstream, features, tsdb, tagstore
 from sentry.api import client
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
@@ -18,6 +18,7 @@ from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.api.serializers.models.grouprelease import GroupReleaseWithStatsSerializer
 from sentry.models import (
     Activity,
+    EventAttachment,
     Group,
     GroupHash,
     GroupRelease,
@@ -178,7 +179,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         """
         # TODO(dcramer): handle unauthenticated/public response
 
-        environments = get_environments(request, group.project.organization)
+        organization = group.project.organization
+        environments = get_environments(request, organization)
         environment_ids = [e.id for e in environments]
 
         # WARNING: the rest of this endpoint relies on this serializer
@@ -246,6 +248,10 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 "stats": {"24h": hourly_stats, "30d": daily_stats},
             }
         )
+
+        if not features.has("organizations:event-attachments", organization, actor=request.user):
+            attachments = EventAttachment.objects.filter(group_id=group.id)
+            data["attachmentCount"] = attachments.count()
 
         # the current release is the 'latest seen' release within the
         # environment even if it hasnt affected this issue
