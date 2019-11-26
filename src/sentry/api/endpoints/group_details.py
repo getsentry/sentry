@@ -249,7 +249,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             }
         )
 
-        if not features.has("organizations:event-attachments", organization, actor=request.user):
+        if features.has("organizations:event-attachments", organization, actor=request.user):
             attachments = EventAttachment.objects.filter(group_id=group.id)
             data["attachmentCount"] = attachments.count()
 
