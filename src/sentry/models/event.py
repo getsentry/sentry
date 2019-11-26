@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import logging
 import six
 import string
 import warnings
@@ -30,6 +31,8 @@ from sentry.utils.cache import memoize
 from sentry.utils.canonical import CanonicalKeyDict, CanonicalKeyView
 from sentry.utils.safe import get_path
 from sentry.utils.strings import truncatechars
+
+logger = logging.getLogger(__name__)
 
 
 class EventDict(CanonicalKeyDict):
@@ -433,10 +436,13 @@ class SnubaEvent(EventCommon):
         `data` dict (which would force a nodestore load). All unresolved
         self.foo type accesses will come through here.
         """
+        if name in ("_project_cache", "_group_cache", "_environment_cache"):
+            raise AttributeError()
+
         allowed_attributes = ["timestamp", "event_id", "group_id", "project_id"]
 
         if name not in allowed_attributes:
-            raise AttributeError()
+            logger.warn("event.invalid-attribute", extra={"attribute_name": name})
 
         if name in self.snuba_data:
             return self.snuba_data[name]
