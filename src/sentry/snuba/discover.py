@@ -19,8 +19,8 @@ def resolve_column(col):
     Resolve a public schema name to the discover dataset.
     unknown columns are converted into tags expressions.
     """
-    if col == "":
-        return ""
+    if col is None:
+        return col
     if col.startswith("tags[") or QUOTED_LITERAL_RE.match(col):
         return col
     return DISCOVER_COLUMN_MAP.get(col, u"tags[{}]".format(col))

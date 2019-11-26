@@ -694,9 +694,9 @@ FIELD_ALIASES = {
             ]
         ],
     },
-    "p75": {"result_type": "duration", "aggregations": [["quantile(0.75)(duration)", "", "p75"]]},
-    "p95": {"result_type": "duration", "aggregations": [["quantile(0.95)(duration)", "", "p95"]]},
-    "p99": {"result_type": "duration", "aggregations": [["quantile(0.99)(duration)", "", "p99"]]},
+    "p75": {"result_type": "duration", "aggregations": [["quantile(0.75)(duration)", None, "p75"]]},
+    "p95": {"result_type": "duration", "aggregations": [["quantile(0.95)(duration)", None, "p95"]]},
+    "p99": {"result_type": "duration", "aggregations": [["quantile(0.99)(duration)", None, "p99"]]},
 }
 
 VALID_AGGREGATES = {
@@ -803,7 +803,7 @@ def resolve_field_list(fields, snuba_args):
 
         if match.group("function") == "count":
             # count() is a special function that ignores its column arguments.
-            aggregations.append(["count", "", get_aggregate_alias(match)])
+            aggregations.append(["count", None, get_aggregate_alias(match)])
         else:
             aggregations.append(
                 [

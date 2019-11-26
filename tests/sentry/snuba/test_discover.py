@@ -16,7 +16,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         self.environment = self.create_environment(self.project, name="prod")
         self.release = self.create_release(self.project, version="first-release")
 
-        self.store_event(
+        self.event = self.store_event(
             data={
                 "message": "oh no",
                 "release": "first-release",
@@ -36,9 +36,16 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         )
         data = result["data"]
         assert len(data) == 1
+        assert data[0]["id"] == self.event.event_id
         assert data[0]["project.id"] == self.project.id
         assert data[0]["user.email"] == "bruce@example.com"
         assert data[0]["release"] == "first-release"
+
+        assert len(result["meta"]) == 4
+        assert result["meta"][0] == {"name": "project.id", "type": "UInt64"}
+        assert result["meta"][1] == {"name": "user.email", "type": "Nullable(String)"}
+        assert result["meta"][2] == {"name": "release", "type": "Nullable(String)"}
+        assert result["meta"][3] == {"name": "id", "type": "FixedString(32)"}
 
     def test_field_aliasing_in_aggregate_functions_and_groupby(self):
         result = discover.query(
@@ -76,6 +83,11 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             params={"project_id": [self.project.id]},
         )
         assert len(result["data"]) == 1
+        data = result["data"]
+        assert data[0]["id"] == self.event.event_id
+        assert data[0]["message"] == self.event.message
+        assert data[0]["project.id"] == self.project.id, "project.id should be inserted"
+        assert "event_id" not in data[0]
 
     def test_environment_condition(self):
         result = discover.query(
@@ -91,6 +103,10 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             params={"project_id": [self.project.id]},
         )
         assert len(result["data"]) == 1
+        data = result["data"]
+        assert data[0]["id"] == self.event.event_id
+        assert data[0]["message"] == self.event.message
+        assert data[0]["project.id"] == self.project.id, "project.id should be inserted"
 
 
 class QueryTransformTest(TestCase):
@@ -187,7 +203,7 @@ class QueryTransformTest(TestCase):
         mock_query.assert_called_with(
             selected_columns=["transaction"],
             aggregations=[
-                ["quantile(0.95)(duration)", "", "p95"],
+                ["quantile(0.95)(duration)", None, "p95"],
                 ["uniq", "transaction", "count_unique_transaction"],
                 ["argMax", ["event_id", "timestamp"], "latest_event"],
                 ["argMax", ["project_id", "timestamp"], "projectid"],
@@ -228,13 +244,13 @@ class QueryTransformTest(TestCase):
         )
 
     @patch("sentry.snuba.discover.raw_query")
-    def test_orderby_must_be_selected(self, mock_query):
+    def test_orderby_must_be_selected_if_aggregate(self, mock_query):
         with pytest.raises(InvalidSearchQuery):
             discover.query(
                 selected_columns=["transaction", "transaction.duration"],
                 query="",
                 params={"project_id": [self.project.id]},
-                orderby=["timestamp"],
+                orderby=["count()"],
             )
         assert mock_query.call_count == 0
 
@@ -256,7 +272,7 @@ class QueryTransformTest(TestCase):
             dataset=Dataset.Discover,
             orderby=["count_id"],
             aggregations=[
-                ["count", "", "count_id"],
+                ["count", None, "count_id"],
                 ["argMax", ["event_id", "timestamp"], "latest_event"],
             ],
             end=None,
@@ -281,7 +297,7 @@ class QueryTransformTest(TestCase):
         mock_query.assert_called_with(
             selected_columns=["timestamp", "transaction", "duration"],
             aggregations=[
-                ["count", "", "count"],
+                ["count", None, "count"],
                 ["argMax", ["event_id", "timestamp"], "latest_event"],
                 ["argMax", ["project_id", "timestamp"], "projectid"],
             ],
@@ -318,7 +334,7 @@ class QueryTransformTest(TestCase):
                 [["positionCaseInsensitive", ["message", "'recent-searches'"]], "!=", 0],
             ],
             aggregations=[
-                ["count", "", "count"],
+                ["count", None, "count"],
                 ["argMax", ["event_id", "timestamp"], "latest_event"],
                 ["argMax", ["project_id", "timestamp"], "projectid"],
             ],
