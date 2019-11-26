@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 
 from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
 
@@ -199,7 +200,10 @@ class GetSentryAppRequestsTest(SentryAppRequestsTest):
     def test_linked_error_id_converts_to_url(self):
         self.login_as(user=self.user)
 
-        event = self.store_event(data={"event_id": self.event_id}, project_id=self.project.id)
+        event = self.store_event(
+            data={"event_id": self.event_id, "timestamp": iso_format(before_now(minutes=1))},
+            project_id=self.project.id,
+        )
 
         buffer = SentryAppWebhookRequestsBuffer(self.published_app)
         buffer.add_request(
@@ -224,7 +228,10 @@ class GetSentryAppRequestsTest(SentryAppRequestsTest):
     def test_linked_error_not_returned_if_project_does_not_exist(self):
         self.login_as(user=self.user)
 
-        self.store_event(data={"event_id": self.event_id}, project_id=self.project.id)
+        self.store_event(
+            data={"event_id": self.event_id, "timestamp": iso_format(before_now(minutes=1))},
+            project_id=self.project.id,
+        )
 
         buffer = SentryAppWebhookRequestsBuffer(self.published_app)
         buffer.add_request(

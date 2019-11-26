@@ -33,7 +33,7 @@ class SentryAppRequestsEndpoint(SentryAppBaseEndpoint):
                 if project.organization_id == sentry_app.owner_id:
                     # Make sure the event actually exists
                     event = eventstore.get_event_by_id(project.id, request["error_id"])
-                    if event is not None and event.group_id:
+                    if event is not None and event.group_id is not None:
                         error_url = reverse(
                             "sentry-organization-event-detail",
                             args=[project.organization.slug, event.group_id, event.event_id],
