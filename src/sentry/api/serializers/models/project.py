@@ -17,6 +17,7 @@ from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import StatsPeriod
 from sentry.digests import backend as digests
+from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
     EnvironmentProject,
     Project,
@@ -551,8 +552,8 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "dataScrubber": bool(attrs["options"].get("sentry:scrub_data", True)),
                 "dataScrubberDefaults": bool(attrs["options"].get("sentry:scrub_defaults", True)),
                 "safeFields": attrs["options"].get("sentry:safe_fields", []),
-                "storeCrashReports": bool(
-                    attrs["options"].get("sentry:store_crash_reports", False)
+                "storeCrashReports": convert_crashreport_count(
+                    attrs["options"].get("sentry:store_crash_reports")
                 ),
                 "sensitiveFields": attrs["options"].get("sentry:sensitive_fields", []),
                 "subjectTemplate": attrs["options"].get("mail:subject_template")

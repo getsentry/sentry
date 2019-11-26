@@ -65,8 +65,8 @@ class LevelConditionTest(RuleTestCase):
 
         wevent.group.level = logging.WARNING
 
-        assert wevent.level == logging.WARNING
-        assert eevent.level == logging.WARNING
+        assert wevent.group.level == logging.WARNING
+        assert eevent.group.level == logging.WARNING
 
         rule = self.get_rule(data={"match": MatchType.GREATER_OR_EQUAL, "level": "40"})
         self.assertDoesNotPass(rule, wevent)

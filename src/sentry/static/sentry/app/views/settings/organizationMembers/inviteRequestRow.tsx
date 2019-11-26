@@ -55,17 +55,17 @@ const InviteRequestRow = ({
         </h5>
         {inviteRequest.inviteStatus === 'requested_to_be_invited' ? (
           inviteRequest.inviterName && (
-            <Tooltip
-              title={t(
-                'An existing member has asked to invite this user to your organization'
-              )}
-            >
-              <Description>
+            <Description>
+              <Tooltip
+                title={t(
+                  'An existing member has asked to invite this user to your organization'
+                )}
+              >
                 {tct('Requested by [inviterName]', {
                   inviterName: inviteRequest.inviterName,
                 })}
-              </Description>
-            </Tooltip>
+              </Tooltip>
+            </Description>
           )
         ) : (
           <Tooltip title={t('This user has asked to join your organization.')}>
@@ -73,13 +73,15 @@ const InviteRequestRow = ({
           </Tooltip>
         )}
       </div>
-      <RoleSelectControl
+
+      <StyledRoleSelectControl
         name="role"
         disableUnallowed
         onChange={r => onUpdate({role: r.value})}
         value={inviteRequest.role}
         roles={allRoles}
       />
+
       <TeamSelectControl
         name="teams"
         placeholder={t('Add to teams...')}
@@ -92,6 +94,7 @@ const InviteRequestRow = ({
         multiple
         clearable
       />
+
       <ButtonGroup>
         <Confirm
           onConfirm={sendInvites}
@@ -168,22 +171,31 @@ const JoinRequestIndicator = styled(Tag)`
 
 const StyledPanelItem = styled(PanelItem)`
   display: grid;
-  grid-template-columns: minmax(200px, auto) minmax(100px, 140px) 220px max-content;
+  grid-template-columns: minmax(150px, auto) minmax(100px, 140px) 220px max-content;
   grid-gap: ${space(2)};
   align-items: center;
 `;
 
 const UserName = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
-  word-break: break-all;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const Description = styled('div')`
+  display: block;
   color: ${p => p.theme.gray3};
   font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const StyledRoleSelectControl = styled(RoleSelectControl)`
+  max-width: 140px;
 `;
 
 const TeamSelectControl = styled(SelectControl)`
+  max-width: 220px;
   .Select-value-label {
     max-width: 150px;
     word-break: break-all;
@@ -192,7 +204,7 @@ const TeamSelectControl = styled(SelectControl)`
 
 const ButtonGroup = styled('div')`
   display: inline-grid;
-  grid-template-columns: auto auto;
+  grid-template-columns: repeat(2, max-content);
   grid-gap: ${space(1)};
 `;
 

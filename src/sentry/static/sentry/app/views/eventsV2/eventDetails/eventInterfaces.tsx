@@ -15,7 +15,7 @@ import NavTabs from 'app/components/navTabs';
 import {objectIsEmpty, toTitleCase} from 'app/utils';
 import {Event, Organization} from 'app/types';
 
-import RelatedItems from './relatedItems';
+import LinkedEvents from './linkedEvents';
 
 const OTHER_SECTIONS = {
   contexts: EventContexts,
@@ -23,6 +23,14 @@ const OTHER_SECTIONS = {
   packages: EventPackageData,
   device: EventDevice,
 };
+
+function getTabTitle(type: string): string {
+  if (type === 'spans') {
+    return 'Trace View';
+  }
+
+  return type;
+}
 
 type ActiveTabProps = {
   organization: Organization;
@@ -57,9 +65,9 @@ const ActiveTab = (props: ActiveTabProps) => {
   } else if (OTHER_SECTIONS[activeTab]) {
     const Component = OTHER_SECTIONS[activeTab];
     return <Component event={event} isShare={false} hideGuide />;
-  } else if (activeTab === 'related') {
+  } else if (activeTab === 'linked') {
     return (
-      <RelatedItems event={event} projectId={projectId} organization={organization} />
+      <LinkedEvents event={event} projectId={projectId} organization={organization} />
     );
   } else {
     /*eslint no-console:0*/
@@ -127,7 +135,7 @@ class EventInterfaces extends React.Component<
                     this.handleTabChange(type);
                   }}
                 >
-                  {toTitleCase(type)}
+                  {toTitleCase(getTabTitle(type))}
                 </a>
               </li>
             );
@@ -155,15 +163,15 @@ class EventInterfaces extends React.Component<
               </li>
             );
           })}
-          <li key="related" className={activeTab === 'related' ? 'active' : undefined}>
+          <li key="linked" className={activeTab === 'linked' ? 'active' : undefined}>
             <a
               href="#"
               onClick={evt => {
                 evt.preventDefault();
-                this.handleTabChange('related');
+                this.handleTabChange('linked');
               }}
             >
-              {t('Related')}
+              {t('Linked')}
             </a>
           </li>
         </NavTabs>

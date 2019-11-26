@@ -108,21 +108,14 @@ class TableView extends React.Component<TableViewProps> {
   _updateColumn = (columnIndex: number, nextColumn: TableColumn<keyof TableDataRow>) => {
     const {location, eventView, tableData, organization} = this.props;
 
-    if (!tableData || !tableData.meta) {
-      return;
-    }
-
     const payload = {
       aggregation: String(nextColumn.aggregation),
       field: String(nextColumn.field),
       fieldname: nextColumn.name,
     };
 
-    const nextEventView = eventView.withUpdatedColumn(
-      columnIndex,
-      payload,
-      tableData.meta
-    );
+    const tableMeta = (tableData && tableData.meta) || undefined;
+    const nextEventView = eventView.withUpdatedColumn(columnIndex, payload, tableMeta);
 
     if (nextEventView !== eventView) {
       const changed: string[] = [];
@@ -170,13 +163,10 @@ class TableView extends React.Component<TableViewProps> {
   _deleteColumn = (columnIndex: number) => {
     const {location, eventView, tableData, organization} = this.props;
 
-    if (!tableData || !tableData.meta) {
-      return;
-    }
-
     const prevField = explodeField(eventView.fields[columnIndex]);
 
-    const nextEventView = eventView.withDeletedColumn(columnIndex, tableData.meta);
+    const tableMeta = (tableData && tableData.meta) || undefined;
+    const nextEventView = eventView.withDeletedColumn(columnIndex, tableMeta);
 
     // metrics
     trackAnalyticsEvent({

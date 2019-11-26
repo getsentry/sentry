@@ -819,6 +819,8 @@ SENTRY_FEATURES = {
     # Special feature flag primarily used on the sentry.io SAAS product for
     # easily enabling features while in early development.
     "organizations:internal-catchall": False,
+    # Enable v2 of pagerduty integration
+    "organizations:pagerduty-v2": False,
     # Enable inviting members to organizations.
     "organizations:invite-members": True,
     # Enable org-wide saved searches and user pinned search
@@ -1247,7 +1249,7 @@ SENTRY_ROLES = (
     },
     {
         "id": "owner",
-        "name": "Organization Owner",
+        "name": "Owner",
         "desc": "Unrestricted access to the organization, its data, and its settings. Can add, modify, and delete projects and members, as well as make billing and plan changes.",
         "is_global": True,
         "scopes": set(

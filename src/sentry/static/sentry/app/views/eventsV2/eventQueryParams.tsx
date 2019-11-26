@@ -1,3 +1,5 @@
+import {assert} from 'app/types/utils';
+
 export type ColumnValueType =
   | '*' // Matches to everything
   | 'string'
@@ -9,12 +11,7 @@ export type ColumnValueType =
   | 'never'; // Matches to nothing
 
 // Refer to src/sentry/utils/snuba.py
-export const AGGREGATIONS: {
-  [key: string]: {
-    type: '*' | ColumnValueType[];
-    isSortable: boolean;
-  };
-} = {
+export const AGGREGATIONS = {
   count: {
     type: '*',
     isSortable: true,
@@ -55,7 +52,17 @@ export const AGGREGATIONS: {
     isSortable: true,
   },
   */
-};
+} as const;
+
+assert(AGGREGATIONS as Readonly<
+  {
+    [key in keyof typeof AGGREGATIONS]: {
+      type: '*' | Readonly<ColumnValueType[]>;
+      isSortable: boolean;
+    }
+  }
+>);
+
 export type Aggregation = keyof typeof AGGREGATIONS | '';
 
 // TODO(leedongwei)
@@ -64,7 +71,7 @@ export type Aggregation = keyof typeof AGGREGATIONS | '';
 /**
  * Refer to src/sentry/utils/snuba.py, search for SENTRY_SNUBA_MAP
  */
-export const FIELDS: {[key: string]: ColumnValueType} = {
+export const FIELDS = {
   id: 'string',
 
   title: 'string',
@@ -141,12 +148,14 @@ export const FIELDS: {[key: string]: ColumnValueType} = {
   'transaction.duration': 'duration',
   'transaction.op': 'string',
   apdex: 'number',
-
+  impact: 'number',
   // duration aliases
   p75: 'duration',
   p95: 'duration',
   p99: 'duration',
-};
+} as const;
+assert(FIELDS as Readonly<{[key in keyof typeof FIELDS]: ColumnValueType}>);
+
 export type Field = keyof typeof FIELDS | string | '';
 
 // This list should be removed with the tranaction-events feature flag.
@@ -156,6 +165,7 @@ export const TRACING_FIELDS = [
   'transaction.duration',
   'transaction.op',
   'apdex',
+  'impact',
   'p99',
   'p95',
   'p75',

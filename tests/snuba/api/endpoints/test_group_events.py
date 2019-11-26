@@ -261,6 +261,15 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert response.data[0]["eventID"] == six.text_type(event_2.event_id)
 
+    def test_invalid_period(self):
+        self.login_as(user=self.user)
+        first_seen = timezone.now() - timedelta(days=5)
+        group = self.create_group(first_seen=first_seen)
+        response = self.client.get(
+            u"/api/0/issues/{}/events/".format(group.id), data={"statsPeriod": "lol"}
+        )
+        assert response.status_code == 400
+
     def test_multiple_group(self):
         self.login_as(user=self.user)
 

@@ -12,6 +12,7 @@ from sentry.eventstore.snuba.backend import (
     get_before_event_condition,
     SnubaEventStorage,
 )
+from sentry.snuba.dataset import Dataset
 
 
 class SnubaDiscoverEventStorage(EventStorage):
@@ -88,7 +89,7 @@ class SnubaDiscoverEventStorage(EventStorage):
                 limit=1,
                 referrer="eventstore.discover_dataset.get_next_or_prev_event_id",
                 orderby=orderby,
-                dataset=snuba.Dataset.Discover,
+                dataset=Dataset.Discover,
             )
         except (snuba.QueryOutsideRetentionError, snuba.QueryOutsideGroupActivityError):
             # This can happen when the date conditions for paging

@@ -2,6 +2,7 @@ import React, {MouseEvent} from 'react';
 import {Location, Query} from 'history';
 import styled from 'react-emotion';
 import classNames from 'classnames';
+import moment from 'moment';
 import {browserHistory} from 'react-router';
 
 import {t} from 'app/locale';
@@ -28,31 +29,32 @@ type Props = {
   location: Location;
   savedQueries: SavedQuery[];
   pageLinks: string;
+  onQueryChange: () => void;
 };
 
 class QueryList extends React.Component<Props> {
   handleDeleteQuery = (eventView: EventView) => (event: React.MouseEvent<Element>) => {
     event.preventDefault();
+    event.stopPropagation();
 
-    const {api, location, organization} = this.props;
+    const {api, organization, onQueryChange} = this.props;
 
     handleDeleteQuery(api, organization, eventView).then(() => {
-      browserHistory.push({
-        pathname: location.pathname,
-        query: {},
-      });
+      onQueryChange();
     });
   };
 
   handleDuplicateQuery = (eventView: EventView) => (event: React.MouseEvent<Element>) => {
     event.preventDefault();
+    event.stopPropagation();
 
-    const {api, location, organization} = this.props;
+    const {api, location, organization, onQueryChange} = this.props;
 
     eventView = eventView.clone();
     eventView.name = `${eventView.name} copy`;
 
     handleCreateQuery(api, organization, eventView).then(() => {
+      onQueryChange();
       browserHistory.push({
         pathname: location.pathname,
         query: {},
@@ -81,6 +83,11 @@ class QueryList extends React.Component<Props> {
 
     const list = views.map((view, index) => {
       const eventView = EventView.fromSavedQueryWithLocation(view, location);
+      const recentTimeline = t('Last ') + eventView.statsPeriod;
+      const customTimeline =
+        moment(eventView.start).format('MMM D, YYYY h:mm A') +
+        ' - ' +
+        moment(eventView.end).format('MMM D, YYYY h:mm A');
       const to = {
         pathname: location.pathname,
         query: {
@@ -94,7 +101,7 @@ class QueryList extends React.Component<Props> {
           key={`${index}-${eventView.name}`}
           to={to}
           title={eventView.name}
-          subtitle={t('Pre-Built Query')}
+          subtitle={eventView.statsPeriod ? recentTimeline : customTimeline}
           queryDetail={eventView.query}
           renderGraph={() => {
             return (
@@ -129,6 +136,11 @@ class QueryList extends React.Component<Props> {
 
     return savedQueries.map((savedQuery, index) => {
       const eventView = EventView.fromSavedQuery(savedQuery);
+      const recentTimeline = t('Last ') + eventView.statsPeriod;
+      const customTimeline =
+        moment(eventView.start).format('MMM D, YYYY h:mm A') +
+        ' - ' +
+        moment(eventView.end).format('MMM D, YYYY h:mm A');
       const to = {
         pathname: location.pathname,
         query: {
@@ -142,7 +154,7 @@ class QueryList extends React.Component<Props> {
           key={`${index}-${eventView.id}`}
           to={to}
           title={eventView.name}
-          subtitle={t('Saved Query')}
+          subtitle={eventView.statsPeriod ? recentTimeline : customTimeline}
           queryDetail={eventView.query}
           onEventClick={() => {
             trackAnalyticsEvent({

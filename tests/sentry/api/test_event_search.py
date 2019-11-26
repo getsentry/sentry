@@ -1036,12 +1036,17 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["groupby"] == ["title"]
 
     def test_field_alias_duration_expansion(self):
-        fields = ["avg(transaction.duration)", "apdex", "p75", "p95", "p99"]
+        fields = ["avg(transaction.duration)", "apdex", "impact", "p75", "p95", "p99"]
         result = resolve_field_list(fields, {})
         assert result["selected_columns"] == []
         assert result["aggregations"] == [
             ["avg", "transaction.duration", "avg_transaction_duration"],
             ["apdex(duration, 300)", "", "apdex"],
+            [
+                "(1 - ((countIf(duration < 300) + (countIf((duration > 300) AND (duration < 1200)) / 2)) / count())) + ((1 - 1 / sqrt(uniq(user))) * 3)",
+                "",
+                "impact",
+            ],
             ["quantile(0.75)(duration)", "", "p75"],
             ["quantile(0.95)(duration)", "", "p95"],
             ["quantile(0.99)(duration)", "", "p99"],
@@ -1081,12 +1086,26 @@ class ResolveFieldListTest(unittest.TestCase):
     def test_aggregate_function_expansion(self):
         fields = ["count_unique(user)", "count(id)", "min(timestamp)"]
         result = resolve_field_list(fields, {})
-        # Automatic fields should be inserted
+        # Automatic fields should be inserted, count() should have its column dropped.
         assert result["selected_columns"] == []
         assert result["aggregations"] == [
             ["uniq", "user", "count_unique_user"],
-            ["count", "id", "count_id"],
+            ["count", "", "count_id"],
             ["min", "timestamp", "min_timestamp"],
+            ["argMax", ["id", "timestamp"], "latest_event"],
+            ["argMax", ["project_id", "timestamp"], "projectid"],
+        ]
+        assert result["groupby"] == []
+
+    def test_count_function_expansion(self):
+        fields = ["count(id)", "count(user)", "count(transaction.duration)"]
+        result = resolve_field_list(fields, {})
+        # Automatic fields should be inserted, count() should have its column dropped.
+        assert result["selected_columns"] == []
+        assert result["aggregations"] == [
+            ["count", "", "count_id"],
+            ["count", "", "count_user"],
+            ["count", "", "count_transaction_duration"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["argMax", ["project_id", "timestamp"], "projectid"],
         ]
@@ -1176,7 +1195,7 @@ class ResolveFieldListTest(unittest.TestCase):
         result = resolve_field_list(fields, snuba_args)
         assert result["orderby"] == ["-count_id"]
         assert result["aggregations"] == [
-            ["count", "id", "count_id"],
+            ["count", "", "count_id"],
             ["uniq", "user", "count_unique_user"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["argMax", ["project_id", "timestamp"], "projectid"],

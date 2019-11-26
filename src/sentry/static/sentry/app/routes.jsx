@@ -741,7 +741,7 @@ function routes() {
         />
         <Route
           name="Integration Dashboard"
-          path=":appSlug/dashboard"
+          path=":appSlug/dashboard/"
           componentPromise={() =>
             import(/* webpackChunkName: "SentryApplicationDashboard" */ 'app/views/settings/organizationDeveloperSettings/sentryApplicationDashboard')
           }

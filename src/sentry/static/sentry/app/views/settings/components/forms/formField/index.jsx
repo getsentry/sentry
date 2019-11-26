@@ -4,77 +4,16 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {defined} from 'app/utils';
-import {pulse, fadeOut, slideInUp} from 'app/styles/animations';
+import {sanitizeQuerySelector} from 'app/utils/sanitizeQuerySelector';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import Field from 'app/views/settings/components/forms/field';
 import FieldControl from 'app/views/settings/components/forms/field/fieldControl';
-import FormState from 'app/components/forms/state';
-import InlineSvg from 'app/components/inlineSvg';
+import FieldErrorReason from 'app/views/settings/components/forms/field/fieldErrorReason';
+import FormFieldControlState from 'app/views/settings/components/forms/formField/controlState';
 import PanelAlert from 'app/components/panels/panelAlert';
-import Spinner from 'app/views/settings/components/forms/spinner';
-import returnButton from 'app/views/settings/components/forms/returnButton';
-import {sanitizeQuerySelector} from 'app/utils/sanitizeQuerySelector';
+import ReturnButton from 'app/views/settings/components/forms/returnButton';
 import space from 'app/styles/space';
-
-const FormFieldErrorReason = styled('div')`
-  color: ${p => p.theme.redDark};
-  position: absolute;
-  right: 2px;
-  margin-top: 6px;
-  background: #fff;
-  padding: 6px 8px;
-  font-weight: 600;
-  font-size: 12px;
-  border-radius: 3px;
-  box-shadow: 0 0 0 1px rgba(64, 11, 54, 0.15), 0 4px 20px 0 rgba(64, 11, 54, 0.36);
-  z-index: ${p => p.theme.zIndex.errorMessage};
-  animation: ${slideInUp} 200ms ease-in-out forwards;
-
-  &:before,
-  &:after {
-    content: '';
-    border: 7px solid transparent;
-    border-bottom-color: #fff;
-    position: absolute;
-    top: -14px;
-    right: 9px;
-  }
-
-  &:before {
-    margin-top: -1px;
-    border-bottom-color: rgba(64, 11, 54, 0.15);
-    filter: drop-shadow(0 -2px 5px rgba(64, 11, 54, 1));
-  }
-`;
-
-const FormFieldError = styled('div')`
-  color: ${p => p.theme.redDark};
-  animation: ${() => pulse(1.15)} 1s ease infinite;
-`;
-
-const FormFieldIsSaved = styled('div')`
-  color: ${p => p.theme.green};
-  animation: ${fadeOut} 0.3s ease 2s 1 forwards;
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
-const FormSpinner = styled(Spinner)`
-  margin-left: 0;
-`;
-
-const ReturnButtonStyled = styled(returnButton)`
-  position: absolute;
-  right: 0;
-  top: 0;
-`;
 
 /**
  * Some fields don't need to implement their own onChange handlers, in
@@ -90,71 +29,6 @@ const getValueFromEvent = (valueOrEvent, e) => {
     event,
   };
 };
-
-const ControlStateWrapper = styled('div')`
-  padding: 0 8px;
-`;
-
-/**
- * ControlState (i.e. loading/error icons) for connected form components
- */
-class ControlState extends React.Component {
-  static propTypes = {
-    model: PropTypes.object,
-    name: PropTypes.string,
-  };
-
-  render() {
-    const {model, name} = this.props;
-
-    return (
-      <React.Fragment>
-        <Observer>
-          {() => {
-            const isSaving = model.getFieldState(name, FormState.SAVING);
-            const isSaved = model.getFieldState(name, FormState.READY);
-
-            if (isSaving) {
-              return (
-                <ControlStateWrapper>
-                  <FormSpinner />
-                </ControlStateWrapper>
-              );
-            } else if (isSaved) {
-              return (
-                <ControlStateWrapper>
-                  <FormFieldIsSaved>
-                    <InlineSvg src="icon-checkmark-sm" size="18px" />
-                  </FormFieldIsSaved>
-                </ControlStateWrapper>
-              );
-            }
-
-            return null;
-          }}
-        </Observer>
-
-        <Observer>
-          {() => {
-            const error = model.getError(name);
-
-            if (!error) {
-              return null;
-            }
-
-            return (
-              <ControlStateWrapper>
-                <FormFieldError>
-                  <InlineSvg src="icon-warning-sm" size="18px" />
-                </FormFieldError>
-              </ControlStateWrapper>
-            );
-          }}
-        </Observer>
-      </React.Fragment>
-    );
-  }
-}
 
 // MockedModel that returns values from props
 // Disables a lot of functionality but allows you to use fields
@@ -242,14 +116,14 @@ class FormField extends React.Component {
     onMouseOut: PropTypes.func,
   };
 
-  static defaultProps = {
-    hideErrorMessage: false,
-    flexibleControlStateSize: false,
-  };
-
   static contextTypes = {
     location: PropTypes.object,
     form: PropTypes.object,
+  };
+
+  static defaultProps = {
+    hideErrorMessage: false,
+    flexibleControlStateSize: false,
   };
 
   componentDidMount() {
@@ -401,7 +275,7 @@ class FormField extends React.Component {
               inline={inline}
               alignRight={alignRight}
               flexibleControlStateSize={flexibleControlStateSize}
-              controlState={<ControlState model={model} name={name} />}
+              controlState={<FormFieldControlState model={model} name={name} />}
               errorState={
                 <Observer>
                   {() => {
@@ -410,7 +284,7 @@ class FormField extends React.Component {
                     if (!shouldShowErrorMessage) {
                       return null;
                     }
-                    return <FormFieldErrorReason>{error}</FormFieldErrorReason>;
+                    return <FieldErrorReason>{error}</FieldErrorReason>;
                   }}
                 </Observer>
               }
@@ -438,7 +312,7 @@ class FormField extends React.Component {
                         disabled,
                         initialData: model.initialData,
                       })}
-                      {showReturnButton && <ReturnButtonStyled />}
+                      {showReturnButton && <StyledReturnButton />}
                     </React.Fragment>
                   );
                 }}
@@ -535,4 +409,10 @@ const CancelButton = styled(Button)`
 `;
 const SaveButton = styled(Button)`
   margin-left: ${space(1)};
+`;
+
+const StyledReturnButton = styled(ReturnButton)`
+  position: absolute;
+  right: 0;
+  top: 0;
 `;
