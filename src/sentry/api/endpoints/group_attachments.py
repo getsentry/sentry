@@ -38,7 +38,7 @@ class GroupAttachmentsEndpoint(GroupEndpoint, EnvironmentMixin):
         except Environment.DoesNotExist:
             attachments = EventAttachment.objects.none()
         else:
-            attachments = EventAttachment.objects.filter(group_id=group.id)
+            attachments = EventAttachment.objects.filter(group_id=group.id).select_related("file")
             if environment is not None:
                 attachments = attachments.filter(environment=environment)
 
