@@ -20,7 +20,7 @@ from sentry.models import (
 from sentry.search.snuba.backend import GroupsDatasetSnubaSearchBackend
 from sentry.testutils import SnubaTestCase, TestCase, xfail_if_not_postgres
 from sentry.testutils.helpers.datetime import iso_format
-from sentry.utils.snuba import Dataset, SENTRY_SNUBA_MAP, SnubaError
+from sentry.utils.snuba import Dataset, GROUPS_SENTRY_SNUBA_MAP, SnubaError
 
 
 def date_to_query_format(date):
@@ -1372,6 +1372,7 @@ class GroupsSnubaSearchTest(TestCase, SnubaTestCase):
         results = self.make_query(search_filter_query="environment:production !has:logger")
         assert set(results) == set([self.group1, no_tag_event.group])
 
+    # TODO: FIX THESE TESTS
     def test_all_fields_do_not_error(self):
         # Just a sanity check to make sure that all fields can be successfully
         # searched on without returning type errors and other schema related
@@ -1382,12 +1383,12 @@ class GroupsSnubaSearchTest(TestCase, SnubaTestCase):
             except SnubaError as e:
                 self.fail("Query %s errored. Error info: %s" % (query, e))
 
-        for key in SENTRY_SNUBA_MAP:
+        for key in GROUPS_SENTRY_SNUBA_MAP:
             if key in ["project.id", "issue.id"]:
                 continue
             test_query("has:%s" % key)
             test_query("!has:%s" % key)
-            if key in IssueSearchVisitor.numeric_keys:
+            if key in IssueSearchVisitor.numeric_keys or key == "events.issue":
                 val = "123"
             elif key in IssueSearchVisitor.date_keys:
                 val = "2019-01-01"
