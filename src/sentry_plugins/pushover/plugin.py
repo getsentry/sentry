@@ -94,7 +94,7 @@ class PushoverPlugin(CorePluginMixin, NotifyPlugin):
         title = "%s: %s" % (project.name, group.title)
         link = group.get_absolute_url(params={"referrer": "pushover_plugin"})
 
-        message = event.message[:256]
+        message = event.title[:256]
 
         tags = event.get_tags()
         if tags:
