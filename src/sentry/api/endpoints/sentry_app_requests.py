@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from rest_framework.response import Response
+from django.core.urlresolvers import reverse
 
 from sentry.api.bases import SentryAppBaseEndpoint, SentryAppStatsPermission
 
@@ -10,6 +11,7 @@ from sentry.utils.sentryappwebhookrequests import (
 )
 
 from sentry.models import Organization, Project
+from sentry import eventstore
 
 
 class SentryAppRequestsEndpoint(SentryAppBaseEndpoint):
@@ -29,10 +31,15 @@ class SentryAppRequestsEndpoint(SentryAppBaseEndpoint):
                 project = Project.objects.get_from_cache(id=request["project_id"])
                 # Make sure the project actually belongs to the org that owns the Sentry App
                 if project.organization_id == sentry_app.owner_id:
-                    error_url = "/organizations/{}/projects/{}/events/{}/".format(
-                        sentry_app.owner.slug, project.slug, request["error_id"]
-                    )
-                    formatted_request["errorUrl"] = error_url
+                    # Make sure the event actually exists
+                    event = eventstore.get_event_by_id(project.id, request["error_id"])
+                    if event is not None and event.group_id:
+                        error_url = reverse(
+                            "sentry-organization-event-detail",
+                            args=[project.organization.slug, event.group_id, event.event_id],
+                        )
+                        formatted_request["errorUrl"] = error_url
+
             except Project.DoesNotExist:
                 # If the project doesn't exist, don't add the error to the result
                 pass
