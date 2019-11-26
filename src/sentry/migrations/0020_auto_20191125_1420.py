@@ -5,17 +5,21 @@ from __future__ import unicode_literals
 from django.db import migrations
 
 from sentry import eventstore
-from sentry.models import EventAttachment
 from sentry.utils.query import RangeQuerySetWrapper
 
 
-def forwards(apps, schema_editor):
-    query = EventAttachment.objects.filter(group_id__isnull=True)
+def backfill_group_ids(model):
+    query = model.objects.filter(group_id__isnull=True)
 
     for attachment in RangeQuerySetWrapper(query, step=1000):
         event = eventstore.get_event_by_id(attachment.project_id, attachment.event_id)
         if event:
             attachment.update(group_id=event.group_id)
+
+
+def forwards(apps, schema_editor):
+    EventAttachment = apps.get_model("sentry", "EventAttachment")
+    backfill_group_ids(EventAttachment)
 
 
 class Migration(migrations.Migration):
