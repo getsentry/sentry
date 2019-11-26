@@ -6,9 +6,17 @@ from django.db import migrations, models
 def hide_environent_none(apps, schema_editor):
     """
     Hide environments that are named none, since they're blacklisted and no longer can be created.
+
+    We should iterate over each environment row individually in python instead so that we don't lock the DB up. This is
+    far slower but much safer
     """
+    Environment = apps.get_model("sentry", "Environment")
     EnvironmentProject = apps.get_model("sentry", "EnvironmentProject")
-    EnvironmentProject.objects.filter(environment__name='none').update(is_hidden=True)
+    for env in Environment.objects.all():
+        if env.name == 'none':
+            for project in EnvironmentProject.objects.filter(environment_id=env.id):
+                project.is_hidden = True
+                project.save()
 
 
 class Migration(migrations.Migration):
