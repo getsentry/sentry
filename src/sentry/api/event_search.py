@@ -800,13 +800,18 @@ def resolve_field_list(fields, snuba_args):
             continue
 
         validate_aggregate(field, match)
-        aggregations.append(
-            [
-                VALID_AGGREGATES[match.group("function")]["snuba_name"],
-                match.group("column"),
-                get_aggregate_alias(match),
-            ]
-        )
+
+        if match.group("function") == "count":
+            # count() is a special function that ignores its column arguments.
+            aggregations.append(["count", "", get_aggregate_alias(match)])
+        else:
+            aggregations.append(
+                [
+                    VALID_AGGREGATES[match.group("function")]["snuba_name"],
+                    match.group("column"),
+                    get_aggregate_alias(match),
+                ]
+            )
 
     rollup = snuba_args.get("rollup")
     if not rollup:

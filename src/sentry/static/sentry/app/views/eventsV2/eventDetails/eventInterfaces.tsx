@@ -24,6 +24,14 @@ const OTHER_SECTIONS = {
   device: EventDevice,
 };
 
+function getTabTitle(type: string): string {
+  if (type === 'spans') {
+    return 'Trace View';
+  }
+
+  return type;
+}
+
 type ActiveTabProps = {
   organization: Organization;
   projectId: string;
@@ -127,7 +135,7 @@ class EventInterfaces extends React.Component<
                     this.handleTabChange(type);
                   }}
                 >
-                  {toTitleCase(type)}
+                  {toTitleCase(getTabTitle(type))}
                 </a>
               </li>
             );

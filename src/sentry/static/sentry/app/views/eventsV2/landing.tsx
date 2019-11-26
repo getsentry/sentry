@@ -130,9 +130,9 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     this.setState({isBannerHidden: true});
   };
 
-  // When a query is saved we need to re-fetch the
+  // When a query is saved or deleted we need to re-fetch the
   // saved query list as we don't use a reflux store.
-  handleQuerySave = () => {
+  handleQueryChange = () => {
     this.fetchData({reloading: true});
   };
 
@@ -220,6 +220,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
             savedQueries={savedQueries}
             location={location}
             organization={organization}
+            onQueryChange={this.handleQueryChange}
           />
         )}
       </PageContent>
@@ -235,8 +236,12 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
       @media (min-width: ${p => p.theme.breakpoints[1]}) {
         display: grid;
         grid-template-rows: 1fr auto;
-        grid-template-columns: 70% auto;
+        grid-template-columns: 65% auto;
         grid-column-gap: ${space(3)};
+      }
+
+      @media (min-width: ${p => p.theme.breakpoints[2]}) {
+        grid-template-columns: auto 350px;
       }
     `;
 
@@ -264,7 +269,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
             savedQueries={savedQueries}
             organization={organization}
             eventView={eventView}
-            onQuerySave={this.handleQuerySave}
+            onQueryChange={this.handleQueryChange}
           />
           <Controller>
             <SavedQueryButtonGroup
@@ -273,7 +278,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
               eventView={eventView}
               savedQueries={savedQueries}
               savedQueriesLoading={reloading}
-              onQuerySave={this.handleQuerySave}
+              onQueryChange={this.handleQueryChange}
             />
           </Controller>
         </HeaderBox>

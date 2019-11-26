@@ -101,13 +101,10 @@ class SentryAppWebhookRequestsBuffer(object):
                 for request in self._get_all_from_buffer(self._get_redis_key(event, error=error))
             ]
 
-    def get_errors(self, event=None):
-        return self._get_requests(event=event, error=True)
+    def get_requests(self, event=None, errors_only=False):
+        return self._get_requests(event=event, error=errors_only)
 
-    def get_requests(self, event=None):
-        return self._get_requests(event=event, error=False)
-
-    def add_request(self, response_code, org_id, event, url):
+    def add_request(self, response_code, org_id, event, url, error_id=None, project_id=None):
         if event not in EXTENDED_VALID_EVENTS:
             return
 
@@ -124,12 +121,17 @@ class SentryAppWebhookRequestsBuffer(object):
         if not self.sentry_app.is_internal:
             request_data["organization_id"] = org_id
 
+        # We need both the error ID and project ID to link the error
+        if error_id is not None and project_id is not None:
+            request_data["error_id"] = error_id
+            request_data["project_id"] = project_id
+
         pipe = self.client.pipeline()
 
         self._add_to_buffer_pipeline(request_key, request_data, pipe)
 
         # If it's an error add it to the error buffer
-        if 400 <= response_code <= 599:
+        if 400 <= response_code <= 599 or response_code == 0:
             error_key = self._get_redis_key(event, error=True)
             self._add_to_buffer_pipeline(error_key, request_data, pipe)
 

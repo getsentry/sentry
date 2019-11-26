@@ -10,6 +10,7 @@ import ProjectBadge from 'app/components/idBadge/projectBadge';
 import Times from 'app/components/group/times';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+import theme from 'app/utils/theme';
 import withProjects from 'app/utils/withProjects';
 
 import {generateEventDetailsRoute, generateEventSlug} from './utils';
@@ -79,20 +80,18 @@ class RelatedItems extends AsyncComponent<Props, State> {
     return (
       <Section>
         <SectionHeading>{t('Related Issue')}</SectionHeading>
-        <Card>
-          <IconContainer>
-            <Link to={issueUrl} data-test-id="linked-issue">
-              <ShortId
-                shortId={issue.shortId}
-                avatar={<ProjectBadge project={issue.project} avatarSize={16} hideName />}
-              />
-            </Link>
-          </IconContainer>
-          <StyledLink to={issueUrl}>{issue.title}</StyledLink>
-          <TimesContainer>
+        <StyledCard>
+          <StyledLink to={issueUrl} data-test-id="linked-issue">
+            <StyledShortId
+              shortId={issue.shortId}
+              avatar={<ProjectBadge project={issue.project} avatarSize={16} hideName />}
+            />
+            <div>{issue.title}</div>
+          </StyledLink>
+          <StyledDate>
             <Times lastSeen={issue.lastSeen} firstSeen={issue.firstSeen} />
-          </TimesContainer>
-        </Card>
+          </StyledDate>
+        </StyledCard>
       </Section>
     );
   }
@@ -104,7 +103,7 @@ class RelatedItems extends AsyncComponent<Props, State> {
       <Section>
         <SectionHeading>{t('Related Trace Events')}</SectionHeading>
         {relatedEvents.data.length < 1 ? (
-          <Card>{t('No related events found.')}</Card>
+          <StyledCard>{t('No related events found.')}</StyledCard>
         ) : (
           relatedEvents.data.map((item: DiscoverResult) => {
             const eventSlug = generateEventSlug(item);
@@ -115,15 +114,15 @@ class RelatedItems extends AsyncComponent<Props, State> {
             const project = projects.find(p => p.slug === item['project.name']);
 
             return (
-              <Card key={item.id} isCurrent={event.id === item.id}>
-                <IconContainer>
-                  <StyledProjectBadge project={project} avatarSize={14} />
-                </IconContainer>
+              <StyledCard key={item.id} isCurrent={event.id === item.id}>
                 <StyledLink to={eventUrl} data-test-id="linked-event">
-                  {item.title ? item.title : item.transaction}
+                  <ProjectBadge project={project} avatarSize={14} />
+                  <div>{item.title ? item.title : item.transaction}</div>
                 </StyledLink>
-                <StyledDateTime date={item.timestamp} />
-              </Card>
+                <StyledDate>
+                  <DateTime date={item.timestamp} />
+                </StyledDate>
+              </StyledCard>
             );
           })
         )}
@@ -145,39 +144,53 @@ const Section = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-const Card = styled('div')<{isCurrent?: boolean; theme?: any}>`
+const StyledCard = styled('div')<{isCurrent?: boolean; theme?: any}>`
   display: flex;
+  flex-direction: column;
   background: ${p => p.theme.white};
-  flex-direction: row;
   align-items: center;
   font-size: ${p => p.theme.fontSizeMedium};
-  line-height: 1.4;
   border: 1px solid ${p => (p.isCurrent ? p.theme.purpleLight : p.theme.borderLight)};
   border-radius: ${p => p.theme.borderRadius};
   margin-bottom: ${space(1)};
-  padding: ${space(1)};
+  padding: ${space(1)} ${space(2)};
+
+  @media (min-width: ${theme.breakpoints[3]}) {
+    flex-direction: row;
+    justify-content: space-between;
+  }
 `;
 
 const StyledLink = styled(Link)`
-  flex-grow: 1;
-`;
-
-const IconContainer = styled('div')`
   display: flex;
-  align-items: center;
-  margin-right: ${space(1)};
+  flex-direction: column;
+  width: 100%;
+  overflow-wrap: break-word;
+
+  @media (min-width: ${theme.breakpoints[3]}) {
+    flex-direction: row;
+    flex-grow: 1;
+  }
 `;
 
-const StyledProjectBadge = styled(ProjectBadge)`
-  display: inline-flex;
-`;
-
-const StyledDateTime = styled(DateTime)`
+const StyledDate = styled('div')`
+  width: 100%;
   color: ${p => p.theme.gray2};
-`;
+  font-size: ${p => p.theme.fontSizeSmall};
 
-const TimesContainer = styled('div')`
-  color: ${p => p.theme.gray2};
+  @media (min-width: ${theme.breakpoints[3]}) {
+    width: auto;
+    text-align: right;
+    white-space: nowrap;
+  }
+`;
+const StyledShortId = styled(ShortId)`
+  justify-content: flex-start;
+  color: ${p => p.theme.gray4};
+
+  @media (min-width: ${theme.breakpoints[3]}) {
+    margin-right: ${space(2)};
+  }
 `;
 
 export default withProjects(RelatedItems);

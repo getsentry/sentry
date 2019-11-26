@@ -1084,14 +1084,28 @@ class ResolveFieldListTest(unittest.TestCase):
     def test_aggregate_function_expansion(self):
         fields = ["count_unique(user)", "count(id)", "min(timestamp)"]
         result = resolve_field_list(fields, {})
-        # Automatic fields should be inserted
+        # Automatic fields should be inserted, count() should have its column dropped.
         assert result["selected_columns"] == []
         assert result["aggregations"] == [
             ["uniq", "user", "count_unique_user"],
-            ["count", "id", "count_id"],
+            ["count", "", "count_id"],
             ["min", "timestamp", "min_timestamp"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["argMax", ["project.id", "timestamp"], "projectid"],
+        ]
+        assert result["groupby"] == []
+
+    def test_count_function_expansion(self):
+        fields = ["count(id)", "count(user)", "count(transaction.duration)"]
+        result = resolve_field_list(fields, {})
+        # Automatic fields should be inserted, count() should have its column dropped.
+        assert result["selected_columns"] == []
+        assert result["aggregations"] == [
+            ["count", "", "count_id"],
+            ["count", "", "count_user"],
+            ["count", "", "count_transaction_duration"],
+            ["argMax", ["id", "timestamp"], "latest_event"],
+            ["argMax", ["project_id", "timestamp"], "projectid"],
         ]
         assert result["groupby"] == []
 
@@ -1179,7 +1193,7 @@ class ResolveFieldListTest(unittest.TestCase):
         result = resolve_field_list(fields, snuba_args)
         assert result["orderby"] == ["-count_id"]
         assert result["aggregations"] == [
-            ["count", "id", "count_id"],
+            ["count", "", "count_id"],
             ["uniq", "user", "count_unique_user"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["argMax", ["project.id", "timestamp"], "projectid"],
