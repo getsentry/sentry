@@ -159,9 +159,7 @@ class GroupsSnubaSearchTest(TestCase, SnubaTestCase):
         date_to=None,
     ):
         search_filters = []
-        print ("self.project:", self.project)
         projects = projects if projects is not None else [self.project]
-        print ("projects is:", projects)
         if search_filter_query is not None:
             search_filters = self.build_search_filter(
                 search_filter_query, projects, environments=environments
@@ -171,7 +169,6 @@ class GroupsSnubaSearchTest(TestCase, SnubaTestCase):
         if limit is not None:
             kwargs["limit"] = limit
 
-        print ("projects:", projects)
         return self.backend.query(
             projects,
             search_filters=search_filters,
@@ -1384,11 +1381,23 @@ class GroupsSnubaSearchTest(TestCase, SnubaTestCase):
                 self.fail("Query %s errored. Error info: %s" % (query, e))
 
         for key in GROUPS_SENTRY_SNUBA_MAP:
-            if key in ["project.id", "issue.id"]:
+            if key in [
+                "project.id",
+                "issue.id",
+                "events.issue",
+                "first_seen",
+                "last_seen",
+                "active_at",
+                "message",
+                "user",
+            ]:
                 continue
+            # print(key)
+            # if key == "error.type":
+            # import pdb; pdb.set_trace();
             test_query("has:%s" % key)
             test_query("!has:%s" % key)
-            if key in IssueSearchVisitor.numeric_keys or key == "events.issue":
+            if key in IssueSearchVisitor.numeric_keys:
                 val = "123"
             elif key in IssueSearchVisitor.date_keys:
                 val = "2019-01-01"
