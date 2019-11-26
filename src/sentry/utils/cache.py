@@ -72,3 +72,7 @@ class cached_for_request(memoize):
 
     def __get__(self, obj, type=None):
         return functools.partial(self.__call__, obj)
+
+
+def cache_key_for_event(data):
+    return u"e:{1}:{0}".format(data["project"], data["event_id"])

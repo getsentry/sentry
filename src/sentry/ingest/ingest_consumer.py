@@ -8,12 +8,12 @@ from sentry.utils.batching_kafka_consumer import AbstractBatchWorker
 from django.conf import settings
 from django.core.cache import cache
 
-from sentry.coreapi import cache_key_for_event
 from sentry.cache import default_cache
 from sentry.models import Project
 from sentry.signals import event_accepted
 from sentry.tasks.store import preprocess_event
 from sentry.utils import json
+from sentry.utils.cache import cache_key_for_event
 from sentry.utils.kafka import create_batching_kafka_consumer
 
 logger = logging.getLogger(__name__)

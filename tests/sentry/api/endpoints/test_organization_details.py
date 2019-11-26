@@ -199,7 +199,7 @@ class OrganizationUpdateTest(APITestCase):
             "dataScrubberDefaults": True,
             "sensitiveFields": [u"password"],
             "safeFields": [u"email"],
-            "storeCrashReports": True,
+            "storeCrashReports": 10,
             "scrubIPAddresses": True,
             "scrapeJavaScript": False,
             "defaultRole": "owner",
@@ -231,7 +231,7 @@ class OrganizationUpdateTest(APITestCase):
         assert options.get("sentry:require_scrub_ip_address")
         assert options.get("sentry:sensitive_fields") == ["password"]
         assert options.get("sentry:safe_fields") == ["email"]
-        assert options.get("sentry:store_crash_reports") is True
+        assert options.get("sentry:store_crash_reports") == 10
         assert options.get("sentry:scrape_javascript") is False
         assert options.get("sentry:join_requests") is False
 
@@ -250,6 +250,7 @@ class OrganizationUpdateTest(APITestCase):
         assert u"to {}".format(data["dataScrubberDefaults"]) in log.data["dataScrubberDefaults"]
         assert u"to {}".format(data["sensitiveFields"]) in log.data["sensitiveFields"]
         assert u"to {}".format(data["safeFields"]) in log.data["safeFields"]
+        assert u"to {}".format(data["storeCrashReports"]) in log.data["storeCrashReports"]
         assert u"to {}".format(data["scrubIPAddresses"]) in log.data["scrubIPAddresses"]
         assert u"to {}".format(data["scrapeJavaScript"]) in log.data["scrapeJavaScript"]
         assert u"to {}".format(data["allowJoinRequests"]) in log.data["allowJoinRequests"]

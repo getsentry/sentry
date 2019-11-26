@@ -8,6 +8,7 @@ from sentry import roles
 from sentry.app import quotas
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS
+from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
     ApiKey,
     Organization,
@@ -29,7 +30,6 @@ REQUIRE_SCRUB_DATA_DEFAULT = False
 REQUIRE_SCRUB_DEFAULTS_DEFAULT = False
 SENSITIVE_FIELDS_DEFAULT = None
 SAFE_FIELDS_DEFAULT = None
-STORE_CRASH_REPORTS_DEFAULT = False
 ATTACHMENTS_ROLE_DEFAULT = settings.SENTRY_DEFAULT_ROLE
 REQUIRE_SCRUB_IP_ADDRESS_DEFAULT = False
 SCRAPE_JAVASCRIPT_DEFAULT = True
@@ -174,8 +174,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 )
                 or [],
                 "safeFields": obj.get_option("sentry:safe_fields", SAFE_FIELDS_DEFAULT) or [],
-                "storeCrashReports": bool(
-                    obj.get_option("sentry:store_crash_reports", STORE_CRASH_REPORTS_DEFAULT)
+                "storeCrashReports": convert_crashreport_count(
+                    obj.get_option("sentry:store_crash_reports")
                 ),
                 "attachmentsRole": six.text_type(
                     obj.get_option("sentry:attachments_role", ATTACHMENTS_ROLE_DEFAULT)

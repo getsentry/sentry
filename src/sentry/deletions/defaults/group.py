@@ -85,6 +85,7 @@ class GroupDeletionTask(ModelDeletionTask):
             models.GroupEmailThread,
             models.GroupSubscription,
             models.UserReport,
+            models.EventAttachment,
             IncidentGroup,
             # Event is last as its the most time consuming
             models.Event,
