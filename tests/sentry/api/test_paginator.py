@@ -115,6 +115,18 @@ class OffsetPaginatorTest(TestCase):
         assert not result5.next
         assert result5.prev
 
+    def test_negative_offset(self):
+        self.create_user("baz@example.com")
+        queryset = User.objects.all()
+        paginator = OffsetPaginator(queryset)
+        cursor = Cursor(10, -1)
+        with self.assertRaises(BadPaginationError):
+            paginator.get_result(cursor=cursor)
+
+        cursor = Cursor(-10, 1)
+        with self.assertRaises(BadPaginationError):
+            paginator.get_result(cursor=cursor)
+
     def test_order_by_multiple(self):
         res1 = self.create_user("foo@example.com")
         self.create_user("bar@example.com")

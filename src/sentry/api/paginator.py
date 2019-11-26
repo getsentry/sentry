@@ -236,6 +236,8 @@ class OffsetPaginator(object):
 
         if self.max_offset is not None and offset >= self.max_offset:
             raise BadPaginationError("Pagination offset too large")
+        if offset < 0:
+            raise BadPaginationError("Pagination offset cannot be negative")
 
         results = list(queryset[offset:stop])
         if cursor.value != limit:
