@@ -66,6 +66,7 @@ export type Team = {
   id: string;
   slug: string;
   isMember: boolean;
+  avatar: Avatar;
 };
 
 export type TeamWithProjects = Team & {projects: Project[]};
