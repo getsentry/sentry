@@ -305,7 +305,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         "first_seen": ["multiply(toUInt64(min(timestamp)), 1000)", ""],
         "last_seen": ["multiply(toUInt64(max(timestamp)), 1000)", ""],
         # https://github.com/getsentry/sentry/blob/804c85100d0003cfdda91701911f21ed5f66f67c/src/sentry/event_manager.py#L241-L271
-        "priority": ["toUInt64(plus(multiply(log(times_seen), 600), `last_seen`))", ""],
+        "priority": ["toUInt64(plus(multiply(log(times_seen), 600), last_seen))", ""],
         # Only makes sense with WITH TOTALS, returns 1 for an individual group.
         "total": ["uniq", ISSUE_FIELD_NAME],
     }
