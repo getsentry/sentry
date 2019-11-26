@@ -5,8 +5,16 @@ import {t} from 'app/locale';
 import AddIntegration from 'app/views/organizationIntegrations/addIntegration';
 import Button from 'app/components/button';
 import Tooltip from 'app/components/tooltip';
+import {IntegrationProvider, Integration} from 'app/types';
 
-export default class AddIntegrationButton extends React.Component {
+type Props = {
+  provider: IntegrationProvider;
+  onAddIntegration: (data: Integration) => void;
+  buttonText?: string;
+  reinstall?: boolean;
+} & React.ComponentProps<typeof Button>;
+
+export default class AddIntegrationButton extends React.Component<Props> {
   static propTypes = {
     provider: PropTypes.object.isRequired,
     onAddIntegration: PropTypes.func.isRequired,

@@ -20,6 +20,7 @@ SELECT setval('sentry_project_id_seq', (
     SELECT GREATEST(MAX(id) + 1, nextval('sentry_project_id_seq')) - 1
     FROM sentry_project))
 """
+DEFAULT_SENTRY_PROJECT_ID = 1
 
 
 def handle_db_failure(func):
@@ -45,7 +46,12 @@ def create_default_projects(app_config, verbosity=2, **kwargs):
         return
 
     create_default_project(
-        id=settings.SENTRY_PROJECT, name="Internal", slug="internal", verbosity=verbosity
+        # This guards against sentry installs that have SENTRY_PROJECT set to None, so
+        # that they don't error after every migration. Specifically for single tenant.
+        id=settings.SENTRY_PROJECT or DEFAULT_SENTRY_PROJECT_ID,
+        name="Internal",
+        slug="internal",
+        verbosity=verbosity,
     )
 
     if settings.SENTRY_FRONTEND_PROJECT:

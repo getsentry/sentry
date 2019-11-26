@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import six
 
+from django.conf.urls import url
 from rest_framework.response import Response
 
 from sentry.exceptions import PluginError, PluginIdentityRequired
@@ -25,7 +26,7 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
 
     def get_group_urls(self):
         return super(AsanaPlugin, self).get_group_urls() + [
-            (
+            url(
                 r"^autocomplete",
                 IssueGroupActionEndpoint.as_view(view_method_name="view_autocomplete", plugin=self),
             )

@@ -33,4 +33,4 @@ class CreateOrganizationMemberTest(AcceptanceTestCase):
 
         # Verify new member on member list.
         self.browser.wait_until_test_id("org-member-list")
-        assert self.browser.find_element_by_link_text(email)
+        assert self.browser.element_exists_by_test_id(email)

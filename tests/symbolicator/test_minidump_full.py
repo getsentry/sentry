@@ -12,6 +12,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from sentry import eventstore
 from sentry.testutils import TransactionTestCase
 from sentry.models import EventAttachment
+from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL
 
 from tests.symbolicator import get_fixture_path, insta_snapshot_stacktrace_data
 
@@ -61,7 +62,7 @@ class SymbolicatorMinidumpIntegrationTest(TransactionTestCase):
         assert len(response.data) == 1
 
     def test_full_minidump(self):
-        self.project.update_option("sentry:store_crash_reports", True)
+        self.project.update_option("sentry:store_crash_reports", STORE_CRASH_REPORTS_ALL)
         self.upload_symbols()
 
         with self.feature("organizations:event-attachments"):
@@ -93,7 +94,7 @@ class SymbolicatorMinidumpIntegrationTest(TransactionTestCase):
         assert minidump.file.checksum == "74bb01c850e8d65d3ffbc5bad5cabc4668fce247"
 
     def test_full_minidump_json_extra(self):
-        self.project.update_option("sentry:store_crash_reports", True)
+        self.project.update_option("sentry:store_crash_reports", STORE_CRASH_REPORTS_ALL)
         self.upload_symbols()
 
         with self.feature("organizations:event-attachments"):
@@ -110,7 +111,7 @@ class SymbolicatorMinidumpIntegrationTest(TransactionTestCase):
         # Other assertions are performed by `test_full_minidump`
 
     def test_full_minidump_invalid_extra(self):
-        self.project.update_option("sentry:store_crash_reports", True)
+        self.project.update_option("sentry:store_crash_reports", STORE_CRASH_REPORTS_ALL)
         self.upload_symbols()
 
         with self.feature("organizations:event-attachments"):
@@ -127,7 +128,7 @@ class SymbolicatorMinidumpIntegrationTest(TransactionTestCase):
         # Other assertions are performed by `test_full_minidump`
 
     def test_raw_minidump(self):
-        self.project.update_option("sentry:store_crash_reports", True)
+        self.project.update_option("sentry:store_crash_reports", STORE_CRASH_REPORTS_ALL)
         self.upload_symbols()
 
         with self.feature("organizations:event-attachments"):

@@ -20,9 +20,10 @@ from sentry.search.utils import (
     parse_datetime_value,
     InvalidQuery,
 )
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import get_columns_from_aliases
 from sentry.utils.dates import to_timestamp
-from sentry.utils.snuba import Dataset, DATASETS, get_snuba_column_name, get_json_type
+from sentry.utils.snuba import DATASETS, get_snuba_column_name, get_json_type
 
 WILDCARD_CHARS = re.compile(r"[\*]")
 
@@ -694,18 +695,9 @@ FIELD_ALIASES = {
             ]
         ],
     },
-    "p75": {
-        "result_type": "duration",
-        "aggregations": [["quantile(0.75)(duration)", "", "p75"]],
-    },
-    "p95": {
-        "result_type": "duration",
-        "aggregations": [["quantile(0.95)(duration)", "", "p95"]],
-    },
-    "p99": {
-        "result_type": "duration",
-        "aggregations": [["quantile(0.99)(duration)", "", "p99"]],
-    },
+    "p75": {"result_type": "duration", "aggregations": [["quantile(0.75)(duration)", "", "p75"]]},
+    "p95": {"result_type": "duration", "aggregations": [["quantile(0.95)(duration)", "", "p95"]]},
+    "p99": {"result_type": "duration", "aggregations": [["quantile(0.99)(duration)", "", "p99"]]},
 }
 
 VALID_AGGREGATES = {
@@ -809,13 +801,18 @@ def resolve_field_list(fields, snuba_args):
             continue
 
         validate_aggregate(field, match)
-        aggregations.append(
-            [
-                VALID_AGGREGATES[match.group("function")]["snuba_name"],
-                match.group("column"),
-                get_aggregate_alias(match),
-            ]
-        )
+
+        if match.group("function") == "count":
+            # count() is a special function that ignores its column arguments.
+            aggregations.append(["count", "", get_aggregate_alias(match)])
+        else:
+            aggregations.append(
+                [
+                    VALID_AGGREGATES[match.group("function")]["snuba_name"],
+                    match.group("column"),
+                    get_aggregate_alias(match),
+                ]
+            )
 
     rollup = snuba_args.get("rollup")
     if not rollup:

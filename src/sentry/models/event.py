@@ -13,7 +13,7 @@ from hashlib import md5
 
 from semaphore.processing import StoreNormalizer
 
-from sentry import eventtypes
+from sentry import eventtypes, nodestore
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedIntegerField,
@@ -22,7 +22,7 @@ from sentry.db.models import (
     NodeField,
     sane_repr,
 )
-from sentry.db.models.manager import EventManager
+from sentry.db.models.manager import BaseManager
 from sentry.interfaces.base import get_interfaces
 from sentry.utils import json
 from sentry.utils.cache import memoize
@@ -362,26 +362,17 @@ class EventCommon(object):
 
         return data
 
+    def bind_node_data(self):
+        node_id = Event.generate_node_id(self.project_id, self.event_id)
+        node_data = nodestore.get(node_id) or {}
+        ref = self.data.get_ref(self)
+        self.data.bind_data(node_data, ref=ref)
+
     # ============================================
     # DEPRECATED
     # ============================================
 
-    @property
-    def level(self):
-        # we might want to move to this:
-        # return LOG_LEVELS_MAP.get(self.get_level_display()) or self.group.level
-        if self.group:
-            return self.group.level
-        else:
-            return None
 
-    def get_level_display(self):
-        # we might want to move to this:
-        # return self.get_tag('level') or self.group.get_level_display()
-        if self.group:
-            return self.group.get_level_display()
-        else:
-            return None
 
 
 class SnubaEvent(EventCommon):
@@ -399,24 +390,6 @@ class SnubaEvent(EventCommon):
     # nodestore anyway, we may as well only fetch the minimum from snuba to
     # avoid duplicated work.
     minimal_columns = ["event_id", "group_id", "project_id", "timestamp"]
-
-    # A list of all useful columns we can get from snuba.
-    selected_columns = minimal_columns + [
-        "culprit",
-        "location",
-        "message",
-        "platform",
-        "title",
-        "type",
-        # Required to provide snuba-only tags
-        "tags.key",
-        "tags.value",
-        # Required to provide snuba-only 'user' interface
-        "email",
-        "ip_address",
-        "user_id",
-        "username",
-    ]
 
     __repr__ = sane_repr("project_id", "group_id")
 
@@ -582,7 +555,7 @@ class Event(EventCommon, Model):
         skip_nodestore_save=True,
     )
 
-    objects = EventManager()
+    objects = BaseManager()
 
     class Meta:
         app_label = "sentry"
