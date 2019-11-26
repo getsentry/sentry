@@ -91,9 +91,7 @@ const StyledLink = styled(Link)`
 `;
 
 const IssueCardBody = styled('div')`
-  border-top: 1px solid ${p => p.theme.borderLight};
-  border-bottom: 1px solid ${p => p.theme.borderLight};
-  background: ${p => p.theme.offWhite};
+  background: ${p => p.theme.offWhiteLight};
   padding-top: ${space(1)};
 `;
 
