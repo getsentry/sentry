@@ -230,6 +230,10 @@ function filterAggregationByField(organization: Organization, f?: Field): Aggreg
   if (!organization.features.includes('transaction-events')) {
     functionList = functionList.filter(item => !TRACING_FIELDS.includes(item));
   }
+
+  // sort list in ascending order
+  functionList.sort();
+
   if (!f) {
     return functionList as Aggregation[];
   }
@@ -240,7 +244,7 @@ function filterAggregationByField(organization: Organization, f?: Field): Aggreg
     return [];
   }
 
-  return functionList.reduce(
+  functionList = functionList.reduce(
     (accumulator, a) => {
       if (
         AGGREGATIONS[a].type.includes(fieldType) ||
@@ -254,6 +258,11 @@ function filterAggregationByField(organization: Organization, f?: Field): Aggreg
     },
     [] as Aggregation[]
   );
+
+  // sort list in ascending order
+  functionList.sort();
+
+  return functionList as Aggregation[];
 }
 
 function filterFieldByAggregation(
@@ -269,11 +278,14 @@ function filterFieldByAggregation(
     fieldList = fieldList.filter(item => !TRACING_FIELDS.includes(item));
   }
 
+  // sort list in ascending order
+  fieldList.sort();
+
   if (!a || !AGGREGATIONS[a]) {
     return fieldList as Field[];
   }
 
-  return fieldList.reduce(
+  fieldList = fieldList.reduce(
     (accumulator, f) => {
       // tag keys are all strings, and values not in FIELDS is a tag.
       const fieldType = FIELDS[f] || 'string';
@@ -293,6 +305,11 @@ function filterFieldByAggregation(
     },
     [] as Field[]
   );
+
+  // sort list in ascending order
+  fieldList.sort();
+
+  return fieldList;
 }
 
 const FormRow = styled('div')`
