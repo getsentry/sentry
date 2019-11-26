@@ -256,7 +256,7 @@ class QueryTransformTest(TestCase):
             dataset=Dataset.Discover,
             orderby=["count_id"],
             aggregations=[
-                ["count", "event_id", "count_id"],
+                ["count", "", "count_id"],
                 ["argMax", ["event_id", "timestamp"], "latest_event"],
             ],
             end=None,
