@@ -930,10 +930,10 @@ def constrain_column_to_dataset(col, dataset, value=None):
     unknown columns into tags expressions.
     """
     if col.startswith("tags["):
-        if dataset == Dataset.Events:
-            return col
-        else:  # This makes sure already wrapped tags are pointed to the events table.
+        if dataset == Dataset.Groups:
             return u"events.{}".format(col)
+        else:
+            return col
 
     # Special case for the type condition as we only want
     # to drop it when we are querying transactions.
@@ -946,11 +946,10 @@ def constrain_column_to_dataset(col, dataset, value=None):
     if col in DATASET_FIELDS[dataset]:
         return col
 
-    if dataset == Dataset.Events:
-        return u"tags[{}]".format(col)
-    else:
-        # If we're not using the events dataset, we need to prefix the tags.
+    if dataset == Dataset.Groups:
         return u"events.tags[{}]".format(col)
+    else:
+        return u"tags[{}]".format(col)
 
 
 def constrain_condition_to_dataset(cond, dataset):
