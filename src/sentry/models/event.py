@@ -368,12 +368,6 @@ class EventCommon(object):
         ref = self.data.get_ref(self)
         self.data.bind_data(node_data, ref=ref)
 
-    # ============================================
-    # DEPRECATED
-    # ============================================
-
-
-
 
 class SnubaEvent(EventCommon):
     """
