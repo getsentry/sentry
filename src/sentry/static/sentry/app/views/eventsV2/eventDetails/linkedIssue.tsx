@@ -50,7 +50,7 @@ class LinkedIssue extends AsyncComponent<
     const issueUrl = `${group.permalink}events/${eventId}/`;
 
     return (
-      <div>
+      <Section>
         <SectionHeading>{t('Event Issue')}</SectionHeading>
         <StyledIssueCard>
           <IssueCardHeader>
@@ -69,10 +69,14 @@ class LinkedIssue extends AsyncComponent<
             <Times lastSeen={group.lastSeen} firstSeen={group.firstSeen} />
           </IssueCardFooter>
         </StyledIssueCard>
-      </div>
+      </Section>
     );
   }
 }
+
+const Section = styled('div')`
+  margin-bottom: ${space(3)};
+`;
 
 const StyledIssueCard = styled('div')`
   border: 1px solid ${p => p.theme.borderLight};
