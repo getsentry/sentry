@@ -318,7 +318,7 @@ const ButtonSaveIcon = styled(InlineSvg)<{isNewQuery?: boolean}>`
   margin-top: -3px; /* Align SVG vertically to text */
   margin-right: ${space(0.75)};
 
-  color: ${p => (p.isNewQuery ? p.theme.yellow : '#C4C4C4')};
+  color: ${p => (p.isNewQuery ? p.theme.gray1 : p.theme.yellow)};
 `;
 const ButtonSaveDropDown = styled('li')`
   padding: ${space(1)};
