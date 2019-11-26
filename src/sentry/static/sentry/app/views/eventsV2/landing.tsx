@@ -187,7 +187,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
   }
 
   renderActions() {
-    const {organization} = this.props;
+    const {organization, location} = this.props;
 
     const StyledSearchBar = styled(SearchBar)`
       margin-right: ${space(1)};
@@ -199,6 +199,15 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
       margin-bottom: ${space(3)};
     `;
 
+    const eventView = EventView.fromSavedQueryWithLocation(DEFAULT_EVENT_VIEW, location);
+
+    const to = {
+      pathname: location.pathname,
+      query: {
+        ...eventView.generateQueryStringObject(),
+      },
+    };
+
     return (
       <StyledActions>
         <StyledSearchBar
@@ -206,7 +215,20 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
           query={this.state.searchQueryInput}
           onSearch={this.handleSearchQuery}
         />
-        <Button priority="primary">{t('Build a new query')}</Button>
+        <Button
+          to={to}
+          priority="primary"
+          onClick={() => {
+            trackAnalyticsEvent({
+              eventKey: 'discover_v2.prebuilt_query_click',
+              eventName: 'Discoverv2: Click a pre-built query',
+              organization_id: this.props.organization.id,
+              query_name: eventView.name,
+            });
+          }}
+        >
+          {t('Build a new query')}
+        </Button>
       </StyledActions>
     );
   }
