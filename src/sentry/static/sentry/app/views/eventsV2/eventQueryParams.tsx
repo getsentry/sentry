@@ -1,3 +1,5 @@
+import {assert} from 'app/types/utils';
+
 export type ColumnValueType =
   | '*' // Matches to everything
   | 'string'
@@ -8,17 +10,8 @@ export type ColumnValueType =
   | 'boolean'
   | 'never'; // Matches to nothing
 
-type AGGREGATION_KEYS = 'count' | 'count_unique' | 'min' | 'max' | 'sum' | 'avg';
-
 // Refer to src/sentry/utils/snuba.py
-export const AGGREGATIONS: Readonly<
-  {
-    [key in AGGREGATION_KEYS]: {
-      type: '*' | ColumnValueType[];
-      isSortable: boolean;
-    }
-  }
-> = {
+export const AGGREGATIONS = {
   count: {
     type: '*',
     isSortable: true,
@@ -59,7 +52,17 @@ export const AGGREGATIONS: Readonly<
     isSortable: true,
   },
   */
-};
+} as const;
+
+assert(AGGREGATIONS as Readonly<
+  {
+    [key in keyof typeof AGGREGATIONS]: {
+      type: '*' | Readonly<ColumnValueType[]>;
+      isSortable: boolean;
+    }
+  }
+>);
+
 export type Aggregation = keyof typeof AGGREGATIONS | '';
 
 // TODO(leedongwei)
@@ -151,6 +154,8 @@ export const FIELDS = {
   p95: 'duration',
   p99: 'duration',
 } as const;
+assert(FIELDS as Readonly<{[key in keyof typeof FIELDS]: ColumnValueType}>);
+
 export type Field = keyof typeof FIELDS | string | '';
 
 // This list should be removed with the tranaction-events feature flag.
