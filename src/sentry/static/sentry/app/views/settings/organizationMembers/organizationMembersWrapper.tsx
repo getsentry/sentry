@@ -160,7 +160,6 @@ class OrganizationMembersWrapper extends AsyncView<Props, State> {
           </TextContainer>
           <Button
             priority="primary"
-            size="small"
             onClick={() => openInviteMembersModal({source: 'members_settings'})}
             disabled={!this.canOpeninviteModal}
             title={

@@ -13,13 +13,7 @@ export function Members(params = []) {
       flags: {
         'sso:linked': false,
       },
-      user: {
-        id: '2',
-        has2fa: false,
-        name: 'Sentry 2 Name',
-        email: 'sentry2@test.com',
-        username: 'Sentry 2 Username',
-      },
+      user: null,
     },
     {
       id: '3',

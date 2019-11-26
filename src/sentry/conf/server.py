@@ -1247,7 +1247,7 @@ SENTRY_ROLES = (
     },
     {
         "id": "owner",
-        "name": "Organization Owner",
+        "name": "Owner",
         "desc": "Unrestricted access to the organization, its data, and its settings. Can add, modify, and delete projects and members, as well as make billing and plan changes.",
         "is_global": True,
         "scopes": set(

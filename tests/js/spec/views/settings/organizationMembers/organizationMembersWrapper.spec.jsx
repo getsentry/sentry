@@ -252,7 +252,7 @@ describe('OrganizationMembersWrapper', function() {
 
     expect(
       wrapper
-        .find('PanelItem')
+        .find('StyledPanelItem')
         .text()
         .includes(member.name)
     ).toBe(true);
