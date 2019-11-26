@@ -29,6 +29,7 @@ type Props = {
   location: Location;
   savedQueries: SavedQuery[];
   pageLinks: string;
+  onQueryChange: () => void;
 };
 
 class QueryList extends React.Component<Props> {
@@ -36,13 +37,10 @@ class QueryList extends React.Component<Props> {
     event.preventDefault();
     event.stopPropagation();
 
-    const {api, location, organization} = this.props;
+    const {api, organization, onQueryChange} = this.props;
 
     handleDeleteQuery(api, organization, eventView).then(() => {
-      browserHistory.push({
-        pathname: location.pathname,
-        query: {},
-      });
+      onQueryChange();
     });
   };
 
@@ -50,12 +48,13 @@ class QueryList extends React.Component<Props> {
     event.preventDefault();
     event.stopPropagation();
 
-    const {api, location, organization} = this.props;
+    const {api, location, organization, onQueryChange} = this.props;
 
     eventView = eventView.clone();
     eventView.name = `${eventView.name} copy`;
 
     handleCreateQuery(api, organization, eventView).then(() => {
+      onQueryChange();
       browserHistory.push({
         pathname: location.pathname,
         query: {},
