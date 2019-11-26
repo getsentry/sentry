@@ -736,6 +736,10 @@ def resolve_orderby(orderby, fields, aggregations):
     """
     We accept column names, aggregate functions, and aliases as order by
     values. Aggregates and field aliases need to be resolve/validated.
+
+    TODO(mark) Once we're no longer using the dataset selection function
+    should allow all non-tag fields to be used as sort clauses, instead of only
+    those that are currently selected.
     """
     orderby = orderby if isinstance(orderby, (list, tuple)) else [orderby]
     validated = []
