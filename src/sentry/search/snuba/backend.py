@@ -15,6 +15,7 @@ from sentry.api.paginator import DateTimePaginator, SequencePaginator, Paginator
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.models import Group, Release, GroupEnvironment
 from sentry.search.base import SearchBackend
+from sentry.snuba.dataset import Dataset
 from sentry.utils import snuba, metrics
 
 logger = logging.getLogger("sentry.search.snuba")
@@ -560,7 +561,7 @@ def snuba_search(
         referrer = "search"
 
     snuba_results = snuba.dataset_query(
-        dataset=snuba.Dataset.Events,
+        dataset=Dataset.Events,
         start=start,
         end=end,
         selected_columns=selected_columns,
