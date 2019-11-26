@@ -33,7 +33,7 @@ type Props = {
   eventView: EventView;
   savedQueries: SavedQuery[];
   savedQueriesLoading: boolean;
-  onQuerySave: () => void;
+  onQueryChange: () => void;
 };
 
 type State = {
@@ -148,7 +148,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       (savedQuery: any) => {
         const view = EventView.fromSavedQuery(savedQuery);
 
-        this.props.onQuerySave();
+        this.props.onQueryChange();
         this.setState({queryName: ''});
         browserHistory.push({
           pathname: location.pathname,
@@ -165,7 +165,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     const {api, organization, eventView} = this.props;
 
     handleUpdateQuery(api, organization, eventView).then(() => {
-      this.props.onQuerySave();
+      this.props.onQueryChange();
       this.setState({queryName: ''});
     });
   };
@@ -177,7 +177,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     const {api, location, organization, eventView} = this.props;
 
     handleDeleteQuery(api, organization, eventView).then(() => {
-      this.props.onQuerySave();
+      this.props.onQueryChange();
       browserHistory.push({
         pathname: location.pathname,
         query: {},
