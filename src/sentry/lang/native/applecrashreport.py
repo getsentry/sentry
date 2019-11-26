@@ -173,8 +173,8 @@ class AppleCrashReport(object):
         return "%s - %s %s %s  <%s> %s" % (
             hex(image_addr),
             hex(image_addr + debug_image["image_size"] - 1),
-            image_name(debug_image["name"]),
+            image_name(debug_image.get("code_file") or NATIVE_UNKNOWN_STRING),
             self.context["device"]["arch"],
             (debug_image.get("id") or debug_image.get("uuid")).replace("-", "").lower(),
-            debug_image["name"],
+            debug_image.get("code_file") or NATIVE_UNKNOWN_STRING,
         )
