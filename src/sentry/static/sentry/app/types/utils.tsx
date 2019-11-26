@@ -4,4 +4,5 @@
 
 // This declares a function which asserts that the expression called
 // value is true:
+// eslint-disable-next-line prettier/prettier
 export declare function assert(value: unknown): asserts value;
