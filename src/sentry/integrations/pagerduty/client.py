@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from sentry.utils import json
 from sentry.integrations.client import ApiClient
 from sentry.models import EventCommon
 from sentry.api.serializers import serialize, ExternalEventSerializer
@@ -27,12 +26,11 @@ class PagerDutyClient(ApiClient):
         if not headers:
             headers = {"Content-Type": "application/json"}
 
-        # (XXX) Meredith: We stringify the data ahead of time in send_trigger (because reasons)
-        # so we have to pass json=False since True is the default.
-        return self._request(method, path, headers=headers, data=data, params=params, json=False)
+        return self._request(method, path, headers=headers, data=data, params=params)
 
     def send_trigger(self, data):
-        # not sure if this will only been events for now
+        # expected payload: https://v2.developer.pagerduty.com/docs/send-an-event-events-api-v2
+        # for now, only construct the payload if data is an event
         if isinstance(data, EventCommon):
             source = data.transaction or data.culprit or "<unknown>"
             group = data.group
@@ -58,9 +56,7 @@ class PagerDutyClient(ApiClient):
                     }
                 ],
             }
-        # (XXX) Meredith: The 'datetime' property that is included in as_dict doesn't
-        # get properly serializied in the requests library so we stringify it here instead.
-        return self.post("/", data=json.dumps(payload))
+        return self.post("/", data=payload)
 
     def send_acknowledge(self, data):
         pass

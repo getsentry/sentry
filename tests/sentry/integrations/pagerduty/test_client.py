@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import copy
 
-from sentry.utils import json
 from mock import patch
 
 from sentry.api.serializers import serialize, ExternalEventSerializer
@@ -79,4 +78,4 @@ class PagerDutyClientTest(APITestCase):
                 }
             ],
         }
-        mock_request.assert_called_once_with("POST", "/", data=json.dumps(data))
+        mock_request.assert_called_once_with("POST", "/", data=data)
