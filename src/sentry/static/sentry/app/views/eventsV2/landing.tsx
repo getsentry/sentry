@@ -32,7 +32,6 @@ import QueryList from './queryList';
 import DiscoverBreadcrumb from './breadcrumb';
 import {getPrebuiltQueries, generateTitle} from './utils';
 
-const DISPLAY_SEARCH_BAR_FLAG = false;
 const BANNER_DISMISSED_KEY = 'discover-banner-dismissed';
 
 function checkIsBannerHidden(): boolean {
@@ -47,8 +46,10 @@ type Props = {
 } & AsyncComponent['props'];
 
 type State = {
+  isBannerHidden: boolean;
   savedQueries: SavedQuery[];
   savedQueriesPageLinks: string;
+  searchQueryInput: string;
 } & AsyncComponent['state'];
 
 class DiscoverLanding extends AsyncComponent<Props, State> {
@@ -58,14 +59,18 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     router: PropTypes.object.isRequired,
   };
 
-  state = {
+  state: State = {
+    // AsyncComponent state
     loading: true,
     reloading: false,
     error: false,
     errors: [],
+
+    // local component state
     isBannerHidden: checkIsBannerHidden(),
     savedQueries: [],
     savedQueriesPageLinks: '',
+    searchQueryInput: '',
   };
 
   shouldReload = true;
@@ -177,7 +182,13 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     );
   }
 
+  handleSearchQuery(searchQuery: string) {
+    console.log('do things', searchQuery);
+  }
+
   renderActions() {
+    const {organization} = this.props;
+
     const StyledSearchBar = styled(SearchBar)`
       margin-right: ${space(1)};
       flex-grow: 1;
@@ -190,8 +201,12 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
 
     return (
       <StyledActions>
-        <StyledSearchBar />
-        <Button priority="primary">{t('Build a new query')}</Button>
+        <StyledSearchBar
+          organization={organization}
+          query={this.state.searchQueryInput}
+          onSearch={this.handleSearchQuery}
+        />
+        <Button priority="primary">{t('Search Queries')}</Button>
       </StyledActions>
     );
   }
@@ -212,7 +227,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
       <PageContent>
         <StyledPageHeader>{t('Discover')}</StyledPageHeader>
         {this.renderBanner()}
-        {DISPLAY_SEARCH_BAR_FLAG && this.renderActions()}
+        {this.renderActions()}
         {loading && this.renderLoading()}
         {!loading && (
           <QueryList
@@ -227,7 +242,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     );
   }
 
-  renderResults(eventView: EventView) {
+  renderQueryBuilder(eventView: EventView) {
     const {organization, location, router} = this.props;
     const {savedQueries, reloading} = this.state;
     const ContentBox = styled(PageContent)`
@@ -309,7 +324,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
             <GlobalSelectionHeader organization={organization} />
             <NoProjectMessage organization={organization}>
               {!hasQuery && this.renderQueryList()}
-              {hasQuery && this.renderResults(eventView)}
+              {hasQuery && this.renderQueryBuilder(eventView)}
             </NoProjectMessage>
           </React.Fragment>
         </SentryDocumentTitle>
