@@ -27,6 +27,7 @@ import Pagination from './pagination';
 import LineGraph from './lineGraph';
 import TagsTable from '../tagsTable';
 import EventInterfaces from './eventInterfaces';
+import LinkedIssue from './linkedIssue';
 import DiscoverBreadcrumb from '../breadcrumb';
 import {SectionHeading} from '../styles';
 
@@ -152,6 +153,9 @@ class EventDetailsContent extends AsyncComponent<Props, State & AsyncComponent['
               projectId={this.projectId}
             />
             <TagsTable tags={event.tags} />
+            {event.groupID && (
+              <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
+            )}
           </Side>
         </ContentBox>
       </div>

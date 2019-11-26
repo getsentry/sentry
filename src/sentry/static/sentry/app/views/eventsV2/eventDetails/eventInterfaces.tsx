@@ -15,7 +15,7 @@ import NavTabs from 'app/components/navTabs';
 import {objectIsEmpty, toTitleCase} from 'app/utils';
 import {Event, Organization} from 'app/types';
 
-import LinkedItems from './linkedItems';
+import LinkedEvents from './linkedEvents';
 
 const OTHER_SECTIONS = {
   contexts: EventContexts,
@@ -67,7 +67,7 @@ const ActiveTab = (props: ActiveTabProps) => {
     return <Component event={event} isShare={false} hideGuide />;
   } else if (activeTab === 'linked') {
     return (
-      <LinkedItems event={event} projectId={projectId} organization={organization} />
+      <LinkedEvents event={event} projectId={projectId} organization={organization} />
     );
   } else {
     /*eslint no-console:0*/

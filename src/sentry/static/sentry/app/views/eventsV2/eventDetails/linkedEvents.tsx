@@ -38,7 +38,7 @@ type State = {
   linkedEvents: {data: DiscoverResult[]};
 } & AsyncComponent['state'];
 
-class LinkedItems extends AsyncComponent<Props, State> {
+class LinkedEvents extends AsyncComponent<Props, State> {
   getEndpoints(): [string, string, any][] {
     const {event, organization} = this.props;
     const endpoints: any = [];
@@ -184,6 +184,7 @@ const StyledDate = styled('div')`
     white-space: nowrap;
   }
 `;
+
 const StyledShortId = styled(ShortId)`
   justify-content: flex-start;
   color: ${p => p.theme.gray4};
@@ -193,4 +194,4 @@ const StyledShortId = styled(ShortId)`
   }
 `;
 
-export default withProjects(LinkedItems);
+export default withProjects(LinkedEvents);
