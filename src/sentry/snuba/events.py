@@ -33,7 +33,7 @@ class Columns(Enum):
     TYPE = Column("events.type", "type", None, "type", "event.type")
     TAGS_KEY = Column("events.tags.key", "tags.key", "tags.key", "tags.key", "tags.key")
     TAGS_VALUE = Column("events.tags.value", "tags.value", "tags.value", "tags.value", "tags.value")
-    TAGS_KEYS = Column(None, "tags_key", "tags_key", "tags_key", "tags_key")
+    TAGS_KEYS = Column("events.tags_key", "tags_key", "tags_key", "tags_key", "tags_key")
     TAGS_VALUES = Column(
         "events.tags_value", "tags_value", "tags_value", "tags_value", "tags_value"
     )
