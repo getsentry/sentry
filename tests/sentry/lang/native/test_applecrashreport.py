@@ -380,7 +380,7 @@ def test_get_binary_images_apple_string():
                 "image_vmaddr": "0x0",
                 "code_file": "/Users/haza/Library/Developer/CoreSimulator/Devices/DDB32F4C-97CF-4E2B-BD10-EB940553F223/data/Containers/Bundle/Application/8C286977-D498-44FF-B7BE-42BFE3DE38BD/SwiftExample.app/Frameworks/libswiftContacts.dylib",
                 "type": "native",
-                "uuid": "4B5A054F-B7A1-3AD0-81E1-513B4DBE2A33",
+                "debug_id": "4B5A054F-B7A1-3AD0-81E1-513B4DBE2A33",
             },
             {
                 "image_addr": "0x1400c000",
@@ -388,7 +388,7 @@ def test_get_binary_images_apple_string():
                 "image_vmaddr": "0x0",
                 "code_file": "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk/System/Library/PrivateFrameworks/ContentIndex.framework/ContentIndex",
                 "type": "native",
-                "uuid": "766DFB14-72EE-32D2-8961-687D32548F2B",
+                "debug_id": "766DFB14-72EE-32D2-8961-687D32548F2B",
             },
             {
                 "image_addr": "0x1406f000",
@@ -396,7 +396,7 @@ def test_get_binary_images_apple_string():
                 "image_vmaddr": "0x0",
                 "code_file": "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk/System/Library/PrivateFrameworks/CorePDF.framework/CorePDF",
                 "type": "native",
-                "uuid": "BE602DC1-D3A0-3389-B8F4-922C37DEA3DC",
+                "debug_id": "BE602DC1-D3A0-3389-B8F4-922C37DEA3DC",
             },
         ],
         context={
@@ -440,21 +440,21 @@ def test_binary_images_without_code_file():
                 "image_size": 20480,
                 "image_vmaddr": "0x0",
                 "type": "native",
-                "uuid": "4B5A054F-B7A1-3AD0-81E1-513B4DBE2A33",
+                "debug_id": "4B5A054F-B7A1-3AD0-81E1-513B4DBE2A33",
             },
             {
                 "image_addr": "0x1400c000",
                 "image_size": 266240,
                 "image_vmaddr": "0x0",
                 "type": "native",
-                "uuid": "766DFB14-72EE-32D2-8961-687D32548F2B",
+                "debug_id": "766DFB14-72EE-32D2-8961-687D32548F2B",
             },
             {
                 "image_addr": "0x1406f000",
                 "image_size": 913408,
                 "image_vmaddr": "0x0",
                 "type": "native",
-                "uuid": "BE602DC1-D3A0-3389-B8F4-922C37DEA3DC",
+                "debug_id": "BE602DC1-D3A0-3389-B8F4-922C37DEA3DC",
             },
         ],
         context={
@@ -526,7 +526,7 @@ def test__convert_debug_meta_to_binary_image_row():
             "image_vmaddr": "0x0",
             "code_file": "/Users/haza/Library/Developer/CoreSimulator/Devices/DDB32F4C-97CF-4E2B-BD10-EB940553F223/data/Containers/Bundle/Application/8F8140DF-B25B-4088-B5FB-57F474A49CD6/SwiftExample.app/Frameworks/SentrySwift.framework/SentrySwift",
             "type": "apple",
-            "uuid": "B427AE1D-BF36-3B50-936F-D78A7D1C8340",
+            "debug_id": "B427AE1D-BF36-3B50-936F-D78A7D1C8340",
         }
     )
     assert (
