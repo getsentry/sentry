@@ -20,9 +20,10 @@ from sentry.search.utils import (
     parse_datetime_value,
     InvalidQuery,
 )
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import get_columns_from_aliases
 from sentry.utils.dates import to_timestamp
-from sentry.utils.snuba import Dataset, DATASETS, get_snuba_column_name, get_json_type
+from sentry.utils.snuba import DATASETS, get_snuba_column_name, get_json_type
 
 WILDCARD_CHARS = re.compile(r"[\*]")
 
