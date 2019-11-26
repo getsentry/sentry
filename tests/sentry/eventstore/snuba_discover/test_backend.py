@@ -131,6 +131,19 @@ class SnubaDiscoverEventStorageTest(TestCase, SnubaTestCase):
         assert self.eventstore.get_prev_event_id(None, filter=filter) is None
         assert self.eventstore.get_next_event_id(None, filter=filter) is None
 
+    def test_get_next_prev_event_id_public_alias_conditions(self):
+        event = self.eventstore.get_event_by_id(self.project2.id, "b" * 32)
+
+        filter = Filter(
+            project_ids=[self.project2.id],
+            conditions=[["event.type", "=", "default"], ["project.id", "=", self.project2.id]],
+        )
+        prev_event = self.eventstore.get_prev_event_id(event, filter=filter)
+        next_event = self.eventstore.get_next_event_id(event, filter=filter)
+
+        assert prev_event is None
+        assert next_event == (six.text_type(self.project2.id), "c" * 32)
+
     def test_get_latest_or_oldest_event_id(self):
         # Returns a latest/oldest event
         event = self.eventstore.get_event_by_id(self.project2.id, "b" * 32)

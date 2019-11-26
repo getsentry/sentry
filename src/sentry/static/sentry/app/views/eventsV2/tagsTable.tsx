@@ -20,7 +20,7 @@ type Props = {
 const TagsTable = (props: Props) => {
   const {location, tags} = props;
   return (
-    <div>
+    <StyledTagsTable>
       <SectionHeading>{t('Event Tag Details')}</SectionHeading>
       <StyledTable>
         <tbody>
@@ -46,13 +46,18 @@ const TagsTable = (props: Props) => {
           })}
         </tbody>
       </StyledTable>
-    </div>
+    </StyledTagsTable>
   );
 };
+
 TagsTable.propTypes = {
   tags: PropTypes.array.isRequired,
   location: PropTypes.object,
 } as any;
+
+const StyledTagsTable = styled('div')`
+  margin-bottom: ${space(3)};
+`;
 
 const StyledTable = styled('table')`
   table-layout: fixed;

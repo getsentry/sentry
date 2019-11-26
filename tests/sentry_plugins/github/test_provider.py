@@ -9,9 +9,9 @@ from sentry.models import Integration, OrganizationIntegration, Repository
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
 
-from new_sentry_plugins.github.client import GitHubClient, GitHubAppsClient
-from new_sentry_plugins.github.plugin import GitHubAppsRepositoryProvider, GitHubRepositoryProvider
-from new_sentry_plugins.github.testutils import (
+from sentry_plugins.github.client import GitHubClient, GitHubAppsClient
+from sentry_plugins.github.plugin import GitHubAppsRepositoryProvider, GitHubRepositoryProvider
+from sentry_plugins.github.testutils import (
     COMPARE_COMMITS_EXAMPLE,
     GET_LAST_COMMITS_EXAMPLE,
     INTSTALLATION_REPOSITORIES_API_RESPONSE,

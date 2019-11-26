@@ -8,8 +8,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import ControlState from 'app/views/settings/components/forms/field/controlState';
 import FieldControl from 'app/views/settings/components/forms/field/fieldControl';
 import FieldDescription from 'app/views/settings/components/forms/field/fieldDescription';
+import FieldErrorReason from 'app/views/settings/components/forms/field/fieldErrorReason';
 import FieldHelp from 'app/views/settings/components/forms/field/fieldHelp';
 import FieldLabel from 'app/views/settings/components/forms/field/fieldLabel';
 import FieldRequiredBadge from 'app/views/settings/components/forms/field/fieldRequiredBadge';
@@ -48,6 +50,11 @@ class Field extends React.Component {
     disabledReason: PropTypes.string,
 
     /**
+     * Error message
+     */
+    error: PropTypes.string,
+
+    /**
      * Hide ControlState component
      */
     flexibleControlStateSize: PropTypes.bool,
@@ -76,6 +83,16 @@ class Field extends React.Component {
      * The control's `id` property
      */
     id: PropTypes.string,
+
+    /**
+     * Field is in saving state
+     */
+    isSaving: PropTypes.bool,
+
+    /**
+     * Field has finished saving state
+     */
+    isSaved: PropTypes.bool,
 
     /**
      * The Control component
@@ -110,10 +127,13 @@ class Field extends React.Component {
       visible,
       disabled,
       disabledReason,
+      error,
       flexibleControlStateSize,
-      label,
       help,
       id,
+      isSaving,
+      isSaved,
+      label,
       stacked,
       children,
       style,
@@ -136,6 +156,8 @@ class Field extends React.Component {
       disabledReason,
       flexibleControlStateSize,
       help: helpElement,
+      errorState: error ? <FieldErrorReason>{error}</FieldErrorReason> : null,
+      controlState: <ControlState error={error} isSaving={isSaving} isSaved={isSaved} />,
     };
 
     // See comments in prop types

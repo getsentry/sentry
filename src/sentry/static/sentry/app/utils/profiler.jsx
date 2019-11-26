@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {TransactionActivity} from '@sentry/integrations';
+import {Integrations} from '@sentry/apm';
 
 import getDisplayName from 'app/utils/getDisplayName';
 
@@ -19,7 +19,7 @@ export default function profiler() {
         this.finishProfile();
       }
 
-      activity = TransactionActivity.pushActivity(displayName, {
+      activity = Integrations.Tracing.pushActivity(displayName, {
         data: {},
         op: 'react',
         description: `<${displayName}>`,
@@ -30,7 +30,7 @@ export default function profiler() {
           return;
         }
 
-        TransactionActivity.popActivity(this.activity);
+        Integrations.Tracing.popActivity(this.activity);
         this.activity = null;
       };
 

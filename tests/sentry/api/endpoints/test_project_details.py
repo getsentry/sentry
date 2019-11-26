@@ -102,6 +102,18 @@ class ProjectUpdateTest(APITestCase):
         )
         self.login_as(user=self.user)
 
+    def test_blank_subject_prefix(self):
+        project = Project.objects.get(id=self.project.id)
+        options = {"mail:subject_prefix": "[Sentry]"}
+        resp = self.client.put(self.path, data={"options": options})
+        assert resp.status_code == 200, resp.content
+        assert project.get_option("mail:subject_prefix") == "[Sentry]"
+
+        options["mail:subject_prefix"] = ""
+        resp = self.client.put(self.path, data={"options": options})
+        assert resp.status_code == 200, resp.content
+        assert project.get_option("mail:subject_prefix") == ""
+
     def test_team_changes_deprecated(self):
         project = self.create_project()
         team = self.create_team(members=[self.user])

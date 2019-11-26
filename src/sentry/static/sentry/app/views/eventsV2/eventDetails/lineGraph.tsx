@@ -238,6 +238,7 @@ const LineGraph = (props: LineGraphProps) => {
     </Panel>
   );
 };
+
 LineGraph.propTypes = {
   api: PropTypes.object.isRequired,
   currentEvent: SentryTypes.Event.isRequired,

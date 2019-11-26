@@ -1,10 +1,10 @@
 import * as Sentry from '@sentry/browser';
-import {TransactionActivity} from '@sentry/integrations';
+import {Integrations} from '@sentry/apm';
 
 /**
  * Sets the transaction name
  */
 export function setTransactionName(name) {
-  TransactionActivity.updateTransactionName(name);
+  Integrations.Tracing.updateTransactionName(name);
   Sentry.setTag('ui.route', name);
 }

@@ -8,7 +8,6 @@ from datetime import timedelta
 from django.core import mail
 from django.core.urlresolvers import reverse
 
-# from django.db import connection
 from django.http import HttpRequest
 from django.utils import timezone
 from exam import fixture
@@ -137,14 +136,12 @@ class EventNodeStoreTest(TestCase):
         assert event.data.get_ref(event) != event.data.get_ref(invalid_event)
 
         with pytest.raises(NodeIntegrityFailure):
-            eventstore.bind_nodes([event], "data")
+            event.bind_node_data()
 
     def test_accepts_valid_ref(self):
         event = self.create_event()
         event.data.bind_ref(event)
-
-        eventstore.bind_nodes([event], "data")
-
+        event.bind_node_data()
         assert event.data.ref == event.project.id
 
     def test_basic_ref_binding(self):

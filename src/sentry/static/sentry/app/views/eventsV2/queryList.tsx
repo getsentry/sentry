@@ -1,7 +1,8 @@
 import React, {MouseEvent} from 'react';
-import {Location} from 'history';
+import {Location, Query} from 'history';
 import styled from 'react-emotion';
 import classNames from 'classnames';
+import moment from 'moment';
 import {browserHistory} from 'react-router';
 
 import {t} from 'app/locale';
@@ -33,6 +34,7 @@ type Props = {
 class QueryList extends React.Component<Props> {
   handleDeleteQuery = (eventView: EventView) => (event: React.MouseEvent<Element>) => {
     event.preventDefault();
+    event.stopPropagation();
 
     const {api, location, organization} = this.props;
 
@@ -46,6 +48,7 @@ class QueryList extends React.Component<Props> {
 
   handleDuplicateQuery = (eventView: EventView) => (event: React.MouseEvent<Element>) => {
     event.preventDefault();
+    event.stopPropagation();
 
     const {api, location, organization} = this.props;
 
@@ -80,7 +83,12 @@ class QueryList extends React.Component<Props> {
     const views = getPrebuiltQueries(organization);
 
     const list = views.map((view, index) => {
-      const eventView = EventView.fromSavedQuery(view);
+      const eventView = EventView.fromSavedQueryWithLocation(view, location);
+      const recentTimeline = t('Last ') + eventView.statsPeriod;
+      const customTimeline =
+        moment(eventView.start).format('MMM D, YYYY h:mm A') +
+        ' - ' +
+        moment(eventView.end).format('MMM D, YYYY h:mm A');
       const to = {
         pathname: location.pathname,
         query: {
@@ -94,12 +102,12 @@ class QueryList extends React.Component<Props> {
           key={`${index}-${eventView.name}`}
           to={to}
           title={eventView.name}
-          subtitle={t('Pre-Built Query')}
+          subtitle={eventView.statsPeriod ? recentTimeline : customTimeline}
           queryDetail={eventView.query}
           renderGraph={() => {
             return (
               <MiniGraph
-                query={eventView.getEventsAPIPayload(location).query}
+                location={location}
                 eventView={eventView}
                 organization={organization}
               />
@@ -129,6 +137,11 @@ class QueryList extends React.Component<Props> {
 
     return savedQueries.map((savedQuery, index) => {
       const eventView = EventView.fromSavedQuery(savedQuery);
+      const recentTimeline = t('Last ') + eventView.statsPeriod;
+      const customTimeline =
+        moment(eventView.start).format('MMM D, YYYY h:mm A') +
+        ' - ' +
+        moment(eventView.end).format('MMM D, YYYY h:mm A');
       const to = {
         pathname: location.pathname,
         query: {
@@ -142,7 +155,7 @@ class QueryList extends React.Component<Props> {
           key={`${index}-${eventView.id}`}
           to={to}
           title={eventView.name}
-          subtitle={t('Saved Query')}
+          subtitle={eventView.statsPeriod ? recentTimeline : customTimeline}
           queryDetail={eventView.query}
           onEventClick={() => {
             trackAnalyticsEvent({
@@ -155,7 +168,7 @@ class QueryList extends React.Component<Props> {
           renderGraph={() => {
             return (
               <MiniGraph
-                query={eventView.getEventsAPIPayload(location).query}
+                location={location}
                 eventView={eventView}
                 organization={organization}
               />
@@ -189,7 +202,24 @@ class QueryList extends React.Component<Props> {
     return (
       <React.Fragment>
         <QueryGrid>{this.renderQueries()}</QueryGrid>
-        <Pagination pageLinks={pageLinks} />
+        <Pagination
+          pageLinks={pageLinks}
+          onCursor={(cursor: string, path: string, query: Query, direction: number) => {
+            const offset = Number(cursor.split(':')[1]);
+
+            const newQuery = {...query, cursor};
+            const isPrevious = direction === -1;
+
+            if (offset <= 0 && isPrevious) {
+              delete newQuery.cursor;
+            }
+
+            browserHistory.push({
+              pathname: path,
+              query: newQuery,
+            });
+          }}
+        />
       </React.Fragment>
     );
   }
@@ -206,10 +236,6 @@ const QueryGrid = styled('div')`
 
   @media (min-width: ${p => p.theme.breakpoints[2]}) {
     grid-template-columns: repeat(3, minmax(100px, 1fr));
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[4]}) {
-    grid-template-columns: repeat(5, minmax(100px, 1fr));
   }
 `;
 

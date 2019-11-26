@@ -859,7 +859,7 @@ class EventManager(object):
             )
 
         else:
-            group = Group.objects.get_from_cache(id=existing_group_id)
+            group = Group.objects.get(id=existing_group_id)
 
             group_is_new = False
 

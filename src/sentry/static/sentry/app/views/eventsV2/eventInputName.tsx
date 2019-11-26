@@ -10,7 +10,6 @@ import withApi from 'app/utils/withApi';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 
 import InlineInput from 'app/components/inputInline';
-import space from 'app/styles/space';
 import {handleUpdateQueryName} from './savedQuery/utils';
 
 import EventView from './eventView';
@@ -93,7 +92,12 @@ class EventInputName extends React.Component<Props> {
 }
 
 const StyledHeader = styled('div')`
-  margin-bottom: ${space(3)};
+  display: flex;
+  align-items: center;
+  height: 24px;
+  font-size: ${p => p.theme.headerFontSize};
+  color: ${p => p.theme.gray4};
+  grid-column: 1/2;
 `;
 
 export default withApi(EventInputName);
