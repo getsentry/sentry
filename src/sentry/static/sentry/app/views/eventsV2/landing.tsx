@@ -206,7 +206,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
           query={this.state.searchQueryInput}
           onSearch={this.handleSearchQuery}
         />
-        <Button priority="primary">{t('Search Queries')}</Button>
+        <Button priority="primary">{t('Build a new query')}</Button>
       </StyledActions>
     );
   }
