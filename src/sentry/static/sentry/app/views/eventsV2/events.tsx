@@ -118,6 +118,8 @@ export default class Events extends React.Component<EventsProps> {
                   yAxisOptions={yAxisOptions}
                   yAxisValue={eventView.yAxis}
                   onYAxisChange={this.handleYAxisChange}
+                  project={eventView.project as number[]}
+                  environment={eventView.environment as string[]}
                 />
               ),
               fixed: 'events chart',
