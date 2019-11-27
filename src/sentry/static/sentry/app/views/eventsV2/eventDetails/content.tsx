@@ -152,10 +152,10 @@ class EventDetailsContent extends AsyncComponent<Props, State & AsyncComponent['
               organization={organization}
               projectId={this.projectId}
             />
-            <TagsTable tags={event.tags} />
             {event.groupID && (
               <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
             )}
+            <TagsTable tags={event.tags} />
           </Side>
         </ContentBox>
       </div>
@@ -262,8 +262,8 @@ const EventHeader = (props: {event: Event}) => {
   const {title} = getTitle(props.event);
   return (
     <StyledEventHeader data-test-id="event-header">
-      <StyledTitle>{title}</StyledTitle>
-      <span>{getMessage(props.event)}</span>
+      <StyledTitle>{title}:</StyledTitle>
+      <StyledMessage>{getMessage(props.event)}</StyledMessage>
     </StyledEventHeader>
   );
 };
@@ -277,8 +277,11 @@ const StyledEventHeader = styled('div')`
 `;
 
 const StyledTitle = styled('span')`
-  color: ${p => p.theme.purple};
   margin-right: ${space(1)};
+`;
+
+const StyledMessage = styled('span')`
+  color: ${p => p.theme.gray2};
 `;
 
 /**
