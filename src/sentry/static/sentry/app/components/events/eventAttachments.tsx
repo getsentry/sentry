@@ -104,7 +104,7 @@ class EventAttachments extends React.Component<Props, State> {
                     <FileSizeWithGap bytes={attachment.size} />
                     <AttachmentUrl
                       projectId={this.props.projectId}
-                      event={this.props.event}
+                      eventId={this.props.event.id}
                       attachment={attachment}
                     >
                       {downloadUrl => (

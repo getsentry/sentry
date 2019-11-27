@@ -30,7 +30,11 @@ class EventsTableRow extends React.Component {
       event.crashFile.type === 'event.minidump' ? 'Minidump' : 'Crash file';
 
     return (
-      <AttachmentUrl projectId={projectId} event={event} attachment={event.crashFile}>
+      <AttachmentUrl
+        projectId={projectId}
+        eventId={event.id}
+        attachment={event.crashFile}
+      >
         {downloadUrl =>
           downloadUrl && (
             <small>

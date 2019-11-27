@@ -91,6 +91,7 @@ export type EventAttachment = {
   sha1: string;
   size: number;
   type: string;
+  event_id: string;
 };
 
 type EntryType = {
@@ -366,6 +367,7 @@ export type Group = {
   type: EventOrGroupType;
   userCount: number;
   userReportCount: number;
+  attachmentCount: number;
 };
 
 export type Member = {
