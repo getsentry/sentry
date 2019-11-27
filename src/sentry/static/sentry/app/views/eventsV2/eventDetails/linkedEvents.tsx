@@ -63,13 +63,17 @@ class LinkedEvents extends AsyncComponent<Props, State> {
     return endpoints;
   }
 
-  renderLinkedEvents() {
+  renderBody() {
     const {event, organization, projects} = this.props;
     const {linkedEvents} = this.state;
+
+    const hasLinkedEvents =
+      linkedEvents && linkedEvents.data && linkedEvents.data.length >= 1;
+
     return (
       <Section>
         <SectionHeading>{t('Linked Trace Events')}</SectionHeading>
-        {linkedEvents.data.length < 1 ? (
+        {!hasLinkedEvents ? (
           <StyledCard>{t('No linked events found.')}</StyledCard>
         ) : (
           linkedEvents.data.map((item: DiscoverResult) => {
@@ -94,14 +98,6 @@ class LinkedEvents extends AsyncComponent<Props, State> {
           })
         )}
       </Section>
-    );
-  }
-
-  renderBody() {
-    return (
-      <React.Fragment>
-        {this.state.linkedEvents && this.renderLinkedEvents()}
-      </React.Fragment>
     );
   }
 }
