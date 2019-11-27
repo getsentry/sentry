@@ -17,7 +17,6 @@ from sentry.api.paginator import DateTimePaginator, SequencePaginator, Paginator
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.models import Group, Release, Project
 from sentry.utils import snuba, metrics
-from sentry.snuba.dataset import Dataset
 
 
 def get_search_filter(search_filters, name, operator):
@@ -181,108 +180,6 @@ class AbstractQueryExecutor:
             By default, no transformation is done.
         """
         return converted_filter, search_filter.key.name
-
-
-def snuba_search(
-    start,
-    end,
-    project_ids,
-    environment_ids,
-    sort_field,
-    cursor=None,
-    candidate_ids=None,
-    limit=None,
-    offset=0,
-    get_sample=False,
-    search_filters=None,
-):
-    """
-    This function doesn't strictly benefit from or require being pulled out of the main
-    query method above, but the query method is already large and this function at least
-    extracts most of the Snuba-specific logic.
-
-    Returns a tuple of:
-     * a sorted list of (group_id, group_score) tuples sorted descending by score,
-     * the count of total results (rows) available for this query.
-    """
-    filters = {"project_id": project_ids}
-
-    if environment_ids is not None:
-        filters["environment"] = environment_ids
-
-    if candidate_ids:
-        filters["issue"] = sorted(candidate_ids)
-
-    conditions = []
-    having = []
-    for search_filter in search_filters:
-        if (
-            # Don't filter on issue fields here, they're not available
-            search_filter.key.name in issue_only_fields
-            or
-            # We special case date
-            search_filter.key.name == "date"
-        ):
-            continue
-        converted_filter = convert_search_filter_to_snuba_query(search_filter)
-
-        # Ensure that no user-generated tags that clashes with aggregation_defs is added to having
-        if search_filter.key.name in aggregation_defs and not search_filter.key.is_tag:
-            having.append(converted_filter)
-        else:
-            conditions.append(converted_filter)
-
-    extra_aggregations = dependency_aggregations.get(sort_field, [])
-    required_aggregations = set([sort_field, "total"] + extra_aggregations)
-    for h in having:
-        alias = h[0]
-        required_aggregations.add(alias)
-
-    aggregations = []
-    for alias in required_aggregations:
-        aggregations.append(aggregation_defs[alias] + [alias])
-
-    if cursor is not None:
-        having.append((sort_field, ">=" if cursor.is_prev else "<=", cursor.value))
-
-    selected_columns = []
-    if get_sample:
-        query_hash = md5(repr(conditions)).hexdigest()[:8]
-        selected_columns.append(("cityHash64", ("'{}'".format(query_hash), "issue"), "sample"))
-        sort_field = "sample"
-        orderby = [sort_field]
-        referrer = "search_sample"
-    else:
-        # Get the top matching groups by score, i.e. the actual search results
-        # in the order that we want them.
-        orderby = ["-{}".format(sort_field), "issue"]  # ensure stable sort within the same score
-        referrer = "search"
-
-    snuba_results = snuba.dataset_query(
-        dataset=Dataset.Events,
-        start=start,
-        end=end,
-        selected_columns=selected_columns,
-        groupby=["issue"],
-        conditions=conditions,
-        having=having,
-        filter_keys=filters,
-        aggregations=aggregations,
-        orderby=orderby,
-        referrer=referrer,
-        limit=limit,
-        offset=offset,
-        totals=True,  # Needs to have totals_mode=after_having_exclusive so we get groups matching HAVING only
-        turbo=get_sample,  # Turn off FINAL when in sampling mode
-        sample=1,  # Don't use clickhouse sampling, even when in turbo mode.
-    )
-    rows = snuba_results["data"]
-    total = snuba_results["totals"]["total"]
-
-    if not get_sample:
-        metrics.timing("snuba.search.num_result_groups", len(rows))
-
-    return [(row["issue"], row[sort_field]) for row in rows], total
 
 
 class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
