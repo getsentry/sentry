@@ -867,7 +867,6 @@ class SnubaOnlyQueryExecutor(AbstractQueryExecutor):
         start,
         end,
     ):
-        # Calculate hits #
         # TODO: This needs a proper aggregate added to it to just count the results - I don't this this is correct.
         _, hits = self.snuba_search(
             start=start,
@@ -881,4 +880,3 @@ class SnubaOnlyQueryExecutor(AbstractQueryExecutor):
             search_filters=search_filters,
         )
         return hits
-        ######################
