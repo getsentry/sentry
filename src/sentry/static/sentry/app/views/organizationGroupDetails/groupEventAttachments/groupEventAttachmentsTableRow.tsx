@@ -15,7 +15,7 @@ type Props = {
   projectId: string;
   groupId: string;
   attachment: EventAttachment;
-  onDelete: (url: string | null) => {};
+  onDelete: (url: string | null) => void;
 };
 
 class GroupEventAttachmentsTableRow extends React.Component<Props> {

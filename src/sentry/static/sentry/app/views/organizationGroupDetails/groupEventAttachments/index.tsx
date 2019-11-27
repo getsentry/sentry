@@ -1,8 +1,6 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import pick from 'lodash/pick';
 
-import SentryTypes from 'app/sentryTypes';
 import {Panel, PanelBody} from 'app/components/panels';
 import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
@@ -12,26 +10,25 @@ import GroupEventAttachmentsFilter from 'app/views/organizationGroupDetails/grou
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
-// import SearchBar from 'app/components/searchBar';
 import parseApiError from 'app/utils/parseApiError';
 import GroupStore from 'app/stores/groupStore';
+import {RouterProps, EventAttachment, Group} from 'app/types';
+import {Client} from 'app/api';
 
-class GroupEventAttachments extends React.Component {
-  static propTypes = {
-    api: PropTypes.object,
-    group: SentryTypes.Group.isRequired,
-  };
+type Props = RouterProps & {
+  api: Client;
+  group: Group;
+};
 
-  constructor(props) {
-    super(props);
+type State = {
+  eventAttachmentsList: EventAttachment[];
+  loading: boolean;
+  error: null | string;
+  pageLinks: null | string;
+};
 
-    this.state = {
-      eventAttachmentsList: [],
-      loading: true,
-      error: false,
-      pageLinks: '',
-    };
-  }
+class GroupEventAttachments extends React.Component<Props, State> {
+  state = {eventAttachmentsList: [], loading: true, error: null, pageLinks: null};
 
   componentWillMount() {
     this.fetchData();
@@ -43,7 +40,11 @@ class GroupEventAttachments extends React.Component {
     }
   }
 
-  handleDelete = url => {
+  handleDelete = (url: string | null) => {
+    if (!url) {
+      return;
+    }
+
     this.setState({
       loading: true,
     });
@@ -57,7 +58,7 @@ class GroupEventAttachments extends React.Component {
   fetchData = () => {
     this.setState({
       loading: true,
-      error: false,
+      error: null,
     });
 
     const query = {
@@ -69,12 +70,12 @@ class GroupEventAttachments extends React.Component {
       query,
       method: 'GET',
       success: (data, _, jqXHR) => {
-        this.setState({
+        this.setState(prevState => ({
           eventAttachmentsList: data,
-          error: false,
+          error: null,
           loading: false,
-          pageLinks: jqXHR.getResponseHeader('Link'),
-        });
+          pageLinks: jqXHR ? jqXHR.getResponseHeader('Link') : prevState.pageLinks,
+        }));
         GroupStore.updateEventAttachmentsCount(data.length, this.props.params.groupId);
       },
       error: err => {
@@ -125,7 +126,7 @@ class GroupEventAttachments extends React.Component {
       body = <LoadingError message={this.state.error} onRetry={this.fetchData} />;
     } else if (this.state.eventAttachmentsList.length > 0) {
       body = this.renderResults();
-    } else if (this.state.query && this.state.query !== '') {
+    } else if (this.props.location.query.types) {
       body = this.renderNoQueryResults();
     } else {
       body = this.renderEmpty();
@@ -133,6 +134,8 @@ class GroupEventAttachments extends React.Component {
 
     return body;
   }
+
+  // TODO: do we need to feature flag protect this entire component/route, or is hiding only the navigation tab enough?
 
   render() {
     return (
