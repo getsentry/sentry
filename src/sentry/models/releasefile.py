@@ -9,7 +9,7 @@ from six.moves.urllib.parse import urlsplit, urlunsplit
 
 from sentry import options
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
-from sentry.utils.files import clear_cached_files
+from sentry.models import clear_cached_files
 from sentry.utils.hashlib import sha1_text
 
 

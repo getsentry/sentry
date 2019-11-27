@@ -4,6 +4,7 @@ import os
 import six
 import mmap
 import tempfile
+import time
 
 from hashlib import sha1
 from uuid import uuid4
@@ -25,6 +26,7 @@ from sentry.utils import metrics
 from sentry.utils.retries import TimedRetryPolicy
 
 ONE_DAY = 60 * 60 * 24
+ONE_DAY_AND_A_HALF = int(ONE_DAY * 1.5)
 
 UPLOAD_RETRY_TIME = getattr(settings, "SENTRY_UPLOAD_RETRY_TIME", 60)  # 1min
 
@@ -608,3 +610,30 @@ class FileBlobOwner(Model):
         app_label = "sentry"
         db_table = "sentry_fileblobowner"
         unique_together = (("blob", "organization"),)
+
+
+def clear_cached_files(cache_path):
+    try:
+        cache_folders = os.listdir(cache_path)
+    except OSError:
+        return
+
+    cutoff = int(time.time()) - ONE_DAY_AND_A_HALF
+
+    for cache_folder in cache_folders:
+        cache_folder = os.path.join(cache_path, cache_folder)
+        try:
+            items = os.listdir(cache_folder)
+        except OSError:
+            continue
+        for cached_file in items:
+            cached_file = os.path.join(cache_folder, cached_file)
+            try:
+                mtime = os.path.getmtime(cached_file)
+            except OSError:
+                continue
+            if mtime < cutoff:
+                try:
+                    os.remove(cached_file)
+                except OSError:
+                    pass

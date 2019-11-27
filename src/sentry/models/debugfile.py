@@ -17,9 +17,8 @@ from symbolic import Archive, SymbolicError, ObjectErrorUnsupportedObject, norma
 from sentry import options
 from sentry.constants import KNOWN_DIF_FORMATS
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr, BaseManager, JSONField
-from sentry.models.file import File
+from sentry.models.file import File, clear_cached_files
 from sentry.reprocessing import resolve_processing_issue, bump_reprocessing_revision
-from sentry.utils.files import clear_cached_files
 from sentry.utils.zip import safe_extract_zip
 
 
