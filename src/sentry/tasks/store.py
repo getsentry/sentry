@@ -90,7 +90,7 @@ def submit_save_event(project, cache_key, event_id, start_time, data):
     )
 
 
-def _do_preprocess_event(cache_key, data, start_time, event_id, process_task):
+def _do_preprocess_event(cache_key, data, start_time, event_id, process_task, project):
     if cache_key and data is None:
         data = default_cache.get(cache_key)
 
@@ -106,7 +106,10 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_task):
     with configure_scope() as scope:
         scope.set_tag("project", project_id)
 
-    project = Project.objects.get_from_cache(id=project_id)
+    if project is None:
+        project = Project.objects.get_from_cache(id=project_id)
+    else:
+        assert project.id == project_id, (project.id, project_id)
 
     if should_process(data):
         from_reprocessing = process_task is process_event_from_reprocessing
@@ -122,8 +125,17 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_task):
     time_limit=65,
     soft_time_limit=60,
 )
-def preprocess_event(cache_key=None, data=None, start_time=None, event_id=None, **kwargs):
-    return _do_preprocess_event(cache_key, data, start_time, event_id, process_event)
+def preprocess_event(
+    cache_key=None, data=None, start_time=None, event_id=None, project=None, **kwargs
+):
+    return _do_preprocess_event(
+        cache_key=cache_key,
+        data=data,
+        start_time=start_time,
+        event_id=event_id,
+        process_task=process_event,
+        project=project,
+    )
 
 
 @instrumented_task(
@@ -133,10 +145,15 @@ def preprocess_event(cache_key=None, data=None, start_time=None, event_id=None, 
     soft_time_limit=60,
 )
 def preprocess_event_from_reprocessing(
-    cache_key=None, data=None, start_time=None, event_id=None, **kwargs
+    cache_key=None, data=None, start_time=None, event_id=None, project=None, **kwargs
 ):
     return _do_preprocess_event(
-        cache_key, data, start_time, event_id, process_event_from_reprocessing
+        cache_key=cache_key,
+        data=data,
+        start_time=start_time,
+        event_id=event_id,
+        process_task=process_event,
+        project=project,
     )
 
 
