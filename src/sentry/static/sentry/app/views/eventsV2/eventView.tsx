@@ -453,6 +453,7 @@ class EventView {
       'tags',
       'project',
       'environment',
+      'yAxis',
     ];
 
     for (const key of keys) {
