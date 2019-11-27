@@ -1,5 +1,4 @@
 import PropTypes from 'prop-types';
-import {browserHistory} from 'react-router';
 import React from 'react';
 import pick from 'lodash/pick';
 
@@ -8,7 +7,8 @@ import {Panel, PanelBody} from 'app/components/panels';
 import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
-import GroupEventAttachmentsTable from 'app/views/organizationGroupDetails/groupEventAttachments/groupEventAttachmentsTable.jsx';
+import GroupEventAttachmentsTable from 'app/views/organizationGroupDetails/groupEventAttachments/groupEventAttachmentsTable';
+import GroupEventAttachmentsFilter from 'app/views/organizationGroupDetails/groupEventAttachments/groupEventAttachmentsFilter';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
@@ -25,13 +25,11 @@ class GroupEventAttachments extends React.Component {
   constructor(props) {
     super(props);
 
-    const queryParams = this.props.location.query;
     this.state = {
       eventAttachmentsList: [],
       loading: true,
       error: false,
       pageLinks: '',
-      query: queryParams.query || '',
     };
   }
 
@@ -39,29 +37,11 @@ class GroupEventAttachments extends React.Component {
     this.fetchData();
   }
 
-  componentWillReceiveProps(nextProps) {
-    if (this.props.location.search !== nextProps.location.search) {
-      const queryParams = nextProps.location.query;
-
-      this.setState(
-        {
-          query: queryParams.query,
-        },
-        this.fetchData
-      );
+  componentDidUpdate(prevProps) {
+    if (this.props.location.search !== prevProps.location.search) {
+      this.fetchData();
     }
   }
-
-  handleSearch = query => {
-    const targetQueryParams = {...this.props.location.query};
-    targetQueryParams.query = query;
-    const {groupId, orgId} = this.props.params;
-
-    browserHistory.push({
-      pathname: `/organizations/${orgId}/issues/${groupId}/events/`,
-      query: targetQueryParams,
-    });
-  };
 
   handleDelete = url => {
     this.setState({
@@ -81,9 +61,8 @@ class GroupEventAttachments extends React.Component {
     });
 
     const query = {
-      ...pick(this.props.location.query, ['cursor', 'environment']),
+      ...pick(this.props.location.query, ['cursor', 'environment', 'types']),
       limit: 50,
-      query: this.state.query,
     };
 
     this.props.api.request(`/issues/${this.props.params.groupId}/attachments/`, {
@@ -155,18 +134,10 @@ class GroupEventAttachments extends React.Component {
     return body;
   }
 
-  // <div style={{marginBottom: 20}}>
-  //         <SearchBar
-  //           defaultQuery=""
-  //           placeholder={t('search event id, message, or tags')}
-  //           query={this.state.query}
-  //           onSearch={this.handleSearch}
-  //         />
-  //       </div>
-
   render() {
     return (
       <div>
+        <GroupEventAttachmentsFilter />
         <Panel className="event-list">
           <PanelBody>{this.renderBody()}</PanelBody>
         </Panel>
