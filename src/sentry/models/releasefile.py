@@ -1,9 +1,15 @@
 from __future__ import absolute_import
 
+import os
+import errno
+import six
+
 from django.db import models
 from six.moves.urllib.parse import urlsplit, urlunsplit
 
+from sentry import options
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+from sentry.utils.files import clear_cached_files
 from sentry.utils.hashlib import sha1_text
 
 
@@ -77,3 +83,33 @@ class ReleaseFile(Model):
         if query:
             urls.append("~" + urlunsplit(uri_relative_without_query))
         return urls
+
+
+class ReleaseFileCache(object):
+    @property
+    def cache_path(self):
+        return options.get("releasefile.cache-path")
+
+    def getfile(self, releasefile):
+        cutoff = options.get("releasefile.cache-limit")
+        if releasefile.file.size < cutoff:
+            return releasefile.file.getfile()
+
+        file_id = six.text_type(releasefile.file_id)
+        project_id = six.text_type(releasefile.project_id)
+        file_path = os.path.join(self.cache_path, project_id, file_id)
+
+        try:
+            os.stat(file_path)
+        except OSError as e:
+            if e.errno != errno.ENOENT:
+                raise
+            releasefile.file.save_to(file_path)
+
+        return open(file_path, "rb")
+
+    def clear_old_entries(self):
+        clear_cached_files(self.cache_path)
+
+
+ReleaseFile.cache = ReleaseFileCache()

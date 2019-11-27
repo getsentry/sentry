@@ -244,7 +244,7 @@ def fetch_release_file(filename, release, dist=None):
         )
         try:
             with metrics.timer("sourcemaps.release_file_read"):
-                with releasefile.file.getfile() as fp:
+                with ReleaseFile.cache.getfile(releasefile) as fp:
                     z_body, body = compress_file(fp)
         except Exception:
             logger.error("sourcemap.compress_read_failed", exc_info=sys.exc_info())
