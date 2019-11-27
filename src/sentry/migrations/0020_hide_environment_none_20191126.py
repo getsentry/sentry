@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 
 from django.db import migrations, models
+from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 def hide_environent_none(apps, schema_editor):
     """
@@ -12,7 +13,7 @@ def hide_environent_none(apps, schema_editor):
     """
     Environment = apps.get_model("sentry", "Environment")
     EnvironmentProject = apps.get_model("sentry", "EnvironmentProject")
-    for env in Environment.objects.all():
+    for env in RangeQuerySetWrapperWithProgressBar(Environment.objects.all()):
         if env.name == 'none':
             for project in EnvironmentProject.objects.filter(environment_id=env.id):
                 project.is_hidden = True
@@ -32,7 +33,7 @@ class Migration(migrations.Migration):
     #   they can be monitored. Since data migrations will now hold a transaction open
     #   this is even more important.
     # - Adding columns to highly active tables, even ones that are NULL.
-    is_dangerous = False
+    is_dangerous = True
 
 
     dependencies = [
