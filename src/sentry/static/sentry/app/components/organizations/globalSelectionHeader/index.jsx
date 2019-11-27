@@ -505,7 +505,7 @@ class GlobalSelectionHeader extends React.Component {
       ? [parseInt(forceProject.id, 10)]
       : this.props.selection.projects;
 
-    const [projects, nonMemberProjects] = this.getProjects();
+    const [memberProjects, nonMemberProjects] = this.getProjects();
 
     return (
       <Header className={className}>
@@ -515,7 +515,7 @@ class GlobalSelectionHeader extends React.Component {
             organization={organization}
             shouldForceProject={shouldForceProject}
             forceProject={forceProject}
-            projects={projects}
+            projects={memberProjects}
             loadingProjects={loadingProjects}
             nonMemberProjects={nonMemberProjects}
             value={this.state.projects || this.props.selection.projects}
@@ -531,7 +531,7 @@ class GlobalSelectionHeader extends React.Component {
             <HeaderItemPosition>
               <MultipleEnvironmentSelector
                 organization={organization}
-                projects={projects}
+                projects={this.props.projects}
                 loadingProjects={loadingProjects}
                 selectedProjects={selectedProjects}
                 value={this.state.environments || this.props.selection.environments}

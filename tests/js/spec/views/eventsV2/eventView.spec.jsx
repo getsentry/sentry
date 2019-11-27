@@ -1736,6 +1736,7 @@ describe('EventView.isEqualTo()', function() {
       end: '2019-10-02T00:00:00',
       statsPeriod: '14d',
       environment: ['staging'],
+      yAxis: 'fam',
     };
 
     const eventView = new EventView(state);
@@ -1794,6 +1795,7 @@ describe('EventView.isEqualTo()', function() {
       end: '2019-10-02T00:00:00',
       statsPeriod: '14d',
       environment: ['staging'],
+      yAxis: 'fam',
     };
 
     const eventView = new EventView(state);
@@ -1883,6 +1885,11 @@ describe('EventView.isEqualTo()', function() {
       ...state,
       environment: [],
     });
+    expect(eventView.isEqualTo(eventView2)).toBe(false);
+
+    // yaxis differs
+
+    eventView2 = new EventView({...state, yAxis: 'ok boomer'});
     expect(eventView.isEqualTo(eventView2)).toBe(false);
   });
 });

@@ -14,9 +14,12 @@ class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
         has_catchall = features.has(
             "organizations:internal-catchall", organization, actor=request.user
         )
+        has_pagerduty = features.has("organizations:pagerduty-v2", organization, actor=request.user)
 
         providers = []
         for provider in integrations.all():
+            if not has_pagerduty and provider.key == "pagerduty":
+                continue
             if not has_catchall and provider.key in settings.SENTRY_INTERNAL_INTEGRATIONS:
                 continue
 

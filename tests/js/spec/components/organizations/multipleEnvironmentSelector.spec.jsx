@@ -112,6 +112,17 @@ describe('MultipleEnvironmentSelector', function() {
     expect(items.at(0).text()).toBe('dev');
   });
 
+  it('shows non-member project environments when selected', async function() {
+    wrapper.setProps({selectedProjects: [3]});
+    wrapper.update();
+
+    await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
+    const items = wrapper.find('MultipleEnvironmentSelector GlobalSelectionHeaderRow');
+
+    expect(items.length).toEqual(1);
+    expect(items.at(0).text()).toBe('no-env');
+  });
+
   it('shows member project environments when there are no projects selected', async function() {
     wrapper.setProps({selectedProjects: []});
     wrapper.update();

@@ -47,7 +47,7 @@ def parse_short_id(short_id):
         short_id = base32_decode(id)
         # We need to make sure the short id is not overflowing the
         # field's max or the lookup will fail with an assertion error.
-        max_id = Group._meta.get_field_by_name("short_id")[0].MAX_VALUE
+        max_id = Group._meta.get_field("short_id").MAX_VALUE
         if short_id > max_id:
             return None
     except ValueError:

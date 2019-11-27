@@ -1,13 +1,11 @@
 import React from 'react';
 import styled from 'react-emotion';
 
-import {Organization, Event, Group, Project} from 'app/types';
+import {Organization, Event, Project} from 'app/types';
 import AsyncComponent from 'app/components/asyncComponent';
 import DateTime from 'app/components/dateTime';
-import ShortId from 'app/components/shortId';
 import Link from 'app/components/links/link';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
-import Times from 'app/components/group/times';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
@@ -19,7 +17,6 @@ import {SectionHeading} from '../styles';
 type DiscoverResult = {
   id: string;
   'project.name': string;
-  'issue.id': number;
   'event.type': string;
   title: string;
   transaction: string;
@@ -34,23 +31,18 @@ type Props = {
 } & AsyncComponent['props'];
 
 type State = {
-  issue: Group;
-  relatedEvents: {data: DiscoverResult[]};
+  linkedEvents: {data: DiscoverResult[]};
 } & AsyncComponent['state'];
 
-class RelatedItems extends AsyncComponent<Props, State> {
+class LinkedEvents extends AsyncComponent<Props, State> {
   getEndpoints(): [string, string, any][] {
     const {event, organization} = this.props;
     const endpoints: any = [];
 
-    if (event.type !== 'transaction') {
-      endpoints.push(['issue', `/issues/${event.groupID}/`, {}]);
-    }
-
     const trace = event.tags.find(tag => tag.key === 'trace');
     if (trace) {
       endpoints.push([
-        'relatedEvents',
+        'linkedEvents',
         `/organizations/${organization.slug}/eventsv2/`,
         {
           query: {
@@ -59,7 +51,6 @@ class RelatedItems extends AsyncComponent<Props, State> {
               'title',
               'transaction',
               'id',
-              'issue.id',
               'event.type',
               'timestamp',
             ],
@@ -72,40 +63,20 @@ class RelatedItems extends AsyncComponent<Props, State> {
     return endpoints;
   }
 
-  renderRelatedIssue() {
-    const {event} = this.props;
-    const {issue} = this.state;
-    const issueUrl = `${issue.permalink}events/${event.eventID}/`;
-
-    return (
-      <Section>
-        <SectionHeading>{t('Related Issue')}</SectionHeading>
-        <StyledCard>
-          <StyledLink to={issueUrl} data-test-id="linked-issue">
-            <StyledShortId
-              shortId={issue.shortId}
-              avatar={<ProjectBadge project={issue.project} avatarSize={16} hideName />}
-            />
-            <div>{issue.title}</div>
-          </StyledLink>
-          <StyledDate>
-            <Times lastSeen={issue.lastSeen} firstSeen={issue.firstSeen} />
-          </StyledDate>
-        </StyledCard>
-      </Section>
-    );
-  }
-
-  renderRelatedEvents() {
+  renderBody() {
     const {event, organization, projects} = this.props;
-    const {relatedEvents} = this.state;
+    const {linkedEvents} = this.state;
+
+    const hasLinkedEvents =
+      linkedEvents && linkedEvents.data && linkedEvents.data.length >= 1;
+
     return (
       <Section>
-        <SectionHeading>{t('Related Trace Events')}</SectionHeading>
-        {relatedEvents.data.length < 1 ? (
-          <StyledCard>{t('No related events found.')}</StyledCard>
+        <SectionHeading>{t('Linked Trace Events')}</SectionHeading>
+        {!hasLinkedEvents ? (
+          <StyledCard>{t('No linked events found.')}</StyledCard>
         ) : (
-          relatedEvents.data.map((item: DiscoverResult) => {
+          linkedEvents.data.map((item: DiscoverResult) => {
             const eventSlug = generateEventSlug(item);
             const eventUrl = {
               pathname: generateEventDetailsRoute({eventSlug, organization}),
@@ -127,15 +98,6 @@ class RelatedItems extends AsyncComponent<Props, State> {
           })
         )}
       </Section>
-    );
-  }
-
-  renderBody() {
-    return (
-      <React.Fragment>
-        {this.state.issue && this.renderRelatedIssue()}
-        {this.state.relatedEvents && this.renderRelatedEvents()}
-      </React.Fragment>
     );
   }
 }
@@ -184,13 +146,5 @@ const StyledDate = styled('div')`
     white-space: nowrap;
   }
 `;
-const StyledShortId = styled(ShortId)`
-  justify-content: flex-start;
-  color: ${p => p.theme.gray4};
 
-  @media (min-width: ${theme.breakpoints[3]}) {
-    margin-right: ${space(2)};
-  }
-`;
-
-export default withProjects(RelatedItems);
+export default withProjects(LinkedEvents);

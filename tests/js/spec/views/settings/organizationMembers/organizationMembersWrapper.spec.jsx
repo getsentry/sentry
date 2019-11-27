@@ -43,6 +43,11 @@ describe('OrganizationMembersWrapper', function() {
     trackAnalyticsEvent.mockClear();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/me/',
+      method: 'GET',
+      body: {roles: []},
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/invite-requests/',
       method: 'GET',
       body: [],

@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
+from django.conf.urls import url
 from rest_framework.response import Response
+
 from sentry.exceptions import PluginError
 from sentry.plugins.bases.issue2 import IssuePlugin2, IssueGroupActionEndpoint
 from sentry.utils.http import absolute_uri
@@ -122,7 +124,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
 
     def get_group_urls(self):
         return super(PhabricatorPlugin, self).get_group_urls() + [
-            (
+            url(
                 r"^autocomplete",
                 IssueGroupActionEndpoint.as_view(view_method_name="view_autocomplete", plugin=self),
             )
