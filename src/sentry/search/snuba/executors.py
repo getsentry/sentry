@@ -56,6 +56,12 @@ class AbstractQueryExecutor:
     def query(self, *args, **kwargs):
         raise NotImplementedError
 
+    def _get_dataset(self):
+        if not self.QUERY_DATASET:
+            raise NotImplementedError
+        else:
+            return self.QUERY_DATASET
+
     def snuba_search(
         self,
         start,
@@ -75,8 +81,6 @@ class AbstractQueryExecutor:
         * a sorted list of (group_id, group_score) tuples sorted descending by score,
         * the count of total results (rows) available for this query.
         """
-        if not self.QUERY_DATASET:
-            raise NotImplementedError
 
         filters = {"project_id": project_ids}
 
@@ -98,7 +102,7 @@ class AbstractQueryExecutor:
             ):
                 continue
             converted_filter = convert_search_filter_to_snuba_query(search_filter)
-            converted_filter, converted_name = self.modify_converted_filter(
+            converted_filter, converted_name = self._transform_converted_filter(
                 search_filter, converted_filter, project_ids, environment_ids
             )
             # field_name = self.TABLE_ALIAS + search_filter.key.name
@@ -140,7 +144,7 @@ class AbstractQueryExecutor:
             referrer = "search"
 
         snuba_results = snuba.dataset_query(
-            dataset=self.QUERY_DATASET,
+            dataset=self._get_dataset(),
             start=start,
             end=end,
             selected_columns=selected_columns,
@@ -165,10 +169,13 @@ class AbstractQueryExecutor:
 
         return [(row[self.TABLE_ALIAS + "issue"], row[sort_field]) for row in rows], total
 
-    def modify_converted_filter(
+    def _transform_converted_filter(
         self, search_filter, converted_filter, project_ids, environment_ids=None
     ):
-        # No modification done by default. Simply for override.
+        """This method serves as a hook - after we convert the search_filter into a snuba compatible filter (which converts it in a general dataset ambigious method),
+            we may want to transform the query - maybe change the value (time formats, translate value into id (like turning Release `version` into `id`) or vice versa),  alias fields, etc.
+            By default, no transformation is done.
+        """
         return converted_filter, search_filter.key.name
 
 
@@ -615,7 +622,7 @@ class SnubaOnlyQueryExecutor(AbstractQueryExecutor):
         "total": ["uniq", ISSUE_FIELD_NAME],
     }
 
-    def modify_converted_filter(
+    def _transform_converted_filter(
         self, search_filter, converted_filter, project_ids=None, environment_ids=None
     ):
         converted_name = search_filter.key.name
