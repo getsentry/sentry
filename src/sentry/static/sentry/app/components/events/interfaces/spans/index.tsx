@@ -2,6 +2,7 @@ import React from 'react';
 import SentryTypes from 'app/sentryTypes';
 import SearchBar from 'app/components/searchBar';
 
+import {t} from 'app/locale';
 import {Panel} from 'app/components/panels';
 
 import {SentryTransactionEvent} from './types';
@@ -25,8 +26,11 @@ class SpansInterface extends React.Component<PropType, State> {
   };
 
   handleSpanFilter = (searchQuery: string) => {
-    console.log('searchQuery', searchQuery);
+    this.setState({
+      searchQuery: searchQuery || undefined,
+    });
   };
+
   render() {
     const {event} = this.props;
 
@@ -40,7 +44,7 @@ class SpansInterface extends React.Component<PropType, State> {
         />
         <br />
         <Panel>
-          <TraceView event={event} />
+          <TraceView event={event} searchQuery={this.state.searchQuery} />
         </Panel>
       </div>
     );
