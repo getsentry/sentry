@@ -56,6 +56,10 @@ class AbstractQueryExecutor:
     def query(self, *args, **kwargs):
         raise NotImplementedError
 
+    @abstractmethod
+    def calculate_hits(self, *args, **kwargs):
+        raise NotImplementedError
+
     def _get_dataset(self):
         if not self.QUERY_DATASET:
             raise NotImplementedError
@@ -432,7 +436,152 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         max_time = options.get("snuba.search.max-total-chunk-time-seconds")
         time_start = time.time()
 
-        if count_hits and (too_many_candidates or cursor is not None):
+        # Do smaller searches in chunks until we have enough results
+        # to answer the query (or hit the end of possible results). We do
+        # this because a common case for search is to return 100 groups
+        # sorted by `last_seen`, and we want to avoid returning all of
+        # a project's groups and then post-sorting them all in Postgres
+        # when typically the first N results will do.
+        while (time.time() - time_start) < max_time:
+            num_chunks += 1
+
+            # grow the chunk size on each iteration to account for huge projects
+            # and weird queries, up to a max size
+            chunk_limit = min(int(chunk_limit * chunk_growth), max_chunk_size)
+            # but if we have group_ids always query for at least that many items
+            chunk_limit = max(chunk_limit, len(group_ids))
+
+            # {group_id: group_score, ...}
+            snuba_groups, total = self.snuba_search(
+                start=start,
+                end=end,
+                project_ids=[p.id for p in projects],
+                environment_ids=environments and [environment.id for environment in environments],
+                sort_field=sort_field,
+                cursor=cursor,
+                group_ids=group_ids,
+                limit=chunk_limit,
+                offset=offset,
+                search_filters=search_filters,
+            )
+            metrics.timing("snuba.search.num_snuba_results", len(snuba_groups))
+            count = len(snuba_groups)
+            more_results = count >= limit and (offset + limit) < total
+            offset += len(snuba_groups)
+
+            if not snuba_groups:
+                break
+
+            if group_ids:
+                # pre-filtered candidates were passed down to Snuba, so we're
+                # finished with filtering and these are the only results. Note
+                # that because we set the chunk size to at least the size of
+                # the group_ids, we know we got all of them (ie there are
+                # no more chunks after the first)
+                result_groups = snuba_groups
+                # if count_hits and hits is None:
+                # hits = len(snuba_groups)
+            else:
+                # pre-filtered candidates were *not* passed down to Snuba,
+                # so we need to do post-filtering to verify Sentry DB predicates
+                filtered_group_ids = group_queryset.filter(
+                    id__in=[gid for gid, _ in snuba_groups]
+                ).values_list("id", flat=True)
+
+                group_to_score = dict(snuba_groups)
+                for group_id in filtered_group_ids:
+                    if group_id in result_group_ids:
+                        # because we're doing multiple Snuba queries, which
+                        # happen outside of a transaction, there is a small possibility
+                        # of groups moving around in the sort scoring underneath us,
+                        # so we at least want to protect against duplicates
+                        continue
+
+                    group_score = group_to_score[group_id]
+                    result_group_ids.add(group_id)
+                    result_groups.append((group_id, group_score))
+
+            if hits is None:
+                hits = self.calculate_hits(
+                    group_ids,
+                    snuba_groups,
+                    too_many_candidates,
+                    sort_field,
+                    projects,
+                    retention_window_start,
+                    group_queryset,
+                    environments,
+                    sort_by,
+                    limit,
+                    cursor,
+                    count_hits,
+                    paginator_options,
+                    search_filters,
+                    start,
+                    end,
+                )
+
+            # TODO do we actually have to rebuild this SequencePaginator every time
+            # or can we just make it after we've broken out of the loop?
+            paginator_results = SequencePaginator(
+                [(score, id) for (id, score) in result_groups], reverse=True, **paginator_options
+            ).get_result(limit, cursor, known_hits=hits)
+
+            # break the query loop for one of three reasons:
+            # * we started with Postgres candidates and so only do one Snuba query max
+            # * the paginator is returning enough results to satisfy the query (>= the limit)
+            # * there are no more groups in Snuba to post-filter
+            if group_ids or len(paginator_results.results) >= limit or not more_results:
+                break
+
+        # HACK: We're using the SequencePaginator to mask the complexities of going
+        # back and forth between two databases. This causes a problem with pagination
+        # because we're 'lying' to the SequencePaginator (it thinks it has the entire
+        # result set in memory when it does not). For this reason we need to make some
+        # best guesses as to whether the `prev` and `next` cursors have more results.
+
+        if len(paginator_results.results) == limit and more_results:
+            # Because we are going back and forth between DBs there is a small
+            # chance that we will hand the SequencePaginator exactly `limit`
+            # items. In this case the paginator will assume there are no more
+            # results, so we need to override the `next` cursor's results.
+            paginator_results.next.has_results = True
+
+        if cursor is not None and (not cursor.is_prev or len(paginator_results.results) > 0):
+            # If the user passed a cursor, and it isn't already a 0 result `is_prev`
+            # cursor, then it's worth allowing them to go back a page to check for
+            # more results.
+            paginator_results.prev.has_results = True
+
+        metrics.timing("snuba.search.num_chunks", num_chunks)
+
+        groups = Group.objects.in_bulk(paginator_results.results)
+        paginator_results.results = [groups[k] for k in paginator_results.results if k in groups]
+
+        return paginator_results
+
+    def calculate_hits(
+        self,
+        group_ids,
+        snuba_groups,
+        too_many_candidates,
+        sort_field,
+        projects,
+        retention_window_start,
+        group_queryset,
+        environments,
+        sort_by,
+        limit,
+        cursor,
+        count_hits,
+        paginator_options,
+        search_filters,
+        start,
+        end,
+    ):
+        if count_hits is False:
+            return None
+        elif too_many_candidates or cursor is not None:
             # If we had too many candidates to reasonably pass down to snuba,
             # or if we have a cursor that bisects the overall result set (such
             # that our query only sees results on one side of the cursor) then
@@ -479,7 +628,9 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             )
             snuba_count = len(snuba_groups)
             if snuba_count == 0:
-                return self.EMPTY_RESULT
+                return (
+                    0
+                )  # Maybe check for 0 hits and return EMPTY_RESULT in ::query? self.EMPTY_RESULT
             else:
                 filtered_count = group_queryset.filter(
                     id__in=[gid for gid, _ in snuba_groups]
@@ -487,110 +638,10 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
 
                 hit_ratio = filtered_count / float(snuba_count)
                 hits = int(hit_ratio * snuba_total)
+        elif group_ids:
+            return len(snuba_groups)
 
-        # Do smaller searches in chunks until we have enough results
-        # to answer the query (or hit the end of possible results). We do
-        # this because a common case for search is to return 100 groups
-        # sorted by `last_seen`, and we want to avoid returning all of
-        # a project's groups and then post-sorting them all in Postgres
-        # when typically the first N results will do.
-        while (time.time() - time_start) < max_time:
-            num_chunks += 1
-
-            # grow the chunk size on each iteration to account for huge projects
-            # and weird queries, up to a max size
-            chunk_limit = min(int(chunk_limit * chunk_growth), max_chunk_size)
-            # but if we have group_ids always query for at least that many items
-            chunk_limit = max(chunk_limit, len(group_ids))
-
-            # {group_id: group_score, ...}
-            snuba_groups, total = self.snuba_search(
-                start=start,
-                end=end,
-                project_ids=[p.id for p in projects],
-                environment_ids=environments and [environment.id for environment in environments],
-                sort_field=sort_field,
-                cursor=cursor,
-                group_ids=group_ids,
-                limit=chunk_limit,
-                offset=offset,
-                search_filters=search_filters,
-            )
-            metrics.timing("snuba.search.num_snuba_results", len(snuba_groups))
-            count = len(snuba_groups)
-            more_results = count >= limit and (offset + limit) < total
-            offset += len(snuba_groups)
-
-            if not snuba_groups:
-                break
-
-            if group_ids:
-                # pre-filtered candidates were passed down to Snuba, so we're
-                # finished with filtering and these are the only results. Note
-                # that because we set the chunk size to at least the size of
-                # the group_ids, we know we got all of them (ie there are
-                # no more chunks after the first)
-                result_groups = snuba_groups
-                if count_hits and hits is None:
-                    hits = len(snuba_groups)
-            else:
-                # pre-filtered candidates were *not* passed down to Snuba,
-                # so we need to do post-filtering to verify Sentry DB predicates
-                filtered_group_ids = group_queryset.filter(
-                    id__in=[gid for gid, _ in snuba_groups]
-                ).values_list("id", flat=True)
-
-                group_to_score = dict(snuba_groups)
-                for group_id in filtered_group_ids:
-                    if group_id in result_group_ids:
-                        # because we're doing multiple Snuba queries, which
-                        # happen outside of a transaction, there is a small possibility
-                        # of groups moving around in the sort scoring underneath us,
-                        # so we at least want to protect against duplicates
-                        continue
-
-                    group_score = group_to_score[group_id]
-                    result_group_ids.add(group_id)
-                    result_groups.append((group_id, group_score))
-
-            # TODO do we actually have to rebuild this SequencePaginator every time
-            # or can we just make it after we've broken out of the loop?
-            paginator_results = SequencePaginator(
-                [(score, id) for (id, score) in result_groups], reverse=True, **paginator_options
-            ).get_result(limit, cursor, known_hits=hits)
-
-            # break the query loop for one of three reasons:
-            # * we started with Postgres candidates and so only do one Snuba query max
-            # * the paginator is returning enough results to satisfy the query (>= the limit)
-            # * there are no more groups in Snuba to post-filter
-            if group_ids or len(paginator_results.results) >= limit or not more_results:
-                break
-
-        # HACK: We're using the SequencePaginator to mask the complexities of going
-        # back and forth between two databases. This causes a problem with pagination
-        # because we're 'lying' to the SequencePaginator (it thinks it has the entire
-        # result set in memory when it does not). For this reason we need to make some
-        # best guesses as to whether the `prev` and `next` cursors have more results.
-
-        if len(paginator_results.results) == limit and more_results:
-            # Because we are going back and forth between DBs there is a small
-            # chance that we will hand the SequencePaginator exactly `limit`
-            # items. In this case the paginator will assume there are no more
-            # results, so we need to override the `next` cursor's results.
-            paginator_results.next.has_results = True
-
-        if cursor is not None and (not cursor.is_prev or len(paginator_results.results) > 0):
-            # If the user passed a cursor, and it isn't already a 0 result `is_prev`
-            # cursor, then it's worth allowing them to go back a page to check for
-            # more results.
-            paginator_results.prev.has_results = True
-
-        metrics.timing("snuba.search.num_chunks", num_chunks)
-
-        groups = Group.objects.in_bulk(paginator_results.results)
-        paginator_results.results = [groups[k] for k in paginator_results.results if k in groups]
-
-        return paginator_results
+        return hits
 
 
 class SnubaOnlyQueryExecutor(AbstractQueryExecutor):
@@ -701,31 +752,17 @@ class SnubaOnlyQueryExecutor(AbstractQueryExecutor):
         if not end:
             end = now + ALLOWED_FUTURE_DELTA
 
-        # TODO: Presumably we only want to search back to the project's max
-        # retention date, which may be closer than 90 days in the past, but
-        # apparently `retention_window_start` can be None(?), so we need a
-        # fallback.
         retention_date = max(filter(None, [retention_window_start, now - timedelta(days=90)]))
 
-        # TODO: We should try and consolidate all this logic together a little
-        # better, maybe outside the backend. Should be easier once we're on
-        # just the new search filters
         start_params = [date_from, retention_date, get_search_filter(search_filters, "date", ">")]
         start = max(filter(None, start_params))
 
         end = max([retention_date, end])
 
         if start == retention_date and end == retention_date:
-            # Both `start` and `end` must have been trimmed to `retention_date`,
-            # so this entire search was against a time range that is outside of
-            # retention. We'll return empty results to maintain backwards compatibility
-            # with Django search (for now).
             return self.EMPTY_RESULT
 
         if start >= end:
-            # TODO: This maintains backwards compatibility with Django search, but
-            # in the future we should find a way to notify the user that their search
-            # is invalid.
             return self.EMPTY_RESULT
 
         sort_field = self.sort_strategies[sort_by]
@@ -735,20 +772,7 @@ class SnubaOnlyQueryExecutor(AbstractQueryExecutor):
         offset = 0
         num_chunks = 0
         hits = None
-        # Calculate hits #
-        # TODO: This needs a proper aggregate added to it to just count the results - I don't this this is correct.
-        _, hits = self.snuba_search(
-            start=start,
-            end=end,
-            project_ids=[p.id for p in projects],
-            environment_ids=environments and [environment.id for environment in environments],
-            sort_field=sort_field,
-            limit=None,
-            offset=0,
-            get_sample=False,
-            search_filters=search_filters,
-        )
-        ######################
+
         paginator_results = self.EMPTY_RESULT
         result_groups = []
         result_group_ids = set()
@@ -756,29 +780,17 @@ class SnubaOnlyQueryExecutor(AbstractQueryExecutor):
         max_time = options.get("snuba.search.max-total-chunk-time-seconds")
         time_start = time.time()
 
-        # Do smaller searches in chunks until we have enough results
-        # to answer the query (or hit the end of possible results). We do
-        # this because a common case for search is to return 100 groups
-        # sorted by `last_seen`, and we want to avoid returning all of
-        # a project's groups and then post-sorting them all in Postgres
-        # when typically the first N results will do.
         while (time.time() - time_start) < max_time:
             num_chunks += 1
 
-            # grow the chunk size on each iteration to account for huge projects
-            # and weird queries, up to a max size
             chunk_limit = min(int(chunk_limit * chunk_growth), max_chunk_size)
-            # but if we have group_ids always query for at least that many items
-            # chunk_limit = max(chunk_limit, len(group_ids))
 
-            # {group_id: group_score, ...}
             snuba_groups, total = self.snuba_search(
                 start=start,
                 end=end,
                 project_ids=[p.id for p in projects],
                 environment_ids=environments and [environment.id for environment in environments],
                 sort_field=sort_field,
-                # group_ids=group_ids,
                 cursor=cursor,
                 limit=chunk_limit,
                 offset=offset,
@@ -795,45 +807,40 @@ class SnubaOnlyQueryExecutor(AbstractQueryExecutor):
             group_to_score = dict(snuba_groups)
             for group_id in group_to_score:
                 if group_id in result_group_ids:
-                    # because we're doing multiple Snuba queries, which
-                    # happen outside of a transaction, there is a small possibility
-                    # of groups moving around in the sort scoring underneath us,
-                    # so we at least want to protect against duplicates
                     continue
                 group_score = group_to_score[group_id]
                 result_group_ids.add(group_id)
                 result_groups.append((group_id, group_score))
 
-            # TODO do we actually have to rebuild this SequencePaginator every time
-            # or can we just make it after we've broken out of the loop?
+            if hits is None:
+                hits = self.calculate_hits(
+                    snuba_groups,
+                    sort_field,
+                    projects,
+                    retention_window_start,
+                    group_queryset,
+                    environments,
+                    sort_by,
+                    limit,
+                    cursor,
+                    count_hits,
+                    paginator_options,
+                    search_filters,
+                    start,
+                    end,
+                )
+
             paginator_results = SequencePaginator(
                 [(score, id) for (id, score) in result_groups], reverse=True, **paginator_options
             ).get_result(limit, cursor, known_hits=hits)
 
-            # break the query loop for one of three reasons:
-            # * we started with Postgres candidates and so only do one Snuba query max
-            # * the paginator is returning enough results to satisfy the query (>= the limit)
-            # * there are no more groups in Snuba to post-filter
             if len(paginator_results.results) >= limit or not more_results:
                 break
 
-        # HACK: We're using the SequencePaginator to mask the complexities of going
-        # back and forth between two databases. This causes a problem with pagination
-        # because we're 'lying' to the SequencePaginator (it thinks it has the entire
-        # result set in memory when it does not). For this reason we need to make some
-        # best guesses as to whether the `prev` and `next` cursors have more results.
-
         if len(paginator_results.results) == limit and more_results:
-            # Because we are going back and forth between DBs there is a small
-            # chance that we will hand the SequencePaginator exactly `limit`
-            # items. In this case the paginator will assume there are no more
-            # results, so we need to override the `next` cursor's results.
             paginator_results.next.has_results = True
 
         if cursor is not None and (not cursor.is_prev or len(paginator_results.results) > 0):
-            # If the user passed a cursor, and it isn't already a 0 result `is_prev`
-            # cursor, then it's worth allowing them to go back a page to check for
-            # more results.
             paginator_results.prev.has_results = True
 
         metrics.timing("snuba.search.num_chunks", num_chunks)
@@ -842,3 +849,36 @@ class SnubaOnlyQueryExecutor(AbstractQueryExecutor):
         paginator_results.results = [groups[k] for k in paginator_results.results if k in groups]
 
         return paginator_results
+
+    def calculate_hits(
+        self,
+        snuba_groups,
+        sort_field,
+        projects,
+        retention_window_start,
+        group_queryset,
+        environments,
+        sort_by,
+        limit,
+        cursor,
+        count_hits,
+        paginator_options,
+        search_filters,
+        start,
+        end,
+    ):
+        # Calculate hits #
+        # TODO: This needs a proper aggregate added to it to just count the results - I don't this this is correct.
+        _, hits = self.snuba_search(
+            start=start,
+            end=end,
+            project_ids=[p.id for p in projects],
+            environment_ids=environments and [environment.id for environment in environments],
+            sort_field=sort_field,
+            limit=None,
+            offset=0,
+            get_sample=False,
+            search_filters=search_filters,
+        )
+        return hits
+        ######################
