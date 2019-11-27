@@ -3,7 +3,6 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
-import {browserHistory} from 'react-router';
 
 import SentryTypes from 'app/sentryTypes';
 import {Member, User} from 'app/types';
@@ -177,17 +176,6 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
     e.stopPropagation();
   },
 
-  hasInviteRequestExperiment() {
-    const {organization} = this.context;
-
-    if (!organization || !organization.experiments) {
-      return false;
-    }
-
-    const variant = organization.experiments.ImprovedInvitesExperiment;
-    return variant === 'all' || variant === 'invite_request';
-  },
-
   renderNewMemberNodes() {
     const {size} = this.props;
     const members = putSessionUserFirst(this.memberList());
@@ -251,13 +239,8 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
 
   render() {
     const {className} = this.props;
-    const {organization} = this.context;
     const {loading, assignedTo} = this.state;
-    const canInvite = ConfigStore.get('invitesEnabled');
-    const hasOrgWrite = organization.access.includes('org:write');
     const memberList = this.memberList();
-    const hasExperiment = this.hasInviteRequestExperiment();
-    const showInviteMemberButton = (canInvite && hasOrgWrite) || hasExperiment;
 
     return (
       <div className={className}>
@@ -298,28 +281,18 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
               )
             }
             menuFooter={
-              showInviteMemberButton && (
-                <InviteMemberLink
-                  data-test-id="invite-member"
-                  disabled={loading}
-                  onClick={() =>
-                    hasExperiment
-                      ? openInviteMembersModal({source: 'assignee_selector'})
-                      : browserHistory.push(
-                          `/settings/${
-                            organization.slug
-                          }/members/new/?referrer=assignee_selector`
-                        )
-                  }
-                >
-                  <MenuItemWrapper>
-                    <IconContainer>
-                      <InviteMemberIcon />
-                    </IconContainer>
-                    <Label>{t('Invite Member')}</Label>
-                  </MenuItemWrapper>
-                </InviteMemberLink>
-              )
+              <InviteMemberLink
+                data-test-id="invite-member"
+                disabled={loading}
+                onClick={() => openInviteMembersModal({source: 'assignee_selector'})}
+              >
+                <MenuItemWrapper>
+                  <IconContainer>
+                    <InviteMemberIcon />
+                  </IconContainer>
+                  <Label>{t('Invite Member')}</Label>
+                </MenuItemWrapper>
+              </InviteMemberLink>
             }
           >
             {({getActorProps}) => {
