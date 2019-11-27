@@ -4,13 +4,13 @@ import Link from 'app/components/links/link';
 import {t} from 'app/locale';
 import DateTime from 'app/components/dateTime';
 import FileSize from 'app/components/fileSize';
-import {EventAttachment, RouterProps} from 'app/types';
+import {EventAttachment} from 'app/types';
 import AttachmentUrl from 'app/utils/attachmentUrl';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import space from 'app/styles/space';
 
-type Props = RouterProps & {
+type Props = {
   orgId: string;
   projectId: string;
   groupId: string;
@@ -21,6 +21,7 @@ type Props = RouterProps & {
 class GroupEventAttachmentsTableRow extends React.Component<Props> {
   getEventUrl() {
     const {attachment, orgId, groupId} = this.props;
+
     return `/organizations/${orgId}/issues/${groupId}/events/${attachment.event_id}/`;
   }
 
@@ -80,6 +81,7 @@ class GroupEventAttachmentsTableRow extends React.Component<Props> {
                 >
                   {t('Download')}
                 </Button>
+
                 <Confirm
                   confirmText={t('Delete')}
                   message={t('Are you sure you wish to delete this file?')}

@@ -1,19 +1,18 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 
+import {EventAttachment} from 'app/types';
 import {t} from 'app/locale';
-import CustomPropTypes from 'app/sentryTypes';
 import GroupEventAttachmentsTableRow from 'app/views/organizationGroupDetails/groupEventAttachments/groupEventAttachmentsTableRow';
 
-class GroupEventAttachmentsTable extends React.Component {
-  static propTypes = {
-    attachments: PropTypes.arrayOf(CustomPropTypes.EventAttachment),
-    orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
-    groupId: PropTypes.string.isRequired,
-    onDelete: PropTypes.func.isRequired,
-  };
+type Props = {
+  attachments: EventAttachment[];
+  orgId: string;
+  projectId: string;
+  groupId: string;
+  onDelete: (url: string | null) => {};
+};
 
+class GroupEventAttachmentsTable extends React.Component<Props> {
   render() {
     const {attachments, orgId, projectId, groupId, onDelete} = this.props;
     const tableRowNames = [t('Name'), t('Type'), t('Size'), t('Actions')];

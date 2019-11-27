@@ -13,7 +13,6 @@ class GroupEventAttachmentsFilter extends React.Component<Props> {
     const {query, pathname} = this.props.location;
     const {types} = query;
     const onlyCrashReportTypes = ['event.minidump', 'event.applecrashreport'];
-
     const allAttachmentsQuery = omit(query, 'types');
     const onlyCrashReportsQuery = {
       ...query,
