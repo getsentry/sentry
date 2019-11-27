@@ -2,6 +2,7 @@ import React from 'react';
 import styled from 'react-emotion';
 import {browserHistory} from 'react-router';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import InlineSvg from 'app/components/inlineSvg';
 
 import space from 'app/styles/space';
 import {callIfFunction} from 'app/utils/callIfFunction';
@@ -10,6 +11,7 @@ type Props = {
   title?: string;
   subtitle?: string;
   queryDetail?: string;
+  starred?: boolean;
   to: object;
   onEventClick?: () => void;
   renderGraph: () => React.ReactNode;
@@ -26,13 +28,21 @@ class QueryCard extends React.PureComponent<Props> {
   };
 
   render() {
-    const {title, subtitle, queryDetail, renderContextMenu, renderGraph} = this.props;
+    const {
+      title,
+      subtitle,
+      starred,
+      queryDetail,
+      renderContextMenu,
+      renderGraph,
+    } = this.props;
 
     return (
       <StyledQueryCard onClick={this.handleClick}>
         <QueryCardHeader>
           <StyledTitle>{title}</StyledTitle>
           <StyledQueryDetail>{queryDetail}</StyledQueryDetail>
+          {starred ? <StyledInlineSvg src="icon-star-small-filled" /> : null}
         </QueryCardHeader>
         <QueryCardBody>{renderGraph()}</QueryCardBody>
         <QueryCardFooter>
@@ -52,7 +62,6 @@ const StyledQueryCard = styled('button')`
   align-items: stretch;
   flex-direction: column;
   justify-content: space-between;
-  height: 205px;
   transition: all 0.2s ease;
   cursor: pointer;
   text-align: left;
@@ -77,9 +86,18 @@ const StyledQueryCard = styled('button')`
 `;
 
 const QueryCardHeader = styled('div')`
+  position: relative;
   padding: ${space(1.5)} ${space(2)};
   overflow: hidden;
-  line-height: 1.4;
+  min-height: 68px;
+  line-height: 1.6;
+`;
+
+const StyledInlineSvg = styled(InlineSvg)`
+  position: absolute;
+  color: ${p => p.theme.yellow};
+  top: ${space(2)};
+  right: ${space(2)};
 `;
 
 const StyledTitle = styled('div')`
@@ -88,7 +106,7 @@ const StyledTitle = styled('div')`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  width: 100%;
+  width: 95%;
 `;
 
 const StyledQueryDetail = styled('div')`
@@ -113,7 +131,7 @@ const QueryCardFooter = styled('div')`
   justify-content: space-between;
   align-items: center;
   padding: ${space(1)} ${space(2)};
-  color: ${p => p.theme.gray5};
+  color: ${p => p.theme.gray3};
 `;
 
 const StyledCreator = styled('div')`
