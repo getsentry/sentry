@@ -141,7 +141,7 @@ class Incident(Model):
 class IncidentSnapshot(Model):
     __core__ = True
 
-    incident = models.OneToOneField("sentry.Incident")
+    incident = models.OneToOneField("sentry.Incident", on_delete=models.CASCADE)
     event_stats_snapshot = FlexibleForeignKey("sentry.TimeSeriesSnapshot")
     unique_users = models.IntegerField()
     total_events = models.IntegerField()
