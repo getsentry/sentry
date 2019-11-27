@@ -14,12 +14,16 @@ describe('OrganizationSettingsForm', function() {
 
   beforeEach(function() {
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/auth-provider/`,
+      method: 'GET',
+    });
     onSave.mockReset();
   });
 
   it('can change a form field', function(done) {
     putMock = MockApiClient.addMockResponse({
-      url: '/organizations/3/',
+      url: `/organizations/${organization.slug}/`,
       method: 'PUT',
       data: {
         name: 'New Name',
@@ -29,7 +33,7 @@ describe('OrganizationSettingsForm', function() {
     const wrapper = mountWithTheme(
       <OrganizationSettingsForm
         location={TestStubs.location()}
-        orgId={organization.id}
+        orgId={organization.slug}
         access={new Set('org:admin')}
         initialData={TestStubs.Organization()}
         onSave={onSave}
@@ -44,7 +48,7 @@ describe('OrganizationSettingsForm', function() {
     input.simulate('blur');
 
     expect(putMock).toHaveBeenCalledWith(
-      '/organizations/3/',
+      `/organizations/${organization.slug}/`,
       expect.objectContaining({
         method: 'PUT',
         data: {
@@ -87,7 +91,7 @@ describe('OrganizationSettingsForm', function() {
 
   it('can change slug', function() {
     putMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/',
+      url: `/organizations/${organization.slug}/`,
       method: 'PUT',
     });
 
