@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from 'react-emotion';
 import {browserHistory} from 'react-router';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 import space from 'app/styles/space';
 import {callIfFunction} from 'app/utils/callIfFunction';
@@ -35,9 +36,7 @@ class QueryCard extends React.PureComponent<Props> {
         </QueryCardHeader>
         <QueryCardBody>{renderGraph()}</QueryCardBody>
         <QueryCardFooter>
-          <StyledCreator>
-            <small>{subtitle}</small>
-          </StyledCreator>
+          <StyledCreator>{subtitle}</StyledCreator>
           {renderContextMenu && renderContextMenu()}
         </QueryCardFooter>
       </StyledQueryCard>
@@ -118,6 +117,8 @@ const QueryCardFooter = styled('div')`
 `;
 
 const StyledCreator = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  ${overflowEllipsis};
   display: flex;
   align-items: center;
 `;
