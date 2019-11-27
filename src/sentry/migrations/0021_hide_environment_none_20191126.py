@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 from django.db import migrations, models
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
-def hide_environent_none(apps, schema_editor):
+def hide_environment_none(apps, schema_editor):
     """
     Hide environments that are named none, since they're blacklisted and no longer can be created.
 
@@ -41,5 +41,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(hide_environent_none, migrations.RunPython.noop)
+        migrations.RunPython(hide_environment_none, migrations.RunPython.noop)
     ]
