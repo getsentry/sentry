@@ -11,10 +11,11 @@ class GroupEventAttachmentsTable extends React.Component {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     groupId: PropTypes.string.isRequired,
+    onDelete: PropTypes.func.isRequired,
   };
 
   render() {
-    const {attachments, orgId, projectId, groupId} = this.props;
+    const {attachments, orgId, projectId, groupId, onDelete} = this.props;
     const tableRowNames = [t('Name'), t('Type'), t('Size'), t('Actions')];
 
     return (
@@ -35,6 +36,7 @@ class GroupEventAttachmentsTable extends React.Component {
                 orgId={orgId}
                 projectId={projectId}
                 groupId={groupId}
+                onDelete={onDelete}
               />
             );
           })}

@@ -14,6 +14,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 // import SearchBar from 'app/components/searchBar';
 import parseApiError from 'app/utils/parseApiError';
+import GroupStore from 'app/stores/groupStore';
 
 class GroupEventAttachments extends React.Component {
   static propTypes = {
@@ -62,6 +63,17 @@ class GroupEventAttachments extends React.Component {
     });
   };
 
+  handleDelete = url => {
+    this.setState({
+      loading: true,
+    });
+
+    this.props.api.request(url, {
+      method: 'DELETE',
+      complete: () => this.fetchData(),
+    });
+  };
+
   fetchData = () => {
     this.setState({
       loading: true,
@@ -84,6 +96,7 @@ class GroupEventAttachments extends React.Component {
           loading: false,
           pageLinks: jqXHR.getResponseHeader('Link'),
         });
+        GroupStore.updateEventAttachmentsCount(data.length, this.props.params.groupId);
       },
       error: err => {
         this.setState({
@@ -119,6 +132,7 @@ class GroupEventAttachments extends React.Component {
         orgId={params.orgId}
         projectId={group.project.slug}
         groupId={params.groupId}
+        onDelete={this.handleDelete}
       />
     );
   }

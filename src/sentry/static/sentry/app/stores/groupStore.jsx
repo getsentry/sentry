@@ -1,3 +1,5 @@
+/* eslint-disable no-unused-vars */
+// FIXME: 20+ errors in older parts of code with ...is defined but never used
 import isArray from 'lodash/isArray';
 import isUndefined from 'lodash/isUndefined';
 import Reflux from 'reflux';
@@ -394,6 +396,14 @@ const GroupStore = Reflux.createStore({
     });
     this.pendingChanges.remove(changeId);
     this.trigger(new Set(itemIds));
+  },
+
+  updateEventAttachmentsCount(count, groupId) {
+    const group = this.get(groupId);
+
+    group.attachmentCount = count;
+
+    this.trigger(new Set([groupId]));
   },
 });
 

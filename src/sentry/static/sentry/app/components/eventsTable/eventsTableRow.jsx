@@ -35,10 +35,10 @@ class EventsTableRow extends React.Component {
         eventId={event.id}
         attachment={event.crashFile}
       >
-        {downloadUrl =>
-          downloadUrl && (
+        {url =>
+          url && (
             <small>
-              {crashFileType}: <a href={downloadUrl}>{event.crashFile.name}</a> (
+              {crashFileType}: <a href={`${url}?download=1`}>{event.crashFile.name}</a> (
               <FileSize bytes={event.crashFile.size} />)
             </small>
           )

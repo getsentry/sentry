@@ -107,14 +107,14 @@ class EventAttachments extends React.Component<Props, State> {
                       eventId={this.props.event.id}
                       attachment={attachment}
                     >
-                      {downloadUrl => (
+                      {url => (
                         <Button
                           size="xsmall"
                           icon="icon-download"
-                          href={downloadUrl || ''}
-                          disabled={!downloadUrl}
+                          href={url ? `${url}?download=1` : ''}
+                          disabled={!url}
                           title={
-                            !downloadUrl
+                            !url
                               ? t('Insufficient permissions to download attachments')
                               : undefined
                           }

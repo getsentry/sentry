@@ -7,12 +7,15 @@ import FileSize from 'app/components/fileSize';
 import {EventAttachment, RouterProps} from 'app/types';
 import AttachmentUrl from 'app/utils/attachmentUrl';
 import Button from 'app/components/button';
+import Confirm from 'app/components/confirm';
+import space from 'app/styles/space';
 
 type Props = RouterProps & {
   orgId: string;
   projectId: string;
   groupId: string;
   attachment: EventAttachment;
+  onDelete: (url: string | null) => {};
 };
 
 class GroupEventAttachmentsTableRow extends React.Component<Props> {
@@ -32,7 +35,7 @@ class GroupEventAttachmentsTableRow extends React.Component<Props> {
   }
 
   render() {
-    const {attachment, projectId} = this.props;
+    const {attachment, projectId, onDelete} = this.props;
 
     return (
       <tr>
@@ -59,20 +62,44 @@ class GroupEventAttachmentsTableRow extends React.Component<Props> {
             eventId={attachment.event_id}
             attachment={attachment}
           >
-            {downloadUrl => (
-              <Button
-                size="xsmall"
-                icon="icon-download"
-                href={downloadUrl || ''}
-                disabled={!downloadUrl}
-                title={
-                  !downloadUrl
-                    ? t('Insufficient permissions to download attachments')
-                    : undefined
-                }
-              >
-                {t('Download')}
-              </Button>
+            {url => (
+              <React.Fragment>
+                <Button
+                  size="xsmall"
+                  icon="icon-download"
+                  href={url ? `${url}?download=1` : ''}
+                  disabled={!url}
+                  style={{
+                    marginRight: space(0.5),
+                  }}
+                  title={
+                    !url
+                      ? t('Insufficient permissions to download attachments')
+                      : undefined
+                  }
+                >
+                  {t('Download')}
+                </Button>
+                <Confirm
+                  confirmText={t('Delete')}
+                  message={t('Are you sure you wish to delete this file?')}
+                  priority="danger"
+                  onConfirm={() => onDelete(url)}
+                  disabled={!url}
+                >
+                  <Button
+                    size="xsmall"
+                    icon="icon-trash"
+                    disabled={!url}
+                    priority="danger"
+                    title={
+                      !url
+                        ? t('Insufficient permissions to delete attachments')
+                        : undefined
+                    }
+                  />
+                </Confirm>
+              </React.Fragment>
             )}
           </AttachmentUrl>
         </td>

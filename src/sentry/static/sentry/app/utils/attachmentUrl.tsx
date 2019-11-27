@@ -48,7 +48,7 @@ class AttachmentUrl extends React.PureComponent<Props> {
     const {attachment, organization, eventId, projectId} = this.props;
     return `/api/0/projects/${
       organization.slug
-    }/${projectId}/events/${eventId}/attachments/${attachment.id}/?download=1`;
+    }/${projectId}/events/${eventId}/attachments/${attachment.id}/`;
   }
 
   render() {
