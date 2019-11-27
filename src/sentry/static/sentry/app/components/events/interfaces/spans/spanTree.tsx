@@ -19,7 +19,7 @@ import * as DividerHandlerManager from './dividerHandlerManager';
 type RenderedSpanTree = {
   spanTree: JSX.Element | null;
   nextSpanNumber: number;
-  numOfHiddenSpansAbove: number;
+  numOfSpansOutOfViewAbove: number;
 };
 
 type PropType = {
@@ -44,7 +44,7 @@ class SpanTree extends React.Component<PropType> {
     isLast,
     treeDepth,
     continuingTreeDepths,
-    numOfHiddenSpansAbove,
+    numOfSpansOutOfViewAbove,
     childSpans,
     span,
     generateBounds,
@@ -54,7 +54,7 @@ class SpanTree extends React.Component<PropType> {
     continuingTreeDepths: Array<number>;
     isLast: boolean;
     isRoot?: boolean;
-    numOfHiddenSpansAbove: number;
+    numOfSpansOutOfViewAbove: number;
     span: Readonly<SpanType>;
     childSpans: Readonly<SpanChildrenLookupType>;
     generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
@@ -72,7 +72,7 @@ class SpanTree extends React.Component<PropType> {
     type AccType = {
       renderedSpanChildren: Array<JSX.Element>;
       nextSpanNumber: number;
-      numOfHiddenSpansAbove: number;
+      numOfSpansOutOfViewAbove: number;
     };
 
     const treeArr = isLast ? continuingTreeDepths : [...continuingTreeDepths, treeDepth];
@@ -86,7 +86,7 @@ class SpanTree extends React.Component<PropType> {
           isLast: index + 1 === spanChildren.length,
           continuingTreeDepths: treeArr,
           treeDepth: treeDepth + 1,
-          numOfHiddenSpansAbove: acc.numOfHiddenSpansAbove,
+          numOfSpansOutOfViewAbove: acc.numOfSpansOutOfViewAbove,
           span: spanChild,
           childSpans,
           generateBounds,
@@ -96,7 +96,7 @@ class SpanTree extends React.Component<PropType> {
           <React.Fragment key={key}>{results.spanTree}</React.Fragment>
         );
 
-        acc.numOfHiddenSpansAbove = results.numOfHiddenSpansAbove;
+        acc.numOfSpansOutOfViewAbove = results.numOfSpansOutOfViewAbove;
 
         acc.nextSpanNumber = results.nextSpanNumber;
 
@@ -105,22 +105,22 @@ class SpanTree extends React.Component<PropType> {
       {
         renderedSpanChildren: [],
         nextSpanNumber: spanNumber + 1,
-        numOfHiddenSpansAbove: isCurrentSpanHidden ? numOfHiddenSpansAbove + 1 : 0,
+        numOfSpansOutOfViewAbove: isCurrentSpanHidden ? numOfSpansOutOfViewAbove + 1 : 0,
       }
     );
 
-    const showHiddenSpansMessage = !isCurrentSpanHidden && numOfHiddenSpansAbove > 0;
+    const showHiddenSpansMessage = !isCurrentSpanHidden && numOfSpansOutOfViewAbove > 0;
 
     const hiddenSpansMessage = showHiddenSpansMessage ? (
       <SpanRowMessage>
         <span>
-          {t('Number of hidden spans:')} {numOfHiddenSpansAbove}
+          {t('Spans out of view:')} {numOfSpansOutOfViewAbove}
         </span>
       </SpanRowMessage>
     ) : null;
 
     return {
-      numOfHiddenSpansAbove: reduced.numOfHiddenSpansAbove,
+      numOfSpansOutOfViewAbove: reduced.numOfSpansOutOfViewAbove,
       nextSpanNumber: reduced.nextSpanNumber,
       spanTree: (
         <React.Fragment>
@@ -169,7 +169,7 @@ class SpanTree extends React.Component<PropType> {
       spanNumber: 1,
       treeDepth: 0,
       continuingTreeDepths: [],
-      numOfHiddenSpansAbove: 0,
+      numOfSpansOutOfViewAbove: 0,
       span: rootSpan,
       childSpans: trace.childSpans,
       generateBounds,
@@ -177,13 +177,13 @@ class SpanTree extends React.Component<PropType> {
   };
 
   render() {
-    const {spanTree, numOfHiddenSpansAbove} = this.renderRootSpan();
+    const {spanTree, numOfSpansOutOfViewAbove} = this.renderRootSpan();
 
     const hiddenSpansMessage =
-      numOfHiddenSpansAbove > 0 ? (
+      numOfSpansOutOfViewAbove > 0 ? (
         <SpanRowMessage>
           <span>
-            {t('Number of hidden spans:')} {numOfHiddenSpansAbove}
+            {t('Spans out of view:')} {numOfSpansOutOfViewAbove}
           </span>
         </SpanRowMessage>
       ) : null;
