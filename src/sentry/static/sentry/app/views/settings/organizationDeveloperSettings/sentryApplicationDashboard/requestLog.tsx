@@ -55,8 +55,10 @@ const getEventTypes = memoize((app: SentryApp) => {
 
   const events = [
     ALL_EVENTS,
-    'installation.created',
-    'installation.deleted',
+    // Internal apps don't have installation webhooks
+    ...(app.status !== 'internal'
+      ? ['installation.created', 'installation.deleted']
+      : []),
     ...(app.events.includes('error') ? ['error.created'] : []),
     ...(app.events.includes('issue')
       ? ['issue.created', 'issue.resolved', 'issue.ignored', 'issue.assigned']
