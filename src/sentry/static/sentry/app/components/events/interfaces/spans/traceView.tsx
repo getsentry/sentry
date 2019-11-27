@@ -11,7 +11,7 @@ import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import DragManager, {DragManagerChildrenProps} from './dragManager';
 import SpanTree from './spanTree';
 import {SpanType, SpanEntry, SentryTransactionEvent, ParsedTraceType} from './types';
-import {isValidSpanID} from './utils';
+import {isValidSpanID, generateRootSpan} from './utils';
 import TraceViewHeader from './header';
 import * as CursorGuideHandler from './cursorGuideHandler';
 
@@ -94,7 +94,7 @@ class TraceView extends React.PureComponent<Props, State> {
 
     const {spans} = parsedTrace;
 
-    const transformed: IndexedFusedSpan[] = spans.map(
+    const transformed: IndexedFusedSpan[] = [generateRootSpan(parsedTrace), ...spans].map(
       (span): IndexedFusedSpan => {
         const indexed: string[] = [];
 
