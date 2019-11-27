@@ -176,6 +176,7 @@ type SpanBarProps = {
   isLast?: boolean;
   isRoot?: boolean;
   toggleSpanTree: () => void;
+  isCurrentSpanFilteredOut: boolean;
 };
 
 type SpanBarState = {
@@ -727,14 +728,16 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   };
 
   render() {
+    const {isCurrentSpanFilteredOut} = this.props;
     const bounds = this.getBounds();
 
     const isSpanVisibleInView = bounds.isSpanVisibleInView;
+    const isSpanVisible = isSpanVisibleInView && !isCurrentSpanFilteredOut;
 
     return (
       <SpanRow
         innerRef={this.spanRowDOMRef}
-        visible={isSpanVisibleInView}
+        visible={isSpanVisible}
         showBorder={this.state.showDetail}
         onClick={() => {
           this.toggleDisplayDetail();
@@ -747,7 +750,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
             return this.renderHeader(dividerHandlerChildrenProps);
           }}
         </DividerHandlerManager.Consumer>
-        {this.renderDetail({isVisible: isSpanVisibleInView})}
+        {this.renderDetail({isVisible: isSpanVisible})}
       </SpanRow>
     );
   }

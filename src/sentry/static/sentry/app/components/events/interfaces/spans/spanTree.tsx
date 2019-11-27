@@ -43,9 +43,16 @@ class SpanTree extends React.Component<PropType> {
 
   generateInfoMessage(input: {
     isCurrentSpanHidden: boolean;
-    numOfSpansOutOfViewAbove;
+    numOfSpansOutOfViewAbove: number;
+    isCurrentSpanFilteredOut: boolean;
+    numOfFilteredSpansAbove: number;
   }): React.ReactNode {
-    const {isCurrentSpanHidden, numOfSpansOutOfViewAbove} = input;
+    const {
+      isCurrentSpanHidden,
+      numOfSpansOutOfViewAbove,
+      isCurrentSpanFilteredOut,
+      numOfFilteredSpansAbove,
+    } = input;
 
     const messages: React.ReactNode[] = [];
 
@@ -59,6 +66,17 @@ class SpanTree extends React.Component<PropType> {
       );
     }
 
+    const showFilteredSpansMessage =
+      !isCurrentSpanFilteredOut && numOfFilteredSpansAbove > 0;
+
+    if (showFilteredSpansMessage) {
+      messages.push(
+        <span key="spans-filtered">
+          <strong>{t('Spans not matching search:')}</strong> {numOfFilteredSpansAbove}
+        </span>
+      );
+    }
+
     if (messages.length <= 0) {
       return null;
     }
@@ -66,14 +84,14 @@ class SpanTree extends React.Component<PropType> {
     return <SpanRowMessage>{messages}</SpanRowMessage>;
   }
 
-  isSpanFiltered(span: Readonly<SpanType>): boolean {
+  isSpanFilteredOut(span: Readonly<SpanType>): boolean {
     const {filterSpans} = this.props;
 
     if (!filterSpans) {
       return false;
     }
 
-    return filterSpans.spanIDs.has(span.span_id);
+    return !filterSpans.spanIDs.has(span.span_id);
   }
 
   renderSpan = ({
@@ -108,7 +126,7 @@ class SpanTree extends React.Component<PropType> {
     });
 
     const isCurrentSpanHidden = !bounds.isSpanVisibleInView;
-    const isCurrentSpanFiltered = this.isSpanFiltered(span);
+    const isCurrentSpanFilteredOut = this.isSpanFilteredOut(span);
 
     type AccType = {
       renderedSpanChildren: Array<JSX.Element>;
@@ -150,13 +168,17 @@ class SpanTree extends React.Component<PropType> {
         renderedSpanChildren: [],
         nextSpanNumber: spanNumber + 1,
         numOfSpansOutOfViewAbove: isCurrentSpanHidden ? numOfSpansOutOfViewAbove + 1 : 0,
-        numOfFilteredSpansAbove: isCurrentSpanFiltered ? numOfFilteredSpansAbove + 1 : 0,
+        numOfFilteredSpansAbove: isCurrentSpanFilteredOut
+          ? numOfFilteredSpansAbove + 1
+          : 0,
       }
     );
 
     const infoMessage = this.generateInfoMessage({
       isCurrentSpanHidden,
       numOfSpansOutOfViewAbove,
+      isCurrentSpanFilteredOut,
+      numOfFilteredSpansAbove,
     });
 
     return {
@@ -178,6 +200,7 @@ class SpanTree extends React.Component<PropType> {
             numOfSpanChildren={spanChildren.length}
             renderedSpanChildren={reduced.renderedSpanChildren}
             spanBarColour={spanBarColour}
+            isCurrentSpanFilteredOut={isCurrentSpanFilteredOut}
           />
         </React.Fragment>
       ),
@@ -219,11 +242,17 @@ class SpanTree extends React.Component<PropType> {
   };
 
   render() {
-    const {spanTree, numOfSpansOutOfViewAbove} = this.renderRootSpan();
+    const {
+      spanTree,
+      numOfSpansOutOfViewAbove,
+      numOfFilteredSpansAbove,
+    } = this.renderRootSpan();
 
     const infoMessage = this.generateInfoMessage({
       isCurrentSpanHidden: false,
       numOfSpansOutOfViewAbove,
+      isCurrentSpanFilteredOut: false,
+      numOfFilteredSpansAbove,
     });
 
     return (

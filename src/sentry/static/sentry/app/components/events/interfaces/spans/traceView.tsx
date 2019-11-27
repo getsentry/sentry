@@ -170,9 +170,6 @@ class TraceView extends React.PureComponent<Props, State> {
       return set;
     }, new Set<string>());
 
-    // TODO: remove
-    console.log('results', results);
-
     this.setState({
       filterSpans: {
         results,
