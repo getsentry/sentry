@@ -71,11 +71,13 @@ class SpanTree extends React.Component<PropType> {
       !isCurrentSpanFilteredOut && numOfFilteredSpansAbove > 0;
 
     if (showFilteredSpansMessage) {
-      messages.push(
-        <span key="spans-filtered">
-          <strong>{t('Spans not matching search:')}</strong> {numOfFilteredSpansAbove}
-        </span>
-      );
+      if (!isCurrentSpanHidden) {
+        messages.push(
+          <span key="spans-filtered">
+            <strong>{t('Spans not matching search:')}</strong> {numOfFilteredSpansAbove}
+          </span>
+        );
+      }
     }
 
     if (messages.length <= 0) {
@@ -171,6 +173,8 @@ class SpanTree extends React.Component<PropType> {
         numOfSpansOutOfViewAbove: isCurrentSpanHidden ? numOfSpansOutOfViewAbove + 1 : 0,
         numOfFilteredSpansAbove: isCurrentSpanFilteredOut
           ? numOfFilteredSpansAbove + 1
+          : isCurrentSpanHidden
+          ? numOfFilteredSpansAbove
           : 0,
       }
     );
