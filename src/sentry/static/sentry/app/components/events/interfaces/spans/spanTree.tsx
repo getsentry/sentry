@@ -62,7 +62,7 @@ class SpanTree extends React.Component<PropType> {
     if (showHiddenSpansMessage) {
       messages.push(
         <span key="spans-out-of-view">
-          <strong>{t('Spans out of view:')}</strong> {numOfSpansOutOfViewAbove}
+          <strong>{numOfSpansOutOfViewAbove}</strong> {t('spans out of view')}
         </span>
       );
     }
@@ -74,7 +74,7 @@ class SpanTree extends React.Component<PropType> {
       if (!isCurrentSpanHidden) {
         messages.push(
           <span key="spans-filtered">
-            <strong>{t('Spans not matching search:')}</strong> {numOfFilteredSpansAbove}
+            <strong>{numOfFilteredSpansAbove}</strong> {t('spans filtered out')}
           </span>
         );
       }
