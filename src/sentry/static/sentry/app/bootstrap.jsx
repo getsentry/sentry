@@ -40,12 +40,6 @@ Sentry.init({
     new Integrations.Tracing({
       tracingOrigins: ['localhost', 'sentry.io', /^\//],
     }),
-    new Sentry.Integrations.Breadcrumbs({
-      // This handlers will be removed here in a future version
-      // What they do is auto instrument history and XHR API
-      // creating Transactions and Spans out of it
-      handlers: Integrations.TracingHandlers,
-    }),
   ],
 });
 
