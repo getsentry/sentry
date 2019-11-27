@@ -89,6 +89,7 @@ const QueryCardHeader = styled('div')`
   position: relative;
   padding: ${space(1.5)} ${space(2)};
   overflow: hidden;
+  min-height: 68px;
   line-height: 1.6;
 `;
 
@@ -105,7 +106,7 @@ const StyledTitle = styled('div')`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  width: 100%;
+  width: 95%;
 `;
 
 const StyledQueryDetail = styled('div')`
@@ -130,7 +131,7 @@ const QueryCardFooter = styled('div')`
   justify-content: space-between;
   align-items: center;
   padding: ${space(1)} ${space(2)};
-  color: ${p => p.theme.gray5};
+  color: ${p => p.theme.gray3};
 `;
 
 const StyledCreator = styled('div')`
