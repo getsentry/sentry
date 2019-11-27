@@ -79,7 +79,13 @@ class IngestConsumerWorker(AbstractBatchWorker):
         # Preprocess this event, which spawns either process_event or
         # save_event. Pass data explicitly to avoid fetching it again from the
         # cache.
-        preprocess_event(cache_key=cache_key, data=data, start_time=start_time, event_id=event_id)
+        preprocess_event(
+            cache_key=cache_key,
+            data=data,
+            start_time=start_time,
+            event_id=event_id,
+            project=project,
+        )
 
         # remember for an 1 hour that we saved this event (deduplication protection)
         cache.set(deduplication_key, "", 3600)

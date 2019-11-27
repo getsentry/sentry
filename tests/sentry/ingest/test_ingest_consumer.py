@@ -43,7 +43,7 @@ def _get_test_message(project):
         "ty": (0, ()),
         "start_time": time.time(),
         "event_id": event_id,
-        "project_id": 1,
+        "project_id": int(project_id),
         "payload": json.dumps(normalized_event),
     }
 
