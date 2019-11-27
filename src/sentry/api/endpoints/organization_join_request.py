@@ -7,7 +7,6 @@ from rest_framework.response import Response
 from django.db import IntegrityError
 from django.db.models import Q
 
-from sentry import experiments
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.validators import AllowedEmailField
 from sentry.app import ratelimiter
@@ -45,10 +44,6 @@ class OrganizationJoinRequestEndpoint(OrganizationEndpoint):
     permission_classes = []
 
     def post(self, request, organization):
-        variant = experiments.get(org=organization, experiment_name="ImprovedInvitesExperiment")
-        if variant not in ("all", "join_request"):
-            return Response(status=403)
-
         if organization.get_option("sentry:join_requests") is False:
             return Response(
                 {"detail": "Your organization does not allow join requests."}, status=403

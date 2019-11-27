@@ -1,5 +1,4 @@
 import React from 'react';
-import {browserHistory} from 'react-router';
 
 import {Client} from 'app/api';
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -48,28 +47,6 @@ describe('TeamMembers', function() {
         params={{orgId: organization.slug, teamId: team.slug}}
         organization={organization}
       />,
-      routerContext
-    );
-
-    await tick();
-    wrapper.update();
-
-    wrapper.find('DropdownButton[data-test-id="add-member"]').simulate('click');
-    wrapper
-      .find('StyledCreateMemberLink[data-test-id="invite-member"]')
-      .simulate('click');
-
-    expect(browserHistory.push).toHaveBeenCalledWith(
-      `/settings/${organization.slug}/members/new/?referrer=teams`
-    );
-  });
-
-  it('can open invite modal on invite member with experiment', async function() {
-    const org = TestStubs.Organization({
-      experiments: {ImprovedInvitesExperiment: 'invite_request'},
-    });
-    const wrapper = mountWithTheme(
-      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
       routerContext
     );
 

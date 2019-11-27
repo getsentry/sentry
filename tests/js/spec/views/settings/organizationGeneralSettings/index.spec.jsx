@@ -7,24 +7,17 @@ import OrganizationGeneralSettings from 'app/views/settings/organizationGeneralS
 
 jest.mock('jquery');
 
-jest.mock('react-router', () => {
-  return {
-    browserHistory: {
-      push: jest.fn(),
-      replace: jest.fn(),
-    },
-  };
-});
-
 describe('OrganizationGeneralSettings', function() {
   let organization;
   let routerContext;
   const ENDPOINT = '/organizations/org-slug/';
 
   beforeEach(function() {
-    browserHistory.push.mockReset();
-    browserHistory.replace.mockReset();
     ({organization, routerContext} = initializeOrg());
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/auth-provider/`,
+      method: 'GET',
+    });
   });
 
   it('can enable "early adopter"', async function() {
@@ -280,10 +273,7 @@ describe('OrganizationGeneralSettings', function() {
     console.error.mockRestore();
   });
 
-  it('renders join request switch with experiment', async function() {
-    organization = TestStubs.Organization({
-      experiments: {ImprovedInvitesExperiment: 'join_request'},
-    });
+  it('renders join request switch', async function() {
     const wrapper = mountWithTheme(
       <OrganizationGeneralSettings params={{orgId: organization.slug}} />,
       TestStubs.routerContext([{organization}])
@@ -294,27 +284,16 @@ describe('OrganizationGeneralSettings', function() {
     expect(wrapper.find('Switch[name="allowJoinRequests"]').exists()).toBe(true);
   });
 
-  it('does not render join request switch in experiment control', async function() {
-    organization = TestStubs.Organization({
-      experiments: {ImprovedInvitesExperiment: 'none'},
+  it('does not render join request switch with SSO enabled', async function() {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/auth-provider/`,
+      method: 'GET',
+      body: TestStubs.AuthProvider(),
     });
+
     const wrapper = mountWithTheme(
       <OrganizationGeneralSettings params={{orgId: organization.slug}} />,
       TestStubs.routerContext([{organization}])
-    );
-
-    await tick();
-    wrapper.update();
-    expect(wrapper.find('Switch[name="allowJoinRequests"]').exists()).toBe(false);
-  });
-
-  it('does not render join request switch without experiments', async function() {
-    const wrapper = mountWithTheme(
-      <OrganizationGeneralSettings
-        params={{orgId: organization.slug}}
-        organization={organization}
-      />,
-      routerContext
     );
 
     await tick();

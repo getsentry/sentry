@@ -246,9 +246,7 @@ const formGroups = [
             'Are you sure you want to allow users to request to join your organization?'
           ),
         },
-        visible: ({experiments}) =>
-          !!experiments &&
-          ['all', 'join_request'].includes(experiments.ImprovedInvitesExperiment),
+        visible: ({hasSsoEnabled}) => !hasSsoEnabled,
       },
     ],
   },

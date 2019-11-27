@@ -9,7 +9,6 @@ from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.cache import never_cache
 
-from sentry import experiments
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
@@ -81,10 +80,6 @@ class AuthLoginView(BaseView):
 
     def get_join_request_link(self, organization):
         if not organization:
-            return None
-
-        variant = experiments.get(org=organization, experiment_name="ImprovedInvitesExperiment")
-        if variant not in ("all", "join_request"):
             return None
 
         if organization.get_option("sentry:join_requests") is False:

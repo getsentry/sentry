@@ -59,16 +59,6 @@ class OrganizationRequestsView extends AsyncView<Props, State> {
     this.handleRedirect();
   }
 
-  componentDidMount() {
-    const {organization, showInviteRequests} = this.props;
-    showInviteRequests &&
-      trackAnalyticsEvent({
-        eventKey: 'invite_request.page_viewed',
-        eventName: 'Invite Request Page Viewed',
-        organization_id: organization.id,
-      });
-  }
-
   componentDidUpdate() {
     this.handleRedirect();
   }

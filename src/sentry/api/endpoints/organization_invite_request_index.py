@@ -4,7 +4,7 @@ from django.db import transaction
 from django.db.models import Q
 from rest_framework.response import Response
 
-from sentry import roles, experiments
+from sentry import roles
 from sentry.app import locks
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
@@ -60,10 +60,6 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
 
         :auth: required
         """
-        variant = experiments.get(org=organization, experiment_name="ImprovedInvitesExperiment")
-        if variant not in ("all", "invite_request"):
-            return Response(status=403)
-
         serializer = OrganizationMemberSerializer(
             data=request.data,
             context={"organization": organization, "allowed_roles": roles.get_all()},

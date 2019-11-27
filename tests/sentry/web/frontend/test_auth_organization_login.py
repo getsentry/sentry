@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 from exam import fixture
-from mock import patch
 from django.core.urlresolvers import reverse
 
 from sentry.models import (
@@ -25,8 +24,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
     def path(self):
         return reverse("sentry-auth-organization", args=[self.organization.slug])
 
-    @patch("sentry.analytics.record")
-    def test_renders_basic(self, mock_record):
+    def test_renders_basic(self):
         self.login_as(self.user)
         resp = self.client.get(self.path)
 
@@ -36,27 +34,9 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp.context["login_form"]
         assert resp.context["organization"] == self.organization
         assert "provider_key" not in resp.context
-        assert resp.context["join_request_link"] is None
+        assert resp.context["join_request_link"]
 
-        assert not any(c[0][0] == "join_request.link_viewed" for c in mock_record.call_args_list)
-
-    @patch("sentry.analytics.record")
-    @patch("sentry.experiments.get", return_value="join_request")
-    def test_get_request_join_link_with_experiment(self, mock_experiment, mock_record):
-        self.login_as(self.user)
-        resp = self.client.get(self.path)
-
-        assert resp.status_code == 200
-        assert resp.context["join_request_link"] == reverse(
-            "sentry-join-request", args=[self.organization.slug]
-        )
-
-        mock_record.assert_called_with(
-            "join_request.link_viewed", organization_id=self.organization.id
-        )
-
-    @patch("sentry.experiments.get", return_value="join_request")
-    def test_cannot_get_request_join_link_with_setting_disabled(self, mock_experiment):
+    def test_cannot_get_request_join_link_with_setting_disabled(self):
         OrganizationOption.objects.create(
             organization_id=self.organization.id, key="sentry:join_requests", value=False
         )
