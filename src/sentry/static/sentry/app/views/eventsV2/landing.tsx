@@ -85,20 +85,37 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     const {organization, location} = this.props;
 
     const views = getPrebuiltQueries(organization);
+    const searchQuery = this.getSavedQuerySearchQuery();
+
     const cursor = decodeScalar(location.query.cursor);
-    // XXX(mark) Pagination here is a bit wonky as we include the pre-built queries
-    // on the first page and aim to always have 9 results showing. If there are more than
-    // 9 pre-built queries we'll have more results on the first page. Furthermore, going
-    // back and forth between the first and second page is non-determinsitic due to the shifting
-    // per_page value.
     let perPage = 9;
     if (!cursor) {
-      perPage = Math.max(1, perPage - views.length);
+      // invariant: we're on the first page
+
+      if (searchQuery && searchQuery.length > 0) {
+        const needleSearch = searchQuery.toLowerCase();
+
+        const numOfPrebuiltQueries = views.reduce((sum, view) => {
+          const eventView = EventView.fromSavedQueryWithLocation(view, location);
+
+          // if a search is performed on the list of queries, we filter
+          // on the pre-built queries
+          if (eventView.name && eventView.name.toLowerCase().includes(needleSearch)) {
+            return sum + 1;
+          }
+
+          return sum;
+        }, 0);
+
+        perPage = Math.max(1, perPage - numOfPrebuiltQueries);
+      } else {
+        perPage = Math.max(1, perPage - views.length);
+      }
     }
 
     const queryParams = {
       cursor,
-      query: `version:2 ${this.getSavedQuerySearchQuery()}`,
+      query: `version:2 ${searchQuery}`,
       per_page: perPage,
       sortBy: '-dateUpdated',
     };
