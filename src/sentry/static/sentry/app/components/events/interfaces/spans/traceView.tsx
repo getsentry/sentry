@@ -156,6 +156,10 @@ class TraceView extends React.PureComponent<Props, State> {
     const fuse = await createFuzzySearch(transformed, {
       keys: ['indexed', 'tagKeys', 'tagValues', 'dataKeys', 'dataValues'],
       includeMatches: false,
+      threshold: 0.6,
+      location: 0,
+      distance: 100,
+      maxPatternLength: 32,
     });
 
     const results = fuse.search<FuseResult>(searchQuery);
