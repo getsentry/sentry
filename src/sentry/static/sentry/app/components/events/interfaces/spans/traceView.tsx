@@ -37,12 +37,10 @@ type FuseResult = {
   score: number;
 };
 
-type FilterSpans =
-  | {
-      results: FuseResult[];
-      spanIDs: Set<string>;
-    }
-  | undefined;
+export type FilterSpans = {
+  results: FuseResult[];
+  spanIDs: Set<string>;
+};
 
 type Props = {
   event: Readonly<SentryTransactionEvent>;
@@ -51,7 +49,7 @@ type Props = {
 
 type State = {
   parsedTrace: ParsedTraceType;
-  filterSpans: FilterSpans;
+  filterSpans: FilterSpans | undefined;
 };
 
 class TraceView extends React.PureComponent<Props, State> {
@@ -216,7 +214,11 @@ class TraceView extends React.PureComponent<Props, State> {
               trace={parsedTrace}
             >
               {this.renderHeader(dragProps, parsedTrace)}
-              <SpanTree trace={parsedTrace} dragProps={dragProps} />
+              <SpanTree
+                trace={parsedTrace}
+                dragProps={dragProps}
+                filterSpans={this.state.filterSpans}
+              />
             </CursorGuideHandler.Provider>
           );
         }}
