@@ -11,12 +11,12 @@ class RuleNameForm extends React.PureComponent {
         <PanelHeader>{t('Give your rule a name')}</PanelHeader>
         <PanelBody>
           <TextField
-            name={'name'}
-            type={'text'}
+            name="name"
+            type="text"
             label={t('Rule Name')}
             help={t('Give your rule a name so it is easy to manage later')}
             placeholder={t('Something really bad happened')}
-            required={true}
+            required
           />
         </PanelBody>
       </Panel>
