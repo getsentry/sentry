@@ -509,13 +509,16 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
         }
         transform_aliases_and_query(
             selected_columns=["transaction", "transaction.duration"],
-            conditions=[["http_method", "=", "GET"]],
+            conditions=[["http_method", "=", "GET"], ["geo.country_code", "=", "CA"]],
             groupby=["transaction.op"],
             filter_keys={"project_id": [self.project.id]},
         )
         mock_query.assert_called_with(
             selected_columns=["transaction_name", "duration"],
-            conditions=[["tags[http_method]", "=", "GET"]],
+            conditions=[
+                ["tags[http_method]", "=", "GET"],
+                ["contexts[geo.country_code]", "=", "CA"],
+            ],
             filter_keys={"project_id": [self.project.id]},
             groupby=["transaction_op"],
             dataset=Dataset.Transactions,
