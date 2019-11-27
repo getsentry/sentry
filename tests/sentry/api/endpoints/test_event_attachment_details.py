@@ -66,6 +66,20 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         assert response.get("Content-Type") == "application/octet-stream"
         assert "File contents here" == six.BytesIO(b"".join(response.streaming_content)).getvalue()
 
+    def test_delete(self):
+        self.login_as(user=self.user)
+
+        self.create_attachment()
+        path = u"/api/0/projects/{}/{}/events/{}/attachments/{}/".format(
+            self.organization.slug, self.project.slug, self.event.event_id, self.attachment.id
+        )
+
+        with self.feature("organizations:event-attachments"):
+            response = self.client.delete(path)
+
+        assert response.status_code == 204, response.content
+        assert EventAttachment.objects.count() == 0
+
 
 class EventAttachmentDetailsPermissionTest(PermissionTestCase, CreateAttachmentMixin):
     def setUp(self):
