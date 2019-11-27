@@ -23,7 +23,7 @@ type TraceContextType = {
   parent_span_id?: string;
 };
 
-type FilterSpans = {
+type IndexedFusedSpan = {
   span: SpanType;
   indexed: string[];
   tagKeys: string[];
@@ -33,9 +33,16 @@ type FilterSpans = {
 };
 
 type FuseResult = {
-  item: FilterSpans;
+  item: IndexedFusedSpan;
   score: number;
 };
+
+type FilterSpans =
+  | {
+      results: FuseResult[];
+      spanIDs: Set<string>;
+    }
+  | undefined;
 
 type Props = {
   event: Readonly<SentryTransactionEvent>;
@@ -44,12 +51,7 @@ type Props = {
 
 type State = {
   parsedTrace: ParsedTraceType;
-  filterSpans:
-    | {
-        results: FuseResult[];
-        spanIDs: Set<string>;
-      }
-    | undefined;
+  filterSpans: FilterSpans;
 };
 
 class TraceView extends React.PureComponent<Props, State> {
@@ -94,8 +96,8 @@ class TraceView extends React.PureComponent<Props, State> {
 
     const {spans} = parsedTrace;
 
-    const transformed: FilterSpans[] = spans.map(
-      (span): FilterSpans => {
+    const transformed: IndexedFusedSpan[] = spans.map(
+      (span): IndexedFusedSpan => {
         const indexed: string[] = [];
 
         // basic properties
