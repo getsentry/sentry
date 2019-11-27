@@ -1,6 +1,4 @@
-from __future__ import absolute_import, print_function
-
-import six
+from __future__ import absolute_import
 
 from django.db import connections, models
 from django.db.models.signals import pre_migrate
@@ -24,12 +22,6 @@ class CICharField(CIText, models.CharField):
 
 class CIEmailField(CIText, models.EmailField):
     pass
-
-
-if hasattr(models, "SubfieldBase"):
-    CITextField = six.add_metaclass(models.SubfieldBase)(CITextField)
-    CICharField = six.add_metaclass(models.SubfieldBase)(CICharField)
-    CIEmailField = six.add_metaclass(models.SubfieldBase)(CIEmailField)
 
 
 def create_citext_extension(using, **kwargs):
