@@ -5,7 +5,7 @@ import logging
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.http import HttpResponse
-from django.template.loader import get_template
+from django.template import loader
 
 from sentry.api.serializers.base import serialize
 from sentry.auth import access
@@ -92,7 +92,7 @@ def render_to_string(template, context=None, request=None):
         context = dict(context)
         context.update(default_context)
 
-    return get_template(template).render(context, request)
+    return loader.render_to_string(template, context=context, request=request)
 
 
 def render_to_response(template, context=None, request=None, status=200, content_type="text/html"):
