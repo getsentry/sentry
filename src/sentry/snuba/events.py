@@ -57,9 +57,11 @@ class Columns(Enum):
     DEVICE_SIMULATOR = Column("device_simulator", None, "device_simulator", "device.simulator")
     DEVICE_ONLINE = Column("device_online", None, "device_online", "device.online")
     DEVICE_CHARGING = Column("device_charging", None, "device_charging", "device.charging")
-    GEO_COUNTRY_CODE = Column("geo_country_code", None, "geo_country_code", "geo.country_code")
-    GEO_REGION = Column("geo_region", None, "geo_region", "geo.region")
-    GEO_CITY = Column("geo_city", None, "geo_city", "geo.city")
+    GEO_COUNTRY_CODE = Column(
+        "geo_country_code", "contexts[geo.country_code]", "geo_country_code", "geo.country_code"
+    )
+    GEO_REGION = Column("geo_region", "contexts[geo.region]", "geo_region", "geo.region")
+    GEO_CITY = Column("geo_city", "contexts[geo.city]", "geo_city", "geo.city")
     ERROR_TYPE = Column("exception_stacks.type", None, "exception_stacks.type", "error.type")
     ERROR_VALUE = Column("exception_stacks.value", None, "exception_stacks.value", "error.value")
     ERROR_MECHANISM = Column(
