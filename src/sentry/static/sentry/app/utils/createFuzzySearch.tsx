@@ -8,7 +8,10 @@ type FuzzyOptions = {
   keys?: string[] | {name: string; weight: number}[];
 };
 
-export function createFuzzySearch(objects, options: FuzzyOptions = {}): Promise<Fuse> {
+export function createFuzzySearch(
+  objects: any[],
+  options: FuzzyOptions = {}
+): Promise<Fuse> {
   if (!options.keys) {
     throw new Error('You need to define `options.keys`');
   }
