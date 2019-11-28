@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from 'react-emotion';
 
 import Link from 'app/components/links/link';
 import {t} from 'app/locale';
@@ -14,7 +15,8 @@ type Props = {
   projectId: string;
   groupId: string;
   attachment: EventAttachment;
-  onDelete: (url: string) => void;
+  onDelete: (url: string, attachmentId: string) => void;
+  isDeleted: boolean;
 };
 
 class GroupEventAttachmentsTableRow extends React.Component<Props> {
@@ -29,10 +31,10 @@ class GroupEventAttachmentsTableRow extends React.Component<Props> {
   }
 
   render() {
-    const {attachment, projectId, onDelete} = this.props;
+    const {attachment, projectId, onDelete, isDeleted} = this.props;
 
     return (
-      <tr>
+      <TableRow isDeleted={isDeleted}>
         <td>
           <h5>
             {attachment.name}
@@ -56,18 +58,29 @@ class GroupEventAttachmentsTableRow extends React.Component<Props> {
             eventId={attachment.event_id}
             attachment={attachment}
           >
-            {url => (
-              <EventAttachmentActions
-                url={url}
-                onDelete={onDelete}
-                attachmentId={attachment.id}
-              />
-            )}
+            {url =>
+              !isDeleted && (
+                <EventAttachmentActions
+                  url={url}
+                  onDelete={onDelete}
+                  attachmentId={attachment.id}
+                />
+              )
+            }
           </AttachmentUrl>
         </td>
-      </tr>
+      </TableRow>
     );
   }
 }
+
+type TableRowProps = {isDeleted: boolean};
+const TableRow = styled('tr')`
+  opacity: ${(props: TableRowProps) => (props.isDeleted ? 0.3 : 1)};
+  td {
+    text-decoration: ${(props: TableRowProps) =>
+      props.isDeleted ? 'line-through' : 'normal'};
+  }
+`;
 
 export default GroupEventAttachmentsTableRow;

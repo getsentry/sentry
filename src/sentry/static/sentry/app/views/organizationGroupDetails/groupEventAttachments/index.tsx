@@ -11,7 +11,6 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import parseApiError from 'app/utils/parseApiError';
-import GroupStore from 'app/stores/groupStore';
 import {RouterProps, EventAttachment, Group} from 'app/types';
 import {Client} from 'app/api';
 import {deleteEventAttachment} from 'app/actionCreators/group';
@@ -25,13 +24,20 @@ type Props = RouterProps & {
 
 type State = {
   eventAttachmentsList: EventAttachment[];
+  deletedAttachments: string[];
   loading: boolean;
   error: null | string;
   pageLinks: null | string;
 };
 
 class GroupEventAttachments extends React.Component<Props, State> {
-  state = {eventAttachmentsList: [], loading: true, error: null, pageLinks: null};
+  state = {
+    eventAttachmentsList: [],
+    deletedAttachments: [],
+    loading: true,
+    error: null,
+    pageLinks: null,
+  };
 
   componentWillMount() {
     this.fetchData();
@@ -43,16 +49,16 @@ class GroupEventAttachments extends React.Component<Props, State> {
     }
   }
 
-  handleDelete = async (url: string) => {
+  handleDelete = async (url: string, deletedAttachmentId: string) => {
     const {api} = this.props;
-
-    this.setState({
-      loading: true,
-    });
 
     try {
       await deleteEventAttachment(api, url);
-      this.fetchData();
+      this.setState(prevState => {
+        return {
+          deletedAttachments: [...prevState.deletedAttachments, deletedAttachmentId],
+        };
+      });
     } catch (_err) {
       // TODO: Error-handling
     }
@@ -79,7 +85,6 @@ class GroupEventAttachments extends React.Component<Props, State> {
           loading: false,
           pageLinks: jqXHR ? jqXHR.getResponseHeader('Link') : prevState.pageLinks,
         }));
-        GroupStore.updateEventAttachmentsCount(data.length, this.props.params.groupId);
       },
       error: err => {
         this.setState({
@@ -108,14 +113,16 @@ class GroupEventAttachments extends React.Component<Props, State> {
 
   renderResults() {
     const {group, params} = this.props;
+    const {eventAttachmentsList, deletedAttachments} = this.state;
 
     return (
       <GroupEventAttachmentsTable
-        attachments={this.state.eventAttachmentsList}
+        attachments={eventAttachmentsList}
         orgId={params.orgId}
         projectId={group.project.slug}
         groupId={params.groupId}
         onDelete={this.handleDelete}
+        deletedAttachments={deletedAttachments}
       />
     );
   }

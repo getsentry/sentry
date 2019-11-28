@@ -9,12 +9,20 @@ type Props = {
   orgId: string;
   projectId: string;
   groupId: string;
-  onDelete: (url: string) => void;
+  onDelete: (url: string, attachmentId: string) => void;
+  deletedAttachments: string[];
 };
 
 class GroupEventAttachmentsTable extends React.Component<Props> {
   render() {
-    const {attachments, orgId, projectId, groupId, onDelete} = this.props;
+    const {
+      attachments,
+      orgId,
+      projectId,
+      groupId,
+      onDelete,
+      deletedAttachments,
+    } = this.props;
     const tableRowNames = [t('Name'), t('Type'), t('Size'), t('Actions')];
 
     return (
@@ -36,6 +44,7 @@ class GroupEventAttachmentsTable extends React.Component<Props> {
                 projectId={projectId}
                 groupId={groupId}
                 onDelete={onDelete}
+                isDeleted={deletedAttachments.some(id => attachment.id === id)}
               />
             );
           })}
