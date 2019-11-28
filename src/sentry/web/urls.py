@@ -692,5 +692,5 @@ urlpatterns += [
         name="sentry-project-event-redirect",
     ),
     # Legacy
-    url(r"/$", react_page_view),
+    url(r"$", react_page_view),
 ]
