@@ -239,6 +239,31 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
             self.browser.snapshot("events-v2 - errors")
 
+    def test_transactions_query_empty_state(self):
+        with self.feature(FEATURE_NAMES):
+            self.browser.get(self.path + "?" + transactions_query())
+            self.wait_until_loaded()
+            self.browser.snapshot("events-v2 - transactions query - empty state")
+
+        with self.feature(FEATURE_NAMES):
+            # expect table to expand to the right when no tags are provided
+            self.browser.get(self.path + "?" + transactions_query(tag=[]))
+            self.wait_until_loaded()
+            self.browser.snapshot("events-v2 - transactions query - empty state - no tags")
+
+    @patch("django.utils.timezone.now")
+    def test_transactions_query(self, mock_now):
+        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+
+        event_data = generate_transaction()
+
+        self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=True)
+
+        with self.feature(FEATURE_NAMES):
+            self.browser.get(self.path + "?" + transactions_query())
+            self.wait_until_loaded()
+            self.browser.snapshot("events-v2 - transactions query - list")
+
     @patch("django.utils.timezone.now")
     def test_event_detail_view_from_all_events(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
@@ -259,7 +284,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
         with self.feature(FEATURE_NAMES):
             # Get the list page.
-            self.browser.get(self.path + "?" + all_view)
+            self.browser.get(self.path + "?" + all_events_query())
             self.wait_until_loaded()
 
             # Click the event link to open the events detail view
@@ -293,7 +318,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
         with self.feature(FEATURE_NAMES):
             # Get the list page
-            self.browser.get(self.path + "?" + errors_query + "&statsPeriod=24h")
+            self.browser.get(self.path + "?" + errors_query() + "&statsPeriod=24h")
             self.wait_until_loaded()
 
             # Click the event link to open the event detail view
@@ -310,27 +335,8 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             assert self.browser.element_exists_by_test_id("older-event")
             assert self.browser.element_exists_by_test_id("newer-event")
 
-    def test_transactions_query_empty_state(self):
-        with self.feature(FEATURE_NAMES):
-            self.browser.get(self.path + "?" + transactions_query)
-            self.wait_until_loaded()
-            self.browser.snapshot("events-v2 - transactions query - empty state")
-
     @patch("django.utils.timezone.now")
-    def test_transactions_query(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
-
-        event_data = generate_transaction()
-
-        self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=True)
-
-        with self.feature(FEATURE_NAMES):
-            self.browser.get(self.path + "?" + transactions_query)
-            self.wait_until_loaded()
-            self.browser.snapshot("events-v2 - transactions query - list")
-
-    @patch("django.utils.timezone.now")
-    def test_modal_from_transactions_query(self, mock_now):
+    def test_event_detail_view_from_transactions_query(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
 
         event_data = generate_transaction()
@@ -339,14 +345,14 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
         with self.feature(FEATURE_NAMES):
             # Get the list page
-            self.browser.get(self.path + "?" + transactions_query)
+            self.browser.get(self.path + "?" + transactions_query())
             self.wait_until_loaded()
 
-            # Click the event link to open the modal
+            # Click the event link to open the event detail view
             self.browser.element('[aria-label="{}"]'.format(event.title)).click()
             self.wait_until_loaded()
 
-            self.browser.snapshot("events-v2 - transactions query - modal")
+            self.browser.snapshot("events-v2 - transactions event detail view")
 
     # TODO: deferred
     # @patch("django.utils.timezone.now")
