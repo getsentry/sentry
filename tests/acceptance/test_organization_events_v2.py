@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import pytest
 import pytz
 from mock import patch
 
