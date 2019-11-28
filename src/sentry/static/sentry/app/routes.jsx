@@ -1087,7 +1087,7 @@ function routes() {
             component={errorHandler(LazyLoad)}
           />
           <Route
-            path="/organizations/:orgId/issues/:groupId/event-attachments/"
+            path="/organizations/:orgId/issues/:groupId/attachments/"
             componentPromise={() =>
               import(/* webpackChunkName: "GroupEventAttachments" */ 'app/views/organizationGroupDetails/groupEventAttachments/index')
             }

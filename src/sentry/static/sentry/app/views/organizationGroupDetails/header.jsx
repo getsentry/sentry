@@ -219,8 +219,8 @@ class GroupHeader extends React.Component {
           </ListLink>
           {hasEventAttachments && (
             <ListLink
-              to={`${baseUrl}${groupId}/event-attachments/${location.search}`}
-              isActive={() => location.pathname.includes('/event-attachments/')}
+              to={`${baseUrl}${groupId}/attachments/${location.search}`}
+              isActive={() => location.pathname.includes('/attachments/')}
             >
               {t('Attachments')} <Badge text={group.attachmentCount || 0} />
             </ListLink>
