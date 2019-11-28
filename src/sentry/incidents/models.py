@@ -7,7 +7,7 @@ from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 from enum import Enum
 
-from sentry.db.models import FlexibleForeignKey, Model, UUIDField
+from sentry.db.models import FlexibleForeignKey, Model, UUIDField, OneToOneCascadeDeletes
 from sentry.db.models import ArrayField, sane_repr
 from sentry.db.models.manager import BaseManager
 from sentry.models import Team, User
@@ -141,7 +141,7 @@ class Incident(Model):
 class IncidentSnapshot(Model):
     __core__ = True
 
-    incident = models.OneToOneField("sentry.Incident", on_delete=models.CASCADE)
+    incident = OneToOneCascadeDeletes("sentry.Incident")
     event_stats_snapshot = FlexibleForeignKey("sentry.TimeSeriesSnapshot")
     unique_users = models.IntegerField()
     total_events = models.IntegerField()
