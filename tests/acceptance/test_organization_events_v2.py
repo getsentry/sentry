@@ -26,19 +26,22 @@ def all_events_query(**kwargs):
     return urlencode(options, doseq=True)
 
 
-errors_query = urlencode(
-    {
+def errors_query(**kwargs):
+    options = {
         "sort": ["-last_seen", "-title"],
         "name": ["Errors"],
         "fieldnames": ["error", "events", "users", "project", "last seen"],
         "field": ["title", "count(id)", "count_unique(user)", "project", "last_seen"],
         "tag": ["error.type", "project.name"],
         "query": ["event.type:error"],
-    },
-    doseq=True,
-)
-transactions_query = urlencode(
-    {
+    }
+    options.update(kwargs)
+
+    return urlencode(options, doseq=True)
+
+
+def transactions_query(**kwargs):
+    options = {
         "sort": ["-count"],
         "name": ["Transactions"],
         "fieldnames": ["transaction", "project", "volume"],
@@ -46,9 +49,10 @@ transactions_query = urlencode(
         "tag": ["release", "project.name", "user.email", "user.ip", "environment"],
         "statsPeriod": ["14d"],
         "query": ["event.type:transaction"],
-    },
-    doseq=True,
-)
+    }
+    options.update(kwargs)
+
+    return urlencode(options, doseq=True)
 
 
 def generate_transaction():
