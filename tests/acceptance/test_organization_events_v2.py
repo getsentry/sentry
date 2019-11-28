@@ -12,16 +12,19 @@ from sentry.testutils.helpers.datetime import iso_format, before_now
 
 FEATURE_NAMES = ["organizations:events-v2", "organizations:transaction-events"]
 
-all_events_query = urlencode(
-    {
+
+def all_events_query(**kwargs):
+    options = {
         "sort": ["-timestamp"],
         "field": ["title", "event.type", "project", "user", "timestamp"],
         "tag": ["event.type", "release", "project.name", "user.email", "user.ip", "environment"],
         "name": ["All Events"],
         "fieldnames": ["title", "type", "project", "user", "time"],
-    },
-    doseq=True,
-)
+    }
+    options.update(kwargs)
+
+    return urlencode(options, doseq=True)
+
 
 errors_query = urlencode(
     {
@@ -137,7 +140,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
     def test_all_events_query_empty_state(self):
         with self.feature(FEATURE_NAMES):
-            self.browser.get(self.path + "?" + all_events_query)
+            self.browser.get(self.path + "?" + all_events_query())
             self.wait_until_loaded()
             self.browser.snapshot("events-v2 - all events query - empty state")
 
@@ -157,7 +160,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         )
 
         with self.feature(FEATURE_NAMES):
-            self.browser.get(self.path + "?" + all_events_query)
+            self.browser.get(self.path + "?" + all_events_query())
             self.wait_until_loaded()
             self.browser.snapshot("events-v2 - all events query - list")
 
@@ -181,7 +184,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
         with self.feature(FEATURE_NAMES):
             # Get the list page.
-            self.browser.get(self.path + "?" + all_events_query)
+            self.browser.get(self.path + "?" + all_events_query())
             self.wait_until_loaded()
 
             # Click the event link to open the modal
