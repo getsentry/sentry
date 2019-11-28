@@ -400,6 +400,9 @@ const GroupStore = Reflux.createStore({
 
   updateEventAttachmentsCount(count, groupId) {
     const group = this.get(groupId);
+    if (!group) {
+      return;
+    }
 
     group.attachmentCount = count;
 
