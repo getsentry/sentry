@@ -19,7 +19,6 @@ type Props = {
   event: Event;
   orgId: string;
   projectId: string;
-  groupId: string;
 };
 
 type State = {
@@ -33,7 +32,6 @@ class EventAttachments extends React.Component<Props, State> {
     event: PropTypes.object.isRequired,
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
-    groupId: PropTypes.string.isRequired,
   };
 
   state: State = {
@@ -86,10 +84,10 @@ class EventAttachments extends React.Component<Props, State> {
   }
 
   handleDelete = async (url: string, deletedAttachmentId: string) => {
-    const {api, groupId} = this.props;
+    const {api} = this.props;
 
     try {
-      await deleteEventAttachment(api, url, groupId);
+      await deleteEventAttachment(api, url);
       this.setState(prevState => {
         return {
           attachmentList: prevState.attachmentList.filter(

@@ -39,6 +39,7 @@ class GroupAttachmentsEndpoint(GroupEndpoint, EnvironmentMixin):
             attachments = attachments.filter(file__type__in=types)
 
         return self.paginate(
+            default_per_page=20,
             request=request,
             queryset=attachments,
             order_by="-date_added",

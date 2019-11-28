@@ -395,17 +395,6 @@ const GroupStore = Reflux.createStore({
     this.pendingChanges.remove(changeId);
     this.trigger(new Set(itemIds));
   },
-
-  updateEventAttachmentsCount(count, groupId) {
-    const group = this.get(groupId);
-    if (!group) {
-      return;
-    }
-
-    group.attachmentCount = count;
-
-    this.trigger(new Set([groupId]));
-  },
 });
 
 export default GroupStore;

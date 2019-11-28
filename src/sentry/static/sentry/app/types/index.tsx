@@ -367,7 +367,6 @@ export type Group = {
   type: EventOrGroupType;
   userCount: number;
   userReportCount: number;
-  attachmentCount: number;
 };
 
 export type Member = {

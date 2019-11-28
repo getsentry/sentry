@@ -44,14 +44,14 @@ class GroupEventAttachments extends React.Component<Props, State> {
   }
 
   handleDelete = async (url: string) => {
-    const {api, params} = this.props;
+    const {api} = this.props;
 
     this.setState({
       loading: true,
     });
 
     try {
-      await deleteEventAttachment(api, url, params.groupId);
+      await deleteEventAttachment(api, url);
       this.fetchData();
     } catch (_err) {
       // TODO: Error-handling

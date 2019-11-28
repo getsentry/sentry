@@ -192,7 +192,6 @@ export const Group = PropTypes.shape({
   logger: PropTypes.string,
   metadata: Metadata,
   numComments: PropTypes.number,
-  attachmentCount: PropTypes.number,
   permalink: PropTypes.string,
   project: PropTypes.shape({
     name: PropTypes.string,
