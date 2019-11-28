@@ -681,7 +681,7 @@ FIELD_ALIASES = {
     "last_seen": {"aggregations": [["max", "timestamp", "last_seen"]]},
     "latest_event": {"aggregations": [["argMax", ["id", "timestamp"], "latest_event"]]},
     "project": {"fields": ["project.id"]},
-    "user": {"fields": ["user.id", "user.name", "user.username", "user.email", "user.ip"]},
+    "user": {"fields": ["user.id", "user.username", "user.email", "user.ip"]},
     # Long term these will become more complex functions but these are
     # field aliases.
     "apdex": {"result_type": "number", "aggregations": [["apdex(duration, 300)", "", "apdex"]]},
@@ -695,9 +695,9 @@ FIELD_ALIASES = {
             ]
         ],
     },
-    "p75": {"result_type": "duration", "aggregations": [["quantile(0.75)(duration)", "", "p75"]]},
-    "p95": {"result_type": "duration", "aggregations": [["quantile(0.95)(duration)", "", "p95"]]},
-    "p99": {"result_type": "duration", "aggregations": [["quantile(0.99)(duration)", "", "p99"]]},
+    "p75": {"result_type": "duration", "aggregations": [["quantile(0.75)(duration)", None, "p75"]]},
+    "p95": {"result_type": "duration", "aggregations": [["quantile(0.95)(duration)", None, "p95"]]},
+    "p99": {"result_type": "duration", "aggregations": [["quantile(0.99)(duration)", None, "p99"]]},
 }
 
 VALID_AGGREGATES = {
@@ -737,6 +737,10 @@ def resolve_orderby(orderby, fields, aggregations):
     """
     We accept column names, aggregate functions, and aliases as order by
     values. Aggregates and field aliases need to be resolve/validated.
+
+    TODO(mark) Once we're no longer using the dataset selection function
+    should allow all non-tag fields to be used as sort clauses, instead of only
+    those that are currently selected.
     """
     orderby = orderby if isinstance(orderby, (list, tuple)) else [orderby]
     validated = []
@@ -804,7 +808,7 @@ def resolve_field_list(fields, snuba_args):
 
         if match.group("function") == "count":
             # count() is a special function that ignores its column arguments.
-            aggregations.append(["count", "", get_aggregate_alias(match)])
+            aggregations.append(["count", None, get_aggregate_alias(match)])
         else:
             aggregations.append(
                 [
@@ -824,11 +828,12 @@ def resolve_field_list(fields, snuba_args):
         # generates invalid queries.
         if not aggregations and "id" not in columns:
             columns.append("id")
+        if not aggregations and "project.id" not in columns:
             columns.append("project.id")
         if aggregations and "latest_event" not in fields:
             aggregations.extend(deepcopy(FIELD_ALIASES["latest_event"]["aggregations"]))
         if aggregations and "project.id" not in columns:
-            aggregations.append(["argMax", ["project_id", "timestamp"], "projectid"])
+            aggregations.append(["argMax", ["project.id", "timestamp"], "projectid"])
 
     if rollup and columns and not aggregations:
         raise InvalidSearchQuery("You cannot use rollup without an aggregate field.")
