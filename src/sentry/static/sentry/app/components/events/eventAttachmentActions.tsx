@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from 'react-emotion';
 
 import {t} from 'app/locale';
 import Button from 'app/components/button';
@@ -25,18 +26,15 @@ class EventAttachmentActions extends React.Component<Props> {
 
     return (
       <React.Fragment>
-        <Button
+        <DownloadButton
           size="xsmall"
           icon="icon-download"
           href={url ? `${url}?download=1` : ''}
           disabled={!url}
-          style={{
-            marginRight: space(0.5),
-          }}
           title={!url ? t('Insufficient permissions to download attachments') : undefined}
         >
           {t('Download')}
-        </Button>
+        </DownloadButton>
 
         <Confirm
           confirmText={t('Delete')}
@@ -57,5 +55,9 @@ class EventAttachmentActions extends React.Component<Props> {
     );
   }
 }
+
+const DownloadButton = styled(Button)`
+  margin-right: ${space(0.5)};
+`;
 
 export default EventAttachmentActions;
