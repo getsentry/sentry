@@ -222,7 +222,7 @@ class GroupHeader extends React.Component {
               to={`${baseUrl}${groupId}/event-attachments/${location.search}`}
               isActive={() => location.pathname.includes('/event-attachments/')}
             >
-              {t('Event Attachments')} <Badge text={group.attachmentCount || 0} />
+              {t('Attachments')} <Badge text={group.attachmentCount || 0} />
             </ListLink>
           )}
           <ListLink
