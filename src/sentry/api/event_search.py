@@ -566,7 +566,12 @@ def convert_search_filter_to_snuba_query(search_filter):
             operator = "=" if search_filter.operator == "!=" else "!="
             # make message search case insensitive
             return [["positionCaseInsensitive", ["message", "'%s'" % (value,)]], operator, 0]
-
+    elif name.startswith("stack.") or name.startswith("error."):
+        # Escape and convert meta characters for LIKE expressions.
+        raw_value = search_filter.value.raw_value
+        like_value = raw_value.replace("%", "\\%").replace("_", "\\_").replace("*", "%")
+        operator = "LIKE" if search_filter.operator == "==" else "NOT LIKE"
+        return [name, operator, like_value]
     else:
         value = (
             int(to_timestamp(value)) * 1000
