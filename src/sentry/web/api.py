@@ -639,7 +639,7 @@ class StoreView(APIView):
             track_outcome(
                 organization_id, project_id, key.id, Outcome.INVALID, "invalid_transaction"
             )
-            raise APIError(e)
+            raise APIError(e.message.split("\n", 1)[0])
 
         data = event_manager.get_data()
         dict_data = dict(data)
