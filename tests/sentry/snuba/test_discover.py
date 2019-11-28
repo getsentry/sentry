@@ -158,6 +158,28 @@ class QueryTransformTest(TestCase):
         )
 
     @patch("sentry.snuba.discover.raw_query")
+    def test_selected_columns_no_auto_fields(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "user_id"}, {"name": "email"}],
+            "data": [{"user_id": "1", "email": "a@example.org"}],
+        }
+        discover.query(
+            selected_columns=["count()"], query="", params={"project_id": [self.project.id]}
+        )
+        mock_query.assert_called_with(
+            selected_columns=[],
+            aggregations=[["count", None, "count"]],
+            filter_keys={"project_id": [self.project.id]},
+            dataset=Dataset.Discover,
+            end=None,
+            start=None,
+            conditions=[],
+            groupby=[],
+            orderby=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
     def test_selected_columns_aliasing_in_function(self, mock_query):
         mock_query.return_value = {
             "meta": [{"name": "transaction"}, {"name": "duration"}],
