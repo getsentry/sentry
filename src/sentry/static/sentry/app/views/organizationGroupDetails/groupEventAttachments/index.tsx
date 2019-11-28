@@ -15,6 +15,8 @@ import GroupStore from 'app/stores/groupStore';
 import {RouterProps, EventAttachment, Group} from 'app/types';
 import {Client} from 'app/api';
 import {deleteEventAttachment} from 'app/actionCreators/group';
+import Feature from 'app/components/acl/feature';
+import FeatureDisabled from 'app/components/acl/featureDisabled';
 
 type Props = RouterProps & {
   api: Client;
@@ -136,17 +138,18 @@ class GroupEventAttachments extends React.Component<Props, State> {
     return body;
   }
 
-  // TODO: do we need to feature flag protect this entire component/route, or is hiding only the navigation tab enough?
-
   render() {
     return (
-      <div>
+      <Feature
+        features={['event-attachments']}
+        renderDisabled={() => <FeatureDisabled />}
+      >
         <GroupEventAttachmentsFilter />
         <Panel className="event-list">
           <PanelBody>{this.renderBody()}</PanelBody>
         </Panel>
         <Pagination pageLinks={this.state.pageLinks} />
-      </div>
+      </Feature>
     );
   }
 }
