@@ -7,6 +7,7 @@ import FileSize from 'app/components/fileSize';
 import {EventAttachment} from 'app/types';
 import AttachmentUrl from 'app/utils/attachmentUrl';
 import EventAttachmentActions from 'app/components/events/eventAttachmentActions';
+import {types} from 'app/views/organizationGroupDetails/groupEventAttachments/types';
 
 type Props = {
   orgId: string;
@@ -24,12 +25,6 @@ class GroupEventAttachmentsTableRow extends React.Component<Props> {
   }
 
   getAttachmentTypeDisplayName(type: string) {
-    const types = {
-      'event.minidump': t('Minidump'),
-      'event.applecrashreport': t('Apple Crash Report'),
-      'event.attachment': t('Other'),
-    };
-
     return types[type] || t('Other');
   }
 
