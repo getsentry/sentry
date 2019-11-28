@@ -115,10 +115,6 @@ def get_event_attachment(data, attachment_type):
     return next((a for a in attachments if a.type == attachment_type), None)
 
 
-def get_crashreport_key(group_id):
-    return u"cr:%s" % (group_id,)
-
-
 def convert_crashreport_count(value):
     """
     Shim to read both legacy and new `sentry:store_crash_reports` project and

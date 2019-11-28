@@ -1,9 +1,22 @@
 from __future__ import absolute_import
 
+from django.core.cache import cache
 from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import BoundedBigIntegerField, FlexibleForeignKey, Model, sane_repr
+
+
+# Attachment file types that are considered a crash report (PII relevant)
+CRASH_REPORT_TYPES = ("event.minidump", "event.applecrashreport")
+
+
+def get_crashreport_key(group_id):
+    """
+    Returns the ``django.core.cache`` key for groups that have exceeded their
+    configured crash report limit.
+    """
+    return u"cr:%s" % (group_id,)
 
 
 class EventAttachment(Model):
@@ -26,4 +39,10 @@ class EventAttachment(Model):
 
     def delete(self, *args, **kwargs):
         super(EventAttachment, self).delete(*args, **kwargs)
+
+        # Always prune the group cache. Even if there are more crash reports
+        # stored than the now configured limit, the cache will be repopulated
+        # with the next incoming cash report.
+        cache.delete(get_crashreport_key(self.group_id))
+
         self.file.delete()
