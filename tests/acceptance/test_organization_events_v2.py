@@ -182,7 +182,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
     def test_errors_query_empty_state(self):
         with self.feature(FEATURE_NAMES):
-            self.browser.get(self.path + "?" + errors_query)
+            self.browser.get(self.path + "?" + errors_query())
             self.wait_until_loaded()
             self.browser.snapshot("events-v2 - errors query - empty state")
 
