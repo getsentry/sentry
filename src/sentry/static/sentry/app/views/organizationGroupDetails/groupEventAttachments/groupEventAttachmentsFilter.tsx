@@ -3,7 +3,9 @@ import omit from 'lodash/omit';
 import xor from 'lodash/xor';
 import {Link, withRouter} from 'react-router';
 import {WithRouterProps} from 'react-router/lib/withRouter';
+import styled from 'react-emotion';
 
+import space from 'app/styles/space';
 import {t} from 'app/locale';
 
 const GroupEventAttachmentsFilter = (props: WithRouterProps) => {
@@ -17,8 +19,8 @@ const GroupEventAttachmentsFilter = (props: WithRouterProps) => {
   };
 
   return (
-    <div className="text-right">
-      <div className="btn-group" style={{marginBottom: '20px'}}>
+    <FilterWrapper>
+      <div className="btn-group">
         <Link
           to={{pathname, query: allAttachmentsQuery}}
           className={'btn btn-sm btn-default' + (types === undefined ? ' active' : '')}
@@ -35,8 +37,14 @@ const GroupEventAttachmentsFilter = (props: WithRouterProps) => {
           {t('Only Crash Reports')}
         </Link>
       </div>
-    </div>
+    </FilterWrapper>
   );
 };
+
+const FilterWrapper = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: ${space(3)};
+`;
 
 export default withRouter(GroupEventAttachmentsFilter);
