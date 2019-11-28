@@ -72,7 +72,6 @@ def generate_transaction():
 
         return time.mktime(date_time.utctimetuple()) + date_time.microsecond / 1e6
 
-    event_data["breadcrumbs"]["values"][0]["timestamp"] = generate_timestamp(start_datetime)
     event_data["start_timestamp"] = generate_timestamp(start_datetime)
     event_data["timestamp"] = generate_timestamp(end_datetime)
 
