@@ -377,23 +377,38 @@ class EventView {
     });
   }
 
-  static fromSavedQueryWithLocation(
-    saved: NewQuery | LegacySavedQuery,
-    location: Location
-  ): EventView {
+  static fromSavedQueryWithLocation(newQuery: NewQuery, location: Location): EventView {
     const query = location.query;
 
-    saved = {
-      ...saved,
-      start: saved.start || decodeScalar(query.start),
-      end: saved.end || decodeScalar(query.end),
-      range: saved.range || decodeScalar(query.statsPeriod),
+    // apply global selection header values from location whenever possible
+
+    const environment: string[] =
+      Array.isArray(newQuery.environment) && newQuery.environment.length > 0
+        ? newQuery.environment
+        : collectQueryStringByKey(location.query, 'environment');
+
+    const project: number[] =
+      Array.isArray(newQuery.projects) && newQuery.projects.length > 0
+        ? newQuery.projects
+        : decodeProjects(location);
+
+    const saved: NewQuery = {
+      ...newQuery,
+
+      environment,
+      projects: project,
+
+      // datetime selection
+
+      start: newQuery.start || decodeScalar(query.start),
+      end: newQuery.end || decodeScalar(query.end),
+      range: newQuery.range || decodeScalar(query.statsPeriod),
     };
 
     return EventView.fromSavedQuery(saved);
   }
 
-  static fromSavedQuery(saved: NewQuery | LegacySavedQuery): EventView {
+  static fromSavedQuery(saved: NewQuery | SavedQuery): EventView {
     let fields, yAxis;
     if (isLegacySavedQuery(saved)) {
       fields = saved.fields.map(field => {
@@ -428,13 +443,13 @@ class EventView {
       sorts: fromSorts(saved.orderby),
       tags: collectQueryStringByKey(
         {
-          tags: (saved as SavedQuery).tags as string[],
+          tags: saved.tags as string[],
         },
         'tags'
       ),
       environment: collectQueryStringByKey(
         {
-          environment: (saved as SavedQuery).environment as string[],
+          environment: saved.environment as string[],
         },
         'environment'
       ),
