@@ -144,6 +144,12 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
             self.browser.snapshot("events-v2 - all events query - empty state")
 
+        with self.feature(FEATURE_NAMES):
+            # expect table to expand to the right when no tags are provided
+            self.browser.get(self.path + "?" + all_events_query(tag=[]))
+            self.wait_until_loaded()
+            self.browser.snapshot("events-v2 - all events query - empty state - no tags")
+
     @patch("django.utils.timezone.now")
     def test_all_events_query(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
