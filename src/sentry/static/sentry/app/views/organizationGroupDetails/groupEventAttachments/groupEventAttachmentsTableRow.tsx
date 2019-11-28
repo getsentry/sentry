@@ -6,9 +6,7 @@ import DateTime from 'app/components/dateTime';
 import FileSize from 'app/components/fileSize';
 import {EventAttachment} from 'app/types';
 import AttachmentUrl from 'app/utils/attachmentUrl';
-import Button from 'app/components/button';
-import Confirm from 'app/components/confirm';
-import space from 'app/styles/space';
+import EventAttachmentActions from 'app/components/events/eventAttachmentActions';
 
 type Props = {
   orgId: string;
@@ -63,46 +61,7 @@ class GroupEventAttachmentsTableRow extends React.Component<Props> {
             eventId={attachment.event_id}
             attachment={attachment}
           >
-            {url => (
-              <React.Fragment>
-                <Button
-                  size="xsmall"
-                  icon="icon-download"
-                  href={url ? `${url}?download=1` : ''}
-                  disabled={!url}
-                  style={{
-                    marginRight: space(0.5),
-                  }}
-                  title={
-                    !url
-                      ? t('Insufficient permissions to download attachments')
-                      : undefined
-                  }
-                >
-                  {t('Download')}
-                </Button>
-
-                <Confirm
-                  confirmText={t('Delete')}
-                  message={t('Are you sure you wish to delete this file?')}
-                  priority="danger"
-                  onConfirm={() => url && onDelete(url)}
-                  disabled={!url}
-                >
-                  <Button
-                    size="xsmall"
-                    icon="icon-trash"
-                    disabled={!url}
-                    priority="danger"
-                    title={
-                      !url
-                        ? t('Insufficient permissions to delete attachments')
-                        : undefined
-                    }
-                  />
-                </Confirm>
-              </React.Fragment>
-            )}
+            {url => <EventAttachmentActions url={url} onDelete={onDelete} />}
           </AttachmentUrl>
         </td>
       </tr>
