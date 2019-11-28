@@ -1,8 +1,12 @@
 from __future__ import absolute_import
 
+import copy
+import six
 import pytest
 import pytz
+import time
 from mock import patch
+from datetime import timedelta
 
 from six.moves.urllib.parse import urlencode
 
@@ -57,7 +61,6 @@ def transactions_query(**kwargs):
 
 
 def generate_transaction():
-    from datetime import timedelta
 
     event_data = load_data("transaction")
 
@@ -68,7 +71,6 @@ def generate_transaction():
     span_end_datetime = start_datetime + timedelta(milliseconds=250)
 
     def generate_timestamp(date_time):
-        import time
 
         return time.mktime(date_time.utctimetuple()) + date_time.microsecond / 1e6
 
@@ -89,8 +91,6 @@ def generate_transaction():
     }
 
     def build_span_tree(span_tree, spans, parent_span_id):
-        import copy
-        import six
 
         for span_id, child in span_tree.items():
 
