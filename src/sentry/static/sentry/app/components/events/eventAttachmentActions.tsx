@@ -11,8 +11,16 @@ type Props = {
 };
 
 class EventAttachmentActions extends React.Component<Props> {
-  render() {
+  handleDelete = () => {
     const {url, onDelete} = this.props;
+
+    if (url) {
+      onDelete(url);
+    }
+  };
+
+  render() {
+    const {url} = this.props;
 
     return (
       <React.Fragment>
@@ -33,7 +41,7 @@ class EventAttachmentActions extends React.Component<Props> {
           confirmText={t('Delete')}
           message={t('Are you sure you wish to delete this file?')}
           priority="danger"
-          onConfirm={() => url && onDelete(url)}
+          onConfirm={this.handleDelete}
           disabled={!url}
         >
           <Button
