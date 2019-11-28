@@ -235,7 +235,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         )
 
         with self.feature(FEATURE_NAMES):
-            self.browser.get(self.path + "?" + error_view)
+            self.browser.get(self.path + "?" + errors_query())
             self.wait_until_loaded()
             self.browser.snapshot("events-v2 - errors")
 
