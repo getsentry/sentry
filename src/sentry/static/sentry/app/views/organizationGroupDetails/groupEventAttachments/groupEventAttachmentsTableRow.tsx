@@ -29,7 +29,7 @@ class GroupEventAttachmentsTableRow extends React.Component<Props> {
     const types = {
       'event.minidump': t('Minidump'),
       'event.applecrashreport': t('Apple Crash Report'),
-      'event.attachment': t('Attachment'),
+      'event.attachment': t('Other'),
     };
 
     return types[type] || t('Other');
