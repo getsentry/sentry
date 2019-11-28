@@ -967,7 +967,7 @@ class GetSnubaQueryArgsTest(TestCase):
         assert filter.conditions == [
             ["error.value", "LIKE", "Deadlock%"],
             ["stack.filename", "LIKE", "%.py"],
-            ["stack.abs_path", "LIKE", "\\%APP\\_DIR\\%/th\_ing%"],
+            ["stack.abs_path", "LIKE", "\\%APP\\_DIR\\%/th\\_ing%"],
         ]
         assert filter.filter_keys == {}
 
