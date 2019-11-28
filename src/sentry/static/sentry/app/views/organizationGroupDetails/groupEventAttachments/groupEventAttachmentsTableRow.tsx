@@ -61,7 +61,13 @@ class GroupEventAttachmentsTableRow extends React.Component<Props> {
             eventId={attachment.event_id}
             attachment={attachment}
           >
-            {url => <EventAttachmentActions url={url} onDelete={onDelete} />}
+            {url => (
+              <EventAttachmentActions
+                url={url}
+                onDelete={onDelete}
+                attachmentId={attachment.id}
+              />
+            )}
           </AttachmentUrl>
         </td>
       </tr>

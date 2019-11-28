@@ -23,7 +23,7 @@ type Props = {
 };
 
 type State = {
-  attachmentList: EventAttachment[] | null;
+  attachmentList: EventAttachment[];
   expanded: boolean;
 };
 
@@ -37,7 +37,7 @@ class EventAttachments extends React.Component<Props, State> {
   };
 
   state: State = {
-    attachmentList: null,
+    attachmentList: [],
     expanded: false,
   };
 
@@ -80,17 +80,23 @@ class EventAttachments extends React.Component<Props, State> {
     } catch (_err) {
       // TODO: Error-handling
       this.setState({
-        attachmentList: null,
+        attachmentList: [],
       });
     }
   }
 
-  handleDelete = async (url: string) => {
+  handleDelete = async (url: string, deletedAttachmentId: string) => {
     const {api, groupId} = this.props;
 
     try {
       await deleteEventAttachment(api, url, groupId);
-      this.fetchData();
+      this.setState(prevState => {
+        return {
+          attachmentList: prevState.attachmentList.filter(
+            attachment => attachment.id !== deletedAttachmentId
+          ),
+        };
+      });
     } catch (_err) {
       // TODO: Error-handling
     }
@@ -99,7 +105,7 @@ class EventAttachments extends React.Component<Props, State> {
   render() {
     const {attachmentList} = this.state;
 
-    if (!attachmentList || !attachmentList.length) {
+    if (!attachmentList.length) {
       return null;
     }
 
@@ -122,7 +128,11 @@ class EventAttachments extends React.Component<Props, State> {
                       attachment={attachment}
                     >
                       {url => (
-                        <EventAttachmentActions url={url} onDelete={this.handleDelete} />
+                        <EventAttachmentActions
+                          url={url}
+                          onDelete={this.handleDelete}
+                          attachmentId={attachment.id}
+                        />
                       )}
                     </AttachmentUrl>
                   </PanelItem>

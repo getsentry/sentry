@@ -7,15 +7,16 @@ import Confirm from 'app/components/confirm';
 
 type Props = {
   url: string | null;
-  onDelete: (url: string) => void;
+  attachmentId: string;
+  onDelete: (url: string, attachmentId: string) => void;
 };
 
 class EventAttachmentActions extends React.Component<Props> {
   handleDelete = () => {
-    const {url, onDelete} = this.props;
+    const {url, onDelete, attachmentId} = this.props;
 
     if (url) {
-      onDelete(url);
+      onDelete(url, attachmentId);
     }
   };
 
