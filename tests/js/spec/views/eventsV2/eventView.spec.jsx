@@ -368,6 +368,202 @@ describe('EventView.fromSavedQuery()', function() {
   });
 });
 
+describe('EventView.fromNewQueryWithLocation()', function() {
+  const prebuiltQuery = {
+    id: undefined,
+    name: 'All Events',
+    query: '',
+    projects: [],
+    fields: ['title', 'event.type', 'project', 'user', 'timestamp'],
+    fieldnames: ['title', 'type', 'project', 'user', 'time'],
+    orderby: '-timestamp',
+    version: 2,
+    tags: [
+      'event.type',
+      'release',
+      'project.name',
+      'user.email',
+      'user.ip',
+      'environment',
+    ],
+  };
+
+  it('maps basic properties of a prebuilt query', function() {
+    const location = {
+      query: {
+        statsPeriod: '99d',
+      },
+    };
+
+    const eventView = EventView.fromNewQueryWithLocation(prebuiltQuery, location);
+
+    expect(eventView).toMatchObject({
+      id: undefined,
+      name: 'All Events',
+      fields: [
+        {field: 'title', title: 'title'},
+        {field: 'event.type', title: 'type'},
+        {field: 'project', title: 'project'},
+        {field: 'user', title: 'user'},
+        {field: 'timestamp', title: 'time'},
+      ],
+      sorts: [{field: 'timestamp', kind: 'desc'}],
+      tags: [
+        'event.type',
+        'release',
+        'project.name',
+        'user.email',
+        'user.ip',
+        'environment',
+      ],
+      query: '',
+      project: [],
+      start: undefined,
+      end: undefined,
+      // statsPeriod has precedence
+      statsPeriod: '99d',
+      environment: [],
+      yAxis: undefined,
+    });
+  });
+
+  it('merges global selection values', function() {
+    const location = {
+      query: {
+        statsPeriod: '99d',
+        project: ['456'],
+        environment: ['prod'],
+      },
+    };
+
+    const eventView = EventView.fromNewQueryWithLocation(prebuiltQuery, location);
+
+    expect(eventView).toMatchObject({
+      id: undefined,
+      name: 'All Events',
+      fields: [
+        {field: 'title', title: 'title'},
+        {field: 'event.type', title: 'type'},
+        {field: 'project', title: 'project'},
+        {field: 'user', title: 'user'},
+        {field: 'timestamp', title: 'time'},
+      ],
+      sorts: [{field: 'timestamp', kind: 'desc'}],
+      tags: [
+        'event.type',
+        'release',
+        'project.name',
+        'user.email',
+        'user.ip',
+        'environment',
+      ],
+      query: '',
+      project: [456],
+      start: undefined,
+      end: undefined,
+      statsPeriod: '99d',
+      environment: ['prod'],
+      yAxis: undefined,
+    });
+  });
+
+  it('new query takes precedence over global selection values', function() {
+    const location = {
+      query: {
+        statsPeriod: '99d',
+        project: ['456'],
+        environment: ['prod'],
+      },
+    };
+
+    const prebuiltQuery2 = {
+      ...prebuiltQuery,
+      range: '42d',
+      projects: [987],
+      environment: ['staging'],
+    };
+
+    const eventView = EventView.fromNewQueryWithLocation(prebuiltQuery2, location);
+
+    expect(eventView).toMatchObject({
+      id: undefined,
+      name: 'All Events',
+      fields: [
+        {field: 'title', title: 'title'},
+        {field: 'event.type', title: 'type'},
+        {field: 'project', title: 'project'},
+        {field: 'user', title: 'user'},
+        {field: 'timestamp', title: 'time'},
+      ],
+      sorts: [{field: 'timestamp', kind: 'desc'}],
+      tags: [
+        'event.type',
+        'release',
+        'project.name',
+        'user.email',
+        'user.ip',
+        'environment',
+      ],
+      query: '',
+      project: [987],
+      start: undefined,
+      end: undefined,
+      statsPeriod: '42d',
+      environment: ['staging'],
+      yAxis: undefined,
+    });
+
+    // also test start and end
+
+    const location2 = {
+      query: {
+        start: '2019-10-01T00:00:00',
+        end: '2019-10-02T00:00:00',
+        project: ['456'],
+        environment: ['prod'],
+      },
+    };
+
+    const prebuiltQuery3 = {
+      ...prebuiltQuery,
+      start: '2019-10-01T00:00:00',
+      end: '2019-10-02T00:00:00',
+      projects: [987],
+      environment: ['staging'],
+    };
+
+    const eventView2 = EventView.fromNewQueryWithLocation(prebuiltQuery3, location2);
+
+    expect(eventView2).toMatchObject({
+      id: undefined,
+      name: 'All Events',
+      fields: [
+        {field: 'title', title: 'title'},
+        {field: 'event.type', title: 'type'},
+        {field: 'project', title: 'project'},
+        {field: 'user', title: 'user'},
+        {field: 'timestamp', title: 'time'},
+      ],
+      sorts: [{field: 'timestamp', kind: 'desc'}],
+      tags: [
+        'event.type',
+        'release',
+        'project.name',
+        'user.email',
+        'user.ip',
+        'environment',
+      ],
+      query: '',
+      project: [987],
+      start: '2019-10-01T00:00:00.000',
+      end: '2019-10-02T00:00:00.000',
+      statsPeriod: undefined,
+      environment: ['staging'],
+      yAxis: undefined,
+    });
+  });
+});
+
 describe('EventView.generateQueryStringObject()', function() {
   it('skips empty values', function() {
     const eventView = new EventView({
