@@ -75,7 +75,7 @@ class LinkedIssue extends AsyncComponent<
 }
 
 const Section = styled('div')`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${space(4)};
 `;
 
 const StyledIssueCard = styled('div')`
