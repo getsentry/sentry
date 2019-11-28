@@ -36,26 +36,26 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         )
         data = result["data"]
         assert len(data) == 1
-        assert data[0]["id"] == self.event.event_id
         assert data[0]["project.id"] == self.project.id
         assert data[0]["user.email"] == "bruce@example.com"
         assert data[0]["release"] == "first-release"
 
-        assert len(result["meta"]) == 4
+        assert len(result["meta"]) == 3
         assert result["meta"][0] == {"name": "project.id", "type": "UInt64"}
         assert result["meta"][1] == {"name": "user.email", "type": "Nullable(String)"}
         assert result["meta"][2] == {"name": "release", "type": "Nullable(String)"}
-        assert result["meta"][3] == {"name": "id", "type": "FixedString(32)"}
 
     def test_field_aliasing_in_aggregate_functions_and_groupby(self):
         result = discover.query(
             selected_columns=["project.id", "count_unique(user.email)"],
             query="",
             params={"project_id": [self.project.id]},
+            auto_fields=True,
         )
         data = result["data"]
         assert len(data) == 1
         assert data[0]["project.id"] == self.project.id
+        assert data[0]["latest_event"] == self.event.event_id
         assert data[0]["count_unique_user_email"] == 1
 
     def test_field_aliasing_in_conditions(self):
@@ -68,6 +68,39 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert len(data) == 1
         assert data[0]["project.id"] == self.project.id
         assert data[0]["user.email"] == "bruce@example.com"
+
+    def test_auto_fields_simple_fields(self):
+        result = discover.query(
+            selected_columns=["user.email", "release"],
+            query="",
+            params={"project_id": [self.project.id]},
+            auto_fields=True,
+        )
+        data = result["data"]
+        assert len(data) == 1
+        assert data[0]["id"] == self.event.event_id
+        assert data[0]["project.id"] == self.project.id
+        assert data[0]["user.email"] == "bruce@example.com"
+        assert data[0]["release"] == "first-release"
+
+        assert len(result["meta"]) == 4
+        assert result["meta"][0] == {"name": "user.email", "type": "Nullable(String)"}
+        assert result["meta"][1] == {"name": "release", "type": "Nullable(String)"}
+        assert result["meta"][2] == {"name": "id", "type": "FixedString(32)"}
+        assert result["meta"][3] == {"name": "project.id", "type": "UInt64"}
+
+    def test_auto_fields_aggregates(self):
+        result = discover.query(
+            selected_columns=["count_unique(user.email)"],
+            query="",
+            params={"project_id": [self.project.id]},
+            auto_fields=True,
+        )
+        data = result["data"]
+        assert len(data) == 1
+        assert data[0]["projectid"] == self.project.id
+        assert data[0]["latest_event"] == self.event.event_id
+        assert data[0]["count_unique_user_email"] == 1
 
     def test_release_condition(self):
         result = discover.query(
@@ -86,7 +119,6 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         data = result["data"]
         assert data[0]["id"] == self.event.event_id
         assert data[0]["message"] == self.event.message
-        assert data[0]["project.id"] == self.project.id, "project.id should be inserted"
         assert "event_id" not in data[0]
 
     def test_environment_condition(self):
@@ -106,7 +138,6 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         data = result["data"]
         assert data[0]["id"] == self.event.event_id
         assert data[0]["message"] == self.event.message
-        assert data[0]["project.id"] == self.project.id, "project.id should be inserted"
 
 
 class QueryTransformTest(TestCase):
@@ -138,14 +169,7 @@ class QueryTransformTest(TestCase):
             selected_columns=["user", "project"], query="", params={"project_id": [self.project.id]}
         )
         mock_query.assert_called_with(
-            selected_columns=[
-                "user_id",
-                "username",
-                "email",
-                "ip_address",
-                "project_id",
-                "event_id",
-            ],
+            selected_columns=["user_id", "username", "email", "ip_address", "project_id"],
             aggregations=[],
             filter_keys={"project_id": [self.project.id]},
             dataset=Dataset.Discover,
@@ -164,7 +188,10 @@ class QueryTransformTest(TestCase):
             "data": [{"user_id": "1", "email": "a@example.org"}],
         }
         discover.query(
-            selected_columns=["count()"], query="", params={"project_id": [self.project.id]}
+            selected_columns=["count()"],
+            query="",
+            params={"project_id": [self.project.id]},
+            auto_fields=False,
         )
         mock_query.assert_called_with(
             selected_columns=[],
@@ -193,6 +220,7 @@ class QueryTransformTest(TestCase):
             ],
             query="",
             params={"project_id": [self.project.id]},
+            auto_fields=True,
         )
         mock_query.assert_called_with(
             selected_columns=["transaction", "duration"],
@@ -221,6 +249,7 @@ class QueryTransformTest(TestCase):
             selected_columns=["transaction", "p95", "count_unique(transaction)"],
             query="",
             params={"project_id": [self.project.id]},
+            auto_fields=True,
         )
         mock_query.assert_called_with(
             selected_columns=["transaction"],
@@ -253,7 +282,7 @@ class QueryTransformTest(TestCase):
             orderby=["project.id"],
         )
         mock_query.assert_called_with(
-            selected_columns=["project_id", "title", "event_id"],
+            selected_columns=["project_id", "title"],
             filter_keys={"project_id": [self.project.id]},
             dataset=Dataset.Discover,
             orderby=["project_id"],
@@ -293,10 +322,7 @@ class QueryTransformTest(TestCase):
             filter_keys={"project_id": [self.project.id]},
             dataset=Dataset.Discover,
             orderby=["count_id"],
-            aggregations=[
-                ["count", None, "count_id"],
-                ["argMax", ["event_id", "timestamp"], "latest_event"],
-            ],
+            aggregations=[["count", None, "count_id"]],
             end=None,
             start=None,
             conditions=[],
@@ -318,11 +344,7 @@ class QueryTransformTest(TestCase):
         )
         mock_query.assert_called_with(
             selected_columns=["timestamp", "transaction", "duration"],
-            aggregations=[
-                ["count", None, "count"],
-                ["argMax", ["event_id", "timestamp"], "latest_event"],
-                ["argMax", ["project_id", "timestamp"], "projectid"],
-            ],
+            aggregations=[["count", None, "count"]],
             conditions=[
                 ["duration", "=", 200],
                 ["sdk_name", "=", "python"],
@@ -355,11 +377,7 @@ class QueryTransformTest(TestCase):
                 [["match", ["email", "'(?i)^.*\@sentry\.io$'"]], "=", 1],
                 [["positionCaseInsensitive", ["message", "'recent-searches'"]], "!=", 0],
             ],
-            aggregations=[
-                ["count", None, "count"],
-                ["argMax", ["event_id", "timestamp"], "latest_event"],
-                ["argMax", ["project_id", "timestamp"], "projectid"],
-            ],
+            aggregations=[["count", None, "count"]],
             filter_keys={"project_id": [self.project.id]},
             dataset=Dataset.Discover,
             groupby=["transaction"],
@@ -381,7 +399,7 @@ class QueryTransformTest(TestCase):
             params={"project_id": [self.project.id]},
         )
         mock_query.assert_called_with(
-            selected_columns=["transaction", "duration", "event_id", "project_id"],
+            selected_columns=["transaction", "duration"],
             conditions=[["http_method", "=", "GET"]],
             filter_keys={"project_id": [self.project.id]},
             groupby=[],
@@ -407,7 +425,7 @@ class QueryTransformTest(TestCase):
             params={"project_id": [self.project.id], "start": start_time, "end": end_time},
         )
         mock_query.assert_called_with(
-            selected_columns=["transaction", "duration", "event_id", "project_id"],
+            selected_columns=["transaction", "duration"],
             conditions=[["http_method", "=", "GET"]],
             filter_keys={"project_id": [self.project.id]},
             groupby=[],
