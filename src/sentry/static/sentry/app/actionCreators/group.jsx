@@ -148,11 +148,3 @@ export function updateNote(api, group, note, id, oldText) {
 
   return promise;
 }
-
-export function deleteEventAttachment(api, url) {
-  const promise = api.requestPromise(url, {
-    method: 'DELETE',
-  });
-
-  return promise;
-}

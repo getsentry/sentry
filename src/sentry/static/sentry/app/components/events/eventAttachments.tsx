@@ -11,7 +11,6 @@ import AttachmentUrl from 'app/utils/attachmentUrl';
 import FileSize from 'app/components/fileSize';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
-import {deleteEventAttachment} from 'app/actionCreators/group';
 import EventAttachmentActions from 'app/components/events/eventAttachmentActions';
 
 type Props = {
@@ -83,21 +82,14 @@ class EventAttachments extends React.Component<Props, State> {
     }
   }
 
-  handleDelete = async (url: string, deletedAttachmentId: string) => {
-    const {api} = this.props;
-
-    try {
-      await deleteEventAttachment(api, url);
-      this.setState(prevState => {
-        return {
-          attachmentList: prevState.attachmentList.filter(
-            attachment => attachment.id !== deletedAttachmentId
-          ),
-        };
-      });
-    } catch (_err) {
-      // TODO: Error-handling
-    }
+  handleDelete = async (deletedAttachmentId: string) => {
+    this.setState(prevState => {
+      return {
+        attachmentList: prevState.attachmentList.filter(
+          attachment => attachment.id !== deletedAttachmentId
+        ),
+      };
+    });
   };
 
   render() {

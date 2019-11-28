@@ -9,7 +9,7 @@ type Props = {
   orgId: string;
   projectId: string;
   groupId: string;
-  onDelete: (url: string, attachmentId: string) => void;
+  onDelete: (attachmentId: string) => void;
   deletedAttachments: string[];
 };
 

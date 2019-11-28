@@ -13,7 +13,6 @@ import Pagination from 'app/components/pagination';
 import parseApiError from 'app/utils/parseApiError';
 import {RouterProps, EventAttachment, Group} from 'app/types';
 import {Client} from 'app/api';
-import {deleteEventAttachment} from 'app/actionCreators/group';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 
@@ -49,19 +48,12 @@ class GroupEventAttachments extends React.Component<Props, State> {
     }
   }
 
-  handleDelete = async (url: string, deletedAttachmentId: string) => {
-    const {api} = this.props;
-
-    try {
-      await deleteEventAttachment(api, url);
-      this.setState(prevState => {
-        return {
-          deletedAttachments: [...prevState.deletedAttachments, deletedAttachmentId],
-        };
-      });
-    } catch (_err) {
-      // TODO: Error-handling
-    }
+  handleDelete = (deletedAttachmentId: string) => {
+    this.setState(prevState => {
+      return {
+        deletedAttachments: [...prevState.deletedAttachments, deletedAttachmentId],
+      };
+    });
   };
 
   fetchData = () => {

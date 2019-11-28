@@ -5,19 +5,30 @@ import {t} from 'app/locale';
 import Button from 'app/components/button';
 import space from 'app/styles/space';
 import Confirm from 'app/components/confirm';
+import withApi from 'app/utils/withApi';
+import {Client} from 'app/api';
 
 type Props = {
+  api: Client;
   url: string | null;
   attachmentId: string;
-  onDelete: (url: string, attachmentId: string) => void;
+  onDelete: (attachmentId: string) => void;
 };
 
 class EventAttachmentActions extends React.Component<Props> {
-  handleDelete = () => {
-    const {url, onDelete, attachmentId} = this.props;
+  handleDelete = async () => {
+    const {api, url, onDelete, attachmentId} = this.props;
 
     if (url) {
-      onDelete(url, attachmentId);
+      try {
+        await api.requestPromise(url, {
+          method: 'DELETE',
+        });
+
+        onDelete(attachmentId);
+      } catch (_err) {
+        // TODO: Error-handling
+      }
     }
   };
 
@@ -60,4 +71,4 @@ const DownloadButton = styled(Button)`
   margin-right: ${space(0.5)};
 `;
 
-export default EventAttachmentActions;
+export default withApi(EventAttachmentActions);

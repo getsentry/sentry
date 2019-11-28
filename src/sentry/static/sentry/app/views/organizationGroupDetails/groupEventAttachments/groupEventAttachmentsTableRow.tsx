@@ -15,7 +15,7 @@ type Props = {
   projectId: string;
   groupId: string;
   attachment: EventAttachment;
-  onDelete: (url: string, attachmentId: string) => void;
+  onDelete: (attachmentId: string) => void;
   isDeleted: boolean;
 };
 
