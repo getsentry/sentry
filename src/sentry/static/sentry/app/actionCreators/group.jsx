@@ -148,3 +148,19 @@ export function updateNote(api, group, note, id, oldText) {
 
   return promise;
 }
+
+export function deleteEventAttachment(api, url, groupId) {
+  const promise = api.requestPromise(url, {
+    method: 'DELETE',
+  });
+
+  promise.then(() => {
+    const currentGroup = GroupStore.get(groupId);
+
+    if (currentGroup && currentGroup.attachmentCount > 0) {
+      GroupStore.updateEventAttachmentsCount(currentGroup.attachmentCount - 1, groupId);
+    }
+  });
+
+  return promise;
+}

@@ -12,12 +12,15 @@ import Button from 'app/components/button';
 import FileSize from 'app/components/fileSize';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
+import Confirm from 'app/components/confirm';
+import {deleteEventAttachment} from 'app/actionCreators/group';
 
 type Props = {
   api: Client;
   event: Event;
   orgId: string;
   projectId: string;
+  groupId: string;
 };
 
 type State = {
@@ -31,6 +34,7 @@ class EventAttachments extends React.Component<Props, State> {
     event: PropTypes.object.isRequired,
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
+    groupId: PropTypes.string.isRequired,
   };
 
   state: State = {
@@ -82,6 +86,17 @@ class EventAttachments extends React.Component<Props, State> {
     }
   }
 
+  async handleDelete(url: string) {
+    const {api, groupId} = this.props;
+
+    try {
+      await deleteEventAttachment(api, url, groupId);
+      this.fetchData();
+    } catch (_err) {
+      // TODO: Error-handling
+    }
+  }
+
   render() {
     const {attachmentList} = this.state;
 
@@ -108,19 +123,44 @@ class EventAttachments extends React.Component<Props, State> {
                       attachment={attachment}
                     >
                       {url => (
-                        <Button
-                          size="xsmall"
-                          icon="icon-download"
-                          href={url ? `${url}?download=1` : ''}
-                          disabled={!url}
-                          title={
-                            !url
-                              ? t('Insufficient permissions to download attachments')
-                              : undefined
-                          }
-                        >
-                          {t('Download')}
-                        </Button>
+                        <React.Fragment>
+                          <Button
+                            size="xsmall"
+                            icon="icon-download"
+                            href={url ? `${url}?download=1` : ''}
+                            disabled={!url}
+                            style={{
+                              marginRight: space(0.5),
+                            }}
+                            title={
+                              !url
+                                ? t('Insufficient permissions to download attachments')
+                                : undefined
+                            }
+                          >
+                            {t('Download')}
+                          </Button>
+
+                          <Confirm
+                            confirmText={t('Delete')}
+                            message={t('Are you sure you wish to delete this file?')}
+                            priority="danger"
+                            onConfirm={() => url && this.handleDelete(url)}
+                            disabled={!url}
+                          >
+                            <Button
+                              size="xsmall"
+                              icon="icon-trash"
+                              disabled={!url}
+                              priority="danger"
+                              title={
+                                !url
+                                  ? t('Insufficient permissions to delete attachments')
+                                  : undefined
+                              }
+                            />
+                          </Confirm>
+                        </React.Fragment>
                       )}
                     </AttachmentUrl>
                   </PanelItem>

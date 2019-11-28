@@ -210,7 +210,12 @@ class EventEntries extends React.Component {
         {!objectIsEmpty(event.packages) && <EventPackageData event={event} />}
         {!objectIsEmpty(event.device) && <EventDevice event={event} />}
         {!isShare && features.has('event-attachments') && (
-          <EventAttachments event={event} orgId={orgId} projectId={project.slug} />
+          <EventAttachments
+            event={event}
+            orgId={orgId}
+            projectId={project.slug}
+            groupId={group.id}
+          />
         )}
         {!objectIsEmpty(event.sdk) && <EventSdk event={event} />}
         {!isShare && event.sdkUpdates && event.sdkUpdates.length > 0 && (

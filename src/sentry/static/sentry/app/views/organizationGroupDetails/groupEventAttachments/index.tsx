@@ -14,6 +14,7 @@ import parseApiError from 'app/utils/parseApiError';
 import GroupStore from 'app/stores/groupStore';
 import {RouterProps, EventAttachment, Group} from 'app/types';
 import {Client} from 'app/api';
+import {deleteEventAttachment} from 'app/actionCreators/group';
 
 type Props = RouterProps & {
   api: Client;
@@ -34,25 +35,25 @@ class GroupEventAttachments extends React.Component<Props, State> {
     this.fetchData();
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: Props) {
     if (this.props.location.search !== prevProps.location.search) {
       this.fetchData();
     }
   }
 
-  handleDelete = (url: string | null) => {
-    if (!url) {
-      return;
-    }
+  handleDelete = async (url: string) => {
+    const {api, params} = this.props;
 
     this.setState({
       loading: true,
     });
 
-    this.props.api.request(url, {
-      method: 'DELETE',
-      complete: () => this.fetchData(),
-    });
+    try {
+      await deleteEventAttachment(api, url, params.groupId);
+      this.fetchData();
+    } catch (_err) {
+      // TODO: Error-handling
+    }
   };
 
   fetchData = () => {

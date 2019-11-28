@@ -15,7 +15,7 @@ type Props = {
   projectId: string;
   groupId: string;
   attachment: EventAttachment;
-  onDelete: (url: string | null) => void;
+  onDelete: (url: string) => void;
 };
 
 class GroupEventAttachmentsTableRow extends React.Component<Props> {
@@ -86,7 +86,7 @@ class GroupEventAttachmentsTableRow extends React.Component<Props> {
                   confirmText={t('Delete')}
                   message={t('Are you sure you wish to delete this file?')}
                   priority="danger"
-                  onConfirm={() => onDelete(url)}
+                  onConfirm={() => url && onDelete(url)}
                   disabled={!url}
                 >
                   <Button
