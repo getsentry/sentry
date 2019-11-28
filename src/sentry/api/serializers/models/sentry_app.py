@@ -16,7 +16,6 @@ class SentryAppSerializer(Serializer):
             "name": obj.name,
             "slug": obj.slug,
             "author": obj.author,
-            "datePublished": obj.date_published,
             "scopes": obj.get_scopes(),
             "events": consolidate_events(obj.events),
             "status": obj.get_status_display(),
@@ -29,6 +28,9 @@ class SentryAppSerializer(Serializer):
             "overview": obj.overview,
             "allowedOrigins": obj.application.get_allowed_origins(),
         }
+
+        if obj.get_status_display() == "published" and obj.date_published:
+            data.update({"datePublished": obj.date_published})
 
         if is_active_superuser(env.request) or (
             hasattr(user, "get_orgs") and obj.owner in user.get_orgs()

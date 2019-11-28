@@ -461,11 +461,11 @@ export type SentryApp = {
     elements?: SentryAppSchemaElement[];
   };
   //possible null params
-  datePublished: string | null;
   webhookUrl: string | null;
   redirectUrl: string | null;
   overview: string | null;
   //optional params below
+  datePublished?: string;
   clientId?: string;
   clientSecret?: string;
   owner?: {
