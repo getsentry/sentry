@@ -89,8 +89,8 @@ const QueryCardHeader = styled('div')`
   position: relative;
   padding: ${space(1.5)} ${space(2)};
   overflow: hidden;
-  min-height: 68px;
-  line-height: 1.6;
+  min-height: 62px;
+  line-height: 1.4;
 `;
 
 const StyledInlineSvg = styled(InlineSvg)`
