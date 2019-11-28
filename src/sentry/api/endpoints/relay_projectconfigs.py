@@ -60,7 +60,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
 
         with Hub.current.start_span(op="relay_fetch_keys"):
             project_keys = {}
-            for key in ProjectKey.objects.filter(project_id__in=project_ids):
+            for key in ProjectKey.objects.get_many_from_cache(project_ids, key="project_id"):
                 project_keys.setdefault(key.project_id, []).append(key)
 
         metrics.timing("relay_project_configs.projects_requested", len(project_ids))

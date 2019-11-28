@@ -63,7 +63,12 @@ class ProjectKey(Model):
     rate_limit_count = BoundedPositiveIntegerField(null=True)
     rate_limit_window = BoundedPositiveIntegerField(null=True)
 
-    objects = BaseManager(cache_fields=("public_key", "secret_key"))
+    objects = BaseManager(
+        cache_fields=("public_key", "secret_key"),
+        # store projectkeys in memcached for longer than other models,
+        # specifically to make the relay_projectconfig endpoint faster.
+        cache_ttl=60 * 30,
+    )
 
     data = JSONField()
 
