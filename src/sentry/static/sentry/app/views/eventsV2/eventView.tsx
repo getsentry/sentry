@@ -377,7 +377,7 @@ class EventView {
     });
   }
 
-  static fromSavedQueryWithLocation(newQuery: NewQuery, location: Location): EventView {
+  static fromNewQueryWithLocation(newQuery: NewQuery, location: Location): EventView {
     const query = location.query;
 
     // apply global selection header values from location whenever possible

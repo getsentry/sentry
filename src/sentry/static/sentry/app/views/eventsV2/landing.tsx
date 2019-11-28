@@ -145,7 +145,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
 
     const {location} = this.props;
 
-    const eventView = EventView.fromSavedQueryWithLocation(DEFAULT_EVENT_VIEW, location);
+    const eventView = EventView.fromNewQueryWithLocation(DEFAULT_EVENT_VIEW, location);
 
     const to = {
       pathname: location.pathname,

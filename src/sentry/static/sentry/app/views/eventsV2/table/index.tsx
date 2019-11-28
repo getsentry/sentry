@@ -57,7 +57,7 @@ class Table extends React.PureComponent<TableProps, TableState> {
     const {location, eventView} = this.props;
 
     if (!eventView.isValid()) {
-      const nextEventView = EventView.fromSavedQueryWithLocation(
+      const nextEventView = EventView.fromNewQueryWithLocation(
         DEFAULT_EVENT_VIEW,
         location
       );
