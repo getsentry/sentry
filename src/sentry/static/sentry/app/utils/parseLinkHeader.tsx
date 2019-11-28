@@ -1,7 +1,7 @@
 export default function parseLinkHeader(
   header: string | null
 ): {[key: string]: {href: string; results: boolean | null; cursor: string}} {
-  if (header === null) {
+  if (header === null || header === '') {
     return {};
   }
 
