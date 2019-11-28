@@ -612,7 +612,6 @@ export type RouterProps = {
 };
 
 export type ActiveExperiments = {
-  ImprovedInvitesExperiment: 'none' | 'all' | 'join_request' | 'invite_request';
   TrialUpgradeV2Experiment: 'upgrade' | 'trial' | -1;
 };
 
