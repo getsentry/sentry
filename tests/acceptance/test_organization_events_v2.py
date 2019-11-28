@@ -365,34 +365,35 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
             self.browser.snapshot("events-v2 - transactions query - modal")
 
-    @patch("django.utils.timezone.now")
-    def test_usage(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+    # TODO: deferred
+    # @patch("django.utils.timezone.now")
+    # def test_usage(self, mock_now):
+    #     mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
 
-        # TODO: load events
+    #     # TODO: load events
 
-        # go to landing
+    #     # go to landing
 
-        # go to a precanned query
+    #     # go to a precanned query
 
-        # save query 1
+    #     # save query 1
 
-        # add environment column
+    #     # add environment column
 
-        # update query
+    #     # update query
 
-        # add condition from facet map
+    #     # add condition from facet map
 
-        # delete a column
+    #     # delete a column
 
-        # click and drag a column
+    #     # click and drag a column
 
-        # save as query 2
+    #     # save as query 2
 
-        # load save query 1
+    #     # load save query 1
 
-        # sort column
+    #     # sort column
 
-        # update query
+    #     # update query
 
-        # delete save query 1
+    #     # delete save query 1
