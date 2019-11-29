@@ -5,7 +5,7 @@ from datetime import datetime
 from django.utils import timezone
 
 from sentry import options
-from sentry.snuba.utils import Dataset
+from sentry.utils.snuba import Dataset
 from sentry.search.snuba.backend import GroupsDatasetSnubaSearchBackend
 from tests.snuba.search.test_backend import EventsSnubaSearchTest
 
