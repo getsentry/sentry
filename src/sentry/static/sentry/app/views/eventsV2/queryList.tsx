@@ -37,10 +37,17 @@ class QueryList extends React.Component<Props> {
     event.preventDefault();
     event.stopPropagation();
 
-    const {api, organization, onQueryChange} = this.props;
+    const {api, organization, onQueryChange, location, savedQueries} = this.props;
 
     handleDeleteQuery(api, organization, eventView).then(() => {
-      onQueryChange();
+      if (savedQueries.length === 1) {
+        browserHistory.push({
+          pathname: location.pathname,
+          query: {...location.query, cursor: undefined},
+        });
+      } else {
+        onQueryChange();
+      }
     });
   };
 
@@ -153,6 +160,7 @@ class QueryList extends React.Component<Props> {
         <QueryCard
           key={`${index}-${eventView.id}`}
           to={to}
+          starred
           title={eventView.name}
           subtitle={eventView.statsPeriod ? recentTimeline : customTimeline}
           queryDetail={eventView.query}

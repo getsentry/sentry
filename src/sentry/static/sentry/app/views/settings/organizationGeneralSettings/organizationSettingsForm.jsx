@@ -3,6 +3,7 @@ import React from 'react';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {updateOrganization} from 'app/actionCreators/organizations';
+import AsyncComponent from 'app/components/asyncComponent';
 import AvatarChooser from 'app/components/avatarChooser';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
@@ -11,7 +12,7 @@ import SentryTypes from 'app/sentryTypes';
 import organizationSettingsFields from 'app/data/forms/organizationGeneralSettings';
 import withOrganization from 'app/utils/withOrganization';
 
-class OrganizationSettingsForm extends React.Component {
+class OrganizationSettingsForm extends AsyncComponent {
   static propTypes = {
     location: PropTypes.object,
     organization: SentryTypes.Organization,
@@ -21,8 +22,14 @@ class OrganizationSettingsForm extends React.Component {
     onSave: PropTypes.func.isRequired,
   };
 
+  getEndpoints() {
+    const {orgId} = this.props;
+    return [['authProvider', `/organizations/${orgId}/auth-provider/`]];
+  }
+
   render() {
     const {initialData, organization, orgId, onSave, access} = this.props;
+    const {authProvider} = this.state;
     const endpoint = `/organizations/${orgId}/`;
     return (
       <Form
@@ -42,7 +49,7 @@ class OrganizationSettingsForm extends React.Component {
       >
         <PermissionAlert />
         <JsonForm
-          experiments={organization.experiments}
+          additionalFieldProps={{hasSsoEnabled: !!authProvider}}
           features={new Set(organization.features)}
           access={access}
           location={this.props.location}
