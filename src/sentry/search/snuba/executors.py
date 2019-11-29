@@ -630,9 +630,8 @@ class SnubaOnlyQueryExecutor(AbstractQueryExecutor):
             if not release:
                 # TODO: This means there will be no results and we do not need to run this query!
                 # right now it could lead to undesired results...if -1 is a real release id
-                converted_filter[
-                    2
-                ] = -1  # this is a number im hoping will never be a real release id
+                # -1 is a number I'm hoping will never be a real release id
+                converted_filter[2] = -1
             else:
                 converted_filter[2] = release[0].id
 
