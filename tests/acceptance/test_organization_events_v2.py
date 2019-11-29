@@ -63,6 +63,7 @@ def transactions_query(**kwargs):
 def generate_transaction():
 
     event_data = load_data("transaction")
+    event_data.update({"event_id": "a" * 32})
 
     # set timestamps
 
