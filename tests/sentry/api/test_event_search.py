@@ -960,6 +960,17 @@ class GetSnubaQueryArgsTest(TestCase):
             [["match", ["release", "'(?i)^\\\\.*$'"]], "=", 1]
         ]
 
+    def test_wildcard_array_field(self):
+        filter = get_filter(
+            "error.value:Deadlock* stack.filename:*.py stack.abs_path:%APP_DIR%/th_ing*"
+        )
+        assert filter.conditions == [
+            ["error.value", "LIKE", "Deadlock%"],
+            ["stack.filename", "LIKE", "%.py"],
+            ["stack.abs_path", "LIKE", "\\%APP\\_DIR\\%/th\\_ing%"],
+        ]
+        assert filter.filter_keys == {}
+
     def test_has(self):
         assert get_filter("has:release").conditions == [[["isNull", ["release"]], "!=", 1]]
 
