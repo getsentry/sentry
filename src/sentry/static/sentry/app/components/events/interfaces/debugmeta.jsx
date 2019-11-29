@@ -13,6 +13,7 @@ import InlineSvg from 'app/components/inlineSvg';
 import Input from 'app/components/forms/input';
 import {Panel, PanelBody, PanelItem} from 'app/components/panels';
 import Tooltip from 'app/components/tooltip';
+import DebugMetaStore from 'app/stores/debugMetaStore.jsx';
 
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
@@ -308,6 +309,20 @@ class DebugMetaInterface extends React.PureComponent {
     };
   }
 
+  componentDidMount() {
+    this.unsubscribeFromStore = DebugMetaStore.listen(this.onStoreChange);
+  }
+  componentWillUnmount() {
+    this.unsubscribeFromStore();
+  }
+  onStoreChange = store => {
+    this.setState({
+      filter: store.filter,
+      showUnused: store.showUnused,
+      showDetails: store.showDetails,
+    });
+  };
+
   filterImage(image) {
     const {showUnused, filter} = this.state;
     if (!filter || filter.length < MIN_FILTER_LEN) {
@@ -413,6 +428,7 @@ class DebugMetaInterface extends React.PureComponent {
         </Label>
 
         <SearchBox
+          value={filter}
           onChange={this.handleChangeFilter}
           placeholder={t('Search loaded images\u2026')}
         />

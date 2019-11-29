@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
 import styled, {css} from 'react-emotion';
+import scrollToElement from 'scroll-to-element';
 
 import {defined, objectIsEmpty, isUrl} from 'app/utils';
 import {t} from 'app/locale';
@@ -17,6 +18,7 @@ import OpenInContextLine from 'app/components/events/interfaces/openInContextLin
 import space from 'app/styles/space';
 import ErrorBoundary from 'app/components/errorBoundary';
 import withSentryAppComponents from 'app/utils/withSentryAppComponents';
+import {DebugMetaActions} from 'app/stores/debugMetaStore';
 
 export function trimPackage(pkg) {
   const pieces = pkg.split(/^([a-z]:\\|\\\\)/i.test(pkg) ? '\\' : '/');
@@ -377,17 +379,15 @@ export class Frame extends React.Component {
     if (this.props.data.trust === 'scan' || this.props.data.trust === 'cfi-scan') {
       return t('Found by stack scanning');
     }
-    if (this.getPlatform() === 'cocoa') {
-      const func = this.props.data.function || '<unknown>';
-      if (func.match(/^@objc\s/)) {
-        return t('Objective-C -> Swift shim frame');
-      }
-      if (func === '<redacted>') {
-        return t('Unknown system frame. Usually from beta SDKs');
-      }
-      if (func.match(/^__?hidden#\d+/)) {
-        return t('Hidden function from bitcode build');
-      }
+    const func = this.props.data.function || '<unknown>';
+    if (func.match(/^@objc\s/)) {
+      return t('Objective-C -> Swift shim frame');
+    }
+    if (func === '<redacted>') {
+      return t('Unknown system frame. Usually from beta SDKs');
+    }
+    if (func.match(/^__?hidden#\d+/)) {
+      return t('Hidden function from bitcode build');
     }
     return null;
   }
@@ -471,6 +471,16 @@ export class Frame extends React.Component {
                   </a>
                 </Tooltip>
               ) : null}
+              {data.symbolicatorStatus === 'missing' && (
+                <button
+                  onClick={() => {
+                    DebugMetaActions.updateFilter(data.instructionAddr);
+                    scrollToElement('#packages');
+                  }}
+                >
+                  Go to image
+                </button>
+              )}
             </span>
           </NativeLineContent>
           {this.renderExpander()}
