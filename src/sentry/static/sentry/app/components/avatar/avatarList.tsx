@@ -2,11 +2,31 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled, {css} from 'react-emotion';
 
+import {User} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
 import Avatar from 'app/components/avatar';
+import {RenderTooltipFunc} from 'app/components/avatar/userAvatar';
 import Tooltip from 'app/components/tooltip';
 
-export default class AvatarList extends React.Component {
+const defaultProps = {
+  avatarSize: 28,
+  maxVisibleAvatars: 5,
+  typeMembers: 'users',
+  tooltipOptions: {},
+};
+
+type DefaultProps = Readonly<typeof defaultProps>;
+
+type Props = {
+  className?: string;
+  users: User[];
+  renderTooltip?: RenderTooltipFunc;
+  tooltipOptions: {
+    position: string;
+  };
+} & DefaultProps;
+
+export default class AvatarList extends React.Component<Props> {
   static propTypes = {
     users: PropTypes.arrayOf(SentryTypes.User).isRequired,
     avatarSize: PropTypes.number,
@@ -16,12 +36,7 @@ export default class AvatarList extends React.Component {
     typeMembers: PropTypes.string,
   };
 
-  static defaultProps = {
-    avatarSize: 28,
-    maxVisibleAvatars: 5,
-    typeMembers: 'users',
-    tooltipOptions: {},
-  };
+  static defaultProps = defaultProps;
 
   render() {
     const {
@@ -89,7 +104,7 @@ const StyledAvatar = styled(Avatar)`
   ${Circle};
 `;
 
-const CollapsedUsers = styled('div')`
+const CollapsedUsers = styled('div')<{size: number}>`
   display: flex;
   align-items: center;
   justify-content: center;
