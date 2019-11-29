@@ -181,11 +181,20 @@ class SnubaSearchBackendBase(SearchBackend):
         )
 
     @abstractmethod
-    def build_group_queryset(self, *args, **kwargs):
+    def build_group_queryset(
+        self, projects, environments, search_filters, retention_window_start, date_from, date_to
+    ):
+        """This method should return a QuerySet of the Group model.
+        How you implement it is up to you, but we generally take in the various search parameters
+        and filter Group's down using the field's we want to query on in Postgres."""
         raise NotImplementedError
 
     @abstractmethod
-    def get_query_executor(self, *args, **kwargs):
+    def get_query_executor(
+        self, group_queryset, projects, environments, search_filters, date_from, date_to
+    ):
+        """This method should return an implementation of the AbstractQueryExecutor
+        We will end up calling .query() on the class returned by this method"""
         raise NotImplementedError
 
 
@@ -254,9 +263,6 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
         # TODO: It's possible `first_release` could be handled by Snuba.
         if environments is not None:
             environment_ids = [environment.id for environment in environments]
-            # group_queryset = group_queryset.filter(
-            #     groupenvironment__environment_id__in=environment_ids
-            # )
             queryset_conditions.update(
                 {
                     "first_release": QCallbackCondition(

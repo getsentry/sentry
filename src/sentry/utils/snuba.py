@@ -1157,7 +1157,6 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
         "tags[sentry:release]": (Release, "version", identity),
         "release": (Release, "version", identity),
     }
-
     for col, (model, field, fmt) in six.iteritems(map_columns):
         fwd, rev = None, None
         ids = filter_keys.get(col)

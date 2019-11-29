@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta, abstractmethod, abstractproperty
 
 import logging
 import time
@@ -48,22 +48,42 @@ class AbstractQueryExecutor:
     which can now just build query parameters and use the appropriate query executor to run the query
     """
 
-    EMPTY_RESULT = Paginator(Group.objects.none()).get_result()
     TABLE_ALIAS = ""
+
+    @abstractproperty
+    def aggregation_defs(self):
+        """This method should return a dict of key:value
+        where key is a field name for your aggregation
+        and value is the aggregation function"""
+        raise NotImplementedError
+
+    @abstractproperty
+    def dependency_aggregations(self):
+        """This method should return a dict of key:value
+        where key is an aggregation_def field name
+        and value is a list of aggregation field names that the 'key' aggregation requires."""
+        raise NotImplementedError
+
+    @property
+    def empty_result(self):
+        return Paginator(Group.objects.none()).get_result()
+
+    @property
+    @abstractmethod
+    def dataset(self):
+        """"This function should return an enum from snuba.Dataset (like snuba.Dataset.Events)"""
+        raise NotImplementedError
 
     @abstractmethod
     def query(self, *args, **kwargs):
+        """This function runs your actual query and returns the results
+        We usually return a paginator object, which contains the results and the number of hits"""
         raise NotImplementedError
 
     @abstractmethod
     def calculate_hits(self, *args, **kwargs):
+        """This method should return an integer representing the number of hits (results) of your search."""
         raise NotImplementedError
-
-    def _get_dataset(self):
-        if not self.QUERY_DATASET:
-            raise NotImplementedError
-        else:
-            return self.QUERY_DATASET
 
     def snuba_search(
         self,
@@ -108,7 +128,6 @@ class AbstractQueryExecutor:
             converted_filter, converted_name = self._transform_converted_filter(
                 search_filter, converted_filter, project_ids, environment_ids
             )
-            # field_name = self.TABLE_ALIAS + search_filter.key.name
             # Ensure that no user-generated tags that clashes with aggregation_defs is added to having
             if converted_name in self.aggregation_defs and not search_filter.key.is_tag:
                 having.append(converted_filter)
@@ -147,7 +166,7 @@ class AbstractQueryExecutor:
             referrer = "search"
 
         snuba_results = snuba.dataset_query(
-            dataset=self._get_dataset(),
+            dataset=self.dataset,
             start=start,
             end=end,
             selected_columns=selected_columns,
@@ -183,7 +202,6 @@ class AbstractQueryExecutor:
 
 
 class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
-    QUERY_DATASET = snuba.Dataset.Events
     ISSUE_FIELD_NAME = "issue"
 
     logger = logging.getLogger("sentry.search.postgressnuba")
@@ -218,6 +236,11 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         "total": ["uniq", ISSUE_FIELD_NAME],
     }
 
+    @property
+    @abstractmethod
+    def dataset(self):
+        return snuba.Dataset.Events
+
     def query(
         self,
         projects,
@@ -232,8 +255,6 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         search_filters,
         date_from,
         date_to,
-        *args,
-        **kwargs
     ):
 
         now = timezone.now()
@@ -285,13 +306,13 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # so this entire search was against a time range that is outside of
             # retention. We'll return empty results to maintain backwards compatibility
             # with Django search (for now).
-            return self.EMPTY_RESULT
+            return self.empty_result
 
         if start >= end:
             # TODO: This maintains backwards compatibility with Django search, but
             # in the future we should find a way to notify the user that their search
             # is invalid.
-            return self.EMPTY_RESULT
+            return self.empty_result
 
         # Here we check if all the django filters reduce the set of groups down
         # to something that we can send down to Snuba in a `group_id IN (...)`
@@ -303,7 +324,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         if not group_ids:
             # no matches could possibly be found from this point on
             metrics.incr("snuba.search.no_candidates", skip_internal=False)
-            return self.EMPTY_RESULT
+            return self.empty_result
         elif len(group_ids) > max_candidates:
             # If the pre-filter query didn't include anything to significantly
             # filter down the number of results (from 'first_release', 'query',
@@ -326,7 +347,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         num_chunks = 0
         hits = None
 
-        paginator_results = self.EMPTY_RESULT
+        paginator_results = self.empty_result
         result_groups = []
         result_group_ids = set()
 
@@ -527,7 +548,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             if snuba_count == 0:
                 return (
                     0
-                )  # Maybe check for 0 hits and return EMPTY_RESULT in ::query? self.EMPTY_RESULT
+                )  # Maybe check for 0 hits and return EMPTY_RESULT in ::query? self.empty_result
             else:
                 filtered_count = group_queryset.filter(
                     id__in=[gid for gid, _ in snuba_groups]
@@ -542,14 +563,12 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
 
 
 class SnubaOnlyQueryExecutor(AbstractQueryExecutor):
-    QUERY_DATASET = snuba.Dataset.Groups
     TABLE_ALIAS = "events."
     ISSUE_FIELD_NAME = TABLE_ALIAS + "issue"
     logger = logging.getLogger("sentry.search.snubagroups")
 
-    # TODO: Define these using table alias somehow?
+    # TODO: Define these variables using table alias somehow?
     # Since I think that is the only difference, other than issue_only_fields having less items
-
     dependency_aggregations = {"priority": ["events.last_seen", "times_seen"]}
     issue_only_fields = set(
         ["query", "bookmarked_by", "assigned_to", "unassigned", "subscribed_by"]
@@ -569,6 +588,11 @@ class SnubaOnlyQueryExecutor(AbstractQueryExecutor):
         "priority": ["toUInt64(plus(multiply(log(times_seen), 600), `events.last_seen`))", ""],
         "total": ["uniq", ISSUE_FIELD_NAME],
     }
+
+    @property
+    @abstractmethod
+    def dataset(self):
+        return snuba.Dataset.Groups
 
     def _transform_converted_filter(
         self, search_filter, converted_filter, project_ids=None, environment_ids=None
@@ -636,8 +660,6 @@ class SnubaOnlyQueryExecutor(AbstractQueryExecutor):
         search_filters,
         date_from,
         date_to,
-        *args,
-        **kwargs
     ):
 
         now = timezone.now()
@@ -657,10 +679,10 @@ class SnubaOnlyQueryExecutor(AbstractQueryExecutor):
         end = max([retention_date, end])
 
         if start == retention_date and end == retention_date:
-            return self.EMPTY_RESULT
+            return self.empty_result
 
         if start >= end:
-            return self.EMPTY_RESULT
+            return self.empty_result
 
         sort_field = self.sort_strategies[sort_by]
         chunk_growth = options.get("snuba.search.chunk-growth-rate")
@@ -670,7 +692,7 @@ class SnubaOnlyQueryExecutor(AbstractQueryExecutor):
         num_chunks = 0
         hits = None
 
-        paginator_results = self.EMPTY_RESULT
+        paginator_results = self.empty_result
         result_groups = []
         result_group_ids = set()
 

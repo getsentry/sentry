@@ -811,9 +811,6 @@ class SnubaTestCase(BaseTestCase):
     def to_snuba_time_format(self, datetime_value):
         date_format = "%Y-%m-%d %H:%M:%S%z"
         return datetime_value.strftime(date_format)
-        # datetime_value = datetime_value.replace(microsecond=0).isoformat().replace("+00:00", "")
-        # datetime_value = datetime.datetime.fromtimestamp(datetime_value / 1000)
-        # return datetime_value
 
     def __wrap_group(self, group):
         return {
@@ -822,35 +819,47 @@ class SnubaTestCase(BaseTestCase):
             "table": "sentry_groupedmessage",
             "columnnames": [
                 "id",
-                # "logger",
-                # "level",
-                # "message",
-                # "view",
+                "logger",
+                "level",
+                "message",
                 "status",
-                # "times_seen",
+                "times_seen",
                 "last_seen",
                 "first_seen",
-                # "data",
-                # "score",
+                "data",
+                "score",
                 "project_id",
-                # '"time_spent_total",
-                # "time_spent_count",
-                # "resolved_at",
+                "time_spent_total",
+                "time_spent_count",
+                "resolved_at",
                 "active_at",
-                # "is_public",
-                # "platform",
-                # '"num_comments",
+                "is_public",
+                "platform",
+                "num_comments",
                 "first_release_id",
-                # "short_id"
+                "short_id",
             ],
             "columnvalues": [
                 group.id,
+                group.logger,
+                group.level,
+                group.message,
                 group.status,
+                group.times_seen,
                 self.to_snuba_time_format(group.last_seen),
                 self.to_snuba_time_format(group.first_seen),
+                group.data,
+                group.score,
                 group.project.id,
+                group.time_spent_total,
+                group.time_spent_count,
+                group.resolved_at,
                 self.to_snuba_time_format(group.active_at),
+                group.is_public,
+                group.platform,
+                group.num_comments,
                 group.first_release.id if group.first_release else None,
+                group.short_id,
             ],
         }
 

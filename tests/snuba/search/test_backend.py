@@ -517,8 +517,8 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
             limit=1,
             count_hits=True,
         )
-        # assert list(results) == [self.group2]
-        # assert results.hits == 2
+        assert list(results) == [self.group2]
+        assert results.hits == 2
 
         results = self.backend.query(
             [self.project],
@@ -531,16 +531,16 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
         assert list(results) == [self.group1]
         assert results.hits == 2
 
-        # results = self.backend.query(
-        #     [self.project],
-        #     environments=[self.environments["production"]],
-        #     sort_by="date",
-        #     limit=1,
-        #     cursor=results.next,
-        #     count_hits=True,
-        # )
-        # assert list(results) == []
-        # assert results.hits == 2
+        results = self.backend.query(
+            [self.project],
+            environments=[self.environments["production"]],
+            sort_by="date",
+            limit=1,
+            cursor=results.next,
+            count_hits=True,
+        )
+        assert list(results) == []
+        assert results.hits == 2
 
     def test_active_at_filter(self):
         results = self.make_query(
