@@ -855,7 +855,7 @@ def resolve_field_list(fields, snuba_args, auto_fields=True):
     }
 
 
-def find_reference_event(organization, snuba_args, reference_event_slug, fields):
+def find_reference_event(organization, reference_event_slug, fields):
     try:
         project_slug, event_id = reference_event_slug.split(":")
     except ValueError:
@@ -883,6 +883,8 @@ def get_reference_event_conditions(organization, snuba_args, event_slug):
 
     This is a key part of pagination in the event details modal and
     summary graph navigation.
+
+    :deprecated: To be replaced with sentry.snuba.discover.create_reference_event_conditions
     """
     groupby = snuba_args.get("groupby", [])
     columns = get_columns_from_aliases(groupby)
@@ -890,7 +892,7 @@ def get_reference_event_conditions(organization, snuba_args, event_slug):
 
     # Fetch the reference event ensuring the fields in the groupby
     # clause are present.
-    event_data = find_reference_event(organization, snuba_args, event_slug, columns)
+    event_data = find_reference_event(organization, event_slug, columns)
 
     conditions = []
     tags = {}
