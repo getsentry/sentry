@@ -769,7 +769,7 @@ def get_aggregate_alias(match):
     return u"{}_{}".format(match.group("function"), column).rstrip("_")
 
 
-def resolve_field_list(fields, snuba_args):
+def resolve_field_list(fields, snuba_args, auto_fields=True):
     """
     Expand a list of fields based on aliases and aggregate functions.
 
@@ -819,7 +819,7 @@ def resolve_field_list(fields, snuba_args):
             )
 
     rollup = snuba_args.get("rollup")
-    if not rollup:
+    if not rollup and auto_fields:
         # Ensure fields we require to build a functioning interface
         # are present. We don't add fields when using a rollup as the additional fields
         # would be aggregated away. When there are aggregations
