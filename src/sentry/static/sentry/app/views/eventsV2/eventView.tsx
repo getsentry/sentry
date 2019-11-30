@@ -7,7 +7,6 @@ import omit from 'lodash/omit';
 import moment from 'moment';
 
 import {DEFAULT_PER_PAGE} from 'app/constants';
-import {SavedQuery as LegacySavedQuery} from 'app/views/discover/types';
 import {SavedQuery, NewQuery} from 'app/types';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 
@@ -261,27 +260,9 @@ const decodeScalar = (
   return isString(unwrapped) ? unwrapped : undefined;
 };
 
-function isLegacySavedQuery(
-  query: LegacySavedQuery | NewQuery
-): query is LegacySavedQuery {
-  return (query as LegacySavedQuery).conditions !== undefined;
-}
-
-const queryStringFromSavedQuery = (saved: NewQuery | LegacySavedQuery): string => {
-  if (!isLegacySavedQuery(saved) && saved.query) {
+const queryStringFromSavedQuery = (saved: NewQuery | SavedQuery): string => {
+  if (saved.query) {
     return saved.query || '';
-  }
-  if (isLegacySavedQuery(saved) && saved.conditions) {
-    const conditions = saved.conditions.map(item => {
-      const [field, op, value] = item;
-      let operator = op;
-      // TODO handle all the other operator types
-      if (operator === '=') {
-        operator = '';
-      }
-      return field + ':' + operator + value;
-    });
-    return conditions.join(' ');
   }
   return '';
 };
@@ -410,19 +391,11 @@ class EventView {
 
   static fromSavedQuery(saved: NewQuery | SavedQuery): EventView {
     let fields, yAxis;
-    if (isLegacySavedQuery(saved)) {
-      fields = saved.fields.map(field => {
-        return {field, title: field};
-      });
-      yAxis = undefined;
-    } else {
-      fields = saved.fields.map((field, i) => {
-        const title =
-          saved.fieldnames && saved.fieldnames[i] ? saved.fieldnames[i] : field;
-        return {field, title};
-      });
-      yAxis = saved.yAxis;
-    }
+    fields = saved.fields.map((field, i) => {
+      const title = saved.fieldnames && saved.fieldnames[i] ? saved.fieldnames[i] : field;
+      return {field, title};
+    });
+    yAxis = saved.yAxis;
 
     // normalize datetime selection
     const {start, end, statsPeriod} = getParams({
