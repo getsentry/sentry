@@ -59,7 +59,8 @@ const InlinePre = styled('pre')`
 `;
 
 const FixedWidth = styled('span')`
-  width: 12em;
+  width: 11em;
+  display: inline-block;
   text-align: right;
 `;
 
