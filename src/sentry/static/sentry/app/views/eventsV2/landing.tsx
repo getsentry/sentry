@@ -115,7 +115,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
 
     const queryParams = {
       cursor,
-      query: `version:2 ${searchQuery}`,
+      query: `version:2 name:"${searchQuery}"`,
       per_page: perPage,
       sortBy: '-dateUpdated',
     };
