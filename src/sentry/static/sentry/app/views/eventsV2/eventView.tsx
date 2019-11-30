@@ -390,7 +390,7 @@ class EventView {
   }
 
   static fromSavedQuery(saved: NewQuery | SavedQuery): EventView {
-    let fields, yAxis;
+    const fields, yAxis;
     fields = saved.fields.map((field, i) => {
       const title = saved.fieldnames && saved.fieldnames[i] ? saved.fieldnames[i] : field;
       return {field, title};
