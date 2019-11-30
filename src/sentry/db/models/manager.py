@@ -76,7 +76,7 @@ class BaseManager(Manager):
     def __init__(self, *args, **kwargs):
         self.cache_fields = kwargs.pop("cache_fields", [])
         self.cache_ttl = kwargs.pop("cache_ttl", 60 * 5)
-        self.cache_version = kwargs.pop("cache_version", None)
+        self._cache_version = kwargs.pop("cache_version", None)
         self.__local_cache = threading.local()
         super(BaseManager, self).__init__(*args, **kwargs)
 
@@ -115,10 +115,13 @@ class BaseManager(Manager):
     def _set_cache(self, value):
         self.__local_cache.value = value
 
-    def _generate_cache_version(self):
-        return md5_text("&".join(sorted(f.attname for f in self.model._meta.fields))).hexdigest()[
-            :3
-        ]
+    @property
+    def cache_version(self):
+        if self._cache_version is None:
+            self._cache_version = md5_text(
+                "&".join(sorted(f.attname for f in self.model._meta.fields))
+            ).hexdigest()[:3]
+        return self._cache_version
 
     __cache = property(_get_cache, _set_cache)
 
@@ -142,9 +145,6 @@ class BaseManager(Manager):
 
         if not self.cache_fields:
             return
-
-        if not self.cache_version:
-            self.cache_version = self._generate_cache_version()
 
         post_init.connect(self.__post_init, sender=sender, weak=False)
         post_save.connect(self.__post_save, sender=sender, weak=False)
