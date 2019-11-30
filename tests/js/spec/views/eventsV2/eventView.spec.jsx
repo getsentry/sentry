@@ -174,12 +174,12 @@ describe('EventView.fromLocation()', function() {
 });
 
 describe('EventView.fromSavedQuery()', function() {
-  it('maps basic properties of legacy query', function() {
+  it('maps basic properties of saved query', function() {
     const saved = {
       id: '42',
       name: 'best query',
       fields: ['count()', 'id'],
-      conditions: [['event.type', '=', 'transaction']],
+      query: 'event.type:transaction',
       projects: [123],
       range: '14d',
       start: '2019-10-01T00:00:00',
@@ -257,15 +257,6 @@ describe('EventView.fromSavedQuery()', function() {
     };
 
     expect(eventView).toMatchObject(expected);
-  });
-
-  it('maps equality conditions', function() {
-    const saved = {
-      fields: ['count()', 'id'],
-      conditions: [['event.type', '=', 'error']],
-    };
-    const eventView = EventView.fromSavedQuery(saved);
-    expect(eventView.query).toEqual('event.type:error');
   });
 
   it('maps properties from v2 saved query', function() {
