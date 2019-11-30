@@ -390,12 +390,11 @@ class EventView {
   }
 
   static fromSavedQuery(saved: NewQuery | SavedQuery): EventView {
-    const fields, yAxis;
-    fields = saved.fields.map((field, i) => {
+    const fields = saved.fields.map((field, i) => {
       const title = saved.fieldnames && saved.fieldnames[i] ? saved.fieldnames[i] : field;
       return {field, title};
     });
-    yAxis = saved.yAxis;
+    const yAxis = saved.yAxis;
 
     // normalize datetime selection
     const {start, end, statsPeriod} = getParams({
