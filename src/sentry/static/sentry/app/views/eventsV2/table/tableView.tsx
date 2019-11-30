@@ -6,6 +6,11 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import GridEditable from 'app/components/gridEditable';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
+import {
+  tokenizeSearch,
+  stringifyQueryObject,
+  QueryResults,
+} from 'app/utils/tokenizeSearch';
 
 import {
   getFieldRenderer,
@@ -438,7 +443,7 @@ const ExpandAggregateRow = (props: {
 
             const nextEventView = eventView.clone();
 
-            const additionalSearchConditions: string[] = [];
+            const additionalSearchConditions: {[key: string]: string[]} = {};
 
             nextEventView.fields = nextEventView.fields.map(
               (field: Field): Field => {
@@ -468,18 +473,31 @@ const ExpandAggregateRow = (props: {
                 const value = dataRow[dataKey];
 
                 if (value) {
-                  additionalSearchConditions.push(
-                    `${currentExplodedField.field}:"${value}"`
-                  );
+                  additionalSearchConditions[currentExplodedField.field] = [
+                    String(value).trim(),
+                  ];
                 }
 
                 return field;
               }
             );
 
-            nextEventView.query = `${
-              nextEventView.query
-            } ${additionalSearchConditions.join(' ')}`.trim();
+            const tokenized: QueryResults = tokenizeSearch(nextEventView.query);
+
+            // merge tokenized and additionalSearchConditions together
+            Object.keys(additionalSearchConditions).forEach(key => {
+              const hasCommonKey =
+                Array.isArray(tokenized[key]) &&
+                Array.isArray(additionalSearchConditions[key]);
+              if (hasCommonKey) {
+                tokenized[key] = [...tokenized[key], ...additionalSearchConditions[key]];
+                return;
+              }
+
+              tokenized[key] = additionalSearchConditions[key];
+            });
+
+            nextEventView.query = stringifyQueryObject(tokenized);
 
             pushEventViewToLocation({
               location,
