@@ -21,6 +21,7 @@ import {ColumnValueType} from '../eventQueryParams';
 import DraggableColumns, {
   DRAGGABLE_COLUMN_CLASSNAME_IDENTIFIER,
 } from './draggableColumns';
+import {AGGREGATE_ALIASES} from '../data';
 
 export type TableViewProps = {
   location: Location;
@@ -411,7 +412,7 @@ class TableView extends React.Component<TableViewProps> {
   }
 }
 
-const UNSEARCHABLE_FIELDS = ['p99', 'p75', 'p95', 'last_seen'];
+const UNSEARCHABLE_FIELDS: string[] = [...AGGREGATE_ALIASES];
 
 const ExpandAggregateRow = (props: {
   children: React.ReactNode;
