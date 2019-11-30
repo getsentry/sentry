@@ -114,6 +114,8 @@ class QueryList extends React.Component<Props> {
         pathname: location.pathname,
         query: {
           ...location.query,
+          // remove any landing page cursor
+          cursor: undefined,
           ...eventView.generateQueryStringObject(),
         },
       };
@@ -167,6 +169,8 @@ class QueryList extends React.Component<Props> {
         pathname: location.pathname,
         query: {
           ...location.query,
+          // remove any landing page cursor
+          cursor: undefined,
           ...eventView.generateQueryStringObject(),
         },
       };
