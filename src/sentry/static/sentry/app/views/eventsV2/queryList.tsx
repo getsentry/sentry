@@ -89,8 +89,9 @@ class QueryList extends React.Component<Props> {
     const {location, organization, savedQuerySearchQuery} = this.props;
     const views = getPrebuiltQueries(organization);
 
-    const needleSearch = savedQuerySearchQuery.toLowerCase();
-    const hasSearchQuery = savedQuerySearchQuery && savedQuerySearchQuery.length > 0;
+    const hasSearchQuery =
+      typeof savedQuerySearchQuery === 'string' && savedQuerySearchQuery.length > 0;
+    const needleSearch = hasSearchQuery ? savedQuerySearchQuery.toLowerCase() : '';
 
     const list = views.map((view, index) => {
       const eventView = EventView.fromNewQueryWithLocation(view, location);
