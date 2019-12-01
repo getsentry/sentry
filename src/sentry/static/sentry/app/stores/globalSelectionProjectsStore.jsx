@@ -30,7 +30,7 @@ const GlobalSelectionProjectsStore = Reflux.createStore({
   },
 
   onFetchSelectorProjectsSuccess(projects, hasMore) {
-    this.projects = [...this.projects, projects];
+    this.projects = [...this.projects, ...projects];
     this.initiallyLoaded = true;
     this.fetching = false;
     this.dirty = false;
@@ -55,6 +55,7 @@ const GlobalSelectionProjectsStore = Reflux.createStore({
   get() {
     return {
       projects: this.projects,
+      error: this.error,
       initiallyLoaded: this.initiallyLoaded,
       fetching: this.fetching,
       dirty: this.dirty,
