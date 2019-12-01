@@ -4,7 +4,6 @@ import uniqBy from 'lodash/uniqBy';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import GlobalSelectionProjectActions from 'app/actions/globalSelectionProjectActions';
 import ProjectActions from 'app/actions/projectActions';
 import ProjectsStore from 'app/stores/projectsStore';
 import SentryTypes from 'app/sentryTypes';
@@ -38,10 +37,6 @@ class Projects extends React.Component {
     // Whether to fetch all the projects in the organization of which the user
     // has access to
     allProjects: PropTypes.bool,
-
-    // Whether to fetch projects for the global selection header and store them
-    // in the globalSelectionProjectsStore
-    globalSelectionProjects: PropTypes.bool,
   };
 
   state = {
@@ -167,7 +162,7 @@ class Projects extends React.Component {
    * results using search
    */
   loadAllProjects = async () => {
-    const {api, orgId, limit, allProjects, globalSelectionProjects} = this.props;
+    const {api, orgId, limit, allProjects} = this.props;
 
     this.setState({
       fetching: true,
@@ -177,7 +172,6 @@ class Projects extends React.Component {
       const {results, hasMore, nextCursor} = await fetchProjects(api, orgId, {
         limit,
         allProjects,
-        globalSelectionProjects,
       });
 
       this.setState({
@@ -209,7 +203,7 @@ class Projects extends React.Component {
    * @param {Boolean} options.append Results should be appended to existing list (otherwise, will replace)
    */
   handleSearch = async (search, {append} = {}) => {
-    const {api, orgId, limit, globalSelectionProjects} = this.props;
+    const {api, orgId, limit} = this.props;
     const {prevSearch} = this.state;
     const cursor = this.state.nextCursor;
 
@@ -221,7 +215,6 @@ class Projects extends React.Component {
         limit,
         prevSearch,
         cursor,
-        globalSelectionProjects,
       });
 
       this.setState(state => {
@@ -293,7 +286,7 @@ export default withProjects(withApi(Projects));
 async function fetchProjects(
   api,
   orgId,
-  {slugs, search, limit, prevSearch, cursor, allProjects, globalSelectionProjects} = {}
+  {slugs, search, limit, prevSearch, cursor, allProjects} = {}
 ) {
   const query = {};
 
@@ -327,10 +320,6 @@ async function fetchProjects(
     query.all_projects = 1;
   }
 
-  if (globalSelectionProjects) {
-    GlobalSelectionProjectActions.fetchSelectorProjects();
-  }
-
   let hasMore = false;
   let nextCursor = null;
   const [results, _, xhr] = await api.requestPromise(
@@ -353,11 +342,6 @@ async function fetchProjects(
   // populate the projects store if all projects were fetched
   if (allProjects) {
     ProjectActions.loadProjects(results);
-  }
-
-  // populate the selection store if global selection projects were fetched
-  if (globalSelectionProjects) {
-    GlobalSelectionProjectActions.fetchSelectorProjectsSuccess(results, hasMore);
   }
 
   return {
