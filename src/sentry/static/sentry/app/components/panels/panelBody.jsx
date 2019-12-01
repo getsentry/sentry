@@ -20,7 +20,7 @@ const PanelBody = ({className, disablePadding, flex, direction, ...props}) => {
     <Comp
       className={cx(padding, textClassName, className)}
       {...props}
-      flexDirection={flexDirection}
+      {...(flexDirection ? {flexDirection} : null)}
     />
   );
 };
