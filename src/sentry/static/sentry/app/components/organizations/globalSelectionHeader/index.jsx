@@ -526,11 +526,15 @@ class GlobalSelectionHeader extends React.Component {
             {({projects, initiallyLoaded, hasMore, onSearch, fetching}) => {
               const paginatedProjectSelectorCallbacks = {
                 onScroll: ({clientHeight, scrollHeight, scrollTop}) => {
+                  // check if no new projects are being fetched and the user has
+                  // scrolled far enough to fetch a new page of projects
                   if (
                     !fetching &&
                     scrollTop + clientHeight >= scrollHeight - clientHeight
                   ) {
-                    onSearch(this.state.searchQuery, {append: true});
+                    this.searchDispatcher(onSearch, this.state.searchQuery, {
+                      append: true,
+                    });
                   }
                 },
                 onFilterChange: event => {
@@ -548,12 +552,12 @@ class GlobalSelectionHeader extends React.Component {
                   forceProject={forceProject}
                   projects={loadingProjects ? projects : memberProjects}
                   loadingProjects={!initiallyLoaded && loadingProjects}
-                  {...(loadingProjects ? paginatedProjectSelectorCallbacks : {})}
                   nonMemberProjects={nonMemberProjects}
                   value={this.state.projects || this.props.selection.projects}
                   onChange={this.handleChangeProjects}
                   onUpdate={this.handleUpdateProjects}
                   multi={this.hasMultipleProjectSelection()}
+                  {...(loadingProjects ? paginatedProjectSelectorCallbacks : {})}
                 />
               );
             }}
