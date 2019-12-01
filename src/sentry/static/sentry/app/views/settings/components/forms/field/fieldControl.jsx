@@ -1,4 +1,4 @@
-import {Box, Flex} from 'grid-emotion';
+import {Box, Flex} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -72,7 +72,7 @@ class FieldControl extends React.Component {
           <FieldControlStyled alignRight={alignRight}>{children}</FieldControlStyled>
 
           {disabled && disabledReason && (
-            <Flex align="center" ml={1} className="disabled-indicator">
+            <Flex alignItems="center" ml={1} className="disabled-indicator">
               <Tooltip title={disabledReason}>
                 <StyledInlineSvg src="icon-circle-question" size="18px" />
               </Tooltip>

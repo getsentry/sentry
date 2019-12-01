@@ -1,4 +1,4 @@
-import {Box, Flex} from 'grid-emotion';
+import {Box, Flex} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -133,9 +133,14 @@ class IntegrationDetailsModal extends React.Component<Props> {
 
     return (
       <React.Fragment>
-        <Flex align="center" mb={2}>
+        <Flex alignItems="center" mb={2}>
           <PluginIcon pluginId={provider.key} size={50} />
-          <Flex pl={1} align="flex-start" direction="column" justify="center">
+          <Flex
+            pl={1}
+            alignItems="flex-start"
+            flexDirection="column"
+            justifyContent="center"
+          >
             <ProviderName data-test-id="provider-name">
               {t('%s Integration', provider.name)}
             </ProviderName>
@@ -190,7 +195,7 @@ class IntegrationDetailsModal extends React.Component<Props> {
 }
 
 const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
-  <Flex align="center" flex={1} {...p}>
+  <Flex alignItems="center" flex={1} {...p}>
     <InlineSvg src="icon-circle-exclamation" size="1.5em" />
     <Box ml={1}>{reason}</Box>
   </Flex>

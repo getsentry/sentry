@@ -1,4 +1,4 @@
-import {Box} from 'grid-emotion';
+import {Box} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -83,9 +83,9 @@ class AuditLogList extends React.Component {
             <Box flex="1" pl={2}>
               {t('Member')}
             </Box>
-            <Box w={150}>{t('Action')}</Box>
-            <Box w={130}>{t('IP')}</Box>
-            <Box w={150} px={1}>
+            <Box width={150}>{t('Action')}</Box>
+            <Box width={130}>{t('IP')}</Box>
+            <Box width={150} px={1}>
               {t('Time')}
             </Box>
           </PanelHeader>
@@ -98,7 +98,7 @@ class AuditLogList extends React.Component {
             {hasEntries &&
               entries.map(entry => {
                 return (
-                  <PanelItem p={0} align="center" key={entry.id}>
+                  <PanelItem p={0} alignItems="center" key={entry.id}>
                     <UserInfo flex="1" p={2}>
                       <div>
                         {entry.actor.email && (
@@ -114,8 +114,8 @@ class AuditLogList extends React.Component {
                         <Note>{entry.note}</Note>
                       </NameContainer>
                     </UserInfo>
-                    <Box w={150}>{entry.event}</Box>
-                    <Box w={130}>
+                    <Box width={150}>{entry.event}</Box>
+                    <Box width={130}>
                       <Tooltip
                         title={entry.ipAddress}
                         disabled={entry.ipAddress && entry.ipAddress.length <= ipv4Length}
@@ -123,7 +123,7 @@ class AuditLogList extends React.Component {
                         <OverflowBox>{entry.ipAddress}</OverflowBox>
                       </Tooltip>
                     </Box>
-                    <Box w={150} p={1}>
+                    <Box width={150} p={1}>
                       <DateTime date={entry.dateCreated} />
                     </Box>
                   </PanelItem>

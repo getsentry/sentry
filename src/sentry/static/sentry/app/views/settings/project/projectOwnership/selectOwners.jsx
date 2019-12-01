@@ -1,5 +1,5 @@
 import debounce from 'lodash/debounce';
-import {Flex} from 'grid-emotion';
+import {Flex} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
@@ -137,7 +137,7 @@ export default class SelectOwners extends React.Component {
       ...this.createMentionableTeam(team),
       disabled: true,
       label: (
-        <Flex justify="space-between">
+        <Flex justifyContent="space-between">
           <DisabledLabel>
             <Tooltip
               position="left"

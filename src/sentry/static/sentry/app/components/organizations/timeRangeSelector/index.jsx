@@ -1,4 +1,3 @@
-import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import moment from 'moment';
@@ -414,7 +413,8 @@ const Menu = styled('div')`
   overflow: hidden;
 `;
 
-const SelectorList = styled(({isAbsoluteSelected, ...props}) => <Flex {...props} />)`
+const SelectorList = styled('div')`
+  display: flex;
   flex: 1;
   flex-direction: column;
   flex-shrink: 0;

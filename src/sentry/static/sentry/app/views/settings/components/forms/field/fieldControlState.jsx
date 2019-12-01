@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'react-emotion';
-import {Flex} from 'grid-emotion';
+import {Flex} from 'reflexbox';
 
 const width = '36px';
 const FieldControlState = styled(({flexibleControlStateSize, ...props}) => (

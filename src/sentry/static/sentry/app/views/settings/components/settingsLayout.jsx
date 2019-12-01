@@ -1,4 +1,4 @@
-import {Box, Flex} from 'grid-emotion';
+import {Box, Flex} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -27,7 +27,7 @@ class SettingsLayout extends React.Component {
       <React.Fragment>
         <SettingsColumn>
           <SettingsHeader>
-            <Flex align="center" width={1}>
+            <Flex alignItems="center" width={1}>
               <Box flex="1">
                 <SettingsBreadcrumb
                   params={params}

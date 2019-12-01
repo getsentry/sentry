@@ -1,4 +1,4 @@
-import {Flex} from 'grid-emotion';
+import {Flex} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -47,7 +47,7 @@ class ApplicationScopes extends React.Component {
           return (
             <ScopesGridItemWrapper key={scope}>
               <ScopesGridItem>
-                <Flex align="center" flex="1">
+                <Flex alignItems="center" flex="1">
                   <ScopesTitle>{scope}</ScopesTitle>
                 </Flex>
 

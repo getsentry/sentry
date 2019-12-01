@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Flex} from 'grid-emotion';
+import {Flex} from 'reflexbox';
 
 import LoadingIndicator from 'app/components/loadingIndicator';
 import LoadingError from 'app/components/loadingError';
@@ -115,7 +115,7 @@ class CommitAuthorStats extends React.Component {
             {commitAuthorValues.map((commitAuthor, i) => {
               const {author, commitCount} = commitAuthor;
               return (
-                <PanelItem key={i} p={1} align="center">
+                <PanelItem key={i} p={1} alignItems="center">
                   <Flex>
                     <Avatar user={author} size={20} hasTooltip />
                   </Flex>

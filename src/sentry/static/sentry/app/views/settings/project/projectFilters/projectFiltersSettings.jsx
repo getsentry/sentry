@@ -1,4 +1,4 @@
-import {Flex} from 'grid-emotion';
+import {Flex} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -134,7 +134,7 @@ class LegacyBrowserFilterRow extends React.Component {
             return (
               <FilterGridItemWrapper key={key}>
                 <FilterGridItem>
-                  <Flex align="center" flex="1">
+                  <Flex alignItems="center" flex="1">
                     <FilterGridIcon className={`icon-${subfilter.icon}`} />
                     <div>
                       <FilterTitle>{subfilter.title}</FilterTitle>
