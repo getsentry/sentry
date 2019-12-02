@@ -26,7 +26,6 @@ export default class MultipleProjectSelector extends React.PureComponent {
     projects: PropTypes.array.isRequired,
     nonMemberProjects: PropTypes.array.isRequired,
     loadingProjects: PropTypes.bool,
-    hasMore: PropTypes.bool,
     onChange: PropTypes.func,
     onUpdate: PropTypes.func,
     multi: PropTypes.bool,

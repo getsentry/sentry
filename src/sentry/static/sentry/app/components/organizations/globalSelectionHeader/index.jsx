@@ -530,7 +530,8 @@ class GlobalSelectionHeader extends React.Component {
                   // scrolled far enough to fetch a new page of projects
                   if (
                     !fetching &&
-                    scrollTop + clientHeight >= scrollHeight - clientHeight
+                    scrollTop + clientHeight >= scrollHeight - clientHeight &&
+                    hasMore
                   ) {
                     this.searchDispatcher(onSearch, this.state.searchQuery, {
                       append: true,
@@ -542,7 +543,6 @@ class GlobalSelectionHeader extends React.Component {
                     append: false,
                   });
                 },
-                hasMore,
                 searching: fetching,
               };
               return (
