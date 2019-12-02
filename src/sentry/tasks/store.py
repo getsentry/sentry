@@ -14,11 +14,7 @@ from sentry import features, reprocessing
 from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
 from sentry.attachments import attachment_cache
 from sentry.cache import default_cache
-from sentry.lang.native.utils import (
-    STORE_CRASH_REPORTS_ALL,
-    convert_crashreport_count,
-    get_crashreport_key,
-)
+from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
@@ -27,16 +23,21 @@ from sentry.utils.data_filters import FilterStatKeys
 from sentry.utils.canonical import CanonicalKeyDict, CANONICAL_TYPES
 from sentry.utils.dates import to_datetime
 from sentry.utils.sdk import configure_scope
-from sentry.models import EventAttachment, File, ProjectOption, Activity, Project
+from sentry.models import (
+    EventAttachment,
+    File,
+    ProjectOption,
+    Activity,
+    Project,
+    CRASH_REPORT_TYPES,
+    get_crashreport_key,
+)
 
 error_logger = logging.getLogger("sentry.errors.events")
 info_logger = logging.getLogger("sentry.store")
 
 # Is reprocessing on or off by default?
 REPROCESSING_DEFAULT = False
-
-# Attachment file types that are considered a crash report (PII relevant)
-CRASH_REPORT_TYPES = ("event.minidump",)
 
 # Timeout for cached group crash report counts
 CRASH_REPORT_TIMEOUT = 24 * 3600  # one day

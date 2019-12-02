@@ -92,6 +92,7 @@ export type EventAttachment = {
   sha1: string;
   size: number;
   type: string;
+  event_id: string;
 };
 
 type EntryType = {
