@@ -40,7 +40,7 @@ class Columns(Enum):
     TRANSACTION = Column(
         "events.transaction", "transaction", "transaction_name", "transaction", "transaction"
     )
-    USER = Column("tags[sentry:user]", "tags[sentry:user]", "user", "user", "user")
+    USER = Column("events.tags[sentry:user]", "tags[sentry:user]", "user", "user", "user")
     USER_ID = Column("events.user_id", "user_id", "user_id", "user_id", "user.id")
     USER_EMAIL = Column("events.email", "email", "user_email", "email", "user.email")
     USER_USERNAME = Column("events.username", "username", "user_name", "username", "user.username")
@@ -92,10 +92,16 @@ class Columns(Enum):
         "events.device_charging", "device_charging", None, "device_charging", "device.charging"
     )
     GEO_COUNTRY_CODE = Column(
-        "events.geo_country_code", "geo_country_code", None, "geo_country_code", "geo.country_code"
+        "events.geo_country_code",
+        "geo_country_code",
+        "contexts[geo.country_code]",
+        "geo_country_code",
+        "geo.country_code",
     )
-    GEO_REGION = Column("events.geo_region", "geo_region", None, "geo_region", "geo.region")
-    GEO_CITY = Column("events.geo_city", "geo_city", None, "geo_city", "geo.city")
+    GEO_REGION = Column(
+        "events.geo_region", "geo_region", "contexts[geo.region]", "geo_region", "geo.region"
+    )
+    GEO_CITY = Column("events.geo_city", "geo_city", "contexts[geo.city]", "geo_city", "geo.city")
     ERROR_TYPE = Column(
         "events.exception_stacks.type",
         "exception_stacks.type",

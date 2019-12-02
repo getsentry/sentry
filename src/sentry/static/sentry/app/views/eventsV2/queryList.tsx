@@ -89,7 +89,7 @@ class QueryList extends React.Component<Props> {
     const views = getPrebuiltQueries(organization);
 
     const list = views.map((view, index) => {
-      const eventView = EventView.fromSavedQueryWithLocation(view, location);
+      const eventView = EventView.fromNewQueryWithLocation(view, location);
       const recentTimeline = t('Last ') + eventView.statsPeriod;
       const customTimeline =
         moment(eventView.start).format('MMM D, YYYY h:mm A') +
