@@ -767,7 +767,7 @@ const getBackgroundColor = ({
   }
 
   if (showDetail) {
-    return theme.gray4;
+    return theme.gray5;
   }
   return showStriping ? theme.offWhite : 'white';
 };
@@ -805,9 +805,8 @@ export const DividerLine = styled('div')`
   height: 100%;
   width: 1px;
   transform: translateX(-50%);
-
-  /* increase hit target */
-  border-width: 0 3px;
+  transition: all 125ms ease-in-out;
+  border-width: 0 2px;
   border-color: rgba(0, 0, 0, 0);
   border-style: solid;
   box-sizing: content-box;
@@ -815,8 +814,8 @@ export const DividerLine = styled('div')`
   z-index: ${zIndex.dividerLine};
 
   &.hovering {
-    background-color: ${p => p.theme.red};
-    width: 3px;
+    background-color: ${p => p.theme.gray5};
+    width: 2px;
     cursor: col-resize;
   }
 `;

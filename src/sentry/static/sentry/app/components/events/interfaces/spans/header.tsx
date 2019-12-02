@@ -598,7 +598,7 @@ const ViewHandleContainer = styled('div')`
 
 const ViewHandle = styled('div')<{isDragging: boolean}>`
   position: absolute;
-  background-color: ${p => p.theme.gray4};
+  background-color: ${p => p.theme.gray5};
   cursor: col-resize;
   width: 8px;
   height: ${VIEW_HANDLE_HEIGHT}px;
