@@ -18,6 +18,7 @@ import {
   getAggregateAlias,
   pushEventViewToLocation,
   explodeField,
+  MetaType,
 } from '../utils';
 import EventView, {pickRelevantLocationQueryStrings, Field} from '../eventView';
 import SortLink from '../sortLink';
@@ -272,6 +273,7 @@ class TableView extends React.Component<TableViewProps> {
         column={column}
         dataRow={dataRow}
         location={location}
+        tableMeta={tableData.meta}
       >
         {({willExpand}) => {
           // NOTE: TypeScript cannot detect that tableData.meta is truthy here
@@ -444,8 +446,9 @@ const ExpandAggregateRow = (props: {
   column: TableColumn<keyof TableDataRow>;
   dataRow: TableDataRow;
   location: Location;
+  tableMeta: MetaType;
 }) => {
-  const {children, column, dataRow, eventView, location} = props;
+  const {children, column, dataRow, eventView, location, tableMeta} = props;
 
   const {eventViewField} = column;
 
@@ -460,45 +463,56 @@ const ExpandAggregateRow = (props: {
           onClick={event => {
             event.preventDefault();
 
-            const nextEventView = eventView.clone();
+            let nextEventView = eventView.clone();
 
             const additionalSearchConditions: {[key: string]: string[]} = {};
 
-            nextEventView.fields = nextEventView.fields.map(
-              (field: Field): Field => {
-                if (eventViewField.field === field.field) {
-                  // convert all instances of count(exploded.field) to exploded.field
-                  return {
-                    field: exploded.field,
-                    // enforce the renamed title
-                    // e.g "# of events" to become "id"
-                    title: exploded.field,
-                  };
-                }
-
-                const currentExplodedField = explodeField(field);
-                if (currentExplodedField.aggregation) {
-                  // this is a column with an aggregation; we skip this
-                  return field;
-                }
-
-                if (UNSEARCHABLE_FIELDS.includes(currentExplodedField.field)) {
-                  return field;
-                }
-
-                // add this field to the search conditions
-
-                const dataKey = getAggregateAlias(field.field);
-                const value = dataRow[dataKey];
-
-                if (value) {
-                  additionalSearchConditions[currentExplodedField.field] = [
-                    String(value).trim(),
-                  ];
-                }
-
-                return field;
+            const indicesToUpdate: number[] = [];
+            nextEventView.fields.forEach((field: Field, index: number) => {
+              if (eventViewField.field === field.field) {
+                // invariant: this is count(exploded.field)
+                // convert all instances of count(exploded.field) to exploded.field
+                indicesToUpdate.push(index);
+                return;
               }
+
+              const currentExplodedField = explodeField(field);
+              if (currentExplodedField.aggregation) {
+                // this is a column with an aggregation; we skip this
+                return;
+              }
+
+              if (UNSEARCHABLE_FIELDS.includes(currentExplodedField.field)) {
+                return;
+              }
+
+              // add this field to the search conditions
+
+              const dataKey = getAggregateAlias(field.field);
+              const value = dataRow[dataKey];
+
+              if (value) {
+                additionalSearchConditions[currentExplodedField.field] = [
+                  String(value).trim(),
+                ];
+              }
+            });
+
+            nextEventView = indicesToUpdate.reduce(
+              (nextEventView: EventView, indexToUpdate: number) => {
+                const updatedColumn = {
+                  aggregation: '',
+                  field: exploded.field,
+                  fieldname: exploded.field,
+                };
+
+                return nextEventView.withUpdatedColumn(
+                  indexToUpdate,
+                  updatedColumn,
+                  tableMeta
+                );
+              },
+              nextEventView
             );
 
             const tokenized: QueryResults = tokenizeSearch(nextEventView.query);
