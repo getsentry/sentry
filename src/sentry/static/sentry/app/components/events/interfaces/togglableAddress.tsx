@@ -22,6 +22,7 @@ class TogglableAddress extends React.Component<Props> {
             <Toggle className="icon-filter" onClick={onToggle} />
           </Tooltip>
         )}
+        {!absolute && '+'}
         <span>{address}</span>
       </Address>
     );
