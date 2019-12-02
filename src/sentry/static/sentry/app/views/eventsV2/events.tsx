@@ -104,6 +104,7 @@ export default class Events extends React.Component<EventsProps> {
         <Top>
           <StyledSearchBar
             organization={organization}
+            projectIds={eventView.project}
             query={query}
             onSearch={this.handleSearch}
           />
