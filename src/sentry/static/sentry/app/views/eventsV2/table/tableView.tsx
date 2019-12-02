@@ -11,6 +11,7 @@ import {
   stringifyQueryObject,
   QueryResults,
 } from 'app/utils/tokenizeSearch';
+import {assert} from 'app/types/utils';
 
 import {
   getFieldRenderer,
@@ -265,13 +266,6 @@ class TableView extends React.Component<TableViewProps> {
       return dataRow[column.key];
     }
 
-    // TODO: remove this
-    // const hasLinkField = eventView.hasAutolinkField();
-    // const forceLink =
-    //   !hasLinkField && eventView.getFields().indexOf(String(column.field)) === 0;
-    const forceLink = false;
-
-    const fieldRenderer = getFieldRenderer(String(column.key), tableData.meta, forceLink);
     return (
       <ExpandAggregateRow
         eventView={eventView}
@@ -279,7 +273,32 @@ class TableView extends React.Component<TableViewProps> {
         dataRow={dataRow}
         location={location}
       >
-        {fieldRenderer(dataRow, {organization, location})}
+        {({willExpand}) => {
+          // NOTE: TypeScript cannot detect that tableData.meta is truthy here
+          //       since there was a condition guard to handle it whenever it is
+          //       falsey. So we assert it here.
+          assert(tableData.meta);
+
+          if (!willExpand) {
+            const hasLinkField = eventView.hasAutolinkField();
+            const forceLink =
+              !hasLinkField && eventView.getFields().indexOf(String(column.field)) === 0;
+
+            const fieldRenderer = getFieldRenderer(
+              String(column.key),
+              tableData.meta,
+              forceLink
+            );
+            return fieldRenderer(dataRow, {organization, location});
+          }
+
+          const fieldRenderer = getFieldRenderer(
+            String(column.key),
+            tableData.meta,
+            false
+          );
+          return fieldRenderer(dataRow, {organization, location});
+        }}
       </ExpandAggregateRow>
     );
   };
@@ -420,7 +439,7 @@ class TableView extends React.Component<TableViewProps> {
 const UNSEARCHABLE_FIELDS: string[] = [...AGGREGATE_ALIASES];
 
 const ExpandAggregateRow = (props: {
-  children: React.ReactNode;
+  children: ({willExpand: boolean}) => React.ReactNode;
   eventView: EventView;
   column: TableColumn<keyof TableDataRow>;
   dataRow: TableDataRow;
@@ -506,13 +525,13 @@ const ExpandAggregateRow = (props: {
             });
           }}
         >
-          {children}
+          {children({willExpand: false})}
         </a>
       </Tooltip>
     );
   }
 
-  return <React.Fragment>{children}</React.Fragment>;
+  return <React.Fragment>{children({willExpand: false})}</React.Fragment>;
 };
 
 export default TableView;
