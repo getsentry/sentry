@@ -1,4 +1,4 @@
-import {Flex, Box} from 'reflexbox';
+import {Flex, Box} from 'grid-emotion';
 import React from 'react';
 import moment from 'moment-timezone';
 import styled from 'react-emotion';

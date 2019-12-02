@@ -1,5 +1,5 @@
 import React from 'react';
-import {Box, Flex} from 'reflexbox';
+import {Box, Flex} from 'grid-emotion';
 import {Link} from 'react-router';
 import capitalize from 'lodash/capitalize';
 import omit from 'lodash/omit';

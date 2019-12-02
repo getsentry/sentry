@@ -1,5 +1,5 @@
 import debounce from 'lodash/debounce';
-import {Flex} from 'reflexbox';
+import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';

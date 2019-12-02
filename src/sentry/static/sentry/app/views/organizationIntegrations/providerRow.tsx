@@ -1,4 +1,4 @@
-import {Box, Flex} from 'reflexbox';
+import {Box, Flex} from 'grid-emotion';
 import {withTheme} from 'emotion-theming';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -115,7 +115,7 @@ export default class ProviderRow extends React.Component<Props> {
     const isBeta = this.props.provider.key === 'pagerduty';
     return (
       <PanelItem p={0} flexDirection="column" data-test-id={this.props.provider.key}>
-        <Flex alignItems="center" p={2}>
+        <Flex alignItems="center" padding={2}>
           <PluginIcon size={36} pluginId={this.props.provider.key} />
           <Box px={2} flex={1}>
             <ProviderName>

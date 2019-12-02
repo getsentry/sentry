@@ -1,4 +1,4 @@
-import {Box} from 'reflexbox';
+import {Box} from 'grid-emotion';
 import React from 'react';
 
 import {disconnectIdentity} from 'app/actionCreators/account';

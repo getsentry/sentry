@@ -1,4 +1,4 @@
-import {Box, Flex} from 'reflexbox';
+import {Box, Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 
