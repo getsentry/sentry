@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Flex} from 'grid-emotion';
+import {Flex} from '@rebass/grid/emotion';
 
 import LoadingIndicator from 'app/components/loadingIndicator';
 import LoadingError from 'app/components/loadingError';

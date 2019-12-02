@@ -1,5 +1,5 @@
 import React from 'react';
-import {Flex, Box} from 'grid-emotion';
+import {Flex, Box} from '@rebass/grid/emotion';
 import {t} from 'app/locale';
 import {PanelHeader} from 'app/components/panels';
 

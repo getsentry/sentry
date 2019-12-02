@@ -1,4 +1,4 @@
-import {Flex, Box} from 'grid-emotion';
+import {Flex, Box} from '@rebass/grid/emotion';
 import React from 'react';
 import moment from 'moment-timezone';
 import styled from 'react-emotion';

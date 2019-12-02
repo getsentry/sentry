@@ -1,4 +1,4 @@
-import {Box, Flex} from 'grid-emotion';
+import {Box, Flex} from '@rebass/grid/emotion';
 import {withTheme} from 'emotion-theming';
 import PropTypes from 'prop-types';
 import React from 'react';

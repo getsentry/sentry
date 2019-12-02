@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import {Flex} from 'grid-emotion';
+import {Flex} from '@rebass/grid/emotion';
 
 import {t} from 'app/locale';
 import memberListStore from 'app/stores/memberListStore';

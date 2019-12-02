@@ -1,4 +1,4 @@
-import {Flex, Box} from 'grid-emotion';
+import {Flex, Box} from '@rebass/grid/emotion';
 import capitalize from 'lodash/capitalize';
 import PropTypes from 'prop-types';
 import React from 'react';

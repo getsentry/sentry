@@ -1,4 +1,4 @@
-import {Box} from 'grid-emotion';
+import {Box} from '@rebass/grid/emotion';
 import React from 'react';
 
 import {disconnectIdentity} from 'app/actionCreators/account';

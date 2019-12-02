@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import {Box} from 'grid-emotion';
+import {Box} from '@rebass/grid/emotion';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
