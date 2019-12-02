@@ -466,6 +466,7 @@ export type SentryApp = {
   redirectUrl: string | null;
   overview: string | null;
   //optional params below
+  datePublished?: string;
   clientId?: string;
   clientSecret?: string;
   owner?: {
