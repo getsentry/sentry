@@ -7,23 +7,29 @@ import {t} from 'app/locale';
 
 type Props = {
   address: string;
-  absolute: boolean;
+  isAbsolute: boolean;
   onToggle?: () => void;
+  isFoundByStackScanning: boolean;
 };
 
 class TogglableAddress extends React.Component<Props> {
   render() {
-    const {address, absolute, onToggle} = this.props;
+    const {address, isAbsolute, onToggle, isFoundByStackScanning} = this.props;
 
     return (
       <Address>
         {onToggle && (
-          <Tooltip title={absolute ? t('Absolute') : t('Relative')}>
+          <Tooltip title={isAbsolute ? t('Absolute') : t('Relative')}>
             <Toggle className="icon-filter" onClick={onToggle} />
           </Tooltip>
         )}
-        {!absolute && '+'}
-        <span>{address}</span>
+
+        <Tooltip title={t('Found by stack scanning')} disabled={!isFoundByStackScanning}>
+          <AddressText isFoundByStackScanning={isFoundByStackScanning}>
+            {!isAbsolute && '+'}
+            {address}
+          </AddressText>
+        </Tooltip>
       </Address>
     );
   }
@@ -40,6 +46,11 @@ const Toggle = styled('span')`
   }
 `;
 
+const AddressText = styled('span')<Partial<Props>>`
+  border-bottom: ${p =>
+    p.isFoundByStackScanning ? `1px dashed ${p.theme.red}` : 'none'};
+`;
+
 const Address = styled('span')`
   font-family: ${p => p.theme.text.familyMono};
   font-size: 11px;
@@ -50,6 +61,7 @@ const Address = styled('span')`
   flex-shrink: 0;
   display: block;
   padding: 0 ${space(0.5)};
+
   &:hover ${Toggle} {
     visibility: visible;
   }

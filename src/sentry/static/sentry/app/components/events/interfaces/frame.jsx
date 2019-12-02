@@ -385,12 +385,15 @@ export class Frame extends React.Component {
     );
   }
 
+  isFoundByStackScanning() {
+    const {data} = this.props;
+
+    return data.trust === 'scan' || data.trust === 'cfi-scan';
+  }
+
   getFrameHint() {
     if (this.isInlineFrame()) {
       return t('Inlined frame');
-    }
-    if (this.props.data.trust === 'scan' || this.props.data.trust === 'cfi-scan') {
-      return t('Found by stack scanning');
     }
     const func = this.props.data.function || '<unknown>';
     if (func.match(/^@objc\s/)) {
@@ -406,7 +409,7 @@ export class Frame extends React.Component {
   }
 
   renderLeadHint() {
-    if (true) {
+    if (this.leadsToApp() && !this.state.isExpanded) {
       return <span className="leads-to-app-hint">{'Called from: '}</span>;
     } else {
       return null;
@@ -470,7 +473,8 @@ export class Frame extends React.Component {
             )}
             <TogglableAddress
               address={showingAbsoluteAddress ? data.instructionAddr : '0x2a3d'}
-              absolute={showingAbsoluteAddress}
+              isAbsolute={showingAbsoluteAddress}
+              isFoundByStackScanning={this.isFoundByStackScanning()}
               onToggle={onAddressToggle}
             />
             <span className="symbol">
