@@ -42,17 +42,10 @@ register(
 )
 register("redis.options", type=Dict, flags=FLAG_NOSTORE)
 
-# Processing worker caches
+# symbolizer specifics
 register(
     "dsym.cache-path", type=String, default="/tmp/sentry-dsym-cache", flags=FLAG_PRIORITIZE_DISK
 )
-register(
-    "releasefile.cache-path",
-    type=String,
-    default="/tmp/sentry-releasefile-cache",
-    flags=FLAG_PRIORITIZE_DISK,
-)
-register("releasefile.cache-limit", type=Int, default=10 * 1024 * 1024, flags=FLAG_PRIORITIZE_DISK)
 
 # Mail
 register("mail.backend", default="smtp", flags=FLAG_NOSTORE)
