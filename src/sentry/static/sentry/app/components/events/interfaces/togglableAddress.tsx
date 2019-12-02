@@ -53,7 +53,7 @@ const AddressText = styled('span')<Partial<Props>>`
 
 const Address = styled('span')`
   font-family: ${p => p.theme.text.familyMono};
-  font-size: 11px;
+  font-size: ${p => p.theme.fontSizeExtraSmall};
   color: ${p => p.theme.foreground};
   letter-spacing: -0.25px;
   width: 100px;

@@ -12,6 +12,7 @@ import ExternalLink from 'app/components/links/externalLink';
 import FrameRegisters from 'app/components/events/interfaces/frameRegisters';
 import FrameVariables from 'app/components/events/interfaces/frameVariables';
 import TogglableAddress from 'app/components/events/interfaces/togglableAddress';
+import PackageLink from 'app/components/events/interfaces/packageLink';
 import StrictClick from 'app/components/strictClick';
 import Tooltip from 'app/components/tooltip';
 import Truncate from 'app/components/truncate';
@@ -462,15 +463,11 @@ export class Frame extends React.Component {
         <DefaultLine className="title as-table">
           <NativeLineContent>
             {this.renderLeadHint()}
-            {defined(data.package) ? (
-              <span className="package">
-                <Tooltip title={data.package}>
-                  <span>{trimPackage(data.package)}</span>
-                </Tooltip>
-              </span>
-            ) : (
-              <span className="package">{'<unknown>'}</span>
-            )}
+            <PackageLink
+              packagePath={data.package}
+              onClick={this.scrollToImage}
+              isClickable={this.shouldShowLinkToImage()}
+            />
             <TogglableAddress
               address={showingAbsoluteAddress ? data.instructionAddr : '0x2a3d'}
               isAbsolute={showingAbsoluteAddress}
@@ -496,11 +493,6 @@ export class Frame extends React.Component {
               ) : null}
             </span>
           </NativeLineContent>
-
-          {this.shouldShowLinkToImage() && (
-            <button onClick={this.scrollToImage}>{t('Go to image')}</button>
-          )}
-
           {this.renderExpander()}
         </DefaultLine>
       </StrictClick>
