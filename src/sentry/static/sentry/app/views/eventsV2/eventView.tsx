@@ -17,6 +17,7 @@ import {
   isAggregateField,
   getAggregateAlias,
   decodeColumnOrder,
+  decodeScalar,
 } from './utils';
 import {TableColumn, TableColumnSort} from './table/types';
 
@@ -243,21 +244,6 @@ const decodeProjects = (location: Location): number[] => {
 
   const value = location.query.project;
   return Array.isArray(value) ? value.map(i => parseInt(i, 10)) : [parseInt(value, 10)];
-};
-
-const decodeScalar = (
-  value: string[] | string | undefined | null
-): string | undefined => {
-  if (!value) {
-    return undefined;
-  }
-  const unwrapped =
-    Array.isArray(value) && value.length > 0
-      ? value[0]
-      : isString(value)
-      ? value
-      : undefined;
-  return isString(unwrapped) ? unwrapped : undefined;
 };
 
 const queryStringFromSavedQuery = (saved: NewQuery | SavedQuery): string => {

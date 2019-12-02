@@ -30,6 +30,7 @@ type Props = {
   savedQueries: SavedQuery[];
   pageLinks: string;
   onQueryChange: () => void;
+  savedQuerySearchQuery: string;
 };
 
 class QueryList extends React.Component<Props> {
@@ -85,11 +86,26 @@ class QueryList extends React.Component<Props> {
   }
 
   renderPrebuiltQueries() {
-    const {location, organization} = this.props;
+    const {location, organization, savedQuerySearchQuery} = this.props;
     const views = getPrebuiltQueries(organization);
+
+    const hasSearchQuery =
+      typeof savedQuerySearchQuery === 'string' && savedQuerySearchQuery.length > 0;
+    const needleSearch = hasSearchQuery ? savedQuerySearchQuery.toLowerCase() : '';
 
     const list = views.map((view, index) => {
       const eventView = EventView.fromNewQueryWithLocation(view, location);
+
+      // if a search is performed on the list of queries, we filter
+      // on the pre-built queries
+      if (
+        hasSearchQuery &&
+        eventView.name &&
+        !eventView.name.toLowerCase().includes(needleSearch)
+      ) {
+        return null;
+      }
+
       const recentTimeline = t('Last ') + eventView.statsPeriod;
       const customTimeline =
         moment(eventView.start).format('MMM D, YYYY h:mm A') +
@@ -99,6 +115,8 @@ class QueryList extends React.Component<Props> {
         pathname: location.pathname,
         query: {
           ...location.query,
+          // remove any landing page cursor
+          cursor: undefined,
           ...eventView.generateQueryStringObject(),
         },
       };
@@ -152,6 +170,8 @@ class QueryList extends React.Component<Props> {
         pathname: location.pathname,
         query: {
           ...location.query,
+          // remove any landing page cursor
+          cursor: undefined,
           ...eventView.generateQueryStringObject(),
         },
       };
