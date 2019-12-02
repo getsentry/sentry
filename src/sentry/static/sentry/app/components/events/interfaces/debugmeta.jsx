@@ -10,10 +10,10 @@ import Checkbox from 'app/components/checkbox';
 import DebugFileFeature from 'app/components/debugFileFeature';
 import EventDataSection from 'app/components/events/eventDataSection';
 import InlineSvg from 'app/components/inlineSvg';
-import Input from 'app/components/forms/input';
 import {Panel, PanelBody, PanelItem} from 'app/components/panels';
 import Tooltip from 'app/components/tooltip';
 import DebugMetaStore from 'app/stores/debugMetaStore.jsx';
+import SearchInput from 'app/components/forms/searchInput';
 
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
@@ -427,7 +427,7 @@ class DebugMetaInterface extends React.PureComponent {
           {t('show unreferenced')}
         </Label>
 
-        <SearchBox
+        <SearchInput
           value={filter}
           onChange={this.handleChangeFilter}
           placeholder={t('Search loaded images\u2026')}
@@ -503,11 +503,6 @@ const Label = styled('label')`
   > input {
     margin-right: 1ex;
   }
-`;
-
-const SearchBox = styled(Input)`
-  width: auto;
-  display: inline;
 `;
 
 const DebugImagesPanel = styled(Panel)`
