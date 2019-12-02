@@ -113,7 +113,7 @@
       </div>
       {% endif %}
 
-      {% for label, html in interfaces %}
+      {% for label, html, _ in interfaces %}
       <div class="interface">
           <h3 class="title">{{ label }}</h3>
           {{ html }}
