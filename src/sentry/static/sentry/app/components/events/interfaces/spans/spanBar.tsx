@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from 'react-emotion';
 import get from 'lodash/get';
-import color from 'color';
 import 'intersection-observer'; // this is a polyfill
 
 import {t} from 'app/locale';
@@ -187,6 +186,18 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   state: SpanBarState = {
     showDetail: false,
   };
+
+  componentDidMount() {
+    this._mounted = true;
+    if (this.spanRowDOMRef.current) {
+      this.connectObservers();
+    }
+  }
+
+  componentWillUnmount() {
+    this._mounted = false;
+    this.disconnectObservers();
+  }
 
   spanRowDOMRef = React.createRef<HTMLDivElement>();
   intersectionObserver?: IntersectionObserver = void 0;
@@ -556,18 +567,6 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     }
   };
 
-  componentDidMount() {
-    this._mounted = true;
-    if (this.spanRowDOMRef.current) {
-      this.connectObservers();
-    }
-  }
-
-  componentWillUnmount() {
-    this._mounted = false;
-    this.disconnectObservers();
-  }
-
   renderCursorGuide = () => {
     return (
       <CursorGuideHandler.Consumer>
@@ -768,7 +767,7 @@ const getBackgroundColor = ({
   }
 
   if (showDetail) {
-    return theme.offWhite2;
+    return theme.gray4;
   }
   return showStriping ? theme.offWhite : 'white';
 };
@@ -789,43 +788,34 @@ const SpanRowCell = styled('div')<SpanRowCellProps>`
 const SpanRowCellContainer = styled('div')`
   position: relative;
   height: ${SPAN_ROW_HEIGHT}px;
-
-  &:hover ${SpanRowCell} {
-    background-color: ${p =>
-      color(p.theme.offWhite2)
-        .alpha(0.4)
-        .string()};
-  }
 `;
 
 const CursorGuide = styled('div')`
   position: absolute;
   top: 0;
   width: 1px;
-  background-color: #e03e2f;
-
+  background-color: ${p => p.theme.red};
   transform: translateX(-50%);
-
   height: 100%;
 `;
 
 export const DividerLine = styled('div')`
+  background-color: ${p => p.theme.borderDark};
   position: absolute;
   height: 100%;
   width: 1px;
   transform: translateX(-50%);
 
   /* increase hit target */
-  border-width: 0 5px;
+  border-width: 0 3px;
   border-color: rgba(0, 0, 0, 0);
   border-style: solid;
   box-sizing: content-box;
   background-clip: content-box;
-
-  background-color: #cdc7d5;
   z-index: ${zIndex.dividerLine};
 
   &.hovering {
+    background-color: ${p => p.theme.red};
     width: 3px;
     cursor: col-resize;
   }

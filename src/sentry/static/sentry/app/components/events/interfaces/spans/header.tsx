@@ -20,10 +20,10 @@ import {zIndex} from './styles';
 
 export const MINIMAP_CONTAINER_HEIGHT = 106;
 export const MINIMAP_SPAN_BAR_HEIGHT = 4;
-const MINIMAP_HEIGHT = 75;
+const MINIMAP_HEIGHT = 120;
 export const NUM_OF_SPANS_FIT_IN_MINI_MAP = MINIMAP_HEIGHT / MINIMAP_SPAN_BAR_HEIGHT;
-const TIME_AXIS_HEIGHT = 30;
-const VIEW_HANDLE_HEIGHT = 20;
+const TIME_AXIS_HEIGHT = 20;
+const VIEW_HANDLE_HEIGHT = 18;
 
 type PropType = {
   minimapInteractiveRef: React.RefObject<HTMLDivElement>;
@@ -472,32 +472,27 @@ const TimeAxis = styled('div')`
   width: 100%;
   position: absolute;
   left: 0;
-  top: ${MINIMAP_HEIGHT}px;
-
-  border-top: 1px solid #d1cad8;
-
+  bottom: 0;
+  border-top: 1px solid ${p => p.theme.borderDark};
   height: ${TIME_AXIS_HEIGHT}px;
-  background-color: #faf9fb;
-
-  color: #9585a3;
+  background-color: ${p => p.theme.white};
+  color: ${p => p.theme.gray2};
   font-size: 10px;
   font-weight: 500;
 `;
 
 const TickLabelContainer = styled('div')`
   height: ${TIME_AXIS_HEIGHT}px;
-
   position: absolute;
   top: 0;
-
+  display: flex;
+  align-items: center;
   user-select: none;
 `;
 
 const TickText = styled('span')<{align: TickAlignment}>`
-  line-height: 1;
-
   position: absolute;
-  bottom: 8px;
+  line-height: 1;
   white-space: nowrap;
 
   ${({align}) => {
@@ -522,14 +517,11 @@ const TickText = styled('span')<{align: TickAlignment}>`
 
 const TickMarker = styled('div')`
   width: 1px;
-  height: 5px;
-
-  background-color: #d1cad8;
-
+  height: 4px;
+  background-color: ${p => p.theme.borderDark};
   position: absolute;
   top: 0;
   left: 0;
-
   transform: translateX(-50%);
 `;
 
@@ -551,20 +543,14 @@ const TickLabel = (props: {
 
 const DurationGuideBox = styled('div')<{alignLeft: boolean}>`
   position: absolute;
-
   background-color: ${p => p.theme.white};
   padding: 4px;
-
   border-radius: 3px;
   border: 1px solid rgba(0, 0, 0, 0.1);
-
   height: 16px;
-
   line-height: 1;
   vertical-align: middle;
-
   transform: translateY(50%);
-
   white-space: nowrap;
 
   ${({alignLeft}) => {
@@ -582,11 +568,8 @@ const HeaderContainer = styled('div')`
   left: 0;
   top: 0;
   z-index: ${zIndex.minimapContainer};
-
-  background-color: #fff;
-
-  border-bottom: 1px solid #d1cad8;
-
+  background-color: ${p => p.theme.white};
+  border-bottom: 1px solid ${p => p.theme.borderDark};
   height: ${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT + 1}px;
 `;
 
@@ -610,42 +593,21 @@ const MinimapContainer = styled('div')`
 const ViewHandleContainer = styled('div')`
   position: absolute;
   top: 0;
-
   height: ${MINIMAP_HEIGHT}px;
 `;
 
 const ViewHandle = styled('div')<{isDragging: boolean}>`
   position: absolute;
-  top: 0;
-
-  background-color: #6c5fc7;
-
+  background-color: ${p => p.theme.gray4};
   cursor: col-resize;
-
+  width: 8px;
   height: ${VIEW_HANDLE_HEIGHT}px;
-
-  ${({isDragging}) => {
-    if (isDragging) {
-      return `
-      width: 6px;
-      transform: translate(-3px, ${MINIMAP_HEIGHT - VIEW_HANDLE_HEIGHT}px);
-      `;
-    }
-
-    return `
-    width: 4px;
-    transform: translate(-2px, ${MINIMAP_HEIGHT - VIEW_HANDLE_HEIGHT}px);
-    `;
-  }};
-
-  &:hover {
-    width: 6px;
-    transform: translate(-3px, ${MINIMAP_HEIGHT - VIEW_HANDLE_HEIGHT}px);
-  }
+  bottom: 0;
+  left: -4px;
 `;
 
 const Fog = styled('div')`
-  background-color: rgba(241, 245, 251, 0.5);
+  background-color: rgba(108, 95, 199, 0.1);
   position: absolute;
   top: 0;
 `;
@@ -656,9 +618,7 @@ const MinimapSpanBar = styled('div')`
   min-height: 2px;
   max-height: 2px;
   margin: 2px 0;
-
   min-width: 1px;
-
   border-radius: 1px;
 `;
 
@@ -670,8 +630,7 @@ const CursorGuide = styled('div')`
   position: absolute;
   top: 0;
   width: 1px;
-  background-color: #e03e2f;
-
+  background-color: ${p => p.theme.red};
   transform: translateX(-50%);
 `;
 
@@ -703,7 +662,7 @@ const Handle = ({
           y2={MINIMAP_HEIGHT - VIEW_HANDLE_HEIGHT}
           strokeWidth="1"
           strokeDasharray="4 3"
-          style={{stroke: '#6C5FC7'}}
+          style={{stroke: '#302839'}}
         />
       </svg>
       <ViewHandle
@@ -721,9 +680,7 @@ const Handle = ({
 const WindowSelection = styled('div')`
   position: absolute;
   top: 0;
-
   height: ${MINIMAP_HEIGHT}px;
-
   background-color: rgba(69, 38, 80, 0.1);
 `;
 
