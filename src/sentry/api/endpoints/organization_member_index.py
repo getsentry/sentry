@@ -144,7 +144,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                         types = [a.type for a in available_authenticators(ignore_backup=True)]
                         queryset = queryset.filter(
                             user__authenticator__isnull=False, user__authenticator__type__in=types
-                        )
+                        ).distinct()
                     else:
                         queryset = queryset.filter(user__authenticator__isnull=True)
 
