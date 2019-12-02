@@ -835,7 +835,6 @@ const SpanBarTitleContainer = styled('div')`
 const SpanBarTitle = styled('div')`
   position: relative;
   height: 100%;
-  color: ${p => p.theme.gray4};
   font-size: ${p => p.theme.fontSizeSmall};
   white-space: nowrap;
   display: flex;
