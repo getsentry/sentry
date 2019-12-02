@@ -310,7 +310,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   };
 
   renderSpanTreeToggler = ({left}: {left: number}) => {
-    const {numOfSpanChildren} = this.props;
+    const {numOfSpanChildren, isRoot} = this.props;
 
     const chevronSrc = this.props.showSpanTree ? 'icon-chevron-up' : 'icon-chevron-down';
     const chevron = <Chevron src={chevronSrc} />;
@@ -323,13 +323,30 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       );
     }
 
+    const chevronElement = !isRoot ? (
+      <div
+        style={{
+          marginRight: '2px',
+          width: '5px',
+          textAlign: 'right',
+        }}
+      >
+        {chevron}
+      </div>
+    ) : null;
+
     return (
       <SpanTreeTogglerContainer style={{left: `${left}px`}} hasToggler>
         {this.renderSpanTreeConnector({hasToggler: true})}
         <SpanTreeToggler
+          disabled={!!isRoot}
           isExpanded={this.props.showSpanTree}
           onClick={event => {
             event.stopPropagation();
+
+            if (isRoot) {
+              return;
+            }
 
             this.props.toggleSpanTree();
           }}
@@ -337,9 +354,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           <span style={{marginRight: '2px', textAlign: 'center'}}>
             <Count value={numOfSpanChildren} />
           </span>
-          <div style={{marginRight: '2px', width: '5px', textAlign: 'right'}}>
-            {chevron}
-          </div>
+          {chevronElement}
         </SpanTreeToggler>
       </SpanTreeTogglerContainer>
     );
@@ -896,9 +911,27 @@ const ConnectorBar = styled('div')`
   position: absolute;
 `;
 
-const getTogglerTheme = ({isExpanded, theme}) => {
+const getTogglerTheme = ({
+  isExpanded,
+  theme,
+  disabled,
+}: {
+  isExpanded: boolean;
+  theme: any;
+  disabled: boolean;
+}) => {
   const buttonTheme = isExpanded ? theme.button.default : theme.button.primary;
   const activeButtonTheme = isExpanded ? theme.button.primary : theme.button.default;
+
+  if (disabled) {
+    return `
+    background: ${buttonTheme.background};
+    border: 1px solid ${buttonTheme.border};
+    color: ${buttonTheme.color};
+
+    cursor: default;
+  `;
+  }
 
   return `
     background: ${buttonTheme.background};
@@ -915,6 +948,7 @@ const getTogglerTheme = ({isExpanded, theme}) => {
 
 type SpanTreeTogglerAndDivProps = OmitHtmlDivProps<{
   isExpanded: boolean;
+  disabled: boolean;
 }>;
 
 const SpanTreeToggler = styled('div')<SpanTreeTogglerAndDivProps>`
