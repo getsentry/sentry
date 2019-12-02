@@ -8,6 +8,7 @@ import SentryTypes from 'app/sentryTypes';
 import {Member, User} from 'app/types';
 
 import {assignToUser, assignToActor, clearAssignment} from 'app/actionCreators/group';
+import {openInviteMembersModal} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import {valueIsEqual, buildUserId, buildTeamId} from 'app/utils';
 import ActorAvatar from 'app/components/avatar/actorAvatar';
@@ -238,10 +239,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
 
   render() {
     const {className} = this.props;
-    const {organization} = this.context;
     const {loading, assignedTo} = this.state;
-    const canInvite = ConfigStore.get('invitesEnabled');
-    const hasOrgWrite = organization.access.includes('org:write');
     const memberList = this.memberList();
 
     return (
@@ -283,23 +281,18 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
               )
             }
             menuFooter={
-              canInvite &&
-              hasOrgWrite && (
-                <InviteMemberLink
-                  data-test-id="invite-member"
-                  disabled={loading}
-                  to={`/settings/${
-                    this.context.organization.slug
-                  }/members/new/?referrer=assignee_selector`}
-                >
-                  <MenuItemWrapper>
-                    <IconContainer>
-                      <InviteMemberIcon />
-                    </IconContainer>
-                    <Label>{t('Invite Member')}</Label>
-                  </MenuItemWrapper>
-                </InviteMemberLink>
-              )
+              <InviteMemberLink
+                data-test-id="invite-member"
+                disabled={loading}
+                onClick={() => openInviteMembersModal({source: 'assignee_selector'})}
+              >
+                <MenuItemWrapper>
+                  <IconContainer>
+                    <InviteMemberIcon />
+                  </IconContainer>
+                  <Label>{t('Invite Member')}</Label>
+                </MenuItemWrapper>
+              </InviteMemberLink>
             }
           >
             {({getActorProps}) => {

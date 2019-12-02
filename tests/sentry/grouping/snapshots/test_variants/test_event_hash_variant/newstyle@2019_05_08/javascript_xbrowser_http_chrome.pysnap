@@ -1,5 +1,5 @@
 ---
-created: '2019-05-10T12:59:49.569993Z'
+created: '2019-11-01T10:06:05.932358Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -14,7 +14,6 @@ app:
               u'test'
             filename (ignored because frame points to a URL)
               u'test.html'
-            function (ignored unknown function name)
           frame (non app frame)
             module*
               u'test'
@@ -53,7 +52,6 @@ app:
               u'test'
             filename (ignored because frame points to a URL)
               u'test.html'
-            function (ignored unknown function name)
           frame (non app frame)
             module*
               u'test'
@@ -91,7 +89,6 @@ system:
               u'test'
             filename (ignored because frame points to a URL)
               u'test.html'
-            function (ignored unknown function name)
           frame*
             module*
               u'test'
@@ -130,7 +127,6 @@ system:
               u'test'
             filename (ignored because frame points to a URL)
               u'test.html'
-            function (ignored unknown function name)
           frame*
             module*
               u'test'

@@ -8,7 +8,8 @@ from sentry.utils import snuba
 from sentry.eventstore.base import EventStorage
 from sentry.utils.validators import normalize_event_id
 
-DEFAULT_ORDERBY = ["-timestamp", "-event_id"]
+DESC_ORDERING = ["-timestamp", "-event_id"]
+ASC_ORDERING = ["timestamp", "event_id"]
 DEFAULT_LIMIT = 100
 DEFAULT_OFFSET = 0
 
@@ -36,7 +37,7 @@ class SnubaEventStorage(EventStorage):
         self,
         filter,
         additional_columns=None,
-        orderby=DEFAULT_ORDERBY,
+        orderby=None,
         limit=DEFAULT_LIMIT,
         offset=DEFAULT_OFFSET,
         referrer="eventstore.get_events",
@@ -46,6 +47,7 @@ class SnubaEventStorage(EventStorage):
         """
         assert filter, "You must provide a filter"
         cols = self.__get_columns(additional_columns)
+        orderby = orderby or DESC_ORDERING
 
         result = snuba.dataset_query(
             selected_columns=cols,
@@ -87,24 +89,20 @@ class SnubaEventStorage(EventStorage):
         return None
 
     def get_earliest_event_id(self, event, filter):
-        orderby = ["timestamp", "event_id"]
-
         filter = deepcopy(filter)
         filter.conditions = filter.conditions or []
         filter.conditions.extend(get_before_event_condition(event))
         filter.end = event.datetime
 
-        return self.__get_event_id_from_filter(filter=filter, orderby=orderby)
+        return self.__get_event_id_from_filter(filter=filter, orderby=ASC_ORDERING)
 
     def get_latest_event_id(self, event, filter):
-        orderby = ["-timestamp", "-event_id"]
-
         filter = deepcopy(filter)
         filter.conditions = filter.conditions or []
         filter.conditions.extend(get_after_event_condition(event))
         filter.start = event.datetime
 
-        return self.__get_event_id_from_filter(filter=filter, orderby=orderby)
+        return self.__get_event_id_from_filter(filter=filter, orderby=DESC_ORDERING)
 
     def get_next_event_id(self, event, filter):
         """
@@ -121,7 +119,7 @@ class SnubaEventStorage(EventStorage):
         filter.conditions.extend(get_after_event_condition(event))
         filter.start = event.datetime
 
-        return self.__get_event_id_from_filter(filter=filter, orderby=["timestamp", "event_id"])
+        return self.__get_event_id_from_filter(filter=filter, orderby=ASC_ORDERING)
 
     def get_prev_event_id(self, event, filter):
         """
@@ -138,7 +136,7 @@ class SnubaEventStorage(EventStorage):
         filter.conditions.extend(get_before_event_condition(event))
         filter.end = event.datetime
 
-        return self.__get_event_id_from_filter(filter=filter, orderby=["-timestamp", "-event_id"])
+        return self.__get_event_id_from_filter(filter=filter, orderby=DESC_ORDERING)
 
     def __get_columns(self, additional_columns):
         columns = EventStorage.minimal_columns
@@ -150,17 +148,22 @@ class SnubaEventStorage(EventStorage):
 
     def __get_event_id_from_filter(self, filter=None, orderby=None):
         columns = ["event_id", "project_id"]
-        result = snuba.dataset_query(
-            selected_columns=columns,
-            conditions=filter.conditions,
-            filter_keys=filter.filter_keys,
-            start=filter.start,
-            end=filter.end,
-            limit=1,
-            referrer="eventstore.get_next_or_prev_event_id",
-            orderby=orderby,
-            dataset=snuba.detect_dataset({"conditions": filter.conditions}),
-        )
+        try:
+            result = snuba.dataset_query(
+                selected_columns=columns,
+                conditions=filter.conditions,
+                filter_keys=filter.filter_keys,
+                start=filter.start,
+                end=filter.end,
+                limit=1,
+                referrer="eventstore.get_next_or_prev_event_id",
+                orderby=orderby,
+                dataset=snuba.detect_dataset({"conditions": filter.conditions}),
+            )
+        except (snuba.QueryOutsideRetentionError, snuba.QueryOutsideGroupActivityError):
+            # This can happen when the date conditions for paging
+            # and the current event generate impossible conditions.
+            return None
 
         if "error" in result or len(result["data"]) == 0:
             return None

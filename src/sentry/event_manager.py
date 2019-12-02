@@ -77,7 +77,6 @@ from sentry.utils.data_filters import (
     FilterStatKeys,
 )
 from sentry.utils.dates import to_timestamp
-from sentry.utils.db import is_postgres
 from sentry.utils.safe import safe_execute, trim, get_path, setdefault_path
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.culprit import generate_culprit
@@ -187,19 +186,14 @@ class ScoreClause(Func):
         return self.group.get_score() if self.group else 0
 
     def as_sql(self, compiler, connection, function=None, template=None):
-        db = getattr(connection, "alias", "default")
         has_values = self.last_seen is not None and self.times_seen is not None
-        if is_postgres(db):
-            if has_values:
-                sql = "log(times_seen + %d) * 600 + %d" % (
-                    self.times_seen,
-                    to_timestamp(self.last_seen),
-                )
-            else:
-                sql = "log(times_seen) * 600 + last_seen::abstime::int"
+        if has_values:
+            sql = "log(times_seen + %d) * 600 + %d" % (
+                self.times_seen,
+                to_timestamp(self.last_seen),
+            )
         else:
-            # XXX: if we cant do it atomically let's do it the best we can
-            sql = int(self)
+            sql = "log(times_seen) * 600 + last_seen::abstime::int"
 
         return (sql, [])
 
@@ -323,8 +317,6 @@ class EventManager(object):
     def normalize(self):
         with metrics.timer("events.store.normalize.duration"):
             self._normalize_impl()
-
-        metrics.timing("events.store.normalize.errors", len(self._data.get("errors") or ()))
 
     def _normalize_impl(self):
         if self._normalized:
@@ -464,6 +456,19 @@ class EventManager(object):
         return trim(message.strip(), settings.SENTRY_MAX_MESSAGE_LENGTH)
 
     def save(self, project_id, raw=False, assume_normalized=False):
+        """
+        We re-insert events with duplicate IDs into Snuba, which is responsible
+        for deduplicating events. Since deduplication in Snuba is on the primary
+        key (based on event ID, project ID and day), events with same IDs are only
+        deduplicated if their timestamps fall on the same day. The latest event
+        always wins and overwrites the value of events received earlier in that day.
+
+        Since we increment counters and frequencies here before events get inserted
+        to eventstream these numbers may be larger than the total number of
+        events if we receive duplicate event IDs that fall on the same day
+        (that do not hit cache first).
+        """
+
         # Normalize if needed
         if not self._normalized:
             if not assume_normalized:
@@ -476,30 +481,6 @@ class EventManager(object):
         project._organization_cache = Organization.objects.get_from_cache(
             id=project.organization_id
         )
-
-        # Check to make sure we're not about to do a bunch of work that's
-        # already been done if we've processed an event with this ID. (This
-        # isn't a perfect solution -- this doesn't handle ``EventMapping`` and
-        # there's a race condition between here and when the event is actually
-        # saved, but it's an improvement. See GH-7677.)
-        try:
-            event = Event.objects.get(project_id=project.id, event_id=data["event_id"])
-        except Event.DoesNotExist:
-            pass
-        else:
-            # Make sure we cache on the project before returning
-            event._project_cache = project
-            logger.info(
-                "duplicate.found",
-                exc_info=True,
-                extra={
-                    "event_uuid": data["event_id"],
-                    "project_id": project.id,
-                    "platform": data.get("platform"),
-                    "model": Event.__name__,
-                },
-            )
-            return event
 
         # Pull out the culprit
         culprit = self.get_culprit()
@@ -713,18 +694,7 @@ class EventManager(object):
 
         tsdb.incr_multi(counters, timestamp=event.datetime, environment_id=environment.id)
 
-        frequencies = [
-            # (tsdb.models.frequent_projects_by_organization, {
-            #     project.organization_id: {
-            #         project.id: 1,
-            #     },
-            # }),
-            # (tsdb.models.frequent_issues_by_project, {
-            #     project.id: {
-            #         group.id: 1,
-            #     },
-            # })
-        ]
+        frequencies = []
 
         if group:
             frequencies.append(
@@ -743,22 +713,8 @@ class EventManager(object):
                 group=group, environment=environment
             )
 
-        # save the event
-        try:
-            with transaction.atomic(using=router.db_for_write(Event)):
-                event.save()
-        except IntegrityError:
-            logger.info(
-                "duplicate.found",
-                exc_info=True,
-                extra={
-                    "event_uuid": event_id,
-                    "project_id": project.id,
-                    "group_id": group.id if group else None,
-                    "model": Event.__name__,
-                },
-            )
-            return event
+        # Write the event to Nodestore
+        event.data.save()
 
         if event_user:
             counters = [
@@ -810,9 +766,15 @@ class EventManager(object):
             skip_consume=raw,
         )
 
-        metrics.timing("events.latency", received_timestamp - recorded_timestamp)
+        metric_tags = {"from_relay": "_relay_processed" in self._data}
 
-        metrics.timing("events.size.data.post_save", event.size)
+        metrics.timing("events.latency", received_timestamp - recorded_timestamp, tags=metric_tags)
+        metrics.timing("events.size.data.post_save", event.size, tags=metric_tags)
+        metrics.incr(
+            "events.post_save.normalize.errors",
+            amount=len(self._data.get("errors") or ()),
+            tags=metric_tags,
+        )
 
         return event
 

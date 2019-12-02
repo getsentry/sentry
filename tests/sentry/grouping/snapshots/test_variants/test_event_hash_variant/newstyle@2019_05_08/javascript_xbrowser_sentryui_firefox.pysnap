@@ -1,5 +1,5 @@
 ---
-created: '2019-05-08T22:36:44.020808Z'
+created: '2019-10-31T12:42:10.480833Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -98,6 +98,7 @@ app:
             function*
               u'this'
             context-line (discarded because line too long)
+              u'{snip} !==typeof a&&"function"!==typeof a&&null!=a?B("85"):void 0;this.updater.enqueueSetState(this,a,b,"setState")};E.prototype.forceUpdate=functi {snip}'
           frame (non app frame)
             module*
               u'usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production'
@@ -106,6 +107,7 @@ app:
             function*
               u'this'
             context-line (discarded because line too long)
+              u'{snip} );e.payload=b;void 0!==c&&null!==c&&(e.callback=c);ff(a,e);If(a,d)},enqueueReplaceState:function(a,b,c){a=a._reactInternalFiber;var d=Gf();d {snip}'
           frame (non app frame)
             module*
               u'usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production'
@@ -114,6 +116,7 @@ app:
             function*
               u'If'
             context-line (discarded because line too long)
+              u'{snip} );else if(c=b.expirationTime,0===c||a<c)b.expirationTime=a;V||(W?Wg&&(Y=b,Z=1,Xg(b,1,!0)):1===a?Yg(1,null):Zg(b,a))}$g>ah&&($g=0,t("185"))}} {snip}'
           frame (non app frame)
             module*
               u'usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production'
@@ -122,6 +125,7 @@ app:
             function*
               u'Yg'
             context-line (discarded because line too long)
+              u'{snip} ),qh(),oh(),lh=kh;else for(;null!==Y&&0!==Z&&(0===a||a>=Z);)Xg(Y,Z,!0),qh();null!==hh&&(ch=0,dh=null);0!==Z&&Zg(Y,Z);hh=null;eh=!1;$g=0;mh=n {snip}'
           frame (non app frame)
             module*
               u'usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production'
@@ -130,6 +134,7 @@ app:
             function*
               u'Xg'
             context-line (discarded because line too long)
+              u'{snip} t("245"):void 0;V=!0;if(null===hh||c){var d=a.finishedWork;null!==d?rh(a,d,b):(a.finishedWork=null,Sg(a,!1,c),d=a.finishedWork,null!==d&&rh( {snip}'
           frame (non app frame)
             module*
               u'usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production'
@@ -138,6 +143,7 @@ app:
             function*
               u'rh'
             context-line (discarded because line too long)
+              u'{snip} nate;q=Q;p=y;switch(q.tag){case 2:case 3:var X=q.stateNode;if(q.effectTag&4)if(null===oc)X.props=q.memoizedProps,X.state=q.memoizedState,X.c {snip}'
           frame*
             module*
               u'app/views/groupDetails/shared/groupEventDetails'
@@ -265,6 +271,7 @@ system:
             function*
               u'this'
             context-line (discarded because line too long)
+              u'{snip} !==typeof a&&"function"!==typeof a&&null!=a?B("85"):void 0;this.updater.enqueueSetState(this,a,b,"setState")};E.prototype.forceUpdate=functi {snip}'
           frame*
             module*
               u'usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production'
@@ -273,6 +280,7 @@ system:
             function*
               u'this'
             context-line (discarded because line too long)
+              u'{snip} );e.payload=b;void 0!==c&&null!==c&&(e.callback=c);ff(a,e);If(a,d)},enqueueReplaceState:function(a,b,c){a=a._reactInternalFiber;var d=Gf();d {snip}'
           frame*
             module*
               u'usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production'
@@ -281,6 +289,7 @@ system:
             function*
               u'If'
             context-line (discarded because line too long)
+              u'{snip} );else if(c=b.expirationTime,0===c||a<c)b.expirationTime=a;V||(W?Wg&&(Y=b,Z=1,Xg(b,1,!0)):1===a?Yg(1,null):Zg(b,a))}$g>ah&&($g=0,t("185"))}} {snip}'
           frame*
             module*
               u'usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production'
@@ -289,6 +298,7 @@ system:
             function*
               u'Yg'
             context-line (discarded because line too long)
+              u'{snip} ),qh(),oh(),lh=kh;else for(;null!==Y&&0!==Z&&(0===a||a>=Z);)Xg(Y,Z,!0),qh();null!==hh&&(ch=0,dh=null);0!==Z&&Zg(Y,Z);hh=null;eh=!1;$g=0;mh=n {snip}'
           frame*
             module*
               u'usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production'
@@ -297,6 +307,7 @@ system:
             function*
               u'Xg'
             context-line (discarded because line too long)
+              u'{snip} t("245"):void 0;V=!0;if(null===hh||c){var d=a.finishedWork;null!==d?rh(a,d,b):(a.finishedWork=null,Sg(a,!1,c),d=a.finishedWork,null!==d&&rh( {snip}'
           frame*
             module*
               u'usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production'
@@ -305,6 +316,7 @@ system:
             function*
               u'rh'
             context-line (discarded because line too long)
+              u'{snip} nate;q=Q;p=y;switch(q.tag){case 2:case 3:var X=q.stateNode;if(q.effectTag&4)if(null===oc)X.props=q.memoizedProps,X.state=q.memoizedState,X.c {snip}'
           frame*
             module*
               u'app/views/groupDetails/shared/groupEventDetails'

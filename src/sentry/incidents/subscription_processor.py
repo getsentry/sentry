@@ -175,8 +175,8 @@ class SubscriptionProcessor(object):
                     # TODO: Include more info in name?
                     self.alert_rule.name,
                     alert_rule=self.alert_rule,
-                    # TODO: Incidents need to keep track of which metric to display
                     query=self.subscription.query,
+                    aggregation=QueryAggregations(self.alert_rule.aggregation),
                     date_started=detected_at,
                     date_detected=detected_at,
                     projects=[self.subscription.project],
@@ -246,6 +246,7 @@ class SubscriptionProcessor(object):
                 kwargs={
                     "action_id": action.id,
                     "incident_id": incident_trigger.incident_id,
+                    "project_id": self.subscription.project_id,
                     "method": method,
                 },
                 countdown=5,

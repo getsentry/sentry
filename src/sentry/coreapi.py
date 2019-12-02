@@ -22,6 +22,7 @@ from sentry.models import ProjectKey
 from sentry.tasks.store import preprocess_event, preprocess_event_from_reprocessing
 from sentry.utils import json
 from sentry.utils.auth import parse_auth_header
+from sentry.utils.cache import cache_key_for_event
 from sentry.utils.http import origin_from_request
 from sentry.utils.strings import decompress
 from sentry.utils.sdk import configure_scope
@@ -251,10 +252,6 @@ class SecurityAuthHelper(AbstractAuthHelper):
         auth = Auth(public_key=key, is_public=True)
         auth.client = request.META.get("HTTP_USER_AGENT")
         return auth
-
-
-def cache_key_for_event(data):
-    return u"e:{1}:{0}".format(data["project"], data["event_id"])
 
 
 def decompress_deflate(encoded_data):

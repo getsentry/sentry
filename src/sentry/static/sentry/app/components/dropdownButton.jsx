@@ -3,7 +3,7 @@ import React from 'react';
 import styled from 'react-emotion';
 import Button from 'app/components/button';
 import InlineSvg from 'app/components/inlineSvg';
-import {omit} from 'lodash';
+import omit from 'lodash/omit';
 
 class DropdownButton extends React.Component {
   static propTypes = {
@@ -13,7 +13,7 @@ class DropdownButton extends React.Component {
   render() {
     const {isOpen, showChevron, children, ...otherProps} = this.props;
     return (
-      <StyledButton isOpen={isOpen} {...otherProps}>
+      <StyledButton type="button" isOpen={isOpen} {...otherProps}>
         {children}
         {showChevron && <StyledChevronDown />}
       </StyledButton>

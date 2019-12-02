@@ -551,13 +551,31 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["transaction"] == "/example"
         assert data[0]["latest_event"] == "b" * 32
 
+    def test_stack_wildcard_condition(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        data = load_data("javascript")
+        data["timestamp"] = self.min_ago
+        self.store_event(data=data, project_id=project.id)
+
+        with self.feature("organizations:events-v2"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={"field": ["stack.filename", "message"], "query": "stack.filename:*.js"},
+            )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["meta"]["message"] == "string"
+
     def test_transaction_event_type(self):
         self.login_as(user=self.user)
 
         project = self.create_project()
         data = load_data("transaction")
-        data["timestamp"] = iso_format(before_now(minutes=1, seconds=5))
-        data["start_timestamp"] = iso_format(before_now(minutes=1))
+        data["timestamp"] = iso_format(before_now(minutes=1))
+        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
         self.store_event(data=data, project_id=project.id)
 
         with self.feature("organizations:events-v2"):
@@ -571,3 +589,4 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             )
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
+        assert response.data["meta"]["transaction.duration"] == "duration"

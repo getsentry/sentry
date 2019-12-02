@@ -1,13 +1,14 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment-timezone';
-import _ from 'lodash';
+import isEqual from 'lodash/isEqual';
 import styled, {cx} from 'react-emotion';
 
 import Tooltip from 'app/components/tooltip';
 import Count from 'app/components/count';
 import ConfigStore from 'app/stores/configStore';
 import theme from 'app/utils/theme';
+import floatFormat from 'app/utils/floatFormat';
 
 class StackedBarChart extends React.Component {
   static propTypes = {
@@ -100,8 +101,8 @@ class StackedBarChart extends React.Component {
     }
   }
 
-  shouldComponentUpdate(nextProps, nextState) {
-    return !_.isEqual(this.props, nextProps);
+  shouldComponentUpdate(nextProps, _nextState) {
+    return !isEqual(this.props, nextProps);
   }
 
   getInterval = series => {
@@ -113,7 +114,7 @@ class StackedBarChart extends React.Component {
 
   pointsToSeries = points => {
     const series = [];
-    points.forEach((p, pIdx) => {
+    points.forEach((p, _pIdx) => {
       p.y.forEach((y, yIdx) => {
         if (!series[yIdx]) {
           series[yIdx] = {data: []};
@@ -141,11 +142,6 @@ class StackedBarChart extends React.Component {
     const user = ConfigStore.get('user');
     const options = user ? user.options : {};
     return options.clock24Hours;
-  }
-
-  floatFormat(number, places) {
-    const multi = Math.pow(10, places);
-    return parseInt(number * multi, 10) / multi;
   }
 
   timeLabelAsHour(point) {
@@ -251,7 +247,7 @@ class StackedBarChart extends React.Component {
     );
   }
 
-  renderTooltip = (point, pointIdx) => {
+  renderTooltip = (point, _pointIdx) => {
     const timeLabel = this.getTimeLabel(point);
     const totalY = point.y.reduce((a, b) => a + b);
     return (
@@ -280,14 +276,14 @@ class StackedBarChart extends React.Component {
     );
   };
 
-  getMinHeight(index, pointLength) {
+  getMinHeight(index, _pointLength) {
     const {minHeights} = this.props;
     return minHeights && (minHeights[index] || minHeights[index] === 0)
       ? this.props.minHeights[index]
       : 1;
   }
 
-  renderChartColumn(point, maxval, pointWidth, index, totalPoints) {
+  renderChartColumn(point, maxval, pointWidth, index, _totalPoints) {
     const totalY = point.y.reduce((a, b) => a + b);
     const totalPct = totalY / maxval;
     // we leave a little extra space for bars with min-heights.
@@ -296,7 +292,7 @@ class StackedBarChart extends React.Component {
     let prevPct = 0;
     const pts = point.y.map((y, i) => {
       const pct = Math.max(
-        totalY && this.floatFormat((y / totalY) * totalPct * maxPercentage, 2),
+        totalY && floatFormat((y / totalY) * totalPct * maxPercentage, 2),
         this.getMinHeight(i, point.y.length)
       );
 
@@ -345,10 +341,7 @@ class StackedBarChart extends React.Component {
     const totalPoints = Math.max(...series.map(s => s.data.length));
     // we expand the graph just a hair beyond 100% prevent a subtle white line on the edge
     const nudge = 0.1;
-    const pointWidth = this.floatFormat(
-      (100.0 + this.props.gap + nudge) / totalPoints,
-      2
-    );
+    const pointWidth = floatFormat((100.0 + this.props.gap + nudge) / totalPoints, 2);
 
     const maxval = this.maxPointValue();
     const markers = this.props.markers.slice();

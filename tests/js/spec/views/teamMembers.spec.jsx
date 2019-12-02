@@ -3,7 +3,12 @@ import React from 'react';
 import {Client} from 'app/api';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {openInviteMembersModal} from 'app/actionCreators/modal';
 import TeamMembers from 'app/views/settings/organizationTeams/teamMembers';
+
+jest.mock('app/actionCreators/modal', () => ({
+  openInviteMembersModal: jest.fn(),
+}));
 
 describe('TeamMembers', function() {
   const {organization, routerContext} = initializeOrg();
@@ -34,6 +39,26 @@ describe('TeamMembers', function() {
     );
     await tick();
     wrapper.update();
+  });
+
+  it('can invite member from team dropdown', async function() {
+    const wrapper = mountWithTheme(
+      <TeamMembers
+        params={{orgId: organization.slug, teamId: team.slug}}
+        organization={organization}
+      />,
+      routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    wrapper.find('DropdownButton[data-test-id="add-member"]').simulate('click');
+    wrapper
+      .find('StyledCreateMemberLink[data-test-id="invite-member"]')
+      .simulate('click');
+
+    expect(openInviteMembersModal).toHaveBeenCalled();
   });
 
   it('can remove member from team', async function() {

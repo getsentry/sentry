@@ -1,7 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {find, flatMap, get} from 'lodash';
+import find from 'lodash/find';
+import flatMap from 'lodash/flatMap';
+import get from 'lodash/get';
 
 import {t} from 'app/locale';
 import {SENTRY_APP_PERMISSIONS} from 'app/constants';

@@ -7,7 +7,7 @@ from sentry.new_migrations.monkey.writer import SENTRY_MIGRATION_TEMPLATE
 
 from django.db.migrations import migration, executor, writer
 
-LAST_VERIFIED_DJANGO_VERSION = (1, 9)
+LAST_VERIFIED_DJANGO_VERSION = (1, 10)
 CHECK_MESSAGE = """Looks like you're trying to upgrade Django! Since we monkeypatch
 the Django migration library in several places, please verify that we have the latest
 code, and that the monkeypatching still works as expected. Currently the main things
@@ -27,9 +27,7 @@ changes are backwards incompatible, change the monkeying to handle both versions
 if VERSION[:2] > LAST_VERIFIED_DJANGO_VERSION:
     raise Exception(CHECK_MESSAGE)
 
-# Monkeypatch Django 1.8 migration executor to use the much faster version
-# from Django 1.9.1. We'll continue to monkeypatch once we're on 1.9.1, just a smaller
-# set of functionality
+# monkeypatch Django's migration executor and template.
 executor.MigrationExecutor = SentryMigrationExecutor
 migration.Migration.initial = None
 writer.MIGRATION_TEMPLATE = SENTRY_MIGRATION_TEMPLATE

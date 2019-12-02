@@ -1,13 +1,13 @@
 from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
+from django.test import override_settings
 
 from sentry.testutils import TestCase
 
 
+@override_settings(ROOT_URLCONF="sentry.conf.urls")
 class CsrfFailureTest(TestCase):
-    urls = "sentry.conf.urls"
-
     def test_simple(self):
         path = reverse("error-403-csrf-failure")
 

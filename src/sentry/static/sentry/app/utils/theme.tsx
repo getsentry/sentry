@@ -221,12 +221,18 @@ const button = {
 };
 
 const theme = {
-  breakpoints: ['768px', '992px', '1200px'],
+  breakpoints: ['768px', '992px', '1200px', '1440px', '2560px'],
 
   ...colors,
 
   // Try to keep these ordered plz
   zIndex: {
+    traceView: {
+      spanTreeToggler: 900,
+      dividerLine: 909,
+      minimapContainer: 999,
+    },
+
     header: 1000,
     errorMessage: 1000,
     dropdown: 1001,

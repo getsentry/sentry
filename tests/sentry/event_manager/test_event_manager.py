@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 from time import time
 
+from sentry import nodestore
 from sentry.app import tsdb
 from sentry.constants import MAX_VERSION_LENGTH
 from sentry.event_manager import HashDiscarded, EventManager, EventUser
@@ -83,21 +84,24 @@ class EventManagerTest(TestCase):
         assert group.platform == "python"
         assert event.platform == "python"
 
-    def test_dupe_message_id(self):
+    @mock.patch("sentry.event_manager.eventstream.insert")
+    def test_dupe_message_id(self, eventstream_insert):
+        # Saves the latest event to nodestore and eventstream
+        project_id = 1
         event_id = "a" * 32
+        node_id = Event.generate_node_id(project_id, event_id)
 
-        manager = EventManager(make_event(event_id=event_id))
+        manager = EventManager(make_event(event_id=event_id, message="first"))
         manager.normalize()
-        manager.save(1)
+        manager.save(project_id)
+        assert nodestore.get(node_id)["logentry"]["formatted"] == "first"
 
-        assert Event.objects.count() == 1
-
-        # ensure that calling it again doesn't raise a db error
-        manager = EventManager(make_event(event_id=event_id))
+        manager = EventManager(make_event(event_id=event_id, message="second"))
         manager.normalize()
-        manager.save(1)
+        manager.save(project_id)
+        assert nodestore.get(node_id)["logentry"]["formatted"] == "second"
 
-        assert Event.objects.count() == 1
+        assert eventstream_insert.call_count == 2
 
     def test_updates_group(self):
         timestamp = time() - 300
@@ -629,12 +633,6 @@ class EventManagerTest(TestCase):
             tsdb.models.frequent_issues_by_project, (event.project.id,), event.datetime
         ) == {event.project.id: [(event.group_id, 1.0)]}
 
-        assert tsdb.get_most_frequent(
-            tsdb.models.frequent_projects_by_organization,
-            (event.project.organization_id,),
-            event.datetime,
-        ) == {event.project.organization_id: [(event.project_id, 1.0)]}
-
     def test_event_user(self):
         manager = EventManager(
             make_event(
@@ -747,7 +745,7 @@ class EventManagerTest(TestCase):
             manager = EventManager(
                 make_event(
                     **{
-                        "event_id": uuid.uuid1().hex,  # don't deduplicate
+                        "event_id": uuid.uuid1().hex,
                         "environment": "beta",
                         "release": release_version,
                     }
@@ -1060,7 +1058,7 @@ class EventManagerTest(TestCase):
 
         data = {"exception": {"values": [item.value for item in items]}}
 
-        project_config = get_project_config(self.project, for_store=True)
+        project_config = get_project_config(self.project)
         manager = EventManager(data, project=self.project, project_config=project_config)
 
         mock_is_valid_error_message.side_effect = [item.result for item in items]

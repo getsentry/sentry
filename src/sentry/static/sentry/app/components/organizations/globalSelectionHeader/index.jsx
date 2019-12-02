@@ -1,4 +1,7 @@
-import {flatten, isEqual, pick, partition} from 'lodash';
+import flatten from 'lodash/flatten';
+import isEqual from 'lodash/isEqual';
+import pick from 'lodash/pick';
+import partition from 'lodash/partition';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -46,6 +49,11 @@ class GlobalSelectionHeader extends React.Component {
      * List of projects to display in project selector
      */
     projects: PropTypes.arrayOf(SentryTypes.Project).isRequired,
+
+    /**
+     * Whether or not the projects are currently being loaded in
+     */
+    loadingProjects: PropTypes.bool,
 
     /**
      * A project will be forced from parent component (selection is disabled, and if user
@@ -484,6 +492,7 @@ class GlobalSelectionHeader extends React.Component {
       className,
       shouldForceProject,
       forceProject,
+      loadingProjects,
       organization,
       showAbsolute,
       showRelative,
@@ -496,7 +505,7 @@ class GlobalSelectionHeader extends React.Component {
       ? [parseInt(forceProject.id, 10)]
       : this.props.selection.projects;
 
-    const [projects, nonMemberProjects] = this.getProjects();
+    const [memberProjects, nonMemberProjects] = this.getProjects();
 
     return (
       <Header className={className}>
@@ -506,7 +515,8 @@ class GlobalSelectionHeader extends React.Component {
             organization={organization}
             shouldForceProject={shouldForceProject}
             forceProject={forceProject}
-            projects={projects}
+            projects={memberProjects}
+            loadingProjects={loadingProjects}
             nonMemberProjects={nonMemberProjects}
             value={this.state.projects || this.props.selection.projects}
             onChange={this.handleChangeProjects}
@@ -521,6 +531,8 @@ class GlobalSelectionHeader extends React.Component {
             <HeaderItemPosition>
               <MultipleEnvironmentSelector
                 organization={organization}
+                projects={this.props.projects}
+                loadingProjects={loadingProjects}
                 selectedProjects={selectedProjects}
                 value={this.state.environments || this.props.selection.environments}
                 onChange={this.handleChangeEnvironments}

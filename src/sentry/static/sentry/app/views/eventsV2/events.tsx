@@ -2,15 +2,16 @@ import React from 'react';
 import styled from 'react-emotion';
 import * as ReactRouter from 'react-router';
 import {Location} from 'history';
-import {omit, uniqBy} from 'lodash';
+import omit from 'lodash/omit';
+import uniqBy from 'lodash/uniqBy';
 
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {Organization} from 'app/types';
-import space from 'app/styles/space';
 import SearchBar from 'app/views/events/searchBar';
 import {Panel} from 'app/components/panels';
 import EventsChart from 'app/views/events/eventsChart';
 import getDynamicText from 'app/utils/getDynamicText';
+import space from 'app/styles/space';
 
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 
@@ -100,49 +101,52 @@ export default class Events extends React.Component<EventsProps> {
 
     return (
       <React.Fragment>
-        <StyledSearchBar
-          organization={organization}
-          query={query}
-          onSearch={this.handleSearch}
-        />
-        <Panel>
-          {getDynamicText({
-            value: (
-              <EventsChart
-                router={router}
-                query={eventView.getEventsAPIPayload(location).query}
-                organization={organization}
-                showLegend
-                yAxisOptions={yAxisOptions}
-                yAxisValue={eventView.yAxis}
-                onYAxisChange={this.handleYAxisChange}
-              />
-            ),
-            fixed: 'events chart',
-          })}
-        </Panel>
-        <Container hasTags={eventView.tags.length > 0}>
+        <Top>
+          <StyledSearchBar
+            organization={organization}
+            query={query}
+            onSearch={this.handleSearch}
+          />
+          <Panel>
+            {getDynamicText({
+              value: (
+                <EventsChart
+                  router={router}
+                  query={eventView.getEventsAPIPayload(location).query}
+                  organization={organization}
+                  showLegend
+                  yAxisOptions={yAxisOptions}
+                  yAxisValue={eventView.yAxis}
+                  onYAxisChange={this.handleYAxisChange}
+                  project={eventView.project as number[]}
+                  environment={eventView.environment as string[]}
+                />
+              ),
+              fixed: 'events chart',
+            })}
+          </Panel>
+        </Top>
+        <Main>
           <Table organization={organization} eventView={eventView} location={location} />
-          {this.renderTagsTable()}
-        </Container>
+        </Main>
+        <Side>{this.renderTagsTable()}</Side>
       </React.Fragment>
     );
   }
 }
 
-const Container = styled('div')<{hasTags: boolean}>`
-  display: grid;
-  grid-gap: ${space(2)};
-
-  ${props => {
-    if (props.hasTags) {
-      return 'grid-template-columns: auto 300px;';
-    }
-
-    return 'grid-template-columns: auto;';
-  }};
-`;
-
 const StyledSearchBar = styled(SearchBar)`
   margin-bottom: ${space(2)};
+`;
+
+const Top = styled('div')`
+  grid-column: 1/3;
+`;
+
+const Main = styled('div')`
+  grid-column: 1/2;
+`;
+
+const Side = styled('div')`
+  grid-column: 2/3;
 `;

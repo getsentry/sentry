@@ -68,13 +68,11 @@ ENVIRONMENT = os.environ.get("SENTRY_ENVIRONMENT", "production")
 IS_DEV = ENVIRONMENT == "development"
 
 DEBUG = IS_DEV
-TEMPLATE_DEBUG = True
 MAINTENANCE = False
 
 ADMINS = ()
 
 # Hosts that are considered in the same network (including VPNs).
-# This gives access to functionality like the debug toolbar.
 INTERNAL_IPS = ()
 
 # List of IP subnets which should not be accessible
@@ -251,12 +249,6 @@ USE_L10N = True
 
 USE_TZ = True
 
-# List of callables that know how to import templates from various sources.
-TEMPLATE_LOADERS = (
-    "django.template.loaders.filesystem.Loader",
-    "django.template.loaders.app_directories.Loader",
-)
-
 MIDDLEWARE_CLASSES = (
     "sentry.middleware.proxy.ChunkedMiddleware",
     "sentry.middleware.proxy.DecompressBodyMiddleware",
@@ -280,28 +272,29 @@ MIDDLEWARE_CLASSES = (
     # TODO(dcramer): kill this once we verify its safe
     # 'sentry.middleware.social_auth.SentrySocialAuthExceptionMiddleware',
     "django.contrib.messages.middleware.MessageMiddleware",
-    "sentry.debug.middleware.DebugMiddleware",
 )
 
 ROOT_URLCONF = "sentry.conf.urls"
 
-TEMPLATE_DIRS = (
-    # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
-    # Always use forward slashes, even on Windows.
-    # Don't forget to use absolute paths, not relative paths.
-    os.path.join(PROJECT_ROOT, "templates"),
-)
-
-TEMPLATE_CONTEXT_PROCESSORS = (
-    "django.contrib.auth.context_processors.auth",
-    "django.contrib.messages.context_processors.messages",
-    "django.core.context_processors.csrf",
-    "django.core.context_processors.request",
-    "social_auth.context_processors.social_auth_by_name_backends",
-    "social_auth.context_processors.social_auth_backends",
-    "social_auth.context_processors.social_auth_by_type_backends",
-    "social_auth.context_processors.social_auth_login_redirect",
-)
+TEMPLATES = [
+    {
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [os.path.join(PROJECT_ROOT, "templates")],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+                "django.template.context_processors.csrf",
+                "django.template.context_processors.request",
+                "social_auth.context_processors.social_auth_by_name_backends",
+                "social_auth.context_processors.social_auth_backends",
+                "social_auth.context_processors.social_auth_by_type_backends",
+                "social_auth.context_processors.social_auth_login_redirect",
+            ]
+        },
+    }
+]
 
 INSTALLED_APPS = (
     "django.contrib.admin",
@@ -311,7 +304,6 @@ INSTALLED_APPS = (
     "django.contrib.sessions",
     "django.contrib.sites",
     "crispy_forms",
-    "debug_toolbar",
     "rest_framework",
     "sentry",
     "sentry.analytics",
@@ -342,7 +334,12 @@ SILENCED_SYSTEM_CHECKS = (
     # Django recommends to use OneToOneField over ForeignKey(unique=True)
     # however this changes application behavior in ways that break association
     # loading
-    "fields.W342"
+    "fields.W342",
+    # We have a "catch-all" react_page_view that we only want to match on URLs
+    # ending with a `/` to allow APPEND_SLASHES to kick in for the ones lacking
+    # the trailing slash. This confuses the warning as the regex is `/$` which
+    # looks like it starts with a slash but it doesn't.
+    "urls.W002",
 )
 
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, "static"))
@@ -376,14 +373,10 @@ CSRF_COOKIE_NAME = "sc"
 
 # Auth configuration
 
-try:
-    from django.core.urlresolvers import reverse_lazy
-except ImportError:
-    LOGIN_REDIRECT_URL = "/login-redirect/"
-    LOGIN_URL = "/auth/login/"
-else:
-    LOGIN_REDIRECT_URL = reverse_lazy("sentry-login-redirect")
-    LOGIN_URL = reverse_lazy("sentry-login")
+from django.core.urlresolvers import reverse_lazy
+
+LOGIN_REDIRECT_URL = reverse_lazy("sentry-login-redirect")
+LOGIN_URL = reverse_lazy("sentry-login")
 
 AUTHENTICATION_BACKENDS = (
     "sentry.utils.auth.EmailAuthBackend",
@@ -533,6 +526,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.deletion",
     "sentry.tasks.digests",
     "sentry.tasks.email",
+    "sentry.tasks.members",
     "sentry.tasks.merge",
     "sentry.tasks.options",
     "sentry.tasks.ping",
@@ -783,19 +777,6 @@ CRISPY_TEMPLATE_PACK = "bootstrap3"
 
 PERCY_DEFAULT_TESTING_WIDTHS = (1280, 375)
 
-# Debugger
-
-DEBUG_TOOLBAR_PANELS = (
-    "debug_toolbar.panels.timer.TimerPanel",
-    "sentry.debug.panels.route.RoutePanel",
-    "debug_toolbar.panels.templates.TemplatesPanel",
-    "debug_toolbar.panels.sql.SQLPanel",
-    # TODO(dcramer): https://github.com/getsentry/sentry/issues/1722
-    # 'sentry.debug.panels.redis.RedisPanel',
-)
-
-DEBUG_TOOLBAR_PATCH_SETTINGS = False
-
 # Sentry and internal client configuration
 
 SENTRY_FEATURES = {
@@ -843,6 +824,8 @@ SENTRY_FEATURES = {
     # Special feature flag primarily used on the sentry.io SAAS product for
     # easily enabling features while in early development.
     "organizations:internal-catchall": False,
+    # Enable v2 of pagerduty integration
+    "organizations:pagerduty-v2": False,
     # Enable inviting members to organizations.
     "organizations:invite-members": True,
     # Enable org-wide saved searches and user pinned search
@@ -1061,6 +1044,24 @@ SENTRY_SEARCH_OPTIONS = {}
 SENTRY_TSDB = "sentry.tsdb.dummy.DummyTSDB"
 SENTRY_TSDB_OPTIONS = {}
 
+# Event storage backend
+SENTRY_EVENTSTORE = "sentry.utils.services.ServiceDelegator"
+SENTRY_EVENTSTORE_OPTIONS = {
+    "backend_base": "sentry.eventstore.base.EventStorage",
+    "backends": {
+        "snuba": {
+            "path": "sentry.eventstore.snuba.SnubaEventStorage",
+            "executor": {"path": "sentry.utils.concurrent.SynchronousExecutor"},
+        },
+        "snuba_discover": {
+            "path": "sentry.eventstore.snuba_discover.SnubaDiscoverEventStorage",
+            "executor": {"path": "sentry.utils.services.ThreadedExecutor"},
+        },
+    },
+    "selector_func": "sentry.eventstore.utils.selector_func",
+    "callback_func": "sentry.eventstore.utils.callback_func",
+}
+
 SENTRY_NEWSLETTER = "sentry.newsletter.base.Newsletter"
 SENTRY_NEWSLETTER_OPTIONS = {}
 
@@ -1253,7 +1254,7 @@ SENTRY_ROLES = (
     },
     {
         "id": "owner",
-        "name": "Organization Owner",
+        "name": "Owner",
         "desc": "Unrestricted access to the organization, its data, and its settings. Can add, modify, and delete projects and members, as well as make billing and plan changes.",
         "is_global": True,
         "scopes": set(
@@ -1351,7 +1352,7 @@ SENTRY_DEVSERVICES = {
         "volumes": {"kafka": {"bind": "/var/lib/kafka"}},
     },
     "clickhouse": {
-        "image": "yandex/clickhouse-server:19.3",
+        "image": "yandex/clickhouse-server:19.11",
         "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
         "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
         "volumes": {"clickhouse": {"bind": "/var/lib/clickhouse"}},
@@ -1428,6 +1429,14 @@ def get_sentry_sdk_config():
 
 
 SENTRY_SDK_CONFIG = get_sentry_sdk_config()
+
+# Callable to bind additional context for the Sentry SDK
+#
+# def get_org_context(scope, organization, **kwargs):
+#    scope.set_tag('organization.cool', '1')
+#
+# SENTRY_ORGANIZATION_CONTEXT_HELPER = get_org_context
+SENTRY_ORGANIZATION_CONTEXT_HELPER = None
 
 # Config options that are explicitly disabled from Django
 DEAD = object()

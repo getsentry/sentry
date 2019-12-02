@@ -1,10 +1,11 @@
 from __future__ import absolute_import
 
-from django.conf.urls import patterns, url
+from django.conf.urls import url
 from django.views.generic import TemplateView
 
 import sentry.web.frontend.debug.mail
 
+from sentry.web.frontend.debug.debug_alert_rule_trigger_email import DebugAlertRuleTriggerEmailView
 from sentry.web.frontend.debug.debug_assigned_email import (
     DebugAssignedEmailView,
     DebugSelfAssignedEmailView,
@@ -61,8 +62,7 @@ from sentry.web.frontend.debug.debug_oauth_authorize import (
     DebugOAuthAuthorizeErrorView,
 )
 
-urlpatterns = patterns(
-    "",
+urlpatterns = [
     url(r"^debug/mail/alert/$", sentry.web.frontend.debug.mail.alert),
     url(r"^debug/mail/note/$", DebugNoteEmailView.as_view()),
     url(r"^debug/mail/new-release/$", DebugNewReleaseEmailView.as_view()),
@@ -107,6 +107,7 @@ urlpatterns = patterns(
     url(r"^debug/mail/sso-linked/$", DebugSsoLinkedEmailView.as_view()),
     url(r"^debug/mail/sso-unlinked/$", DebugSsoUnlinkedEmailView.as_view()),
     url(r"^debug/mail/sso-unlinked/no-password$", DebugSsoUnlinkedNoPasswordEmailView.as_view()),
+    url(r"^debug/mail/alert-rule-trigger$", DebugAlertRuleTriggerEmailView.as_view()),
     url(r"^debug/mail/incident-activity$", DebugIncidentActivityEmailView.as_view()),
     url(r"^debug/mail/setup-2fa/$", DebugSetup2faEmailView.as_view()),
     url(r"^debug/embed/error-page/$", DebugErrorPageEmbedView.as_view()),
@@ -116,4 +117,4 @@ urlpatterns = patterns(
     url(r"^debug/sudo/$", TemplateView.as_view(template_name="sentry/account/sudo.html")),
     url(r"^debug/oauth/authorize/$", DebugOAuthAuthorizeView.as_view()),
     url(r"^debug/oauth/authorize/error/$", DebugOAuthAuthorizeErrorView.as_view()),
-)
+]

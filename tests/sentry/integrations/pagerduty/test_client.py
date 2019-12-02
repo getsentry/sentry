@@ -2,9 +2,9 @@ from __future__ import absolute_import
 
 import copy
 
-from sentry.utils import json
 from mock import patch
 
+from sentry.api.serializers import serialize, ExternalEventSerializer
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.models import Integration, PagerDutyService
@@ -35,7 +35,6 @@ class PagerDutyClientTest(APITestCase):
         )
         self.integration.add_organization(self.organization, self.user)
         self.service = PagerDutyService.objects.create(
-            service_id=SERVICES[0]["service_id"],
             service_name=SERVICES[0]["service_name"],
             integration_key=SERVICES[0]["integration_key"],
             organization_integration=self.integration.organizationintegration_set.first(),
@@ -58,6 +57,7 @@ class PagerDutyClientTest(APITestCase):
 
         integration_key = self.service.integration_key
         client = self.installation.get_client(integration_key=integration_key)
+        custom_details = serialize(event, None, ExternalEventSerializer())
 
         client.send_trigger(event)
         data = {
@@ -69,7 +69,7 @@ class PagerDutyClientTest(APITestCase):
                 "severity": "error",
                 "source": event.transaction or event.culprit,
                 "component": self.project.slug,
-                "custom_details": event.as_dict(),
+                "custom_details": custom_details,
             },
             "links": [
                 {
@@ -78,4 +78,4 @@ class PagerDutyClientTest(APITestCase):
                 }
             ],
         }
-        mock_request.assert_called_once_with("POST", "/", data=json.dumps(data))
+        mock_request.assert_called_once_with("POST", "/", data=data)

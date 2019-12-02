@@ -1,4 +1,7 @@
-import {pick, pickBy, identity} from 'lodash';
+import pick from 'lodash/pick';
+
+import pickBy from 'lodash/pickBy';
+import identity from 'lodash/identity';
 
 import {defined} from 'app/utils';
 import {getUtcToLocalDateObject} from 'app/utils/dates';

@@ -8,6 +8,10 @@ import GlobalModal from 'app/components/globalModal';
 describe('Incident Rules Details', function() {
   beforeAll(function() {
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       body: [],
     });
@@ -24,22 +28,31 @@ describe('Incident Rules Details', function() {
       url: `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
       body: rule,
     });
-    const createTrigger = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/alert-rules/${rule.id}/triggers/`,
-      method: 'POST',
-      body: (_, options) =>
-        TestStubs.IncidentTrigger({
-          ...options.data,
-          id: '123',
-        }),
-    });
-    const updateTrigger = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/alert-rules/${rule.id}/triggers/123/`,
-      method: 'PUT',
-      body: (_, options) =>
-        TestStubs.IncidentTrigger({
-          ...options.data,
-        }),
+
+    // TODO: Implement creating/saving triggers
+    // const createTrigger = MockApiClient.addMockResponse({
+    // url: `/organizations/${organization.slug}/alert-rules/${rule.id}/triggers/`,
+    // method: 'POST',
+    // body: (_, options) =>
+    // TestStubs.IncidentTrigger({
+    // ...options.data,
+    // id: '123',
+    // }),
+    // });
+    // const updateTrigger = MockApiClient.addMockResponse({
+    // url: `/organizations/${organization.slug}/alert-rules/${rule.id}/triggers/123/`,
+    // method: 'PUT',
+    // body: (_, options) =>
+    // TestStubs.IncidentTrigger({
+    // ...options.data,
+    // }),
+    // });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/alert-rules/${
+        rule.id
+      }/triggers/123/actions/`,
+      body: [],
     });
 
     const wrapper = mountWithTheme(
@@ -77,17 +90,6 @@ describe('Incident Rules Details', function() {
 
     // Save Trigger
     wrapper.find('TriggersModal button[aria-label="Create Trigger"]').simulate('submit');
-    expect(createTrigger).toHaveBeenLastCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        data: {
-          label: 'New Trigger',
-          alertThreshold: 13,
-          resolveThreshold: 12,
-          thresholdType: 0,
-        },
-      })
-    );
 
     // New Trigger should be in list
     await tick();
@@ -127,19 +129,7 @@ describe('Incident Rules Details', function() {
 
     // Save Trigger
     wrapper.find('TriggersModal button[aria-label="Update Trigger"]').simulate('submit');
-    expect(updateTrigger).toHaveBeenLastCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        data: expect.objectContaining({
-          alertRuleId: '4',
-          alertThreshold: 13,
-          id: '123',
-          label: 'New Trigger!!',
-          resolveThreshold: 12,
-          thresholdType: 0,
-        }),
-      })
-    );
+
     // New Trigger should be in list
     await tick();
     await tick(); // tick#2 - flakiness
@@ -155,14 +145,20 @@ describe('Incident Rules Details', function() {
 
     // Attempt and fail to delete trigger
     let deleteTrigger = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/alert-rules/${rule.id}/triggers/123`,
+      url: `/organizations/${organization.slug}/alert-rules/${rule.id}/triggers/1`,
       method: 'DELETE',
       statusCode: 400,
+    });
+    const deleteUndefinedTrigger = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/alert-rules/${
+        rule.id
+      }/triggers/undefined`,
+      method: 'DELETE',
     });
 
     wrapper
       .find('TriggersList button[aria-label="Delete Trigger"]')
-      .last()
+      .first()
       .simulate('click');
 
     wrapper.find('Confirm button[aria-label="Confirm"]').simulate('click');
@@ -175,16 +171,11 @@ describe('Incident Rules Details', function() {
     expect(
       wrapper
         .find('TriggersList Label')
-        .last()
+        .first()
         .text()
-    ).toBe('New Trigger!!');
+    ).toBe('Trigger');
 
-    // Actually delete trigger
-    deleteTrigger = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/alert-rules/${rule.id}/triggers/123`,
-      method: 'DELETE',
-    });
-
+    // Remove unsaved trigger from list
     wrapper
       .find('TriggersList button[aria-label="Delete Trigger"]')
       .last()
@@ -195,13 +186,35 @@ describe('Incident Rules Details', function() {
     await tick();
     wrapper.update();
 
-    expect(deleteTrigger).toHaveBeenCalled();
+    expect(deleteUndefinedTrigger).not.toHaveBeenCalled();
 
+    // The last trigger is now the first trigger
     expect(
       wrapper
         .find('TriggersList Label')
         .last()
         .text()
     ).toBe('Trigger');
+
+    // Actually delete saved trigger
+    deleteTrigger = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/alert-rules/${rule.id}/triggers/1`,
+      method: 'DELETE',
+    });
+
+    wrapper
+      .find('TriggersList button[aria-label="Delete Trigger"]')
+      .last()
+      .simulate('click');
+
+    wrapper.find('Confirm button[aria-label="Confirm"]').simulate('click');
+
+    await tick();
+    wrapper.update();
+
+    expect(deleteTrigger).toHaveBeenCalled();
+
+    // No triggers left
+    expect(wrapper.find('TriggersList Label')).toHaveLength(0);
   });
 });

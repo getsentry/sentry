@@ -1,6 +1,4 @@
-import {Flex} from 'grid-emotion';
 import React from 'react';
-import marked from 'marked';
 import styled from 'react-emotion';
 
 import {extractMultilineFields} from 'app/utils';
@@ -8,8 +6,13 @@ import {t, tct, tn} from 'app/locale';
 import HintPanelItem from 'app/components/panels/hintPanelItem';
 import PlatformIcon from 'app/components/platformIcon';
 import getDynamicText from 'app/utils/getDynamicText';
+import marked from 'app/utils/marked';
 import platforms from 'app/data/platforms';
 import slugify from 'app/utils/slugify';
+import {
+  STORE_CRASH_REPORTS_VALUES,
+  formatStoreCrashReports,
+} from 'app/utils/crashReports';
 import space from 'app/styles/space';
 import {GroupingConfigItem} from 'app/components/events/groupingInfo';
 
@@ -331,12 +334,14 @@ export const fields = {
   },
   storeCrashReports: {
     name: 'storeCrashReports',
-    type: 'boolean',
+    type: 'range',
     label: t('Store Native Crash Reports'),
     help: t(
-      'Store native crash reports such as Minidumps for improved processing and download in issue details'
+      'Store native crash reports such as Minidumps for improved processing and download in issue details.  Overrides organization settings when enabled.'
     ),
     visible: ({features}) => features.has('event-attachments'),
+    formatLabel: formatStoreCrashReports,
+    allowedValues: STORE_CRASH_REPORTS_VALUES,
   },
   relayPiiConfig: {
     name: 'relayPiiConfig',
@@ -413,7 +418,8 @@ export const fields = {
   },
 };
 
-const PlatformWrapper = styled(Flex)`
+const PlatformWrapper = styled('div')`
+  display: flex;
   align-items: center;
 `;
 const StyledPlatformIcon = styled(PlatformIcon)`

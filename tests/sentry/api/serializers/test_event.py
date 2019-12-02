@@ -9,40 +9,52 @@ from sentry.api.serializers.models.event import SharedEventSerializer, SnubaEven
 from sentry.models import EventError
 from sentry.testutils import TestCase
 from sentry.utils.samples import load_data
+from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
 class EventSerializerTest(TestCase):
     def test_simple(self):
-        event = self.create_event(event_id="a")
-
+        event_id = "a" * 32
+        event = self.store_event(
+            data={"event_id": event_id, "timestamp": iso_format(before_now(minutes=1))},
+            project_id=self.project.id,
+        )
         result = serialize(event)
-        assert result["id"] == six.text_type(event.id)
-        assert result["eventID"] == "a"
+        assert result["id"] == event_id
+        assert result["eventID"] == event_id
 
     def test_eventerror(self):
-        event = self.create_event(
-            data={"errors": [{"type": EventError.INVALID_DATA, "name": u"ü"}]}
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": iso_format(before_now(minutes=1)),
+                "stacktrace": [u"ü"],
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
         )
 
         result = serialize(event)
         assert len(result["errors"]) == 1
         assert "data" in result["errors"][0]
         assert result["errors"][0]["type"] == EventError.INVALID_DATA
-        assert result["errors"][0]["data"] == {"name": u"ü"}
+        assert result["errors"][0]["data"] == {
+            u"name": u"stacktrace",
+            u"reason": u"expected rawstacktrace",
+            u"value": [u"\xfc"],
+        }
         assert "startTimestamp" not in result
         assert "timestamp" not in result
 
     def test_hidden_eventerror(self):
-        event = self.create_event(
+        event = self.store_event(
             data={
-                "errors": [
-                    {"type": EventError.INVALID_DATA, "name": u"breadcrumbs.values.42.data"},
-                    {
-                        "type": EventError.INVALID_DATA,
-                        "name": u"exception.values.0.stacktrace.frames.42.vars",
-                    },
-                ]
-            }
+                "event_id": "a" * 32,
+                "timestamp": iso_format(before_now(minutes=1)),
+                "breadcrumbs": [u"ü"],
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
         )
 
         result = serialize(event)
@@ -50,15 +62,19 @@ class EventSerializerTest(TestCase):
 
     def test_renamed_attributes(self):
         # Only includes meta for simple top-level attributes
-        event = self.create_event(
+        event = self.store_event(
             data={
+                "event_id": "a" * 32,
+                "timestamp": iso_format(before_now(minutes=1)),
                 "extra": {"extra": True},
                 "modules": {"modules": "foobar"},
                 "_meta": {
                     "extra": {"": {"err": ["extra error"]}},
                     "modules": {"": {"err": ["modules error"]}},
                 },
-            }
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
         )
 
         result = serialize(event)
@@ -68,11 +84,15 @@ class EventSerializerTest(TestCase):
         assert result["_meta"]["packages"] == {"": {"err": ["modules error"]}}
 
     def test_message_interface(self):
-        event = self.create_event(
+        event = self.store_event(
             data={
+                "event_id": "a" * 32,
+                "timestamp": iso_format(before_now(minutes=1)),
                 "logentry": {"formatted": "bar"},
                 "_meta": {"logentry": {"formatted": {"": {"err": ["some error"]}}}},
-            }
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
         )
 
         result = serialize(event)
@@ -80,11 +100,15 @@ class EventSerializerTest(TestCase):
         assert result["_meta"]["message"] == {"": {"err": ["some error"]}}
 
     def test_message_formatted(self):
-        event = self.create_event(
+        event = self.store_event(
             data={
-                "logentry": {"message": "bar", "formatted": "baz"},
+                "event_id": "a" * 32,
+                "timestamp": iso_format(before_now(minutes=1)),
+                "logentry": {"formatted": "baz"},
                 "_meta": {"logentry": {"formatted": {"": {"err": ["some error"]}}}},
-            }
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
         )
 
         result = serialize(event)
@@ -92,15 +116,26 @@ class EventSerializerTest(TestCase):
         assert result["_meta"]["message"] == {"": {"err": ["some error"]}}
 
     def test_message_legacy(self):
-        event = self.create_event(data={"logentry": None})
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": iso_format(before_now(minutes=1)),
+                "logentry": {"formatted": None},
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+
         event.message = "search message"
 
         result = serialize(event)
         assert result["message"] == "search message"
 
     def test_tags_tuples(self):
-        event = self.create_event(
+        event = self.store_event(
             data={
+                "event_id": "a" * 32,
+                "timestamp": iso_format(before_now(minutes=1)),
                 "tags": [["foo", "foo"], ["bar", "bar"]],
                 "_meta": {
                     "tags": {
@@ -108,7 +143,9 @@ class EventSerializerTest(TestCase):
                         "1": {"1": {"": {"err": ["bar error"]}}},
                     }
                 },
-            }
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
         )
 
         result = serialize(event)
@@ -118,9 +155,10 @@ class EventSerializerTest(TestCase):
         assert result["_meta"]["tags"]["1"]["value"] == {"": {"err": ["foo error"]}}
 
     def test_tags_dict(self):
-        event = self.create_event(
+        event = self.store_event(
             data={
-                # Sentry normalizes this internally
+                "event_id": "a" * 32,
+                "timestamp": iso_format(before_now(minutes=1)),
                 "tags": {"foo": "foo", "bar": "bar"},
                 "_meta": {
                     "tags": {
@@ -128,7 +166,9 @@ class EventSerializerTest(TestCase):
                         "bar": {"": {"err": ["bar error"]}},
                     }
                 },
-            }
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
         )
 
         result = serialize(event)
@@ -138,8 +178,10 @@ class EventSerializerTest(TestCase):
         assert result["_meta"]["tags"]["1"]["value"] == {"": {"err": ["foo error"]}}
 
     def test_none_interfaces(self):
-        event = self.create_event(
+        event = self.store_event(
             data={
+                "event_id": "a" * 32,
+                "timestamp": iso_format(before_now(minutes=1)),
                 "breadcrumbs": None,
                 "exception": None,
                 "logentry": None,
@@ -148,7 +190,8 @@ class EventSerializerTest(TestCase):
                 "contexts": None,
                 "sdk": None,
                 "_meta": None,
-            }
+            },
+            project_id=self.project.id,
         )
 
         result = serialize(event)
@@ -183,11 +226,14 @@ class EventSerializerTest(TestCase):
 
 class SharedEventSerializerTest(TestCase):
     def test_simple(self):
-        event = self.create_event(event_id="a")
+        event = self.store_event(
+            data={"event_id": "a" * 32, "timestamp": iso_format(before_now(minutes=1))},
+            project_id=self.project.id,
+        )
 
         result = serialize(event, None, SharedEventSerializer())
-        assert result["id"] == six.text_type(event.id)
-        assert result["eventID"] == "a"
+        assert result["id"] == "a" * 32
+        assert result["eventID"] == "a" * 32
         assert result.get("context") is None
         assert result.get("contexts") is None
         assert result.get("user") is None
@@ -246,7 +292,7 @@ class SimpleEventSerializerTest(TestCase):
         assert result["user"]["username"] == event.username
         assert result["user"]["ip_address"] == event.ip_address
         assert result["tags"] == [
-            {"key": "user", "value": "email:test@test.com", "query": "user.email:test@test.com"}
+            {"key": "user", "value": "email:test@test.com", "query": 'user.email:"test@test.com"'}
         ]
 
     def test_no_group(self):

@@ -1,27 +1,28 @@
-import React from 'react';
 import {browserHistory} from 'react-router';
+import React from 'react';
 
-import SentryTypes from 'app/sentryTypes';
-import {t} from 'app/locale';
-import SearchBar from 'app/components/searchBar';
+import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
+import {PageContent, PageHeader} from 'app/styles/organization';
 import {Panel, PanelBody} from 'app/components/panels';
-import Pagination from 'app/components/pagination';
-import LoadingIndicator from 'app/components/loadingIndicator';
+import {t} from 'app/locale';
+import AsyncView from 'app/views/asyncView';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import NoProjectMessage from 'app/components/noProjectMessage';
-import AsyncView from 'app/views/asyncView';
-import withOrganization from 'app/utils/withOrganization';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import {PageContent, PageHeader} from 'app/styles/organization';
 import PageHeading from 'app/components/pageHeading';
+import Pagination from 'app/components/pagination';
+import SearchBar from 'app/components/searchBar';
+import SentryTypes from 'app/sentryTypes';
+import profiler from 'app/utils/profiler';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
+import withOrganization from 'app/utils/withOrganization';
 
+import {getQuery} from './utils';
+import ReleaseLanding from './releaseLanding';
 import ReleaseList from './releaseList';
 import ReleaseListHeader from './releaseListHeader';
-import ReleaseLanding from './releaseLanding';
 import ReleaseProgress from './releaseProgress';
-import {getQuery} from './utils';
 
 const ReleasesContainer = props => {
   const {organization} = props;
@@ -181,4 +182,4 @@ class OrganizationReleases extends AsyncView {
   }
 }
 
-export default withOrganization(withGlobalSelection(ReleasesContainer));
+export default withOrganization(withGlobalSelection(profiler()(ReleasesContainer)));

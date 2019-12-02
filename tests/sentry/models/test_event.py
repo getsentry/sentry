@@ -11,16 +11,6 @@ from sentry.testutils.factories import Factories
 
 
 class EventTest(TestCase):
-    def test_legacy_tags(self):
-        event = self.create_event(
-            data={"tags": [("logger", "foobar"), ("site", "foo"), ("server_name", "bar")]}
-        )
-        assert event.logger == "foobar"
-        assert event.level == event.group.level
-        assert event.site == "foo"
-        assert event.server_name == "bar"
-        assert event.culprit == event.group.culprit
-
     def test_pickling_compat(self):
         event = self.create_event(
             data={"tags": [("logger", "foobar"), ("site", "foo"), ("server_name", "bar")]}
@@ -152,8 +142,6 @@ class EventTest(TestCase):
         )
         assert event.group is None
         assert event.culprit == "app/components/events/eventEntries in map"
-        assert event.level is None
-        assert event.get_level_display() is None
 
 
 @pytest.mark.django_db

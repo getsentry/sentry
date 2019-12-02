@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import * as Sentry from '@sentry/browser';
-import _ from 'lodash';
+import debounce from 'lodash/debounce';
 import createReactClass from 'create-react-class';
 import styled, {css} from 'react-emotion';
 
@@ -332,6 +332,7 @@ class SmartSearchBar extends React.Component {
       return;
     }
 
+    const {useFormWrapper} = this.props;
     const {key} = evt;
     const isSelectingDropdownItems = this.state.activeSearchItem !== -1;
 
@@ -396,6 +397,12 @@ class SmartSearchBar extends React.Component {
       if (item && !this.isDefaultDropdownItem(item)) {
         this.onAutoComplete(item.value, item);
       }
+    } else if (key === 'Enter' && !useFormWrapper && !isSelectingDropdownItems) {
+      // If enter is pressed, and we are not wrapping input in a `<form>`, and
+      // we are not selecting an item from the dropdown, then we should consider
+      // the user as finished selecting and perform a "search" since there is no
+      // `<form>` to catch and call `this.onSubmit`
+      this.doSearch();
     }
   };
 
@@ -465,7 +472,7 @@ class SmartSearchBar extends React.Component {
    * Returns array of tag values that substring match `query`; invokes `callback`
    * with data when ready
    */
-  getTagValues = _.debounce(
+  getTagValues = debounce(
     async (tag, query) => {
       // Strip double quotes if there are any
       query = query.replace(/"/g, '').trim();
@@ -513,7 +520,7 @@ class SmartSearchBar extends React.Component {
   /**
    * Get recent searches
    */
-  getRecentSearches = _.debounce(
+  getRecentSearches = debounce(
     async () => {
       const {savedSearchType, hasRecentSearches, onGetRecentSearches} = this.props;
       // `savedSearchType` can be 0
@@ -553,7 +560,7 @@ class SmartSearchBar extends React.Component {
     return [];
   };
 
-  getReleases = _.debounce(
+  getReleases = debounce(
     async (tag, query) => {
       const releasePromise = this.fetchReleases(query);
 

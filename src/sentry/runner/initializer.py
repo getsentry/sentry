@@ -11,7 +11,7 @@ from sentry.utils.sdk import configure_sdk
 from sentry.utils.warnings import DeprecatedSettingWarning
 
 
-def register_plugins(settings, test_plugins=False):
+def register_plugins(settings, raise_on_plugin_load_failure=False):
     from pkg_resources import iter_entry_points
     from sentry.plugins.base import plugins
 
@@ -20,9 +20,7 @@ def register_plugins(settings, test_plugins=False):
     #         'phabricator = sentry_phabricator.plugins:PhabricatorPlugin'
     #     ],
     # },
-    # TODO (Steve): Remove option for test_plugins
-    entry_point = "sentry.new_plugins" if test_plugins else "sentry.plugins"
-    for ep in iter_entry_points(entry_point):
+    for ep in iter_entry_points("sentry.plugins"):
         try:
             plugin = ep.load()
         except Exception:
@@ -31,6 +29,8 @@ def register_plugins(settings, test_plugins=False):
             click.echo(
                 "Failed to load plugin %r:\n%s" % (ep.name, traceback.format_exc()), err=True
             )
+            if raise_on_plugin_load_failure:
+                raise
         else:
             plugins.register(plugin)
 
@@ -391,8 +391,8 @@ def validate_options(settings):
 
 
 def monkeypatch_django_migrations():
-    # This monkey patches the django 1.8 migration executor with a backported 1.9
-    # executor. This improves the speed that Django builds the migration state.
+    # This monkeypatches django's migration executor with our own, which
+    # adds some small but important customizations.
     import sentry.new_migrations.monkey  # NOQA
 
 

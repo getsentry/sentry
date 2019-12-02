@@ -1,7 +1,8 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
 import {Observer} from 'mobx-react';
-import _ from 'lodash';
+import omit from 'lodash/omit';
+import get from 'lodash/get';
 import scrollToElement from 'scroll-to-element';
 
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
@@ -48,7 +49,7 @@ const getResourceFromScope = (scope: Scope): Resource | undefined => {
     const allChoices = Object.values(permObj.choices);
 
     const allScopes = allChoices.reduce(
-      (_allScopes: string[], choice) => _allScopes.concat(_.get(choice, 'scopes', [])),
+      (_allScopes: string[], choice) => _allScopes.concat(get(choice, 'scopes', [])),
       []
     );
 
@@ -91,7 +92,7 @@ class SentryAppFormModel extends FormModel {
     if (!responseJSON) {
       return responseJSON;
     }
-    const formErrors = _.omit(responseJSON, ['scopes']);
+    const formErrors = omit(responseJSON, ['scopes']);
     if (responseJSON.scopes) {
       responseJSON.scopes.forEach((message: string) => {
         //find the scope from the error message of a specific format
@@ -172,11 +173,11 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
   };
 
   handleSubmitError = err => {
-    let errorMessage = 'Unknown Error';
+    let errorMessage = t('Unknown Error');
     if (err.status >= 400 && err.status < 500) {
-      errorMessage = _.get(err, 'responseJSON.detail', errorMessage);
+      errorMessage = get(err, 'responseJSON.detail', errorMessage);
     }
-    addErrorMessage(t(errorMessage));
+    addErrorMessage(errorMessage);
 
     if (this.form.formErrors) {
       const firstErrorFieldId = Object.keys(this.form.formErrors)[0];
@@ -296,7 +297,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
     const endpoint = app ? `/sentry-apps/${app.slug}/` : '/sentry-apps/';
 
     const forms = this.isInternal ? internalIntegrationForms : publicIntegrationForms;
-    let verifyInstall;
+    let verifyInstall: boolean;
     if (this.isInternal) {
       //force verifyInstall to false for all internal apps
       verifyInstall = false;

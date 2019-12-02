@@ -423,7 +423,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         integration = Integration.objects.create(provider="example", name="Example")
         integration.add_organization(org, self.user)
-        group = self.create_group(status=GroupStatus.UNRESOLVED, organization=org)
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
 
         OrganizationIntegration.objects.filter(
             integration_id=integration.id, organization_id=group.organization.id
@@ -1112,7 +1112,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
         response = self.client.put(url, data={"isPublic": "false"}, format="json")
         assert response.status_code == 200
-        assert response.data == {"isPublic": False}
+        assert response.data == {"isPublic": False, "shareId": None}
 
         new_group1 = Group.objects.get(id=group1.id)
         assert not bool(new_group1.get_share_id())

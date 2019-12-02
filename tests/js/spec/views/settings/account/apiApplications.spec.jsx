@@ -10,7 +10,10 @@ describe('ApiApplications', function() {
   const {router, routerContext} = initializeOrg();
 
   const createWrapper = props => {
-    wrapper = mountWithTheme(<ApiApplications {...props} />, routerContext);
+    wrapper = mountWithTheme(
+      <ApiApplications {...props} router={router} />,
+      routerContext
+    );
   };
 
   beforeEach(function() {
@@ -42,7 +45,7 @@ describe('ApiApplications', function() {
 
     expect(requestMock).toHaveBeenCalled();
 
-    expect(wrapper.find('ApiApplicationRow')).toHaveLength(1);
+    expect(wrapper.find('Row')).toHaveLength(1);
   });
 
   it('creates application', async function() {
@@ -55,7 +58,10 @@ describe('ApiApplications', function() {
     });
     createWrapper();
 
-    wrapper.find('Button').simulate('click');
+    wrapper.find('button[aria-label="Create New Application"]').simulate('click');
+
+    await tick();
+
     expect(createApplicationRequest).toHaveBeenCalledWith(
       '/api-applications/',
       expect.objectContaining({method: 'POST'})
@@ -72,7 +78,9 @@ describe('ApiApplications', function() {
     });
     createWrapper();
 
-    wrapper.find('a[aria-label="Remove"]').simulate('click');
+    wrapper.find('button[aria-label="Remove"]').simulate('click');
+    await tick();
+    wrapper.update();
     expect(deleteApplicationRequest).toHaveBeenCalledWith(
       '/api-applications/123/',
       expect.objectContaining({method: 'DELETE'})

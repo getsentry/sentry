@@ -1,7 +1,7 @@
 import React from 'react';
 
 import {Client} from 'app/api';
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import SentryApplicationDashboard from 'app/views/settings/organizationDeveloperSettings/sentryApplicationDashboard';
 
 describe('Sentry Application Dashboard', function() {
@@ -11,7 +11,7 @@ describe('Sentry Application Dashboard', function() {
   let org;
   let orgId;
   let sentryApp;
-  let error;
+  let request;
 
   let wrapper;
 
@@ -27,30 +27,37 @@ describe('Sentry Application Dashboard', function() {
       sentryApp = TestStubs.SentryApp({
         status: 'published',
         schema: {
-          elements: [{type: 'stacktrace-link', uri: '/test'}, {type: 'issue-link'}],
+          elements: [
+            {type: 'stacktrace-link', uri: '/test'},
+            {
+              type: 'issue-link',
+              create: {uri: '/test', required_fields: []},
+              link: {uri: '/test', required_fields: []},
+            },
+          ],
         },
       });
-      error = TestStubs.SentryAppWebhookError();
+      request = TestStubs.SentryAppWebhookRequest();
 
       Client.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/stats/`,
         body: {
-          total_installs: NUM_INSTALLS,
-          total_uninstalls: NUM_UNINSTALLS,
-          install_stats: [[1569783600, NUM_INSTALLS]],
-          uninstall_stats: [[1569783600, NUM_UNINSTALLS]],
+          totalInstalls: NUM_INSTALLS,
+          totalUninstalls: NUM_UNINSTALLS,
+          installStats: [[1569783600, NUM_INSTALLS]],
+          uninstallStats: [[1569783600, NUM_UNINSTALLS]],
         },
       });
 
       Client.addMockResponse({
-        url: `/sentry-apps/${sentryApp.slug}/errors/`,
-        body: [error],
+        url: `/sentry-apps/${sentryApp.slug}/requests/`,
+        body: [request],
       });
 
       Client.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/interaction/`,
         body: {
-          component_interactions: {
+          componentInteractions: {
             'stacktrace-link': [[1569783600, 1]],
             'issue-link': [[1569783600, 1]],
           },
@@ -63,7 +70,7 @@ describe('Sentry Application Dashboard', function() {
         body: sentryApp,
       });
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <SentryApplicationDashboard params={{appSlug: sentryApp.slug, orgId}} />,
         TestStubs.routerContext()
       );
@@ -100,35 +107,34 @@ describe('Sentry Application Dashboard', function() {
       });
     });
 
-    it('shows the error log', () => {
-      const errorLog = wrapper.find('PanelBody');
-      const errorLogText = errorLog.find('PanelItem').text();
-      // The mock response has 1 error
-      expect(errorLog.find('PanelItem')).toHaveLength(1);
+    it('shows the request log', () => {
+      const requestLog = wrapper.find('PanelBody');
+      const requestLogText = requestLog.find('PanelItem').text();
+      // The mock response has 1 request
+      expect(requestLog.find('PanelItem')).toHaveLength(1);
       // Make sure that all the info is displayed
-      expect(errorLogText).toEqual(
+      expect(requestLogText).toEqual(
         expect.stringContaining('https://example.com/webhook')
       );
-      expect(errorLogText).toEqual(expect.stringContaining('This is an error'));
-      expect(errorLogText).toEqual(expect.stringContaining('400'));
-      expect(errorLogText).toEqual(expect.stringContaining('issue.assigned'));
-      expect(errorLogText).toEqual(expect.stringContaining('Test Org'));
+      expect(requestLogText).toEqual(expect.stringContaining('400'));
+      expect(requestLogText).toEqual(expect.stringContaining('issue.assigned'));
+      expect(requestLogText).toEqual(expect.stringContaining('Test Org'));
     });
 
-    it('shows an empty message if there are no errors', () => {
+    it('shows an empty message if there are no requests', () => {
       Client.addMockResponse({
-        url: `/sentry-apps/${sentryApp.slug}/errors/`,
+        url: `/sentry-apps/${sentryApp.slug}/requests/`,
         body: [],
       });
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <SentryApplicationDashboard params={{appSlug: sentryApp.slug, orgId}} />,
         TestStubs.routerContext()
       );
 
       expect(wrapper.find('PanelBody').exists('PanelItem')).toBeFalsy();
       expect(wrapper.find('EmptyMessage').text()).toEqual(
-        expect.stringContaining('No errors found.')
+        expect.stringContaining('No requests found in the last 30 days.')
       );
     });
 
@@ -172,27 +178,27 @@ describe('Sentry Application Dashboard', function() {
           elements: [{type: 'stacktrace-link', uri: '/test'}],
         },
       });
-      error = TestStubs.SentryAppWebhookError();
+      request = TestStubs.SentryAppWebhookRequest();
 
       Client.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/stats/`,
         body: {
-          total_installs: 1,
-          total_uninstalls: 0,
-          install_stats: [[1569783600, 1]],
-          uninstall_stats: [[1569783600, 0]],
+          totalInstalls: 1,
+          totalUninstalls: 0,
+          installStats: [[1569783600, 1]],
+          uninstallStats: [[1569783600, 0]],
         },
       });
 
       Client.addMockResponse({
-        url: `/sentry-apps/${sentryApp.slug}/errors/`,
-        body: [error],
+        url: `/sentry-apps/${sentryApp.slug}/requests/`,
+        body: [request],
       });
 
       Client.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/interaction/`,
         body: {
-          component_interactions: {
+          componentInteractions: {
             'stacktrace-link': [[1569783600, 1]],
           },
           views: [[1569783600, 1]],
@@ -204,7 +210,7 @@ describe('Sentry Application Dashboard', function() {
         body: sentryApp,
       });
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <SentryApplicationDashboard params={{appSlug: sentryApp.slug, orgId}} />,
         TestStubs.routerContext()
       );
@@ -215,35 +221,33 @@ describe('Sentry Application Dashboard', function() {
       expect(wrapper.exists('BarChart')).toBeFalsy();
     });
 
-    it('shows the error log', () => {
-      const errorLog = wrapper.find('PanelBody');
-      const errorLogText = errorLog.find('PanelItem').text();
-      // The mock response has 1 error
-      expect(errorLog.find('PanelItem')).toHaveLength(1);
+    it('shows the request log', () => {
+      const requestLog = wrapper.find('PanelBody');
+      const requestLogText = requestLog.find('PanelItem').text();
+      // The mock response has 1 request
+      expect(requestLog.find('PanelItem')).toHaveLength(1);
       // Make sure that all the info is displayed
-      expect(errorLogText).toEqual(
+      expect(requestLogText).toEqual(
         expect.stringContaining('https://example.com/webhook')
       );
-      expect(errorLogText).toEqual(expect.stringContaining('This is an error'));
-      expect(errorLogText).toEqual(expect.stringContaining('400'));
-      expect(errorLogText).toEqual(expect.stringContaining('issue.assigned'));
-      expect(errorLogText).toEqual(expect.stringContaining('Test Org'));
+      expect(requestLogText).toEqual(expect.stringContaining('400'));
+      expect(requestLogText).toEqual(expect.stringContaining('issue.assigned'));
     });
 
-    it('shows an empty message if there are no errors', () => {
+    it('shows an empty message if there are no requests', () => {
       Client.addMockResponse({
-        url: `/sentry-apps/${sentryApp.slug}/errors/`,
+        url: `/sentry-apps/${sentryApp.slug}/requests/`,
         body: [],
       });
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <SentryApplicationDashboard params={{appSlug: sentryApp.slug, orgId}} />,
         TestStubs.routerContext()
       );
 
       expect(wrapper.find('PanelBody').exists('PanelItem')).toBeFalsy();
       expect(wrapper.find('EmptyMessage').text()).toEqual(
-        expect.stringContaining('No errors found.')
+        expect.stringContaining('No requests found in the last 30 days.')
       );
     });
 

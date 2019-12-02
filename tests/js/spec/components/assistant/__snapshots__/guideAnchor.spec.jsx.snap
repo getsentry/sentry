@@ -93,7 +93,7 @@ exports[`GuideAnchor renders, advances, and finishes 1`] = `
                       href="#"
                     >
                       <svg
-                        class="e173w1i13 css-bvgcq6-InlineSvg-CloseIcon enyz4ql0"
+                        class="ernuchp3 css-bvgcq6-InlineSvg-CloseIcon enyz4ql0"
                         height="1em"
                         viewBox="[object Object]"
                         width="1em"
@@ -239,18 +239,18 @@ exports[`GuideAnchor renders, advances, and finishes 1`] = `
                               >
                                 <CloseIcon>
                                   <Component
-                                    className="css-1hopv4i-CloseIcon e173w1i13"
+                                    className="css-1hopv4i-CloseIcon ernuchp3"
                                   >
                                     <InlineSvg
-                                      className="css-1hopv4i-CloseIcon e173w1i13"
+                                      className="css-1hopv4i-CloseIcon ernuchp3"
                                       src="icon-close-lg"
                                     >
                                       <ForwardRef
-                                        className="e173w1i13 css-bvgcq6-InlineSvg-CloseIcon enyz4ql0"
+                                        className="ernuchp3 css-bvgcq6-InlineSvg-CloseIcon enyz4ql0"
                                         src="icon-close-lg"
                                       >
                                         <svg
-                                          className="e173w1i13 css-bvgcq6-InlineSvg-CloseIcon enyz4ql0"
+                                          className="ernuchp3 css-bvgcq6-InlineSvg-CloseIcon enyz4ql0"
                                           height="1em"
                                           viewBox={Object {}}
                                           width="1em"

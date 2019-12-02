@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from sentry import analytics
 from sentry import http
 from sentry.api import client
@@ -31,8 +33,12 @@ class SlackActionEndpoint(Endpoint):
     authentication_classes = ()
     permission_classes = ()
 
-    def api_error(self, error):
-        logger.info("slack.action.api-error", extra={"response": error.body})
+    def api_error(self, error, action_type, logging_data):
+        logging_data = logging_data.copy()
+        logging_data["response"] = six.text_type(error.body)
+        logging_data["action_type"] = action_type
+        logger.info("slack.action.api-error-pre-message: %s" % six.text_type(logging_data))
+        logger.info("slack.action.api-error", extra=logging_data)
         return self.respond(
             {
                 "response_type": "ephemeral",
@@ -155,11 +161,15 @@ class SlackActionEndpoint(Endpoint):
         channel_id = data.get("channel", {}).get("id")
         user_id = data.get("user", {}).get("id")
 
+        logging_data["channel_id"] = channel_id
+        logging_data["user_id"] = user_id
+
         integration = slack_request.integration
         logging_data["integration_id"] = integration.id
 
         # Determine the issue group action is being taken on
         group_id = slack_request.callback_data["issue"]
+        logging_data["group_id"] = group_id
 
         # Actions list may be empty when receiving a dialog response
         action_list = data.get("actions", [])
@@ -174,6 +184,8 @@ class SlackActionEndpoint(Endpoint):
         except Group.DoesNotExist:
             logger.error("slack.action.invalid-issue", extra=logging_data)
             return self.respond(status=403)
+
+        logging_data["organization_id"] = group.organization.id
 
         # Determine the acting user by slack identity
         try:
@@ -205,7 +217,7 @@ class SlackActionEndpoint(Endpoint):
             try:
                 self.on_status(request, identity, group, action, data, integration)
             except client.ApiError as e:
-                return self.api_error(e)
+                return self.api_error(e, "status_dialog", logging_data)
 
             group = Group.objects.get(id=group.id)
             attachment = build_group_attachment(group, identity=identity, actions=[action])
@@ -230,6 +242,7 @@ class SlackActionEndpoint(Endpoint):
         defer_attachment_update = False
 
         # Handle interaction actions
+        action_type = None
         try:
             for action in action_list:
                 action_type = action["name"]
@@ -242,7 +255,7 @@ class SlackActionEndpoint(Endpoint):
                     self.open_resolve_dialog(data, group, integration)
                     defer_attachment_update = True
         except client.ApiError as e:
-            return self.api_error(e)
+            return self.api_error(e, action_type, logging_data)
 
         if defer_attachment_update:
             return self.respond()

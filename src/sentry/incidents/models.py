@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from collections import namedtuple
+
 from django.conf import settings
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
@@ -106,6 +108,7 @@ class Incident(Model):
     detection_uuid = UUIDField(null=True, db_index=True)
     status = models.PositiveSmallIntegerField(default=IncidentStatus.OPEN.value)
     type = models.PositiveSmallIntegerField(default=IncidentType.CREATED.value)
+    aggregation = models.PositiveSmallIntegerField(default=QueryAggregations.TOTAL.value)
     title = models.TextField()
     # Query used to fetch events related to an incident
     query = models.TextField()
@@ -377,7 +380,7 @@ class AlertRuleTriggerAction(Model):
 
     __core__ = True
 
-    handlers = {}
+    _type_registrations = {}
 
     # Which sort of action to take
     class Type(Enum):
@@ -393,6 +396,11 @@ class AlertRuleTriggerAction(Model):
         # A specific team. This could be used to send an email to everyone associated
         # with a team.
         TEAM = 2
+
+    TypeRegistration = namedtuple(
+        "TypeRegistration",
+        ["handler", "slug", "type", "supported_target_types", "integration_provider"],
+    )
 
     alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger")
     integration = FlexibleForeignKey("sentry.Integration", null=True)
@@ -425,37 +433,50 @@ class AlertRuleTriggerAction(Model):
             # ok to contact this email.
             return self.target_identifier
 
-    def build_handler(self, incident):
+    def build_handler(self, incident, project):
         type = AlertRuleTriggerAction.Type(self.type)
-        if type in self.handlers:
-            return self.handlers[type](self, incident)
+        if type in self._type_registrations:
+            return self._type_registrations[type].handler(self, incident, project)
         else:
             metrics.incr("alert_rule_trigger.unhandled_type.{}".format(self.type))
 
-    def fire(self, incident):
-        handler = self.build_handler(incident)
+    def fire(self, incident, project):
+        handler = self.build_handler(incident, project)
         if handler:
             return handler.fire()
 
-    def resolve(self, incident):
-        handler = self.build_handler(incident)
+    def resolve(self, incident, project):
+        handler = self.build_handler(incident, project)
         if handler:
             return handler.resolve()
 
     @classmethod
-    def register_type_handler(cls, type):
+    def register_type(cls, slug, type, supported_target_types, integration_provider=None):
         """
-        Registers a handler for a given target_type.
+        Registers a handler for a given type.
+        :param slug: A string representing the name of this type registration
         :param type: The `Type` to handle.
         :param handler: A subclass of `ActionHandler` that accepts the
         `AlertRuleTriggerAction` and `Incident`.
+        :param integration_provider: String representing the integration provider
+        related to this type.
         """
 
         def inner(handler):
-            if type not in cls.handlers:
-                cls.handlers[type] = handler
+            if type not in cls._type_registrations:
+                cls._type_registrations[type] = cls.TypeRegistration(
+                    handler, slug, type, frozenset(supported_target_types), integration_provider
+                )
             else:
                 raise Exception(u"Handler already registered for type %s" % type)
             return handler
 
         return inner
+
+    @classmethod
+    def get_registered_type(cls, type):
+        return cls._type_registrations[type]
+
+    @classmethod
+    def get_registered_types(cls):
+        return cls._type_registrations.values()

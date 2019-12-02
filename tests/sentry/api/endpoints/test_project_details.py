@@ -102,6 +102,18 @@ class ProjectUpdateTest(APITestCase):
         )
         self.login_as(user=self.user)
 
+    def test_blank_subject_prefix(self):
+        project = Project.objects.get(id=self.project.id)
+        options = {"mail:subject_prefix": "[Sentry]"}
+        resp = self.client.put(self.path, data={"options": options})
+        assert resp.status_code == 200, resp.content
+        assert project.get_option("mail:subject_prefix") == "[Sentry]"
+
+        options["mail:subject_prefix"] = ""
+        resp = self.client.put(self.path, data={"options": options})
+        assert resp.status_code == 200, resp.content
+        assert project.get_option("mail:subject_prefix") == ""
+
     def test_team_changes_deprecated(self):
         project = self.create_project()
         team = self.create_team(members=[self.user])
@@ -193,7 +205,7 @@ class ProjectUpdateTest(APITestCase):
             "sentry:scrub_defaults": False,
             "sentry:sensitive_fields": ["foo", "bar"],
             "sentry:safe_fields": ["token"],
-            "sentry:store_crash_reports": False,
+            "sentry:store_crash_reports": 0,
             "sentry:relay_pii_config": '{"applications": {"freeform": []}}',
             "sentry:csp_ignored_sources_defaults": False,
             "sentry:csp_ignored_sources": "foo\nbar",
@@ -231,7 +243,7 @@ class ProjectUpdateTest(APITestCase):
         ).exists()
         assert project.get_option("sentry:safe_fields", []) == options["sentry:safe_fields"]
         assert (
-            project.get_option("sentry:store_crash_reports", False)
+            project.get_option("sentry:store_crash_reports")
             == options["sentry:store_crash_reports"]
         )
 
@@ -413,10 +425,10 @@ class ProjectUpdateTest(APITestCase):
         assert resp.data["safeFields"] == ["foobar.com", "https://example.com"]
 
     def test_store_crash_reports(self):
-        resp = self.client.put(self.path, data={"storeCrashReports": True})
+        resp = self.client.put(self.path, data={"storeCrashReports": 10})
         assert resp.status_code == 200, resp.content
-        assert self.project.get_option("sentry:store_crash_reports") is True
-        assert resp.data["storeCrashReports"] is True
+        assert self.project.get_option("sentry:store_crash_reports") == 10
+        assert resp.data["storeCrashReports"] == 10
 
     def test_relay_pii_config(self):
         with self.feature("organizations:relay"):

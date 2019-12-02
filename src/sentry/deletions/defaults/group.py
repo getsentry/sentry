@@ -1,5 +1,6 @@
 from __future__ import absolute_import, print_function
 
+import os
 from sentry import eventstore, nodestore
 from sentry.models import Event, EventAttachment, UserReport
 
@@ -84,6 +85,7 @@ class GroupDeletionTask(ModelDeletionTask):
             models.GroupEmailThread,
             models.GroupSubscription,
             models.UserReport,
+            models.EventAttachment,
             IncidentGroup,
             # Event is last as its the most time consuming
             models.Event,
@@ -91,14 +93,16 @@ class GroupDeletionTask(ModelDeletionTask):
 
         relations.extend([ModelRelation(m, {"group_id": instance.id}) for m in model_list])
 
-        relations.extend(
-            [
-                BaseRelation(
-                    {"group_id": instance.id, "project_id": instance.project_id},
-                    EventDataDeletionTask,
-                )
-            ]
-        )
+        # Skip EventDataDeletionTask if this is being called from cleanup.py
+        if not os.environ.get("_SENTRY_CLEANUP"):
+            relations.extend(
+                [
+                    BaseRelation(
+                        {"group_id": instance.id, "project_id": instance.project_id},
+                        EventDataDeletionTask,
+                    )
+                ]
+            )
 
         return relations
 

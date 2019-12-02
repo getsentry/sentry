@@ -2,7 +2,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {openInviteMembersModal} from 'app/actionCreators/modal';
-import {OrganizationDetailed} from 'app/types';
+import {OrganizationDetailed, Member} from 'app/types';
 import {Panel} from 'app/components/panels';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -22,20 +22,11 @@ type Props = AsyncView['props'] & {
   organization: OrganizationDetailed;
 };
 
-class OrganizationMembersWrapper extends AsyncView<Props> {
-  componentDidMount() {
-    const {organization} = this.props;
+type State = AsyncView['state'] & {
+  inviteRequests: Member[];
+};
 
-    // record when requests tab is viewed on members page
-    if (this.showInviteRequests && !this.onRequestsTab) {
-      trackAnalyticsEvent({
-        eventKey: 'invite_request.tab_viewed',
-        eventName: 'Invite Request Tab Viewed',
-        organization_id: organization.id,
-      });
-    }
-  }
-
+class OrganizationMembersWrapper extends AsyncView<Props, State> {
   getEndpoints(): [string, string][] {
     const {orgId} = this.props.params;
 
@@ -50,29 +41,6 @@ class OrganizationMembersWrapper extends AsyncView<Props> {
     return routeTitleGen(t('Members'), orgId, false);
   }
 
-  get hasExperiment() {
-    const {organization} = this.props;
-
-    return (
-      !!organization &&
-      !!organization.experiments &&
-      organization.experiments.ImprovedInvitesExperiment !== undefined &&
-      organization.experiments.ImprovedInvitesExperiment !== 'none'
-    );
-  }
-
-  get hasInviteRequestExperiment() {
-    const {organization} = this.props;
-
-    if (!organization || !organization.experiments) {
-      return false;
-    }
-
-    const variant = organization.experiments.ImprovedInvitesExperiment;
-
-    return variant === 'all' || variant === 'invite_request';
-  }
-
   get onRequestsTab() {
     return location.pathname.includes('/requests/');
   }
@@ -85,20 +53,15 @@ class OrganizationMembersWrapper extends AsyncView<Props> {
     return organization.access.includes('member:write');
   }
 
-  get canOpeninviteModal() {
-    return this.hasWriteAccess || this.hasInviteRequestExperiment;
-  }
-
   get showInviteRequests() {
-    return this.hasWriteAccess && this.hasExperiment;
+    return this.hasWriteAccess;
   }
 
   get showNavTabs() {
     const {requestList} = this.state;
 
     // show the requests tab if there are pending team requests,
-    // or if the organization is exposed to the experiment and
-    // the user has access to approve or deny requests
+    // or if the user has access to approve or deny invite requests
     return (requestList && requestList.length > 0) || this.showInviteRequests;
   }
 
@@ -114,17 +77,25 @@ class OrganizationMembersWrapper extends AsyncView<Props> {
     return count ? count.toString() : null;
   }
 
-  updateRequestList = (id: string) =>
+  removeAccessRequest = (id: string) =>
     this.setState(state => ({
-      requestList: state.requestList.filter(({id: existingId}) => existingId !== id),
+      requestList: state.requestList.filter(request => request.id !== id),
     }));
 
-  updateInviteRequests = (id: string) =>
+  removeInviteRequest = (id: string) =>
     this.setState(state => ({
-      inviteRequests: state.inviteRequests.filter(
-        ({id: existingId}) => existingId !== id
-      ),
+      inviteRequests: state.inviteRequests.filter(request => request.id !== id),
     }));
+
+  updateInviteRequest = (id: string, data: Partial<Member>) =>
+    this.setState(state => {
+      const inviteRequests = [...state.inviteRequests];
+      const inviteIndex = inviteRequests.findIndex(request => request.id === id);
+
+      inviteRequests[inviteIndex] = {...inviteRequests[inviteIndex], ...data};
+
+      return {inviteRequests};
+    });
 
   renderBody() {
     const {
@@ -148,14 +119,7 @@ class OrganizationMembersWrapper extends AsyncView<Props> {
           </TextContainer>
           <Button
             priority="primary"
-            size="small"
             onClick={() => openInviteMembersModal({source: 'members_settings'})}
-            disabled={!this.canOpeninviteModal}
-            title={
-              !this.canOpeninviteModal
-                ? t('You do not have enough permission to add new members')
-                : undefined
-            }
           >
             {t('Invite Members')}
           </Button>
@@ -193,8 +157,9 @@ class OrganizationMembersWrapper extends AsyncView<Props> {
           React.cloneElement(children, {
             requestList,
             inviteRequests,
-            onUpdateInviteRequests: this.updateInviteRequests,
-            onUpdateRequestList: this.updateRequestList,
+            onRemoveInviteRequest: this.removeInviteRequest,
+            onUpdateInviteRequest: this.updateInviteRequest,
+            onRemoveAccessRequest: this.removeAccessRequest,
             showInviteRequests: this.showInviteRequests,
           })}
       </React.Fragment>

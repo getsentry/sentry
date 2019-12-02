@@ -6,6 +6,7 @@ import six
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamWithProjectsSerializer
+from sentry.models import InviteStatus
 from sentry.testutils import TestCase
 
 
@@ -39,6 +40,32 @@ class TeamSerializerTest(TestCase):
 
         result = serialize(team, user)
         assert 3 == result["memberCount"]
+
+    def test_member_count_does_not_include_invite_requests(self):
+        org = self.create_organization(owner=self.user)
+        team = self.create_team(organization=org)
+        self.create_member(user=self.create_user(), organization=org, teams=[team])  # member
+        self.create_member(email="1@example.com", organization=org, teams=[team])  # pending invite
+
+        result = serialize(team, self.user)
+        assert result["memberCount"] == 2
+
+        # invite requests
+        self.create_member(
+            email="2@example.com",
+            organization=org,
+            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+            teams=[team],
+        )
+        self.create_member(
+            email="3@gmail.com",
+            organization=org,
+            invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
+            teams=[team],
+        )
+
+        result = serialize(team, self.user)
+        assert result["memberCount"] == 2
 
     def test_member_access(self):
         user = self.create_user(username="foo")

@@ -8,10 +8,10 @@ import {Panel, PanelBody, PanelItem} from 'app/components/panels';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {t} from 'app/locale';
 import AttachmentUrl from 'app/utils/attachmentUrl';
-import Button from 'app/components/button';
 import FileSize from 'app/components/fileSize';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
+import EventAttachmentActions from 'app/components/events/eventAttachmentActions';
 
 type Props = {
   api: Client;
@@ -21,7 +21,7 @@ type Props = {
 };
 
 type State = {
-  attachmentList: EventAttachment[] | null;
+  attachmentList: EventAttachment[];
   expanded: boolean;
 };
 
@@ -34,7 +34,7 @@ class EventAttachments extends React.Component<Props, State> {
   };
 
   state: State = {
-    attachmentList: null,
+    attachmentList: [],
     expanded: false,
   };
 
@@ -77,15 +77,25 @@ class EventAttachments extends React.Component<Props, State> {
     } catch (_err) {
       // TODO: Error-handling
       this.setState({
-        attachmentList: null,
+        attachmentList: [],
       });
     }
   }
 
+  handleDelete = async (deletedAttachmentId: string) => {
+    this.setState(prevState => {
+      return {
+        attachmentList: prevState.attachmentList.filter(
+          attachment => attachment.id !== deletedAttachmentId
+        ),
+      };
+    });
+  };
+
   render() {
     const {attachmentList} = this.state;
 
-    if (!attachmentList || !attachmentList.length) {
+    if (!attachmentList.length) {
       return null;
     }
 
@@ -104,23 +114,15 @@ class EventAttachments extends React.Component<Props, State> {
                     <FileSizeWithGap bytes={attachment.size} />
                     <AttachmentUrl
                       projectId={this.props.projectId}
-                      event={this.props.event}
+                      eventId={this.props.event.id}
                       attachment={attachment}
                     >
-                      {downloadUrl => (
-                        <Button
-                          size="xsmall"
-                          icon="icon-download"
-                          href={downloadUrl || ''}
-                          disabled={!downloadUrl}
-                          title={
-                            !downloadUrl
-                              ? t('Insufficient permissions to download attachments')
-                              : undefined
-                          }
-                        >
-                          {t('Download')}
-                        </Button>
+                      {url => (
+                        <EventAttachmentActions
+                          url={url}
+                          onDelete={this.handleDelete}
+                          attachmentId={attachment.id}
+                        />
                       )}
                     </AttachmentUrl>
                   </PanelItem>

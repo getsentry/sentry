@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {Box, Flex} from 'grid-emotion';
-import {isEqual} from 'lodash';
+import isEqual from 'lodash/isEqual';
 
 import SentryTypes from 'app/sentryTypes';
 import Count from 'app/components/count';

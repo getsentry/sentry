@@ -1,5 +1,5 @@
 ---
-created: '2019-07-23T21:55:25.846335Z'
+created: '2019-11-01T11:48:29.596222Z'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -12,11 +12,9 @@ config:
       - DatabaseUnavailable
   version: 1
 fingerprint:
-- my-route
 - database-unavailable
 variants:
   custom-fingerprint:
     type: custom-fingerprint
     values:
-    - my-route
     - database-unavailable

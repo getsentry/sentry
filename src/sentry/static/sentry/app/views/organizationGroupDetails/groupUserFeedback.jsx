@@ -1,5 +1,5 @@
 import React from 'react';
-import {isEqual} from 'lodash';
+import isEqual from 'lodash/isEqual';
 
 import SentryTypes from 'app/sentryTypes';
 import EventUserFeedback from 'app/components/events/userFeedback';

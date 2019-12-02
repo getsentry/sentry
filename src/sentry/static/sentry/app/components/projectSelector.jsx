@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 import {Link} from 'react-router';
-import {flatten} from 'lodash';
+import flatten from 'lodash/flatten';
 
 import {analytics} from 'app/utils/analytics';
 import {sortArray} from 'app/utils';

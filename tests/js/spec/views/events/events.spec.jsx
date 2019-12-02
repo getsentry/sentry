@@ -255,7 +255,7 @@ describe('EventsErrors', function() {
 
       // After zooming, line chart should re-render once, but table does
       expect(chartRender).toHaveBeenCalledTimes(1);
-      expect(tableRender).toHaveBeenCalledTimes(3);
+      expect(tableRender).toHaveBeenCalledTimes(2);
 
       newParams = {
         start: '2018-11-29T00:00:00',
@@ -383,6 +383,8 @@ describe('EventsContainer', function() {
 
   it('updates when changing projects', async function() {
     ProjectsStore.loadInitialData(organization.projects);
+    // ensure that the wrapper gets new project values from withProjects HOC
+    wrapper.update();
 
     expect(wrapper.find('MultipleProjectSelector').prop('value')).toEqual([]);
 

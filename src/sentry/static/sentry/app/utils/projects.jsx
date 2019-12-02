@@ -1,8 +1,11 @@
-import {memoize, partition, uniqBy} from 'lodash';
+import memoize from 'lodash/memoize';
+import partition from 'lodash/partition';
+import uniqBy from 'lodash/uniqBy';
 import PropTypes from 'prop-types';
 import React from 'react';
 
 import ProjectActions from 'app/actions/projectActions';
+import ProjectsStore from 'app/stores/projectsStore';
 import SentryTypes from 'app/sentryTypes';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import withApi from 'app/utils/withApi';
@@ -89,7 +92,8 @@ class Projects extends React.Component {
     this.setState({
       // placeholders for projects we need to fetch
       fetchedProjects: notInStore.map(slug => ({slug})),
-      initiallyLoaded: true,
+      // set initallyLoaded if any projects were fetched from store
+      initiallyLoaded: !!inStore.length,
       projectsFromStore,
     });
 
@@ -251,6 +255,13 @@ class Projects extends React.Component {
       //
       // fn(searchTerm, {append: bool})
       onSearch: this.handleSearch,
+
+      // Reflects whether or not the initial fetch for the requested projects
+      // was fulfilled
+      initiallyLoaded: this.state.initiallyLoaded,
+
+      // The error that occurred if fetching failed
+      fetchError: this.state.fetchError,
     });
   }
 }
@@ -274,6 +285,15 @@ async function fetchProjects(api, orgId, {slugs, search, limit, allProjects} = {
   }
 
   if (allProjects) {
+    const {loading, projects} = ProjectsStore.getState();
+    // If the projects store is loaded then return all projects from the store
+    if (!loading) {
+      return {
+        results: projects,
+        hasMore: false,
+      };
+    }
+    // Otherwise mark the query to fetch all projects from the API
     query.all_projects = 1;
   }
 

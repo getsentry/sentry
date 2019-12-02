@@ -1,5 +1,5 @@
 import {Link} from 'react-router';
-import {omit} from 'lodash';
+import omit from 'lodash/omit';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -19,6 +19,7 @@ import SeenByList from 'app/components/seenByList';
 import SentryTypes from 'app/sentryTypes';
 import ShortId from 'app/components/shortId';
 import Tooltip from 'app/components/tooltip';
+import Badge from 'app/components/badge';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 
@@ -63,7 +64,9 @@ class GroupHeader extends React.Component {
 
   render() {
     const {project, group} = this.props;
+    const {organization, location} = this.context;
     const projectFeatures = new Set(project ? project.features : []);
+    const organizationFeatures = new Set(organization ? organization.features : []);
     const userCount = group.userCount;
 
     let className = 'group-detail';
@@ -79,12 +82,12 @@ class GroupHeader extends React.Component {
     }
 
     const {memberList} = this.state;
-    const {organization, location} = this.context;
     const groupId = group.id;
     const orgId = organization.slug;
     const message = this.getMessage();
 
     const hasSimilarView = projectFeatures.has('similarity-view');
+    const hasEventAttachments = organizationFeatures.has('event-attachments');
 
     const baseUrl = `/organizations/${orgId}/issues/`;
 
@@ -206,15 +209,22 @@ class GroupHeader extends React.Component {
             to={`${baseUrl}${groupId}/activity/${location.search}`}
             isActive={() => location.pathname.includes('/activity/')}
           >
-            {t('Comments')} <span className="badge animated">{group.numComments}</span>
+            {t('Comments')} <Badge text={group.numComments} />
           </ListLink>
           <ListLink
             to={`${baseUrl}${groupId}/feedback/${location.search}`}
             isActive={() => location.pathname.includes('/feedback/')}
           >
-            {t('User Feedback')}
-            <span className="badge animated">{group.userReportCount}</span>
+            {t('User Feedback')} <Badge text={group.userReportCount} />
           </ListLink>
+          {hasEventAttachments && (
+            <ListLink
+              to={`${baseUrl}${groupId}/attachments/${location.search}`}
+              isActive={() => location.pathname.includes('/attachments/')}
+            >
+              {t('Attachments')}
+            </ListLink>
+          )}
           <ListLink
             to={`${baseUrl}${groupId}/tags/${location.search}`}
             isActive={() => location.pathname.includes('/tags/')}

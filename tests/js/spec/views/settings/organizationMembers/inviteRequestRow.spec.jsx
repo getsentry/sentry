@@ -1,7 +1,29 @@
 import React from 'react';
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {selectByValue} from 'sentry-test/select';
 
 import InviteRequestRow from 'app/views/settings/organizationMembers/inviteRequestRow';
+
+const roles = [
+  {
+    id: 'admin',
+    name: 'Admin',
+    desc: 'This is the admin role',
+    allowed: true,
+  },
+  {
+    id: 'member',
+    name: 'Member',
+    desc: 'This is the member role',
+    allowed: true,
+  },
+  {
+    id: 'owner',
+    name: 'Owner',
+    desc: 'This is the owner role',
+    allowed: false,
+  },
+];
 
 describe('InviteRequestRow', function() {
   const orgId = 'org-slug';
@@ -11,13 +33,13 @@ describe('InviteRequestRow', function() {
     user: null,
     inviterName: TestStubs.User().name,
     inviteStatus: 'requested_to_be_invited',
-    roleName: 'member',
+    role: 'member',
   });
 
   const joinRequest = TestStubs.Member({
     user: null,
     inviteStatus: 'requested_to_join',
-    roleName: 'member',
+    role: 'member',
   });
 
   it('renders request to be invited', function() {
@@ -26,6 +48,8 @@ describe('InviteRequestRow', function() {
         orgId={orgId}
         inviteRequest={inviteRequest}
         inviteRequestBusy={inviteRequestBusy}
+        allTeams={[]}
+        allRoles={roles}
       />
     );
 
@@ -44,6 +68,8 @@ describe('InviteRequestRow', function() {
         orgId={orgId}
         inviteRequest={joinRequest}
         inviteRequestBusy={inviteRequestBusy}
+        allTeams={[]}
+        allRoles={roles}
       />
     );
 
@@ -62,6 +88,8 @@ describe('InviteRequestRow', function() {
         inviteRequestBusy={inviteRequestBusy}
         onApprove={mockApprove}
         onDeny={mockDeny}
+        allTeams={[]}
+        allRoles={roles}
       />
     );
 
@@ -82,11 +110,67 @@ describe('InviteRequestRow', function() {
         inviteRequestBusy={inviteRequestBusy}
         onApprove={mockApprove}
         onDeny={mockDeny}
+        allTeams={[]}
+        allRoles={roles}
       />
     );
 
     wrapper.find('button[aria-label="Deny"]').simulate('click');
     expect(mockDeny).toHaveBeenCalledWith(inviteRequest);
     expect(mockApprove).not.toHaveBeenCalled();
+  });
+
+  it('can change role and teams', function() {
+    const adminInviteRequest = TestStubs.Member({
+      user: null,
+      inviterName: TestStubs.User().name,
+      inviteStatus: 'requested_to_be_invited',
+      role: 'admin',
+    });
+
+    const mockUpdate = jest.fn();
+
+    const wrapper = mountWithTheme(
+      <InviteRequestRow
+        orgId={orgId}
+        inviteRequest={adminInviteRequest}
+        inviteRequestBusy={inviteRequestBusy}
+        allTeams={[{slug: 'one'}, {slug: 'two'}]}
+        allRoles={roles}
+        onUpdate={mockUpdate}
+      />
+    );
+
+    selectByValue(wrapper, 'member', {name: 'role', control: true});
+    expect(mockUpdate).toHaveBeenCalledWith({role: 'member'});
+
+    selectByValue(wrapper, 'one', {name: 'teams', control: true});
+    expect(mockUpdate).toHaveBeenCalledWith({teams: ['one']});
+  });
+
+  it('cannot be approved when invitee role is not allowed', function() {
+    const ownerInviteRequest = TestStubs.Member({
+      user: null,
+      inviterName: TestStubs.User().name,
+      inviteStatus: 'requested_to_be_invited',
+      role: 'owner',
+    });
+
+    const mockUpdate = jest.fn();
+
+    const wrapper = mountWithTheme(
+      <InviteRequestRow
+        orgId={orgId}
+        inviteRequest={ownerInviteRequest}
+        inviteRequestBusy={inviteRequestBusy}
+        allTeams={[{slug: 'one'}, {slug: 'two'}]}
+        allRoles={roles}
+        onUpdate={mockUpdate}
+      />
+    );
+
+    expect(wrapper.find('button[aria-label="Approve"]').props()['aria-disabled']).toBe(
+      true
+    );
   });
 });

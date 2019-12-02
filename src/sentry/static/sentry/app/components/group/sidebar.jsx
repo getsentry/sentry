@@ -1,6 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {isEqual, pickBy, keyBy, isObject} from 'lodash';
+import isEqual from 'lodash/isEqual';
+import pickBy from 'lodash/pickBy';
+import keyBy from 'lodash/keyBy';
+import isObject from 'lodash/isObject';
 
 import ErrorBoundary from 'app/components/errorBoundary';
 import SentryTypes from 'app/sentryTypes';
@@ -9,7 +12,7 @@ import SuggestedOwners from 'app/components/group/suggestedOwners';
 import GroupParticipants from 'app/components/group/participants';
 import GroupReleaseStats from 'app/components/group/releaseStats';
 import IndicatorStore from 'app/stores/indicatorStore';
-import TagDistributionMeter from 'app/components/group/tagDistributionMeter';
+import GroupTagDistributionMeter from 'app/components/group/tagDistributionMeter';
 import LoadingError from 'app/components/loadingError';
 import SubscribeButton from 'app/components/subscribeButton';
 import {t, tct} from 'app/locale';
@@ -258,11 +261,12 @@ class GroupSidebar extends React.Component {
             const tagWithTopValues = this.state.tagsWithTopValues[tag.key];
             const topValues = tagWithTopValues ? tagWithTopValues.topValues : [];
             const topValuesTotal = tagWithTopValues ? tagWithTopValues.totalValues : 0;
+
             return (
-              <TagDistributionMeter
+              <GroupTagDistributionMeter
                 key={tag.key}
                 tag={tag.key}
-                totalValues={tag.totalValues || topValuesTotal}
+                totalValues={topValuesTotal}
                 topValues={topValues}
                 name={tag.name}
                 data-test-id="group-tag"

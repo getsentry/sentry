@@ -1,4 +1,4 @@
-import marked from 'marked';
+import marked from 'marked'; // eslint-disable-line no-restricted-imports
 import dompurify from 'dompurify';
 
 function isSafeHref(href, pattern) {
@@ -50,12 +50,11 @@ Renderer.prototype.image = function(href, title, text) {
     out += ' title="' + title + '"';
   }
   out += this.options.xhtml ? '/>' : '>';
-  return dompurify.sanitize(out);
+  return out;
 };
 
 marked.setOptions({
   renderer: new Renderer(),
-  // Disable all HTML input and only accept Markdown
   sanitize: true,
 });
 
@@ -63,7 +62,9 @@ const noParagraphRenderer = new Renderer();
 noParagraphRenderer.paragraph = s => s;
 
 const singleLineRenderer = (text, options) =>
-  marked(text, {...options, renderer: noParagraphRenderer});
+  dompurify.sanitize(marked(text, {...options, renderer: noParagraphRenderer}));
 
-export default marked;
+const sanitizedMarked = (...args) => dompurify.sanitize(marked(...args));
+
 export {singleLineRenderer};
+export default sanitizedMarked;

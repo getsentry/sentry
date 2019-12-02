@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled, {css} from 'react-emotion';
 import isPropValid from '@emotion/is-prop-valid';
-import {pickBy} from 'lodash';
+import pickBy from 'lodash/pickBy';
 
 import ExternalLink from 'app/components/links/externalLink';
 import InlineSvg from 'app/components/inlineSvg';
@@ -25,6 +25,7 @@ type Props = {
   to?: string | object;
   href?: string;
   icon?: string;
+  iconSize?: string;
   title?: string;
   external?: boolean;
   borderless?: boolean;
@@ -115,6 +116,7 @@ class Button extends React.Component<ButtonProps, {}> {
       href,
       title,
       icon,
+      iconSize,
       children,
       label,
       borderless,
@@ -161,7 +163,11 @@ class Button extends React.Component<ButtonProps, {}> {
               <StyledInlineSvg
                 src={icon}
                 size={
-                  (size && size.endsWith('small')) || size === 'micro' ? '12px' : '16px'
+                  iconSize
+                    ? iconSize
+                    : (size && size.endsWith('small')) || size === 'micro'
+                    ? '12px'
+                    : '14px'
                 }
               />
             </Icon>

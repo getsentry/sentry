@@ -140,6 +140,25 @@ class GitHubAppsProviderTest(PluginTestCase):
         assert patchset[3] == {"path": "old_name.txt", "type": "D"}
         assert patchset[4] == {"path": "renamed.txt", "type": "A"}
 
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_patchset_caching(self, get_jwt):
+        stub_installation_token()
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/getsentry/example-repo/commits/abcdef",
+            json=json.loads(GET_COMMIT_EXAMPLE),
+        )
+        client = self.integration.get_installation(self.repository.organization_id).get_client()
+
+        self.provider._get_patchset(client, self.repository.config["name"], "abcdef")
+        # One call for auth token, another for the patchset
+        assert len(responses.calls) == 2
+
+        self.provider._get_patchset(client, self.repository.config["name"], "abcdef")
+        # Now that patchset was cached, github shouldn't have been called again
+        assert len(responses.calls) == 2
+
     @responses.activate
     def test_compare_commits_failure(self):
         stub_installation_token()

@@ -18,7 +18,6 @@ from sentry.api.helpers.group_index import (
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializer
 from sentry.models import Environment, Group, GroupStatus
-from sentry.models.event import Event
 from sentry.models.savedsearch import DEFAULT_SAVED_SEARCH_QUERIES
 from sentry.signals import advanced_search
 from sentry.utils.apidocs import attach_scenarios, scenario
@@ -101,8 +100,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         results).
 
         The ``statsPeriod`` parameter can be used to select the timeline
-        stats which should be present. Possible values are: '' (disable),
-        '24h', '14d'
+        stats which should be present. Possible values are: ``""`` (disable),
+        ``"24h"``, ``"14d"``
 
         :qparam string statsPeriod: an optional stat period (can be one of
                                     ``"24h"``, ``"14d"``, and ``""``).
@@ -115,6 +114,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         :qparam querystring query: an optional Sentry structured search
                                    query.  If not provided an implied
                                    ``"is:unresolved"`` is assumed.)
+        :qparam string environment: this restricts the issues to ones containing
+                                    events from this environment
         :pparam string organization_slug: the slug of the organization the
                                           issues belong to.
         :pparam string project_slug: the slug of the project the issues
@@ -151,7 +152,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                 else:
                     matching_event = eventstore.get_event_by_id(project.id, event_id)
                     if matching_event is not None:
-                        Event.objects.bind_nodes([matching_event], "data")
+                        matching_event.bind_node_data()
             elif matching_group is None:
                 matching_group = get_by_short_id(
                     project.organization_id, request.GET.get("shortIdLookup"), query

@@ -17,6 +17,7 @@ from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import StatsPeriod
 from sentry.digests import backend as digests
+from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
     EnvironmentProject,
     Project,
@@ -32,7 +33,6 @@ from sentry.models import (
     DEFAULT_SUBJECT_TEMPLATE,
 )
 from sentry.utils.data_filters import FilterTypes
-from sentry.utils.db import is_postgres
 
 STATUS_LABELS = {
     ProjectStatus.VISIBLE: "active",
@@ -382,24 +382,22 @@ def bulk_fetch_project_latest_releases(projects):
     attribute representing the project that they're the latest release for. If
     no release found, no entry will be returned for the given project.
     """
-    if is_postgres():
-        # XXX: This query could be very inefficient for projects with a large
-        # number of releases. To work around this, we only check 20 releases
-        # ordered by highest release id, which is generally correlated with
-        # most recent releases for a project. This could potentially result in
-        # not having the correct most recent release, but in practice will
-        # likely work fine.
-        release_project_join_sql = """
-            JOIN (
-                SELECT *
-                FROM sentry_release_project lrp
-                WHERE lrp.project_id = p.id
-                ORDER BY lrp.release_id DESC
-                LIMIT 20
-            ) lrp ON lrp.release_id = lrr.id
-        """
-    else:
-        release_project_join_sql = "JOIN sentry_release_project lrp ON lrp.release_id = lrr.id"
+    # XXX: This query could be very inefficient for projects with a large
+    # number of releases. To work around this, we only check 20 releases
+    # ordered by highest release id, which is generally correlated with
+    # most recent releases for a project. This could potentially result in
+    # not having the correct most recent release, but in practice will
+    # likely work fine.
+    release_project_join_sql = """
+        JOIN (
+            SELECT *
+            FROM sentry_release_project lrp
+            WHERE lrp.project_id = p.id
+            ORDER BY lrp.release_id DESC
+            LIMIT 20
+        ) lrp ON lrp.release_id = lrr.id
+    """
+
     return list(
         Release.objects.raw(
             u"""
@@ -554,8 +552,8 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "dataScrubber": bool(attrs["options"].get("sentry:scrub_data", True)),
                 "dataScrubberDefaults": bool(attrs["options"].get("sentry:scrub_defaults", True)),
                 "safeFields": attrs["options"].get("sentry:safe_fields", []),
-                "storeCrashReports": bool(
-                    attrs["options"].get("sentry:store_crash_reports", False)
+                "storeCrashReports": convert_crashreport_count(
+                    attrs["options"].get("sentry:store_crash_reports")
                 ),
                 "sensitiveFields": attrs["options"].get("sentry:sensitive_fields", []),
                 "subjectTemplate": attrs["options"].get("mail:subject_template")

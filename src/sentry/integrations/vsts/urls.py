@@ -1,11 +1,10 @@
 from __future__ import absolute_import, print_function
 
-from django.conf.urls import patterns, url
+from django.conf.urls import url
 from .search import VstsSearchEndpoint
 from .webhooks import WorkItemWebhook
 
-urlpatterns = patterns(
-    "",
+urlpatterns = [
     url(
         r"^issue-updated/$", WorkItemWebhook.as_view(), name="sentry-extensions-vsts-issue-updated"
     ),
@@ -14,4 +13,4 @@ urlpatterns = patterns(
         VstsSearchEndpoint.as_view(),
         name="sentry-extensions-vsts-search",
     ),
-)
+]
