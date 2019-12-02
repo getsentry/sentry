@@ -28,13 +28,31 @@ Tags
 Stacktrace
 -----------
 
+Stacktrace (most recent call last):
 
+  File "raven/base.py", line 303, in build_msg
+    transformer=self.transform)
+  File "raven/base.py", line 459, in capture
+    **kwargs)
+  File "raven/base.py", line 577, in captureMessage
+    return self.capture('raven.events.Message', message=message, **kwargs)
+  File "raven/scripts/runner.py", line 77, in send_test_message
+    'loadavg': get_loadavg(),
+  File "raven/scripts/runner.py", line 112, in main
+    send_test_message(client, opts.__dict__)
 
 
 Template
 -----------
 
+Stacktrace (most recent call last):
 
+ornare elit pulvinar nisl integer cum ad massa
+
+File "debug_toolbar/base.html", line 14
+
+{% endif %}
+<script src="{% static 'debug_toolbar/js/toolbar.js' %}"></script><div id="djDebug" hidden="hidden" dir="ltr" data-store-id="{{ toolbar.store_id }}" data-render-panel-url="{% url 'djdt:render_panel' %}" {{="" toolbar.config.root_tag_extra_attrs|safe="" }}=""><div hidden="hidden" id="djDebugToolbar"><ul id="djDebugPanelList">
 
 
 Request
@@ -52,9 +70,10 @@ User
 Message
 -----------
 
-
+ornare elit pulvinar nisl integer cum ad massa
 
 
 
 
 Unsubscribe: javascript:alert("This is a preview page, what did you expect to happen?");
+</ul></div></div>
