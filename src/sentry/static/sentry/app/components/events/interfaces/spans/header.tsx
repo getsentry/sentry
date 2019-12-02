@@ -661,7 +661,7 @@ const Handle = ({
           y1="0"
           y2={MINIMAP_HEIGHT - VIEW_HANDLE_HEIGHT}
           strokeWidth="1"
-          strokeDasharray="4 3"
+          strokeDasharray="5 3"
           style={{stroke: '#302839'}}
         />
       </svg>

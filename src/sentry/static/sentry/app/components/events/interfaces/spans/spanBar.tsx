@@ -763,13 +763,13 @@ const getBackgroundColor = ({
   theme: any;
 }) => {
   if (!theme) {
-    return 'white';
+    return theme.white;
   }
 
   if (showDetail) {
     return theme.gray5;
   }
-  return showStriping ? theme.offWhite : 'white';
+  return showStriping ? theme.offWhite : theme.white;
 };
 
 type SpanRowCellProps = OmitHtmlDivProps<{
@@ -783,6 +783,7 @@ const SpanRowCell = styled('div')<SpanRowCellProps>`
   height: 100%;
   overflow: hidden;
   background-color: ${p => getBackgroundColor(p)};
+  color: ${p => (p.showDetail ? p.theme.white : null)};
 `;
 
 const SpanRowCellContainer = styled('div')`
@@ -909,7 +910,6 @@ const getTogglerTheme = ({
   disabled: boolean;
 }) => {
   const buttonTheme = isExpanded ? theme.button.default : theme.button.primary;
-  const activeButtonTheme = isExpanded ? theme.button.primary : theme.button.default;
 
   if (disabled) {
     return `
@@ -925,12 +925,6 @@ const getTogglerTheme = ({
     background: ${buttonTheme.background};
     border: 1px solid ${buttonTheme.border};
     color: ${buttonTheme.color};
-
-    &:hover {
-      background: ${activeButtonTheme.background};
-      border: 1px solid ${activeButtonTheme.border};
-      color: ${activeButtonTheme.color};
-    }
   `;
 };
 
