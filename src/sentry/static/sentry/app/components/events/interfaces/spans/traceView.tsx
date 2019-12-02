@@ -164,14 +164,14 @@ class TraceView extends React.PureComponent<Props, State> {
 
     const results = fuse.search<FuseResult>(searchQuery);
 
-    const spanIDs: Set<string> = results.reduce((set: Set<string>, result) => {
+    const spanIDs: Set<string> = results.reduce((setOfSpanIDs: Set<string>, result) => {
       const spanID = result.item.span.span_id;
 
       if (spanID) {
-        set.add(spanID);
+        setOfSpanIDs.add(spanID);
       }
 
-      return set;
+      return setOfSpanIDs;
     }, new Set<string>());
 
     this.setState({
