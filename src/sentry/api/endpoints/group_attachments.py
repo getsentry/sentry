@@ -9,7 +9,7 @@ from sentry.api.base import EnvironmentMixin
 
 class GroupEventAttachmentSerializer(EventAttachmentSerializer):
     """
-    Serializes event attachmens with event id for rendering in the group event
+    Serializes event attachments with event id for rendering in the group event
     attachments UI.
     """
 

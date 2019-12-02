@@ -42,7 +42,7 @@ class EventAttachment(Model):
 
         # Always prune the group cache. Even if there are more crash reports
         # stored than the now configured limit, the cache will be repopulated
-        # with the next incoming cash report.
+        # with the next incoming crash report.
         cache.delete(get_crashreport_key(self.group_id))
 
         self.file.delete()

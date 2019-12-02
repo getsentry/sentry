@@ -115,7 +115,7 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
         Delete an Event Attachment by ID
         ````````````````````````````````
 
-        Delete an attachment of the given event.
+        Delete an attachment on the given event.
 
         :pparam string event_id: the identifier of the event.
         :pparam string attachment_id: the identifier of the attachment.
