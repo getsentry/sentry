@@ -52,12 +52,22 @@ class MiniGraph extends React.Component<Props> {
       start,
       end,
       period,
+      project: eventView.project,
+      environment: eventView.environment,
     };
   }
 
   render() {
-    const {eventView, api} = this.props;
-    const {query, start, end, period, organization} = this.getRefreshProps(this.props);
+    const {api} = this.props;
+    const {
+      query,
+      start,
+      end,
+      period,
+      organization,
+      project,
+      environment,
+    } = this.getRefreshProps(this.props);
 
     return (
       <EventsRequest
@@ -68,8 +78,8 @@ class MiniGraph extends React.Component<Props> {
         end={end}
         period={period}
         interval={getInterval({start, end, period}, true)}
-        project={eventView.project as number[]}
-        environment={eventView.environment as string[]}
+        project={project as number[]}
+        environment={environment as string[]}
         includePrevious={false}
       >
         {({loading, timeseriesData}) => {
