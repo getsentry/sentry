@@ -19,14 +19,6 @@ const DebugMetaStore = Reflux.createStore({
     this.filter = word;
     this.trigger(this.get());
   },
-  // onUpdate(updatedOrg) {
-  //   this.loading = false;
-  //   this.error = null;
-  //   this.errorType = null;
-  //   this.organization = {...this.organization, ...updatedOrg};
-  //   this.dirty = false;
-  //   this.trigger(this.get());
-  // },
 
   get() {
     return {

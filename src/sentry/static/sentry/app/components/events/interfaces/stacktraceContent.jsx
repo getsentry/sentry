@@ -17,6 +17,10 @@ export default class StacktraceContent extends React.Component {
     expandFirstFrame: true,
   };
 
+  state = {
+    showingAbsoluteAddresses: false,
+  };
+
   renderOmittedFrames = (firstFrameOmitted, lastFrameOmitted) => {
     const props = {
       className: 'frame frames-omitted',
@@ -36,8 +40,15 @@ export default class StacktraceContent extends React.Component {
     );
   };
 
+  handleToggleAddresses = () => {
+    this.setState(prevState => ({
+      showingAbsoluteAddresses: !prevState.showingAbsoluteAddresses,
+    }));
+  };
+
   render() {
     const data = this.props.data;
+    const {showingAbsoluteAddresses} = this.state;
     let firstFrameOmitted, lastFrameOmitted;
 
     if (data.framesOmitted) {
@@ -88,6 +99,8 @@ export default class StacktraceContent extends React.Component {
             prevFrame={prevFrame}
             platform={this.props.platform}
             timesRepeated={nRepeats}
+            showingAbsoluteAddress={showingAbsoluteAddresses}
+            onAddressToggle={this.handleToggleAddresses}
           />
         );
       }

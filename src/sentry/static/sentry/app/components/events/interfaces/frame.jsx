@@ -11,6 +11,7 @@ import ContextLine from 'app/components/events/interfaces/contextLine';
 import ExternalLink from 'app/components/links/externalLink';
 import FrameRegisters from 'app/components/events/interfaces/frameRegisters';
 import FrameVariables from 'app/components/events/interfaces/frameVariables';
+import TogglableAddress from 'app/components/events/interfaces/togglableAddress';
 import StrictClick from 'app/components/strictClick';
 import Tooltip from 'app/components/tooltip';
 import Truncate from 'app/components/truncate';
@@ -72,6 +73,8 @@ export class Frame extends React.Component {
     timesRepeated: PropTypes.number,
     registers: PropTypes.objectOf(PropTypes.string.isRequired),
     components: PropTypes.array.isRequired,
+    showingAbsoluteAddress: PropTypes.bool,
+    onAddressToggle: PropTypes.func,
   };
 
   static defaultProps = {
@@ -144,6 +147,16 @@ export class Frame extends React.Component {
         return false;
     }
   }
+
+  shouldShowLinkToImage() {
+    // TODO: what should be here?
+    return this.props.data.symbolicatorStatus === 'missing';
+  }
+
+  scrollToImage = () => {
+    DebugMetaActions.updateFilter(this.props.data.instructionAddr);
+    scrollToElement('#packages');
+  };
 
   preventCollapse = evt => {
     evt.stopPropagation();
@@ -436,7 +449,7 @@ export class Frame extends React.Component {
   }
 
   renderNativeLine() {
-    const data = this.props.data;
+    const {data, showingAbsoluteAddress, onAddressToggle} = this.props;
     const hint = this.getFrameHint();
 
     const enablePathTooltip = defined(data.absPath) && data.absPath !== data.filename;
@@ -453,7 +466,11 @@ export class Frame extends React.Component {
             ) : (
               <span className="package">{'<unknown>'}</span>
             )}
-            <span className="address">{data.instructionAddr}</span>
+            <TogglableAddress
+              address={showingAbsoluteAddress ? data.instructionAddr : '0x2a3d'}
+              absolute={showingAbsoluteAddress}
+              onToggle={onAddressToggle}
+            />
             <span className="symbol">
               <FunctionName frame={data} />{' '}
               {data.filename && (
@@ -471,18 +488,13 @@ export class Frame extends React.Component {
                   </a>
                 </Tooltip>
               ) : null}
-              {data.symbolicatorStatus === 'missing' && (
-                <button
-                  onClick={() => {
-                    DebugMetaActions.updateFilter(data.instructionAddr);
-                    scrollToElement('#packages');
-                  }}
-                >
-                  Go to image
-                </button>
-              )}
             </span>
           </NativeLineContent>
+
+          {this.shouldShowLinkToImage() && (
+            <button onClick={this.scrollToImage}>{t('Go to image')}</button>
+          )}
+
           {this.renderExpander()}
         </DefaultLine>
       </StrictClick>
