@@ -58,3 +58,12 @@ class GroupEventAttachmentsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["id"] == six.text_type(attachment2.id)
+
+    def test_without_feature(self):
+        self.login_as(user=self.user)
+        self.create_attachment()
+
+        with self.feature({"organizations:event-attachments": False}):
+            response = self.client.get(self.path())
+
+        assert response.status_code == 404, response.content

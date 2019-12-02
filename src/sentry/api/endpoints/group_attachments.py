@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from sentry import features
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize, EventAttachmentSerializer
 from sentry.api.paginator import DateTimePaginator
@@ -31,6 +32,11 @@ class GroupAttachmentsEndpoint(GroupEndpoint, EnvironmentMixin):
         :pparam list   types:    a list of attachment types to filter for.
         :auth: required
         """
+
+        if not features.has(
+            "organizations:event-attachments", group.project.organization, actor=request.user
+        ):
+            return self.respond(status=404)
 
         attachments = EventAttachment.objects.filter(group_id=group.id).select_related("file")
 
