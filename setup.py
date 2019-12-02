@@ -145,6 +145,7 @@ setup(
             "jira = sentry_plugins.jira",
             "freight = sentry_plugins.freight",
             "sessionstack = sentry_plugins.sessionstack",
+            "teamwork = sentry_plugins.teamwork",
         ],
         "sentry.plugins": [
             "amazon_sqs = sentry_plugins.amazon_sqs.plugin:AmazonSQSPlugin",
@@ -165,6 +166,7 @@ setup(
             "sessionstack = sentry_plugins.sessionstack.plugin:SessionStackPlugin",
             "slack = sentry_plugins.slack.plugin:SlackPlugin",
             "splunk = sentry_plugins.splunk.plugin:SplunkPlugin",
+            "teamwork = sentry_plugins.teamwork.plugin:TeamworkPlugin",
             "victorops = sentry_plugins.victorops.plugin:VictorOpsPlugin",
             "vsts = sentry_plugins.vsts.plugin:VstsPlugin",
         ],
