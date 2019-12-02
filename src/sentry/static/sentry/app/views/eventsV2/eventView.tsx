@@ -712,7 +712,6 @@ class EventView {
           const sorts = [...newEventView.sorts];
           sorts[needleSortIndex] = sort;
           newEventView.sorts = sorts;
-          console.log('shit');
         } else {
           const sorts = [...newEventView.sorts];
           sorts.splice(needleSortIndex, 1);
