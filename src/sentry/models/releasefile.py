@@ -1,16 +1,9 @@
 from __future__ import absolute_import
 
-import os
-import errno
-import six
-
 from django.db import models
 from six.moves.urllib.parse import urlsplit, urlunsplit
 
-from sentry import options
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
-from sentry.models import clear_cached_files
-from sentry.utils import metrics
 from sentry.utils.hashlib import sha1_text
 
 
@@ -84,38 +77,3 @@ class ReleaseFile(Model):
         if query:
             urls.append("~" + urlunsplit(uri_relative_without_query))
         return urls
-
-
-class ReleaseFileCache(object):
-    @property
-    def cache_path(self):
-        return options.get("releasefile.cache-path")
-
-    def getfile(self, releasefile):
-        cutoff = options.get("releasefile.cache-limit")
-        file_size = releasefile.file.size
-        if file_size < cutoff:
-            metrics.timing("release_file.cache.get.size", file_size, tags={"cutoff": True})
-            return releasefile.file.getfile()
-
-        file_id = six.text_type(releasefile.file_id)
-        organization_id = six.text_type(releasefile.organization_id)
-        file_path = os.path.join(self.cache_path, organization_id, file_id)
-
-        hit = True
-        try:
-            os.stat(file_path)
-        except OSError as e:
-            if e.errno != errno.ENOENT:
-                raise
-            releasefile.file.save_to(file_path)
-            hit = False
-
-        metrics.timing("release_file.cache.get.size", file_size, tags={"hit": hit, "cutoff": False})
-        return open(file_path, "rb")
-
-    def clear_old_entries(self):
-        clear_cached_files(self.cache_path)
-
-
-ReleaseFile.cache = ReleaseFileCache()
