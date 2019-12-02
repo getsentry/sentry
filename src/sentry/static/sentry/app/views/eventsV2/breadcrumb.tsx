@@ -27,26 +27,26 @@ class DiscoverBreadcrumb extends React.Component<Props> {
     const {eventView, event, organization, location} = this.props;
     const crumbs: React.ReactNode[] = [];
 
+    const discoverTarget = {
+      pathname: `/organizations/${organization.slug}/eventsv2/`,
+      query: {
+        ...location.query,
+        ...eventView.generateBlankQueryStringObject(),
+        ...eventView.getGlobalSelection(),
+      },
+    };
+
+    crumbs.push(
+      <BreadcrumbItem to={discoverTarget} key="eventview-home">
+        {t('Discover')}
+      </BreadcrumbItem>
+    );
+
     if (eventView && eventView.isValid()) {
       const eventTarget = {
         pathname: `/organizations/${organization.slug}/eventsv2/`,
         query: eventView.generateQueryStringObject(),
       };
-
-      const discoverTarget = {
-        pathname: `/organizations/${organization.slug}/eventsv2/`,
-        query: {
-          ...location.query,
-          ...eventView.generateBlankQueryStringObject(),
-          ...eventView.getGlobalSelection(),
-        },
-      };
-
-      crumbs.push(
-        <BreadcrumbItem to={discoverTarget} key="eventview-home">
-          {t('Discover')}
-        </BreadcrumbItem>
-      );
 
       crumbs.push(
         <span key="eventview-sep">
