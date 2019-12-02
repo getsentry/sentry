@@ -144,6 +144,7 @@ class EventDetailsContent extends AsyncComponent<Props, State & AsyncComponent['
               organization={organization}
               event={event}
               projectId={this.projectId}
+              eventView={eventView}
             />
           </Main>
           <Side>
