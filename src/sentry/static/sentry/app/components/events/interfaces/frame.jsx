@@ -406,7 +406,7 @@ export class Frame extends React.Component {
   }
 
   renderLeadHint() {
-    if (this.leadsToApp() && !this.state.isExpanded) {
+    if (true) {
       return <span className="leads-to-app-hint">{'Called from: '}</span>;
     } else {
       return null;
@@ -460,8 +460,10 @@ export class Frame extends React.Component {
           <NativeLineContent>
             {this.renderLeadHint()}
             {defined(data.package) ? (
-              <span className="package" title={data.package}>
-                {trimPackage(data.package)}
+              <span className="package">
+                <Tooltip title={data.package}>
+                  <span>{trimPackage(data.package)}</span>
+                </Tooltip>
               </span>
             ) : (
               <span className="package">{'<unknown>'}</span>
