@@ -16,6 +16,7 @@ import {objectIsEmpty, toTitleCase} from 'app/utils';
 import {Event, Organization} from 'app/types';
 
 import LinkedEvents from './linkedEvents';
+import EventView from '../eventView';
 
 const OTHER_SECTIONS = {
   contexts: EventContexts,
@@ -37,6 +38,7 @@ type ActiveTabProps = {
   projectId: string;
   event: Event;
   activeTab: string;
+  eventView: EventView;
 };
 
 /**
@@ -44,7 +46,7 @@ type ActiveTabProps = {
  * Some but not all interface elements require a projectId.
  */
 const ActiveTab = (props: ActiveTabProps) => {
-  const {organization, projectId, event, activeTab} = props;
+  const {organization, projectId, event, activeTab, eventView} = props;
   if (!activeTab) {
     return null;
   }
@@ -67,7 +69,12 @@ const ActiveTab = (props: ActiveTabProps) => {
     return <Component event={event} isShare={false} hideGuide />;
   } else if (activeTab === 'linked') {
     return (
-      <LinkedEvents event={event} projectId={projectId} organization={organization} />
+      <LinkedEvents
+        event={event}
+        projectId={projectId}
+        organization={organization}
+        eventView={eventView}
+      />
     );
   } else {
     /*eslint no-console:0*/
@@ -95,6 +102,7 @@ type EventInterfacesProps = {
   event: Event;
   projectId: string;
   organization: Organization;
+  eventView: EventView;
 };
 type EventInterfacesState = {
   activeTab: string;
@@ -114,7 +122,7 @@ class EventInterfaces extends React.Component<
   handleTabChange = tab => this.setState({activeTab: tab});
 
   render() {
-    const {event, projectId, organization} = this.props;
+    const {event, projectId, organization, eventView} = this.props;
     const {activeTab} = this.state;
 
     return (
@@ -181,6 +189,7 @@ class EventInterfaces extends React.Component<
             activeTab={activeTab}
             projectId={projectId}
             organization={organization}
+            eventView={eventView}
           />
         </ErrorBoundary>
       </React.Fragment>
