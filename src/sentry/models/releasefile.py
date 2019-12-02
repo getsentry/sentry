@@ -95,7 +95,7 @@ class ReleaseFileCache(object):
         cutoff = options.get("releasefile.cache-limit")
         file_size = releasefile.file.size
         if file_size < cutoff:
-            metrics.timer("release_file.cache.get.size", file_size, tags={"cutoff": True})
+            metrics.timing("release_file.cache.get.size", file_size, tags={"cutoff": True})
             return releasefile.file.getfile()
 
         file_id = six.text_type(releasefile.file_id)
@@ -111,7 +111,7 @@ class ReleaseFileCache(object):
             releasefile.file.save_to(file_path)
             hit = False
 
-        metrics.timer("release_file.cache.get.size", file_size, tags={"hit": hit, "cutoff": False})
+        metrics.timing("release_file.cache.get.size", file_size, tags={"hit": hit, "cutoff": False})
         return open(file_path, "rb")
 
     def clear_old_entries(self):
