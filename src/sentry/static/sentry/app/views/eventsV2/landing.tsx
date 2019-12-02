@@ -96,7 +96,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
         const needleSearch = searchQuery.toLowerCase();
 
         const numOfPrebuiltQueries = views.reduce((sum, view) => {
-          const eventView = EventView.fromSavedQueryWithLocation(view, location);
+          const eventView = EventView.fromNewQueryWithLocation(view, location);
 
           // if a search is performed on the list of queries, we filter
           // on the pre-built queries
@@ -240,7 +240,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
       margin-bottom: ${space(3)};
     `;
 
-    const eventView = EventView.fromSavedQueryWithLocation(DEFAULT_EVENT_VIEW, location);
+    const eventView = EventView.fromNewQueryWithLocation(DEFAULT_EVENT_VIEW, location);
 
     const to = {
       pathname: location.pathname,
