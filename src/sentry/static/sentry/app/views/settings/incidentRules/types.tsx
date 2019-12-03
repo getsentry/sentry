@@ -14,13 +14,18 @@ export enum AlertRuleAggregations {
 }
 
 export type UnsavedTrigger = {
-  alertRuleId: string;
+  // UnsavedTrigger can be apart of an Unsaved Alert Rule that does not have an id yet
+  alertRuleId?: string;
   label: string;
   thresholdType: AlertRuleThresholdType;
   alertThreshold: number;
-  resolveThreshold: number;
-  timeWindow: number;
+  resolveThreshold: number | '';
   actions: Action[];
+};
+
+export type ThresholdControlValue = {
+  thresholdType: AlertRuleThresholdType;
+  threshold: number | '';
 };
 
 export type SavedTrigger = UnsavedTrigger & {
@@ -66,20 +71,20 @@ export type ProjectSelectOption = {
 };
 
 export enum ActionType {
-  EMAIL = 0,
-  SLACK = 1,
-  PAGER_DUTY = 2,
+  EMAIL = 'email',
+  SLACK = 'slack',
+  PAGER_DUTY = 'pagerduty',
 }
 
 export enum TargetType {
   // The name can be customized for each integration. Email for email, channel for slack, service for Pagerduty). We probably won't support this for email at first, since we need to be careful not to enable spam
-  SPECIFIC = 0,
+  SPECIFIC = 'specific',
 
   // Just works with email for now, grabs given user's email address
-  USER = 1,
+  USER = 'user',
 
   // Just works with email for now, grabs the emails for all team members
-  TEAM = 2,
+  TEAM = 'team',
 }
 
 export type Action = {

@@ -24,6 +24,7 @@ import Form from 'app/views/settings/components/forms/form';
 import LoadingMask from 'app/components/loadingMask';
 import PanelAlert from 'app/components/panels/panelAlert';
 import PanelItem from 'app/components/panels/panelItem';
+import PanelSubHeader from 'app/views/settings/incidentRules/triggers/panelSubHeader';
 import SelectField from 'app/views/settings/components/forms/selectField';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import TextField from 'app/views/settings/components/forms/textField';
@@ -374,13 +375,6 @@ export default withApi(IssueRuleEditor);
 
 const StyledForm = styled(Form)`
   position: relative;
-`;
-
-const PanelSubHeader = styled(PanelHeader)`
-  display: flex;
-  justify-content: flex-start;
-  align-items: center;
-  padding: ${space(1)} ${space(2)};
 `;
 
 const PanelRuleItem = styled(PanelItem)`
