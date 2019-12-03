@@ -153,7 +153,8 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
 
         self.login_as(self.user)
-        self.path = u"/organizations/{}/eventsv2/".format(self.org.slug)
+        self.landing_path = u"/organizations/{}/eventsv2/".format(self.org.slug)
+        self.result_path = u"/organizations/{}/eventsv2/".format(self.org.slug)
 
     def wait_until_loaded(self):
         self.browser.wait_until_not(".loading-indicator")
@@ -161,19 +162,19 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
     def test_events_default_landing(self):
         with self.feature(FEATURE_NAMES):
-            self.browser.get(self.path)
+            self.browser.get(self.landing_path)
             self.wait_until_loaded()
             self.browser.snapshot("events-v2 - default landing")
 
     def test_all_events_query_empty_state(self):
         with self.feature(FEATURE_NAMES):
-            self.browser.get(self.path + "?" + all_events_query())
+            self.browser.get(self.result_path + "?" + all_events_query())
             self.wait_until_loaded()
             self.browser.snapshot("events-v2 - all events query - empty state")
 
         with self.feature(FEATURE_NAMES):
             # expect table to expand to the right when no tags are provided
-            self.browser.get(self.path + "?" + all_events_query(tag=[]))
+            self.browser.get(self.result_path + "?" + all_events_query(tag=[]))
             self.wait_until_loaded()
             self.browser.snapshot("events-v2 - all events query - empty state - no tags")
 
@@ -193,19 +194,19 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         )
 
         with self.feature(FEATURE_NAMES):
-            self.browser.get(self.path + "?" + all_events_query())
+            self.browser.get(self.result_path + "?" + all_events_query())
             self.wait_until_loaded()
             self.browser.snapshot("events-v2 - all events query - list")
 
         with self.feature(FEATURE_NAMES):
             # expect table to expand to the right when no tags are provided
-            self.browser.get(self.path + "?" + all_events_query(tag=[]))
+            self.browser.get(self.result_path + "?" + all_events_query(tag=[]))
             self.wait_until_loaded()
             self.browser.snapshot("events-v2 - all events query - list - no tags")
 
     def test_errors_query_empty_state(self):
         with self.feature(FEATURE_NAMES):
-            self.browser.get(self.path + "?" + errors_query())
+            self.browser.get(self.result_path + "?" + errors_query())
             self.wait_until_loaded()
             self.browser.snapshot("events-v2 - errors query - empty state")
 
@@ -258,13 +259,13 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         )
 
         with self.feature(FEATURE_NAMES):
-            self.browser.get(self.path + "?" + errors_query())
+            self.browser.get(self.result_path + "?" + errors_query())
             self.wait_until_loaded()
             self.browser.snapshot("events-v2 - errors")
 
     def test_transactions_query_empty_state(self):
         with self.feature(FEATURE_NAMES):
-            self.browser.get(self.path + "?" + transactions_query())
+            self.browser.get(self.result_path + "?" + transactions_query())
             self.wait_until_loaded()
             self.browser.snapshot("events-v2 - transactions query - empty state")
 
@@ -283,7 +284,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=True)
 
         with self.feature(FEATURE_NAMES):
-            self.browser.get(self.path + "?" + transactions_query())
+            self.browser.get(self.result_path + "?" + transactions_query())
             self.wait_until_loaded()
             self.browser.snapshot("events-v2 - transactions query - list")
 
@@ -307,7 +308,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
         with self.feature(FEATURE_NAMES):
             # Get the list page.
-            self.browser.get(self.path + "?" + all_events_query())
+            self.browser.get(self.result_path + "?" + all_events_query())
             self.wait_until_loaded()
 
             # Click the event link to open the events detail view
@@ -341,7 +342,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
         with self.feature(FEATURE_NAMES):
             # Get the list page
-            self.browser.get(self.path + "?" + errors_query() + "&statsPeriod=24h")
+            self.browser.get(self.result_path + "?" + errors_query() + "&statsPeriod=24h")
             self.wait_until_loaded()
 
             # Click the event link to open the event detail view
@@ -368,7 +369,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
         with self.feature(FEATURE_NAMES):
             # Get the list page
-            self.browser.get(self.path + "?" + transactions_query())
+            self.browser.get(self.result_path + "?" + transactions_query())
             self.wait_until_loaded()
 
             # Click the event link to open the event detail view
