@@ -1,4 +1,5 @@
 import {t} from 'app/locale';
+import {openInviteMembersModal} from 'app/actionCreators/modal';
 import {sourceMaps} from 'app/data/platformCategories';
 
 function hasPlatformWithSourceMaps(organization) {
@@ -44,8 +45,8 @@ export default function getOnboardingTasks(organization) {
       ),
       skippable: true,
       prereq: [],
-      featureLocation: 'organization',
-      location: 'members/',
+      featureLocation: 'modal',
+      location: () => openInviteMembersModal({source: 'onboarding_widget'}),
       display: true,
     },
     {

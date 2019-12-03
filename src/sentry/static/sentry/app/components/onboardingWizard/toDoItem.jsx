@@ -57,6 +57,8 @@ class TodoItem extends React.Component {
       learnMoreUrl = `/organizations/${org.slug}/${task.location}`;
     } else if (task.featureLocation === 'absolute') {
       learnMoreUrl = task.location;
+    } else if (task.featureLocation === 'modal') {
+      learnMoreUrl = undefined;
     } else {
       Sentry.withScope(scope => {
         scope.setExtra('props', this.props);
@@ -86,6 +88,12 @@ class TodoItem extends React.Component {
   };
 
   handleClick = e => {
+    const {task} = this.props;
+
+    if (task && task.featureLocation === 'modal' && typeof task.location === 'function') {
+      task.location();
+    }
+
     this.recordAnalytics('clickthrough');
     e.stopPropagation();
   };
@@ -134,10 +142,12 @@ class TodoItem extends React.Component {
       >
         <Content blur={showConfirmation}>
           <Checkbox>{task.status && <IndicatorIcon status={task.status} />}</Checkbox>
-          <StyledLink href={learnMoreUrl} onClick={this.handleClick}>
-            <ItemHeader status={task.status} data-test-id={task.task}>
-              {task.title}
-            </ItemHeader>
+          <StyledLink
+            href={learnMoreUrl}
+            onClick={this.handleClick}
+            data-test-id={task.task}
+          >
+            <ItemHeader status={task.status}>{task.title}</ItemHeader>
           </StyledLink>
           <Description>{description}</Description>
           <SkipButton
