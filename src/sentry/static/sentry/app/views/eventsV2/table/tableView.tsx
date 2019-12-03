@@ -499,14 +499,14 @@ const ExpandAggregateRow = (props: {
             });
 
             nextEventView = indicesToUpdate.reduce(
-              (nextEventView: EventView, indexToUpdate: number) => {
+              (currentEventView: EventView, indexToUpdate: number) => {
                 const updatedColumn = {
                   aggregation: '',
                   field: exploded.field,
                   fieldname: exploded.field,
                 };
 
-                return nextEventView.withUpdatedColumn(
+                return currentEventView.withUpdatedColumn(
                   indexToUpdate,
                   updatedColumn,
                   tableMeta
