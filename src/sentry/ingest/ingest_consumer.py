@@ -128,7 +128,7 @@ class IngestConsumerWorker(AbstractBatchWorker):
         project_id = message["project_id"]
         id = message["id"]
         chunk_index = message["chunk_index"]
-        cache_key = cache_key_for_event({"event_id": event_id, "project_id": project_id})
+        cache_key = cache_key_for_event({"event_id": event_id, "project": project_id})
         attachment_cache.set_chunk(
             key=cache_key, id=id, chunk_index=chunk_index, chunk_data=payload, timeout=CACHE_TIMEOUT
         )
