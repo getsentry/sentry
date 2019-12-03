@@ -108,13 +108,12 @@ class BaseAttachmentCache(object):
         self.inner.set(key, compressed, timeout, raw=True)
 
     def get(self, key):
-        key = ATTACHMENT_META_KEY.format(key=key)
-        result = self.inner.get(key, raw=False)
+        result = self.inner.get(ATTACHMENT_META_KEY.format(key=key), raw=False)
         if result is not None:
             rv = []
             for id, attachment in enumerate(result):
                 attachment.setdefault("id", id)
-                rv.append(CachedAttachment(cache=self, **attachment))
+                rv.append(CachedAttachment(cache=self, key=key, **attachment))
 
             return rv
 
@@ -126,7 +125,10 @@ class BaseAttachmentCache(object):
 
     def get_unchunked_data(self, key, id):
         key = ATTACHMENT_UNCHUNKED_DATA_KEY.format(key=key, id=id)
-        return zlib.decompress(self.inner.get(key, raw=True))
+        result = self.inner.get(key, raw=True)
+        if result is None:
+            return result
+        return zlib.decompress(result)
 
     def delete(self, key):
         attachments = self.inner.get(ATTACHMENT_META_KEY.format(key=key), raw=False)

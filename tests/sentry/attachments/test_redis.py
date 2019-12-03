@@ -16,6 +16,8 @@ class FakeClient(object):
             return '[{"name":"foo.txt","content_type":"text/plain"}]'
         elif key == "c:1:foo:a:0":
             return zlib.compress(b"Hello World!")
+        else:
+            raise ValueError(key)
 
 
 class RbCluster(object):
