@@ -556,7 +556,7 @@ const DurationGuideBox = styled('div')<{alignLeft: boolean}>`
       return null;
     }
 
-    return 'transform: translateY(50%) translateX(-100%) translateX(-8px);';
+    return 'transform: translateX(-100%) translateX(-8px);';
   }};
 `;
 
