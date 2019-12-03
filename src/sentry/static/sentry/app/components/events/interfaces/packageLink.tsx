@@ -23,10 +23,12 @@ class PackageLink extends React.Component<Props> {
   };
 
   render() {
-    const {packagePath, isClickable} = this.props;
+    const {packagePath, isClickable, children} = this.props;
 
     return (
       <Package onClick={this.handleClick} isClickable={isClickable}>
+        {children}
+
         {defined(packagePath) ? (
           <Tooltip title={packagePath}>
             <span>{trimPackage(packagePath)}</span>

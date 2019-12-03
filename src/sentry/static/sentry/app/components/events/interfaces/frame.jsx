@@ -13,6 +13,9 @@ import FrameRegisters from 'app/components/events/interfaces/frameRegisters';
 import FrameVariables from 'app/components/events/interfaces/frameVariables';
 import TogglableAddress from 'app/components/events/interfaces/togglableAddress';
 import PackageLink from 'app/components/events/interfaces/packageLink';
+import PackageStatus, {
+  PackageStatusIcon,
+} from 'app/components/events/interfaces/packageStatus';
 import StrictClick from 'app/components/strictClick';
 import Tooltip from 'app/components/tooltip';
 import Truncate from 'app/components/truncate';
@@ -152,6 +155,20 @@ export class Frame extends React.Component {
   shouldShowLinkToImage() {
     // TODO: what should be here?
     return this.props.data.symbolicatorStatus === 'missing';
+  }
+
+  packageStatusIsError() {
+    // TODO: what should be here?
+    return Math.random() > 0.5;
+  }
+
+  packageStatusTooltip() {
+    // TODO: what should be here?
+    if (this.props.data.symbolicatorStatus === 'missing_symbol') {
+      return t('Could not resolve address in debug information file');
+    }
+
+    return null;
   }
 
   scrollToImage = () => {
@@ -467,7 +484,12 @@ export class Frame extends React.Component {
               packagePath={data.package}
               onClick={this.scrollToImage}
               isClickable={this.shouldShowLinkToImage()}
-            />
+            >
+              <PackageStatus
+                isError={this.packageStatusIsError()}
+                tooltip={this.packageStatusTooltip()}
+              />
+            </PackageLink>
             <TogglableAddress
               address={showingAbsoluteAddress ? data.instructionAddr : '0x2a3d'}
               isAbsolute={showingAbsoluteAddress}
@@ -571,6 +593,10 @@ const NativeLineContent = styled(RepeatedContent)`
 
 const DefaultLine = styled(VertCenterWrapper)`
   justify-content: space-between;
+
+  &:hover ${PackageStatusIcon} {
+    opacity: 1;
+  }
 `;
 
 export default withSentryAppComponents(Frame, {componentType: 'stacktrace-link'});
