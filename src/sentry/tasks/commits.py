@@ -7,7 +7,14 @@ from django.core.urlresolvers import reverse
 
 from sentry.exceptions import InvalidIdentity, PluginError
 from sentry.integrations.exceptions import IntegrationError
-from sentry.models import Deploy, LatestRelease, Release, ReleaseHeadCommit, Repository, User
+from sentry.models import (
+    Deploy,
+    LatestRepoReleaseEnvironment,
+    Release,
+    ReleaseHeadCommit,
+    Repository,
+    User,
+)
 from sentry.plugins.base import bindings
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils.email import MessageBuilder
@@ -180,19 +187,24 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
             organization_id=release.organization_id, release=release
         ).values_list("repository_id", "commit")
 
-        # we need to mark LatestRelease, but only if there's not a deploy which has completed
-        # *after* this deploy (given we might process commits out of order)
+        # for each repo, update (or create if this is the first one) our records
+        # of the latest commit-associated release in each env
+        # use deploys as a proxy for ReleaseEnvironment, because they contain
+        # a timestamp in addition to release and env data
         for repository_id, commit_id in repo_queryset:
             for environment_id, (deploy_id, date_finished) in six.iteritems(
                 last_deploy_per_environment
             ):
+                # we need to mark LatestRepoReleaseEnvironment, but only if there's not a
+                # deploy in the given environment which has completed *after*
+                # this deploy (given we might process commits out of order)
                 if not Deploy.objects.filter(
-                    id__in=LatestRelease.objects.filter(
+                    id__in=LatestRepoReleaseEnvironment.objects.filter(
                         repository_id=repository_id, environment_id=environment_id
                     ).values("deploy_id"),
                     date_finished__gt=date_finished,
                 ).exists():
-                    LatestRelease.objects.create_or_update(
+                    LatestRepoReleaseEnvironment.objects.create_or_update(
                         repository_id=repository_id,
                         environment_id=environment_id,
                         values={
