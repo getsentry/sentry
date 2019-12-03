@@ -25,9 +25,7 @@ export const SpanRow = styled('div')<SpanRowAndDivProps>`
   margin-top: ${p => (p.showBorder ? '-1px' : null)}; /* to prevent offset on toggle */
   position: relative;
   overflow: hidden;
-
   min-height: ${SPAN_ROW_HEIGHT}px;
-
   cursor: pointer;
   transition: background-color 0.15s ease-in-out;
 
@@ -36,27 +34,17 @@ export const SpanRow = styled('div')<SpanRowAndDivProps>`
       border-bottom: none !important;
     }
   }
-
-  &:hover {
-    background-color: rgba(189, 180, 199, 0.1);
-  }
 `;
 
 export const SpanRowMessage = styled(SpanRow)`
   display: block;
-
   cursor: auto;
-
-  color: #4a3e56;
-  font-size: 12px;
   line-height: ${SPAN_ROW_HEIGHT}px;
-
   padding-left: ${space(1)};
   padding-right: ${space(1)};
-
-  background-color: #f1f5fb !important;
-
-  outline: 1px solid #c9d4ea;
-
+  color: ${p => p.theme.gray2};
+  background-color: ${p => p.theme.offWhiteLight};
+  outline: 1px solid ${p => p.theme.borderDark};
+  font-size: ${p => p.theme.fontSizeSmall};
   z-index: 99999;
 `;
