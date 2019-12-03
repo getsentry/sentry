@@ -529,7 +529,7 @@ const ExpandAggregateRow = (props: {
     };
 
     return (
-      <Tooltip title={t('Expand aggregated row')}>
+      <Tooltip title={t('Expand aggregated row')} containerDisplayMode="block">
         <Link to={target}>{children({willExpand: true})}</Link>
       </Tooltip>
     );
