@@ -49,7 +49,7 @@ class CachedAttachment(object):
             assert self.id is not None
 
             if self._chunks is None:
-                self._data = self.get_unchunked_data(key=self.key, id=self.id)
+                self._data = self._cache.get_unchunked_data(key=self.key, id=self.id)
             else:
                 data = []
                 for chunk_index in range(self._chunks):
