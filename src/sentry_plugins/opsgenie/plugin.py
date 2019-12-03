@@ -63,7 +63,7 @@ class OpsGeniePlugin(notify.NotificationPlugin):
             "alias": "sentry: %d" % group.id,
             "source": "Sentry",
             "details": {
-                "Sentry ID": six.binary_type(group.id),
+                "Sentry ID": six.text_type(group.id),
                 "Sentry Group": getattr(group, "message_short", group.message).encode("utf-8"),
                 "Checksum": group.checksum,
                 "Project ID": group.project.slug,
@@ -77,7 +77,7 @@ class OpsGeniePlugin(notify.NotificationPlugin):
         }
 
         payload["tags"] = [
-            "%s:%s" % (str(x).replace(",", ""), str(y).replace(",", ""))
+            "%s:%s" % (six.text_type(x).replace(",", ""), six.text_type(y).replace(",", ""))
             for x, y in event.get_tags()
         ]
 
