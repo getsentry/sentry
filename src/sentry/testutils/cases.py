@@ -80,6 +80,7 @@ from sentry.models import (
 from sentry.plugins.base import plugins
 from sentry.rules import EventState
 from sentry.tagstore.snuba import SnubaTagStorage
+from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.utils import json
 from sentry.utils.auth import SSO_SESSION_KEY
 
@@ -272,6 +273,7 @@ class BaseTestCase(Fixtures, Exam):
         else:
             data = dict(data or {})
             data["upload_file_minidump"] = upload_file_minidump
+        data["timestamp"] = iso_format(before_now(seconds=1))
 
         path = reverse("sentry-api-minidump", kwargs={"project_id": self.project.id})
         path += "?sentry_key=%s" % self.projectkey.public_key

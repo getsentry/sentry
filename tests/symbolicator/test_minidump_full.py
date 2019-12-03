@@ -107,7 +107,7 @@ class SymbolicatorMinidumpIntegrationTest(TransactionTestCase):
 
         event = eventstore.get_event_by_id(self.project.id, event_id)
         assert event.data.get("logger") == "test-logger"
-        assert event.data.get("extra") == {"foo": "bar"}
+        assert event.data.get("extra")["foo"] == "bar"
         # Other assertions are performed by `test_full_minidump`
 
     def test_full_minidump_invalid_extra(self):
@@ -124,7 +124,7 @@ class SymbolicatorMinidumpIntegrationTest(TransactionTestCase):
 
         event = eventstore.get_event_by_id(self.project.id, event_id)
         assert not event.data.get("logger")
-        assert event.data.get("extra") == {"foo": "bar"}
+        assert event.data.get("extra")["foo"] == "bar"
         # Other assertions are performed by `test_full_minidump`
 
     def test_raw_minidump(self):
