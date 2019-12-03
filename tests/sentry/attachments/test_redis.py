@@ -39,6 +39,7 @@ class RedisClusterAttachmentTest(TestCase):
         assert len(rv) == 1
         attachment = rv[0]
         assert attachment.meta() == {
+            "id": 0,
             "type": "event.attachment",
             "name": "foo.txt",
             "content_type": "text/plain",
@@ -58,6 +59,7 @@ class RbAttachmentTest(TestCase):
         assert len(rv) == 1
         attachment = rv[0]
         assert attachment.meta() == {
+            "id": 0,
             "type": "event.attachment",
             "name": "foo.txt",
             "content_type": "text/plain",
