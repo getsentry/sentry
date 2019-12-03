@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import zlib
 
 from sentry.utils import metrics
+from sentry.utils.json import prune_empty_keys
 
 
 ATTACHMENT_META_KEY = u"{key}:a"
@@ -59,13 +60,15 @@ class CachedAttachment(object):
         return self._data
 
     def meta(self):
-        return {
-            "id": self.id,
-            "name": self.name,
-            "content_type": self.content_type,
-            "type": self.type,
-            "chunks": self._chunks,
-        }
+        return prune_empty_keys(
+            {
+                "id": self.id,
+                "name": self.name,
+                "content_type": self.content_type,
+                "type": self.type,
+                "chunks": self._chunks,
+            }
+        )
 
 
 class BaseAttachmentCache(object):
