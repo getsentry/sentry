@@ -206,6 +206,9 @@ class Columns(Enum):
     # Transactions specific columns
     TRANSACTION_OP = Column(None, None, "transaction_op", "transaction_op", "transaction.op")
     TRANSACTION_DURATION = Column(None, None, "duration", "duration", "transaction.duration")
+    TRANSACTION_STATUS = Column(
+        None, None, "transaction_status", "transaction_status", "transaction.status"
+    )
 
 
 def get_columns_from_aliases(aliases):
