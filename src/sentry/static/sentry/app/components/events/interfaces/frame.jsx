@@ -152,6 +152,15 @@ export class Frame extends React.Component {
     }
   }
 
+  isInlineFrame() {
+    // TODO: this should be calculated on backend
+    return (
+      this.props.prevFrame &&
+      this.getPlatform() === (this.props.prevFrame.platform || this.props.platform) &&
+      this.props.data.instructionAddr === this.props.prevFrame.instructionAddr
+    );
+  }
+
   shouldShowLinkToImage() {
     // TODO: what should be here?
     return this.props.data.symbolicatorStatus === 'missing';
@@ -171,7 +180,8 @@ export class Frame extends React.Component {
     return null;
   }
 
-  scrollToImage = () => {
+  scrollToImage = event => {
+    event.stopPropagation(); // to prevent collapsing if collapsable
     DebugMetaActions.updateFilter(this.props.data.instructionAddr);
     scrollToElement('#packages');
   };
@@ -395,14 +405,6 @@ export class Frame extends React.Component {
     return !this.props.data.inApp && this.props.nextFrame && this.props.nextFrame.inApp;
   }
 
-  isInlineFrame() {
-    return (
-      this.props.prevFrame &&
-      this.getPlatform() === (this.props.prevFrame.platform || this.props.platform) &&
-      this.props.data.instructionAddr === this.props.prevFrame.instructionAddr
-    );
-  }
-
   isFoundByStackScanning() {
     const {data} = this.props;
 
@@ -410,9 +412,6 @@ export class Frame extends React.Component {
   }
 
   getFrameHint() {
-    if (this.isInlineFrame()) {
-      return t('Inlined frame');
-    }
     const func = this.props.data.function || '<unknown>';
     if (func.match(/^@objc\s/)) {
       return t('Objective-C -> Swift shim frame');
@@ -491,9 +490,10 @@ export class Frame extends React.Component {
               />
             </PackageLink>
             <TogglableAddress
-              address={showingAbsoluteAddress ? data.instructionAddr : '0x2a3d'}
+              address={showingAbsoluteAddress ? data.instructionAddr : '0x2a3d'} //TODO: relative address should be calculated on backend
               isAbsolute={showingAbsoluteAddress}
               isFoundByStackScanning={this.isFoundByStackScanning()}
+              isInlineFrame={this.isInlineFrame()}
               onToggle={onAddressToggle}
             />
             <span className="symbol">

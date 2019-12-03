@@ -9,16 +9,16 @@ import InlineSvg from 'app/components/inlineSvg';
 
 type Props = {
   packagePath: string;
-  onClick: () => void;
+  onClick: (event: React.MouseEvent<HTMLAnchorElement>) => void;
   isClickable: boolean;
 };
 
 class PackageLink extends React.Component<Props> {
-  handleClick = () => {
+  handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
     const {isClickable, onClick} = this.props;
 
     if (isClickable) {
-      onClick();
+      onClick(event);
     }
   };
 

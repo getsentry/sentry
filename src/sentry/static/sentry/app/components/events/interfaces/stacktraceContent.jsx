@@ -40,7 +40,9 @@ export default class StacktraceContent extends React.Component {
     );
   };
 
-  handleToggleAddresses = () => {
+  handleToggleAddresses = event => {
+    event.stopPropagation(); // to prevent collapsing if collapsable
+
     this.setState(prevState => ({
       showingAbsoluteAddresses: !prevState.showingAbsoluteAddresses,
     }));
