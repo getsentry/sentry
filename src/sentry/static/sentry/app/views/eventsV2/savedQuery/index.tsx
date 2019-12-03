@@ -31,9 +31,8 @@ type Props = {
   location: Location;
   organization: Organization;
   eventView: EventView;
-  savedQueries: SavedQuery[];
-  savedQueriesLoading: boolean;
-  onQueryChange: () => void;
+  savedQuery: SavedQuery | undefined;
+  savedQueryLoading: boolean;
 };
 
 type State = {
@@ -46,10 +45,9 @@ type State = {
 
 class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
   static getDerivedStateFromProps(nextProps: Props, prevState: State): State {
-    const {eventView: nextEventView, savedQueries, savedQueriesLoading} = nextProps;
+    const {eventView: nextEventView, savedQuery, savedQueryLoading} = nextProps;
 
     // For a new unsaved query
-    const savedQuery = savedQueries.find(q => q.id === nextEventView.id);
     if (!savedQuery) {
       return {
         isNewQuery: true,
@@ -59,7 +57,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       };
     }
 
-    if (savedQueriesLoading) {
+    if (savedQueryLoading) {
       return prevState;
     }
 
@@ -148,7 +146,6 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       (savedQuery: any) => {
         const view = EventView.fromSavedQuery(savedQuery);
 
-        this.props.onQueryChange();
         this.setState({queryName: ''});
         browserHistory.push({
           pathname: location.pathname,
@@ -165,7 +162,6 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     const {api, organization, eventView} = this.props;
 
     handleUpdateQuery(api, organization, eventView).then(() => {
-      this.props.onQueryChange();
       this.setState({queryName: ''});
     });
   };
@@ -177,7 +173,6 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     const {api, location, organization, eventView} = this.props;
 
     handleDeleteQuery(api, organization, eventView).then(() => {
-      this.props.onQueryChange();
       browserHistory.push({
         pathname: location.pathname,
         query: {},
