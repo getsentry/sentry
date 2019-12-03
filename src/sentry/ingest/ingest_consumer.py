@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import logging
 import msgpack
 
-from sentry.utils.batching_kafka_consumer import AbstractBatchWorker
 
 from django.conf import settings
 from django.core.cache import cache
@@ -15,6 +14,8 @@ from sentry.tasks.store import preprocess_event
 from sentry.utils import json
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.kafka import create_batching_kafka_consumer
+from sentry.utils.batching_kafka_consumer import AbstractBatchWorker
+from sentry.attachments import attachment_cache
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,19 @@ class ConsumerType(object):
 class IngestConsumerWorker(AbstractBatchWorker):
     def process_message(self, message):
         message = msgpack.unpackb(message.value(), use_list=False)
+        message_type = message["ty"]
+
+        if message_type in ("event", "transaction"):
+            self._process_event(message)
+        elif message_type == "attachment_chunk":
+            self._process_attachment_chunk(message)
+        else:
+            raise ValueError("Unknown message type: {}".format(message_type))
+
+        # Return *something* so that it counts against batch size
+        return True
+
+    def _process_event(self, message):
         payload = message["payload"]
         start_time = float(message["start_time"])
         event_id = message["event_id"]
@@ -57,13 +71,13 @@ class IngestConsumerWorker(AbstractBatchWorker):
                 event_id,
                 project_id,
             )
-            return True  # message already processed do not reprocess
+            return  # message already processed do not reprocess
 
         try:
             project = Project.objects.get_from_cache(id=project_id)
         except Project.DoesNotExist:
             logger.error("Project for ingested event does not exist: %s", project_id)
-            return True
+            return
 
         # Parse the JSON payload. This is required to compute the cache key and
         # call process_event. The payload will be put into Kafka raw, to avoid
@@ -95,8 +109,16 @@ class IngestConsumerWorker(AbstractBatchWorker):
             ip=remote_addr, data=data, project=project, sender=self.process_message
         )
 
-        # Return *something* so that it counts against batch size
-        return True
+    def _process_attachment_chunk(self, message):
+        payload = message["payload"]
+        event_id = message["event_id"]
+        project_id = message["project_id"]
+        id = message["id"]
+        chunk_index = message["chunk_index"]
+        cache_key = cache_key_for_event({"event_id": event_id, "project_id": project_id})
+        attachment_cache.set_chunk(
+            key=cache_key, id=id, chunk_index=chunk_index, chunk_data=payload, timeout=3600
+        )
 
     def flush_batch(self, batch):
         pass
