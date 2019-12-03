@@ -95,12 +95,13 @@ class IngestConsumerWorker(AbstractBatchWorker):
         cache_key = cache_key_for_event(data)
         default_cache.set(cache_key, data, CACHE_TIMEOUT)
 
-        attachment_cache.set(
-            cache_key,
-            attachments=[CachedAttachment(**attachment) for attachment in attachments],
-            timeout=CACHE_TIMEOUT,
-            meta_only=True,
-        )
+        if attachments:
+            attachment_cache.set(
+                cache_key,
+                attachments=[CachedAttachment(**attachment) for attachment in attachments],
+                timeout=CACHE_TIMEOUT,
+                meta_only=True,
+            )
 
         # Preprocess this event, which spawns either process_event or
         # save_event. Pass data explicitly to avoid fetching it again from the

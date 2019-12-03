@@ -75,22 +75,23 @@ class BaseAttachmentCache(object):
     def __init__(self, inner):
         self.inner = inner
 
-    def set(self, key, attachments, timeout=None, meta_only=False):
-        if not meta_only:
-            for id, attachment in enumerate(attachments):
-                # TODO(markus): We need to get away from sequential IDs, they
-                # are risking collision when using Relay.
-                if attachment.id is None:
-                    attachment.id = id
+    def set(self, key, attachments, timeout=None):
+        for id, attachment in enumerate(attachments):
+            if attachment.chunks is not None:
+                continue
+            # TODO(markus): We need to get away from sequential IDs, they
+            # are risking collision when using Relay.
+            if attachment.id is None:
+                attachment.id = id
 
-                metrics_tags = {"type": attachment.type}
-                self.set_unchunked_data(
-                    key=key,
-                    id=attachment.id,
-                    data=attachment.data,
-                    timeout=timeout,
-                    metrics_tags=metrics_tags,
-                )
+            metrics_tags = {"type": attachment.type}
+            self.set_unchunked_data(
+                key=key,
+                id=attachment.id,
+                data=attachment.data,
+                timeout=timeout,
+                metrics_tags=metrics_tags,
+            )
 
         meta = []
 
