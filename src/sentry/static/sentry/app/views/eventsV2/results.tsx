@@ -50,6 +50,10 @@ class Results extends React.Component<Props, State> {
     return {eventView};
   }
 
+  state = {
+    eventView: EventView.fromLocation(this.props.location),
+  };
+
   handleSearch = (query: string) => {
     const {router, location} = this.props;
 
