@@ -339,6 +339,7 @@ class ActualMinimap extends React.PureComponent<{trace: ParsedTraceType}> {
       span_id: trace.rootSpanID,
       start_timestamp: trace.traceStartTimestamp,
       timestamp: trace.traceEndTimestamp,
+      op: trace.op,
       data: {},
     };
 
