@@ -12,6 +12,7 @@ import {
   QueryResults,
 } from 'app/utils/tokenizeSearch';
 import {assert} from 'app/types/utils';
+import Link from 'app/components/links/link';
 
 import {
   getFieldRenderer,
@@ -456,91 +457,80 @@ const ExpandAggregateRow = (props: {
   const {aggregation} = exploded;
 
   if (aggregation === 'count') {
+    let nextEventView = eventView.clone();
+
+    const additionalSearchConditions: {[key: string]: string[]} = {};
+
+    const indicesToUpdate: number[] = [];
+    nextEventView.fields.forEach((field: Field, index: number) => {
+      if (eventViewField.field === field.field) {
+        // invariant: this is count(exploded.field)
+        // convert all instances of count(exploded.field) to exploded.field
+        indicesToUpdate.push(index);
+        return;
+      }
+
+      const currentExplodedField = explodeField(field);
+      if (currentExplodedField.aggregation) {
+        // this is a column with an aggregation; we skip this
+        return;
+      }
+
+      if (UNSEARCHABLE_FIELDS.includes(currentExplodedField.field)) {
+        return;
+      }
+
+      // add this field to the search conditions
+
+      const dataKey = getAggregateAlias(field.field);
+      const value = dataRow[dataKey];
+
+      if (value) {
+        additionalSearchConditions[currentExplodedField.field] = [String(value).trim()];
+      }
+    });
+
+    nextEventView = indicesToUpdate.reduce(
+      (currentEventView: EventView, indexToUpdate: number) => {
+        const updatedColumn = {
+          aggregation: '',
+          field: exploded.field,
+          fieldname: exploded.field,
+        };
+
+        return currentEventView.withUpdatedColumn(
+          indexToUpdate,
+          updatedColumn,
+          tableMeta
+        );
+      },
+      nextEventView
+    );
+
+    const tokenized: QueryResults = tokenizeSearch(nextEventView.query);
+
+    // merge tokenized and additionalSearchConditions together
+    Object.keys(additionalSearchConditions).forEach(key => {
+      const hasCommonKey =
+        Array.isArray(tokenized[key]) && Array.isArray(additionalSearchConditions[key]);
+      if (hasCommonKey) {
+        tokenized[key] = [...tokenized[key], ...additionalSearchConditions[key]];
+        return;
+      }
+
+      tokenized[key] = additionalSearchConditions[key];
+    });
+
+    nextEventView.query = stringifyQueryObject(tokenized);
+
+    const target = {
+      pathname: location.pathname,
+      query: nextEventView.generateQueryStringObject(),
+    };
+
     return (
       <Tooltip title={t('Expand aggregated row')}>
-        <a
-          href="#expand"
-          onClick={event => {
-            event.preventDefault();
-
-            let nextEventView = eventView.clone();
-
-            const additionalSearchConditions: {[key: string]: string[]} = {};
-
-            const indicesToUpdate: number[] = [];
-            nextEventView.fields.forEach((field: Field, index: number) => {
-              if (eventViewField.field === field.field) {
-                // invariant: this is count(exploded.field)
-                // convert all instances of count(exploded.field) to exploded.field
-                indicesToUpdate.push(index);
-                return;
-              }
-
-              const currentExplodedField = explodeField(field);
-              if (currentExplodedField.aggregation) {
-                // this is a column with an aggregation; we skip this
-                return;
-              }
-
-              if (UNSEARCHABLE_FIELDS.includes(currentExplodedField.field)) {
-                return;
-              }
-
-              // add this field to the search conditions
-
-              const dataKey = getAggregateAlias(field.field);
-              const value = dataRow[dataKey];
-
-              if (value) {
-                additionalSearchConditions[currentExplodedField.field] = [
-                  String(value).trim(),
-                ];
-              }
-            });
-
-            nextEventView = indicesToUpdate.reduce(
-              (currentEventView: EventView, indexToUpdate: number) => {
-                const updatedColumn = {
-                  aggregation: '',
-                  field: exploded.field,
-                  fieldname: exploded.field,
-                };
-
-                return currentEventView.withUpdatedColumn(
-                  indexToUpdate,
-                  updatedColumn,
-                  tableMeta
-                );
-              },
-              nextEventView
-            );
-
-            const tokenized: QueryResults = tokenizeSearch(nextEventView.query);
-
-            // merge tokenized and additionalSearchConditions together
-            Object.keys(additionalSearchConditions).forEach(key => {
-              const hasCommonKey =
-                Array.isArray(tokenized[key]) &&
-                Array.isArray(additionalSearchConditions[key]);
-              if (hasCommonKey) {
-                tokenized[key] = [...tokenized[key], ...additionalSearchConditions[key]];
-                return;
-              }
-
-              tokenized[key] = additionalSearchConditions[key];
-            });
-
-            nextEventView.query = stringifyQueryObject(tokenized);
-
-            pushEventViewToLocation({
-              location,
-              nextEventView,
-              extraQuery: pickRelevantLocationQueryStrings(location),
-            });
-          }}
-        >
-          {children({willExpand: false})}
-        </a>
+        <Link to={target}>{children({willExpand: true})}</Link>
       </Tooltip>
     );
   }
