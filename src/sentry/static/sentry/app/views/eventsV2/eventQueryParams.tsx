@@ -137,7 +137,7 @@ export const FIELDS = {
   'stack.in_app': 'boolean',
   'stack.colno': 'number',
   'stack.lineno': 'number',
-  'stack.stack_level': 'string',
+  'stack.stack_level': 'number',
   tags: 'string',
   'tags.key': 'string',
   'tags.value': 'string',
