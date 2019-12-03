@@ -98,9 +98,10 @@ class IngestConsumerWorker(AbstractBatchWorker):
         if attachments:
             attachment_cache.set(
                 cache_key,
-                attachments=[CachedAttachment(**attachment) for attachment in attachments],
+                attachments=[
+                    CachedAttachment(meta_only=True, **attachment) for attachment in attachments
+                ],
                 timeout=CACHE_TIMEOUT,
-                meta_only=True,
             )
 
         # Preprocess this event, which spawns either process_event or

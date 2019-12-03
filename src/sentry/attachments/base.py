@@ -22,8 +22,9 @@ class CachedAttachment(object):
         data=None,
         chunks=None,
         cache=None,
+        meta_only=False,
     ):
-        if data is None and cache is None:
+        if data is None and cache is None and not meta_only:
             raise AttributeError("Missing attachment data")
 
         self.key = key
