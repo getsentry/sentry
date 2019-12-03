@@ -40,21 +40,15 @@ type Props = {
   organization: Organization;
 };
 
-class Results extends React.Component<Props> {
-  constructor(props: Props) {
-    super(props);
-    this.eventView = EventView.fromLocation(props.location);
-  }
+type State = {
+  eventView: EventView;
+};
 
-  componentDidMount() {
-    this.eventView = EventView.fromLocation(this.props.location);
+class Results extends React.Component<Props, State> {
+  static getDerivedStateFromProps(nextProps: Props): State {
+    const eventView = EventView.fromLocation(nextProps.location);
+    return {eventView};
   }
-
-  componentDidUpdate() {
-    this.eventView = EventView.fromLocation(this.props.location);
-  }
-
-  private eventView: EventView;
 
   handleSearch = (query: string) => {
     const {router, location} = this.props;
@@ -95,31 +89,32 @@ class Results extends React.Component<Props> {
   };
 
   getDocumentTitle(): string {
-    if (!this.eventView) {
+    const {eventView} = this.state;
+    if (!eventView) {
       return '';
     }
-    return generateTitle({eventView: this.eventView});
+    return generateTitle({eventView});
   }
 
   renderTagsTable = () => {
     const {organization, location} = this.props;
+    const {eventView} = this.state;
 
-    if (this.eventView.tags.length <= 0) {
+    if (eventView.tags.length <= 0) {
       return null;
     }
 
-    return (
-      <Tags eventView={this.eventView} organization={organization} location={location} />
-    );
+    return <Tags eventView={eventView} organization={organization} location={location} />;
   };
 
   render() {
     const {organization, location, router} = this.props;
+    const {eventView} = this.state;
     const query = location.query.query || '';
 
     // Make option set and add the default options in.
     const yAxisOptions = uniqBy(
-      this.eventView
+      eventView
         .getAggregateFields()
         // Exclude last_seen and latest_event as they don't produce useful graphs.
         .filter(
@@ -140,14 +135,14 @@ class Results extends React.Component<Props> {
             <ResultsHeader
               organization={organization}
               location={location}
-              eventView={this.eventView}
+              eventView={eventView}
             />
             <div>
               <ContentBox>
                 <Top>
                   <StyledSearchBar
                     organization={organization}
-                    projectIds={this.eventView.project}
+                    projectIds={eventView.project}
                     query={query}
                     onSearch={this.handleSearch}
                   />
@@ -156,14 +151,14 @@ class Results extends React.Component<Props> {
                       value: (
                         <EventsChart
                           router={router}
-                          query={this.eventView.getEventsAPIPayload(location).query}
+                          query={eventView.getEventsAPIPayload(location).query}
                           organization={organization}
                           showLegend
                           yAxisOptions={yAxisOptions}
-                          yAxisValue={this.eventView.yAxis}
+                          yAxisValue={eventView.yAxis}
                           onYAxisChange={this.handleYAxisChange}
-                          project={this.eventView.project as number[]}
-                          environment={this.eventView.environment as string[]}
+                          project={eventView.project as number[]}
+                          environment={eventView.environment as string[]}
                         />
                       ),
                       fixed: 'events chart',
@@ -173,7 +168,7 @@ class Results extends React.Component<Props> {
                 <Main>
                   <Table
                     organization={organization}
-                    eventView={this.eventView}
+                    eventView={eventView}
                     location={location}
                   />
                 </Main>

@@ -39,7 +39,6 @@ type State = {
   isNewQuery: boolean;
   isEditingQuery: boolean;
 
-  queryId: string | undefined;
   queryName: string;
 };
 
@@ -52,7 +51,6 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       return {
         isNewQuery: true,
         isEditingQuery: false,
-        queryId: undefined,
         queryName: prevState.queryName || '',
       };
     }
@@ -68,7 +66,6 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       return {
         isNewQuery: false,
         isEditingQuery: false,
-        queryId: nextEventView.id,
         queryName: '',
       };
     }
@@ -79,7 +76,6 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     return {
       isNewQuery: false,
       isEditingQuery: !isEqualQuery,
-      queryId: nextEventView.id,
 
       // HACK(leedongwei): See comment at SavedQueryButtonGroup.onFocusInput
       queryName: prevState.queryName || '',
@@ -106,7 +102,6 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     isNewQuery: true,
     isEditingQuery: false,
 
-    queryId: undefined,
     queryName: '',
   };
 
@@ -140,10 +135,10 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
 
     // Checks if "Save as" button is clicked from a clean state, or it is
     // clicked while modifying an existing query
-    const isNewQuery = !this.state.queryId;
+    const isNewQuery = !eventView.id;
 
     handleCreateQuery(api, organization, nextEventView, isNewQuery).then(
-      (savedQuery: any) => {
+      (savedQuery: SavedQuery) => {
         const view = EventView.fromSavedQuery(savedQuery);
 
         this.setState({queryName: ''});
@@ -161,8 +156,13 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
 
     const {api, organization, eventView} = this.props;
 
-    handleUpdateQuery(api, organization, eventView).then(() => {
+    handleUpdateQuery(api, organization, eventView).then((savedQuery: SavedQuery) => {
+      const view = EventView.fromSavedQuery(savedQuery);
       this.setState({queryName: ''});
+      browserHistory.push({
+        pathname: location.pathname,
+        query: view.generateQueryStringObject(),
+      });
     });
   };
 
