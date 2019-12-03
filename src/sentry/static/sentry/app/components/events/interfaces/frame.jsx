@@ -182,7 +182,7 @@ export class Frame extends React.Component {
 
   scrollToImage = event => {
     event.stopPropagation(); // to prevent collapsing if collapsable
-    DebugMetaActions.updateFilter(this.props.data.instructionAddr);
+    DebugMetaActions.updateFilters(this.props.data.instructionAddr, true);
     scrollToElement('#packages');
   };
 

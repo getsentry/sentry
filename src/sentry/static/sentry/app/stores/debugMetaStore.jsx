@@ -1,11 +1,11 @@
 import Reflux from 'reflux';
 
-const DebugMetaActions = Reflux.createActions(['updateFilter']);
+const DebugMetaActions = Reflux.createActions(['updateFilters']);
 
 const DebugMetaStore = Reflux.createStore({
   init() {
     this.reset();
-    this.listenTo(DebugMetaActions.updateFilter, this.updateFilter);
+    this.listenTo(DebugMetaActions.updateFilters, this.updateFilters);
   },
 
   reset() {
@@ -15,8 +15,10 @@ const DebugMetaStore = Reflux.createStore({
     this.trigger(this.get());
   },
 
-  updateFilter(word) {
+  updateFilters(word, showDetails = false, showUnused = false) {
     this.filter = word;
+    this.showDetails = showDetails;
+    this.showUnused = showUnused;
     this.trigger(this.get());
   },
 

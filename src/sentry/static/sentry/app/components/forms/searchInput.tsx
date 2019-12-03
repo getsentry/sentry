@@ -20,7 +20,7 @@ class SearchInput extends React.Component<Props> {
     return (
       <SearchWrapper>
         <SearchIcon />
-        <SearchField placeholder={placeholder} value={value} onChange={onChange} />
+        <SearchField placeholder={placeholder} value={value || ''} onChange={onChange} />
         {value && value.length > 0 && (
           <a onClick={this.handleResetInput}>
             <SearchReset />
