@@ -1,9 +1,7 @@
 import React from 'react';
-
-import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 
-import {Panel, PanelHeader, PanelBody} from 'app/components/panels';
+import {Panel} from 'app/components/panels';
 
 import {SentryTransactionEvent} from './types';
 import TraceView from './traceView';
@@ -21,12 +19,7 @@ class SpansInterface extends React.Component<PropType> {
 
     return (
       <Panel>
-        <PanelHeader disablePadding={false} hasButtons={false}>
-          {t('Trace View - This Transaction')}
-        </PanelHeader>
-        <PanelBody>
-          <TraceView event={event} />
-        </PanelBody>
+        <TraceView event={event} />
       </Panel>
     );
   }

@@ -40,11 +40,9 @@ class TeamworkTaskForm(NewIssueForm):
         try:
             project_list = client.list_projects()
         except RequestException as e:
-            raise forms.ValidationError(_("Error contacting Teamwork API: %s") % six.binary_type(e))
+            raise forms.ValidationError(_("Error contacting Teamwork API: %s") % six.text_type(e))
 
-        self.fields["project"].choices = [
-            (six.binary_type(i["id"]), i["name"]) for i in project_list
-        ]
+        self.fields["project"].choices = [(six.text_type(i["id"]), i["name"]) for i in project_list]
         self.fields["project"].widget.choices = self.fields["project"].choices
 
         if self.data.get("project"):
@@ -52,10 +50,10 @@ class TeamworkTaskForm(NewIssueForm):
                 tasklist_list = client.list_tasklists(data["project"])
             except RequestException as e:
                 raise forms.ValidationError(
-                    _("Error contacting Teamwork API: %s") % six.binary_type(e)
+                    _("Error contacting Teamwork API: %s") % six.text_type(e)
                 )
             self.fields["tasklist"].choices = [
-                (six.binary_type(i["id"]), i["name"]) for i in tasklist_list
+                (six.text_type(i["id"]), i["name"]) for i in tasklist_list
             ]
             self.fields["tasklist"].widget.choices = self.fields["tasklist"].choices
 
@@ -127,7 +125,7 @@ class TeamworkPlugin(IssuePlugin):
                 tasklist_id=form_data["tasklist"],
             )
         except RequestException as e:
-            raise forms.ValidationError(_("Error creating Teamwork task: %s") % six.binary_type(e))
+            raise forms.ValidationError(_("Error creating Teamwork task: %s") % six.text_type(e))
 
         return task_id
 
