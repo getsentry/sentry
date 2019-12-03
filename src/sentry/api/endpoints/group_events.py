@@ -47,7 +47,9 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         ``````````````````````
 
         This endpoint lists an issue's events.
-        :qparam bool full: if this is set to true then the event payload will include the full event body, including the stacktrace. Set to 1 to enable.
+        :qparam bool full: if this is set to true then the event payload will
+                           include the full event body, including the stacktrace.
+                           Set to 1 to enable.
 
         :pparam string issue_id: the ID of the issue to retrieve.
 

@@ -30,7 +30,9 @@ class ProjectEventsEndpoint(ProjectEndpoint):
 
         Note: This endpoint is experimental and may be removed without notice.
 
-        :qparam bool full: if this is set to true then the event payload will include the full event body, including the stacktrace. Set to 1 to enable.
+        :qparam bool full: if this is set to true then the event payload will
+                           include the full event body, including the stacktrace.
+                           Set to 1 to enable.
 
         :pparam string organization_slug: the slug of the organization the
                                           groups belong to.
