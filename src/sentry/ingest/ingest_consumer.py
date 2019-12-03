@@ -15,9 +15,12 @@ from sentry.utils import json
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.kafka import create_batching_kafka_consumer
 from sentry.utils.batching_kafka_consumer import AbstractBatchWorker
-from sentry.attachments import attachment_cache
+from sentry.attachments import CachedAttachment, attachment_cache
 
 logger = logging.getLogger(__name__)
+
+
+CACHE_TIMEOUT = 3600
 
 
 class ConsumerType(object):
@@ -49,6 +52,8 @@ class IngestConsumerWorker(AbstractBatchWorker):
             self._process_event(message)
         elif message_type == "attachment_chunk":
             self._process_attachment_chunk(message)
+        elif message_type == "attachment":
+            self._process_individual_attachment(message)
         else:
             raise ValueError("Unknown message type: {}".format(message_type))
 
@@ -61,6 +66,7 @@ class IngestConsumerWorker(AbstractBatchWorker):
         event_id = message["event_id"]
         project_id = message["project_id"]
         remote_addr = message.get("remote_addr")
+        attachments = message.get("attachments") or ()
 
         # check that we haven't already processed this event (a previous instance of the forwarder
         # died before it could commit the event queue offset)
@@ -86,9 +92,15 @@ class IngestConsumerWorker(AbstractBatchWorker):
         # which assumes that data passed in is a raw dictionary.
         data = json.loads(payload)
 
-        cache_timeout = 3600
         cache_key = cache_key_for_event(data)
-        default_cache.set(cache_key, data, cache_timeout)
+        default_cache.set(cache_key, data, CACHE_TIMEOUT)
+
+        attachment_cache.set(
+            cache_key,
+            attachments=[CachedAttachment(**attachment) for attachment in attachments],
+            timeout=CACHE_TIMEOUT,
+            meta_only=True,
+        )
 
         # Preprocess this event, which spawns either process_event or
         # save_event. Pass data explicitly to avoid fetching it again from the
@@ -102,7 +114,7 @@ class IngestConsumerWorker(AbstractBatchWorker):
         )
 
         # remember for an 1 hour that we saved this event (deduplication protection)
-        cache.set(deduplication_key, "", 3600)
+        cache.set(deduplication_key, "", CACHE_TIMEOUT)
 
         # emit event_accepted once everything is done
         event_accepted.send_robust(
@@ -117,8 +129,11 @@ class IngestConsumerWorker(AbstractBatchWorker):
         chunk_index = message["chunk_index"]
         cache_key = cache_key_for_event({"event_id": event_id, "project_id": project_id})
         attachment_cache.set_chunk(
-            key=cache_key, id=id, chunk_index=chunk_index, chunk_data=payload, timeout=3600
+            key=cache_key, id=id, chunk_index=chunk_index, chunk_data=payload, timeout=CACHE_TIMEOUT
         )
+
+    def _process_individual_attachment(self, message):
+        raise RuntimeError("Not implemented yet")
 
     def flush_batch(self, batch):
         pass

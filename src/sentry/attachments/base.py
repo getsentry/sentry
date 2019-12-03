@@ -92,7 +92,12 @@ class BaseAttachmentCache(object):
                     metrics_tags=metrics_tags,
                 )
 
-        meta = [attachment.meta() for attachment in attachments]
+        meta = []
+
+        for attachment in attachments:
+            attachment._cache = self
+            meta.append(attachment.meta())
+
         self.inner.set(ATTACHMENT_META_KEY.format(key=key), meta, timeout, raw=False)
 
     def set_chunk(self, key, id, chunk_index, chunk_data, timeout=None):
