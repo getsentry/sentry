@@ -35,7 +35,7 @@ class CachedAttachment(object):
         self.type = type or "event.attachment"
 
         self._data = data
-        self._chunks = chunks
+        self.chunks = chunks
         self._cache = cache
 
     @classmethod
@@ -49,12 +49,14 @@ class CachedAttachment(object):
         if self._data is None and self._cache is not None:
             assert self.id is not None
 
-            if self._chunks is None:
+            if self.chunks is None:
                 self._data = self._cache.get_unchunked_data(key=self.key, id=self.id)
             else:
                 data = []
-                for chunk_index in range(self._chunks):
-                    data.append(self._cache.get_chunk(key=self.key, id=self.id))
+                for chunk_index in range(self.chunks):
+                    data.append(
+                        self._cache.get_chunk(key=self.key, id=self.id, chunk_index=chunk_index)
+                    )
 
                 self._data = b"".join(data)
 
@@ -67,7 +69,7 @@ class CachedAttachment(object):
                 "name": self.name,
                 "content_type": self.content_type,
                 "type": self.type,
-                "chunks": self._chunks,
+                "chunks": self.chunks,
             }
         )
 
@@ -127,7 +129,7 @@ class BaseAttachmentCache(object):
         return result
 
     def get_chunk(self, key, id, chunk_index):
-        key = ATTACHMENT_DATA_CHUNK_KEY.format(key=key, id=id)
+        key = ATTACHMENT_DATA_CHUNK_KEY.format(key=key, id=id, chunk_index=chunk_index)
         return zlib.decompress(self.inner.get(key, raw=True))
 
     def get_unchunked_data(self, key, id):
