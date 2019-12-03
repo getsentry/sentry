@@ -702,9 +702,21 @@ class EventView {
       // of it in the table.
 
       if (numOfColumns <= 1) {
-        const sorts = [...newEventView.sorts];
-        sorts.splice(needleSortIndex, 1);
-        newEventView.sorts = [...new Set(sorts)];
+        if (isFieldSortable(updatedField, tableMeta)) {
+          // use the current updated field as the sort key
+          const sort = fieldToSort(updatedField, tableMeta)!;
+
+          // preserve the sort kind
+          sort.kind = needleSort.kind;
+
+          const sorts = [...newEventView.sorts];
+          sorts[needleSortIndex] = sort;
+          newEventView.sorts = sorts;
+        } else {
+          const sorts = [...newEventView.sorts];
+          sorts.splice(needleSortIndex, 1);
+          newEventView.sorts = [...new Set(sorts)];
+        }
       }
 
       if (newEventView.sorts.length <= 0 && newEventView.fields.length > 0) {
