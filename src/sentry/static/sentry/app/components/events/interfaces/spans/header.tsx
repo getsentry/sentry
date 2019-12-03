@@ -545,12 +545,10 @@ const DurationGuideBox = styled('div')<{alignLeft: boolean}>`
   position: absolute;
   background-color: ${p => p.theme.white};
   padding: 4px;
+  height: 100%;
   border-radius: 3px;
   border: 1px solid rgba(0, 0, 0, 0.1);
-  height: 16px;
   line-height: 1;
-  vertical-align: middle;
-  transform: translateY(50%);
   white-space: nowrap;
 
   ${({alignLeft}) => {
