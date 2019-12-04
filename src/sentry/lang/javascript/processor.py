@@ -244,7 +244,7 @@ def fetch_release_file(filename, release, dist=None):
         )
         try:
             with metrics.timer("sourcemaps.release_file_read"):
-                with releasefile.file.getfile() as fp:
+                with ReleaseFile.cache.getfile(releasefile) as fp:
                     z_body, body = compress_file(fp)
         except Exception:
             logger.error("sourcemap.compress_read_failed", exc_info=sys.exc_info())
@@ -253,6 +253,8 @@ def fetch_release_file(filename, release, dist=None):
             headers = {k.lower(): v for k, v in releasefile.file.headers.items()}
             encoding = get_encoding_from_headers(headers)
             result = http.UrlResult(filename, headers, body, 200, encoding)
+            # This will implicitly skip too large payloads. Those will be cached
+            # on the file system by `ReleaseFile.cache`, instead.
             cache.set(cache_key, (headers, z_body, 200, encoding), 3600)
 
     elif result == -1:

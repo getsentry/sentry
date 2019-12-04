@@ -679,7 +679,11 @@ CELERYBEAT_SCHEDULE = {
 }
 
 BGTASKS = {
-    "sentry.bgtasks.clean_dsymcache:clean_dsymcache": {"interval": 5 * 60, "roles": ["worker"]}
+    "sentry.bgtasks.clean_dsymcache:clean_dsymcache": {"interval": 5 * 60, "roles": ["worker"]},
+    "sentry.bgtasks.clean_releasefilecache:clean_releasefilecache": {
+        "interval": 5 * 60,
+        "roles": ["worker"],
+    },
 }
 
 # Sentry logs to two major places: stdout, and it's internal project.

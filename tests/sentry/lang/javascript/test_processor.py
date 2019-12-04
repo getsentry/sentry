@@ -11,7 +11,7 @@ from copy import deepcopy
 from mock import patch
 from requests.exceptions import RequestException
 
-from sentry import http
+from sentry import http, options
 from sentry.lang.javascript.processor import (
     JavaScriptStacktraceProcessor,
     discover_sourcemap,
@@ -178,6 +178,43 @@ class FetchReleaseFileTest(TestCase):
             200,
             "utf-8",
         )
+
+    def test_caching(self):
+        # Set the threshold to zero to force caching on the file system
+        options.set("releasefile.cache-limit", 0)
+
+        project = self.project
+        release = Release.objects.create(organization_id=project.organization_id, version="abc")
+        release.add_project(project)
+
+        file = File.objects.create(
+            name="file.min.js",
+            type="release.file",
+            headers={"Content-Type": "application/json; charset=utf-8"},
+        )
+
+        binary_body = unicode_body.encode("utf-8")
+        file.putfile(six.BytesIO(binary_body))
+
+        ReleaseFile.objects.create(
+            name="file.min.js", release=release, organization_id=project.organization_id, file=file
+        )
+
+        result = fetch_release_file("file.min.js", release)
+
+        assert isinstance(result.body, six.binary_type)
+        assert result == http.UrlResult(
+            "file.min.js",
+            {"content-type": "application/json; charset=utf-8"},
+            binary_body,
+            200,
+            "utf-8",
+        )
+
+        # test with cache hit, coming from the FS
+        new_result = fetch_release_file("file.min.js", release)
+
+        assert result == new_result
 
 
 class FetchFileTest(TestCase):
