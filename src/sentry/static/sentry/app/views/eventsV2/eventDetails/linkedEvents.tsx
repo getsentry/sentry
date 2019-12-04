@@ -13,6 +13,7 @@ import withProjects from 'app/utils/withProjects';
 
 import {generateEventDetailsRoute, generateEventSlug} from './utils';
 import {SectionHeading} from '../styles';
+import EventView from '../eventView';
 
 type DiscoverResult = {
   id: string;
@@ -28,6 +29,7 @@ type Props = {
   projectId: string;
   projects: Project[];
   event: Event;
+  eventView: EventView;
 } & AsyncComponent['props'];
 
 type State = {
@@ -64,7 +66,7 @@ class LinkedEvents extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {event, organization, projects} = this.props;
+    const {event, organization, projects, eventView} = this.props;
     const {linkedEvents} = this.state;
 
     const hasLinkedEvents =
@@ -80,7 +82,7 @@ class LinkedEvents extends AsyncComponent<Props, State> {
             const eventSlug = generateEventSlug(item);
             const eventUrl = {
               pathname: generateEventDetailsRoute({eventSlug, organization}),
-              query: location.search,
+              query: eventView.generateQueryStringObject(),
             };
             const project = projects.find(p => p.slug === item['project.name']);
 

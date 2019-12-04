@@ -334,7 +334,12 @@ SILENCED_SYSTEM_CHECKS = (
     # Django recommends to use OneToOneField over ForeignKey(unique=True)
     # however this changes application behavior in ways that break association
     # loading
-    "fields.W342"
+    "fields.W342",
+    # We have a "catch-all" react_page_view that we only want to match on URLs
+    # ending with a `/` to allow APPEND_SLASHES to kick in for the ones lacking
+    # the trailing slash. This confuses the warning as the regex is `/$` which
+    # looks like it starts with a slash but it doesn't.
+    "urls.W002",
 )
 
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, "static"))
@@ -1408,9 +1413,6 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.vsts_extension.VstsExtensionIntegrationProvider",
     "sentry.integrations.pagerduty.integration.PagerDutyIntegrationProvider",
 )
-
-
-SENTRY_INTERNAL_INTEGRATIONS = ["pagerduty"]
 
 
 def get_sentry_sdk_config():

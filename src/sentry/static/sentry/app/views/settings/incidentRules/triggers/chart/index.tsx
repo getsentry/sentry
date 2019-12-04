@@ -1,15 +1,17 @@
-import maxBy from 'lodash/maxBy';
 import React from 'react';
+import maxBy from 'lodash/maxBy';
 import moment from 'moment-timezone';
 import styled from 'react-emotion';
 
 import {Client} from 'app/api';
 import {Config, Organization, Project} from 'app/types';
+import {Panel} from 'app/components/panels';
 import {SeriesDataUnit} from 'app/types/echarts';
 import {getFormattedDate} from 'app/utils/dates';
 import EventsRequest from 'app/views/events/utils/eventsRequest';
 import LoadingMask from 'app/components/loadingMask';
 import Placeholder from 'app/components/placeholder';
+import space from 'app/styles/space';
 
 import {AlertRuleAggregations, IncidentRule, TimeWindow} from '../../types';
 import DraggableChart from './draggableChart';
@@ -31,7 +33,7 @@ type Props = {
   onChangeResolutionThreshold?: (resolveThreshold: number) => void;
 };
 
-class TriggersChart extends React.Component<Props> {
+class TriggersChart extends React.PureComponent<Props> {
   render() {
     const {
       api,
@@ -66,38 +68,40 @@ class TriggersChart extends React.Component<Props> {
           }
 
           return (
-            <React.Fragment>
-              {loading ? (
-                <Placeholder height="200px" bottomGutter={1} />
-              ) : (
-                <React.Fragment>
-                  <TransparentLoadingMask visible={reloading} />
-                  <DraggableChart
-                    xAxis={{
-                      axisLabel: {
-                        formatter: (value: moment.MomentInput, index: number) => {
-                          const firstItem = index === 0;
-                          const format =
-                            timeWindow <= TimeWindow.FIVE_MINUTES && !firstItem
-                              ? 'LT'
-                              : 'MMM Do';
-                          return getFormattedDate(value, format, {
-                            local: config.user.options.timezone !== 'UTC',
-                          });
+            <StickyWrapper>
+              <PanelNoMargin>
+                {loading ? (
+                  <Placeholder height="200px" />
+                ) : (
+                  <React.Fragment>
+                    <TransparentLoadingMask visible={reloading} />
+                    <DraggableChart
+                      xAxis={{
+                        axisLabel: {
+                          formatter: (value: moment.MomentInput, index: number) => {
+                            const firstItem = index === 0;
+                            const format =
+                              timeWindow <= TimeWindow.FIVE_MINUTES && !firstItem
+                                ? 'LT'
+                                : 'MMM Do';
+                            return getFormattedDate(value, format, {
+                              local: config.user.options.timezone !== 'UTC',
+                            });
+                          },
                         },
-                      },
-                    }}
-                    maxValue={maxValue ? maxValue.value : maxValue}
-                    onChangeIncidentThreshold={this.props.onChangeIncidentThreshold}
-                    alertThreshold={alertThreshold}
-                    onChangeResolutionThreshold={this.props.onChangeResolutionThreshold}
-                    resolveThreshold={resolveThreshold}
-                    isInverted={isInverted}
-                    data={timeseriesData}
-                  />
-                </React.Fragment>
-              )}
-            </React.Fragment>
+                      }}
+                      maxValue={maxValue ? maxValue.value : maxValue}
+                      onChangeIncidentThreshold={this.props.onChangeIncidentThreshold}
+                      alertThreshold={alertThreshold}
+                      onChangeResolutionThreshold={this.props.onChangeResolutionThreshold}
+                      resolveThreshold={resolveThreshold}
+                      isInverted={isInverted}
+                      data={timeseriesData}
+                    />
+                  </React.Fragment>
+                )}
+              </PanelNoMargin>
+            </StickyWrapper>
           );
         }}
       </EventsRequest>
@@ -135,4 +139,20 @@ const TransparentLoadingMask = styled(LoadingMask)<{visible: boolean}>`
   ${p => !p.visible && 'display: none;'};
   opacity: 0.4;
   z-index: 1;
+`;
+
+const PanelNoMargin = styled(Panel)`
+  margin: 0;
+`;
+
+/**
+ * We wrap Panel with this (instead of applying styles to Panel) so that we can get the extra padding
+ * at the bottom so sticky chart does not bleed into other content.
+ */
+const StickyWrapper = styled('div')`
+  position: sticky;
+  top: 69px; /* Height of settings breadcrumb */
+  z-index: ${p => p.theme.zIndex.dropdown + 1};
+  padding-bottom: ${space(2)};
+  background-color: rgba(251, 251, 252, 0.9); /* p.theme.whiteDark */
 `;

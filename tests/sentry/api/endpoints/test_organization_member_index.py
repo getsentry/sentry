@@ -202,7 +202,9 @@ class OrganizationMemberListTest(APITestCase):
             invite_status=InviteStatus.APPROVED.value,
         )
 
+        # Two authenticators to ensure the user list is distinct
         Authenticator.objects.create(user=member_2fa.user, type=1)
+        Authenticator.objects.create(user=member_2fa.user, type=2)
 
         response = self.client.get(self.url + "?query=has2fa:true")
         assert response.status_code == 200

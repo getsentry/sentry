@@ -1,38 +1,20 @@
 import React from 'react';
 import styled from 'react-emotion';
 
-import {
-  IncidentRule,
-  Trigger,
-  Action,
-  ActionType,
-  TargetType,
-} from 'app/views/settings/incidentRules/types';
-import {Organization, Project} from 'app/types';
-import {Panel, PanelBody, PanelItem, PanelHeader} from 'app/components/panels';
+import {Action, ActionType, TargetType} from 'app/views/settings/incidentRules/types';
+import {MetricAction} from 'app/types/alerts';
+import {Organization, Project, SelectValue} from 'app/types';
+import {PanelItem} from 'app/components/panels';
+import {removeAtArrayIndex} from 'app/utils/removeAtArrayIndex';
+import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex';
 import {t} from 'app/locale';
-import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
-import DropdownButton from 'app/components/dropdownButton';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import DeleteActionButton from 'app/views/settings/incidentRules/triggers/actionsPanel/deleteActionButton';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import PanelSubHeader from 'app/views/settings/incidentRules/triggers/panelSubHeader';
 import SelectControl from 'app/components/forms/selectControl';
 import SelectMembers from 'app/components/selectMembers';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
-
-type Props = {
-  organization: Organization;
-  projects: Project[];
-  rule: IncidentRule;
-  loading: boolean;
-  error: boolean;
-
-  actions: Action[];
-  className?: string;
-  trigger?: Trigger;
-  onAdd: (type: Action['type']) => void;
-  onChange: (index: number, action: Action) => void;
-};
 
 const ActionLabel = {
   [ActionType.EMAIL]: t('E-mail'),
@@ -45,87 +27,125 @@ const TargetLabel = {
   [TargetType.TEAM]: t('Team'),
 };
 
-class ActionsPanel extends React.Component<Props> {
+type Props = {
+  availableActions: MetricAction[] | null;
+  currentProject: string;
+  organization: Organization;
+  projects: Project[];
+  loading: boolean;
+  error: boolean;
+
+  actions: Action[];
+  className?: string;
+  triggerIndex: number;
+  onAdd: (type: Action['type']) => void;
+  onChange: (actions: Action[]) => void;
+};
+
+class ActionsPanel extends React.PureComponent<Props> {
   handleAddAction = (value: {label: string; value: Action['type']}) => {
     this.props.onAdd(value.value);
   };
+  handleDeleteAction = (index: number) => {
+    const {actions, onChange} = this.props;
 
-  handleChangeTarget = (index: number, value) => {
-    const {actions} = this.props;
+    onChange(removeAtArrayIndex(actions, index));
+  };
+
+  handleChangeTarget = (index: number, value: SelectValue<keyof typeof TargetLabel>) => {
+    const {actions, onChange} = this.props;
     const newAction = {
       ...actions[index],
-      targetType: Number(value.value),
+      targetType: value.value,
       targetIdentifier: '',
     };
 
-    this.props.onChange(index, newAction);
+    onChange(replaceAtArrayIndex(actions, index, newAction));
   };
 
-  handleChangeTargetIdentifier = (index, value) => {
-    const {actions} = this.props;
+  handleChangeTargetIdentifier = (index: number, value) => {
+    const {actions, onChange} = this.props;
     const newAction = {
       ...actions[index],
       targetIdentifier: value.value,
     };
 
-    this.props.onChange(index, newAction);
+    onChange(replaceAtArrayIndex(actions, index, newAction));
   };
 
   render() {
-    const {actions, className, loading, organization, projects, rule} = this.props;
+    const {
+      actions,
+      availableActions,
+      currentProject,
+      loading,
+      organization,
+      projects,
+    } = this.props;
 
-    const items = Object.entries(ActionLabel).map(([value, label]) => ({value, label}));
+    const items =
+      availableActions &&
+      availableActions.map(({type: value}) => ({
+        value,
+        label: ActionLabel[value],
+      }));
 
     return (
-      <Panel className={className}>
-        <PanelHeader hasButtons>
-          <div>{t('Actions')}</div>
-          <DropdownAutoComplete
-            blendCorner
-            hideInput
-            onSelect={this.handleAddAction}
-            items={items}
-          >
-            {() => <DropdownButton size="small">{t('Add Action')}</DropdownButton>}
-          </DropdownAutoComplete>
-        </PanelHeader>
-        <PanelBody>
+      <React.Fragment>
+        <PanelSubHeader>{t('Actions')}</PanelSubHeader>
+        <React.Fragment>
           {loading && <LoadingIndicator />}
-          {!loading && !actions.length && (
-            <EmptyMessage>{t('No Actions have been added')}</EmptyMessage>
-          )}
-          {actions.map((action: Action, i: number) => {
-            const isUser = action.targetType === TargetType.USER;
-            const isTeam = action.targetType === TargetType.TEAM;
+          {actions &&
+            actions.map((action: Action, i: number) => {
+              const isUser = action.targetType === TargetType.USER;
+              const isTeam = action.targetType === TargetType.TEAM;
+              const availableAction =
+                availableActions &&
+                availableActions.find(({type}) => type === action.type);
 
-            return (
-              <PanelItemGrid key={i}>
-                {ActionLabel[action.type]}
+              return (
+                <PanelItemGrid key={i}>
+                  {ActionLabel[action.type]}
 
-                <SelectControl
-                  value={action.targetType}
-                  options={Object.entries(TargetLabel).map(([value, label]) => ({
-                    value,
-                    label,
-                  }))}
-                  onChange={this.handleChangeTarget.bind(this, i)}
-                />
-
-                {(isUser || isTeam) && (
-                  <SelectMembers
-                    key={isTeam ? 'team' : 'member'}
-                    showTeam={isTeam}
-                    project={projects.find(({slug}) => slug === rule.projects[0])}
-                    organization={organization}
-                    value={action.targetIdentifier}
-                    onChange={this.handleChangeTargetIdentifier.bind(this, i)}
+                  <SelectControl
+                    disabled={loading}
+                    value={action.targetType}
+                    options={
+                      availableAction &&
+                      availableAction.allowedTargetTypes.map(allowedType => ({
+                        value: allowedType,
+                        label: TargetLabel[allowedType],
+                      }))
+                    }
+                    onChange={this.handleChangeTarget.bind(this, i)}
                   />
-                )}
-              </PanelItemGrid>
-            );
-          })}
-        </PanelBody>
-      </Panel>
+
+                  {(isUser || isTeam) && (
+                    <SelectMembers
+                      key={isTeam ? 'team' : 'member'}
+                      showTeam={isTeam}
+                      project={projects.find(({slug}) => slug === currentProject)}
+                      organization={organization}
+                      value={action.targetIdentifier}
+                      onChange={this.handleChangeTargetIdentifier.bind(this, i)}
+                    />
+                  )}
+                  <DeleteActionButton index={i} onClick={this.handleDeleteAction} />
+                </PanelItemGrid>
+              );
+            })}
+          <PanelItem>
+            <StyledSelectControl
+              name="add-action"
+              aria-label={t('Add an Action')}
+              disabled={loading}
+              placeholder={t('Add an Action')}
+              onChange={this.handleAddAction}
+              options={items}
+            />
+          </PanelItem>
+        </React.Fragment>
+      </React.Fragment>
     );
   }
 }
@@ -136,9 +156,13 @@ const ActionsPanelWithSpace = styled(ActionsPanel)`
 
 const PanelItemGrid = styled(PanelItem)`
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr min-content;
   align-items: center;
   grid-gap: ${space(2)};
+`;
+
+const StyledSelectControl = styled(SelectControl)`
+  width: 100%;
 `;
 
 export default withOrganization(ActionsPanelWithSpace);

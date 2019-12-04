@@ -144,6 +144,7 @@ class EventDetailsContent extends AsyncComponent<Props, State & AsyncComponent['
               organization={organization}
               event={event}
               projectId={this.projectId}
+              eventView={eventView}
             />
           </Main>
           <Side>
@@ -260,9 +261,15 @@ class EventDetailsWrapper extends React.Component<EventDetailsWrapperProps> {
 
 const EventHeader = (props: {event: Event}) => {
   const {title} = getTitle(props.event);
+
+  const message = getMessage(props.event);
+
   return (
     <StyledEventHeader data-test-id="event-header">
-      <StyledTitle>{title}:</StyledTitle>
+      <StyledTitle>
+        {title}
+        {message && message.length > 0 ? ':' : null}
+      </StyledTitle>
       <StyledMessage>{getMessage(props.event)}</StyledMessage>
     </StyledEventHeader>
   );
