@@ -356,7 +356,7 @@ def query_subscription_consumer(**options):
         initial_offset_reset=options["initial_offset_reset"],
     )
 
-    atexit.register(subscriber.shutdown())
+    atexit.register(subscriber.shutdown)
 
     subscriber.run()
 
