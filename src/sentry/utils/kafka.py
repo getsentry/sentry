@@ -34,6 +34,7 @@ class ProducerManager(object):
         cluster_options = settings.KAFKA_CLUSTERS[cluster_name]
         producer = self.__producers[cluster_name] = Producer(cluster_options)
 
+        @atexit.register
         def exit_handler():
             pending_count = len(producer)
             if pending_count == 0:
@@ -45,8 +46,6 @@ class ProducerManager(object):
                 cluster_name,
             )
             producer.flush()
-
-        atexit.register(exit_handler)
 
         return producer
 
