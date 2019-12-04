@@ -500,6 +500,13 @@ class GlobalSelectionHeader extends React.Component {
   );
 
   searchDispatcher = debounce((onSearch, searchQuery, options) => {
+    // in the case that a user repeats a search query (because search is
+    // debounced this is possible if the user types and then deletes what they
+    // typed) we should switch to an append strategy to not override all results
+    // with a new page.
+    if (this.state.searchQuery === searchQuery) {
+      options.append = true;
+    }
     onSearch(searchQuery, options);
     this.setState({
       searchQuery,
