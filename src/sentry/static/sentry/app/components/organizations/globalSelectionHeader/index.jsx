@@ -533,9 +533,7 @@ class GlobalSelectionHeader extends React.Component {
                     scrollTop + clientHeight >= scrollHeight - clientHeight &&
                     hasMore
                   ) {
-                    this.searchDispatcher(onSearch, this.state.searchQuery, {
-                      append: true,
-                    });
+                    onSearch(this.state.searchQuery, {append: true});
                   }
                 },
                 onFilterChange: event => {
