@@ -25,6 +25,7 @@ import ErrorBoundary from 'app/components/errorBoundary';
 import withSentryAppComponents from 'app/utils/withSentryAppComponents';
 import DebugMetaStore, {DebugMetaActions} from 'app/stores/debugMetaStore';
 import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
+import InlineSvg from 'app/components/inlineSvg';
 
 export function trimPackage(pkg) {
   const pieces = pkg.split(/^([a-z]:\\|\\\\)/i.test(pkg) ? '\\' : '/');
@@ -437,18 +438,21 @@ export class Frame extends React.Component {
   }
 
   getFrameHint() {
+    // [hintText, hintType]
     const func = this.props.data.function || '<unknown>';
+    const warningType = 'question';
+    const errorType = 'exclamation';
+
     if (func.match(/^@objc\s/)) {
-      //?
-      return t('Objective-C -> Swift shim frame');
+      return [t('Objective-C -> Swift shim frame'), warningType];
     }
     if (func === '<redacted>') {
-      return t('Unknown system frame. Usually from beta SDKs');
+      return [t('Unknown system frame. Usually from beta SDKs'), errorType];
     }
     if (func.match(/^__?hidden#\d+/)) {
-      return t('Hidden function from bitcode build');
+      return [t('Hidden function from bitcode build'), errorType];
     }
-    return null;
+    return [null, null];
   }
 
   renderLeadHint() {
@@ -496,7 +500,7 @@ export class Frame extends React.Component {
 
   renderNativeLine() {
     const {data, showingAbsoluteAddress, onAddressToggle} = this.props;
-    const hint = this.getFrameHint();
+    const [hint, hintType] = this.getFrameHint();
 
     const enablePathTooltip = defined(data.absPath) && data.absPath !== data.filename;
 
@@ -537,7 +541,7 @@ export class Frame extends React.Component {
               {hint !== null ? (
                 <Tooltip title={hint}>
                   <a key="inline">
-                    <span className="icon-question" />
+                    <InlineSvg src={`icon-circle-${hintType}`} />
                   </a>
                 </Tooltip>
               ) : null}

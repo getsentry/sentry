@@ -19,7 +19,7 @@ class PackageStatus extends React.Component<Props> {
 
     return (
       <Tooltip title={tooltip} disabled={!(tooltip && tooltip.length)}>
-        <PackageStatusIcon type={iconType} src={iconSrc} />
+        <PackageStatusIcon type={iconType} src={iconSrc} size="0.75em" />
       </Tooltip>
     );
   }
@@ -31,8 +31,9 @@ type PackageStatusIconProps = {
 export const PackageStatusIcon = styled(InlineSvg)<PackageStatusIconProps>`
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.alert[p.type!].iconColor};
-  margin-right: ${space(1)};
+  margin-left: ${space(0.5)};
   opacity: ${p => (p.type === 'success' ? 0 : 1)};
+  transform: translateY(${p => (p.type === 'success' ? 0 : '-1px')});
 `;
 
 export default PackageStatus;

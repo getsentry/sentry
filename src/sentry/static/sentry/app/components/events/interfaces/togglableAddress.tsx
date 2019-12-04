@@ -81,6 +81,8 @@ const Toggle = styled('span')<ToggleProps>`
   margin-right: 1ex;
   cursor: pointer;
   visibility: hidden ${p => p.invisible && '!important'};
+  position: relative;
+  top: 1px;
 
   &:hover {
     opacity: 1;

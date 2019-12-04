@@ -27,15 +27,15 @@ class PackageLink extends React.Component<Props> {
 
     return (
       <Package onClick={this.handleClick} isClickable={isClickable}>
-        {children}
-
         {defined(packagePath) ? (
           <Tooltip title={packagePath}>
-            <span>{trimPackage(packagePath)}</span>
+            <PackageName>{trimPackage(packagePath)}</PackageName>
           </Tooltip>
         ) : (
-          <span>{'<unknown>'}</span>
+          <PackageName>{'<unknown>'}</PackageName>
         )}
+
+        {children}
 
         {isClickable && <LinkChevron src="icon-chevron-right" />}
       </Package>
@@ -53,10 +53,8 @@ const Package = styled('a')<Partial<Props>>`
   font-size: 13px;
   font-weight: bold;
   max-width: 100%;
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: flex;
+  align-items: center;
   flex-basis: 120px;
   flex-grow: 0;
   flex-shrink: 0;
@@ -72,6 +70,14 @@ const Package = styled('a')<Partial<Props>>`
       transform: translateX(${space(0.5)});
     }
   }
+`;
+
+const PackageName = styled('span')`
+  display: block;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  max-width: 83px;
 `;
 
 export default PackageLink;
