@@ -253,7 +253,7 @@ def get_snuba_column_name(name, dataset=Dataset.Events):
     the column is assumed to be a tag. If name is falsy or name is a quoted literal
     (e.g. "'name'"), leave unchanged.
     """
-    no_conversion = set(["issue", "project_id", "start", "end"])
+    no_conversion = set(["project_id", "start", "end"])
 
     if name in no_conversion:
         return name
@@ -667,7 +667,7 @@ def _prepare_query_params(query_params):
     # if `shrink_time_window` pushed `start` after `end` it means the user queried
     # a Group for T1 to T2 when the group was only active for T3 to T4, so the query
     # wouldn't return any results anyway
-    new_start = shrink_time_window(query_params.filter_keys.get("issue"), start)
+    new_start = shrink_time_window(query_params.filter_keys.get("group_id"), start)
 
     # TODO (alexh) this is a quick emergency fix for an occasion where a search
     # results in only 1 django candidate, which is then passed to snuba to
@@ -1231,7 +1231,7 @@ def get_related_project_ids(column, ids):
     Get the project_ids from a model that has a foreign key to project.
     """
     mappings = {
-        "issue": (Group, "id", "project_id"),
+        "group_id": (Group, "id", "project_id"),
         "tags[sentry:release]": (ReleaseProject, "release_id", "project_id"),
         "release": (ReleaseProject, "release_id", "project_id"),
     }
