@@ -153,7 +153,6 @@ export class Frame extends React.Component {
   }
 
   isInlineFrame() {
-    // TODO: this should be calculated on backend
     return (
       this.props.prevFrame &&
       this.getPlatform() === (this.props.prevFrame.platform || this.props.platform) &&
@@ -162,22 +161,26 @@ export class Frame extends React.Component {
   }
 
   shouldShowLinkToImage() {
-    // TODO: what should be here?
-    return this.props.data.symbolicatorStatus === 'missing';
+    return this.props.data.symbolicatorStatus !== 'unknown_image';
   }
 
   packageStatusIsError() {
-    // TODO: what should be here?
-    return Math.random() > 0.5;
+    return this.props.data.symbolicatorStatus !== 'symbolicated';
   }
 
   packageStatusTooltip() {
-    // TODO: what should be here?
-    if (this.props.data.symbolicatorStatus === 'missing_symbol') {
-      return t('Could not resolve address in debug information file');
+    switch (this.props.data.symbolicatorStatus) {
+      case 'missing_symbol':
+        return t('The symbol was not found within the debug file.');
+      case 'unknown_image':
+        return t('No image is specified for the address of the frame.');
+      case 'missing':
+        return t('The debug file could not be retrieved from any of the sources.');
+      case 'malformed':
+        return t('The retrieved debug file could not be processed.');
+      default:
+        return null;
     }
-
-    return null;
   }
 
   scrollToImage = event => {
