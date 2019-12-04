@@ -10,3 +10,4 @@ from .gzippeddict import *  # NOQA
 from .node import *  # NOQA
 from .pickle import *  # NOQA
 from .uuid import *  # NOQA
+from .onetoone import *  # NOQA
