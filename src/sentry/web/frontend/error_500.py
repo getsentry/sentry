@@ -4,7 +4,7 @@ import logging
 
 from django.conf import settings
 from django.views.generic import View
-from django.template import Context, loader
+from django.template import loader
 from django.http import HttpResponseServerError
 
 from sentry.models import ProjectKey
@@ -31,17 +31,10 @@ class Error500View(View):
         return result
 
     def dispatch(self, request):
-        """
-        500 error handler.
-
-        Templates: `500.html`
-        Context: None
-        """
-        context = {"request": request}
-
+        context = {}
         embed_config = self.get_embed_config(request)
         if embed_config:
             context["embed_config"] = json.dumps_htmlsafe(embed_config)
 
         t = loader.get_template("sentry/500.html")
-        return HttpResponseServerError(t.render(Context(context)))
+        return HttpResponseServerError(t.render(context=context, request=request))
