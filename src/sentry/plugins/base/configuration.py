@@ -5,9 +5,7 @@ import six
 
 from django.utils.translation import ugettext as _
 from django.utils.safestring import mark_safe
-from django.template.loader import render_to_string
 from django.core.urlresolvers import reverse
-from django.template import RequestContext
 from django.http import HttpResponseRedirect
 from django.contrib import messages
 from django.http import Http404
@@ -18,6 +16,7 @@ from sentry.api import client
 from sentry.api.serializers import serialize
 from sentry.models import ProjectOption
 from sentry.utils import json
+from sentry.web.helpers import render_to_string
 
 
 def react_plugin_config(plugin, project, request):
@@ -103,8 +102,8 @@ def default_plugin_config(plugin, project, request):
 
     return mark_safe(
         render_to_string(
-            template,
-            {
+            template=template,
+            context={
                 "form": form,
                 "request": request,
                 "plugin": plugin,
@@ -112,7 +111,7 @@ def default_plugin_config(plugin, project, request):
                 "plugin_test_results": test_results,
                 "plugin_is_configured": is_configured,
             },
-            context_instance=RequestContext(request),
+            request=request,
         )
     )
 
