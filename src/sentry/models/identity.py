@@ -44,6 +44,11 @@ class IdentityProvider(Model):
         db_table = "sentry_identityprovider"
         unique_together = (("type", "external_id"),)
 
+    def get_provider(self):
+        from sentry.identity import get
+
+        return get(self.type)
+
 
 class Identity(Model):
     """
