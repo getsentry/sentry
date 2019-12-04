@@ -154,7 +154,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
         self.login_as(self.user)
         self.landing_path = u"/organizations/{}/eventsv2/".format(self.org.slug)
-        self.result_path = u"/organizations/{}/eventsv2/".format(self.org.slug)
+        self.result_path = u"/organizations/{}/eventsv2/results/".format(self.org.slug)
 
     def wait_until_loaded(self):
         self.browser.wait_until_not(".loading-indicator")
@@ -271,7 +271,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
         with self.feature(FEATURE_NAMES):
             # expect table to expand to the right when no tags are provided
-            self.browser.get(self.path + "?" + transactions_query(tag=[]))
+            self.browser.get(self.result_path + "?" + transactions_query(tag=[]))
             self.wait_until_loaded()
             self.browser.snapshot("events-v2 - transactions query - empty state - no tags")
 
