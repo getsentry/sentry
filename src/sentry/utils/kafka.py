@@ -40,7 +40,7 @@ class ProducerManager(object):
             if pending_count == 0:
                 return
 
-            logger.info(
+            logger.debug(
                 "Waiting for %d messages to be flushed from %s before exiting...",
                 pending_count,
                 cluster_name,
