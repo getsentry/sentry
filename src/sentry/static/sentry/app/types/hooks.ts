@@ -360,8 +360,6 @@ type IntegrationFeatureListProps = FeatureGateSharedProps & {
   provider: Pick<IntegrationProvider, 'key'>;
 };
 
-export type FeatureListComponent = React.ComponentType<IntegrationFeatureListProps>;
-
 /**
  * The integration features gate hook provides components to customize
  * integration feature lists.
@@ -376,7 +374,7 @@ type IntegrationsFeatureGatesHook = () => {
   /**
    * This component renders the list of integration features.
    */
-  FeatureList: FeatureListComponent;
+  FeatureList: React.ComponentType<IntegrationFeatureListProps>;
 };
 
 /**

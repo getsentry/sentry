@@ -13,7 +13,6 @@ import IndicatorStore from 'app/stores/indicatorStore';
 import NarrowLayout from 'app/components/narrowLayout';
 import SelectControl from 'app/components/forms/selectControl';
 import {Organization, IntegrationProvider, Integration} from 'app/types';
-import {FeatureListComponent} from 'app/types/hooks';
 
 type Props = RouteComponentProps<{}, {}> & AsyncView['props'];
 
@@ -21,7 +20,6 @@ type State = AsyncView['state'] & {
   selectedOrg: string | null;
   organization: Organization | null;
   providers: IntegrationProvider[];
-  reloading: boolean;
 };
 
 export default class IntegrationInstallation extends AsyncView<Props, State> {
@@ -31,7 +29,6 @@ export default class IntegrationInstallation extends AsyncView<Props, State> {
       selectedOrg: null,
       organization: null,
       providers: [],
-      reloading: false,
     };
   }
 
@@ -110,10 +107,9 @@ export default class IntegrationInstallation extends AsyncView<Props, State> {
     const choices = this.state.organizations.map(org => [org.slug, org.slug]);
 
     const featureListHooks = HookStore.get('integrations:feature-gates');
-    let FeatureList: FeatureListComponent | null = null;
-    if (featureListHooks.length) {
-      ({FeatureList} = featureListHooks[0]());
-    }
+    const FeatureList = featureListHooks.length
+      ? featureListHooks[0]().FeatureList
+      : null;
 
     return (
       <NarrowLayout>
