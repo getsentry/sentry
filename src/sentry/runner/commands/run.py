@@ -1,6 +1,6 @@
 from __future__ import absolute_import, print_function
 
-import signal
+import atexit
 import sys
 from multiprocessing import cpu_count
 
@@ -356,10 +356,7 @@ def query_subscription_consumer(**options):
         initial_offset_reset=options["initial_offset_reset"],
     )
 
-    def handler(signum, frame):
-        subscriber.shutdown()
-
-    signal.signal(signal.SIGINT, handler)
+    atexit.register(subscriber.shutdown())
 
     subscriber.run()
 

@@ -2,6 +2,7 @@ from __future__ import absolute_import, print_function
 
 import os
 import click
+import signal
 import sys
 import sentry
 import datetime
@@ -161,4 +162,8 @@ def call_command(name, obj=None, **kwargs):
 
 
 def main():
+    def sigHandler(signo, frame):
+        sys.exit(0)
+
+    signal.signal(signal.SIGTERM, sigHandler)
     cli(prog_name=get_prog(), obj={}, max_content_width=100)

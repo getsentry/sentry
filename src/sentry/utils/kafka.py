@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import atexit
 import logging
-import signal
 
 from sentry.utils.batching_kafka_consumer import BatchingKafkaConsumer
 from sentry.utils import metrics
@@ -68,10 +67,6 @@ def create_batching_kafka_consumer(topic_name, worker, **options):
         **options
     )
 
-    def handler(signum, frame):
-        consumer.signal_shutdown()
-
-    signal.signal(signal.SIGINT, handler)
-    signal.signal(signal.SIGTERM, handler)
+    atexit.register(consumer.signal_shutdown)
 
     return consumer
