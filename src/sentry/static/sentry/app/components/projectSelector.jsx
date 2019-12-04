@@ -84,6 +84,13 @@ class ProjectSelector extends React.Component {
 
     // Represents if a search is taking place
     searching: PropTypes.bool,
+
+    // Represents if the current project selector is paginated or fully loaded.
+    // Currently only used to ensure that in an empty state the input is not
+    // hidden. This is for the case in which a user searches for a project which
+    // does not exist. If we hide the input due to no results, the user cannot
+    // recover.
+    paginated: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -218,6 +225,7 @@ class ProjectSelector extends React.Component {
       onFilterChange,
       onScroll,
       searching,
+      paginated,
     } = this.props;
     const {activeProject} = this.state;
     const access = new Set(org.access);
@@ -264,7 +272,6 @@ class ProjectSelector extends React.Component {
           },
         ]
       : [];
-
     return (
       <DropdownAutoComplete
         alignMenu="left"
@@ -287,7 +294,7 @@ class ProjectSelector extends React.Component {
         noResultsMessage={t('No projects found')}
         virtualizedHeight={theme.headerSelectorRowHeight}
         virtualizedLabelHeight={theme.headerSelectorLabelHeight}
-        emptyHidesInput
+        emptyHidesInput={!paginated}
         inputActions={() => (
           <AddButton
             disabled={!hasProjectWrite}

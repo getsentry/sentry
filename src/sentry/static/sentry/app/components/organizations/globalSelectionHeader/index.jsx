@@ -542,6 +542,7 @@ class GlobalSelectionHeader extends React.Component {
                   });
                 },
                 searching: fetching,
+                paginated: true,
               };
               return (
                 <MultipleProjectSelector
