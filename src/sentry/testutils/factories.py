@@ -68,6 +68,7 @@ from sentry.models import (
     EventAttachment,
     UserReport,
     PlatformExternalIssue,
+    ReleaseFile,
 )
 from sentry.models.integrationfeature import Feature, IntegrationFeature
 from sentry.signals import project_created
@@ -344,6 +345,23 @@ class Factories(object):
             )
 
         return release
+
+    @staticmethod
+    def create_release_file(release, file=None, name=None, dist=None):
+        if file is None:
+            file = Factories.create_file(
+                name="log.txt",
+                size=32,
+                headers={"Content-Type": "text/plain"},
+                checksum="dc1e3f3e411979d336c3057cce64294f3420f93a",
+            )
+
+        if name is None:
+            name = file.name
+
+        return ReleaseFile.objects.create(
+            organization=release.organization, release=release, name=name, file=file, dist=dist
+        )
 
     @staticmethod
     def create_artifact_bundle(org, release, project=None):
