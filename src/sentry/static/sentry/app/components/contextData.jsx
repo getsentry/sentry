@@ -2,8 +2,6 @@ import $ from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import classNames from 'classnames';
-
 import isString from 'lodash/isString';
 import isNumber from 'lodash/isNumber';
 import isArray from 'lodash/isArray';
@@ -125,7 +123,7 @@ class ContextData extends React.Component {
           <span
             key="value"
             className={
-              (valueInfo.isString ? 'val-string' : 'val-repr') +
+              (valueInfo.isString ? 'val-string' : '') +
               (valueInfo.isStripped ? ' val-stripped' : '') +
               (valueInfo.isMultiLine ? ' val-string-multiline' : '')
             }
@@ -144,7 +142,7 @@ class ContextData extends React.Component {
 
         return out;
       } else if (isNumber(value)) {
-        return <span className="val-number">{value}</span>;
+        return <span>{value}</span>;
       } else if (isArray(value)) {
         for (i = 0; i < value.length; i++) {
           children.push(
@@ -213,10 +211,10 @@ class ContextData extends React.Component {
   };
 
   render() {
-    const {data, className, preserveQuotes: _preserveQuotes, ...other} = this.props;
+    const {data, preserveQuotes: _preserveQuotes, ...other} = this.props;
 
     return (
-      <pre className={classNames('val', className || '')} {...other}>
+      <pre className="val-string" {...other}>
         {this.renderValue(data)}
       </pre>
     );
