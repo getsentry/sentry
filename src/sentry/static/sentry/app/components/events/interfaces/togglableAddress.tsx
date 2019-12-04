@@ -4,16 +4,33 @@ import styled from 'react-emotion';
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
+import {formatAddress, parseAddress} from 'app/components/events/interfaces/utils';
 
 type Props = {
   address: string;
+  startingAddress: string | null;
   isAbsolute: boolean;
   onToggle?: () => void;
   isFoundByStackScanning: boolean;
   isInlineFrame: boolean;
+  maxLengthOfRelativeAddress: number;
 };
 
 class TogglableAddress extends React.Component<Props> {
+  convertAbsoluteAddressToRelative = () => {
+    const {startingAddress, address, maxLengthOfRelativeAddress} = this.props;
+    if (!startingAddress) {
+      return '';
+    }
+
+    const relativeAddress = formatAddress(
+      parseAddress(address) - parseAddress(startingAddress),
+      maxLengthOfRelativeAddress
+    );
+
+    return `+${relativeAddress}`;
+  };
+
   render() {
     const {
       address,
@@ -23,7 +40,9 @@ class TogglableAddress extends React.Component<Props> {
       isInlineFrame,
     } = this.props;
 
-    const formattedAddress = isAbsolute ? address : `+${'0x2a3d'}`; // TODO: compute relative address
+    const formattedAddress = isAbsolute
+      ? address
+      : this.convertAbsoluteAddressToRelative();
 
     return (
       <Address>

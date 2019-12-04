@@ -12,32 +12,20 @@ import EventDataSection from 'app/components/events/eventDataSection';
 import InlineSvg from 'app/components/inlineSvg';
 import {Panel, PanelBody, PanelItem} from 'app/components/panels';
 import Tooltip from 'app/components/tooltip';
-import DebugMetaStore from 'app/stores/debugMetaStore.jsx';
+import DebugMetaStore, {DebugMetaActions} from 'app/stores/debugMetaStore';
 import SearchInput from 'app/components/forms/searchInput';
-
+import {formatAddress, parseAddress} from 'app/components/events/interfaces/utils';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 
 const IMAGE_ADDR_LEN = 12;
 const MIN_FILTER_LEN = 3;
 
-function formatAddr(addr) {
-  return `0x${addr.toString(16).padStart(IMAGE_ADDR_LEN, '0')}`;
-}
-
-function parseAddr(addr) {
-  try {
-    return parseInt(addr, 16) || 0;
-  } catch (_e) {
-    return 0;
-  }
-}
-
 function getImageRange(image) {
   // The start address is normalized to a `0x` prefixed hex string. The event
   // schema also allows ingesting plain numbers, but this is converted during
   // ingestion.
-  const startAddress = parseAddr(image.image_addr);
+  const startAddress = parseAddress(image.image_addr, IMAGE_ADDR_LEN);
 
   // The image size is normalized to a regular number. However, it can also be
   // `null`, in which case we assume that it counts up to the next image.
@@ -203,8 +191,9 @@ class DebugImage extends React.PureComponent {
         <ImageInfoGroup>{iconElement}</ImageInfoGroup>
 
         <ImageInfoGroup>
-          <Formatted>{formatAddr(startAddress)}</Formatted> &ndash; <br />
-          <Formatted>{formatAddr(endAddress)}</Formatted>
+          <Formatted>{formatAddress(startAddress, IMAGE_ADDR_LEN)}</Formatted> &ndash;{' '}
+          <br />
+          <Formatted>{formatAddress(endAddress, IMAGE_ADDR_LEN)}</Formatted>
         </ImageInfoGroup>
 
         <ImageInfoGroup fullWidth>
@@ -346,7 +335,7 @@ class DebugMetaInterface extends React.PureComponent {
     // When searching for an address, check for the address range of the image
     // instead of an exact match.
     if (filter.indexOf('0x') === 0) {
-      const needle = parseAddr(filter);
+      const needle = parseAddress(filter);
       if (needle > 0) {
         const [startAddress, endAddress] = getImageRange(image);
         return needle >= startAddress && needle < endAddress;
@@ -374,7 +363,7 @@ class DebugMetaInterface extends React.PureComponent {
   };
 
   handleChangeFilter = e => {
-    this.setState({filter: e.target.value});
+    DebugMetaActions.updateFilter(e.target.value);
   };
 
   isValidImage(image) {
@@ -402,7 +391,9 @@ class DebugMetaInterface extends React.PureComponent {
     // Sort images by their start address. We assume that images have
     // non-overlapping ranges. Each address is given as hex string (e.g.
     // "0xbeef").
-    filtered.sort((a, b) => parseAddr(a.image_addr) - parseAddr(b.image_addr));
+    filtered.sort((a, b) => parseAddress(a.image_addr) - parseAddress(b.image_addr));
+
+    DebugMetaActions.updateImages(filtered);
 
     return filtered;
   }

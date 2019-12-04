@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import Frame from 'app/components/events/interfaces/frame';
 import {t} from 'app/locale';
+import {DebugMetaActions} from 'app/stores/debugMetaStore';
 
 export default class StacktraceContent extends React.Component {
   static propTypes = {
@@ -73,7 +74,9 @@ export default class StacktraceContent extends React.Component {
 
     const expandFirstFrame = this.props.expandFirstFrame;
     const frames = [];
+    const renderedFrames = [];
     let nRepeats = 0;
+
     data.frames.forEach((frame, frameIdx) => {
       const prevFrame = data.frames[frameIdx - 1];
       const nextFrame = data.frames[frameIdx + 1];
@@ -90,6 +93,7 @@ export default class StacktraceContent extends React.Component {
       }
 
       if (this.frameIsVisible(frame, nextFrame) && !repeatedFrame) {
+        renderedFrames.push(frame);
         frames.push(
           <Frame
             key={frameIdx}
@@ -115,6 +119,8 @@ export default class StacktraceContent extends React.Component {
         frames.push(this.renderOmittedFrames(firstFrameOmitted, lastFrameOmitted));
       }
     });
+
+    DebugMetaActions.updateFrames(renderedFrames);
 
     if (frames.length > 0 && data.registers) {
       const lastFrame = frames.length - 1;

@@ -23,7 +23,7 @@ import OpenInContextLine from 'app/components/events/interfaces/openInContextLin
 import space from 'app/styles/space';
 import ErrorBoundary from 'app/components/errorBoundary';
 import withSentryAppComponents from 'app/utils/withSentryAppComponents';
-import {DebugMetaActions} from 'app/stores/debugMetaStore';
+import DebugMetaStore, {DebugMetaActions} from 'app/stores/debugMetaStore';
 import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
 
 export function trimPackage(pkg) {
@@ -92,6 +92,21 @@ export class Frame extends React.Component {
   // https://facebook.github.io/react/tips/props-in-getInitialState-as-anti-pattern.html
   state = {
     isExpanded: this.props.isExpanded,
+    image: null,
+    maxLengthOfRelativeAddress: 0,
+  };
+
+  componentDidMount() {
+    this.unsubscribeFromStore = DebugMetaStore.listen(this.onStoreChange);
+  }
+  componentWillUnmount() {
+    this.unsubscribeFromStore();
+  }
+  onStoreChange = store => {
+    this.setState({
+      image: store.images.find(image => image.code_file === this.props.data.package),
+      maxLengthOfRelativeAddress: store.maxLengthOfRelativeAddress,
+    });
   };
 
   toggleContext = evt => {
@@ -179,6 +194,12 @@ export class Frame extends React.Component {
         return t('The debug file could not be retrieved from any of the sources.');
       case SymbolicatorStatus.MALFORMED:
         return t('The retrieved debug file could not be processed.');
+      case undefined:
+      case null:
+        if (!this.props.data.function || this.props.data.function === '<unknown>') {
+          return t('No function name was supplied by the client SDK.');
+        }
+        return null;
       default:
         return null;
     }
@@ -418,6 +439,7 @@ export class Frame extends React.Component {
   getFrameHint() {
     const func = this.props.data.function || '<unknown>';
     if (func.match(/^@objc\s/)) {
+      //?
       return t('Objective-C -> Swift shim frame');
     }
     if (func === '<redacted>') {
@@ -495,10 +517,12 @@ export class Frame extends React.Component {
             </PackageLink>
             <TogglableAddress
               address={data.instructionAddr}
+              startingAddress={this.state.image ? this.state.image.image_addr : null}
               isAbsolute={showingAbsoluteAddress}
               isFoundByStackScanning={this.isFoundByStackScanning()}
               isInlineFrame={this.isInlineFrame()}
               onToggle={onAddressToggle}
+              maxLengthOfRelativeAddress={this.state.maxLengthOfRelativeAddress}
             />
             <span className="symbol">
               <FunctionName frame={data} />{' '}
