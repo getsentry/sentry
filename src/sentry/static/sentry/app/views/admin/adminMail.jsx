@@ -61,7 +61,7 @@ export default class AdminEnvironment extends AsyncView {
 
           <dt>{t('Username')}</dt>
           <dd>
-            <pre className="val">{mailUsername ? mailHost : <em>{t('not set')}</em>}</pre>
+            <pre className="val">{mailUsername || <em>{t('not set')}</em>}</pre>
           </dd>
 
           <dt>{t('Password')}</dt>
