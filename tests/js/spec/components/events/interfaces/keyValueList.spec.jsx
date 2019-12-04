@@ -24,13 +24,13 @@ describe('KeyValueList', function() {
 
       expect(
         wrapper
-          .find('.value')
+          .find('.val')
           .at(0)
           .text()
       ).toEqual('x');
       expect(
         wrapper
-          .find('.value')
+          .find('.val')
           .at(1)
           .text()
       ).toEqual('y');
@@ -55,13 +55,13 @@ describe('KeyValueList', function() {
 
       expect(
         wrapper
-          .find('.value')
+          .find('.val')
           .at(0)
           .text()
       ).toEqual('x');
       expect(
         wrapper
-          .find('.value')
+          .find('.val')
           .at(1)
           .text()
       ).toEqual('y');
@@ -89,13 +89,13 @@ describe('KeyValueList', function() {
 
       expect(
         wrapper
-          .find('.value')
+          .find('.val')
           .at(0)
           .text()
       ).toEqual(' ');
       expect(
         wrapper
-          .find('.value')
+          .find('.val')
           .at(1)
           .text()
       ).toEqual('y');
@@ -132,7 +132,7 @@ describe('KeyValueList', function() {
       ).toEqual('a');
       expect(
         wrapper
-          .find('.value')
+          .find('.val')
           .at(0)
           .text()
       ).toEqual('false');
@@ -150,7 +150,7 @@ describe('KeyValueList', function() {
       ).toEqual('a');
       expect(
         wrapper
-          .find('.value')
+          .find('.val')
           .at(0)
           .text()
       ).toEqual('null');

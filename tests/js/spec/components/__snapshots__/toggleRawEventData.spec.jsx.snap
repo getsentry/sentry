@@ -98,7 +98,7 @@ exports[`KeyValueList renders formatted 1`] = `
         andthis
       </td>
       <td
-        className="value"
+        className="val"
       >
         <ContextData
           data={0}
@@ -114,7 +114,7 @@ exports[`KeyValueList renders formatted 1`] = `
         plussomeotherstuff
       </td>
       <td
-        className="value"
+        className="val"
       >
         <ContextData
           data="here"
@@ -130,7 +130,7 @@ exports[`KeyValueList renders formatted 1`] = `
         somestuff
       </td>
       <td
-        className="value"
+        className="val"
       >
         <ContextData
           data={
@@ -159,7 +159,7 @@ exports[`KeyValueList renders raw 1`] = `
         andthis
       </td>
       <td
-        className="value"
+        className="val"
       >
         <ContextData
           data="0"
@@ -175,7 +175,7 @@ exports[`KeyValueList renders raw 1`] = `
         plussomeotherstuff
       </td>
       <td
-        className="value"
+        className="val"
       >
         <ContextData
           data="\\"here\\""
@@ -191,7 +191,7 @@ exports[`KeyValueList renders raw 1`] = `
         somestuff
       </td>
       <td
-        className="value"
+        className="val"
       >
         <ContextData
           data="{\\"andsomeotherstuff\\":\\"here\\"}"
