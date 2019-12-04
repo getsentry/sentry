@@ -47,6 +47,7 @@ oauth2>=1.5.167
 parsimonious==0.8.0
 percy>=1.1.2
 petname>=2.6,<2.7
+phonenumberslite<8.0
 Pillow>=6.2.1,<7.0.0
 progressbar2>=3.10,<3.11
 psycopg2-binary>=2.7.0,<2.9.0
