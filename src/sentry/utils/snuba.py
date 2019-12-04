@@ -79,7 +79,7 @@ DATASETS = {
 # Add `group_id` to the events dataset list as we don't want to publically
 # expose that field, but it is used by eventstore and other internals.
 DATASET_FIELDS = {
-    Dataset.Events: list(SENTRY_SNUBA_MAP.values()) + ["group_id"],
+    Dataset.Events: list(SENTRY_SNUBA_MAP.values()),
     Dataset.Transactions: list(TRANSACTIONS_SENTRY_SNUBA_MAP.values()),
     Dataset.Discover: list(DISCOVER_COLUMN_MAP.values()),
 }
@@ -1181,7 +1181,7 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
                     # returned by the query.
                     row,
                     col,
-                    trans.get((row["issue"], row[col])),
+                    trans.get((row["group_id"], row[col])),
                 )
             )(col, rev_map)
 
