@@ -143,7 +143,7 @@ const handleClick = async function(
   const eventSlug = generateEventSlug(event);
 
   browserHistory.push({
-    pathname: generateEventDetailsRoute({eventSlug, organization}),
+    pathname: generateEventDetailsRoute({eventSlug, orgSlug: organization.slug}),
     query: eventView.generateQueryStringObject(),
   });
 };

@@ -3,71 +3,173 @@ import styled from 'react-emotion';
 import get from 'lodash/get';
 import map from 'lodash/map';
 
+import {t} from 'app/locale';
+import Link from 'app/components/links/link';
 import DateTime from 'app/components/dateTime';
 import Pills from 'app/components/pills';
 import Pill from 'app/components/pill';
 import space from 'app/styles/space';
+import withApi from 'app/utils/withApi';
+import {Client} from 'app/api';
+import Button from 'app/components/button';
+import {
+  generateEventSlug,
+  generateEventDetailsRoute,
+} from 'app/views/eventsV2/eventDetails/utils';
+import EventView from 'app/views/eventsV2/eventView';
 
 import {SpanType} from './types';
 
-type PropTypes = {
+type TransactionResult = {
+  'project.name': string;
+  transaction: string;
+  id: string;
+};
+
+type Props = {
+  api: Client;
+  orgId: string;
   span: Readonly<SpanType>;
+  isRoot: boolean;
+  eventView: EventView;
 };
 
-const SpanDetail = (props: PropTypes) => {
-  const {span} = props;
-
-  const startTimestamp: number = span.start_timestamp;
-  const endTimestamp: number = span.timestamp;
-
-  const duration = (endTimestamp - startTimestamp) * 1000;
-  const durationString = `${duration.toFixed(3)} ms`;
-
-  return (
-    <SpanDetailContainer
-      data-component="span-detail"
-      onClick={event => {
-        // prevent toggling the span detail
-        event.stopPropagation();
-      }}
-    >
-      <table className="table key-value">
-        <tbody>
-          <Row title="Span ID">{span.span_id}</Row>
-          <Row title="Trace ID">{span.trace_id}</Row>
-          <Row title="Parent Span ID">{span.parent_span_id || ''}</Row>
-          <Row title="Description">{get(span, 'description', '')}</Row>
-          <Row title="Start Date">
-            <React.Fragment>
-              <DateTime date={startTimestamp * 1000} />
-              {` (${startTimestamp})`}
-            </React.Fragment>
-          </Row>
-          <Row title="End Date">
-            <React.Fragment>
-              <DateTime date={endTimestamp * 1000} />
-              {` (${endTimestamp})`}
-            </React.Fragment>
-          </Row>
-          <Row title="Duration">{durationString}</Row>
-          <Row title="Operation">{span.op || ''}</Row>
-          <Row title="Same Process as Parent">
-            {String(!!span.same_process_as_parent)}
-          </Row>
-          <Tags span={span} />
-          {map(get(span, 'data', {}), (value, key) => {
-            return (
-              <Row title={key} key={key}>
-                {JSON.stringify(value, null, 4) || ''}
-              </Row>
-            );
-          })}
-          <Row title="Raw">{JSON.stringify(span, null, 4)}</Row>
-        </tbody>
-      </table>
-    </SpanDetailContainer>
-  );
+type State = {
+  transactionResults?: TransactionResult[];
 };
+
+class SpanDetail extends React.Component<Props, State> {
+  state: State = {
+    transactionResults: undefined,
+  };
+
+  componentDidMount() {
+    const {span} = this.props;
+
+    this.fetchSpanDescendents(span.span_id)
+      .then(response => {
+        if (
+          !response.data ||
+          !Array.isArray(response.data) ||
+          response.data.length <= 0
+        ) {
+          return;
+        }
+
+        this.setState({
+          transactionResults: response.data,
+        });
+      })
+      .catch(_error => {
+        // don't do anything
+      });
+  }
+
+  fetchSpanDescendents(spanID: string): Promise<any> {
+    const {api, orgId, span} = this.props;
+
+    const url = `/organizations/${orgId}/eventsv2/`;
+
+    const query = {
+      field: ['transaction', 'id', 'trace.span'],
+      sort: ['-id'],
+      query: `event.type:transaction trace:${span.trace_id} trace.parent_span:${spanID}`,
+    };
+
+    return api.requestPromise(url, {
+      method: 'GET',
+      query,
+    });
+  }
+
+  renderTraversalButton(): React.ReactNode {
+    if (!this.state.transactionResults || this.state.transactionResults.length <= 0) {
+      return null;
+    }
+
+    const {eventView} = this.props;
+
+    const parentTransactionLink = generateEventDetailsRoute({
+      eventSlug: generateSlug(this.state.transactionResults[0]),
+      orgSlug: this.props.orgId,
+    });
+
+    const to = {
+      pathname: parentTransactionLink,
+      query: eventView.generateQueryStringObject(),
+    };
+
+    return (
+      <div>
+        <Button size="xsmall" to={to}>
+          {t('Open span')}
+        </Button>
+      </div>
+    );
+  }
+
+  render() {
+    const {span, orgId, eventView} = this.props;
+
+    const startTimestamp: number = span.start_timestamp;
+    const endTimestamp: number = span.timestamp;
+
+    const duration = (endTimestamp - startTimestamp) * 1000;
+    const durationString = `${duration.toFixed(3)} ms`;
+
+    return (
+      <SpanDetailContainer
+        data-component="span-detail"
+        onClick={event => {
+          // prevent toggling the span detail
+          event.stopPropagation();
+        }}
+      >
+        <table className="table key-value">
+          <tbody>
+            <Row title="Span ID" extra={this.renderTraversalButton()}>
+              {span.span_id}
+            </Row>
+            <LinkedTransactionsList
+              results={this.state.transactionResults}
+              orgId={orgId}
+              eventView={eventView}
+            />
+            <Row title="Trace ID">{span.trace_id}</Row>
+            <Row title="Parent Span ID">{span.parent_span_id || ''}</Row>
+            <Row title="Description">{get(span, 'description', '')}</Row>
+            <Row title="Start Date">
+              <React.Fragment>
+                <DateTime date={startTimestamp * 1000} />
+                {` (${startTimestamp})`}
+              </React.Fragment>
+            </Row>
+            <Row title="End Date">
+              <React.Fragment>
+                <DateTime date={endTimestamp * 1000} />
+                {` (${endTimestamp})`}
+              </React.Fragment>
+            </Row>
+            <Row title="Duration">{durationString}</Row>
+            <Row title="Operation">{span.op || ''}</Row>
+            <Row title="Same Process as Parent">
+              {String(!!span.same_process_as_parent)}
+            </Row>
+            <Tags span={span} />
+            {map(get(span, 'data', {}), (value, key) => {
+              return (
+                <Row title={key} key={key}>
+                  {JSON.stringify(value, null, 4) || ''}
+                </Row>
+              );
+            })}
+            <Row title="Raw">{JSON.stringify(span, null, 4)}</Row>
+          </tbody>
+        </table>
+      </SpanDetailContainer>
+    );
+  }
+}
 
 const SpanDetailContainer = styled('div')`
   border-bottom: 1px solid ${p => p.theme.gray1};
@@ -75,14 +177,26 @@ const SpanDetailContainer = styled('div')`
   cursor: auto;
 `;
 
+const ValueTd = styled('td')`
+  display: flex !important;
+  max-width: 100% !important;
+  align-items: center;
+`;
+
+const PreValue = styled('pre')`
+  flex: 1;
+`;
+
 const Row = ({
   title,
   keep,
   children,
+  extra = null,
 }: {
   title: string;
   keep?: boolean;
   children: JSX.Element | string;
+  extra?: React.ReactNode;
 }) => {
   if (!keep && !children) {
     return null;
@@ -91,11 +205,53 @@ const Row = ({
   return (
     <tr>
       <td className="key">{title}</td>
-      <td className="value">
-        <pre className="val">
+      <ValueTd className="value">
+        <PreValue className="val">
           <span className="val-string">{children}</span>
-        </pre>
-      </td>
+        </PreValue>
+        {extra}
+      </ValueTd>
+    </tr>
+  );
+};
+
+const LinkedTransactionsList = (props: {
+  results?: TransactionResult[];
+  orgId: string;
+  eventView: EventView;
+}) => {
+  const {results, orgId, eventView} = props;
+
+  if (!results || !Array.isArray(results) || results.length <= 0) {
+    return null;
+  }
+
+  const list = results.map(result => {
+    const parentTransactionLink = generateEventDetailsRoute({
+      eventSlug: generateSlug(result),
+      orgSlug: orgId,
+    });
+
+    const to = {
+      pathname: parentTransactionLink,
+      query: eventView.generateQueryStringObject(),
+    };
+
+    return (
+      <div key={result.id}>
+        <PreValue className="val">
+          <Link key={result.id} to={to}>
+            {`${result['trace.span']} - ${result.transaction}`}
+          </Link>
+        </PreValue>
+      </div>
+    );
+  });
+
+  return (
+    <tr>
+      <td className="key">Linked transactions</td>
+      <td className="value">{list}</td>
     </tr>
   );
 };
@@ -127,4 +283,11 @@ const Tags = ({span}: {span: SpanType}) => {
   );
 };
 
-export default SpanDetail;
+function generateSlug(result: TransactionResult): string {
+  return generateEventSlug({
+    id: result.id,
+    'project.name': result['project.name'],
+  });
+}
+
+export default withApi(SpanDetail);

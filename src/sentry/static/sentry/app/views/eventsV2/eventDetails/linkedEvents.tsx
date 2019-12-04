@@ -81,7 +81,10 @@ class LinkedEvents extends AsyncComponent<Props, State> {
           linkedEvents.data.map((item: DiscoverResult) => {
             const eventSlug = generateEventSlug(item);
             const eventUrl = {
-              pathname: generateEventDetailsRoute({eventSlug, organization}),
+              pathname: generateEventDetailsRoute({
+                eventSlug,
+                orgSlug: organization.slug,
+              }),
               query: eventView.generateQueryStringObject(),
             };
             const project = projects.find(p => p.slug === item['project.name']);
