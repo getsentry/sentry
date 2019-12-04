@@ -491,6 +491,14 @@ class GlobalSelectionHeader extends React.Component {
     );
   };
 
+  scrollFetchDispatcher = debounce(
+    (onSearch, options) => {
+      onSearch(this.state.searchQuery, options);
+    },
+    200,
+    {leading: true, trailing: false}
+  );
+
   searchDispatcher = debounce((onSearch, searchQuery, options) => {
     onSearch(searchQuery, options);
     this.setState({
@@ -533,7 +541,7 @@ class GlobalSelectionHeader extends React.Component {
                     scrollTop + clientHeight >= scrollHeight - clientHeight &&
                     hasMore
                   ) {
-                    onSearch(this.state.searchQuery, {append: true});
+                    this.scrollFetchDispatcher(onSearch, {append: true});
                   }
                 },
                 onFilterChange: event => {
