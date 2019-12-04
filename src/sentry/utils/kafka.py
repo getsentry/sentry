@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import atexit
 import logging
 import signal
 
@@ -32,6 +33,9 @@ class ProducerManager(object):
 
         cluster_options = settings.KAFKA_CLUSTERS[cluster_name]
         producer = self.__producers[cluster_name] = Producer(cluster_options)
+
+        atexit.register(producer.flush)
+
         return producer
 
 
