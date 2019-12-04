@@ -36,7 +36,7 @@ def get_user_info(access_token):
 
 class VSTSIdentityProvider(OAuth2Provider):
     key = "vsts"
-    name = "Visual Studio Team Services"
+    name = "Azure DevOps"
 
     oauth_access_token_url = "https://app.vssps.visualstudio.com/oauth2/token"
     oauth_authorize_url = "https://app.vssps.visualstudio.com/oauth2/authorize"
