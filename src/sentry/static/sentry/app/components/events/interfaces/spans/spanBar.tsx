@@ -9,6 +9,7 @@ import space from 'app/styles/space';
 import Count from 'app/components/count';
 import Tooltip from 'app/components/tooltip';
 import InlineSvg from 'app/components/inlineSvg';
+import EventView from 'app/views/eventsV2/eventView';
 
 import {
   toPercent,
@@ -164,6 +165,7 @@ const getDurationDisplay = ({
 };
 
 type SpanBarProps = {
+  orgId: string;
   trace: Readonly<ParsedTraceType>;
   span: Readonly<SpanType>;
   spanBarColour: string;
@@ -177,6 +179,7 @@ type SpanBarProps = {
   isRoot?: boolean;
   toggleSpanTree: () => void;
   isCurrentSpanFilteredOut: boolean;
+  eventView: EventView;
 };
 
 type SpanBarState = {
@@ -218,9 +221,11 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       return null;
     }
 
-    const {span} = this.props;
+    const {span, orgId, isRoot, eventView} = this.props;
 
-    return <SpanDetail span={span} />;
+    return (
+      <SpanDetail span={span} orgId={orgId} isRoot={!!isRoot} eventView={eventView} />
+    );
   };
 
   getBounds = (): {
