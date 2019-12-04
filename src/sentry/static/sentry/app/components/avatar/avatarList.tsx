@@ -5,7 +5,7 @@ import styled, {css} from 'react-emotion';
 import {User} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
 import Avatar from 'app/components/avatar';
-import {RenderTooltipFunc} from 'app/components/avatar/userAvatar';
+import UserAvatar from 'app/components/avatar/userAvatar';
 import Tooltip from 'app/components/tooltip';
 
 const defaultProps = {
@@ -16,14 +16,13 @@ const defaultProps = {
 };
 
 type DefaultProps = Readonly<typeof defaultProps>;
+type Mutable<T> = {-readonly [P in keyof T]: T[P]};
 
 type Props = {
   className?: string;
   users: User[];
-  renderTooltip?: RenderTooltipFunc;
-  tooltipOptions: {
-    position: string;
-  };
+  renderTooltip?: UserAvatar['props']['renderTooltip'];
+  tooltipOptions: Mutable<UserAvatar['props']['tooltipOptions']>;
 } & DefaultProps;
 
 export default class AvatarList extends React.Component<Props> {
@@ -44,9 +43,9 @@ export default class AvatarList extends React.Component<Props> {
       users,
       avatarSize,
       maxVisibleAvatars,
-      tooltipOptions,
       renderTooltip,
       typeMembers,
+      tooltipOptions,
     } = this.props;
 
     const visibleUsers = users.slice(0, maxVisibleAvatars);

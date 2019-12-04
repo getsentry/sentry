@@ -6,7 +6,7 @@ import {userDisplayName} from 'app/utils/formatters';
 import BaseAvatar from 'app/components/avatar/baseAvatar';
 import SentryTypes from 'app/sentryTypes';
 
-export type RenderTooltipFunc = (user: AvatarUser) => React.ReactNode;
+type RenderTooltipFunc = (user: AvatarUser) => React.ReactNode;
 
 // Type Guard for render prop
 function isRenderFunc(func: any): func is RenderTooltipFunc {
