@@ -410,7 +410,7 @@ class DebugMetaInterface extends React.PureComponent {
   renderToolbar() {
     const {filter, showDetails, showUnused} = this.state;
     return (
-      <Toolbar>
+      <div>
         <Label>
           <Checkbox checked={showDetails} onChange={this.handleChangeShowDetails} />
           {t('details')}
@@ -429,8 +429,9 @@ class DebugMetaInterface extends React.PureComponent {
           value={filter}
           onChange={this.handleChangeFilter}
           placeholder={t('Search loaded images\u2026')}
+          smaller
         />
-      </Toolbar>
+      </div>
     );
   }
 
@@ -446,10 +447,12 @@ class DebugMetaInterface extends React.PureComponent {
     const titleElement = (
       <div>
         <GuideAnchor target="packages" position="top">
-          <Title>
-            <strong>{t('Images Loaded')}</strong>
-          </Title>
-          {this.renderToolbar()}
+          <AlignItems>
+            <h3>
+              <strong>{t('Images Loaded')}</strong>
+            </h3>
+            {this.renderToolbar()}
+          </AlignItems>
         </GuideAnchor>
       </div>
     );
@@ -486,12 +489,10 @@ class DebugMetaInterface extends React.PureComponent {
   }
 }
 
-const Title = styled('h3')`
-  float: left;
-`;
-
-const Toolbar = styled('div')`
-  float: right;
+const AlignItems = styled('div')`
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
 `;
 
 const Label = styled('label')`
