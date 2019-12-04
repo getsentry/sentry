@@ -22,7 +22,8 @@ class TogglableAddress extends React.Component<Props> {
       isFoundByStackScanning,
       isInlineFrame,
     } = this.props;
-    const formattedAddress = isAbsolute ? address : `+${address}`;
+
+    const formattedAddress = isAbsolute ? address : `+${'0x2a3d'}`; // TODO: compute relative address
 
     return (
       <Address>

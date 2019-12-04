@@ -318,8 +318,6 @@ class DebugMetaInterface extends React.PureComponent {
   onStoreChange = store => {
     this.setState({
       filter: store.filter,
-      showUnused: store.showUnused,
-      showDetails: store.showDetails,
     });
   };
 

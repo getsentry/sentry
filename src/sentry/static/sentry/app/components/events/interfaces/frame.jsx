@@ -186,7 +186,7 @@ export class Frame extends React.Component {
 
   scrollToImage = event => {
     event.stopPropagation(); // to prevent collapsing if collapsable
-    DebugMetaActions.updateFilters(this.props.data.instructionAddr, true);
+    DebugMetaActions.updateFilter(this.props.data.instructionAddr);
     scrollToElement('#packages');
   };
 
@@ -494,7 +494,7 @@ export class Frame extends React.Component {
               />
             </PackageLink>
             <TogglableAddress
-              address={showingAbsoluteAddress ? data.instructionAddr : '0x2a3d'} //TODO: relative address should be calculated on backend
+              address={data.instructionAddr}
               isAbsolute={showingAbsoluteAddress}
               isFoundByStackScanning={this.isFoundByStackScanning()}
               isInlineFrame={this.isInlineFrame()}
