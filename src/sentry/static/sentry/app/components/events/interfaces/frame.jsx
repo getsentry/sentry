@@ -24,6 +24,7 @@ import space from 'app/styles/space';
 import ErrorBoundary from 'app/components/errorBoundary';
 import withSentryAppComponents from 'app/utils/withSentryAppComponents';
 import {DebugMetaActions} from 'app/stores/debugMetaStore';
+import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
 
 export function trimPackage(pkg) {
   const pieces = pkg.split(/^([a-z]:\\|\\\\)/i.test(pkg) ? '\\' : '/');
@@ -161,22 +162,22 @@ export class Frame extends React.Component {
   }
 
   shouldShowLinkToImage() {
-    return this.props.data.symbolicatorStatus !== 'unknown_image';
+    return this.props.data.symbolicatorStatus !== SymbolicatorStatus.UNKNOWN_IMAGE;
   }
 
   packageStatusIsError() {
-    return this.props.data.symbolicatorStatus !== 'symbolicated';
+    return this.props.data.symbolicatorStatus !== SymbolicatorStatus.SYMBOLICATED;
   }
 
   packageStatusTooltip() {
     switch (this.props.data.symbolicatorStatus) {
-      case 'missing_symbol':
+      case SymbolicatorStatus.MISSING_SYMBOL:
         return t('The symbol was not found within the debug file.');
-      case 'unknown_image':
+      case SymbolicatorStatus.UNKNOWN_IMAGE:
         return t('No image is specified for the address of the frame.');
-      case 'missing':
+      case SymbolicatorStatus.MISSING:
         return t('The debug file could not be retrieved from any of the sources.');
-      case 'malformed':
+      case SymbolicatorStatus.MALFORMED:
         return t('The retrieved debug file could not be processed.');
       default:
         return null;
