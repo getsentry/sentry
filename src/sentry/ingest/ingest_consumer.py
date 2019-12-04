@@ -46,7 +46,7 @@ class ConsumerType(object):
 class IngestConsumerWorker(AbstractBatchWorker):
     def process_message(self, message):
         message = msgpack.unpackb(message.value(), use_list=False)
-        message_type = message["ty"]
+        message_type = message["type"]
 
         if message_type in ("event", "transaction"):
             self._process_event(message)
@@ -99,7 +99,10 @@ class IngestConsumerWorker(AbstractBatchWorker):
             attachment_cache.set(
                 cache_key,
                 attachments=[
-                    CachedAttachment(meta_only=True, **attachment) for attachment in attachments
+                    CachedAttachment(
+                        type=attachment.pop("attachment_type"), meta_only=True, **attachment
+                    )
+                    for attachment in attachments
                 ],
                 timeout=CACHE_TIMEOUT,
             )
