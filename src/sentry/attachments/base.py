@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from six import text_type
+from six import string_types
 import zlib
 
 from sentry.utils import metrics
@@ -30,7 +30,7 @@ class CachedAttachment(object):
         self.name = name
         self.content_type = content_type
         self.type = type or "event.attachment"
-        assert isinstance(self.type, (text_type, bytes)), self.type
+        assert isinstance(self.type, string_types), self.type
 
         self._data = data
         self.chunks = chunks
