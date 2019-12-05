@@ -276,6 +276,14 @@ MIDDLEWARE_CLASSES = (
 
 ROOT_URLCONF = "sentry.conf.urls"
 
+# TODO(joshuarli): Django 1.10 introduced this option, which restricts the size of a
+# request body. We have some middleware in sentry.middleware.proxy that sets the
+# Content Length to max uint32 in certain cases related to minidump.
+# Once relay's fully rolled out, that can be deleted.
+# Until then, the safest and easiest thing to do is to disable this check
+# to leave things the way they were with Django <1.9.
+DATA_UPLOAD_MAX_MEMORY_SIZE = None
+
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
