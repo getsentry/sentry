@@ -15,7 +15,6 @@ class Columns(Enum):
 
     EVENT_ID = Column("events.event_id", "event_id", "event_id", "event_id", "id")
     GROUP_ID = Column("events.group_id", "group_id", None, "group_id", "issue.id")
-    # ISSUE = Column("events.issue", "issue", None, "group_id", "issue.id")
     PROJECT_ID = Column("events.project_id", "project_id", "project_id", "project_id", "project.id")
     TIMESTAMP = Column("events.timestamp", "timestamp", "finish_ts", "timestamp", "timestamp")
     TIME = Column("events.time", "time", "bucketed_end", "time", "time")
