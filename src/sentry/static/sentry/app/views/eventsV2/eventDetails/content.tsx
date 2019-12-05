@@ -5,6 +5,7 @@ import styled from 'react-emotion';
 import PropTypes from 'prop-types';
 
 import space from 'app/styles/space';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {Client} from 'app/api';
@@ -14,6 +15,7 @@ import {Organization, Event} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
 import getDynamicText from 'app/utils/getDynamicText';
 import DateTime from 'app/components/dateTime';
+import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
 import FileSize from 'app/components/fileSize';
 import NotFound from 'app/components/errors/notFound';
@@ -117,6 +119,7 @@ class EventDetailsContent extends AsyncComponent<Props, State & AsyncComponent['
           />
           <EventHeader event={event} />
           <Controller>
+            <StyledButton size="small">Hide Details</StyledButton>
             {isGroupedView && (
               <Pagination
                 event={event}
@@ -222,12 +225,22 @@ const Side = styled('div')`
 const HeaderBox = styled(ContentBox)`
   background-color: ${p => p.theme.white};
   border-bottom: 1px solid ${p => p.theme.borderDark};
-  grid-row-gap: ${space(1)};
+  grid-row-gap: ${space(2)};
 `;
 
 const Controller = styled('div')`
-  grid-row: 1/3;
+  display: flex;
+  justify-content: space-between;
+  grid-row: 2/3;
   grid-column: 2/3;
+`;
+
+const StyledButton = styled(Button)`
+  display: none;
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    display: block;
+  }
 `;
 
 type EventDetailsWrapperProps = {
@@ -270,25 +283,22 @@ const EventHeader = (props: {event: Event}) => {
         {title}
         {message && message.length > 0 ? ':' : null}
       </StyledTitle>
-      <StyledMessage>{getMessage(props.event)}</StyledMessage>
+      <span>{getMessage(props.event)}</span>
     </StyledEventHeader>
   );
 };
 
 const StyledEventHeader = styled('div')`
   font-size: ${p => p.theme.headerFontSize};
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: ${p => p.theme.gray2};
   grid-column: 1/2;
+  align-self: center;
+  ${overflowEllipsis};
 `;
 
 const StyledTitle = styled('span')`
+  color: ${p => p.theme.gray4};
   margin-right: ${space(1)};
-`;
-
-const StyledMessage = styled('span')`
-  color: ${p => p.theme.gray2};
 `;
 
 /**
