@@ -19,6 +19,11 @@ import {GroupingConfigItem} from 'app/components/events/groupingInfo';
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/projects/:projectId/';
 
+function formatProjectStoreCrashReports(value) {
+  if (value === 0) {
+  }
+}
+
 const getResolveAgeAllowedValues = () => {
   let i = 0;
   const values = [];

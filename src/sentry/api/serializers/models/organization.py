@@ -175,7 +175,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 or [],
                 "safeFields": obj.get_option("sentry:safe_fields", SAFE_FIELDS_DEFAULT) or [],
                 "storeCrashReports": convert_crashreport_count(
-                    obj.get_option("sentry:store_crash_reports")
+                    obj.get_option("sentry:store_crash_reports"), default=True
                 ),
                 "attachmentsRole": six.text_type(
                     obj.get_option("sentry:attachments_role", ATTACHMENTS_ROLE_DEFAULT)

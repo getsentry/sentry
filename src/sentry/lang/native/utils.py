@@ -115,7 +115,7 @@ def get_event_attachment(data, attachment_type):
     return next((a for a in attachments if a.type == attachment_type), None)
 
 
-def convert_crashreport_count(value):
+def convert_crashreport_count(value, default=False):
     """
     Shim to read both legacy and new `sentry:store_crash_reports` project and
     organization options.
@@ -131,5 +131,5 @@ def convert_crashreport_count(value):
     if value is True:
         return STORE_CRASH_REPORTS_ALL
     if value is None:
-        return STORE_CRASH_REPORTS_DEFAULT
+        return STORE_CRASH_REPORTS_DEFAULT if default else None
     return int(value)

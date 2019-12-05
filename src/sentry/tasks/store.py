@@ -429,9 +429,9 @@ def create_failed_event(
     return True
 
 
-def get_max_crashreports(model):
+def get_max_crashreports(model, default=False):
     value = model.get_option("sentry:store_crash_reports")
-    return convert_crashreport_count(value)
+    return convert_crashreport_count(value, default=default)
 
 
 def crashreports_exceeded(current_count, max_count):
@@ -481,9 +481,9 @@ def save_attachments(cache_key, event):
     # The setting is both an organization and project setting. The project
     # setting strictly overrides the organization setting, unless set to the
     # default.
-    max_crashreports = get_max_crashreports(event.project)
-    if not max_crashreports:
-        max_crashreports = get_max_crashreports(event.project.organization)
+    max_crashreports = get_max_crashreports(event.project, default=False)
+    if max_crashreports is None:
+        max_crashreports = get_max_crashreports(event.project.organization, default=True)
 
     # The number of crash reports is cached per group
     crashreports_key = get_crashreport_key(event.group_id)
