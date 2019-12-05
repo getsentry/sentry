@@ -4,7 +4,6 @@ import {Location} from 'history';
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import GridEditable from 'app/components/gridEditable';
-import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
 import {
   tokenizeSearch,
@@ -528,11 +527,7 @@ const ExpandAggregateRow = (props: {
       query: nextEventView.generateQueryStringObject(),
     };
 
-    return (
-      <Tooltip title={t('Expand aggregated row')} containerDisplayMode="block">
-        <Link to={target}>{children({willExpand: true})}</Link>
-      </Tooltip>
-    );
+    return <Link to={target}>{children({willExpand: true})}</Link>;
   }
 
   return <React.Fragment>{children({willExpand: false})}</React.Fragment>;
