@@ -162,8 +162,8 @@ def call_command(name, obj=None, **kwargs):
 
 
 def main():
-    def sigHandler(signo, frame):
+    def sigterm_handler(signo, frame):
         sys.exit(0)
 
-    signal.signal(signal.SIGTERM, sigHandler)
+    signal.signal(signal.SIGTERM, sigterm_handler)
     cli(prog_name=get_prog(), obj={}, max_content_width=100)
