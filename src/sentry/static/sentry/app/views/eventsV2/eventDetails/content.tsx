@@ -27,6 +27,7 @@ import Pagination from './pagination';
 import LineGraph from './lineGraph';
 import TagsTable from '../tagsTable';
 import EventInterfaces from './eventInterfaces';
+import LinkedIssue from './linkedIssue';
 import DiscoverBreadcrumb from '../breadcrumb';
 import {SectionHeading} from '../styles';
 
@@ -143,6 +144,7 @@ class EventDetailsContent extends AsyncComponent<Props, State & AsyncComponent['
               organization={organization}
               event={event}
               projectId={this.projectId}
+              eventView={eventView}
             />
           </Main>
           <Side>
@@ -151,6 +153,9 @@ class EventDetailsContent extends AsyncComponent<Props, State & AsyncComponent['
               organization={organization}
               projectId={this.projectId}
             />
+            {event.groupID && (
+              <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
+            )}
             <TagsTable tags={event.tags} />
           </Side>
         </ContentBox>
@@ -256,10 +261,16 @@ class EventDetailsWrapper extends React.Component<EventDetailsWrapperProps> {
 
 const EventHeader = (props: {event: Event}) => {
   const {title} = getTitle(props.event);
+
+  const message = getMessage(props.event);
+
   return (
     <StyledEventHeader data-test-id="event-header">
-      <StyledTitle>{title}</StyledTitle>
-      <span>{getMessage(props.event)}</span>
+      <StyledTitle>
+        {title}
+        {message && message.length > 0 ? ':' : null}
+      </StyledTitle>
+      <StyledMessage>{getMessage(props.event)}</StyledMessage>
     </StyledEventHeader>
   );
 };
@@ -273,8 +284,11 @@ const StyledEventHeader = styled('div')`
 `;
 
 const StyledTitle = styled('span')`
-  color: ${p => p.theme.purple};
   margin-right: ${space(1)};
+`;
+
+const StyledMessage = styled('span')`
+  color: ${p => p.theme.gray2};
 `;
 
 /**

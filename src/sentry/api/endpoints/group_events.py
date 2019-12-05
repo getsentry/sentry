@@ -17,7 +17,7 @@ from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.events import get_direct_hit_response
 from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerializer
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.api.utils import get_date_range_from_params
+from sentry.api.utils import get_date_range_from_params, InvalidParams
 from sentry.models import Group
 from sentry.search.utils import InvalidQuery, parse_query
 from sentry.utils.apidocs import scenario, attach_scenarios
@@ -47,7 +47,9 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         ``````````````````````
 
         This endpoint lists an issue's events.
-        :qparam bool full: if this is set to true then the event payload will include the full event body, including the stacktrace. Set to 1 to enable.
+        :qparam bool full: if this is set to true then the event payload will
+                           include the full event body, including the stacktrace.
+                           Set to 1 to enable.
 
         :pparam string issue_id: the ID of the issue to retrieve.
 
@@ -62,7 +64,10 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         except (NoResults, ResourceDoesNotExist):
             return Response([])
 
-        start, end = get_date_range_from_params(request.GET, optional=True)
+        try:
+            start, end = get_date_range_from_params(request.GET, optional=True)
+        except InvalidParams as exc:
+            return Response({"detail": exc.message}, status=400)
 
         try:
             return self._get_events_snuba(request, group, environments, query, tags, start, end)

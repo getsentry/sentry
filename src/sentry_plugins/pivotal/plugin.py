@@ -3,8 +3,10 @@ from __future__ import absolute_import
 import requests
 import six
 
+from django.conf.urls import url
 from django.utils.encoding import force_text
 from rest_framework.response import Response
+
 from sentry.plugins.bases.issue2 import IssuePlugin2, IssueGroupActionEndpoint, PluginError
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.utils import json
@@ -23,7 +25,7 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
 
     def get_group_urls(self):
         return super(PivotalPlugin, self).get_group_urls() + [
-            (
+            url(
                 r"^autocomplete",
                 IssueGroupActionEndpoint.as_view(view_method_name="view_autocomplete", plugin=self),
             )

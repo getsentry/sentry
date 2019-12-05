@@ -66,6 +66,7 @@ export type Team = {
   id: string;
   slug: string;
   isMember: boolean;
+  avatar: Avatar;
 };
 
 export type TeamWithProjects = Team & {projects: Project[]};
@@ -91,6 +92,7 @@ export type EventAttachment = {
   sha1: string;
   size: number;
   type: string;
+  event_id: string;
 };
 
 type EntryType = {
@@ -464,6 +466,7 @@ export type SentryApp = {
   redirectUrl: string | null;
   overview: string | null;
   //optional params below
+  datePublished?: string;
   clientId?: string;
   clientSecret?: string;
   owner?: {
@@ -610,7 +613,6 @@ export type RouterProps = {
 };
 
 export type ActiveExperiments = {
-  ImprovedInvitesExperiment: 'none' | 'all' | 'join_request' | 'invite_request';
   TrialUpgradeV2Experiment: 'upgrade' | 'trial' | -1;
 };
 
@@ -644,4 +646,9 @@ export type SavedQueryState = {
   savedQueries: SavedQuery[];
   hasError: boolean;
   isLoading: boolean;
+};
+
+export type SelectValue<T> = {
+  label: string;
+  value: T;
 };

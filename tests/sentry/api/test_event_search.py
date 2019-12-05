@@ -960,6 +960,17 @@ class GetSnubaQueryArgsTest(TestCase):
             [["match", ["release", "'(?i)^\\\\.*$'"]], "=", 1]
         ]
 
+    def test_wildcard_array_field(self):
+        filter = get_filter(
+            "error.value:Deadlock* stack.filename:*.py stack.abs_path:%APP_DIR%/th_ing*"
+        )
+        assert filter.conditions == [
+            ["error.value", "LIKE", "Deadlock%"],
+            ["stack.filename", "LIKE", "%.py"],
+            ["stack.abs_path", "LIKE", "\\%APP\\_DIR\\%/th\\_ing%"],
+        ]
+        assert filter.filter_keys == {}
+
     def test_has(self):
         assert get_filter("has:release").conditions == [[["isNull", ["release"]], "!=", 1]]
 
@@ -1031,7 +1042,7 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["aggregations"] == [
             ["max", "timestamp", "last_seen"],
             ["argMax", ["id", "timestamp"], "latest_event"],
-            ["argMax", ["project_id", "timestamp"], "projectid"],
+            ["argMax", ["project.id", "timestamp"], "projectid"],
         ]
         assert result["groupby"] == ["title"]
 
@@ -1047,11 +1058,11 @@ class ResolveFieldListTest(unittest.TestCase):
                 "",
                 "impact",
             ],
-            ["quantile(0.75)(duration)", "", "p75"],
-            ["quantile(0.95)(duration)", "", "p95"],
-            ["quantile(0.99)(duration)", "", "p99"],
+            ["quantile(0.75)(duration)", None, "p75"],
+            ["quantile(0.95)(duration)", None, "p95"],
+            ["quantile(0.99)(duration)", None, "p99"],
             ["argMax", ["id", "timestamp"], "latest_event"],
-            ["argMax", ["project_id", "timestamp"], "projectid"],
+            ["argMax", ["project.id", "timestamp"], "projectid"],
         ]
         assert result["groupby"] == []
 
@@ -1062,7 +1073,6 @@ class ResolveFieldListTest(unittest.TestCase):
             "title",
             "project.id",
             "user.id",
-            "user.name",
             "user.username",
             "user.email",
             "user.ip",
@@ -1076,7 +1086,6 @@ class ResolveFieldListTest(unittest.TestCase):
             "title",
             "project.id",
             "user.id",
-            "user.name",
             "user.username",
             "user.email",
             "user.ip",
@@ -1090,10 +1099,10 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["selected_columns"] == []
         assert result["aggregations"] == [
             ["uniq", "user", "count_unique_user"],
-            ["count", "", "count_id"],
+            ["count", None, "count_id"],
             ["min", "timestamp", "min_timestamp"],
             ["argMax", ["id", "timestamp"], "latest_event"],
-            ["argMax", ["project_id", "timestamp"], "projectid"],
+            ["argMax", ["project.id", "timestamp"], "projectid"],
         ]
         assert result["groupby"] == []
 
@@ -1103,11 +1112,11 @@ class ResolveFieldListTest(unittest.TestCase):
         # Automatic fields should be inserted, count() should have its column dropped.
         assert result["selected_columns"] == []
         assert result["aggregations"] == [
-            ["count", "", "count_id"],
-            ["count", "", "count_user"],
-            ["count", "", "count_transaction_duration"],
+            ["count", None, "count_id"],
+            ["count", None, "count_user"],
+            ["count", None, "count_transaction_duration"],
             ["argMax", ["id", "timestamp"], "latest_event"],
-            ["argMax", ["project_id", "timestamp"], "projectid"],
+            ["argMax", ["project.id", "timestamp"], "projectid"],
         ]
         assert result["groupby"] == []
 
@@ -1117,7 +1126,7 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["aggregations"] == [
             ["uniq", "user.id", "count_unique_user_id"],
             ["argMax", ["id", "timestamp"], "latest_event"],
-            ["argMax", ["project_id", "timestamp"], "projectid"],
+            ["argMax", ["project.id", "timestamp"], "projectid"],
         ]
 
     def test_aggregate_function_invalid_name(self):
@@ -1150,7 +1159,7 @@ class ResolveFieldListTest(unittest.TestCase):
         snuba_args = {"rollup": 15}
         result = resolve_field_list(fields, snuba_args)
 
-        assert result["aggregations"] == [["count", "", "count"]]
+        assert result["aggregations"] == [["count", None, "count"]]
         assert result["selected_columns"] == ["message"]
         assert result["groupby"] == ["message"]
 
@@ -1185,7 +1194,7 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["aggregations"] == [
             ["max", "timestamp", "last_seen"],
             ["argMax", ["id", "timestamp"], "latest_event"],
-            ["argMax", ["project_id", "timestamp"], "projectid"],
+            ["argMax", ["project.id", "timestamp"], "projectid"],
         ]
         assert result["groupby"] == []
 
@@ -1195,10 +1204,10 @@ class ResolveFieldListTest(unittest.TestCase):
         result = resolve_field_list(fields, snuba_args)
         assert result["orderby"] == ["-count_id"]
         assert result["aggregations"] == [
-            ["count", "", "count_id"],
+            ["count", None, "count_id"],
             ["uniq", "user", "count_unique_user"],
             ["argMax", ["id", "timestamp"], "latest_event"],
-            ["argMax", ["project_id", "timestamp"], "projectid"],
+            ["argMax", ["project.id", "timestamp"], "projectid"],
         ]
         assert result["groupby"] == []
 

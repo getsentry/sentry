@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import six
 import string
-import warnings
 import pytz
 
 from collections import OrderedDict
@@ -279,12 +278,8 @@ class EventCommon(object):
             # vs ((tag, foo), (tag, bar))
             return []
 
-    # For compatibility, still used by plugins.
-    def get_tags(self):
-        return self.tags
-
     def get_tag(self, key):
-        for t, v in self.get_tags():
+        for t, v in self.tags:
             if t == key:
                 return v
         return None
@@ -372,35 +367,6 @@ class EventCommon(object):
         node_data = nodestore.get(node_id) or {}
         ref = self.data.get_ref(self)
         self.data.bind_data(node_data, ref=ref)
-
-    # ============================================
-    # DEPRECATED
-    # ============================================
-
-    @property
-    def level(self):
-        # we might want to move to this:
-        # return LOG_LEVELS_MAP.get(self.get_level_display()) or self.group.level
-        if self.group:
-            return self.group.level
-        else:
-            return None
-
-    def get_level_display(self):
-        # we might want to move to this:
-        # return self.get_tag('level') or self.group.get_level_display()
-        if self.group:
-            return self.group.get_level_display()
-        else:
-            return None
-
-    # TODO: This is currently used in the Twilio and Flowdock plugins
-    # Remove this after usage has been removed there.
-    def error(self):  # TODO why is this not a property?
-        warnings.warn("Event.error is deprecated, use Event.title", DeprecationWarning)
-        return self.title
-
-    error.short_description = _("error")
 
 
 class SnubaEvent(EventCommon):

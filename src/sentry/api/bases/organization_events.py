@@ -10,6 +10,7 @@ from sentry.api.event_search import (
     get_reference_event_conditions,
 )
 from sentry.models.project import Project
+from sentry.snuba.dataset import Dataset
 from sentry.utils import snuba
 
 
@@ -96,7 +97,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         # 'legacy' endpoints cannot access transactions dataset.
         # as they often have assumptions about which columns are returned.
         dataset = snuba.detect_dataset(snuba_args)
-        if dataset != snuba.Dataset.Events:
+        if dataset != Dataset.Events:
             raise OrganizationEventsError(
                 "Invalid query. You cannot reference non-events data in this endpoint."
             )

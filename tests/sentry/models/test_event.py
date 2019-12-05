@@ -142,8 +142,6 @@ class EventTest(TestCase):
         )
         assert event.group is None
         assert event.culprit == "app/components/events/eventEntries in map"
-        assert event.level is None
-        assert event.get_level_display() is None
 
 
 @pytest.mark.django_db

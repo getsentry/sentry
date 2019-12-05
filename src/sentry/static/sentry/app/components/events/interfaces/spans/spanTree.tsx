@@ -149,6 +149,7 @@ class SpanTree extends React.Component<PropType> {
     const rootSpan: SpanType = {
       trace_id: trace.traceID,
       span_id: trace.rootSpanID,
+      parent_span_id: trace.parentSpanID,
       start_timestamp: trace.traceStartTimestamp,
       timestamp: trace.traceEndTimestamp,
       op: trace.op,

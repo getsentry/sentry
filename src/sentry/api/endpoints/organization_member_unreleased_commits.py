@@ -9,7 +9,7 @@ from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import Commit, Repository, UserEmail
 
-# TODO(dcramer): once LatestRelease is backfilled, change this query to use the new
+# TODO(dcramer): once LatestRepoReleaseEnvironment is backfilled, change this query to use the new
 # schema [performance]
 query = """
 select c1.*

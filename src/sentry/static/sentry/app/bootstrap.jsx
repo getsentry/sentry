@@ -30,6 +30,9 @@ if (window.__initialData) {
 }
 
 // SDK INIT  --------------------------------------------------------
+const config = ConfigStore.getConfig();
+// Only enable self-tracing when isApmDataSamplingEnabled is true
+const tracesSampleRate = config && config.isApmDataSamplingEnabled ? 1 : 0;
 Sentry.init({
   ...window.__SENTRY__OPTIONS,
   integrations: [
@@ -39,12 +42,7 @@ Sentry.init({
     }),
     new Integrations.Tracing({
       tracingOrigins: ['localhost', 'sentry.io', /^\//],
-    }),
-    new Sentry.Integrations.Breadcrumbs({
-      // This handlers will be removed here in a future version
-      // What they do is auto instrument history and XHR API
-      // creating Transactions and Spans out of it
-      handlers: Integrations.TracingHandlers,
+      tracesSampleRate,
     }),
   ],
 });

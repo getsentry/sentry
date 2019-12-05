@@ -256,6 +256,41 @@ describe('GlobalSelectionHeader', function() {
     );
   });
 
+  it('shows environments for non-member projects', async function() {
+    const initialData = initializeOrg({
+      organization: {features: ['global-views']},
+      projects: [
+        {id: 1, slug: 'staging-project', environments: ['staging'], isMember: false},
+        {id: 2, slug: 'prod-project', environments: ['prod']},
+      ],
+      router: {
+        location: {query: {project: [1]}},
+      },
+    });
+    jest.spyOn(ProjectsStore, 'getState').mockImplementation(() => ({
+      projects: initialData.projects,
+      loadingProjects: false,
+    }));
+
+    const wrapper = mountWithTheme(
+      <GlobalSelectionHeader
+        router={initialData.router}
+        organization={initialData.organization}
+        projects={initialData.projects}
+      />,
+      changeQuery(initialData.routerContext, {project: 1})
+    );
+    await tick();
+    wrapper.update();
+
+    // Open environment picker
+    wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
+    const checkboxes = wrapper.find('MultipleEnvironmentSelector AutoCompleteItem');
+
+    expect(checkboxes).toHaveLength(1);
+    expect(checkboxes.text()).toBe('staging');
+  });
+
   it('updates URL to match GlobalSelection store when re-rendered with `forceUrlSync` prop', async function() {
     const wrapper = mountWithTheme(
       <GlobalSelectionHeader router={router} organization={organization} />,

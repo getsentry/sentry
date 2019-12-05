@@ -255,7 +255,7 @@ class MessageBuilder(object):
         context=None,
         template=None,
         html_template=None,
-        body=None,
+        body="",
         html_body=None,
         headers=None,
         reference=None,

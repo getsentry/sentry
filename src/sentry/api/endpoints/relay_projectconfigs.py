@@ -11,7 +11,7 @@ from sentry.api.permissions import RelayPermission
 from sentry.api.authentication import RelayAuthentication
 from sentry.relay import config
 from sentry.models import Project, ProjectKey, Organization, OrganizationOption
-from sentry.utils import metrics
+from sentry.utils import metrics, json
 
 
 class RelayProjectConfigsEndpoint(Endpoint):
@@ -60,7 +60,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
 
         with Hub.current.start_span(op="relay_fetch_keys"):
             project_keys = {}
-            for key in ProjectKey.objects.filter(project_id__in=project_ids):
+            for key in ProjectKey.objects.get_many_from_cache(project_ids, key="project_id"):
                 project_keys.setdefault(key.project_id, []).append(key)
 
         metrics.timing("relay_project_configs.projects_requested", len(project_ids))
@@ -94,6 +94,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
                         project_keys=project_keys.get(project.id, []),
                     )
 
-            configs[six.text_type(project_id)] = project_config.to_dict()
+            configs[six.text_type(project_id)] = serialized_config = project_config.to_dict()
+            metrics.timing("relay_project_configs.config_size", len(json.dumps(serialized_config)))
 
         return Response({"configs": configs}, status=200)
