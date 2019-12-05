@@ -31,35 +31,31 @@ type Props = {
   location: Location;
   organization: Organization;
   eventView: EventView;
-  savedQueries: SavedQuery[];
-  savedQueriesLoading: boolean;
-  onQueryChange: () => void;
+  savedQuery: SavedQuery | undefined;
+  savedQueryLoading: boolean;
 };
 
 type State = {
   isNewQuery: boolean;
   isEditingQuery: boolean;
 
-  queryId: string | undefined;
   queryName: string;
 };
 
 class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
   static getDerivedStateFromProps(nextProps: Props, prevState: State): State {
-    const {eventView: nextEventView, savedQueries, savedQueriesLoading} = nextProps;
+    const {eventView: nextEventView, savedQuery, savedQueryLoading} = nextProps;
 
     // For a new unsaved query
-    const savedQuery = savedQueries.find(q => q.id === nextEventView.id);
     if (!savedQuery) {
       return {
         isNewQuery: true,
         isEditingQuery: false,
-        queryId: undefined,
         queryName: prevState.queryName || '',
       };
     }
 
-    if (savedQueriesLoading) {
+    if (savedQueryLoading) {
       return prevState;
     }
 
@@ -70,7 +66,6 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       return {
         isNewQuery: false,
         isEditingQuery: false,
-        queryId: nextEventView.id,
         queryName: '',
       };
     }
@@ -81,7 +76,6 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     return {
       isNewQuery: false,
       isEditingQuery: !isEqualQuery,
-      queryId: nextEventView.id,
 
       // HACK(leedongwei): See comment at SavedQueryButtonGroup.onFocusInput
       queryName: prevState.queryName || '',
@@ -108,7 +102,6 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     isNewQuery: true,
     isEditingQuery: false,
 
-    queryId: undefined,
     queryName: '',
   };
 
@@ -142,13 +135,12 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
 
     // Checks if "Save as" button is clicked from a clean state, or it is
     // clicked while modifying an existing query
-    const isNewQuery = !this.state.queryId;
+    const isNewQuery = !eventView.id;
 
     handleCreateQuery(api, organization, nextEventView, isNewQuery).then(
-      (savedQuery: any) => {
+      (savedQuery: SavedQuery) => {
         const view = EventView.fromSavedQuery(savedQuery);
 
-        this.props.onQueryChange();
         this.setState({queryName: ''});
         browserHistory.push({
           pathname: location.pathname,
@@ -164,9 +156,13 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
 
     const {api, organization, eventView} = this.props;
 
-    handleUpdateQuery(api, organization, eventView).then(() => {
-      this.props.onQueryChange();
+    handleUpdateQuery(api, organization, eventView).then((savedQuery: SavedQuery) => {
+      const view = EventView.fromSavedQuery(savedQuery);
       this.setState({queryName: ''});
+      browserHistory.push({
+        pathname: location.pathname,
+        query: view.generateQueryStringObject(),
+      });
     });
   };
 
@@ -177,7 +173,6 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     const {api, location, organization, eventView} = this.props;
 
     handleDeleteQuery(api, organization, eventView).then(() => {
-      this.props.onQueryChange();
       browserHistory.push({
         pathname: location.pathname,
         query: {},
