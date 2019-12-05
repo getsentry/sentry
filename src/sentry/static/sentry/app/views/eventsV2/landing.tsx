@@ -180,12 +180,11 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
       return null;
     }
 
-    const {location} = this.props;
-
+    const {location, organization} = this.props;
     const eventView = EventView.fromNewQueryWithLocation(DEFAULT_EVENT_VIEW, location);
 
     const to = {
-      pathname: location.pathname,
+      pathname: `/organizations/${organization.slug}/eventsV2/results`,
       query: {
         ...eventView.generateQueryStringObject(),
       },
