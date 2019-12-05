@@ -12,10 +12,15 @@ from hashlib import md5
 from django.utils import timezone
 
 from sentry import options
-from sentry.api.event_search import convert_search_filter_to_snuba_query
+from sentry.api.event_search import (
+    convert_search_filter_to_snuba_query,
+    SearchFilter,
+    SearchKey,
+    SearchValue,
+)
 from sentry.api.paginator import DateTimePaginator, SequencePaginator, Paginator
 from sentry.constants import ALLOWED_FUTURE_DELTA
-from sentry.models import Group, Release, Project
+from sentry.models import Group, Release
 from sentry.utils import snuba, metrics
 
 
@@ -623,18 +628,18 @@ class SnubaOnlyQueryExecutor(AbstractQueryExecutor):
             else:
                 converted_filter[0] = table_alias + converted_filter[0]
 
-        if search_filter.key.name == "first_release":
-            # The filter's value will be the release's "version". Snuba only knows about ID. So we convert version to id here.
-            release = Release.objects.filter(
-                version=converted_filter[2],
-                organization_id=Project.objects.get(id=project_ids[0]).organization_id,
-            )
-            if not release:
-                # TODO: This means there will be no results and we do not need to run this query!
-                # Temp solution is to set value to -1, which should never be a real release ID.
-                converted_filter[2] = -1
-            else:
-                converted_filter[2] = release[0].id
+        # if search_filter.key.name == "first_release":
+        #     # The filter's value will be the release's "version". Snuba only knows about ID. So we convert version to id here.
+        #     release = Release.objects.filter(
+        #         version=converted_filter[2],
+        #         organization_id=Project.objects.get(id=project_ids[0]).organization_id,
+        #     )
+        #     if not release:
+        #         # TODO: This means there will be no results and we do not need to run this query!
+        #         # Temp solution is to set value to -1, which should never be a real release ID.
+        #         converted_filter[2] = -1
+        #     else:
+        #         converted_filter[2] = release[0].id
 
         return converted_filter
 
@@ -675,6 +680,20 @@ class SnubaOnlyQueryExecutor(AbstractQueryExecutor):
 
         if start >= end:
             return self.empty_result
+
+        for i in range(len(search_filters)):
+            search_filter = search_filters[i]
+            if search_filter.key.name == "first_release":
+                # The filter's value will be the release's "version". Snuba only knows about ID. So we convert version to id here.
+                release = Release.objects.filter(
+                    version=search_filter[2].value, organization_id=projects[0].organization_id
+                )
+                if not release:
+                    return self.empty_result
+                else:
+                    search_filters[i] = SearchFilter(
+                        SearchKey("first_release"), "=", SearchValue(release[0].id)
+                    )
 
         sort_field = self.sort_strategies[sort_by]
         chunk_growth = options.get("snuba.search.chunk-growth-rate")
