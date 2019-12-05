@@ -253,7 +253,7 @@ def get_snuba_column_name(name, dataset=Dataset.Events):
     the column is assumed to be a tag. If name is falsy or name is a quoted literal
     (e.g. "'name'"), leave unchanged.
     """
-    no_conversion = set(["project_id", "start", "end"])
+    no_conversion = set(["group_id", "project_id", "start", "end"])
 
     if name in no_conversion:
         return name
