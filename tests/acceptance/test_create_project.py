@@ -23,7 +23,6 @@ class CreateProjectTest(AcceptanceTestCase):
         self.browser.snapshot(name="create project")
 
         self.browser.click('[data-test-id="create-project"]')
-        self.browser.wait_until(title="java")
         self.browser.wait_until_not(".loading")
 
         project = Project.objects.get(organization=self.org)
