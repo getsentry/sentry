@@ -41,7 +41,7 @@ class QueryList extends React.Component<Props> {
     const {api, organization, onQueryChange, location, savedQueries} = this.props;
 
     handleDeleteQuery(api, organization, eventView).then(() => {
-      if (savedQueries.length === 1) {
+      if (savedQueries.length === 1 && location.query.cursor) {
         browserHistory.push({
           pathname: location.pathname,
           query: {...location.query, cursor: undefined},
@@ -286,6 +286,7 @@ class ContextMenu extends React.Component {
               })}
             >
               <ContextMenuButton
+                data-test-id="context-menu"
                 {...getActorProps({
                   onClick: (event: MouseEvent) => {
                     event.stopPropagation();

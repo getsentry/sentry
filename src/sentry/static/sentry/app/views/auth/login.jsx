@@ -45,11 +45,12 @@ class Login extends React.Component {
     try {
       const response = await api.requestPromise('/auth/config/');
 
-      const {vsts_login_link, github_login_link, ...config} = response;
+      const {vsts_login_link, github_login_link, google_login_link, ...config} = response;
       const authConfig = {
         ...config,
         vstsLoginLink: vsts_login_link,
         githubLoginLink: github_login_link,
+        googleLoginLink: google_login_link,
       };
 
       this.setState({authConfig});
@@ -61,8 +62,8 @@ class Login extends React.Component {
   };
 
   get hasAuthProviders() {
-    const {githubLoginLink, vstsLoginLink} = this.state.authConfig;
-    return githubLoginLink || vstsLoginLink;
+    const {githubLoginLink, googleLoginLink, vstsLoginLink} = this.state.authConfig;
+    return githubLoginLink || vstsLoginLink || googleLoginLink;
   }
 
   render() {
