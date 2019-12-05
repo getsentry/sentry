@@ -424,7 +424,7 @@ class SnubaEvent(EventCommon):
         node_id = SnubaEvent.generate_node_id(
             self.snuba_data["project_id"], self.snuba_data["event_id"]
         )
-        self.data = NodeData(None, node_id, data=None, wrapper=EventDict)
+        self.data = NodeData(node_id, data=None, wrapper=EventDict)
 
     def __getattr__(self, name):
         """
@@ -542,6 +542,10 @@ class SnubaEvent(EventCommon):
         raise NotImplementedError
 
 
+def ref_func(x):
+    return x.project_id or x.project.id
+
+
 class Event(EventCommon, Model):
     """
     An event backed by data stored in postgres.
@@ -560,7 +564,7 @@ class Event(EventCommon, Model):
     data = NodeField(
         blank=True,
         null=True,
-        ref_func=lambda x: x.project_id or x.project.id,
+        ref_func=ref_func,
         ref_version=2,
         wrapper=EventDict,
         skip_nodestore_save=True,
