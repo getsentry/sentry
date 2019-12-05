@@ -388,7 +388,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         query_name = "A new custom query"
         with self.feature(FEATURE_NAMES):
             # Go directly to the query builder view
-            self.browser.get(self.path + "?" + urlencode(query, doseq=True))
+            self.browser.get(self.result_path + "?" + urlencode(query, doseq=True))
             self.wait_until_loaded()
 
             # Open the save as drawer
@@ -408,11 +408,9 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         # Saved query should exist.
         assert DiscoverSavedQuery.objects.filter(name=query_name).exists()
 
-    @pytest.mark.xfail(reason="renaming is broken right now.")
-    @patch("django.utils.timezone.now")
-    def test_view_and_rename_saved_query(self, mock_now):
+    def test_view_and_rename_saved_query(self):
         # Create saved query to rename
-        DiscoverSavedQuery.objects.create(
+        query = DiscoverSavedQuery.objects.create(
             name="Custom query",
             organization=self.org,
             version=2,
@@ -420,18 +418,24 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         )
         with self.feature(FEATURE_NAMES):
             # View the query list
-            self.browser.get(self.path)
+            self.browser.get(self.landing_path)
             self.wait_until_loaded()
 
-            new_name = "Renamed query!"
-            input = self.browser.element('[name="discover2-query-name"]')
-            input.click()
-            input.send_keys(new_name)
-            # Move focus somewhere else to trigger a blur and update the query
-            input.parent.click()
+            # Look at the results for our query.
+            self.browser.element('[data-test-id="card-{}"]'.format(query.name)).click()
+            self.wait_until_loaded()
 
-            new_card_selector = '[data-test-id="card-{}"]'.format(new_name)
+            input = self.browser.element('div[name="discover2-query-name"]')
+            input.click()
+            input.send_keys("updated!")
+
+            # Move focus somewhere else to trigger a blur and update the query
+            self.browser.element("table").click()
+
+            new_name = "Custom queryupdated!"
+            new_card_selector = 'div[name="discover2-query-name"][value="{}"]'.format(new_name)
             self.browser.wait_until(new_card_selector)
+            self.browser.save_screenshot("./rename.png")
 
         # Assert the name was updated.
         assert DiscoverSavedQuery.objects.filter(name=new_name).exists()
@@ -446,7 +450,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         )
         with self.feature(FEATURE_NAMES):
             # View the query list
-            self.browser.get(self.path)
+            self.browser.get(self.landing_path)
             self.wait_until_loaded()
 
             # Get the card with the new query
@@ -473,7 +477,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         )
         with self.feature(FEATURE_NAMES):
             # View the query list
-            self.browser.get(self.path)
+            self.browser.get(self.landing_path)
             self.wait_until_loaded()
 
             # Get the card with the new query
