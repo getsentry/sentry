@@ -4,7 +4,6 @@ import logging
 
 from django.conf import settings
 from django.views.generic import View
-from django.http import HttpResponseServerError
 
 from sentry.models import ProjectKey
 from sentry.utils import json
@@ -36,9 +35,4 @@ class Error500View(View):
         if embed_config:
             context["embed_config"] = json.dumps_htmlsafe(embed_config)
 
-        return render_to_response(
-            "sentry/500.html",
-            response_cls=HttpResponseServerError,
-            context=context,
-            request=request,
-        )
+        return render_to_response("sentry/500.html", status=500, context=context, request=request)
