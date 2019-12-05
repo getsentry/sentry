@@ -741,7 +741,7 @@ function routes() {
         />
         <Route
           name="Integration Dashboard"
-          path=":appSlug/dashboard"
+          path=":appSlug/dashboard/"
           componentPromise={() =>
             import(/* webpackChunkName: "SentryApplicationDashboard" */ 'app/views/settings/organizationDeveloperSettings/sentryApplicationDashboard')
           }
@@ -1083,6 +1083,13 @@ function routes() {
             path="/organizations/:orgId/issues/:groupId/feedback/"
             componentPromise={() =>
               import(/* webpackChunkName: "OrganizationGroupUserFeedback" */ 'app/views/organizationGroupDetails/groupUserFeedback')
+            }
+            component={errorHandler(LazyLoad)}
+          />
+          <Route
+            path="/organizations/:orgId/issues/:groupId/attachments/"
+            componentPromise={() =>
+              import(/* webpackChunkName: "GroupEventAttachments" */ 'app/views/organizationGroupDetails/groupEventAttachments')
             }
             component={errorHandler(LazyLoad)}
           />

@@ -91,6 +91,7 @@ class SentryAppInstallationDetail extends React.Component<Props> {
           onInstall={this.handleInstall}
           onUninstall={this.handleUninstall}
           install={install}
+          isOnIntegrationPage
         />
       </React.Fragment>
     );

@@ -4,14 +4,22 @@ import {Location} from 'history';
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import GridEditable from 'app/components/gridEditable';
+import {
+  tokenizeSearch,
+  stringifyQueryObject,
+  QueryResults,
+} from 'app/utils/tokenizeSearch';
+import {assert} from 'app/types/utils';
+import Link from 'app/components/links/link';
 
 import {
   getFieldRenderer,
   getAggregateAlias,
   pushEventViewToLocation,
   explodeField,
+  MetaType,
 } from '../utils';
-import EventView, {pickRelevantLocationQueryStrings} from '../eventView';
+import EventView, {pickRelevantLocationQueryStrings, Field} from '../eventView';
 import SortLink from '../sortLink';
 import renderTableModalEditColumnFactory from './tableModalEditColumn';
 import {TableColumn, TableData, TableDataRow} from './types';
@@ -19,6 +27,7 @@ import {ColumnValueType} from '../eventQueryParams';
 import DraggableColumns, {
   DRAGGABLE_COLUMN_CLASSNAME_IDENTIFIER,
 } from './draggableColumns';
+import {AGGREGATE_ALIASES} from '../data';
 
 export type TableViewProps = {
   location: Location;
@@ -108,21 +117,14 @@ class TableView extends React.Component<TableViewProps> {
   _updateColumn = (columnIndex: number, nextColumn: TableColumn<keyof TableDataRow>) => {
     const {location, eventView, tableData, organization} = this.props;
 
-    if (!tableData || !tableData.meta) {
-      return;
-    }
-
     const payload = {
       aggregation: String(nextColumn.aggregation),
       field: String(nextColumn.field),
       fieldname: nextColumn.name,
     };
 
-    const nextEventView = eventView.withUpdatedColumn(
-      columnIndex,
-      payload,
-      tableData.meta
-    );
+    const tableMeta = (tableData && tableData.meta) || undefined;
+    const nextEventView = eventView.withUpdatedColumn(columnIndex, payload, tableMeta);
 
     if (nextEventView !== eventView) {
       const changed: string[] = [];
@@ -170,13 +172,10 @@ class TableView extends React.Component<TableViewProps> {
   _deleteColumn = (columnIndex: number) => {
     const {location, eventView, tableData, organization} = this.props;
 
-    if (!tableData || !tableData.meta) {
-      return;
-    }
-
     const prevField = explodeField(eventView.fields[columnIndex]);
 
-    const nextEventView = eventView.withDeletedColumn(columnIndex, tableData.meta);
+    const tableMeta = (tableData && tableData.meta) || undefined;
+    const nextEventView = eventView.withDeletedColumn(columnIndex, tableMeta);
 
     // metrics
     trackAnalyticsEvent({
@@ -234,7 +233,7 @@ class TableView extends React.Component<TableViewProps> {
     const field = column.eventViewField;
 
     // establish alignment based on the type
-    const alignedTypes: ColumnValueType[] = ['number', 'duration'];
+    const alignedTypes: ColumnValueType[] = ['number', 'duration', 'integer'];
     let align: 'right' | 'left' = alignedTypes.includes(column.type) ? 'right' : 'left';
 
     if (column.type === 'never' || column.type === '*') {
@@ -267,12 +266,42 @@ class TableView extends React.Component<TableViewProps> {
       return dataRow[column.key];
     }
 
-    const hasLinkField = eventView.hasAutolinkField();
-    const forceLink =
-      !hasLinkField && eventView.getFields().indexOf(String(column.field)) === 0;
+    return (
+      <ExpandAggregateRow
+        eventView={eventView}
+        column={column}
+        dataRow={dataRow}
+        location={location}
+        tableMeta={tableData.meta}
+      >
+        {({willExpand}) => {
+          // NOTE: TypeScript cannot detect that tableData.meta is truthy here
+          //       since there was a condition guard to handle it whenever it is
+          //       falsey. So we assert it here.
+          assert(tableData.meta);
 
-    const fieldRenderer = getFieldRenderer(String(column.key), tableData.meta, forceLink);
-    return fieldRenderer(dataRow, {organization, location});
+          if (!willExpand) {
+            const hasLinkField = eventView.hasAutolinkField();
+            const forceLink =
+              !hasLinkField && eventView.getFields().indexOf(String(column.field)) === 0;
+
+            const fieldRenderer = getFieldRenderer(
+              String(column.key),
+              tableData.meta,
+              forceLink
+            );
+            return fieldRenderer(dataRow, {organization, location});
+          }
+
+          const fieldRenderer = getFieldRenderer(
+            String(column.key),
+            tableData.meta,
+            false
+          );
+          return fieldRenderer(dataRow, {organization, location});
+        }}
+      </ExpandAggregateRow>
+    );
   };
 
   generateColumnOrder = ({
@@ -407,5 +436,100 @@ class TableView extends React.Component<TableViewProps> {
     );
   }
 }
+
+const UNSEARCHABLE_FIELDS: string[] = [...AGGREGATE_ALIASES];
+
+const ExpandAggregateRow = (props: {
+  children: ({willExpand: boolean}) => React.ReactNode;
+  eventView: EventView;
+  column: TableColumn<keyof TableDataRow>;
+  dataRow: TableDataRow;
+  location: Location;
+  tableMeta: MetaType;
+}) => {
+  const {children, column, dataRow, eventView, location, tableMeta} = props;
+
+  const {eventViewField} = column;
+
+  const exploded = explodeField(eventViewField);
+  const {aggregation} = exploded;
+
+  if (aggregation === 'count') {
+    let nextEventView = eventView.clone();
+
+    const additionalSearchConditions: {[key: string]: string[]} = {};
+
+    const indicesToUpdate: number[] = [];
+    nextEventView.fields.forEach((field: Field, index: number) => {
+      if (eventViewField.field === field.field) {
+        // invariant: this is count(exploded.field)
+        // convert all instances of count(exploded.field) to exploded.field
+        indicesToUpdate.push(index);
+        return;
+      }
+
+      const currentExplodedField = explodeField(field);
+      if (currentExplodedField.aggregation) {
+        // this is a column with an aggregation; we skip this
+        return;
+      }
+
+      if (UNSEARCHABLE_FIELDS.includes(currentExplodedField.field)) {
+        return;
+      }
+
+      // add this field to the search conditions
+
+      const dataKey = getAggregateAlias(field.field);
+      const value = dataRow[dataKey];
+
+      if (value) {
+        additionalSearchConditions[currentExplodedField.field] = [String(value).trim()];
+      }
+    });
+
+    nextEventView = indicesToUpdate.reduce(
+      (currentEventView: EventView, indexToUpdate: number) => {
+        const updatedColumn = {
+          aggregation: '',
+          field: exploded.field,
+          fieldname: exploded.field,
+        };
+
+        return currentEventView.withUpdatedColumn(
+          indexToUpdate,
+          updatedColumn,
+          tableMeta
+        );
+      },
+      nextEventView
+    );
+
+    const tokenized: QueryResults = tokenizeSearch(nextEventView.query);
+
+    // merge tokenized and additionalSearchConditions together
+    Object.keys(additionalSearchConditions).forEach(key => {
+      const hasCommonKey =
+        Array.isArray(tokenized[key]) && Array.isArray(additionalSearchConditions[key]);
+      if (hasCommonKey) {
+        tokenized[key] = [...tokenized[key], ...additionalSearchConditions[key]];
+        return;
+      }
+
+      tokenized[key] = additionalSearchConditions[key];
+    });
+
+    nextEventView.query = stringifyQueryObject(tokenized);
+
+    const target = {
+      pathname: location.pathname,
+      query: nextEventView.generateQueryStringObject(),
+    };
+
+    return <Link to={target}>{children({willExpand: true})}</Link>;
+  }
+
+  return <React.Fragment>{children({willExpand: false})}</React.Fragment>;
+};
 
 export default TableView;

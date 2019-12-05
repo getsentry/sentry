@@ -632,7 +632,14 @@ class StoreView(APIView):
         del data
 
         self.pre_normalize(event_manager, helper)
-        event_manager.normalize()
+
+        try:
+            event_manager.normalize()
+        except semaphore.ProcessingActionInvalidTransaction as e:
+            track_outcome(
+                organization_id, project_id, key.id, Outcome.INVALID, "invalid_transaction"
+            )
+            raise APIError(e.message.split("\n", 1)[0])
 
         data = event_manager.get_data()
         dict_data = dict(data)

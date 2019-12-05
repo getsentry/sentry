@@ -112,7 +112,7 @@ export function explodeSlug(slug: string): string {
   return trim(slug.replace(/[-_]+/g, ' '));
 }
 
-export function defined(item: any): boolean {
+export function defined<T>(item: T): item is Exclude<T, null | undefined> {
   return !isUndefined(item) && item !== null;
 }
 

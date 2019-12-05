@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from 'react-emotion';
 import {browserHistory} from 'react-router';
 
 import {Client} from 'app/api';
@@ -18,7 +19,7 @@ type Props = {
   organization: Organization;
   eventView: EventView;
   savedQueries: SavedQuery[];
-  onQuerySave: () => void;
+  onQueryChange: () => void;
 };
 
 const NAME_DEFAULT = t('Untitled query');
@@ -63,7 +64,7 @@ class EventInputName extends React.Component<Props> {
 
     handleUpdateQueryName(api, organization, nextEventView).then(
       (updatedQuery: SavedQuery) => {
-        this.props.onQuerySave();
+        this.props.onQueryChange();
         const view = EventView.fromSavedQuery(updatedQuery);
         browserHistory.push({
           pathname: location.pathname,
@@ -77,15 +78,26 @@ class EventInputName extends React.Component<Props> {
     const {eventView} = this.props;
 
     return (
-      <InlineInput
-        ref={this.refInput}
-        name="discover2-query-name"
-        disabled={!eventView.id}
-        value={eventView.name || NAME_DEFAULT}
-        onBlur={this.onBlur}
-      />
+      <StyledHeader>
+        <InlineInput
+          ref={this.refInput}
+          name="discover2-query-name"
+          disabled={!eventView.id}
+          value={eventView.name || NAME_DEFAULT}
+          onBlur={this.onBlur}
+        />
+      </StyledHeader>
     );
   }
 }
+
+const StyledHeader = styled('div')`
+  display: flex;
+  align-items: center;
+  height: 24px;
+  font-size: ${p => p.theme.headerFontSize};
+  color: ${p => p.theme.gray4};
+  grid-column: 1/2;
+`;
 
 export default withApi(EventInputName);

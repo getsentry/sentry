@@ -262,6 +262,8 @@ _EXTENSION_EXC_SOURCES = re.compile(
             r"static\.woopra\.com\/js\/woopra\.js",
             # Chrome extensions
             r"^chrome(?:-extension)?:\/\/",
+            # Firefox extensions
+            r"^moz-extension:\/\/",
             # Cacaoweb
             r"127\.0\.0\.1:4001\/isrunning",
             # Other

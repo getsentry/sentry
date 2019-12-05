@@ -43,6 +43,11 @@ describe('OrganizationMembersWrapper', function() {
     trackAnalyticsEvent.mockClear();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/me/',
+      method: 'GET',
+      body: {roles: []},
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/invite-requests/',
       method: 'GET',
       body: [],
@@ -64,18 +69,8 @@ describe('OrganizationMembersWrapper', function() {
     });
   });
 
-  it('does not render requests tab', function() {
-    const wrapper = mountWithTheme(
-      <OrganizationMembersWrapper organization={organization} {...defaultProps} />,
-      TestStubs.routerContext()
-    );
-
-    expect(wrapper.find('NavTabs').exists()).toBe(false);
-  });
-
   it('does not render requests tab without access', function() {
     const org = TestStubs.Organization({
-      experiments: {ImprovedInvitesExperiment: 'invite_request'},
       access: [],
       status: {
         id: 'active',
@@ -91,9 +86,8 @@ describe('OrganizationMembersWrapper', function() {
     expect(trackAnalyticsEvent).not.toHaveBeenCalled();
   });
 
-  it('renders requests tab with ImprovedInvitesExperiment invite_request', function() {
+  it('renders requests tab with access', function() {
     const org = TestStubs.Organization({
-      experiments: {ImprovedInvitesExperiment: 'invite_request'},
       access: ['member:admin', 'org:admin', 'member:write'],
       status: {
         id: 'active',
@@ -115,12 +109,6 @@ describe('OrganizationMembersWrapper', function() {
     expect(wrapper.find('ListLink[data-test-id="members-tab"]').exists()).toBe(true);
     expect(wrapper.find('ListLink[data-test-id="requests-tab"]').exists()).toBe(true);
 
-    expect(trackAnalyticsEvent).toHaveBeenCalledWith({
-      eventKey: 'invite_request.tab_viewed',
-      eventName: 'Invite Request Tab Viewed',
-      organization_id: org.id,
-    });
-
     wrapper.find('a[data-test-id="requests-tab"]').simulate('click');
     expect(trackAnalyticsEvent).toHaveBeenCalledWith({
       eventKey: 'invite_request.tab_clicked',
@@ -129,9 +117,8 @@ describe('OrganizationMembersWrapper', function() {
     });
   });
 
-  it('renders requests tab with ImprovedInvitesExperiment join_request', function() {
+  it('renders requests tab with access and no invite requests', function() {
     const org = TestStubs.Organization({
-      experiments: {ImprovedInvitesExperiment: 'join_request'},
       access: ['member:admin', 'org:admin', 'member:write'],
       status: {
         id: 'active',
@@ -206,13 +193,12 @@ describe('OrganizationMembersWrapper', function() {
     );
 
     const inviteButton = wrapper.find('StyledButton[aria-label="Invite Members"]');
-    expect(inviteButton.prop('disabled')).toBe(false);
     inviteButton.simulate('click');
 
     expect(openInviteMembersModal).toHaveBeenCalled();
   });
 
-  it('cannot invite without permissions', function() {
+  it('can invite without permissions', function() {
     const org = TestStubs.Organization({
       access: [],
       status: {
@@ -226,7 +212,9 @@ describe('OrganizationMembersWrapper', function() {
     );
 
     const inviteButton = wrapper.find('StyledButton[aria-label="Invite Members"]');
-    expect(inviteButton.prop('disabled')).toBe(true);
+    inviteButton.simulate('click');
+
+    expect(openInviteMembersModal).toHaveBeenCalled();
   });
 
   it('renders member list', function() {
@@ -252,7 +240,7 @@ describe('OrganizationMembersWrapper', function() {
 
     expect(
       wrapper
-        .find('PanelItem')
+        .find('StyledPanelItem')
         .text()
         .includes(member.name)
     ).toBe(true);

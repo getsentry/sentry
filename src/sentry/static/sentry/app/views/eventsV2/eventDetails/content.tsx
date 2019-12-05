@@ -5,6 +5,7 @@ import styled from 'react-emotion';
 import PropTypes from 'prop-types';
 
 import space from 'app/styles/space';
+import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {Client} from 'app/api';
 import withApi from 'app/utils/withApi';
@@ -12,24 +13,23 @@ import {getMessage, getTitle} from 'app/utils/events';
 import {Organization, Event} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
 import getDynamicText from 'app/utils/getDynamicText';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 import DateTime from 'app/components/dateTime';
 import ExternalLink from 'app/components/links/externalLink';
 import FileSize from 'app/components/fileSize';
-import {PageHeader} from 'app/styles/organization';
 import NotFound from 'app/components/errors/notFound';
 import AsyncComponent from 'app/components/asyncComponent';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import {PageContent} from 'app/styles/organization';
 
 import EventView from '../eventView';
 import {hasAggregateField, EventQuery, generateTitle} from '../utils';
 import Pagination from './pagination';
 import LineGraph from './lineGraph';
-import RelatedEvents from '../relatedEvents';
 import TagsTable from '../tagsTable';
-import EventInterfaces from '../eventInterfaces';
-import LinkedIssuePreview from '../linkedIssuePreview';
+import EventInterfaces from './eventInterfaces';
+import LinkedIssue from './linkedIssue';
 import DiscoverBreadcrumb from '../breadcrumb';
+import {SectionHeading} from '../styles';
 
 const slugValidator = function(
   props: {[key: string]: any},
@@ -107,54 +107,59 @@ class EventDetailsContent extends AsyncComponent<Props, State & AsyncComponent['
     const isGroupedView = hasAggregateField(eventView);
 
     return (
-      <ColumnGrid>
+      <div>
         <HeaderBox>
-          <EventHeader event={event} />
-          {isGroupedView && (
-            <Pagination event={event} organization={organization} eventView={eventView} />
-          )}
-          {isGroupedView &&
-            getDynamicText({
-              value: (
-                <LineGraph
-                  organization={organization}
-                  currentEvent={event}
-                  location={location}
-                  eventView={eventView}
-                />
-              ),
-              fixed: 'events chart',
-            })}
-        </HeaderBox>
-        <ContentColumn>
-          <EventInterfaces
-            event={event}
-            projectId={this.projectId}
-            orgId={organization.slug}
-          />
-        </ContentColumn>
-        <SidebarColumn>
-          {event.groupID && (
-            <LinkedIssuePreview groupId={event.groupID} eventId={event.eventID} />
-          )}
-          {event.type === 'transaction' && (
-            <RelatedEvents
-              organization={organization}
-              event={event}
-              location={location}
-              eventView={eventView}
-            />
-          )}
-          <EventMetadata
+          <DiscoverBreadcrumb
+            eventView={eventView}
             event={event}
             organization={organization}
-            projectId={this.projectId}
+            location={location}
           />
-          <SidebarBlock>
+          <EventHeader event={event} />
+          <Controller>
+            {isGroupedView && (
+              <Pagination
+                event={event}
+                organization={organization}
+                eventView={eventView}
+              />
+            )}
+          </Controller>
+        </HeaderBox>
+        <ContentBox>
+          <Main>
+            {isGroupedView &&
+              getDynamicText({
+                value: (
+                  <LineGraph
+                    organization={organization}
+                    currentEvent={event}
+                    location={location}
+                    eventView={eventView}
+                  />
+                ),
+                fixed: 'events chart',
+              })}
+            <EventInterfaces
+              organization={organization}
+              event={event}
+              projectId={this.projectId}
+              eventView={eventView}
+            />
+          </Main>
+          <Side>
+            <EventMetadata
+              event={event}
+              organization={organization}
+              projectId={this.projectId}
+            />
+            {event.groupID && (
+              <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
+            )}
             <TagsTable tags={event.tags} />
-          </SidebarBlock>
-        </SidebarColumn>
-      </ColumnGrid>
+          </Side>
+        </ContentBox>
+      </div>
     );
   }
 
@@ -191,6 +196,40 @@ class EventDetailsContent extends AsyncComponent<Props, State & AsyncComponent['
   }
 }
 
+const ContentBox = styled(PageContent)`
+  margin: 0;
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    display: grid;
+    grid-template-rows: 1fr auto;
+    grid-template-columns: 65% auto;
+    grid-column-gap: ${space(3)};
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    grid-template-columns: auto 350px;
+  }
+`;
+
+const Main = styled('div')`
+  grid-column: 1/2;
+`;
+
+const Side = styled('div')`
+  grid-column: 2/3;
+`;
+
+const HeaderBox = styled(ContentBox)`
+  background-color: ${p => p.theme.white};
+  border-bottom: 1px solid ${p => p.theme.borderDark};
+  grid-row-gap: ${space(1)};
+`;
+
+const Controller = styled('div')`
+  grid-row: 1/3;
+  grid-column: 2/3;
+`;
+
 type EventDetailsWrapperProps = {
   organization: Organization;
   location: Location;
@@ -210,21 +249,11 @@ class EventDetailsWrapper extends React.Component<EventDetailsWrapperProps> {
   };
 
   render() {
-    const {organization, location, eventView, event, children} = this.props;
+    const {organization, children} = this.props;
 
     return (
       <SentryDocumentTitle title={this.getDocumentTitle()} objSlug={organization.slug}>
-        <React.Fragment>
-          <PageHeader>
-            <DiscoverBreadcrumb
-              eventView={eventView}
-              event={event}
-              organization={organization}
-              location={location}
-            />
-          </PageHeader>
-          {children}
-        </React.Fragment>
+        <React.Fragment>{children}</React.Fragment>
       </SentryDocumentTitle>
     );
   }
@@ -232,25 +261,34 @@ class EventDetailsWrapper extends React.Component<EventDetailsWrapperProps> {
 
 const EventHeader = (props: {event: Event}) => {
   const {title} = getTitle(props.event);
+
+  const message = getMessage(props.event);
+
   return (
-    <div data-test-id="event-header">
-      <OverflowHeader>{title}</OverflowHeader>
-      <p>{getMessage(props.event)}</p>
-    </div>
+    <StyledEventHeader data-test-id="event-header">
+      <StyledTitle>
+        {title}
+        {message && message.length > 0 ? ':' : null}
+      </StyledTitle>
+      <StyledMessage>{getMessage(props.event)}</StyledMessage>
+    </StyledEventHeader>
   );
 };
 
-const OverflowHeader = styled('h2')`
-  line-height: 1.2;
-  ${overflowEllipsis}
+const StyledEventHeader = styled('div')`
+  font-size: ${p => p.theme.headerFontSize};
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  grid-column: 1/2;
 `;
 
-const MetadataContainer = styled('div')`
-  display: flex;
-  justify-content: space-between;
+const StyledTitle = styled('span')`
+  margin-right: ${space(1)};
+`;
 
-  color: ${p => p.theme.gray3};
-  font-size: ${p => p.theme.fontSizeMedium};
+const StyledMessage = styled('span')`
+  color: ${p => p.theme.gray2};
 `;
 
 /**
@@ -268,8 +306,9 @@ const EventMetadata = (props: {
   }/json/`;
 
   return (
-    <SidebarBlock withSeparator>
-      <MetadataContainer data-test-id="event-id">ID {event.eventID}</MetadataContainer>
+    <MetaDataID>
+      <SectionHeading>{t('Event ID')}</SectionHeading>
+      <MetadataContainer data-test-id="event-id">{event.eventID}</MetadataContainer>
       <MetadataContainer>
         <DateTime
           date={getDynamicText({
@@ -277,46 +316,27 @@ const EventMetadata = (props: {
             fixed: 'Dummy timestamp',
           })}
         />
-        <ExternalLink href={eventJsonUrl} className="json-link">
-          JSON (<FileSize bytes={event.size} />)
-        </ExternalLink>
       </MetadataContainer>
-    </SidebarBlock>
+      <MetadataJSON href={eventJsonUrl} className="json-link">
+        {t('Preview JSON')} (<FileSize bytes={event.size} />)
+      </MetadataJSON>
+    </MetaDataID>
   );
 };
 
-const ColumnGrid = styled('div')`
-  display: grid;
-
-  grid-template-columns: 70% 28%;
-  grid-template-rows: auto;
-  grid-column-gap: 2%;
-
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-columns: 60% 38%;
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    display: flex;
-    flex-direction: column;
-  }
+const MetaDataID = styled('div')`
+  margin-bottom: ${space(3)};
 `;
 
-const HeaderBox = styled('div')`
-  grid-column: 1 / 3;
-`;
-const ContentColumn = styled('div')`
-  grid-column: 1 / 2;
-`;
-
-const SidebarColumn = styled('div')`
-  grid-column: 2 / 3;
+const MetadataContainer = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  color: ${p => p.theme.gray3};
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-const SidebarBlock = styled('div')<{withSeparator?: boolean; theme?: any}>`
-  margin: 0 0 ${space(2)} 0;
-  padding: 0 0 ${space(2)} 0;
-  ${p => (p.withSeparator ? `border-bottom: 1px solid ${p.theme.borderLight};` : '')}
+const MetadataJSON = styled(ExternalLink)`
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 export default withApi(EventDetailsContent);

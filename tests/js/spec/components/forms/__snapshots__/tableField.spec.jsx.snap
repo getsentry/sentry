@@ -176,7 +176,7 @@ exports[`TableField renders renders with form context 1`] = `
                           <FieldControl
                             alignRight={false}
                             controlState={
-                              <ControlState
+                              <FormFieldControlState
                                 model={
                                   FormModel {
                                     "api": Client {
@@ -405,7 +405,7 @@ exports[`TableField renders renders with form context 1`] = `
                                                           className="e1rziqw00 css-1fqbh7r-FieldControlState"
                                                           is={null}
                                                         >
-                                                          <ControlState
+                                                          <FormFieldControlState
                                                             model={
                                                               FormModel {
                                                                 "api": Client {
@@ -460,9 +460,14 @@ exports[`TableField renders renders with form context 1`] = `
                                                             }
                                                             name="fieldName"
                                                           >
-                                                            <Observer />
-                                                            <Observer />
-                                                          </ControlState>
+                                                            <Observer>
+                                                              <ControlState
+                                                                error={false}
+                                                                isSaved={null}
+                                                                isSaving={null}
+                                                              />
+                                                            </Observer>
+                                                          </FormFieldControlState>
                                                         </div>
                                                       </Base>
                                                     </Flex>
@@ -670,7 +675,7 @@ exports[`TableField renders renders without form context 1`] = `
                     <FieldControl
                       alignRight={false}
                       controlState={
-                        <ControlState
+                        <FormFieldControlState
                           model={
                             MockModel {
                               "initialData": Object {
@@ -874,7 +879,7 @@ exports[`TableField renders renders without form context 1`] = `
                                                     className="e1rziqw00 css-1fqbh7r-FieldControlState"
                                                     is={null}
                                                   >
-                                                    <ControlState
+                                                    <FormFieldControlState
                                                       model={
                                                         MockModel {
                                                           "initialData": Object {
@@ -904,9 +909,13 @@ exports[`TableField renders renders without form context 1`] = `
                                                       }
                                                       name="fieldName"
                                                     >
-                                                      <Observer />
-                                                      <Observer />
-                                                    </ControlState>
+                                                      <Observer>
+                                                        <ControlState
+                                                          isSaved={false}
+                                                          isSaving={false}
+                                                        />
+                                                      </Observer>
+                                                    </FormFieldControlState>
                                                   </div>
                                                 </Base>
                                               </Flex>

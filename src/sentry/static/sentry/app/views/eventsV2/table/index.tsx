@@ -23,6 +23,8 @@ type TableProps = {
 };
 type TableState = {
   isLoading: boolean;
+  tableFetchID: symbol | undefined;
+  orgTagsFetchID: symbol | undefined;
   error: null | string;
 
   pageLinks: null | string;
@@ -42,6 +44,8 @@ type TableState = {
 class Table extends React.PureComponent<TableProps, TableState> {
   state: TableState = {
     isLoading: true,
+    tableFetchID: undefined,
+    orgTagsFetchID: undefined,
     error: null,
 
     pageLinks: null,
@@ -53,7 +57,10 @@ class Table extends React.PureComponent<TableProps, TableState> {
     const {location, eventView} = this.props;
 
     if (!eventView.isValid()) {
-      const nextEventView = EventView.fromSavedQuery(DEFAULT_EVENT_VIEW);
+      const nextEventView = EventView.fromNewQueryWithLocation(
+        DEFAULT_EVENT_VIEW,
+        location
+      );
 
       browserHistory.replace({
         pathname: location.pathname,
@@ -82,7 +89,10 @@ class Table extends React.PureComponent<TableProps, TableState> {
     const {eventView, organization, location} = this.props;
     const url = `/organizations/${organization.slug}/eventsv2/`;
 
-    this.setState({isLoading: true});
+    const tableFetchID = Symbol('tableFetchID');
+    const orgTagsFetchID = Symbol('orgTagsFetchID');
+
+    this.setState({isLoading: true, tableFetchID, orgTagsFetchID});
 
     this.props.api
       .requestPromise(url, {
@@ -91,9 +101,15 @@ class Table extends React.PureComponent<TableProps, TableState> {
         query: eventView.getEventsAPIPayload(location),
       })
       .then(([data, _, jqXHR]) => {
+        if (this.state.tableFetchID !== tableFetchID) {
+          // invariant: a different request was initiated after this request
+          return;
+        }
+
         this.setState(prevState => {
           return {
             isLoading: false,
+            tableFetchID: undefined,
             error: null,
             pageLinks: jqXHR ? jqXHR.getResponseHeader('Link') : prevState.pageLinks,
             tableData: data,
@@ -103,15 +119,24 @@ class Table extends React.PureComponent<TableProps, TableState> {
       .catch(err => {
         this.setState({
           isLoading: false,
+          tableFetchID: undefined,
           error: err.responseJSON.detail,
+          pageLinks: null,
+          tableData: null,
         });
       });
 
     fetchOrganizationTags(this.props.api, organization.slug)
       .then(tags => {
-        this.setState({tagKeys: tags.map(({key}) => key)});
+        if (this.state.orgTagsFetchID !== orgTagsFetchID) {
+          // invariant: a different request was initiated after this request
+          return;
+        }
+
+        this.setState({tagKeys: tags.map(({key}) => key), orgTagsFetchID: undefined});
       })
       .catch(() => {
+        this.setState({orgTagsFetchID: undefined});
         // Do nothing.
       });
   };

@@ -13,12 +13,21 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import pinIcon from 'app/../images/location-pin.png';
 import {Organization, NewQuery} from 'app/types';
 import Duration from 'app/components/duration';
+import floatFormat from 'app/utils/floatFormat';
 
 import {QueryLink} from './styles';
 import {generateEventDetailsRoute, generateEventSlug} from './eventDetails/utils';
 
 export const PIN_ICON = `image://${pinIcon}`;
-export const AGGREGATE_ALIASES = ['p95', 'p75', 'last_seen', 'latest_event'] as const;
+export const AGGREGATE_ALIASES = [
+  'apdex',
+  'impact',
+  'p75',
+  'p95',
+  'p99',
+  'last_seen',
+  'latest_event',
+] as const;
 
 export const DEFAULT_EVENT_VIEW: Readonly<NewQuery> = {
   id: undefined,
@@ -44,7 +53,7 @@ export const TRANSACTION_VIEWS: Readonly<Array<NewQuery>> = [
       'p75',
       'p95',
     ],
-    fieldnames: ['transaction', 'project', '# of events', 'avg', '75th', '95th'],
+    fieldnames: ['transaction', 'project', 'count', 'avg', '75th', '95th'],
     orderby: '-count_id',
     query: 'event.type:transaction',
     tags: ['release', 'project.name', 'user.email', 'user.ip', 'environment'],
@@ -58,7 +67,7 @@ export const ALL_VIEWS: Readonly<Array<NewQuery>> = [
     id: undefined,
     name: t('Errors'),
     fields: ['title', 'count(id)', 'count_unique(user)', 'project', 'last_seen'],
-    fieldnames: ['error', '# of events', 'users', 'project', 'last seen'],
+    fieldnames: ['error', 'count', 'users', 'project', 'last seen'],
     orderby: '-count_id',
     query: 'event.type:error',
     tags: ['project.name', 'release', 'environment'],
@@ -69,7 +78,7 @@ export const ALL_VIEWS: Readonly<Array<NewQuery>> = [
     id: undefined,
     name: t('Content Security Policy (CSP)'),
     fields: ['title', 'count(id)', 'count_unique(user)', 'project', 'last_seen'],
-    fieldnames: ['csp', '# of events', 'users', 'project', 'last seen'],
+    fieldnames: ['csp', 'count', 'users', 'project', 'last seen'],
     orderby: '-count_id',
     query: 'event.type:csp',
     tags: [
@@ -88,7 +97,7 @@ export const ALL_VIEWS: Readonly<Array<NewQuery>> = [
     id: undefined,
     name: t('Project Summary'),
     fields: ['project', 'count(id)', 'count_unique(issue.id)'],
-    fieldnames: ['project', '# of events', 'unique errors'],
+    fieldnames: ['project', 'count', 'unique errors'],
     orderby: '-count_id',
     query: 'event.type:error',
     tags: ['error.type', 'project.name', 'release', 'environment'],
@@ -99,7 +108,7 @@ export const ALL_VIEWS: Readonly<Array<NewQuery>> = [
     id: undefined,
     name: t('Errors by URL'),
     fields: ['url', 'count(id)', 'count_unique(issue.id)'],
-    fieldnames: ['URL', '# of events', 'unique errors'],
+    fieldnames: ['URL', 'count', 'unique errors'],
     orderby: '-count_id',
     query: 'event.type:error',
     tags: ['error.type', 'project.name', 'url', 'release', 'environment'],
@@ -110,7 +119,7 @@ export const ALL_VIEWS: Readonly<Array<NewQuery>> = [
     id: undefined,
     name: t('Content Security Policy (CSP) Report by Directive'),
     fields: ['effective-directive', 'count(id)', 'count_unique(title)'],
-    fieldnames: ['directive', '# of events', 'reports'],
+    fieldnames: ['directive', 'count', 'reports'],
     orderby: '-count_id',
     query: 'event.type:csp',
     tags: [
@@ -195,7 +204,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     sortField: true,
     renderFunc: (field, data) => (
       <NumberContainer>
-        {typeof data[field] === 'number' ? <Count value={data[field]} /> : emptyValue}
+        {typeof data[field] === 'number' ? floatFormat(data[field], 5) : emptyValue}
       </NumberContainer>
     ),
   },

@@ -4,6 +4,8 @@ import styled from 'react-emotion';
 import * as ReactRouter from 'react-router';
 import {Params} from 'react-router/lib/Router';
 import {Location} from 'history';
+import pick from 'lodash/pick';
+import isEqual from 'lodash/isEqual';
 
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -16,10 +18,10 @@ import GlobalSelectionHeader from 'app/components/organizations/globalSelectionH
 import Banner from 'app/components/banner';
 import Button from 'app/components/button';
 import Feature from 'app/components/acl/feature';
-import SearchBar from 'app/views/events/searchBar';
+import SearchBar from 'app/components/searchBar';
 import NoProjectMessage from 'app/components/noProjectMessage';
 
-import {PageContent, PageHeader} from 'app/styles/organization';
+import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -30,9 +32,8 @@ import EventInputName from './eventInputName';
 import {DEFAULT_EVENT_VIEW} from './data';
 import QueryList from './queryList';
 import DiscoverBreadcrumb from './breadcrumb';
-import {generateTitle} from './utils';
+import {getPrebuiltQueries, generateTitle, decodeScalar} from './utils';
 
-const DISPLAY_SEARCH_BAR_FLAG = false;
 const BANNER_DISMISSED_KEY = 'discover-banner-dismissed';
 
 function checkIsBannerHidden(): boolean {
@@ -47,7 +48,9 @@ type Props = {
 } & AsyncComponent['props'];
 
 type State = {
+  isBannerHidden: boolean;
   savedQueries: SavedQuery[];
+  savedQueriesPageLinks: string;
 } & AsyncComponent['state'];
 
 class DiscoverLanding extends AsyncComponent<Props, State> {
@@ -57,35 +60,100 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     router: PropTypes.object.isRequired,
   };
 
-  state = {
+  state: State = {
+    // AsyncComponent state
     loading: true,
     reloading: false,
     error: false,
     errors: [],
+
+    // local component state
     isBannerHidden: checkIsBannerHidden(),
     savedQueries: [],
+    savedQueriesPageLinks: '',
   };
 
   shouldReload = true;
 
+  getSavedQuerySearchQuery(): string {
+    const {location} = this.props;
+
+    return String(decodeScalar(location.query.query) || '').trim();
+  }
+
   getEndpoints(): [string, string, any][] {
-    const {organization} = this.props;
+    const {organization, location} = this.props;
+
+    const views = getPrebuiltQueries(organization);
+    const searchQuery = this.getSavedQuerySearchQuery();
+
+    const cursor = decodeScalar(location.query.cursor);
+    let perPage = 9;
+    if (!cursor) {
+      // invariant: we're on the first page
+
+      if (searchQuery && searchQuery.length > 0) {
+        const needleSearch = searchQuery.toLowerCase();
+
+        const numOfPrebuiltQueries = views.reduce((sum, view) => {
+          const eventView = EventView.fromNewQueryWithLocation(view, location);
+
+          // if a search is performed on the list of queries, we filter
+          // on the pre-built queries
+          if (eventView.name && eventView.name.toLowerCase().includes(needleSearch)) {
+            return sum + 1;
+          }
+
+          return sum;
+        }, 0);
+
+        perPage = Math.max(1, perPage - numOfPrebuiltQueries);
+      } else {
+        perPage = Math.max(1, perPage - views.length);
+      }
+    }
+
+    const queryParams = {
+      cursor,
+      query: `version:2 name:"${searchQuery}"`,
+      per_page: perPage,
+      sortBy: '-dateUpdated',
+    };
+    if (!cursor) {
+      delete queryParams.cursor;
+    }
+
     return [
       [
         'savedQueries',
         `/organizations/${organization.slug}/discover/saved/`,
-        {query: {query: 'version:2'}},
+        {
+          query: queryParams,
+        },
       ],
     ];
   }
 
-  componentDidUpdate() {
+  componentDidUpdate(prevProps: Props) {
     const isBannerHidden = checkIsBannerHidden();
     if (isBannerHidden !== this.state.isBannerHidden) {
       // eslint-disable-next-line react/no-did-update-set-state
       this.setState({
         isBannerHidden,
       });
+    }
+
+    const PAYLOAD_KEYS = ['cursor', 'query'] as const;
+
+    const payloadKeysChanged = !isEqual(
+      pick(prevProps.location.query, PAYLOAD_KEYS),
+      pick(this.props.location.query, PAYLOAD_KEYS)
+    );
+
+    // if any of the query strings relevant for the payload has changed,
+    // we re-fetch data
+    if (payloadKeysChanged) {
+      this.fetchData();
     }
   }
 
@@ -100,9 +168,9 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     this.setState({isBannerHidden: true});
   };
 
-  // When a query is saved we need to re-fetch the
+  // When a query is saved or deleted we need to re-fetch the
   // saved query list as we don't use a reflux store.
-  handleQuerySave = () => {
+  handleQueryChange = () => {
     this.fetchData({reloading: true});
   };
 
@@ -113,7 +181,9 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
       return null;
     }
 
-    const eventView = EventView.fromSavedQuery(DEFAULT_EVENT_VIEW);
+    const {location} = this.props;
+
+    const eventView = EventView.fromNewQueryWithLocation(DEFAULT_EVENT_VIEW, location);
 
     const to = {
       pathname: location.pathname,
@@ -145,95 +215,169 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     );
   }
 
+  handleSearchQuery = (searchQuery: string) => {
+    const {location} = this.props;
+    ReactRouter.browserHistory.push({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        cursor: undefined,
+        query: String(searchQuery).trim() || undefined,
+      },
+    });
+  };
+
   renderActions() {
+    const {location} = this.props;
+
+    const StyledSearchBar = styled(SearchBar)`
+      margin-right: ${space(1)};
+      flex-grow: 1;
+    `;
+
+    const StyledActions = styled('div')`
+      display: flex;
+      margin-bottom: ${space(3)};
+    `;
+
+    const eventView = EventView.fromNewQueryWithLocation(DEFAULT_EVENT_VIEW, location);
+
+    const to = {
+      pathname: location.pathname,
+      query: {
+        ...eventView.generateQueryStringObject(),
+      },
+    };
+
     return (
       <StyledActions>
-        <StyledSearchBar />
-        <Button priority="primary">{t('Build a new query')}</Button>
+        <StyledSearchBar
+          defaultQuery=""
+          query={this.getSavedQuerySearchQuery()}
+          placeholder={t('Search for saved queries')}
+          onSearch={this.handleSearchQuery}
+        />
+        <Button
+          to={to}
+          priority="primary"
+          onClick={() => {
+            trackAnalyticsEvent({
+              eventKey: 'discover_v2.prebuilt_query_click',
+              eventName: 'Discoverv2: Click a pre-built query',
+              organization_id: this.props.organization.id,
+              query_name: eventView.name,
+            });
+          }}
+        >
+          {t('Build a new query')}
+        </Button>
       </StyledActions>
     );
   }
 
-  renderNewQuery() {
+  renderQueryList() {
     const {location, organization} = this.props;
-    const {savedQueries} = this.state;
+    const {loading, savedQueries, savedQueriesPageLinks} = this.state;
+    const StyledPageHeader = styled('div')`
+      display: flex;
+      align-items: center;
+      font-size: ${p => p.theme.headerFontSize};
+      color: ${p => p.theme.gray4};
+      height: 40px;
+      margin-bottom: ${space(1)};
+    `;
 
     return (
-      <div>
+      <PageContent>
+        <StyledPageHeader>{t('Discover')}</StyledPageHeader>
         {this.renderBanner()}
-        {DISPLAY_SEARCH_BAR_FLAG && this.renderActions()}
-        <QueryList
-          savedQueries={savedQueries}
-          location={location}
-          organization={organization}
-        />
-      </div>
+        {this.renderActions()}
+        {loading && this.renderLoading()}
+        {!loading && (
+          <QueryList
+            pageLinks={savedQueriesPageLinks}
+            savedQueries={savedQueries}
+            savedQuerySearchQuery={this.getSavedQuerySearchQuery()}
+            location={location}
+            organization={organization}
+            onQueryChange={this.handleQueryChange}
+          />
+        )}
+      </PageContent>
     );
   }
 
-  renderQueryRename = (hasQuery: boolean, eventView: EventView) => {
-    if (!hasQuery) {
-      return null;
-    }
+  renderQueryBuilder(eventView: EventView) {
+    const {organization, location, router} = this.props;
+    const {savedQueries, reloading} = this.state;
+    const ContentBox = styled(PageContent)`
+      margin: 0;
 
-    const {organization} = this.props;
-    const {savedQueries} = this.state;
+      @media (min-width: ${p => p.theme.breakpoints[1]}) {
+        display: grid;
+        grid-template-rows: 1fr auto;
+        grid-template-columns: 65% auto;
+        grid-column-gap: ${space(3)};
+      }
+
+      @media (min-width: ${p => p.theme.breakpoints[2]}) {
+        grid-template-columns: auto 350px;
+      }
+    `;
+
+    const HeaderBox = styled(ContentBox)`
+      background-color: ${p => p.theme.white};
+      border-bottom: 1px solid ${p => p.theme.borderDark};
+      grid-row-gap: ${space(1)};
+    `;
+
+    const Controller = styled('div')`
+      justify-self: end;
+      grid-row: 1/3;
+      grid-column: 2/3;
+    `;
 
     return (
       <div>
-        <EventInputName
-          savedQueries={savedQueries}
-          organization={organization}
-          eventView={eventView}
-          onQuerySave={this.handleQuerySave}
-        />
-      </div>
-    );
-  };
-
-  renderBody() {
-    const {organization, location, router} = this.props;
-    const eventView = EventView.fromLocation(location);
-    const {savedQueries, reloading} = this.state;
-
-    const hasQuery = eventView.isValid();
-
-    return (
-      <React.Fragment>
-        <PageHeader>
+        <HeaderBox>
           <DiscoverBreadcrumb
             eventView={eventView}
             organization={organization}
             location={location}
           />
-          {hasQuery && (
+          <EventInputName
+            savedQueries={savedQueries}
+            organization={organization}
+            eventView={eventView}
+            onQueryChange={this.handleQueryChange}
+          />
+          <Controller>
             <SavedQueryButtonGroup
               location={location}
               organization={organization}
               eventView={eventView}
               savedQueries={savedQueries}
               savedQueriesLoading={reloading}
-              onQuerySave={this.handleQuerySave}
+              onQueryChange={this.handleQueryChange}
             />
-          )}
-        </PageHeader>
-        {this.renderQueryRename(hasQuery, eventView)}
-        {!hasQuery && this.renderNewQuery()}
-        {hasQuery && (
+          </Controller>
+        </HeaderBox>
+        <ContentBox>
           <Events
             organization={organization}
             location={location}
             router={router}
             eventView={eventView}
           />
-        )}
-      </React.Fragment>
+        </ContentBox>
+      </div>
     );
   }
 
   render() {
     const {organization, location} = this.props;
     const eventView = EventView.fromLocation(location);
+    const hasQuery = eventView.isValid();
 
     return (
       <Feature features={['events-v2']} organization={organization} renderDisabled>
@@ -243,27 +387,16 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
         >
           <React.Fragment>
             <GlobalSelectionHeader organization={organization} />
-            <PageContent>
-              <NoProjectMessage organization={organization}>
-                {super.render()}
-              </NoProjectMessage>
-            </PageContent>
+            <NoProjectMessage organization={organization}>
+              {!hasQuery && this.renderQueryList()}
+              {hasQuery && this.renderQueryBuilder(eventView)}
+            </NoProjectMessage>
           </React.Fragment>
         </SentryDocumentTitle>
       </Feature>
     );
   }
 }
-
-const StyledActions = styled('div')`
-  display: flex;
-  margin-bottom: ${space(3)};
-`;
-
-const StyledSearchBar = styled(SearchBar)`
-  margin-right: ${space(1)};
-  flex-grow: 1;
-`;
 
 export default withOrganization(DiscoverLanding);
 export {DiscoverLanding};

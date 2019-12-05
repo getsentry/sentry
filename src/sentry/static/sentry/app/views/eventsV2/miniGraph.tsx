@@ -1,14 +1,17 @@
 import React from 'react';
 import isEqual from 'lodash/isEqual';
-import omit from 'lodash/omit';
+import {Location} from 'history';
+import styled from 'react-emotion';
 
 import withApi from 'app/utils/withApi';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
 import {Client} from 'app/api';
-import {GlobalSelection, Organization} from 'app/types';
+import {Organization} from 'app/types';
 import EventsRequest from 'app/views/events/utils/eventsRequest';
 import AreaChart from 'app/components/charts/areaChart';
 import {getInterval} from 'app/components/charts/utils';
+import {getUtcToLocalDateObject} from 'app/utils/dates';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import LoadingContainer from 'app/components/loading/loadingContainer';
 
 import EventView from './eventView';
 
@@ -16,12 +19,7 @@ type Props = {
   organization: Organization;
   eventView: EventView;
   api: Client;
-  selection: GlobalSelection;
-  query: string;
-};
-
-const omitProps = (props: Props) => {
-  return omit(props, ['api']);
+  location: Location;
 };
 
 class MiniGraph extends React.Component<Props> {
@@ -30,12 +28,46 @@ class MiniGraph extends React.Component<Props> {
     // than the cost for rendering the graph, which can take ~200ms to ~300ms to
     // render.
 
-    return !isEqual(omitProps(this.props), omitProps(nextProps));
+    return !isEqual(this.getRefreshProps(this.props), this.getRefreshProps(nextProps));
+  }
+
+  getRefreshProps(props: Props) {
+    // get props that are relevant to the API payload for the graph
+
+    const {organization, location, eventView} = props;
+
+    const apiPayload = eventView.getEventsAPIPayload(location);
+
+    const query = apiPayload.query;
+    const start = apiPayload.start
+      ? getUtcToLocalDateObject(apiPayload.start)
+      : undefined;
+    const end = apiPayload.end ? getUtcToLocalDateObject(apiPayload.end) : undefined;
+    const period: string | undefined = apiPayload.statsPeriod as any;
+
+    return {
+      organization,
+      apiPayload,
+      query,
+      start,
+      end,
+      period,
+      project: eventView.project,
+      environment: eventView.environment,
+    };
   }
 
   render() {
-    const {organization, api, selection, query} = this.props;
-    const {start, end, period} = selection.datetime;
+    const {api} = this.props;
+    const {
+      query,
+      start,
+      end,
+      period,
+      organization,
+      project,
+      environment,
+    } = this.getRefreshProps(this.props);
 
     return (
       <EventsRequest
@@ -46,10 +78,17 @@ class MiniGraph extends React.Component<Props> {
         end={end}
         period={period}
         interval={getInterval({start, end, period}, true)}
+        project={project as number[]}
+        environment={environment as string[]}
+        includePrevious={false}
       >
         {({loading, timeseriesData}) => {
           if (loading) {
-            return null;
+            return (
+              <StyledLoadingContainer>
+                <LoadingIndicator mini />
+              </StyledLoadingContainer>
+            );
           }
 
           const data = (timeseriesData || []).map(series => {
@@ -103,4 +142,14 @@ class MiniGraph extends React.Component<Props> {
   }
 }
 
-export default withApi(withGlobalSelection(MiniGraph));
+const StyledLoadingContainer = styled(props => {
+  return <LoadingContainer {...props} maskBackgroundColor="transparent" />;
+})`
+  height: 100px;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+`;
+
+export default withApi(MiniGraph);

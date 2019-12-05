@@ -3,7 +3,8 @@ Generic way to sign and unsign data for use in urls.
 """
 from __future__ import absolute_import
 
-from base64 import urlsafe_b64encode, urlsafe_b64decode
+import base64
+
 from django.core.signing import TimestampSigner
 from sentry.utils.json import dumps, loads
 
@@ -11,13 +12,13 @@ SALT = "sentry-generic-signing"
 
 
 def sign(**kwargs):
-    return urlsafe_b64encode(TimestampSigner(salt=SALT).sign(dumps(kwargs))).rstrip("=")
+    return base64.urlsafe_b64encode(TimestampSigner(salt=SALT).sign(dumps(kwargs))).rstrip("=")
 
 
 def unsign(data, max_age=60 * 60 * 24 * 2):
-    padding = len(data) % 4
-    return loads(
-        TimestampSigner(salt=SALT).unsign(
-            urlsafe_b64decode(data + b"=" * (4 - padding)), max_age=max_age
-        )
-    )
+    return loads(TimestampSigner(salt=SALT).unsign(urlsafe_b64decode(data), max_age=max_age))
+
+
+def urlsafe_b64decode(b64string):
+    padded = b64string + b"=" * (4 - len(b64string) % 4)
+    return base64.urlsafe_b64decode(padded)

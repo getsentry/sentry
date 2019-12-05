@@ -11,7 +11,7 @@ from sentry.api.permissions import RelayPermission
 from sentry.api.authentication import RelayAuthentication
 from sentry.relay import config
 from sentry.models import Project, ProjectKey, Organization, OrganizationOption
-from sentry.utils import metrics
+from sentry.utils import metrics, json
 
 
 class RelayProjectConfigsEndpoint(Endpoint):
@@ -79,7 +79,10 @@ class RelayProjectConfigsEndpoint(Endpoint):
             if organization is None:
                 continue
 
+            # Try to prevent organization from being fetched again in quotas.
             project.organization = organization
+            project._organization_cache = organization
+
             org_opts = org_options.get(organization.id) or {}
 
             with Hub.current.start_span(op="get_config"):
@@ -91,6 +94,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
                         project_keys=project_keys.get(project.id, []),
                     )
 
-            configs[six.text_type(project_id)] = project_config.to_dict()
+            configs[six.text_type(project_id)] = serialized_config = project_config.to_dict()
+            metrics.timing("relay_project_configs.config_size", len(json.dumps(serialized_config)))
 
         return Response({"configs": configs}, status=200)

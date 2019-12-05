@@ -1,6 +1,10 @@
 import {extractMultilineFields} from 'app/utils';
 import {t} from 'app/locale';
 import slugify from 'app/utils/slugify';
+import {
+  STORE_CRASH_REPORTS_VALUES,
+  formatStoreCrashReports,
+} from 'app/utils/crashReports';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/';
@@ -194,12 +198,14 @@ const formGroups = [
       },
       {
         name: 'storeCrashReports',
-        type: 'boolean',
+        type: 'range',
         label: t('Store Native Crash Reports'),
         help: t(
           'Store native crash reports such as Minidumps for improved processing and download in issue details'
         ),
         visible: ({features}) => features.has('event-attachments'),
+        formatLabel: formatStoreCrashReports,
+        allowedValues: STORE_CRASH_REPORTS_VALUES,
       },
       {
         name: 'attachmentsRole',
@@ -240,9 +246,7 @@ const formGroups = [
             'Are you sure you want to allow users to request to join your organization?'
           ),
         },
-        visible: ({experiments}) =>
-          !!experiments &&
-          ['all', 'join_request'].includes(experiments.ImprovedInvitesExperiment),
+        visible: ({hasSsoEnabled}) => !hasSsoEnabled,
       },
     ],
   },

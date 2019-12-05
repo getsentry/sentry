@@ -1,10 +1,11 @@
 import partial from 'lodash/partial';
 import pick from 'lodash/pick';
+import isString from 'lodash/isString';
 import {Location, Query} from 'history';
 import {browserHistory} from 'react-router';
 
 import {t} from 'app/locale';
-import {Event} from 'app/types';
+import {Event, Organization} from 'app/types';
 import {Client} from 'app/api';
 import {getTitle} from 'app/utils/events';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
@@ -17,6 +18,8 @@ import {
   FIELD_FORMATTERS,
   FieldTypes,
   FieldFormatterRenderFunctionPartial,
+  ALL_VIEWS,
+  TRANSACTION_VIEWS,
 } from './data';
 import EventView, {Field as FieldType} from './eventView';
 import {
@@ -25,14 +28,12 @@ import {
   AGGREGATIONS,
   FIELDS,
   ColumnValueType,
-  DURATION_FIELDS,
-  DURATION_AGGREGATION_WHITELIST,
 } from './eventQueryParams';
 import {TableColumn} from './table/types';
 
 export type EventQuery = {
-  field: Array<string>;
-  project?: string;
+  field: string[];
+  project?: string | string[];
   sort?: string | string[];
   query: string;
   per_page?: number;
@@ -57,16 +58,6 @@ export function explodeField(
   const results = explodeFieldString(field.field);
 
   return {aggregation: results.aggregation, field: results.field, fieldname: field.title};
-}
-
-function isDuration(input: {aggregation: string; field: string}): boolean {
-  if (input.aggregation !== '') {
-    if (!DURATION_AGGREGATION_WHITELIST.includes(input.aggregation)) {
-      return false;
-    }
-  }
-
-  return DURATION_FIELDS.includes(input.field);
 }
 
 /**
@@ -212,12 +203,6 @@ export function getFieldRenderer(
     return partial(LINK_FORMATTERS[fieldType], fieldName);
   }
 
-  const explodedField = explodeFieldString(field);
-
-  if (isDuration(explodedField)) {
-    return partial(FIELD_FORMATTERS.duration.renderFunc, fieldName);
-  }
-
   if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
     return partial(FIELD_FORMATTERS[fieldType].renderFunc, fieldName);
   }
@@ -339,4 +324,31 @@ export function generateTitle({eventView, event}: {eventView: EventView; event?:
   titles.reverse();
 
   return titles.join(' - ');
+}
+
+export function getPrebuiltQueries(organization: Organization) {
+  let views = ALL_VIEWS;
+  if (organization.features.includes('transaction-events')) {
+    // insert transactions queries at index 2
+    const cloned = [...ALL_VIEWS];
+    cloned.splice(2, 0, ...TRANSACTION_VIEWS);
+    views = cloned;
+  }
+
+  return views;
+}
+
+export function decodeScalar(
+  value: string[] | string | undefined | null
+): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+  const unwrapped =
+    Array.isArray(value) && value.length > 0
+      ? value[0]
+      : isString(value)
+      ? value
+      : undefined;
+  return isString(unwrapped) ? unwrapped : undefined;
 }

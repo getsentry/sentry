@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from django.core import mail
 from django.core.urlresolvers import reverse
 from exam import fixture
-from mock import patch
 
 from sentry.testutils import APITestCase
 from sentry.models import (
@@ -77,8 +76,7 @@ class OrganizationInviteRequestCreateTest(APITestCase):
             kwargs={"organization_slug": self.org.slug},
         )
 
-    @patch("sentry.experiments.get", return_value="invite_request")
-    def test_simple(self, mocked_experiment):
+    def test_simple(self):
         self.login_as(user=self.user)
         with self.tasks():
             response = self.client.post(
@@ -101,8 +99,7 @@ class OrganizationInviteRequestCreateTest(APITestCase):
         assert len(teams) == 1
         assert teams[0].team_id == self.team.id
 
-    @patch("sentry.experiments.get", return_value="invite_request")
-    def test_higher_role(self, mocked_experiment):
+    def test_higher_role(self):
         self.login_as(user=self.user)
         response = self.client.post(
             self.url, {"email": "eric@localhost", "role": "owner", "teams": [self.team.slug]}
@@ -114,8 +111,7 @@ class OrganizationInviteRequestCreateTest(APITestCase):
         member = OrganizationMember.objects.get(organization=self.org, email=response.data["email"])
         assert member.role == "owner"
 
-    @patch("sentry.experiments.get", return_value="invite_request")
-    def test_existing_member(self, mocked_experiment):
+    def test_existing_member(self):
         self.login_as(user=self.user)
 
         user2 = self.create_user("foobar@example.com")
@@ -128,8 +124,7 @@ class OrganizationInviteRequestCreateTest(APITestCase):
         assert resp.status_code == 400
         assert "The user %s is already a member" % user2.email in resp.content
 
-    @patch("sentry.experiments.get", return_value="invite_request")
-    def test_existing_invite_request(self, mocked_experiment):
+    def test_existing_invite_request(self):
         self.login_as(user=self.user)
 
         invite_request = self.create_member(

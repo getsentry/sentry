@@ -334,7 +334,12 @@ SILENCED_SYSTEM_CHECKS = (
     # Django recommends to use OneToOneField over ForeignKey(unique=True)
     # however this changes application behavior in ways that break association
     # loading
-    "fields.W342"
+    "fields.W342",
+    # We have a "catch-all" react_page_view that we only want to match on URLs
+    # ending with a `/` to allow APPEND_SLASHES to kick in for the ones lacking
+    # the trailing slash. This confuses the warning as the regex is `/$` which
+    # looks like it starts with a slash but it doesn't.
+    "urls.W002",
 )
 
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, "static"))
@@ -674,7 +679,11 @@ CELERYBEAT_SCHEDULE = {
 }
 
 BGTASKS = {
-    "sentry.bgtasks.clean_dsymcache:clean_dsymcache": {"interval": 5 * 60, "roles": ["worker"]}
+    "sentry.bgtasks.clean_dsymcache:clean_dsymcache": {"interval": 5 * 60, "roles": ["worker"]},
+    "sentry.bgtasks.clean_releasefilecache:clean_releasefilecache": {
+        "interval": 5 * 60,
+        "roles": ["worker"],
+    },
 }
 
 # Sentry logs to two major places: stdout, and it's internal project.
@@ -819,6 +828,8 @@ SENTRY_FEATURES = {
     # Special feature flag primarily used on the sentry.io SAAS product for
     # easily enabling features while in early development.
     "organizations:internal-catchall": False,
+    # Enable v2 of pagerduty integration
+    "organizations:pagerduty-v2": False,
     # Enable inviting members to organizations.
     "organizations:invite-members": True,
     # Enable org-wide saved searches and user pinned search
@@ -1037,6 +1048,24 @@ SENTRY_SEARCH_OPTIONS = {}
 SENTRY_TSDB = "sentry.tsdb.dummy.DummyTSDB"
 SENTRY_TSDB_OPTIONS = {}
 
+# Event storage backend
+SENTRY_EVENTSTORE = "sentry.utils.services.ServiceDelegator"
+SENTRY_EVENTSTORE_OPTIONS = {
+    "backend_base": "sentry.eventstore.base.EventStorage",
+    "backends": {
+        "snuba": {
+            "path": "sentry.eventstore.snuba.SnubaEventStorage",
+            "executor": {"path": "sentry.utils.concurrent.SynchronousExecutor"},
+        },
+        "snuba_discover": {
+            "path": "sentry.eventstore.snuba_discover.SnubaDiscoverEventStorage",
+            "executor": {"path": "sentry.utils.services.ThreadedExecutor"},
+        },
+    },
+    "selector_func": "sentry.eventstore.utils.selector_func",
+    "callback_func": "sentry.eventstore.utils.callback_func",
+}
+
 SENTRY_NEWSLETTER = "sentry.newsletter.base.Newsletter"
 SENTRY_NEWSLETTER_OPTIONS = {}
 
@@ -1229,7 +1258,7 @@ SENTRY_ROLES = (
     },
     {
         "id": "owner",
-        "name": "Organization Owner",
+        "name": "Owner",
         "desc": "Unrestricted access to the organization, its data, and its settings. Can add, modify, and delete projects and members, as well as make billing and plan changes.",
         "is_global": True,
         "scopes": set(
@@ -1390,9 +1419,6 @@ SENTRY_DEFAULT_INTEGRATIONS = (
 )
 
 
-SENTRY_INTERNAL_INTEGRATIONS = ["pagerduty"]
-
-
 def get_sentry_sdk_config():
     return {
         "release": sentry.__build__,
@@ -1404,6 +1430,14 @@ def get_sentry_sdk_config():
 
 
 SENTRY_SDK_CONFIG = get_sentry_sdk_config()
+
+# Callable to bind additional context for the Sentry SDK
+#
+# def get_org_context(scope, organization, **kwargs):
+#    scope.set_tag('organization.cool', '1')
+#
+# SENTRY_ORGANIZATION_CONTEXT_HELPER = get_org_context
+SENTRY_ORGANIZATION_CONTEXT_HELPER = None
 
 # Config options that are explicitly disabled from Django
 DEAD = object()
