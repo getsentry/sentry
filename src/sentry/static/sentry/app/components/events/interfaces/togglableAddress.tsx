@@ -31,6 +31,24 @@ class TogglableAddress extends React.Component<Props> {
     return `+${relativeAddress}`;
   };
 
+  getAddressTooltip = () => {
+    const {isInlineFrame, isFoundByStackScanning} = this.props;
+
+    if (isInlineFrame && isFoundByStackScanning) {
+      return t('Inline frame, found by stack scanning');
+    }
+
+    if (isInlineFrame) {
+      return t('Inline frame');
+    }
+
+    if (isFoundByStackScanning) {
+      return t('Found by stack scanning');
+    }
+
+    return null;
+  };
+
   render() {
     const {
       address,
@@ -47,22 +65,18 @@ class TogglableAddress extends React.Component<Props> {
     return (
       <Address>
         {onToggle && (
-          <Tooltip
-            title={isAbsolute ? t('Absolute') : t('Relative')}
-            disabled={isInlineFrame}
-          >
-            <Toggle
-              className="icon-filter"
-              onClick={onToggle}
-              invisible={isInlineFrame}
-            />
+          <Tooltip title={isAbsolute ? t('Absolute') : t('Relative')}>
+            <Toggle className="icon-filter" onClick={onToggle} />
           </Tooltip>
         )}
 
-        <Tooltip title={t('Found by stack scanning')} disabled={!isFoundByStackScanning}>
+        <Tooltip
+          title={this.getAddressTooltip()}
+          disabled={!(isFoundByStackScanning || isInlineFrame)}
+        >
           <AddressText isFoundByStackScanning={isFoundByStackScanning}>
             {isInlineFrame ? (
-              <InlineAddressText>{t('inline')}</InlineAddressText>
+              <InlineAddressText>{formattedAddress}</InlineAddressText>
             ) : (
               formattedAddress
             )}
@@ -73,14 +87,11 @@ class TogglableAddress extends React.Component<Props> {
   }
 }
 
-type ToggleProps = {
-  invisible: boolean;
-};
-const Toggle = styled('span')<ToggleProps>`
+const Toggle = styled('span')`
   opacity: 0.33;
   margin-right: 1ex;
   cursor: pointer;
-  visibility: hidden ${p => p.invisible && '!important'};
+  visibility: hidden;
   position: relative;
   top: 1px;
 

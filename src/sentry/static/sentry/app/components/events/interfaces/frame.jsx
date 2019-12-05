@@ -182,28 +182,8 @@ export class Frame extends React.Component {
   }
 
   packageStatusIsError() {
-    return this.props.data.symbolicatorStatus !== SymbolicatorStatus.SYMBOLICATED;
-  }
-
-  packageStatusTooltip() {
-    switch (this.props.data.symbolicatorStatus) {
-      case SymbolicatorStatus.MISSING_SYMBOL:
-        return t('The symbol was not found within the debug file.');
-      case SymbolicatorStatus.UNKNOWN_IMAGE:
-        return t('No image is specified for the address of the frame.');
-      case SymbolicatorStatus.MISSING:
-        return t('The debug file could not be retrieved from any of the sources.');
-      case SymbolicatorStatus.MALFORMED:
-        return t('The retrieved debug file could not be processed.');
-      case undefined:
-      case null:
-        if (!this.props.data.function || this.props.data.function === '<unknown>') {
-          return t('No function name was supplied by the client SDK.');
-        }
-        return null;
-      default:
-        return null;
-    }
+    // TODO:
+    return Math.random() > 0.5;
   }
 
   scrollToImage = event => {
@@ -438,21 +418,42 @@ export class Frame extends React.Component {
   }
 
   getFrameHint() {
-    // [hintText, hintType]
+    // returning [hintText, hintType]
+    const {symbolicatorStatus} = this.props.data;
     const func = this.props.data.function || '<unknown>';
     const warningType = 'question';
     const errorType = 'exclamation';
+    // TODO: red color
 
     if (func.match(/^@objc\s/)) {
       return [t('Objective-C -> Swift shim frame'), warningType];
     }
     if (func === '<redacted>') {
-      return [t('Unknown system frame. Usually from beta SDKs'), errorType];
+      return [t('Unknown system frame. Usually from beta SDKs'), warningType];
     }
     if (func.match(/^__?hidden#\d+/)) {
       return [t('Hidden function from bitcode build'), errorType];
     }
-    return [null, null];
+    if (!symbolicatorStatus && func === '<unknown>') {
+      // Only render this if the event was not symbolicated.
+      return [t('No function name was supplied by the client SDK.'), warningType];
+    }
+
+    switch (symbolicatorStatus) {
+      case SymbolicatorStatus.MISSING_SYMBOL:
+        return [t('The symbol was not found within the debug file.'), warningType];
+      case SymbolicatorStatus.UNKNOWN_IMAGE:
+        return [t('No image is specified for the address of the frame.'), warningType];
+      case SymbolicatorStatus.MISSING:
+        return [
+          t('The debug file could not be retrieved from any of the sources.'),
+          errorType,
+        ];
+      case SymbolicatorStatus.MALFORMED:
+        return [t('The retrieved debug file could not be processed.'), errorType];
+      default:
+        return [null, null];
+    }
   }
 
   renderLeadHint() {
@@ -514,10 +515,7 @@ export class Frame extends React.Component {
               onClick={this.scrollToImage}
               isClickable={this.shouldShowLinkToImage()}
             >
-              <PackageStatus
-                isError={this.packageStatusIsError()}
-                tooltip={this.packageStatusTooltip()}
-              />
+              <PackageStatus isError={this.packageStatusIsError()} />
             </PackageLink>
             <TogglableAddress
               address={data.instructionAddr}
@@ -530,6 +528,13 @@ export class Frame extends React.Component {
             />
             <span className="symbol">
               <FunctionName frame={data} />{' '}
+              {hint !== null ? (
+                <Tooltip title={hint}>
+                  <a key="inline">
+                    <InlineSvg src={`icon-circle-${hintType}`} />
+                  </a>
+                </Tooltip>
+              ) : null}
               {data.filename && (
                 <Tooltip title={data.absPath} disabled={!enablePathTooltip}>
                   <span className="filename">
@@ -538,13 +543,6 @@ export class Frame extends React.Component {
                   </span>
                 </Tooltip>
               )}
-              {hint !== null ? (
-                <Tooltip title={hint}>
-                  <a key="inline">
-                    <InlineSvg src={`icon-circle-${hintType}`} />
-                  </a>
-                </Tooltip>
-              ) : null}
             </span>
           </NativeLineContent>
           {this.renderExpander()}

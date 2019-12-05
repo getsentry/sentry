@@ -34,9 +34,7 @@ class PackageLink extends React.Component<Props> {
         ) : (
           <PackageName>{'<unknown>'}</PackageName>
         )}
-
         {children}
-
         {isClickable && <LinkChevron src="icon-chevron-right" />}
       </Package>
     );
@@ -55,10 +53,10 @@ const Package = styled('a')<Partial<Props>>`
   max-width: 100%;
   display: flex;
   align-items: center;
-  flex-basis: 120px;
+  flex-basis: 137px;
   flex-grow: 0;
   flex-shrink: 0;
-  padding: 0 ${space(0.5)};
+  padding: 0 0 0 ${space(0.5)};
   color: ${p => p.theme.foreground};
   cursor: ${p => (p.isClickable ? 'pointer' : 'default')};
 
@@ -77,7 +75,7 @@ const PackageName = styled('span')`
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
-  max-width: 83px;
+  max-width: 104px;
 `;
 
 export default PackageLink;

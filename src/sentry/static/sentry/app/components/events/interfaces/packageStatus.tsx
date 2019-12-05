@@ -32,8 +32,7 @@ export const PackageStatusIcon = styled(InlineSvg)<PackageStatusIconProps>`
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.alert[p.type!].iconColor};
   margin-left: ${space(0.5)};
-  opacity: ${p => (p.type === 'success' ? 0 : 1)};
-  transform: translateY(${p => (p.type === 'success' ? 0 : '-1px')});
+  opacity: 0;
 `;
 
 export default PackageStatus;
