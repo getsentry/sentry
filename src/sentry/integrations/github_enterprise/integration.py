@@ -95,8 +95,8 @@ metadata = IntegrationMetadata(
 
 API_ERRORS = {
     404: "If this repository exists, ensure"
-    " that your installation has permission to access this repository"
-    " (https://github.com/settings/installations).",
+    + " that your installation has permission to access this repository"
+    + " (https://github.com/settings/installations).",
     401: ERR_UNAUTHORIZED,
 }
 
