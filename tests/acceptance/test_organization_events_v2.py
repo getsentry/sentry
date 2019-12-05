@@ -10,6 +10,7 @@ from datetime import timedelta
 
 from six.moves.urllib.parse import urlencode
 
+from sentry.discover.models import DiscoverSavedQuery
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.utils.samples import load_data
 from sentry.testutils.helpers.datetime import iso_format, before_now
@@ -61,7 +62,6 @@ def transactions_query(**kwargs):
 
 
 def generate_transaction():
-
     event_data = load_data("transaction")
     event_data.update({"event_id": "a" * 32})
 
@@ -147,7 +147,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super(OrganizationEventsV2Test, self).setUp()
         self.user = self.create_user("foo@example.com")
-        self.org = self.create_organization(owner=None, name="Rowdy Tiger")
+        self.org = self.create_organization(name="Rowdy Tiger")
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
@@ -377,6 +377,118 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
 
             self.browser.snapshot("events-v2 - transactions event detail view")
+
+    def test_create_saved_query(self):
+        # Simulate a custom query
+        query = {
+            "fieldnames": ["project", "count"],
+            "field": ["project.id", "count()"],
+            "query": "event.type:error",
+        }
+        query_name = "A new custom query"
+        with self.feature(FEATURE_NAMES):
+            # Go directly to the query builder view
+            self.browser.get(self.path + "?" + urlencode(query, doseq=True))
+            self.wait_until_loaded()
+
+            # Open the save as drawer
+            self.browser.element('[data-test-id="button-save-as"]').click()
+
+            # Fill out name and submit form.
+            self.browser.element('input[name="query_name"]').send_keys(query_name)
+            self.browser.element('[data-test-id="button-save-query"]').click()
+
+            self.browser.wait_until(
+                'div[name="discover2-query-name"][value="{}"]'.format(query_name)
+            )
+
+            # Page title should update.
+            title_input = self.browser.element('div[name="discover2-query-name"]')
+            assert title_input.get_attribute("value") == query_name
+        # Saved query should exist.
+        assert DiscoverSavedQuery.objects.filter(name=query_name).exists()
+
+    @pytest.mark.xfail(reason="renaming is broken right now.")
+    @patch("django.utils.timezone.now")
+    def test_view_and_rename_saved_query(self, mock_now):
+        # Create saved query to rename
+        DiscoverSavedQuery.objects.create(
+            name="Custom query",
+            organization=self.org,
+            version=2,
+            query={"fields": ["title", "project.id", "count()"], "query": "event.type:error"},
+        )
+        with self.feature(FEATURE_NAMES):
+            # View the query list
+            self.browser.get(self.path)
+            self.wait_until_loaded()
+
+            new_name = "Renamed query!"
+            input = self.browser.element('[name="discover2-query-name"]')
+            input.click()
+            input.send_keys(new_name)
+            # Move focus somewhere else to trigger a blur and update the query
+            input.parent.click()
+
+            new_card_selector = '[data-test-id="card-{}"]'.format(new_name)
+            self.browser.wait_until(new_card_selector)
+
+        # Assert the name was updated.
+        assert DiscoverSavedQuery.objects.filter(name=new_name).exists()
+
+    def test_delete_saved_query(self):
+        # Create saved query with ORM
+        query = DiscoverSavedQuery.objects.create(
+            name="Custom query",
+            organization=self.org,
+            version=2,
+            query={"fields": ["title", "project.id", "count()"], "query": "event.type:error"},
+        )
+        with self.feature(FEATURE_NAMES):
+            # View the query list
+            self.browser.get(self.path)
+            self.wait_until_loaded()
+
+            # Get the card with the new query
+            card_selector = '[data-test-id="card-{}"]'.format(query.name)
+            card = self.browser.element(card_selector)
+
+            # Open the context menu
+            card.find_element_by_css_selector('[data-test-id="context-menu"]').click()
+            # Delete the query
+            card.find_element_by_css_selector('[href="#delete-query"]').click()
+
+            # Wait for card to clear
+            self.browser.wait_until_not(card_selector)
+
+            assert DiscoverSavedQuery.objects.filter(name=query.name).exists() is False
+
+    def test_duplicate_query(self):
+        # Create saved query with ORM
+        query = DiscoverSavedQuery.objects.create(
+            name="Custom query",
+            organization=self.org,
+            version=2,
+            query={"fields": ["title", "project.id", "count()"], "query": "event.type:error"},
+        )
+        with self.feature(FEATURE_NAMES):
+            # View the query list
+            self.browser.get(self.path)
+            self.wait_until_loaded()
+
+            # Get the card with the new query
+            card_selector = '[data-test-id="card-{}"]'.format(query.name)
+            card = self.browser.element(card_selector)
+
+            # Open the context menu, and duplicate
+            card.find_element_by_css_selector('[data-test-id="context-menu"]').click()
+            card.find_element_by_css_selector('[href="#duplicate-query"]').click()
+
+            duplicate_name = "{} copy".format(query.name)
+            # Wait for new element to show up.
+            self.browser.element('[data-test-id="card-{}"]'.format(duplicate_name))
+        # Assert the new query exists and has 'copy' added to the name.
+        assert DiscoverSavedQuery.objects.filter(name=duplicate_name).exists()
 
     @pytest.mark.skip(reason="not done")
     @patch("django.utils.timezone.now")

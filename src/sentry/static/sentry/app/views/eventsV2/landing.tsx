@@ -233,18 +233,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
           placeholder={t('Search for saved queries')}
           onSearch={this.handleSearchQuery}
         />
-        <Button
-          to={to}
-          priority="primary"
-          onClick={() => {
-            trackAnalyticsEvent({
-              eventKey: 'discover_v2.prebuilt_query_click',
-              eventName: 'Discoverv2: Click a pre-built query',
-              organization_id: this.props.organization.id,
-              query_name: eventView.name,
-            });
-          }}
-        >
+        <Button data-test-id="build-new-query" to={to} priority="primary">
           {t('Build a new query')}
         </Button>
       </StyledActions>
