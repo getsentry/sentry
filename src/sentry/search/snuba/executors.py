@@ -124,7 +124,7 @@ class AbstractQueryExecutor:
         having = []
         for search_filter in search_filters:
             if (
-                # Don't filter on issue fields here, they're not available
+                # Don't filter on postgres fields here, they're not available
                 search_filter.key.name in self.postgres_only_fields
                 or
                 # We special case date
@@ -132,14 +132,15 @@ class AbstractQueryExecutor:
             ):
                 continue
             converted_filter = convert_search_filter_to_snuba_query(search_filter)
-            converted_filter, converted_name = self._transform_converted_filter(
+            converted_filter = self._transform_converted_filter(
                 search_filter, converted_filter, project_ids, environment_ids
             )
-            # Ensure that no user-generated tags that clashes with aggregation_defs is added to having
-            if converted_name in self.aggregation_defs and not search_filter.key.is_tag:
-                having.append(converted_filter)
-            else:
-                conditions.append(converted_filter)
+            if converted_filter is not None:
+                # Ensure that no user-generated tags that clashes with aggregation_defs is added to having
+                if search_filter.key.name in self.aggregation_defs and not search_filter.key.is_tag:
+                    having.append(converted_filter)
+                else:
+                    conditions.append(converted_filter)
 
         extra_aggregations = self.dependency_aggregations.get(sort_field, [])
         required_aggregations = set([sort_field, "total"] + extra_aggregations)
@@ -205,7 +206,7 @@ class AbstractQueryExecutor:
             we may want to transform the query - maybe change the value (time formats, translate value into id (like turning Release `version` into `id`) or vice versa),  alias fields, etc.
             By default, no transformation is done.
         """
-        return converted_filter, search_filter.key.name
+        return converted_filter
 
 
 class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
@@ -577,6 +578,7 @@ class SnubaOnlyQueryExecutor(AbstractQueryExecutor):
     )
     sort_strategies = {
         # TODO: If not using environment filters, could these sort methods use last_seen and first_seen from groups instead? so only add prefix conditionally?
+        # They can, but sorting is assumed to be an aggregate, baked in, so leaving events.first_seen and events.last_seen in for sorting purposes for now.
         "date": "events.last_seen",
         "freq": "times_seen",
         "new": "events.first_seen",
@@ -599,7 +601,6 @@ class SnubaOnlyQueryExecutor(AbstractQueryExecutor):
     def _transform_converted_filter(
         self, search_filter, converted_filter, project_ids=None, environment_ids=None
     ):
-        converted_name = search_filter.key.name
 
         special_date_names = ["active_at", "first_seen", "last_seen"]
         if search_filter.key.name in special_date_names:
@@ -609,20 +610,18 @@ class SnubaOnlyQueryExecutor(AbstractQueryExecutor):
             converted_filter[2] = datetime_value
 
         # TODO: There is a better way to do this...the issue is that the table/alias is forked on environments, which can't be used in constrain_column_to_dataset
-        if search_filter.key.name in ["first_seen", "last_seen"]:  # , "first_release"]:
+        if search_filter.key.name in ["first_seen", "last_seen"]:
             if environment_ids is not None:
-                # TODO: Remove as a snuba filter, since we are going to pre/post filter on Postgres?
+                # Remove as a snuba filter, since we are going to be applying this filter with pre/post filter on Postgres
                 # Since we have GroupEnvironment data that persists beyond retention, whereas Snuba only keeps events in the retention period.
-                table_alias = "events."
+                return None, None
             else:
                 table_alias = "groups."
 
             if isinstance(converted_filter[0], list):
                 converted_filter[0][1][0] = table_alias + converted_filter[0][1][0]
-                converted_name = converted_filter[0][1][0]
             else:
                 converted_filter[0] = table_alias + converted_filter[0]
-                converted_name = converted_filter[0]
 
         if search_filter.key.name == "first_release":
             # The filter's value will be the release's "version". Snuba only knows about ID. So we convert version to id here.
@@ -632,13 +631,12 @@ class SnubaOnlyQueryExecutor(AbstractQueryExecutor):
             )
             if not release:
                 # TODO: This means there will be no results and we do not need to run this query!
-                # right now it could lead to undesired results...if -1 is a real release id
-                # -1 is a number I'm hoping will never be a real release id
+                # Temp solution is to set value to -1, which should never be a real release ID.
                 converted_filter[2] = -1
             else:
                 converted_filter[2] = release[0].id
 
-        return converted_filter, converted_name
+        return converted_filter
 
     def query(
         self,
