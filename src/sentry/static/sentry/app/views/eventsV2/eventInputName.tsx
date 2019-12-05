@@ -31,7 +31,7 @@ class EventInputName extends React.Component<Props> {
   private refInput = React.createRef<InlineInput>();
 
   onBlur = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const {api, organization, savedQuery} = this.props;
+    const {api, organization, savedQuery, eventView} = this.props;
     const nextQueryName = (event.target.value || '').trim();
 
     // Do not update automatically if
@@ -61,11 +61,15 @@ class EventInputName extends React.Component<Props> {
     });
 
     handleUpdateQueryName(api, organization, nextEventView).then(
-      (updatedQuery: SavedQuery) => {
-        const view = EventView.fromSavedQuery(updatedQuery);
+      (_updatedQuery: SavedQuery) => {
+        // The current eventview may have changes that are not explicitly saved.
+        // So, we just preserve them and change its name
+        const renamedEventView = eventView.clone();
+        renamedEventView.name = nextQueryName;
+
         browserHistory.push({
           pathname: location.pathname,
-          query: view.generateQueryStringObject(),
+          query: renamedEventView.generateQueryStringObject(),
         });
       }
     );
