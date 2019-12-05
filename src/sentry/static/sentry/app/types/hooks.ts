@@ -45,7 +45,6 @@ export type RouteHooks = {
  * Component wrapping hooks
  */
 export type ComponentHooks = {
-  'component:org-members-view': GenericComponentHook;
   'component:header-date-range': GenericComponentHook;
   'component:header-selector-items': GenericComponentHook;
 };
