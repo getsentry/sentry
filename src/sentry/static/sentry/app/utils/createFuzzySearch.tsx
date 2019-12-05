@@ -4,10 +4,10 @@ export function loadFuzzySearch() {
   return import(/* webpackChunkName: "Fuse" */ 'fuse.js');
 }
 
-export function createFuzzySearch(
-  objects: any[],
-  options: Fuse.FuseOptions = {}
-): Promise<Fuse> {
+export function createFuzzySearch<
+  T = string,
+  Options extends Fuse.FuseOptions<T> = Fuse.FuseOptions<T>
+>(objects: any[], options: Options): Promise<Fuse<T, Options>> {
   if (!options.keys) {
     throw new Error('You need to define `options.keys`');
   }
