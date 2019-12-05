@@ -6,13 +6,8 @@ from collections import namedtuple
 from copy import deepcopy
 from datetime import datetime
 
-from sentry.api.event_search import (
-    TAG_KEY_RE,
-    get_filter,
-    resolve_field_list,
-    find_reference_event,
-    InvalidSearchQuery,
-)
+from sentry.api.event_search import TAG_KEY_RE, get_filter, resolve_field_list, InvalidSearchQuery
+from sentry.models import Project, ProjectStatus
 from sentry.snuba.events import get_columns_from_aliases
 from sentry.utils.snuba import (
     Dataset,
@@ -28,6 +23,34 @@ from sentry.utils.snuba import (
 ReferenceEvent = namedtuple("ReferenceEvent", ["organization", "slug", "fields"])
 
 
+def find_reference_event(reference):
+    try:
+        project_slug, event_id = reference.slug.split(":")
+    except ValueError:
+        raise InvalidSearchQuery("Invalid reference event")
+    try:
+        project = Project.objects.get(
+            slug=project_slug, organization=reference.organization, status=ProjectStatus.VISIBLE
+        )
+    except Project.DoesNotExist:
+        raise InvalidSearchQuery("Invalid reference event")
+
+    column_names = [c.value.discover_name for c in get_columns_from_aliases(reference.fields)]
+    # We don't need to run a query if there are no columns
+    if not column_names:
+        return None
+
+    reference_event = raw_query(
+        selected_columns=column_names,
+        filter_keys={"project_id": [project.id], "event_id": [event_id]},
+        dataset=Dataset.Discover,
+    )
+    if "error" in reference_event or len(reference_event["data"]) != 1:
+        raise InvalidSearchQuery("Invalid reference event")
+
+    return reference_event["data"][0]
+
+
 def create_reference_event_conditions(reference):
     """
     Create a list of conditions based on a Reference object.
@@ -38,11 +61,12 @@ def create_reference_event_conditions(reference):
 
     reference (Reference) The reference event to build conditions from.
     """
-    columns = get_columns_from_aliases(reference.fields)
-    event_data = find_reference_event(reference.organization, reference.slug, columns)
-
     conditions = []
     tags = {}
+    event_data = find_reference_event(reference)
+    if event_data is None:
+        return conditions
+
     if "tags.key" in event_data and "tags.value" in event_data:
         tags = dict(zip(event_data["tags.key"], event_data["tags.value"]))
 

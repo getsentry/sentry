@@ -498,18 +498,18 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
             )
         assert "no aggregation" in six.text_type(err)
 
-    @pytest.mark.xfail(
-        reason="Field aliases only work on transactions which does not have timeseries support yet."
-    )
     def test_field_alias(self):
-        assert False
         result = discover.timeseries_query(
             selected_columns=["p95"],
             query="event.type:transaction transaction:api.issue.delete",
-            params={"project_id": [self.project.id]},
-            rollup=1800,
+            params={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
+                "project_id": [self.project.id],
+            },
+            rollup=3600,
         )
-        assert len(result.data["data"]) == 2
+        assert len(result.data) == 3
 
     def test_aggregate_function(self):
         result = discover.timeseries_query(
@@ -578,8 +578,14 @@ class CreateReferenceEventConditionsTest(SnubaTestCase, TestCase):
     def test_unknown_event(self):
         with pytest.raises(InvalidSearchQuery):
             slug = "{}:deadbeef".format(self.project.slug)
-            ref = discover.ReferenceEvent(self.organization, slug, [])
+            ref = discover.ReferenceEvent(self.organization, slug, ["message"])
             discover.create_reference_event_conditions(ref)
+
+    def test_unknown_event_and_no_fields(self):
+        slug = "{}:deadbeef".format(self.project.slug)
+        ref = discover.ReferenceEvent(self.organization, slug, [])
+        result = discover.create_reference_event_conditions(ref)
+        assert len(result) == 0
 
     def test_no_fields(self):
         event = self.store_event(
