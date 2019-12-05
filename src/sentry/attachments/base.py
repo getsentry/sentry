@@ -23,11 +23,7 @@ class CachedAttachment(object):
         data=None,
         chunks=None,
         cache=None,
-        meta_only=False,
     ):
-        if data is None and cache is None and not meta_only:
-            raise AttributeError("Missing attachment data")
-
         self.key = key
         self.id = id
 
@@ -49,20 +45,24 @@ class CachedAttachment(object):
     @property
     def data(self):
         if self._data is None and self._cache is not None:
-            assert self.id is not None
-
-            if self.chunks is None:
-                self._data = self._cache.get_unchunked_data(key=self.key, id=self.id)
-            else:
-                data = []
-                for chunk_index in range(self.chunks):
-                    data.append(
-                        self._cache.get_chunk(key=self.key, id=self.id, chunk_index=chunk_index)
-                    )
-
-                self._data = b"".join(data)
+            self._data = self._cache.get_data(self)
+            self._cache = None
 
         return self._data
+
+    @property
+    def chunk_keys(self):
+        assert self.key is not None
+        assert self.id is not None
+
+        if self.chunks is None:
+            yield ATTACHMENT_UNCHUNKED_DATA_KEY.format(key=self.key, id=self.id)
+            return
+
+        for chunk_index in range(self.chunks):
+            yield ATTACHMENT_DATA_CHUNK_KEY.format(
+                key=self.key, id=self.id, chunk_index=chunk_index
+            )
 
     def meta(self):
         return prune_empty_keys(
@@ -88,6 +88,9 @@ class BaseAttachmentCache(object):
             # are risking collision when using Relay.
             if attachment.id is None:
                 attachment.id = id
+
+            if attachment.key is None:
+                attachment.key = key
 
             metrics_tags = {"type": attachment.type}
             self.set_unchunked_data(
@@ -120,40 +123,23 @@ class BaseAttachmentCache(object):
 
     def get(self, key):
         result = self.inner.get(ATTACHMENT_META_KEY.format(key=key), raw=False)
-        if result is not None:
-            rv = []
-            for id, attachment in enumerate(result):
-                attachment.setdefault("id", id)
-                rv.append(CachedAttachment(cache=self, key=key, **attachment))
 
-            return rv
+        for id, attachment in enumerate(result or ()):
+            attachment.setdefault("id", id)
+            attachment.setdefault("key", key)
+            yield CachedAttachment(cache=self, **attachment)
 
-        return result
+    def get_data(self, attachment):
+        data = []
 
-    def get_chunk(self, key, id, chunk_index):
-        key = ATTACHMENT_DATA_CHUNK_KEY.format(key=key, id=id, chunk_index=chunk_index)
-        return zlib.decompress(self.inner.get(key, raw=True))
+        for key in attachment.chunk_keys:
+            data.append(zlib.decompress(self.inner.get(key, raw=True)))
 
-    def get_unchunked_data(self, key, id):
-        key = ATTACHMENT_UNCHUNKED_DATA_KEY.format(key=key, id=id)
-        result = self.inner.get(key, raw=True)
-        if result is None:
-            return result
-        return zlib.decompress(result)
+        return b"".join(data)
 
     def delete(self, key):
-        attachments = self.inner.get(ATTACHMENT_META_KEY.format(key=key), raw=False)
-        if attachments is None:
-            return
+        for attachment in self.get(key):
+            for k in attachment.chunk_keys:
+                self.inner.delete(k)
 
-        for id, attachment in enumerate(attachments):
-            chunks = attachment.get("chunks")
-            if chunks is None:
-                self.inner.delete(ATTACHMENT_UNCHUNKED_DATA_KEY.format(key=key, id=id))
-            else:
-                for chunk_index in range(chunks):
-                    self.inner.delete(
-                        ATTACHMENT_DATA_CHUNK_KEY.format(key=key, id=id, chunk_index=chunk_index)
-                    )
-
-        self.inner.delete(key)
+        self.inner.delete(ATTACHMENT_META_KEY.format(key=key))

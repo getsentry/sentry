@@ -103,16 +103,12 @@ def process_event(message):
     default_cache.set(cache_key, data, CACHE_TIMEOUT)
 
     if attachments:
-        attachment_cache.set(
-            cache_key,
-            attachments=[
-                CachedAttachment(
-                    type=attachment.pop("attachment_type"), meta_only=True, **attachment
-                )
-                for attachment in attachments
-            ],
-            timeout=CACHE_TIMEOUT,
-        )
+        attachment_objects = [
+            CachedAttachment(type=attachment.pop("attachment_type"), **attachment)
+            for attachment in attachments
+        ]
+
+        attachment_cache.set(cache_key, attachments=attachment_objects, timeout=CACHE_TIMEOUT)
 
     # Preprocess this event, which spawns either process_event or
     # save_event. Pass data explicitly to avoid fetching it again from the
