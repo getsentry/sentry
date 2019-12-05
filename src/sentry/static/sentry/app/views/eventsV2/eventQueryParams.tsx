@@ -38,10 +38,6 @@ export const AGGREGATIONS = {
     type: ['timestamp', 'duration'],
     isSortable: true,
   },
-  sum: {
-    type: ['duration'],
-    isSortable: true,
-  },
   avg: {
     type: ['duration'],
     isSortable: true,
