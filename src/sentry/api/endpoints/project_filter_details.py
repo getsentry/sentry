@@ -6,7 +6,6 @@ from sentry import message_filters
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models.auditlogentry import AuditLogEntryEvent
-import six
 
 
 class ProjectFilterDetailsEndpoint(ProjectEndpoint):
@@ -38,16 +37,10 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
         audit_log_state = AuditLogEntryEvent.PROJECT_ENABLE
 
         if filter_id == "legacy-browsers":
-            if (
-                isinstance(current_state, bool)
-                or new_state == 0
-                or isinstance(new_state, six.binary_type)
-            ):
+            if isinstance(current_state, bool) or isinstance(new_state, bool):
                 returned_state = new_state
-
-                if isinstance(new_state, six.binary_type):
+                if not new_state:
                     audit_log_state = AuditLogEntryEvent.PROJECT_DISABLE
-                    returned_state = current_state
 
             elif current_state - new_state:
                 returned_state = current_state - new_state
