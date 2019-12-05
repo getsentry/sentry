@@ -127,10 +127,10 @@ export default class Events extends React.Component<EventsProps> {
             })}
           </Panel>
         </Top>
-        <Main>
+        <Main eventView={eventView}>
           <Table organization={organization} eventView={eventView} location={location} />
         </Main>
-        <Side>{this.renderTagsTable()}</Side>
+        <Side eventView={eventView}>{this.renderTagsTable()}</Side>
       </React.Fragment>
     );
   }
@@ -144,10 +144,10 @@ const Top = styled('div')`
   grid-column: 1/3;
 `;
 
-const Main = styled('div')`
-  grid-column: 1/2;
+const Main = styled('div')<{eventView: EventView}>`
+  grid-column: ${p => (p.eventView.tags.length <= 0 ? '1/3' : '1/2')};
 `;
 
-const Side = styled('div')`
-  grid-column: 2/3;
+const Side = styled('div')<{eventView: EventView}>`
+  grid-column: ${p => (p.eventView.tags.length <= 0 ? 'none' : '2/3')};
 `;
