@@ -1,5 +1,6 @@
 import isString from 'lodash/isString';
 import CHART_PALETTE from 'app/constants/chartPalette';
+import {ParsedTraceType, SpanType} from './types';
 
 type Rect = {
   // x and y are left/top coords respectively
@@ -299,3 +300,17 @@ export const setBodyUserSelect = (nextValues: UserSelectValues): UserSelectValue
 
   return previousValues;
 };
+
+export function generateRootSpan(trace: ParsedTraceType): SpanType {
+  const rootSpan: SpanType = {
+    trace_id: trace.traceID,
+    span_id: trace.rootSpanID,
+    parent_span_id: trace.parentSpanID,
+    start_timestamp: trace.traceStartTimestamp,
+    timestamp: trace.traceEndTimestamp,
+    op: trace.op,
+    data: {},
+  };
+
+  return rootSpan;
+}
