@@ -4,7 +4,6 @@ import {Location} from 'history';
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import GridEditable from 'app/components/gridEditable';
-import {t} from 'app/locale';
 import {
   tokenizeSearch,
   stringifyQueryObject,
