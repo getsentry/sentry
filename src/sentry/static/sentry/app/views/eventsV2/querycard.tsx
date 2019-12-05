@@ -38,11 +38,13 @@ class QueryCard extends React.PureComponent<Props> {
     } = this.props;
 
     return (
-      <StyledQueryCard onClick={this.handleClick}>
+      <StyledQueryCard data-test-id={`card-${title}`} onClick={this.handleClick}>
         <QueryCardHeader>
           <StyledTitle>{title}</StyledTitle>
           <StyledQueryDetail>{queryDetail}</StyledQueryDetail>
-          {starred ? <StyledInlineSvg src="icon-star-small-filled" /> : null}
+          {starred ? (
+            <StyledInlineSvg data-test-id="is-saved-query" src="icon-star-small-filled" />
+          ) : null}
         </QueryCardHeader>
         <QueryCardBody>{renderGraph()}</QueryCardBody>
         <QueryCardFooter>

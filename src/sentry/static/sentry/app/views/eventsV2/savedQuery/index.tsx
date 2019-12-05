@@ -203,6 +203,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
         menuWidth="220px"
         button={({isOpen, getActorProps}) => (
           <ButtonSaveAs
+            data-test-id="button-save-as"
             {...getActorProps({isStyled: true})}
             isOpen={isOpen}
             showChevron={false}
@@ -219,12 +220,14 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
         <ButtonSaveDropDown onClick={SavedQueryButtonGroup.stopEventPropagation}>
           <ButtonSaveInput
             type="text"
+            name="query_name"
             placeholder={t('Display name')}
             value={queryName || ''}
             onBlur={this.onBlurInput}
             onChange={this.onChangeInput}
           />
           <Button
+            data-test-id="button-save-query"
             onClick={this.handleCreateQuery}
             priority="primary"
             disabled={!this.state.queryName}
