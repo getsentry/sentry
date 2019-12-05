@@ -67,6 +67,4 @@ def create_batching_kafka_consumer(topic_name, worker, **options):
         **options
     )
 
-    atexit.register(consumer.signal_shutdown)
-
     return consumer

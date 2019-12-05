@@ -1,6 +1,5 @@
 from __future__ import absolute_import, print_function
 
-import atexit
 import sys
 from multiprocessing import cpu_count
 
@@ -355,8 +354,6 @@ def query_subscription_consumer(**options):
         commit_batch_size=options["commit_batch_size"],
         initial_offset_reset=options["initial_offset_reset"],
     )
-
-    atexit.register(subscriber.shutdown)
 
     subscriber.run()
 

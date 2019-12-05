@@ -97,10 +97,10 @@ class QuerySubscriptionConsumer(object):
                 if i % self.commit_batch_size == 0:
                     logger.debug("Committing offsets")
                     self.commit_offsets()
-        except KeyboardInterrupt:
+        except (SystemExit, KeyboardInterrupt):
             pass
-
-        self.shutdown()
+        finally:
+            self.shutdown()
 
     def commit_offsets(self):
         if self.offsets and self.consumer:

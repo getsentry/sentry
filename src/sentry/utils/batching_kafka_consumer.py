@@ -128,8 +128,6 @@ class BatchingKafkaConsumer(object):
         self.__metrics_default_tags = metrics_default_tags or {}
         self.group_id = group_id
 
-        self.shutdown = False
-
         self.__batch_results = []
         self.__batch_offsets = {}  # (topic, partition) = [low, high]
         self.__batch_deadline = None
@@ -208,10 +206,13 @@ class BatchingKafkaConsumer(object):
         "The main run loop, see class docstring for more information."
 
         logger.debug("Starting")
-        while not self.shutdown:
-            self._run_once()
-
-        self._shutdown()
+        try:
+            while true:
+                self._run_once()
+        except (KeyboardInterrupt, SystemExit):
+            logger.debug("System shutdown detected")
+        finally:
+            self._shutdown()
 
     def _run_once(self):
         self._flush()
@@ -230,13 +231,6 @@ class BatchingKafkaConsumer(object):
                 raise Exception(msg.error())
 
         self._handle_message(msg)
-
-    def signal_shutdown(self):
-        """Tells the `BatchingKafkaConsumer` to shutdown on the next run loop iteration.
-        Typically called from a signal handler."""
-        logger.debug("Shutdown signalled")
-
-        self.shutdown = True
 
     def _handle_message(self, msg):
         start = time.time()
