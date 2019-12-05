@@ -19,6 +19,24 @@ export function fetchSavedQueries(api: Client, orgId: string): Promise<SavedQuer
   return promise;
 }
 
+export function fetchSavedQuery(
+  api: Client,
+  orgId: string,
+  queryId: string
+): Promise<SavedQuery> {
+  const promise: Promise<SavedQuery> = api.requestPromise(
+    `/organizations/${orgId}/discover/saved/${queryId}/`,
+    {
+      method: 'GET',
+    }
+  );
+
+  promise.catch(() => {
+    addErrorMessage(t('Unable to load saved query'));
+  });
+  return promise;
+}
+
 export function createSavedQuery(
   api: Client,
   orgId: string,

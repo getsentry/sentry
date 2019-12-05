@@ -1177,6 +1177,13 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
             <Route
+              path="results/"
+              componentPromise={() =>
+                import(/* webpackChunkName: "DiscoverV2Results" */ 'app/views/eventsV2/results')
+              }
+              component={errorHandler(LazyLoad)}
+            />
+            <Route
               path=":eventSlug/"
               componentPromise={() =>
                 import(/* webpackChunkName: "DiscoverV2Details" */ 'app/views/eventsV2/eventDetails')

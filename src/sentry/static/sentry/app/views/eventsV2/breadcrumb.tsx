@@ -44,7 +44,7 @@ class DiscoverBreadcrumb extends React.Component<Props> {
 
     if (eventView && eventView.isValid()) {
       const eventTarget = {
-        pathname: `/organizations/${organization.slug}/eventsv2/`,
+        pathname: `/organizations/${organization.slug}/eventsv2/results/`,
         query: eventView.generateQueryStringObject(),
       };
 
