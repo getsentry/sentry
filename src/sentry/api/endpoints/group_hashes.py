@@ -4,12 +4,11 @@ from functools import partial
 
 from rest_framework.response import Response
 
-from sentry import eventstore
 from sentry.api.base import DocSection
 from sentry.api.bases import GroupEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, serialize
-from sentry.models import Group, GroupHash
+from sentry.models import Group, GroupHash, SnubaEvent
 from sentry.tasks.unmerge import unmerge
 from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.utils.snuba import raw_query
@@ -80,14 +79,14 @@ class GroupHashesEndpoint(GroupEndpoint):
         return [self.__handle_result(user, project_id, group_id, result) for result in results]
 
     def __handle_result(self, user, project_id, group_id, result):
-        event = eventstore.from_data(
-            event_id=result["event_id"],
-            project_id=project_id,
-            group_id=group_id,
-            data={"timestamp": result["latest_event_timestamp"], "event_id": result["event_id"]},
-        )
+        event = {
+            "timestamp": result["latest_event_timestamp"],
+            "event_id": result["event_id"],
+            "group_id": group_id,
+            "project_id": project_id,
+        }
 
         return {
             "id": result["primary_hash"],
-            "latestEvent": serialize(event, user, EventSerializer()),
+            "latestEvent": serialize(SnubaEvent(event), user, EventSerializer()),
         }
