@@ -15,6 +15,7 @@ import Tooltip from 'app/components/tooltip';
 import DebugMetaStore, {DebugMetaActions} from 'app/stores/debugMetaStore';
 import SearchInput from 'app/components/forms/searchInput';
 import {formatAddress, parseAddress} from 'app/components/events/interfaces/utils';
+import ImageForBar from 'app/components/events/interfaces/imageForBar';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 
@@ -295,6 +296,7 @@ class DebugMetaInterface extends React.PureComponent {
       filter: null,
       showUnused: false,
       showDetails: false,
+      frames: [],
     };
   }
 
@@ -307,6 +309,7 @@ class DebugMetaInterface extends React.PureComponent {
   onStoreChange = store => {
     this.setState({
       filter: store.filter,
+      frames: store.frames,
     });
   };
 
@@ -363,7 +366,7 @@ class DebugMetaInterface extends React.PureComponent {
   };
 
   handleChangeFilter = e => {
-    DebugMetaActions.updateFilter(e.target.value);
+    DebugMetaActions.updateFilter(e.target.value || '');
   };
 
   isValidImage(image) {
@@ -448,6 +451,10 @@ class DebugMetaInterface extends React.PureComponent {
       </div>
     );
 
+    const foundFrame = this.state.frames.find(
+      frame => frame.instructionAddr === this.state.filter
+    );
+
     return (
       <EventDataSection
         event={this.props.event}
@@ -457,6 +464,9 @@ class DebugMetaInterface extends React.PureComponent {
       >
         <DebugImagesPanel>
           <PanelBody>
+            {foundFrame && (
+              <ImageForBar frame={foundFrame} onShowAllImages={this.handleChangeFilter} />
+            )}
             {filteredImages.length > 0 ? (
               filteredImages.map(image => (
                 <DebugImage

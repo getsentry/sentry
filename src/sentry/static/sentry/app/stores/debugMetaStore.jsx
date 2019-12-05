@@ -63,6 +63,7 @@ const DebugMetaStore = Reflux.createStore({
     return {
       filter: this.filter,
       images: this.images,
+      frames: this.frames,
       maxLengthOfRelativeAddress: this.calculateMaxLengthOfRelativeAddress(),
     };
   },

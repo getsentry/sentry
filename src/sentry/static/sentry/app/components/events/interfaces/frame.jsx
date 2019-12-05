@@ -34,7 +34,7 @@ export function trimPackage(pkg) {
   return filename.replace(/\.(dylib|so|a|dll|exe)$/, '');
 }
 
-class FunctionName extends React.Component {
+export class FunctionName extends React.Component {
   static propTypes = {
     frame: PropTypes.object,
   };
