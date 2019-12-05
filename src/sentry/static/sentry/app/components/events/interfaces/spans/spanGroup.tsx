@@ -16,6 +16,7 @@ type PropType = {
   spanNumber: number;
   isLast: boolean;
   isRoot?: boolean;
+  isCurrentSpanFilteredOut: boolean;
 };
 
 type State = {
@@ -55,6 +56,7 @@ class SpanGroup extends React.Component<PropType, State> {
       generateBounds,
       treeDepth,
       spanNumber,
+      isCurrentSpanFilteredOut,
     } = this.props;
 
     return (
@@ -72,6 +74,7 @@ class SpanGroup extends React.Component<PropType, State> {
           spanNumber={spanNumber}
           isLast={isLast}
           isRoot={isRoot}
+          isCurrentSpanFilteredOut={isCurrentSpanFilteredOut}
         />
         {this.renderSpanChildren()}
       </React.Fragment>

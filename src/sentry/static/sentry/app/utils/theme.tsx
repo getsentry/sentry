@@ -192,6 +192,7 @@ const theme = {
   zIndex: {
     traceView: {
       spanTreeToggler: 900,
+      rowInfoMessage: 900,
       dividerLine: 909,
       minimapContainer: 999,
     },
