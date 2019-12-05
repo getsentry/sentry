@@ -26,7 +26,7 @@ function getImageRange(image) {
   // The start address is normalized to a `0x` prefixed hex string. The event
   // schema also allows ingesting plain numbers, but this is converted during
   // ingestion.
-  const startAddress = parseAddress(image.image_addr, IMAGE_ADDR_LEN);
+  const startAddress = parseAddress(image.image_addr);
 
   // The image size is normalized to a regular number. However, it can also be
   // `null`, in which case we assume that it counts up to the next image.

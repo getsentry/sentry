@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 
 import {FunctionName} from 'app/components/events/interfaces/frame';
@@ -10,22 +11,24 @@ type Props = {
   onShowAllImages: () => void;
 };
 
-class ImageForBar extends React.Component<Props> {
-  render() {
-    const {frame, onShowAllImages} = this.props;
-    return (
-      <Wrapper>
-        <MatchedFunctionWrapper>
-          <MatchedFunctionCaption>{t('Image for: ')}</MatchedFunctionCaption>
-          <FunctionName frame={frame} />
-        </MatchedFunctionWrapper>
-        <ResetAddressFilterCaption onClick={onShowAllImages}>
-          {t('Show all images')}
-        </ResetAddressFilterCaption>
-      </Wrapper>
-    );
-  }
-}
+const ImageForBar: React.FC<Props> = ({frame, onShowAllImages}) => {
+  return (
+    <Wrapper>
+      <MatchedFunctionWrapper>
+        <MatchedFunctionCaption>{t('Image for: ')}</MatchedFunctionCaption>
+        <FunctionName frame={frame} />
+      </MatchedFunctionWrapper>
+      <ResetAddressFilterCaption onClick={onShowAllImages}>
+        {t('Show all images')}
+      </ResetAddressFilterCaption>
+    </Wrapper>
+  );
+};
+
+ImageForBar.propTypes = {
+  frame: PropTypes.object.isRequired,
+  onShowAllImages: PropTypes.func.isRequired,
+};
 
 const Wrapper = styled('div')`
   display: flex;

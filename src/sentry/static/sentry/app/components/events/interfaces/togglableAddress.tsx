@@ -17,7 +17,7 @@ type Props = {
 };
 
 class TogglableAddress extends React.Component<Props> {
-  convertAbsoluteAddressToRelative = () => {
+  convertAbsoluteAddressToRelative() {
     const {startingAddress, address, maxLengthOfRelativeAddress} = this.props;
     if (!startingAddress) {
       return '';
@@ -29,9 +29,9 @@ class TogglableAddress extends React.Component<Props> {
     );
 
     return `+${relativeAddress}`;
-  };
+  }
 
-  getAddressTooltip = () => {
+  getAddressTooltip() {
     const {isInlineFrame, isFoundByStackScanning} = this.props;
 
     if (isInlineFrame && isFoundByStackScanning) {
@@ -47,7 +47,7 @@ class TogglableAddress extends React.Component<Props> {
     }
 
     return null;
-  };
+  }
 
   render() {
     const {
