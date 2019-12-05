@@ -51,7 +51,7 @@ class PagerDutyPlugin(CorePluginMixin, NotifyPlugin):
 
         description = event.get_legacy_message()[:1024]
 
-        tags = dict(event.get_tags())
+        tags = dict(event.tags)
         details = {
             "event_id": event.event_id,
             "project": group.project.name,
