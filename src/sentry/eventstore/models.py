@@ -56,6 +56,6 @@ class Event(EventCommon):
 
     def save(self):
         """
-        Saves event to nodestore.
+        Saves event to nodestore. Should also insert event to Eventstream in future.
         """
         self._data.save()
