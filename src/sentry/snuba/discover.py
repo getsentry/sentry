@@ -4,7 +4,6 @@ import six
 
 from collections import namedtuple
 from copy import deepcopy
-from datetime import datetime
 
 from sentry.api.event_search import TAG_KEY_RE, get_filter, resolve_field_list, InvalidSearchQuery
 from sentry.models import Project, ProjectStatus
@@ -282,16 +281,16 @@ def timeseries_query(selected_columns, query, params, rollup, reference=None, re
     referrer (str|None) A referrer string to help locate the origin of this query.
     """
     snuba_filter = get_filter(query, params)
-
-    # Use fallbacks for date filters as zerofill() depends on dates.
     snuba_args = {
-        "start": snuba_filter.start or datetime.utcfromtimestamp(0),
-        "end": snuba_filter.end or datetime.utcnow(),
+        "start": snuba_filter.start,
+        "end": snuba_filter.end,
         "conditions": snuba_filter.conditions,
         "filter_keys": snuba_filter.filter_keys,
     }
-    snuba_args.update(resolve_field_list(selected_columns, snuba_args, auto_fields=False))
+    if not snuba_args["start"] and not snuba_args["end"]:
+        raise InvalidSearchQuery("Cannot get timeseries result without a start and end.")
 
+    snuba_args.update(resolve_field_list(selected_columns, snuba_args, auto_fields=False))
     if reference:
         ref_conditions = create_reference_event_conditions(reference)
         if ref_conditions:

@@ -488,12 +488,26 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
                 rollup=1800,
             )
 
+    def test_missing_start_and_end(self):
+        with pytest.raises(InvalidSearchQuery) as err:
+            discover.timeseries_query(
+                selected_columns=["count()"],
+                query="transaction:api.issue.delete",
+                params={"project_id": [self.project.id]},
+                rollup=1800,
+            )
+        assert "without a start and end" in six.text_type(err)
+
     def test_no_aggregations(self):
         with pytest.raises(InvalidSearchQuery) as err:
             discover.timeseries_query(
                 selected_columns=["transaction", "title"],
                 query="transaction:api.issue.delete",
-                params={"project_id": [self.project.id]},
+                params={
+                    "start": self.day_ago,
+                    "end": self.day_ago + timedelta(hours=2),
+                    "project_id": [self.project.id],
+                },
                 rollup=1800,
             )
         assert "no aggregation" in six.text_type(err)
