@@ -8,6 +8,7 @@ import LineChart from 'app/components/charts/lineChart';
 import {Panel, PanelBody, PanelHeader, PanelFooter} from 'app/components/panels';
 import BarChart from 'app/components/charts/barChart';
 import Link from 'app/components/links/link';
+import DateTime from 'app/components/dateTime';
 
 import space from 'app/styles/space';
 import {t} from 'app/locale';
@@ -62,11 +63,18 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
   }
 
   renderInstallData() {
-    const {totalUninstalls, totalInstalls} = this.state.stats;
+    const {app, stats} = this.state;
+    const {totalUninstalls, totalInstalls} = stats;
     return (
       <React.Fragment>
         <h5>{t('Installation & Interaction Data')}</h5>
         <Row>
+          {app.datePublished ? (
+            <StatsSection>
+              <StatsHeader>{t('Date published')}</StatsHeader>
+              <DateTime dateOnly date={app.datePublished} />
+            </StatsSection>
+          ) : null}
           <StatsSection>
             <StatsHeader>{t('Total installs')}</StatsHeader>
             <p>{totalInstalls}</p>
@@ -236,7 +244,7 @@ const Row = styled('div')`
 `;
 
 const StatsSection = styled('div')`
-  margin-right: ${space(2)};
+  margin-right: ${space(4)};
 `;
 const StatsHeader = styled('h6')`
   margin-bottom: ${space(1)};

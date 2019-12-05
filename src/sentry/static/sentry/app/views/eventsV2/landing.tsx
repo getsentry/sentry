@@ -4,6 +4,8 @@ import styled from 'react-emotion';
 import * as ReactRouter from 'react-router';
 import {Params} from 'react-router/lib/Router';
 import {Location} from 'history';
+import pick from 'lodash/pick';
+import isEqual from 'lodash/isEqual';
 
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -16,7 +18,7 @@ import GlobalSelectionHeader from 'app/components/organizations/globalSelectionH
 import Banner from 'app/components/banner';
 import Button from 'app/components/button';
 import Feature from 'app/components/acl/feature';
-import SearchBar from 'app/views/events/searchBar';
+import SearchBar from 'app/components/searchBar';
 import NoProjectMessage from 'app/components/noProjectMessage';
 
 import {PageContent} from 'app/styles/organization';
@@ -30,9 +32,8 @@ import EventInputName from './eventInputName';
 import {DEFAULT_EVENT_VIEW} from './data';
 import QueryList from './queryList';
 import DiscoverBreadcrumb from './breadcrumb';
-import {getPrebuiltQueries, generateTitle} from './utils';
+import {getPrebuiltQueries, generateTitle, decodeScalar} from './utils';
 
-const DISPLAY_SEARCH_BAR_FLAG = false;
 const BANNER_DISMISSED_KEY = 'discover-banner-dismissed';
 
 function checkIsBannerHidden(): boolean {
@@ -47,6 +48,7 @@ type Props = {
 } & AsyncComponent['props'];
 
 type State = {
+  isBannerHidden: boolean;
   savedQueries: SavedQuery[];
   savedQueriesPageLinks: string;
 } & AsyncComponent['state'];
@@ -58,11 +60,14 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     router: PropTypes.object.isRequired,
   };
 
-  state = {
+  state: State = {
+    // AsyncComponent state
     loading: true,
     reloading: false,
     error: false,
     errors: [],
+
+    // local component state
     isBannerHidden: checkIsBannerHidden(),
     savedQueries: [],
     savedQueriesPageLinks: '',
@@ -70,23 +75,47 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
 
   shouldReload = true;
 
+  getSavedQuerySearchQuery(): string {
+    const {location} = this.props;
+
+    return String(decodeScalar(location.query.query) || '').trim();
+  }
+
   getEndpoints(): [string, string, any][] {
     const {organization, location} = this.props;
+
     const views = getPrebuiltQueries(organization);
-    const cursor = location.query.cursor;
-    // XXX(mark) Pagination here is a bit wonky as we include the pre-built queries
-    // on the first page and aim to always have 9 results showing. If there are more than
-    // 9 pre-built queries we'll have more results on the first page. Furthermore, going
-    // back and forth between the first and second page is non-determinsitic due to the shifting
-    // per_page value.
+    const searchQuery = this.getSavedQuerySearchQuery();
+
+    const cursor = decodeScalar(location.query.cursor);
     let perPage = 9;
     if (!cursor) {
-      perPage = Math.max(1, perPage - views.length);
+      // invariant: we're on the first page
+
+      if (searchQuery && searchQuery.length > 0) {
+        const needleSearch = searchQuery.toLowerCase();
+
+        const numOfPrebuiltQueries = views.reduce((sum, view) => {
+          const eventView = EventView.fromNewQueryWithLocation(view, location);
+
+          // if a search is performed on the list of queries, we filter
+          // on the pre-built queries
+          if (eventView.name && eventView.name.toLowerCase().includes(needleSearch)) {
+            return sum + 1;
+          }
+
+          return sum;
+        }, 0);
+
+        perPage = Math.max(1, perPage - numOfPrebuiltQueries);
+      } else {
+        perPage = Math.max(1, perPage - views.length);
+      }
     }
 
     const queryParams = {
       cursor,
-      query: 'version:2',
+      query: `version:2 name:"${searchQuery}"`,
       per_page: perPage,
       sortBy: '-dateUpdated',
     };
@@ -114,7 +143,16 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
       });
     }
 
-    if (prevProps.location.query.cursor !== this.props.location.query.cursor) {
+    const PAYLOAD_KEYS = ['cursor', 'query'] as const;
+
+    const payloadKeysChanged = !isEqual(
+      pick(prevProps.location.query, PAYLOAD_KEYS),
+      pick(this.props.location.query, PAYLOAD_KEYS)
+    );
+
+    // if any of the query strings relevant for the payload has changed,
+    // we re-fetch data
+    if (payloadKeysChanged) {
       this.fetchData();
     }
   }
@@ -145,7 +183,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
 
     const {location} = this.props;
 
-    const eventView = EventView.fromSavedQueryWithLocation(DEFAULT_EVENT_VIEW, location);
+    const eventView = EventView.fromNewQueryWithLocation(DEFAULT_EVENT_VIEW, location);
 
     const to = {
       pathname: location.pathname,
@@ -177,7 +215,21 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     );
   }
 
+  handleSearchQuery = (searchQuery: string) => {
+    const {location} = this.props;
+    ReactRouter.browserHistory.push({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        cursor: undefined,
+        query: String(searchQuery).trim() || undefined,
+      },
+    });
+  };
+
   renderActions() {
+    const {location} = this.props;
+
     const StyledSearchBar = styled(SearchBar)`
       margin-right: ${space(1)};
       flex-grow: 1;
@@ -188,10 +240,37 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
       margin-bottom: ${space(3)};
     `;
 
+    const eventView = EventView.fromNewQueryWithLocation(DEFAULT_EVENT_VIEW, location);
+
+    const to = {
+      pathname: location.pathname,
+      query: {
+        ...eventView.generateQueryStringObject(),
+      },
+    };
+
     return (
       <StyledActions>
-        <StyledSearchBar />
-        <Button priority="primary">{t('Build a new query')}</Button>
+        <StyledSearchBar
+          defaultQuery=""
+          query={this.getSavedQuerySearchQuery()}
+          placeholder={t('Search for saved queries')}
+          onSearch={this.handleSearchQuery}
+        />
+        <Button
+          to={to}
+          priority="primary"
+          onClick={() => {
+            trackAnalyticsEvent({
+              eventKey: 'discover_v2.prebuilt_query_click',
+              eventName: 'Discoverv2: Click a pre-built query',
+              organization_id: this.props.organization.id,
+              query_name: eventView.name,
+            });
+          }}
+        >
+          {t('Build a new query')}
+        </Button>
       </StyledActions>
     );
   }
@@ -212,12 +291,13 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
       <PageContent>
         <StyledPageHeader>{t('Discover')}</StyledPageHeader>
         {this.renderBanner()}
-        {DISPLAY_SEARCH_BAR_FLAG && this.renderActions()}
+        {this.renderActions()}
         {loading && this.renderLoading()}
         {!loading && (
           <QueryList
             pageLinks={savedQueriesPageLinks}
             savedQueries={savedQueries}
+            savedQuerySearchQuery={this.getSavedQuerySearchQuery()}
             location={location}
             organization={organization}
             onQueryChange={this.handleQueryChange}
@@ -227,7 +307,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     );
   }
 
-  renderResults(eventView: EventView) {
+  renderQueryBuilder(eventView: EventView) {
     const {organization, location, router} = this.props;
     const {savedQueries, reloading} = this.state;
     const ContentBox = styled(PageContent)`
@@ -309,7 +389,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
             <GlobalSelectionHeader organization={organization} />
             <NoProjectMessage organization={organization}>
               {!hasQuery && this.renderQueryList()}
-              {hasQuery && this.renderResults(eventView)}
+              {hasQuery && this.renderQueryBuilder(eventView)}
             </NoProjectMessage>
           </React.Fragment>
         </SentryDocumentTitle>

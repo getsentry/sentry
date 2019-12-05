@@ -7,7 +7,6 @@ import omit from 'lodash/omit';
 import moment from 'moment';
 
 import {DEFAULT_PER_PAGE} from 'app/constants';
-import {SavedQuery as LegacySavedQuery} from 'app/views/discover/types';
 import {SavedQuery, NewQuery} from 'app/types';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 
@@ -18,6 +17,7 @@ import {
   isAggregateField,
   getAggregateAlias,
   decodeColumnOrder,
+  decodeScalar,
 } from './utils';
 import {TableColumn, TableColumnSort} from './table/types';
 
@@ -246,42 +246,9 @@ const decodeProjects = (location: Location): number[] => {
   return Array.isArray(value) ? value.map(i => parseInt(i, 10)) : [parseInt(value, 10)];
 };
 
-const decodeScalar = (
-  value: string[] | string | undefined | null
-): string | undefined => {
-  if (!value) {
-    return undefined;
-  }
-  const unwrapped =
-    Array.isArray(value) && value.length > 0
-      ? value[0]
-      : isString(value)
-      ? value
-      : undefined;
-  return isString(unwrapped) ? unwrapped : undefined;
-};
-
-function isLegacySavedQuery(
-  query: LegacySavedQuery | NewQuery
-): query is LegacySavedQuery {
-  return (query as LegacySavedQuery).conditions !== undefined;
-}
-
-const queryStringFromSavedQuery = (saved: NewQuery | LegacySavedQuery): string => {
-  if (!isLegacySavedQuery(saved) && saved.query) {
+const queryStringFromSavedQuery = (saved: NewQuery | SavedQuery): string => {
+  if (saved.query) {
     return saved.query || '';
-  }
-  if (isLegacySavedQuery(saved) && saved.conditions) {
-    const conditions = saved.conditions.map(item => {
-      const [field, op, value] = item;
-      let operator = op;
-      // TODO handle all the other operator types
-      if (operator === '=') {
-        operator = '';
-      }
-      return field + ':' + operator + value;
-    });
-    return conditions.join(' ');
   }
   return '';
 };
@@ -377,37 +344,43 @@ class EventView {
     });
   }
 
-  static fromSavedQueryWithLocation(
-    saved: NewQuery | LegacySavedQuery,
-    location: Location
-  ): EventView {
+  static fromNewQueryWithLocation(newQuery: NewQuery, location: Location): EventView {
     const query = location.query;
 
-    saved = {
-      ...saved,
-      start: saved.start || decodeScalar(query.start),
-      end: saved.end || decodeScalar(query.end),
-      range: saved.range || decodeScalar(query.statsPeriod),
+    // apply global selection header values from location whenever possible
+
+    const environment: string[] =
+      Array.isArray(newQuery.environment) && newQuery.environment.length > 0
+        ? newQuery.environment
+        : collectQueryStringByKey(location.query, 'environment');
+
+    const project: number[] =
+      Array.isArray(newQuery.projects) && newQuery.projects.length > 0
+        ? newQuery.projects
+        : decodeProjects(location);
+
+    const saved: NewQuery = {
+      ...newQuery,
+
+      environment,
+      projects: project,
+
+      // datetime selection
+
+      start: newQuery.start || decodeScalar(query.start),
+      end: newQuery.end || decodeScalar(query.end),
+      range: newQuery.range || decodeScalar(query.statsPeriod),
     };
 
     return EventView.fromSavedQuery(saved);
   }
 
-  static fromSavedQuery(saved: NewQuery | LegacySavedQuery): EventView {
-    let fields, yAxis;
-    if (isLegacySavedQuery(saved)) {
-      fields = saved.fields.map(field => {
-        return {field, title: field};
-      });
-      yAxis = undefined;
-    } else {
-      fields = saved.fields.map((field, i) => {
-        const title =
-          saved.fieldnames && saved.fieldnames[i] ? saved.fieldnames[i] : field;
-        return {field, title};
-      });
-      yAxis = saved.yAxis;
-    }
+  static fromSavedQuery(saved: NewQuery | SavedQuery): EventView {
+    const fields = saved.fields.map((field, i) => {
+      const title = saved.fieldnames && saved.fieldnames[i] ? saved.fieldnames[i] : field;
+      return {field, title};
+    });
+    const yAxis = saved.yAxis;
 
     // normalize datetime selection
     const {start, end, statsPeriod} = getParams({
@@ -428,13 +401,13 @@ class EventView {
       sorts: fromSorts(saved.orderby),
       tags: collectQueryStringByKey(
         {
-          tags: (saved as SavedQuery).tags as string[],
+          tags: saved.tags as string[],
         },
         'tags'
       ),
       environment: collectQueryStringByKey(
         {
-          environment: (saved as SavedQuery).environment as string[],
+          environment: saved.environment as string[],
         },
         'environment'
       ),
@@ -729,9 +702,21 @@ class EventView {
       // of it in the table.
 
       if (numOfColumns <= 1) {
-        const sorts = [...newEventView.sorts];
-        sorts.splice(needleSortIndex, 1);
-        newEventView.sorts = [...new Set(sorts)];
+        if (isFieldSortable(updatedField, tableMeta)) {
+          // use the current updated field as the sort key
+          const sort = fieldToSort(updatedField, tableMeta)!;
+
+          // preserve the sort kind
+          sort.kind = needleSort.kind;
+
+          const sorts = [...newEventView.sorts];
+          sorts[needleSortIndex] = sort;
+          newEventView.sorts = sorts;
+        } else {
+          const sorts = [...newEventView.sorts];
+          sorts.splice(needleSortIndex, 1);
+          newEventView.sorts = [...new Set(sorts)];
+        }
       }
 
       if (newEventView.sorts.length <= 0 && newEventView.fields.length > 0) {

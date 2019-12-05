@@ -92,6 +92,7 @@ export type EventAttachment = {
   sha1: string;
   size: number;
   type: string;
+  event_id: string;
 };
 
 type EntryType = {
@@ -465,6 +466,7 @@ export type SentryApp = {
   redirectUrl: string | null;
   overview: string | null;
   //optional params below
+  datePublished?: string;
   clientId?: string;
   clientSecret?: string;
   owner?: {
@@ -644,4 +646,9 @@ export type SavedQueryState = {
   savedQueries: SavedQuery[];
   hasError: boolean;
   isLoading: boolean;
+};
+
+export type SelectValue<T> = {
+  label: string;
+  value: T;
 };

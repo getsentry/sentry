@@ -27,7 +27,7 @@ def get_actions(group, request):
         ):
             action_list.append(action)
 
-    return [(a[0], a[1], request.path == a[1]) for a in action_list]
+    return [(a[0], a[1]) for a in action_list]
 
 
 @register.filter
