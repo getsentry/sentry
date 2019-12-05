@@ -530,9 +530,11 @@ export class Frame extends React.Component {
               <FunctionName frame={data} />{' '}
               {hint !== null ? (
                 <Tooltip title={hint}>
-                  <a key="inline">
-                    <InlineSvg src={`icon-circle-${hintType}`} />
-                  </a>
+                  <HintStatus
+                    src={`icon-circle-${hintType}`}
+                    danger={hintType === 'exclamation'}
+                    size="1em"
+                  />
                 </Tooltip>
               ) : null}
               {data.filename && (
@@ -627,6 +629,12 @@ const DefaultLine = styled(VertCenterWrapper)`
   &:hover ${PackageStatusIcon} {
     opacity: 1;
   }
+`;
+
+const HintStatus = styled(InlineSvg)`
+  margin: 0 ${space(0.75)} 0 -${space(0.25)};
+  color: ${p => (p.danger ? p.theme.alert.error.iconColor : '#2c58a8')};
+  transform: translateY(-1px);
 `;
 
 export default withSentryAppComponents(Frame, {componentType: 'stacktrace-link'});
