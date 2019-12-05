@@ -5,7 +5,8 @@ from datetime import datetime
 from django.utils import timezone
 
 from sentry import options
-from sentry.utils.snuba import Dataset
+from sentry.utils.snuba import Dataset, SnubaError, GROUPS_SENTRY_SNUBA_MAP
+from sentry.api.issue_search import IssueSearchVisitor
 from sentry.search.snuba.backend import GroupsDatasetSnubaSearchBackend
 from tests.snuba.search.test_backend import EventsSnubaSearchTest
 
@@ -212,6 +213,7 @@ class GroupsSnubaSearchTest(EventsSnubaSearchTest):
         assert executor_mock.called
 
     @mock.patch("sentry.utils.snuba.raw_query")
+    # @mock.patch("sentry.search.snuba.executors.SnubaOnlyQueryExecutor.query")
     def test_optimized_aggregates(self, query_mock):
         # TODO this test is annoyingly fragile and breaks in hard-to-see ways
         # any time anything about the snuba query changes
@@ -238,7 +240,8 @@ class GroupsSnubaSearchTest(EventsSnubaSearchTest):
             "groupby": ["events.issue"],
             # "conditions": [[["positionCaseInsensitive", ["events.message", "'foo'"]], "!=", 0]],
             "selected_columns": [],
-            "limit": limit,
+            # "limit": limit,
+            "limit": None,
             "offset": 0,
             "totals": True,
             "turbo": False,
@@ -248,11 +251,12 @@ class GroupsSnubaSearchTest(EventsSnubaSearchTest):
         self.make_query(search_filter_query="status:unresolved")
         assert query_mock.called
 
-        # TODO: Was weirdly missing why this was failing. Come back to it.
-        # self.make_query(
-        # search_filter_query="last_seen:>=%s foo" % date_to_query_format(timezone.now()),
-        # sort_by="date",
-        # )
+        self.make_query(
+            search_filter_query="last_seen:>=%s foo" % date_to_query_format(timezone.now()),
+            sort_by="date",
+        )
+
+        # TODO: Why isn't this passing? The dicts look the same to me.
         # assert query_mock.call_args == mock.call(
         #     orderby=["-events.last_seen", "events.issue"],
         #     aggregations=[
@@ -296,41 +300,40 @@ class GroupsSnubaSearchTest(EventsSnubaSearchTest):
         )
 
     def test_all_fields_do_not_error(self):
-        #     # TODO: FIX THESE TESTS
-        pass
+        # Just a sanity check to make sure that all fields can be successfully
+        # searched on without returning type errors and other schema related
+        # issues.
+        def test_query(query):
+            try:
+                self.make_query(search_filter_query=query)
+            except SnubaError as e:
+                self.fail("Query %s errored. Error info: %s" % (query, e))
 
-    #     # Just a sanity check to make sure that all fields can be successfully
-    #     # searched on without returning type errors and other schema related
-    #     # issues.
-    #     def test_query(query):
-    #         try:
-    #             self.make_query(search_filter_query=query)
-    #         except SnubaError as e:
-    #             self.fail("Query %s errored. Error info: %s" % (query, e))
+        for key in GROUPS_SENTRY_SNUBA_MAP:
+            if key in [
+                "first_seen",
+                "last_seen",
+                "active_at",
+                "user",
+                "status",
+                "first_release",
+                "events.issue",
+                "issue.id",
+                "project.id",
+                "message",
+                # TODO: Remove these keys, they should be able to run below.
+                "release",  # Snuba bug, waiting on https://getsentry.atlassian.net/browse/SNS-294
+            ]:
+                continue
+            test_query("has:%s" % key)
+            test_query("!has:%s" % key)
 
-    #     for key in GROUPS_SENTRY_SNUBA_MAP:
-    #         if key in [
-    #             "project.id",
-    #             "issue.id",
-    #             "events.issue",
-    #             "first_seen",
-    #             "last_seen",
-    #             "active_at",
-    #             "message",
-    #             "user",
-    #         ]:
-    #             continue
-    #         # print(key)
-    #         # if key == "error.type":
-    #         # import pdb; pdb.set_trace();
-    #         test_query("has:%s" % key)
-    #         test_query("!has:%s" % key)
-    #         if key in IssueSearchVisitor.numeric_keys:
-    #             val = "123"
-    #         elif key in IssueSearchVisitor.date_keys:
-    #             val = "2019-01-01"
-    #         else:
-    #             val = "hello"
-    #             test_query("!%s:%s" % (key, val))
+            if key in IssueSearchVisitor.numeric_keys:
+                val = "123"
+            elif key in IssueSearchVisitor.date_keys:
+                val = "2019-01-01"
+            else:
+                val = "hello"
+                test_query("!%s:%s" % (key, val))
 
-    #         test_query("%s:%s" % (key, val))
+            test_query("%s:%s" % (key, val))

@@ -75,14 +75,21 @@ class AbstractQueryExecutor:
         raise NotImplementedError
 
     @abstractmethod
-    def query(self, *args, **kwargs):
+    def query(
+        self,
+        projects,
+        environments,
+        sort_by,
+        limit,
+        cursor,
+        count_hits,
+        paginator_options,
+        search_filters,
+        date_from,
+        date_to,
+    ):
         """This function runs your actual query and returns the results
         We usually return a paginator object, which contains the results and the number of hits"""
-        raise NotImplementedError
-
-    @abstractmethod
-    def calculate_hits(self, *args, **kwargs):
-        """This method should return an integer representing the number of hits (results) of your search."""
         raise NotImplementedError
 
     def snuba_search(
@@ -118,7 +125,7 @@ class AbstractQueryExecutor:
         for search_filter in search_filters:
             if (
                 # Don't filter on issue fields here, they're not available
-                search_filter.key.name in self.issue_only_fields
+                search_filter.key.name in self.postgres_only_fields
                 or
                 # We special case date
                 search_filter.key.name == "date"
@@ -206,7 +213,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
 
     logger = logging.getLogger("sentry.search.postgressnuba")
     dependency_aggregations = {"priority": ["last_seen", "times_seen"]}
-    issue_only_fields = set(
+    postgres_only_fields = set(
         [
             "query",
             "status",
@@ -279,7 +286,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 not [
                     sf
                     for sf in search_filters
-                    if sf.key.name not in self.issue_only_fields.union(["date"])
+                    if sf.key.name not in self.postgres_only_fields.union(["date"])
                 ]
             ):
                 group_queryset = group_queryset.order_by("-last_seen")
@@ -292,13 +299,8 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         # apparently `retention_window_start` can be None(?), so we need a
         # fallback.
         retention_date = max(filter(None, [retention_window_start, now - timedelta(days=90)]))
-
-        # TODO: We should try and consolidate all this logic together a little
-        # better, maybe outside the backend. Should be easier once we're on
-        # just the new search filters
         start_params = [date_from, retention_date, get_search_filter(search_filters, "date", ">")]
         start = max(filter(None, start_params))
-
         end = max([retention_date, end])
 
         if start == retention_date and end == retention_date:
@@ -345,7 +347,25 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         chunk_limit = limit
         offset = 0
         num_chunks = 0
-        hits = None
+        hits = self.calculate_hits(
+            group_ids,
+            too_many_candidates,
+            sort_field,
+            projects,
+            retention_window_start,
+            group_queryset,
+            environments,
+            sort_by,
+            limit,
+            cursor,
+            count_hits,
+            paginator_options,
+            search_filters,
+            start,
+            end,
+        )
+        if count_hits and hits == 0:
+            return self.empty_result
 
         paginator_results = self.empty_result
         result_groups = []
@@ -397,8 +417,8 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 # the group_ids, we know we got all of them (ie there are
                 # no more chunks after the first)
                 result_groups = snuba_groups
-                # if count_hits and hits is None:
-                # hits = len(snuba_groups)
+                if count_hits and hits is None:
+                    hits = len(snuba_groups)
             else:
                 # pre-filtered candidates were *not* passed down to Snuba,
                 # so we need to do post-filtering to verify Sentry DB predicates
@@ -419,36 +439,16 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                     result_group_ids.add(group_id)
                     result_groups.append((group_id, group_score))
 
-            if hits is None:
-                hits = self.calculate_hits(
-                    group_ids,
-                    snuba_groups,
-                    too_many_candidates,
-                    sort_field,
-                    projects,
-                    retention_window_start,
-                    group_queryset,
-                    environments,
-                    sort_by,
-                    limit,
-                    cursor,
-                    count_hits,
-                    paginator_options,
-                    search_filters,
-                    start,
-                    end,
-                )
-
+            # break the query loop for one of three reasons:
+            # * we started with Postgres candidates and so only do one Snuba query max
+            # * the paginator is returning enough results to satisfy the query (>= the limit)
+            # * there are no more groups in Snuba to post-filter
             # TODO do we actually have to rebuild this SequencePaginator every time
             # or can we just make it after we've broken out of the loop?
             paginator_results = SequencePaginator(
                 [(score, id) for (id, score) in result_groups], reverse=True, **paginator_options
             ).get_result(limit, cursor, known_hits=hits)
 
-            # break the query loop for one of three reasons:
-            # * we started with Postgres candidates and so only do one Snuba query max
-            # * the paginator is returning enough results to satisfy the query (>= the limit)
-            # * there are no more groups in Snuba to post-filter
             if group_ids or len(paginator_results.results) >= limit or not more_results:
                 break
 
@@ -481,7 +481,6 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
     def calculate_hits(
         self,
         group_ids,
-        snuba_groups,
         too_many_candidates,
         sort_field,
         projects,
@@ -497,6 +496,11 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         start,
         end,
     ):
+        """
+        This method should return an integer representing the number of hits (results) of your search.
+        It will return 0 if hits were calculated and there are none.
+        It will return None if hits were not calculated.
+        """
         if count_hits is False:
             return None
         elif too_many_candidates or cursor is not None:
@@ -546,9 +550,8 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             )
             snuba_count = len(snuba_groups)
             if snuba_count == 0:
-                return (
-                    0
-                )  # Maybe check for 0 hits and return EMPTY_RESULT in ::query? self.empty_result
+                # Maybe check for 0 hits and return EMPTY_RESULT in ::query? self.empty_result
+                return 0
             else:
                 filtered_count = group_queryset.filter(
                     id__in=[gid for gid, _ in snuba_groups]
@@ -556,10 +559,9 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
 
                 hit_ratio = filtered_count / float(snuba_count)
                 hits = int(hit_ratio * snuba_total)
-        elif group_ids:
-            return len(snuba_groups)
+                return hits
 
-        return hits
+        return None
 
 
 class SnubaOnlyQueryExecutor(AbstractQueryExecutor):
@@ -567,10 +569,10 @@ class SnubaOnlyQueryExecutor(AbstractQueryExecutor):
     ISSUE_FIELD_NAME = TABLE_ALIAS + "issue"
     logger = logging.getLogger("sentry.search.snubagroups")
 
-    # TODO: Define these variables using table alias somehow?
-    # Since I think that is the only difference, other than issue_only_fields having less items
+    # TODO: Define these variables using table alias? The only difference in these definitions is the added `events` alias
+    # and in this Executor, there are less `postgres_only_fields` (And as more of this data is available in Postgres, we will remove them from postgres_only_fields)
     dependency_aggregations = {"priority": ["events.last_seen", "times_seen"]}
-    issue_only_fields = set(
+    postgres_only_fields = set(
         ["query", "bookmarked_by", "assigned_to", "unassigned", "subscribed_by"]
     )
     sort_strategies = {
@@ -609,8 +611,9 @@ class SnubaOnlyQueryExecutor(AbstractQueryExecutor):
         # TODO: There is a better way to do this...the issue is that the table/alias is forked on environments, which can't be used in constrain_column_to_dataset
         if search_filter.key.name in ["first_seen", "last_seen"]:  # , "first_release"]:
             if environment_ids is not None:
+                # TODO: Remove as a snuba filter, since we are going to pre/post filter on Postgres?
+                # Since we have GroupEnvironment data that persists beyond retention, whereas Snuba only keeps events in the retention period.
                 table_alias = "events."
-                # return None, None #??? remove as a filter, since we are going to pre/post filter?
             else:
                 table_alias = "groups."
 
@@ -634,14 +637,6 @@ class SnubaOnlyQueryExecutor(AbstractQueryExecutor):
                 converted_filter[2] = -1
             else:
                 converted_filter[2] = release[0].id
-
-        # if search_filter.key.name.startswith("tags["):
-        #     if isinstance(converted_filter[0], list):
-        #         converted_filter[0][1][0] = "events." + converted_filter[0][1][0]
-        #         converted_name = converted_filter[0][1][0]
-        #     else:
-        #         converted_filter[0] = "events." + converted_filter[0]
-        #         converted_name = converted_filter[0]
 
         return converted_filter, converted_name
 
@@ -689,7 +684,23 @@ class SnubaOnlyQueryExecutor(AbstractQueryExecutor):
         chunk_limit = limit
         offset = 0
         num_chunks = 0
-        hits = None
+        hits = self.calculate_hits(
+            sort_field,
+            projects,
+            retention_window_start,
+            group_queryset,
+            environments,
+            sort_by,
+            limit,
+            cursor,
+            count_hits,
+            paginator_options,
+            search_filters,
+            start,
+            end,
+        )
+        if hits == 0:
+            return self.empty_result
 
         paginator_results = self.empty_result
         result_groups = []
@@ -730,24 +741,6 @@ class SnubaOnlyQueryExecutor(AbstractQueryExecutor):
                 result_group_ids.add(group_id)
                 result_groups.append((group_id, group_score))
 
-            if hits is None:
-                hits = self.calculate_hits(
-                    snuba_groups,
-                    sort_field,
-                    projects,
-                    retention_window_start,
-                    group_queryset,
-                    environments,
-                    sort_by,
-                    limit,
-                    cursor,
-                    count_hits,
-                    paginator_options,
-                    search_filters,
-                    start,
-                    end,
-                )
-
             paginator_results = SequencePaginator(
                 [(score, id) for (id, score) in result_groups], reverse=True, **paginator_options
             ).get_result(limit, cursor, known_hits=hits)
@@ -770,7 +763,6 @@ class SnubaOnlyQueryExecutor(AbstractQueryExecutor):
 
     def calculate_hits(
         self,
-        snuba_groups,
         sort_field,
         projects,
         retention_window_start,
@@ -785,6 +777,9 @@ class SnubaOnlyQueryExecutor(AbstractQueryExecutor):
         start,
         end,
     ):
+        """
+        This method should return an integer representing the number of hits (results) of your search.
+        """
         # TODO: This needs a proper aggregate added to it to just count the results - I don't this this is correct.
         _, hits = self.snuba_search(
             start=start,

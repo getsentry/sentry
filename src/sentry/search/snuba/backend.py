@@ -148,7 +148,7 @@ class SnubaSearchBackendBase(SearchBackend):
         else:
             retention_window_start = None
 
-        group_queryset = self.build_group_queryset(
+        group_queryset = self._build_group_queryset(
             projects=projects,
             environments=environments,
             search_filters=search_filters,
@@ -157,7 +157,7 @@ class SnubaSearchBackendBase(SearchBackend):
             date_to=date_to,
         )
 
-        query_executor = self.get_query_executor(
+        query_executor = self._get_query_executor(
             group_queryset=group_queryset,
             projects=projects,
             environments=environments,
@@ -165,6 +165,7 @@ class SnubaSearchBackendBase(SearchBackend):
             date_from=date_from,
             date_to=date_to,
         )
+
         return query_executor.query(
             projects=projects,
             retention_window_start=retention_window_start,
@@ -180,31 +181,12 @@ class SnubaSearchBackendBase(SearchBackend):
             date_to=date_to,
         )
 
-    @abstractmethod
-    def build_group_queryset(
-        self, projects, environments, search_filters, retention_window_start, date_from, date_to
+    def _build_group_queryset(
+        self, projects, environments, search_filters, retention_window_start, *args, **kwargs
     ):
         """This method should return a QuerySet of the Group model.
         How you implement it is up to you, but we generally take in the various search parameters
         and filter Group's down using the field's we want to query on in Postgres."""
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_query_executor(
-        self, group_queryset, projects, environments, search_filters, date_from, date_to
-    ):
-        """This method should return an implementation of the AbstractQueryExecutor
-        We will end up calling .query() on the class returned by this method"""
-        raise NotImplementedError
-
-
-class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
-    def get_query_executor(self, *args, **kwargs):
-        return PostgresSnubaQueryExecutor()
-
-    def build_group_queryset(
-        self, projects, environments, search_filters, retention_window_start, *args, **kwargs
-    ):
 
         group_queryset = self._initialize_group_queryset(
             projects, environments, retention_window_start, search_filters
@@ -238,6 +220,24 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             )
         return group_queryset
 
+    @abstractmethod
+    def _get_queryset_conditions(self, projects, environments, search_filters):
+        """This method should return a dict of query set fields and a "Condition" to apply on that field."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def _get_query_executor(
+        self, group_queryset, projects, environments, search_filters, date_from, date_to
+    ):
+        """This method should return an implementation of the AbstractQueryExecutor
+        We will end up calling .query() on the class returned by this method"""
+        raise NotImplementedError
+
+
+class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
+    def _get_query_executor(self, *args, **kwargs):
+        return PostgresSnubaQueryExecutor()
+
     def _get_queryset_conditions(self, projects, environments, search_filters):
         queryset_conditions = {
             "status": QCallbackCondition(lambda status: Q(status=status)),
@@ -260,7 +260,6 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             "active_at": ScalarCondition("active_at"),
         }
 
-        # TODO: It's possible `first_release` could be handled by Snuba.
         if environments is not None:
             environment_ids = [environment.id for environment in environments]
             queryset_conditions.update(
@@ -314,24 +313,28 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
         return queryset_conditions
 
 
-# IMPORTANT!!! Retaining backwards compatible for getsentry while we rename this class.
-# We will deploy with `SnubaSearchBackend` pointing to `EventsDatasetSnubaSearchBackend`, and then deploy getsentry to use `EventsDatasetSnubaSearchBackend`
-# and then delete this class.
 class SnubaSearchBackend(EventsDatasetSnubaSearchBackend):
+    """ IMPORTANT!!! Retaining backwards compatible for getsentry while we rename this class.
+    We will deploy with `SnubaSearchBackend` pointing to `EventsDatasetSnubaSearchBackend`, and then deploy getsentry to use `EventsDatasetSnubaSearchBackend`
+    and then delete this class."""
+
     pass
 
 
-# This class will have logic to use the groups dataset, and to also determine which QueryBackend to use.
 class GroupsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
-    def get_query_executor(self, group_queryset, *args, **kwargs):
+    """This class will have logic to use the groups dataset, and to also determine which QueryExecutor to use."""
+
+    def _get_query_executor(self, group_queryset, *args, **kwargs):
         if group_queryset is None:
             return SnubaOnlyQueryExecutor()
         else:
             return PostgresSnubaQueryExecutor()
 
-    def build_group_queryset(
+    def _build_group_queryset(
         self, search_filters, environments, projects, retention_window_start, *args, **kwargs
     ):
+        """This is an override which calls the original function only if we're going to query Postgres.
+        All the logic here is just to see if we need to hit Postgres or not - and we either build the queryset using the original method or just return None."""
         search_postgres = False
 
         for search_filter in search_filters:
@@ -349,47 +352,12 @@ class GroupsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
                 break
 
         if search_postgres is True:
-            group_queryset = self._build_group_queryset(
-                search_filters, environments, projects, retention_window_start, *args, **kwargs
+            group_queryset = super(GroupsDatasetSnubaSearchBackend, self)._build_group_queryset(
+                projects, environments, search_filters, retention_window_start, *args, **kwargs
             )
         else:
             group_queryset = None
 
-        return group_queryset
-
-    def _build_group_queryset(
-        self, search_filters, environments, projects, retention_window_start, *args, **kwargs
-    ):
-        group_queryset = self._initialize_group_queryset(
-            projects, environments, retention_window_start, search_filters
-        )
-        qs_builder_conditions = self._get_queryset_conditions(
-            projects, environments, search_filters
-        )
-        group_queryset = QuerySetBuilder(qs_builder_conditions).build(
-            group_queryset, search_filters
-        )
-        return group_queryset
-
-    def _initialize_group_queryset(
-        self, projects, environments, retention_window_start, search_filters
-    ):
-        group_queryset = Group.objects.filter(project__in=projects).exclude(
-            status__in=[
-                GroupStatus.PENDING_DELETION,
-                GroupStatus.DELETION_IN_PROGRESS,
-                GroupStatus.PENDING_MERGE,
-            ]
-        )
-
-        if retention_window_start:
-            group_queryset = group_queryset.filter(last_seen__gte=retention_window_start)
-
-        if environments is not None:
-            environment_ids = [environment.id for environment in environments]
-            group_queryset = group_queryset.filter(
-                groupenvironment__environment_id__in=environment_ids
-            )
         return group_queryset
 
     def _get_queryset_conditions(self, projects, environments, search_filters):
@@ -412,7 +380,6 @@ class GroupsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             ),
         }
 
-        # TODO: It's possible `first_release` could be handled by Snuba.
         if environments is not None:
             environment_ids = [environment.id for environment in environments]
             queryset_conditions.update(

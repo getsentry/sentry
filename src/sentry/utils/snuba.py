@@ -58,6 +58,7 @@ GROUPS_SENTRY_SNUBA_MAP = {
     col.value.alias: col.value.group_name for col in Columns if col.value.group_name is not None
 }
 GROUPS_SENTRY_SNUBA_MAP.update(
+    # TODO: Bring this into Columns?
     {
         "status": "groups.status",
         "events.issue": "events.issue",
