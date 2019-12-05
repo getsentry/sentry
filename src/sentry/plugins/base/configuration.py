@@ -105,7 +105,6 @@ def default_plugin_config(plugin, project, request):
             template=template,
             context={
                 "form": form,
-                "request": request,
                 "plugin": plugin,
                 "plugin_description": plugin.get_description() or "",
                 "plugin_test_results": test_results,
