@@ -69,8 +69,8 @@ class EventDetailsContent extends AsyncComponent<Props, State & AsyncComponent['
   };
 
   state = {
-    isSidebarVisible: true,
     event: undefined,
+    isSidebarVisible: true,
   };
 
   toggleSidebar = () => {
