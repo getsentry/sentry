@@ -1,0 +1,14 @@
+{% extends "sentry/plugins/bases/issue/create_issue.html" %}
+{% load sentry_helpers %}
+
+{% block main %}
+    <p>There is an error with the Trello configuration stored for your project.</p>
+    <ul>
+        {% if response %}
+            <li>{{ response }}</li>
+        {% else %}
+            <li>An unknown error occurred while communicating with Trello.</li>
+        {% endif %}
+    </ul>
+    <p>You may wish to double check your <a href="{% absolute_uri '/{}/{}/settings/plugins/{}/' project.organization.slug project.slug plugin.slug %}">configuration</a>.</p>
+{% endblock %}

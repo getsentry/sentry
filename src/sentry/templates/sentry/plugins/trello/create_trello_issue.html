@@ -1,0 +1,31 @@
+{% extends "sentry/plugins/bases/issue/create_issue.html" %}
+
+{% block scripts %}
+    {{ block.super }}
+    <script type="text/javascript">
+        $(function(){
+            var $boards = $('#id_trello_board');
+            var $lists = $('#id_trello_list');
+            $boards.on('change', function(evt) {
+                $lists.prop('disabled', true);
+                $.ajax({
+                    url: '?action=lists&board_id=' + evt.val,
+                    success: function(data) {
+                        var result = data.result;
+                        if (!result.length) {
+                            $lists.prop('disabled', false);
+                            return;
+                        }
+                        var options = [];
+                        for (var i=0; i<result.length; i++) {
+                            options.push(
+                                '<option value="'+result[i].id+'">'+result[i].name+'</option>'
+                            );
+                        }
+                        $lists.append(options).prop('disabled', false).val(result[0].id).trigger('change');
+                    }
+                });
+            });
+        });
+    </script>
+{% endblock %}

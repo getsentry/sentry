@@ -148,6 +148,7 @@ setup(
             "redmine = sentry_plugins.redmine",
             "sessionstack = sentry_plugins.sessionstack",
             "teamwork = sentry_plugins.teamwork",
+            "trello = sentry_plugins.trello",
             "twilio = sentry_plugins.twilio",
         ],
         "sentry.plugins": [
@@ -172,6 +173,7 @@ setup(
             "slack = sentry_plugins.slack.plugin:SlackPlugin",
             "splunk = sentry_plugins.splunk.plugin:SplunkPlugin",
             "teamwork = sentry_plugins.teamwork.plugin:TeamworkPlugin",
+            "trello = sentry_plugins.trello.plugin:TrelloPlugin",
             "twilio = sentry_plugins.twilio.plugin:TwilioPlugin",
             "victorops = sentry_plugins.victorops.plugin:VictorOpsPlugin",
             "vsts = sentry_plugins.vsts.plugin:VstsPlugin",
