@@ -37,14 +37,14 @@ class NodeData(collections.MutableMapping):
         data={...} means, this is an object that should be saved to nodestore.
     """
 
-    def __init__(self, id, data=None, wrapper=None, ref_version=None, ref_func=None):
+    def __init__(self, field, id, data=None, wrapper=None):
+        self.field = field
         self.id = id
         self.ref = None
         # ref version is used to discredit a previous ref
         # (this does not mean the Event is mutable, it just removes ref checking
         #  in the case of something changing on the data model)
-        self.ref_version = ref_version
-        self.ref_func = ref_func
+        self.ref_version = None
         self.wrapper = wrapper
         if data is not None and self.wrapper is not None:
             data = self.wrapper(data)
@@ -91,9 +91,9 @@ class NodeData(collections.MutableMapping):
         return "<%s: id=%s>" % (cls_name, self.id)
 
     def get_ref(self, instance):
-        if not self.ref_func:
+        if not self.field or not self.field.ref_func:
             return
-        return self.ref_func(instance)
+        return self.field.ref_func(instance)
 
     def copy(self):
         return self.data.copy()
@@ -113,14 +113,19 @@ class NodeData(collections.MutableMapping):
             return self._node_data
 
         rv = {}
-        if self.wrapper is not None:
-            rv = self.wrapper(rv)
+        if self.field is not None and self.field.wrapper is not None:
+            rv = self.field.wrapper(rv)
         return rv
 
     def bind_data(self, data, ref=None):
         self.ref = data.pop("_ref", ref)
-        ref_version = data.pop("_ref_version", None)
-        if ref_version == self.ref_version and ref is not None and self.ref != ref:
+        self.ref_version = data.pop("_ref_version", None)
+        if (
+            self.field is not None
+            and self.ref_version == self.field.ref_version
+            and ref is not None
+            and self.ref != ref
+        ):
             raise NodeIntegrityFailure(
                 "Node reference for %s is invalid: %s != %s" % (self.id, ref, self.ref)
             )
@@ -132,7 +137,7 @@ class NodeData(collections.MutableMapping):
         ref = self.get_ref(instance)
         if ref:
             self.data["_ref"] = ref
-            self.data["_ref_version"] = self.ref_version
+            self.data["_ref_version"] = self.field.ref_version
 
     def save(self):
         """
@@ -213,13 +218,7 @@ class NodeField(GzippedDictField):
             # to load data from, and no data to save.
             value = None
 
-        return NodeData(
-            node_id,
-            value,
-            wrapper=self.wrapper,
-            ref_version=self.ref_version,
-            ref_func=self.ref_func,
-        )
+        return NodeData(self, node_id, value, wrapper=self.wrapper)
 
     def get_prep_value(self, value):
         """
