@@ -3,6 +3,7 @@ import styled from 'react-emotion';
 
 import InlineSvg from 'app/components/inlineSvg';
 import Input from 'app/components/forms/input';
+import space from 'app/styles/space';
 
 type Props = {
   value: string;
@@ -39,8 +40,8 @@ const SearchIcon = styled(props => <InlineSvg src="icon-search" {...props} />)`
   left: 8px;
 `;
 const SearchField = styled(Input)`
-  padding-left: 30px;
-  padding-right: 30px;
+  padding-left: ${space(4)};
+  padding-right: ${space(4)};
 `;
 const SearchReset = styled(props => <InlineSvg src="icon-circle-close" {...props} />)`
   color: ${p => p.theme.gray2};
