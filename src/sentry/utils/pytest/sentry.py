@@ -243,9 +243,9 @@ def pytest_runtest_teardown(item):
 
     discard_all()
 
-    from sentry.models import OrganizationOption, ProjectOption, UserOption
+    from sentry.models import ProjectOption, UserOption
 
-    for model in (OrganizationOption, ProjectOption, UserOption):
+    for model in (ProjectOption, UserOption):
         model.objects.clear_local_cache()
 
     Hub.main.bind_client(None)

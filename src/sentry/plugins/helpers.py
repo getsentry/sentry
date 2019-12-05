@@ -14,7 +14,6 @@ def reset_options(prefix, project=None, user=None):
         UserOption.objects.clear_cache()
     elif project:
         ProjectOption.objects.filter(key__startswith="%s:" % (prefix,), project=project).delete()
-        ProjectOption.objects.clear_local_cache()
     else:
         raise NotImplementedError
 
