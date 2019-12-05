@@ -59,7 +59,7 @@ class TraceView extends React.Component<PropType> {
     const traceID = (traceContext && traceContext.trace_id) || '';
     const rootSpanID = (traceContext && traceContext.span_id) || '';
     const rootSpanOpName = (traceContext && traceContext.op) || 'transaction';
-    const parentSpanID = traceContext?.parent_span_id;
+    const parentSpanID = traceContext && traceContext.parent_span_id;
 
     if (!spanEntry || spans.length <= 0) {
       return {
