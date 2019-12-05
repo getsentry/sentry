@@ -229,7 +229,9 @@ class GroupsSnubaSearchTest(EventsSnubaSearchTest):
         DEFAULT_LIMIT = 100
         chunk_growth = options.get("snuba.search.chunk-growth-rate")
         limit = int(DEFAULT_LIMIT * chunk_growth)
-
+        limit = (
+            None
+        )  # TODO: I think the assertion is capturing the hits call, where Limit=None. This might be fine..but can be better if we capture the actual full snuba query call.
         common_args = {
             "arrayjoin": None,
             "dataset": Dataset.Groups,
@@ -238,10 +240,8 @@ class GroupsSnubaSearchTest(EventsSnubaSearchTest):
             "filter_keys": {"project_id": [self.project.id]},
             "referrer": "search",
             "groupby": ["events.issue"],
-            # "conditions": [[["positionCaseInsensitive", ["events.message", "'foo'"]], "!=", 0]],
             "selected_columns": [],
-            # "limit": limit,
-            "limit": None,
+            "limit": limit,
             "offset": 0,
             "totals": True,
             "turbo": False,
