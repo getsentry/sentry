@@ -26,6 +26,7 @@ import withSentryAppComponents from 'app/utils/withSentryAppComponents';
 import DebugMetaStore, {DebugMetaActions} from 'app/stores/debugMetaStore';
 import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
 import InlineSvg from 'app/components/inlineSvg';
+import {combineStatus} from 'app/components/events/interfaces/debugmeta';
 
 export function trimPackage(pkg) {
   const pieces = pkg.split(/^([a-z]:\\|\\\\)/i.test(pkg) ? '\\' : '/');
@@ -182,8 +183,14 @@ export class Frame extends React.Component {
   }
 
   packageStatusIsError() {
-    // TODO:
-    return Math.random() > 0.5;
+    const {image} = this.state;
+    if (!image) {
+      return true;
+    }
+
+    const imageStatus = combineStatus(image.debug_status, image.unwind_status);
+
+    return imageStatus !== 'found';
   }
 
   scrollToImage = event => {
@@ -423,7 +430,6 @@ export class Frame extends React.Component {
     const func = this.props.data.function || '<unknown>';
     const warningType = 'question';
     const errorType = 'exclamation';
-    // TODO: red color
 
     if (func.match(/^@objc\s/)) {
       return [t('Objective-C -> Swift shim frame'), warningType];

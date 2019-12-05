@@ -90,13 +90,13 @@ function getImageStatusDetails(status) {
   }
 }
 
-function combineStatus(debugStatus, unwindStatus) {
+export const combineStatus = (debugStatus, unwindStatus) => {
   const debugWeight = getStatusWeight(debugStatus);
   const unwindWeight = getStatusWeight(unwindStatus);
 
   const combined = debugWeight >= unwindWeight ? debugStatus : unwindStatus;
   return combined || 'unused';
-}
+};
 
 class DebugImage extends React.PureComponent {
   static propTypes = {
