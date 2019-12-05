@@ -20,7 +20,7 @@ const BackToIssues = styled(Link)`
   z-index: 1;
 
   &:hover {
-    background: ${p => p.theme.offwhite};
+    background: ${p => p.theme.offWhite};
     transform: scale(1.125);
   }
 `;
