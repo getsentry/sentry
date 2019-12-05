@@ -2,7 +2,12 @@ import React from 'react';
 
 import {mount} from 'sentry-test/enzyme';
 import ChartZoom from 'app/components/charts/chartZoom';
-import ConfigStore from 'app/stores/configStore';
+
+jest.mock('moment', () => {
+  const moment = require.requireActual('moment-timezone');
+  moment.tz.setDefault('America/Los_Angeles'); // Whatever timezone you want
+  return moment;
+});
 
 describe('ChartZoom', function() {
   const renderFunc = jest.fn(() => null);
@@ -11,11 +16,7 @@ describe('ChartZoom', function() {
   let tooltipFormatter;
   const timestamp = 1531094400000;
 
-  beforeAll(function() {
-    ConfigStore.loadInitialData({
-      user: {options: {timezone: 'America/Los_Angeles'}},
-    });
-  });
+  beforeAll(function() {});
 
   beforeEach(function() {
     renderFunc.mockClear();

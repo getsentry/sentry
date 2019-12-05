@@ -306,7 +306,7 @@ exports[`SelectField renders without form context 1`] = `
                       onTouchMove={[Function]}
                       onTouchStart={[Function]}
                     >
-                      <span
+                      <div
                         className="Select-multi-value-wrapper"
                         id="react-select-2--value"
                       >
@@ -394,7 +394,7 @@ exports[`SelectField renders without form context 1`] = `
                             />
                           </div>
                         </AutosizeInput>
-                      </span>
+                      </div>
                       <span
                         aria-label="Clear value"
                         className="Select-clear-zone"
