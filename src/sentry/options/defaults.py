@@ -173,6 +173,9 @@ register("store.save-event-skips-nodestore", default=False, flags=FLAG_PRIORITIZ
 # Skip saving an event to postgres
 register("store.skip-pg-save", default=True, flags=FLAG_PRIORITIZE_DISK)
 
+# Use Django event
+register("store.use-django-event", default=True, flags=FLAG_PRIORITIZE_DISK)
+
 # Symbolicator refactors
 # - Disabling minidump stackwalking in endpoints
 register("symbolicator.minidump-refactor-projects-opt-in", type=Sequence, default=[])  # unused

@@ -702,7 +702,7 @@ class EventManager(object):
             )
 
         # Write the event to Nodestore
-        event.save()
+        event.data.save()
 
         if event_user:
             counters = [
