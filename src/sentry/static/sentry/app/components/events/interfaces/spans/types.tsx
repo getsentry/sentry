@@ -28,6 +28,7 @@ export type ParsedTraceType = {
   childSpans: SpanChildrenLookupType;
   traceID: string;
   rootSpanID: string;
+  parentSpanID?: string;
   traceStartTimestamp: number;
   traceEndTimestamp: number;
   numOfSpans: number;
