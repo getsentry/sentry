@@ -279,14 +279,22 @@ class AuditLogEntry(Model):
             return "requested to transfer project %s" % (self.data["slug"],)
         elif self.event == AuditLogEntryEvent.PROJECT_ACCEPT_TRANSFER:
             return "accepted transfer of project %s" % (self.data["slug"],)
-        elif self.event == AuditLogEntryEvent.PROJECT_ENABLE:
-            if isinstance(self.data["state"], set):
-                return "enabled project filter %s" % (self.data["state"],)
-            return "enabled project filter %s" % (", ".join(self.data["state"]),)
-        elif self.event == AuditLogEntryEvent.PROJECT_DISABLE:
-            if isinstance(self.data["state"], set):
-                return "disabled project filter %s" % (self.data["state"],)
-            return "disabled project filter %s" % (", ".join(self.data["state"]),)
+        elif self.event in [AuditLogEntryEvent.PROJECT_ENABLE, AuditLogEntryEvent.PROJECT_DISABLE]:
+            verb = "enabled" if self.event == AuditLogEntryEvent.PROJECT_ENABLE else "disabled"
+
+            # Most logs will just be name of the filter, but legacy browser changes can be bool, str or sets
+            filter_name = self.data["state"]
+            if (
+                filter_name in ("0", "1")
+                or isinstance(filter_name, set)
+                or isinstance(filter_name, bool)
+            ):
+                message = "%s project filter legacy-browsers" % (verb,)
+                if isinstance(filter_name, set):
+                    message += ": %s" % (", ".join(filter_name),)
+                return message
+            else:
+                return "%s project filter %s" % (verb, filter_name)
 
         elif self.event == AuditLogEntryEvent.TAGKEY_REMOVE:
             return "removed tags matching %s = *" % (self.data["key"],)
