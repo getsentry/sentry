@@ -741,7 +741,7 @@ class SnubaQueryParams(object):
         # TODO: instead of having events be the default, make dataset required.
         self.dataset = dataset or Dataset.Events
         self.start = start or datetime.utcfromtimestamp(0)  # will be clamped to project retention
-        self.end = end or datetime.utcnow()
+        self.end = end or datetime.utcnow() + timedelta(seconds=1)
         self.groupby = groupby or []
         self.conditions = conditions or []
         self.aggregations = aggregations or []
