@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from sentry.testutils import AcceptanceTestCase
 from sentry.models import Project
+from mock import patch
 
 
 class CreateProjectTest(AcceptanceTestCase):
@@ -13,9 +14,11 @@ class CreateProjectTest(AcceptanceTestCase):
 
         self.path = u"/organizations/{}/projects/new/".format(self.org.slug)
 
-    def test_simple(self):
+    @patch("django.db.models.signals.ModelSignal.send")
+    def test_simple(self, mock_signal):
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
+
         self.browser.get(self.path)
         self.browser.wait_until_not(".loading")
 
@@ -24,6 +27,7 @@ class CreateProjectTest(AcceptanceTestCase):
 
         self.browser.click('[data-test-id="create-project"]')
         self.browser.wait_until_not(".loading")
+        self.browser.wait_until("#installation")
 
         project = Project.objects.get(organization=self.org)
         assert project.name == "Java"
