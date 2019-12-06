@@ -262,6 +262,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
           config={config}
           organization={organization}
           projects={this.state.projects}
+          triggers={triggers}
           query={query}
           aggregations={aggregations}
           timeWindow={timeWindow}
