@@ -97,4 +97,6 @@ class RelayProjectIdsEndpointTest(APITestCase):
         result, status_code = self._call_endpoint(public_key)
 
         assert status_code < 400
-        assert safe.get_path(result, "projectIds", public_key) is None
+        # NB: Unauthorized Relays also receive the project id, but cannot fetch
+        # the project ID afterwards.
+        assert safe.get_path(result, "projectIds", public_key) == self.project.id

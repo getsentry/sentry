@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from sentry.api.base import Endpoint
 from sentry.api.permissions import RelayPermission
 from sentry.api.authentication import RelayAuthentication
-from sentry.models import Project, ProjectKey
+from sentry.models import ProjectKey
 
 
 class RelayProjectIdsEndpoint(Endpoint):
@@ -29,10 +29,6 @@ class RelayProjectIdsEndpoint(Endpoint):
             # NB: Do not validate pk here (is_active or store). Relay should
             # also receive a mapping for disabled public keys and then perform
             # the full project config fetch.
-
-            project = Project.objects.get_from_cache(id=pk.project_id)
-            if not request.relay.has_org_access(project.organization):
-                continue
 
             project_ids[public_key] = pk.project_id
 
