@@ -98,7 +98,7 @@ class ToggleWrap extends React.Component {
           href="#"
           className="val-toggle-link"
           onClick={evt => {
-            this.setState({toggled: !this.state.toggled});
+            this.setState(state => ({toggled: !state.toggled}));
             evt.preventDefault();
           }}
         />
