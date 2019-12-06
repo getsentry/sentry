@@ -139,7 +139,7 @@ class KeySettings extends React.Component<Props, State> {
                       'Copy this script into your website to setup our JavaScript SDK without any additional configuration. [link]',
                       {
                         link: (
-                          <ExternalLink href="https://docs.sentry.io/platforms/javascript/browser/">
+                          <ExternalLink href="https://docs.sentry.io/platforms/javascript/#what-does-the-loader-provide">
                             What does the script provide?
                           </ExternalLink>
                         ),
