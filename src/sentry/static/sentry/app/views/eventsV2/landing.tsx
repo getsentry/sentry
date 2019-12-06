@@ -233,9 +233,10 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
           placeholder={t('Search for saved queries')}
           onSearch={this.handleSearchQuery}
         />
-        <Button data-test-id="build-new-query" to={to} priority="primary">
+        <StyledOr>or</StyledOr>
+        <StyledButton data-test-id="build-new-query" to={to} priority="primary">
           {t('Build a new query')}
-        </Button>
+        </StyledButton>
       </StyledActions>
     );
   }
@@ -282,13 +283,23 @@ const StyledPageHeader = styled('div')`
 `;
 
 const StyledSearchBar = styled(SearchBar)`
-  margin-right: ${space(1)};
   flex-grow: 1;
+`;
+
+const StyledOr = styled('span')`
+  color: ${p => p.theme.gray2};
+  font-size: ${p => p.theme.fontSizeMedium};
+  margin: 0 ${space(1.5)};
 `;
 
 const StyledActions = styled('div')`
   display: flex;
+  align-items: center;
   margin-bottom: ${space(3)};
+`;
+
+const StyledButton = styled(Button)`
+  white-space: nowrap;
 `;
 
 export default withOrganization(DiscoverLanding);

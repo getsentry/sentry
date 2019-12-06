@@ -5,6 +5,7 @@ import styled from 'react-emotion';
 import PropTypes from 'prop-types';
 
 import space from 'app/styles/space';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {Client} from 'app/api';
@@ -14,6 +15,7 @@ import {Organization, Event} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
 import getDynamicText from 'app/utils/getDynamicText';
 import DateTime from 'app/components/dateTime';
+import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
 import FileSize from 'app/components/fileSize';
 import NotFound from 'app/components/errors/notFound';
@@ -56,13 +58,30 @@ type Props = {
 
 type State = {
   event: Event | undefined;
-};
+  isSidebarVisible: boolean;
+} & AsyncComponent['state'];
 
-class EventDetailsContent extends AsyncComponent<Props, State & AsyncComponent['state']> {
+class EventDetailsContent extends AsyncComponent<Props, State> {
   static propTypes: any = {
     organization: SentryTypes.Organization.isRequired,
     eventSlug: slugValidator,
     location: PropTypes.object.isRequired,
+  };
+
+  state: State = {
+    // AsyncComponent state
+    loading: true,
+    reloading: false,
+    error: false,
+    errors: [],
+    event: undefined,
+
+    // local state
+    isSidebarVisible: true,
+  };
+
+  toggleSidebar = () => {
+    this.setState({isSidebarVisible: !this.state.isSidebarVisible});
   };
 
   getEndpoints(): Array<[string, string, {query: EventQuery}]> {
@@ -105,6 +124,7 @@ class EventDetailsContent extends AsyncComponent<Props, State & AsyncComponent['
 
     // Having an aggregate field means we want to show pagination/graphs
     const isGroupedView = hasAggregateField(eventView);
+    const {isSidebarVisible} = this.state;
 
     return (
       <div>
@@ -117,6 +137,9 @@ class EventDetailsContent extends AsyncComponent<Props, State & AsyncComponent['
           />
           <EventHeader event={event} />
           <Controller>
+            <StyledButton size="small" onClick={this.toggleSidebar}>
+              {isSidebarVisible ? 'Hide Details' : 'Show Details'}
+            </StyledButton>
             {isGroupedView && (
               <Pagination
                 event={event}
@@ -127,7 +150,7 @@ class EventDetailsContent extends AsyncComponent<Props, State & AsyncComponent['
           </Controller>
         </HeaderBox>
         <ContentBox>
-          <Main>
+          <div style={{gridColumn: isSidebarVisible ? '1/2' : '1/3'}}>
             {isGroupedView &&
               getDynamicText({
                 value: (
@@ -146,8 +169,8 @@ class EventDetailsContent extends AsyncComponent<Props, State & AsyncComponent['
               projectId={this.projectId}
               eventView={eventView}
             />
-          </Main>
-          <Side>
+          </div>
+          <div style={{gridColumn: '2/3', display: isSidebarVisible ? '' : 'none'}}>
             <EventMetadata
               event={event}
               organization={organization}
@@ -157,7 +180,7 @@ class EventDetailsContent extends AsyncComponent<Props, State & AsyncComponent['
               <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
             )}
             <TagsTable tags={event.tags} />
-          </Side>
+          </div>
         </ContentBox>
       </div>
     );
@@ -195,40 +218,6 @@ class EventDetailsContent extends AsyncComponent<Props, State & AsyncComponent['
     );
   }
 }
-
-const ContentBox = styled(PageContent)`
-  margin: 0;
-
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    display: grid;
-    grid-template-rows: 1fr auto;
-    grid-template-columns: 65% auto;
-    grid-column-gap: ${space(3)};
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-columns: auto 350px;
-  }
-`;
-
-const Main = styled('div')`
-  grid-column: 1/2;
-`;
-
-const Side = styled('div')`
-  grid-column: 2/3;
-`;
-
-const HeaderBox = styled(ContentBox)`
-  background-color: ${p => p.theme.white};
-  border-bottom: 1px solid ${p => p.theme.borderDark};
-  grid-row-gap: ${space(1)};
-`;
-
-const Controller = styled('div')`
-  grid-row: 1/3;
-  grid-column: 2/3;
-`;
 
 type EventDetailsWrapperProps = {
   organization: Organization;
@@ -270,26 +259,10 @@ const EventHeader = (props: {event: Event}) => {
         {title}
         {message && message.length > 0 ? ':' : null}
       </StyledTitle>
-      <StyledMessage>{getMessage(props.event)}</StyledMessage>
+      <span>{getMessage(props.event)}</span>
     </StyledEventHeader>
   );
 };
-
-const StyledEventHeader = styled('div')`
-  font-size: ${p => p.theme.headerFontSize};
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  grid-column: 1/2;
-`;
-
-const StyledTitle = styled('span')`
-  margin-right: ${space(1)};
-`;
-
-const StyledMessage = styled('span')`
-  color: ${p => p.theme.gray2};
-`;
 
 /**
  * Render metadata about the event and provide a link to the JSON blob
@@ -323,6 +296,56 @@ const EventMetadata = (props: {
     </MetaDataID>
   );
 };
+
+const ContentBox = styled(PageContent)`
+  margin: 0;
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    display: grid;
+    grid-template-rows: 1fr auto;
+    grid-template-columns: 65% auto;
+    grid-column-gap: ${space(3)};
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    grid-template-columns: auto 350px;
+  }
+`;
+
+const HeaderBox = styled(ContentBox)`
+  background-color: ${p => p.theme.white};
+  border-bottom: 1px solid ${p => p.theme.borderDark};
+  grid-row-gap: ${space(2)};
+`;
+
+const Controller = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  grid-row: 2/3;
+  grid-column: 2/3;
+`;
+
+const StyledButton = styled(Button)`
+  display: none;
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    display: block;
+    width: 110px;
+  }
+`;
+
+const StyledEventHeader = styled('div')`
+  font-size: ${p => p.theme.headerFontSize};
+  color: ${p => p.theme.gray2};
+  grid-column: 1/2;
+  align-self: center;
+  ${overflowEllipsis};
+`;
+
+const StyledTitle = styled('span')`
+  color: ${p => p.theme.gray4};
+  margin-right: ${space(1)};
+`;
 
 const MetaDataID = styled('div')`
   margin-bottom: ${space(3)};
