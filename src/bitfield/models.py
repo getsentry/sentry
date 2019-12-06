@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from django.db.models.fields import BigIntegerField, Field
 
 from bitfield.forms import BitFormField
@@ -158,6 +160,15 @@ class BitField(BigIntegerField):
         if isinstance(value, Bit):
             value = value.mask
         if not isinstance(value, BitHandler):
+            # Regression for #1425: fix bad data that was created resulting
+            # in negative values for flags.  Compute the value that would
+            # have been visible ot the application to preserve compatibility.
+            if isinstance(value, six.integer_types) and value < 0:
+                new_value = 0
+                for bit_number, _ in enumerate(self.flags):
+                    new_value |= value & (2 ** bit_number)
+                value = new_value
+
             value = BitHandler(value, self.flags, self.labels)
         else:
             # Ensure flags are consistent for unpickling
