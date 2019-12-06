@@ -13,13 +13,7 @@ import ThresholdControl from 'app/views/settings/incidentRules/triggers/threshol
 import withApi from 'app/utils/withApi';
 import withConfig from 'app/utils/withConfig';
 
-import {
-  AlertRuleThreshold,
-  Trigger,
-  Action,
-  TargetType,
-  ThresholdControlValue,
-} from '../types';
+import {AlertRuleThreshold, Trigger, Action, ThresholdControlValue} from '../types';
 
 type AlertRuleThresholdKey = {
   [AlertRuleThreshold.INCIDENT]: 'alertThreshold';
@@ -206,14 +200,21 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
   };
 
   handleAddAction = (value: Action['type']) => {
-    const {onChange, trigger, triggerIndex} = this.props;
+    const {onChange, trigger, triggerIndex, availableActions} = this.props;
+    const actionConfig =
+      availableActions && availableActions.find(({type}) => type === value);
     const actions = [
       ...trigger.actions,
       {
         type: value,
-        targetType: TargetType.USER,
-        targetIdentifier: null,
-      },
+        targetType:
+          actionConfig &&
+          actionConfig.allowedTargetTypes &&
+          actionConfig.allowedTargetTypes.length > 0
+            ? actionConfig.allowedTargetTypes[0]
+            : null,
+        targetIdentifier: '',
+      } as Action,
     ];
     onChange(triggerIndex, {...trigger, actions});
   };
