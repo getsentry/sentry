@@ -53,6 +53,6 @@ class GoogleIdentityProvider(OAuth2Provider):
             "email": user_data["email"],
             "email_verified": user_data["email_verified"],
             "name": user_data["email"],
-            "scopes": [],  # Google apps do not have user scopes
+            "scopes": sorted(self.oauth_scopes),
             "data": self.get_oauth_data(data),
         }
