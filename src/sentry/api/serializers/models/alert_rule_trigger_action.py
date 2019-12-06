@@ -20,8 +20,7 @@ class AlertRuleTriggerActionSerializer(Serializer):
             "targetType": action_target_type_to_string[
                 AlertRuleTriggerAction.TargetType(obj.target_type)
             ],
-            "targetIdentifier": obj.target_identifier,
-            "targetDisplay": obj.target_display
+            "targetIdentifier": obj.target_display
             if obj.target_display is not None
             else obj.target_identifier,
             "integrationId": obj.integration_id,
