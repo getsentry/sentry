@@ -29,6 +29,13 @@ class IncidentRulesDetails extends AsyncView<
   RouteComponentProps<RouteParams, {}> & Props,
   State
 > {
+  getDefaultState() {
+    return {
+      ...super.getDefaultState(),
+      actions: new Map(),
+    };
+  }
+
   getEndpoints() {
     const {orgId, incidentRuleId} = this.props.params;
 
@@ -58,9 +65,9 @@ class IncidentRulesDetails extends AsyncView<
       });
 
       const actionsTriggersTuples: [string, any][] = await Promise.all(resp);
-      this.setState(() => ({
+      this.setState({
         actions: new Map(actionsTriggersTuples),
-      }));
+      });
     } catch (_err) {
       addErrorMessage(t('Unable to fetch actions'));
     }
