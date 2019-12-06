@@ -22,35 +22,38 @@ from sentry.utils.snuba import (
 ReferenceEvent = namedtuple("ReferenceEvent", ["organization", "slug", "fields"])
 
 
-def find_reference_event(reference):
+def find_reference_event(reference_event):
     try:
-        project_slug, event_id = reference.slug.split(":")
+        project_slug, event_id = reference_event.slug.split(":")
     except ValueError:
         raise InvalidSearchQuery("Invalid reference event")
     try:
         project = Project.objects.get(
-            slug=project_slug, organization=reference.organization, status=ProjectStatus.VISIBLE
+            slug=project_slug,
+            organization=reference_event.organization,
+            status=ProjectStatus.VISIBLE,
         )
     except Project.DoesNotExist:
         raise InvalidSearchQuery("Invalid reference event")
 
-    column_names = [c.value.discover_name for c in get_columns_from_aliases(reference.fields)]
+    column_names = [c.value.discover_name for c in get_columns_from_aliases(reference_event.fields)]
     # We don't need to run a query if there are no columns
     if not column_names:
         return None
 
-    reference_event = raw_query(
+    event = raw_query(
         selected_columns=column_names,
         filter_keys={"project_id": [project.id], "event_id": [event_id]},
         dataset=Dataset.Discover,
+        limit=1,
     )
-    if "error" in reference_event or len(reference_event["data"]) != 1:
+    if "error" in event or len(event["data"]) != 1:
         raise InvalidSearchQuery("Invalid reference event")
 
-    return reference_event["data"][0]
+    return event["data"][0]
 
 
-def create_reference_event_conditions(reference):
+def create_reference_event_conditions(reference_event):
     """
     Create a list of conditions based on a Reference object.
 
@@ -58,19 +61,19 @@ def create_reference_event_conditions(reference):
     event. A use case of this is generating pagination links for, or getting
     timeseries results of the records inside a single aggregated row.
 
-    reference (Reference) The reference event to build conditions from.
+    reference_event (ReferenceEvent) The reference event to build conditions from.
     """
     conditions = []
     tags = {}
-    event_data = find_reference_event(reference)
+    event_data = find_reference_event(reference_event)
     if event_data is None:
         return conditions
 
     if "tags.key" in event_data and "tags.value" in event_data:
         tags = dict(zip(event_data["tags.key"], event_data["tags.value"]))
 
-    field_names = [resolve_column(col) for col in reference.fields]
-    for (i, field) in enumerate(reference.fields):
+    field_names = [resolve_column(col) for col in reference_event.fields]
+    for (i, field) in enumerate(reference_event.fields):
         match = TAG_KEY_RE.match(field_names[i])
         if match:
             value = tags.get(match.group(1), None)
@@ -258,7 +261,7 @@ def query(selected_columns, query, params, orderby=None, referrer=None, auto_fie
     return transform_results(result, translated_columns, snuba_args)
 
 
-def timeseries_query(selected_columns, query, params, rollup, reference=None, referrer=None):
+def timeseries_query(selected_columns, query, params, rollup, reference_event=None, referrer=None):
     """
     High-level API for doing arbitrary user timeseries queries against events.
 
@@ -276,8 +279,8 @@ def timeseries_query(selected_columns, query, params, rollup, reference=None, re
     query (str) Filter query string to create conditions from.
     params (Dict[str, str]) Filtering parameters with start, end, project_id, environment,
     rollup (int) The bucket width in seconds
-    reference (Reference) A reference event object. Used to generate additional conditions
-                          based on the provided reference.
+    reference_event (ReferenceEvent) A reference event object. Used to generate additional
+                    conditions based on the provided reference.
     referrer (str|None) A referrer string to help locate the origin of this query.
     """
     snuba_filter = get_filter(query, params)
@@ -291,8 +294,8 @@ def timeseries_query(selected_columns, query, params, rollup, reference=None, re
         raise InvalidSearchQuery("Cannot get timeseries result without a start and end.")
 
     snuba_args.update(resolve_field_list(selected_columns, snuba_args, auto_fields=False))
-    if reference:
-        ref_conditions = create_reference_event_conditions(reference)
+    if reference_event:
+        ref_conditions = create_reference_event_conditions(reference_event)
         if ref_conditions:
             snuba_args["conditions"].extend(ref_conditions)
 

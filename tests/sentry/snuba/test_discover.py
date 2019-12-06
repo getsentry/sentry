@@ -567,7 +567,7 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
                 "end": self.day_ago + timedelta(hours=3),
                 "project_id": [self.project.id],
             },
-            reference=ref,
+            reference_event=ref,
             rollup=3600,
         )
         assert len(result.data) == 4
