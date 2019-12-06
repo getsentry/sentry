@@ -1,7 +1,7 @@
 import $ from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
+import SentryTypes from 'app/sentryTypes';
 import moment from 'moment';
 
 import {intcomma} from 'app/utils';
@@ -14,20 +14,19 @@ import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import StackedBarChart from 'app/components/stackedBarChart';
 import formatAbbreviatedNumber from 'app/utils/formatAbbreviatedNumber';
 
-const ProjectFiltersChart = createReactClass({
-  displayName: 'ProjectFiltersChart',
-  propTypes: {
+class ProjectFiltersChart extends React.Component {
+  static propTypes = {
     api: PropTypes.object,
-  },
-  contextTypes: {
-    project: PropTypes.object,
-  },
+    project: SentryTypes.Project,
+  };
 
-  getInitialState() {
+  constructor(props) {
+    super(props);
+
     const until = Math.floor(new Date().getTime() / 1000);
     const since = until - 3600 * 24 * 30;
 
-    return {
+    this.state = {
       loading: true,
       error: false,
       statsError: false,
@@ -37,11 +36,17 @@ const ProjectFiltersChart = createReactClass({
       formattedData: [],
       blankStats: true,
     };
-  },
+  }
 
   componentDidMount() {
     this.fetchData();
-  },
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.project !== this.props.project) {
+      this.fetchData();
+    }
+  }
 
   getStatOpts() {
     return {
@@ -56,7 +61,7 @@ const ProjectFiltersChart = createReactClass({
       cors: 'CORS',
       'discarded-hash': 'Discarded Issue',
     };
-  },
+  }
 
   formatData(rawData) {
     return Object.keys(this.getStatOpts()).map(stat => {
@@ -72,12 +77,13 @@ const ProjectFiltersChart = createReactClass({
         statName: stat,
       };
     });
-  },
+  }
 
   getFilterStats() {
     const statOptions = Object.keys(this.getStatOpts());
-    const {orgId, projectId} = this.props.params;
-    const statEndpoint = `/projects/${orgId}/${projectId}/stats/`;
+    const {project} = this.props;
+    const {orgId} = this.props.params;
+    const statEndpoint = `/projects/${orgId}/${project.slug}/stats/`;
     const query = {
       since: this.state.querySince,
       until: this.state.queryUntil,
@@ -122,17 +128,17 @@ const ProjectFiltersChart = createReactClass({
           this.setState({error: true});
         }.bind(this)
       );
-  },
+  }
 
-  fetchData() {
+  fetchData = () => {
     this.getFilterStats();
-  },
+  };
 
   timeLabelAsDay(point) {
     const timeMoment = moment(point.x * 1000);
 
     return timeMoment.format('LL');
-  },
+  }
 
   renderTooltip(point) {
     const timeLabel = this.timeLabelAsDay(point);
@@ -170,7 +176,7 @@ const ProjectFiltersChart = createReactClass({
         })}
       </div>
     );
-  },
+  }
 
   render() {
     const {loading, error} = this.state;
@@ -207,8 +213,8 @@ const ProjectFiltersChart = createReactClass({
         </PanelBody>
       </Panel>
     );
-  },
-});
+  }
+}
 
 export {ProjectFiltersChart};
 

@@ -12,15 +12,16 @@ import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import recreateRoute from 'app/utils/recreateRoute';
+import withProject from 'app/utils/withProject';
 
 class ProjectFilters extends React.Component {
-  static contextTypes = {
+  static propTypes = {
     project: SentryTypes.Project,
   };
 
   render() {
-    const {project} = this.context;
-    const {orgId, projectId, filterType} = this.props.params;
+    const {project, params} = this.props;
+    const {orgId, projectId, filterType} = params;
     if (!project) {
       return null;
     }
@@ -40,7 +41,7 @@ class ProjectFilters extends React.Component {
         </TextBlock>
 
         <div>
-          <ProjectFiltersChart params={this.props.params} />
+          <ProjectFiltersChart project={project} params={this.props.params} />
 
           {features.has('discard-groups') && (
             <NavTabs underlined style={{paddingTop: '30px'}}>
@@ -60,7 +61,7 @@ class ProjectFilters extends React.Component {
           )}
 
           {filterType === 'discarded-groups' ? (
-            <GroupTombstones orgId={orgId} projectId={projectId} />
+            <GroupTombstones orgId={orgId} projectId={project.slug} />
           ) : (
             <ProjectFiltersSettings
               project={project}
@@ -74,4 +75,4 @@ class ProjectFilters extends React.Component {
   }
 }
 
-export default ProjectFilters;
+export default withProject(ProjectFilters);
