@@ -59,17 +59,24 @@ type Props = {
 type State = {
   event: Event | undefined;
   isSidebarVisible: boolean;
-};
+} & AsyncComponent['state'];
 
-class EventDetailsContent extends AsyncComponent<Props, State & AsyncComponent['state']> {
+class EventDetailsContent extends AsyncComponent<Props, State> {
   static propTypes: any = {
     organization: SentryTypes.Organization.isRequired,
     eventSlug: slugValidator,
     location: PropTypes.object.isRequired,
   };
 
-  state = {
+  state: State = {
+    // AsyncComponent state
+    loading: true,
+    reloading: false,
+    error: false,
+    errors: [],
     event: undefined,
+
+    // local state
     isSidebarVisible: true,
   };
 
