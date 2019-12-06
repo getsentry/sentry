@@ -49,7 +49,7 @@ class PagerDutyPlugin(CorePluginMixin, NotifyPlugin):
         if not self.is_configured(group.project):
             return
 
-        description = event.title[:1024]
+        description = event.get_legacy_message()[:1024]
 
         tags = dict(event.get_tags())
         details = {
