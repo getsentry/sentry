@@ -33,7 +33,7 @@ const CHART_GRID = {
   bottom: space(1),
 };
 
-export default class IncidentRulesChart extends React.PureComponent<Props, State> {
+export default class ThresholdsChart extends React.PureComponent<Props, State> {
   static defaultProps = {
     data: [],
   };
