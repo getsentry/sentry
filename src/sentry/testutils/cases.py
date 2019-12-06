@@ -66,7 +66,6 @@ from sentry.models import (
     GroupEnvironment,
     GroupHash,
     GroupMeta,
-    ProjectOption,
     Repository,
     DeletedOrganization,
     Environment,
@@ -219,7 +218,6 @@ class BaseTestCase(Fixtures, Exam):
         super(BaseTestCase, self)._pre_setup()
 
         cache.clear()
-        ProjectOption.objects.clear_local_cache()
         GroupMeta.objects.clear_local_cache()
 
     def _post_teardown(self):

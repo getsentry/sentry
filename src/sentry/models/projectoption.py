@@ -1,7 +1,5 @@
 from __future__ import absolute_import, print_function
 
-from celery.signals import task_postrun
-from django.core.signals import request_finished
 from django.db import models
 
 from sentry import projectoptions
@@ -12,19 +10,9 @@ from sentry.utils.cache import cache
 
 
 class ProjectOptionManager(BaseManager):
-    def __init__(self, *args, **kwargs):
-        super(ProjectOptionManager, self).__init__(*args, **kwargs)
-        self.__cache = {}
-
-    def __getstate__(self):
-        d = self.__dict__.copy()
-        # we cant serialize weakrefs
-        d.pop("_ProjectOptionManager__cache", None)
-        return d
-
-    def __setstate__(self, state):
-        self.__dict__.update(state)
-        self.__cache = {}
+    def _get_local_cache(self):
+        with BaseManager.local_cache():
+            return super(ProjectOptionManager, self)._get_local_cache()
 
     def _make_key(self, instance_id):
         assert instance_id
@@ -64,23 +52,22 @@ class ProjectOptionManager(BaseManager):
         else:
             project_id = project
 
-        if project_id not in self.__cache:
+        local_cache = self._get_local_cache()
+
+        if project_id not in local_cache:
             cache_key = self._make_key(project_id)
             result = cache.get(cache_key)
             if result is None:
                 result = self.reload_cache(project_id)
             else:
-                self.__cache[project_id] = result
-        return self.__cache.get(project_id, {})
-
-    def clear_local_cache(self, **kwargs):
-        self.__cache = {}
+                local_cache[project_id] = result
+        return local_cache.get(project_id, {})
 
     def reload_cache(self, project_id):
         cache_key = self._make_key(project_id)
         result = dict((i.key, i.value) for i in self.filter(project=project_id))
         cache.set(cache_key, result)
-        self.__cache[project_id] = result
+        self._get_local_cache()[project_id] = result
         return result
 
     def post_save(self, instance, **kwargs):
@@ -88,11 +75,6 @@ class ProjectOptionManager(BaseManager):
 
     def post_delete(self, instance, **kwargs):
         self.reload_cache(instance.project_id)
-
-    def contribute_to_class(self, model, name):
-        super(ProjectOptionManager, self).contribute_to_class(model, name)
-        task_postrun.connect(self.clear_local_cache)
-        request_finished.connect(self.clear_local_cache)
 
 
 class ProjectOption(Model):
