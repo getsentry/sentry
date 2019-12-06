@@ -1,4 +1,3 @@
-import $ from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
 
@@ -73,6 +72,39 @@ function analyzeStringForRepr(value) {
   return rv;
 }
 
+class ToggleWrap extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {toggled: false};
+  }
+
+  render() {
+    if (this.props.children.length === 0) {
+      return null;
+    }
+    if (this.highUp) {
+      return this.props.children;
+    }
+
+    const classes = ['val-toggle'];
+    if (this.state.toggled) {
+      classes.push('val-toggle-open');
+    }
+    return (
+      <span className={classes}>
+        <a
+          href="#"
+          className="val-toggle-link"
+          onClick={() => {
+            this.setState({toggled: !this.state.toggled});
+          }}
+        />
+        <span className={this.props.wrapClassName}>{this.props.children}</span>
+      </span>
+    );
+  }
+}
+
 class ContextData extends React.Component {
   static propTypes = {
     data: PropTypes.any,
@@ -84,29 +116,7 @@ class ContextData extends React.Component {
   };
 
   renderValue = value => {
-    function toggle(evt) {
-      $(evt.target)
-        .parent()
-        .toggleClass('val-toggle-open');
-      evt.preventDefault();
-    }
-
     const {preserveQuotes} = this.props;
-
-    function makeToggle(highUp, childCount, children) {
-      if (childCount === 0) {
-        return null;
-      }
-      if (highUp) {
-        return children;
-      }
-      return (
-        <span className="val-toggle">
-          <a href="#" className="val-toggle-link" onClick={toggle} />
-          {children}
-        </span>
-      );
-    }
 
     /*eslint no-shadow:0*/
     function walk(value, depth) {
@@ -157,11 +167,9 @@ class ContextData extends React.Component {
         return (
           <span className="val-array">
             <span className="val-array-marker">{'['}</span>
-            {makeToggle(
-              depth <= 2,
-              children.length,
-              <span className="val-array-items">{children}</span>
-            )}
+            <ToggleWrap highUp={depth <= 2} wrapClassName="val-array-items">
+              {children}
+            </ToggleWrap>
             <span className="val-array-marker">{']'}</span>
           </span>
         );
@@ -190,11 +198,9 @@ class ContextData extends React.Component {
         return (
           <span className="val-dict">
             <span className="val-dict-marker">{'{'}</span>
-            {makeToggle(
-              depth <= 1,
-              children.length,
-              <span className="val-dict-items">{children}</span>
-            )}
+            <ToggleWrap highUp={depth <= 1} wrapClassName="val-dict-items">
+              {children}
+            </ToggleWrap>
             <span className="val-dict-marker">{'}'}</span>
           </span>
         );
