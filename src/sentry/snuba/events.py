@@ -235,18 +235,20 @@ class TagColumn(BaseColumn):
         return "tags[{}]".format(self.__key)
 
 
+column_map = {col.value.alias: col for col in Columns}
+
+
+def get_column_from_alias(alias):
+    col = column_map.get(alias)
+
+    if col:
+        return BuiltInColumn(col)
+    else:
+        return TagColumn(alias)
+
+
 def get_columns_from_aliases(aliases):
     """
     Resolve a list of aliases to the columns
     """
-    column_map = {col.value.alias: col for col in Columns}
-    columns = []
-    for alias in aliases:
-        col = column_map.get(alias)
-
-        if col:
-            columns.append(BuiltInColumn(col))
-        else:
-            columns.append(TagColumn(alias))
-
-    return columns
+    return [get_column_from_alias(col) for col in aliases]

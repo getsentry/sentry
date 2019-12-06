@@ -23,7 +23,7 @@ from sentry.models import (
     EventAttachment,
 )
 from sentry.similarity import features
-from sentry.snuba.events import Columns
+from sentry.snuba.events import BuiltInColumn, Columns
 from sentry.tasks.base import instrumented_task
 from six.moves import reduce
 
@@ -507,7 +507,7 @@ def unmerge(
         ),
         # We need the text-only "search message" from Snuba, not the raw message
         # dict field from nodestore.
-        additional_columns=[Columns.MESSAGE],
+        additional_columns=[BuiltInColumn(Columns.MESSAGE)],
         limit=batch_size,
         referrer="unmerge",
         orderby=["-timestamp", "-event_id"],
