@@ -76,17 +76,17 @@ class RuleDetails extends AsyncView<Props, State> {
                 value={this.state.alertType}
                 choices={[
                   [
-                    'issue',
-                    t('Issue Alert'),
-                    t(
-                      'Alert when any issue satisfies a set of conditions. For example, a new issue is seen, an issue occurs more than 100 times, an issue affects more than 100 users.'
-                    ),
-                  ],
-                  [
                     'metric',
                     t('Metric Alert'),
                     t(
                       'Alert on conditions defined over all events in the project. For example, more than 10 users affected by signup-page errors, database errors exceed 10 per minute, errors seen by our largest customers exceed 500 per hour.'
+                    ),
+                  ],
+                  [
+                    'issue',
+                    t('Issue Alert'),
+                    t(
+                      'Alert when any issue satisfies a set of conditions. For example, a new issue is seen, an issue occurs more than 100 times, an issue affects more than 100 users.'
                     ),
                   ],
                 ]}
