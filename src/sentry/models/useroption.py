@@ -1,8 +1,6 @@
 from __future__ import absolute_import, print_function
 
-from celery.signals import task_postrun
 from django.conf import settings
-from django.core.signals import request_finished
 from django.db import models
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
@@ -37,19 +35,9 @@ def organization_metakey(user, organization):
 
 
 class UserOptionManager(BaseManager):
-    def __init__(self, *args, **kwargs):
-        super(UserOptionManager, self).__init__(*args, **kwargs)
-        self.__metadata = {}
-
-    def __getstate__(self):
-        d = self.__dict__.copy()
-        # we cant serialize weakrefs
-        d.pop("_UserOptionManager__metadata", None)
-        return d
-
-    def __setstate__(self, state):
-        self.__dict__.update(state)
-        self.__metadata = {}
+    def _get_local_cache(self):
+        with BaseManager.local_cache():
+            return super(UserOptionManager, self)._get_local_cache()
 
     def get_value(self, user, key, default=None, **kwargs):
         project = kwargs.get("project")
@@ -73,9 +61,11 @@ class UserOptionManager(BaseManager):
             metakey = project_metakey(user, project)
         else:
             metakey = user_metakey(user)
-        if metakey not in self.__metadata:
+
+        local_cache = self._get_local_cache()
+        if metakey not in local_cache:
             return
-        self.__metadata[metakey].pop(key, None)
+        local_cache[metakey].pop(key, None)
 
     def set_value(self, user, key, value, **kwargs):
         project = kwargs.get("project")
@@ -100,9 +90,11 @@ class UserOptionManager(BaseManager):
             metakey = organization_metakey(user, organization)
         else:
             metakey = user_metakey(user)
-        if metakey not in self.__metadata:
+
+        local_cache = self._get_local_cache()
+        if metakey not in local_cache:
             return
-        self.__metadata[metakey][key] = value
+        local_cache[metakey][key] = value
 
     def get_all_values(self, user, project=None, organization=None):
         if organization and project:
@@ -114,21 +106,18 @@ class UserOptionManager(BaseManager):
             metakey = organization_metakey(user, organization)
         else:
             metakey = user_metakey(user)
-        if metakey not in self.__metadata:
+
+        local_cache = self._get_local_cache()
+        if metakey not in local_cache:
             result = dict(
                 (i.key, i.value)
                 for i in self.filter(user=user, project=project, organization=organization)
             )
-            self.__metadata[metakey] = result
-        return self.__metadata.get(metakey, {})
-
-    def clear_local_cache(self, **kwargs):
-        self.__metadata = {}
+            local_cache[metakey] = result
+        return local_cache.get(metakey, {})
 
     def contribute_to_class(self, model, name):
         super(UserOptionManager, self).contribute_to_class(model, name)
-        task_postrun.connect(self.clear_local_cache)
-        request_finished.connect(self.clear_local_cache)
 
 
 # TODO(dcramer): the NULL UNIQUE constraint here isnt valid, and instead has to

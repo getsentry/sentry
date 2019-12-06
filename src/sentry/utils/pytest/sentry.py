@@ -243,8 +243,4 @@ def pytest_runtest_teardown(item):
 
     discard_all()
 
-    from sentry.models import UserOption
-
-    UserOption.objects.clear_local_cache()
-
     Hub.main.bind_client(None)
