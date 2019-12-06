@@ -7,6 +7,7 @@ import {
   URL_PARAM,
   LOCAL_STORAGE_KEY,
 } from 'app/constants/globalSelectionHeader';
+import {Client} from 'app/api';
 import {getStateFromQuery} from 'app/components/organizations/globalSelectionHeader/utils';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {isEqualWithDates} from 'app/utils/isEqualWithDates';
@@ -29,18 +30,44 @@ const getDefaultSelection = () => {
   };
 };
 
-const isValidSelection = (selection, organization) => {
-  const allowedProjects = new Set(
-    organization.projects.filter(project => project.isMember).map(p => parseInt(p.id, 10))
-  );
-  if (
-    Array.isArray(selection.projects) &&
-    selection.projects.some(project => !allowedProjects.has(project))
-  ) {
-    return false;
-  }
+const getProjectsByIds = async (organization, projectIds) => {
+  const api = new Client();
+  const query = {};
+  query.query = projectIds.map(id => `id:${id}`).join(' ');
+  return await api.requestPromise(`/organizations/${organization.slug}/projects/`, {
+    query,
+  });
+};
 
-  return true;
+const isValidSelection = async (selection, organization) => {
+  if (organization.projects) {
+    const allowedProjects = new Set(
+      organization.projects
+        .filter(project => project.isMember)
+        .map(p => parseInt(p.id, 10))
+    );
+    if (
+      Array.isArray(selection.projects) &&
+      selection.projects.some(project => !allowedProjects.has(project))
+    ) {
+      return false;
+    }
+    return true;
+  } else {
+    // if the selection is [-1] (all projects) or [] (my projects) return true
+    if (selection.projects.length === 0 || selection.projects[0] === -1) {
+      return true;
+    }
+    // if we do not have organization.projects then make an API call to fetch projects based on id
+    const projects = await getProjectsByIds(organization, selection.projects);
+    if (
+      selection.projects.length !== projects.length ||
+      projects.some(project => !project.isMember)
+    ) {
+      return false;
+    }
+    return true;
+  }
 };
 
 const GlobalSelectionStore = Reflux.createStore({
@@ -102,8 +129,11 @@ const GlobalSelectionStore = Reflux.createStore({
         // use default if invalid
       }
     }
+    this.loadSelectionIfValid(globalSelection, organization, forceUrlSync);
+  },
 
-    if (isValidSelection(globalSelection, organization)) {
+  async loadSelectionIfValid(globalSelection, organization, forceUrlSync) {
+    if (await isValidSelection(globalSelection, organization)) {
       this.selection = {
         ...globalSelection,
         ...(forceUrlSync ? {forceUrlSync: true} : {}),
