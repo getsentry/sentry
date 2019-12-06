@@ -2,8 +2,9 @@ from __future__ import absolute_import
 
 from mock import patch
 
-from sentry.testutils import TestCase
 from sentry.tasks.servicehooks import get_payload_v0, process_service_hook
+from sentry.testutils import TestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.testutils.helpers.faux import faux
 from sentry.utils import json
 
@@ -32,7 +33,10 @@ class TestServiceHooks(TestCase):
         import hmac
         from hashlib import sha256
 
-        event = self.create_event(project=self.project)
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(minutes=1))}, project_id=self.project.id
+        )
+
         process_service_hook(self.hook.id, event)
 
         body = json.dumps(get_payload_v0(event))
@@ -47,7 +51,9 @@ class TestServiceHooks(TestCase):
     def test_event_created_sends_service_hook(self, safe_urlopen):
         self.hook.update(events=["event.created", "event.alert"])
 
-        event = self.create_event(project=self.project)
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(minutes=1))}, project_id=self.project.id
+        )
 
         process_service_hook(self.hook.id, event)
 
@@ -66,7 +72,9 @@ class TestServiceHooks(TestCase):
         )
 
     def test_v0_payload(self):
-        event = self.create_event(project=self.project)
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(minutes=1))}, project_id=self.project.id
+        )
 
         process_service_hook(self.hook.id, event)
         body = get_payload_v0(event)

@@ -29,16 +29,14 @@ class AmazonSQSPluginTest(PluginTestCase):
             "queue_url", "https://sqs-us-east-1.amazonaws.com/12345678/myqueue", self.project
         )
 
-        group = self.create_group(message="Hello world", culprit="foo.bar")
-        event = self.create_event(
-            group=group,
+        event = self.store_event(
             data={
                 "sentry.interfaces.Exception": {"type": "ValueError", "value": "foo bar"},
                 "sentry.interfaces.User": {"id": "1", "email": "foo@example.com"},
                 "type": "error",
                 "metadata": {"type": "ValueError", "value": "foo bar"},
             },
-            tags={"level": "warning"},
+            project_id=self.project.id,
         )
 
         with self.options({"system.url-prefix": "http://example.com"}):
@@ -75,8 +73,7 @@ class AmazonSQSPluginTest(PluginTestCase):
         self.run_test()
         assert len(logger.info.call_args_list) == 1
         assert (
-            logger.info.call_args_list[0][0][0]
-            == "sentry_plugins.amazon_sqs.access_token_invalid"
+            logger.info.call_args_list[0][0][0] == "sentry_plugins.amazon_sqs.access_token_invalid"
         )
 
     @patch("sentry_plugins.amazon_sqs.plugin.logger")
