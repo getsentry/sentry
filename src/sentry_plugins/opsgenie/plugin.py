@@ -78,7 +78,7 @@ class OpsGeniePlugin(notify.NotificationPlugin):
 
         payload["tags"] = [
             "%s:%s" % (six.text_type(x).replace(",", ""), six.text_type(y).replace(",", ""))
-            for x, y in event.get_tags()
+            for x, y in event.tags
         ]
 
         return payload
