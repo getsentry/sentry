@@ -900,20 +900,12 @@ def get_reference_event_conditions(organization, snuba_args, event_slug):
     event_data = find_reference_event(organization, snuba_args, event_slug, columns)
 
     conditions = []
-    tags = {}
-    if "tags.key" in event_data and "tags.value" in event_data:
-        tags = dict(zip(event_data["tags.key"], event_data["tags.value"]))
-
     for (i, field) in enumerate(groupby):
-        match = TAG_KEY_RE.match(field_names[i])
-        if match:
-            value = tags.get(match.group(1), None)
-        else:
-            value = event_data.get(field_names[i], None)
-            # If the value is a sequence use the first element as snuba
-            # doesn't support `=` or `IN` operations on fields like exception_frames.filename
-            if isinstance(value, (list, set)) and value:
-                value = value.pop()
+        value = event_data.get(field_names[i], None)
+        # If the value is a sequence use the first element as snuba
+        # doesn't support `=` or `IN` operations on fields like exception_frames.filename
+        if isinstance(value, (list, set)) and value:
+            value = value.pop()
         if value:
             conditions.append([field, "=", value])
 
