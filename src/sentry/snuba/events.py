@@ -209,6 +209,28 @@ class Columns(Enum):
     TRANSACTION_STATUS = Column(
         None, None, "transaction_status", "transaction_status", "transaction.status"
     )
+    # Tracing context fields.
+    TRACE_ID = Column(
+        "events.contexts[trace.trace_id]",
+        "contexts[trace.trace_id]",
+        "contexts[trace.trace_id]",
+        "contexts[trace.trace_id]",
+        "trace",
+    )
+    SPAN_ID = Column(
+        "events.contexts[trace.span_id]",
+        "contexts[trace.span_id]",
+        "contexts[trace.span_id]",
+        "contexts[trace.span_id]",
+        "trace.span",
+    )
+    PARENT_SPAN_ID = Column(
+        None,
+        None,
+        "contexts[trace.parent_span_id]",
+        "contexts[trace.parent_span_id]",
+        "trace.parent_span",
+    )
 
 
 def get_columns_from_aliases(aliases):
