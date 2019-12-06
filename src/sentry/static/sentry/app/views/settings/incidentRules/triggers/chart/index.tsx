@@ -25,7 +25,6 @@ type Props = {
   query: IncidentRule['query'];
   timeWindow: IncidentRule['timeWindow'];
   aggregations: IncidentRule['aggregations'];
-  triggers: Trigger[];
 
   isInverted?: boolean;
   alertThreshold?: number | null;
@@ -49,7 +48,6 @@ class TriggersChart extends React.PureComponent<Props> {
       timeWindow,
       query,
       aggregations,
-      triggers,
     } = this.props;
 
     return (
@@ -99,7 +97,6 @@ class TriggersChart extends React.PureComponent<Props> {
                       resolveThreshold={resolveThreshold}
                       isInverted={isInverted}
                       data={timeseriesData}
-                      triggers={triggers}
                     />
                   </React.Fragment>
                 )}
