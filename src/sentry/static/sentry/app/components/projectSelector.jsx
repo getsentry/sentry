@@ -71,10 +71,26 @@ class ProjectSelector extends React.Component {
     // Callback when the menu is closed
     onClose: PropTypes.func,
 
+    // Callback when the input filter changes
+    onFilterChange: PropTypes.func,
+
+    // Callback when the list is scrolled
+    onScroll: PropTypes.func,
+
     // Callback when projects are selected via the multiple project selector
     // Calls back with (projects[], event)
     onMultiSelect: PropTypes.func,
     rootClassName: PropTypes.string,
+
+    // Represents if a search is taking place
+    searching: PropTypes.bool,
+
+    // Represents if the current project selector is paginated or fully loaded.
+    // Currently only used to ensure that in an empty state the input is not
+    // hidden. This is for the case in which a user searches for a project which
+    // does not exist. If we hide the input due to no results, the user cannot
+    // recover.
+    paginated: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -206,6 +222,10 @@ class ProjectSelector extends React.Component {
       className,
       rootClassName,
       onClose,
+      onFilterChange,
+      onScroll,
+      searching,
+      paginated,
     } = this.props;
     const {activeProject} = this.state;
     const access = new Set(org.access);
@@ -252,7 +272,6 @@ class ProjectSelector extends React.Component {
           },
         ]
       : [];
-
     return (
       <DropdownAutoComplete
         alignMenu="left"
@@ -262,6 +281,9 @@ class ProjectSelector extends React.Component {
         searchPlaceholder={t('Filter projects')}
         onSelect={this.handleSelect}
         onClose={onClose}
+        onChange={onFilterChange}
+        busyItemsStillVisible={searching}
+        onScroll={onScroll}
         maxHeight={500}
         zIndex={theme.zIndex.dropdown}
         css={{marginTop: 6}}
@@ -272,7 +294,7 @@ class ProjectSelector extends React.Component {
         noResultsMessage={t('No projects found')}
         virtualizedHeight={theme.headerSelectorRowHeight}
         virtualizedLabelHeight={theme.headerSelectorLabelHeight}
-        emptyHidesInput
+        emptyHidesInput={!paginated}
         inputActions={() => (
           <AddButton
             disabled={!hasProjectWrite}

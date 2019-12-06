@@ -135,7 +135,7 @@ def resolve_discover_aliases(snuba_args):
     return resolved, translated_columns
 
 
-def query(selected_columns, query, params, orderby=None, referrer=None):
+def query(selected_columns, query, params, orderby=None, referrer=None, auto_fields=False):
     """
     High-level API for doing arbitrary user queries against events.
 
@@ -150,6 +150,8 @@ def query(selected_columns, query, params, orderby=None, referrer=None):
     query (str) Filter query string to create conditions from.
     params (Dict[str, str]) Filtering parameters with start, end, project_id, environment
     orderby (str|Sequence[str]) The field to order results by.
+    referrer (str) A reference string to help locate where queries are coming from.
+    auto_fields (bool) Set to true to have project + eventid fields automatically added.
     """
     snuba_filter = get_filter(query, params)
 
@@ -162,7 +164,7 @@ def query(selected_columns, query, params, orderby=None, referrer=None):
         "filter_keys": snuba_filter.filter_keys,
         "orderby": orderby,
     }
-    snuba_args.update(resolve_field_list(selected_columns, snuba_args))
+    snuba_args.update(resolve_field_list(selected_columns, snuba_args, auto_fields=auto_fields))
 
     # Resolve the public aliases into the discover dataset names.
     snuba_args, translated_columns = resolve_discover_aliases(snuba_args)

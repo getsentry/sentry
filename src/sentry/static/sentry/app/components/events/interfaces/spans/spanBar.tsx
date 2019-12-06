@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from 'react-emotion';
 import get from 'lodash/get';
-import color from 'color';
 import 'intersection-observer'; // this is a polyfill
 
 import {t} from 'app/locale';
@@ -177,6 +176,7 @@ type SpanBarProps = {
   isLast?: boolean;
   isRoot?: boolean;
   toggleSpanTree: () => void;
+  isCurrentSpanFilteredOut: boolean;
 };
 
 type SpanBarState = {
@@ -187,6 +187,18 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   state: SpanBarState = {
     showDetail: false,
   };
+
+  componentDidMount() {
+    this._mounted = true;
+    if (this.spanRowDOMRef.current) {
+      this.connectObservers();
+    }
+  }
+
+  componentWillUnmount() {
+    this._mounted = false;
+    this.disconnectObservers();
+  }
 
   spanRowDOMRef = React.createRef<HTMLDivElement>();
   intersectionObserver?: IntersectionObserver = void 0;
@@ -310,7 +322,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   };
 
   renderSpanTreeToggler = ({left}: {left: number}) => {
-    const {numOfSpanChildren} = this.props;
+    const {numOfSpanChildren, isRoot} = this.props;
 
     const chevronSrc = this.props.showSpanTree ? 'icon-chevron-up' : 'icon-chevron-down';
     const chevron = <Chevron src={chevronSrc} />;
@@ -323,13 +335,30 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       );
     }
 
+    const chevronElement = !isRoot ? (
+      <div
+        style={{
+          marginRight: '2px',
+          width: '5px',
+          textAlign: 'right',
+        }}
+      >
+        {chevron}
+      </div>
+    ) : null;
+
     return (
       <SpanTreeTogglerContainer style={{left: `${left}px`}} hasToggler>
         {this.renderSpanTreeConnector({hasToggler: true})}
         <SpanTreeToggler
+          disabled={!!isRoot}
           isExpanded={this.props.showSpanTree}
           onClick={event => {
             event.stopPropagation();
+
+            if (isRoot) {
+              return;
+            }
 
             this.props.toggleSpanTree();
           }}
@@ -337,9 +366,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           <span style={{marginRight: '2px', textAlign: 'center'}}>
             <Count value={numOfSpanChildren} />
           </span>
-          <div style={{marginRight: '2px', width: '5px', textAlign: 'right'}}>
-            {chevron}
-          </div>
+          {chevronElement}
         </SpanTreeToggler>
       </SpanTreeTogglerContainer>
     );
@@ -541,18 +568,6 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     }
   };
 
-  componentDidMount() {
-    this._mounted = true;
-    if (this.spanRowDOMRef.current) {
-      this.connectObservers();
-    }
-  }
-
-  componentWillUnmount() {
-    this._mounted = false;
-    this.disconnectObservers();
-  }
-
   renderCursorGuide = () => {
     return (
       <CursorGuideHandler.Consumer>
@@ -713,14 +728,16 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   };
 
   render() {
+    const {isCurrentSpanFilteredOut} = this.props;
     const bounds = this.getBounds();
 
     const isSpanVisibleInView = bounds.isSpanVisibleInView;
+    const isSpanVisible = isSpanVisibleInView && !isCurrentSpanFilteredOut;
 
     return (
       <SpanRow
         innerRef={this.spanRowDOMRef}
-        visible={isSpanVisibleInView}
+        visible={isSpanVisible}
         showBorder={this.state.showDetail}
         onClick={() => {
           this.toggleDisplayDetail();
@@ -733,7 +750,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
             return this.renderHeader(dividerHandlerChildrenProps);
           }}
         </DividerHandlerManager.Consumer>
-        {this.renderDetail({isVisible: isSpanVisibleInView})}
+        {this.renderDetail({isVisible: isSpanVisible})}
       </SpanRow>
     );
   }
@@ -749,13 +766,13 @@ const getBackgroundColor = ({
   theme: any;
 }) => {
   if (!theme) {
-    return 'white';
+    return theme.white;
   }
 
   if (showDetail) {
-    return theme.offWhite2;
+    return theme.gray5;
   }
-  return showStriping ? theme.offWhite : 'white';
+  return showStriping ? theme.offWhite : theme.white;
 };
 
 type SpanRowCellProps = OmitHtmlDivProps<{
@@ -769,49 +786,40 @@ const SpanRowCell = styled('div')<SpanRowCellProps>`
   height: 100%;
   overflow: hidden;
   background-color: ${p => getBackgroundColor(p)};
+  color: ${p => (p.showDetail ? p.theme.white : null)};
 `;
 
 const SpanRowCellContainer = styled('div')`
   position: relative;
   height: ${SPAN_ROW_HEIGHT}px;
-
-  &:hover ${SpanRowCell} {
-    background-color: ${p =>
-      color(p.theme.offWhite2)
-        .alpha(0.4)
-        .string()};
-  }
 `;
 
 const CursorGuide = styled('div')`
   position: absolute;
   top: 0;
   width: 1px;
-  background-color: #e03e2f;
-
+  background-color: ${p => p.theme.red};
   transform: translateX(-50%);
-
   height: 100%;
 `;
 
 export const DividerLine = styled('div')`
+  background-color: ${p => p.theme.borderDark};
   position: absolute;
   height: 100%;
   width: 1px;
   transform: translateX(-50%);
-
-  /* increase hit target */
-  border-width: 0 5px;
+  transition: all 125ms ease-in-out;
+  border-width: 0 2px;
   border-color: rgba(0, 0, 0, 0);
   border-style: solid;
   box-sizing: content-box;
   background-clip: content-box;
-
-  background-color: #cdc7d5;
   z-index: ${zIndex.dividerLine};
 
   &.hovering {
-    width: 3px;
+    background-color: ${p => p.theme.gray5};
+    width: 2px;
     cursor: col-resize;
   }
 `;
@@ -830,7 +838,6 @@ const SpanBarTitleContainer = styled('div')`
 const SpanBarTitle = styled('div')`
   position: relative;
   height: 100%;
-  color: ${p => p.theme.gray4};
   font-size: ${p => p.theme.fontSizeSmall};
   white-space: nowrap;
   display: flex;
@@ -896,25 +903,37 @@ const ConnectorBar = styled('div')`
   position: absolute;
 `;
 
-const getTogglerTheme = ({isExpanded, theme}) => {
+const getTogglerTheme = ({
+  isExpanded,
+  theme,
+  disabled,
+}: {
+  isExpanded: boolean;
+  theme: any;
+  disabled: boolean;
+}) => {
   const buttonTheme = isExpanded ? theme.button.default : theme.button.primary;
-  const activeButtonTheme = isExpanded ? theme.button.primary : theme.button.default;
+
+  if (disabled) {
+    return `
+    background: ${buttonTheme.background};
+    border: 1px solid ${buttonTheme.border};
+    color: ${buttonTheme.color};
+
+    cursor: default;
+  `;
+  }
 
   return `
     background: ${buttonTheme.background};
     border: 1px solid ${buttonTheme.border};
     color: ${buttonTheme.color};
-
-    &:hover {
-      background: ${activeButtonTheme.background};
-      border: 1px solid ${activeButtonTheme.border};
-      color: ${activeButtonTheme.color};
-    }
   `;
 };
 
 type SpanTreeTogglerAndDivProps = OmitHtmlDivProps<{
   isExpanded: boolean;
+  disabled: boolean;
 }>;
 
 const SpanTreeToggler = styled('div')<SpanTreeTogglerAndDivProps>`

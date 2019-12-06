@@ -2,11 +2,30 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled, {css} from 'react-emotion';
 
+import {User} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
 import Avatar from 'app/components/avatar';
+import UserAvatar from 'app/components/avatar/userAvatar';
 import Tooltip from 'app/components/tooltip';
 
-export default class AvatarList extends React.Component {
+const defaultProps = {
+  avatarSize: 28,
+  maxVisibleAvatars: 5,
+  typeMembers: 'users',
+  tooltipOptions: {},
+};
+
+type DefaultProps = Readonly<typeof defaultProps>;
+type Mutable<T> = {-readonly [P in keyof T]: T[P]};
+
+type Props = {
+  className?: string;
+  users: User[];
+  renderTooltip?: UserAvatar['props']['renderTooltip'];
+  tooltipOptions: Mutable<UserAvatar['props']['tooltipOptions']>;
+} & DefaultProps;
+
+export default class AvatarList extends React.Component<Props> {
   static propTypes = {
     users: PropTypes.arrayOf(SentryTypes.User).isRequired,
     avatarSize: PropTypes.number,
@@ -16,12 +35,7 @@ export default class AvatarList extends React.Component {
     typeMembers: PropTypes.string,
   };
 
-  static defaultProps = {
-    avatarSize: 28,
-    maxVisibleAvatars: 5,
-    typeMembers: 'users',
-    tooltipOptions: {},
-  };
+  static defaultProps = defaultProps;
 
   render() {
     const {
@@ -29,9 +43,9 @@ export default class AvatarList extends React.Component {
       users,
       avatarSize,
       maxVisibleAvatars,
-      tooltipOptions,
       renderTooltip,
       typeMembers,
+      tooltipOptions,
     } = this.props;
 
     const visibleUsers = users.slice(0, maxVisibleAvatars);
@@ -89,7 +103,7 @@ const StyledAvatar = styled(Avatar)`
   ${Circle};
 `;
 
-const CollapsedUsers = styled('div')`
+const CollapsedUsers = styled('div')<{size: number}>`
   display: flex;
   align-items: center;
   justify-content: center;

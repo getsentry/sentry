@@ -276,6 +276,14 @@ MIDDLEWARE_CLASSES = (
 
 ROOT_URLCONF = "sentry.conf.urls"
 
+# TODO(joshuarli): Django 1.10 introduced this option, which restricts the size of a
+# request body. We have some middleware in sentry.middleware.proxy that sets the
+# Content Length to max uint32 in certain cases related to minidump.
+# Once relay's fully rolled out, that can be deleted.
+# Until then, the safest and easiest thing to do is to disable this check
+# to leave things the way they were with Django <1.9.
+DATA_UPLOAD_MAX_MEMORY_SIZE = None
+
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
@@ -679,7 +687,11 @@ CELERYBEAT_SCHEDULE = {
 }
 
 BGTASKS = {
-    "sentry.bgtasks.clean_dsymcache:clean_dsymcache": {"interval": 5 * 60, "roles": ["worker"]}
+    "sentry.bgtasks.clean_dsymcache:clean_dsymcache": {"interval": 5 * 60, "roles": ["worker"]},
+    "sentry.bgtasks.clean_releasefilecache:clean_releasefilecache": {
+        "interval": 5 * 60,
+        "roles": ["worker"],
+    },
 }
 
 # Sentry logs to two major places: stdout, and it's internal project.
@@ -1413,9 +1425,6 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.vsts_extension.VstsExtensionIntegrationProvider",
     "sentry.integrations.pagerduty.integration.PagerDutyIntegrationProvider",
 )
-
-
-SENTRY_INTERNAL_INTEGRATIONS = ["pagerduty"]
 
 
 def get_sentry_sdk_config():

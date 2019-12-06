@@ -17,13 +17,6 @@
         Since reprocessing is enabled, these events will not show up in Sentry until the processing issues are resolved.
       {% endif %}
     </p>
-    {% if not reprocessing_active %}
-    <p>
-      <strong>Tip:</strong> If you <a href="{{ info_url }}">enable reprocessing</a>
-      you will not be receiving alert emails for such events in the future
-      until issues are resolved.
-    </p>
-    {% endif %}
     <hr>
 
     <h6>Project Affected</h6>
@@ -68,13 +61,4 @@
         </tbody>
       </table>
     </div>
-
-    {% if not reprocessing_active %}
-    <p>
-      Since reprocessing is disabled, we won't send you additional
-      notifications about issues like this. However, we recommend <a href="{{
-        info_url }}">enabling reprocessing</a> in the project settings to
-      improve your debugging experience on Sentry.
-    </p>
-    {% endif %}
 {% endblock %}

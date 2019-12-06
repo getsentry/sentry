@@ -99,12 +99,8 @@ class Tooltip extends React.Component<Props, State> {
     isOpen: false,
   };
 
-  componentDidMount() {
-    this.tooltipId = domId('tooltip-');
-  }
-
   portalEl: HTMLElement;
-  tooltipId: string = '';
+  tooltipId: string = domId('tooltip-');
   delayTimeout: number | null = null;
 
   setOpen = () => {
