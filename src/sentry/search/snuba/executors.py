@@ -83,6 +83,8 @@ class AbstractQueryExecutor:
     def query(
         self,
         projects,
+        retention_window_start,
+        group_queryset,
         environments,
         sort_by,
         limit,
