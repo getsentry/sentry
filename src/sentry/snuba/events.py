@@ -213,14 +213,14 @@ class Columns(Enum):
     TRACE_ID = Column(
         "events.contexts[trace.trace_id]",
         "contexts[trace.trace_id]",
-        "trace_id",
+        "contexts[trace.trace_id]",
         "contexts[trace.trace_id]",
         "trace",
     )
     SPAN_ID = Column(
         "events.contexts[trace.span_id]",
         "contexts[trace.span_id]",
-        "span_id",
+        "contexts[trace.span_id]",
         "contexts[trace.span_id]",
         "trace.span",
     )
