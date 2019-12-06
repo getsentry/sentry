@@ -93,7 +93,6 @@ DATASETS = {
     Dataset.Events: SENTRY_SNUBA_MAP,
     Dataset.Transactions: TRANSACTIONS_SENTRY_SNUBA_MAP,
     Dataset.Discover: DISCOVER_COLUMN_MAP,
-    Dataset.Groups: GROUPS_SENTRY_SNUBA_MAP,
 }
 
 # Store the internal field names to save work later on.
@@ -103,7 +102,6 @@ DATASET_FIELDS = {
     Dataset.Events: list(SENTRY_SNUBA_MAP.values()) + ["group_id"],
     Dataset.Transactions: list(TRANSACTIONS_SENTRY_SNUBA_MAP.values()),
     Dataset.Discover: list(DISCOVER_COLUMN_MAP.values()),
-    Dataset.Groups: list(GROUPS_SENTRY_SNUBA_MAP.values()),
 }
 
 
@@ -660,12 +658,7 @@ def _prepare_query_params(query_params):
             query_params.filter_keys, is_grouprelease=query_params.is_grouprelease
         )
 
-    if query_params.dataset in [
-        Dataset.Events,
-        Dataset.Transactions,
-        Dataset.Discover,
-        Dataset.Groups,
-    ]:
+    if query_params.dataset in [Dataset.Events, Dataset.Transactions, Dataset.Discover]:
         (organization_id, params_to_update) = get_query_params_to_update_for_projects(query_params)
     elif query_params.dataset in [Dataset.Outcomes, Dataset.OutcomesRaw]:
         (organization_id, params_to_update) = get_query_params_to_update_for_organizations(
@@ -958,10 +951,7 @@ def constrain_column_to_dataset(col, dataset, value=None):
     You should use sentry.snuba.discover instead.
     """
     if col.startswith("tags["):
-        if dataset == Dataset.Groups:
-            return u"events.{}".format(col)
-        else:
-            return col
+        return col
 
     # Special case for the type condition as we only want
     # to drop it when we are querying transactions.
@@ -974,10 +964,7 @@ def constrain_column_to_dataset(col, dataset, value=None):
     if col in DATASET_FIELDS[dataset]:
         return col
 
-    if dataset == Dataset.Groups:
-        return u"events.tags[{}]".format(col)
-    else:
-        return u"tags[{}]".format(col)
+    return u"tags[{}]".format(col)
 
 
 def constrain_condition_to_dataset(cond, dataset):
