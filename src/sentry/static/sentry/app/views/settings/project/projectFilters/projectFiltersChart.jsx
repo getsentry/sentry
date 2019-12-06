@@ -130,9 +130,9 @@ class ProjectFiltersChart extends React.Component {
       );
   }
 
-  fetchData() {
+  fetchData = () => {
     this.getFilterStats();
-  }
+  };
 
   timeLabelAsDay(point) {
     const timeMoment = moment(point.x * 1000);
