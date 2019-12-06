@@ -245,7 +245,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
         extra_kwargs = {
             "target_identifier": {"required": True},
             "target_display": {"required": False},
-            "integration": {"required": False, "allow_null": False},
+            "integration": {"required": False, "allow_null": True},
         }
 
     def validate_type(self, type):
@@ -308,7 +308,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                 ).exists():
                     raise serializers.ValidationError("User does not belong to this organization")
         elif attrs.get("type") == AlertRuleTriggerAction.Type.SLACK:
-            if "integration" not in attrs:
+            if not attrs.get("integration"):
                 raise serializers.ValidationError(
                     {"integration": "Integration must be provided for slack"}
                 )
