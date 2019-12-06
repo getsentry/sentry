@@ -888,10 +888,10 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
             "end": Any(datetime),
             "filter_keys": {
                 "project_id": [self.project.id],
-                "issue": [self.group1.id, self.group2.id],
+                "group_id": [self.group1.id, self.group2.id],
             },
             "referrer": "search",
-            "groupby": ["issue"],
+            "groupby": ["group_id"],
             "conditions": [[["positionCaseInsensitive", ["message", "'foo'"]], "!=", 0]],
             "selected_columns": [],
             "limit": limit,
@@ -909,9 +909,9 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
             sort_by="date",
         )
         assert query_mock.call_args == mock.call(
-            orderby=["-last_seen", "issue"],
+            orderby=["-last_seen", "group_id"],
             aggregations=[
-                ["uniq", "issue", "total"],
+                ["uniq", "group_id", "total"],
                 ["multiply(toUInt64(max(timestamp)), 1000)", "", "last_seen"],
             ],
             having=[["last_seen", ">=", Any(int)]],
@@ -920,11 +920,11 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
 
         self.make_query(search_filter_query="foo", sort_by="priority")
         assert query_mock.call_args == mock.call(
-            orderby=["-priority", "issue"],
+            orderby=["-priority", "group_id"],
             aggregations=[
                 ["toUInt64(plus(multiply(log(times_seen), 600), last_seen))", "", "priority"],
                 ["count()", "", "times_seen"],
-                ["uniq", "issue", "total"],
+                ["uniq", "group_id", "total"],
                 ["multiply(toUInt64(max(timestamp)), 1000)", "", "last_seen"],
             ],
             having=[],
@@ -933,8 +933,8 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
 
         self.make_query(search_filter_query="times_seen:5 foo", sort_by="freq")
         assert query_mock.call_args == mock.call(
-            orderby=["-times_seen", "issue"],
-            aggregations=[["count()", "", "times_seen"], ["uniq", "issue", "total"]],
+            orderby=["-times_seen", "group_id"],
+            aggregations=[["count()", "", "times_seen"], ["uniq", "group_id", "total"]],
             having=[["times_seen", "=", 5]],
             **common_args
         )

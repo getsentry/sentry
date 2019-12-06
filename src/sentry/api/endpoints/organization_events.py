@@ -56,7 +56,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                     end=snuba_args["end"],
                     conditions=snuba_args["conditions"],
                     project_ids=snuba_args["filter_keys"].get("project_id", None),
-                    group_ids=snuba_args["filter_keys"].get("issue", None),
+                    group_ids=snuba_args["filter_keys"].get("group_id", None),
                 ),
             )
 

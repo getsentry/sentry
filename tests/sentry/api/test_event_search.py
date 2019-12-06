@@ -996,17 +996,17 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_issue_filter(self):
         filter = get_filter("issue.id:1")
         assert not filter.conditions
-        assert filter.filter_keys == {"issue": [1]}
+        assert filter.filter_keys == {"group_id": [1]}
         assert filter.group_ids == [1]
 
         filter = get_filter("issue.id:1 issue.id:2 issue.id:3")
         assert not filter.conditions
-        assert filter.filter_keys == {"issue": [1, 2, 3]}
+        assert filter.filter_keys == {"group_id": [1, 2, 3]}
         assert filter.group_ids == [1, 2, 3]
 
         filter = get_filter("issue.id:1 user.email:foo@example.com")
         assert filter.conditions == [["user.email", "=", "foo@example.com"]]
-        assert filter.filter_keys == {"issue": [1]}
+        assert filter.filter_keys == {"group_id": [1]}
         assert filter.group_ids == [1]
 
     def test_project_name(self):

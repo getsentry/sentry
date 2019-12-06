@@ -115,19 +115,20 @@ class BulkRawQueryTest(TestCase, SnubaTestCase):
                 snuba.SnubaQueryParams(
                     start=timezone.now() - timedelta(days=1),
                     end=timezone.now(),
-                    selected_columns=["event_id", "issue", "timestamp"],
-                    filter_keys={"project_id": [self.project.id], "issue": [event_1.group.id]},
+                    selected_columns=["event_id", "group_id", "timestamp"],
+                    filter_keys={"project_id": [self.project.id], "group_id": [event_1.group.id]},
                 ),
                 snuba.SnubaQueryParams(
                     start=timezone.now() - timedelta(days=1),
                     end=timezone.now(),
-                    selected_columns=["event_id", "issue", "timestamp"],
-                    filter_keys={"project_id": [self.project.id], "issue": [event_2.group.id]},
+                    selected_columns=["event_id", "group_id", "timestamp"],
+                    filter_keys={"project_id": [self.project.id], "group_id": [event_2.group.id]},
                 ),
             ]
         )
         assert [
-            {"issue": r["data"][0]["issue"], "event_id": r["data"][0]["event_id"]} for r in results
+            {"issue": r["data"][0]["group_id"], "event_id": r["data"][0]["event_id"]}
+            for r in results
         ] == [
             {"issue": event_1.group.id, "event_id": event_1.event_id},
             {"issue": event_2.group.id, "event_id": event_2.event_id},

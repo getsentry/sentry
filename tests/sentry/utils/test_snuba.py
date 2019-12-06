@@ -91,7 +91,7 @@ class SnubaUtilsTest(TestCase):
         # to Releases. Reverse translation depends on multiple
         # fields.
         filter_keys = {
-            "issue": [self.proj1group1.id, self.proj1group2.id],
+            "group_id": [self.proj1group1.id, self.proj1group2.id],
             "tags[sentry:release]": [
                 self.group1release1.id,
                 self.group1release2.id,
@@ -100,7 +100,7 @@ class SnubaUtilsTest(TestCase):
         }
         forward, reverse = get_snuba_translators(filter_keys, is_grouprelease=True)
         assert forward(filter_keys) == {
-            "issue": [self.proj1group1.id, self.proj1group2.id],
+            "group_id": [self.proj1group1.id, self.proj1group2.id],
             "tags[sentry:release]": [
                 self.release1.version,
                 self.release2.version,
@@ -109,17 +109,17 @@ class SnubaUtilsTest(TestCase):
         }
         result = [
             {
-                "issue": self.proj1group1.id,
+                "group_id": self.proj1group1.id,
                 "tags[sentry:release]": self.release1.version,
                 "count": 1,
             },
             {
-                "issue": self.proj1group1.id,
+                "group_id": self.proj1group1.id,
                 "tags[sentry:release]": self.release2.version,
                 "count": 2,
             },
             {
-                "issue": self.proj1group2.id,
+                "group_id": self.proj1group2.id,
                 "tags[sentry:release]": self.release1.version,
                 "count": 3,
             },
@@ -128,17 +128,17 @@ class SnubaUtilsTest(TestCase):
         result = [reverse(r) for r in result]
         assert result == [
             {
-                "issue": self.proj1group1.id,
+                "group_id": self.proj1group1.id,
                 "tags[sentry:release]": self.group1release1.id,
                 "count": 1,
             },
             {
-                "issue": self.proj1group1.id,
+                "group_id": self.proj1group1.id,
                 "tags[sentry:release]": self.group1release2.id,
                 "count": 2,
             },
             {
-                "issue": self.proj1group2.id,
+                "group_id": self.proj1group2.id,
                 "tags[sentry:release]": self.group2release1.id,
                 "count": 3,
             },

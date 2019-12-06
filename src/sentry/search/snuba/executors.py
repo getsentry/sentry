@@ -33,7 +33,7 @@ aggregation_defs = {
     # https://github.com/getsentry/sentry/blob/804c85100d0003cfdda91701911f21ed5f66f67c/src/sentry/event_manager.py#L241-L271
     "priority": ["toUInt64(plus(multiply(log(times_seen), 600), last_seen))", ""],
     # Only makes sense with WITH TOTALS, returns 1 for an individual group.
-    "total": ["uniq", "issue"],
+    "total": ["uniq", "group_id"],
 }
 issue_only_fields = set(
     [
@@ -124,7 +124,7 @@ def snuba_search(
         filters["environment"] = environment_ids
 
     if candidate_ids:
-        filters["issue"] = sorted(candidate_ids)
+        filters["group_id"] = sorted(candidate_ids)
 
     conditions = []
     having = []
@@ -161,14 +161,14 @@ def snuba_search(
     selected_columns = []
     if get_sample:
         query_hash = md5(repr(conditions)).hexdigest()[:8]
-        selected_columns.append(("cityHash64", ("'{}'".format(query_hash), "issue"), "sample"))
+        selected_columns.append(("cityHash64", ("'{}'".format(query_hash), "group_id"), "sample"))
         sort_field = "sample"
         orderby = [sort_field]
         referrer = "search_sample"
     else:
         # Get the top matching groups by score, i.e. the actual search results
         # in the order that we want them.
-        orderby = ["-{}".format(sort_field), "issue"]  # ensure stable sort within the same score
+        orderby = ["-{}".format(sort_field), "group_id"]  # ensure stable sort within the same score
         referrer = "search"
 
     snuba_results = snuba.dataset_query(
@@ -176,7 +176,7 @@ def snuba_search(
         start=start,
         end=end,
         selected_columns=selected_columns,
-        groupby=["issue"],
+        groupby=["group_id"],
         conditions=conditions,
         having=having,
         filter_keys=filters,
@@ -195,7 +195,7 @@ def snuba_search(
     if not get_sample:
         metrics.timing("snuba.search.num_result_groups", len(rows))
 
-    return [(row["issue"], row[sort_field]) for row in rows], total
+    return [(row["group_id"], row[sort_field]) for row in rows], total
 
 
 class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
