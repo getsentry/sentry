@@ -414,7 +414,9 @@ def get_crash_frame_from_event_data(data, frame_filter=None):
     Return None if any of the following are true:
         - there are no frames
         - all frames fail the given filter test
-        - the data is threaded and there's more than one thread
+        - we're unable to find any frames nested in either event.exception or
+          event.stacktrace, and there's anything other than exactly one thread
+          in the data
     """
 
     frames = get_path(data, "exception", "values", -1, "stacktrace", "frames") or get_path(
