@@ -136,7 +136,7 @@ class KeySettings extends React.Component<Props, State> {
                 <PanelBody>
                   <Field
                     help={tct(
-                      'Copy this script into your website to setup our JavaScript SDK without any additional configuration. [link]',
+                      'Copy this script into your website to setup your JavaScript SDK without any additional configuration. [link]',
                       {
                         link: (
                           <ExternalLink href="https://docs.sentry.io/platforms/javascript/#what-does-the-loader-provide">
