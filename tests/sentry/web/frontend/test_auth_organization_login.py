@@ -425,7 +425,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         # setup a 'previous' identity, such as when we migrated Google from
         # the old idents to the new
-        user = self.create_user("bar@example.com", is_managed=True)
+        user = self.create_user("bar@example.com", is_managed=True, is_active=False)
         auth_identity = AuthIdentity.objects.create(
             auth_provider=auth_provider, user=user, ident="bar@example.com"
         )
@@ -580,14 +580,14 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         # setup a 'previous' identity, such as when we migrated Google from
         # the old idents to the new
-        user = self.create_user("bar@example.com", is_managed=True)
+        user = self.create_user("bar@example.com", is_managed=True, is_active=False)
         identity1 = AuthIdentity.objects.create(
             auth_provider=auth_provider, user=user, ident="bar@example.com"
         )
 
         # create another identity which is used, but not by the authenticating
         # user
-        user2 = self.create_user("adfadsf@example.com", is_managed=True)
+        user2 = self.create_user("adfadsf@example.com", is_managed=True, is_active=False)
         identity2 = AuthIdentity.objects.create(
             auth_provider=auth_provider, user=user2, ident="adfadsf@example.com"
         )
