@@ -10,10 +10,6 @@ from sentry.utils.cache import cache
 
 
 class ProjectOptionManager(BaseManager):
-    def _get_local_cache(self):
-        with BaseManager.local_cache():
-            return super(ProjectOptionManager, self)._get_local_cache()
-
     def _make_key(self, instance_id):
         assert instance_id
         return "%s:%s" % (self.model._meta.db_table, instance_id)
@@ -52,7 +48,8 @@ class ProjectOptionManager(BaseManager):
         else:
             project_id = project
 
-        local_cache = self._get_local_cache()
+        with BaseManager.local_cache():
+            local_cache = self._get_local_cache()
 
         if project_id not in local_cache:
             cache_key = self._make_key(project_id)
@@ -67,7 +64,8 @@ class ProjectOptionManager(BaseManager):
         cache_key = self._make_key(project_id)
         result = dict((i.key, i.value) for i in self.filter(project=project_id))
         cache.set(cache_key, result)
-        self._get_local_cache()[project_id] = result
+        with BaseManager.local_cache():
+            self._get_local_cache()[project_id] = result
         return result
 
     def post_save(self, instance, **kwargs):

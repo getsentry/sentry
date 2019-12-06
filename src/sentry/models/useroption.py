@@ -35,10 +35,6 @@ def organization_metakey(user, organization):
 
 
 class UserOptionManager(BaseManager):
-    def _get_local_cache(self):
-        with BaseManager.local_cache():
-            return super(UserOptionManager, self)._get_local_cache()
-
     def get_value(self, user, key, default=None, **kwargs):
         project = kwargs.get("project")
         organization = kwargs.get("organization")
@@ -62,7 +58,8 @@ class UserOptionManager(BaseManager):
         else:
             metakey = user_metakey(user)
 
-        local_cache = self._get_local_cache()
+        with BaseManager.local_cache():
+            local_cache = self._get_local_cache()
         if metakey not in local_cache:
             return
         local_cache[metakey].pop(key, None)
@@ -91,7 +88,9 @@ class UserOptionManager(BaseManager):
         else:
             metakey = user_metakey(user)
 
-        local_cache = self._get_local_cache()
+        with BaseManager.local_cache():
+            local_cache = self._get_local_cache()
+
         if metakey not in local_cache:
             return
         local_cache[metakey][key] = value
@@ -107,7 +106,9 @@ class UserOptionManager(BaseManager):
         else:
             metakey = user_metakey(user)
 
-        local_cache = self._get_local_cache()
+        with BaseManager.local_cache():
+            local_cache = self._get_local_cache()
+
         if metakey not in local_cache:
             result = dict(
                 (i.key, i.value)
@@ -115,9 +116,6 @@ class UserOptionManager(BaseManager):
             )
             local_cache[metakey] = result
         return local_cache.get(metakey, {})
-
-    def contribute_to_class(self, model, name):
-        super(UserOptionManager, self).contribute_to_class(model, name)
 
 
 # TODO(dcramer): the NULL UNIQUE constraint here isnt valid, and instead has to
