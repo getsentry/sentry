@@ -1,8 +1,11 @@
 import React, {Component} from 'react';
+import {browserHistory} from 'react-router';
+import PropTypes from 'prop-types';
 
 import {Client} from 'app/api';
 import {switchOrganization} from 'app/actionCreators/organizations';
 import {t, tct} from 'app/locale';
+import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import AlertActions from 'app/actions/alertActions';
 import Button from 'app/components/button';
 import ErrorBoundary from 'app/components/errorBoundary';
@@ -12,6 +15,7 @@ import OrganizationContext from 'app/views/organizationContext';
 import SentryTypes from 'app/sentryTypes';
 
 import InstallPromptBanner from './installPromptBanner';
+import LightWeightInstallPromptBanner from './lightWeightInstallPromptBanner';
 
 class DeletionInProgress extends Component {
   static propTypes = {
@@ -124,8 +128,16 @@ class DeletionPending extends Component {
 }
 
 class OrganizationDetailsBody extends Component {
+  static propTypes = {
+    detailed: PropTypes.bool,
+  };
+
   static contextTypes = {
     organization: SentryTypes.Organization,
+  };
+
+  static defaultProps = {
+    detailed: true,
   };
 
   render() {
@@ -140,7 +152,12 @@ class OrganizationDetailsBody extends Component {
     }
     return (
       <React.Fragment>
-        {organization && <InstallPromptBanner organization={organization} />}
+        {organization &&
+          (this.props.detailed ? (
+            <InstallPromptBanner organization={organization} />
+          ) : (
+            <LightWeightInstallPromptBanner organization={organization} />
+          ))}
         <ErrorBoundary>{this.props.children}</ErrorBoundary>
         <Footer />
       </React.Fragment>
@@ -149,6 +166,19 @@ class OrganizationDetailsBody extends Component {
 }
 
 export default class OrganizationDetails extends Component {
+  static propTypes = {
+    routes: PropTypes.array,
+  };
+
+  componentDidMount() {
+    const {routes} = this.props;
+    const isOldRoute = getRouteStringFromRoutes(routes) === '/:orgId/';
+
+    if (isOldRoute) {
+      browserHistory.replace(`/organizations/${this.props.params.orgId}/`);
+    }
+  }
+
   componentDidUpdate(prevProps) {
     if (
       prevProps.params &&
@@ -161,8 +191,14 @@ export default class OrganizationDetails extends Component {
   render() {
     return (
       <OrganizationContext includeSidebar useLastOrganization {...this.props}>
-        <OrganizationDetailsBody>{this.props.children}</OrganizationDetailsBody>
+        <OrganizationDetailsBody {...this.props}>
+          {this.props.children}
+        </OrganizationDetailsBody>
       </OrganizationContext>
     );
   }
+}
+
+export function LightWeightOrganizationDetails(props) {
+  return <OrganizationDetails detailed={false} {...props} />;
 }

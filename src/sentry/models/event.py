@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import six
 import string
-import warnings
 import pytz
 
 from collections import OrderedDict
@@ -14,7 +13,7 @@ from hashlib import md5
 
 from semaphore.processing import StoreNormalizer
 
-from sentry import eventtypes
+from sentry import eventtypes, nodestore
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedIntegerField,
@@ -23,7 +22,7 @@ from sentry.db.models import (
     NodeField,
     sane_repr,
 )
-from sentry.db.models.manager import EventManager
+from sentry.db.models.manager import BaseManager
 from sentry.interfaces.base import get_interfaces
 from sentry.utils import json
 from sentry.utils.cache import memoize
@@ -85,8 +84,13 @@ class EventCommon(object):
 
     @group.setter
     def group(self, group):
-        self.group_id = group.id
-        self._group_cache = group
+        # guard against None to not fail on AttributeError
+        # otherwise Django 1.10 will swallow it in db.models.base init, but
+        # consequently fail to remove from kwargs, and you'll get the red herring
+        # TypeError: 'group' is an invalid keyword argument for this function.
+        if group is not None:
+            self.group_id = group.id
+            self._group_cache = group
 
     @property
     def project(self):
@@ -274,12 +278,8 @@ class EventCommon(object):
             # vs ((tag, foo), (tag, bar))
             return []
 
-    # For compatibility, still used by plugins.
-    def get_tags(self):
-        return self.tags
-
     def get_tag(self, key):
-        for t, v in self.get_tags():
+        for t, v in self.tags:
             if t == key:
                 return v
         return None
@@ -343,7 +343,6 @@ class EventCommon(object):
         data["platform"] = self.platform
         data["message"] = self.real_message
         data["datetime"] = self.datetime
-        data["time_spent"] = self.time_spent
         data["tags"] = [(k.split("sentry:", 1)[-1], v) for (k, v) in self.tags]
         for k, v in sorted(six.iteritems(self.data)):
             if k in data:
@@ -363,61 +362,11 @@ class EventCommon(object):
 
         return data
 
-    # ============================================
-    # DEPRECATED
-    # ============================================
-
-    @property
-    def level(self):
-        # we might want to move to this:
-        # return LOG_LEVELS_MAP.get(self.get_level_display()) or self.group.level
-        if self.group:
-            return self.group.level
-        else:
-            return None
-
-    def get_level_display(self):
-        # we might want to move to this:
-        # return self.get_tag('level') or self.group.get_level_display()
-        if self.group:
-            return self.group.get_level_display()
-        else:
-            return None
-
-    # deprecated accessors
-
-    @property
-    def logger(self):
-        warnings.warn("Event.logger is deprecated. Use Event.tags instead.", DeprecationWarning)
-        return self.get_tag("logger")
-
-    @property
-    def site(self):
-        warnings.warn("Event.site is deprecated. Use Event.tags instead.", DeprecationWarning)
-        return self.get_tag("site")
-
-    @property
-    def server_name(self):
-        warnings.warn(
-            "Event.server_name is deprecated. Use Event.tags instead.", DeprecationWarning
-        )
-        return self.get_tag("server_name")
-
-    @property
-    def checksum(self):
-        warnings.warn("Event.checksum is no longer used", DeprecationWarning)
-        return ""
-
-    def error(self):  # TODO why is this not a property?
-        warnings.warn("Event.error is deprecated, use Event.title", DeprecationWarning)
-        return self.title
-
-    error.short_description = _("error")
-
-    @property
-    def message_short(self):
-        warnings.warn("Event.message_short is deprecated, use Event.title", DeprecationWarning)
-        return self.title
+    def bind_node_data(self):
+        node_id = Event.generate_node_id(self.project_id, self.event_id)
+        node_data = nodestore.get(node_id) or {}
+        ref = self.data.get_ref(self)
+        self.data.bind_data(node_data, ref=ref)
 
 
 class SnubaEvent(EventCommon):
@@ -435,24 +384,6 @@ class SnubaEvent(EventCommon):
     # nodestore anyway, we may as well only fetch the minimum from snuba to
     # avoid duplicated work.
     minimal_columns = ["event_id", "group_id", "project_id", "timestamp"]
-
-    # A list of all useful columns we can get from snuba.
-    selected_columns = minimal_columns + [
-        "culprit",
-        "location",
-        "message",
-        "platform",
-        "title",
-        "type",
-        # Required to provide snuba-only tags
-        "tags.key",
-        "tags.value",
-        # Required to provide snuba-only 'user' interface
-        "email",
-        "ip_address",
-        "user_id",
-        "username",
-    ]
 
     __repr__ = sane_repr("project_id", "group_id")
 
@@ -476,7 +407,7 @@ class SnubaEvent(EventCommon):
         node_id = SnubaEvent.generate_node_id(
             self.snuba_data["project_id"], self.snuba_data["event_id"]
         )
-        self.data = NodeData(None, node_id, data=None, wrapper=EventDict)
+        self.data = NodeData(node_id, data=None, wrapper=EventDict)
 
     def __getattr__(self, name):
         """
@@ -572,10 +503,6 @@ class SnubaEvent(EventCommon):
         return parse_date(self.timestamp).replace(tzinfo=pytz.utc)
 
     @property
-    def time_spent(self):
-        return None
-
-    @property
     def message(self):
         if "message" in self.snuba_data:
             return self.snuba_data["message"]
@@ -598,6 +525,10 @@ class SnubaEvent(EventCommon):
         raise NotImplementedError
 
 
+def ref_func(x):
+    return x.project_id or x.project.id
+
+
 class Event(EventCommon, Model):
     """
     An event backed by data stored in postgres.
@@ -616,12 +547,13 @@ class Event(EventCommon, Model):
     data = NodeField(
         blank=True,
         null=True,
-        ref_func=lambda x: x.project_id or x.project.id,
+        ref_func=ref_func,
         ref_version=2,
         wrapper=EventDict,
+        skip_nodestore_save=True,
     )
 
-    objects = EventManager()
+    objects = BaseManager()
 
     class Meta:
         app_label = "sentry"

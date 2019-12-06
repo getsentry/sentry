@@ -1,5 +1,6 @@
 import styled from 'react-emotion';
 
+import Alert from 'app/components/alert';
 import InlineSvg from 'app/components/inlineSvg';
 import {Panel, PanelBody} from 'app/components/panels';
 import space from 'app/styles/space';
@@ -28,7 +29,7 @@ type GridEditableProps = {
 };
 
 export const GridPanel = styled(Panel)`
-  overflow: hidden;
+  /* overflow: hidden; */
 `;
 export const GridPanelBody = styled(PanelBody)``;
 
@@ -56,8 +57,8 @@ export const Grid = styled('table')<GridEditableProps>`
   border-collapse: collapse;
   margin: 0;
 
-  background-color: ${p => p.theme.offWhite};
-  overflow: hidden;
+  /* background-color: ${p => p.theme.offWhite}; */
+  /* overflow: hidden; */
 
   /* For the last column, we want to have some space on the right if column
      is editable.
@@ -79,6 +80,13 @@ export const Grid = styled('table')<GridEditableProps>`
 `;
 export const GridRow = styled('tr')`
   display: contents;
+
+  &:last-child,
+  &:last-child > td:first-child,
+  &:last-child > td:last-child {
+    border-bottom-left-radius: ${p => p.theme.borderRadius};
+    border-bottom-right-radius: ${p => p.theme.borderRadius};
+  }
 `;
 
 /**
@@ -98,8 +106,13 @@ export const GridHeadCell = styled('th')`
   min-width: 0;
   height: ${GRID_HEADER_HEIGHT}px;
 
-  border-bottom: 1px solid ${p => p.theme.borderDark};
   background: ${p => p.theme.offWhite};
+  border-bottom: 1px solid ${p => p.theme.borderDark};
+  border-right: 1px solid ${p => p.theme.borderDark};
+
+  &:last-child {
+    border-right: none;
+  }
 `;
 export const GridHeadCellButton = styled('div')<GridEditableProps>`
   position: relative;
@@ -280,17 +293,27 @@ export const GridBodyCell = styled('td')`
   /* By default, a grid item cannot be smaller than the size of its content.
      We override this by setting min-width to be 0. */
   min-width: 0;
-  padding: ${space(2)} ${space(2)};
+  padding: ${space(1)} ${space(2)};
+
   background-color: ${p => p.theme.white};
   border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-right: 1px solid ${p => p.theme.borderDark};
 
   font-size: ${p => p.theme.fontSizeMedium};
+
+  &:last-child {
+    border-right: none;
+  }
 `;
 export const GridBodyCellSpan = styled(GridBodyCell)`
   grid-column: 1 / -1;
 `;
 export const GridBodyCellLoading = styled('div')`
   min-height: 220px;
+`;
+
+export const GridBodyErrorAlert = styled(Alert)`
+  margin: 0;
 `;
 
 /**
@@ -308,6 +331,7 @@ export const GridEditGroup = styled('th')`
 
   background-color: ${p => p.theme.offWhite};
   border-bottom: 1px solid ${p => p.theme.borderDark};
+  border-top-right-radius: ${p => p.theme.borderRadius};
 
   z-index: ${Z_INDEX_EDITABLE};
 `;

@@ -54,7 +54,10 @@ describe('GlobalSelectionHeader', function() {
   });
 
   beforeEach(function() {
-    jest.spyOn(ProjectsStore, 'getAll').mockImplementation(() => organization.projects);
+    jest.spyOn(ProjectsStore, 'getState').mockImplementation(() => ({
+      projects: organization.projects,
+      loadingProjects: false,
+    }));
     GlobalSelectionStore.reset();
     [
       globalActions.updateDateTime,
@@ -251,6 +254,41 @@ describe('GlobalSelectionHeader', function() {
     expect(wrapper.find('MultipleEnvironmentSelector Content').text()).toBe(
       'All Environments'
     );
+  });
+
+  it('shows environments for non-member projects', async function() {
+    const initialData = initializeOrg({
+      organization: {features: ['global-views']},
+      projects: [
+        {id: 1, slug: 'staging-project', environments: ['staging'], isMember: false},
+        {id: 2, slug: 'prod-project', environments: ['prod']},
+      ],
+      router: {
+        location: {query: {project: [1]}},
+      },
+    });
+    jest.spyOn(ProjectsStore, 'getState').mockImplementation(() => ({
+      projects: initialData.projects,
+      loadingProjects: false,
+    }));
+
+    const wrapper = mountWithTheme(
+      <GlobalSelectionHeader
+        router={initialData.router}
+        organization={initialData.organization}
+        projects={initialData.projects}
+      />,
+      changeQuery(initialData.routerContext, {project: 1})
+    );
+    await tick();
+    wrapper.update();
+
+    // Open environment picker
+    wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
+    const checkboxes = wrapper.find('MultipleEnvironmentSelector AutoCompleteItem');
+
+    expect(checkboxes).toHaveLength(1);
+    expect(checkboxes.text()).toBe('staging');
   });
 
   it('updates URL to match GlobalSelection store when re-rendered with `forceUrlSync` prop', async function() {
@@ -453,7 +491,9 @@ describe('GlobalSelectionHeader', function() {
     it('selects first project if none (i.e. all) is requested', function() {
       const project = TestStubs.Project({id: '3'});
       const org = TestStubs.Organization({projects: [project]});
-      jest.spyOn(ProjectsStore, 'getAll').mockImplementation(() => org.projects);
+      jest
+        .spyOn(ProjectsStore, 'getState')
+        .mockImplementation(() => ({projects: org.projects, loadingProjects: false}));
 
       const initializationObj = initializeOrg({
         organization: org,
@@ -483,6 +523,10 @@ describe('GlobalSelectionHeader', function() {
         location: {query: {}},
       },
     });
+    jest.spyOn(ProjectsStore, 'getState').mockImplementation(() => ({
+      projects: initialData.organization.projects,
+      loadingProjects: false,
+    }));
 
     const wrapper = mountWithTheme(
       <GlobalSelectionHeader
@@ -536,9 +580,10 @@ describe('GlobalSelectionHeader', function() {
       };
 
       beforeEach(function() {
-        jest
-          .spyOn(ProjectsStore, 'getAll')
-          .mockImplementation(() => initialData.organization.projects);
+        jest.spyOn(ProjectsStore, 'getState').mockImplementation(() => ({
+          projects: initialData.organization.projects,
+          loadingProjects: false,
+        }));
         initialData.router.push.mockClear();
         initialData.router.replace.mockClear();
       });
@@ -668,7 +713,9 @@ describe('GlobalSelectionHeader', function() {
       memberProject = TestStubs.Project({id: '3', isMember: true});
       nonMemberProject = TestStubs.Project({id: '4', isMember: false});
       const org = TestStubs.Organization({projects: [memberProject, nonMemberProject]});
-      jest.spyOn(ProjectsStore, 'getAll').mockImplementation(() => org.projects);
+      jest
+        .spyOn(ProjectsStore, 'getState')
+        .mockImplementation(() => ({projects: org.projects, loadingProjects: false}));
 
       initialData = initializeOrg({
         organization: org,

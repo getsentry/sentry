@@ -399,7 +399,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
             className="similar-toolbar"
           >
             <div
-              className="similar-toolbar css-o93ry2-Toolbar ehkx0bi0"
+              className="similar-toolbar css-o93ry2-Toolbar e1pdx9kr0"
             >
               <SpreadLayout
                 center={true}
@@ -529,7 +529,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                       className="similar-score-column event-count-header"
                     >
                       <div
-                        className="similar-score-column event-count-header css-j72n3c-ToolbarHeader eiwl27k0"
+                        className="similar-score-column event-count-header css-j72n3c-ToolbarHeader e8n6jt30"
                       >
                         Events
                       </div>
@@ -538,7 +538,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                       className="similar-score-column event-similar-header"
                     >
                       <div
-                        className="similar-score-column event-similar-header css-j72n3c-ToolbarHeader eiwl27k0"
+                        className="similar-score-column event-similar-header css-j72n3c-ToolbarHeader e8n6jt30"
                       >
                         Exception
                       </div>
@@ -547,7 +547,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                       className="similar-score-column event-similar-header"
                     >
                       <div
-                        className="similar-score-column event-similar-header css-j72n3c-ToolbarHeader eiwl27k0"
+                        className="similar-score-column event-similar-header css-j72n3c-ToolbarHeader e8n6jt30"
                       >
                         Message
                       </div>

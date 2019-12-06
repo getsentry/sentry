@@ -477,55 +477,6 @@ table.table.key-value {
 }
 
 /**
-* Avatar Cropping
-* ============================================================================
-*/
-
-.image-cropper {
-  text-align: center;
-  background-image: url(../images/avatars/cropper-bg.gif);
-  margin-bottom: 20px;
-
-  .crop-container {
-    position: relative;
-    display: inline-block;
-    max-width: 100%;
-  }
-  .cropper {
-    position: absolute;
-    border: 2px dashed @gray-light;
-    .resizer {
-      border-radius: 5px;
-      width: 10px;
-      height: 10px;
-      position: absolute;
-      background-color: @gray-light;
-    }
-    .resizer.nw {
-      top: -5px;
-      left: -5px;
-    }
-    .resizer.ne {
-      top: -5px;
-      right: -5px;
-    }
-    .resizer.se {
-      bottom: -5px;
-      right: -5px;
-    }
-    .resizer.sw {
-      bottom: -5px;
-      left: -5px;
-    }
-  }
-}
-.canvas-container {
-  canvas {
-    display: none;
-  }
-}
-
-/**
 * Loading Indicator
 * ============================================================================
 */
@@ -1595,82 +1546,6 @@ header + .alert {
     }
   }
 }
-
-/**
-* Badge
-* ============================================================================
-*/
-
-.badge {
-  background: @40;
-  color: #fff;
-  font-size: 75%;
-  font-weight: 600;
-  .square(20px);
-  padding: 0 5px;
-  min-width: 20px;
-  width: auto;
-  border-radius: 20px;
-  line-height: 20px;
-  text-align: center;
-  display: inline-block;
-  position: relative;
-  top: -1px;
-  margin-left: 4px;
-  .transition(0.1s background linear);
-
-  &.new {
-    background: @red;
-  }
-
-  &.badge-soft {
-    color: @gray;
-    top: 0;
-    line-height: 18px;
-    border: 1px solid @gray-lighter;
-    background: inherit;
-  }
-
-  &.strong {
-    background: @blue;
-  }
-
-  &.highlight {
-    background: @green;
-  }
-}
-
-/**
-* Label
-* ============================================================================
-*/
-
-.label.verification {
-  &.label-warning {
-    background-color: @yellow-orange;
-  }
-
-  &.label-success {
-    background-color: @green-light;
-  }
-
-  display: inline;
-  padding: 0.2em 0.6em 0.3em;
-  font-size: 75%;
-  font-weight: bold;
-  line-height: 1;
-  color: #fff;
-  text-align: center;
-  white-space: nowrap;
-  vertical-align: baseline;
-  border-radius: 0.25em;
-  margin-left: 4px;
-}
-
-/**
-* Repository label
-* ============================================================================
-*/
 
 /**
 * Project nav

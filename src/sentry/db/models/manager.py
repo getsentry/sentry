@@ -14,7 +14,6 @@ from django.db.models.manager import Manager, QuerySet
 from django.db.models.signals import post_save, post_delete, post_init, class_prepared
 from django.utils.encoding import smart_text
 
-from sentry import nodestore
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
@@ -77,7 +76,7 @@ class BaseManager(Manager):
     def __init__(self, *args, **kwargs):
         self.cache_fields = kwargs.pop("cache_fields", [])
         self.cache_ttl = kwargs.pop("cache_ttl", 60 * 5)
-        self.cache_version = kwargs.pop("cache_version", None)
+        self._cache_version = kwargs.pop("cache_version", None)
         self.__local_cache = threading.local()
         super(BaseManager, self).__init__(*args, **kwargs)
 
@@ -116,10 +115,13 @@ class BaseManager(Manager):
     def _set_cache(self, value):
         self.__local_cache.value = value
 
-    def _generate_cache_version(self):
-        return md5_text("&".join(sorted(f.attname for f in self.model._meta.fields))).hexdigest()[
-            :3
-        ]
+    @property
+    def cache_version(self):
+        if self._cache_version is None:
+            self._cache_version = md5_text(
+                "&".join(sorted(f.attname for f in self.model._meta.fields))
+            ).hexdigest()[:3]
+        return self._cache_version
 
     __cache = property(_get_cache, _set_cache)
 
@@ -143,9 +145,6 @@ class BaseManager(Manager):
 
         if not self.cache_fields:
             return
-
-        if not self.cache_version:
-            self.cache_version = self._generate_cache_version()
 
         post_init.connect(self.__post_init, sender=sender, weak=False)
         post_save.connect(self.__post_save, sender=sender, weak=False)
@@ -318,6 +317,114 @@ class BaseManager(Manager):
         else:
             return self.get(**kwargs)
 
+    def get_many_from_cache(self, values, key="pk"):
+        """
+        Wrapper around `QuerySet.filter(pk__in=values)` which supports caching of
+        the intermediate value.  Callee is responsible for making sure the
+        cache key is cleared on save.
+        """
+
+        pk_name = self.model._meta.pk.name
+
+        if key == "pk":
+            key = pk_name
+
+        # Kill __exact since it's the default behavior
+        if key.endswith("__exact"):
+            key = key.split("__exact", 1)[0]
+
+        if key not in self.cache_fields and key != pk_name:
+            return self.filter(**{key + "__in": values})
+
+        final_results = []
+        cache_lookup_cache_keys = []
+        cache_lookup_values = []
+
+        local_cache = self._get_local_cache()
+        for value in values:
+            cache_key = self.__get_lookup_cache_key(**{key: value})
+            result = local_cache and local_cache.get(cache_key)
+            if result is not None:
+                final_results.append(result)
+            else:
+                cache_lookup_cache_keys.append(cache_key)
+                cache_lookup_values.append(value)
+
+        if not cache_lookup_cache_keys:
+            return final_results
+
+        cache_results = cache.get_many(cache_lookup_cache_keys, version=self.cache_version)
+
+        db_lookup_cache_keys = []
+        db_lookup_values = []
+
+        nested_lookup_cache_keys = []
+        nested_lookup_values = []
+
+        for cache_key, value in zip(cache_lookup_cache_keys, cache_lookup_values):
+            cache_result = cache_results.get(cache_key)
+            if cache_result is None:
+                db_lookup_cache_keys.append(cache_key)
+                db_lookup_values.append(value)
+                continue
+
+            # If we didn't look up by pk we need to hit the reffed key
+            if key != pk_name:
+                nested_lookup_cache_keys.append(cache_key)
+                nested_lookup_values.append(cache_result)
+                continue
+
+            if not isinstance(cache_result, self.model):
+                if settings.DEBUG:
+                    raise ValueError("Unexpected value type returned from cache")
+                logger.error("Cache response returned invalid value %r", cache_result)
+                db_lookup_cache_keys.append(cache_key)
+                db_lookup_values.append(value)
+                continue
+
+            if key == pk_name and int(value) != cache_result.pk:
+                if settings.DEBUG:
+                    raise ValueError("Unexpected value returned from cache")
+                logger.error("Cache response returned invalid value %r", cache_result)
+                db_lookup_cache_keys.append(cache_key)
+                db_lookup_values.append(value)
+                continue
+
+            final_results.append(cache_result)
+
+        if nested_lookup_values:
+            nested_results = self.get_many_from_cache(nested_lookup_values, key=pk_name)
+            final_results.extend(nested_results)
+            if local_cache is not None:
+                for nested_result in nested_results:
+                    value = getattr(nested_result, key)
+                    cache_key = self.__get_lookup_cache_key(**{key: value})
+                    local_cache[cache_key] = nested_result
+
+        if not db_lookup_values:
+            return final_results
+
+        cache_writes = []
+
+        db_results = {getattr(x, key): x for x in self.filter(**{key + "__in": db_lookup_values})}
+        for cache_key, value in zip(db_lookup_cache_keys, db_lookup_values):
+            db_result = db_results.get(value)
+            if db_result is None:
+                continue  # This model ultimately does not exist
+
+            # Ensure we're pushing it into the cache
+            cache_writes.append(db_result)
+            if local_cache is not None:
+                local_cache[cache_key] = db_result
+
+            final_results.append(db_result)
+
+        # XXX: Should use set_many here, but __post_save code is too complex
+        for instance in cache_writes:
+            self.__post_save(instance=instance)
+
+        return final_results
+
     def create_or_update(self, **kwargs):
         return create_or_update(self.model, **kwargs)
 
@@ -344,29 +451,3 @@ class BaseManager(Manager):
         if hasattr(self, "_hints"):
             return self._queryset_class(self.model, using=self._db, hints=self._hints)
         return self._queryset_class(self.model, using=self._db)
-
-
-class EventManager(BaseManager):
-    # TODO: Remove method in favour of eventstore.bind_nodes
-    def bind_nodes(self, object_list, *node_names):
-        """
-        For a list of Event objects, and a property name where we might find an
-        (unfetched) NodeData on those objects, fetch all the data blobs for
-        those NodeDatas with a single multi-get command to nodestore, and bind
-        the returned blobs to the NodeDatas
-        """
-        object_node_list = []
-        for name in node_names:
-            object_node_list.extend(
-                ((i, getattr(i, name)) for i in object_list if getattr(i, name).id)
-            )
-
-        node_ids = [n.id for _, n in object_node_list]
-        if not node_ids:
-            return
-
-        node_results = nodestore.get_multi(node_ids)
-
-        for item, node in object_node_list:
-            data = node_results.get(node.id) or {}
-            node.bind_data(data, ref=node.get_ref(item))

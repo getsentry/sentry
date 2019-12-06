@@ -1,7 +1,10 @@
-import _ from 'lodash';
 import {Query} from 'history';
+import isArray from 'lodash/isArray';
+import isObject from 'lodash/isObject';
+import isString from 'lodash/isString';
+import isUndefined from 'lodash/isUndefined';
 
-import {Project} from 'app/types/index';
+import {NewQuery, Project} from 'app/types';
 import {appendTagCondition} from 'app/utils/queryString';
 
 function arrayIsEqual(arr?: any[], other?: any[], deep?: boolean): boolean {
@@ -25,11 +28,11 @@ function arrayIsEqual(arr?: any[], other?: any[], deep?: boolean): boolean {
 export function valueIsEqual(value?: any, other?: any, deep?: boolean): boolean {
   if (value === other) {
     return true;
-  } else if (_.isArray(value) || _.isArray(other)) {
+  } else if (isArray(value) || isArray(other)) {
     if (arrayIsEqual(value, other, deep)) {
       return true;
     }
-  } else if (_.isObject(value) || _.isObject(other)) {
+  } else if (isObject(value) || isObject(other)) {
     if (objectMatchesSubset(value, other, deep)) {
       return true;
     }
@@ -109,8 +112,8 @@ export function explodeSlug(slug: string): string {
   return trim(slug.replace(/[-_]+/g, ' '));
 }
 
-export function defined(item: any): boolean {
-  return !_.isUndefined(item) && item !== null;
+export function defined<T>(item: T): item is Exclude<T, null | undefined> {
+  return !isUndefined(item) && item !== null;
 }
 
 export function nl2br(str: string): string {
@@ -124,7 +127,7 @@ export function nl2br(str: string): string {
 export function isUrl(str: any): boolean {
   return (
     !!str &&
-    _.isString(str) &&
+    isString(str) &&
     (str.indexOf('http://') === 0 || str.indexOf('https://') === 0)
   );
 }
@@ -270,4 +273,19 @@ export function generateQueryWithTag(
   }
 
   return query;
+}
+
+/**
+ * Takes in a DiscoverV2 NewQuery object and returns a Partial containing
+ * the desired fields to populate into reload analytics
+ */
+export function extractAnalyticsQueryFields(payload: NewQuery): Partial<NewQuery> {
+  const {projects, fields, fieldnames, query, tags} = payload;
+  return {
+    projects,
+    fields,
+    fieldnames,
+    query,
+    tags,
+  };
 }

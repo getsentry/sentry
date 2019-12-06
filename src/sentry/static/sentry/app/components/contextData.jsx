@@ -2,9 +2,9 @@ import $ from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import classNames from 'classnames';
-
-import _ from 'lodash';
+import isString from 'lodash/isString';
+import isNumber from 'lodash/isNumber';
+import isArray from 'lodash/isArray';
 
 import {isUrl} from 'app/utils';
 
@@ -116,14 +116,14 @@ class ContextData extends React.Component {
         return <span className="val-null">{'None'}</span>;
       } else if (value === true || value === false) {
         return <span className="val-bool">{value ? 'True' : 'False'}</span>;
-      } else if (_.isString(value)) {
+      } else if (isString(value)) {
         const valueInfo = analyzeStringForRepr(value);
 
         const out = [
           <span
             key="value"
             className={
-              (valueInfo.isString ? 'val-string' : 'val-repr') +
+              (valueInfo.isString ? 'val-string' : '') +
               (valueInfo.isStripped ? ' val-stripped' : '') +
               (valueInfo.isMultiLine ? ' val-string-multiline' : '')
             }
@@ -141,9 +141,9 @@ class ContextData extends React.Component {
         }
 
         return out;
-      } else if (_.isNumber(value)) {
-        return <span className="val-number">{value}</span>;
-      } else if (_.isArray(value)) {
+      } else if (isNumber(value)) {
+        return <span>{value}</span>;
+      } else if (isArray(value)) {
         for (i = 0; i < value.length; i++) {
           children.push(
             <span className="val-array-item" key={i}>
@@ -204,17 +204,17 @@ class ContextData extends React.Component {
   };
 
   renderKeyPosValue = value => {
-    if (_.isString(value)) {
+    if (isString(value)) {
       return <span className="val-string">{value}</span>;
     }
     return this.renderValue(value);
   };
 
   render() {
-    const {data, className, preserveQuotes: _preserveQuotes, ...other} = this.props;
+    const {data, preserveQuotes: _preserveQuotes, ...other} = this.props;
 
     return (
-      <pre className={classNames('val', className || '')} {...other}>
+      <pre className="val-string" {...other}>
         {this.renderValue(data)}
       </pre>
     );

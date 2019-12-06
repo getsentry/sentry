@@ -558,7 +558,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
     </SidebarMenuItem>
     <Divider>
       <div
-        className="css-19r16al-Divider ek5mfa70"
+        className="css-19r16al-Divider e18ox4wg0"
       />
     </Divider>
     <UserSummary
@@ -1149,37 +1149,30 @@ exports[`Sidebar SidebarPanel can display Broadcasts panel and mark as seen 1`] 
 >
   <SidebarPanelItemRoot>
     <div
-      className="css-11zw7jo-SidebarPanelItemRoot er110870"
+      className="css-11zw7jo-SidebarPanelItemRoot ekutvbl0"
     >
       <Title
         hasSeen={false}
       >
-        <Component
-          className="css-hs42c5-Title er110871"
-          hasSeen={false}
+        <div
+          className="css-hs42c5-Title ekutvbl2"
         >
-          <div
-            className="css-hs42c5-Title er110871"
-          >
-            Learn about Source Maps
-          </div>
-        </Component>
+          Learn about Source Maps
+        </div>
       </Title>
       <Message>
         <div
-          className="css-1rszf37-Text-Message er110873"
+          className="css-1rszf37-Text-Message ekutvbl4"
         >
           Source maps are JSON files that contain information on how to map your transpiled source code back to their original source.
         </div>
       </Message>
       <Text>
         <div
-          className="css-7bhqyd-Text er110872"
+          className="css-7bhqyd-Text ekutvbl3"
         >
           <ForwardRef
             href="https://docs.sentry.io/hosted/clients/javascript/sourcemaps/#uploading-source-maps-to-sentry"
-            rel="noreferrer noopener"
-            target="_blank"
           >
             <a
               href="https://docs.sentry.io/hosted/clients/javascript/sourcemaps/#uploading-source-maps-to-sentry"
@@ -1284,10 +1277,8 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
                   className="css-z6hjis-StyledButton-getColors edwq9my0"
                   href="https://status.sentry.io"
                   onClick={[Function]}
-                  rel="noreferrer noopener"
                   role="button"
                   size="small"
-                  target="_blank"
                 >
                   <a
                     aria-disabled={false}
@@ -1510,20 +1501,19 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                     />
                                   </Checkbox>
                                   <StyledLink
+                                    data-test-id={1}
                                     href="/organizations/org-slug/projects/new/"
                                     onClick={[Function]}
                                   >
                                     <a
                                       className="css-1ylws2h-StyledLink e1a4o5475"
+                                      data-test-id={1}
                                       href="/organizations/org-slug/projects/new/"
                                       onClick={[Function]}
                                     >
-                                      <ItemHeader
-                                        data-test-id={1}
-                                      >
+                                      <ItemHeader>
                                         <h4
                                           className="css-158to6c-ItemHeader e1a4o5476"
-                                          data-test-id={1}
                                         >
                                           Create a project
                                         </h4>
@@ -1825,20 +1815,19 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                     />
                                   </Checkbox>
                                   <StyledLink
+                                    data-test-id={2}
                                     href="/organizations/org-slug/projects/choose/?onboarding=1&task=2"
                                     onClick={[Function]}
                                   >
                                     <a
                                       className="css-1ylws2h-StyledLink e1a4o5475"
+                                      data-test-id={2}
                                       href="/organizations/org-slug/projects/choose/?onboarding=1&task=2"
                                       onClick={[Function]}
                                     >
-                                      <ItemHeader
-                                        data-test-id={2}
-                                      >
+                                      <ItemHeader>
                                         <h4
                                           className="css-158to6c-ItemHeader e1a4o5476"
-                                          data-test-id={2}
                                         >
                                           Send your first event
                                         </h4>
@@ -2063,8 +2052,8 @@ exports[`Sidebar can have onboarding feature 1`] = `
                             "detailedDescription": "Let Sentry help your team triage and assign issues. Improve your workflow
         by unlocking mentions, assignment, and suggested issue owners.",
                             "display": true,
-                            "featureLocation": "organization",
-                            "location": "members/",
+                            "featureLocation": "modal",
+                            "location": [Function],
                             "prereq": Array [],
                             "skippable": true,
                             "task": 3,
@@ -2108,8 +2097,8 @@ exports[`Sidebar can have onboarding feature 1`] = `
                               "detailedDescription": "Let Sentry help your team triage and assign issues. Improve your workflow
         by unlocking mentions, assignment, and suggested issue owners.",
                               "display": true,
-                              "featureLocation": "organization",
-                              "location": "members/",
+                              "featureLocation": "modal",
+                              "location": [Function],
                               "prereq": Array [],
                               "skippable": true,
                               "task": 3,
@@ -2138,20 +2127,17 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                     />
                                   </Checkbox>
                                   <StyledLink
-                                    href="/organizations/org-slug/members/"
+                                    data-test-id={3}
                                     onClick={[Function]}
                                   >
                                     <a
                                       className="css-1ylws2h-StyledLink e1a4o5475"
-                                      href="/organizations/org-slug/members/"
+                                      data-test-id={3}
                                       onClick={[Function]}
                                     >
-                                      <ItemHeader
-                                        data-test-id={3}
-                                      >
+                                      <ItemHeader>
                                         <h4
                                           className="css-158to6c-ItemHeader e1a4o5476"
-                                          data-test-id={3}
                                         >
                                           Invite team members
                                         </h4>
@@ -2455,20 +2441,19 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                     />
                                   </Checkbox>
                                   <StyledLink
+                                    data-test-id={4}
                                     href="/organizations/org-slug/projects/new/"
                                     onClick={[Function]}
                                   >
                                     <a
                                       className="css-1ylws2h-StyledLink e1a4o5475"
+                                      data-test-id={4}
                                       href="/organizations/org-slug/projects/new/"
                                       onClick={[Function]}
                                     >
-                                      <ItemHeader
-                                        data-test-id={4}
-                                      >
+                                      <ItemHeader>
                                         <h4
                                           className="css-158to6c-ItemHeader e1a4o5476"
-                                          data-test-id={4}
                                         >
                                           Add a second platform
                                         </h4>
@@ -2774,20 +2759,19 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                     />
                                   </Checkbox>
                                   <StyledLink
+                                    data-test-id={5}
                                     href="https://docs.sentry.io/enriching-error-data/context/#capturing-the-user"
                                     onClick={[Function]}
                                   >
                                     <a
                                       className="css-1ylws2h-StyledLink e1a4o5475"
+                                      data-test-id={5}
                                       href="https://docs.sentry.io/enriching-error-data/context/#capturing-the-user"
                                       onClick={[Function]}
                                     >
-                                      <ItemHeader
-                                        data-test-id={5}
-                                      >
+                                      <ItemHeader>
                                         <h4
                                           className="css-158to6c-ItemHeader e1a4o5476"
-                                          data-test-id={5}
                                         >
                                           Add user context
                                         </h4>
@@ -3093,20 +3077,19 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                     />
                                   </Checkbox>
                                   <StyledLink
+                                    data-test-id={6}
                                     href="/organizations/org-slug/projects/choose/?onboarding=1&task=6"
                                     onClick={[Function]}
                                   >
                                     <a
                                       className="css-1ylws2h-StyledLink e1a4o5475"
+                                      data-test-id={6}
                                       href="/organizations/org-slug/projects/choose/?onboarding=1&task=6"
                                       onClick={[Function]}
                                     >
-                                      <ItemHeader
-                                        data-test-id={6}
-                                      >
+                                      <ItemHeader>
                                         <h4
                                           className="css-158to6c-ItemHeader e1a4o5476"
-                                          data-test-id={6}
                                         >
                                           Set up release tracking
                                         </h4>

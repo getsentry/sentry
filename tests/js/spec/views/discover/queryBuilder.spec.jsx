@@ -65,7 +65,8 @@ describe('Query Builder', function() {
             aggregations: [['count()', null, 'count']],
             orderby: '-count',
             projects: [2],
-            range: '90d',
+            range: '14d',
+            turbo: true,
           }),
         })
       );
@@ -109,7 +110,8 @@ describe('Query Builder', function() {
             aggregations: [['count()', null, 'count']],
             orderby: '-count',
             projects: [1, 2],
-            range: '90d',
+            range: '14d',
+            turbo: true,
           }),
         })
       );
@@ -154,7 +156,8 @@ describe('Query Builder', function() {
             aggregations: [['count()', null, 'count']],
             orderby: '-count',
             projects: [1, 2],
-            range: '90d',
+            range: '14d',
+            turbo: true,
           }),
         })
       );
@@ -294,6 +297,14 @@ describe('Query Builder', function() {
       queryBuilder.reset({
         fields: ['id'],
         projects: [1],
+      });
+      expect(openModal).not.toHaveBeenCalled();
+    });
+
+    it('does not display warning for -1 (all projects)', function() {
+      queryBuilder.reset({
+        fields: ['id'],
+        projects: [-1],
       });
       expect(openModal).not.toHaveBeenCalled();
     });

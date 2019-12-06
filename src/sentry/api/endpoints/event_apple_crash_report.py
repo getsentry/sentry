@@ -2,15 +2,11 @@ from __future__ import absolute_import
 
 import six
 
-try:
-    from django.http import HttpResponse, CompatibleStreamingHttpResponse as StreamingHttpResponse
-except ImportError:
-    from django.http import HttpResponse, StreamingHttpResponse
+from django.http import HttpResponse, StreamingHttpResponse
 
 from sentry import eventstore
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import Event
 from sentry.lang.native.applecrashreport import AppleCrashReport
 from sentry.utils.safe import get_path
 
@@ -28,7 +24,7 @@ class EventAppleCrashReportEndpoint(ProjectEndpoint):
         if event is None:
             raise ResourceDoesNotExist
 
-        Event.objects.bind_nodes([event], "data")
+        event.bind_node_data()
 
         if event.platform not in ("cocoa", "native"):
             return HttpResponse(

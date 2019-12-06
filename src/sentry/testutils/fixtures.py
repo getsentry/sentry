@@ -1,5 +1,7 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
+import six
+
 from sentry.models import Activity, OrganizationMember, OrganizationMemberTeam
 from sentry.incidents.models import IncidentActivityType
 
@@ -44,6 +46,10 @@ class Fixtures(object):
         return self.create_project(
             name="Bar", slug="bar", teams=[self.team], fire_project_created=True
         )
+
+    @cached_property
+    def release(self):
+        return self.create_release(project=self.project, version="foo-1.0")
 
     @cached_property
     def environment(self):
@@ -101,6 +107,11 @@ class Fixtures(object):
         if project is None:
             project = self.project
         return Factories.create_release(project=project, user=user, *args, **kwargs)
+
+    def create_release_file(self, release=None, file=None, name=None, dist=None):
+        if release is None:
+            release = self.release
+        return Factories.create_release_file(release, file, name, dist)
 
     def create_artifact_bundle(self, org=None, release=None, *args, **kwargs):
         if org is None:
@@ -195,9 +206,6 @@ class Fixtures(object):
     def create_sentry_app_feature(self, *args, **kwargs):
         return Factories.create_sentry_app_feature(*args, **kwargs)
 
-    def create_sentry_app_webhook_error(self, *args, **kwargs):
-        return Factories.create_sentry_app_webhook_error(*args, **kwargs)
-
     def create_service_hook(self, *args, **kwargs):
         return Factories.create_service_hook(*args, **kwargs)
 
@@ -231,6 +239,24 @@ class Fixtures(object):
         if projects is None:
             projects = [self.project]
         return Factories.create_alert_rule(organization, projects, *args, **kwargs)
+
+    def create_alert_rule_trigger(self, alert_rule=None, *args, **kwargs):
+        if not alert_rule:
+            alert_rule = self.create_alert_rule()
+        return Factories.create_alert_rule_trigger(alert_rule, *args, **kwargs)
+
+    def create_alert_rule_trigger_action(
+        self, alert_rule_trigger=None, target_identifier=None, *args, **kwargs
+    ):
+        if not alert_rule_trigger:
+            alert_rule_trigger = self.create_alert_rule_trigger()
+
+        if not target_identifier:
+            target_identifier = six.text_type(self.user.id)
+
+        return Factories.create_alert_rule_trigger_action(
+            alert_rule_trigger, target_identifier=target_identifier, **kwargs
+        )
 
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot):

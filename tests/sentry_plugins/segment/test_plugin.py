@@ -6,7 +6,7 @@ from exam import fixture
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
 
-from new_sentry_plugins.segment.plugin import SegmentPlugin
+from sentry_plugins.segment.plugin import SegmentPlugin
 
 
 class SegmentPluginTest(PluginTestCase):

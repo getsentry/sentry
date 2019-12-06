@@ -33,7 +33,6 @@ class PagerDutyNotifyActionTest(RuleTestCase):
         )
         self.integration.add_organization(self.organization, self.user)
         self.service = PagerDutyService.objects.create(
-            service_id=SERVICES[0]["service_id"],
             service_name=SERVICES[0]["service_name"],
             integration_key=SERVICES[0]["integration_key"],
             organization_integration=self.integration.organizationintegration_set.first(),
@@ -103,7 +102,6 @@ class PagerDutyNotifyActionTest(RuleTestCase):
         )
         integration.add_organization(self.organization, self.user)
         service = PagerDutyService.objects.create(
-            service_id=service_info["service_id"],
             service_name=service_info["service_name"],
             integration_key=service_info["integration_key"],
             organization_integration=integration.organizationintegration_set.first(),

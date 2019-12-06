@@ -4,8 +4,8 @@ import {t} from 'app/locale';
 import {Team, MemberRole} from 'app/types';
 import Button from 'app/components/button';
 import SelectControl from 'app/components/forms/selectControl';
+import RoleSelectControl from 'app/components/roleSelectControl';
 
-import RoleSelectControl from './roleSelectControl';
 import renderEmailValue from './renderEmailValue';
 import {InviteStatus} from './types';
 

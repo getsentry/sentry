@@ -8,7 +8,7 @@ from django.test import RequestFactory
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
 
-from new_sentry_plugins.gitlab.plugin import GitLabPlugin
+from sentry_plugins.gitlab.plugin import GitLabPlugin
 
 
 class GitLabPluginTest(PluginTestCase):

@@ -243,7 +243,6 @@ def alert(request):
     event = event_manager.save(project.id)
     # Prevent Percy screenshot from constantly changing
     event.datetime = datetime(2017, 9, 6, 0, 0)
-    event.save()
     event_type = event_manager.get_event_type()
 
     group.message = event_manager.get_search_message()
@@ -251,12 +250,15 @@ def alert(request):
 
     rule = Rule(label="An example rule")
 
+    # XXX: this interface_list code needs to be the same as in
+    #      src/sentry/plugins/sentry_mail/models.py
     interface_list = []
     for interface in six.itervalues(event.interfaces):
         body = interface.to_email_html(event)
         if not body:
             continue
-        interface_list.append((interface.get_title(), mark_safe(body)))
+        text_body = interface.to_string(event)
+        interface_list.append((interface.get_title(), mark_safe(body), text_body))
 
     return MailPreview(
         html_template="sentry/emails/error.html",

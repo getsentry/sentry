@@ -207,13 +207,21 @@ def worker(**options):
             "Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers."
         )
 
+    # These options are no longer used, but keeping around
+    # for backwards compatibility
+    for o in "without_gossip", "without_mingle", "without_heartbeat":
+        options.pop(o, None)
+
     from sentry.celery import app
 
     with managed_bgtasks(role="worker"):
         worker = app.Worker(
-            # without_gossip=True,
+            # NOTE: without_mingle breaks everything,
+            # we can't get rid of this. Intentionally kept
+            # here as a warning. Jobs will not process.
             # without_mingle=True,
-            # without_heartbeat=True,
+            without_gossip=True,
+            without_heartbeat=True,
             pool_cls="processes",
             **options
         )

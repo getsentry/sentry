@@ -1,8 +1,13 @@
-import {partial, pick} from 'lodash';
+import partial from 'lodash/partial';
+import pick from 'lodash/pick';
+import isString from 'lodash/isString';
 import {Location, Query} from 'history';
 import {browserHistory} from 'react-router';
 
+import {t} from 'app/locale';
+import {Event, Organization} from 'app/types';
 import {Client} from 'app/api';
+import {getTitle} from 'app/utils/events';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {generateQueryWithTag} from 'app/utils';
 
@@ -13,6 +18,8 @@ import {
   FIELD_FORMATTERS,
   FieldTypes,
   FieldFormatterRenderFunctionPartial,
+  ALL_VIEWS,
+  TRANSACTION_VIEWS,
 } from './data';
 import EventView, {Field as FieldType} from './eventView';
 import {
@@ -25,8 +32,8 @@ import {
 import {TableColumn} from './table/types';
 
 export type EventQuery = {
-  field: Array<string>;
-  project?: string;
+  field: string[];
+  project?: string | string[];
   sort?: string | string[];
   query: string;
   per_page?: number;
@@ -34,6 +41,24 @@ export type EventQuery = {
 
 const AGGREGATE_PATTERN = /^([^\(]+)\(([a-z\._+]*)\)$/;
 const ROUND_BRACKETS_PATTERN = /[\(\)]/;
+
+function explodeFieldString(field: string): {aggregation: string; field: string} {
+  const results = field.match(AGGREGATE_PATTERN);
+
+  if (results && results.length >= 3) {
+    return {aggregation: results[1], field: results[2]};
+  }
+
+  return {aggregation: '', field};
+}
+
+export function explodeField(
+  field: FieldType
+): {aggregation: string; field: string; fieldname: string} {
+  const results = explodeFieldString(field.field);
+
+  return {aggregation: results.aggregation, field: results.field, fieldname: field.title};
+}
 
 /**
  * Takes a view and determines if there are any aggregate fields in it.
@@ -85,6 +110,7 @@ export function getEventTagSearchUrl(
 }
 
 export type TagTopValue = {
+  name: string;
   url: {
     pathname: string;
     query: any;
@@ -197,33 +223,6 @@ export function getAggregateAlias(field: string): string {
     .toLowerCase();
 }
 
-/**
- * Get the first query string of a given name if there are multiple occurrences of it
- * e.g. foo=42&foo=bar    ==>    foo=42 is the first occurrence for 'foo' and "42" will be returned.
- *
- * @param query     query string map
- * @param name      name of the query string field
- */
-export function getFirstQueryString(
-  query: {[key: string]: string | string[] | null | undefined},
-  name: string,
-  defaultValue?: string
-): string | undefined {
-  const needle = query[name];
-
-  if (typeof needle === 'string') {
-    return needle;
-  }
-
-  if (Array.isArray(needle) && needle.length > 0) {
-    if (typeof needle[0] === 'string') {
-      return needle[0];
-    }
-  }
-
-  return defaultValue;
-}
-
 export type QueryWithColumnState =
   | Query
   | {
@@ -306,4 +305,50 @@ export function pushEventViewToLocation(props: {
       ...queryStringObject,
     },
   });
+}
+
+export function generateTitle({eventView, event}: {eventView: EventView; event?: Event}) {
+  const titles = [t('Discover')];
+
+  const eventViewName = eventView.name;
+  if (typeof eventViewName === 'string' && String(eventViewName).trim().length > 0) {
+    titles.push(String(eventViewName).trim());
+  }
+
+  const eventTitle = event ? getTitle(event).title : undefined;
+
+  if (eventTitle) {
+    titles.push(eventTitle);
+  }
+
+  titles.reverse();
+
+  return titles.join(' - ');
+}
+
+export function getPrebuiltQueries(organization: Organization) {
+  let views = ALL_VIEWS;
+  if (organization.features.includes('transaction-events')) {
+    // insert transactions queries at index 2
+    const cloned = [...ALL_VIEWS];
+    cloned.splice(2, 0, ...TRANSACTION_VIEWS);
+    views = cloned;
+  }
+
+  return views;
+}
+
+export function decodeScalar(
+  value: string[] | string | undefined | null
+): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+  const unwrapped =
+    Array.isArray(value) && value.length > 0
+      ? value[0]
+      : isString(value)
+      ? value
+      : undefined;
+  return isString(unwrapped) ? unwrapped : undefined;
 }

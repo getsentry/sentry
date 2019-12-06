@@ -8,6 +8,7 @@ import {openIntegrationDetails} from 'app/actionCreators/modal';
 import {PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
+import BetaTag from 'app/components/betaTag';
 import CircleIndicator from 'app/components/circleIndicator';
 import InstalledIntegration, {
   Props as InstalledIntegrationProps,
@@ -111,12 +112,16 @@ export default class ProviderRow extends React.Component<Props> {
   }
 
   render() {
+    const isBeta = this.props.provider.key === 'pagerduty';
     return (
       <PanelItem p={0} direction="column" data-test-id={this.props.provider.key}>
         <Flex align="center" p={2}>
           <PluginIcon size={36} pluginId={this.props.provider.key} />
           <Box px={2} flex={1}>
-            <ProviderName>{this.props.provider.name}</ProviderName>
+            <ProviderName>
+              {this.props.provider.name}
+              {isBeta && <BetaTag />}
+            </ProviderName>
             <ProviderDetails>
               <Status enabled={this.isEnabled} />
               <StyledLink onClick={this.openModal}>Learn More</StyledLink>

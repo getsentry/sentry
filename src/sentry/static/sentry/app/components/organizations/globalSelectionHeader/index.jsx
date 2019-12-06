@@ -1,4 +1,8 @@
-import {flatten, isEqual, pick, partition} from 'lodash';
+import debounce from 'lodash/debounce';
+import flatten from 'lodash/flatten';
+import isEqual from 'lodash/isEqual';
+import pick from 'lodash/pick';
+import partition from 'lodash/partition';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -23,6 +27,7 @@ import HeaderSeparator from 'app/components/organizations/headerSeparator';
 import InlineSvg from 'app/components/inlineSvg';
 import MultipleEnvironmentSelector from 'app/components/organizations/multipleEnvironmentSelector';
 import MultipleProjectSelector from 'app/components/organizations/multipleProjectSelector';
+import Projects from 'app/utils/projects';
 import SentryTypes from 'app/sentryTypes';
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 import Tooltip from 'app/components/tooltip';
@@ -32,6 +37,8 @@ import withProjects from 'app/utils/withProjects';
 
 import {getStateFromQuery} from './utils';
 import Header from './header';
+
+const PROJECTS_PER_PAGE = 50;
 
 function getProjectIdFromProject(project) {
   return parseInt(project.id, 10);
@@ -46,6 +53,11 @@ class GlobalSelectionHeader extends React.Component {
      * List of projects to display in project selector
      */
     projects: PropTypes.arrayOf(SentryTypes.Project).isRequired,
+
+    /**
+     * Whether or not the projects are currently being loaded in
+     */
+    loadingProjects: PropTypes.bool,
 
     /**
      * A project will be forced from parent component (selection is disabled, and if user
@@ -479,11 +491,34 @@ class GlobalSelectionHeader extends React.Component {
     );
   };
 
+  scrollFetchDispatcher = debounce(
+    (onSearch, options) => {
+      onSearch(this.state.searchQuery, options);
+    },
+    200,
+    {leading: true, trailing: false}
+  );
+
+  searchDispatcher = debounce((onSearch, searchQuery, options) => {
+    // in the case that a user repeats a search query (because search is
+    // debounced this is possible if the user types and then deletes what they
+    // typed) we should switch to an append strategy to not override all results
+    // with a new page.
+    if (this.state.searchQuery === searchQuery) {
+      options.append = true;
+    }
+    onSearch(searchQuery, options);
+    this.setState({
+      searchQuery,
+    });
+  }, 200);
+
   render() {
     const {
       className,
       shouldForceProject,
       forceProject,
+      loadingProjects,
       organization,
       showAbsolute,
       showRelative,
@@ -496,23 +531,51 @@ class GlobalSelectionHeader extends React.Component {
       ? [parseInt(forceProject.id, 10)]
       : this.props.selection.projects;
 
-    const [projects, nonMemberProjects] = this.getProjects();
+    const [memberProjects, nonMemberProjects] = this.getProjects();
 
     return (
       <Header className={className}>
         <HeaderItemPosition>
           {shouldForceProject && this.getBackButton()}
-          <MultipleProjectSelector
-            organization={organization}
-            shouldForceProject={shouldForceProject}
-            forceProject={forceProject}
-            projects={projects}
-            nonMemberProjects={nonMemberProjects}
-            value={this.state.projects || this.props.selection.projects}
-            onChange={this.handleChangeProjects}
-            onUpdate={this.handleUpdateProjects}
-            multi={this.hasMultipleProjectSelection()}
-          />
+          <Projects orgId={organization.slug} limit={PROJECTS_PER_PAGE} globalSelection>
+            {({projects, initiallyLoaded, hasMore, onSearch, fetching}) => {
+              const paginatedProjectSelectorCallbacks = {
+                onScroll: ({clientHeight, scrollHeight, scrollTop}) => {
+                  // check if no new projects are being fetched and the user has
+                  // scrolled far enough to fetch a new page of projects
+                  if (
+                    !fetching &&
+                    scrollTop + clientHeight >= scrollHeight - clientHeight &&
+                    hasMore
+                  ) {
+                    this.scrollFetchDispatcher(onSearch, {append: true});
+                  }
+                },
+                onFilterChange: event => {
+                  this.searchDispatcher(onSearch, event.target.value, {
+                    append: false,
+                  });
+                },
+                searching: fetching,
+                paginated: true,
+              };
+              return (
+                <MultipleProjectSelector
+                  organization={organization}
+                  shouldForceProject={shouldForceProject}
+                  forceProject={forceProject}
+                  projects={loadingProjects ? projects : memberProjects}
+                  loadingProjects={!initiallyLoaded && loadingProjects}
+                  nonMemberProjects={nonMemberProjects}
+                  value={this.state.projects || this.props.selection.projects}
+                  onChange={this.handleChangeProjects}
+                  onUpdate={this.handleUpdateProjects}
+                  multi={this.hasMultipleProjectSelection()}
+                  {...(loadingProjects ? paginatedProjectSelectorCallbacks : {})}
+                />
+              );
+            }}
+          </Projects>
         </HeaderItemPosition>
 
         {showEnvironmentSelector && (
@@ -521,6 +584,8 @@ class GlobalSelectionHeader extends React.Component {
             <HeaderItemPosition>
               <MultipleEnvironmentSelector
                 organization={organization}
+                projects={this.props.projects}
+                loadingProjects={loadingProjects}
                 selectedProjects={selectedProjects}
                 value={this.state.environments || this.props.selection.environments}
                 onChange={this.handleChangeEnvironments}

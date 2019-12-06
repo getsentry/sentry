@@ -1,6 +1,6 @@
 from __future__ import absolute_import, print_function
 
-from django.conf.urls import include, patterns, url
+from django.conf.urls import include, url
 
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
 from .endpoints.api_application_details import ApiApplicationDetailsEndpoint
@@ -31,6 +31,7 @@ from .endpoints.event_file_committers import EventFileCommittersEndpoint
 from .endpoints.event_grouping_info import EventGroupingInfoEndpoint
 from .endpoints.event_owners import EventOwnersEndpoint
 from .endpoints.filechange import CommitFileChangeEndpoint
+from .endpoints.group_attachments import GroupAttachmentsEndpoint
 from .endpoints.group_details import GroupDetailsEndpoint
 from .endpoints.group_events import GroupEventsEndpoint
 from .endpoints.group_events_latest import GroupEventsLatestEndpoint
@@ -223,6 +224,7 @@ from .endpoints.prompts_activity import PromptsActivityEndpoint
 from .endpoints.relay_details import RelayDetailsEndpoint
 from .endpoints.relay_index import RelayIndexEndpoint
 from .endpoints.relay_projectconfigs import RelayProjectConfigsEndpoint
+from .endpoints.relay_projectids import RelayProjectIdsEndpoint
 from .endpoints.relay_publickeys import RelayPublicKeysEndpoint
 from .endpoints.relay_register import RelayRegisterChallengeEndpoint, RelayRegisterResponseEndpoint
 from .endpoints.release_deploys import ReleaseDeploysEndpoint
@@ -247,7 +249,7 @@ from .endpoints.sentry_app_installations import SentryAppInstallationsEndpoint
 from .endpoints.sentry_apps import SentryAppsEndpoint
 from .endpoints.sentry_apps_stats import SentryAppsStatsEndpoint
 from .endpoints.sentry_app_stats import SentryAppStatsEndpoint
-from .endpoints.sentry_app_errors import SentryAppErrorsEndpoint
+from .endpoints.sentry_app_requests import SentryAppRequestsEndpoint
 from .endpoints.sentry_app_interaction import SentryAppInteractionEndpoint
 from .endpoints.setup_wizard import SetupWizard
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
@@ -282,6 +284,9 @@ from .endpoints.useravatar import UserAvatarEndpoint
 from sentry.discover.endpoints.discover_query import DiscoverQueryEndpoint
 from sentry.discover.endpoints.discover_saved_queries import DiscoverSavedQueriesEndpoint
 from sentry.discover.endpoints.discover_saved_query_detail import DiscoverSavedQueryDetailEndpoint
+from sentry.incidents.endpoints.organization_alert_rule_available_action_index import (
+    OrganizationAlertRuleAvailableActionIndexEndpoint,
+)
 from sentry.incidents.endpoints.organization_alert_rule_details import (
     OrganizationAlertRuleDetailsEndpoint,
 )
@@ -324,6 +329,7 @@ GROUP_URLS = [
         r"^(?P<issue_id>[^\/]+)/(?:user-feedback|user-reports)/$",
         GroupUserReportsEndpoint.as_view(),
     ),
+    url(r"^(?P<issue_id>[^\/]+)/attachments/$", GroupAttachmentsEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/similar/$", GroupSimilarIssuesEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/external-issues/$", GroupExternalIssuesEndpoint.as_view()),
     url(
@@ -339,8 +345,7 @@ GROUP_URLS = [
     url(r"^(?P<issue_id>[^\/]+)/plugins?/", include("sentry.plugins.base.group_api_urls")),
 ]
 
-urlpatterns = patterns(
-    "",
+urlpatterns = [
     # Relay
     url(
         r"^relays/",
@@ -361,6 +366,11 @@ urlpatterns = patterns(
                     r"^projectconfigs/$",
                     RelayProjectConfigsEndpoint.as_view(),
                     name="sentry-api-0-relay-projectconfigs",
+                ),
+                url(
+                    r"^projectids/$",
+                    RelayProjectIdsEndpoint.as_view(),
+                    name="sentry-api-0-relay-projectids",
                 ),
                 url(
                     r"^publickeys/$",
@@ -556,6 +566,11 @@ urlpatterns = patterns(
                     name="sentry-api-0-organization-details",
                 ),
                 # Alert Rules
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/alert-rules/available-actions/$",
+                    OrganizationAlertRuleAvailableActionIndexEndpoint.as_view(),
+                    name="sentry-api-0-organization-alert-rule-available-actions",
+                ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/$",
                     OrganizationAlertRuleDetailsEndpoint.as_view(),
@@ -1480,9 +1495,9 @@ urlpatterns = patterns(
         name="sentry-api-0-sentry-app-stats",
     ),
     url(
-        r"^sentry-apps/(?P<sentry_app_slug>[^\/]+)/errors/$",
-        SentryAppErrorsEndpoint.as_view(),
-        name="sentry-api-0-sentry-app-errors",
+        r"^sentry-apps/(?P<sentry_app_slug>[^\/]+)/requests/$",
+        SentryAppRequestsEndpoint.as_view(),
+        name="sentry-api-0-sentry-app-requests",
     ),
     url(
         r"^sentry-apps/(?P<sentry_app_slug>[^\/]+)/interaction/$",
@@ -1555,4 +1570,4 @@ urlpatterns = patterns(
     url(r"^$", IndexEndpoint.as_view(), name="sentry-api-index"),
     url(r"^", CatchallEndpoint.as_view(), name="sentry-api-catchall"),
     # url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework'))
-)
+]

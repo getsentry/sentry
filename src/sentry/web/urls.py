@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from django.conf import settings
-from django.conf.urls import include, patterns, url
+from django.conf.urls import include, url
 from django.http import HttpResponse
 from django.views.generic import RedirectView
 
@@ -53,7 +53,7 @@ __all__ = ("urlpatterns",)
 generic_react_page_view = GenericReactPageView.as_view()
 react_page_view = ReactPageView.as_view()
 
-urlpatterns = patterns("")
+urlpatterns = []
 
 if getattr(settings, "DEBUG_VIEWS", settings.DEBUG):
     from sentry.web.debug_urls import urlpatterns as debug_urls
@@ -62,17 +62,15 @@ if getattr(settings, "DEBUG_VIEWS", settings.DEBUG):
 
 # Special favicon in debug mode
 if settings.DEBUG:
-    urlpatterns += patterns(
-        "",
+    urlpatterns += [
         url(
             r"^_static/[^/]+/[^/]+/images/favicon\.ico$",
             generic.dev_favicon,
             name="sentry-dev-favicon",
-        ),
-    )
+        )
+    ]
 
-urlpatterns += patterns(
-    "",
+urlpatterns += [
     # Store endpoints first since they are the most active
     url(r"^api/store/$", api.StoreView.as_view(), name="sentry-api-store"),
     url(r"^api/(?P<project_id>[\w_-]+)/store/$", api.StoreView.as_view(), name="sentry-api-store"),
@@ -674,6 +672,11 @@ urlpatterns += patterns(
         name="sentry-incident",
     ),
     url(
+        r"^settings/(?P<organization_slug>[\w_-]+)/incident-rules/(?P<alert_rule_id>\d+)/$",
+        react_page_view,
+        name="sentry-alert-rule",
+    ),
+    url(
         r"^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/issues/(?P<group_id>\d+)/tags/(?P<key>[^\/]+)/export/$",
         GroupTagExportView.as_view(),
         name="sentry-group-tag-export",
@@ -689,5 +692,6 @@ urlpatterns += patterns(
         name="sentry-project-event-redirect",
     ),
     # Legacy
+    # This triggers a false positive for the urls.W002 Django warning
     url(r"/$", react_page_view),
-)
+]

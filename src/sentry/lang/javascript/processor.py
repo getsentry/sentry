@@ -202,12 +202,11 @@ def discover_sourcemap(result):
 
 
 def fetch_release_file(filename, release, dist=None):
-    cache_key = "releasefile:v1:%s:%s" % (release.id, md5_text(filename).hexdigest())
+    dist_name = dist and dist.name or None
+    cache_key = "releasefile:v1:%s:%s" % (release.id, ReleaseFile.get_ident(filename, dist_name))
 
     logger.debug("Checking cache for release artifact %r (release_id=%s)", filename, release.id)
     result = cache.get(cache_key)
-
-    dist_name = dist and dist.name or None
 
     if result is None:
         filename_choices = ReleaseFile.normalize(filename)
@@ -244,7 +243,7 @@ def fetch_release_file(filename, release, dist=None):
         )
         try:
             with metrics.timer("sourcemaps.release_file_read"):
-                with releasefile.file.getfile() as fp:
+                with ReleaseFile.cache.getfile(releasefile) as fp:
                     z_body, body = compress_file(fp)
         except Exception:
             logger.error("sourcemap.compress_read_failed", exc_info=sys.exc_info())
@@ -253,6 +252,8 @@ def fetch_release_file(filename, release, dist=None):
             headers = {k.lower(): v for k, v in releasefile.file.headers.items()}
             encoding = get_encoding_from_headers(headers)
             result = http.UrlResult(filename, headers, body, 200, encoding)
+            # This will implicitly skip too large payloads. Those will be cached
+            # on the file system by `ReleaseFile.cache`, instead.
             cache.set(cache_key, (headers, z_body, 200, encoding), 3600)
 
     elif result == -1:

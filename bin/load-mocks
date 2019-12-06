@@ -30,7 +30,6 @@ from sentry.models import (
     CommitFileChange,
     Deploy,
     EventAttachment,
-    Event,
     Environment,
     File,
     Group,
@@ -216,7 +215,7 @@ def create_sample_time_series(event, release=None):
     if event is None:
         return
 
-    Event.objects.bind_nodes([event], "data")
+    event.bind_node_data()
 
     group = event.group
 
@@ -652,7 +651,7 @@ def main(num_events=1, extra_events=False):
                     project=project,
                     event_id=event3.event_id,
                     group=event3.group,
-                    name="Jane Doe",
+                    name="Jane Bloggs",
                     email="jane@example.com",
                     comments=make_sentence(),
                 )

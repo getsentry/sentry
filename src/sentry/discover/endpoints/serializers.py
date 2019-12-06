@@ -191,7 +191,6 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
             "fieldnames",
             "environment",
             "query",
-            "version",
             "fields",
             "conditions",
             "aggregations",
@@ -208,7 +207,7 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
             if data.get(key) is not None:
                 query[key] = data[key]
 
-        version = query.get("version", 1)
+        version = data.get("version", 1)
         self.validate_version_fields(version, query)
         if version == 2:
             if len(query["fields"]) < 1:
@@ -219,11 +218,16 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
                     "You must provide an equal number of field names and fields"
                 )
 
-            if data["projects"] == ALL_ACCESS_PROJECTS:
-                data["projects"] = []
-                query["all_projects"] = True
+        if data["projects"] == ALL_ACCESS_PROJECTS:
+            data["projects"] = []
+            query["all_projects"] = True
 
-        return {"name": data["name"], "project_ids": data["projects"], "query": query}
+        return {
+            "name": data["name"],
+            "project_ids": data["projects"],
+            "query": query,
+            "version": version,
+        }
 
     def validate_version_fields(self, version, query):
         try:

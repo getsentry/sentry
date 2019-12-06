@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {uniqBy, flatMap} from 'lodash';
+import uniqBy from 'lodash/uniqBy';
+import flatMap from 'lodash/flatMap';
 import styled from 'react-emotion';
 
 import CommitRow from 'app/components/commitRow';

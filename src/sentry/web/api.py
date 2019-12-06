@@ -424,7 +424,7 @@ class APIView(BaseView):
             # implicitly fetched from database.
             project.organization = Organization.objects.get_from_cache(id=project.organization_id)
 
-            project_config = get_project_config(project, for_store=True)
+            project_config = get_project_config(project)
 
             helper.context.bind_project(project_config.project)
 
@@ -490,7 +490,7 @@ class APIView(BaseView):
 
         project = project_config.project
         config = project_config.config
-        allowed = config.get("allowed_domains")
+        allowed = config.get("allowedDomains")
 
         if origin is not None:
             if not is_valid_origin(origin, allowed=allowed):
@@ -632,7 +632,14 @@ class StoreView(APIView):
         del data
 
         self.pre_normalize(event_manager, helper)
-        event_manager.normalize()
+
+        try:
+            event_manager.normalize()
+        except semaphore.ProcessingActionInvalidTransaction as e:
+            track_outcome(
+                organization_id, project_id, key.id, Outcome.INVALID, "invalid_transaction"
+            )
+            raise APIError(e.message.split("\n", 1)[0])
 
         data = event_manager.get_data()
         dict_data = dict(data)
@@ -784,7 +791,7 @@ class MinidumpView(StoreView):
             # Merge additional form fields from the request with `extra` data
             # from the event payload and set defaults for processing. This is
             # sent by clients like Breakpad or Crashpad.
-            extra.update(data.get("extra", {}))
+            extra.update(data.get("extra") or ())
             data["extra"] = extra
 
         if not minidump:

@@ -4,7 +4,7 @@ import operator
 import six
 
 from sentry.api.serializers import serialize
-from sentry.models import Release, ReleaseCommit, Commit, CommitFileChange, Event, Group
+from sentry.models import Release, ReleaseCommit, Commit, CommitFileChange, Group
 from sentry.api.serializers.models.commit import CommitSerializer, get_users_for_commits
 from sentry.utils import metrics
 from sentry.utils.hashlib import hash_values
@@ -51,7 +51,7 @@ def _get_frame_paths(event):
 def _get_commits(releases):
     return list(
         Commit.objects.filter(
-            releasecommit=ReleaseCommit.objects.filter(release__in=releases)
+            releasecommit__in=ReleaseCommit.objects.filter(release__in=releases)
         ).select_related("author")
     )
 
@@ -166,7 +166,7 @@ def get_previous_releases(project, start_version, limit=5):
 
 def get_event_file_committers(project, event, frame_limit=25):
     # populate event data
-    Event.objects.bind_nodes([event], "data")
+    event.bind_node_data()
 
     group = Group.objects.get(id=event.group_id)
 

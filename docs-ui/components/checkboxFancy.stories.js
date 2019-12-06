@@ -3,7 +3,6 @@ import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 import {number, boolean} from '@storybook/addon-knobs';
 import styled from 'react-emotion';
-import {Flex} from 'grid-emotion';
 
 import CheckboxFancy from 'app/components/checkboxFancy';
 
@@ -21,7 +20,8 @@ storiesOf('Style|Icons', module).add(
   })
 );
 
-const Container = styled(Flex)`
+const Container = styled('div')`
+  display: flex;
   flex-direction: column;
   padding: 20px;
 `;

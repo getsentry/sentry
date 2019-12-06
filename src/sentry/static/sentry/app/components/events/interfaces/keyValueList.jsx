@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import _ from 'lodash';
+import sortBy from 'lodash/sortBy';
 
 import ContextData from 'app/components/contextData';
 
@@ -32,7 +32,7 @@ class KeyValueList extends React.Component {
       data = data.filter(kv => kv !== null);
     }
 
-    data = this.props.isSorted ? _.sortBy(data, [([key]) => key]) : data;
+    data = this.props.isSorted ? sortBy(data, [([key]) => key]) : data;
     const raw = this.props.raw;
     const props = this.props.onClick ? {onClick: this.props.onClick} : {};
     return (
@@ -43,7 +43,7 @@ class KeyValueList extends React.Component {
               return [
                 <tr key={key}>
                   <td className="key">{key}</td>
-                  <td className="value">
+                  <td className="val">
                     <ContextData data={!raw ? value : JSON.stringify(value)} />
                   </td>
                 </tr>,
@@ -52,8 +52,8 @@ class KeyValueList extends React.Component {
               return [
                 <tr key={key}>
                   <td className="key">{key}</td>
-                  <td className="value">
-                    <pre>{'' + value || ' '}</pre>
+                  <td className="val">
+                    <pre className="val-string">{'' + value || ' '}</pre>
                   </td>
                 </tr>,
               ];

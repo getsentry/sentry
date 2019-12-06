@@ -65,7 +65,7 @@ class SubscribeTest(TestCase):
 
     def test_actor_team(self):
         org = self.create_organization()
-        group = self.create_group(organization=org)
+        group = self.create_group()
         user = self.create_user()
         team = self.create_team(organization=org)
         self.create_member(
@@ -84,7 +84,9 @@ class GetParticipantsTest(TestCase):
     def test_simple(self):
         org = self.create_organization()
         team = self.create_team(organization=org)
-        project = self.create_project(teams=[team], organization=org)
+        # Include an extra team here to prove the subquery works
+        team_2 = self.create_team(organization=org)
+        project = self.create_project(teams=[team, team_2], organization=org)
         group = self.create_group(project=project)
         user = self.create_user("foo@example.com")
         user2 = self.create_user("bar@example.com")

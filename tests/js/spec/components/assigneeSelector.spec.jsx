@@ -11,6 +11,11 @@ import GroupStore from 'app/stores/groupStore';
 import MemberListStore from 'app/stores/memberListStore';
 import ProjectsStore from 'app/stores/projectsStore';
 import TeamStore from 'app/stores/teamStore';
+import {openInviteMembersModal} from 'app/actionCreators/modal';
+
+jest.mock('app/actionCreators/modal', () => ({
+  openInviteMembersModal: jest.fn(),
+}));
 
 describe('AssigneeSelector', function() {
   let assigneeSelector;
@@ -24,8 +29,8 @@ describe('AssigneeSelector', function() {
   beforeEach(function() {
     USER_1 = TestStubs.User({
       id: '1',
-      name: 'Jane Doe',
-      email: 'janedoe@example.com',
+      name: 'Jane Bloggs',
+      email: 'janebloggs@example.com',
     });
     USER_2 = TestStubs.User({
       id: '2',
@@ -261,46 +266,16 @@ describe('AssigneeSelector', function() {
   });
 
   it('shows invite member button', async function() {
-    const routerContext = TestStubs.routerContext();
+    jest.spyOn(ConfigStore, 'get').mockImplementation(() => true);
 
     openMenu();
     MemberListStore.loadInitialData([USER_1, USER_2]);
     assigneeSelector.update();
     expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
-    expect(
-      assigneeSelector.find('InviteMemberLink[data-test-id="invite-member"]')
-    ).toHaveLength(0);
-
-    assigneeSelector.unmount();
-    jest.spyOn(ConfigStore, 'get').mockImplementation(() => true);
-    assigneeSelector = mountWithTheme(
-      <AssigneeSelectorComponent id={GROUP_1.id} />,
-      routerContext
-    );
-    await tick();
-    assigneeSelector.update();
-    openMenu();
-    expect(
-      assigneeSelector.find('InviteMemberLink[data-test-id="invite-member"]')
-    ).toHaveLength(1);
-    ConfigStore.get.mockRestore();
-  });
-
-  it('requires org:write to invite member', async function() {
-    MemberListStore.loadInitialData([USER_1, USER_2]);
-    jest.spyOn(ConfigStore, 'get').mockImplementation(() => true);
-
-    // Remove org:write access permission and make sure invite member button is not shown.
-    assigneeSelector.unmount();
-    assigneeSelector = mountWithTheme(
-      <AssigneeSelectorComponent id={GROUP_1.id} />,
-      TestStubs.routerContext([{organization: TestStubs.Organization({access: []})}])
-    );
-    openMenu();
-    assigneeSelector.update();
-    expect(
-      assigneeSelector.find('InviteMemberLink[data-test-id="invite-member"]')
-    ).toHaveLength(0);
+    assigneeSelector
+      .find('InviteMemberLink[data-test-id="invite-member"]')
+      .simulate('click');
+    expect(openInviteMembersModal).toHaveBeenCalled();
     ConfigStore.get.mockRestore();
   });
 

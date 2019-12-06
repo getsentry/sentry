@@ -1,6 +1,6 @@
 import queryString from 'query-string';
 import parseurl from 'parseurl';
-import {isString} from 'lodash';
+import isString from 'lodash/isString';
 
 // remove leading and trailing whitespace and remove double spaces
 export function formatQueryString(qs: string): string {

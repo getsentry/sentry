@@ -2,17 +2,16 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import React from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {selectByLabel} from 'sentry-test/select';
-import {RuleFormContainer} from 'app/views/settings/incidentRules/ruleForm';
+import RuleFormContainer from 'app/views/settings/incidentRules/ruleForm';
 
 describe('Incident Rules Form', function() {
   const {organization, project, routerContext} = initializeOrg();
   const createWrapper = props =>
     mountWithTheme(
       <RuleFormContainer
+        params={{orgId: organization.slug}}
         organization={organization}
-        orgId={organization.slug}
-        projects={[project, TestStubs.Project({slug: 'project-2', id: '3'})]}
+        project={project}
         {...props}
       />,
       routerContext
@@ -23,6 +22,25 @@ describe('Incident Rules Form', function() {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: TestStubs.EventsStats(),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/alert-rules/available-actions/',
+      body: [
+        {
+          allowedTargetTypes: ['user', 'team'],
+          integrationName: null,
+          type: 'email',
+          integrationId: null,
+        },
+      ],
     });
   });
 
@@ -39,9 +57,15 @@ describe('Incident Rules Form', function() {
      * Note this isn't necessarily the desired behavior, as it is just documenting the behavior
      */
     it('creates a rule', async function() {
-      const wrapper = createWrapper();
-
-      selectByLabel(wrapper, 'project-slug', {name: 'projects'});
+      const wrapper = createWrapper({
+        rule: {
+          aggregations: [0],
+          query: '',
+          projects: [project.slug],
+          timeWindow: 60,
+          triggers: [],
+        },
+      });
 
       // Enter in name so we can submit
       wrapper
@@ -54,10 +78,6 @@ describe('Incident Rules Form', function() {
         expect.objectContaining({
           data: expect.objectContaining({
             name: 'Incident Rule',
-
-            // Note, backend handles this when ideally `includeAllProjects: true` should only send excludedProjects,
-            // and `includeAllProjects: false` send `projects`
-            includeAllProjects: false,
             projects: ['project-slug'],
           }),
         })
@@ -67,6 +87,7 @@ describe('Incident Rules Form', function() {
 
   describe('Editing a rule', function() {
     let editRule;
+    let editTrigger;
     const rule = TestStubs.IncidentRule();
 
     beforeEach(function() {
@@ -75,26 +96,37 @@ describe('Incident Rules Form', function() {
         method: 'PUT',
         body: rule,
       });
+      editTrigger = MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/alert-rules/${rule.id}/triggers/1/`,
+        method: 'PUT',
+        body: TestStubs.IncidentTrigger({id: 1}),
+      });
+    });
+    afterEach(function() {
+      editRule.mockReset();
+      editTrigger.mockReset();
     });
 
-    it('edits projects', async function() {
+    it('edits metric', async function() {
       const wrapper = createWrapper({
         incidentRuleId: rule.id,
-        initialData: rule,
-        saveOnBlur: true,
+        rule,
       });
 
-      selectByLabel(wrapper, 'project-2', {name: 'projects'});
+      wrapper
+        .find('input[name="name"]')
+        .simulate('change', {target: {value: 'new name'}});
+
+      wrapper.find('form').simulate('submit');
 
       expect(editRule).toHaveBeenLastCalledWith(
         expect.anything(),
         expect.objectContaining({
-          data: {
-            projects: ['project-2'],
-          },
+          data: expect.objectContaining({
+            name: 'new name',
+          }),
         })
       );
-      editRule.mockReset();
     });
   });
 });

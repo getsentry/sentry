@@ -1,6 +1,6 @@
 import $ from 'jquery';
 import Reflux from 'reflux';
-import _ from 'lodash';
+import isArray from 'lodash/isArray';
 
 const EventStore = Reflux.createStore({
   init() {
@@ -24,7 +24,7 @@ const EventStore = Reflux.createStore({
   },
 
   add(items) {
-    if (!_.isArray(items)) {
+    if (!isArray(items)) {
       items = [items];
     }
 

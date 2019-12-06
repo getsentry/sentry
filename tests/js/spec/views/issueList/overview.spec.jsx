@@ -1,12 +1,12 @@
 import {browserHistory} from 'react-router';
-import {clonedeep} from 'lodash';
+import cloneDeep from 'lodash/cloneDeep';
 import React from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 import ErrorRobot from 'app/components/errorRobot';
 import GroupStore from 'app/stores/groupStore';
-import IssueListWithStores, {IssueList} from 'app/views/issueList/overview';
+import IssueListWithStores, {IssueListOverview} from 'app/views/issueList/overview';
 import StreamGroup from 'app/components/stream/group';
 import TagStore from 'app/stores/tagStore';
 
@@ -475,6 +475,7 @@ describe('IssueList,', function() {
             environment: [],
             project: [],
             sort: 'freq',
+            statsPeriod: '14d',
           },
         })
       );
@@ -514,6 +515,7 @@ describe('IssueList,', function() {
             environment: [],
             project: [],
             query: 'dogs',
+            statsPeriod: '14d',
           },
         })
       );
@@ -656,6 +658,7 @@ describe('IssueList,', function() {
           query: {
             environment: [],
             project: ['3559'],
+            statsPeriod: '14d',
           },
         })
       );
@@ -711,6 +714,7 @@ describe('IssueList,', function() {
           query: {
             project: [],
             environment: [],
+            statsPeriod: '14d',
           },
         })
       );
@@ -913,6 +917,7 @@ describe('IssueList,', function() {
           environment: [],
           project: [],
           query: 'is:unresolved',
+          statsPeriod: '14d',
         },
       };
       expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
@@ -940,6 +945,7 @@ describe('IssueList,', function() {
           environment: [],
           project: [],
           query: 'is:unresolved',
+          statsPeriod: '14d',
         },
       };
       expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
@@ -960,6 +966,7 @@ describe('IssueList,', function() {
           environment: [],
           project: [],
           query: 'is:unresolved',
+          statsPeriod: '14d',
         },
       };
       expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
@@ -977,9 +984,12 @@ describe('IssueList,', function() {
       expect(browserHistory.push).toHaveBeenLastCalledWith({
         pathname: '/organizations/org-slug/issues/',
         query: {
+          cursor: undefined,
           environment: [],
+          page: undefined,
           project: [],
           query: 'is:unresolved',
+          statsPeriod: '14d',
         },
       });
     });
@@ -988,7 +998,7 @@ describe('IssueList,', function() {
   describe('transitionTo', function() {
     let instance;
     beforeEach(function() {
-      wrapper = shallow(<IssueList {...props} />, {
+      wrapper = shallow(<IssueListOverview {...props} />, {
         disableLifecycleMethods: false,
       });
       instance = wrapper.instance();
@@ -1107,7 +1117,7 @@ describe('IssueList,', function() {
 
   describe('getEndpointParams', function() {
     beforeEach(function() {
-      wrapper = shallow(<IssueList {...props} />, {
+      wrapper = shallow(<IssueListOverview {...props} />, {
         disableLifecycleMethods: false,
       });
     });
@@ -1154,7 +1164,7 @@ describe('IssueList,', function() {
 
   describe('componentDidMount', function() {
     beforeEach(function() {
-      wrapper = shallow(<IssueList {...props} />);
+      wrapper = shallow(<IssueListOverview {...props} />);
     });
 
     it('fetches tags and sets state', async function() {
@@ -1197,7 +1207,7 @@ describe('IssueList,', function() {
         },
       });
       fetchDataMock.mockReset();
-      wrapper = shallow(<IssueList {...props} />, {
+      wrapper = shallow(<IssueListOverview {...props} />, {
         disableLifecycleMethods: false,
       });
     });
@@ -1220,10 +1230,10 @@ describe('IssueList,', function() {
 
     it('fetches data on location change', function() {
       const queryAttrs = ['query', 'sort', 'statsPeriod', 'cursor', 'groupStatsPeriod'];
-      let location = clonedeep(props.location);
+      let location = cloneDeep(props.location);
       queryAttrs.forEach(async (attr, i) => {
         // reclone each iteration so that only one property changes.
-        location = clonedeep(location);
+        location = cloneDeep(location);
         location.query[attr] = 'newValue';
         wrapper.setProps({location});
         await tick();
@@ -1250,7 +1260,7 @@ describe('IssueList,', function() {
 
   describe('componentDidUpdate fetching members', function() {
     beforeEach(function() {
-      wrapper = shallow(<IssueList {...props} />, {
+      wrapper = shallow(<IssueListOverview {...props} />, {
         disableLifecycleMethods: false,
       });
       wrapper.instance().fetchData = jest.fn();
@@ -1273,7 +1283,7 @@ describe('IssueList,', function() {
 
   describe('componentDidUpdate fetching tags', function() {
     beforeEach(function() {
-      wrapper = shallow(<IssueList {...props} />, {
+      wrapper = shallow(<IssueListOverview {...props} />, {
         disableLifecycleMethods: false,
       });
       wrapper.instance().fetchData = jest.fn();
@@ -1297,7 +1307,7 @@ describe('IssueList,', function() {
 
   describe('processingIssues', function() {
     beforeEach(function() {
-      wrapper = shallow(<IssueList {...props} />);
+      wrapper = shallow(<IssueListOverview {...props} />);
     });
 
     it('fetches and displays processing issues', async function() {
@@ -1318,7 +1328,7 @@ describe('IssueList,', function() {
 
   describe('render states', function() {
     beforeEach(function() {
-      wrapper = shallow(<IssueList {...props} />, {
+      wrapper = shallow(<IssueListOverview {...props} />, {
         disableLifecycleMethods: false,
       });
     });
@@ -1359,7 +1369,7 @@ describe('IssueList,', function() {
         },
       };
 
-      wrapper = shallow(<IssueList {...errorsOnlyQuery} />, {
+      wrapper = shallow(<IssueListOverview {...errorsOnlyQuery} />, {
         disableLifecycleMethods: false,
       });
 
@@ -1380,7 +1390,7 @@ describe('IssueList,', function() {
         },
       };
 
-      wrapper = shallow(<IssueList {...hasBrowserQuery} />, {
+      wrapper = shallow(<IssueListOverview {...hasBrowserQuery} />, {
         disableLifecycleMethods: false,
       });
 
@@ -1411,7 +1421,7 @@ describe('IssueList,', function() {
         }),
         ...moreProps,
       };
-      const localWrapper = shallow(<IssueList {...defaultProps} />, {
+      const localWrapper = shallow(<IssueListOverview {...defaultProps} />, {
         disableLifecycleMethods: false,
       });
       localWrapper.setState({

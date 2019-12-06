@@ -217,7 +217,7 @@ class DeleteGroupTest(TestCase):
         with self.tasks():
             delete_groups(object_ids=[group.id])
 
-        assert not Event.objects.filter(id=event.id).exists()
+        assert not Event.objects.filter(event_id=event.event_id).exists()
         assert not GroupRedirect.objects.filter(group_id=group.id).exists()
         assert not GroupHash.objects.filter(group_id=group.id).exists()
         assert not Group.objects.filter(id=group.id).exists()

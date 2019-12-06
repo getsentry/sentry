@@ -1,4 +1,4 @@
-import {findIndex} from 'lodash';
+import findIndex from 'lodash/findIndex';
 import Reflux from 'reflux';
 
 import SavedSearchesActions from 'app/actions/savedSearchesActions';

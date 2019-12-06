@@ -19,6 +19,7 @@ import {toPermissions} from 'app/utils/consolidatedScopes';
 import CircleIndicator from 'app/components/circleIndicator';
 import {SentryAppDetailsModalOptions} from 'app/actionCreators/modal';
 import {Hooks} from 'app/types/hooks';
+import {IntegrationFeature} from 'app/types';
 
 type Props = {
   closeOnInstall?: boolean;
@@ -43,7 +44,11 @@ const defaultFeatureGateComponents = {
   ),
 } as ReturnType<Hooks['integrations:feature-gates']>;
 
-export default class SentryAppDetailsModal extends AsyncComponent<Props> {
+type State = {
+  featureData: IntegrationFeature[];
+} & AsyncComponent['state'];
+
+export default class SentryAppDetailsModal extends AsyncComponent<Props, State> {
   static propTypes = {
     sentryApp: SentryTypes.SentryApplication.isRequired,
     organization: SentryTypes.Organization.isRequired,
@@ -62,7 +67,7 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props> {
     return [['featureData', `/sentry-apps/${sentryApp.slug}/features/`]];
   }
 
-  featureTags(features) {
+  featureTags(features: IntegrationFeature[]) {
     return features.map(feature => {
       const feat = feature.featureGate.replace(/integrations/g, '');
       return <StyledTag key={feat}>{feat.replace(/-/g, ' ')}</StyledTag>;

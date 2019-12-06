@@ -16,9 +16,14 @@ import space from 'app/styles/space';
 
 // TODO(epurkhiser): The abstraction here would be much nicer if we just
 // exposed a configuration object telling us what auth providers there are.
-const LoginProviders = ({vstsLoginLink, githubLoginLink}) => (
+const LoginProviders = ({vstsLoginLink, githubLoginLink, googleLoginLink}) => (
   <ProviderWrapper>
     <ProviderHeading>{t('External Account Login')}</ProviderHeading>
+    {googleLoginLink && (
+      <Button align="left" size="small" icon="icon-google" href={googleLoginLink}>
+        {t('Sign in with Google')}
+      </Button>
+    )}
     {githubLoginLink && (
       <Button align="left" size="small" icon="icon-github" href={githubLoginLink}>
         {t('Sign in with GitHub')}
@@ -35,6 +40,7 @@ const LoginProviders = ({vstsLoginLink, githubLoginLink}) => (
 LoginProviders.propTypes = {
   githubLoginLink: PropTypes.string,
   vstsLoginLink: PropTypes.string,
+  googleLoginLink: PropTypes.string,
 };
 
 class LoginForm extends React.Component {

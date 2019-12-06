@@ -1,4 +1,6 @@
-import {sortBy, property, isEqual} from 'lodash';
+import sortBy from 'lodash/sortBy';
+import property from 'lodash/property';
+import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';
 import React from 'react';
 

@@ -329,7 +329,7 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
         transform_aliases_and_query(
             selected_columns=["transaction"],
             aggregations=[
-                ["quantileTiming(0.95)(duration)", "", "p95"],
+                ["quantile(0.95)(duration)", "", "p95"],
                 ["uniq", "transaction", "uniq_transaction"],
             ],
             filter_keys={"project_id": [self.project.id]},
@@ -337,7 +337,7 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
         mock_query.assert_called_with(
             selected_columns=["transaction_name"],
             aggregations=[
-                ["quantileTiming(0.95)(duration)", "", "p95"],
+                ["quantile(0.95)(duration)", "", "p95"],
                 ["uniq", "transaction_name", "uniq_transaction"],
             ],
             filter_keys={"project_id": [self.project.id]},
@@ -509,13 +509,16 @@ class TransformAliasesAndQueryTransactionsTest(TestCase):
         }
         transform_aliases_and_query(
             selected_columns=["transaction", "transaction.duration"],
-            conditions=[["http_method", "=", "GET"]],
+            conditions=[["http_method", "=", "GET"], ["geo.country_code", "=", "CA"]],
             groupby=["transaction.op"],
             filter_keys={"project_id": [self.project.id]},
         )
         mock_query.assert_called_with(
             selected_columns=["transaction_name", "duration"],
-            conditions=[["tags[http_method]", "=", "GET"]],
+            conditions=[
+                ["tags[http_method]", "=", "GET"],
+                ["contexts[geo.country_code]", "=", "CA"],
+            ],
             filter_keys={"project_id": [self.project.id]},
             groupby=["transaction_op"],
             dataset=Dataset.Transactions,
@@ -582,7 +585,7 @@ class DetectDatasetTest(TestCase):
         query = {"aggregations": [["argMax", ["id", "duration"], "longest"]]}
         assert detect_dataset(query) == Dataset.Events
 
-        query = {"aggregations": [["quantileTiming(0.95)", "transaction.duration", "p95_duration"]]}
+        query = {"aggregations": [["quantile(0.95)", "transaction.duration", "p95_duration"]]}
         assert detect_dataset(query) == Dataset.Transactions
 
         query = {"aggregations": [["uniq", "transaction.op", "uniq_transaction_op"]]}
@@ -610,6 +613,13 @@ class PrepareQueryParamsTest(TestCase):
         query_params = SnubaQueryParams(
             dataset=Dataset.Outcomes, filter_keys={"org_id": [self.organization.id]}
         )
+
+        kwargs, _, _ = _prepare_query_params(query_params)
+        assert kwargs["organization"] == self.organization.id
+
+    def test_outcomes_dataset_with_key_id(self):
+        key = self.create_project_key(project=self.project)
+        query_params = SnubaQueryParams(dataset=Dataset.Outcomes, filter_keys={"key_id": [key.id]})
 
         kwargs, _, _ = _prepare_query_params(query_params)
         assert kwargs["organization"] == self.organization.id

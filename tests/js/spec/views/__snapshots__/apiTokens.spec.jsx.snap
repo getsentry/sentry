@@ -9,7 +9,7 @@ exports[`ApiTokens renders empty result 1`] = `
       action={
         <Button
           align="center"
-          className="ref-create-token"
+          data-test-id="create-token"
           disabled={false}
           priority="primary"
           size="small"
@@ -65,19 +65,8 @@ exports[`ApiTokens renders empty result 1`] = `
       </small>
     </TextBlock>
     <Panel>
-      <PanelHeader
-        disablePadding={true}
-      >
-        <Flex
-          align="center"
-        >
-          <Box
-            flex="1"
-            px={2}
-          >
-            Auth Token
-          </Box>
-        </Flex>
+      <PanelHeader>
+        Auth Token
       </PanelHeader>
       <PanelBody
         direction="column"
@@ -102,7 +91,7 @@ exports[`ApiTokens renders with result 1`] = `
       action={
         <Button
           align="center"
-          className="ref-create-token"
+          data-test-id="create-token"
           disabled={false}
           priority="primary"
           size="small"
@@ -158,19 +147,8 @@ exports[`ApiTokens renders with result 1`] = `
       </small>
     </TextBlock>
     <Panel>
-      <PanelHeader
-        disablePadding={true}
-      >
-        <Flex
-          align="center"
-        >
-          <Box
-            flex="1"
-            px={2}
-          >
-            Auth Token
-          </Box>
-        </Flex>
+      <PanelHeader>
+        Auth Token
       </PanelHeader>
       <PanelBody
         direction="column"

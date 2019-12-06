@@ -1,21 +1,22 @@
 import {browserHistory} from 'react-router';
-import {isEqual} from 'lodash';
 import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import * as Sentry from '@sentry/browser';
 import createReactClass from 'create-react-class';
+import isEqual from 'lodash/isEqual';
 
 import {PageContent} from 'app/styles/organization';
 import {t} from 'app/locale';
-import withApi from 'app/utils/withApi';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import GroupStore from 'app/stores/groupStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import ProjectsStore from 'app/stores/projectsStore';
+import Projects from 'app/utils/projects';
 import SentryTypes from 'app/sentryTypes';
+import profiler from 'app/utils/profiler';
+import withApi from 'app/utils/withApi';
 
 import {ERROR_TYPES} from './constants';
 import GroupHeader from './header';
@@ -26,13 +27,12 @@ const GroupDetails = createReactClass({
   propTypes: {
     api: PropTypes.object,
 
-    // Provided in the project version of group details
-    project: SentryTypes.Project,
-
     organization: SentryTypes.Organization,
     environments: PropTypes.arrayOf(PropTypes.string),
     enableSnuba: PropTypes.bool,
     showGlobalHeader: PropTypes.bool,
+
+    finishProfile: PropTypes.func,
   },
 
   childContextTypes: {
@@ -74,12 +74,20 @@ const GroupDetails = createReactClass({
     }
   },
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps, prevState) {
     if (
       prevProps.params.groupId !== this.props.params.groupId ||
       !isEqual(prevProps.environments, this.props.environments)
     ) {
       this.fetchData();
+    }
+
+    if (
+      prevState.loading &&
+      !this.state.loading &&
+      typeof this.props.finishProfile === 'function'
+    ) {
+      this.props.finishProfile();
     }
   },
 
@@ -119,11 +127,10 @@ const GroupDetails = createReactClass({
           );
           return;
         }
-
-        const project = this.props.project || ProjectsStore.getById(data.project.id);
+        const project = data.project;
 
         if (!project) {
-          Sentry.withScope(scope => {
+          Sentry.withScope(() => {
             Sentry.captureException(new Error('Project not found'));
           });
         } else {
@@ -215,9 +222,9 @@ const GroupDetails = createReactClass({
     }
   },
 
-  renderContent(shouldShowGlobalHeader) {
+  renderContent(shouldShowGlobalHeader, project) {
     const {environments} = this.props;
-    const {group, project} = this.state;
+    const {group} = this.state;
 
     const Content = (
       <DocumentTitle title={this.getTitle()}>
@@ -275,7 +282,19 @@ const GroupDetails = createReactClass({
             <LoadingIndicator />
           </PageContent>
         ) : (
-          this.renderContent(showGlobalHeader)
+          <Projects orgId={organization.slug} slugs={[project.slug]}>
+            {({projects, initiallyLoaded, fetchError}) =>
+              initiallyLoaded ? (
+                fetchError ? (
+                  <LoadingError message={t('Error loading the specified project')} />
+                ) : (
+                  this.renderContent(showGlobalHeader, projects[0])
+                )
+              ) : (
+                <LoadingIndicator />
+              )
+            }
+          </Projects>
         )}
       </React.Fragment>
     );
@@ -284,4 +303,4 @@ const GroupDetails = createReactClass({
 
 export {GroupDetails};
 
-export default withApi(GroupDetails);
+export default withApi(profiler()(GroupDetails));

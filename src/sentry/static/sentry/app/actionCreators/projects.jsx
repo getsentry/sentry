@@ -1,4 +1,6 @@
-import {chunk, debounce} from 'lodash';
+import chunk from 'lodash/chunk';
+
+import debounce from 'lodash/debounce';
 
 import {
   addLoadingMessage,

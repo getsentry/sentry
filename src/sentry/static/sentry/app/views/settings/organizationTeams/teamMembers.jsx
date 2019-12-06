@@ -1,4 +1,4 @@
-import {debounce} from 'lodash';
+import debounce from 'lodash/debounce';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -6,6 +6,7 @@ import styled from 'react-emotion';
 import {Panel, PanelHeader} from 'app/components/panels';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {joinTeam, leaveTeam} from 'app/actionCreators/teams';
+import {openInviteMembersModal} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import Avatar from 'app/components/avatar';
 import Button from 'app/components/button';
@@ -198,8 +199,6 @@ class TeamMembers extends React.Component {
   };
 
   renderDropdown = access => {
-    const {params} = this.props;
-
     // You can add members if you have `org:write` or you have `team:admin` AND you belong to the team
     // a parent "team details" request should determine your team membership, so this only view is rendered only
     // when you are a member
@@ -238,8 +237,11 @@ class TeamMembers extends React.Component {
     const menuHeader = (
       <StyledMembersLabel>
         {t('Members')}
-        <StyledCreateMemberLink to={`/settings/${params.orgId}/members/new/`}>
-          {t('Add Member')}
+        <StyledCreateMemberLink
+          onClick={() => openInviteMembersModal({source: 'teams'})}
+          data-test-id="invite-member"
+        >
+          {t('Invite Member')}
         </StyledCreateMemberLink>
       </StyledMembersLabel>
     );
@@ -255,7 +257,7 @@ class TeamMembers extends React.Component {
         onClose={() => this.debouncedFetchMembersRequest('')}
       >
         {({isOpen}) => (
-          <DropdownButton isOpen={isOpen} size="xsmall">
+          <DropdownButton isOpen={isOpen} size="xsmall" data-test-id="add-member">
             {t('Add Member')}
           </DropdownButton>
         )}

@@ -3,7 +3,6 @@ import React from 'react';
 import {t} from 'app/locale';
 import {openModal} from 'app/actionCreators/modal';
 
-import Alert from 'app/components/alert';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import InlineSvg from 'app/components/inlineSvg';
 import LoadingContainer from 'app/components/loading/loadingContainer';
@@ -29,11 +28,14 @@ import {
   GridBodyCell,
   GridBodyCellSpan,
   GridBodyCellLoading,
+  GridBodyErrorAlert,
   GridEditGroup,
   GridEditGroupButton,
 } from './styles';
 
 type GridEditableProps<DataRow, ColumnKey> = {
+  onToggleEdit?: (nextValue: boolean) => void;
+
   gridHeadCellButtonProps?: {[prop: string]: any};
 
   isEditable?: boolean;
@@ -130,7 +132,13 @@ class GridEditable<
   }
 
   toggleEdit = () => {
-    this.setState({isEditing: !this.state.isEditing});
+    const nextValue = !this.state.isEditing;
+
+    if (this.props.onToggleEdit) {
+      this.props.onToggleEdit(nextValue);
+    }
+
+    this.setState({isEditing: nextValue});
   };
 
   openModalAddColumnAt = (insertIndex: number) => {
@@ -161,9 +169,6 @@ class GridEditable<
 
     return (
       <React.Fragment>
-        <Alert type="error" icon="icon-circle-exclamation">
-          {error}
-        </Alert>
         <GridPanel>
           <Grid
             isEditable={this.props.isEditable}
@@ -173,7 +178,11 @@ class GridEditable<
             {this.renderGridHead()}
             <GridBody>
               <GridRow>
-                <GridBodyCellSpan>{error}</GridBodyCellSpan>
+                <GridBodyCellSpan>
+                  <GridBodyErrorAlert type="error" icon="icon-circle-exclamation">
+                    {error}
+                  </GridBodyErrorAlert>
+                </GridBodyCellSpan>
               </GridRow>
             </GridBody>
           </Grid>

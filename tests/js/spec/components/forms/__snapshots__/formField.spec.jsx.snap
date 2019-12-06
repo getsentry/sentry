@@ -104,7 +104,7 @@ exports[`FormField + model renders with Form 1`] = `
                         <FieldControl
                           alignRight={false}
                           controlState={
-                            <ControlState
+                            <FormFieldControlState
                               model={
                                 FormModel {
                                   "api": Client {
@@ -256,7 +256,7 @@ exports[`FormField + model renders with Form 1`] = `
                                                         className="e1rziqw00 css-1fqbh7r-FieldControlState"
                                                         is={null}
                                                       >
-                                                        <ControlState
+                                                        <FormFieldControlState
                                                           model={
                                                             FormModel {
                                                               "api": Client {
@@ -300,9 +300,14 @@ exports[`FormField + model renders with Form 1`] = `
                                                           }
                                                           name="fieldName"
                                                         >
-                                                          <Observer />
-                                                          <Observer />
-                                                        </ControlState>
+                                                          <Observer>
+                                                            <ControlState
+                                                              error={false}
+                                                              isSaved={null}
+                                                              isSaving={null}
+                                                            />
+                                                          </Observer>
+                                                        </FormFieldControlState>
                                                       </div>
                                                     </Base>
                                                   </Flex>

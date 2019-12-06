@@ -11,8 +11,9 @@ import Button from 'app/components/button';
 import HookOrDefault from 'app/components/hookOrDefault';
 import space from 'app/styles/space';
 import AsyncComponent from 'app/components/asyncComponent';
-import {Organization} from 'app/types';
+import {Organization, Team} from 'app/types';
 import withLatestContext from 'app/utils/withLatestContext';
+import withTeams from 'app/utils/withTeams';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Tooltip from 'app/components/tooltip';
 
@@ -22,6 +23,7 @@ import InviteRowControl from './inviteRowControl';
 type Props = AsyncComponent['props'] &
   ModalRenderProps & {
     organization: Organization;
+    teams: Team[];
     source?: string;
   };
 
@@ -69,10 +71,6 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
 
   getEndpoints(): [string, string][] {
     const orgId = this.props.organization.slug;
-
-    // TODO(epurkhiser): For admins we cannot lookup me, and will not have
-    // roles when viewing this modal as an admin. We need to add some hardcoded
-    // defaults like in the old page.
 
     return [['member', `/organizations/${orgId}/members/me/`]];
   }
@@ -285,7 +283,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
   }
 
   render() {
-    const {Footer, closeModal, organization} = this.props;
+    const {Footer, closeModal, organization, teams: allTeams} = this.props;
     const {pendingInvites, sendingInvites, complete, inviteStatus, member} = this.state;
 
     const disableInputs = sendingInvites || complete;
@@ -335,7 +333,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
             teams={[...teams]}
             roleOptions={member ? member.roles : MEMBER_ROLES}
             roleDisabledUnallowed={this.willInvite}
-            teamOptions={organization.teams}
+            teamOptions={allTeams}
             inviteStatus={inviteStatus}
             onRemove={() => this.removeInviteRow(i)}
             onChangeEmails={opts => this.setEmails(opts.map(v => v.value), i)}
@@ -408,7 +406,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
 
     return (
       <InviteModalHook
-        organization={this.props.organization}
+        organization={organization}
         willInvite={this.willInvite}
         onSendInvites={this.sendInvites}
       >
@@ -489,4 +487,4 @@ const modalClassName = css`
   }
 `;
 export {modalClassName};
-export default withLatestContext(InviteMembersModal);
+export default withLatestContext(withTeams(InviteMembersModal));

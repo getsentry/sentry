@@ -10,7 +10,7 @@ from sentry.testutils import PluginTestCase
 
 from social_auth.models import UserSocialAuth
 
-from new_sentry_plugins.bitbucket.plugin import BitbucketPlugin
+from sentry_plugins.bitbucket.plugin import BitbucketPlugin
 
 
 class BitbucketPluginTest(PluginTestCase):

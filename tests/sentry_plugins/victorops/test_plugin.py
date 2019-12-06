@@ -8,7 +8,7 @@ from sentry.plugins.base import Notification
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
 
-from new_sentry_plugins.victorops.plugin import VictorOpsPlugin
+from sentry_plugins.victorops.plugin import VictorOpsPlugin
 
 SUCCESS = """{
   "result":"success",

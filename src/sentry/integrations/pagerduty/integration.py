@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+
 from django.utils.translation import ugettext_lazy as _
 from django.db import transaction
 
@@ -14,27 +15,31 @@ from sentry.integrations.base import (
     IntegrationProvider,
     FeatureDescription,
 )
-from sentry.models import (
-    OrganizationIntegration,
-    PagerDutyServiceProject,
-    PagerDutyService,
-    Project,
-)
+
+from sentry.models import OrganizationIntegration, PagerDutyService
+
 from sentry.pipeline import PipelineView
 from .client import PagerDutyClient
 
 DESCRIPTION = """
-PagerDuty Description
+Connect your Sentry organization with one or more PagerDuty accounts, and start getting
+incidents triggered from Sentry alerts.
 """
 
 FEATURES = [
     FeatureDescription(
         """
-        Configure rule based PagerDuty notifications!!
+        Configure rule based PagerDuty alerts to automatically be triggered in a specific
+        service - or in multiple services!
         """,
         IntegrationFeatures.ALERT_RULE,
     )
 ]
+
+setup_alert = {
+    "type": "info",
+    "text": "The PagerDuty integration adds a new Alert Rule action to all projects. To enable automatic notifications sent to PagerDuty you must create a rule using the PagerDuty action in your project settings.",
+}
 
 metadata = IntegrationMetadata(
     description=_(DESCRIPTION.strip()),
@@ -43,7 +48,7 @@ metadata = IntegrationMetadata(
     noun=_("Installation"),
     issue_url="https://github.com/getsentry/sentry/issues/new?title=PagerDuty%20Integration:%20&labels=Component%3A%20Integrations",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/pagerduty",
-    aspects={},
+    aspects={"alerts": [setup_alert]},
 )
 
 
@@ -52,64 +57,44 @@ class PagerDutyIntegration(IntegrationInstallation):
         return PagerDutyClient(integration_key=integration_key)
 
     def get_organization_config(self):
-        from sentry.models import Project
-
-        projects = Project.objects.filter(organization_id=self.org_integration.organization_id)
-        items = []
-        for p in projects:
-            items.append({"value": p.id, "label": p.name})
-
-        service_options = [(s.id, s.service_name) for s in self.services]
-
         fields = [
             {
-                "name": "project_mapping",
-                "type": "choice_mapper",
-                "label": "Map projects in Sentry to services in PagerDuty",
-                "help": "When an alert rule is triggered in a project, this mapping will let us know what service to create the incident in PagerDuty.",
-                "addButtonText": "Add Sentry Project",
-                "addDropdown": {
-                    "emptyMessage": "All projects configured",
-                    "noResultsMessage": "Could not find project",
-                    "items": items,
-                },
-                "mappedSelectors": {
-                    "service": {"choices": service_options, "placeholder": "Select a service"}
-                },
-                "columnLabels": {"service": "Service"},
-                "mappedColumnLabel": "Sentry Project",
+                "name": "service_table",
+                "type": "table",
+                "label": "PagerDuty services with the Sentry integration enabled",
+                "help": "If a services needs to be updated, deleted, or added manually please do so here. Alert rules will need to be individually updated for any additions or deletions of services.",
+                "addButtonText": "",
+                "columnLabels": {"service": "Service", "integration_key": "Integration Key"},
+                "columnKeys": ["service", "integration_key"],
             }
         ]
 
         return fields
 
     def update_organization_config(self, data):
-
-        if "project_mapping" in data:
-            project_ids_and_services = data.pop("project_mapping")
-
+        if "service_table" in data:
             with transaction.atomic():
-                PagerDutyServiceProject.objects.filter(pagerduty_service__in=self.services).delete()
+                PagerDutyService.objects.filter(
+                    organization_integration=self.org_integration
+                ).delete()
+                for item in data["service_table"]:
+                    service_name = item["service"]
+                    key = item["integration_key"]
 
-                for p_id, s in project_ids_and_services.items():
-                    # create the record in the table
-                    project = Project.objects.get(pk=p_id)
-                    service = PagerDutyService.objects.get(id=s["service"])
-                    PagerDutyServiceProject.objects.create(
-                        project=project, pagerduty_service=service
-                    )
+                    if key and service_name:
+                        PagerDutyService.objects.create(
+                            organization_integration=self.org_integration,
+                            service_name=service_name,
+                            integration_key=key,
+                        )
 
     def get_config_data(self):
-        config = self.org_integration.config
-        project_mappings = PagerDutyServiceProject.objects.filter(
-            pagerduty_service__in=self.services
-        )
-        data = {}
-        for pm in project_mappings:
-            data[pm.project_id] = {"service": pm.pagerduty_service_id}
-        config = {}
-        config["project_mapping"] = data
-        return config
+        service_list = []
+        for s in self.services:
+            service_list.append(
+                {"service": s.service_name, "integration_key": s.integration_key, "id": s.id}
+            )
+        return {"service_table": service_list}
 
     @property
     def services(self):
@@ -144,7 +129,6 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
                 PagerDutyService.objects.create_or_update(
                     organization_integration=org_integration,
                     integration_key=service["integration_key"],
-                    service_id=service["id"],
                     service_name=service["name"],
                 )
 
@@ -158,18 +142,21 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
         return {
             "name": account["name"],
             "external_id": account["subdomain"],
-            "metadata": {"services": services},
+            "metadata": {"services": services, "domain_name": account["subdomain"]},
         }
 
 
 class PagerDutyInstallationRedirect(PipelineView):
-    def get_app_url(self):
+    def get_app_url(self, account_name=None):
+        if not account_name:
+            account_name = "app"
+
         app_id = options.get("pagerduty.app-id")
         setup_url = absolute_uri("/extensions/pagerduty/setup/")
 
         return (
-            u"https://app.pagerduty.com/install/integration?app_id=%s&redirect_url=%s&version=1"
-            % (app_id, setup_url)
+            u"https://%s.pagerduty.com/install/integration?app_id=%s&redirect_url=%s&version=1"
+            % (account_name, app_id, setup_url)
         )
 
     def dispatch(self, request, pipeline):
@@ -177,4 +164,6 @@ class PagerDutyInstallationRedirect(PipelineView):
             pipeline.bind_state("config", request.GET["config"])
             return pipeline.next_step()
 
-        return self.redirect(self.get_app_url())
+        account_name = getattr(request, "account", None)
+
+        return self.redirect(self.get_app_url(account_name))

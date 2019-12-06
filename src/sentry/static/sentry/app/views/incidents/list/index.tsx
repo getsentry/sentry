@@ -1,6 +1,6 @@
 import {Location} from 'history';
 import {Params} from 'react-router/lib/Router';
-import {omit} from 'lodash';
+import omit from 'lodash/omit';
 import DocumentTitle from 'react-document-title';
 import React from 'react';
 import moment from 'moment';
@@ -149,14 +149,6 @@ class IncidentsListContainer extends React.Component<Props> {
             </PageHeading>
 
             <Actions>
-              <Button
-                priority="default"
-                size="small"
-                to={`/settings/${orgId}/incident-rules/`}
-                icon="icon-settings"
-              >
-                {t('Manage Rules')}
-              </Button>
               <div className="btn-group">
                 <Button
                   to={{pathname, query: allIncidentsQuery}}

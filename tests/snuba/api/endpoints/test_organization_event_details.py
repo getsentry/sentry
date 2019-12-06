@@ -66,6 +66,40 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["nextEventID"] == "b" * 32
         assert response.data["projectSlug"] == self.project.slug
 
+    def test_simple_out_of_range_pagination(self):
+        two_weeks_ago = iso_format(before_now(days=14))
+        self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "message": "very old, very bad",
+                "timestamp": two_weeks_ago,
+                "fingerprint": ["group-3"],
+            },
+            project_id=self.project.id,
+        )
+        url = reverse(
+            "sentry-api-0-organization-event-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+                "event_id": "d" * 32,
+            },
+        )
+
+        with self.feature("organizations:events-v2"):
+            response = self.client.get(
+                url,
+                data={"field": ["title", "count_unique(user)"], "statsPeriod": "24h"},
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == "d" * 32
+        assert response.data["previousEventID"] is None
+        assert response.data["nextEventID"] is None
+        assert response.data["latestEventID"] is None
+        assert response.data["oldestEventID"] is None
+
     def test_simple_transaction(self):
         min_ago = iso_format(before_now(minutes=1))
         event = self.store_event(

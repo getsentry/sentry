@@ -12,6 +12,7 @@ from django.utils import timezone
 
 from sentry import analytics
 from sentry.api.event_search import get_filter
+from sentry.incidents import tasks
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleExcludedProjects,
@@ -32,13 +33,13 @@ from sentry.incidents.models import (
     IncidentType,
     TimeSeriesSnapshot,
 )
+from sentry.models import Commit, Integration, Project, Release
 from sentry.snuba.models import QueryAggregations, QueryDatasets
-from sentry.models import Commit, Project, Release
-from sentry.incidents import tasks
 from sentry.snuba.subscriptions import (
     bulk_create_snuba_subscriptions,
     bulk_delete_snuba_subscriptions,
     bulk_update_snuba_subscriptions,
+    query_aggregation_to_snuba,
 )
 from sentry.utils.committers import get_event_file_committers
 from sentry.utils.snuba import bulk_raw_query, raw_query, SnubaQueryParams, SnubaTSResult, zerofill
@@ -54,11 +55,16 @@ class AlreadyDeletedError(Exception):
     pass
 
 
+class InvalidTriggerActionError(Exception):
+    pass
+
+
 def create_incident(
     organization,
     type,
     title,
     query,
+    aggregation,
     date_started=None,
     date_detected=None,
     # TODO: Probably remove detection_uuid?
@@ -88,6 +94,7 @@ def create_incident(
             type=type.value,
             title=title,
             query=query,
+            aggregation=aggregation.value,
             date_started=date_started,
             date_detected=date_detected,
             alert_rule=alert_rule,
@@ -454,7 +461,13 @@ def get_incident_event_stats(incident, start=None, end=None, data_points=50):
 def bulk_get_incident_event_stats(incidents, query_params_list, data_points=50):
     snuba_params_list = [
         SnubaQueryParams(
-            aggregations=[("count()", "", "count")],
+            aggregations=[
+                (
+                    query_aggregation_to_snuba[QueryAggregations(incident.aggregation)][0],
+                    query_aggregation_to_snuba[QueryAggregations(incident.aggregation)][1],
+                    "count",
+                )
+            ],
             orderby="time",
             groupby=["time"],
             rollup=max(int(incident.duration.total_seconds() / data_points), 1),
@@ -988,7 +1001,7 @@ def get_subscriptions_from_alert_rule(alert_rule, projects):
 
 
 def create_alert_rule_trigger_action(
-    trigger, type, target_type, target_identifier=None, target_display=None, integration=None
+    trigger, type, target_type, target_identifier=None, integration=None
 ):
     """
     Creates an AlertRuleTriggerAction
@@ -1000,6 +1013,28 @@ def create_alert_rule_trigger_action(
     :param integration: (Optional) The Integration related to this action.
     :return: The created action
     """
+    target_display = None
+    if type == AlertRuleTriggerAction.Type.SLACK:
+        from sentry.integrations.slack.utils import get_channel_id
+
+        if target_type != AlertRuleTriggerAction.TargetType.SPECIFIC:
+            raise InvalidTriggerActionError("Slack action must specify channel")
+
+        channel_result = get_channel_id(
+            trigger.alert_rule.organization, integration.id, target_identifier
+        )
+        if channel_result is not None:
+            channel_id = channel_result[1]
+        else:
+            raise InvalidTriggerActionError(
+                "Could not find channel %s. Channel may not exist, or Sentry may not "
+                "have been granted permission to access it" % target_identifier
+            )
+
+        # Use the channel name for display
+        target_display = target_identifier
+        target_identifier = channel_id
+
     return AlertRuleTriggerAction.objects.create(
         alert_rule_trigger=trigger,
         type=type.value,
@@ -1011,12 +1046,7 @@ def create_alert_rule_trigger_action(
 
 
 def update_alert_rule_trigger_action(
-    trigger_action,
-    type=None,
-    target_type=None,
-    target_identifier=None,
-    target_display=None,
-    integration=None,
+    trigger_action, type=None, target_type=None, target_identifier=None, integration=None
 ):
     """
     Updates values on an AlertRuleTriggerAction
@@ -1033,12 +1063,25 @@ def update_alert_rule_trigger_action(
         updated_fields["type"] = type.value
     if target_type is not None:
         updated_fields["target_type"] = target_type.value
-    if target_identifier is not None:
-        updated_fields["target_identifier"] = target_identifier
-    if target_display is not None:
-        updated_fields["target_display"] = target_display
     if integration is not None:
         updated_fields["integration"] = integration
+    if target_identifier is not None:
+        type = updated_fields.get("type", trigger_action.type)
+
+        if type == AlertRuleTriggerAction.Type.SLACK.value:
+            from sentry.integrations.slack.utils import get_channel_id
+
+            integration = updated_fields.get("integration", trigger_action.integration)
+            channel_id = get_channel_id(
+                trigger_action.alert_rule_trigger.alert_rule.organization,
+                integration.id,
+                target_identifier,
+            )[1]
+            # Use the channel name for display
+            updated_fields["target_display"] = target_identifier
+            updated_fields["target_identifier"] = channel_id
+        else:
+            updated_fields["target_identifier"] = target_identifier
 
     trigger_action.update(**updated_fields)
     return trigger_action
@@ -1053,3 +1096,17 @@ def delete_alert_rule_trigger_action(trigger_action):
 
 def get_actions_for_trigger(trigger):
     return AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger)
+
+
+def get_available_action_integrations_for_org(organization):
+    """
+    Returns a list of integrations that the organization has installed. Integrations are
+    filtered by the list of registered providers.
+    :param organization:
+    """
+    providers = [
+        registration.integration_provider
+        for registration in AlertRuleTriggerAction.get_registered_types()
+        if registration.integration_provider is not None
+    ]
+    return Integration.objects.filter(organizations=organization, provider__in=providers)

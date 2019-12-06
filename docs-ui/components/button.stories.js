@@ -7,6 +7,8 @@ import {boolean} from '@storybook/addon-knobs';
 
 import Button from 'app/components/button';
 import DropdownButton from 'app/components/dropdownButton';
+import InlineSvg from 'app/components/inlineSvg';
+import space from 'app/styles/space';
 
 const Item = styled('span')`
   padding: 12px;
@@ -108,7 +110,17 @@ storiesOf('UI|Buttons', module)
           <h2>Icons</h2>
           <div style={{display: 'flex', alignItems: 'center'}}>
             <Item>
-              <Button icon="icon-github">View on GitHub</Button>
+              <Button>
+                <InlineSvg
+                  src="icon-github"
+                  size="14"
+                  style={{marginRight: space(0.5)}}
+                />
+                Not-icon-props Button
+              </Button>
+            </Item>
+            <Item>
+              <Button icon="icon-github">Icon Button</Button>
             </Item>
             <Item>
               <Button size="small" icon="icon-github">
@@ -188,7 +200,7 @@ storiesOf('UI|Buttons', module)
           <DropdownButton isOpen={false}>Closed</DropdownButton>
         </Item>
         <Item>
-          <DropdownButton isOpen={true}>Open</DropdownButton>
+          <DropdownButton isOpen>Open</DropdownButton>
         </Item>
       </React.Fragment>
     ))

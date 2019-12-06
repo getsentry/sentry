@@ -1,5 +1,6 @@
-import {isString} from 'lodash';
-import {divergentColorScale, spanColors} from 'app/utils/theme';
+import isString from 'lodash/isString';
+import CHART_PALETTE from 'app/constants/chartPalette';
+import {ParsedTraceType, SpanType} from './types';
 
 type Rect = {
   // x and y are left/top coords respectively
@@ -246,17 +247,23 @@ const getLetterIndex = (letter: string): number => {
   return index === -1 ? 0 : index;
 };
 
-const colorsAsArray = Object.keys(divergentColorScale).map(
-  key => divergentColorScale[key]
-);
+const colorsAsArray = Object.keys(CHART_PALETTE).map(key => CHART_PALETTE[17][key]);
+
+export const spanColors = {
+  default: CHART_PALETTE[17][4],
+  transaction: CHART_PALETTE[17][8],
+  http: CHART_PALETTE[17][10],
+  db: CHART_PALETTE[17][17],
+};
 
 export const pickSpanBarColour = (input: string | undefined): string => {
   // We pick the color for span bars using the first two letters of the op name.
   // That way colors stay consistent between transactions.
 
   if (!input || input.length < 2) {
-    return divergentColorScale.blue;
+    return CHART_PALETTE[17][4];
   }
+
   if (spanColors[input]) {
     return spanColors[input];
   }
@@ -285,7 +292,7 @@ export const setBodyUserSelect = (nextValues: UserSelectValues): UserSelectValue
     msUserSelect: document.body.style.msUserSelect,
   };
 
-  document.body.style.userSelect = nextValues.userSelect;
+  document.body.style.userSelect = nextValues.userSelect || '';
   // MozUserSelect is not typed in TS
   // @ts-ignore
   document.body.style.MozUserSelect = nextValues.MozUserSelect;
@@ -293,3 +300,17 @@ export const setBodyUserSelect = (nextValues: UserSelectValues): UserSelectValue
 
   return previousValues;
 };
+
+export function generateRootSpan(trace: ParsedTraceType): SpanType {
+  const rootSpan: SpanType = {
+    trace_id: trace.traceID,
+    span_id: trace.rootSpanID,
+    parent_span_id: trace.parentSpanID,
+    start_timestamp: trace.traceStartTimestamp,
+    timestamp: trace.traceEndTimestamp,
+    op: trace.op,
+    data: {},
+  };
+
+  return rootSpan;
+}

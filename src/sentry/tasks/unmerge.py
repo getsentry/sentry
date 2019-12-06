@@ -12,7 +12,6 @@ from sentry.event_manager import generate_culprit
 from sentry.models import (
     Activity,
     Environment,
-    Event,
     EventUser,
     Group,
     GroupEnvironment,
@@ -21,8 +20,10 @@ from sentry.models import (
     Project,
     Release,
     UserReport,
+    EventAttachment,
 )
 from sentry.similarity import features
+from sentry.snuba.events import Columns
 from sentry.tasks.base import instrumented_task
 from six.moves import reduce
 
@@ -223,6 +224,9 @@ def migrate_events(
 
     UserReport.objects.filter(project_id=project.id, event_id__in=event_id_set).update(
         group=destination_id
+    )
+    EventAttachment.objects.filter(project_id=project.id, event_id__in=event_id_set).update(
+        group_id=destination_id
     )
 
     return (destination.id, eventstream_state)
@@ -503,7 +507,7 @@ def unmerge(
         ),
         # We need the text-only "search message" from Snuba, not the raw message
         # dict field from nodestore.
-        additional_columns=[eventstore.Columns.MESSAGE],
+        additional_columns=[Columns.MESSAGE],
         limit=batch_size,
         referrer="unmerge",
         orderby=["-timestamp", "-event_id"],
@@ -518,7 +522,7 @@ def unmerge(
 
         return destination_id
 
-    Event.objects.bind_nodes(events, "data")
+    eventstore.bind_nodes(events, "data")
 
     source_events = []
     destination_events = []

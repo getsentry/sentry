@@ -1,33 +1,9 @@
 import React from 'react';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
+import {DiscoverLanding} from 'app/views/eventsV2/landing';
 
-import {EventsV2} from 'app/views/eventsV2';
-
-const FIELDS = [
-  {
-    field: 'title',
-    title: 'Custom Title',
-  },
-  {
-    field: 'timestamp',
-    title: 'Custom Time',
-  },
-  {
-    field: 'user',
-    title: 'Custom User',
-  },
-];
-
-const generateFields = () => {
-  return {
-    fieldnames: FIELDS.map(i => i.title),
-    field: FIELDS.map(i => i.field),
-  };
-};
-
-describe('EventsV2', function() {
+describe('EventsV2 > Landing', function() {
   const eventTitle = 'Oh no something bad';
   const features = ['events-v2'];
 
@@ -73,184 +49,24 @@ describe('EventsV2', function() {
         tags: [{key: 'browser', value: 'Firefox'}],
       },
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/discover/saved/',
+      method: 'GET',
+      body: [],
+    });
   });
 
-  it('renders a link list', function() {
-    /* TODO(leedongwei)
+  it('handles no projects', function() {
     const wrapper = mountWithTheme(
-      <EventsV2
-        organization={TestStubs.Organization({features, projects: [TestStubs.Project()]})}
+      <DiscoverLanding
+        organization={TestStubs.Organization({features})}
         location={{query: {}}}
         router={{}}
       />,
       TestStubs.routerContext()
     );
-    const content = wrapper.find('PageContent');
-    expect(content.text()).toContain('Events');
-    expect(content.find('LinkContainer').length).toBeGreaterThanOrEqual(3);
-    */
-  });
 
-  it('renders a list of events', function() {
-    /* TODO(leedongwei)
-    const wrapper = mountWithTheme(
-      <EventsV2
-        organization={TestStubs.Organization({features, projects: [TestStubs.Project()]})}
-        location={{query: {...generateFields()}}}
-        router={{}}
-      />,
-      TestStubs.routerContext()
-    );
-    const content = wrapper.find('PageContent');
-    expect(content.find('Events PanelHeaderCell').length).toBeGreaterThan(0);
-    expect(content.find('Events PanelItemCell').length).toBeGreaterThan(0);
-    */
-  });
-
-  it('handles no projects', function() {
-    const wrapper = mountWithTheme(
-      <EventsV2
-        organization={TestStubs.Organization({features})}
-        location={{query: {...generateFields()}}}
-        router={{}}
-      />,
-      TestStubs.routerContext()
-    );
-
-    const content = wrapper.find('PageContent');
+    const content = wrapper.find('SentryDocumentTitle');
     expect(content.text()).toContain('You need at least one project to use this view');
-  });
-
-  it('generates an active sort link based on default sort', function() {
-    /* TODO(leedongwei)
-    const wrapper = mountWithTheme(
-      <EventsV2
-        organization={TestStubs.Organization({features, projects: [TestStubs.Project()]})}
-        location={{query: {...generateFields(), sort: ['-timestamp']}}}
-        router={{}}
-      />,
-      TestStubs.routerContext()
-    );
-
-    const findLink = sortKey =>
-      wrapper
-        .find('Table SortLink')
-        .find({sortKey})
-        .find('StyledLink');
-
-    const timestamp = findLink('timestamp');
-
-    // Sort should be active
-    expect(
-      timestamp
-        .find('InlineSvg')
-        .first()
-        .props().src
-    ).toEqual('icon-chevron-down');
-
-    // Sort link should reverse.
-    expect(timestamp.props().to.query).toEqual({
-      ...generateFields(),
-      sort: 'timestamp',
-    });
-
-    const userlink = findLink('user.id');
-
-    // User link should be descending.
-    expect(userlink.props().to.query).toEqual({
-      ...generateFields(),
-      sort: '-user.id',
-    });
-    */
-  });
-
-  it('generates links to modals', async function() {
-    /* TODO(leedongwei)
-    const wrapper = mountWithTheme(
-      <EventsV2
-        organization={TestStubs.Organization({features, projects: [TestStubs.Project()]})}
-        location={{query: {...generateFields()}}}
-        router={{}}
-      />,
-      TestStubs.routerContext()
-    );
-
-    const link = wrapper.find(`Table Link[aria-label="${eventTitle}"]`).first();
-    expect(link.props().to.query).toEqual({
-      eventSlug: 'project-slug:deadbeef',
-      ...generateFields(),
-    });
-    */
-  });
-
-  it('opens a modal when eventSlug is present', async function() {
-    const organization = TestStubs.Organization({
-      features,
-      projects: [TestStubs.Project()],
-    });
-    const wrapper = mountWithTheme(
-      <EventsV2
-        organization={organization}
-        params={{orgId: organization.slug}}
-        location={{query: {eventSlug: 'project-slug:deadbeef'}}}
-        router={{}}
-      />,
-      TestStubs.routerContext()
-    );
-
-    const modal = wrapper.find('EventDetails');
-    expect(modal).toHaveLength(1);
-  });
-
-  it('pagination cursor should be cleared when making a search', function() {
-    const organization = TestStubs.Organization({
-      features,
-      projects: [TestStubs.Project()],
-    });
-
-    const initialData = initializeOrg({
-      organization,
-      router: {
-        location: {query: {...generateFields(), cursor: '0%3A50%3A0'}},
-      },
-    });
-
-    const wrapper = mountWithTheme(
-      <EventsV2
-        organization={organization}
-        params={{orgId: organization.slug}}
-        location={initialData.router.location}
-        router={initialData.router}
-      />,
-      initialData.routerContext
-    );
-
-    // ensure cursor query string is initially present in the location
-
-    expect(initialData.router.location).toEqual({
-      query: {
-        ...generateFields(),
-        cursor: '0%3A50%3A0',
-      },
-    });
-
-    // perform a search
-
-    const search = wrapper.find('#smart-search-input').first();
-
-    search.simulate('change', {target: {value: 'geo:canada'}}).simulate('submit', {
-      preventDefault() {},
-    });
-
-    // cursor query string should be omitted from the query string
-
-    expect(initialData.router.push).toHaveBeenCalledWith({
-      pathname: undefined,
-      query: {
-        ...generateFields(),
-        query: 'geo:canada',
-        statsPeriod: '14d',
-      },
-    });
   });
 });

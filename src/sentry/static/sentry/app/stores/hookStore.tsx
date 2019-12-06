@@ -1,5 +1,5 @@
 import Reflux from 'reflux';
-import _ from 'lodash';
+import isUndefined from 'lodash/isUndefined';
 import * as Sentry from '@sentry/browser';
 
 import {Hooks, HookName} from 'app/types/hooks';
@@ -16,7 +16,6 @@ const validHookNames = new Set<HookName>([
   'analytics:log-experiment',
   'component:header-date-range',
   'component:header-selector-items',
-  'component:org-members-view',
   'feature-disabled:custom-inbound-filters',
   'feature-disabled:custom-symbol-sources',
   'feature-disabled:data-forwarding',
@@ -79,7 +78,7 @@ const hookStoreConfig: Reflux.StoreDefinition & HookStoreInterface = {
       });
     }
 
-    if (_.isUndefined(this.hooks[hookName])) {
+    if (isUndefined(this.hooks[hookName])) {
       this.hooks[hookName] = [];
     }
 
@@ -88,7 +87,7 @@ const hookStoreConfig: Reflux.StoreDefinition & HookStoreInterface = {
   },
 
   remove(hookName, callback) {
-    if (_.isUndefined(this.hooks[hookName])) {
+    if (isUndefined(this.hooks[hookName])) {
       return;
     }
     this.hooks[hookName] = this.hooks[hookName]!.filter(cb => {

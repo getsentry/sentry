@@ -6,7 +6,7 @@ from exam import fixture
 from django.test import RequestFactory
 from sentry.testutils import PluginTestCase
 
-from new_sentry_plugins.phabricator.plugin import PhabricatorPlugin
+from sentry_plugins.phabricator.plugin import PhabricatorPlugin
 
 
 class PhabricatorPluginTest(PluginTestCase):

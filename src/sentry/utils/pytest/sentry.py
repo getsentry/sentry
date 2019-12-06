@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from copy import deepcopy
 import mock
 import os
 
@@ -44,8 +45,6 @@ def pytest_configure(config):
             # an actual migration.
         else:
             raise RuntimeError("oops, wrong database: %r" % test_db)
-
-    settings.TEMPLATE_DEBUG = True
 
     # Disable static compiling in tests
     settings.STATIC_BUNDLES = {}
@@ -103,6 +102,13 @@ def pytest_configure(config):
         settings.SENTRY_TSDB = "sentry.tsdb.redissnuba.RedisSnubaTSDB"
         settings.SENTRY_EVENTSTREAM = "sentry.eventstream.snuba.SnubaEventStream"
 
+    # Use the synchronous executor to make multiple backends easier to test
+    eventstore_options = deepcopy(settings.SENTRY_EVENTSTORE_OPTIONS)
+    eventstore_options["backends"]["snuba_discover"]["executor"][
+        "path"
+    ] = "sentry.utils.concurrent.SynchronousExecutor"
+    settings.SENTRY_EVENTSTORE_OPTIONS = eventstore_options
+
     if not hasattr(settings, "SENTRY_OPTIONS"):
         settings.SENTRY_OPTIONS = {}
 
@@ -128,9 +134,9 @@ def pytest_configure(config):
     patcher.start()
 
     if not settings.MIGRATIONS_TEST_MIGRATE:
-        # TODO: In Django 1.9 the value can be set to `None` rather than a nonexistent
-        # module.
-        settings.MIGRATION_MODULES["sentry"] = "sentry.migrations_not_used_in_tests"
+        # Migrations for the "sentry" app take a long time to run, which makes test startup time slow in dev.
+        # This is a hack to force django to sync the database state from the models rather than use migrations.
+        settings.MIGRATION_MODULES["sentry"] = None
 
     from sentry.runner.initializer import (
         bind_cache_to_option_store,

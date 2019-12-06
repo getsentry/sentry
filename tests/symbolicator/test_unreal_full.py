@@ -12,6 +12,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from sentry.testutils import TransactionTestCase
 from sentry.models import EventAttachment
 from sentry import eventstore
+from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL
 
 from tests.symbolicator import get_fixture_path
 
@@ -69,7 +70,7 @@ class SymbolicatorUnrealIntegrationTest(TransactionTestCase):
         assert len(response.data) == 1
 
     def unreal_crash_test_impl(self, filename):
-        self.project.update_option("sentry:store_crash_reports", True)
+        self.project.update_option("sentry:store_crash_reports", STORE_CRASH_REPORTS_ALL)
         self.upload_symbols()
 
         # attachments feature has to be on for the files extract stick around

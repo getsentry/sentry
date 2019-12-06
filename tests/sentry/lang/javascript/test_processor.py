@@ -11,7 +11,7 @@ from copy import deepcopy
 from mock import patch
 from requests.exceptions import RequestException
 
-from sentry import http
+from sentry import http, options
 from sentry.lang.javascript.processor import (
     JavaScriptStacktraceProcessor,
     discover_sourcemap,
@@ -89,9 +89,9 @@ class FetchReleaseFileTest(TestCase):
             "utf-8",
         )
 
-        # test with cache hit, which should be compressed
+        # looking again should hit the cache - make sure it's come through the
+        # caching/uncaching process unscathed
         new_result = fetch_release_file("file.min.js", release)
-
         assert result == new_result
 
     def test_distribution(self):
@@ -99,55 +99,53 @@ class FetchReleaseFileTest(TestCase):
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
 
-        other_file = File.objects.create(
+        foo_file = File.objects.create(
             name="file.min.js",
             type="release.file",
             headers={"Content-Type": "application/json; charset=utf-8"},
         )
-        file = File.objects.create(
+        foo_file.putfile(six.BytesIO("foo"))
+        foo_dist = release.add_dist("foo")
+        ReleaseFile.objects.create(
+            name="file.min.js",
+            release=release,
+            dist=foo_dist,
+            organization_id=project.organization_id,
+            file=foo_file,
+        )
+
+        bar_file = File.objects.create(
             name="file.min.js",
             type="release.file",
             headers={"Content-Type": "application/json; charset=utf-8"},
         )
-
-        binary_body = unicode_body.encode("utf-8")
-        other_file.putfile(six.BytesIO(b""))
-        file.putfile(six.BytesIO(binary_body))
-
-        dist = release.add_dist("foo")
-
+        bar_file.putfile(six.BytesIO("bar"))
+        bar_dist = release.add_dist("bar")
         ReleaseFile.objects.create(
             name="file.min.js",
             release=release,
+            dist=bar_dist,
             organization_id=project.organization_id,
-            file=other_file,
+            file=bar_file,
         )
 
-        ReleaseFile.objects.create(
-            name="file.min.js",
-            release=release,
-            dist=dist,
-            organization_id=project.organization_id,
-            file=file,
+        foo_result = fetch_release_file("file.min.js", release, foo_dist)
+
+        assert isinstance(foo_result.body, six.binary_type)
+        assert foo_result == http.UrlResult(
+            "file.min.js", {"content-type": "application/json; charset=utf-8"}, "foo", 200, "utf-8"
         )
 
-        result = fetch_release_file("file.min.js", release, dist)
+        # test that cache pays attention to dist value as well as name
+        bar_result = fetch_release_file("file.min.js", release, bar_dist)
 
-        assert isinstance(result.body, six.binary_type)
-        assert result == http.UrlResult(
-            "file.min.js",
-            {"content-type": "application/json; charset=utf-8"},
-            binary_body,
-            200,
-            "utf-8",
+        # result is cached, but that's not what we should find
+        assert bar_result != foo_result
+        assert bar_result == http.UrlResult(
+            "file.min.js", {"content-type": "application/json; charset=utf-8"}, "bar", 200, "utf-8"
         )
 
-        # test with cache hit, which should be compressed
-        new_result = fetch_release_file("file.min.js", release, dist)
-
-        assert result == new_result
-
-    def test_fallbacks(self):
+    def test_tilde(self):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
@@ -178,6 +176,43 @@ class FetchReleaseFileTest(TestCase):
             200,
             "utf-8",
         )
+
+    def test_caching(self):
+        # Set the threshold to zero to force caching on the file system
+        options.set("releasefile.cache-limit", 0)
+
+        project = self.project
+        release = Release.objects.create(organization_id=project.organization_id, version="abc")
+        release.add_project(project)
+
+        file = File.objects.create(
+            name="file.min.js",
+            type="release.file",
+            headers={"Content-Type": "application/json; charset=utf-8"},
+        )
+
+        binary_body = unicode_body.encode("utf-8")
+        file.putfile(six.BytesIO(binary_body))
+
+        ReleaseFile.objects.create(
+            name="file.min.js", release=release, organization_id=project.organization_id, file=file
+        )
+
+        result = fetch_release_file("file.min.js", release)
+
+        assert isinstance(result.body, six.binary_type)
+        assert result == http.UrlResult(
+            "file.min.js",
+            {"content-type": "application/json; charset=utf-8"},
+            binary_body,
+            200,
+            "utf-8",
+        )
+
+        # test with cache hit, coming from the FS
+        new_result = fetch_release_file("file.min.js", release)
+
+        assert result == new_result
 
 
 class FetchFileTest(TestCase):

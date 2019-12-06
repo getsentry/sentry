@@ -8,7 +8,7 @@ from django.test import RequestFactory
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
 
-from new_sentry_plugins.clubhouse.plugin import ClubhousePlugin
+from sentry_plugins.clubhouse.plugin import ClubhousePlugin
 
 
 class ClubhousePluginTest(PluginTestCase):

@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from 'react-emotion';
-import {get, map} from 'lodash';
+import get from 'lodash/get';
+import map from 'lodash/map';
 
 import DateTime from 'app/components/dateTime';
 import Pills from 'app/components/pills';
@@ -71,8 +72,6 @@ const SpanDetail = (props: PropTypes) => {
 const SpanDetailContainer = styled('div')`
   border-bottom: 1px solid ${p => p.theme.gray1};
   padding: ${space(2)};
-  background-color: #faf9fb;
-
   cursor: auto;
 `;
 
@@ -93,7 +92,7 @@ const Row = ({
     <tr>
       <td className="key">{title}</td>
       <td className="value">
-        <pre className="val " style={{backgroundColor: '#F0ECF3'}}>
+        <pre className="val">
           <span className="val-string">{children}</span>
         </pre>
       </td>

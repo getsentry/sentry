@@ -1,4 +1,5 @@
-import {isEqual, pick} from 'lodash';
+import isEqual from 'lodash/isEqual';
+import pick from 'lodash/pick';
 import Reflux from 'reflux';
 
 import {
@@ -7,20 +8,23 @@ import {
   LOCAL_STORAGE_KEY,
 } from 'app/constants/globalSelectionHeader';
 import {getStateFromQuery} from 'app/components/organizations/globalSelectionHeader/utils';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {isEqualWithDates} from 'app/utils/isEqualWithDates';
 import OrganizationsStore from 'app/stores/organizationsStore';
 import GlobalSelectionActions from 'app/actions/globalSelectionActions';
 import localStorage from 'app/utils/localStorage';
+
+const DEFAULT_PARAMS = getParams({});
 
 const getDefaultSelection = () => {
   return {
     projects: [],
     environments: [],
     datetime: {
-      [DATE_TIME.START]: null,
-      [DATE_TIME.END]: null,
-      [DATE_TIME.PERIOD]: null,
-      [DATE_TIME.UTC]: null,
+      [DATE_TIME.START]: DEFAULT_PARAMS.start || null,
+      [DATE_TIME.END]: DEFAULT_PARAMS.end || null,
+      [DATE_TIME.PERIOD]: DEFAULT_PARAMS.statsPeriod || null,
+      [DATE_TIME.UTC]: DEFAULT_PARAMS.utc || null,
     },
   };
 };

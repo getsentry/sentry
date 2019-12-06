@@ -13,7 +13,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 
 from sentry import eventstore
-from sentry.models import Event, ProjectKey, ProjectOption, UserReport
+from sentry.models import ProjectKey, ProjectOption, UserReport
 from sentry.web.helpers import render_to_response
 from sentry.signals import user_feedback_received
 from sentry.utils import json
@@ -52,7 +52,7 @@ DEFAULT_OPTIONS = {
 
 class UserReportForm(forms.ModelForm):
     name = forms.CharField(
-        max_length=128, widget=forms.TextInput(attrs={"placeholder": _("Jane Doe")})
+        max_length=128, widget=forms.TextInput(attrs={"placeholder": _("Jane Bloggs")})
     )
     email = forms.EmailField(
         max_length=75,
@@ -153,7 +153,7 @@ class ErrorPageEmbedView(View):
             event = eventstore.get_event_by_id(report.project.id, report.event_id)
 
             if event is not None:
-                Event.objects.bind_nodes([event])
+                event.bind_node_data()
                 report.environment = event.get_environment()
                 report.group = event.group
 
