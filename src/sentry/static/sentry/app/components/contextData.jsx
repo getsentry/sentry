@@ -73,16 +73,18 @@ function analyzeStringForRepr(value) {
 }
 
 class ToggleWrap extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {toggled: false};
-  }
+  static propTypes = {
+    highUp: PropTypes.bool,
+    wrapClassName: PropTypes.string,
+  };
+
+  state = {toggled: false};
 
   render() {
-    if (this.props.children.length === 0) {
+    if (React.Children.count(this.props.children) === 0) {
       return null;
     }
-    if (this.highUp) {
+    if (this.props.highUp) {
       return this.props.children;
     }
 
@@ -91,12 +93,13 @@ class ToggleWrap extends React.Component {
       classes.push('val-toggle-open');
     }
     return (
-      <span className={classes}>
+      <span className={classes.join(' ')}>
         <a
           href="#"
           className="val-toggle-link"
-          onClick={() => {
+          onClick={evt => {
             this.setState({toggled: !this.state.toggled});
+            evt.preventDefault();
           }}
         />
         <span className={this.props.wrapClassName}>{this.props.children}</span>
