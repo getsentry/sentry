@@ -12,7 +12,7 @@ from sentry import quotas
 from sentry.api.event_search import InvalidSearchQuery
 from sentry.models import Release, GroupEnvironment, Group, GroupStatus, GroupSubscription
 from sentry.search.base import SearchBackend
-from sentry.search.snuba.executors import PostgresSnubaQueryExecutor, SnubaOnlyQueryExecutor
+from sentry.search.snuba.executors import PostgresSnubaQueryExecutor
 
 
 def assigned_to_filter(actor, projects):
@@ -319,87 +319,3 @@ class SnubaSearchBackend(EventsDatasetSnubaSearchBackend):
     and then delete this class."""
 
     pass
-
-
-class GroupsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
-    """This class will have logic to use the groups dataset, and to also determine which QueryExecutor to use."""
-
-    def _get_query_executor(self, group_queryset, *args, **kwargs):
-        if group_queryset is None:
-            return SnubaOnlyQueryExecutor()
-        else:
-            return PostgresSnubaQueryExecutor()
-
-    def _build_group_queryset(
-        self, search_filters, environments, projects, retention_window_start, *args, **kwargs
-    ):
-        """This is an override which calls the original function only if we're going to query Postgres.
-        All the logic here is just to see if we need to hit Postgres or not - and we either build the queryset using the original method or just return None."""
-        search_postgres = False
-
-        for search_filter in search_filters:
-            if search_filter.key.name in [
-                "query",
-                "bookmarked_by",
-                "assigned_to",
-                "unassigned",
-                "subscribed_by",
-            ] or (
-                environments
-                and search_filter.key.name in ["first_seen", "last_seen", "first_release"]
-            ):
-                search_postgres = True
-                break
-
-        if search_postgres is True:
-            group_queryset = super(GroupsDatasetSnubaSearchBackend, self)._build_group_queryset(
-                projects, environments, search_filters, retention_window_start, *args, **kwargs
-            )
-        else:
-            group_queryset = None
-
-        return group_queryset
-
-    def _get_queryset_conditions(self, projects, environments, search_filters):
-        queryset_conditions = {
-            "bookmarked_by": QCallbackCondition(
-                lambda user: Q(bookmark_set__project__in=projects, bookmark_set__user=user)
-            ),
-            "assigned_to": QCallbackCondition(
-                functools.partial(assigned_to_filter, projects=projects)
-            ),
-            "unassigned": QCallbackCondition(
-                functools.partial(unassigned_filter, projects=projects)
-            ),
-            "subscribed_by": QCallbackCondition(
-                lambda user: Q(
-                    id__in=GroupSubscription.objects.filter(
-                        project__in=projects, user=user, is_active=True
-                    ).values_list("group")
-                )
-            ),
-        }
-
-        if environments is not None:
-            environment_ids = [environment.id for environment in environments]
-            queryset_conditions.update(
-                {
-                    "first_release": QCallbackCondition(
-                        lambda version: Q(
-                            # if environment(s) are selected, we just filter on the group
-                            # environment's first_release attribute.
-                            groupenvironment__first_release__organization_id=projects[
-                                0
-                            ].organization_id,
-                            groupenvironment__first_release__version=version,
-                            groupenvironment__environment_id__in=environment_ids,
-                        )
-                    ),
-                    "first_seen": ScalarCondition(
-                        "groupenvironment__first_seen",
-                        {"groupenvironment__environment_id__in": environment_ids},
-                    ),
-                }
-            )
-
-        return queryset_conditions
