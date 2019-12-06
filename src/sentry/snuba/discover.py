@@ -6,6 +6,7 @@ from collections import namedtuple
 from copy import deepcopy
 
 from sentry.api.event_search import TAG_KEY_RE, get_filter, resolve_field_list, InvalidSearchQuery
+from sentry import eventstore
 from sentry.models import Project, ProjectStatus
 from sentry.snuba.events import get_columns_from_aliases
 from sentry.utils.snuba import (
@@ -19,7 +20,19 @@ from sentry.utils.snuba import (
     zerofill,
 )
 
+__all__ = (
+    "ReferenceEvent",
+    "PaginationResult",
+    "InvalidSearchQuery",
+    "create_reference_event_conditions",
+    "query",
+    "timeseries_query",
+    "get_pagination_ids",
+)
+
+
 ReferenceEvent = namedtuple("ReferenceEvent", ["organization", "slug", "fields"])
+PaginationResult = namedtuple("PaginationResult", ["next", "previous", "oldest", "latest"])
 
 
 def find_reference_event(reference_event):
@@ -322,11 +335,35 @@ def timeseries_query(selected_columns, query, params, rollup, reference_event=No
     return SnubaTSResult(result, snuba_filter.start, snuba_filter.end, rollup)
 
 
-def get_pagination_ids(event, query, params):
+def get_id(result):
+    if result:
+        return result[1]
+
+
+def get_pagination_ids(event, query, params, reference=None, referrer=None):
     """
     High-level API for getting pagination data for an event + filter
 
     The provided event is used as a reference event to find events
     that are older and newer than the current one.
+
+    event (Event) The event to find related events for.
+    query (str) Filter query string to create conditions from.
+    params (Dict[str, str]) Filtering parameters with start, end, project_id, environment,
+    reference (Reference) A reference event object. Used to generate additional conditions
+                          based on the provided reference.
+    referrer (str|None) A referrer string to help locate the origin of this query.
     """
-    raise NotImplementedError
+    snuba_filter = get_filter(query, params)
+
+    if reference:
+        ref_conditions = create_reference_event_conditions(reference)
+        if ref_conditions:
+            snuba_filter.conditions.extend(ref_conditions)
+
+    return PaginationResult(
+        next=get_id(eventstore.get_next_event_id(event, filter=snuba_filter)),
+        previous=get_id(eventstore.get_prev_event_id(event, filter=snuba_filter)),
+        latest=get_id(eventstore.get_latest_event_id(event, filter=snuba_filter)),
+        oldest=get_id(eventstore.get_earliest_event_id(event, filter=snuba_filter)),
+    )
