@@ -224,6 +224,8 @@ class BuiltInColumn(BaseColumn):
     def get(self, dataset=Dataset.Discover):
         if dataset == Dataset.Events:
             return self.__col.value.event_name
+        if dataset == Dataset.Transactions:
+            return self.__col.value.transaction_name
         return self.__col.value.discover_name
 
 
