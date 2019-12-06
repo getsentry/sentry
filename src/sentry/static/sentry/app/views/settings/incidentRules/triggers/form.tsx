@@ -214,7 +214,9 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
             ? actionConfig.allowedTargetTypes[0]
             : null,
         targetIdentifier: '',
-        integration: actionConfig && actionConfig.integrationId,
+        ...(actionConfig && actionConfig.integrationId !== null
+          ? {integration: actionConfig.integrationId}
+          : {}),
       } as Action,
     ];
     onChange(triggerIndex, {...trigger, actions});

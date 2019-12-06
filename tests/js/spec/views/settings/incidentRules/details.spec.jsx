@@ -159,7 +159,6 @@ describe('Incident Rules Details', function() {
             expect.objectContaining({
               actions: [
                 {
-                  integration: null,
                   targetIdentifier: '',
                   targetType: 'user',
                   type: 'email',
