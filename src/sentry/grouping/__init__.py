@@ -116,9 +116,9 @@ This for instance is how one of the configurations is defined::
 The configuration ID (`newstyle:2019-10-29`) is defined in the project
 options and then becomes the strategy configuration of choice for all new
 events.  Because in this case it inherits from another one, the default
-configuration is reused.  Here the `frame` is changed to version `v4`.
-Additionally a risk level and changelog is defined which the UI uses to
-guide the user through upgrades.
+configurations from that strategy are reused.  Here the `frame` is changed
+to version `v4`.  Additionally a risk level and changelog is defined which
+the UI uses to guide the user through upgrades.
 
 Note that here the frame is defined as a delegate.  A delegate is a strategy
 that is used for an interface which by itself is not used for grouping.  This
