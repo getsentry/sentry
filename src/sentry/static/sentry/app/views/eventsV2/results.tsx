@@ -200,7 +200,8 @@ const Main = styled('div')<{eventView: EventView}>`
 `;
 
 const Side = styled('div')<{eventView: EventView}>`
-  grid-column: ${p => (p.eventView.tags.length <= 0 ? 'none' : '2/3')};
+  display: ${p => (p.eventView.tags.length <= 0 ? 'none' : 'initial')};
+  grid-column: 2/3;
 `;
 
 const ContentBox = styled(PageContent)`
