@@ -4,8 +4,9 @@ import six
 from copy import deepcopy
 
 from sentry.models import SnubaEvent
-from sentry.utils import snuba
 from sentry.eventstore.base import EventStorage
+from sentry.snuba.dataset import Dataset
+from sentry.utils import snuba
 from sentry.utils.validators import normalize_event_id
 
 DESC_ORDERING = ["-timestamp", "-event_id"]
@@ -144,7 +145,7 @@ class SnubaEventStorage(EventStorage):
         if additional_columns:
             columns = set(columns + additional_columns)
 
-        return [col.value.event_name for col in columns]
+        return [col.get(Dataset.Events) for col in columns]
 
     def __get_event_id_from_filter(self, filter=None, orderby=None):
         columns = ["event_id", "project_id"]

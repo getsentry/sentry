@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from enum import Enum
 from collections import namedtuple
+from sentry.snuba.dataset import Dataset
 
 Column = namedtuple("Column", "group_name event_name transaction_name discover_name alias")
 
@@ -211,18 +212,41 @@ class Columns(Enum):
     )
 
 
+class BaseColumn(object):
+    def get(self):
+        raise NotImplementedError
+
+
+class BuiltInColumn(BaseColumn):
+    def __init__(self, col):
+        self.__col = col
+
+    def get(self, dataset=Dataset.Discover):
+        if dataset == Dataset.Events:
+            return self.__col.value.event_name
+        return self.__col.value.discover_name
+
+
+class TagColumn(BaseColumn):
+    def __init__(self, key):
+        self.__key = key
+
+    def get(self, dataset=Dataset.Discover):
+        return "tags[{}]".format(self.__key)
+
+
 def get_columns_from_aliases(aliases):
     """
     Resolve a list of aliases to the columns
     """
-    columns = set()
+    column_map = {col.value.alias: col for col in Columns}
+    columns = []
     for alias in aliases:
-        for _i, col in enumerate(Columns):
-            if col.value.alias == alias:
-                columns.add(col)
-                continue
-            # Handle as a tag if its not on the list
-            columns.add(Columns.TAGS_KEY)
-            columns.add(Columns.TAGS_VALUE)
+        col = column_map.get(alias)
 
-    return list(columns)
+        if col:
+            columns.append(BuiltInColumn(col))
+        else:
+            columns.append(TagColumn(alias))
+
+    return columns

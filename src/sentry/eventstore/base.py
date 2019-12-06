@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 
 from sentry import nodestore
-from sentry.snuba.events import Columns
+from sentry.snuba.events import BuiltInColumn, Columns
 from sentry.utils.services import Service
 
 
@@ -67,30 +67,37 @@ class EventStorage(Service):
         "bind_nodes",
     )
 
+    def __get_columns(columns):
+        return [BuiltInColumn(col) for col in columns]
+
     # The minimal list of columns we need to get from snuba to bootstrap an
     # event. If the client is planning on loading the entire event body from
     # nodestore anyway, we may as well only fetch the minimum from snuba to
     # avoid duplicated work.
-    minimal_columns = [Columns.EVENT_ID, Columns.GROUP_ID, Columns.PROJECT_ID, Columns.TIMESTAMP]
+    minimal_columns = __get_columns(
+        [Columns.EVENT_ID, Columns.GROUP_ID, Columns.PROJECT_ID, Columns.TIMESTAMP]
+    )
 
     # A list of all useful columns we can get from snuba.
-    full_columns = minimal_columns + [
-        Columns.CULPRIT,
-        Columns.LOCATION,
-        Columns.MESSAGE,
-        Columns.PLATFORM,
-        Columns.TITLE,
-        Columns.TYPE,
-        Columns.TRANSACTION,
-        # Required to provide snuba-only tags
-        Columns.TAGS_KEY,
-        Columns.TAGS_VALUE,
-        # Required to provide snuba-only 'user' interface
-        Columns.USER_EMAIL,
-        Columns.USER_IP_ADDRESS,
-        Columns.USER_ID,
-        Columns.USER_USERNAME,
-    ]
+    full_columns = minimal_columns + __get_columns(
+        [
+            Columns.CULPRIT,
+            Columns.LOCATION,
+            Columns.MESSAGE,
+            Columns.PLATFORM,
+            Columns.TITLE,
+            Columns.TYPE,
+            Columns.TRANSACTION,
+            # Required to provide snuba-only tags
+            Columns.TAGS_KEY,
+            Columns.TAGS_VALUE,
+            # Required to provide snuba-only 'user' interface
+            Columns.USER_EMAIL,
+            Columns.USER_IP_ADDRESS,
+            Columns.USER_ID,
+            Columns.USER_USERNAME,
+        ]
+    )
 
     def get_events(
         self,
