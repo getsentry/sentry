@@ -15,8 +15,6 @@ type Props = {
   alertThreshold?: number | null;
   resolveThreshold?: number | null;
   isInverted?: boolean;
-  onChangeIncidentThreshold?: (alertThreshold: number) => void;
-  onChangeResolutionThreshold?: (resolveThreshold: number) => void;
   maxValue?: number;
 };
 
@@ -33,7 +31,11 @@ const CHART_GRID = {
   bottom: space(1),
 };
 
-export default class IncidentRulesChart extends React.PureComponent<Props, State> {
+/**
+ * This chart displays shaded regions that represent different Trigger thresholds in a
+ * Metric Alert rule.
+ */
+export default class ThresholdsChart extends React.PureComponent<Props, State> {
   static defaultProps = {
     data: [],
   };
@@ -83,32 +85,6 @@ export default class IncidentRulesChart extends React.PureComponent<Props, State
     }
   }, 150);
 
-  setIncidentThreshold = (pos: [number, number]) => {
-    if (!this.chartRef) {
-      return;
-    }
-
-    const {onChangeIncidentThreshold} = this.props;
-    const alertThreshold = this.chartRef.convertFromPixel({gridIndex: 0}, pos)[1];
-
-    if (typeof onChangeIncidentThreshold === 'function') {
-      onChangeIncidentThreshold(alertThreshold);
-    }
-  };
-
-  setResolutionThreshold = (pos: [number, number]) => {
-    if (!this.chartRef) {
-      return;
-    }
-
-    const {onChangeResolutionThreshold} = this.props;
-    const boundary = this.chartRef.convertFromPixel({gridIndex: 0}, pos)[1];
-
-    if (typeof onChangeResolutionThreshold === 'function') {
-      onChangeResolutionThreshold(boundary);
-    }
-  };
-
   handleRef = (ref: ReactEchartsRef): void => {
     // When chart initially renders, we want to update state with its width, as well as initialize starting
     // locations (on y axis) for the draggable lines
@@ -154,8 +130,7 @@ export default class IncidentRulesChart extends React.PureComponent<Props, State
    */
   getThresholdLine = (
     position: string | any[] | null | number,
-    isResolution: boolean,
-    setFn: Function
+    isResolution: boolean
   ) => {
     const {alertThreshold, resolveThreshold, isInverted} = this.props;
 
@@ -178,25 +153,8 @@ export default class IncidentRulesChart extends React.PureComponent<Props, State
     };
 
     return [
-      // Draggable line
-      {
-        type: 'line',
-        // Resolution is considered "off" if it is -1
-        invisible: position === null,
-        draggable: true,
-
-        position: [0, position],
-        // We are doubling the width so that it looks like you are only able to drag along Y axis
-        // There doesn't seem to be a way in echarts to lock dragging to a single axis
-        shape: {y1: 1, y2: 1, x1: -this.state.width, x2: this.state.width * 2},
-        style: LINE_STYLE,
-        ondragend: e => {
-          setFn(e.target.position);
-        },
-        z: 101,
-      },
-      // This is the stationary line (e.g. when you drag, this stays in place while the other
-      // line moves to show user where they are moving the line)
+      // This line is used as a "border" for the shaded region
+      // and represents the threshold value.
       {
         type: 'line',
         // Resolution is considered "off" if it is -1
@@ -255,16 +213,8 @@ export default class IncidentRulesChart extends React.PureComponent<Props, State
         }}
         graphic={Graphic({
           elements: [
-            ...this.getThresholdLine(
-              alertThresholdPosition,
-              false,
-              this.setIncidentThreshold
-            ),
-            ...this.getThresholdLine(
-              resolveThresholdPosition,
-              true,
-              this.setResolutionThreshold
-            ),
+            ...this.getThresholdLine(alertThresholdPosition, false),
+            ...this.getThresholdLine(resolveThresholdPosition, true),
           ],
         })}
         series={data}
