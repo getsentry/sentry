@@ -1,6 +1,5 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
-import memoize from 'lodash/memoize';
 
 import {IncidentRule} from 'app/views/settings/incidentRules/types';
 import {Organization} from 'app/types';
@@ -74,7 +73,7 @@ class IncidentRulesDetails extends AsyncView<
     this.setState({loading: false});
   };
 
-  getActions = memoize((rule, actions) => {
+  getActions = (rule, actions) => {
     const triggers = rule.triggers.map(trigger => ({
       ...trigger,
       actions: actions.get(trigger.id) || [],
@@ -84,7 +83,7 @@ class IncidentRulesDetails extends AsyncView<
       ...rule,
       triggers,
     };
-  });
+  };
 
   renderBody() {
     const {organization, params} = this.props;
