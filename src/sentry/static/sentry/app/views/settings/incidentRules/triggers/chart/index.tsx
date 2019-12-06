@@ -29,8 +29,6 @@ type Props = {
   isInverted?: boolean;
   alertThreshold?: number | null;
   resolveThreshold?: number | null;
-  onChangeIncidentThreshold?: (alertThreshold: number) => void;
-  onChangeResolutionThreshold?: (resolveThreshold: number) => void;
 };
 
 /**
@@ -95,9 +93,7 @@ class TriggersChart extends React.PureComponent<Props> {
                         },
                       }}
                       maxValue={maxValue ? maxValue.value : maxValue}
-                      onChangeIncidentThreshold={this.props.onChangeIncidentThreshold}
                       alertThreshold={alertThreshold}
-                      onChangeResolutionThreshold={this.props.onChangeResolutionThreshold}
                       resolveThreshold={resolveThreshold}
                       isInverted={isInverted}
                       data={timeseriesData}
