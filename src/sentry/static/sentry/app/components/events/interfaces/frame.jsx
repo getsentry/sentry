@@ -21,7 +21,7 @@ import OpenInContextLine from 'app/components/events/interfaces/openInContextLin
 import space from 'app/styles/space';
 import ErrorBoundary from 'app/components/errorBoundary';
 import withSentryAppComponents from 'app/utils/withSentryAppComponents';
-import DebugMetaStore, {DebugMetaActions} from 'app/stores/debugMetaStore';
+import {DebugMetaActions} from 'app/stores/debugMetaStore';
 import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
 import InlineSvg from 'app/components/inlineSvg';
 import {combineStatus} from 'app/components/events/interfaces/debugmeta';
@@ -80,6 +80,8 @@ export class Frame extends React.Component {
     components: PropTypes.array.isRequired,
     showingAbsoluteAddress: PropTypes.bool,
     onAddressToggle: PropTypes.func,
+    image: PropTypes.object,
+    maxLengthOfRelativeAddress: PropTypes.number,
   };
 
   static defaultProps = {
@@ -92,21 +94,6 @@ export class Frame extends React.Component {
   // https://facebook.github.io/react/tips/props-in-getInitialState-as-anti-pattern.html
   state = {
     isExpanded: this.props.isExpanded,
-    image: null,
-    maxLengthOfRelativeAddress: 0,
-  };
-
-  componentDidMount() {
-    this.unsubscribeFromStore = DebugMetaStore.listen(this.onStoreChange);
-  }
-  componentWillUnmount() {
-    this.unsubscribeFromStore();
-  }
-  onStoreChange = store => {
-    this.setState({
-      image: store.images.find(image => image.code_file === this.props.data.package),
-      maxLengthOfRelativeAddress: store.maxLengthOfRelativeAddress,
-    });
   };
 
   toggleContext = evt => {
@@ -181,7 +168,7 @@ export class Frame extends React.Component {
   }
 
   packageStatusIsError() {
-    const {image} = this.state;
+    const {image} = this.props;
     if (!image) {
       return true;
     }
@@ -504,7 +491,13 @@ export class Frame extends React.Component {
   }
 
   renderNativeLine() {
-    const {data, showingAbsoluteAddress, onAddressToggle} = this.props;
+    const {
+      data,
+      showingAbsoluteAddress,
+      onAddressToggle,
+      image,
+      maxLengthOfRelativeAddress,
+    } = this.props;
     const [hint, hintType] = this.getFrameHint();
 
     const enablePathTooltip = defined(data.absPath) && data.absPath !== data.filename;
@@ -523,12 +516,12 @@ export class Frame extends React.Component {
             </PackageLink>
             <TogglableAddress
               address={data.instructionAddr}
-              startingAddress={this.state.image ? this.state.image.image_addr : null}
+              startingAddress={image ? image.image_addr : null}
               isAbsolute={showingAbsoluteAddress}
               isFoundByStackScanning={this.isFoundByStackScanning()}
               isInlineFrame={this.isInlineFrame()}
               onToggle={onAddressToggle}
-              maxLengthOfRelativeAddress={this.state.maxLengthOfRelativeAddress}
+              maxLengthOfRelativeAddress={maxLengthOfRelativeAddress}
             />
             <span className="symbol">
               <FunctionName frame={data} />{' '}

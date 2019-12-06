@@ -2,6 +2,7 @@ import isNil from 'lodash/isNil';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
+import get from 'lodash/get';
 
 import Access from 'app/components/acl/access';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
@@ -296,7 +297,6 @@ class DebugMetaInterface extends React.PureComponent {
       filter: null,
       showUnused: false,
       showDetails: false,
-      frames: [],
     };
   }
 
@@ -309,7 +309,6 @@ class DebugMetaInterface extends React.PureComponent {
   onStoreChange = store => {
     this.setState({
       filter: store.filter,
-      frames: store.frames,
     });
   };
 
@@ -396,8 +395,6 @@ class DebugMetaInterface extends React.PureComponent {
     // "0xbeef").
     filtered.sort((a, b) => parseAddress(a.image_addr) - parseAddress(b.image_addr));
 
-    DebugMetaActions.updateImages(filtered);
-
     return filtered;
   }
 
@@ -451,9 +448,13 @@ class DebugMetaInterface extends React.PureComponent {
       </div>
     );
 
-    const foundFrame = this.state.frames.find(
-      frame => frame.instructionAddr === this.state.filter
+    const frames = get(
+      this.props.event.entries.find(({type}) => type === 'exception'),
+      'data.values[0].stacktrace.frames'
     );
+    const foundFrame = frames
+      ? frames.find(frame => frame.instructionAddr === this.state.filter)
+      : null;
 
     return (
       <EventDataSection

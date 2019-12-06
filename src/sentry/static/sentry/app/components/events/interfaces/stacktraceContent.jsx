@@ -1,8 +1,11 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import get from 'lodash/get';
+
 import Frame from 'app/components/events/interfaces/frame';
 import {t} from 'app/locale';
-import {DebugMetaActions} from 'app/stores/debugMetaStore';
+import SentryTypes from 'app/sentryTypes';
+import {parseAddress} from 'app/components/events/interfaces/utils';
 
 export default class StacktraceContent extends React.Component {
   static propTypes = {
@@ -11,6 +14,7 @@ export default class StacktraceContent extends React.Component {
     expandFirstFrame: PropTypes.bool,
     platform: PropTypes.string,
     newestFirst: PropTypes.bool,
+    event: SentryTypes.Event.isRequired,
   };
 
   static defaultProps = {
@@ -40,6 +44,15 @@ export default class StacktraceContent extends React.Component {
       this.props.includeSystemFrames || frame.inApp || (nextFrame && nextFrame.inApp)
     );
   };
+
+  findImageForPackage(framePackage) {
+    const images = get(
+      this.props.event.entries.find(entry => entry.type === 'debugmeta'),
+      'data.images'
+    );
+
+    return images ? images.find(img => img.code_file === framePackage) : null;
+  }
 
   handleToggleAddresses = event => {
     event.stopPropagation(); // to prevent collapsing if collapsable
@@ -74,8 +87,27 @@ export default class StacktraceContent extends React.Component {
 
     const expandFirstFrame = this.props.expandFirstFrame;
     const frames = [];
-    const renderedFrames = [];
     let nRepeats = 0;
+
+    const maxLengthOfAllRelativeAddresses = data.frames.reduce(
+      (maxLengthUntilThisPoint, frame) => {
+        const correspondingImage = this.findImageForPackage(frame.package);
+
+        try {
+          const relativeAddress = (
+            parseAddress(frame.instructionAddr) -
+            parseAddress(correspondingImage.image_addr)
+          ).toString(16);
+
+          return maxLengthUntilThisPoint > relativeAddress.length
+            ? maxLengthUntilThisPoint
+            : relativeAddress.length;
+        } catch {
+          return maxLengthUntilThisPoint;
+        }
+      },
+      0
+    );
 
     data.frames.forEach((frame, frameIdx) => {
       const prevFrame = data.frames[frameIdx - 1];
@@ -93,7 +125,8 @@ export default class StacktraceContent extends React.Component {
       }
 
       if (this.frameIsVisible(frame, nextFrame) && !repeatedFrame) {
-        renderedFrames.push(frame);
+        const image = this.findImageForPackage(frame.package);
+
         frames.push(
           <Frame
             key={frameIdx}
@@ -107,6 +140,8 @@ export default class StacktraceContent extends React.Component {
             timesRepeated={nRepeats}
             showingAbsoluteAddress={showingAbsoluteAddresses}
             onAddressToggle={this.handleToggleAddresses}
+            image={image}
+            maxLengthOfRelativeAddress={maxLengthOfAllRelativeAddresses}
           />
         );
       }
@@ -119,8 +154,6 @@ export default class StacktraceContent extends React.Component {
         frames.push(this.renderOmittedFrames(firstFrameOmitted, lastFrameOmitted));
       }
     });
-
-    DebugMetaActions.updateFrames(renderedFrames);
 
     if (frames.length > 0 && data.registers) {
       const lastFrame = frames.length - 1;
