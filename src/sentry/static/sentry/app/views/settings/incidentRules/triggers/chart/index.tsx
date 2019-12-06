@@ -13,7 +13,7 @@ import LoadingMask from 'app/components/loadingMask';
 import Placeholder from 'app/components/placeholder';
 import space from 'app/styles/space';
 
-import {AlertRuleAggregations, IncidentRule, TimeWindow} from '../../types';
+import {AlertRuleAggregations, IncidentRule, TimeWindow, Trigger} from '../../types';
 import ThresholdsChart from './thresholdsChart';
 
 type Props = {
@@ -25,6 +25,7 @@ type Props = {
   query: IncidentRule['query'];
   timeWindow: IncidentRule['timeWindow'];
   aggregations: IncidentRule['aggregations'];
+  triggers: Trigger[];
 
   isInverted?: boolean;
   alertThreshold?: number | null;
@@ -48,6 +49,7 @@ class TriggersChart extends React.PureComponent<Props> {
       timeWindow,
       query,
       aggregations,
+      triggers,
     } = this.props;
 
     return (
@@ -97,6 +99,7 @@ class TriggersChart extends React.PureComponent<Props> {
                       resolveThreshold={resolveThreshold}
                       isInverted={isInverted}
                       data={timeseriesData}
+                      triggers={triggers}
                     />
                   </React.Fragment>
                 )}
