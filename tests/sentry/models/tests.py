@@ -131,7 +131,7 @@ class EventNodeStoreTest(TestCase):
             project_id=project2.id,
         )
         event.data.bind_ref(invalid_event)
-        event.save()
+        event.data.save()
 
         assert event.data.get_ref(event) != event.data.get_ref(invalid_event)
 
