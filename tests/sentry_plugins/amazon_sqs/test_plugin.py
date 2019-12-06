@@ -73,8 +73,7 @@ class AmazonSQSPluginTest(PluginTestCase):
         self.run_test()
         assert len(logger.info.call_args_list) == 1
         assert (
-            logger.info.call_args_list[0][0][0]
-            == "sentry_plugins.amazon_sqs.access_token_invalid"
+            logger.info.call_args_list[0][0][0] == "sentry_plugins.amazon_sqs.access_token_invalid"
         )
 
     @patch("sentry_plugins.amazon_sqs.plugin.logger")

@@ -69,28 +69,28 @@ const Pagination = (props: Props) => {
         to={links.oldest}
         disabled={links.previous === null || links.oldest === null}
       >
-        <InlineSvg src="icon-prev" size="14px" />
+        <InlineSvg src="icon-prev" />
       </StyledIconLink>
       <StyledTextLink
         data-test-id="older-event"
         to={links.previous}
         disabled={links.previous === null}
       >
-        {t('Older Event')}
+        {t('Older')}
       </StyledTextLink>
       <StyledTextLink
         data-test-id="newer-event"
         to={links.next}
         disabled={links.next === null}
       >
-        {t('Newer Event')}
+        {t('Newer')}
       </StyledTextLink>
       <StyledIconLink
         to={links.latest}
         disabled={links.next === null || links.latest === null}
         isLast
       >
-        <InlineSvg src="icon-next" size="14px" />
+        <InlineSvg src="icon-next" />
       </StyledIconLink>
     </Paginator>
   );
@@ -101,13 +101,25 @@ const StyledTextLink = styled(Link, {shouldForwardProp: isPropValid})<{
   disabled: boolean;
   isLast: boolean;
 }>`
-  color: ${p => (p.disabled ? p.theme.disabled : p.theme.gray3)};
-  font-size: ${p => p.theme.fontSizeMedium};
-  padding: ${space(0.5)} ${space(1.5)};
-  text-align: center;
+  color: ${p => (p.disabled ? p.theme.disabled : 'inherit')};
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: 600;
+  padding: ${space(0.25)};
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-grow: 2;
   ${p => (p.isLast ? '' : `border-right: 1px solid ${p.theme.borderDark};`)}
   ${p => (p.disabled ? 'pointer-events: none;' : '')}
+
+  &:hover,
+  &:active {
+    color: inherit;
+  }
+
+  &:active {
+    box-shadow: inset 0 2px rgba(0, 0, 0, 0.05);
+  }
 `;
 
 const StyledIconLink = styled(StyledTextLink, {shouldForwardProp: isPropValid})`
@@ -116,13 +128,16 @@ const StyledIconLink = styled(StyledTextLink, {shouldForwardProp: isPropValid})`
 
 const Paginator = styled('div')`
   display: flex;
-  background: ${p => p.theme.offWhite};
+  flex-grow: 1;
+  background: ${p => p.theme.white};
   border: 1px solid ${p => p.theme.borderDark};
   border-radius: ${p => p.theme.borderRadius};
-  margin: ${space(2)} 0;
+  box-shadow: 0 2px rgba(0, 0, 0, 0.05);
+  margin-top: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    margin: 0;
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    margin-left: ${space(1.5)};
+    margin-top: 0;
   }
 `;
 

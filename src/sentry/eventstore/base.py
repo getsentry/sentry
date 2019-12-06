@@ -48,7 +48,7 @@ class Filter(object):
             filter_keys["project_id"] = self.project_ids
 
         if self.group_ids:
-            filter_keys["issue"] = self.group_ids
+            filter_keys["group_id"] = self.group_ids
 
         if self.event_ids:
             filter_keys["event_id"] = self.event_ids
