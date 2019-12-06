@@ -8,7 +8,7 @@ Column = namedtuple("Column", "group_name event_name transaction_name discover_n
 
 class Columns(Enum):
     """
-    Value is a tuple of (interal Groups name, internal Events name, internal Transaction name, internal
+    Value is a tuple of (internal Events name, internal Transaction name, internal
     Discover name, external alias)
     None means the column is not available in that dataset.
     """

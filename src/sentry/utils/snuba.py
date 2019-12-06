@@ -53,24 +53,6 @@ SENTRY_SNUBA_MAP = {
     col.value.alias: col.value.event_name for col in Columns if col.value.event_name is not None
 }
 
-# Groups takes events fields, then updates to add and override as needed
-GROUPS_SENTRY_SNUBA_MAP = {
-    col.value.alias: col.value.group_name for col in Columns if col.value.group_name is not None
-}
-GROUPS_SENTRY_SNUBA_MAP.update(
-    # TODO: Bring this into Columns?
-    {
-        "status": "groups.status",
-        "events.issue": "events.issue",
-        "active_at": "groups.active_at",
-        "first_seen": "groups.first_seen",
-        "last_seen": "groups.last_seen",
-        "first_release": "groups.first_release_id",
-        "timestamp": "events.timestamp",
-        "message": "events.message",
-    }
-)
-
 
 TRANSACTIONS_SENTRY_SNUBA_MAP = {
     col.value.alias: col.value.transaction_name
