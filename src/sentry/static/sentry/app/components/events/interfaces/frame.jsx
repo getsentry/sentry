@@ -13,9 +13,7 @@ import FrameRegisters from 'app/components/events/interfaces/frameRegisters';
 import FrameVariables from 'app/components/events/interfaces/frameVariables';
 import TogglableAddress from 'app/components/events/interfaces/togglableAddress';
 import PackageLink from 'app/components/events/interfaces/packageLink';
-import PackageStatus, {
-  PackageStatusIcon,
-} from 'app/components/events/interfaces/packageStatus';
+import PackageStatus from 'app/components/events/interfaces/packageStatus';
 import StrictClick from 'app/components/strictClick';
 import Tooltip from 'app/components/tooltip';
 import Truncate from 'app/components/truncate';
@@ -631,10 +629,6 @@ const NativeLineContent = styled(RepeatedContent)`
 
 const DefaultLine = styled(VertCenterWrapper)`
   justify-content: space-between;
-
-  &:hover ${PackageStatusIcon} {
-    opacity: 1;
-  }
 `;
 
 const HintStatus = styled(InlineSvg)`

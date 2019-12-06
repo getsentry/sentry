@@ -6,6 +6,7 @@ import space from 'app/styles/space';
 import {defined} from 'app/utils';
 import {trimPackage} from 'app/components/events/interfaces/frame';
 import InlineSvg from 'app/components/inlineSvg';
+import {PackageStatusIcon} from 'app/components/events/interfaces/packageStatus';
 
 type Props = {
   packagePath: string;
@@ -66,6 +67,10 @@ const Package = styled('a')<Partial<Props>>`
     ${LinkChevron} {
       opacity: 1;
       transform: translateX(${space(0.5)});
+    }
+
+    &:hover ${PackageStatusIcon} {
+      opacity: 1;
     }
   }
 `;
