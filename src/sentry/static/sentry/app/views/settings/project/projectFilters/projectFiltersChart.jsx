@@ -1,4 +1,3 @@
-import $ from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
 import SentryTypes from 'app/sentryTypes';
@@ -89,45 +88,28 @@ class ProjectFiltersChart extends React.Component {
       until: this.state.queryUntil,
       resolution: '1d',
     };
-    $.when
-      .apply(
-        $,
-        // parallelize requests for each statistic
-        statOptions.map(stat => {
-          const deferred = $.Deferred();
-          this.props.api.request(statEndpoint, {
-            query: Object.assign({stat}, query),
-            success: deferred.resolve.bind(deferred),
-            error: deferred.reject.bind(deferred),
-          });
-          return deferred;
-        })
-      )
-      .done(
-        function(/* statOption1, statOption2, ... statOptionN */) {
-          const rawStatsData = {};
-          // when there is a single request made, this is inexplicably called without being wrapped in an array
-          if (statOptions.length === 1) {
-            rawStatsData[statOptions[0]] = arguments[0];
-          } else {
-            for (let i = 0; i < statOptions.length; i++) {
-              rawStatsData[statOptions[i]] = arguments[i][0];
-            }
-          }
+    const requests = statOptions.map(stat => {
+      return this.props.api.requestPromise(statEndpoint, {
+        query: Object.assign({stat}, query),
+      });
+    });
+    Promise.all(requests)
+      .then(results => {
+        const rawStatsData = {};
+        for (let i = 0; i < statOptions.length; i++) {
+          rawStatsData[statOptions[i]] = results[i];
+        }
 
-          this.setState({
-            rawStatsData,
-            formattedData: this.formatData(rawStatsData),
-            error: false,
-            loading: false,
-          });
-        }.bind(this)
-      )
-      .fail(
-        function() {
-          this.setState({error: true});
-        }.bind(this)
-      );
+        this.setState({
+          rawStatsData,
+          formattedData: this.formatData(rawStatsData),
+          error: false,
+          loading: false,
+        });
+      })
+      .catch(() => {
+        this.setState({error: true, loading: false});
+      });
   }
 
   fetchData = () => {
@@ -140,7 +122,7 @@ class ProjectFiltersChart extends React.Component {
     return timeMoment.format('LL');
   }
 
-  renderTooltip(point) {
+  renderTooltip = point => {
     const timeLabel = this.timeLabelAsDay(point);
     let totalY = 0;
     for (let i = 0; i < point.y.length; i++) {
@@ -176,7 +158,7 @@ class ProjectFiltersChart extends React.Component {
         })}
       </div>
     );
-  }
+  };
 
   render() {
     const {loading, error} = this.state;

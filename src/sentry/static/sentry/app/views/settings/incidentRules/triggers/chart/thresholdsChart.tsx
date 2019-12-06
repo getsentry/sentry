@@ -1,20 +1,20 @@
 import {ECharts, EChartOption} from 'echarts';
-import debounce from 'lodash/debounce';
-import maxBy from 'lodash/maxBy';
 import React from 'react';
+import debounce from 'lodash/debounce';
+import flatten from 'lodash/flatten';
 
-import {ReactEchartsRef, Series, SeriesDataUnit} from 'app/types/echarts';
+import {ReactEchartsRef, Series} from 'app/types/echarts';
 import Graphic from 'app/components/charts/components/graphic';
 import LineChart from 'app/components/charts/lineChart';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
+import {Trigger, AlertRuleThresholdType} from '../../types';
+
 type Props = {
   xAxis: EChartOption.XAxis;
   data: Series[];
-  alertThreshold?: number | null;
-  resolveThreshold?: number | null;
-  isInverted?: boolean;
+  triggers: Trigger[];
   maxValue?: number;
 };
 
@@ -48,7 +48,7 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
 
   componentDidUpdate(prevProps: Props) {
     if (
-      this.props.alertThreshold !== prevProps.alertThreshold ||
+      this.props.triggers !== prevProps.triggers ||
       this.props.data !== prevProps.data
     ) {
       this.handleUpdateChartAxis();
@@ -60,24 +60,25 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
   // If we have ref to chart and data, try to update chart axis so that
   // alertThreshold or resolveThreshold is visible in chart
   handleUpdateChartAxis = () => {
-    const {data, alertThreshold, resolveThreshold} = this.props;
-    if (
-      this.chartRef &&
-      data.length &&
-      data[0].data &&
-      (alertThreshold !== null || resolveThreshold !== null)
-    ) {
+    const {triggers} = this.props;
+    if (this.chartRef) {
       this.updateChartAxis(
-        Math.max(alertThreshold || 0, resolveThreshold || 0),
-        data[0].data
+        Math.max(
+          ...flatten(
+            triggers.map(trigger => [
+              trigger.alertThreshold || 0,
+              trigger.resolveThreshold || 0,
+            ])
+          )
+        )
       );
     }
   };
 
-  updateChartAxis = debounce((threshold: number, dataArray: SeriesDataUnit[]) => {
-    const max = maxBy(dataArray, ({value}) => value);
-    if (typeof max !== 'undefined' && threshold > max.value) {
-      // We need to force update after we set a new yAxis max because `convertToPixel` will
+  updateChartAxis = debounce((threshold: number) => {
+    const {maxValue} = this.props;
+    if (typeof maxValue !== 'undefined' && threshold > maxValue) {
+      // We need to force update after we set a new yAxis max because `convertToPixel`
       // can return a negitive position (probably because yAxisMax is not synced with chart yet)
       this.setState({yAxisMax: Math.round(threshold * 1.1)}, this.forceUpdate);
     } else {
@@ -106,41 +107,19 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
     }
   };
 
-  getShadedThresholdPosition = (
-    isResolution: boolean,
-    position: number
-    // yAxisPosition: number
-  ) => {
-    const {isInverted} = this.props;
-
-    // i.e. isInverted xor isResolution
-    // We shade the bottom area if:
-    // * we are shading the resolution and it is *NOT* inverted
-    // * we are shading the incident and it *IS* inverted
-    if (isInverted !== isResolution) {
-      return [0, position + 1];
-    }
-
-    // Otherwise shade the top area (`0,0` coordinates represents top left of chart)
-    return [0, 0];
-  };
-
   /**
    * Draws the boundary lines and shaded areas for the chart.
    */
   getThresholdLine = (
-    position: string | any[] | null | number,
+    trigger: Trigger,
+    type: 'alertThreshold' | 'resolveThreshold',
     isResolution: boolean
   ) => {
-    const {alertThreshold, resolveThreshold, isInverted} = this.props;
+    const {thresholdType} = trigger;
+    const position = this.getChartPixelForThreshold(trigger[type]);
+    const isInverted = thresholdType === AlertRuleThresholdType.BELOW;
 
-    if (
-      typeof position !== 'number' ||
-      (isResolution && resolveThreshold === null) ||
-      (!isResolution && alertThreshold === null) ||
-      !this.state.height ||
-      !this.chartRef
-    ) {
+    if (typeof position !== 'number' || !this.state.height || !this.chartRef) {
       return [];
     }
 
@@ -192,15 +171,11 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
     ];
   };
 
-  render() {
-    const {data, xAxis} = this.props;
+  getChartPixelForThreshold = (threshold: number | '') =>
+    this.chartRef && this.chartRef.convertToPixel({yAxisIndex: 0}, `${threshold}`);
 
-    const alertThresholdPosition =
-      this.chartRef &&
-      this.chartRef.convertToPixel({yAxisIndex: 0}, `${this.props.alertThreshold}`);
-    const resolveThresholdPosition =
-      this.chartRef &&
-      this.chartRef.convertToPixel({yAxisIndex: 0}, `${this.props.resolveThreshold}`);
+  render() {
+    const {data, triggers, xAxis} = this.props;
 
     return (
       <LineChart
@@ -212,10 +187,12 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
           max: this.state.yAxisMax,
         }}
         graphic={Graphic({
-          elements: [
-            ...this.getThresholdLine(alertThresholdPosition, false),
-            ...this.getThresholdLine(resolveThresholdPosition, true),
-          ],
+          elements: flatten(
+            triggers.map((trigger: Trigger) => [
+              ...this.getThresholdLine(trigger, 'alertThreshold', false),
+              ...this.getThresholdLine(trigger, 'resolveThreshold', true),
+            ])
+          ),
         })}
         series={data}
       />
