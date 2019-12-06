@@ -74,12 +74,11 @@ class TogglableAddress extends React.Component<Props> {
           title={this.getAddressTooltip()}
           disabled={!(isFoundByStackScanning || isInlineFrame)}
         >
-          <AddressText isFoundByStackScanning={isFoundByStackScanning}>
-            {isInlineFrame ? (
-              <InlineAddressText>{formattedAddress}</InlineAddressText>
-            ) : (
-              formattedAddress
-            )}
+          <AddressText
+            isFoundByStackScanning={isFoundByStackScanning}
+            isInlineFrame={isInlineFrame}
+          >
+            {formattedAddress}
           </AddressText>
         </Tooltip>
       </Address>
@@ -101,12 +100,15 @@ const Toggle = styled('span')`
 `;
 
 const AddressText = styled('span')<Partial<Props>>`
-  border-bottom: ${p =>
-    p.isFoundByStackScanning ? `1px dashed ${p.theme.red}` : 'none'};
-`;
-
-const InlineAddressText = styled('span')`
-  opacity: 0.5;
+  border-bottom: ${p => {
+    if (p.isFoundByStackScanning) {
+      return `1px dashed ${p.theme.red}`;
+    } else if (p.isInlineFrame) {
+      return `1px dashed ${p.theme.blue}`;
+    } else {
+      return 'none';
+    }
+  }};
 `;
 
 const Address = styled('span')`
