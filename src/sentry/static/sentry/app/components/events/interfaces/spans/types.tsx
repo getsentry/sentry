@@ -16,12 +16,24 @@ export type SpanEntry = {
   data: Array<SpanType>;
 };
 
+export type TraceContextType = {
+  op?: string;
+  type?: 'trace';
+  span_id?: string;
+  trace_id?: string;
+  parent_span_id?: string;
+};
+
 export type SentryTransactionEvent = {
   entries: Array<SpanEntry>;
   startTimestamp: number;
   endTimestamp: number;
+  contexts: {
+    trace?: TraceContextType;
+  };
 };
 
+// map span_id to children whose parent_span_id is equal to span_id
 export type SpanChildrenLookupType = {[span_id: string]: Array<SpanType>};
 
 export type ParsedTraceType = {
@@ -34,6 +46,7 @@ export type ParsedTraceType = {
   traceEndTimestamp: number;
   numOfSpans: number;
   spans: SpanType[];
+  orphanSpans: SpanType[];
 };
 
 export enum TickAlignment {

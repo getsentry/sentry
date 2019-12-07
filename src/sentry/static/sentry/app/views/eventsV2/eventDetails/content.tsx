@@ -168,6 +168,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
               event={event}
               projectId={this.projectId}
               eventView={eventView}
+              location={location}
             />
           </div>
           <div style={{gridColumn: '2/3', display: isSidebarVisible ? '' : 'none'}}>

@@ -20,7 +20,7 @@ import * as DividerHandlerManager from './dividerHandlerManager';
 import {FilterSpans} from './traceView';
 
 type RenderedSpanTree = {
-  spanTree: JSX.Element | null;
+  spanTree: JSX.Element;
   nextSpanNumber: number;
   numOfSpansOutOfViewAbove: number;
   numOfFilteredSpansAbove: number;
@@ -231,7 +231,7 @@ class SpanTree extends React.Component<PropType> {
       viewEnd: dragProps.viewWindowEnd,
     });
 
-    return this.renderSpan({
+    const renderedRoot = this.renderSpan({
       isRoot: true,
       isLast: true,
       spanNumber: 1,
@@ -243,6 +243,67 @@ class SpanTree extends React.Component<PropType> {
       childSpans: trace.childSpans,
       generateBounds,
     });
+
+    // render orphan spans
+
+    type AccType = {
+      renderedSpanChildren: Array<JSX.Element>;
+      nextSpanNumber: number;
+      numOfSpansOutOfViewAbove: number;
+      numOfFilteredSpansAbove: number;
+    };
+
+    const initial: AccType = {
+      renderedSpanChildren: [],
+      nextSpanNumber: renderedRoot.nextSpanNumber,
+      numOfSpansOutOfViewAbove: renderedRoot.numOfSpansOutOfViewAbove,
+      numOfFilteredSpansAbove: renderedRoot.numOfSpansOutOfViewAbove,
+    };
+
+    const reduced: AccType = trace.orphanSpans.reduce(
+      (acc: AccType, orphanSpan: SpanType) => {
+        const key = `${orphanSpan.trace_id}${orphanSpan.span_id}`;
+
+        const renderedOrphan = this.renderSpan({
+          isRoot: true,
+          isLast: true,
+          spanNumber: acc.nextSpanNumber,
+          treeDepth: 0,
+          continuingTreeDepths: [],
+          numOfSpansOutOfViewAbove: acc.numOfSpansOutOfViewAbove,
+          numOfFilteredSpansAbove: acc.numOfFilteredSpansAbove,
+          span: orphanSpan,
+          childSpans: trace.childSpans,
+          generateBounds,
+        });
+
+        acc.renderedSpanChildren.push(
+          <React.Fragment key={key}>{renderedOrphan.spanTree}</React.Fragment>
+        );
+
+        acc.numOfSpansOutOfViewAbove = renderedOrphan.numOfSpansOutOfViewAbove;
+        acc.numOfFilteredSpansAbove = renderedOrphan.numOfFilteredSpansAbove;
+
+        acc.nextSpanNumber = renderedOrphan.nextSpanNumber;
+
+        return acc;
+      },
+      initial
+    );
+
+    const spanTree = (
+      <React.Fragment>
+        {renderedRoot.spanTree}
+        {...reduced.renderedSpanChildren}
+      </React.Fragment>
+    );
+
+    return {
+      spanTree,
+      nextSpanNumber: reduced.nextSpanNumber,
+      numOfSpansOutOfViewAbove: reduced.numOfSpansOutOfViewAbove,
+      numOfFilteredSpansAbove: reduced.numOfFilteredSpansAbove,
+    };
   };
 
   render() {

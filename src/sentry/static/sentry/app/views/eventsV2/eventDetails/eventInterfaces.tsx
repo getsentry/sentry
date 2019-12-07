@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import {Location} from 'history';
 
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
@@ -39,6 +40,7 @@ type ActiveTabProps = {
   event: Event;
   activeTab: string;
   eventView: EventView;
+  location: Location;
 };
 
 /**
@@ -46,7 +48,7 @@ type ActiveTabProps = {
  * Some but not all interface elements require a projectId.
  */
 const ActiveTab = (props: ActiveTabProps) => {
-  const {organization, projectId, event, activeTab, eventView} = props;
+  const {organization, projectId, event, activeTab, eventView, location} = props;
   if (!activeTab) {
     return null;
   }
@@ -75,6 +77,7 @@ const ActiveTab = (props: ActiveTabProps) => {
         projectId={projectId}
         organization={organization}
         eventView={eventView}
+        location={location}
       />
     );
   } else {
@@ -104,6 +107,7 @@ type EventInterfacesProps = {
   projectId: string;
   organization: Organization;
   eventView: EventView;
+  location: Location;
 };
 type EventInterfacesState = {
   activeTab: string;
@@ -123,7 +127,7 @@ class EventInterfaces extends React.Component<
   handleTabChange = tab => this.setState({activeTab: tab});
 
   render() {
-    const {event, projectId, organization, eventView} = this.props;
+    const {event, projectId, organization, eventView, location} = this.props;
     const {activeTab} = this.state;
 
     return (
@@ -191,6 +195,7 @@ class EventInterfaces extends React.Component<
             projectId={projectId}
             organization={organization}
             eventView={eventView}
+            location={location}
           />
         </ErrorBoundary>
       </React.Fragment>

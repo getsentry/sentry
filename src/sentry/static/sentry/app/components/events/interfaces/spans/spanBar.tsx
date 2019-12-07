@@ -381,7 +381,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     const {span, treeDepth} = this.props;
 
     const op = span.op ? <strong>{`${span.op} \u2014 `}</strong> : '';
-    const description = get(span, 'description', span.span_id);
+    const description = get(span, 'description', span.span_id || span.trace_id);
 
     const left = treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
 

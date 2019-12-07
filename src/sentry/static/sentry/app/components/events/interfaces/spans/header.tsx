@@ -343,12 +343,57 @@ class ActualMinimap extends React.PureComponent<{trace: ParsedTraceType}> {
       data: {},
     };
 
-    return this.renderSpan({
+    const childSpans = trace.childSpans;
+
+    const renderedRoot = this.renderSpan({
       spanNumber: 0,
       generateBounds,
       span: rootSpan,
-      childSpans: trace.childSpans,
-    }).spanTree;
+      childSpans,
+    });
+
+    // render orphan spans
+
+    type AccType = {
+      nextSpanNumber: number;
+      renderedSpanChildren: Array<JSX.Element>;
+    };
+
+    const initial: AccType = {
+      renderedSpanChildren: [],
+      nextSpanNumber: renderedRoot.nextSpanNumber,
+    };
+
+    const reduced: AccType = trace.orphanSpans.reduce(
+      (acc: AccType, orphanSpan: SpanType) => {
+        const key = `${orphanSpan.span_id}`;
+
+        const results = this.renderSpan({
+          spanNumber: acc.nextSpanNumber,
+          childSpans,
+          generateBounds,
+          span: orphanSpan,
+        });
+
+        acc.renderedSpanChildren.push(
+          <React.Fragment key={key}>{results.spanTree}</React.Fragment>
+        );
+
+        acc.nextSpanNumber = results.nextSpanNumber;
+
+        return acc;
+      },
+      initial
+    );
+
+    const spanTree = (
+      <React.Fragment>
+        {renderedRoot.spanTree}
+        {...reduced.renderedSpanChildren}
+      </React.Fragment>
+    );
+
+    return spanTree;
   };
 
   getBounds = (
