@@ -136,3 +136,15 @@ export function removeFilterMaskedEntries(rawData) {
   }
   return cleanedData;
 }
+
+export function formatAddress(address, imageAddressLength) {
+  return `0x${address.toString(16).padStart(imageAddressLength, '0')}`;
+}
+
+export function parseAddress(address) {
+  try {
+    return parseInt(address, 16) || 0;
+  } catch (_e) {
+    return 0;
+  }
+}

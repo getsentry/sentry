@@ -36,6 +36,17 @@ exports[`CrashContent renders with meta data 1`] = `
     mini={true}
   >
     <ExceptionContent
+      event={
+        Object {
+          "dateCreated": "2019-05-21T18:01:48.762Z",
+          "eventID": "12345678901234567890123456789012",
+          "groupID": "1",
+          "id": "1",
+          "message": "ApiException",
+          "tags": Array [],
+          "title": "ApiException",
+        }
+      }
       newestFirst={true}
       type="original"
       values={
@@ -176,6 +187,17 @@ exports[`CrashContent renders with meta data 1`] = `
             data={
               Object {
                 "frames": Array [],
+              }
+            }
+            event={
+              Object {
+                "dateCreated": "2019-05-21T18:01:48.762Z",
+                "eventID": "12345678901234567890123456789012",
+                "groupID": "1",
+                "id": "1",
+                "message": "ApiException",
+                "tags": Array [],
+                "title": "ApiException",
               }
             }
             expandFirstFrame={true}

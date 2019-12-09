@@ -278,6 +278,8 @@ class Frame(Interface):
             )
             if is_url(self.data["sourcemap"]):
                 data["mapUrl"] = self.data["sourcemap"]
+        if self.data and "symbolicator_status" in self.data:
+            data["symbolicatorStatus"] = self.data["symbolicator_status"]
 
         return data
 

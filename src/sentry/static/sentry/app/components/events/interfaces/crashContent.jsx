@@ -36,6 +36,7 @@ class CrashContent extends React.Component {
         values={exception.values}
         platform={event.platform}
         newestFirst={newestFirst}
+        event={event}
       />
     );
   };
@@ -52,6 +53,7 @@ class CrashContent extends React.Component {
         className="no-exception"
         includeSystemFrames={stackView === 'full'}
         platform={event.platform}
+        event={event}
         newestFirst={newestFirst}
       />
     );
