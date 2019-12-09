@@ -63,6 +63,7 @@ def test_deduplication_works(default_project, task_runner, monkeypatch, preproce
 def test_with_attachments(default_project, task_runner, monkeypatch, preprocess_event):
     payload = get_normalized_event({"message": "hello world"}, default_project)
     event_id = payload["event_id"]
+    attachment_id = "ca90fb45-6dd9-40a0-a18f-8693aa621abb"
     project_id = default_project.id
     start_time = time.time() - 3600
 
@@ -71,7 +72,7 @@ def test_with_attachments(default_project, task_runner, monkeypatch, preprocess_
             "payload": b"Hello ",
             "event_id": event_id,
             "project_id": project_id,
-            "id": 0,
+            "id": attachment_id,
             "chunk_index": 0,
         }
     )
@@ -81,7 +82,7 @@ def test_with_attachments(default_project, task_runner, monkeypatch, preprocess_
             "payload": b"World!",
             "event_id": event_id,
             "project_id": project_id,
-            "id": 0,
+            "id": attachment_id,
             "chunk_index": 1,
         }
     )
@@ -95,7 +96,7 @@ def test_with_attachments(default_project, task_runner, monkeypatch, preprocess_
             "remote_addr": "127.0.0.1",
             "attachments": [
                 {
-                    "id": 0,
+                    "id": attachment_id,
                     "name": "lol.txt",
                     "content_type": "text/plain",
                     "attachment_type": "custom.attachment",
@@ -125,6 +126,7 @@ def test_with_attachments(default_project, task_runner, monkeypatch, preprocess_
 @pytest.mark.django_db
 def test_individual_attachments(default_project, monkeypatch):
     event_id = "515539018c9b4260a6f999572f1661ee"
+    attachment_id = "ca90fb45-6dd9-40a0-a18f-8693aa621abb"
     project_id = default_project.id
 
     process_attachment_chunk(
@@ -132,7 +134,7 @@ def test_individual_attachments(default_project, monkeypatch):
             "payload": b"Hello ",
             "event_id": event_id,
             "project_id": project_id,
-            "id": 0,
+            "id": attachment_id,
             "chunk_index": 0,
         }
     )
@@ -142,7 +144,7 @@ def test_individual_attachments(default_project, monkeypatch):
             "payload": b"World!",
             "event_id": event_id,
             "project_id": project_id,
-            "id": 0,
+            "id": attachment_id,
             "chunk_index": 1,
         }
     )
@@ -154,7 +156,7 @@ def test_individual_attachments(default_project, monkeypatch):
                 "attachment_type": "event.attachment",
                 "chunks": 2,
                 "content_type": "application/octet-stream",
-                "id": "0",
+                "id": attachment_id,
                 "name": "foo.txt",
             },
             "event_id": event_id,
