@@ -11,6 +11,8 @@ ATTACHMENT_META_KEY = u"{key}:a"
 ATTACHMENT_UNCHUNKED_DATA_KEY = u"{key}:a:{id}"
 ATTACHMENT_DATA_CHUNK_KEY = u"{key}:a:{id}:{chunk_index}"
 
+UNINITIALIZED_DATA = object()
+
 
 class CachedAttachment(object):
     def __init__(
@@ -20,7 +22,7 @@ class CachedAttachment(object):
         name=None,
         content_type=None,
         type=None,
-        data=None,
+        data=UNINITIALIZED_DATA,
         chunks=None,
         cache=None,
     ):
@@ -44,9 +46,10 @@ class CachedAttachment(object):
 
     @property
     def data(self):
-        if self._data is None and self._cache is not None:
+        if self._data is UNINITIALIZED_DATA and self._cache is not None:
             self._data = self._cache.get_data(self)
 
+        assert self._data is not UNINITIALIZED_DATA
         return self._data
 
     def delete(self):
