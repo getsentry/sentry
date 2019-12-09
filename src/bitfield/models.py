@@ -2,9 +2,8 @@ from __future__ import absolute_import
 
 import six
 
-from django.db.models.fields import BigIntegerField, Field
+from django.db.models.fields import BigIntegerField
 
-from bitfield.forms import BitFormField
 from bitfield.query import BitQueryExactLookupStub
 from bitfield.types import Bit, BitHandler
 
@@ -118,10 +117,6 @@ class BitField(BigIntegerField):
         BigIntegerField.__init__(self, default=default, *args, **kwargs)
         self.flags = flags
         self.labels = labels
-
-    def formfield(self, form_class=BitFormField, **kwargs):
-        choices = [(k, self.labels[self.flags.index(k)]) for k in self.flags]
-        return Field.formfield(self, form_class, choices=choices, **kwargs)
 
     def pre_save(self, instance, add):
         value = getattr(instance, self.attname)
