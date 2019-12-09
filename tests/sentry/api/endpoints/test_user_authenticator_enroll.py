@@ -5,7 +5,6 @@ import mock
 from six.moves.urllib.parse import parse_qsl
 from django.core.urlresolvers import reverse
 from django.conf import settings
-from django.db.models import F
 
 from sentry.models import (
     AuditLogEntry,
@@ -171,7 +170,7 @@ class AcceptOrganizationInviteTest(APITestCase):
         self.assertFalse(Authenticator.objects.user_has_2fa(self.user))
 
     def require_2fa_for_organization(self):
-        self.organization.update(flags=F("flags").bitor(Organization.flags.require_2fa))
+        self.organization.update(flags=Organization.flags.require_2fa)
         self.assertTrue(self.organization.flags.require_2fa.is_set)
 
     def _assert_pending_invite_cookie_set(self, response, om):
