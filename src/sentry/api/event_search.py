@@ -13,7 +13,7 @@ from parsimonious.nodes import Node
 from parsimonious.grammar import Grammar, NodeVisitor
 
 from sentry import eventstore
-from sentry.models import Project, ProjectStatus
+from sentry.models import Project
 from sentry.search.utils import (
     parse_datetime_range,
     parse_datetime_string,
@@ -21,9 +21,8 @@ from sentry.search.utils import (
     InvalidQuery,
 )
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.events import get_columns_from_aliases
 from sentry.utils.dates import to_timestamp
-from sentry.utils.snuba import DATASETS, get_snuba_column_name, get_json_type
+from sentry.utils.snuba import DATASETS, get_json_type
 
 WILDCARD_CHARS = re.compile(r"[\*]")
 
@@ -862,51 +861,4 @@ def resolve_field_list(fields, snuba_args, auto_fields=True):
     }
 
 
-def find_reference_event(organization, snuba_args, reference_event_slug, fields):
-    try:
-        project_slug, event_id = reference_event_slug.split(":")
-    except ValueError:
-        raise InvalidSearchQuery("Invalid reference event")
-    try:
-        project = Project.objects.get(
-            slug=project_slug, organization=organization, status=ProjectStatus.VISIBLE
-        )
-    except Project.DoesNotExist:
-        raise InvalidSearchQuery("Invalid reference event")
-    reference_event = eventstore.get_event_by_id(project.id, event_id, fields)
-    if not reference_event:
-        raise InvalidSearchQuery("Invalid reference event")
-
-    return reference_event.snuba_data
-
-
 TAG_KEY_RE = re.compile(r"^tags\[(.*)\]$")
-
-
-def get_reference_event_conditions(organization, snuba_args, event_slug):
-    """
-    Returns a list of additional conditions/filter_keys to
-    scope a query by the groupby fields using values from the reference event
-
-    This is a key part of pagination in the event details modal and
-    summary graph navigation.
-    """
-    groupby = snuba_args.get("groupby", [])
-    columns = get_columns_from_aliases(groupby)
-    field_names = [get_snuba_column_name(field) for field in groupby]
-
-    # Fetch the reference event ensuring the fields in the groupby
-    # clause are present.
-    event_data = find_reference_event(organization, snuba_args, event_slug, columns)
-
-    conditions = []
-    for (i, field) in enumerate(groupby):
-        value = event_data.get(field_names[i], None)
-        # If the value is a sequence use the first element as snuba
-        # doesn't support `=` or `IN` operations on fields like exception_frames.filename
-        if isinstance(value, (list, set)) and value:
-            value = value.pop()
-        if value:
-            conditions.append([field, "=", value])
-
-    return conditions

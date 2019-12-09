@@ -46,11 +46,6 @@ class ArrayField(models.Field):
             value = json.loads(value)
         return map(self.of.to_python, value)
 
-    def get_prep_lookup(self, lookup_type, value):
-        raise NotImplementedError(
-            u"{!r} lookup type for {!r} is not supported".format(lookup_type, self)
-        )
-
 
 if hasattr(models, "SubfieldBase"):
     ArrayField = six.add_metaclass(models.SubfieldBase)(ArrayField)

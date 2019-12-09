@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {browserHistory} from 'react-router';
+import styled from 'react-emotion';
 import {Location} from 'history';
 
 import {Client} from 'app/api';
@@ -189,7 +190,7 @@ const LineGraph = (props: LineGraphProps) => {
   const referenceEvent = `${currentEvent.projectSlug}:${currentEvent.eventID}`;
 
   return (
-    <Panel>
+    <StyledPanel>
       <EventsRequest
         api={api}
         organization={organization}
@@ -235,9 +236,17 @@ const LineGraph = (props: LineGraphProps) => {
           />
         )}
       </EventsRequest>
-    </Panel>
+    </StyledPanel>
   );
 };
+
+// eChart does not recalculate width
+
+const StyledPanel = styled(Panel)`
+  .echarts-for-react div:first-child {
+    width: 100% !important;
+  }
+`;
 
 LineGraph.propTypes = {
   api: PropTypes.object.isRequired,

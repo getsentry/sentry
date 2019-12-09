@@ -9,6 +9,7 @@ import {removeAtArrayIndex} from 'app/utils/removeAtArrayIndex';
 import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex';
 import {t} from 'app/locale';
 import DeleteActionButton from 'app/views/settings/incidentRules/triggers/actionsPanel/deleteActionButton';
+import Input from 'app/views/settings/components/forms/controls/input';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import PanelSubHeader from 'app/views/settings/incidentRules/triggers/panelSubHeader';
 import SelectControl from 'app/components/forms/selectControl';
@@ -43,6 +44,16 @@ type Props = {
 };
 
 class ActionsPanel extends React.PureComponent<Props> {
+  doChangeTargetIdentifier(index: number, value: string) {
+    const {actions, onChange} = this.props;
+    const newAction = {
+      ...actions[index],
+      targetIdentifier: value,
+    };
+
+    onChange(replaceAtArrayIndex(actions, index, newAction));
+  }
+
   handleAddAction = (value: {label: string; value: Action['type']}) => {
     this.props.onAdd(value.value);
   };
@@ -63,14 +74,15 @@ class ActionsPanel extends React.PureComponent<Props> {
     onChange(replaceAtArrayIndex(actions, index, newAction));
   };
 
-  handleChangeTargetIdentifier = (index: number, value) => {
-    const {actions, onChange} = this.props;
-    const newAction = {
-      ...actions[index],
-      targetIdentifier: value.value,
-    };
+  handleChangeTargetIdentifier = (index: number, value: SelectValue<string>) => {
+    this.doChangeTargetIdentifier(index, value.value);
+  };
 
-    onChange(replaceAtArrayIndex(actions, index, newAction));
+  handleChangeSpecificTargetIdentifier = (
+    index: number,
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    this.doChangeTargetIdentifier(index, e.target.value);
   };
 
   render() {
@@ -107,20 +119,24 @@ class ActionsPanel extends React.PureComponent<Props> {
                 <PanelItemGrid key={i}>
                   {ActionLabel[action.type]}
 
-                  <SelectControl
-                    disabled={loading}
-                    value={action.targetType}
-                    options={
-                      availableAction &&
-                      availableAction.allowedTargetTypes.map(allowedType => ({
-                        value: allowedType,
-                        label: TargetLabel[allowedType],
-                      }))
-                    }
-                    onChange={this.handleChangeTarget.bind(this, i)}
-                  />
+                  {availableAction && availableAction.allowedTargetTypes.length > 1 ? (
+                    <SelectControl
+                      disabled={loading}
+                      value={action.targetType}
+                      options={
+                        availableAction &&
+                        availableAction.allowedTargetTypes.map(allowedType => ({
+                          value: allowedType,
+                          label: TargetLabel[allowedType],
+                        }))
+                      }
+                      onChange={this.handleChangeTarget.bind(this, i)}
+                    />
+                  ) : (
+                    <span />
+                  )}
 
-                  {(isUser || isTeam) && (
+                  {isUser || isTeam ? (
                     <SelectMembers
                       key={isTeam ? 'team' : 'member'}
                       showTeam={isTeam}
@@ -128,6 +144,13 @@ class ActionsPanel extends React.PureComponent<Props> {
                       organization={organization}
                       value={action.targetIdentifier}
                       onChange={this.handleChangeTargetIdentifier.bind(this, i)}
+                    />
+                  ) : (
+                    <Input
+                      key={action.type}
+                      value={action.targetIdentifier}
+                      onChange={this.handleChangeSpecificTargetIdentifier.bind(this, i)}
+                      placeholder="Channel or user i.e. #critical"
                     />
                   )}
                   <DeleteActionButton index={i} onClick={this.handleDeleteAction} />
