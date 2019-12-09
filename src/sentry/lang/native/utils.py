@@ -111,7 +111,7 @@ def signal_from_data(data):
 
 def get_event_attachment(data, attachment_type):
     cache_key = cache_key_for_event(data)
-    attachments = attachment_cache.get(cache_key) or []
+    attachments = attachment_cache.get(cache_key)
     return next((a for a in attachments if a.type == attachment_type), None)
 
 

@@ -10,6 +10,7 @@ from datetime import timedelta
 
 from six.moves.urllib.parse import urlencode
 
+from sentry.discover.models import DiscoverSavedQuery
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.utils.samples import load_data
 from sentry.testutils.helpers.datetime import iso_format, before_now
@@ -61,7 +62,6 @@ def transactions_query(**kwargs):
 
 
 def generate_transaction():
-
     event_data = load_data("transaction")
     event_data.update({"event_id": "a" * 32})
 
@@ -147,13 +147,14 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super(OrganizationEventsV2Test, self).setUp()
         self.user = self.create_user("foo@example.com")
-        self.org = self.create_organization(owner=None, name="Rowdy Tiger")
+        self.org = self.create_organization(name="Rowdy Tiger")
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
 
         self.login_as(self.user)
-        self.path = u"/organizations/{}/eventsv2/".format(self.org.slug)
+        self.landing_path = u"/organizations/{}/eventsv2/".format(self.org.slug)
+        self.result_path = u"/organizations/{}/eventsv2/results/".format(self.org.slug)
 
     def wait_until_loaded(self):
         self.browser.wait_until_not(".loading-indicator")
@@ -161,19 +162,19 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
     def test_events_default_landing(self):
         with self.feature(FEATURE_NAMES):
-            self.browser.get(self.path)
+            self.browser.get(self.landing_path)
             self.wait_until_loaded()
             self.browser.snapshot("events-v2 - default landing")
 
     def test_all_events_query_empty_state(self):
         with self.feature(FEATURE_NAMES):
-            self.browser.get(self.path + "?" + all_events_query())
+            self.browser.get(self.result_path + "?" + all_events_query())
             self.wait_until_loaded()
             self.browser.snapshot("events-v2 - all events query - empty state")
 
         with self.feature(FEATURE_NAMES):
             # expect table to expand to the right when no tags are provided
-            self.browser.get(self.path + "?" + all_events_query(tag=[]))
+            self.browser.get(self.result_path + "?" + all_events_query(tag=[]))
             self.wait_until_loaded()
             self.browser.snapshot("events-v2 - all events query - empty state - no tags")
 
@@ -193,19 +194,19 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         )
 
         with self.feature(FEATURE_NAMES):
-            self.browser.get(self.path + "?" + all_events_query())
+            self.browser.get(self.result_path + "?" + all_events_query())
             self.wait_until_loaded()
             self.browser.snapshot("events-v2 - all events query - list")
 
         with self.feature(FEATURE_NAMES):
             # expect table to expand to the right when no tags are provided
-            self.browser.get(self.path + "?" + all_events_query(tag=[]))
+            self.browser.get(self.result_path + "?" + all_events_query(tag=[]))
             self.wait_until_loaded()
             self.browser.snapshot("events-v2 - all events query - list - no tags")
 
     def test_errors_query_empty_state(self):
         with self.feature(FEATURE_NAMES):
-            self.browser.get(self.path + "?" + errors_query())
+            self.browser.get(self.result_path + "?" + errors_query())
             self.wait_until_loaded()
             self.browser.snapshot("events-v2 - errors query - empty state")
 
@@ -258,19 +259,19 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         )
 
         with self.feature(FEATURE_NAMES):
-            self.browser.get(self.path + "?" + errors_query())
+            self.browser.get(self.result_path + "?" + errors_query())
             self.wait_until_loaded()
             self.browser.snapshot("events-v2 - errors")
 
     def test_transactions_query_empty_state(self):
         with self.feature(FEATURE_NAMES):
-            self.browser.get(self.path + "?" + transactions_query())
+            self.browser.get(self.result_path + "?" + transactions_query())
             self.wait_until_loaded()
             self.browser.snapshot("events-v2 - transactions query - empty state")
 
         with self.feature(FEATURE_NAMES):
             # expect table to expand to the right when no tags are provided
-            self.browser.get(self.path + "?" + transactions_query(tag=[]))
+            self.browser.get(self.result_path + "?" + transactions_query(tag=[]))
             self.wait_until_loaded()
             self.browser.snapshot("events-v2 - transactions query - empty state - no tags")
 
@@ -283,7 +284,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=True)
 
         with self.feature(FEATURE_NAMES):
-            self.browser.get(self.path + "?" + transactions_query())
+            self.browser.get(self.result_path + "?" + transactions_query())
             self.wait_until_loaded()
             self.browser.snapshot("events-v2 - transactions query - list")
 
@@ -307,7 +308,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
         with self.feature(FEATURE_NAMES):
             # Get the list page.
-            self.browser.get(self.path + "?" + all_events_query())
+            self.browser.get(self.result_path + "?" + all_events_query())
             self.wait_until_loaded()
 
             # Click the event link to open the events detail view
@@ -341,7 +342,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
         with self.feature(FEATURE_NAMES):
             # Get the list page
-            self.browser.get(self.path + "?" + errors_query() + "&statsPeriod=24h")
+            self.browser.get(self.result_path + "?" + errors_query() + "&statsPeriod=24h")
             self.wait_until_loaded()
 
             # Click the event link to open the event detail view
@@ -368,7 +369,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
         with self.feature(FEATURE_NAMES):
             # Get the list page
-            self.browser.get(self.path + "?" + transactions_query())
+            self.browser.get(self.result_path + "?" + transactions_query())
             self.wait_until_loaded()
 
             # Click the event link to open the event detail view
@@ -376,6 +377,122 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
 
             self.browser.snapshot("events-v2 - transactions event detail view")
+
+    def test_create_saved_query(self):
+        # Simulate a custom query
+        query = {
+            "fieldnames": ["project", "count"],
+            "field": ["project.id", "count()"],
+            "query": "event.type:error",
+        }
+        query_name = "A new custom query"
+        with self.feature(FEATURE_NAMES):
+            # Go directly to the query builder view
+            self.browser.get(self.result_path + "?" + urlencode(query, doseq=True))
+            self.wait_until_loaded()
+
+            # Open the save as drawer
+            self.browser.element('[data-test-id="button-save-as"]').click()
+
+            # Fill out name and submit form.
+            self.browser.element('input[name="query_name"]').send_keys(query_name)
+            self.browser.element('[data-test-id="button-save-query"]').click()
+
+            self.browser.wait_until(
+                'div[name="discover2-query-name"][value="{}"]'.format(query_name)
+            )
+
+            # Page title should update.
+            title_input = self.browser.element('div[name="discover2-query-name"]')
+            assert title_input.get_attribute("value") == query_name
+        # Saved query should exist.
+        assert DiscoverSavedQuery.objects.filter(name=query_name).exists()
+
+    def test_view_and_rename_saved_query(self):
+        # Create saved query to rename
+        query = DiscoverSavedQuery.objects.create(
+            name="Custom query",
+            organization=self.org,
+            version=2,
+            query={"fields": ["title", "project.id", "count()"], "query": "event.type:error"},
+        )
+        with self.feature(FEATURE_NAMES):
+            # View the query list
+            self.browser.get(self.landing_path)
+            self.wait_until_loaded()
+
+            # Look at the results for our query.
+            self.browser.element('[data-test-id="card-{}"]'.format(query.name)).click()
+            self.wait_until_loaded()
+
+            input = self.browser.element('div[name="discover2-query-name"]')
+            input.click()
+            input.send_keys("updated!")
+
+            # Move focus somewhere else to trigger a blur and update the query
+            self.browser.element("table").click()
+
+            new_name = "Custom queryupdated!"
+            new_card_selector = 'div[name="discover2-query-name"][value="{}"]'.format(new_name)
+            self.browser.wait_until(new_card_selector)
+            self.browser.save_screenshot("./rename.png")
+
+        # Assert the name was updated.
+        assert DiscoverSavedQuery.objects.filter(name=new_name).exists()
+
+    def test_delete_saved_query(self):
+        # Create saved query with ORM
+        query = DiscoverSavedQuery.objects.create(
+            name="Custom query",
+            organization=self.org,
+            version=2,
+            query={"fields": ["title", "project.id", "count()"], "query": "event.type:error"},
+        )
+        with self.feature(FEATURE_NAMES):
+            # View the query list
+            self.browser.get(self.landing_path)
+            self.wait_until_loaded()
+
+            # Get the card with the new query
+            card_selector = '[data-test-id="card-{}"]'.format(query.name)
+            card = self.browser.element(card_selector)
+
+            # Open the context menu
+            card.find_element_by_css_selector('[data-test-id="context-menu"]').click()
+            # Delete the query
+            card.find_element_by_css_selector('[href="#delete-query"]').click()
+
+            # Wait for card to clear
+            self.browser.wait_until_not(card_selector)
+
+            assert DiscoverSavedQuery.objects.filter(name=query.name).exists() is False
+
+    def test_duplicate_query(self):
+        # Create saved query with ORM
+        query = DiscoverSavedQuery.objects.create(
+            name="Custom query",
+            organization=self.org,
+            version=2,
+            query={"fields": ["title", "project.id", "count()"], "query": "event.type:error"},
+        )
+        with self.feature(FEATURE_NAMES):
+            # View the query list
+            self.browser.get(self.landing_path)
+            self.wait_until_loaded()
+
+            # Get the card with the new query
+            card_selector = '[data-test-id="card-{}"]'.format(query.name)
+            card = self.browser.element(card_selector)
+
+            # Open the context menu, and duplicate
+            card.find_element_by_css_selector('[data-test-id="context-menu"]').click()
+            card.find_element_by_css_selector('[href="#duplicate-query"]').click()
+
+            duplicate_name = "{} copy".format(query.name)
+            # Wait for new element to show up.
+            self.browser.element('[data-test-id="card-{}"]'.format(duplicate_name))
+        # Assert the new query exists and has 'copy' added to the name.
+        assert DiscoverSavedQuery.objects.filter(name=duplicate_name).exists()
 
     @pytest.mark.skip(reason="not done")
     @patch("django.utils.timezone.now")

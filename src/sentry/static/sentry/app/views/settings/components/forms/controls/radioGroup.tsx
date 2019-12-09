@@ -119,9 +119,9 @@ const RadioLineText = styled('div', {shouldForwardProp})<{disabled?: boolean}>`
 `;
 
 const Description = styled('div')`
-  color: ${p => p.theme.gray1};
+  color: ${p => p.theme.gray2};
   font-size: ${p => p.theme.fontSizeRelativeSmall};
-  line-height: 1.25em;
+  line-height: 1.4em;
 `;
 
 export default RadioGroup;

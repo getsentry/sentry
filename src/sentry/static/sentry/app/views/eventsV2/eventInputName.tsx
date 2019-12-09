@@ -18,8 +18,7 @@ type Props = {
   api: Client;
   organization: Organization;
   eventView: EventView;
-  savedQueries: SavedQuery[];
-  onQueryChange: () => void;
+  savedQuery: SavedQuery | undefined;
 };
 
 const NAME_DEFAULT = t('Untitled query');
@@ -32,7 +31,7 @@ class EventInputName extends React.Component<Props> {
   private refInput = React.createRef<InlineInput>();
 
   onBlur = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const {api, organization, eventView, savedQueries} = this.props;
+    const {api, organization, savedQuery, eventView} = this.props;
     const nextQueryName = (event.target.value || '').trim();
 
     // Do not update automatically if
@@ -50,7 +49,6 @@ class EventInputName extends React.Component<Props> {
       return;
     }
 
-    const savedQuery = savedQueries.find(s => s.id === eventView.id);
     if (!savedQuery || savedQuery.name === nextQueryName) {
       return;
     }
@@ -63,12 +61,15 @@ class EventInputName extends React.Component<Props> {
     });
 
     handleUpdateQueryName(api, organization, nextEventView).then(
-      (updatedQuery: SavedQuery) => {
-        this.props.onQueryChange();
-        const view = EventView.fromSavedQuery(updatedQuery);
+      (_updatedQuery: SavedQuery) => {
+        // The current eventview may have changes that are not explicitly saved.
+        // So, we just preserve them and change its name
+        const renamedEventView = eventView.clone();
+        renamedEventView.name = nextQueryName;
+
         browserHistory.push({
           pathname: location.pathname,
-          query: view.generateQueryStringObject(),
+          query: renamedEventView.generateQueryStringObject(),
         });
       }
     );

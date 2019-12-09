@@ -4,7 +4,6 @@ import React from 'react';
 import {EXPERIMENTAL_SPA} from 'app/constants';
 import App from 'app/views/app';
 import AuthLayout from 'app/views/auth/layout';
-import HookOrDefault from 'app/components/hookOrDefault';
 import HookStore from 'app/stores/hookStore';
 import IssueListContainer from 'app/views/issueList/container';
 import IssueListOverview from 'app/views/issueList/overview';
@@ -38,12 +37,6 @@ function appendTrailingSlash(nextState, replace) {
 const lazyLoad = cb => m => cb(null, m.default);
 
 const hook = name => HookStore.get(name).map(cb => cb());
-
-const OrganizationMembersWrapper = HookOrDefault({
-  hookName: 'component:org-members-view',
-  defaultComponentPromise: () =>
-    import(/* webpackChunkName: "OrganizationMembersWrapper" */ 'app/views/settings/organizationMembers/organizationMembersWrapper'),
-});
 
 function routes() {
   const accountSettingsRoutes = (
@@ -584,7 +577,12 @@ function routes() {
       />
 
       <Route path="members/" name="Members">
-        <Route component={OrganizationMembersWrapper}>
+        <Route
+          componentPromise={() =>
+            import(/* webpackChunkName: "OrganizationMembersWrapper" */ 'app/views/settings/organizationMembers/organizationMembersWrapper')
+          }
+          component={errorHandler(LazyLoad)}
+        >
           <IndexRoute
             componentPromise={() =>
               import(/* webpackChunkName: "OrganizationMembersList" */ 'app/views/settings/organizationMembers/organizationMembersList')
@@ -1175,6 +1173,13 @@ function routes() {
             <IndexRoute
               componentPromise={() =>
                 import(/* webpackChunkName: "DiscoverV2Landing" */ 'app/views/eventsV2/landing')
+              }
+              component={errorHandler(LazyLoad)}
+            />
+            <Route
+              path="results/"
+              componentPromise={() =>
+                import(/* webpackChunkName: "DiscoverV2Results" */ 'app/views/eventsV2/results')
               }
               component={errorHandler(LazyLoad)}
             />

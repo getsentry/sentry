@@ -1,6 +1,5 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
-import memoize from 'lodash/memoize';
 
 import {IncidentRule} from 'app/views/settings/incidentRules/types';
 import {Organization} from 'app/types';
@@ -29,6 +28,13 @@ class IncidentRulesDetails extends AsyncView<
   RouteComponentProps<RouteParams, {}> & Props,
   State
 > {
+  getDefaultState() {
+    return {
+      ...super.getDefaultState(),
+      actions: new Map(),
+    };
+  }
+
   getEndpoints() {
     const {orgId, incidentRuleId} = this.props.params;
 
@@ -58,16 +64,16 @@ class IncidentRulesDetails extends AsyncView<
       });
 
       const actionsTriggersTuples: [string, any][] = await Promise.all(resp);
-      this.setState(() => ({
+      this.setState({
         actions: new Map(actionsTriggersTuples),
-      }));
+      });
     } catch (_err) {
       addErrorMessage(t('Unable to fetch actions'));
     }
     this.setState({loading: false});
   };
 
-  getActions = memoize((rule, actions) => {
+  getActions = (rule, actions) => {
     const triggers = rule.triggers.map(trigger => ({
       ...trigger,
       actions: actions.get(trigger.id) || [],
@@ -77,7 +83,7 @@ class IncidentRulesDetails extends AsyncView<
       ...rule,
       triggers,
     };
-  });
+  };
 
   renderBody() {
     const {organization, params} = this.props;

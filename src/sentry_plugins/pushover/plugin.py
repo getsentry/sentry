@@ -96,7 +96,7 @@ class PushoverPlugin(CorePluginMixin, NotifyPlugin):
 
         message = event.get_legacy_message()[:256]
 
-        tags = event.get_tags()
+        tags = event.tags
         if tags:
             message += "\n\nTags: %s" % (", ".join("%s=%s" % (k, v) for (k, v) in tags))
 

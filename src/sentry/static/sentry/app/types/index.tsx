@@ -60,6 +60,7 @@ export type Project = {
   isBookmarked: boolean;
   hasUserReports?: boolean;
   hasAccess: boolean;
+  platform: string;
 };
 
 export type Team = {

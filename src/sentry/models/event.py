@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import six
 import string
-import warnings
 import pytz
 
 from collections import OrderedDict
@@ -279,12 +278,8 @@ class EventCommon(object):
             # vs ((tag, foo), (tag, bar))
             return []
 
-    # For compatibility, still used by plugins.
-    def get_tags(self):
-        return self.tags
-
     def get_tag(self, key):
-        for t, v in self.get_tags():
+        for t, v in self.tags:
             if t == key:
                 return v
         return None
@@ -373,18 +368,6 @@ class EventCommon(object):
         ref = self.data.get_ref(self)
         self.data.bind_data(node_data, ref=ref)
 
-    # ============================================
-    # DEPRECATED
-    # ============================================
-
-    # TODO: This is currently used in the Twilio and Flowdock plugins
-    # Remove this after usage has been removed there.
-    def error(self):  # TODO why is this not a property?
-        warnings.warn("Event.error is deprecated, use Event.title", DeprecationWarning)
-        return self.title
-
-    error.short_description = _("error")
-
 
 class SnubaEvent(EventCommon):
     """
@@ -424,7 +407,7 @@ class SnubaEvent(EventCommon):
         node_id = SnubaEvent.generate_node_id(
             self.snuba_data["project_id"], self.snuba_data["event_id"]
         )
-        self.data = NodeData(None, node_id, data=None, wrapper=EventDict)
+        self.data = NodeData(node_id, data=None, wrapper=EventDict)
 
     def __getattr__(self, name):
         """
@@ -542,6 +525,10 @@ class SnubaEvent(EventCommon):
         raise NotImplementedError
 
 
+def ref_func(x):
+    return x.project_id or x.project.id
+
+
 class Event(EventCommon, Model):
     """
     An event backed by data stored in postgres.
@@ -560,7 +547,7 @@ class Event(EventCommon, Model):
     data = NodeField(
         blank=True,
         null=True,
-        ref_func=lambda x: x.project_id or x.project.id,
+        ref_func=ref_func,
         ref_version=2,
         wrapper=EventDict,
         skip_nodestore_save=True,
