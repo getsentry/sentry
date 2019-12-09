@@ -340,7 +340,7 @@ def get_id(result):
         return result[1]
 
 
-def get_pagination_ids(event, query, params, reference=None, referrer=None):
+def get_pagination_ids(event, query, params, reference_event=None, referrer=None):
     """
     High-level API for getting pagination data for an event + filter
 
@@ -350,14 +350,14 @@ def get_pagination_ids(event, query, params, reference=None, referrer=None):
     event (Event) The event to find related events for.
     query (str) Filter query string to create conditions from.
     params (Dict[str, str]) Filtering parameters with start, end, project_id, environment,
-    reference (Reference) A reference event object. Used to generate additional conditions
-                          based on the provided reference.
+    reference_event (ReferenceEvent) A reference event object. Used to generate additional
+                                    conditions based on the provided reference.
     referrer (str|None) A referrer string to help locate the origin of this query.
     """
     snuba_filter = get_filter(query, params)
 
-    if reference:
-        ref_conditions = create_reference_event_conditions(reference)
+    if reference_event:
+        ref_conditions = create_reference_event_conditions(reference_event)
         if ref_conditions:
             snuba_filter.conditions.extend(ref_conditions)
 

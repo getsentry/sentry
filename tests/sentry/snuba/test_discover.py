@@ -847,7 +847,7 @@ class GetPaginationIdsTest(SnubaTestCase, TestCase):
             self.event,
             "foo:1",
             {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago},
-            reference=reference,
+            reference_event=reference,
         )
         assert result.previous == "a" * 32
         assert result.next == "c" * 32
