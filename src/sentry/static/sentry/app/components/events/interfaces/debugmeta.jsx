@@ -19,6 +19,7 @@ import {formatAddress, parseAddress} from 'app/components/events/interfaces/util
 import ImageForBar from 'app/components/events/interfaces/imageForBar';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
+import space from 'app/styles/space';
 
 const IMAGE_ADDR_LEN = 12;
 const MIN_FILTER_LEN = 3;
@@ -440,7 +441,7 @@ class DebugMetaInterface extends React.PureComponent {
         <GuideAnchor target="packages" position="top">
           <AlignItems>
             <h3>
-              <strong>{t('Images Loaded')}</strong>
+              <span>{t('Images Loaded')}</span>
             </h3>
             {this.renderToolbar()}
           </AlignItems>
@@ -491,10 +492,17 @@ class DebugMetaInterface extends React.PureComponent {
   }
 }
 
+//remove important once less files are gone
 const AlignItems = styled('div')`
   display: flex;
   align-items: baseline;
   justify-content: space-between;
+  flex-wrap: wrap;
+  margin-bottom: ${space(3)};
+  h3 {
+    margin-bottom: 0 !important;
+    padding-right: ${space(1)};
+  }
 `;
 
 const Label = styled('label')`
