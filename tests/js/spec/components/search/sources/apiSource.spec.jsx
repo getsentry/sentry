@@ -52,6 +52,19 @@ describe('ApiSource', function() {
       query: '12345678901234567890123456789012',
       body: TestStubs.EventIdQueryResult(),
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/plugins/?plugins=_all',
+      query: {plugins: '_all'},
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/config/integrations/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/shortids/foo-t/',
+      body: [],
+    });
     allMocks = {orgsMock, projectsMock, teamsMock, membersMock, shortIdMock, eventIdMock};
   });
 
