@@ -441,9 +441,7 @@ class DebugMetaInterface extends React.PureComponent {
       <div>
         <GuideAnchor target="packages" position="top">
           <AlignItems>
-            <h3>
-              <span>{t('Images Loaded')}</span>
-            </h3>
+            <ImagesTitle>{t('Images Loaded')}</ImagesTitle>
             {this.renderToolbar()}
           </AlignItems>
         </GuideAnchor>
@@ -500,10 +498,10 @@ const AlignItems = styled('div')`
   justify-content: space-between;
   flex-wrap: wrap;
   margin-bottom: ${space(3)};
-  h3 {
-    margin-bottom: 0 !important;
-    padding-right: ${space(1)};
-  }
+`;
+const ImagesTitle = styled('h3')`
+  margin-bottom: 0 !important;
+  padding-right: ${space(1)};
 `;
 
 const Label = styled('label')`
