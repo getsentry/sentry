@@ -402,7 +402,7 @@ class DebugMetaInterface extends React.PureComponent {
   renderToolbar() {
     const {filter, showDetails, showUnused} = this.state;
     return (
-      <div>
+      <ToolbarWrapper>
         <Label>
           <Checkbox checked={showDetails} onChange={this.handleChangeShowDetails} />
           {t('details')}
@@ -424,7 +424,7 @@ class DebugMetaInterface extends React.PureComponent {
             smaller
           />
         </SearchInputWrapper>
-      </div>
+      </ToolbarWrapper>
     );
   }
 
@@ -587,6 +587,11 @@ const EmptyItem = styled(PanelItem)`
     margin-right: 1ex;
     vertical-align: text-bottom;
   }
+`;
+const ToolbarWrapper = styled('div')`
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
 `;
 const SearchInputWrapper = styled('div')`
   max-width: 180px;
