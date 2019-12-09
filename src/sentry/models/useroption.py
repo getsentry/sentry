@@ -5,7 +5,7 @@ from django.db import models
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.fields import EncryptedPickledObjectField
-from sentry.db.models.manager import BaseManager
+from sentry.db.models.manager import OptionManager
 
 
 class UserOptionValue(object):
@@ -34,7 +34,7 @@ def organization_metakey(user, organization):
     return (user.pk, organization.pk, "organization")
 
 
-class UserOptionManager(BaseManager):
+class UserOptionManager(OptionManager):
     def get_value(self, user, key, default=None, **kwargs):
         project = kwargs.get("project")
         organization = kwargs.get("organization")
@@ -58,11 +58,9 @@ class UserOptionManager(BaseManager):
         else:
             metakey = user_metakey(user)
 
-        with BaseManager.local_cache():
-            local_cache = self._get_local_cache()
-        if metakey not in local_cache:
+        if metakey not in self._cache:
             return
-        local_cache[metakey].pop(key, None)
+        self._cache[metakey].pop(key, None)
 
     def set_value(self, user, key, value, **kwargs):
         project = kwargs.get("project")
@@ -88,14 +86,11 @@ class UserOptionManager(BaseManager):
         else:
             metakey = user_metakey(user)
 
-        with BaseManager.local_cache():
-            local_cache = self._get_local_cache()
-
-        if metakey not in local_cache:
+        if metakey not in self._cache:
             return
-        local_cache[metakey][key] = value
+        self._cache[metakey][key] = value
 
-    def get_all_values(self, user, project=None, organization=None):
+    def get_all_values(self, user, project=None, organization=None, force_reload=False):
         if organization and project:
             raise NotImplementedError(option_scope_error)
 
@@ -106,16 +101,23 @@ class UserOptionManager(BaseManager):
         else:
             metakey = user_metakey(user)
 
-        with BaseManager.local_cache():
-            local_cache = self._get_local_cache()
-
-        if metakey not in local_cache:
+        if metakey not in self._cache or force_reload:
             result = dict(
                 (i.key, i.value)
                 for i in self.filter(user=user, project=project, organization=organization)
             )
-            local_cache[metakey] = result
-        return local_cache.get(metakey, {})
+            self._cache[metakey] = result
+        return self._cache.get(metakey, {})
+
+    def post_save(self, instance, **kwargs):
+        self.get_all_values(
+            instance.user, instance.project_id, instance.organization_id, force_reload=True
+        )
+
+    def post_delete(self, instance, **kwargs):
+        self.get_all_values(
+            instance.user, instance.project_id, instance.organization_id, force_reload=True
+        )
 
 
 # TODO(dcramer): the NULL UNIQUE constraint here isnt valid, and instead has to

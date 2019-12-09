@@ -5,11 +5,11 @@ from django.db import models
 from sentry import projectoptions
 from sentry.db.models import Model, FlexibleForeignKey, sane_repr
 from sentry.db.models.fields import EncryptedPickledObjectField
-from sentry.db.models.manager import BaseManager
+from sentry.db.models.manager import OptionManager
 from sentry.utils.cache import cache
 
 
-class ProjectOptionManager(BaseManager):
+class ProjectOptionManager(OptionManager):
     def _make_key(self, instance_id):
         assert instance_id
         return "%s:%s" % (self.model._meta.db_table, instance_id)
@@ -48,24 +48,20 @@ class ProjectOptionManager(BaseManager):
         else:
             project_id = project
 
-        with BaseManager.local_cache():
-            local_cache = self._get_local_cache()
-
-        if project_id not in local_cache:
+        if project_id not in self._cache:
             cache_key = self._make_key(project_id)
             result = cache.get(cache_key)
             if result is None:
                 result = self.reload_cache(project_id)
             else:
-                local_cache[project_id] = result
-        return local_cache.get(project_id, {})
+                self._cache[project_id] = result
+        return self._cache.get(project_id, {})
 
     def reload_cache(self, project_id):
         cache_key = self._make_key(project_id)
         result = dict((i.key, i.value) for i in self.filter(project=project_id))
         cache.set(cache_key, result)
-        with BaseManager.local_cache():
-            self._get_local_cache()[project_id] = result
+        self._cache[project_id] = result
         return result
 
     def post_save(self, instance, **kwargs):

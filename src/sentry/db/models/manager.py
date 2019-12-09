@@ -19,7 +19,7 @@ from sentry.utils.hashlib import md5_text
 
 from .query import create_or_update
 
-__all__ = ("BaseManager",)
+__all__ = ("BaseManager", "OptionManager")
 
 logger = logging.getLogger("sentry")
 
@@ -451,3 +451,11 @@ class BaseManager(Manager):
         if hasattr(self, "_hints"):
             return self._queryset_class(self.model, using=self._db, hints=self._hints)
         return self._queryset_class(self.model, using=self._db)
+
+
+class OptionManager(BaseManager):
+    def __init__(self, *args, **kwargs):
+        local_cache = threading.local()
+        local_cache.cache = {}
+        self._cache = local_cache.cache
+        super(OptionManager, self).__init__(*args, **kwargs)

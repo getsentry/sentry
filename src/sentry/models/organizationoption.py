@@ -4,11 +4,11 @@ from django.db import models
 
 from sentry.db.models import Model, FlexibleForeignKey, sane_repr
 from sentry.db.models.fields import EncryptedPickledObjectField
-from sentry.db.models.manager import BaseManager
+from sentry.db.models.manager import OptionManager
 from sentry.utils.cache import cache
 
 
-class OrganizationOptionManager(BaseManager):
+class OrganizationOptionManager(OptionManager):
     def _make_key(self, instance_id):
         assert instance_id
         return "%s:%s" % (self.model._meta.db_table, instance_id)
@@ -43,23 +43,20 @@ class OrganizationOptionManager(BaseManager):
         else:
             organization_id = organization
 
-        with BaseManager.local_cache():
-            local_cache = self._get_local_cache()
-        if organization_id not in local_cache:
+        if organization_id not in self._cache:
             cache_key = self._make_key(organization_id)
             result = cache.get(cache_key)
             if result is None:
                 result = self.reload_cache(organization_id)
             else:
-                local_cache[organization_id] = result
-        return local_cache.get(organization_id, {})
+                self._cache[organization_id] = result
+        return self._cache.get(organization_id, {})
 
     def reload_cache(self, organization_id):
         cache_key = self._make_key(organization_id)
         result = dict((i.key, i.value) for i in self.filter(organization=organization_id))
         cache.set(cache_key, result)
-        with BaseManager.local_cache():
-            self._get_local_cache()[organization_id] = result
+        self._cache[organization_id] = result
         return result
 
     def post_save(self, instance, **kwargs):
