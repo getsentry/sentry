@@ -2,13 +2,14 @@ from __future__ import absolute_import
 
 import logging
 import msgpack
+from six import BytesIO
 
 
 from django.conf import settings
 from django.core.cache import cache
 
 from sentry.cache import default_cache
-from sentry.models import Project
+from sentry.models import Project, File, EventAttachment
 from sentry.signals import event_accepted
 from sentry.tasks.store import preprocess_event
 from sentry.utils import json
@@ -137,7 +138,34 @@ def process_attachment_chunk(message):
 
 
 def process_individual_attachment(message):
-    raise RuntimeError("Not implemented yet")
+    event_id = message["event_id"]
+    project_id = message["project_id"]
+    cache_key = cache_key_for_event({"event_id": event_id, "project": project_id})
+
+    try:
+        project = Project.objects.get_from_cache(id=project_id)
+    except Project.DoesNotExist:
+        logger.error("Project for ingested event does not exist: %s", project_id)
+        return
+
+    attachment = message["attachment"]
+    attachment = attachment_cache.get_from_chunks(
+        key=cache_key, type=attachment.pop("attachment_type"), **attachment
+    )
+    assert attachment.type == "event.attachment", attachment.type
+
+    file = File.objects.create(
+        name=attachment.name,
+        type=attachment.type,
+        headers={"Content-Type": attachment.content_type},
+    )
+
+    file.putfile(BytesIO(attachment.data))
+    EventAttachment.objects.create(
+        project_id=project.id, event_id=event_id, name=attachment.name, file=file
+    )
+
+    attachment.delete()
 
 
 def get_ingest_consumer(consumer_type, once=False, **options):

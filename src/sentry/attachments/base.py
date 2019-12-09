@@ -11,6 +11,8 @@ ATTACHMENT_META_KEY = u"{key}:a"
 ATTACHMENT_UNCHUNKED_DATA_KEY = u"{key}:a:{id}"
 ATTACHMENT_DATA_CHUNK_KEY = u"{key}:a:{id}:{chunk_index}"
 
+UNINITIALIZED_DATA = object()
+
 
 class CachedAttachment(object):
     def __init__(
@@ -20,7 +22,7 @@ class CachedAttachment(object):
         name=None,
         content_type=None,
         type=None,
-        data=None,
+        data=UNINITIALIZED_DATA,
         chunks=None,
         cache=None,
     ):
@@ -44,11 +46,15 @@ class CachedAttachment(object):
 
     @property
     def data(self):
-        if self._data is None and self._cache is not None:
+        if self._data is UNINITIALIZED_DATA and self._cache is not None:
             self._data = self._cache.get_data(self)
-            self._cache = None
 
+        assert self._data is not UNINITIALIZED_DATA
         return self._data
+
+    def delete(self):
+        for key in self.chunk_keys:
+            self._cache.inner.delete(key)
 
     @property
     def chunk_keys(self):
@@ -121,6 +127,9 @@ class BaseAttachmentCache(object):
         metrics.incr("attachments.received", tags=metrics_tags, skip_internal=False)
         self.inner.set(key, compressed, timeout, raw=True)
 
+    def get_from_chunks(self, key, **attachment):
+        return CachedAttachment(key=key, cache=self, **attachment)
+
     def get(self, key):
         result = self.inner.get(ATTACHMENT_META_KEY.format(key=key), raw=False)
 
@@ -139,7 +148,6 @@ class BaseAttachmentCache(object):
 
     def delete(self, key):
         for attachment in self.get(key):
-            for k in attachment.chunk_keys:
-                self.inner.delete(k)
+            attachment.delete()
 
         self.inner.delete(ATTACHMENT_META_KEY.format(key=key))
