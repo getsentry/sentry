@@ -416,13 +416,14 @@ class DebugMetaInterface extends React.PureComponent {
           />
           {t('show unreferenced')}
         </Label>
-
-        <SearchInput
-          value={filter}
-          onChange={this.handleChangeFilter}
-          placeholder={t('Search loaded images\u2026')}
-          smaller
-        />
+        <SearchInputWrapper>
+          <SearchInput
+            value={filter}
+            onChange={this.handleChangeFilter}
+            placeholder={t('Search images\u2026')}
+            smaller
+          />
+        </SearchInputWrapper>
       </div>
     );
   }
@@ -586,6 +587,10 @@ const EmptyItem = styled(PanelItem)`
     margin-right: 1ex;
     vertical-align: text-bottom;
   }
+`;
+const SearchInputWrapper = styled('div')`
+  max-width: 180px;
+  display: inline-block;
 `;
 
 export default DebugMetaInterface;
