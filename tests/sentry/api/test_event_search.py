@@ -5,6 +5,7 @@ import pytest
 import six
 import unittest
 from datetime import timedelta
+from semaphore.consts import SPAN_STATUS_CODE_TO_NAME
 
 from django.utils import timezone
 from freezegun import freeze_time
@@ -1015,6 +1016,23 @@ class GetSnubaQueryArgsTest(TestCase):
         filter.conditions == [["project_id", "=", p1.id]]
         filter.filter_keys == {"project_id": [p1.id, p2.id]}
         filter.project_ids == [p1.id, p2.id]
+
+    def test_transaction_status(self):
+        for (key, val) in SPAN_STATUS_CODE_TO_NAME.items():
+            result = get_filter("transaction.status:{}".format(val))
+            assert result.conditions == [["transaction.status", "=", key]]
+
+    def test_transaction_status_no_wildcard(self):
+        with pytest.raises(InvalidSearchQuery) as err:
+            get_filter("transaction.status:o*")
+        assert "Invalid value" in six.text_type(err)
+        assert "cancelled," in six.text_type(err)
+
+    def test_transaction_status_invalid(self):
+        with pytest.raises(InvalidSearchQuery) as err:
+            get_filter("transaction.status:lol")
+        assert "Invalid value" in six.text_type(err)
+        assert "cancelled," in six.text_type(err)
 
 
 class ResolveFieldListTest(unittest.TestCase):
