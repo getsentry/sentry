@@ -23,15 +23,28 @@ option_scope_error = "this is not a supported use case, scope to project OR orga
 
 
 def user_metakey(user):
-    return user.pk
+    if isinstance(user, models.Model):
+        return user.pk
+    else:
+        return user
 
 
 def project_metakey(user, project):
-    return (user.pk, project.pk, "project")
+    if isinstance(project, models.Model):
+        project_id = project.pk
+    else:
+        project_id = project
+
+    return (user_metakey(user), project_id, "project")
 
 
 def organization_metakey(user, organization):
-    return (user.pk, organization.pk, "organization")
+    if isinstance(organization, models.Model):
+        organization_id = organization.pk
+    else:
+        organization_id = organization
+
+    return (user_metakey(user), organization_id, "organization")
 
 
 class UserOptionManager(OptionManager):
