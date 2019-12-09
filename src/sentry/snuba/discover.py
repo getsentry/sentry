@@ -36,7 +36,7 @@ def find_reference_event(reference_event):
     except Project.DoesNotExist:
         raise InvalidSearchQuery("Invalid reference event")
 
-    column_names = [c.value.discover_name for c in get_columns_from_aliases(reference_event.fields)]
+    column_names = [c.get() for c in get_columns_from_aliases(reference_event.fields)]
     # We don't need to run a query if there are no columns
     if not column_names:
         return None
