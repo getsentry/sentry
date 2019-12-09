@@ -51,7 +51,7 @@ export default class StacktraceContent extends React.Component {
       'data.images'
     );
 
-    return images ? images.find(img => img.code_file === framePackage) : null;
+    return images ? images.find(img => get(img, 'code_file') === framePackage) : null;
   }
 
   handleToggleAddresses = event => {
