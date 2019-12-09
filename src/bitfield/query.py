@@ -4,8 +4,6 @@ from bitfield.types import Bit, BitHandler
 
 from django.db.models.lookups import Exact
 
-# from django.db.models.lookups import Lookup
-
 
 class BitQueryLookupWrapper(Exact):
     def process_lhs(self, qn, connection, lhs=None):

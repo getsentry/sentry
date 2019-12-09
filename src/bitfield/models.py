@@ -138,13 +138,7 @@ class BitField(BigIntegerField):
         if isinstance(getattr(value, "expression", None), Bit):
             value = value.expression
         if isinstance(value, (BitHandler, Bit)):
-            if hasattr(self, "class_lookups"):
-                # Django 1.7+
-                return [value.mask]
-            else:
-                return BitQueryLookupWrapper(
-                    self.model._meta.db_table, self.db_column or self.name, value
-                )
+            return [value.mask]
         return BigIntegerField.get_db_prep_lookup(
             self, lookup_type=lookup_type, value=value, connection=connection, prepared=prepared
         )
