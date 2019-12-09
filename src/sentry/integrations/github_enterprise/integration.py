@@ -93,7 +93,12 @@ metadata = IntegrationMetadata(
 )
 
 
-API_ERRORS = {404: "GitHub Enterprise returned a 404 Not Found error.", 401: ERR_UNAUTHORIZED}
+API_ERRORS = {
+    404: "If this repository exists, ensure"
+    + " that your installation has permission to access this repository"
+    + " (https://github.com/settings/installations).",
+    401: ERR_UNAUTHORIZED,
+}
 
 
 class GitHubEnterpriseIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMixin):
@@ -135,12 +140,9 @@ class GitHubEnterpriseIntegration(IntegrationInstallation, GitHubIssueBasic, Rep
     def message_from_error(self, exc):
         if isinstance(exc, ApiError):
             message = API_ERRORS.get(exc.code)
-            if message:
-                return message
-            return "Error Communicating with GitHub Enterprise (HTTP %s): %s" % (
-                exc.code,
-                exc.json.get("message", "unknown error") if exc.json else "unknown error",
-            )
+            if message is None:
+                message = exc.json.get("message", "unknown error") if exc.json else "unknown error"
+            return "Error Communicating with GitHub Enterprise (HTTP %s): %s" % (exc.code, message)
         else:
             return ERR_INTERNAL
 
