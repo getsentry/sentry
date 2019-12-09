@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from 'react-emotion';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
-import {singleLineRenderer} from 'app/utils/marked';
 import {t, tct} from 'app/locale';
 import AddIntegration from 'app/views/organizationIntegrations/addIntegration';
 import Alert from 'app/components/alert';
@@ -12,16 +12,27 @@ import HookStore from 'app/stores/hookStore';
 import IndicatorStore from 'app/stores/indicatorStore';
 import NarrowLayout from 'app/components/narrowLayout';
 import SelectControl from 'app/components/forms/selectControl';
+import {Organization, IntegrationProvider, Integration} from 'app/types';
 
-export default class IntegrationInstallation extends AsyncView {
-  state = {
-    selectedOrg: null,
-    organization: null,
-    providers: [],
-    reloading: false,
-  };
+type Props = RouteComponentProps<{}, {}> & AsyncView['props'];
 
-  getEndpoints() {
+type State = AsyncView['state'] & {
+  selectedOrg: string | null;
+  organization: Organization | null;
+  providers: IntegrationProvider[];
+};
+
+export default class IntegrationInstallation extends AsyncView<Props, State> {
+  getDefaultState(): State {
+    return {
+      ...super.getDefaultState(),
+      selectedOrg: null,
+      organization: null,
+      providers: [],
+    };
+  }
+
+  getEndpoints(): [string, string][] {
     return [['organizations', '/organizations/']];
   }
 
@@ -29,23 +40,24 @@ export default class IntegrationInstallation extends AsyncView {
     return t('Choose Installation Organization');
   }
 
-  get provider() {
+  get provider(): IntegrationProvider | undefined {
     return this.state.providers.find(p => p.key === this.props.params.providerId);
   }
 
-  onInstall = data => {
-    const orgId = this.state.organization.slug;
+  onInstall = (data: Integration) => {
+    const {organization} = this.state;
+    const orgId = organization && organization.slug;
     this.props.router.push(
       `/settings/${orgId}/integrations/${data.provider.key}/${data.id}`
     );
   };
 
-  onSelectOrg = ({value: orgId}) => {
+  onSelectOrg = ({value: orgId}: {value: string}) => {
     this.setState({selectedOrg: orgId, reloading: true});
     const reloading = false;
 
     this.api.request(`/organizations/${orgId}/`, {
-      success: organization => this.setState({organization, reloading}),
+      success: (organization: Organization) => this.setState({organization, reloading}),
       error: () => {
         this.setState({reloading});
         IndicatorStore.addError(t('Failed to retrieve organization details'));
@@ -53,7 +65,8 @@ export default class IntegrationInstallation extends AsyncView {
     });
 
     this.api.request(`/organizations/${orgId}/config/integrations/`, {
-      success: providers => this.setState({providers: providers.providers, reloading}),
+      success: (providers: {providers: IntegrationProvider[]}) =>
+        this.setState({providers: providers.providers, reloading}),
       error: () => {
         this.setState({reloading});
         IndicatorStore.addError(t('Failed to retrieve integration provider details'));
@@ -61,13 +74,13 @@ export default class IntegrationInstallation extends AsyncView {
     });
   };
 
-  hasAccess = org => org.access.includes('org:integrations');
+  hasAccess = (org: Organization) => org.access.includes('org:integrations');
 
   renderAddButton() {
     const {organization, reloading} = this.state;
     const {installationId} = this.props.params;
 
-    const AddButton = p => (
+    const AddButton = (p: Button['props']) => (
       <Button priority="primary" busy={reloading} {...p}>
         Install Integration
       </Button>
@@ -81,7 +94,7 @@ export default class IntegrationInstallation extends AsyncView {
       <AddIntegration provider={this.provider} onInstall={this.onInstall}>
         {addIntegration => (
           <AddButton
-            disabled={organization && !this.hasAccess(organization)}
+            disabled={!!organization && !this.hasAccess(organization)}
             onClick={() => addIntegration({installation_id: installationId})}
           />
         )}
@@ -94,9 +107,9 @@ export default class IntegrationInstallation extends AsyncView {
     const choices = this.state.organizations.map(org => [org.slug, org.slug]);
 
     const featureListHooks = HookStore.get('integrations:feature-gates');
-    featureListHooks.push(() => ({FeatureList: null}));
-
-    const {FeatureList} = featureListHooks[0]();
+    const FeatureList = featureListHooks.length
+      ? featureListHooks[0]().FeatureList
+      : null;
 
     return (
       <NarrowLayout>
@@ -136,7 +149,6 @@ export default class IntegrationInstallation extends AsyncView {
             <FeatureList
               organization={organization}
               features={this.provider.metadata.features}
-              formatter={singleLineRenderer}
               provider={this.provider}
             />
           </React.Fragment>
