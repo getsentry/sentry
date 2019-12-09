@@ -14,6 +14,32 @@ describe('Discover', function() {
     organization = TestStubs.Organization({projects: [project]});
     queryBuilder = createQueryBuilder({}, organization);
     GlobalSelectionStore.reset();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/discover/saved/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/discover/query/',
+      method: 'POST',
+      body: {
+        data: [],
+        timing: {},
+        meta: [],
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
+      method: 'POST',
+      body: {
+        data: [],
+        timing: {},
+        meta: [],
+      },
+    });
   });
 
   afterEach(function() {
