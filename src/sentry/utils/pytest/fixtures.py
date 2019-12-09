@@ -145,12 +145,6 @@ def factories():
     return Factories
 
 
-@pytest.mark.django_db
-@pytest.fixture
-def project(team, factories):
-    return factories.create_project(name="bar", slug="bar", teams=[team])
-
-
 @pytest.fixture
 def task_runner():
     from sentry.testutils.helpers.task_runner import TaskRunner
