@@ -12,7 +12,9 @@ from django.db import router
 from django.db.models import Model
 from django.db.models.manager import Manager, QuerySet
 from django.db.models.signals import post_save, post_delete, post_init, class_prepared
+from django.core.signals import request_finished
 from django.utils.encoding import smart_text
+from celery.signals import task_postrun
 
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
@@ -455,7 +457,16 @@ class BaseManager(Manager):
 
 class OptionManager(BaseManager):
     def __init__(self, *args, **kwargs):
-        local_cache = threading.local()
-        local_cache.cache = {}
-        self._cache = local_cache.cache
+        self._local_cache = threading.local()
+        self._local_cache.cache = {}
+        self._cache = self._local_cache.cache
         super(OptionManager, self).__init__(*args, **kwargs)
+
+    def clear_local_cache(self, **kwargs):
+        for key in self._cache.keys():
+            del self._cache[key]
+
+    def contribute_to_class(self, model, name):
+        super(OptionManager, self).contribute_to_class(model, name)
+        task_postrun.connect(self.clear_local_cache)
+        request_finished.connect(self.clear_local_cache)

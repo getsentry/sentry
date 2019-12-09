@@ -211,6 +211,7 @@ class GroupSerializerTest(TestCase):
 
         for options, (is_subscribed, subscription_details) in combinations:
             default_value, project_value = options
+            UserOption.objects.clear_local_cache()
             maybe_set_value(None, default_value)
             maybe_set_value(group.project, project_value)
             result = serialize(group, user)
