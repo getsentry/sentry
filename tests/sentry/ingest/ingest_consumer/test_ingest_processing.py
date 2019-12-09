@@ -4,9 +4,14 @@ import pytest
 import time
 
 from sentry.utils import json
-from sentry.ingest.ingest_consumer import process_event, process_attachment_chunk
+from sentry.ingest.ingest_consumer import (
+    process_event,
+    process_attachment_chunk,
+    process_individual_attachment,
+)
 from sentry.attachments import attachment_cache
 from sentry.event_manager import EventManager
+from sentry.models import EventAttachment
 
 
 def get_normalized_event(data, project):
@@ -115,3 +120,53 @@ def test_with_attachments(default_project, task_runner, monkeypatch, preprocess_
     assert att.name == "lol.txt"
     assert att.content_type == "text/plain"
     assert att.type == "custom.attachment"
+
+
+@pytest.mark.django_db
+def test_individual_attachments(default_project, monkeypatch):
+    event_id = "515539018c9b4260a6f999572f1661ee"
+    project_id = default_project.id
+
+    process_attachment_chunk(
+        {
+            "payload": b"Hello ",
+            "event_id": event_id,
+            "project_id": project_id,
+            "id": 0,
+            "chunk_index": 0,
+        }
+    )
+
+    process_attachment_chunk(
+        {
+            "payload": b"World!",
+            "event_id": event_id,
+            "project_id": project_id,
+            "id": 0,
+            "chunk_index": 1,
+        }
+    )
+
+    process_individual_attachment(
+        {
+            "type": "attachment",
+            "attachment": {
+                "attachment_type": "event.attachment",
+                "chunks": 2,
+                "content_type": "application/octet-stream",
+                "id": "0",
+                "name": "foo.txt",
+            },
+            "event_id": event_id,
+            "project_id": project_id,
+        }
+    )
+
+    att1, = EventAttachment.objects.filter(project_id=project_id, event_id=event_id).select_related(
+        "file"
+    )
+    assert att1.file.type == "event.attachment"
+    assert att1.file.headers == {"Content-Type": "application/octet-stream"}
+    f = att1.file.getfile()
+    assert f.read() == b"Hello World!"
+    assert f.name == "foo.txt"
