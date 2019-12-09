@@ -3,9 +3,9 @@ from __future__ import absolute_import
 from rest_framework.response import Response
 
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
-from sentry.api.event_search import get_reference_event_conditions
 from sentry import eventstore, features
 from sentry.models.project import Project, ProjectStatus
+from sentry.snuba.discover import create_reference_event_conditions, ReferenceEvent
 from sentry.api.serializers import serialize
 
 
@@ -44,9 +44,10 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
         # This ensure that if a field list/groupby conditions were provided
         # that we constrain related events to the query + current event values
         event_slug = u"{}:{}".format(project.slug, event_id)
-        snuba_args["conditions"].extend(
-            get_reference_event_conditions(organization, snuba_args, event_slug)
-        )
+        fields = request.query_params.getlist("field")
+        if fields:
+            reference = ReferenceEvent(organization, event_slug, fields)
+            snuba_args["conditions"].extend(create_reference_event_conditions(reference))
 
         data = serialize(event)
         data["nextEventID"] = self.next_event_id(snuba_args, event)
