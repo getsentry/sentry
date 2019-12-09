@@ -130,12 +130,6 @@ class SnubaTSDB(BaseTSDB):
         + non_outcomes_query_settings.items()
     )
 
-    # ``model_columns_being_upgraded`` are models that currently use Redis but are being
-    # transitioned to use Snuba.
-    model_being_upgraded_query_settings = {}
-
-    model_being_upgraded_query_settings2 = {}
-
     project_filter_model_query_settings_lower_rollup = {
         model: SnubaModelQuerySettings(
             snuba.Dataset.OutcomesRaw, "project_id", None, [["reason", "=", reason]]
