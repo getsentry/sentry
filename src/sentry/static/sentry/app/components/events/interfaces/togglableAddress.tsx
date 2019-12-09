@@ -57,14 +57,13 @@ class TogglableAddress extends React.Component<Props> {
       isFoundByStackScanning,
       isInlineFrame,
     } = this.props;
+    const relativeAddress = this.convertAbsoluteAddressToRelative();
 
-    const formattedAddress = isAbsolute
-      ? address
-      : this.convertAbsoluteAddressToRelative();
+    const formattedAddress = !relativeAddress || isAbsolute ? address : relativeAddress;
 
     return (
       <Address>
-        {onToggle && (
+        {onToggle && relativeAddress && (
           <Tooltip title={isAbsolute ? t('Absolute') : t('Relative')}>
             <Toggle className="icon-filter" onClick={onToggle} />
           </Tooltip>
