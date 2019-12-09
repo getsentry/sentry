@@ -10,6 +10,7 @@ from sentry.api.event_search import (
     resolve_field_list,
     InvalidSearchQuery,
     AGGREGATE_PATTERN,
+    FIELD_ALIASES,
     VALID_AGGREGATES,
 )
 from sentry.models import Project, ProjectStatus
@@ -27,13 +28,19 @@ from sentry.utils.snuba import (
 ReferenceEvent = namedtuple("ReferenceEvent", ["organization", "slug", "fields"])
 
 
-def is_aggregation(col):
+def is_real_column(col):
+    """
+    Return true if col corresponds to an actual column to be fetched
+    (not an aggregate function or field alias)
+    """
+    if col in FIELD_ALIASES:
+        return False
+
     match = AGGREGATE_PATTERN.search(col)
-
     if match and match.group("function") in VALID_AGGREGATES:
-        return True
+        return False
 
-    return False
+    return True
 
 
 def find_reference_event(reference_event):
@@ -50,9 +57,7 @@ def find_reference_event(reference_event):
     except Project.DoesNotExist:
         raise InvalidSearchQuery("Invalid reference event")
 
-    column_names = [
-        resolve_column(col) for col in reference_event.fields if not is_aggregation(col)
-    ]
+    column_names = [resolve_column(col) for col in reference_event.fields if is_real_column(col)]
 
     # We don't need to run a query if there are no columns
     if not column_names:
