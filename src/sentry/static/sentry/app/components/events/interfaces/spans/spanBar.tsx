@@ -239,7 +239,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     switch (bounds.type) {
       case 'TRACE_TIMESTAMPS_EQUAL': {
         return {
-          warning: t('Trace timestamps are equal'),
+          warning: t('Trace times are equal'),
           left: void 0,
           width: void 0,
           isSpanVisibleInView: bounds.isSpanVisibleInView,
@@ -255,7 +255,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       }
       case 'TIMESTAMPS_EQUAL': {
         return {
-          warning: t('The start and end timestamps are equal'),
+          warning: t('Equal start and end times'),
           left: bounds.start,
           width: 0.00001,
           isSpanVisibleInView: bounds.isSpanVisibleInView,
@@ -263,7 +263,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       }
       case 'TIMESTAMPS_REVERSED': {
         return {
-          warning: t('The start and end timestamps are reversed'),
+          warning: t('Reversed start and end times'),
           left: bounds.start,
           width: bounds.end - bounds.start,
           isSpanVisibleInView: bounds.isSpanVisibleInView,
@@ -662,7 +662,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
 
     return (
       <Tooltip title={warningText}>
-        <WarningIcon src="icon-circle-exclamation" />
+        <WarningIcon src="icon-circle-info" />
       </Tooltip>
     );
   };
