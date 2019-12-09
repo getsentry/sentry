@@ -5,7 +5,13 @@ import six
 from collections import namedtuple
 from copy import deepcopy
 
-from sentry.api.event_search import get_filter, resolve_field_list, InvalidSearchQuery
+from sentry.api.event_search import (
+    get_filter,
+    resolve_field_list,
+    InvalidSearchQuery,
+    AGGREGATE_PATTERN,
+    VALID_AGGREGATES,
+)
 from sentry.models import Project, ProjectStatus
 from sentry.utils.snuba import (
     Dataset,
@@ -19,6 +25,15 @@ from sentry.utils.snuba import (
 )
 
 ReferenceEvent = namedtuple("ReferenceEvent", ["organization", "slug", "fields"])
+
+
+def is_aggregation(col):
+    match = AGGREGATE_PATTERN.search(col)
+
+    if match and match.group("function") in VALID_AGGREGATES:
+        return True
+
+    return False
 
 
 def find_reference_event(reference_event):
@@ -35,11 +50,8 @@ def find_reference_event(reference_event):
     except Project.DoesNotExist:
         raise InvalidSearchQuery("Invalid reference event")
 
-    # count() is allowable as a selected field in Discover
-    valid_functions = ["count()"]
-
     column_names = [
-        resolve_column(col) for col in reference_event.fields if col not in valid_functions
+        resolve_column(col) for col in reference_event.fields if not is_aggregation(col)
     ]
 
     # We don't need to run a query if there are no columns
