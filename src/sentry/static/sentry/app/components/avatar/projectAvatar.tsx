@@ -4,8 +4,13 @@ import React from 'react';
 import BaseAvatar from 'app/components/avatar/baseAvatar';
 import PlatformList from 'app/components/platformList';
 import SentryTypes from 'app/sentryTypes';
+import {Project} from 'app/types';
 
-class ProjectAvatar extends React.Component {
+type Props = {
+  project: Project;
+} & BaseAvatar['props'];
+
+class ProjectAvatar extends React.Component<Props> {
   static propTypes = {
     project: PropTypes.oneOfType([
       PropTypes.shape({slug: PropTypes.string}),
@@ -14,7 +19,7 @@ class ProjectAvatar extends React.Component {
     ...BaseAvatar.propTypes,
   };
 
-  getPlatforms = project => {
+  getPlatforms = (project: Project) => {
     // `platform` is a user selectable option that is performed during the onboarding process. The reason why this
     // is not the default is because there currently is no way to update it. Fallback to this if project does not
     // have recent events with a platform.
