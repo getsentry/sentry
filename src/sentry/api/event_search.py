@@ -11,6 +11,7 @@ from parsimonious.expressions import Optional
 from parsimonious.exceptions import IncompleteParseError, ParseError
 from parsimonious.nodes import Node
 from parsimonious.grammar import Grammar, NodeVisitor
+from semaphore.consts import SPAN_STATUS_NAME_TO_CODE
 
 from sentry import eventstore
 from sentry.models import Project
@@ -573,6 +574,15 @@ def convert_search_filter_to_snuba_query(search_filter):
         like_value = raw_value.replace("%", "\\%").replace("_", "\\_").replace("*", "%")
         operator = "LIKE" if search_filter.operator == "=" else "NOT LIKE"
         return [name, operator, like_value]
+    elif name == "transaction.status":
+        internal_value = SPAN_STATUS_NAME_TO_CODE.get(search_filter.value.raw_value)
+        if internal_value is None:
+            raise InvalidSearchQuery(
+                "Invalid value for transaction.status condition. Accepted values are {}".format(
+                    ", ".join(SPAN_STATUS_NAME_TO_CODE.keys())
+                )
+            )
+        return [name, search_filter.operator, internal_value]
     else:
         value = (
             int(to_timestamp(value)) * 1000
