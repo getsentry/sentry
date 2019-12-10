@@ -51,7 +51,7 @@ describe('LightWeightNoProjectMessage', function() {
       TestStubs.routerContext()
     );
 
-    // verify child is called/mounted once
+    // verify MockComponent is mounted once
     expect(mount).toHaveBeenCalledTimes(1);
     expect(wrapper.find('NoProjectMessage')).toHaveLength(1);
     expect(wrapper.find('NoProjectMessage').prop('loadingProjects')).toEqual(true);
@@ -60,7 +60,7 @@ describe('LightWeightNoProjectMessage', function() {
     await tick();
     wrapper.update();
 
-    // verify child is still only called/mounted once
+    // verify MockComponent is not unmounted and is still mounted once
     expect(unmount).toHaveBeenCalledTimes(0);
     expect(mount).toHaveBeenCalledTimes(1);
     expect(wrapper.find('NoProjectMessage')).toHaveLength(1);
