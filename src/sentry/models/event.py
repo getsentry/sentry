@@ -121,7 +121,7 @@ class EventCommon(object):
 
     def get_legacy_message(self):
         # TODO: This is only used in the pagerduty plugin. We should use event.title
-        # ther and remove this function once users have been notified, since PD
+        # there and remove this function once users have been notified, since PD
         # alert routing may be based off the message field.
         return (
             get_path(self.data, "logentry", "formatted")
