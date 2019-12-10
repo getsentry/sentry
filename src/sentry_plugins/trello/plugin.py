@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import re
 from django.conf.urls import url
 from rest_framework.response import Response
 from requests.exceptions import RequestException
@@ -164,9 +165,17 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
         return response["shortLink"]
 
     def get_issue_label(self, group, issue_id, **kwargs):
-        return "Trello Card"
+        # the old version of the plugin stores the url in the issue_id
+        if re.search("\w+/https://trello.com/", issue_id):
+            short_issue_id, url = issue_id.split("/", 1)
+            return "Trello-%s" % short_issue_id
+        return "Trello-%s" % issue_id
 
     def get_issue_url(self, group, issue_id, **kwargs):
+        # the old version of the plugin stores the url in the issue_id
+        if re.search("\w+/https://trello.com/", issue_id):
+            short_issue_id, url = issue_id.split("/", 1)
+            return url
         return "https://trello.com/c/%s" % issue_id
 
     def validate_config(self, project, config, actor):
