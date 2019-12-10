@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import pickle
 import six
 
+from django import forms
 from django.db import connection, models
 from django.db.models import F
 from django.test import TestCase
@@ -10,8 +11,20 @@ from django.test import TestCase
 from bitfield import Bit, BitField, BitHandler
 from bitfield.compat import bitand, bitor
 
-from .forms import BitFieldTestModelForm
-from .models import BitFieldTestModel
+
+class BitFieldTestModel(models.Model):
+    class Meta:
+        app_label = "sentry"
+
+    flags = BitField(
+        flags=("FLAG_0", "FLAG_1", "FLAG_2", "FLAG_3"), default=3, db_column="another_name"
+    )
+
+
+class BitFieldTestModelForm(forms.ModelForm):
+    class Meta:
+        model = BitFieldTestModel
+        exclude = tuple()
 
 
 class BitHandlerTest(TestCase):

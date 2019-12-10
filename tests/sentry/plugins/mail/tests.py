@@ -9,7 +9,6 @@ import pytz
 import six
 from django.contrib.auth.models import AnonymousUser
 from django.core import mail
-from django.db.models import F
 from django.utils import timezone
 from exam import fixture
 from mock import Mock
@@ -447,7 +446,7 @@ class MailPluginSignalsTest(TestCase):
         assert msg.to == [self.user.email]
 
     def test_user_feedback__enhanced_privacy(self):
-        self.organization.update(flags=F("flags").bitor(Organization.flags.enhanced_privacy))
+        self.organization.update(flags=Organization.flags.enhanced_privacy)
         assert self.organization.flags.enhanced_privacy.is_set is True
         UserOption.objects.set_value(
             user=self.user, key="workflow:notifications", value=UserOptionValue.all_conversations
