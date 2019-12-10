@@ -189,8 +189,9 @@ class BitFieldTest(TestCase):
 
     def test_select(self):
         BitFieldTestModel.objects.create(flags=3)
-        # TODO(joshuarli): once Exact support is restored to our bitfield,
-        # change these back to not use F("flags").bitor.
+        # This F().bitor style of lookup is used extensively throughout sentry/getsentry.
+        # If this test breaks, then that most likely means our custom lookup doesn't work
+        # with sentry/getsentry code.
         self.assertTrue(
             BitFieldTestModel.objects.filter(
                 flags=F("flags").bitor(BitFieldTestModel.flags.FLAG_1)
@@ -260,8 +261,9 @@ class BitFieldTest(TestCase):
             flags=BitFieldTestModel.flags.FLAG_0 | BitFieldTestModel.flags.FLAG_1
         )
         BitFieldTestModel.objects.create(flags=BitFieldTestModel.flags.FLAG_1)
-        # TODO(joshuarli): once Exact support is restored to our bitfield,
-        # change these back to not use F("flags").bitand.
+        # This F().bitand style of lookup is used extensively throughout sentry/getsentry.
+        # If this test breaks, then that most likely means our custom lookup doesn't work
+        # with sentry/getsentry code.
         self.assertEqual(
             BitFieldTestModel.objects.filter(
                 flags=F("flags").bitand(~BitFieldTestModel.flags.FLAG_0)
