@@ -230,20 +230,3 @@ class Columns(Enum):
         "contexts[trace.parent_span_id]",
         "trace.parent_span",
     )
-
-
-def get_columns_from_aliases(aliases):
-    """
-    Resolve a list of aliases to the columns
-    """
-    columns = set()
-    for alias in aliases:
-        for _i, col in enumerate(Columns):
-            if col.value.alias == alias:
-                columns.add(col)
-                continue
-            # Handle as a tag if its not on the list
-            columns.add(Columns.TAGS_KEY)
-            columns.add(Columns.TAGS_VALUE)
-
-    return list(columns)
