@@ -71,8 +71,8 @@ class TraceView extends React.PureComponent<Props, State> {
 
   static getDerivedStateFromProps(props: Props, state: State): State {
     return {
-      parsedTrace: parseTrace(props.event),
       ...state,
+      parsedTrace: parseTrace(props.event),
     };
   }
 
