@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import fromPairs from 'lodash/fromPairs';
 
 import SelectAsyncControl from './selectAsyncControl';
 import SelectField from './selectField';
@@ -53,8 +54,8 @@ class SelectAsyncField extends SelectField {
 
   onQuery = query => {
     // Used by legacy integrations
-    let {depends} = this.props;
-    let {form} = this.context;
+    const {depends} = this.props;
+    const {form} = this.context;
     let dependentFields = {};
 
     if (form && form.data && depends) {
