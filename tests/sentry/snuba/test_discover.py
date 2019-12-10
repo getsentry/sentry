@@ -548,6 +548,7 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
                 "timestamp": iso_format(self.day_ago + timedelta(hours=1)),
                 "fingerprint": ["group1"],
                 "tags": {"important": "yes"},
+                "user": {"id": 1},
             },
             project_id=self.project.id,
         )
@@ -631,6 +632,19 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
         )
         assert len(result.data["data"]) == 3
         assert [2] == [val["count"] for val in result.data["data"] if "count" in val]
+
+        result = discover.timeseries_query(
+            selected_columns=["count_unique(user)"],
+            query="",
+            params={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
+                "project_id": [self.project.id],
+            },
+            rollup=3600,
+        )
+        assert len(result.data["data"]) == 3
+        assert "count" in result.data["data"][0]
 
     def test_zerofilling(self):
         result = discover.timeseries_query(
