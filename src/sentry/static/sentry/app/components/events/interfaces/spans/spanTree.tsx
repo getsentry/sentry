@@ -122,6 +122,7 @@ class SpanTree extends React.Component<PropType> {
     span: Readonly<SpanType>;
     childSpans: Readonly<SpanChildrenLookupType>;
     generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
+    previousSiblingEndTimestamp: undefined | number;
   }): RenderedSpanTree => {
     const {orgId, eventView} = this.props;
 
@@ -141,6 +142,7 @@ class SpanTree extends React.Component<PropType> {
       nextSpanNumber: number;
       numOfSpansOutOfViewAbove: number;
       numOfFilteredSpansAbove: number;
+      previousSiblingEndTimestamp: undefined | number;
     };
 
     const treeArr = isLast ? continuingTreeDepths : [...continuingTreeDepths, treeDepth];
@@ -159,6 +161,7 @@ class SpanTree extends React.Component<PropType> {
           span: spanChild,
           childSpans,
           generateBounds,
+          previousSiblingEndTimestamp: acc.previousSiblingEndTimestamp,
         });
 
         acc.renderedSpanChildren.push(
@@ -169,6 +172,8 @@ class SpanTree extends React.Component<PropType> {
         acc.numOfFilteredSpansAbove = results.numOfFilteredSpansAbove;
 
         acc.nextSpanNumber = results.nextSpanNumber;
+
+        acc.previousSiblingEndTimestamp = spanChild.timestamp;
 
         return acc;
       },
@@ -181,6 +186,7 @@ class SpanTree extends React.Component<PropType> {
           : isCurrentSpanHidden
           ? numOfFilteredSpansAbove
           : 0,
+        previousSiblingEndTimestamp: undefined,
       }
     );
 
@@ -242,6 +248,7 @@ class SpanTree extends React.Component<PropType> {
       span: rootSpan,
       childSpans: trace.childSpans,
       generateBounds,
+      previousSiblingEndTimestamp: undefined,
     });
   };
 
