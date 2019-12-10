@@ -7,40 +7,39 @@ from sentry.rules.conditions.event_attribute import EventAttributeCondition, Mat
 class EventAttributeConditionTest(RuleTestCase):
     rule_cls = EventAttributeCondition
 
-    def get_event(self):
-        event = self.store_event(
-            data={
-                "message": "hello world",
-                "request": {"method": "GET", "url": "http://example.com/"},
-                "user": {
-                    "id": "1",
-                    "ip_address": "127.0.0.1",
-                    "email": "foo@example.com",
-                    "username": "foo",
-                },
-                "exception": {
-                    "values": [
-                        {
-                            "type": "SyntaxError",
-                            "value": "hello world",
-                            "stacktrace": {
-                                "frames": [
-                                    {
-                                        "filename": "example.php",
-                                        "module": "example",
-                                        "context_line": 'echo "hello";',
-                                    }
-                                ]
-                            },
-                        }
-                    ]
-                },
-                "tags": [("environment", "production")],
-                "extra": {"foo": {"bar": "baz"}, "biz": ["baz"], "bar": "foo"},
-                "platform": "php",
+    def get_event(self, **kwargs):
+        data = {
+            "message": "hello world",
+            "request": {"method": "GET", "url": "http://example.com/"},
+            "user": {
+                "id": "1",
+                "ip_address": "127.0.0.1",
+                "email": "foo@example.com",
+                "username": "foo",
             },
-            project_id=self.project.id,
-        )
+            "exception": {
+                "values": [
+                    {
+                        "type": "SyntaxError",
+                        "value": "hello world",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "filename": "example.php",
+                                    "module": "example",
+                                    "context_line": 'echo "hello";',
+                                }
+                            ]
+                        },
+                    }
+                ]
+            },
+            "tags": [("environment", "production")],
+            "extra": {"foo": {"bar": "baz"}, "biz": ["baz"], "bar": "foo"},
+            "platform": "php",
+        }
+        data.update(kwargs)
+        event = self.store_event(data, project_id=self.project.id)
         return event
 
     def test_render_label(self):
@@ -253,7 +252,26 @@ class EventAttributeConditionTest(RuleTestCase):
         self.assertDoesNotPass(rule, event)
 
     def test_stacktrace_filename(self):
-        event = self.get_event()
+        """Stacktrace.filename should match frames anywhere in the stack."""
+
+        event = self.get_event(
+            exception={
+                "values": [
+                    {
+                        "type": "SyntaxError",
+                        "value": "hello world",
+                        "stacktrace": {
+                            "frames": [
+                                {"filename": "example.php", "module": "example"},
+                                {"filename": "somecode.php", "module": "somecode"},
+                                {"filename": "othercode.php", "module": "othercode"},
+                            ]
+                        },
+                    }
+                ]
+            }
+        )
+
         rule = self.get_rule(
             data={
                 "match": MatchType.EQUAL,
@@ -264,14 +282,61 @@ class EventAttributeConditionTest(RuleTestCase):
         self.assertPasses(rule, event)
 
         rule = self.get_rule(
+            data={
+                "match": MatchType.EQUAL,
+                "attribute": "stacktrace.filename",
+                "value": "somecode.php",
+            }
+        )
+        self.assertPasses(rule, event)
+
+        rule = self.get_rule(
+            data={
+                "match": MatchType.EQUAL,
+                "attribute": "stacktrace.filename",
+                "value": "othercode.php",
+            }
+        )
+        self.assertPasses(rule, event)
+
+        rule = self.get_rule(
             data={"match": MatchType.EQUAL, "attribute": "stacktrace.filename", "value": "foo.php"}
         )
         self.assertDoesNotPass(rule, event)
 
     def test_stacktrace_module(self):
-        event = self.get_event()
+        """Stacktrace.module should match frames anywhere in the stack."""
+
+        event = self.get_event(
+            exception={
+                "values": [
+                    {
+                        "type": "SyntaxError",
+                        "value": "hello world",
+                        "stacktrace": {
+                            "frames": [
+                                {"filename": "example.php", "module": "example"},
+                                {"filename": "somecode.php", "module": "somecode"},
+                                {"filename": "othercode.php", "module": "othercode"},
+                            ]
+                        },
+                    }
+                ]
+            }
+        )
+
         rule = self.get_rule(
             data={"match": MatchType.EQUAL, "attribute": "stacktrace.module", "value": "example"}
+        )
+        self.assertPasses(rule, event)
+
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "stacktrace.module", "value": "somecode"}
+        )
+        self.assertPasses(rule, event)
+
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "stacktrace.module", "value": "othercode"}
         )
         self.assertPasses(rule, event)
 
@@ -281,13 +346,61 @@ class EventAttributeConditionTest(RuleTestCase):
         self.assertDoesNotPass(rule, event)
 
     def test_stacktrace_code(self):
-        event = self.get_event()
+        """Stacktrace.code should match frames anywhere in the stack."""
+
+        event = self.get_event(
+            exception={
+                "values": [
+                    {
+                        "type": "NameError",
+                        "value": "name 'hi' is not defined",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "filename": "example.py",
+                                    "module": "example",
+                                    "function": "foo",
+                                    "context_line": "somecode.bar()",
+                                },
+                                {
+                                    "filename": "somecode.py",
+                                    "module": "somecode",
+                                    "function": "bar",
+                                    "context_line": "othercode.baz()",
+                                },
+                                {
+                                    "filename": "othercode.py",
+                                    "module": "othercode",
+                                    "function": "baz",
+                                    "context_line": "hi()",
+                                },
+                            ]
+                        },
+                    }
+                ]
+            }
+        )
+
         rule = self.get_rule(
             data={
                 "match": MatchType.EQUAL,
                 "attribute": "stacktrace.code",
-                "value": 'echo "hello";',
+                "value": "somecode.bar()",
             }
+        )
+        self.assertPasses(rule, event)
+
+        rule = self.get_rule(
+            data={
+                "match": MatchType.EQUAL,
+                "attribute": "stacktrace.code",
+                "value": "othercode.baz()",
+            }
+        )
+        self.assertPasses(rule, event)
+
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "stacktrace.code", "value": "hi()"}
         )
         self.assertPasses(rule, event)
 
