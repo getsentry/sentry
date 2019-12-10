@@ -482,6 +482,31 @@ class QueryTransformTest(TestCase):
         )
 
     @patch("sentry.snuba.discover.raw_query")
+    def test_condition_projectid_transform(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "duration"}],
+            "data": [{"transaction": "api.do_things", "duration": 200}],
+        }
+        # The project_id column is not a public column, but
+        discover.query(
+            selected_columns=["transaction", "transaction.duration"],
+            query="project_id:1",
+            params={"project_id": [self.project.id]},
+        )
+        mock_query.assert_called_with(
+            selected_columns=["transaction", "duration"],
+            conditions=[["tags[project_id]", "=", "1"]],
+            filter_keys={"project_id": [self.project.id]},
+            groupby=[],
+            dataset=Dataset.Discover,
+            aggregations=[],
+            orderby=None,
+            end=None,
+            start=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
     def test_params_forward(self, mock_query):
         mock_query.return_value = {
             "meta": [{"name": "transaction"}, {"name": "duration"}],
