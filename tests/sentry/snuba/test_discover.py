@@ -503,6 +503,8 @@ class QueryTransformTest(TestCase):
             orderby=None,
             end=None,
             start=None,
+            limit=50,
+            offset=None,
             referrer=None,
         )
 
@@ -644,7 +646,11 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
             rollup=3600,
         )
         assert len(result.data["data"]) == 3
-        assert "count" in result.data["data"][0]
+        keys = []
+        for row in result.data["data"]:
+            keys.extend(list(row.keys()))
+        assert "count" in keys
+        assert "time" in keys
 
     def test_zerofilling(self):
         result = discover.timeseries_query(
