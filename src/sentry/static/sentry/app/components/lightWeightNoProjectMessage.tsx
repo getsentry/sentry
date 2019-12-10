@@ -13,14 +13,11 @@ type Props = {
 class LightWeightNoProjectMessage extends React.Component<Props> {
   render() {
     const {organization, projects, loadingProjects} = this.props;
-    if ('projects' in organization) {
-      return <NoProjectMessage {...this.props} />;
-    }
     return (
       <NoProjectMessage
         {...this.props}
         projects={projects}
-        loadingProjects={loadingProjects}
+        loadingProjects={!('projects' in organization) && loadingProjects}
       />
     );
   }
