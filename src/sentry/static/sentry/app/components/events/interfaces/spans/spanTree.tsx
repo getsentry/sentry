@@ -111,6 +111,7 @@ class SpanTree extends React.Component<PropType> {
     childSpans,
     span,
     generateBounds,
+    previousSiblingEndTimestamp,
   }: {
     spanNumber: number;
     treeDepth: number;
@@ -197,6 +198,41 @@ class SpanTree extends React.Component<PropType> {
       numOfFilteredSpansAbove,
     });
 
+    const isSpanDisplayed = !isCurrentSpanHidden && !isCurrentSpanFilteredOut;
+    const isValidGap =
+      typeof previousSiblingEndTimestamp === 'number' &&
+      previousSiblingEndTimestamp < span.start_timestamp &&
+      0.1 <= span.start_timestamp - previousSiblingEndTimestamp;
+
+    const spanGap: Readonly<SpanType> = {
+      trace_id: span.trace_id,
+      span_id: t('unknown'),
+      start_timestamp: previousSiblingEndTimestamp || span.start_timestamp,
+      timestamp: span.start_timestamp, // this is essentially end_timestamp
+      description: t('Potential area for tracing instrumentation'),
+      data: {},
+    };
+
+    const spanGapComponent =
+      isValidGap && isSpanDisplayed ? (
+        <SpanGroup
+          eventView={eventView}
+          orgId={orgId}
+          spanNumber={spanNumber}
+          isLast={isLast}
+          continuingTreeDepths={continuingTreeDepths}
+          isRoot={isRoot}
+          span={spanGap}
+          trace={this.props.trace}
+          generateBounds={generateBounds}
+          treeDepth={treeDepth}
+          numOfSpanChildren={spanChildren.length}
+          renderedSpanChildren={reduced.renderedSpanChildren}
+          spanBarColour={'#FF00FF'}
+          isCurrentSpanFilteredOut={isCurrentSpanFilteredOut}
+        />
+      ) : null;
+
     return {
       numOfSpansOutOfViewAbove: reduced.numOfSpansOutOfViewAbove,
       numOfFilteredSpansAbove: reduced.numOfFilteredSpansAbove,
@@ -204,6 +240,7 @@ class SpanTree extends React.Component<PropType> {
       spanTree: (
         <React.Fragment>
           {infoMessage}
+          {spanGapComponent}
           <SpanGroup
             eventView={eventView}
             orgId={orgId}
