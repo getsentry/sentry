@@ -130,11 +130,6 @@ class SpanDetail extends React.Component<Props, State> {
             <Row title="Span ID" extra={this.renderTraversalButton()}>
               {span.span_id}
             </Row>
-            <LinkedTransactionsList
-              results={this.state.transactionResults}
-              orgId={orgId}
-              eventView={eventView}
-            />
             <Row title="Trace ID">{span.trace_id}</Row>
             <Row title="Parent Span ID">{span.parent_span_id || ''}</Row>
             <Row title="Description">{get(span, 'description', '')}</Row>
@@ -211,47 +206,6 @@ const Row = ({
         </PreValue>
         {extra}
       </ValueTd>
-    </tr>
-  );
-};
-
-const LinkedTransactionsList = (props: {
-  results?: TransactionResult[];
-  orgId: string;
-  eventView: EventView;
-}) => {
-  const {results, orgId, eventView} = props;
-
-  if (!results || !Array.isArray(results) || results.length <= 0) {
-    return null;
-  }
-
-  const list = results.map(result => {
-    const parentTransactionLink = generateEventDetailsRoute({
-      eventSlug: generateSlug(result),
-      orgSlug: orgId,
-    });
-
-    const to = {
-      pathname: parentTransactionLink,
-      query: eventView.generateQueryStringObject(),
-    };
-
-    return (
-      <div key={result.id}>
-        <PreValue className="val">
-          <Link key={result.id} to={to}>
-            {`${result['trace.span']} - ${result.transaction}`}
-          </Link>
-        </PreValue>
-      </div>
-    );
-  });
-
-  return (
-    <tr>
-      <td className="key">Linked transactions</td>
-      <td className="value">{list}</td>
     </tr>
   );
 };
