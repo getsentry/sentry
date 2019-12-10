@@ -253,8 +253,10 @@ export default class RequestLog extends AsyncComponent<Props, State> {
                     <TableLayout hasOrganization={app.status !== 'internal'}>
                       <TimestampLink date={request.date} link={request.errorUrl} />
                       <ResponseCode code={request.responseCode} />
-                      {app.status !== 'internal' && request.organization && (
-                        <div>{request.organization.name}</div>
+                      {app.status !== 'internal' && (
+                        <div>
+                          {request.organization ? request.organization.name : null}
+                        </div>
                       )}
                       <div>{request.eventType}</div>
                       <OverflowBox>{request.webhookUrl}</OverflowBox>
