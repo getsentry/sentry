@@ -16,10 +16,13 @@ class LightWeightNoProjectMessage extends React.Component<Props> {
     if ('projects' in organization) {
       return <NoProjectMessage {...this.props} />;
     }
-    if (loadingProjects) {
-      return this.props.children;
-    }
-    return <NoProjectMessage {...this.props} projects={projects} />;
+    return (
+      <NoProjectMessage
+        {...this.props}
+        projects={projects}
+        loadingProjects={loadingProjects}
+      />
+    );
   }
 }
 
