@@ -15,7 +15,6 @@ from uuid import uuid4
 import six
 from django.conf import settings
 from django.db import IntegrityError, transaction
-from django.db.models import F
 from django.utils import timezone
 from loremipsum import Generator
 from pytz import utc
@@ -373,7 +372,7 @@ def main(num_events=1, extra_events=False):
             if not project.first_event:
                 project.update(first_event=project.date_added)
             if not project.flags.has_releases:
-                project.update(flags=F("flags").bitor(Project.flags.has_releases))
+                project.update(flags=Project.flags.has_releases)
 
             monitor, created = Monitor.objects.get_or_create(
                 name=next(MONITOR_NAMES),
