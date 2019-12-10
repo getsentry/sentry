@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from django.db.models import F
+
 from sentry import roles
 from sentry.cache import default_cache
 from sentry.models import ApiToken
@@ -50,7 +52,7 @@ class SetupWizardView(BaseView):
                 keys = list(
                     ProjectKey.objects.filter(
                         project=project,
-                        roles=ProjectKey.roles.store,
+                        roles=F("roles").bitor(ProjectKey.roles.store),
                         status=ProjectKeyStatus.ACTIVE,
                     )
                 )
