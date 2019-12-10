@@ -32,7 +32,7 @@ def preprocess_event(monkeypatch):
 
 
 @pytest.mark.django_db
-def test_deduplication_works(default_project, task_runner, monkeypatch, preprocess_event):
+def test_deduplication_works(default_project, task_runner, preprocess_event):
     payload = get_normalized_event({"message": "hello world"}, default_project)
     event_id = payload["event_id"]
     project_id = default_project.id
@@ -60,7 +60,7 @@ def test_deduplication_works(default_project, task_runner, monkeypatch, preproce
 
 
 @pytest.mark.django_db
-def test_with_attachments(default_project, task_runner, monkeypatch, preprocess_event):
+def test_with_attachments(default_project, task_runner, preprocess_event):
     payload = get_normalized_event({"message": "hello world"}, default_project)
     event_id = payload["event_id"]
     attachment_id = "ca90fb45-6dd9-40a0-a18f-8693aa621abb"
@@ -124,7 +124,11 @@ def test_with_attachments(default_project, task_runner, monkeypatch, preprocess_
 
 
 @pytest.mark.django_db
-def test_individual_attachments(default_project, monkeypatch):
+@pytest.mark.parametrize("event_attachments", ["with_feature", "without_feature"])
+def test_individual_attachments(default_project, monkeypatch, event_attachments):
+    has_feature = event_attachments == "with_feature"
+    monkeypatch.setattr("sentry.features.has", lambda *a, **kw: has_feature)
+
     event_id = "515539018c9b4260a6f999572f1661ee"
     attachment_id = "ca90fb45-6dd9-40a0-a18f-8693aa621abb"
     project_id = default_project.id
@@ -164,11 +168,18 @@ def test_individual_attachments(default_project, monkeypatch):
         }
     )
 
-    att1, = EventAttachment.objects.filter(project_id=project_id, event_id=event_id).select_related(
-        "file"
+    attachments = list(
+        EventAttachment.objects.filter(project_id=project_id, event_id=event_id).select_related(
+            "file"
+        )
     )
-    assert att1.file.type == "event.attachment"
-    assert att1.file.headers == {"Content-Type": "application/octet-stream"}
-    f = att1.file.getfile()
-    assert f.read() == b"Hello World!"
-    assert f.name == "foo.txt"
+
+    if not has_feature:
+        assert not attachments
+    else:
+        att1, = attachments
+        assert att1.file.type == "event.attachment"
+        assert att1.file.headers == {"Content-Type": "application/octet-stream"}
+        f = att1.file.getfile()
+        assert f.read() == b"Hello World!"
+        assert f.name == "foo.txt"

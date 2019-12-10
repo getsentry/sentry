@@ -8,6 +8,7 @@ from six import BytesIO
 from django.conf import settings
 from django.core.cache import cache
 
+from sentry import features
 from sentry.cache import default_cache
 from sentry.models import Project, File, EventAttachment
 from sentry.signals import event_accepted
@@ -146,6 +147,10 @@ def process_individual_attachment(message):
         project = Project.objects.get_from_cache(id=project_id)
     except Project.DoesNotExist:
         logger.error("Project for ingested event does not exist: %s", project_id)
+        return
+
+    if not features.has("organizations:event-attachments", project.organization, actor=None):
+        logger.info("Organization has no event attachments: %s", project_id)
         return
 
     attachment = message["attachment"]
