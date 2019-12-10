@@ -6,6 +6,7 @@ import six
 import itertools
 
 from django.db import models, IntegrityError, transaction
+from django.db.models import F
 from django.utils import timezone
 from time import time
 
@@ -167,7 +168,7 @@ class Release(Model):
                 release.add_project(project)
                 if not project.flags.has_releases:
                     project.flags.has_releases = True
-                    project.update(flags=Project.flags.has_releases)
+                    project.update(flags=F("flags").bitor(Project.flags.has_releases))
 
             # TODO(dcramer): upon creating a new release, check if it should be
             # the new "latest release" for this project
@@ -259,7 +260,7 @@ class Release(Model):
                 ReleaseProject.objects.create(project=project, release=self)
                 if not project.flags.has_releases:
                     project.flags.has_releases = True
-                    project.update(flags=Project.flags.has_releases)
+                    project.update(flags=F("flags").bitor(Project.flags.has_releases))
         except IntegrityError:
             return False
         else:

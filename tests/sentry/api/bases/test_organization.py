@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from datetime import timedelta
 
+from django.db.models import F
 from django.test import RequestFactory
 from django.utils import timezone
 from exam import fixture
@@ -37,7 +38,7 @@ class OrganizationPermissionBase(TestCase):
 
 class OrganizationPermissionTest(OrganizationPermissionBase):
     def org_require_2fa(self):
-        self.org.update(flags=Organization.flags.require_2fa)
+        self.org.update(flags=F("flags").bitor(Organization.flags.require_2fa))
         assert self.org.flags.require_2fa.is_set is True
 
     def test_regular_user(self):

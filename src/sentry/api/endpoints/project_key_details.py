@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from django.db.models import F
 from rest_framework import status
 from rest_framework.response import Response
 
@@ -41,7 +42,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
     def get(self, request, project, key_id):
         try:
             key = ProjectKey.objects.get(
-                project=project, public_key=key_id, roles=ProjectKey.roles.store
+                project=project, public_key=key_id, roles=F("roles").bitor(ProjectKey.roles.store)
             )
         except ProjectKey.DoesNotExist:
             raise ResourceDoesNotExist
@@ -65,7 +66,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
         """
         try:
             key = ProjectKey.objects.get(
-                project=project, public_key=key_id, roles=ProjectKey.roles.store
+                project=project, public_key=key_id, roles=F("roles").bitor(ProjectKey.roles.store)
             )
         except ProjectKey.DoesNotExist:
             raise ResourceDoesNotExist
@@ -133,7 +134,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
         """
         try:
             key = ProjectKey.objects.get(
-                project=project, public_key=key_id, roles=ProjectKey.roles.store
+                project=project, public_key=key_id, roles=F("roles").bitor(ProjectKey.roles.store)
             )
         except ProjectKey.DoesNotExist:
             raise ResourceDoesNotExist

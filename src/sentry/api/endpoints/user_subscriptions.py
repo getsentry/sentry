@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from django.db.models import F
 from django.utils import timezone
 from rest_framework import serializers
 
@@ -109,6 +110,6 @@ class UserSubscriptionsEndpoint(UserEndpoint):
 
         newsletter.create_or_update_subscriptions(user, **kwargs)
 
-        user.update(flags=~User.flags.newsletter_consent_prompt)
+        user.update(flags=F("flags").bitand(~User.flags.newsletter_consent_prompt))
 
         return self.respond(status=204)

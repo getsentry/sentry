@@ -12,6 +12,10 @@ from bitfield.compat import bitor
 
 
 class BitFieldListFilter(FieldListFilter):
+    """
+    BitField list filter.
+    """
+
     def __init__(self, field, request, params, model, model_admin, field_path):
         self.lookup_kwarg = field_path
         self.lookup_val = int(request.GET.get(self.lookup_kwarg, 0))
