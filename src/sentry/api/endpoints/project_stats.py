@@ -56,6 +56,8 @@ class ProjectStatsEndpoint(ProjectEndpoint, EnvironmentMixin, StatsMixin):
             stat_model = tsdb.models.project_total_rejected
         elif stat == "blacklisted":
             stat_model = tsdb.models.project_total_blacklisted
+        elif stat == "bytes":
+            stat_model = tsdb.models.project_total_bytes
         elif stat == "generated":
             stat_model = tsdb.models.project
             try:

@@ -65,14 +65,18 @@ def mark_tsdb_incremented(project_id, event_id):
     mark_tsdb_incremented_many([(project_id, event_id)])
 
 
-def tsdb_increments_from_outcome(org_id, project_id, key_id, outcome, reason):
+def tsdb_increments_from_outcome(org_id, project_id, key_id, outcome, reason, size):
     if outcome != Outcome.INVALID:
         # This simply preserves old behavior. We never counted invalid events
         # (too large, duplicate, CORS) toward regular `received` counts.
         if project_id is not None:
             yield (tsdb.models.project_total_received, project_id)
+            # Bytes tracking
+            yield (tsdb.models.project_total_bytes, project_id, {"count": size})
         if org_id is not None:
             yield (tsdb.models.organization_total_received, org_id)
+            # Bytes tracking
+            yield (tsdb.models.organization_total_bytes, org_id, {"count": size})
         if key_id is not None:
             yield (tsdb.models.key_total_received, key_id)
 
@@ -97,7 +101,9 @@ def tsdb_increments_from_outcome(org_id, project_id, key_id, outcome, reason):
             yield (FILTER_STAT_KEYS_TO_VALUES[reason], project_id)
 
 
-def track_outcome(org_id, project_id, key_id, outcome, reason=None, timestamp=None, event_id=None):
+def track_outcome(
+    org_id, project_id, key_id, outcome, reason=None, timestamp=None, event_id=None, event_size=None
+):
     """
     This is a central point to track org/project counters per incoming event.
     NB: This should only ever be called once per incoming event, which means
@@ -119,6 +125,7 @@ def track_outcome(org_id, project_id, key_id, outcome, reason=None, timestamp=No
     assert isinstance(key_id, (type(None), six.integer_types))
     assert isinstance(outcome, Outcome)
     assert isinstance(timestamp, (type(None), datetime))
+    assert isinstance(event_size, (type(None), six.integer_types))
 
     timestamp = timestamp or to_datetime(time.time())
 
@@ -127,7 +134,12 @@ def track_outcome(org_id, project_id, key_id, outcome, reason=None, timestamp=No
     if not tsdb_in_consumer:
         increment_list = list(
             tsdb_increments_from_outcome(
-                org_id=org_id, project_id=project_id, key_id=key_id, outcome=outcome, reason=reason
+                org_id=org_id,
+                project_id=project_id,
+                key_id=key_id,
+                outcome=outcome,
+                reason=reason,
+                size=event_size,
             )
         )
 
@@ -149,6 +161,7 @@ def track_outcome(org_id, project_id, key_id, outcome, reason=None, timestamp=No
                 "outcome": outcome.value,
                 "reason": reason,
                 "event_id": event_id,
+                "size": event_size,
             }
         ),
     )

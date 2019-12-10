@@ -96,7 +96,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             project_id=self.proj1.id, group_id=self.proj1group2.id, release_id=self.release1.id
         )
 
-        data = json.dumps(
+        self.data = json.dumps(
             [
                 {
                     "event_id": (six.text_type(r) * 32)[:32],
@@ -128,7 +128,9 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
         )  # Every 10 min for 4 hours
 
         assert (
-            requests.post(settings.SENTRY_SNUBA + "/tests/events/insert", data=data).status_code
+            requests.post(
+                settings.SENTRY_SNUBA + "/tests/events/insert", data=self.data
+            ).status_code
             == 200
         )
 
@@ -200,6 +202,19 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
                 (timestamp(dts[1]), 6),
                 (timestamp(dts[2]), 6),
                 (timestamp(dts[3]), 6),
+            ]
+        }
+
+    def test_range_project_bytes(self):
+        dts = [self.now + timedelta(hours=i) for i in range(4)]
+        assert self.db.get_range(
+            TSDBModel.project_total_bytes, [self.proj1.id], dts[0], dts[-1], rollup=3600
+        ) == {
+            self.proj1.id: [
+                (timestamp(dts[0]), 6 * len(self.data)),
+                (timestamp(dts[1]), 6 * len(self.data)),
+                (timestamp(dts[2]), 6 * len(self.data)),
+                (timestamp(dts[3]), 6 * len(self.data)),
             ]
         }
 

@@ -85,6 +85,11 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, EnvironmentMixin, StatsMix
                 stat_model = tsdb.models.project_total_blacklisted
             else:
                 stat_model = tsdb.models.organization_total_blacklisted
+        elif stat == "bytes":
+            if group == "project":
+                stat_model = tsdb.models.project_total_bytes
+            else:
+                stat_model = tsdb.models.organization_total_bytes
         elif stat == "generated":
             if group == "project":
                 stat_model = tsdb.models.project

@@ -599,6 +599,7 @@ def _do_save_event(
             None,
             timestamp,
             event_id,
+            event.size,
         )
 
     except HashDiscarded:

@@ -85,6 +85,9 @@ class SnubaTSDB(BaseTSDB):
             "times_seen",
             [["outcome", "=", outcomes.Outcome.FILTERED]],
         ),
+        TSDBModel.organization_total_bytes: SnubaModelQuerySettings(
+            snuba.Dataset.Outcomes, "org_id", "size", None
+        ),
         TSDBModel.project_total_received: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,
             "project_id",
@@ -102,6 +105,9 @@ class SnubaTSDB(BaseTSDB):
             "project_id",
             "times_seen",
             [["outcome", "=", outcomes.Outcome.FILTERED]],
+        ),
+        TSDBModel.project_total_bytes: SnubaModelQuerySettings(
+            snuba.Dataset.Outcomes, "project_id", "size", None
         ),
         TSDBModel.key_total_received: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,
