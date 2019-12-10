@@ -112,8 +112,8 @@ class RuleRow extends React.Component<Props, State> {
                   <Trigger>
                     <StatusBadge>{trigger.label}</StatusBadge>
                     <div>
-                      {data.aggregations[0] === 0 ? 'Events' : 'Users'}{' '}
-                      {trigger.thresholdType === 0 ? ' above ' : ' below '}
+                      {data.aggregations[0] === 0 ? t('Events') : t('Users')}{' '}
+                      {trigger.thresholdType === 0 ? t('above') : t('below')}{' '}
                       {trigger.alertThreshold}/{data.timeWindow}s
                     </div>
                   </Trigger>
