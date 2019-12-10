@@ -360,7 +360,7 @@ class SimpleEventSerializer(EventSerializer):
 
         return {
             "id": six.text_type(obj.id),
-            "event.type": six.text_type(obj.type),
+            "event.type": six.text_type(obj.get_event_type()),
             "groupID": six.text_type(obj.group_id) if obj.group_id else None,
             "eventID": six.text_type(obj.event_id),
             "projectID": six.text_type(obj.project_id),
