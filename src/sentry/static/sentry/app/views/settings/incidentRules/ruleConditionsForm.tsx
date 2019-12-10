@@ -37,7 +37,7 @@ class RuleConditionsForm extends React.PureComponent<Props> {
         <PanelHeader>{t('Configure Rule Conditions')}</PanelHeader>
         <PanelBody>
           <SelectField
-            name="aggregations"
+            name="aggregation"
             label={t('Metric')}
             help={t('Choose which metric to trigger on')}
             choices={[
@@ -51,8 +51,6 @@ class RuleConditionsForm extends React.PureComponent<Props> {
               ],
             ]}
             required
-            setValue={value => (value && value.length ? value[0] : value)}
-            getValue={value => [value]}
           />
           <FormField
             name="query"

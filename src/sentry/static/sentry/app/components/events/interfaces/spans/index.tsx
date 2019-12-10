@@ -1,9 +1,11 @@
 import React from 'react';
+import styled from 'react-emotion';
 import SentryTypes from 'app/sentryTypes';
 import SearchBar from 'app/components/searchBar';
 
 import {t} from 'app/locale';
 import {Panel} from 'app/components/panels';
+import space from 'app/styles/space';
 
 import {SentryTransactionEvent} from './types';
 import TraceView from './traceView';
@@ -36,13 +38,12 @@ class SpansInterface extends React.Component<PropType, State> {
 
     return (
       <div>
-        <SearchBar
+        <StyledSearchBar
           defaultQuery=""
           query={this.state.searchQuery || ''}
-          placeholder={t('Filter on spans')}
+          placeholder={t('Search for spans')}
           onSearch={this.handleSpanFilter}
         />
-        <br />
         <Panel>
           <TraceView event={event} searchQuery={this.state.searchQuery} />
         </Panel>
@@ -50,5 +51,9 @@ class SpansInterface extends React.Component<PropType, State> {
     );
   }
 }
+
+const StyledSearchBar = styled(SearchBar)`
+  margin-bottom: ${space(1)};
+`;
 
 export default SpansInterface;

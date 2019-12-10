@@ -5,6 +5,7 @@ import six
 from functools import partial
 from rest_framework.response import Response
 
+from semaphore.consts import SPAN_STATUS_CODE_TO_NAME
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
 from sentry.api.event_search import get_json_meta_type
 from sentry.api.helpers.events import get_direct_hit_response
@@ -156,9 +157,14 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
             return results
 
         first_row = results[0]
+
+        # TODO(mark) move all of this result formatting into discover.query()
+        # once those APIs are used across the application.
+        if "transaction.status" in first_row:
+            for row in results:
+                row["transaction.status"] = SPAN_STATUS_CODE_TO_NAME.get(row["transaction.status"])
         if not ("project.id" in first_row or "projectid" in first_row):
             return results
-
         fields = request.GET.getlist("field")
         projects = {
             p["id"]: p["slug"]

@@ -31,6 +31,13 @@ describe('DiscoverContainer', function() {
           meta: [],
         },
       });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/projects',
+        method: 'GET',
+        body: {
+          data: organization.projects,
+        },
+      });
       wrapper = mountWithTheme(
         <DiscoverContainer
           location={{query: {}, search: ''}}
