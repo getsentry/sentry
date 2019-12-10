@@ -49,7 +49,7 @@ type State = {
   // Rule conditions form inputs
   // Needed for TriggersChart
   query: string;
-  aggregations: AlertRuleAggregations[];
+  aggregation: AlertRuleAggregations[];
   timeWindow: number;
 } & AsyncComponent['state'];
 
@@ -62,7 +62,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     return {
       ...super.getDefaultState(),
 
-      aggregations: rule.aggregations,
+      aggregation: rule.aggregation,
       query: rule.query || '',
       timeWindow: rule.timeWindow,
       triggerErrors: new Map(),
@@ -139,9 +139,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   }
 
   handleFieldChange = (name: string, value: unknown) => {
-    if (name === 'aggregations') {
-      this.setState({[name]: [value] as AlertRuleAggregations[]});
-    } else if (['query', 'timeWindow'].includes(name)) {
+    if (['query', 'timeWindow', 'aggregation'].includes(name)) {
       this.setState({[name]: value});
     }
   };
@@ -238,7 +236,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       params,
       onSubmitSuccess,
     } = this.props;
-    const {query, aggregations, timeWindow, triggers} = this.state;
+    const {query, aggregation, timeWindow, triggers} = this.state;
 
     return (
       <Form
@@ -248,7 +246,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         }`}
         initialData={{
           name: rule.name || '',
-          aggregations: rule.aggregations,
+          aggregation: rule.aggregation,
           query: rule.query || '',
           timeWindow: rule.timeWindow,
         }}
@@ -264,7 +262,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
           projects={this.state.projects}
           triggers={triggers}
           query={query}
-          aggregations={aggregations}
+          aggregation={aggregation}
           timeWindow={timeWindow}
         />
 
