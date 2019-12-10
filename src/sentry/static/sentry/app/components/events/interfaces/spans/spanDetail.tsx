@@ -4,7 +4,6 @@ import get from 'lodash/get';
 import map from 'lodash/map';
 
 import {t} from 'app/locale';
-import Link from 'app/components/links/link';
 import DateTime from 'app/components/dateTime';
 import Pills from 'app/components/pills';
 import Pill from 'app/components/pill';
@@ -124,7 +123,7 @@ class SpanDetail extends React.Component<Props, State> {
   }
 
   render() {
-    const {span, orgId, eventView} = this.props;
+    const {span} = this.props;
 
     const startTimestamp: number = span.start_timestamp;
     const endTimestamp: number = span.timestamp;
