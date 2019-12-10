@@ -11,29 +11,40 @@ from sentry.utils import snuba
 
 
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
-    def get_snuba_query_args(self, request, organization, params):
+    def get_snuba_filter(self, request, organization, params=None):
+        if params is None:
+            params = self.get_filter_params(request, organization)
         query = request.GET.get("query")
         try:
-            filter = get_filter(query, params)
+            return get_filter(query, params)
         except InvalidSearchQuery as exc:
             raise OrganizationEventsError(exc.message)
 
+    def get_orderby(self, request):
+        sort = request.GET.getlist("sort")
+        if sort:
+            return sort
+        # Deprecated. `sort` should be used as it is supported by
+        # more endpoints.
+        orderby = request.GET.getlist("orderby")
+        if orderby:
+            return orderby
+
+    def reference_event(self, request, organization):
+        fields = request.GET.getlist("field")[:]
+        reference_event_id = request.GET.get("referenceEvent")
+        if reference_event_id:
+            return ReferenceEvent(organization, reference_event_id, fields)
+
+    def get_snuba_query_args(self, request, organization, params):
+        filter = self.get_snuba_filter(request, organization, params)
         snuba_args = {
             "start": filter.start,
             "end": filter.end,
             "conditions": filter.conditions,
             "filter_keys": filter.filter_keys,
         }
-
-        sort = request.GET.getlist("sort")
-        if sort:
-            snuba_args["orderby"] = sort
-
-        # Deprecated. `sort` should be used as it is supported by
-        # more endpoints.
-        orderby = request.GET.getlist("orderby")
-        if orderby and "orderby" not in snuba_args:
-            snuba_args["orderby"] = orderby
+        snuba_args["orderby"] = self.get_orderby(request)
 
         if request.GET.get("rollup"):
             try:
@@ -48,9 +59,8 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             except InvalidSearchQuery as exc:
                 raise OrganizationEventsError(exc.message)
 
-        reference_event_id = request.GET.get("referenceEvent")
-        if reference_event_id:
-            reference = ReferenceEvent(organization, reference_event_id, fields)
+        reference = self.reference_event(request, organization)
+        if reference:
             snuba_args["conditions"].extend(create_reference_event_conditions(reference))
         return snuba_args
 
