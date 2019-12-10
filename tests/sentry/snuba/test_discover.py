@@ -524,7 +524,7 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
             },
             rollup=3600,
         )
-        assert len(result.data) == 3
+        assert len(result.data["data"]) == 3
 
     def test_aggregate_function(self):
         result = discover.timeseries_query(
@@ -537,8 +537,8 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
             },
             rollup=3600,
         )
-        assert len(result.data) == 3
-        assert [2] == [val["count"] for val in result.data if "count" in val]
+        assert len(result.data["data"]) == 3
+        assert [2] == [val["count"] for val in result.data["data"] if "count" in val]
 
     def test_zerofilling(self):
         result = discover.timeseries_query(
@@ -551,8 +551,10 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
             },
             rollup=3600,
         )
-        assert len(result.data) == 4, "Should have empty results"
-        assert [2, 1] == [val["count"] for val in result.data if "count" in val], result.data
+        assert len(result.data["data"]) == 4, "Should have empty results"
+        assert [2, 1] == [
+            val["count"] for val in result.data["data"] if "count" in val
+        ], result.data["data"]
 
     def test_reference_event(self):
         ref = discover.ReferenceEvent(
@@ -571,8 +573,8 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
             reference_event=ref,
             rollup=3600,
         )
-        assert len(result.data) == 4
-        assert [1, 1] == [val["count"] for val in result.data if "count" in val]
+        assert len(result.data["data"]) == 4
+        assert [1, 1] == [val["count"] for val in result.data["data"] if "count" in val]
 
 
 class CreateReferenceEventConditionsTest(SnubaTestCase, TestCase):
