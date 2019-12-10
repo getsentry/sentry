@@ -57,6 +57,7 @@ class OrganizationAuthSettingsView(OrganizationView):
             data=auth_provider.get_audit_log_data(),
         )
 
+        # TODO(joshuarli): will ~OrganizationMember.flags["sso:linked"] & ~OrganizationMember.flags["sso:invalid"] work?
         OrganizationMember.objects.filter(organization=organization).update(
             flags=F("flags")
             .bitand(~OrganizationMember.flags["sso:linked"])

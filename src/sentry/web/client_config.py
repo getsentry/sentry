@@ -6,7 +6,6 @@ from django.core.cache import cache
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.messages import get_messages
-from django.db.models import F
 from pkg_resources import parse_version
 
 from sentry import features, options
@@ -71,9 +70,7 @@ def _get_statuspage():
 
 def _get_project_key(project_id):
     try:
-        return ProjectKey.objects.filter(
-            project=project_id, roles=F("roles").bitor(ProjectKey.roles.store)
-        )[0]
+        return ProjectKey.objects.filter(project=project_id, roles=ProjectKey.roles.store)[0]
     except IndexError:
         return None
 

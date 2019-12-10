@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
-from django.db import models
 from mock import patch
 
 from sentry.models import (
@@ -79,7 +78,7 @@ class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
 class OrganizationAuthSettingsTest(AuthProviderTestCase):
     def enroll_user_and_require_2fa(self, user, organization):
         TotpInterface().enroll(user)
-        organization.update(flags=models.F("flags").bitor(Organization.flags.require_2fa))
+        organization.update(flags=Organization.flags.require_2fa)
         assert organization.flags.require_2fa.is_set
 
     def assert_require_2fa_disabled(self, user, organization, logger):

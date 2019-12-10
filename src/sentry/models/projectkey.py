@@ -118,9 +118,7 @@ class ProjectKey(Model):
     @classmethod
     def get_default(cls, project):
         return cls.objects.filter(
-            project=project,
-            roles=models.F("roles").bitor(cls.roles.store),
-            status=ProjectKeyStatus.ACTIVE,
+            project=project, roles=cls.roles.store, status=ProjectKeyStatus.ACTIVE
         ).first()
 
     @property
