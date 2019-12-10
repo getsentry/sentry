@@ -2,10 +2,10 @@ from __future__ import absolute_import
 
 from bitfield.types import Bit, BitHandler
 
-from django.db.models.lookups import Exact
+from django.db.models.lookups import Lookup
 
 
-class BitQueryLookupWrapper(Exact):
+class BitQueryLookupWrapper(Lookup):
     def process_lhs(self, qn, connection, lhs=None):
         lhs_sql, params = super(BitQueryLookupWrapper, self).process_lhs(qn, connection, lhs)
         if self.rhs:
