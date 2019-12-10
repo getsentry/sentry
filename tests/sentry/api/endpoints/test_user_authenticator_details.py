@@ -5,6 +5,7 @@ import mock
 import six
 
 from django.core.urlresolvers import reverse
+from django.db.models import F
 from django.conf import settings
 from django.utils import timezone
 
@@ -30,7 +31,7 @@ class UserAuthenticatorDetailsTest(APITestCase):
 
     def _require_2fa_for_organization(self):
         organization = self.create_organization(name="test monkey", owner=self.user)
-        organization.update(flags=Organization.flags.require_2fa)
+        organization.update(flags=F("flags").bitor(Organization.flags.require_2fa))
 
     def test_wrong_auth_id(self):
         url = reverse(

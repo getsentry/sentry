@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from django.db.models import F
+
 from sentry.testutils import AcceptanceTestCase
 from sentry.models import Organization, AuthProvider
 
@@ -31,13 +33,13 @@ class AcceptOrganizationInviteTest(AcceptanceTestCase):
         assert self.browser.element_exists('[aria-label="create-account"]')
 
     def test_invite_2fa_enforced_org(self):
-        self.org.update(flags=Organization.flags.require_2fa)
+        self.org.update(flags=F("flags").bitor(Organization.flags.require_2fa))
         self.browser.get(self.member.get_invite_link().split("/", 3)[-1])
         self.browser.wait_until('[data-test-id="accept-invite"]')
         assert not self.browser.element_exists_by_test_id("2fa-warning")
 
         self.login_as(self.user)
-        self.org.update(flags=Organization.flags.require_2fa)
+        self.org.update(flags=F("flags").bitor(Organization.flags.require_2fa))
         self.browser.get(self.member.get_invite_link().split("/", 3)[-1])
         self.browser.wait_until('[data-test-id="accept-invite"]')
         assert self.browser.element_exists_by_test_id("2fa-warning")

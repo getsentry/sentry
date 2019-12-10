@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from six.moves.urllib.parse import parse_qsl
 from django.core.urlresolvers import reverse
+from django.db.models import F
 from datetime import timedelta
 
 from sentry.models import (
@@ -24,7 +25,7 @@ class AcceptInviteTest(TestCase):
         self.user = self.create_user("bar@example.com")
 
     def _require_2fa_for_organization(self):
-        self.organization.update(flags=Organization.flags.require_2fa)
+        self.organization.update(flags=F("flags").bitor(Organization.flags.require_2fa))
         assert self.organization.flags.require_2fa.is_set
 
     def _assert_pending_invite_cookie_set(self, response, om):

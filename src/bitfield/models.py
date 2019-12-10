@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import six
-
 from django.db.models.fields import BigIntegerField, Field
 
 from bitfield.forms import BitFormField
@@ -138,7 +136,13 @@ class BitField(BigIntegerField):
         if isinstance(getattr(value, "expression", None), Bit):
             value = value.expression
         if isinstance(value, (BitHandler, Bit)):
-            return [value.mask]
+            if hasattr(self, "class_lookups"):
+                # Django 1.7+
+                return [value.mask]
+            else:
+                return BitQueryLookupWrapper(
+                    self.model._meta.db_table, self.db_column or self.name, value
+                )
         return BigIntegerField.get_db_prep_lookup(
             self, lookup_type=lookup_type, value=value, connection=connection, prepared=prepared
         )
@@ -154,15 +158,6 @@ class BitField(BigIntegerField):
         if isinstance(value, Bit):
             value = value.mask
         if not isinstance(value, BitHandler):
-            # Regression for #1425: fix bad data that was created resulting
-            # in negative values for flags.  Compute the value that would
-            # have been visible ot the application to preserve compatibility.
-            if isinstance(value, six.integer_types) and value < 0:
-                new_value = 0
-                for bit_number, _ in enumerate(self.flags):
-                    new_value |= value & (2 ** bit_number)
-                value = new_value
-
             value = BitHandler(value, self.flags, self.labels)
         else:
             # Ensure flags are consistent for unpickling
@@ -175,4 +170,7 @@ class BitField(BigIntegerField):
         return name, path, args, kwargs
 
 
-BitField.register_lookup(BitQueryLookupWrapper)
+try:
+    BitField.register_lookup(BitQueryLookupWrapper)
+except AttributeError:
+    pass

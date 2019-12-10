@@ -3,6 +3,7 @@ from __future__ import absolute_import, print_function
 import logging
 
 from django.db import IntegrityError
+from django.db.models import F
 
 from sentry import options
 from sentry.models import (
@@ -33,7 +34,7 @@ def email_missing_links(org_id, actor_id, provider_key, **kwargs):
         return
 
     member_list = OrganizationMember.objects.filter(
-        organization=org, flags=~OrganizationMember.flags["sso:linked"]
+        organization=org, flags=F("flags").bitand(~OrganizationMember.flags["sso:linked"])
     )
     for member in member_list:
         member.send_sso_link_email(actor, provider)
