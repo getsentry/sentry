@@ -849,7 +849,7 @@ class OutcomesSnubaTest(TestCase):
         super(OutcomesSnubaTest, self).setUp()
         assert requests.post(settings.SENTRY_SNUBA + "/tests/outcomes/drop").status_code == 200
 
-    def __format(self, org_id, project_id, outcome, timestamp, key_id):
+    def __format(self, org_id, project_id, outcome, timestamp, key_id, size):
         return {
             "project_id": project_id,
             "timestamp": timestamp.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
@@ -857,9 +857,10 @@ class OutcomesSnubaTest(TestCase):
             "reason": None,
             "key_id": key_id,
             "outcome": outcome,
+            "size": size,
         }
 
-    def store_outcomes(self, org_id, project_id, outcome, timestamp, key_id, num_times):
+    def store_outcomes(self, org_id, project_id, outcome, timestamp, key_id, size, num_times):
         outcomes = []
         for _ in range(num_times):
             outcomes.append(self.__format(org_id, project_id, outcome, timestamp, key_id))

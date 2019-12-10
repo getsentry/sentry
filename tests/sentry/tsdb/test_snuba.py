@@ -40,15 +40,21 @@ class SnubaTSDBTest(OutcomesSnubaTest):
 
         for outcome in [Outcome.ACCEPTED, Outcome.RATE_LIMITED, Outcome.FILTERED]:
             self.store_outcomes(
-                self.organization.id, self.project.id, outcome.value, self.start_time, 1, 3
+                self.organization.id, self.project.id, outcome.value, self.start_time, 1, None, 3
             )
             self.store_outcomes(
-                self.organization.id, self.project.id, outcome.value, self.one_day_later, 1, 4
+                self.organization.id, self.project.id, outcome.value, self.one_day_later, 1, None, 4
             )
 
             # Also create some outcomes we shouldn't be querying
             self.store_outcomes(
-                other_organization.id, self.project.id, outcome.value, self.one_day_later, 1, 5
+                other_organization.id,
+                self.project.id,
+                outcome.value,
+                self.one_day_later,
+                1,
+                None,
+                5,
             )
             self.store_outcomes(
                 self.organization.id,
@@ -56,6 +62,7 @@ class SnubaTSDBTest(OutcomesSnubaTest):
                 outcome.value,
                 self.day_before_start_time,
                 1,
+                None,
                 6,
             )
 
@@ -88,15 +95,21 @@ class SnubaTSDBTest(OutcomesSnubaTest):
 
         for outcome in [Outcome.ACCEPTED, Outcome.RATE_LIMITED, Outcome.FILTERED]:
             self.store_outcomes(
-                self.organization.id, self.project.id, outcome.value, self.start_time, 1, 3
+                self.organization.id, self.project.id, outcome.value, self.start_time, 1, None, 3
             )
             self.store_outcomes(
-                self.organization.id, self.project.id, outcome.value, self.one_day_later, 1, 4
+                self.organization.id, self.project.id, outcome.value, self.one_day_later, 1, None, 4
             )
 
             # Also create some outcomes we shouldn't be querying
             self.store_outcomes(
-                self.organization.id, other_project.id, outcome.value, self.one_day_later, 1, 5
+                self.organization.id,
+                other_project.id,
+                outcome.value,
+                self.one_day_later,
+                1,
+                None,
+                5,
             )
             self.store_outcomes(
                 self.organization.id,
@@ -104,6 +117,7 @@ class SnubaTSDBTest(OutcomesSnubaTest):
                 outcome.value,
                 self.day_before_start_time,
                 1,
+                None,
                 6,
             )
 
@@ -142,6 +156,7 @@ class SnubaTSDBTest(OutcomesSnubaTest):
                 outcome.value,
                 self.start_time,
                 project_key.id,
+                None,
                 3,
             )
             self.store_outcomes(
@@ -150,6 +165,7 @@ class SnubaTSDBTest(OutcomesSnubaTest):
                 outcome.value,
                 self.one_day_later,
                 project_key.id,
+                None,
                 4,
             )
 
@@ -160,6 +176,7 @@ class SnubaTSDBTest(OutcomesSnubaTest):
                 outcome.value,
                 self.one_day_later,
                 other_project_key.id,
+                None,
                 5,
             )
             self.store_outcomes(
@@ -168,6 +185,7 @@ class SnubaTSDBTest(OutcomesSnubaTest):
                 outcome.value,
                 self.day_before_start_time,
                 project_key.id,
+                None,
                 6,
             )
 
