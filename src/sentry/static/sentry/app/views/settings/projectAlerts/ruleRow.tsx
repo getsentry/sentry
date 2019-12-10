@@ -79,7 +79,11 @@ class RuleRow extends React.Component<Props, State> {
 
   render() {
     const {params, routes, location, data, canEdit} = this.props;
-    const editLink = recreateRoute(`${data.id}/`, {params, routes, location});
+    const editLink = recreateRoute(`/issue-rules/${data.id}/`, {
+      params,
+      routes,
+      location,
+    });
 
     const environmentName = data.environment
       ? getDisplayName({name: data.environment})
