@@ -26,30 +26,43 @@ describe('LightWeightNoProjectMessage', function() {
   });
 
   it('does not remount when the projects store loads', async function() {
-    const child = jest.fn(() => null);
+    const mount = jest.fn();
+    const unmount = jest.fn();
+    class MockComponent extends React.Component {
+      componentWillMount() {
+        mount();
+      }
+      componentWillUnmount() {
+        unmount();
+      }
+      render() {
+        return <div>children</div>;
+      }
+    }
+
     const project1 = TestStubs.Project();
     const project2 = TestStubs.Project();
     const organization = TestStubs.Organization({slug: 'org-slug'});
     delete organization.projects;
     const wrapper = mountWithTheme(
       <LightWeightNoProjectMessage organization={organization}>
-        {child()}
+        <MockComponent />
       </LightWeightNoProjectMessage>,
       TestStubs.routerContext()
     );
 
     // verify child is called/mounted once
-    expect(child).toHaveBeenCalledTimes(1);
+    expect(mount).toHaveBeenCalledTimes(1);
     expect(wrapper.find('NoProjectMessage')).toHaveLength(1);
     expect(wrapper.find('NoProjectMessage').prop('loadingProjects')).toEqual(true);
-
     ProjectsStore.loadInitialData([project1, project2]);
     // await for trigger from projects store to resolve
     await tick();
     wrapper.update();
 
     // verify child is still only called/mounted once
-    expect(child).toHaveBeenCalledTimes(1);
+    expect(unmount).toHaveBeenCalledTimes(0);
+    expect(mount).toHaveBeenCalledTimes(1);
     expect(wrapper.find('NoProjectMessage')).toHaveLength(1);
     expect(wrapper.find('NoProjectMessage').prop('loadingProjects')).toEqual(false);
   });
