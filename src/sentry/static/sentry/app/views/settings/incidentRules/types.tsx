@@ -36,6 +36,7 @@ export type SavedTrigger = UnsavedTrigger & {
 export type Trigger = Partial<SavedTrigger> & UnsavedTrigger;
 
 export type UnsavedIncidentRule = {
+  aggregation: AlertRuleAggregations;
   aggregations: AlertRuleAggregations[];
   projects: string[];
   query: string;

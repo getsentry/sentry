@@ -24,7 +24,7 @@ type Props = {
 
   query: IncidentRule['query'];
   timeWindow: IncidentRule['timeWindow'];
-  aggregations: IncidentRule['aggregations'];
+  aggregation: IncidentRule['aggregation'];
   triggers: Trigger[];
 };
 
@@ -41,7 +41,7 @@ class TriggersChart extends React.PureComponent<Props> {
       projects,
       timeWindow,
       query,
-      aggregations,
+      aggregation,
       triggers,
     } = this.props;
 
@@ -53,9 +53,7 @@ class TriggersChart extends React.PureComponent<Props> {
         project={projects.map(({id}) => Number(id))}
         interval={`${timeWindow}s`}
         period={getPeriodForTimeWindow(timeWindow)}
-        yAxis={
-          aggregations[0] === AlertRuleAggregations.TOTAL ? 'event_count' : 'user_count'
-        }
+        yAxis={aggregation === AlertRuleAggregations.TOTAL ? 'event_count' : 'user_count'}
         includePrevious={false}
       >
         {({loading, reloading, timeseriesData}) => {

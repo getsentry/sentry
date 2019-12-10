@@ -85,7 +85,7 @@ class IncidentRulesList extends AsyncView<Props, State> {
                 <RuleRow key={rule.id}>
                   <RuleLink to={ruleLink}>{rule.name}</RuleLink>
 
-                  <MetricName>{getMetricDisplayName(rule.aggregations[0])}</MetricName>
+                  <MetricName>{getMetricDisplayName(rule.aggregation)}</MetricName>
 
                   <ThresholdColumn>
                     <Thresholds>

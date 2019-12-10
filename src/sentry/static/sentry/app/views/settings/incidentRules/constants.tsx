@@ -15,11 +15,12 @@ export function createDefaultTrigger(): Trigger {
   };
 }
 
-export const DEFAULT_METRIC = [AlertRuleAggregations.TOTAL];
+export const DEFAULT_METRIC = AlertRuleAggregations.TOTAL;
 
 export function createDefaultRule(): UnsavedIncidentRule {
   return {
-    aggregations: DEFAULT_METRIC,
+    aggregation: DEFAULT_METRIC,
+    aggregations: [DEFAULT_METRIC],
     query: '',
     timeWindow: 60,
     triggers: [createDefaultTrigger()],

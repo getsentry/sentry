@@ -9,7 +9,7 @@ export function IncidentRule(params) {
     id: '4',
     name: 'My Incident Rule',
     timeWindow: 60,
-    aggregations: [0],
+    aggregation: 0,
     projects: ['project-slug'],
     dateModified: '2019-07-31T23:02:02.731Z',
     triggers: [IncidentTrigger()],

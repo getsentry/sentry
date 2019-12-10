@@ -59,7 +59,7 @@ describe('Incident Rules Form', function() {
     it('creates a rule', async function() {
       const wrapper = createWrapper({
         rule: {
-          aggregations: [0],
+          aggregation: 0,
           query: '',
           projects: [project.slug],
           timeWindow: 60,
