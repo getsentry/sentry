@@ -733,6 +733,8 @@ def get_json_meta_type(field, snuba_type):
         return alias_definition.get("result_type")
     if "duration" in field:
         return "duration"
+    if field == "transaction.status":
+        return "string"
     return get_json_type(snuba_type)
 
 
