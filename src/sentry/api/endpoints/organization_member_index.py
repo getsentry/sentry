@@ -2,7 +2,7 @@ from __future__ import absolute_import
 import six
 
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, F
 from rest_framework import serializers
 from rest_framework.response import Response
 from django.conf import settings
@@ -134,9 +134,9 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                     ssoFlag = OrganizationMember.flags["sso:linked"]
                     ssoLinked = "true" in value
                     if ssoLinked:
-                        queryset = queryset.filter(flags=ssoFlag)
+                        queryset = queryset.filter(flags=F("flags").bitor(ssoFlag))
                     else:
-                        queryset = queryset.filter(flags=~ssoFlag)
+                        queryset = queryset.filter(flags=F("flags").bitand(~ssoFlag))
 
                 elif key == "has2fa":
                     has2fa = "true" in value
