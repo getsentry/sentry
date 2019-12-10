@@ -4,15 +4,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {Client} from 'app/api';
 import {IssueAlertRule} from 'app/types/alerts';
 import {PanelItem} from 'app/components/panels';
 import {SavedIncidentRule} from 'app/views/settings/incidentRules/types';
-import {
-  addSuccessMessage,
-  addErrorMessage,
-  addLoadingMessage,
-} from 'app/actionCreators/indicator';
 import {getDisplayName} from 'app/utils/environment';
 import {t, tct} from 'app/locale';
 import recreateRoute from 'app/utils/recreateRoute';
@@ -23,14 +17,8 @@ function isIssueAlert(data: IssueAlertRule | SavedIncidentRule): data is IssueAl
 }
 
 type Props = {
-  api: Client;
-  orgId: string;
-  projectId: string;
   data: IssueAlertRule | SavedIncidentRule;
   type: 'issue' | 'metric';
-
-  // Callback when deleting a rule
-  onDelete: () => void;
 
   // Is the alert rule editable?
   canEdit?: boolean;
@@ -46,38 +34,11 @@ type State = {
 
 class RuleRow extends React.Component<Props, State> {
   static propTypes: any = {
-    api: PropTypes.object.isRequired,
-    orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
-    onDelete: PropTypes.func.isRequired,
     canEdit: PropTypes.bool,
   };
 
   state = {loading: false, error: false};
-
-  onDelete = () => {
-    if (this.state.loading) {
-      return;
-    }
-
-    addLoadingMessage();
-    const {api, orgId, projectId, data} = this.props;
-    api.request(`/projects/${orgId}/${projectId}/rules/${data.id}/`, {
-      method: 'DELETE',
-      success: () => {
-        this.props.onDelete();
-        addSuccessMessage(tct('Successfully deleted "[alert]"', {alert: data.name}));
-      },
-      error: () => {
-        this.setState({
-          error: true,
-          loading: false,
-        });
-        addErrorMessage(t('Unable to save changes. Please try again.'));
-      },
-    });
-  };
 
   renderIssueRule(data: IssueAlertRule) {
     const {params, routes, location, canEdit} = this.props;
@@ -93,7 +54,7 @@ class RuleRow extends React.Component<Props, State> {
 
     return (
       <RuleItem>
-        <div>Issue</div>
+        <div>{t('Issue')}</div>
         <div>
           {canEdit ? <RuleName to={editLink}>{data.name}</RuleName> : data.name}
           <RuleDescription>
@@ -137,7 +98,7 @@ class RuleRow extends React.Component<Props, State> {
 
     return (
       <RuleItem>
-        <div>Metric</div>
+        <div>{t('Metric')}</div>
         <div>
           {canEdit ? <RuleName to={editLink}>{data.name}</RuleName> : data.name}
           <RuleDescription />

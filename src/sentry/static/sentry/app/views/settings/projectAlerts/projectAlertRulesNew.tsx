@@ -43,12 +43,6 @@ class ProjectAlertRules extends AsyncView<Props, State> {
     return routeTitle(t('Alert Rules'), projectId);
   }
 
-  handleDeleteRule = rule => {
-    this.setState({
-      ruleList: this.state.ruleList.filter(r => r.id !== rule.id),
-    });
-  };
-
   renderEmpty() {
     return (
       <EmptyStateWarning>
@@ -76,7 +70,6 @@ class ProjectAlertRules extends AsyncView<Props, State> {
               params={this.props.params}
               location={this.props.location}
               routes={this.props.routes}
-              onDelete={this.handleDeleteRule.bind(this, rule)}
               canEdit={canEditRule}
             />
           );
@@ -94,7 +87,6 @@ class ProjectAlertRules extends AsyncView<Props, State> {
               params={this.props.params}
               location={this.props.location}
               routes={this.props.routes}
-              onDelete={this.handleDeleteRule.bind(this, rule)}
               canEdit={canEditRule}
             />
           );
