@@ -44,7 +44,7 @@ function buildTargets(
       const eventSlug = `${event.projectSlug}:${value}`;
 
       links[key] = {
-        pathname: generateEventDetailsRoute({eventSlug, organization}),
+        pathname: generateEventDetailsRoute({eventSlug, orgSlug: organization.slug}),
         query: eventView.generateQueryStringObject(),
       };
     }

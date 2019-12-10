@@ -28,6 +28,7 @@ import EventView from './eventView';
 import {DEFAULT_EVENT_VIEW} from './data';
 import QueryList from './queryList';
 import {getPrebuiltQueries, decodeScalar} from './utils';
+import {generateDiscoverResultsRoute} from './results';
 
 const BANNER_DISMISSED_KEY = 'discover-banner-dismissed';
 
@@ -219,7 +220,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     const eventView = EventView.fromNewQueryWithLocation(DEFAULT_EVENT_VIEW, location);
 
     const to = {
-      pathname: `/organizations/${organization.slug}/eventsV2/results/`,
+      pathname: generateDiscoverResultsRoute(organization.slug),
       query: {
         ...eventView.generateQueryStringObject(),
       },
