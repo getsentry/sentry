@@ -18,6 +18,7 @@ import {
 import EventView from 'app/views/eventsV2/eventView';
 
 import {SpanType} from './types';
+import {generateDiscoverResultsRoute} from 'app/views/eventsV2/results';
 
 type TransactionResult = {
   'project.name': string;
@@ -108,9 +109,25 @@ class SpanDetail extends React.Component<Props, State> {
       );
     }
 
+    const {span, orgId} = this.props;
+
+    const eventView = EventView.fromSavedQuery({
+      id: undefined,
+      name: t('Transactions'),
+      fields: ['transaction', 'trace.span', 'timestamp'],
+      fieldnames: ['transaction', 'trace.span', 'timestamp'],
+      orderby: '-timestamp',
+      query: `event.type:transaction trace:${span.trace_id} trace.parent_span:${
+        span.span_id
+      }`,
+      tags: ['release', 'project.name', 'user.email', 'user.ip', 'environment'],
+      projects: [],
+      version: 2,
+    });
+
     const to = {
-      pathname: '',
-      query: this.props.eventView.generateQueryStringObject(),
+      pathname: generateDiscoverResultsRoute(orgId),
+      query: eventView.generateQueryStringObject(),
     };
 
     return (
