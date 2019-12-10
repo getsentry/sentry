@@ -4,7 +4,6 @@ import six
 
 from django.core import mail
 from django.core.urlresolvers import reverse
-from django.db.models import F
 from mock import patch
 
 from sentry.models import (
@@ -570,7 +569,7 @@ class ResetOrganizationMember2faTest(APITestCase):
         self.login_as(self.owner)
         TotpInterface().enroll(self.owner)
 
-        self.org.update(flags=F("flags").bitor(Organization.flags.require_2fa))
+        self.org.update(flags=Organization.flags.require_2fa)
         assert self.org.flags.require_2fa.is_set is True
 
         self.assert_cannot_remove_authenticators()

@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from django.db.models import F
 from rest_framework import status
 from rest_framework.response import Response
 
@@ -45,9 +44,7 @@ class ProjectKeysEndpoint(ProjectEndpoint):
         :pparam string project_slug: the slug of the project the client keys
                                      belong to.
         """
-        queryset = ProjectKey.objects.filter(
-            project=project, roles=F("roles").bitor(ProjectKey.roles.store)
-        )
+        queryset = ProjectKey.objects.filter(project=project, roles=ProjectKey.roles.store)
         status = request.GET.get("status")
         if status == "active":
             queryset = queryset.filter(status=ProjectKeyStatus.ACTIVE)
