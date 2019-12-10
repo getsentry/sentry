@@ -87,22 +87,37 @@ class SpanDetail extends React.Component<Props, State> {
       return null;
     }
 
-    const {eventView} = this.props;
+    if (this.state.transactionResults.length === 1) {
+      const {eventView} = this.props;
 
-    const parentTransactionLink = generateEventDetailsRoute({
-      eventSlug: generateSlug(this.state.transactionResults[0]),
-      orgSlug: this.props.orgId,
-    });
+      const parentTransactionLink = generateEventDetailsRoute({
+        eventSlug: generateSlug(this.state.transactionResults[0]),
+        orgSlug: this.props.orgId,
+      });
+
+      const to = {
+        pathname: parentTransactionLink,
+        query: eventView.generateQueryStringObject(),
+      };
+
+      return (
+        <div>
+          <Button size="xsmall" to={to}>
+            {t('View child')}
+          </Button>
+        </div>
+      );
+    }
 
     const to = {
-      pathname: parentTransactionLink,
-      query: eventView.generateQueryStringObject(),
+      pathname: '',
+      query: this.props.eventView.generateQueryStringObject(),
     };
 
     return (
       <div>
         <Button size="xsmall" to={to}>
-          {t('Open span')}
+          {t('View children')}
         </Button>
       </div>
     );
