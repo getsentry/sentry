@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from bitfield.types import Bit, BitHandler
 
-from django.db.models.lookups import Exact, Lookup
+from django.db.models.lookups import Lookup
 
 
 class BitQueryLookupWrapper(Lookup):
@@ -21,8 +21,3 @@ class BitQueryLookupWrapper(Lookup):
 
     def get_prep_lookup(self):
         return self.rhs
-
-
-class BitQueryExactLookupUnsupportedStub(Exact):
-    def get_prep_lookup(self):
-        raise NotImplementedError("sentry's BitField doesn't support Exact lookups.")
