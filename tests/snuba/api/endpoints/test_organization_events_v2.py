@@ -583,10 +583,12 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 self.url,
                 format="json",
                 data={
-                    "field": ["transaction", "transaction.duration"],
+                    "field": ["transaction", "transaction.duration", "transaction.status"],
                     "query": "event.type:transaction",
                 },
             )
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         assert response.data["meta"]["transaction.duration"] == "duration"
+        assert response.data["meta"]["transaction.status"] == "string"
+        assert response.data["data"][0]["transaction.status"] == "ok"
