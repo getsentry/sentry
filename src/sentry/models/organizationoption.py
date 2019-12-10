@@ -9,10 +9,6 @@ from sentry.utils.cache import cache
 
 
 class OrganizationOptionManager(OptionManager):
-    def _make_key(self, instance_id):
-        assert instance_id
-        return "%s:%s" % (self.model._meta.db_table, instance_id)
-
     def get_value_bulk(self, instances, key):
         instance_map = dict((i.id, i) for i in instances)
         queryset = self.filter(organization__in=instances, key=key)
@@ -42,21 +38,21 @@ class OrganizationOptionManager(OptionManager):
             organization_id = organization.id
         else:
             organization_id = organization
+        cache_key = self._make_key(organization_id)
 
-        if organization_id not in self._cache:
-            cache_key = self._make_key(organization_id)
+        if organization_id not in self._option_cache:
             result = cache.get(cache_key)
             if result is None:
                 result = self.reload_cache(organization_id)
             else:
-                self._cache[organization_id] = result
-        return self._cache.get(organization_id, {})
+                self._option_cache[cache_key] = result
+        return self._option_cache.get(cache_key, {})
 
     def reload_cache(self, organization_id):
         cache_key = self._make_key(organization_id)
         result = dict((i.key, i.value) for i in self.filter(organization=organization_id))
         cache.set(cache_key, result)
-        self._cache[organization_id] = result
+        self._option_cache[cache_key] = result
         return result
 
     def post_save(self, instance, **kwargs):

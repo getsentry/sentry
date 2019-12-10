@@ -456,17 +456,20 @@ class BaseManager(Manager):
 
 
 class OptionManager(BaseManager):
-    def __init__(self, *args, **kwargs):
-        self._local_cache = threading.local()
-        self._local_cache.cache = {}
-        self._cache = self._local_cache.cache
-        super(OptionManager, self).__init__(*args, **kwargs)
+    @property
+    def _option_cache(self):
+        if not hasattr(_local_cache, "option_cache"):
+            _local_cache.option_cache = {}
+        return _local_cache.option_cache
 
     def clear_local_cache(self, **kwargs):
-        for key in self._cache.keys():
-            del self._cache[key]
+        self._option_cache.clear()
 
     def contribute_to_class(self, model, name):
         super(OptionManager, self).contribute_to_class(model, name)
         task_postrun.connect(self.clear_local_cache)
         request_finished.connect(self.clear_local_cache)
+
+    def _make_key(self, instance_id):
+        assert instance_id
+        return u"%s:%s" % (self.model._meta.db_table, instance_id)

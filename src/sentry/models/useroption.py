@@ -35,7 +35,7 @@ def project_metakey(user, project):
     else:
         project_id = project
 
-    return (user_metakey(user), project_id, "project")
+    return u"%s:%s:project" % (user_metakey(user), project_id)
 
 
 def organization_metakey(user, organization):
@@ -44,10 +44,20 @@ def organization_metakey(user, organization):
     else:
         organization_id = organization
 
-    return (user_metakey(user), organization_id, "organization")
+    return u"%s:%s:organization" % (user_metakey(user), organization_id)
 
 
 class UserOptionManager(OptionManager):
+    def _make_key(self, user, project=None, organization=None):
+        if project:
+            metakey = project_metakey(user, project)
+        elif organization:
+            metakey = organization_metakey(user, organization)
+        else:
+            metakey = user_metakey(user)
+
+        return super(UserOptionManager, self)._make_key(metakey)
+
     def get_value(self, user, key, default=None, **kwargs):
         project = kwargs.get("project")
         organization = kwargs.get("organization")
@@ -66,14 +76,12 @@ class UserOptionManager(OptionManager):
         self.filter(user=user, project=project, key=key).delete()
         if not hasattr(self, "_metadata"):
             return
-        if project:
-            metakey = project_metakey(user, project)
-        else:
-            metakey = user_metakey(user)
 
-        if metakey not in self._cache:
+        metakey = self._make_key(user, project=project)
+
+        if metakey not in self._option_cache:
             return
-        self._cache[metakey].pop(key, None)
+        self._option_cache[metakey].pop(key, None)
 
     def set_value(self, user, key, value, **kwargs):
         project = kwargs.get("project")
@@ -92,35 +100,25 @@ class UserOptionManager(OptionManager):
         if not created and inst.value != value:
             inst.update(value=value)
 
-        if project:
-            metakey = project_metakey(user, project)
-        elif organization:
-            metakey = organization_metakey(user, organization)
-        else:
-            metakey = user_metakey(user)
+        metakey = self._make_key(user, project=project, organization=organization)
 
-        if metakey not in self._cache:
+        if metakey not in self._option_cache:
             return
-        self._cache[metakey][key] = value
+        self._option_cache[metakey][key] = value
 
     def get_all_values(self, user, project=None, organization=None, force_reload=False):
         if organization and project:
             raise NotImplementedError(option_scope_error)
 
-        if project:
-            metakey = project_metakey(user, project)
-        elif organization:
-            metakey = organization_metakey(user, organization)
-        else:
-            metakey = user_metakey(user)
+        metakey = self._make_key(user, project=project, organization=organization)
 
-        if metakey not in self._cache or force_reload:
+        if metakey not in self._option_cache or force_reload:
             result = dict(
                 (i.key, i.value)
                 for i in self.filter(user=user, project=project, organization=organization)
             )
-            self._cache[metakey] = result
-        return self._cache.get(metakey, {})
+            self._option_cache[metakey] = result
+        return self._option_cache.get(metakey, {})
 
     def post_save(self, instance, **kwargs):
         self.get_all_values(
