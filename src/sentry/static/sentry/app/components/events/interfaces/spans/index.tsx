@@ -1,17 +1,21 @@
 import React from 'react';
 import styled from 'react-emotion';
-import SentryTypes from 'app/sentryTypes';
-import SearchBar from 'app/components/searchBar';
+import PropTypes from 'prop-types';
 
 import {t} from 'app/locale';
+import SearchBar from 'app/components/searchBar';
+import SentryTypes from 'app/sentryTypes';
 import {Panel} from 'app/components/panels';
 import space from 'app/styles/space';
+import EventView from 'app/views/eventsV2/eventView';
 
 import {SentryTransactionEvent} from './types';
 import TraceView from './traceView';
 
 type PropType = {
+  orgId: string;
   event: SentryTransactionEvent;
+  eventView: EventView;
 };
 
 type State = {
@@ -21,6 +25,7 @@ type State = {
 class SpansInterface extends React.Component<PropType, State> {
   static propTypes = {
     event: SentryTypes.Event.isRequired,
+    orgId: PropTypes.string.isRequired,
   };
 
   state: State = {
@@ -34,7 +39,7 @@ class SpansInterface extends React.Component<PropType, State> {
   };
 
   render() {
-    const {event} = this.props;
+    const {event, orgId, eventView} = this.props;
 
     return (
       <div>
@@ -45,7 +50,12 @@ class SpansInterface extends React.Component<PropType, State> {
           onSearch={this.handleSpanFilter}
         />
         <Panel>
-          <TraceView event={event} searchQuery={this.state.searchQuery} />
+          <TraceView
+            event={event}
+            searchQuery={this.state.searchQuery}
+            orgId={orgId}
+            eventView={eventView}
+          />
         </Panel>
       </div>
     );

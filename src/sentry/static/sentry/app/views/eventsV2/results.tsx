@@ -219,4 +219,8 @@ const ContentBox = styled(PageContent)`
   }
 `;
 
+export function generateDiscoverResultsRoute(orgSlug: string): string {
+  return `/organizations/${orgSlug}/eventsv2/results/`;
+}
+
 export default withOrganization(Results);

@@ -7,6 +7,7 @@ import isNumber from 'lodash/isNumber';
 import {t} from 'app/locale';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
+import EventView from 'app/views/eventsV2/eventView';
 
 import DragManager, {DragManagerChildrenProps} from './dragManager';
 import SpanTree from './spanTree';
@@ -43,8 +44,10 @@ export type FilterSpans = {
 };
 
 type Props = {
+  orgId: string;
   event: Readonly<SentryTransactionEvent>;
   searchQuery: string | undefined;
+  eventView: EventView;
 };
 
 type State = {
@@ -68,8 +71,8 @@ class TraceView extends React.PureComponent<Props, State> {
 
   static getDerivedStateFromProps(props: Props, state: State): State {
     return {
-      parsedTrace: parseTrace(props.event),
       ...state,
+      parsedTrace: parseTrace(props.event),
     };
   }
 
@@ -204,6 +207,7 @@ class TraceView extends React.PureComponent<Props, State> {
     }
 
     const parsedTrace = this.state.parsedTrace;
+    const {orgId, eventView} = this.props;
 
     return (
       <DragManager interactiveLayerRef={this.minimapInteractiveRef}>
@@ -216,9 +220,11 @@ class TraceView extends React.PureComponent<Props, State> {
             >
               {this.renderHeader(dragProps, parsedTrace)}
               <SpanTree
+                eventView={eventView}
                 trace={parsedTrace}
                 dragProps={dragProps}
                 filterSpans={this.state.filterSpans}
+                orgId={orgId}
               />
             </CursorGuideHandler.Provider>
           );

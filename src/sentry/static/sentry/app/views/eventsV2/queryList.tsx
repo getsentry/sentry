@@ -22,6 +22,7 @@ import QueryCard from './querycard';
 import MiniGraph from './miniGraph';
 import {getPrebuiltQueries} from './utils';
 import {handleDeleteQuery, handleCreateQuery} from './savedQuery/utils';
+import {generateDiscoverResultsRoute} from './results';
 
 type Props = {
   api: Client;
@@ -113,7 +114,7 @@ class QueryList extends React.Component<Props> {
         moment(eventView.end).format('MMM D, YYYY h:mm A');
 
       const to = {
-        pathname: `/organizations/${organization.slug}/eventsV2/results/`,
+        pathname: generateDiscoverResultsRoute(organization.slug),
         query: {
           ...location.query,
           // remove any landing page cursor
@@ -168,7 +169,7 @@ class QueryList extends React.Component<Props> {
         ' - ' +
         moment(eventView.end).format('MMM D, YYYY h:mm A');
       const to = {
-        pathname: `/organizations/${organization.slug}/eventsV2/results/`,
+        pathname: generateDiscoverResultsRoute(organization.slug),
         query: {
           ...location.query,
           // remove any landing page cursor

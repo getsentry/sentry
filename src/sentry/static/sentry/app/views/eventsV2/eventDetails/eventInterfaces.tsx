@@ -58,6 +58,7 @@ const ActiveTab = (props: ActiveTabProps) => {
         projectId={projectId}
         orgId={organization.slug}
         event={event}
+        eventView={eventView}
         type={entry.type}
         data={entry.data}
         isShare={false}
