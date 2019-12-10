@@ -16,9 +16,9 @@ import {
   generateEventDetailsRoute,
 } from 'app/views/eventsV2/eventDetails/utils';
 import EventView from 'app/views/eventsV2/eventView';
+import {generateDiscoverResultsRoute} from 'app/views/eventsV2/results';
 
 import {SpanType} from './types';
-import {generateDiscoverResultsRoute} from 'app/views/eventsV2/results';
 
 type TransactionResult = {
   'project.name': string;
