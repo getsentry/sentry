@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import fromPairs from 'lodash/fromPairs';
 
 import SelectAsyncControl from './selectAsyncControl';
 import SelectField from './selectField';
@@ -27,6 +28,16 @@ class SelectAsyncField extends SelectField {
      * Field ID
      */
     id: PropTypes.any,
+
+    /**
+     * A list of field names that we will try to retrieve current form values for
+     * in order to send with API request to fetch async results
+     */
+    depends: PropTypes.arrayOf(PropTypes.string),
+  };
+
+  static contextTypes = {
+    form: PropTypes.any,
   };
 
   static defaultProps = {
@@ -43,7 +54,19 @@ class SelectAsyncField extends SelectField {
 
   onQuery = query => {
     // Used by legacy integrations
-    return {autocomplete_query: query, autocomplete_field: this.props.name};
+    const {depends} = this.props;
+    const {form} = this.context;
+    let dependentFields = {};
+
+    if (form && form.data && depends) {
+      dependentFields = fromPairs(depends.map(key => [key, form.data[key]])) || {};
+    }
+
+    return {
+      autocomplete_query: query,
+      autocomplete_field: this.props.name,
+      ...dependentFields,
+    };
   };
 
   getField() {

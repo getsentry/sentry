@@ -147,7 +147,7 @@ describe('Incident Rules Details', function() {
       expect.anything(),
       expect.objectContaining({
         data: expect.objectContaining({
-          aggregations: [0],
+          aggregation: 0,
           dataset: 'events',
           id: '4',
           name: 'My Incident Rule',
@@ -228,7 +228,7 @@ describe('Incident Rules Details', function() {
       expect.anything(),
       expect.objectContaining({
         data: expect.objectContaining({
-          aggregations: [0],
+          aggregation: 0,
           dataset: 'events',
           id: '4',
           name: 'My Incident Rule',
