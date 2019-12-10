@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import logging
-
 from rest_framework.response import Response
 
 from sentry import eventstore
@@ -10,8 +8,6 @@ from sentry.api.fields.actor import Actor
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.models import ProjectOwnership
-
-logger = logging.getLogger(__name__)
 
 
 class EventOwnersEndpoint(ProjectEndpoint):
@@ -39,31 +35,11 @@ class EventOwnersEndpoint(ProjectEndpoint):
         if owners == ProjectOwnership.Everyone:
             owners = []
 
-        serialized_owners = serialize(Actor.resolve_many(owners), request.user, ActorSerializer())
-        # We do so many dict/set casts on these owners that the order is not preserved at all.
-        # Re-order the results according to how the rules are ordered.
-        owner_map = {o["name"]: o for o in serialized_owners}
-        ordered_owners = []
-        for rule in rules:
-            for o in rule.owners:
-                found = owner_map.get(o.identifier)
-                if found:
-                    ordered_owners.append(found)
-
-        if len(serialized_owners) != len(ordered_owners):
-            logger.error(
-                "unexpected owners in response",
-                extra={
-                    "project_id": project.id,
-                    "event_id": event_id,
-                    "expected_length": len(ordered_owners),
-                    "calculated_length": len(serialized_owners),
-                },
-            )
-
         return Response(
             {
-                "owners": ordered_owners,
+                "owners": serialize(Actor.resolve_many(owners), request.user, ActorSerializer()),
+                # TODO(mattrobenolt): We need to change the API here to return
+                # all rules, just keeping this way currently for API compat
                 "rule": rules[0].matcher if rules else None,
                 "rules": rules or [],
             }
