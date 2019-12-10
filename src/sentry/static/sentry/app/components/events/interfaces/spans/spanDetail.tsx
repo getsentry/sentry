@@ -139,6 +139,35 @@ class SpanDetail extends React.Component<Props, State> {
     );
   }
 
+  renderTraceButton() {
+    const {span, orgId} = this.props;
+
+    const eventView = EventView.fromSavedQuery({
+      id: undefined,
+      name: t('Transactions'),
+      fields: ['transaction', 'trace.span', 'transaction.duration', 'timestamp'],
+      fieldnames: ['transaction', 'trace.span', 'duration', 'timestamp'],
+      orderby: '-timestamp',
+      query: `event.type:transaction trace:${span.trace_id}`,
+      tags: ['release', 'project.name', 'user.email', 'user.ip', 'environment'],
+      projects: [],
+      version: 2,
+    });
+
+    const to = {
+      pathname: generateDiscoverResultsRoute(orgId),
+      query: eventView.generateQueryStringObject(),
+    };
+
+    return (
+      <div>
+        <Button size="xsmall" to={to}>
+          {t('Search by Trace')}
+        </Button>
+      </div>
+    );
+  }
+
   render() {
     const {span} = this.props;
 
@@ -161,7 +190,9 @@ class SpanDetail extends React.Component<Props, State> {
             <Row title="Span ID" extra={this.renderTraversalButton()}>
               {span.span_id}
             </Row>
-            <Row title="Trace ID">{span.trace_id}</Row>
+            <Row title="Trace ID" extra={this.renderTraceButton()}>
+              {span.trace_id}
+            </Row>
             <Row title="Parent Span ID">{span.parent_span_id || ''}</Row>
             <Row title="Description">{get(span, 'description', '')}</Row>
             <Row title="Start Date">
