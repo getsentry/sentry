@@ -63,7 +63,7 @@ class RuleRow extends React.Component<Props, State> {
         </div>
 
         <TriggerAndActions>
-          <Condition>
+          <div>
             <MatchTypeHeader>
               {tct('[matchType] of the following:', {
                 matchType: data.actionMatch,
@@ -76,13 +76,13 @@ class RuleRow extends React.Component<Props, State> {
                 })}
               </Conditions>
             )}
-          </Condition>
+          </div>
 
-          <Actions>
+          <div>
             {data.actions.map((action, i) => {
               return <div key={i}>{action.name}</div>;
             })}
-          </Actions>
+          </div>
         </TriggerAndActions>
       </RuleItem>
     );
@@ -117,12 +117,12 @@ class RuleRow extends React.Component<Props, State> {
                       {trigger.alertThreshold}/{data.timeWindow}s
                     </div>
                   </Trigger>
-                  <Actions>
+                  <div>
                     {trigger.actions &&
                       trigger.actions.map((action, j) => (
-                        <Action key={j}>{action.type}</Action>
+                        <div key={j}>{action.type}</div>
                       ))}
-                  </Actions>
+                  </div>
                 </TriggerAndActions>
               );
             })}
@@ -173,10 +173,6 @@ const MatchTypeHeader = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-const Condition = styled('div')``;
-
-const Actions = styled('div')``;
-
 const RuleDescription = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   margin: ${space(0.5)} 0;
@@ -186,7 +182,6 @@ const Trigger = styled('div')`
   display: flex;
   align-items: center;
 `;
-const Action = styled('div')``;
 
 const StatusBadge = styled('div')`
   background-color: ${p => p.theme.offWhite2};
