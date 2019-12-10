@@ -404,7 +404,7 @@ class EventManager(object):
             data = self._data
             event_id = data.get("event_id")
 
-            return eventstore.from_data(
+            return eventstore.create_event(
                 project_id=project_id or self._project.id,
                 event_id=event_id,
                 group_id=None,
