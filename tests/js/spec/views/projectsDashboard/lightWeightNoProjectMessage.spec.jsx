@@ -44,7 +44,7 @@ describe('LightWeightNoProjectMessage', function() {
     expect(wrapper.find('NoProjectMessage').prop('loadingProjects')).toEqual(true);
 
     ProjectsStore.loadInitialData([project1, project2]);
-    await tick();
+    // await for trigger from projects store to resolve
     await tick();
     wrapper.update();
 
