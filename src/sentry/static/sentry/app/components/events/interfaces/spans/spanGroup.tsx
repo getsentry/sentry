@@ -1,10 +1,14 @@
 import React from 'react';
 
+import EventView from 'app/views/eventsV2/eventView';
+
 import {SpanBoundsType, SpanGeneratedBoundsType} from './utils';
 import {SpanType, ParsedTraceType} from './types';
 import SpanBar from './spanBar';
 
 type PropType = {
+  orgId: string;
+  eventView: EventView;
   span: Readonly<SpanType>;
   trace: Readonly<ParsedTraceType>;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
@@ -57,11 +61,15 @@ class SpanGroup extends React.Component<PropType, State> {
       treeDepth,
       spanNumber,
       isCurrentSpanFilteredOut,
+      orgId,
+      eventView,
     } = this.props;
 
     return (
       <React.Fragment>
         <SpanBar
+          eventView={eventView}
+          orgId={orgId}
           spanBarColour={spanBarColour}
           span={span}
           showSpanTree={this.state.showSpanTree}

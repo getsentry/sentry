@@ -258,7 +258,7 @@ const eventLink = (
 ): React.ReactNode => {
   const eventSlug = generateEventSlug(data);
   const pathname = generateEventDetailsRoute({
-    organization,
+    orgSlug: organization.slug,
     eventSlug,
   });
 
@@ -362,7 +362,7 @@ export const SPECIAL_FIELDS: SpecialFields = {
     renderFunc: (data, {location, organization}) => {
       const eventSlug = generateEventSlug(data);
       const pathname = generateEventDetailsRoute({
-        organization,
+        orgSlug: organization.slug,
         eventSlug,
       });
 
@@ -384,7 +384,7 @@ export const SPECIAL_FIELDS: SpecialFields = {
     renderFunc: (data, {location, organization}) => {
       const eventSlug = generateEventSlug(data);
       const pathname = generateEventDetailsRoute({
-        organization,
+        orgSlug: organization.slug,
         eventSlug,
       });
 

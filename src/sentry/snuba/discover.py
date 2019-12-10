@@ -5,10 +5,17 @@ import six
 from collections import namedtuple
 from copy import deepcopy
 
-from sentry.api.event_search import TAG_KEY_RE, get_filter, resolve_field_list, InvalidSearchQuery
+from sentry.api.event_search import (
+    get_filter,
+    resolve_field_list,
+    InvalidSearchQuery,
+    AGGREGATE_PATTERN,
+    FIELD_ALIASES,
+    VALID_AGGREGATES,
+)
 from sentry import eventstore
+
 from sentry.models import Project, ProjectStatus
-from sentry.snuba.events import get_columns_from_aliases
 from sentry.utils.snuba import (
     Dataset,
     SnubaTSResult,
@@ -35,6 +42,21 @@ ReferenceEvent = namedtuple("ReferenceEvent", ["organization", "slug", "fields"]
 PaginationResult = namedtuple("PaginationResult", ["next", "previous", "oldest", "latest"])
 
 
+def is_real_column(col):
+    """
+    Return true if col corresponds to an actual column to be fetched
+    (not an aggregate function or field alias)
+    """
+    if col in FIELD_ALIASES:
+        return False
+
+    match = AGGREGATE_PATTERN.search(col)
+    if match and match.group("function") in VALID_AGGREGATES:
+        return False
+
+    return True
+
+
 def find_reference_event(reference_event):
     try:
         project_slug, event_id = reference_event.slug.split(":")
@@ -49,7 +71,8 @@ def find_reference_event(reference_event):
     except Project.DoesNotExist:
         raise InvalidSearchQuery("Invalid reference event")
 
-    column_names = [c.value.discover_name for c in get_columns_from_aliases(reference_event.fields)]
+    column_names = [resolve_column(col) for col in reference_event.fields if is_real_column(col)]
+
     # We don't need to run a query if there are no columns
     if not column_names:
         return None
@@ -77,25 +100,17 @@ def create_reference_event_conditions(reference_event):
     reference_event (ReferenceEvent) The reference event to build conditions from.
     """
     conditions = []
-    tags = {}
     event_data = find_reference_event(reference_event)
     if event_data is None:
         return conditions
 
-    if "tags.key" in event_data and "tags.value" in event_data:
-        tags = dict(zip(event_data["tags.key"], event_data["tags.value"]))
-
     field_names = [resolve_column(col) for col in reference_event.fields]
     for (i, field) in enumerate(reference_event.fields):
-        match = TAG_KEY_RE.match(field_names[i])
-        if match:
-            value = tags.get(match.group(1), None)
-        else:
-            value = event_data.get(field_names[i], None)
-            # If the value is a sequence use the first element as snuba
-            # doesn't support `=` or `IN` operations on fields like exception_frames.filename
-            if isinstance(value, (list, set)) and value:
-                value = value.pop()
+        value = event_data.get(field_names[i], None)
+        # If the value is a sequence use the first element as snuba
+        # doesn't support `=` or `IN` operations on fields like exception_frames.filename
+        if isinstance(value, (list, set)) and value:
+            value = value.pop()
         if value:
             conditions.append([field, "=", value])
 
