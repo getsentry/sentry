@@ -49,7 +49,7 @@ type State = {
   // Rule conditions form inputs
   // Needed for TriggersChart
   query: string;
-  aggregation: AlertRuleAggregations[];
+  aggregation: AlertRuleAggregations;
   timeWindow: number;
 } & AsyncComponent['state'];
 
