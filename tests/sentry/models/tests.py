@@ -93,7 +93,7 @@ class EventNodeStoreTest(TestCase):
         e1 = Event(project_id=1, event_id="abc", data={"foo": "bar"})
         assert e1.data.id is not None, "We should have generated a node_id for this event"
         e1_node_id = e1.data.id
-        e1.save()
+        e1.data.save()
         e1_body = nodestore.get(e1_node_id)
         assert e1_body == {"foo": "bar"}, "The event body should be in nodestore"
 

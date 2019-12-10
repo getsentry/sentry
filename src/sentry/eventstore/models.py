@@ -53,9 +53,3 @@ class Event(EventCommon):
         date = datetime.fromtimestamp(recorded_timestamp)
         date = date.replace(tzinfo=timezone.utc)
         return date
-
-    def save(self):
-        """
-        Saves event to nodestore. Should also insert event to Eventstream in future.
-        """
-        self._data.save()
