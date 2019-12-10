@@ -71,12 +71,14 @@ def tsdb_increments_from_outcome(org_id, project_id, key_id, outcome, reason, si
         # (too large, duplicate, CORS) toward regular `received` counts.
         if project_id is not None:
             yield (tsdb.models.project_total_received, project_id)
-            # Bytes tracking
-            yield (tsdb.models.project_total_bytes, project_id, {"count": size})
+            if size is not None:
+                # Bytes tracking
+                yield (tsdb.models.project_total_bytes, project_id, {"count": size})
         if org_id is not None:
             yield (tsdb.models.organization_total_received, org_id)
-            # Bytes tracking
-            yield (tsdb.models.organization_total_bytes, org_id, {"count": size})
+            if size is not None:
+                # Bytes tracking
+                yield (tsdb.models.organization_total_bytes, org_id, {"count": size})
         if key_id is not None:
             yield (tsdb.models.key_total_received, key_id)
 
