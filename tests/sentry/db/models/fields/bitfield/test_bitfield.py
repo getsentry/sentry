@@ -189,17 +189,27 @@ class BitFieldTest(TestCase):
 
     def test_select(self):
         BitFieldTestModel.objects.create(flags=3)
+        # TODO(joshuarli): once Exact support is restored to our bitfield,
+        # change these back to not use F("flags").bitor.
         self.assertTrue(
-            BitFieldTestModel.objects.filter(flags=BitFieldTestModel.flags.FLAG_1).exists()
+            BitFieldTestModel.objects.filter(
+                flags=F("flags").bitor(BitFieldTestModel.flags.FLAG_1)
+            ).exists()
         )
         self.assertTrue(
-            BitFieldTestModel.objects.filter(flags=BitFieldTestModel.flags.FLAG_0).exists()
+            BitFieldTestModel.objects.filter(
+                flags=F("flags").bitor(BitFieldTestModel.flags.FLAG_0)
+            ).exists()
         )
         self.assertFalse(
-            BitFieldTestModel.objects.exclude(flags=BitFieldTestModel.flags.FLAG_0).exists()
+            BitFieldTestModel.objects.exclude(
+                flags=F("flags").bitor(BitFieldTestModel.flags.FLAG_0)
+            ).exists()
         )
         self.assertFalse(
-            BitFieldTestModel.objects.exclude(flags=BitFieldTestModel.flags.FLAG_1).exists()
+            BitFieldTestModel.objects.exclude(
+                flags=F("flags").bitor(BitFieldTestModel.flags.FLAG_1)
+            ).exists()
         )
 
     def test_update(self):
@@ -250,14 +260,25 @@ class BitFieldTest(TestCase):
             flags=BitFieldTestModel.flags.FLAG_0 | BitFieldTestModel.flags.FLAG_1
         )
         BitFieldTestModel.objects.create(flags=BitFieldTestModel.flags.FLAG_1)
+        # TODO(joshuarli): once Exact support is restored to our bitfield,
+        # change these back to not use F("flags").bitand.
         self.assertEqual(
-            BitFieldTestModel.objects.filter(flags=~BitFieldTestModel.flags.FLAG_0).count(), 1
+            BitFieldTestModel.objects.filter(
+                flags=F("flags").bitand(~BitFieldTestModel.flags.FLAG_0)
+            ).count(),
+            1,
         )
         self.assertEqual(
-            BitFieldTestModel.objects.filter(flags=~BitFieldTestModel.flags.FLAG_1).count(), 0
+            BitFieldTestModel.objects.filter(
+                flags=F("flags").bitand(~BitFieldTestModel.flags.FLAG_1)
+            ).count(),
+            0,
         )
         self.assertEqual(
-            BitFieldTestModel.objects.filter(flags=~BitFieldTestModel.flags.FLAG_2).count(), 2
+            BitFieldTestModel.objects.filter(
+                flags=F("flags").bitand(~BitFieldTestModel.flags.FLAG_2)
+            ).count(),
+            2,
         )
 
     def test_default_value(self):
