@@ -332,7 +332,7 @@ def timeseries_query(selected_columns, query, params, rollup, reference_event=No
     )
     result = zerofill(result["data"], snuba_args["start"], snuba_args["end"], rollup, "time")
 
-    return SnubaTSResult(result, snuba_filter.start, snuba_filter.end, rollup)
+    return SnubaTSResult({"data": result}, snuba_filter.start, snuba_filter.end, rollup)
 
 
 def get_id(result):
