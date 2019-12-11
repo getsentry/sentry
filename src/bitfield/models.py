@@ -147,6 +147,8 @@ class BitField(BigIntegerField):
         if isinstance(getattr(value, "expression", None), Bit):
             value = value.expression
         if isinstance(value, Bit):
+            if lookup_type in ("exact",):
+                return value
             raise TypeError("Lookup type %r not supported with `Bit` type." % lookup_type)
         return BigIntegerField.get_prep_lookup(self, lookup_type, value)
 
