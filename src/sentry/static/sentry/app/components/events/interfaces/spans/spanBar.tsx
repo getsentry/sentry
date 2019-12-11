@@ -341,11 +341,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     }
 
     const chevronElement = !isRoot ? (
-      <div
-        style={{
-          textAlign: 'right',
-        }}
-      >
+      <div>
         {chevron}
       </div>
     ) : null;
