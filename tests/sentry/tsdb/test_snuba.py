@@ -40,10 +40,10 @@ class SnubaTSDBTest(OutcomesSnubaTest):
 
         for outcome in [Outcome.ACCEPTED, Outcome.RATE_LIMITED, Outcome.FILTERED]:
             self.store_outcomes(
-                self.organization.id, self.project.id, outcome.value, self.start_time, 1, None, 3
+                self.organization.id, self.project.id, outcome.value, self.start_time, 1, 2048, 3
             )
             self.store_outcomes(
-                self.organization.id, self.project.id, outcome.value, self.one_day_later, 1, None, 4
+                self.organization.id, self.project.id, outcome.value, self.one_day_later, 1, 2048, 4
             )
 
             # Also create some outcomes we shouldn't be querying
@@ -53,7 +53,7 @@ class SnubaTSDBTest(OutcomesSnubaTest):
                 outcome.value,
                 self.one_day_later,
                 1,
-                None,
+                2048,
                 5,
             )
             self.store_outcomes(
@@ -62,17 +62,59 @@ class SnubaTSDBTest(OutcomesSnubaTest):
                 outcome.value,
                 self.day_before_start_time,
                 1,
-                None,
+                2048,
                 6,
             )
 
         for tsdb_model, granularity, floor_func, start_time_count, day_later_count in [
             (TSDBModel.organization_total_received, 3600, floor_to_hour_epoch, 3 * 3, 4 * 3),
+            (
+                TSDBModel.organization_total_bytes_received,
+                3600,
+                floor_to_hour_epoch,
+                3 * 2048,
+                4 * 2048,
+            ),
             (TSDBModel.organization_total_rejected, 3600, floor_to_hour_epoch, 3, 4),
+            (
+                TSDBModel.organization_total_bytes_rejected,
+                3600,
+                floor_to_hour_epoch,
+                3 * 2048,
+                4 * 2048,
+            ),
             (TSDBModel.organization_total_blacklisted, 3600, floor_to_hour_epoch, 3, 4),
+            (
+                TSDBModel.organization_total_bytes_blacklisted,
+                3600,
+                floor_to_hour_epoch,
+                3 * 2048,
+                4 * 2048,
+            ),
             (TSDBModel.organization_total_received, 10, floor_to_10s_epoch, 3 * 3, 4 * 3),
+            (
+                TSDBModel.organization_total_bytes_received,
+                10,
+                floor_to_10s_epoch,
+                3 * 2048,
+                4 * 2048,
+            ),
             (TSDBModel.organization_total_rejected, 10, floor_to_10s_epoch, 3, 4),
+            (
+                TSDBModel.organization_total_bytes_rejected,
+                10,
+                floor_to_10s_epoch,
+                3 * 2048,
+                4 * 2048,
+            ),
             (TSDBModel.organization_total_blacklisted, 10, floor_to_10s_epoch, 3, 4),
+            (
+                TSDBModel.organization_total_bytes_blacklisted,
+                10,
+                floor_to_10s_epoch,
+                3 * 2048,
+                4 * 2048,
+            ),
         ]:
             # Query SnubaTSDB
             response = self.db.get_range(
@@ -95,10 +137,10 @@ class SnubaTSDBTest(OutcomesSnubaTest):
 
         for outcome in [Outcome.ACCEPTED, Outcome.RATE_LIMITED, Outcome.FILTERED]:
             self.store_outcomes(
-                self.organization.id, self.project.id, outcome.value, self.start_time, 1, None, 3
+                self.organization.id, self.project.id, outcome.value, self.start_time, 1, 2048, 3
             )
             self.store_outcomes(
-                self.organization.id, self.project.id, outcome.value, self.one_day_later, 1, None, 4
+                self.organization.id, self.project.id, outcome.value, self.one_day_later, 1, 2048, 4
             )
 
             # Also create some outcomes we shouldn't be querying
@@ -108,7 +150,7 @@ class SnubaTSDBTest(OutcomesSnubaTest):
                 outcome.value,
                 self.one_day_later,
                 1,
-                None,
+                2048,
                 5,
             )
             self.store_outcomes(
@@ -117,17 +159,29 @@ class SnubaTSDBTest(OutcomesSnubaTest):
                 outcome.value,
                 self.day_before_start_time,
                 1,
-                None,
+                2048,
                 6,
             )
 
         for tsdb_model, granularity, floor_func, start_time_count, day_later_count in [
             (TSDBModel.project_total_received, 3600, floor_to_hour_epoch, 3 * 3, 4 * 3),
+            (TSDBModel.project_total_bytes_received, 3600, floor_to_hour_epoch, 3 * 2048, 4 * 2048),
             (TSDBModel.project_total_rejected, 3600, floor_to_hour_epoch, 3, 4),
+            (TSDBModel.project_total_bytes_rejected, 3600, floor_to_hour_epoch, 3 * 2048, 4 * 2048),
             (TSDBModel.project_total_blacklisted, 3600, floor_to_hour_epoch, 3, 4),
+            (
+                TSDBModel.project_total_bytes_blacklisted,
+                3600,
+                floor_to_hour_epoch,
+                3 * 2048,
+                4 * 2048,
+            ),
             (TSDBModel.project_total_received, 10, floor_to_10s_epoch, 3 * 3, 4 * 3),
+            (TSDBModel.project_total_bytes_received, 10, floor_to_10s_epoch, 3 * 2048, 4 * 2048),
             (TSDBModel.project_total_rejected, 10, floor_to_10s_epoch, 3, 4),
+            (TSDBModel.project_total_bytes_rejected, 10, floor_to_10s_epoch, 3 * 2048, 4 * 2048),
             (TSDBModel.project_total_blacklisted, 10, floor_to_10s_epoch, 3, 4),
+            (TSDBModel.project_total_bytes_blacklisted, 10, floor_to_10s_epoch, 3 * 2048, 4 * 2048),
         ]:
             response = self.db.get_range(
                 tsdb_model, [self.project.id], self.start_time, self.now, granularity, None
@@ -156,7 +210,7 @@ class SnubaTSDBTest(OutcomesSnubaTest):
                 outcome.value,
                 self.start_time,
                 project_key.id,
-                None,
+                2048,
                 3,
             )
             self.store_outcomes(
@@ -165,7 +219,7 @@ class SnubaTSDBTest(OutcomesSnubaTest):
                 outcome.value,
                 self.one_day_later,
                 project_key.id,
-                None,
+                2048,
                 4,
             )
 
@@ -176,7 +230,7 @@ class SnubaTSDBTest(OutcomesSnubaTest):
                 outcome.value,
                 self.one_day_later,
                 other_project_key.id,
-                None,
+                2048,
                 5,
             )
             self.store_outcomes(
@@ -185,7 +239,7 @@ class SnubaTSDBTest(OutcomesSnubaTest):
                 outcome.value,
                 self.day_before_start_time,
                 project_key.id,
-                None,
+                2048,
                 6,
             )
 
