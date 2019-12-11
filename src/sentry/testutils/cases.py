@@ -863,7 +863,7 @@ class OutcomesSnubaTest(TestCase):
     def store_outcomes(self, org_id, project_id, outcome, timestamp, key_id, size, num_times):
         outcomes = []
         for _ in range(num_times):
-            outcomes.append(self.__format(org_id, project_id, outcome, timestamp, key_id))
+            outcomes.append(self.__format(org_id, project_id, outcome, timestamp, key_id, size))
 
         assert (
             requests.post(
