@@ -114,7 +114,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
 
     def get_new_issue_fields(self, request, group, event, **kwargs):
         fields = super(TrelloPlugin, self).get_new_issue_fields(request, group, event, **kwargs)
-        client = self.get_client(request.user)
+        client = self.get_client(group.project)
         boards = client.get_boards()
         board_choices = self.get_board_choices(boards)
 
@@ -153,7 +153,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
         return "unknown error"
 
     def create_issue(self, request, group, form_data, **kwargs):
-        client = self.get_client(request.user)
+        client = self.get_client(group.project)
 
         try:
             response = client.new_card(
