@@ -340,11 +340,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       );
     }
 
-    const chevronElement = !isRoot ? (
-      <div>
-        {chevron}
-      </div>
-    ) : null;
+    const chevronElement = !isRoot ? <div>{chevron}</div> : null;
 
     return (
       <SpanTreeTogglerContainer style={{left: `${left}px`}} hasToggler>
@@ -872,6 +868,17 @@ const SpanTreeConnector = styled('div')<TogglerTypes>`
     width: 100%;
     position: absolute;
     bottom: ${p => (p.isLast ? '0' : '50%')};
+  }
+
+  &:after {
+    content: '';
+    background-color: ${p => p.theme.gray1};
+    border-radius: 4px;
+    height: 3px;
+    width: 3px;
+    position: absolute;
+    right: 0;
+    top: 11px;
   }
 `;
 
