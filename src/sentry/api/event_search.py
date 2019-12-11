@@ -722,6 +722,7 @@ VALID_AGGREGATES = {
     "min": {"snuba_name": "min", "fields": ["time", "timestamp", "transaction.duration"]},
     "max": {"snuba_name": "max", "fields": ["time", "timestamp", "transaction.duration"]},
     "avg": {"snuba_name": "avg", "fields": ["transaction.duration"]},
+    "sum": {"snuba_name": "sum", "fields": ["transaction.duration"]},
 }
 
 AGGREGATE_PATTERN = re.compile(r"^(?P<function>[^\(]+)\((?P<column>[a-z\._]*)\)$")

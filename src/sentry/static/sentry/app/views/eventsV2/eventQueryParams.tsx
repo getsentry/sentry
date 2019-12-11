@@ -42,6 +42,10 @@ export const AGGREGATIONS = {
     type: ['duration'],
     isSortable: true,
   },
+  sum: {
+    type: ['duration'],
+    isSortable: true,
+  },
   /*
   cidr: {
     type: 'string',
