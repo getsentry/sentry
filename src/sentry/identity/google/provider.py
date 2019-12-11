@@ -8,6 +8,13 @@ from sentry.utils.signing import urlsafe_b64decode
 from sentry.auth.provider import MigratingIdentityId
 
 
+# When no hosted domain is in use for the authenticated user, we default to the
+# gmail domain. It doesn't necissarily mean the users account is a gmail
+# account (you can register a google account with any email), but it is not a
+# gsuite account, which we want to differentiate on.
+DEFAULT_GOOGLE_DOMAIN = "gmail.com"
+
+
 class GoogleIdentityProvider(OAuth2Provider):
     key = "google"
     name = "Google"
@@ -53,6 +60,7 @@ class GoogleIdentityProvider(OAuth2Provider):
             "email": user_data["email"],
             "email_verified": user_data["email_verified"],
             "name": user_data["email"],
+            "domain": user_data.get("hd", DEFAULT_GOOGLE_DOMAIN),
             "scopes": sorted(self.oauth_scopes),
             "data": self.get_oauth_data(data),
         }
