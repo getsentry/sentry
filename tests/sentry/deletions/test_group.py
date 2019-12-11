@@ -4,6 +4,7 @@ import mock
 from uuid import uuid4
 
 from sentry.models import (
+    Event,
     EventAttachment,
     File,
     Group,
@@ -13,7 +14,7 @@ from sentry.models import (
     GroupRedirect,
     UserReport,
 )
-from sentry import eventstore, nodestore
+from sentry import nodestore
 from sentry.deletions.defaults.group import EventDataDeletionTask
 from sentry.tasks.deletion import delete_groups
 from sentry.testutils import SnubaTestCase, TestCase
@@ -75,9 +76,9 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         GroupMeta.objects.create(group=group, key="foo", value="bar")
         GroupRedirect.objects.create(group_id=group.id, previous_group_id=1)
 
-        self.node_id = eventstore.generate_node_id(self.project.id, self.event_id)
-        self.node_id2 = eventstore.generate_node_id(self.project.id, self.event_id2)
-        self.node_id3 = eventstore.generate_node_id(self.project.id, self.event_id3)
+        self.node_id = Event.generate_node_id(self.project.id, self.event_id)
+        self.node_id2 = Event.generate_node_id(self.project.id, self.event_id2)
+        self.node_id3 = Event.generate_node_id(self.project.id, self.event_id3)
 
     def test_simple(self):
         EventDataDeletionTask.DEFAULT_CHUNK_SIZE = 1  # test chunking logic

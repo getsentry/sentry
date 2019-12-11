@@ -10,10 +10,11 @@ from dateutil.parser import parse as parse_date
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
+from hashlib import md5
 
 from semaphore.processing import StoreNormalizer
 
-from sentry import eventstore, eventtypes, nodestore
+from sentry import eventtypes, nodestore
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedIntegerField,
@@ -59,6 +60,16 @@ class EventCommon(object):
     """
     Methods and properties common to both Event and SnubaEvent.
     """
+
+    @classmethod
+    def generate_node_id(cls, project_id, event_id):
+        """
+        Returns a deterministic node_id for this event based on the project_id
+        and event_id which together are globally unique. The event body should
+        be saved under this key in nodestore so it can be retrieved using the
+        same generated id when we only have project_id and event_id.
+        """
+        return md5("{}:{}".format(project_id, event_id)).hexdigest()
 
     # TODO (alex) We need a better way to cache these properties.  functools32
     # doesn't quite do the trick as there is a reference bug with unsaved
@@ -355,7 +366,7 @@ class EventCommon(object):
         return data
 
     def bind_node_data(self):
-        node_id = eventstore.generate_node_id(self.project_id, self.event_id)
+        node_id = Event.generate_node_id(self.project_id, self.event_id)
         node_data = nodestore.get(node_id) or {}
         ref = self.data.get_ref(self)
         self.data.bind_data(node_data, ref=ref)
@@ -396,7 +407,7 @@ class SnubaEvent(EventCommon):
         self.snuba_data = snuba_values
 
         # self.data is a (lazy) dict of everything we got from nodestore
-        node_id = eventstore.generate_node_id(
+        node_id = SnubaEvent.generate_node_id(
             self.snuba_data["project_id"], self.snuba_data["event_id"]
         )
         self.data = NodeData(node_id, data=None, wrapper=EventDict)
