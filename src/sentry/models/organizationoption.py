@@ -40,7 +40,7 @@ class OrganizationOptionManager(OptionManager):
             organization_id = organization
         cache_key = self._make_key(organization_id)
 
-        if organization_id not in self._option_cache:
+        if cache_key not in self._option_cache:
             result = cache.get(cache_key)
             if result is None:
                 result = self.reload_cache(organization_id)

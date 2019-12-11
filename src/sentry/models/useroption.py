@@ -22,39 +22,14 @@ class UserOptionValue(object):
 option_scope_error = "this is not a supported use case, scope to project OR organization"
 
 
-def user_metakey(user):
-    if isinstance(user, models.Model):
-        return user.pk
-    else:
-        return user
-
-
-def project_metakey(user, project):
-    if isinstance(project, models.Model):
-        project_id = project.pk
-    else:
-        project_id = project
-
-    return u"%s:%s:project" % (user_metakey(user), project_id)
-
-
-def organization_metakey(user, organization):
-    if isinstance(organization, models.Model):
-        organization_id = organization.pk
-    else:
-        organization_id = organization
-
-    return u"%s:%s:organization" % (user_metakey(user), organization_id)
-
-
 class UserOptionManager(OptionManager):
     def _make_key(self, user, project=None, organization=None):
         if project:
-            metakey = project_metakey(user, project)
+            metakey = u"%s:%s:project" % (user.pk, project.id)
         elif organization:
-            metakey = organization_metakey(user, organization)
+            metakey = u"%s:%s:organization" % (user.pk, organization.id)
         else:
-            metakey = user_metakey(user)
+            metakey = u"%s:user" % (user.pk)
 
         return super(UserOptionManager, self)._make_key(metakey)
 
@@ -122,12 +97,12 @@ class UserOptionManager(OptionManager):
 
     def post_save(self, instance, **kwargs):
         self.get_all_values(
-            instance.user, instance.project_id, instance.organization_id, force_reload=True
+            instance.user, instance.project, instance.organization, force_reload=True
         )
 
     def post_delete(self, instance, **kwargs):
         self.get_all_values(
-            instance.user, instance.project_id, instance.organization_id, force_reload=True
+            instance.user, instance.project, instance.organization, force_reload=True
         )
 
 

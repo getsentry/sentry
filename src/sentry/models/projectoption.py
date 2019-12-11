@@ -45,7 +45,7 @@ class ProjectOptionManager(OptionManager):
             project_id = project
         cache_key = self._make_key(project_id)
 
-        if project_id not in self._option_cache:
+        if cache_key not in self._option_cache:
             result = cache.get(cache_key)
             if result is None:
                 result = self.reload_cache(project_id)
