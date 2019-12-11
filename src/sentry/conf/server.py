@@ -816,7 +816,7 @@ SENTRY_FEATURES = {
     # Enable events v2 instead of the events stream
     "organizations:events-v2": False,
     # Enable multi project selection
-    "organizations:global-views": True,
+    "organizations:global-views": False,
     # Turns on grouping info.
     "organizations:grouping-info": False,
     # Lets organizations upgrade grouping configs and tweak them
