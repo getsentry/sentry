@@ -315,7 +315,7 @@ class User(BaseModel, AbstractBaseUser):
         from sentry.models import Organization, OrganizationStatus
 
         return Organization.objects.filter(
-            flags=Organization.flags.require_2fa,
+            flags=models.F("flags").bitor(Organization.flags.require_2fa),
             status=OrganizationStatus.VISIBLE,
             member_set__user=self,
         )

@@ -9,6 +9,7 @@ from six.moves.urllib.parse import urlencode, urlparse, parse_qs
 
 from django.conf import settings
 from django.core.urlresolvers import reverse
+from django.db import models
 
 from sentry.auth.providers.saml2 import SAML2Provider, Attributes, HAS_SAML2
 from sentry.models import (
@@ -57,7 +58,7 @@ class AuthSAML2Test(AuthProviderTestCase):
 
         # enable require 2FA and enroll user
         TotpInterface().enroll(self.user)
-        self.org.update(flags=Organization.flags.require_2fa)
+        self.org.update(flags=models.F("flags").bitor(Organization.flags.require_2fa))
         assert self.org.flags.require_2fa.is_set
 
         self.auth_provider = AuthProvider.objects.create(
