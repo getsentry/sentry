@@ -389,7 +389,7 @@ class EventManager(object):
             date = date.replace(tzinfo=timezone.utc)
             time_spent = data.get("time_spent")
 
-            data["node_id"] = eventstore.generate_node_id(project_id, event_id)
+            data["node_id"] = Event.generate_node_id(project_id, event_id)
 
             return Event(
                 project_id=project_id or self._project.id,
@@ -409,7 +409,6 @@ class EventManager(object):
                 group_id=None,
                 data=EventDict(data, skip_renormalization=True),
             )
-
 
     def get_culprit(self):
         """Helper to calculate the default culprit"""
