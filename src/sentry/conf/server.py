@@ -915,6 +915,9 @@ SENTRY_FRONTEND_PROJECT = None
 # over SENTRY_FRONTEND_PROJECT or SENTRY_PROJECT
 SENTRY_FRONTEND_DSN = None
 
+# Configuration for JavaScript's whitelistUrls - defaults to ALLOWED_HOSTS
+SENTRY_FRONTEND_WHITELIST_URLS = None
+
 # DSN to use for Sentry monitors
 SENTRY_MONITOR_DSN = None
 SENTRY_MONITOR_API_ROOT = None
