@@ -1,4 +1,3 @@
-import {Flex, Box} from 'grid-emotion';
 import capitalize from 'lodash/capitalize';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -8,6 +7,8 @@ import styled from 'react-emotion';
 
 import {openCreateIncidentModal} from 'app/actionCreators/modal';
 import {t, tct, tn} from 'app/locale';
+import space from 'app/styles/space';
+import theme from 'app/utils/theme';
 import ActionLink from 'app/components/actions/actionLink';
 import Checkbox from 'app/components/checkbox';
 import DropdownLink from 'app/components/dropdownLink';
@@ -355,11 +356,11 @@ const IssueListActions = createReactClass({
 
     return (
       <Sticky>
-        <StyledFlex py={1}>
-          <ActionsCheckbox pl={2}>
+        <StyledFlex>
+          <ActionsCheckbox>
             <Checkbox onChange={this.handleSelectAll} checked={pageSelected} />
           </ActionsCheckbox>
-          <ActionSet w={[8 / 12, 8 / 12, 6 / 12]} mx={1} flex="1">
+          <ActionSet>
             <ResolveActions
               hasRelease={hasReleases}
               latestRelease={latestRelease}
@@ -520,8 +521,8 @@ const IssueListActions = createReactClass({
               </Tooltip>
             </div>
           </ActionSet>
-          <Box w={160} mx={2} className="hidden-xs hidden-sm">
-            <Flex>
+          <GraphHeader className="hidden-xs hidden-sm">
+            <GraphConfigContainer>
               <StyledToolbarHeader>{t('Graph:')}</StyledToolbarHeader>
               <GraphToggle
                 active={statsPeriod === '24h'}
@@ -536,17 +537,17 @@ const IssueListActions = createReactClass({
               >
                 {t('14d')}
               </GraphToggle>
-            </Flex>
-          </Box>
-          <Box w={[40, 60, 80, 80]} mx={2} className="align-right">
+            </GraphConfigContainer>
+          </GraphHeader>
+          <EventsOrUsersLabel className="align-right">
             <ToolbarHeader>{t('Events')}</ToolbarHeader>
-          </Box>
-          <Box w={[40, 60, 80, 80]} mx={2} className="align-right">
+          </EventsOrUsersLabel>
+          <EventsOrUsersLabel className="align-right">
             <ToolbarHeader>{t('Users')}</ToolbarHeader>
-          </Box>
-          <Box w={80} mx={2} className="align-right hidden-xs hidden-sm">
+          </EventsOrUsersLabel>
+          <AssigneesLabel className="align-right hidden-xs hidden-sm">
             <ToolbarHeader>{t('Assignee')}</ToolbarHeader>
-          </Box>
+          </AssigneesLabel>
         </StyledFlex>
 
         {!allResultsVisible && pageSelected && (
@@ -600,7 +601,10 @@ const Sticky = styled('div')`
   top: -1px;
 `;
 
-const StyledFlex = styled(Flex)`
+const StyledFlex = styled('div')`
+  display: flex;
+  padding-top: ${space(1)};
+  padding-bottom: ${space(1)};
   align-items: center;
   background: ${p => p.theme.offWhite};
   border-bottom: 1px solid ${p => p.theme.borderDark};
@@ -608,20 +612,41 @@ const StyledFlex = styled(Flex)`
   margin-bottom: -1px;
 `;
 
-const ActionsCheckbox = styled(Box)`
+const ActionsCheckbox = styled('div')`
+  padding-left: ${space(2)};
   & input[type='checkbox'] {
     margin: 0;
     display: block;
   }
 `;
 
-const ActionSet = styled(Box)`
+const ActionSet = styled('div')`
+  @media (min-width: ${theme.breakpoints[0]}) {
+    width: 66.66%;
+  }
+  @media (min-width: ${theme.breakpoints[2]}) {
+    width: 50%;
+  }
+  flex: 1;
+  margin-left: ${space(1)};
+  margin-right: ${space(1)};
+
   display: flex;
 
   .btn-group {
     display: flex;
     margin-right: 6px;
   }
+`;
+
+const GraphConfigContainer = styled('div')`
+  display: flex;
+`;
+
+const GraphHeader = styled('div')`
+  width: 160px;
+  margin-left: ${space(2)};
+  margin-right: ${space(2)};
 `;
 
 const StyledToolbarHeader = styled(ToolbarHeader)`
@@ -638,6 +663,26 @@ const GraphToggle = styled('a')`
   &:active {
     color: ${p => (p.active ? p.theme.gray4 : p.theme.disabled)};
   }
+`;
+
+const EventsOrUsersLabel = styled('div')`
+  @media (min-width: ${theme.breakpoints[0]}) {
+    width: 40px;
+  }
+  @media (min-width: ${theme.breakpoints[1]}) {
+    width: 60px;
+  }
+  @media (min-width: ${theme.breakpoints[2]}) {
+    width: 80px;
+  }
+  margin-left: ${space(2)};
+  margin-right: ${space(2)};
+`;
+
+const AssigneesLabel = styled('div')`
+  width: 80px;
+  margin-left: ${space(2)};
+  margin-right: ${space(2)};
 `;
 
 const IncidentLabel = styled('div')`
