@@ -238,7 +238,16 @@ def resolve_discover_aliases(snuba_args):
     return resolved, translated_columns
 
 
-def query(selected_columns, query, params, orderby=None, referrer=None, auto_fields=False):
+def query(
+    selected_columns,
+    query,
+    params,
+    orderby=None,
+    offset=None,
+    limit=50,
+    referrer=None,
+    auto_fields=False,
+):
     """
     High-level API for doing arbitrary user queries against events.
 
@@ -253,6 +262,8 @@ def query(selected_columns, query, params, orderby=None, referrer=None, auto_fie
     query (str) Filter query string to create conditions from.
     params (Dict[str, str]) Filtering parameters with start, end, project_id, environment
     orderby (None|str|Sequence[str]) The field to order results by.
+    offset (None|int) The record offset to read.
+    limit (int) The number of records to fetch.
     referrer (str|None) A referrer string to help locate the origin of this query.
     auto_fields (bool) Set to true to have project + eventid fields automatically added.
     """
@@ -283,6 +294,8 @@ def query(selected_columns, query, params, orderby=None, referrer=None, auto_fie
         filter_keys=snuba_args.get("filter_keys"),
         orderby=snuba_args.get("orderby"),
         dataset=Dataset.Discover,
+        limit=limit,
+        offset=offset,
         referrer=referrer,
     )
 
