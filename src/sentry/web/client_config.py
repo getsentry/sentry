@@ -160,10 +160,13 @@ def get_client_config(request=None):
         "csrfCookieName": settings.CSRF_COOKIE_NAME,
         "sentryConfig": {
             "dsn": public_dsn,
-            "release": version_info["build"],
+            "release": settings.SENTRY_SDK_CONFIG["release"],
+            "environment": settings.SENTRY_SDK_CONFIG["environment"],
             # By default `ALLOWED_HOSTS` is [*], however the JS SDK does not support globbing
-            "whitelistUrls": list(
-                "" if settings.ALLOWED_HOSTS == ["*"] else settings.ALLOWED_HOSTS
+            "whitelistUrls": (
+                settings.SENTRY_FRONTEND_WHITELIST_URLS
+                if settings.SENTRY_FRONTEND_WHITELIST_URLS
+                else list("" if settings.ALLOWED_HOSTS == ["*"] else settings.ALLOWED_HOSTS)
             ),
         },
     }
