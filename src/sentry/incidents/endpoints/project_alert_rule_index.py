@@ -95,20 +95,18 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
         page_size = 25  # TODO: Get from request. Is it `limit`?
 
         # alert_rule_queryset = AlertRule.objects.fetch_for_organization(project.organization).order_by('-date_added')[:page_size]
-        alert_rule_queryset = AlertRule.objects.fetch_for_project(project).order_by("-date_added")[
-            :page_size
-        ]
+        alert_rule_queryset = AlertRule.objects.fetch_for_project(project).order_by("-date_added")
 
         legacy_rule_queryset = (
             Rule.objects.filter(
                 project=project, status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE]
             )
             .select_related("project")
-            .order_by("-date_added")[:page_size]
+            .order_by("-date_added")
         )
 
         combined_rules = []
-        while len(combined_rules) < page_size and (
+        while len(combined_rules) < cursor + page_size and (
             len(alert_rule_queryset) != 0 or len(legacy_rule_queryset) != 0
         ):
             alert_rule = alert_rule_queryset[0] if len(alert_rule_queryset) > 0 else None
@@ -128,6 +126,8 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
                 alert_rule_queryset = alert_rule_queryset[1:]
             else:
                 legacy_rule_queryset = legacy_rule_queryset[1:]
+
+        combined_rules = combined_rules[cursor : cursor + page_size]
 
         return self.paginate(
             request,
