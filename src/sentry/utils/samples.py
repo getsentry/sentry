@@ -116,12 +116,17 @@ def load_data(platform, default=None, sample_name=None):
     if platform_data is not None and platform_data["type"] != "language":
         language = platform_data["language"]
 
+    samples_root = os.path.join(DATA_ROOT, "samples")
+    all_samples = set(f for f in os.listdir(samples_root) if f.endswith(".json"))
+
     for platform in (platform, language, default):
         if not platform:
             continue
 
-        json_path = os.path.join(DATA_ROOT, "samples", "%s.json" % (platform.encode("utf-8"),))
-        if not os.path.exists(json_path):
+        # Verify by checking if the file is within our folder explicitly
+        # avoids being able to have a name that invokes traversing directories.
+        json_path = "%s.json" % platform.encode("utf-8")
+        if json_path not in all_samples:
             continue
 
         if not sample_name:
@@ -130,8 +135,11 @@ def load_data(platform, default=None, sample_name=None):
             except KeyError:
                 pass
 
-        with open(json_path) as fp:
-            data = json.loads(fp.read())
+        # XXX: At this point, it's assumed that `json_path` was safely found
+        # within `samples_root` due to the check above and cannot traverse
+        # into paths.
+        with open(os.path.join(samples_root, json_path)) as fp:
+            data = json.load(fp)
             break
 
     if data is None:
