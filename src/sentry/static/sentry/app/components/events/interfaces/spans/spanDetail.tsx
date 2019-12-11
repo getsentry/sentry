@@ -176,11 +176,9 @@ class SpanDetail extends React.Component<Props, State> {
     };
 
     return (
-      <div>
-        <Button size="xsmall" to={to}>
-          {t('Search by Trace')}
-        </Button>
-      </div>
+      <StyledButton size="xsmall" to={to}>
+        {t('Search by Trace')}
+      </StyledButton>
     );
   }
 
@@ -244,6 +242,12 @@ class SpanDetail extends React.Component<Props, State> {
   }
 }
 
+const StyledButton = styled(Button)`
+  position: absolute;
+  top: ${space(0.75)};
+  right: ${space(0.5)};
+`;
+
 const SpanDetailContainer = styled('div')`
   border-bottom: 1px solid ${p => p.theme.gray1};
   padding: ${space(2)};
@@ -251,13 +255,7 @@ const SpanDetailContainer = styled('div')`
 `;
 
 const ValueTd = styled('td')`
-  display: flex !important;
-  max-width: 100% !important;
-  align-items: center;
-`;
-
-const PreValue = styled('pre')`
-  flex: 1;
+  position: relative;
 `;
 
 const Row = ({
@@ -279,9 +277,9 @@ const Row = ({
     <tr>
       <td className="key">{title}</td>
       <ValueTd className="value">
-        <PreValue className="val">
+        <pre className="val">
           <span className="val-string">{children}</span>
-        </PreValue>
+        </pre>
         {extra}
       </ValueTd>
     </tr>

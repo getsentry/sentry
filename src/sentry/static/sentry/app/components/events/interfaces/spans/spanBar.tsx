@@ -346,16 +346,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       );
     }
 
-    const chevronElement = !isRoot ? (
-      <div
-        style={{
-          width: '5px',
-          textAlign: 'right',
-        }}
-      >
-        {chevron}
-      </div>
-    ) : null;
+    const chevronElement = !isRoot ? <div>{chevron}</div> : null;
 
     return (
       <SpanTreeTogglerContainer style={{left: `${left}px`}} hasToggler>
@@ -373,9 +364,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
             this.props.toggleSpanTree();
           }}
         >
-          <span style={{textAlign: 'center'}}>
-            <Count value={numOfSpanChildren} />
-          </span>
+          <Count value={numOfSpanChildren} />
           {chevronElement}
         </SpanTreeToggler>
       </SpanTreeTogglerContainer>
@@ -672,7 +661,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
 
     return (
       <Tooltip title={warningText}>
-        <WarningIcon src="icon-circle-info" />
+        <WarningIcon src="icon-circle-exclamation" />
       </Tooltip>
     );
   };
@@ -865,14 +854,14 @@ const SpanTreeTogglerContainer = styled('div')<TogglerTypes>`
   height: 16px;
   width: ${p => (p.hasToggler ? '40px' : '12px')};
   min-width: ${p => (p.hasToggler ? '40px' : '12px')};
-  margin-right: ${p => (p.hasToggler ? space(0.75) : space(1.5))};
+  margin-right: ${p => (p.hasToggler ? space(0.5) : space(1))};
   z-index: ${zIndex.spanTreeToggler};
   display: flex;
   justify-content: flex-end;
 `;
 
 const SpanTreeConnector = styled('div')<TogglerTypes>`
-  height: ${p => (p.isLast ? '75%' : '160%')};
+  height: ${p => (p.isLast ? '80%' : '160%')};
   width: 100%;
   border-left: 1px solid ${p => p.theme.gray1};
   position: absolute;
@@ -885,6 +874,17 @@ const SpanTreeConnector = styled('div')<TogglerTypes>`
     width: 100%;
     position: absolute;
     bottom: ${p => (p.isLast ? '0' : '50%')};
+  }
+
+  &:after {
+    content: '';
+    background-color: ${p => p.theme.gray1};
+    border-radius: 4px;
+    height: 3px;
+    width: 3px;
+    position: absolute;
+    right: 0;
+    top: 11px;
   }
 `;
 
@@ -929,7 +929,7 @@ type SpanTreeTogglerAndDivProps = OmitHtmlDivProps<{
 
 const SpanTreeToggler = styled('div')<SpanTreeTogglerAndDivProps>`
   white-space: nowrap;
-  min-width: 32px;
+  min-width: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -976,16 +976,15 @@ const DurationPill = styled('div')<{durationDisplay: DurationDisplay}>`
 const SpanBarRectangle = styled('div')`
   position: relative;
   height: 100%;
-
   min-width: 1px;
   user-select: none;
-
   transition: border-color 0.15s ease-in-out;
   border-right: 1px solid rgba(0, 0, 0, 0);
 `;
 
 const WarningIcon = styled(InlineSvg)`
   margin-left: ${space(0.25)};
+  margin-bottom: ${space(0.25)};
 `;
 
 const Chevron = styled(InlineSvg)`
