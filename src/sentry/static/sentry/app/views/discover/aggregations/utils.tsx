@@ -25,7 +25,7 @@ export function isValidAggregation(aggregation: Aggregation, cols: Column[]): bo
     return columns.has(col || '');
   }
 
-  if (func === 'avg') {
+  if (func === 'avg' || func === 'sum') {
     const validCols = new Set(
       cols.filter(({type}) => type === 'number').map(({name}) => name)
     );
@@ -60,6 +60,10 @@ export function getInternal(external: Aggregation): string {
     return `avg(${col})`;
   }
 
+  if (func === 'sum') {
+    return `sum(${col})`;
+  }
+
   return func;
 }
 
@@ -87,6 +91,7 @@ function getAlias(columnName: string): string {
 export function getExternal(internal: string): Aggregation {
   const uniqRegex = /^uniq\((.+)\)$/;
   const avgRegex = /^avg\((.+)\)$/;
+  const sumRegex = /^sum\((.+)\)$/;
 
   let match = internal.match(uniqRegex);
   if (match && match[1]) {
@@ -98,6 +103,12 @@ export function getExternal(internal: string): Aggregation {
   if (match && match[1]) {
     const column = match[1];
     return ['avg', column, `avg_${getAlias(column)}`];
+  }
+
+  match = internal.match(sumRegex);
+  if (match && match[1]) {
+    const column = match[1];
+    return ['sum', column, `sum_${getAlias(column)}`];
   }
 
   return ['count()', null, 'count'];
