@@ -212,7 +212,8 @@ class GitLabApiClient(ApiClient):
         and use its date to find the block of commits. We only fetch one page
         of commits to match other implementations (github, bitbucket)
 
-        See https://docs.gitlab.com/ee/api/commits.html#get-the-diff-of-a-commit
+        See https://docs.gitlab.com/ee/api/commits.html#get-a-single-commit and
+        https://docs.gitlab.com/ee/api/commits.html#list-repository-commits
         """
         path = GitLabApiClientPath.commit.format(project=project_id, sha=end_sha)
         commit = self.get(path)
