@@ -17,17 +17,6 @@ from sentry.incidents.models import AlertRule
 from sentry.models import Rule, RuleStatus
 from sentry.incidents.endpoints.serializers import AlertRuleSerializer
 
-# from sentry.api.serializers.rest_framework.rule import RuleSerializer
-
-
-class CombinedRule:
-    rule = None
-
-    def __init__(self, rule):
-        self.rule = rule
-
-
-@register(CombinedRule)
 class CombinedRuleSerializer(Serializer):
     def serialize(self, obj, attrs, user, **kwargs):
         rule = obj
