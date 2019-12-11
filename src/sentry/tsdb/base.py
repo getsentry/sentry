@@ -33,8 +33,12 @@ class TSDBModel(Enum):
     project_total_blacklisted = 104
     # the number of events forwarded to third party processors (data forwarding)
     project_total_forwarded = 105
-    # the number of bytes received
-    project_total_bytes = 106
+    # the number of bytes from accepted events
+    project_total_bytes_received = 106
+    # the number of bytes from rejected events
+    project_total_bytes_rejected = 107
+    # the number of bytes from blacklisted events
+    project_total_bytes_blacklisted = 108
 
     # the number of events sent to the server
     organization_total_received = 200
@@ -42,8 +46,12 @@ class TSDBModel(Enum):
     organization_total_rejected = 201
     # the number of events blocked due to being blacklisted
     organization_total_blacklisted = 202
-    # the number of bytes received
-    organization_total_bytes = 203
+    # the number of bytes from accepted events
+    organization_total_bytes_received = 203
+    # the number of bytes from rejected events
+    organization_total_bytes_rejected = 204
+    # the number of bytes from blacklisted events
+    organization_total_bytes_blacklisted = 205
 
     # distinct count of users that have been affected by an event in a group
     users_affected_by_group = 300

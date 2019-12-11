@@ -208,7 +208,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
     def test_range_project_bytes(self):
         dts = [self.now + timedelta(hours=i) for i in range(4)]
         assert self.db.get_range(
-            TSDBModel.project_total_bytes, [self.proj1.id], dts[0], dts[-1], rollup=3600
+            TSDBModel.project_total_bytes_received, [self.proj1.id], dts[0], dts[-1], rollup=3600
         ) == {
             self.proj1.id: [
                 (timestamp(dts[0]), 6 * len(self.data)),

@@ -72,29 +72,39 @@ def tsdb_increments_from_outcome(org_id, project_id, key_id, outcome, reason, si
         if project_id is not None:
             yield (tsdb.models.project_total_received, project_id)
             if size is not None:
-                # Bytes tracking
-                yield (tsdb.models.project_total_bytes, project_id, {"count": size})
+                yield (tsdb.models.project_total_bytes_received, project_id, {"count": size})
         if org_id is not None:
             yield (tsdb.models.organization_total_received, org_id)
             if size is not None:
-                # Bytes tracking
-                yield (tsdb.models.organization_total_bytes, org_id, {"count": size})
+                yield (tsdb.models.organization_total_bytes_received, org_id, {"count": size})
         if key_id is not None:
             yield (tsdb.models.key_total_received, key_id)
 
     if outcome == Outcome.FILTERED:
         if project_id is not None:
             yield (tsdb.models.project_total_blacklisted, project_id)
+            if size is not None:
+                yield (tsdb.models.project_total_bytes_blacklisted, project_id, {"count": size})
         if org_id is not None:
             yield (tsdb.models.organization_total_blacklisted, org_id)
+            if size is not None:
+                yield (
+                    tsdb.models.organization_total_bytes_blacklisted,
+                    project_id,
+                    {"count": size},
+                )
         if key_id is not None:
             yield (tsdb.models.key_total_blacklisted, key_id)
 
     elif outcome == Outcome.RATE_LIMITED:
         if project_id is not None:
             yield (tsdb.models.project_total_rejected, project_id)
+            if size is not None:
+                yield (tsdb.models.project_total_bytes_rejected, project_id, {"count": size})
         if org_id is not None:
             yield (tsdb.models.organization_total_rejected, org_id)
+            if size is not None:
+                yield (tsdb.models.organization_total_bytes_rejected, project_id, {"count": size})
         if key_id is not None:
             yield (tsdb.models.key_total_rejected, key_id)
 
