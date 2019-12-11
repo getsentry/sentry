@@ -93,7 +93,7 @@ search               = (boolean_term / paren_term / search_term)*
 boolean_term         = (paren_term / search_term) space? (boolean_operator space? (paren_term / search_term) space?)+
 paren_term           = space? open_paren space? (paren_term / boolean_term)+ space? closed_paren space?
 search_term          = key_val_term / quoted_raw_search / raw_search
-key_val_term         = space? (tag_filter / time_filter / rel_time_filter / specific_time_filter
+key_val_term         = space? (tag_filter / time_filter / rel_time_filter / specific_time_filter / boolean_filter
                        / numeric_filter / has_filter / is_filter / basic_filter)
                        space?
 raw_search           = (!key_val_term ~r"\ *([^\ ^\n ()]+)\ *" )*
@@ -109,6 +109,8 @@ rel_time_filter      = search_key sep rel_date_format
 specific_time_filter = search_key sep date_format
 # Numeric comparison filter
 numeric_filter       = search_key sep operator? ~r"[0-9]+(?=\s|$)"
+# filter for boolean values
+boolean_filter       = search_key sep boolean_value
 
 # has filter for not null type checks
 has_filter           = negation? "has" sep (search_key / search_value)
@@ -125,6 +127,7 @@ quoted_key           = ~r"\"([a-zA-Z0-9_\.:-]+)\""
 
 date_format          = ~r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?)?Z?(?=\s|$)"
 rel_date_format      = ~r"[\+\-][0-9]+[wdhm](?=\s|$)"
+boolean_value        = ~r"(?i)(true|false)"
 
 # NOTE: the order in which these operators are listed matters
 # because for example, if < comes before <= it will match that
@@ -229,6 +232,7 @@ class SearchVisitor(NodeVisitor):
             # so they can be used in conditions
         ]
     )
+    boolean_keys = set(["error.handled"])
     date_keys = set(
         [
             "start",
@@ -342,6 +346,15 @@ class SearchVisitor(NodeVisitor):
         children = self.remove_space(children)
 
         return self.flatten(children[1])
+
+    def visit_boolean_filter(self, node, children):
+        (search_key, _, search_value) = children
+
+        if search_key.name in self.boolean_keys:
+            search_value = SearchValue({"true": 1, "false": 0}.get(search_value.text.lower()))
+            return SearchFilter(search_key, "=", search_value)
+        else:
+            return self._handle_basic_filter(search_key, "=", SearchValue(search_value.text))
 
     def visit_numeric_filter(self, node, children):
         (search_key, _, operator, search_value) = children
