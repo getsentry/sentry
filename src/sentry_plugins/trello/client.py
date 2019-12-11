@@ -3,11 +3,19 @@ from __future__ import absolute_import
 from sentry import http
 from sentry.utils import json
 
+from sentry.exceptions import PluginError
+
 
 class TrelloClient(object):
     base_url = "https://trello.com/1/"
 
     def __init__(self, apikey, token=None, timeout=5):
+        if not apikey:
+            raise PluginError("Apikey required")
+
+        if not token:
+            raise PluginError("token required")
+
         self._apikey = apikey
         self._token = token
         self._timeout = timeout

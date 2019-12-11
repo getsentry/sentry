@@ -172,6 +172,9 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
         return "Trello-%s" % issue_id
 
     def get_issue_url(self, group, issue_id, **kwargs):
+        # TODO(Steve): figure out why we sometimes get a string and sometimes a dict
+        if isinstance(issue_id, dict):
+            issue_id = issue_id["id"]
         # the old version of the plugin stores the url in the issue_id
         if re.search("\w+/https://trello.com/", issue_id):
             short_issue_id, url = issue_id.split("/", 1)
