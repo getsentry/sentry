@@ -183,6 +183,8 @@ class QueryTransformTest(TestCase):
             conditions=[],
             groupby=[],
             orderby=None,
+            limit=50,
+            offset=None,
             referrer=None,
         )
 
@@ -208,6 +210,8 @@ class QueryTransformTest(TestCase):
             conditions=[],
             groupby=[],
             orderby=None,
+            limit=50,
+            offset=None,
             referrer=None,
         )
 
@@ -241,6 +245,8 @@ class QueryTransformTest(TestCase):
             conditions=[],
             groupby=["transaction", "duration"],
             orderby=None,
+            limit=50,
+            offset=None,
             referrer=None,
         )
 
@@ -271,11 +277,13 @@ class QueryTransformTest(TestCase):
             end=None,
             start=None,
             orderby=None,
+            limit=50,
+            offset=None,
             referrer=None,
         )
 
     @patch("sentry.snuba.discover.raw_query")
-    def test_orderby(self, mock_query):
+    def test_orderby_limit_offset(self, mock_query):
         mock_query.return_value = {
             "meta": [{"name": "title"}, {"name": "project.id"}],
             "data": [{"project.id": "tester", "title": "test title"}],
@@ -285,6 +293,8 @@ class QueryTransformTest(TestCase):
             query="",
             params={"project_id": [self.project.id]},
             orderby=["project.id"],
+            offset=100,
+            limit=200,
         )
         mock_query.assert_called_with(
             selected_columns=["project_id", "title"],
@@ -296,6 +306,8 @@ class QueryTransformTest(TestCase):
             start=None,
             conditions=[],
             groupby=[],
+            limit=200,
+            offset=100,
             referrer=None,
         )
 
@@ -332,6 +344,8 @@ class QueryTransformTest(TestCase):
             start=None,
             conditions=[],
             groupby=["project_id", "event_id"],
+            limit=50,
+            offset=None,
             referrer=None,
         )
 
@@ -361,6 +375,8 @@ class QueryTransformTest(TestCase):
             dataset=Dataset.Discover,
             end=None,
             start=None,
+            limit=50,
+            offset=None,
             referrer=None,
         )
 
@@ -389,6 +405,8 @@ class QueryTransformTest(TestCase):
             orderby=None,
             end=None,
             start=None,
+            limit=50,
+            offset=None,
             referrer=None,
         )
 
@@ -413,6 +431,8 @@ class QueryTransformTest(TestCase):
             orderby=None,
             end=None,
             start=None,
+            limit=50,
+            offset=None,
             referrer=None,
         )
 
@@ -439,6 +459,8 @@ class QueryTransformTest(TestCase):
             end=end_time,
             start=start_time,
             orderby=None,
+            limit=50,
+            offset=None,
             referrer=None,
         )
 
