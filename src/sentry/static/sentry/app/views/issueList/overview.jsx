@@ -9,7 +9,6 @@ import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 import pickBy from 'lodash/pickBy';
 import qs from 'query-string';
-import uniq from 'lodash/uniq';
 
 import {Client} from 'app/api';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
@@ -34,7 +33,6 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import ProcessingIssueList from 'app/components/stream/processingIssueList';
-import SelectedGroupStore from 'app/stores/selectedGroupStore';
 import SentryTypes from 'app/sentryTypes';
 import StreamGroup from 'app/components/stream/group';
 import StreamManager from 'app/utils/streamManager';
@@ -78,7 +76,6 @@ const IssueListOverview = createReactClass({
 
   mixins: [
     Reflux.listenTo(GroupStore, 'onGroupChange'),
-    Reflux.listenTo(SelectedGroupStore, 'onSelectedGroupChange'),
     Reflux.listenTo(TagStore, 'onTagsChange'),
   ],
 
@@ -476,28 +473,6 @@ const IssueListOverview = createReactClass({
     });
   },
 
-  onSelectedGroupChange() {
-    const selected = SelectedGroupStore.getSelectedIds();
-    const projects = [...selected]
-      .map(id => GroupStore.get(id))
-      .filter(group => group && group.project)
-      .map(group => group.project.slug);
-
-    const uniqProjects = uniq(projects);
-
-    // we only want selectedProject set if there is 1 project
-    // more or fewer should result in a null so that the action toolbar
-    // can behave correctly.
-    if (uniqProjects.length !== 1) {
-      this.setState({selectedProject: null});
-      return;
-    }
-    const selectedProject = this.props.organization.projects.find(
-      p => p.slug === uniqProjects[0]
-    );
-    this.setState({selectedProject});
-  },
-
   /**
    * Returns true if all results in the current query are visible/on this page
    */
@@ -680,33 +655,13 @@ const IssueListOverview = createReactClass({
     }
 
     const {params, organization, savedSearch, savedSearches} = this.props;
-    const {selectedProject} = this.state;
     const query = this.getQuery();
-
-    // If we have a selected project set release data up
-    // enabling stream actions
-    let hasReleases = false;
-    let projectId = null;
-    let latestRelease = null;
-
-    const projects = this.getGlobalSearchProjects();
-
-    if (selectedProject) {
-      hasReleases = new Set(selectedProject.features).has('releases');
-      latestRelease = selectedProject.latestRelease;
-      projectId = selectedProject.slug;
-    } else if (projects.length === 1) {
-      // If the user has filtered down to a single project
-      // we can hint the autocomplete/savedsearch picker with that.
-      projectId = projects[0].slug;
-    }
 
     return (
       <div className={classNames(classes)}>
         <div className="stream-content">
           <IssueListFilters
             organization={organization}
-            projectId={projectId}
             searchId={params.searchId}
             query={query}
             savedSearch={savedSearch}
@@ -729,10 +684,7 @@ const IssueListOverview = createReactClass({
             <IssueListActions
               organization={organization}
               orgId={organization.slug}
-              projectId={projectId}
               selection={this.props.selection}
-              hasReleases={hasReleases}
-              latestRelease={latestRelease}
               query={query}
               queryCount={this.state.queryCount}
               onSelectStatsPeriod={this.onSelectStatsPeriod}
