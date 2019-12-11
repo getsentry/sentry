@@ -3,7 +3,7 @@ import React from 'react';
 import EventView from 'app/views/eventsV2/eventView';
 
 import {SpanBoundsType, SpanGeneratedBoundsType} from './utils';
-import {ProcessedSpanType, ParsedTraceType} from './types';
+import {ProcessedSpanType, ParsedTraceType, SentryTransactionEvent} from './types';
 import SpanBar from './spanBar';
 
 type PropType = {
@@ -21,6 +21,7 @@ type PropType = {
   isLast: boolean;
   isRoot?: boolean;
   isCurrentSpanFilteredOut: boolean;
+  event: SentryTransactionEvent;
 };
 
 type State = {
@@ -63,6 +64,7 @@ class SpanGroup extends React.Component<PropType, State> {
       isCurrentSpanFilteredOut,
       orgId,
       eventView,
+      event,
     } = this.props;
 
     return (
@@ -83,6 +85,7 @@ class SpanGroup extends React.Component<PropType, State> {
           isLast={isLast}
           isRoot={isRoot}
           isCurrentSpanFilteredOut={isCurrentSpanFilteredOut}
+          event={event}
         />
         {this.renderSpanChildren()}
       </React.Fragment>

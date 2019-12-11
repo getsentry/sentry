@@ -29,6 +29,9 @@ export type SentryTransactionEvent = {
   entries: Array<SpanEntry>;
   startTimestamp: number;
   endTimestamp: number;
+  sdk?: {
+    name?: string;
+  };
 };
 
 export type SpanChildrenLookupType = {[span_id: string]: Array<RawSpanType>};

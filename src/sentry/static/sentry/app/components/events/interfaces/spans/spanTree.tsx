@@ -11,6 +11,7 @@ import {
   SpanChildrenLookupType,
   ParsedTraceType,
   GapSpanType,
+  SentryTransactionEvent,
 } from './types';
 import {
   boundsGenerator,
@@ -42,6 +43,7 @@ type PropType = {
   trace: ParsedTraceType;
   dragProps: DragManagerChildrenProps;
   filterSpans: FilterSpans | undefined;
+  event: SentryTransactionEvent;
 };
 
 class SpanTree extends React.Component<PropType> {
@@ -135,7 +137,7 @@ class SpanTree extends React.Component<PropType> {
     generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
     previousSiblingEndTimestamp: undefined | number;
   }): RenderedSpanTree => {
-    const {orgId, eventView} = this.props;
+    const {orgId, eventView, event} = this.props;
 
     const spanBarColour: string = pickSpanBarColour(getSpanOperation(span));
     const spanChildren: Array<RawSpanType> = get(childSpans, getSpanID(span), []);
@@ -240,6 +242,7 @@ class SpanTree extends React.Component<PropType> {
           renderedSpanChildren={reduced.renderedSpanChildren}
           spanBarColour={'#FF00FF'}
           isCurrentSpanFilteredOut={isCurrentSpanFilteredOut}
+          event={event}
         />
       ) : null;
 
@@ -266,6 +269,7 @@ class SpanTree extends React.Component<PropType> {
             renderedSpanChildren={reduced.renderedSpanChildren}
             spanBarColour={spanBarColour}
             isCurrentSpanFilteredOut={isCurrentSpanFilteredOut}
+            event={event}
           />
         </React.Fragment>
       ),
