@@ -272,33 +272,14 @@ class EventAttributeConditionTest(RuleTestCase):
             }
         )
 
-        rule = self.get_rule(
-            data={
-                "match": MatchType.EQUAL,
-                "attribute": "stacktrace.filename",
-                "value": "example.php",
-            }
-        )
-        self.assertPasses(rule, event)
+        # correctly matching filenames, at various locations in the stacktrace
+        for value in ["example.php", "somecode.php", "othercode.php"]:
+            rule = self.get_rule(
+                data={"match": MatchType.EQUAL, "attribute": "stacktrace.filename", "value": value}
+            )
+            self.assertPasses(rule, event)
 
-        rule = self.get_rule(
-            data={
-                "match": MatchType.EQUAL,
-                "attribute": "stacktrace.filename",
-                "value": "somecode.php",
-            }
-        )
-        self.assertPasses(rule, event)
-
-        rule = self.get_rule(
-            data={
-                "match": MatchType.EQUAL,
-                "attribute": "stacktrace.filename",
-                "value": "othercode.php",
-            }
-        )
-        self.assertPasses(rule, event)
-
+        # non-matching filename
         rule = self.get_rule(
             data={"match": MatchType.EQUAL, "attribute": "stacktrace.filename", "value": "foo.php"}
         )
@@ -325,21 +306,14 @@ class EventAttributeConditionTest(RuleTestCase):
             }
         )
 
-        rule = self.get_rule(
-            data={"match": MatchType.EQUAL, "attribute": "stacktrace.module", "value": "example"}
-        )
-        self.assertPasses(rule, event)
+        # correctly matching modules, at various locations in the stacktrace
+        for value in ["example", "somecode", "othercode"]:
+            rule = self.get_rule(
+                data={"match": MatchType.EQUAL, "attribute": "stacktrace.module", "value": value}
+            )
+            self.assertPasses(rule, event)
 
-        rule = self.get_rule(
-            data={"match": MatchType.EQUAL, "attribute": "stacktrace.module", "value": "somecode"}
-        )
-        self.assertPasses(rule, event)
-
-        rule = self.get_rule(
-            data={"match": MatchType.EQUAL, "attribute": "stacktrace.module", "value": "othercode"}
-        )
-        self.assertPasses(rule, event)
-
+        # non-matching module
         rule = self.get_rule(
             data={"match": MatchType.EQUAL, "attribute": "stacktrace.module", "value": "foo"}
         )
@@ -381,29 +355,14 @@ class EventAttributeConditionTest(RuleTestCase):
             }
         )
 
-        rule = self.get_rule(
-            data={
-                "match": MatchType.EQUAL,
-                "attribute": "stacktrace.code",
-                "value": "somecode.bar()",
-            }
-        )
-        self.assertPasses(rule, event)
+        # correctly matching code, at various locations in the stacktrace
+        for value in ["somecode.bar()", "othercode.baz()", "hi()"]:
+            rule = self.get_rule(
+                data={"match": MatchType.EQUAL, "attribute": "stacktrace.code", "value": value}
+            )
+            self.assertPasses(rule, event)
 
-        rule = self.get_rule(
-            data={
-                "match": MatchType.EQUAL,
-                "attribute": "stacktrace.code",
-                "value": "othercode.baz()",
-            }
-        )
-        self.assertPasses(rule, event)
-
-        rule = self.get_rule(
-            data={"match": MatchType.EQUAL, "attribute": "stacktrace.code", "value": "hi()"}
-        )
-        self.assertPasses(rule, event)
-
+        # non-matching code
         rule = self.get_rule(
             data={"match": MatchType.EQUAL, "attribute": "stacktrace.code", "value": "foo"}
         )
