@@ -521,8 +521,8 @@ const IssueListActions = createReactClass({
               </Tooltip>
             </div>
           </ActionSet>
-          <GraphHeader className="hidden-xs hidden-sm">
-            <GraphConfigContainer>
+          <GraphHeaderWrapper className="hidden-xs hidden-sm">
+            <GraphHeader>
               <StyledToolbarHeader>{t('Graph:')}</StyledToolbarHeader>
               <GraphToggle
                 active={statsPeriod === '24h'}
@@ -537,8 +537,8 @@ const IssueListActions = createReactClass({
               >
                 {t('14d')}
               </GraphToggle>
-            </GraphConfigContainer>
-          </GraphHeader>
+            </GraphHeader>
+          </GraphHeaderWrapper>
           <EventsOrUsersLabel className="align-right">
             <ToolbarHeader>{t('Events')}</ToolbarHeader>
           </EventsOrUsersLabel>
@@ -639,14 +639,14 @@ const ActionSet = styled('div')`
   }
 `;
 
-const GraphConfigContainer = styled('div')`
-  display: flex;
-`;
-
-const GraphHeader = styled('div')`
+const GraphHeaderWrapper = styled('div')`
   width: 160px;
   margin-left: ${space(2)};
   margin-right: ${space(2)};
+`;
+
+const GraphHeader = styled('div')`
+  display: flex;
 `;
 
 const StyledToolbarHeader = styled(ToolbarHeader)`
