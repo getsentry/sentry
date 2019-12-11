@@ -163,6 +163,10 @@ register("store.projects-normalize-in-rust-percent-opt-in", default=0.0)  # unus
 # From 0.0 to 1.0: Randomly disable normalization code in interfaces when loading from db
 register("store.empty-interface-sample-rate", default=0.0)
 
+# Enable multiple topics for eventstream. It allows specific event types to be sent
+# to specific topic.
+register("store.eventstream-per-type-topic", default=False)
+
 # if this is turned to `True` sentry will behave like relay would do with
 # regards to filter responses.
 register("store.lie-about-filter-status", default=False)
