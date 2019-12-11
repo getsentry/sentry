@@ -144,6 +144,36 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["id"] == self.event.event_id
         assert data[0]["message"] == self.event.message
 
+    def test_reference_event(self):
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "oh no",
+                "timestamp": iso_format(before_now(minutes=2)),
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "no match",
+                "timestamp": iso_format(before_now(minutes=2)),
+            },
+            project_id=self.project.id,
+        )
+        ref = discover.ReferenceEvent(
+            self.organization, "{}:{}".format(self.project.slug, "a" * 32), ["message", "count()"]
+        )
+        result = discover.query(
+            selected_columns=["id", "message"],
+            query="",
+            reference_event=ref,
+            params={"project_id": [self.project.id]},
+        )
+        assert len(result["data"]) == 2
+        for row in result["data"]:
+            assert row["message"] == "oh no"
+
 
 class QueryTransformTest(TestCase):
     """
@@ -162,6 +192,21 @@ class QueryTransformTest(TestCase):
                 query="foo(id):<1dino",
                 params={"project_id": [self.project.id]},
             )
+        assert mock_query.call_count == 0
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_query_no_fields(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "duration"}],
+            "data": [{"transaction": "api.do_things", "duration": 200}],
+        }
+        with pytest.raises(InvalidSearchQuery) as err:
+            discover.query(
+                selected_columns=[],
+                query="event.type:transaction",
+                params={"project_id": [self.project.id]},
+            )
+        assert "No fields" in six.text_type(err)
         assert mock_query.call_count == 0
 
     @patch("sentry.snuba.discover.raw_query")
