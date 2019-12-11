@@ -666,7 +666,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
 
     return (
       <Tooltip title={warningText}>
-        <WarningIcon src="icon-circle-info" />
+        <WarningIcon src="icon-circle-exclamation" />
       </Tooltip>
     );
   };
@@ -859,14 +859,14 @@ const SpanTreeTogglerContainer = styled('div')<TogglerTypes>`
   height: 16px;
   width: ${p => (p.hasToggler ? '40px' : '12px')};
   min-width: ${p => (p.hasToggler ? '40px' : '12px')};
-  margin-right: ${p => (p.hasToggler ? space(0.75) : space(1.5))};
+  margin-right: ${p => (p.hasToggler ? space(0.5) : space(1))};
   z-index: ${zIndex.spanTreeToggler};
   display: flex;
   justify-content: flex-end;
 `;
 
 const SpanTreeConnector = styled('div')<TogglerTypes>`
-  height: ${p => (p.isLast ? '75%' : '160%')};
+  height: ${p => (p.isLast ? '80%' : '160%')};
   width: 100%;
   border-left: 1px solid ${p => p.theme.gray1};
   position: absolute;
@@ -923,7 +923,7 @@ type SpanTreeTogglerAndDivProps = OmitHtmlDivProps<{
 
 const SpanTreeToggler = styled('div')<SpanTreeTogglerAndDivProps>`
   white-space: nowrap;
-  min-width: 32px;
+  min-width: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
