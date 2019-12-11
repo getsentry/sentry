@@ -11,8 +11,8 @@ import EventView from 'app/views/eventsV2/eventView';
 
 import DragManager, {DragManagerChildrenProps} from './dragManager';
 import SpanTree from './spanTree';
-import {SpanType, SpanEntry, SentryTransactionEvent, ParsedTraceType} from './types';
-import {isValidSpanID, generateRootSpan} from './utils';
+import {RawSpanType, SpanEntry, SentryTransactionEvent, ParsedTraceType} from './types';
+import {isValidSpanID, generateRootSpan, getSpanID, getSpanParentSpanID} from './utils';
 import TraceViewHeader from './header';
 import * as CursorGuideHandler from './cursorGuideHandler';
 
@@ -25,7 +25,7 @@ export type TraceContextType = {
 };
 
 type IndexedFusedSpan = {
-  span: SpanType;
+  span: RawSpanType;
   indexed: string[];
   tagKeys: string[];
   tagValues: string[];
@@ -168,7 +168,7 @@ class TraceView extends React.PureComponent<Props, State> {
     const results = fuse.search<FuseResult>(searchQuery);
 
     const spanIDs: Set<string> = results.reduce((setOfSpanIDs: Set<string>, result) => {
-      const spanID = result.item.span.span_id;
+      const spanID = getSpanID(result.item.span);
 
       if (spanID) {
         setOfSpanIDs.add(spanID);
@@ -247,7 +247,7 @@ function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTraceType {
     (entry: {type: string}) => entry.type === 'spans'
   );
 
-  const spans: Array<SpanType> = get(spanEntry, 'data', []);
+  const spans: Array<RawSpanType> = get(spanEntry, 'data', []);
 
   const traceContext = getTraceContext(event);
   const traceID = (traceContext && traceContext.trace_id) || '';
@@ -284,11 +284,15 @@ function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTraceType {
   };
 
   const reduced: ParsedTraceType = spans.reduce((acc, span) => {
-    if (!isValidSpanID(span.parent_span_id)) {
+    if (!isValidSpanID(getSpanParentSpanID(span))) {
       return acc;
     }
 
-    const spanChildren: Array<SpanType> = get(acc.childSpans, span.parent_span_id!, []);
+    const spanChildren: Array<RawSpanType> = get(
+      acc.childSpans,
+      span.parent_span_id!,
+      []
+    );
 
     spanChildren.push(span);
 
