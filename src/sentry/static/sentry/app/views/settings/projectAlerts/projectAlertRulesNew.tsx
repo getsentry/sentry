@@ -34,7 +34,7 @@ class ProjectAlertRules extends AsyncView<Props, State> {
     const {orgId, projectId} = this.props.params;
     return [
       ['issueRules', `/projects/${orgId}/${projectId}/rules/`],
-      ['metricRules', `/organizations/${orgId}/alert-rules/`],
+      ['metricRules', `/projects/${orgId}/${projectId}/alert-rules/`],
     ];
   }
 
