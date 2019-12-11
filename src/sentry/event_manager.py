@@ -15,7 +15,7 @@ from django.db.models import Func
 from django.utils import timezone
 from django.utils.encoding import force_text
 
-from sentry import buffer, eventtypes, eventstream, tsdb
+from sentry import buffer, eventtypes, eventstream, eventstore, tsdb
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS,
@@ -388,7 +388,7 @@ class EventManager(object):
         date = date.replace(tzinfo=timezone.utc)
         time_spent = data.get("time_spent")
 
-        data["node_id"] = Event.generate_node_id(project_id, event_id)
+        data["node_id"] = eventstore.generate_node_id(project_id, event_id)
 
         return Event(
             project_id=project_id or self._project.id,

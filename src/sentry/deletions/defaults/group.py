@@ -2,7 +2,7 @@ from __future__ import absolute_import, print_function
 
 import os
 from sentry import eventstore, nodestore
-from sentry.models import Event, EventAttachment, UserReport
+from sentry.models import EventAttachment, UserReport
 
 from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation
 
@@ -48,7 +48,9 @@ class EventDataDeletionTask(BaseDeletionTask):
         self.last_event = events[-1]
 
         # Remove from nodestore
-        node_ids = [Event.generate_node_id(self.project_id, event.event_id) for event in events]
+        node_ids = [
+            eventstore.generate_node_id(self.project_id, event.event_id) for event in events
+        ]
         nodestore.delete_multi(node_ids)
 
         # Remove EventAttachment and UserReport
