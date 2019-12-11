@@ -20,7 +20,6 @@ from hashlib import sha1
 from loremipsum import Generator
 from uuid import uuid4
 
-from sentry import eventstore
 from sentry.event_manager import EventManager
 from sentry.constants import SentryAppStatus
 from sentry.incidents.logic import (
@@ -508,9 +507,7 @@ class Factories(object):
 
         # This is needed so that create_event saves the event in nodestore
         # under the correct key. This is usually dont in EventManager.save()
-        kwargs["data"].setdefault(
-            "node_id", eventstore.generate_node_id(kwargs["project"].id, event_id)
-        )
+        kwargs["data"].setdefault("node_id", Event.generate_node_id(kwargs["project"].id, event_id))
 
         event = Event(event_id=event_id, group=group, **kwargs)
         # emulate EventManager refs
