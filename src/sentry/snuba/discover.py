@@ -245,6 +245,7 @@ def query(
     orderby=None,
     offset=None,
     limit=50,
+    reference_event=None,
     referrer=None,
     auto_fields=False,
 ):
@@ -264,6 +265,8 @@ def query(
     orderby (None|str|Sequence[str]) The field to order results by.
     offset (None|int) The record offset to read.
     limit (int) The number of records to fetch.
+    reference_event (ReferenceEvent) A reference event object. Used to generate additional
+                    conditions based on the provided reference.
     referrer (str|None) A referrer string to help locate the origin of this query.
     auto_fields (bool) Set to true to have project + eventid fields automatically added.
     """
@@ -279,7 +282,14 @@ def query(
         "filter_keys": snuba_filter.filter_keys,
         "orderby": orderby,
     }
+    if not selected_columns:
+        raise InvalidSearchQuery("No fields provided")
     snuba_args.update(resolve_field_list(selected_columns, snuba_args, auto_fields=auto_fields))
+
+    if reference_event:
+        ref_conditions = create_reference_event_conditions(reference_event)
+        if ref_conditions:
+            snuba_args["conditions"].extend(ref_conditions)
 
     # Resolve the public aliases into the discover dataset names.
     snuba_args, translated_columns = resolve_discover_aliases(snuba_args)
