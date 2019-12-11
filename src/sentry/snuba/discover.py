@@ -160,6 +160,12 @@ def resolve_condition(cond):
     if isinstance(cond, (list, tuple)) and len(cond):
         # Condition is [col, operator, value]
         if isinstance(cond[0], six.string_types) and len(cond) == 3:
+            # XXX: project_id is not treated as a tag by the query parser for compatibility
+            # reasons with the events page and discover1. However, it *is* a tag key in discover2
+            # because we no longer want to expose the internal ids. Because project_id will
+            # be wrapped in tags[] we also need to string cast the value to prevent type errors.
+            if cond[0] == "project_id" and isinstance(cond[2], int):
+                cond[2] = six.text_type(cond[2])
             cond[0] = resolve_column(cond[0])
             return cond
         if isinstance(cond[0], (list, tuple)):

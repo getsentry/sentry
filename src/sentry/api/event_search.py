@@ -212,6 +212,7 @@ class SearchVisitor(NodeVisitor):
     key_mappings = {}
     numeric_keys = set(
         [
+            "project_id",
             "project.id",
             "issue.id",
             "device.battery_level",
