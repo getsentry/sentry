@@ -84,14 +84,19 @@ class ToggleWrap extends React.Component {
     if (React.Children.count(this.props.children) === 0) {
       return null;
     }
+
+    const {wrapClassName, children} = this.props;
+    const wrappedChildren = <span className={wrapClassName}>{children}</span>;
+
     if (this.props.highUp) {
-      return this.props.children;
+      return wrappedChildren;
     }
 
     const classes = ['val-toggle'];
     if (this.state.toggled) {
       classes.push('val-toggle-open');
     }
+
     return (
       <span className={classes.join(' ')}>
         <a
@@ -102,7 +107,7 @@ class ToggleWrap extends React.Component {
             evt.preventDefault();
           }}
         />
-        <span className={this.props.wrapClassName}>{this.props.children}</span>
+        {wrappedChildren}
       </span>
     );
   }
