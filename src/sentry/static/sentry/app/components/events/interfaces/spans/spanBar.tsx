@@ -221,10 +221,16 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       return null;
     }
 
-    const {span, orgId, isRoot, eventView} = this.props;
+    const {span, orgId, isRoot, eventView, trace} = this.props;
 
     return (
-      <SpanDetail span={span} orgId={orgId} isRoot={!!isRoot} eventView={eventView} />
+      <SpanDetail
+        span={span}
+        orgId={orgId}
+        isRoot={!!isRoot}
+        eventView={eventView}
+        trace={trace}
+      />
     );
   };
 

@@ -2,8 +2,10 @@ import React from 'react';
 import styled from 'react-emotion';
 import get from 'lodash/get';
 import map from 'lodash/map';
+import moment from 'moment';
 
 import {t} from 'app/locale';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import DateTime from 'app/components/dateTime';
 import Pills from 'app/components/pills';
 import Pill from 'app/components/pill';
@@ -18,7 +20,7 @@ import {
 import EventView from 'app/views/eventsV2/eventView';
 import {generateDiscoverResultsRoute} from 'app/views/eventsV2/results';
 
-import {SpanType} from './types';
+import {SpanType, ParsedTraceType} from './types';
 
 type TransactionResult = {
   'project.name': string;
@@ -32,6 +34,7 @@ type Props = {
   span: Readonly<SpanType>;
   isRoot: boolean;
   eventView: EventView;
+  trace: Readonly<ParsedTraceType>;
 };
 
 type State = {
@@ -66,14 +69,27 @@ class SpanDetail extends React.Component<Props, State> {
   }
 
   fetchSpanDescendents(spanID: string): Promise<any> {
-    const {api, orgId, span} = this.props;
+    const {api, orgId, span, trace} = this.props;
 
     const url = `/organizations/${orgId}/eventsv2/`;
+
+    const {start, end} = getParams({
+      start: moment
+        .unix(trace.traceStartTimestamp)
+        .subtract(12, 'hours')
+        .format('YYYY-MM-DDTHH:mm:ss.SSS'),
+      end: moment
+        .unix(trace.traceEndTimestamp)
+        .add(12, 'hours')
+        .format('YYYY-MM-DDTHH:mm:ss.SSS'),
+    });
 
     const query = {
       field: ['transaction', 'id', 'trace.span'],
       sort: ['-id'],
       query: `event.type:transaction trace:${span.trace_id} trace.parent_span:${spanID}`,
+      start,
+      end,
     };
 
     return api.requestPromise(url, {
