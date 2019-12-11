@@ -1,73 +1,67 @@
-import {Params} from 'react-router/lib/Router';
-import {PlainRoute} from 'react-router/lib/Route';
-import PropTypes from 'prop-types';
+import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
+import styled from 'react-emotion';
 
 import {IssueAlertRule} from 'app/types/alerts';
-import {Location} from 'history';
-import {Panel} from 'app/components/panels';
+import {Organization} from 'app/types';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {SavedIncidentRule} from 'app/views/settings/incidentRules/types';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import PermissionAlert from 'app/views/settings/project/permissionAlert';
-import RuleRow from 'app/views/settings/projectAlerts/ruleRow';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import SentryTypes from 'app/sentryTypes';
+import RuleRow from 'app/views/settings/projectAlerts/ruleRowNew';
+import routeTitle from 'app/utils/routeTitle';
+import space from 'app/styles/space';
+import withOrganization from 'app/utils/withOrganization';
 
-type Props = {
-  params: Params;
-  location: Location;
-  routes: PlainRoute[];
-};
+type Props = {organization: Organization} & RouteComponentProps<
+  {
+    orgId: string;
+    projectId: string;
+  },
+  {}
+> &
+  AsyncView['props'];
 
 type State = {
-  ruleList: IssueAlertRule[];
-};
+  issueRules: IssueAlertRule[];
+  metricRules: SavedIncidentRule[];
+} & AsyncView['state'];
 
-class ProjectAlertRules extends AsyncView<
-  Props & AsyncView['props'],
-  State & AsyncView['state']
-> {
-  static propTypes = {
-    routes: PropTypes.array.isRequired,
-  };
-
-  static contextTypes = {
-    router: PropTypes.object,
-    organization: SentryTypes.Organization,
-  };
-
+class ProjectAlertRules extends AsyncView<Props, State> {
   getEndpoints(): [string, string][] {
     const {orgId, projectId} = this.props.params;
-    return [['ruleList', `/projects/${orgId}/${projectId}/rules/`]];
+    return [
+      ['issueRules', `/projects/${orgId}/${projectId}/rules/`],
+      ['metricRules', `/projects/${orgId}/${projectId}/alert-rules/`],
+    ];
   }
 
-  handleDeleteRule = rule => {
-    this.setState({
-      ruleList: this.state.ruleList.filter(r => r.id !== rule.id),
-    });
-  };
+  getTitle() {
+    const {projectId} = this.props.params;
+    return routeTitle(t('Alert Rules'), projectId);
+  }
 
   renderEmpty() {
     return (
-      <Panel>
-        <EmptyStateWarning>
-          <p>{t('There are no alerts configured for this project.')}</p>
-        </EmptyStateWarning>
-      </Panel>
+      <EmptyStateWarning>
+        <p>{t('There are no alerts configured for this project.')}</p>
+      </EmptyStateWarning>
     );
   }
 
   renderResults() {
-    const {orgId, projectId} = this.props.params;
-    const {organization} = this.context;
+    const {organization, params} = this.props;
+    const {orgId, projectId} = params;
     const canEditRule = organization.access.includes('project:write');
 
     return (
-      <div className="rules-list">
-        {this.state.ruleList.map(rule => {
+      <React.Fragment>
+        {this.state.issueRules.map(rule => {
           return (
             <RuleRow
+              type="issue"
               api={this.api}
               key={rule.id}
               data={rule}
@@ -76,28 +70,76 @@ class ProjectAlertRules extends AsyncView<
               params={this.props.params}
               location={this.props.location}
               routes={this.props.routes}
-              onDelete={this.handleDeleteRule.bind(this, rule)}
               canEdit={canEditRule}
             />
           );
         })}
-      </div>
+
+        {this.state.metricRules.map(rule => {
+          return (
+            <RuleRow
+              type="metric"
+              api={this.api}
+              key={`metric-${rule.id}`}
+              data={rule}
+              orgId={orgId}
+              projectId={projectId}
+              params={this.props.params}
+              location={this.props.location}
+              routes={this.props.routes}
+              canEdit={canEditRule}
+            />
+          );
+        })}
+      </React.Fragment>
     );
   }
 
+  renderLoading() {
+    return this.renderBody();
+  }
+
   renderBody() {
-    const {ruleList} = this.state;
-    const {projectId} = this.props.params;
+    const {loading, issueRules} = this.state;
 
     return (
       <React.Fragment>
-        <SentryDocumentTitle title={t('Alerts Rules')} objSlug={projectId} />
         <PermissionAlert />
-        {!!ruleList.length && this.renderResults()}
-        {!ruleList.length && this.renderEmpty()}
+
+        <Panel>
+          <RuleHeader>
+            <div>{t('Type')}</div>
+            <div>{t('Name')}</div>
+            <TriggerAndActions>
+              <div>{t('Conditions/Triggers')}</div>
+              <div>{t('Action(s)')}</div>
+            </TriggerAndActions>
+          </RuleHeader>
+
+          <PanelBody>
+            {loading
+              ? super.renderLoading()
+              : !!issueRules.length
+              ? this.renderResults()
+              : this.renderEmpty()}
+          </PanelBody>
+        </Panel>
       </React.Fragment>
     );
   }
 }
 
-export default ProjectAlertRules;
+export default withOrganization(ProjectAlertRules);
+
+const RuleHeader = styled(PanelHeader)`
+  display: grid;
+  grid-gap: ${space(1)};
+  grid-template-columns: 1fr 3fr 6fr;
+  grid-auto-flow: column;
+`;
+
+const TriggerAndActions = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-auto-flow: column;
+`;
