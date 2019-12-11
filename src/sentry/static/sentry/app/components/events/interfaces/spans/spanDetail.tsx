@@ -117,11 +117,9 @@ class SpanDetail extends React.Component<Props, State> {
       };
 
       return (
-        <div>
-          <Button size="xsmall" to={to}>
-            {t('View child')}
-          </Button>
-        </div>
+        <StyledButton size="xsmall" to={to}>
+          {t('View Child')}
+        </StyledButton>
       );
     }
 
@@ -147,11 +145,9 @@ class SpanDetail extends React.Component<Props, State> {
     };
 
     return (
-      <div>
-        <Button size="xsmall" to={to}>
-          {t('View children')}
-        </Button>
-      </div>
+      <StyledButton size="xsmall" to={to}>
+        {t('View Children')}
+      </StyledButton>
     );
   }
 
