@@ -343,7 +343,6 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     const chevronElement = !isRoot ? (
       <div
         style={{
-          width: '5px',
           textAlign: 'right',
         }}
       >
@@ -367,9 +366,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
             this.props.toggleSpanTree();
           }}
         >
-          <span style={{textAlign: 'center'}}>
-            <Count value={numOfSpanChildren} />
-          </span>
+          <Count value={numOfSpanChildren} />
           {chevronElement}
         </SpanTreeToggler>
       </SpanTreeTogglerContainer>
@@ -970,16 +967,15 @@ const DurationPill = styled('div')<{durationDisplay: DurationDisplay}>`
 const SpanBarRectangle = styled('div')`
   position: relative;
   height: 100%;
-
   min-width: 1px;
   user-select: none;
-
   transition: border-color 0.15s ease-in-out;
   border-right: 1px solid rgba(0, 0, 0, 0);
 `;
 
 const WarningIcon = styled(InlineSvg)`
   margin-left: ${space(0.25)};
+  margin-bottom: ${space(0.25)};
 `;
 
 const Chevron = styled(InlineSvg)`
