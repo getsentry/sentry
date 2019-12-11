@@ -17,10 +17,6 @@ export type UnsavedTrigger = {
   // UnsavedTrigger can be apart of an Unsaved Alert Rule that does not have an id yet
   alertRuleId?: string;
   label: string;
-  thresholdType: AlertRuleThresholdType;
-  alertThreshold: number;
-  resolveThreshold: number | '';
-  actions: Action[];
 };
 
 export type ThresholdControlValue = {
