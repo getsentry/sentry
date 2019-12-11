@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import logging
 import six
 import string
 import pytz
@@ -9,11 +10,10 @@ from dateutil.parser import parse as parse_date
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
-from hashlib import md5
 
 from semaphore.processing import StoreNormalizer
 
-from sentry import eventtypes, nodestore
+from sentry import eventstore, eventtypes, nodestore
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedIntegerField,
@@ -29,6 +29,8 @@ from sentry.utils.cache import memoize
 from sentry.utils.canonical import CanonicalKeyDict, CanonicalKeyView
 from sentry.utils.safe import get_path
 from sentry.utils.strings import truncatechars
+
+logger = logging.getLogger(__name__)
 
 
 class EventDict(CanonicalKeyDict):
@@ -57,16 +59,6 @@ class EventCommon(object):
     """
     Methods and properties common to both Event and SnubaEvent.
     """
-
-    @classmethod
-    def generate_node_id(cls, project_id, event_id):
-        """
-        Returns a deterministic node_id for this event based on the project_id
-        and event_id which together are globally unique. The event body should
-        be saved under this key in nodestore so it can be retrieved using the
-        same generated id when we only have project_id and event_id.
-        """
-        return md5("{}:{}".format(project_id, event_id)).hexdigest()
 
     # TODO (alex) We need a better way to cache these properties.  functools32
     # doesn't quite do the trick as there is a reference bug with unsaved
@@ -363,7 +355,7 @@ class EventCommon(object):
         return data
 
     def bind_node_data(self):
-        node_id = Event.generate_node_id(self.project_id, self.event_id)
+        node_id = eventstore.generate_node_id(self.project_id, self.event_id)
         node_data = nodestore.get(node_id) or {}
         ref = self.data.get_ref(self)
         self.data.bind_data(node_data, ref=ref)
@@ -404,7 +396,7 @@ class SnubaEvent(EventCommon):
         self.snuba_data = snuba_values
 
         # self.data is a (lazy) dict of everything we got from nodestore
-        node_id = SnubaEvent.generate_node_id(
+        node_id = eventstore.generate_node_id(
             self.snuba_data["project_id"], self.snuba_data["event_id"]
         )
         self.data = NodeData(node_id, data=None, wrapper=EventDict)
@@ -418,6 +410,11 @@ class SnubaEvent(EventCommon):
         """
         if name in ("_project_cache", "_group_cache", "_environment_cache"):
             raise AttributeError()
+
+        allowed_attributes = ["timestamp", "event_id", "group_id", "project_id"]
+
+        if name not in allowed_attributes:
+            logger.warn("event.invalid-attribute", extra={"attribute_name": name})
 
         if name in self.snuba_data:
             return self.snuba_data[name]
@@ -436,8 +433,8 @@ class SnubaEvent(EventCommon):
         tag deletions without having to rewrite nodestore blobs.
         """
         if "tags.key" in self.snuba_data and "tags.value" in self.snuba_data:
-            keys = getattr(self, "tags.key")
-            values = getattr(self, "tags.value")
+            keys = self.snuba_data["tags.key"]
+            values = self.snuba_data["tags.value"]
             if keys and values and len(keys) == len(values):
                 return sorted(zip(keys, values))
             else:
@@ -448,13 +445,19 @@ class SnubaEvent(EventCommon):
     def get_minimal_user(self):
         from sentry.interfaces.user import User
 
+        if all(key in self.snuba_data for key in ["user_id", "email", "username", "ip_address"]):
+            user_id = self.snuba_data["user_id"]
+            email = self.snuba_data["email"]
+            username = self.snuba_data["username"]
+            ip_address = self.snuba_data["ip_address"]
+        else:
+            user_id = self.data["user_id"]
+            email = self.data["email"]
+            username = self.data["username"]
+            ip_address = self.data["ip_address"]
+
         return User.to_python(
-            {
-                "id": self.user_id,
-                "email": self.email,
-                "username": self.username,
-                "ip_address": self.ip_address,
-            }
+            {"id": user_id, "email": email, "username": username, "ip_address": ip_address}
         )
 
     # If the data for these is available from snuba, we assume

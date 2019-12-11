@@ -9,6 +9,7 @@ import space from 'app/styles/space';
 import Count from 'app/components/count';
 import Tooltip from 'app/components/tooltip';
 import InlineSvg from 'app/components/inlineSvg';
+import EventView from 'app/views/eventsV2/eventView';
 
 import {
   toPercent,
@@ -135,10 +136,10 @@ const INTERSECTION_THRESHOLDS: Array<number> = [
   1.0,
 ];
 
-const TOGGLE_BUTTON_MARGIN_RIGHT = 8;
-const TOGGLE_BUTTON_MAX_WIDTH = 40;
+const TOGGLE_BUTTON_MARGIN_RIGHT = 16;
+const TOGGLE_BUTTON_MAX_WIDTH = 30;
 const TOGGLE_BORDER_BOX = TOGGLE_BUTTON_MAX_WIDTH + TOGGLE_BUTTON_MARGIN_RIGHT;
-const MARGIN_LEFT = 8;
+const MARGIN_LEFT = 0;
 
 type DurationDisplay = 'left' | 'right' | 'inset';
 
@@ -164,6 +165,7 @@ const getDurationDisplay = ({
 };
 
 type SpanBarProps = {
+  orgId: string;
   trace: Readonly<ParsedTraceType>;
   span: Readonly<SpanType>;
   spanBarColour: string;
@@ -177,6 +179,7 @@ type SpanBarProps = {
   isRoot?: boolean;
   toggleSpanTree: () => void;
   isCurrentSpanFilteredOut: boolean;
+  eventView: EventView;
 };
 
 type SpanBarState = {
@@ -218,9 +221,17 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       return null;
     }
 
-    const {span} = this.props;
+    const {span, orgId, isRoot, eventView, trace} = this.props;
 
-    return <SpanDetail span={span} />;
+    return (
+      <SpanDetail
+        span={span}
+        orgId={orgId}
+        isRoot={!!isRoot}
+        eventView={eventView}
+        trace={trace}
+      />
+    );
   };
 
   getBounds = (): {
@@ -239,7 +250,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     switch (bounds.type) {
       case 'TRACE_TIMESTAMPS_EQUAL': {
         return {
-          warning: t('Trace timestamps are equal'),
+          warning: t('Trace times are equal'),
           left: void 0,
           width: void 0,
           isSpanVisibleInView: bounds.isSpanVisibleInView,
@@ -255,7 +266,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       }
       case 'TIMESTAMPS_EQUAL': {
         return {
-          warning: t('The start and end timestamps are equal'),
+          warning: t('Equal start and end times'),
           left: bounds.start,
           width: 0.00001,
           isSpanVisibleInView: bounds.isSpanVisibleInView,
@@ -263,7 +274,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       }
       case 'TIMESTAMPS_REVERSED': {
         return {
-          warning: t('The start and end timestamps are reversed'),
+          warning: t('Reversed start and end times'),
           left: bounds.start,
           width: bounds.end - bounds.start,
           isSpanVisibleInView: bounds.isSpanVisibleInView,
@@ -291,7 +302,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       if (hasToggler) {
         return (
           <ConnectorBar
-            style={{right: '11px', height: '10px', bottom: '-5px', top: 'auto'}}
+            style={{right: '16px', height: '10px', bottom: '-5px', top: 'auto'}}
             key={`${span.span_id}-last`}
           />
         );
@@ -308,7 +319,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     if (hasToggler) {
       connectorBars.push(
         <ConnectorBar
-          style={{right: '15px', height: '10px', bottom: '0', top: 'auto'}}
+          style={{right: '16px', height: '10px', bottom: '0', top: 'auto'}}
           key={`${span.span_id}-last`}
         />
       );
@@ -335,17 +346,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       );
     }
 
-    const chevronElement = !isRoot ? (
-      <div
-        style={{
-          marginRight: '2px',
-          width: '5px',
-          textAlign: 'right',
-        }}
-      >
-        {chevron}
-      </div>
-    ) : null;
+    const chevronElement = !isRoot ? <div>{chevron}</div> : null;
 
     return (
       <SpanTreeTogglerContainer style={{left: `${left}px`}} hasToggler>
@@ -363,9 +364,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
             this.props.toggleSpanTree();
           }}
         >
-          <span style={{marginRight: '2px', textAlign: 'center'}}>
-            <Count value={numOfSpanChildren} />
-          </span>
+          <Count value={numOfSpanChildren} />
           {chevronElement}
         </SpanTreeToggler>
       </SpanTreeTogglerContainer>
@@ -853,52 +852,45 @@ type TogglerTypes = OmitHtmlDivProps<{
 const SpanTreeTogglerContainer = styled('div')<TogglerTypes>`
   position: relative;
   height: 16px;
-  width: ${p => (p.hasToggler ? '40px' : '16px')};
-  min-width: ${p => (p.hasToggler ? '40px' : '16px')}; /* annoying flex thing */
-  margin-right: ${space(1)};
+  width: ${p => (p.hasToggler ? '40px' : '12px')};
+  min-width: ${p => (p.hasToggler ? '40px' : '12px')};
+  margin-right: ${p => (p.hasToggler ? space(0.5) : space(1))};
   z-index: ${zIndex.spanTreeToggler};
   display: flex;
   justify-content: flex-end;
 `;
 
-// one-off to get the perfect hierarchy
-const spanTreeColor = '#D5CEDB';
-
 const SpanTreeConnector = styled('div')<TogglerTypes>`
-  height: ${p => (p.isLast ? '85%' : '175%')};
+  height: ${p => (p.isLast ? '80%' : '160%')};
   width: 100%;
-  border-left: 1px solid ${spanTreeColor};
+  border-left: 1px solid ${p => p.theme.gray1};
   position: absolute;
-  left: 4px;
   top: -5px;
 
   &:before {
     content: '';
-    width: ${p => (p.hasToggler ? '2px' : '8px')};
-    position: absolute;
     height: 1px;
-    top: ${p => (p.isLast ? '100%' : '50%')};
-    transform: translateY(-50%);
-    background: ${spanTreeColor};
+    background-color: ${p => p.theme.gray1};
+    width: 100%;
+    position: absolute;
+    bottom: ${p => (p.isLast ? '0' : '50%')};
   }
 
   &:after {
     content: '';
-    width: 2px;
-    height: 2px;
-    border-radius: 50%;
-    /* border radius stops working at 3px */
-    transform: scale(0.5) translateY(-100%);
-    left: ${p => (p.hasToggler ? '1px' : '6px')};
-    top: ${p => (p.isLast ? '100%' : '50%')};
+    background-color: ${p => p.theme.gray1};
+    border-radius: 4px;
+    height: 3px;
+    width: 3px;
     position: absolute;
-    background: ${spanTreeColor};
+    right: 0;
+    top: 11px;
   }
 `;
 
 const ConnectorBar = styled('div')`
   height: 250%;
-  border-left: 1px solid ${spanTreeColor};
+  border-left: 1px solid ${p => p.theme.gray1};
   top: -5px;
   position: absolute;
 `;
@@ -917,16 +909,15 @@ const getTogglerTheme = ({
   if (disabled) {
     return `
     background: ${buttonTheme.background};
-    border: 1px solid ${buttonTheme.border};
+    border: 1px solid ${theme.gray1};
     color: ${buttonTheme.color};
-
     cursor: default;
   `;
   }
 
   return `
     background: ${buttonTheme.background};
-    border: 1px solid ${buttonTheme.border};
+    border: 1px solid ${theme.gray1};
     color: ${buttonTheme.color};
   `;
 };
@@ -938,14 +929,13 @@ type SpanTreeTogglerAndDivProps = OmitHtmlDivProps<{
 
 const SpanTreeToggler = styled('div')<SpanTreeTogglerAndDivProps>`
   white-space: nowrap;
-  min-width: 32px;
-  padding: 0 4px;
+  min-width: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 99px;
   transition: all 0.15s ease-in-out;
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: 10px;
   line-height: 0;
   z-index: 1;
 
@@ -968,7 +958,6 @@ const getDurationPillAlignment = ({durationDisplay}) => {
 
 const DurationPill = styled('div')<{durationDisplay: DurationDisplay}>`
   position: absolute;
-
   color: ${p => p.theme.gray2};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   white-space: nowrap;
@@ -987,20 +976,20 @@ const DurationPill = styled('div')<{durationDisplay: DurationDisplay}>`
 const SpanBarRectangle = styled('div')`
   position: relative;
   height: 100%;
-
   min-width: 1px;
   user-select: none;
-
   transition: border-color 0.15s ease-in-out;
   border-right: 1px solid rgba(0, 0, 0, 0);
 `;
 
 const WarningIcon = styled(InlineSvg)`
   margin-left: ${space(0.25)};
+  margin-bottom: ${space(0.25)};
 `;
 
 const Chevron = styled(InlineSvg)`
   width: 7px;
+  margin-left: ${space(0.25)};
 `;
 
 export default SpanBar;

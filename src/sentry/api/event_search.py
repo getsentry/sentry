@@ -11,9 +11,10 @@ from parsimonious.expressions import Optional
 from parsimonious.exceptions import IncompleteParseError, ParseError
 from parsimonious.nodes import Node
 from parsimonious.grammar import Grammar, NodeVisitor
+from semaphore.consts import SPAN_STATUS_NAME_TO_CODE
 
 from sentry import eventstore
-from sentry.models import Project, ProjectStatus
+from sentry.models import Project
 from sentry.search.utils import (
     parse_datetime_range,
     parse_datetime_string,
@@ -21,9 +22,8 @@ from sentry.search.utils import (
     InvalidQuery,
 )
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.events import get_columns_from_aliases
 from sentry.utils.dates import to_timestamp
-from sentry.utils.snuba import DATASETS, get_snuba_column_name, get_json_type
+from sentry.utils.snuba import DATASETS, get_json_type
 
 WILDCARD_CHARS = re.compile(r"[\*]")
 
@@ -574,6 +574,15 @@ def convert_search_filter_to_snuba_query(search_filter):
         like_value = raw_value.replace("%", "\\%").replace("_", "\\_").replace("*", "%")
         operator = "LIKE" if search_filter.operator == "=" else "NOT LIKE"
         return [name, operator, like_value]
+    elif name == "transaction.status":
+        internal_value = SPAN_STATUS_NAME_TO_CODE.get(search_filter.value.raw_value)
+        if internal_value is None:
+            raise InvalidSearchQuery(
+                "Invalid value for transaction.status condition. Accepted values are {}".format(
+                    ", ".join(SPAN_STATUS_NAME_TO_CODE.keys())
+                )
+            )
+        return [name, search_filter.operator, internal_value]
     else:
         value = (
             int(to_timestamp(value)) * 1000
@@ -724,6 +733,8 @@ def get_json_meta_type(field, snuba_type):
         return alias_definition.get("result_type")
     if "duration" in field:
         return "duration"
+    if field == "transaction.status":
+        return "string"
     return get_json_type(snuba_type)
 
 
@@ -862,59 +873,4 @@ def resolve_field_list(fields, snuba_args, auto_fields=True):
     }
 
 
-def find_reference_event(organization, snuba_args, reference_event_slug, fields):
-    try:
-        project_slug, event_id = reference_event_slug.split(":")
-    except ValueError:
-        raise InvalidSearchQuery("Invalid reference event")
-    try:
-        project = Project.objects.get(
-            slug=project_slug, organization=organization, status=ProjectStatus.VISIBLE
-        )
-    except Project.DoesNotExist:
-        raise InvalidSearchQuery("Invalid reference event")
-    reference_event = eventstore.get_event_by_id(project.id, event_id, fields)
-    if not reference_event:
-        raise InvalidSearchQuery("Invalid reference event")
-
-    return reference_event.snuba_data
-
-
 TAG_KEY_RE = re.compile(r"^tags\[(.*)\]$")
-
-
-def get_reference_event_conditions(organization, snuba_args, event_slug):
-    """
-    Returns a list of additional conditions/filter_keys to
-    scope a query by the groupby fields using values from the reference event
-
-    This is a key part of pagination in the event details modal and
-    summary graph navigation.
-    """
-    groupby = snuba_args.get("groupby", [])
-    columns = get_columns_from_aliases(groupby)
-    field_names = [get_snuba_column_name(field) for field in groupby]
-
-    # Fetch the reference event ensuring the fields in the groupby
-    # clause are present.
-    event_data = find_reference_event(organization, snuba_args, event_slug, columns)
-
-    conditions = []
-    tags = {}
-    if "tags.key" in event_data and "tags.value" in event_data:
-        tags = dict(zip(event_data["tags.key"], event_data["tags.value"]))
-
-    for (i, field) in enumerate(groupby):
-        match = TAG_KEY_RE.match(field_names[i])
-        if match:
-            value = tags.get(match.group(1), None)
-        else:
-            value = event_data.get(field_names[i], None)
-            # If the value is a sequence use the first element as snuba
-            # doesn't support `=` or `IN` operations on fields like exception_frames.filename
-            if isinstance(value, (list, set)) and value:
-                value = value.pop()
-        if value:
-            conditions.append([field, "=", value])
-
-    return conditions

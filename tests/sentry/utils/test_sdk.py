@@ -6,9 +6,8 @@ from django.conf import settings
 from sentry.utils.sdk import configure_sdk, bind_organization_context
 from sentry.app import raven
 
-from sentry.models import Event
 from sentry.testutils import TestCase
-from sentry import nodestore
+from sentry import eventstore, nodestore
 
 
 class SentryInternalClientTest(TestCase):
@@ -19,7 +18,7 @@ class SentryInternalClientTest(TestCase):
         with self.tasks():
             event_id = raven.captureMessage("internal client test")
 
-        event = nodestore.get(Event.generate_node_id(settings.SENTRY_PROJECT, event_id))
+        event = nodestore.get(eventstore.generate_node_id(settings.SENTRY_PROJECT, event_id))
 
         assert event["project"] == settings.SENTRY_PROJECT
         assert event["event_id"] == event_id
@@ -37,7 +36,7 @@ class SentryInternalClientTest(TestCase):
                 "check the req", extra={"request": NotJSONSerializable()}
             )
 
-        event = nodestore.get(Event.generate_node_id(settings.SENTRY_PROJECT, event_id))
+        event = nodestore.get(eventstore.generate_node_id(settings.SENTRY_PROJECT, event_id))
 
         assert event["project"] == settings.SENTRY_PROJECT
         assert event["logentry"]["formatted"] == "check the req"

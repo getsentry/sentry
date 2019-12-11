@@ -55,4 +55,20 @@ describe('NoProjectMessage', function() {
       wrapper.find('Button[to="/organizations/org-slug/projects/new/"]')
     ).toHaveLength(1);
   });
+
+  it('handles loading projects from props', function() {
+    const lightWeightOrg = TestStubs.Organization();
+    delete lightWeightOrg.projects;
+
+    const child = <div>child</div>;
+
+    const wrapper = shallow(
+      <NoProjectMessage projects={[]} loadingProjects organization={lightWeightOrg}>
+        {child}
+      </NoProjectMessage>,
+      TestStubs.routerContext()
+    );
+    // ensure loading projects causes children to render
+    expect(wrapper.find('div')).toHaveLength(1);
+  });
 });

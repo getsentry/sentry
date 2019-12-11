@@ -133,6 +133,8 @@ def get_client_config(request=None):
     if is_superuser:
         needs_upgrade = _needs_upgrade()
 
+    public_dsn = _get_public_dsn()
+
     context = {
         "singleOrganization": settings.SENTRY_SINGLE_ORGANIZATION,
         "supportEmail": get_support_mail(),
@@ -141,7 +143,7 @@ def get_client_config(request=None):
         "features": enabled_features,
         "distPrefix": get_asset_url("sentry", "dist/"),
         "needsUpgrade": needs_upgrade,
-        "dsn": _get_public_dsn(),
+        "dsn": public_dsn,
         "statuspage": _get_statuspage(),
         "messages": [{"message": msg.message, "level": msg.tags} for msg in messages],
         "isOnPremise": settings.SENTRY_ONPREMISE,
@@ -157,7 +159,7 @@ def get_client_config(request=None):
         "userIdentity": user_identity,
         "csrfCookieName": settings.CSRF_COOKIE_NAME,
         "sentryConfig": {
-            "dsn": _get_public_dsn(),
+            "dsn": public_dsn,
             "release": version_info["build"],
             # By default `ALLOWED_HOSTS` is [*], however the JS SDK does not support globbing
             "whitelistUrls": list(

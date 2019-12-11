@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from datetime import datetime, timedelta
 
 from sentry.api.serializers import serialize
-from sentry.models.event import SnubaEvent
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry import eventstore, nodestore
 from sentry.testutils.helpers.datetime import iso_format, before_now
@@ -81,7 +80,7 @@ class SnubaEventTest(TestCase, SnubaTestCase):
 
     def test_event_with_no_body(self):
         # remove the event from nodestore to simulate an event with no body.
-        node_id = SnubaEvent.generate_node_id(self.proj1.id, self.event_id)
+        node_id = eventstore.generate_node_id(self.proj1.id, self.event_id)
         nodestore.delete(node_id)
         assert nodestore.get(node_id) is None
 

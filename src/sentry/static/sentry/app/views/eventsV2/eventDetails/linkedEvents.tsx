@@ -1,6 +1,9 @@
 import React from 'react';
 import styled from 'react-emotion';
+import get from 'lodash/get';
+import moment from 'moment';
 
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {Organization, Event, Project} from 'app/types';
 import AsyncComponent from 'app/components/asyncComponent';
 import DateTime from 'app/components/dateTime';
@@ -43,6 +46,17 @@ class LinkedEvents extends AsyncComponent<Props, State> {
 
     const trace = event.tags.find(tag => tag.key === 'trace');
     if (trace) {
+      const {start, end} = getParams({
+        start: moment
+          .unix(get(event, 'startTimestamp', 0))
+          .subtract(12, 'hours')
+          .format('YYYY-MM-DDTHH:mm:ss.SSS'),
+        end: moment
+          .unix(get(event, 'endTimestamp', 0))
+          .add(12, 'hours')
+          .format('YYYY-MM-DDTHH:mm:ss.SSS'),
+      });
+
       endpoints.push([
         'linkedEvents',
         `/organizations/${organization.slug}/eventsv2/`,
@@ -58,6 +72,8 @@ class LinkedEvents extends AsyncComponent<Props, State> {
             ],
             sort: ['-timestamp'],
             query: `trace:${trace.value}`,
+            start,
+            end,
           },
         },
       ]);
@@ -81,7 +97,10 @@ class LinkedEvents extends AsyncComponent<Props, State> {
           linkedEvents.data.map((item: DiscoverResult) => {
             const eventSlug = generateEventSlug(item);
             const eventUrl = {
-              pathname: generateEventDetailsRoute({eventSlug, organization}),
+              pathname: generateEventDetailsRoute({
+                eventSlug,
+                orgSlug: organization.slug,
+              }),
               query: eventView.generateQueryStringObject(),
             };
             const project = projects.find(p => p.slug === item['project.name']);
