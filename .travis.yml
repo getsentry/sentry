@@ -140,6 +140,14 @@ matrix:
       script: flake8
 
     - <<: *postgres_default
+      name: 'Backend [Postgres] (1/2)'
+      env: TEST_SUITE=postgres DB=postgres TOTAL_TEST_GROUPS=2 TEST_GROUP=0
+
+    - <<: *postgres_default
+      name: 'Backend [Postgres] (2/2)'
+      env: TEST_SUITE=postgres DB=postgres TOTAL_TEST_GROUPS=2 TEST_GROUP=1
+
+    - <<: *postgres_default
       name: 'Backend with migrations [Postgres] (1/2)'
       env: TEST_SUITE=postgres DB=postgres TOTAL_TEST_GROUPS=2 TEST_GROUP=0 MIGRATIONS_TEST_MIGRATE=1
     - <<: *postgres_default
@@ -151,12 +159,12 @@ matrix:
       env: TEST_SUITE=acceptance USE_SNUBA=1
 
     - <<: *postgres_default
-      name: '[Django 1.10] Backend with migrations [Postgres] (1/2)'
-      env: DJANGO_VERSION=">=1.10,<1.11" TEST_SUITE=postgres DB=postgres TOTAL_TEST_GROUPS=2 TEST_GROUP=0 MIGRATIONS_TEST_MIGRATE=1
+      name: '[Django 1.10] Backend [Postgres] (1/2)'
+      env: DJANGO_VERSION=">=1.10,<1.11" TEST_SUITE=postgres DB=postgres TOTAL_TEST_GROUPS=2 TEST_GROUP=0
 
     - <<: *postgres_default
-      name: '[Django 1.10] Backend with migrations [Postgres] (2/2)'
-      env: DJANGO_VERSION=">=1.10,<1.11" TEST_SUITE=postgres DB=postgres TOTAL_TEST_GROUPS=2 TEST_GROUP=1 MIGRATIONS_TEST_MIGRATE=1
+      name: '[Django 1.10] Backend [Postgres] (2/2)'
+      env: DJANGO_VERSION=">=1.10,<1.11" TEST_SUITE=postgres DB=postgres TOTAL_TEST_GROUPS=2 TEST_GROUP=1
 
     - <<: *acceptance_default
       name: '[Django 1.10] Acceptance'
