@@ -135,14 +135,6 @@ class Thread extends React.Component {
   };
 
   renderMissingStacktrace = () => {
-    const {crashed, errored} = this.props.data;
-    let message = t('No or unknown stacktrace');
-    if (crashed) {
-      message = t('Thread Crashed');
-    } else if (errored) {
-      message = t('Thread Errored');
-    }
-
     return (
       <div className="traceback missing-traceback">
         <ul>
