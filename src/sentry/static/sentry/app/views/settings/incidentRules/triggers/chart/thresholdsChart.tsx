@@ -82,7 +82,7 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
       // can return a negitive position (probably because yAxisMax is not synced with chart yet)
       this.setState({yAxisMax: Math.round(threshold * 1.1)}, this.forceUpdate);
     } else {
-      this.setState({yAxisMax: null});
+      this.setState({yAxisMax: null}, this.forceUpdate);
     }
   }, 150);
 
