@@ -3,10 +3,10 @@ from __future__ import absolute_import
 from rest_framework.exceptions import PermissionDenied
 
 from sentry.api.bases import OrganizationEndpoint, OrganizationEventsError
-from sentry.api.event_search import get_filter, resolve_field_list, InvalidSearchQuery
-from sentry.snuba.discover import ReferenceEvent, create_reference_event_conditions
+from sentry.api.event_search import get_filter, InvalidSearchQuery
 from sentry.models.project import Project
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.discover import ReferenceEvent
 from sentry.utils import snuba
 
 
@@ -35,34 +35,6 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         reference_event_id = request.GET.get("referenceEvent")
         if reference_event_id:
             return ReferenceEvent(organization, reference_event_id, fields)
-
-    def get_snuba_query_args(self, request, organization, params):
-        filter = self.get_snuba_filter(request, organization, params)
-        snuba_args = {
-            "start": filter.start,
-            "end": filter.end,
-            "conditions": filter.conditions,
-            "filter_keys": filter.filter_keys,
-        }
-        snuba_args["orderby"] = self.get_orderby(request)
-
-        if request.GET.get("rollup"):
-            try:
-                snuba_args["rollup"] = int(request.GET.get("rollup"))
-            except ValueError:
-                raise OrganizationEventsError("rollup must be an integer.")
-
-        fields = request.GET.getlist("field")[:]
-        if fields:
-            try:
-                snuba_args.update(resolve_field_list(fields, snuba_args))
-            except InvalidSearchQuery as exc:
-                raise OrganizationEventsError(exc.message)
-
-        reference = self.reference_event(request, organization)
-        if reference:
-            snuba_args["conditions"].extend(create_reference_event_conditions(reference))
-        return snuba_args
 
     def get_snuba_query_args_legacy(self, request, organization):
         params = self.get_filter_params(request, organization)
