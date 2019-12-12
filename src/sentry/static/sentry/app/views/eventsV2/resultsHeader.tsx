@@ -6,7 +6,6 @@ import {Organization, SavedQuery} from 'app/types';
 import {fetchSavedQuery} from 'app/actionCreators/discoverSavedQueries';
 
 import {Client} from 'app/api';
-import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 
@@ -85,18 +84,16 @@ class ResultsHeader extends React.Component<Props, State> {
   }
 }
 
-const HeaderBox = styled(PageContent)`
+const HeaderBox = styled('div')`
+  padding: ${space(2)} ${space(4)} ${space(3)};
   background-color: ${p => p.theme.white};
   border-bottom: 1px solid ${p => p.theme.borderDark};
   grid-row-gap: ${space(1)};
-
-  /* app container is a flex box */
-  flex-grow: 0;
   margin: 0;
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     display: grid;
-    grid-template-rows: 1fr auto;
+    grid-template-rows: 1fr 30px;
     grid-template-columns: 65% auto;
     grid-column-gap: ${space(3)};
   }
@@ -107,8 +104,9 @@ const HeaderBox = styled(PageContent)`
 `;
 
 const Controller = styled('div')`
+  display: flex;
   justify-self: end;
-  grid-row: 1/3;
+  grid-row: 1/2;
   grid-column: 2/3;
 `;
 

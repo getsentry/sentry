@@ -141,44 +141,42 @@ class Results extends React.Component<Props, State> {
               location={location}
               eventView={eventView}
             />
-            <div>
-              <ContentBox>
-                <Top>
-                  <StyledSearchBar
-                    organization={organization}
-                    projectIds={eventView.project}
-                    query={query}
-                    onSearch={this.handleSearch}
-                  />
-                  <StyledPanel>
-                    {getDynamicText({
-                      value: (
-                        <EventsChart
-                          router={router}
-                          query={eventView.getEventsAPIPayload(location).query}
-                          organization={organization}
-                          showLegend
-                          yAxisOptions={yAxisOptions}
-                          yAxisValue={eventView.yAxis}
-                          onYAxisChange={this.handleYAxisChange}
-                          project={eventView.project as number[]}
-                          environment={eventView.environment as string[]}
-                        />
-                      ),
-                      fixed: 'events chart',
-                    })}
-                  </StyledPanel>
-                </Top>
-                <Main eventView={eventView}>
-                  <Table
-                    organization={organization}
-                    eventView={eventView}
-                    location={location}
-                  />
-                </Main>
-                <Side eventView={eventView}>{this.renderTagsTable()}</Side>
-              </ContentBox>
-            </div>
+            <ContentBox>
+              <Top>
+                <StyledSearchBar
+                  organization={organization}
+                  projectIds={eventView.project}
+                  query={query}
+                  onSearch={this.handleSearch}
+                />
+                <StyledPanel>
+                  {getDynamicText({
+                    value: (
+                      <EventsChart
+                        router={router}
+                        query={eventView.getEventsAPIPayload(location).query}
+                        organization={organization}
+                        showLegend
+                        yAxisOptions={yAxisOptions}
+                        yAxisValue={eventView.yAxis}
+                        onYAxisChange={this.handleYAxisChange}
+                        project={eventView.project as number[]}
+                        environment={eventView.environment as string[]}
+                      />
+                    ),
+                    fixed: 'events chart',
+                  })}
+                </StyledPanel>
+              </Top>
+              <Main eventView={eventView}>
+                <Table
+                  organization={organization}
+                  eventView={eventView}
+                  location={location}
+                />
+              </Main>
+              <Side eventView={eventView}>{this.renderTagsTable()}</Side>
+            </ContentBox>
           </NoProjectMessage>
         </React.Fragment>
       </SentryDocumentTitle>

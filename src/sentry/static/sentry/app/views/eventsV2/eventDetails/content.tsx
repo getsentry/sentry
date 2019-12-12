@@ -21,7 +21,6 @@ import FileSize from 'app/components/fileSize';
 import NotFound from 'app/components/errors/notFound';
 import AsyncComponent from 'app/components/asyncComponent';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {PageContent} from 'app/styles/organization';
 
 import EventView from '../eventView';
 import {hasAggregateField, EventQuery, generateTitle} from '../utils';
@@ -297,12 +296,13 @@ const EventMetadata = (props: {
   );
 };
 
-const ContentBox = styled(PageContent)`
+const ContentBox = styled('div')`
+  padding: ${space(2)} ${space(4)} ${space(3)};
   margin: 0;
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     display: grid;
-    grid-template-rows: 1fr auto;
+    grid-template-rows: 1fr 30px;
     grid-template-columns: 65% auto;
     grid-column-gap: ${space(3)};
   }
@@ -315,7 +315,7 @@ const ContentBox = styled(PageContent)`
 const HeaderBox = styled(ContentBox)`
   background-color: ${p => p.theme.white};
   border-bottom: 1px solid ${p => p.theme.borderDark};
-  grid-row-gap: ${space(2)};
+  grid-row-gap: ${space(1)};
 `;
 
 const Controller = styled('div')`
