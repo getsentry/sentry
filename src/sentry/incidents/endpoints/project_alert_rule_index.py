@@ -1,11 +1,14 @@
 from __future__ import absolute_import
 
 import six
-
+import math
+from datetime import datetime
 from copy import deepcopy
 
 from rest_framework import status
 from rest_framework.response import Response
+
+from django.utils import timezone
 
 from sentry import features
 from sentry.api.bases.project import ProjectEndpoint
@@ -16,6 +19,8 @@ from sentry.api.serializers.models.rule import _generate_rule_label
 from sentry.incidents.models import AlertRule
 from sentry.models import Rule, RuleStatus
 from sentry.incidents.endpoints.serializers import AlertRuleSerializer
+from sentry.utils.cursors import build_cursor, Cursor, CursorResult
+
 
 class CombinedRuleSerializer(Serializer):
     def serialize(self, obj, attrs, user, **kwargs):
@@ -79,12 +84,21 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
         if not features.has("organizations:incidents", project.organization, actor=request.user):
             raise ResourceDoesNotExist
 
-        # TODO: How to implement cursor in results?
-        cursor = 0  # TODO: Get from request. Is it an integer? Date?
-        page_size = 25  # TODO: Get from request. Is it `limit`?
+        cursor_string = request.GET.get("cursor", None)
+        page_size = 1
 
-        # alert_rule_queryset = AlertRule.objects.fetch_for_organization(project.organization).order_by('-date_added')[:page_size]
-        alert_rule_queryset = AlertRule.objects.fetch_for_project(project).order_by("-date_added")
+        if cursor_string is None:
+            cursor_string = "0:0:0"
+        print ("request cursor:", cursor_string)
+
+        cursor = Cursor.from_string(cursor_string)
+        cursor_date = datetime.fromtimestamp(float(cursor.value)).replace(tzinfo=timezone.utc)
+        print ("cursor_date:", cursor_date)
+
+        alert_rule_queryset = (
+            AlertRule.objects.fetch_for_project(project).order_by("-date_added")
+            # .filter(date_added__gte=cursor_date)[cursor.offset :]
+        )
 
         legacy_rule_queryset = (
             Rule.objects.filter(
@@ -92,12 +106,11 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
             )
             .select_related("project")
             .order_by("-date_added")
+            # .filter(date_added__gte=cursor_date)[cursor.offset :]
         )
 
         combined_rules = []
-        while len(combined_rules) < cursor + page_size and (
-            len(alert_rule_queryset) != 0 or len(legacy_rule_queryset) != 0
-        ):
+        while len(alert_rule_queryset) != 0 or len(legacy_rule_queryset) != 0:
             alert_rule = alert_rule_queryset[0] if len(alert_rule_queryset) > 0 else None
             legacy_rule = legacy_rule_queryset[0] if len(legacy_rule_queryset) > 0 else None
             if alert_rule is not None and legacy_rule is not None:
@@ -110,21 +123,33 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
             elif legacy_rule is None:
                 next_rule = alert_rule
 
-            combined_rules.append((len(combined_rules), next_rule))
+            combined_rules.append(next_rule)
             if isinstance(next_rule, AlertRule):
                 alert_rule_queryset = alert_rule_queryset[1:]
             else:
                 legacy_rule_queryset = legacy_rule_queryset[1:]
 
-        combined_rules = combined_rules[cursor : cursor + page_size]
+        def get_item_key(item, for_prev=False):
+            value = getattr(item, "date_added")
+            value = float(value.strftime("%s.%f"))
+            # return math.floor(value)
+            return math.ceil(value)
 
-        return self.paginate(
-            request,
-            data=combined_rules,
-            paginator_cls=SequencePaginator,
-            on_results=lambda x: serialize(x, request.user, CombinedRuleSerializer()),
-            default_per_page=25,
+        print ("combined rules:", combined_rules)
+
+        cursor_result = build_cursor(
+            results=combined_rules,
+            cursor=cursor,
+            key=get_item_key,
+            limit=page_size,
+            # on_results=lambda x: serialize(x, request.user, CombinedRuleSerializer()),
         )
+        results = list(cursor_result)
+        print ("results:", results)
+        context = serialize(results, request.user, CombinedRuleSerializer())
+        response = Response(context)
+        self.add_cursor_headers(request, response, cursor_result)
+        return response
 
 
 class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
