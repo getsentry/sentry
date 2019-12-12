@@ -166,6 +166,16 @@ matrix:
       name: '[Django 1.10] Backend [Postgres] (2/2)'
       env: DJANGO_VERSION=">=1.10,<1.11" TEST_SUITE=postgres DB=postgres TOTAL_TEST_GROUPS=2 TEST_GROUP=1
 
+    # allowed to fail
+    - <<: *postgres_default
+      name: '[Django 1.10] Backend with migrations [Postgres] (1/2)'
+      env: DJANGO_VERSION=">=1.10,<1.11" TEST_SUITE=postgres DB=postgres TOTAL_TEST_GROUPS=2 TEST_GROUP=0
+
+    # allowed to fail
+    - <<: *postgres_default
+      name: '[Django 1.10] Backend with migrations [Postgres] (2/2)'
+      env: DJANGO_VERSION=">=1.10,<1.11" TEST_SUITE=postgres DB=postgres TOTAL_TEST_GROUPS=2 TEST_GROUP=1
+
     - <<: *acceptance_default
       name: '[Django 1.10] Acceptance'
       env: DJANGO_VERSION=">=1.10,<1.11" TEST_SUITE=acceptance USE_SNUBA=1 PERCY_ENABLE=0
@@ -279,6 +289,8 @@ matrix:
 
   allow_failures:
     - name: 'Storybook Deploy'
+    - name: '[Django 1.10] Backend with migrations [Postgres] (1/2)'
+    - name: '[Django 1.10] Backend with migrations [Postgres] (2/2)'
 
 notifications:
   webhooks:
