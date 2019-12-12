@@ -1,11 +1,9 @@
 {
-    "event_id": "84974dd6657247fb928aa7ff0d841f6f",
     "project": 1808954,
     "release": "io.sentry.sample-1.0",
     "dist": "1",
     "platform": "java",
     "message": "",
-    "datetime": "2019-12-12T02:31:28.000000Z",
     "tags": [
       [
         "device",
@@ -382,28 +380,14 @@
         }
       ]
     },
-    "fingerprint": [
-      "{{ default }}"
-    ],
-    "grouping_config": {
-      "enhancements": "eJybzDhxY3J-bm5-npWRgaGlroGxrpHxBABcTQcY",
-      "id": "newstyle:2019-10-29"
-    },
-    "hashes": [
-      "7c071683127fcf72a1522ef535f746d8",
-      "0e9d62780750aea61e60a66a4c8d93c6"
-    ],
-    "key_id": "980747",
     "level": "error",
     "location": "MainActivity.java",
-    "logger": "",
     "metadata": {
       "function": "lambda$onCreate$2",
       "type": "Exception",
       "value": "Some exception.",
       "filename": "MainActivity.java"
     },
-    "received": 1576117893.300827,
     "sdk": {
       "version": "2.0.0-beta01",
       "name": "sentry.java.android",
@@ -466,61 +450,6 @@
         },
         {
           "stacktrace": {
-            "frames": [
-              {
-                "function": "run",
-                "abs_path": "Thread.java",
-                "module": "java.lang.Thread",
-                "in_app": false,
-                "lineno": 761,
-                "filename": "Thread.java"
-              },
-              {
-                "function": "run",
-                "abs_path": "Daemons.java",
-                "module": "java.lang.Daemons$FinalizerDaemon",
-                "in_app": false,
-                "lineno": 204,
-                "filename": "Daemons.java"
-              },
-              {
-                "function": "remove",
-                "abs_path": "ReferenceQueue.java",
-                "module": "java.lang.ref.ReferenceQueue",
-                "in_app": false,
-                "lineno": 209,
-                "filename": "ReferenceQueue.java"
-              },
-              {
-                "function": "remove",
-                "abs_path": "ReferenceQueue.java",
-                "module": "java.lang.ref.ReferenceQueue",
-                "in_app": false,
-                "lineno": 188,
-                "filename": "ReferenceQueue.java"
-              },
-              {
-                "function": "wait",
-                "abs_path": "Object.java",
-                "module": "java.lang.Object",
-                "in_app": false,
-                "lineno": 407,
-                "filename": "Object.java"
-              },
-              {
-                "function": "wait",
-                "abs_path": "Object.java",
-                "in_app": false,
-                "module": "java.lang.Object",
-                "filename": "Object.java"
-              }
-            ]
-          },
-          "crashed": false,
-          "id": 435,
-          "name": "FinalizerDaemon"
-        },
-        {
           "stacktrace": {
             "frames": [
               {
@@ -551,46 +480,6 @@
           "crashed": false,
           "id": 437,
           "name": "HeapTaskDaemon"
-        },
-        {
-          "stacktrace": {
-            "frames": [
-              {
-                "function": "run",
-                "abs_path": "Thread.java",
-                "module": "java.lang.Thread",
-                "in_app": false,
-                "lineno": 761,
-                "filename": "Thread.java"
-              },
-              {
-                "function": "run",
-                "abs_path": "Daemons.java",
-                "module": "java.lang.Daemons$FinalizerWatchdogDaemon",
-                "in_app": false,
-                "lineno": 249,
-                "filename": "Daemons.java"
-              },
-              {
-                "function": "sleepUntilNeeded",
-                "abs_path": "Daemons.java",
-                "module": "java.lang.Daemons$FinalizerWatchdogDaemon",
-                "in_app": false,
-                "lineno": 269,
-                "filename": "Daemons.java"
-              },
-              {
-                "function": "wait",
-                "abs_path": "Object.java",
-                "in_app": false,
-                "module": "java.lang.Object",
-                "filename": "Object.java"
-              }
-            ]
-          },
-          "crashed": false,
-          "id": 436,
-          "name": "FinalizerWatchdogDaemon"
         },
         {
           "stacktrace": {
@@ -779,38 +668,6 @@
             "frames": [
               {
                 "function": "run",
-                "abs_path": "Thread.java",
-                "module": "java.lang.Thread",
-                "in_app": false,
-                "lineno": 761,
-                "filename": "Thread.java"
-              },
-              {
-                "function": "run",
-                "abs_path": "Daemons.java",
-                "module": "java.lang.Daemons$ReferenceQueueDaemon",
-                "in_app": false,
-                "lineno": 150,
-                "filename": "Daemons.java"
-              },
-              {
-                "function": "wait",
-                "abs_path": "Object.java",
-                "in_app": false,
-                "module": "java.lang.Object",
-                "filename": "Object.java"
-              }
-            ]
-          },
-          "crashed": false,
-          "id": 434,
-          "name": "ReferenceQueueDaemon"
-        },
-        {
-          "stacktrace": {
-            "frames": [
-              {
-                "function": "run",
                 "abs_path": "FileObserver.java",
                 "module": "android.os.FileObserver$ObserverThread",
                 "in_app": false,
@@ -829,50 +686,9 @@
           "crashed": false,
           "id": 443,
           "name": "FileObserver"
-        },
-        {
-          "stacktrace": {
-            "frames": [
-              {
-                "function": "run",
-                "abs_path": "HandlerThread.java",
-                "module": "android.os.HandlerThread",
-                "in_app": false,
-                "lineno": 61,
-                "filename": "HandlerThread.java"
-              },
-              {
-                "function": "loop",
-                "abs_path": "Looper.java",
-                "module": "android.os.Looper",
-                "in_app": false,
-                "lineno": 136,
-                "filename": "Looper.java"
-              },
-              {
-                "function": "next",
-                "abs_path": "MessageQueue.java",
-                "module": "android.os.MessageQueue",
-                "in_app": false,
-                "lineno": 323,
-                "filename": "MessageQueue.java"
-              },
-              {
-                "function": "nativePollOnce",
-                "abs_path": "MessageQueue.java",
-                "in_app": false,
-                "module": "android.os.MessageQueue",
-                "filename": "MessageQueue.java"
-              }
-            ]
-          },
-          "crashed": false,
-          "id": 445,
-          "name": "LeakCanary-Heap-Dump"
         }
       ]
     },
-    "timestamp": 1576117888,
     "title": "Exception: Some exception.",
     "type": "error",
     "user": {
