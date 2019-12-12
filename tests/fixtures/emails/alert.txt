@@ -16,7 +16,8 @@ Tags
 
 * browser = Chrome 28.0.1500
 * browser.name = Chrome
-* client_os.name = Windows 8
+* client_os = Windows 8
+* client_os.name = Windows
 * device = Other
 * environment = prod
 * level = error
