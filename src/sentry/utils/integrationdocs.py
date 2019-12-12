@@ -125,6 +125,9 @@ def sync_integration_docs(platform_id, integration_id, path, quiet=False):
 
 
 def integration_doc_exists(integration_id):
+    # We use listdir() here as integration_id comes from user data
+    # and using os.path.join() would allow directory traversal vulnerabilities
+    # which we don't want.
     docs = os.listdir(DOC_FOLDER)
     filename = u"{}.json".format(integration_id)
     return filename in docs
