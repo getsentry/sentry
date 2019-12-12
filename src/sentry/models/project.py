@@ -417,7 +417,7 @@ class Project(Model, PendingDeletionMixin):
 
     @staticmethod
     def is_valid_platform(value):
-        if not value:
+        if not value or value == "other":
             return True
         if value in INTEGRATION_ID_TO_PLATFORM_DATA:
             return True
