@@ -5,7 +5,6 @@ from collections import defaultdict, Iterable
 from dateutil.parser import parse as parse_datetime
 import six
 
-from sentry.api.event_search import get_filter
 from sentry.tagstore import TagKeyStatus
 from sentry.tagstore.base import TagStorage, TOP_VALUES_DEFAULT_LIMIT
 from sentry.tagstore.exceptions import (
@@ -591,7 +590,7 @@ class SnubaTagStorage(TagStorage):
             snuba_key = "tags[%s]" % (key,)
 
         if query:
-            conditions = get_filter(query).conditions
+            conditions.append([snuba_key, "LIKE", u"%{}%".format(query)])
         else:
             conditions.append([snuba_key, "!=", ""])
 
