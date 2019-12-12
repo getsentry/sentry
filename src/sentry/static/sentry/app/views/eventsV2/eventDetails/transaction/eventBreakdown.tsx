@@ -1,7 +1,6 @@
 import React from 'react';
 import get from 'lodash/get';
 
-import {t} from 'app/locale';
 import {Event} from 'app/types';
 import {
   SentryTransactionEvent,
