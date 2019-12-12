@@ -5,7 +5,6 @@ import uuid
 import hmac
 import itertools
 import hashlib
-import re
 
 from django.db import models
 from django.utils import timezone
@@ -54,6 +53,14 @@ MASKED_VALUE = "*" * 64
 
 def default_uuid():
     return six.binary_type(uuid.uuid4())
+
+
+def generate_slug(name, is_internal=False, organization_slug=None):
+    slug = slugify(name)
+    if is_internal:
+        slug = u"{}-{}".format(slug, hashlib.sha1(organization_slug).hexdigest()[0:6])
+
+    return slug
 
 
 class SentryApp(ParanoidModel, HasApiScopes):
@@ -143,13 +150,9 @@ class SentryApp(ParanoidModel, HasApiScopes):
         my-cool-app
         """
         if not self.slug:
-            self.slug = slugify(self.name)
-
-        if self.is_internal and not self._has_internal_slug():
-            self.slug = u"{}-{}".format(self.slug, hashlib.sha1(self.owner.slug).hexdigest()[0:6])
-
-    def _has_internal_slug(self):
-        return re.match(r"\w+-[0-9a-zA-Z]+", self.slug)
+            self.slug = generate_slug(
+                self.name, is_internal=self.is_internal, organization_slug=self.owner.slug
+            )
 
     def build_signature(self, body):
         secret = self.application.client_secret

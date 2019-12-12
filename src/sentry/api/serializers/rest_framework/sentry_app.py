@@ -5,12 +5,11 @@ from jsonschema.exceptions import ValidationError as SchemaValidationError
 from rest_framework import serializers
 from rest_framework.serializers import Serializer, ValidationError
 
-from django.template.defaultfilters import slugify
 from sentry.api.serializers.rest_framework import ListField
 from sentry.api.serializers.rest_framework.base import camel_to_snake_case
 from sentry.api.validators.sentry_apps.schema import validate_ui_element_schema
 from sentry.models import ApiScopes, SentryApp
-from sentry.models.sentryapp import VALID_EVENT_RESOURCES, REQUIRED_EVENT_PERMISSIONS
+from sentry.models.sentryapp import VALID_EVENT_RESOURCES, REQUIRED_EVENT_PERMISSIONS, generate_slug
 
 
 class ApiScopesField(serializers.Field):
@@ -82,7 +81,9 @@ class SentryAppSerializer(Serializer):
 
     def __init__(self, *args, **kwargs):
         self.access = kwargs["access"]
+        self.organization = kwargs["organization"]
         del kwargs["access"]
+        del kwargs["organization"]
         Serializer.__init__(self, *args, **kwargs)
 
     # an abstraction to pull fields from attrs if they are available or the sentry_app if not
@@ -98,19 +99,6 @@ class SentryAppSerializer(Serializer):
                 return None
 
         return get_current_value
-
-    def validate_name(self, value):
-        if not value:
-            return value
-
-        queryset = SentryApp.with_deleted.filter(slug=slugify(value))
-
-        if self.instance:
-            queryset = queryset.exclude(id=self.instance.id)
-
-        if queryset.exists():
-            raise ValidationError(u"Name {} is already taken, please use another.".format(value))
-        return value
 
     def validate_allowedOrigins(self, value):
         for allowed_origin in value:
@@ -173,5 +161,27 @@ class SentryAppSerializer(Serializer):
         # validate author for public integrations
         if not get_current_value("isInternal") and not get_current_value("author"):
             raise ValidationError({"author": "author required for public integrations"})
+
+        # validate globally unique name for public integrations, and org-level uniqueness for internal integrations
+        current_name = get_current_value("name")
+        current_is_internal = get_current_value("isInternal")
+        if current_name:
+            slug = generate_slug(
+                current_name,
+                is_internal=current_is_internal,
+                organization_slug=self.organization.slug,
+            )
+            if current_is_internal:
+                queryset = SentryApp.with_deleted.filter(owner=self.organization, slug=slug)
+            else:
+                queryset = SentryApp.with_deleted.filter(slug=slug)
+
+            if self.instance:
+                queryset = queryset.exclude(id=self.instance.id)
+
+            if queryset.exists():
+                raise ValidationError(
+                    {"name": u"Name {} is already taken, please use another.".format(current_name)}
+                )
 
         return attrs

@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import six
+import hashlib
 
 from collections import Iterable
 from django.db import IntegrityError, transaction
@@ -15,6 +16,7 @@ from sentry.models import (
     SentryAppComponent,
     User,
 )
+from sentry.constants import SentryAppStatus
 
 
 class Creator(Mediator):
@@ -34,6 +36,7 @@ class Creator(Mediator):
     allowed_origins = Param(Iterable, default=lambda self: [])
     request = Param("rest_framework.request.Request", required=False)
     user = Param("sentry.models.User")
+    is_internal = Param(bool, default=False)
 
     def call(self):
         self.proxy = self._create_proxy_user()
@@ -44,7 +47,12 @@ class Creator(Mediator):
         return self.sentry_app
 
     def _create_proxy_user(self):
-        return User.objects.create(username=self.name.lower(), is_sentry_app=True)
+        return User.objects.create(
+            username=u"{}-{}".format(
+                self.name.lower(), hashlib.sha1(self.organization.slug).hexdigest()[0:6]
+            ),
+            is_sentry_app=True,
+        )
 
     def _create_api_application(self):
         return ApiApplication.objects.create(
@@ -54,21 +62,26 @@ class Creator(Mediator):
     def _create_sentry_app(self):
         from sentry.mediators.service_hooks.creator import expand_events
 
-        return SentryApp.objects.create(
-            name=self.name,
-            author=self.author,
-            application_id=self.api_app.id,
-            owner_id=self.organization.id,
-            proxy_user_id=self.proxy.id,
-            scope_list=self.scopes,
-            events=expand_events(self.events),
-            schema=self.schema or {},
-            webhook_url=self.webhook_url,
-            redirect_url=self.redirect_url,
-            is_alertable=self.is_alertable,
-            verify_install=self.verify_install,
-            overview=self.overview,
-        )
+        kwargs = {
+            "name": self.name,
+            "author": self.author,
+            "application_id": self.api_app.id,
+            "owner_id": self.organization.id,
+            "proxy_user_id": self.proxy.id,
+            "scope_list": self.scopes,
+            "events": expand_events(self.events),
+            "schema": self.schema or {},
+            "webhook_url": self.webhook_url,
+            "redirect_url": self.redirect_url,
+            "is_alertable": self.is_alertable,
+            "verify_install": self.verify_install,
+            "overview": self.overview,
+        }
+
+        if self.is_internal:
+            kwargs["status"] = SentryAppStatus.INTERNAL
+
+        return SentryApp.objects.create(**kwargs)
 
     def _create_ui_components(self):
         schema = self.schema or {}

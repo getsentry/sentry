@@ -79,7 +79,9 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
                 status=403,
             )
 
-        serializer = SentryAppSerializer(data=data, access=request.access)
+        serializer = SentryAppSerializer(
+            data=data, access=request.access, organization=organization
+        )
 
         if serializer.is_valid():
             data["redirect_url"] = data["redirectUrl"]

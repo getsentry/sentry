@@ -539,6 +539,26 @@ class PostSentryAppsTest(SentryAppsTest):
             ]
         }
 
+    def test_create_internal_integration_with_non_globally_unique_name(self):
+        # Internal integration names should only need to be unique within an organization
+        self.login_as(user=self.user)
+        self.create_project(organization=self.org)
+
+        other_org = self.create_organization()
+        other_org_integration = self.create_sentry_app(name="Foo Bar", organization=other_org)
+
+        response = self._post(name=other_org_integration.name, isInternal=True)
+        assert response.status_code == 201
+
+        other_org = self.create_organization()
+        self.create_project(organization=other_org)
+        other_org_internal_integration = self.create_internal_integration(
+            name="Foo Bar 2", organization=other_org
+        )
+
+        response = self._post(name=other_org_internal_integration.name, isInternal=True)
+        assert response.status_code == 201
+
     def _post(self, **kwargs):
         body = {
             "name": "MyApp",
