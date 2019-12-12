@@ -54,7 +54,7 @@ describe('marked', function() {
       ],
       [
         '<script> <img <script> src=x onerror=alert(1) />',
-        '&lt;script&gt; <img src="x">',
+        '&lt;script&gt; &lt;img &lt;script&gt; src=x onerror=alert(1) /&gt;',
       ],
     ].forEach(expectMarkdown);
   });
