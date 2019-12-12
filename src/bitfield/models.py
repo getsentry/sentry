@@ -135,21 +135,17 @@ class BitField(BigIntegerField):
         return int(value)
 
     def get_db_prep_lookup(self, lookup_type, value, connection, prepared=False):
-        if isinstance(getattr(value, "expression", None), Bit):
-            value = value.expression
         if isinstance(value, (BitHandler, Bit)):
-            return [value.mask]
+            raise NotImplementedError("get_db_prep_lookup not supported with types Bit, BitHandler")
+
         return BigIntegerField.get_db_prep_lookup(
             self, lookup_type=lookup_type, value=value, connection=connection, prepared=prepared
         )
 
     def get_prep_lookup(self, lookup_type, value):
-        if isinstance(getattr(value, "expression", None), Bit):
-            value = value.expression
         if isinstance(value, Bit):
-            if lookup_type in ("exact",):
-                return value
-            raise TypeError("Lookup type %r not supported with `Bit` type." % lookup_type)
+            raise NotImplementedError("Lookup type %r not supported with Bit type." % lookup_type)
+
         return BigIntegerField.get_prep_lookup(self, lookup_type, value)
 
     def to_python(self, value):
