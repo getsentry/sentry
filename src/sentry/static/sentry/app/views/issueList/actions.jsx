@@ -1,4 +1,5 @@
 import capitalize from 'lodash/capitalize';
+import uniq from 'lodash/uniq';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
@@ -14,10 +15,12 @@ import Checkbox from 'app/components/checkbox';
 import DropdownLink from 'app/components/dropdownLink';
 import ExternalLink from 'app/components/links/externalLink';
 import Feature from 'app/components/acl/feature';
+import GroupStore from 'app/stores/groupStore';
 import IgnoreActions from 'app/components/actions/ignore';
 import IndicatorStore from 'app/stores/indicatorStore';
 import InlineSvg from 'app/components/inlineSvg';
 import MenuItem from 'app/components/menuItem';
+import Projects from 'app/utils/projects';
 import ResolveActions from 'app/components/actions/resolve';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 import SentryTypes from 'app/sentryTypes';
@@ -145,7 +148,6 @@ const IssueListActions = createReactClass({
     api: PropTypes.object,
     allResultsVisible: PropTypes.bool,
     orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string,
     selection: SentryTypes.GlobalSelection.isRequired,
     groupIds: PropTypes.instanceOf(Array).isRequired,
     onRealtimeChange: PropTypes.func.isRequired,
@@ -154,8 +156,6 @@ const IssueListActions = createReactClass({
     statsPeriod: PropTypes.string.isRequired,
     query: PropTypes.string.isRequired,
     queryCount: PropTypes.number,
-    hasReleases: PropTypes.bool,
-    latestRelease: PropTypes.object,
     organization: SentryTypes.Organization,
   },
 
@@ -201,12 +201,29 @@ const IssueListActions = createReactClass({
 
   // Handler for when `SelectedGroupStore` changes
   handleSelectedGroupChange() {
+    const selected = SelectedGroupStore.getSelectedIds();
+    const projects = [...selected]
+      .map(id => GroupStore.get(id))
+      .filter(group => group && group.project)
+      .map(group => group.project.slug);
+
+    const uniqProjects = uniq(projects);
+
+    let selectedProjectSlug = null;
+    // we only want selectedProjectSlug set if there is 1 project
+    // more or fewer should result in a null so that the action toolbar
+    // can behave correctly.
+    if (uniqProjects.length === 1) {
+      selectedProjectSlug = uniqProjects[0];
+    }
+
     this.setState({
       pageSelected: SelectedGroupStore.allSelected(),
       multiSelected: SelectedGroupStore.multiSelected(),
       anySelected: SelectedGroupStore.anySelected(),
       allInQuerySelected: false, // any change resets
       selectedIds: SelectedGroupStore.getSelectedIds(),
+      selectedProjectSlug,
     });
   },
 
@@ -329,13 +346,44 @@ const IssueListActions = createReactClass({
     }
   },
 
+  renderResolveActions({
+    hasReleases,
+    latestRelease,
+    projectId,
+    confirm,
+    label,
+    loadingProjects,
+    projectFetchError,
+  }) {
+    const {orgId} = this.props;
+    const {anySelected} = this.state;
+
+    // resolve requires a single project to be active in an org context
+    // projectId is null when 0 or >1 projects are selected.
+    const resolveDisabled = !anySelected || projectFetchError;
+    const resolveDropdownDisabled =
+      !(anySelected && projectId) || loadingProjects || projectFetchError;
+    return (
+      <ResolveActions
+        hasRelease={hasReleases}
+        latestRelease={latestRelease}
+        orgId={orgId}
+        projectId={projectId}
+        onUpdate={this.handleUpdate}
+        shouldConfirm={this.shouldConfirm('resolve')}
+        confirmMessage={confirm('resolve', true)}
+        confirmLabel={label('resolve')}
+        disabled={resolveDisabled}
+        disableDropdown={resolveDropdownDisabled}
+        projectFetchError={projectFetchError}
+      />
+    );
+  },
+
   render() {
     const {
       allResultsVisible,
-      hasReleases,
-      latestRelease,
       orgId,
-      projectId,
       queryCount,
       query,
       realtimeActive,
@@ -343,15 +391,19 @@ const IssueListActions = createReactClass({
     } = this.props;
     const issues = this.state.selectedIds;
     const numIssues = issues.size;
-    const {allInQuerySelected, anySelected, multiSelected, pageSelected} = this.state;
+    const {
+      allInQuerySelected,
+      anySelected,
+      multiSelected,
+      pageSelected,
+      selectedProjectSlug,
+    } = this.state;
     const confirm = getConfirm(numIssues, allInQuerySelected, query, queryCount);
     const label = getLabel(numIssues, allInQuerySelected);
 
-    // resolve and merge require a single project to be active
-    // in an org context projectId is null when 0 or >1 projects are selected.
-    const resolveDisabled = !anySelected;
-    const resolveDropdownDisabled = !(anySelected && projectId);
-    const mergeDisabled = !(multiSelected && projectId);
+    // merges require a single project to be active in an org context
+    // selectedProjectSlug is null when 0 or >1 projects are selected.
+    const mergeDisabled = !(multiSelected && selectedProjectSlug);
     const createNewIncidentDisabled = !anySelected || allInQuerySelected;
 
     return (
@@ -361,18 +413,30 @@ const IssueListActions = createReactClass({
             <Checkbox onChange={this.handleSelectAll} checked={pageSelected} />
           </ActionsCheckbox>
           <ActionSet>
-            <ResolveActions
-              hasRelease={hasReleases}
-              latestRelease={latestRelease}
-              orgId={orgId}
-              projectId={projectId}
-              onUpdate={this.handleUpdate}
-              shouldConfirm={this.shouldConfirm('resolve')}
-              confirmMessage={confirm('resolve', true)}
-              confirmLabel={label('resolve')}
-              disabled={resolveDisabled}
-              disableDropdown={resolveDropdownDisabled}
-            />
+            {selectedProjectSlug ? (
+              <Projects orgId={orgId} slugs={[selectedProjectSlug]}>
+                {({projects, initiallyLoaded, fetchError}) => {
+                  const selectedProject = projects[0];
+                  return this.renderResolveActions({
+                    hasReleases: new Set(selectedProject.features).has('releases'),
+                    latestRelease: selectedProject.latestRelease,
+                    projectId: selectedProject.slug,
+                    confirm,
+                    label,
+                    loadingProjects: !initiallyLoaded,
+                    projectFetchError: !!fetchError,
+                  });
+                }}
+              </Projects>
+            ) : (
+              this.renderResolveActions({
+                hasReleases: false,
+                latestRelease: null,
+                projectId: null,
+                confirm,
+                label,
+              })
+            )}
             <IgnoreActions
               onUpdate={this.handleUpdate}
               shouldConfirm={this.shouldConfirm('ignore')}

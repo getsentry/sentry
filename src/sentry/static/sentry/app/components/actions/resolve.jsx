@@ -23,6 +23,7 @@ export default class ResolveActions extends React.Component {
     isResolved: PropTypes.bool,
     isAutoResolved: PropTypes.bool,
     confirmLabel: PropTypes.string,
+    projectFetchError: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -97,6 +98,7 @@ export default class ResolveActions extends React.Component {
       disabled,
       confirmLabel,
       disableDropdown,
+      projectFetchError,
     } = this.props;
 
     const buttonClass = this.getButtonClass();
@@ -126,77 +128,79 @@ export default class ResolveActions extends React.Component {
           projectId={projectId}
         />
         <GuideAnchor target="resolve">
-          <div className="btn-group">
-            <ActionLink
-              {...actionLinkProps}
-              title="Resolve"
-              className={buttonClass}
-              onAction={() => onUpdate({status: 'resolved'})}
-            >
-              <span className="icon-checkmark hidden-xs" style={{marginRight: 5}} />
-              {t('Resolve')}
-            </ActionLink>
+          <Tooltip disabled={!projectFetchError} title={t('Error fetching project')}>
+            <div className="btn-group">
+              <ActionLink
+                {...actionLinkProps}
+                title="Resolve"
+                className={buttonClass}
+                onAction={() => onUpdate({status: 'resolved'})}
+              >
+                <span className="icon-checkmark hidden-xs" style={{marginRight: 5}} />
+                {t('Resolve')}
+              </ActionLink>
 
-            <DropdownLink
-              key="resolve-dropdown"
-              caret
-              className={buttonClass}
-              title=""
-              alwaysRenderMenu
-              disabled={disableDropdown || disabled}
-            >
-              <MenuItem header>{t('Resolved In')}</MenuItem>
-              <MenuItem noAnchor>
-                <Tooltip title={actionTitle} containerDisplayMode="block">
-                  <ActionLink
-                    {...actionLinkProps}
-                    onAction={() => {
-                      return (
-                        hasRelease &&
-                        onUpdate({
-                          status: 'resolved',
-                          statusDetails: {
-                            inNextRelease: true,
-                          },
-                        })
-                      );
-                    }}
-                  >
-                    {t('The next release')}
-                  </ActionLink>
-                </Tooltip>
-                <Tooltip title={actionTitle} containerDisplayMode="block">
-                  <ActionLink
-                    {...actionLinkProps}
-                    onAction={() => {
-                      return (
-                        hasRelease &&
-                        onUpdate({
-                          status: 'resolved',
-                          statusDetails: {
-                            inRelease: latestRelease ? latestRelease.version : 'latest',
-                          },
-                        })
-                      );
-                    }}
-                  >
-                    {latestRelease
-                      ? t('The current release (%s)', latestRelease.version)
-                      : t('The current release')}
-                  </ActionLink>
-                </Tooltip>
-                <Tooltip title={actionTitle} containerDisplayMode="block">
-                  <ActionLink
-                    {...actionLinkProps}
-                    onAction={() => hasRelease && this.setState({modal: true})}
-                    shouldConfirm={false}
-                  >
-                    {t('Another version\u2026')}
-                  </ActionLink>
-                </Tooltip>
-              </MenuItem>
-            </DropdownLink>
-          </div>
+              <DropdownLink
+                key="resolve-dropdown"
+                caret
+                className={buttonClass}
+                title=""
+                alwaysRenderMenu
+                disabled={disableDropdown || disabled}
+              >
+                <MenuItem header>{t('Resolved In')}</MenuItem>
+                <MenuItem noAnchor>
+                  <Tooltip title={actionTitle} containerDisplayMode="block">
+                    <ActionLink
+                      {...actionLinkProps}
+                      onAction={() => {
+                        return (
+                          hasRelease &&
+                          onUpdate({
+                            status: 'resolved',
+                            statusDetails: {
+                              inNextRelease: true,
+                            },
+                          })
+                        );
+                      }}
+                    >
+                      {t('The next release')}
+                    </ActionLink>
+                  </Tooltip>
+                  <Tooltip title={actionTitle} containerDisplayMode="block">
+                    <ActionLink
+                      {...actionLinkProps}
+                      onAction={() => {
+                        return (
+                          hasRelease &&
+                          onUpdate({
+                            status: 'resolved',
+                            statusDetails: {
+                              inRelease: latestRelease ? latestRelease.version : 'latest',
+                            },
+                          })
+                        );
+                      }}
+                    >
+                      {latestRelease
+                        ? t('The current release (%s)', latestRelease.version)
+                        : t('The current release')}
+                    </ActionLink>
+                  </Tooltip>
+                  <Tooltip title={actionTitle} containerDisplayMode="block">
+                    <ActionLink
+                      {...actionLinkProps}
+                      onAction={() => hasRelease && this.setState({modal: true})}
+                      shouldConfirm={false}
+                    >
+                      {t('Another version\u2026')}
+                    </ActionLink>
+                  </Tooltip>
+                </MenuItem>
+              </DropdownLink>
+            </div>
+          </Tooltip>
         </GuideAnchor>
       </div>
     );
