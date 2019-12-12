@@ -6,10 +6,17 @@ import ProjectAvatar from 'app/components/avatar/projectAvatar';
 import SentryTypes from 'app/sentryTypes';
 import TeamAvatar from 'app/components/avatar/teamAvatar';
 import UserAvatar from 'app/components/avatar/userAvatar';
+import {Project, Team, LightWeightOrganization} from 'app/types';
+
+type Props = {
+  team: Team;
+  organization: LightWeightOrganization;
+  project: Project;
+} & UserAvatar['props'];
 
 const BasicModelShape = PropTypes.shape({slug: PropTypes.string});
 
-class Avatar extends React.Component {
+class Avatar extends React.Component<Props> {
   static propTypes = {
     team: PropTypes.oneOfType([BasicModelShape, SentryTypes.Team]),
     organization: PropTypes.oneOfType([BasicModelShape, SentryTypes.Organization]),

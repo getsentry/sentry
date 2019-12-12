@@ -1,12 +1,12 @@
 import React from 'react';
 
-import {Organization} from 'app/types';
+import {LightWeightOrganization} from 'app/types';
 import {explodeSlug} from 'app/utils';
 import BaseAvatar from 'app/components/avatar/baseAvatar';
 import SentryTypes from 'app/sentryTypes';
 
 type Props = {
-  organization: Organization;
+  organization: LightWeightOrganization;
 } & BaseAvatar['props'];
 
 class OrganizationAvatar extends React.Component<Props> {

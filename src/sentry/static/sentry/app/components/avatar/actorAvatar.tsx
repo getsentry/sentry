@@ -2,14 +2,23 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import * as Sentry from '@sentry/browser';
 
+import SentryTypes from 'app/sentryTypes';
 import Avatar from 'app/components/avatar';
 import MemberListStore from 'app/stores/memberListStore';
 import TeamStore from 'app/stores/teamStore';
-import {Actor} from 'app/sentryTypes';
+import {Actor} from 'app/types';
 
-class ActorAvatar extends React.Component {
+type Props = {
+  actor: Actor;
+  size?: number;
+  default?: string;
+  title?: string;
+  gravatar?: boolean;
+};
+
+class ActorAvatar extends React.Component<Props> {
   static propTypes = {
-    actor: Actor.isRequired,
+    actor: SentryTypes.Actor.isRequired,
     size: PropTypes.number,
     default: PropTypes.string,
     title: PropTypes.string,
