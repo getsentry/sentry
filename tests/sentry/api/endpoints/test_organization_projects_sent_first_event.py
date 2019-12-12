@@ -49,3 +49,25 @@ class OrganizationProjectsSentFirstEventEndpointTest(APITestCase):
         assert response.status_code == 200
 
         assert response.data["sentFirstEvent"]
+
+    def test_no_first_event_in_member_projects(self):
+        self.create_project(teams=[self.team], first_event=datetime.now())
+        self.create_member(organization=self.org, user=self.foo)
+
+        self.login_as(user=self.foo)
+
+        response = self.client.get(u"{}?is_member=true".format(self.url))
+        assert response.status_code == 200
+
+        assert not response.data["sentFirstEvent"]
+
+    def test_first_event_from_project_ids(self):
+        project = self.create_project(teams=[self.team], first_event=datetime.now())
+        self.create_member(organization=self.org, user=self.foo)
+
+        self.login_as(user=self.foo)
+
+        response = self.client.get(u"{}?project={}".format(self.url, project.id))
+        assert response.status_code == 200
+
+        assert response.data["sentFirstEvent"]
