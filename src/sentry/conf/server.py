@@ -1659,6 +1659,7 @@ KAFKA_CLUSTERS = {
 KAFKA_EVENTS = "events"
 KAFKA_OUTCOMES = "outcomes"
 KAFKA_SNUBA_QUERY_SUBSCRIPTIONS = "snuba-query-subscriptions"
+KAFKA_TRANSACTIONS = "transactions"
 KAFKA_INGEST_EVENTS = "ingest-events"
 KAFKA_INGEST_ATTACHMENTS = "ingest-attachments"
 KAFKA_INGEST_TRANSACTIONS = "ingest-transactions"
@@ -1670,6 +1671,8 @@ KAFKA_TOPICS = {
         "cluster": "default",
         "topic": KAFKA_SNUBA_QUERY_SUBSCRIPTIONS,
     },
+    # Topic to ingest events of type `transaction`
+    KAFKA_TRANSACTIONS: {"cluster": "default", "topic": KAFKA_TRANSACTIONS},
     # Topic for receiving simple events (error events without attachments) from Relay
     KAFKA_INGEST_EVENTS: {"cluster": "default", "topic": KAFKA_INGEST_EVENTS},
     # Topic for receiving 'complex' events (error events with attachments) from Relay
@@ -1677,6 +1680,11 @@ KAFKA_TOPICS = {
     # Topic for receiving transaction events (APM events) from Relay
     KAFKA_INGEST_TRANSACTIONS: {"cluster": "default", "topic": KAFKA_INGEST_TRANSACTIONS},
 }
+
+# Kafka topics configuration for eventstream
+SENTRY_EVENTSTREAM_DEFAULT_TOPIC = KAFKA_EVENTS
+# Mapping between event type and topic. Those not defined here fallback to deault.
+SENTRY_EVENTSTREAM_TOPICS = {"transaction": KAFKA_TRANSACTIONS}
 
 # Enable this to use the legacy Slack Workspace Token apps. You will likely
 # never need to switch this unless you created a workspace app before slack
