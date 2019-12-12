@@ -322,7 +322,7 @@ def post_process_forwarder(**options):
             synchronize_commit_group=options["synchronize_commit_group"],
             commit_batch_size=options["commit_batch_size"],
             initial_offset_reset=options["initial_offset_reset"],
-            event_type=options["event-type"],
+            event_type=options["event_type"],
         )
     except ForwarderNotRequired:
         sys.stdout.write(
