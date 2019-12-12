@@ -2,7 +2,6 @@ import React from 'react';
 import styled from 'react-emotion';
 import get from 'lodash/get';
 import map from 'lodash/map';
-import moment from 'moment';
 
 import {t} from 'app/locale';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
@@ -21,6 +20,7 @@ import EventView from 'app/views/eventsV2/eventView';
 import {generateDiscoverResultsRoute} from 'app/views/eventsV2/results';
 
 import {SpanType, ParsedTraceType} from './types';
+import {getTraceDateTimeRange} from './utils';
 
 type TransactionResult = {
   'project.name': string;
@@ -73,16 +73,12 @@ class SpanDetail extends React.Component<Props, State> {
 
     const url = `/organizations/${orgId}/eventsv2/`;
 
-    const {start, end} = getParams({
-      start: moment
-        .unix(trace.traceStartTimestamp)
-        .subtract(12, 'hours')
-        .format('YYYY-MM-DDTHH:mm:ss.SSS'),
-      end: moment
-        .unix(trace.traceEndTimestamp)
-        .add(12, 'hours')
-        .format('YYYY-MM-DDTHH:mm:ss.SSS'),
-    });
+    const {start, end} = getParams(
+      getTraceDateTimeRange({
+        start: trace.traceStartTimestamp,
+        end: trace.traceEndTimestamp,
+      })
+    );
 
     const query = {
       field: ['transaction', 'id', 'trace.span'],
@@ -156,7 +152,12 @@ class SpanDetail extends React.Component<Props, State> {
   }
 
   renderTraceButton() {
-    const {span, orgId} = this.props;
+    const {span, orgId, trace} = this.props;
+
+    const {start, end} = getTraceDateTimeRange({
+      start: trace.traceStartTimestamp,
+      end: trace.traceEndTimestamp,
+    });
 
     const eventView = EventView.fromSavedQuery({
       id: undefined,
@@ -168,6 +169,9 @@ class SpanDetail extends React.Component<Props, State> {
       tags: ['release', 'project.name', 'user.email', 'user.ip', 'environment'],
       projects: [],
       version: 2,
+
+      start,
+      end,
     });
 
     const to = {
