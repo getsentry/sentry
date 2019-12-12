@@ -37,6 +37,11 @@ class ProjectSerializer(serializers.Serializer):
     platform = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     default_rules = serializers.BooleanField(required=False, initial=True)
 
+    def validate_platform(self, value):
+        if Project.valid_platform(value):
+            return value
+        raise serializers.ValidationError("Invalid platform")
+
 
 # While currently the UI suggests teams are a parent of a project, in reality
 # the project is the core component, and which team it is on is simply an
