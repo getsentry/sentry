@@ -19,7 +19,6 @@ import GroupStore from 'app/stores/groupStore';
 import IgnoreActions from 'app/components/actions/ignore';
 import IndicatorStore from 'app/stores/indicatorStore';
 import InlineSvg from 'app/components/inlineSvg';
-import LoadingError from 'app/components/loadingError';
 import MenuItem from 'app/components/menuItem';
 import Projects from 'app/utils/projects';
 import ResolveActions from 'app/components/actions/resolve';
@@ -354,14 +353,16 @@ const IssueListActions = createReactClass({
     confirm,
     label,
     loadingProjects,
+    projectFetchError,
   }) {
     const {orgId} = this.props;
     const {anySelected} = this.state;
 
     // resolve requires a single project to be active in an org context
     // projectId is null when 0 or >1 projects are selected.
-    const resolveDisabled = !anySelected;
-    const resolveDropdownDisabled = !(anySelected && projectId) || loadingProjects;
+    const resolveDisabled = !anySelected || projectFetchError;
+    const resolveDropdownDisabled =
+      !(anySelected && projectId) || loadingProjects || projectFetchError;
     return (
       <ResolveActions
         hasRelease={hasReleases}
@@ -374,6 +375,7 @@ const IssueListActions = createReactClass({
         confirmLabel={label('resolve')}
         disabled={resolveDisabled}
         disableDropdown={resolveDropdownDisabled}
+        projectFetchError={projectFetchError}
       />
     );
   },
@@ -415,18 +417,15 @@ const IssueListActions = createReactClass({
               <Projects orgId={orgId} slugs={[selectedProjectSlug]}>
                 {({projects, initiallyLoaded, fetchError}) => {
                   const selectedProject = projects[0];
-                  return fetchError ? (
-                    <LoadingError message={t('Error loading project')} />
-                  ) : (
-                    this.renderResolveActions({
-                      hasReleases: new Set(selectedProject.features).has('releases'),
-                      latestRelease: selectedProject.latestRelease,
-                      projectId: selectedProject.slug,
-                      confirm,
-                      label,
-                      loadingProjects: !initiallyLoaded,
-                    })
-                  );
+                  return this.renderResolveActions({
+                    hasReleases: new Set(selectedProject.features).has('releases'),
+                    latestRelease: selectedProject.latestRelease,
+                    projectId: selectedProject.slug,
+                    confirm,
+                    label,
+                    loadingProjects: !initiallyLoaded,
+                    projectFetchError: !!fetchError,
+                  });
                 }}
               </Projects>
             ) : (
