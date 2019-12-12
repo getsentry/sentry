@@ -92,6 +92,14 @@ describe('IssueList,', function() {
       method: 'GET',
       body: [TestStubs.Member({projects: [project.slug]})],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sent-first-event/',
+      body: {sentFirstEvent: true},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [project],
+    });
 
     TagStore.init();
 
@@ -1228,20 +1236,22 @@ describe('IssueList,', function() {
       expect(fetchDataMock).toHaveBeenCalled();
     });
 
-    it('fetches data on location change', function() {
+    it('fetches data on location change', async function() {
       const queryAttrs = ['query', 'sort', 'statsPeriod', 'cursor', 'groupStatsPeriod'];
-      let location = cloneDeep(props.location);
-      queryAttrs.forEach(async (attr, i) => {
+      const location = cloneDeep(props.location);
+      for (const [i, attr] of queryAttrs.entries()) {
         // reclone each iteration so that only one property changes.
-        location = cloneDeep(location);
-        location.query[attr] = 'newValue';
-        wrapper.setProps({location});
+        const newLocation = cloneDeep(location);
+        newLocation.query[attr] = 'newValue';
+        wrapper.setProps({location: newLocation});
         await tick();
         wrapper.update();
 
-        // Each property change should cause a new fetch incrementing the call count.
-        expect(fetchDataMock).toHaveBeenCalledTimes(i + 1);
-      });
+        // Each property change after the first will actually cause two new
+        // fetchData calls, one from the property change and another from a
+        // change in this.state.issuesLoading going from false to true.
+        expect(fetchDataMock).toHaveBeenCalledTimes(2 * i + 1);
+      }
     });
 
     it('uses correct statsPeriod when fetching issues list and no datetime given', async function() {
@@ -1378,6 +1388,8 @@ describe('IssueList,', function() {
         issuesLoading: false,
         error: false,
         groupIds: [],
+        fetchingSentFirstEvent: false,
+        sentFirstEvent: true,
       });
       expect(wrapper.find('EmptyStateWarning').exists()).toBe(true);
     });
@@ -1399,6 +1411,8 @@ describe('IssueList,', function() {
         issuesLoading: false,
         error: false,
         groupIds: [],
+        fetchingSentFirstEvent: false,
+        sentFirstEvent: true,
       });
       expect(wrapper.find('EmptyStateWarning').exists()).toBe(true);
     });
@@ -1433,65 +1447,125 @@ describe('IssueList,', function() {
       return localWrapper;
     };
 
-    it('displays when no projects selected and all projects user is member of, does not have first event', function() {
+    it('displays when no projects selected and all projects user is member of, does not have first event', async function() {
+      const projects = [
+        TestStubs.Project({
+          id: '1',
+          slug: 'foo',
+          isMember: true,
+          firstEvent: false,
+        }),
+        TestStubs.Project({
+          id: '2',
+          slug: 'bar',
+          isMember: true,
+          firstEvent: false,
+        }),
+        TestStubs.Project({
+          id: '3',
+          slug: 'baz',
+          isMember: true,
+          firstEvent: false,
+        }),
+      ];
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/sent-first-event/',
+        query: {
+          is_member: true,
+        },
+        body: {sentFirstEvent: false},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/projects/',
+        body: [projects],
+      });
       wrapper = createWrapper({
         organization: TestStubs.Organization({
-          projects: [
-            TestStubs.Project({
-              id: '1',
-              slug: 'foo',
-              isMember: true,
-              firstEvent: false,
-            }),
-            TestStubs.Project({
-              id: '2',
-              slug: 'bar',
-              isMember: true,
-              firstEvent: false,
-            }),
-            TestStubs.Project({
-              id: '3',
-              slug: 'baz',
-              isMember: true,
-              firstEvent: false,
-            }),
-          ],
+          projects,
         }),
       });
+      await tick();
+      wrapper.update();
 
       expect(wrapper.find(ErrorRobot)).toHaveLength(1);
     });
 
-    it('does not display when no projects selected and any projects have a first event', function() {
+    it('does not display when no projects selected and any projects have a first event', async function() {
+      const projects = [
+        TestStubs.Project({
+          id: '1',
+          slug: 'foo',
+          isMember: true,
+          firstEvent: false,
+        }),
+        TestStubs.Project({
+          id: '2',
+          slug: 'bar',
+          isMember: true,
+          firstEvent: true,
+        }),
+        TestStubs.Project({
+          id: '3',
+          slug: 'baz',
+          isMember: true,
+          firstEvent: false,
+        }),
+      ];
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/sent-first-event/',
+        query: {
+          is_member: true,
+        },
+        body: {sentFirstEvent: true},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/projects/',
+        body: [projects],
+      });
       wrapper = createWrapper({
         organization: TestStubs.Organization({
-          projects: [
-            TestStubs.Project({
-              id: '1',
-              slug: 'foo',
-              isMember: true,
-              firstEvent: false,
-            }),
-            TestStubs.Project({
-              id: '2',
-              slug: 'bar',
-              isMember: true,
-              firstEvent: true,
-            }),
-            TestStubs.Project({
-              id: '3',
-              slug: 'baz',
-              isMember: true,
-              firstEvent: false,
-            }),
-          ],
+          projects,
         }),
       });
+      await tick();
+      wrapper.update();
 
       expect(wrapper.find(ErrorRobot)).toHaveLength(0);
     });
 
-    it('displays when all selected projects do not have first event', function() {
+    it('displays when all selected projects do not have first event', async function() {
+      const projects = [
+        TestStubs.Project({
+          id: '1',
+          slug: 'foo',
+          isMember: true,
+          firstEvent: false,
+        }),
+        TestStubs.Project({
+          id: '2',
+          slug: 'bar',
+          isMember: true,
+          firstEvent: false,
+        }),
+        TestStubs.Project({
+          id: '3',
+          slug: 'baz',
+          isMember: true,
+          firstEvent: false,
+        }),
+      ];
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/sent-first-event/',
+        query: {
+          project: [1, 2],
+        },
+        body: {sentFirstEvent: false},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/projects/',
+        body: [projects],
+      });
+
       wrapper = createWrapper({
         selection: {
           projects: [1, 2],
@@ -1499,33 +1573,48 @@ describe('IssueList,', function() {
           datetime: {period: '14d'},
         },
         organization: TestStubs.Organization({
-          projects: [
-            TestStubs.Project({
-              id: '1',
-              slug: 'foo',
-              isMember: true,
-              firstEvent: false,
-            }),
-            TestStubs.Project({
-              id: '2',
-              slug: 'bar',
-              isMember: true,
-              firstEvent: false,
-            }),
-            TestStubs.Project({
-              id: '3',
-              slug: 'baz',
-              isMember: true,
-              firstEvent: false,
-            }),
-          ],
+          projects,
         }),
       });
+      await tick();
+      wrapper.update();
 
       expect(wrapper.find(ErrorRobot)).toHaveLength(1);
     });
 
     it('does not display when any selected projects have first event', function() {
+      const projects = [
+        TestStubs.Project({
+          id: '1',
+          slug: 'foo',
+          isMember: true,
+          firstEvent: false,
+        }),
+        TestStubs.Project({
+          id: '2',
+          slug: 'bar',
+          isMember: true,
+          firstEvent: true,
+        }),
+        TestStubs.Project({
+          id: '3',
+          slug: 'baz',
+          isMember: true,
+          firstEvent: true,
+        }),
+      ];
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/sent-first-event/',
+        query: {
+          project: [1, 2],
+        },
+        body: {sentFirstEvent: true},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/projects/',
+        body: [projects],
+      });
+
       wrapper = createWrapper({
         selection: {
           projects: [1, 2],
@@ -1533,26 +1622,7 @@ describe('IssueList,', function() {
           datetime: {period: '14d'},
         },
         organization: TestStubs.Organization({
-          projects: [
-            TestStubs.Project({
-              id: '1',
-              slug: 'foo',
-              isMember: true,
-              firstEvent: false,
-            }),
-            TestStubs.Project({
-              id: '2',
-              slug: 'bar',
-              isMember: true,
-              firstEvent: true,
-            }),
-            TestStubs.Project({
-              id: '3',
-              slug: 'baz',
-              isMember: true,
-              firstEvent: true,
-            }),
-          ],
+          projects,
         }),
       });
 
