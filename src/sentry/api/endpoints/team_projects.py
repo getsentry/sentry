@@ -38,7 +38,7 @@ class ProjectSerializer(serializers.Serializer):
     default_rules = serializers.BooleanField(required=False, initial=True)
 
     def validate_platform(self, value):
-        if Project.valid_platform(value):
+        if Project.is_valid_platform(value):
             return value
         raise serializers.ValidationError("Invalid platform")
 

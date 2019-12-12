@@ -271,7 +271,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         return other_project_id
 
     def validate_platform(self, value):
-        if Project.valid_platform(value):
+        if Project.is_valid_platform(value):
             return value
         raise serializers.ValidationError("Invalid platform")
 
