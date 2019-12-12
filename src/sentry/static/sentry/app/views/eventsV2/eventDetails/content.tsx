@@ -308,14 +308,14 @@ const ContentBox = styled('div')`
   }
 
   @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-columns: auto 350px;
+    grid-template-columns: auto 325px;
   }
 `;
 
 const HeaderBox = styled(ContentBox)`
   background-color: ${p => p.theme.white};
   border-bottom: 1px solid ${p => p.theme.borderDark};
-  grid-row-gap: ${space(1)};
+  grid-row-gap: ${space(2)};
 `;
 
 const Controller = styled('div')`

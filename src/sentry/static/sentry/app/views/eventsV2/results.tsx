@@ -219,7 +219,7 @@ const ContentBox = styled(PageContent)`
   }
 
   @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-columns: auto 350px;
+    grid-template-columns: auto 325px;
   }
 `;
 

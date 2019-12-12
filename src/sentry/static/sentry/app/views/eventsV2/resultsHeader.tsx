@@ -88,7 +88,7 @@ const HeaderBox = styled('div')`
   padding: ${space(2)} ${space(4)};
   background-color: ${p => p.theme.white};
   border-bottom: 1px solid ${p => p.theme.borderDark};
-  grid-row-gap: ${space(1)};
+  grid-row-gap: ${space(2)};
   margin: 0;
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
@@ -99,7 +99,7 @@ const HeaderBox = styled('div')`
   }
 
   @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-columns: auto 350px;
+    grid-template-columns: auto 325px;
   }
 `;
 
