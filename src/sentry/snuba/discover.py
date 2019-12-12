@@ -124,6 +124,10 @@ def resolve_column(col):
     """
     if col is None:
         return col
+    # Whilst project_id is not part of the public schema we convert
+    # the project.name field into project_id way before we get here.
+    if col == "project_id":
+        return col
     if col.startswith("tags[") or QUOTED_LITERAL_RE.match(col):
         return col
     return DISCOVER_COLUMN_MAP.get(col, u"tags[{}]".format(col))
@@ -160,12 +164,6 @@ def resolve_condition(cond):
     if isinstance(cond, (list, tuple)) and len(cond):
         # Condition is [col, operator, value]
         if isinstance(cond[0], six.string_types) and len(cond) == 3:
-            # XXX: project_id is not treated as a tag by the query parser for compatibility
-            # reasons with the events page and discover1. However, it *is* a tag key in discover2
-            # because we no longer want to expose the internal ids. Because project_id will
-            # be wrapped in tags[] we also need to string cast the value to prevent type errors.
-            if cond[0] == "project_id" and isinstance(cond[2], int):
-                cond[2] = six.text_type(cond[2])
             cond[0] = resolve_column(cond[0])
             return cond
         if isinstance(cond[0], (list, tuple)):
