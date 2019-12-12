@@ -9,6 +9,7 @@ import Alert from 'app/components/alert';
 import Hovercard from 'app/components/hovercard';
 import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/links/link';
+import {openInviteMembersModal} from 'app/actionCreators/modal';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
@@ -24,10 +25,17 @@ const SuggestedOwnerHovercard = ({actor, commits, rules, ...props}) => (
         {actor.id === undefined && (
           <EmailAlert icon="icon-warning-sm" type="warning">
             {tct(
-              'The email [actorEmail]  has no associated Sentry account. Make sure to link alternative emails in [accountSettings:Account Settings].',
+              'The email [actorEmail] has no associated Sentry account. You can [inviteUser:invite this user] to your organization or link additional emails in [accountSettings:account settings].',
               {
                 actorEmail: <strong>{actor.email}</strong>,
                 accountSettings: <Link to="/settings/account/emails/" />,
+                inviteUser: (
+                  <a
+                    onClick={() =>
+                      openInviteMembersModal({source: 'suggested_assignees'})
+                    }
+                  />
+                ),
               }
             )}
           </EmailAlert>
@@ -170,7 +178,7 @@ const OwnershipValue = styled('code')`
 `;
 
 const EmailAlert = styled(p => <Alert iconSize="16px" {...p} />)`
-  margin: 10px -13px -9px;
+  margin: 10px -13px -13px;
   border-radius: 0;
   border-color: #ece0b0;
   padding: 10px;
