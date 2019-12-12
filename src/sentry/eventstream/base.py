@@ -99,6 +99,7 @@ class EventStream(Service):
         synchronize_commit_group,
         commit_batch_size=100,
         initial_offset_reset="latest",
+        event_type=None,
     ):
         assert not self.requires_post_process_forwarder()
         raise ForwarderNotRequired

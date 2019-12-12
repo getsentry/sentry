@@ -303,6 +303,12 @@ def cron(**options):
     type=click.Choice(["earliest", "latest"]),
     help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
 )
+@click.option(
+    "--event-type",
+    default=None,
+    type=click.Choice(["event", "transaction"]),
+    help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
+)
 @log_options()
 @configuration
 def post_process_forwarder(**options):
@@ -316,6 +322,7 @@ def post_process_forwarder(**options):
             synchronize_commit_group=options["synchronize_commit_group"],
             commit_batch_size=options["commit_batch_size"],
             initial_offset_reset=options["initial_offset_reset"],
+            event_type=options["event-type"],
         )
     except ForwarderNotRequired:
         sys.stdout.write(

@@ -1684,7 +1684,7 @@ KAFKA_TOPICS = {
 # Kafka topics configuration for eventstream
 SENTRY_EVENTSTREAM_DEFAULT_TOPIC = KAFKA_EVENTS
 # Mapping between event type and topic. Those not defined here fallback to deault.
-SENTRY_EVENTSTREAM_TOPICS = {"transaction": KAFKA_TRANSACTIONS}
+SENTRY_EVENTSTREAM_TOPICS = {}
 
 # Enable this to use the legacy Slack Workspace Token apps. You will likely
 # never need to switch this unless you created a workspace app before slack

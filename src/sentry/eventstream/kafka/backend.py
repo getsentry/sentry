@@ -11,14 +11,14 @@ from sentry.eventstream.kafka.consumer import SynchronizedConsumer
 from sentry.eventstream.kafka.protocol import get_task_kwargs_for_message
 from sentry.eventstream.snuba import SnubaProtocolEventStream
 from sentry.utils import json, kafka, metrics
-
+from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
 
 
 class KafkaEventStream(SnubaProtocolEventStream):
     def __init__(self, **options):
-        self.topic = settings.KAFKA_TOPICS[settings.KAFKA_EVENTS]["topic"]
+        pass
 
     @cached_property
     def producer(self):
@@ -44,9 +44,15 @@ class KafkaEventStream(SnubaProtocolEventStream):
         assert isinstance(extra_data, tuple)
         key = six.text_type(project_id)
 
+        event_type = get_path(extra_data, 0, "data", "type")
+        topic_config = None
+        if event_type:
+            topic_config = settings.SENTRY_EVENTSTREAM_TOPICS.get(event_type)
+        topic_config = topic_config or settings.SENTRY_EVENTSTREAM_DEFAULT_TOPIC
+        topic = settings.KAFKA_TOPICS[topic_config]["topic"]
         try:
             self.producer.produce(
-                topic=self.topic,
+                topic=topic,
                 key=key.encode("utf-8"),
                 value=json.dumps((self.EVENT_PROTOCOL_VERSION, _type) + extra_data),
                 on_delivery=self.delivery_callback,
@@ -69,8 +75,15 @@ class KafkaEventStream(SnubaProtocolEventStream):
         synchronize_commit_group,
         commit_batch_size=100,
         initial_offset_reset="latest",
+        event_type=None,
     ):
         logger.debug("Starting post-process forwarder...")
+
+        topic_config = None
+        if event_type:
+            topic_config = settings.SENTRY_EVENTSTREAM_TOPICS.get(event_type)
+        topic_config = topic_config or settings.SENTRY_EVENTSTREAM_DEFAULT_TOPIC
+        topic_name = settings.KAFKA_TOPICS[topic_config]["topic"]
 
         cluster_name = settings.KAFKA_TOPICS[settings.KAFKA_EVENTS]["cluster"]
         bootstrap_servers = settings.KAFKA_CLUSTERS[cluster_name]["bootstrap.servers"]
@@ -153,7 +166,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
                 )
                 commit(offsets_to_commit)
 
-        consumer.subscribe([self.topic], on_assign=on_assign, on_revoke=on_revoke)
+        consumer.subscribe([topic_name], on_assign=on_assign, on_revoke=on_revoke)
 
         def commit_offsets():
             offsets_to_commit = []
