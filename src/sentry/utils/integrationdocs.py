@@ -122,3 +122,9 @@ def sync_integration_docs(platform_id, integration_id, path, quiet=False):
     key = get_integration_id(platform_id, integration_id)
 
     dump_doc(key, {"id": key, "name": data["name"], "html": data["body"], "link": data["doc_link"]})
+
+
+def integration_doc_exists(integration_id):
+    docs = os.listdir(DOC_FOLDER)
+    filename = u"{}.json".format(integration_id)
+    return filename in docs

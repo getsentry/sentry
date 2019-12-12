@@ -16,7 +16,7 @@ from uuid import uuid1
 
 from sentry import projectoptions
 from sentry.app import locks
-from sentry.constants import ObjectStatus, RESERVED_PROJECT_SLUGS, INTEGRATION_ID_TO_PLATFORM_DATA
+from sentry.constants import ObjectStatus, RESERVED_PROJECT_SLUGS
 from sentry.db.mixin import PendingDeletionMixin, delete_pending_deletion_option
 from sentry.db.models import (
     BaseManager,
@@ -26,6 +26,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
+from sentry.utils.integrationdocs import integration_doc_exists
 from sentry.utils.colors import get_hashed_color
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
@@ -419,12 +420,7 @@ class Project(Model, PendingDeletionMixin):
     def is_valid_platform(value):
         if not value or value == "other":
             return True
-        if value in INTEGRATION_ID_TO_PLATFORM_DATA:
-            return True
-        for integration in INTEGRATION_ID_TO_PLATFORM_DATA.values():
-            if value == integration.get("language"):
-                return True
-        return False
+        return integration_doc_exists(value)
 
 
 pre_delete.connect(delete_pending_deletion_option, sender=Project, weak=False)
