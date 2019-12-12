@@ -85,7 +85,7 @@ class ResultsHeader extends React.Component<Props, State> {
 }
 
 const HeaderBox = styled('div')`
-  padding: ${space(2)} ${space(4)} ${space(3)};
+  padding: ${space(2)} ${space(4)};
   background-color: ${p => p.theme.white};
   border-bottom: 1px solid ${p => p.theme.borderDark};
   grid-row-gap: ${space(1)};

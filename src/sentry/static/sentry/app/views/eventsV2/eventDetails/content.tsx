@@ -297,7 +297,7 @@ const EventMetadata = (props: {
 };
 
 const ContentBox = styled('div')`
-  padding: ${space(2)} ${space(4)} ${space(3)};
+  padding: ${space(2)} ${space(4)};
   margin: 0;
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
