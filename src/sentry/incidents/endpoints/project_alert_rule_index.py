@@ -85,19 +85,18 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
             raise ResourceDoesNotExist
 
         cursor_string = request.GET.get("cursor", None)
-        page_size = 1
+        page_size = 25
 
         if cursor_string is None:
             cursor_string = "0:0:0"
-        print ("request cursor:", cursor_string)
 
         cursor = Cursor.from_string(cursor_string)
         cursor_date = datetime.fromtimestamp(float(cursor.value)).replace(tzinfo=timezone.utc)
-        print ("cursor_date:", cursor_date)
 
         alert_rule_queryset = (
             AlertRule.objects.fetch_for_project(project).order_by("-date_added")
-            # .filter(date_added__gte=cursor_date)[cursor.offset :]
+            .filter(date_added__gte=cursor_date)
+            [ :  (page_size+1)]
         )
 
         legacy_rule_queryset = (
@@ -105,47 +104,25 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
                 project=project, status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE]
             )
             .select_related("project")
-            .order_by("-date_added")
-            # .filter(date_added__gte=cursor_date)[cursor.offset :]
+            .filter(date_added__gte=cursor_date)
+            .order_by("-date_added")[ :  (page_size+1)]
         )
-
-        combined_rules = []
-        while len(alert_rule_queryset) != 0 or len(legacy_rule_queryset) != 0:
-            alert_rule = alert_rule_queryset[0] if len(alert_rule_queryset) > 0 else None
-            legacy_rule = legacy_rule_queryset[0] if len(legacy_rule_queryset) > 0 else None
-            if alert_rule is not None and legacy_rule is not None:
-                if alert_rule.date_added > legacy_rule.date_added:
-                    next_rule = alert_rule
-                else:
-                    next_rule = legacy_rule
-            elif alert_rule is None:
-                next_rule = legacy_rule
-            elif legacy_rule is None:
-                next_rule = alert_rule
-
-            combined_rules.append(next_rule)
-            if isinstance(next_rule, AlertRule):
-                alert_rule_queryset = alert_rule_queryset[1:]
-            else:
-                legacy_rule_queryset = legacy_rule_queryset[1:]
+        combined_rules = list(alert_rule_queryset)+list(legacy_rule_queryset)
+        combined_rules.sort(key=lambda instance: (instance.date_added, type(instance)))
+        combined_rules = combined_rules[cursor.offset:cursor.offset+(page_size+1)]
 
         def get_item_key(item, for_prev=False):
             value = getattr(item, "date_added")
             value = float(value.strftime("%s.%f"))
-            # return math.floor(value)
-            return math.ceil(value)
-
-        print ("combined rules:", combined_rules)
+            return math.floor(value)
 
         cursor_result = build_cursor(
             results=combined_rules,
             cursor=cursor,
             key=get_item_key,
             limit=page_size,
-            # on_results=lambda x: serialize(x, request.user, CombinedRuleSerializer()),
         )
         results = list(cursor_result)
-        print ("results:", results)
         context = serialize(results, request.user, CombinedRuleSerializer())
         response = Response(context)
         self.add_cursor_headers(request, response, cursor_result)
