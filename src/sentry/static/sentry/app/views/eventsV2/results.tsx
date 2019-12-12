@@ -150,7 +150,7 @@ class Results extends React.Component<Props, State> {
                     query={query}
                     onSearch={this.handleSearch}
                   />
-                  <Panel>
+                  <StyledPanel>
                     {getDynamicText({
                       value: (
                         <EventsChart
@@ -167,7 +167,7 @@ class Results extends React.Component<Props, State> {
                       ),
                       fixed: 'events chart',
                     })}
-                  </Panel>
+                  </StyledPanel>
                 </Top>
                 <Main eventView={eventView}>
                   <Table
@@ -188,6 +188,12 @@ class Results extends React.Component<Props, State> {
 
 const StyledSearchBar = styled(SearchBar)`
   margin-bottom: ${space(2)};
+`;
+
+const StyledPanel = styled(Panel)`
+  .echarts-for-react div:first-child {
+    width: 100% !important;
+  }
 `;
 
 const Top = styled('div')`
