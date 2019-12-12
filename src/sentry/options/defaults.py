@@ -165,7 +165,7 @@ register("store.empty-interface-sample-rate", default=0.0)
 
 # Enable multiple topics for eventstream. It allows specific event types to be sent
 # to specific topic.
-register("store.eventstream-per-type-topic", default=False)
+register("store.eventstream-per-type-topic", default=False, flags=FLAG_PRIORITIZE_DISK)
 
 # if this is turned to `True` sentry will behave like relay would do with
 # regards to filter responses.
