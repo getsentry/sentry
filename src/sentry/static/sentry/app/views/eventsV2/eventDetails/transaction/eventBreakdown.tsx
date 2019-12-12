@@ -7,6 +7,7 @@ import {
   SpanEntry,
   SpanType,
 } from 'app/components/events/interfaces/spans/types';
+import {TraceContextType} from 'app/components/events/interfaces/spans/traceView';
 
 type EventBreakdownType = {
   ops: {name: string; count: number; percentage: number; duration: number}[];
@@ -55,6 +56,18 @@ class EventBreakdown extends React.Component<Props> {
         duration: number; // num of seconds
       };
     };
+
+    const traceContext: TraceContextType | undefined = get(event, 'contexts.trace');
+    if (traceContext) {
+      spans.push({
+        op: traceContext.op,
+        timestamp: event.endTimestamp,
+        start_timestamp: event.startTimestamp,
+        trace_id: '',
+        span_id: '',
+        data: {},
+      });
+    }
 
     const aggregateByOp: AggregateType = spans.reduce(
       (aggregate: AggregateType, span: SpanType) => {
@@ -110,7 +123,7 @@ class EventBreakdown extends React.Component<Props> {
     });
 
     return {
-      // use the first 3 most frequently occurring ops
+      // use the first 4 most frequently occurring ops
       ops: ops.slice(0, 4),
       unknown:
         spansWithNoOperation.count > 0
