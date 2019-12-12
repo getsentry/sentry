@@ -24,29 +24,29 @@ class EventBreakdown extends React.Component<Props> {
   }
 
   generateCounts(spans: SpanType[]) {
-    let unknown = 0;
+    // track number of spans with no operation
+    let numOfSpansWithNoOperations = 0;
 
-    const foo: {[key: string]: number} = spans.reduce((lookup, span: SpanType) => {
+    const opCounter: {[key: string]: number} = spans.reduce((counter, span: SpanType) => {
       const op = span.op;
 
-      if (typeof op === 'string') {
-        const count = lookup[op];
-        if (!count) {
-          lookup[op] = 1;
-          return lookup;
-        }
-
-        lookup[op] = count + 1;
-
-        return lookup;
+      if (typeof op !== 'string') {
+        numOfSpansWithNoOperations += 1;
+        return counter;
       }
 
-      unknown += 1;
+      const count = counter[op];
+      if (!count) {
+        counter[op] = 1;
+        return counter;
+      }
 
-      return lookup;
+      counter[op] = count + 1;
+
+      return counter;
     }, {});
 
-    return {lookup: foo, unknown};
+    return {opCounter, numOfSpansWithNoOperations};
   }
 
   render() {
@@ -69,10 +69,10 @@ class EventBreakdown extends React.Component<Props> {
     return (
       <div>
         <strong>EventBreakdown</strong>
-        {Object.keys(results.lookup).map(key => {
+        {Object.keys(results.opCounter).map(key => {
           return (
             <div>
-              {key} - {(results.lookup[key] / total) * 100}%
+              {key} - {(results.opCounter[key] / total) * 100}%
             </div>
           );
         })}
