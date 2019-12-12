@@ -4,6 +4,7 @@ import {browserHistory} from 'react-router';
 
 import {Client} from 'app/api';
 import {t} from 'app/locale';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {Organization, SavedQuery} from 'app/types';
 import withApi from 'app/utils/withApi';
 
@@ -79,7 +80,7 @@ class EventInputName extends React.Component<Props> {
     const {eventView} = this.props;
 
     return (
-      <StyledHeader>
+      <StyledListHeader>
         <InlineInput
           ref={this.refInput}
           name="discover2-query-name"
@@ -87,18 +88,17 @@ class EventInputName extends React.Component<Props> {
           value={eventView.name || NAME_DEFAULT}
           onBlur={this.onBlur}
         />
-      </StyledHeader>
+      </StyledListHeader>
     );
   }
 }
 
-const StyledHeader = styled('div')`
-  display: flex;
-  align-items: center;
-  height: 24px;
+const StyledListHeader = styled('div')`
   font-size: ${p => p.theme.headerFontSize};
   color: ${p => p.theme.gray4};
   grid-column: 1/2;
+  align-self: center;
+  ${overflowEllipsis};
 `;
 
 export default withApi(EventInputName);
