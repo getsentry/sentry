@@ -54,7 +54,6 @@ psycopg2-binary>=2.7.0,<2.9.0
 PyJWT>=1.5.0,<1.6.0
 python-dateutil>=2.0.0,<3.0.0
 python-memcached>=1.53,<2.0.0
-python-openid>=2.2
 python-u2flib-server>=5.0.0,<6.0.0
 # optional
 python3-saml>=1.4.0,<1.5
