@@ -36,7 +36,6 @@ class Threads(Interface):
                     "id": trim(thread.get("id"), 40),
                     "crashed": bool(thread.get("crashed")),
                     "current": bool(thread.get("current")),
-                    "errored": bool(thread.get("errored")),
                     "name": trim(thread.get("name"), 200),
                 }
             )
@@ -52,7 +51,6 @@ class Threads(Interface):
                 "id": data["id"],
                 "current": data["current"],
                 "crashed": data["crashed"],
-                "errored": data["errored"],
                 "name": data["name"],
                 "stacktrace": None,
             }
@@ -70,7 +68,6 @@ class Threads(Interface):
                 "id": data["id"],
                 "current": data["current"],
                 "crashed": data["crashed"],
-                "errored": data["errored"],
                 "name": data["name"],
                 "stacktrace": None,
                 "rawStacktrace": None,

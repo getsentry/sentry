@@ -7,7 +7,6 @@ api_context:
   values:
   - crashed: false
     current: true
-    errored: false
     id: 42
     name: Main Thread
     rawStacktrace:
@@ -59,7 +58,6 @@ to_json:
   values:
   - crashed: false
     current: true
-    errored: false
     id: 42
     name: Main Thread
     raw_stacktrace:
