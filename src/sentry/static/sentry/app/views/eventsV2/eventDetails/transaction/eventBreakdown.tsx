@@ -111,9 +111,8 @@ class EventBreakdown extends React.Component<Props> {
       };
     });
 
-    // sort ops by most frequently ocurring to least frequently ocurring
     ops.sort((firstOp, secondOp) => {
-      // sort in descending order based on percentage
+      // sort in descending order based on total duration
 
       if (firstOp.percentage === secondOp.percentage) {
         return 0;
@@ -127,7 +126,7 @@ class EventBreakdown extends React.Component<Props> {
     });
 
     return {
-      // use the first 4 most frequently occurring ops
+      // use the first 4 ops with the top total duration
       ops: ops.slice(0, 4),
       unknown:
         spansWithNoOperation.count > 0
