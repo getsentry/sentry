@@ -86,13 +86,9 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
     def get_group_urls(self):
         return super(TrelloPlugin, self).get_group_urls() + [
             url(
-                r"^autocomplete",
-                IssueGroupActionEndpoint.as_view(view_method_name="view_autocomplete", plugin=self),
-            ),
-            # url(
-            #     r"^get_options",
-            #     IssueGroupActionEndpoint.as_view(view_method_name="view_autocomplete", plugin=self),
-            # )
+                r"^options",
+                IssueGroupActionEndpoint.as_view(view_method_name="view_options", plugin=self),
+            )
         ]
 
     def is_configured(self, request, project, **kwargs):
@@ -104,8 +100,8 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
                 return True
         return False
 
-    def get_board_choices(self, boards):
-        return [(board["id"], board["name"]) for board in boards]
+    def map_to_options(self, items):
+        return [(item["id"], item["name"]) for item in items]
 
     def get_new_issue_fields(self, request, group, event, **kwargs):
         fields = super(TrelloPlugin, self).get_new_issue_fields(request, group, event, **kwargs)
@@ -113,7 +109,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
         organization = self.get_option('organization', group.project)
 
         boards = client.get_boards(organization)
-        board_choices = self.get_board_choices(boards)
+        board_choices = self.map_to_options(boards)
 
         return fields + [
             {
@@ -129,9 +125,8 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
                 "depends": ["board"],
                 "label": "List",
                 "type": "select",
-                "has_autocomplete": True,
+                "has_autocomplete": False,
                 "required": True,
-                "placeholder": "Start typing to search for a List",
             },
         ]
 
@@ -188,16 +183,13 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
     #     """
     #     return config
 
-    def view_autocomplete(self, request, group, **kwargs):
-        # Note that we don't do a true autocomplete here since the API for search doesn't work for lists
-        field = request.GET.get("autocomplete_field")
+    def view_options(self, request, group, **kwargs):
+        field = request.GET.get("field")
         board = request.GET.get("board")
 
         results = []
-
         if field == "list" and board:
             client = self.get_client(group.project)
-
             try:
                 response = client.get_lists_of_board(board)
             except Exception as e:
@@ -209,6 +201,6 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
                     status=400,
                 )
             else:
-                results = [{"text": i["name"], "id": i["id"]} for i in response]
+                results = self.map_to_options(response)
 
         return Response({field: results})

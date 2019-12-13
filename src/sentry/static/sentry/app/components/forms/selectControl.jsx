@@ -61,6 +61,7 @@ export default class SelectControl extends React.Component {
       openOnClick: false,
       menuContainerStyle: {display: 'none'},
     };
+    props.disabled = true;
 
     // "-Removes" props should match `clearable` unless explicitly defined in props
     // rest props should be after "-Removes" so that it can be overridden
@@ -77,6 +78,7 @@ export default class SelectControl extends React.Component {
         {...props}
         multi={this.props.multiple || this.props.multi}
         options={choicesOrOptions}
+        isLoading={true}
       />
     );
   }

@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import fromPairs from 'lodash/fromPairs';
 
 import {Form, FormState} from 'app/components/forms';
 import GroupActions from 'app/actions/groupActions';
@@ -28,6 +29,7 @@ class IssueActions extends PluginComponentBase {
       error: null,
       createFormData: {},
       linkFormData: {},
+      inputProps: {},
     });
   }
 
@@ -66,6 +68,58 @@ class IssueActions extends PluginComponentBase {
     return (
       '/issues/' + this.getGroup().id + '/plugins/' + this.props.plugin.slug + '/unlink/'
     );
+  }
+
+  async searchDependentField(action, field) {
+    const key = action + 'FormData';
+    const formData = this.state[key];
+
+    const url =
+      '/issues/' +
+      this.getGroup().id +
+      '/plugins/' +
+      this.props.plugin.slug +
+      '/options/';
+
+    const dependentFields =
+      fromPairs(field.depends.map(fieldKey => [fieldKey, formData[fieldKey]])) || {};
+    const query = {
+      field: field.name,
+      ...dependentFields,
+    };
+    try {
+      this.setState({inputProps: {[field.name]: {isLoading: true}}});
+      const result = await this.api.requestPromise(url, {query});
+      this.updateOptions(action, field, result[field.name]);
+    } catch (err) {
+      console.error(err);
+    }
+    this.setState({inputProps: {[field.name]: {isLoading: false}}});
+  }
+
+  updateOptions(action, field, choices) {
+    const key = action + 'FieldList';
+    let fieldList = this.state[key];
+    const indexOfField = fieldList.findIndex(({name}) => name === field.name);
+
+    field = {...field, choices};
+
+    //make a copy of the array to avoid mutation
+    fieldList = fieldList.slice();
+    fieldList[indexOfField] = field;
+    this.setState({[key]: fieldList});
+  }
+
+  getInputProps(field) {
+    // const formDataKey = this.props.actionType + 'FormData';
+    // const formData = this.state[formDataKey];
+
+    // //special logic for fields that have dependencies
+    // if (field.depends && field.depends.length) {
+    //   const disabled = field.depends.some(dependentField => !formData[dependentField]);
+    // }
+
+    return this.state.inputProps[field.name];
   }
 
   setError(error, defaultMessage) {
@@ -170,12 +224,35 @@ class IssueActions extends PluginComponentBase {
   }
 
   changeField(action, name, value) {
-    const key = action + 'FormData';
-    const formData = this.state[key];
+    console.log('on change', action, name, value);
+    const formDataKey = action + 'FormData';
+    const fieldListKey = action + 'FieldList';
+
+    //copy so we don't mutate
+    const formData = {...this.state[formDataKey]};
+    const fieldList = this.state[fieldListKey];
+
     formData[name] = value;
-    const state = {};
-    state[key] = formData;
-    this.setState(state);
+    this.setState({[formDataKey]: formData});
+
+    //only works with one impacted field
+    const impactedField = fieldList.find(({depends}) => {
+      if (!depends || !depends.length) {
+        return false;
+      }
+      // must be dependent on the field we just set
+      return depends.includes(name);
+    });
+
+    if (impactedField) {
+      //if every dependent field is set, then search
+      if (!impactedField.depends.some(dependentField => !formData[dependentField])) {
+        this.searchDependentField(action, impactedField);
+      } else {
+        //otherwise reset the options
+        this.updateOptions(action, impactedField, []);
+      }
+    }
   }
 
   renderForm() {
@@ -209,6 +286,7 @@ class IssueActions extends PluginComponentBase {
                       config: field,
                       formData: this.state.createFormData,
                       onChange: this.changeField.bind(this, 'create', field.name),
+                      ...this.getInputProps(field),
                     })}
                   </div>
                 );
@@ -241,6 +319,7 @@ class IssueActions extends PluginComponentBase {
                       config: field,
                       formData: this.state.linkFormData,
                       onChange: this.changeField.bind(this, 'link', field.name),
+                      ...this.getInputProps(field),
                     })}
                   </div>
                 );
