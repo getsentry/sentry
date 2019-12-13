@@ -95,7 +95,6 @@ const IssueListOverview = createReactClass({
       // Will only be set if selected issues all belong
       // to one project.
       selectedProject: null,
-      fetchingSentFirstEvent: true,
     };
   },
 
@@ -108,7 +107,6 @@ const IssueListOverview = createReactClass({
 
     this.fetchTags();
     this.fetchMemberList();
-    this.fetchSentFirstEvent();
 
     // Start by getting searches first so if the user is on a saved search
     // or they have a pinned search we load the correct data the first time.
@@ -130,7 +128,6 @@ const IssueListOverview = createReactClass({
     if (!isEqual(prevProps.selection.projects, this.props.selection.projects)) {
       this.fetchMemberList();
       this.fetchTags();
-      this.fetchSentFirstEvent();
     }
 
     const prevQuery = prevProps.location.query;
@@ -279,45 +276,6 @@ const IssueListOverview = createReactClass({
   fetchTags() {
     const {organization, selection} = this.props;
     fetchOrganizationTags(this.api, organization.slug, selection.projects);
-  },
-
-  async fetchSentFirstEvent() {
-    this.setState({
-      fetchingSentFirstEvent: true,
-    });
-
-    const {organization} = this.props;
-    let sentFirstEvent = false;
-    let projects = [];
-    const selectedProjectIds = this.props.selection.projects;
-
-    // If no projects are selected, then we must check every project the user is a
-    // member of and make sure there are no first events for all of the projects
-    let firstEventQuery = {};
-    const projectsQuery = {per_page: 1};
-    if (!selectedProjectIds || !selectedProjectIds.length) {
-      firstEventQuery = {is_member: true};
-    } else {
-      firstEventQuery = {project: selectedProjectIds};
-      projectsQuery.query = selectedProjectIds.map(id => `id:${id}`).join(' ');
-    }
-
-    [{sentFirstEvent}, projects] = await Promise.all([
-      // checks to see if selection has sent a first event
-      this.api.requestPromise(`/organizations/${organization.slug}/sent-first-event/`, {
-        query: firstEventQuery,
-      }),
-      // retrieves a single project to feed to the ErrorRobot from renderStreamBody
-      this.api.requestPromise(`/organizations/${organization.slug}/projects/`, {
-        query: projectsQuery,
-      }),
-    ]);
-
-    this.setState({
-      fetchingSentFirstEvent: false,
-      sentFirstEvent,
-      firstEventProjects: projects,
-    });
   },
 
   fetchData() {

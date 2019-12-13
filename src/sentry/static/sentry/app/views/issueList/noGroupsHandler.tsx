@@ -46,7 +46,6 @@ class NoGroupsHandler extends React.Component<Props, State> {
     const {organization, selectedProjectIds, api} = this.props;
     let sentFirstEvent = false;
     let projects = [];
-    // const selectedProjectIds = this.props.selection.projects;
 
     // If no projects are selected, then we must check every project the user is a
     // member of and make sure there are no first events for all of the projects
