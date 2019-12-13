@@ -131,7 +131,7 @@ class EventBreakdown extends React.Component<Props> {
       unknown:
         spansWithNoOperation.count > 0
           ? {
-              percentage: spansWithNoOperation.count / totalDuration,
+              percentage: spansWithNoOperation.totalDuration / totalDuration,
               totalDuration: spansWithNoOperation.totalDuration,
             }
           : undefined,
