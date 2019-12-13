@@ -78,6 +78,26 @@ class IssueActions extends DefaultIssuePlugin.DefaultIssueActions {
               field
             );
           }
+
+          // const baseUrl =
+          //   '/api/0/issues/' + this.getGroup().id + '/plugins/' + this.props.plugin.slug;
+          // if (field.has_autocomplete) {
+          //   field = Object.assign(
+          //     {
+          //       url: baseUrl + '/autocomplete',
+          //     },
+          //     field
+          //   );
+          // } else if (field.depends && field.depends.length) {
+          //   field = Object.assign(
+          //     {
+          //       url: baseUrl + '/get_options',
+          //     },
+          //     field
+          //   );
+          // }
+          console.log('this', this);
+
           return (
             <div key={field.name}>
               {this.renderField({

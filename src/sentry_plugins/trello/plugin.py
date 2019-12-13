@@ -1,36 +1,25 @@
 from __future__ import absolute_import
 
 import re
+import six
 from django.conf.urls import url
 from rest_framework.response import Response
 from requests.exceptions import RequestException
+from django.utils.translation import ugettext_lazy as _
 
 
+from sentry.exceptions import PluginError
 from sentry.plugins.bases.issue2 import IssuePlugin2, IssueGroupActionEndpoint
 from sentry_plugins.base import CorePluginMixin
-from .client import TrelloClient
+from .client import TrelloApiClient
 
+# TODO(Update URLs and usage)
 SETUP_URL = "https://github.com/getsentry/sentry-trello/blob/master/HOW_TO_SETUP.md"  # NOQA
 
 ISSUES_URL = "https://github.com/getsentry/sentry-trello/issues"
 
-EMPTY = (("", "--"),)
 
 ERR_AUTH_NOT_CONFIGURED = "You still need to associate a Trello identity with this account."
-
-
-class TrelloError(Exception):
-    status_code = None
-
-    def __init__(self, response_text, status_code=None):
-        if status_code is not None:
-            self.status_code = status_code
-        self.text = response_text
-        super(TrelloError, self).__init__(response_text[:128])
-
-    @classmethod
-    def from_response(cls, response):
-        return cls(response.text, response.status_code)
 
 
 class TrelloPlugin(CorePluginMixin, IssuePlugin2):
@@ -40,56 +29,58 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
     conf_title = title
     conf_key = "trello"
     auth_provider = None
-    allowed_actions = ("create",)
 
     def get_config(self, project, **kwargs):
-        def get_from_initial(initial, field):
-            return initial.get(field) or self.get_option(field, project)
+        # function to pull the value out of our the arguments to this function or from the DB
+        def get_value(field):
+            initial_values = kwargs.get('initial') or {}
+            if initial_values.get(field):
+                return initial_values[field]
+            return self.get_option(field, project)
 
-        initial = kwargs.get("initial") or {}
-        key_value = get_from_initial(initial, "key")
-
-        key = {
-            "name": "key",
-            "label": "Trello API Key",
-            "type": "text",
-            "required": True,
-            "default": key_value,
+        token_config = {
+            'name': 'token',
+            'type': 'secret',
+            'label': _('Trello API Token'),
+            'default': None
         }
-        token = {"name": "token", "label": "Trello API Token", "type": "secret", "required": True}
-        token_value = get_from_initial(initial, "token")
 
-        if token_value:
-            token["has_saved_value"] = True
-            token["prefix"] = token_value[:6]
-            token["required"] = False
+        token_val = get_value('token')
+        if token_val:
+            token_config['required'] = False
+            token_config['prefix'] = token_val[:5]
+            token_config['has_saved_value'] = True
+        else:
+            token_config['required'] = True
 
-        config = [key, token]
+        key_val = get_value('key')
 
-        if key_value and token_value:
-            trello = TrelloClient(key_value, token_value)
-            organizations = tuple()
+        key_config = {
+            'name': 'key',
+            'type': 'text',
+            'required': True,
+            'label': _('Trello API Key'),
+            'default': key_val,
+        }
+
+        config = [key_config, token_config]
+        org_value = get_value('organization')
+        include_org = kwargs.get('add_additial_fields') or org_value
+        if key_val and token_val and include_org:
+            trello_client = TrelloApiClient(key_val, token_val)
             try:
-                organizations = trello.organizations_to_options()
-                organization_value = self.get_option("organization", project)
-                if not organization_value:
-                    organizations = EMPTY + organizations
-                if get_from_initial(initial, "organization") or kwargs.get("add_additial_fields"):
-                    config.append(
-                        {
-                            "name": "organization",
-                            "label": "Trello Organization",
-                            "type": "select",
-                            "choices": organizations,
-                            "default": organization_value,
-                            "required": True,
-                        }
-                    )
-            except RequestException as exc:
-                if exc.response is not None and exc.response.status_code == 401:
-                    self.client_errors.append(self.error_messages["invalid_auth"])
-                else:
-                    self.client_errors.append(self.error_messages["api_failure"])
+                org_options = trello_client.get_organization_options()
+                config.append({
+                    'name': 'organization',
+                    'label': _('Trello Organization'),
+                    'choices': org_options,
+                    'type': 'select',
+                    'required': False,
+                    'default': org_value
+                })
+            except RequestException as e:
+                msg = six.text_type(e)
+                raise PluginError("Error communicating with Trello: %s" % (msg,))
         return config
 
     def get_group_urls(self):
@@ -97,14 +88,18 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
             url(
                 r"^autocomplete",
                 IssueGroupActionEndpoint.as_view(view_method_name="view_autocomplete", plugin=self),
-            )
+            ),
+            # url(
+            #     r"^get_options",
+            #     IssueGroupActionEndpoint.as_view(view_method_name="view_autocomplete", plugin=self),
+            # )
         ]
 
     def is_configured(self, request, project, **kwargs):
-        return all((self.get_option(key, project) for key in ("key", "token", "organization")))
+        return all((self.get_option(key, project) for key in ("token", "key")))
 
     def has_workspace_access(self, workspace, choices):
-        for c, _ in choices:
+        for c in choices:
             if workspace == c:
                 return True
         return False
@@ -115,7 +110,9 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
     def get_new_issue_fields(self, request, group, event, **kwargs):
         fields = super(TrelloPlugin, self).get_new_issue_fields(request, group, event, **kwargs)
         client = self.get_client(group.project)
-        boards = client.get_boards()
+        organization = self.get_option('organization', group.project)
+
+        boards = client.get_boards(organization)
         board_choices = self.get_board_choices(boards)
 
         return fields + [
@@ -142,8 +139,8 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
         return []
 
     def get_client(self, project):
-        return TrelloClient(
-            apikey=self.get_option("key", project), token=self.get_option("token", project)
+        return TrelloApiClient(
+            self.get_option("key", project), token=self.get_option("token", project)
         )
 
     def error_message_from_json(self, data):
@@ -164,46 +161,45 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
 
         return response["shortLink"]
 
-    def get_issue_label(self, group, issue_id, **kwargs):
-        # the old version of the plugin stores the url in the issue_id
-        if re.search("\w+/https://trello.com/", issue_id):
-            short_issue_id, url = issue_id.split("/", 1)
-            return "Trello-%s" % short_issue_id
-        return "Trello-%s" % issue_id
+    def get_issue_label(self, group, issue, **kwargs):
+        # the old version of the plugin stores the url in the issue
+        if re.search("\w+/https://trello.com/", issue):
+            short_issue = issue.partition('/')[0]
+            return "Trello-%s" % short_issue
+        return "Trello-%s" % issue
 
-    def get_issue_url(self, group, issue_id, **kwargs):
+    def get_issue_url(self, group, issue, **kwargs):
         # TODO(Steve): figure out why we sometimes get a string and sometimes a dict
-        if isinstance(issue_id, dict):
-            issue_id = issue_id["id"]
-        # the old version of the plugin stores the url in the issue_id
-        if re.search("\w+/https://trello.com/", issue_id):
-            short_issue_id, url = issue_id.split("/", 1)
+        if isinstance(issue, dict):
+            issue = issue["id"]
+        # the old version of the plugin stores the url in the issue
+        if re.search("\w+/https://trello.com/", issue):
+            url = issue.partition('/')[2]
             return url
-        return "https://trello.com/c/%s" % issue_id
+        return "https://trello.com/c/%s" % issue
 
-    def validate_config(self, project, config, actor):
-        """
-        ```
-        if config['foo'] and not config['bar']:
-            raise PluginError('You cannot configure foo with bar')
-        return config
-        ```
-        """
-        return config
+    # def validate_config(self, project, config, actor):
+    #     """
+    #     ```
+    #     if config['foo'] and not config['bar']:
+    #         raise PluginError('You cannot configure foo with bar')
+    #     return config
+    #     ```
+    #     """
+    #     return config
 
     def view_autocomplete(self, request, group, **kwargs):
+        # Note that we don't do a true autocomplete here since the API for search doesn't work for lists
         field = request.GET.get("autocomplete_field")
-        # query = request.GET.get('autocomplete_query')
         board = request.GET.get("board")
 
-        client = self.get_client(group.project)
-        # organization = self.get_option('organization', group.project)
         results = []
 
         if field == "list" and board:
+            client = self.get_client(group.project)
 
             try:
-                response = client.get_board_list(board)
+                response = client.get_lists_of_board(board)
             except Exception as e:
                 return Response(
                     {

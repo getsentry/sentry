@@ -1,78 +1,63 @@
 from __future__ import absolute_import
 
-from sentry import http
-from sentry.utils import json
 
-from sentry.exceptions import PluginError
+from sentry_plugins.client import ApiClient
 
 
-class TrelloClient(object):
-    base_url = "https://trello.com/1/"
+org_board_path = "/organizations/%s/boards"
+member_org_path = "/members/me/organizations"
+lists_of_board_path = "/boards/%s/lists"
+card_path = "/cards"
+member_board_path = "/members/me/boards"
 
-    def __init__(self, apikey, token=None, timeout=5):
-        if not apikey:
-            raise PluginError("Apikey required")
 
-        if not token:
-            raise PluginError("token required")
+class TrelloApiClient(ApiClient):
+    base_url = 'https://api.trello.com/1'
+    plugin_name = "trello"
 
-        self._apikey = apikey
-        self._token = token
-        self._timeout = timeout
+    def __init__(self, api_key, token=None, timeout=5):
+        self.api_key = api_key
+        self.token = token
+        self.timeout = timeout
+        super(TrelloApiClient, self).__init__()
 
-    def _request(self, path, method="GET", params=None, data=None):
-        path = path.lstrip("/")
-        url = self.base_url + path
-
-        if not params:
+    def request(self, method="GET", path="", data=None, params=None):
+        if params is None:
             params = {}
-
-        params.setdefault("key", self._apikey)
-        params.setdefault("token", self._token)
-
-        session = http.build_session()
-        resp = getattr(session, method.lower())(
-            url, params=params, json=data, timeout=self._timeout
-        )
-        resp.raise_for_status()
-        return json.loads(resp.content)
+        params["token"] = self.token
+        params["key"] = self.api_key
+        print("request", method, path, data, params)
+        return self._request(method, path, data=data, params=params)
 
     def get_organization_boards(self, org_id_or_name, fields=None):
-        return self._request(
-            path="/organizations/%s/boards" % (org_id_or_name), params={"fields": fields}
+        return self.request(
+            path=org_board_path % (org_id_or_name), params={"fields": fields}
         )
 
-    def get_organization_list(self, member_id_or_username, fields=None):
-        return self._request(
-            path="/members/%s/organizations" % (member_id_or_username), params={"fields": fields}
+    def get_member_boards(self, fields=None):
+        return self.request(
+            path=member_board_path, params={"fields": fields}
         )
 
-    def get_board_list(self, board_id, fields=None):
-        return self._request(path="/boards/%s/lists" % (board_id), params={"fields": fields})
+    def get_boards(self, org=None):
+        print("get_boards", org)
+        if org:
+            return self.get_organization_boards(org, fields="name")
+        return self.get_member_boards(fields="name")
+
+    def get_organization_list(self, fields=None):
+        return self.request(
+            path=member_org_path, params={"fields": fields}
+        )
+
+    def get_lists_of_board(self, board_id, fields=None):
+        return self.request(path=lists_of_board_path % (board_id), params={"fields": fields})
 
     def new_card(self, name, idList, desc=None):
-        return self._request(
-            path="/cards", method="POST", data={"name": name, "idList": idList, "desc": desc}
+        return self.request(
+            method="POST", path=card_path, data={"name": name, "idList": idList, "desc": desc}
         )
 
-    def get_boards(self, member_id_or_username="me", fields=None):
-        return self._request(
-            path="/members/%s/boards" % member_id_or_username, params={"fields": fields}
-        )
-
-    def organizations_to_options(self, member_id_or_username="me"):
-        organizations = self.get_organization_list(member_id_or_username, fields="name")
-        options = tuple()
-        for org in organizations:
-            options += ((org["id"], org["name"]),)
-        return options
-
-    def boards_to_options(self, organization=None):
-        if organization:
-            boards = self.get_organization_boards(organization, fields="name")
-        else:
-            boards = self.get_boards(fields="name")
-        options = tuple()
-        for board in boards:
-            options += ((board["id"], board["name"]),)
-        return options
+    def get_organization_options(self):
+        organizations = self.get_organization_list(fields="name")
+        return map(lambda org: (org["id"], org["name"]), organizations)
