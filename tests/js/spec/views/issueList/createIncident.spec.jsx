@@ -108,6 +108,14 @@ describe('IssueList --> Create Incident', function() {
         }),
       ],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sent-first-event/',
+      body: {sentFirstEvent: true},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [project],
+    });
   });
 
   afterEach(function() {
