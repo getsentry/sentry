@@ -16,7 +16,7 @@ import {isValidSpanID, generateRootSpan} from './utils';
 import TraceViewHeader from './header';
 import * as CursorGuideHandler from './cursorGuideHandler';
 
-type TraceContextType = {
+export type TraceContextType = {
   op?: string;
   type?: 'trace';
   span_id?: string;
