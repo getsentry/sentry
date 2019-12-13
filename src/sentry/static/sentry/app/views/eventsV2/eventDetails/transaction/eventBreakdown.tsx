@@ -9,9 +9,11 @@ import {
 } from 'app/components/events/interfaces/spans/types';
 import {TraceContextType} from 'app/components/events/interfaces/spans/traceView';
 
+type OpStats = {percentage: number; totalDuration: number};
+
 type EventBreakdownType = {
-  ops: {name: string; count: number; percentage: number; duration: number}[];
-  unknown: {count: number; percentage: number; duration: number} | undefined;
+  ops: ({name: string} & OpStats)[];
+  unknown: OpStats | undefined;
 };
 
 type Props = {
@@ -29,10 +31,19 @@ class EventBreakdown extends React.Component<Props> {
     return undefined;
   }
 
-  generateCounts(): EventBreakdownType {
+  generateStats(): EventBreakdownType {
     const event = this.getTransactionEvent();
 
     if (!event) {
+      return {
+        ops: [],
+        unknown: undefined,
+      };
+    }
+
+    const traceContext: TraceContextType | undefined = get(event, 'contexts.trace');
+
+    if (!traceContext) {
       return {
         ops: [],
         unknown: undefined,
@@ -46,28 +57,24 @@ class EventBreakdown extends React.Component<Props> {
     const spans: SpanType[] = get(spanEntry, 'data', []);
 
     // track stats on spans with no operation
-    const spansWithNoOperation = {count: 0, duration: 0};
-
-    const numOfSpans = spans.length;
+    const spansWithNoOperation = {count: 0, totalDuration: 0};
 
     type AggregateType = {
       [opname: string]: {
-        count: number;
-        duration: number; // num of seconds
+        totalDuration: number; // num of seconds
       };
     };
 
-    const traceContext: TraceContextType | undefined = get(event, 'contexts.trace');
-    if (traceContext) {
-      spans.push({
-        op: traceContext.op,
-        timestamp: event.endTimestamp,
-        start_timestamp: event.startTimestamp,
-        trace_id: '',
-        span_id: '',
-        data: {},
-      });
-    }
+    const totalDuration = Math.abs(event.endTimestamp - event.startTimestamp);
+
+    spans.push({
+      op: traceContext.op,
+      timestamp: event.endTimestamp,
+      start_timestamp: event.startTimestamp,
+      trace_id: traceContext.trace_id || '',
+      span_id: traceContext.span_id || '',
+      data: {},
+    });
 
     const aggregateByOp: AggregateType = spans.reduce(
       (aggregate: AggregateType, span: SpanType) => {
@@ -76,7 +83,7 @@ class EventBreakdown extends React.Component<Props> {
 
         if (typeof op !== 'string') {
           spansWithNoOperation.count += 1;
-          spansWithNoOperation.duration += duration;
+          spansWithNoOperation.totalDuration += duration;
 
           return aggregate;
         }
@@ -84,14 +91,12 @@ class EventBreakdown extends React.Component<Props> {
 
         if (!opStats) {
           aggregate[op] = {
-            count: 1,
-            duration,
+            totalDuration: duration,
           };
           return aggregate;
         }
 
-        aggregate[op].count += 1;
-        aggregate[op].duration += duration;
+        aggregate[op].totalDuration += duration;
 
         return aggregate;
       },
@@ -101,21 +106,20 @@ class EventBreakdown extends React.Component<Props> {
     const ops = Object.keys(aggregateByOp).map(opName => {
       return {
         name: opName,
-        count: aggregateByOp[opName].count,
-        percentage: aggregateByOp[opName].count / numOfSpans,
-        duration: aggregateByOp[opName].duration,
+        percentage: aggregateByOp[opName].totalDuration / totalDuration,
+        totalDuration: aggregateByOp[opName].totalDuration,
       };
     });
 
     // sort ops by most frequently ocurring to least frequently ocurring
     ops.sort((firstOp, secondOp) => {
-      // sort in descending order based on count
+      // sort in descending order based on percentage
 
-      if (firstOp.count === secondOp.count) {
+      if (firstOp.percentage === secondOp.percentage) {
         return 0;
       }
 
-      if (firstOp.count > secondOp.count) {
+      if (firstOp.percentage > secondOp.percentage) {
         return -1;
       }
 
@@ -128,9 +132,8 @@ class EventBreakdown extends React.Component<Props> {
       unknown:
         spansWithNoOperation.count > 0
           ? {
-              count: spansWithNoOperation.count,
-              percentage: spansWithNoOperation.count / numOfSpans,
-              duration: spansWithNoOperation.duration,
+              percentage: spansWithNoOperation.count / totalDuration,
+              totalDuration: spansWithNoOperation.totalDuration,
             }
           : undefined,
     };
