@@ -1338,7 +1338,7 @@ describe('IssueList,', function() {
 
   describe('render states', function() {
     beforeEach(function() {
-      wrapper = shallow(<IssueListOverview {...props} />, {
+      wrapper = mountWithTheme(<IssueListOverview {...props} />, {
         disableLifecycleMethods: false,
       });
     });
@@ -1360,18 +1360,20 @@ describe('IssueList,', function() {
       expect(error.props().message).toEqual('Things broke');
     });
 
-    it('displays congrats robots animation with only is:unresolved query', function() {
+    it('displays congrats robots animation with only is:unresolved query', async function() {
       wrapper.setState({
         savedSearchLoading: false,
         issuesLoading: false,
         error: false,
         groupIds: [],
       });
+      await tick();
+      wrapper.update();
 
-      expect(wrapper.find('lazy[data-test-id="congrats-robots"]').exists()).toBe(true);
+      expect(wrapper.find('CongratsRobots').exists()).toBe(true);
     });
 
-    it('displays an empty resultset with is:unresolved and level:error query', function() {
+    it('displays an empty resultset with is:unresolved and level:error query', async function() {
       const errorsOnlyQuery = {
         ...props,
         location: {
@@ -1379,7 +1381,7 @@ describe('IssueList,', function() {
         },
       };
 
-      wrapper = shallow(<IssueListOverview {...errorsOnlyQuery} />, {
+      wrapper = mountWithTheme(<IssueListOverview {...errorsOnlyQuery} />, {
         disableLifecycleMethods: false,
       });
 
@@ -1391,10 +1393,13 @@ describe('IssueList,', function() {
         fetchingSentFirstEvent: false,
         sentFirstEvent: true,
       });
+      await tick();
+      wrapper.update();
+
       expect(wrapper.find('EmptyStateWarning').exists()).toBe(true);
     });
 
-    it('displays an empty resultset with has:browser query', function() {
+    it('displays an empty resultset with has:browser query', async function() {
       const hasBrowserQuery = {
         ...props,
         location: {
@@ -1402,7 +1407,7 @@ describe('IssueList,', function() {
         },
       };
 
-      wrapper = shallow(<IssueListOverview {...hasBrowserQuery} />, {
+      wrapper = mountWithTheme(<IssueListOverview {...hasBrowserQuery} />, {
         disableLifecycleMethods: false,
       });
 
@@ -1414,6 +1419,9 @@ describe('IssueList,', function() {
         fetchingSentFirstEvent: false,
         sentFirstEvent: true,
       });
+      await tick();
+      wrapper.update();
+
       expect(wrapper.find('EmptyStateWarning').exists()).toBe(true);
     });
   });
@@ -1421,6 +1429,7 @@ describe('IssueList,', function() {
   describe('Error Robot', function() {
     const createWrapper = moreProps => {
       const defaultProps = {
+        ...props,
         savedSearchLoading: false,
         useOrgSavedSearches: true,
         selection: {
@@ -1435,7 +1444,7 @@ describe('IssueList,', function() {
         }),
         ...moreProps,
       };
-      const localWrapper = shallow(<IssueListOverview {...defaultProps} />, {
+      const localWrapper = mountWithTheme(<IssueListOverview {...defaultProps} />, {
         disableLifecycleMethods: false,
       });
       localWrapper.setState({
@@ -1477,7 +1486,7 @@ describe('IssueList,', function() {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
-        body: [projects],
+        body: projects,
       });
       wrapper = createWrapper({
         organization: TestStubs.Organization({
@@ -1520,7 +1529,7 @@ describe('IssueList,', function() {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
-        body: [projects],
+        body: projects,
       });
       wrapper = createWrapper({
         organization: TestStubs.Organization({
@@ -1563,7 +1572,7 @@ describe('IssueList,', function() {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
-        body: [projects],
+        body: projects,
       });
 
       wrapper = createWrapper({
@@ -1612,7 +1621,7 @@ describe('IssueList,', function() {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
-        body: [projects],
+        body: projects,
       });
 
       wrapper = createWrapper({
