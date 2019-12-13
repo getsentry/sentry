@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import mock
 import six
 
-import django
 from django.core.urlresolvers import reverse
 
 from sentry.constants import RESERVED_PROJECT_SLUGS
@@ -82,9 +81,6 @@ class ProjectDetailsTest(APITestCase):
             "foobar",
         )
         redirect_path = "/api/0/projects/%s/%s/" % (project.organization.slug, "foobar")
-        if django.VERSION < (1, 9):
-            # Django 1.9 no longer forcefully rewrites relative redirects to absolute URIs because of RFC 7231.
-            redirect_path = "http://testserver" + redirect_path
         # XXX: AttributeError: 'Response' object has no attribute 'url'
         # (this is with self.assertRedirects(response, ...))
         assert response["Location"] == redirect_path
