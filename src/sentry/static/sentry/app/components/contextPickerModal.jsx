@@ -60,6 +60,12 @@ class ContextPickerModal extends React.Component {
      * Does modal need to prompt for project
      */
     needProject: PropTypes.bool,
+
+    /**
+     * Id of the project (most likely from the URL)
+     * on which the modal was opened
+     */
+    comingFromPojectId: PropTypes.string,
   };
 
   constructor(props) {
@@ -198,6 +204,21 @@ class ContextPickerModal extends React.Component {
     }
   };
 
+  focusProjectOption = (ref, projectId, projects) => {
+    if (!ref) {
+      return;
+    }
+
+    const projectToBeFocused = projects.find(({id}) => id === projectId);
+
+    if (projectToBeFocused) {
+      ref.focusOption({
+        label: projectToBeFocused.slug,
+        value: projectToBeFocused.slug,
+      });
+    }
+  };
+
   handleSelectOrganization = ({value}) => {
     // Don't do anything if org value doesn't actually change
     if (this.state.selectedOrganization === value) {
@@ -231,7 +252,15 @@ class ContextPickerModal extends React.Component {
   };
 
   render() {
-    const {latestContext, needOrg, needProject, organizations, Header, Body} = this.props;
+    const {
+      latestContext,
+      needOrg,
+      needProject,
+      organizations,
+      Header,
+      Body,
+      comingFromPojectId,
+    } = this.props;
     const {loading} = this.state;
 
     const shouldShowPicker = needOrg || needProject;
@@ -277,7 +306,7 @@ class ContextPickerModal extends React.Component {
               <StyledSelectControl
                 forwardedRef={ref => {
                   this.focusSelector(ref);
-                  // TODO: preselect the current project - ref.focusOption({label: 'myproject', value: 'myproject'});
+                  this.focusProjectOption(ref, comingFromPojectId, projects);
                 }}
                 placeholder="Select a Project"
                 name="project"
