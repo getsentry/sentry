@@ -275,7 +275,10 @@ class GlobalSelectionHeader extends React.Component {
 
     // Projects have finished loading so now we can enforce a single project
     if (prevProps.loadingProjects && !this.props.loadingProjects) {
-      this.enforceSingleProject({forceProject});
+      const {project} = getStateFromQuery(location.query);
+      if (!project) {
+        this.enforceSingleProject({forceProject});
+      }
     }
 
     if (forceUrlSync && !prevProps.forceUrlSync) {
