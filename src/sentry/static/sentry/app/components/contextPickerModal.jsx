@@ -1,9 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import ReactDOM from 'react-dom';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
+import get from 'lodash/get';
 
 import {fetchOrganizationDetails} from 'app/actionCreators/organizations';
 import {t} from 'app/locale';
@@ -93,10 +93,19 @@ class ContextPickerModal extends React.Component {
     // attempt to see if we need more info from user and redirect otherwise
     if (latestContext.organization) {
       // This will handle if we can intelligently move the user forward
-      this.navigateIfFinish(
-        [latestContext.organization],
-        latestContext.organization.projects
-      );
+
+      if (!latestContext.organization.projects) {
+        fetchOrganizationDetails(latestContext.organization.slug, {
+          setActive: true,
+          loadProjects: true,
+        });
+      } else {
+        this.navigateIfFinish(
+          [latestContext.organization],
+          latestContext.organization.projects
+        );
+      }
+
       return;
     }
 
@@ -116,7 +125,9 @@ class ContextPickerModal extends React.Component {
         latestContext.organization !== nextProps.latestContext.organization) ||
       (latestContext.organization &&
         nextProps.latestContext.organization &&
-        latestContext.organization.slug !== nextProps.latestContext.organization.slug)
+        latestContext.organization.slug !== nextProps.latestContext.organization.slug) ||
+      get(latestContext, 'organization.projects') !==
+        get(nextProps, 'latestContext.organization.projects')
     ) {
       // Check if we can push the user forward w/o needing them to select anything
       this.navigateIfFinish(
@@ -172,24 +183,19 @@ class ContextPickerModal extends React.Component {
     );
   };
 
-  focusProjectSelector = () => {
-    if (!this.projectSelect || this.state.loading) {
+  focusSelector = ref => {
+    if (!ref || this.state.loading) {
       return;
     }
 
-    ReactDOM.findDOMNode(this.projectSelect)
-      .querySelector('input')
-      .focus();
-  };
-
-  focusOrganizationSelector = () => {
-    if (!this.orgSelect || this.state.loading) {
+    if (!ref.control) {
       return;
     }
 
-    ReactDOM.findDOMNode(this.orgSelect)
-      .querySelector('input')
-      .focus();
+    const selectorNode = ref.control.querySelector('input');
+    if (selectorNode) {
+      selectorNode.focus();
+    }
   };
 
   handleSelectOrganization = ({value}) => {
@@ -252,12 +258,11 @@ class ContextPickerModal extends React.Component {
             <div>{t('Select an organization/project to continue')}</div>
             {needOrg && (
               <StyledSelectControl
-                innerRef={ref => {
-                  this.orgSelect = ref;
+                forwardedRef={ref => {
                   if (shouldShowProjectSelector) {
                     return;
                   }
-                  this.focusOrganizationSelector();
+                  this.focusSelector(ref);
                 }}
                 placeholder="Select an Organization"
                 name="organization"
@@ -268,11 +273,11 @@ class ContextPickerModal extends React.Component {
               />
             )}
 
-            {latestContext.organization && needProject && projects && (
+            {shouldShowProjectSelector && (
               <StyledSelectControl
-                innerRef={ref => {
-                  this.projectSelect = ref;
-                  this.focusProjectSelector();
+                forwardedRef={ref => {
+                  this.focusSelector(ref);
+                  // TODO: preselect the current project - ref.focusOption({label: 'myproject', value: 'myproject'});
                 }}
                 placeholder="Select a Project"
                 name="project"
