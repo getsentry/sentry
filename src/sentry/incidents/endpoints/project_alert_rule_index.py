@@ -13,7 +13,7 @@ from sentry import features
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
-from sentry.api.serializers import Serializer, serialize, RuleSerializer, AlertRuleSerializer
+from sentry.api.serializers import Serializer, serialize, AlertRuleSerializer
 from sentry.incidents.models import AlertRule
 from sentry.models import Rule, RuleStatus
 from sentry.utils.cursors import build_cursor, Cursor
@@ -23,21 +23,14 @@ class CombinedRuleSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
         results = super(CombinedRuleSerializer, self).get_attrs(item_list, user)
 
-        alert_rule_serializer = AlertRuleSerializer()
-        alert_rules = [x for x in item_list if isinstance(x, AlertRule)]
-        alert_rule_attrs = alert_rule_serializer.get_attrs(alert_rules, user)
-
-        rule_serializer = RuleSerializer()
-        rules = [x for x in item_list if isinstance(x, Rule)]
-        rule_attrs = rule_serializer.get_attrs(rules, user)
+        # alert_rules = serialize([x for x in item_list if isinstance(x, AlertRule)], user=user)
+        # rules = serialize([x for x in item_list if isinstance(x, Rule)], user=user)
+        # serialized_rules = alert_rules + rules
+        # for rule, serialized_dict in zip(item_list, serialized_rules):
+        #     results[rule] = serialized_dict
 
         for item in item_list:
-            if isinstance(item, AlertRule):
-                results[item] = alert_rule_serializer.serialize(item, alert_rule_attrs[item], user)
-            elif isinstance(item, Rule):
-                results[item] = rule_serializer.serialize(item, rule_attrs[item], user)
-            else:
-                raise AssertionError("Invalid rule to serialize: %r" % type(item))
+            results[item] = serialize(item, user=user)
 
         return results
 
