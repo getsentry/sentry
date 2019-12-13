@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
 from datetime import datetime, timedelta
+from django.conf import settings
+
 import six
 import time
 import logging
@@ -19,8 +21,9 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
 
         self.kafka_eventstream = KafkaEventStream()
         self.kafka_eventstream.producer = Mock()
+        settings.SENTRY_EVENTSTREAM_TOPICS = {"transaction": settings.KAFKA_TRANSACTIONS}
 
-    def __build_event(self, timestamp):
+    def __build_event(self, timestamp, **kwargs):
         raw_event = {
             "event_id": "a" * 32,
             "message": "foo",
@@ -29,17 +32,18 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
             "logger": "default",
             "tags": [],
         }
+        raw_event.update(kwargs)
         manager = EventManager(raw_event)
         manager.normalize()
         return manager.save(self.project.id)
 
-    def __produce_event(self, *insert_args, **insert_kwargs):
+    def __produce_event(self, topic, *insert_args, **insert_kwargs):
         # pass arguments on to Kafka EventManager
         self.kafka_eventstream.insert(*insert_args, **insert_kwargs)
 
         produce_args, produce_kwargs = list(self.kafka_eventstream.producer.produce.call_args)
         assert not produce_args
-        assert produce_kwargs["topic"] == "events"
+        assert produce_kwargs["topic"] == topic
         assert produce_kwargs["key"] == six.text_type(self.project.id)
 
         version, type_, payload1, payload2 = json.loads(produce_kwargs["value"])
@@ -66,7 +70,6 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
         assert _get_event_count() == 0
 
         event = self.__build_event(now)
-
         # verify eventstream was called by EventManager
         insert_args, insert_kwargs = list(mock_eventstream_insert.call_args)
         assert not insert_args
@@ -80,13 +83,27 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
             "skip_consume": False,
         }
 
-        self.__produce_event(*insert_args, **insert_kwargs)
+        self.__produce_event("events", *insert_args, **insert_kwargs)
         assert _get_event_count() == 1
 
     @patch("sentry.eventstream.insert")
     def test_issueless(self, mock_eventstream_insert):
         now = datetime.utcnow()
-        event = self.__build_event(now)
+        event = self.__build_event(
+            now,
+            transaction="wait",
+            contexts={
+                "trace": {
+                    "parent_span_id": "bce14471e0e9654d",
+                    "op": "foobar",
+                    "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                    "span_id": "bf5be759039ede9a",
+                }
+            },
+            spans=[],
+            start_timestamp="2019-06-14T14:01:40Z",
+            type="transaction",
+        )
 
         event.group_id = None
         insert_args = ()
@@ -100,7 +117,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
             "skip_consume": False,
         }
 
-        self.__produce_event(*insert_args, **insert_kwargs)
+        self.__produce_event("transactions", *insert_args, **insert_kwargs)
         result = snuba.raw_query(
             start=now - timedelta(days=1),
             end=now + timedelta(days=1),
