@@ -1007,6 +1007,45 @@ class GetSnubaQueryArgsTest(TestCase):
         assert filter.filter_keys == {"group_id": [1]}
         assert filter.group_ids == [1]
 
+    def test_environment_param(self):
+        params = {"environment": ["", "prod"]}
+        filter = get_filter("", params)
+        # Should generate OR conditions
+        assert filter.conditions == [
+            [["environment", "IS NULL", None], ["environment", "=", "prod"]]
+        ]
+        assert filter.filter_keys == {}
+        assert filter.group_ids == []
+
+        params = {"environment": ["dev", "prod"]}
+        filter = get_filter("", params)
+        assert filter.conditions == [[["environment", "IN", {"dev", "prod"}]]]
+        assert filter.filter_keys == {}
+        assert filter.group_ids == []
+
+    def test_environment_condition_string(self):
+        filter = get_filter("environment:dev")
+        assert filter.conditions == [[["environment", "=", "dev"]]]
+        assert filter.filter_keys == {}
+        assert filter.group_ids == []
+
+        filter = get_filter("!environment:dev")
+        assert filter.conditions == [[["environment", "!=", "dev"]]]
+        assert filter.filter_keys == {}
+        assert filter.group_ids == []
+
+        filter = get_filter("environment:dev environment:prod")
+        # Will generate conditions that will never find anything
+        assert filter.conditions == [[["environment", "=", "dev"]], [["environment", "=", "prod"]]]
+        assert filter.filter_keys == {}
+        assert filter.group_ids == []
+
+        filter = get_filter("environment: ")
+        # The '' environment is Null in snuba
+        assert filter.conditions == [[["environment", "IS NULL", None]]]
+        assert filter.filter_keys == {}
+        assert filter.group_ids == []
+
     def test_project_name(self):
         p1 = self.create_project(organization=self.organization)
         p2 = self.create_project(organization=self.organization)
@@ -1016,6 +1055,12 @@ class GetSnubaQueryArgsTest(TestCase):
         filter.conditions == [["project_id", "=", p1.id]]
         filter.filter_keys == {"project_id": [p1.id, p2.id]}
         filter.project_ids == [p1.id, p2.id]
+
+        params = {"project_id": []}
+        filter = get_filter("!project.name:{}".format(p1.slug), params)
+        filter.conditions == [["project_id", "!=", p1.id]]
+        filter.filter_keys == {}
+        filter.project_ids == []
 
     def test_transaction_status(self):
         for (key, val) in SPAN_STATUS_CODE_TO_NAME.items():
