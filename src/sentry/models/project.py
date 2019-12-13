@@ -26,6 +26,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
+from sentry.utils.integrationdocs import integration_doc_exists
 from sentry.utils.colors import get_hashed_color
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
@@ -414,6 +415,12 @@ class Project(Model, PendingDeletionMixin):
             )
             return False
         return True
+
+    @staticmethod
+    def is_valid_platform(value):
+        if not value or value == "other":
+            return True
+        return integration_doc_exists(value)
 
 
 pre_delete.connect(delete_pending_deletion_option, sender=Project, weak=False)

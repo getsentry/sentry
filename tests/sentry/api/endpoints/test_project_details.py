@@ -198,6 +198,10 @@ class ProjectUpdateTest(APITestCase):
         project = Project.objects.get(id=self.project.id)
         assert project.platform == "cocoa"
 
+    def test_platform_invalid(self):
+        resp = self.client.put(self.path, data={"platform": "lol"})
+        assert resp.status_code == 400, resp.content
+
     def test_options(self):
         options = {
             "sentry:resolve_age": 1,
