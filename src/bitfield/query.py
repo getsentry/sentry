@@ -2,22 +2,16 @@ from __future__ import absolute_import
 
 from bitfield.types import Bit, BitHandler
 
-from django.db.models.lookups import Lookup
+from django.db.models.lookups import Exact
 
 
-class BitQueryLookupWrapper(Lookup):
-    def process_lhs(self, qn, connection, lhs=None):
-        lhs_sql, params = super(BitQueryLookupWrapper, self).process_lhs(qn, connection, lhs)
-        if self.rhs:
-            lhs_sql = lhs_sql + " & %s"
-        else:
-            lhs_sql = lhs_sql + " | %s"
-        params.extend(self.process_rhs(qn, connection)[1])
-        return lhs_sql, params
-
+class BitQueryExactLookupStub(Exact):
     def get_db_prep_lookup(self, value, connection, prepared=False):
-        v = value.mask if isinstance(value, (BitHandler, Bit)) else value
-        return super(BitQueryLookupWrapper, self).get_db_prep_lookup(v, connection)
+        if isinstance(value, (BitHandler, Bit)):
+            raise NotImplementedError("get_db_prep_lookup not supported for Bit, BitHandler")
+        return super(BitQueryExactLookupStub, self).get_db_prep_lookup(value, connection)
 
     def get_prep_lookup(self):
+        if isinstance(self.rhs, (Bit,)):
+            raise NotImplementedError("get_db_prep_lookup not supported for Bit")
         return self.rhs
