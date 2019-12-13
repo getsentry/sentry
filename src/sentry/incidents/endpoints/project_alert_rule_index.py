@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import six
 import math
 from datetime import datetime
 from copy import deepcopy
@@ -13,67 +12,44 @@ from django.utils import timezone
 from sentry import features
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.paginator import OffsetPaginator, SequencePaginator
-from sentry.api.serializers import Serializer, register, serialize, RuleSerializer
-from sentry.api.serializers.models.rule import _generate_rule_label
+from sentry.api.paginator import OffsetPaginator
+from sentry.api.serializers import Serializer, serialize, RuleSerializer, AlertRuleSerializer
 from sentry.incidents.models import AlertRule
 from sentry.models import Rule, RuleStatus
-from sentry.incidents.endpoints.serializers import AlertRuleSerializer
-from sentry.utils.cursors import build_cursor, Cursor, CursorResult
+from sentry.utils.cursors import build_cursor, Cursor
 
 
 class CombinedRuleSerializer(Serializer):
+    def get_attrs(self, item_list, user, **kwargs):
+        results = super(CombinedRuleSerializer, self).get_attrs(item_list, user)
+
+        alert_rule_serializer = AlertRuleSerializer()
+        alert_rules = [x for x in item_list if isinstance(x, AlertRule)]
+        alert_rule_attrs = alert_rule_serializer.get_attrs(alert_rules, user)
+
+        rule_serializer = RuleSerializer()
+        rules = [x for x in item_list if isinstance(x, Rule)]
+        rule_attrs = rule_serializer.get_attrs(rules, user)
+
+        for item in item_list:
+            if isinstance(item, AlertRule):
+                results[item] = alert_rule_serializer.serialize(item, alert_rule_attrs[item], user)
+            elif isinstance(item, Rule):
+                results[item] = rule_serializer.serialize(item, rule_attrs[item], user)
+            else:
+                raise AssertionError("Invalid rule to serialize: %r" % type(item))
+
+        return results
+
     def serialize(self, obj, attrs, user, **kwargs):
-        rule = obj
-        # TODO: Use native serializer instead of cut/paste
-        if isinstance(rule, AlertRule):
-            # serializer = RuleSerializer()
-            return {
-                "type": "alert-rule",
-                "id": six.text_type(rule.id),
-                "name": rule.name,
-                "organizationId": six.text_type(rule.organization_id),
-                "status": rule.status,
-                # TODO: Remove when frontend isn't using
-                "thresholdType": 0,
-                "dataset": rule.dataset,
-                "query": rule.query,
-                "aggregation": rule.aggregation,
-                "aggregations": [rule.aggregation],
-                "timeWindow": rule.time_window,
-                "resolution": rule.resolution,
-                # TODO: Remove when frontend isn't using
-                "alertThreshold": 0,
-                # TODO: Remove when frontend isn't using
-                "resolveThreshold": 0,
-                "thresholdPeriod": rule.threshold_period,
-                "triggers": attrs.get("triggers", []),
-                "includeAllProjects": rule.include_all_projects,
-                "dateModified": rule.date_modified,
-                "dateAdded": rule.date_added,
-            }
-        elif isinstance(rule, Rule):
-            # serializer = AlertRuleSerializer()
-            environment = None  # attrs["environment"]
-            return {
-                "type": "rule",
-                "id": six.text_type(rule.id) if rule.id else None,
-                "conditions": [
-                    dict(o.items() + [("name", _generate_rule_label(rule.project, obj, o))])
-                    for o in rule.data.get("conditions", [])
-                ],
-                "actions": [
-                    dict(o.items() + [("name", _generate_rule_label(rule.project, obj, o))])
-                    for o in rule.data.get("actions", [])
-                ],
-                "actionMatch": rule.data.get("action_match") or Rule.DEFAULT_ACTION_MATCH,
-                "frequency": rule.data.get("frequency") or Rule.DEFAULT_FREQUENCY,
-                "name": rule.label,
-                "dateCreated": rule.date_added,
-                "environment": environment.name if environment is not None else None,
-            }
+        if isinstance(obj, AlertRule):
+            attrs["type"] = "alert_rule"
+            return attrs
+        elif isinstance(obj, Rule):
+            attrs["type"] = "rule"
+            return attrs
         else:
-            raise AssertionError("Invalid rule to serialize: %r" % type(rule))
+            raise AssertionError("Invalid rule to serialize: %r" % type(obj))
 
 
 class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
@@ -94,9 +70,9 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
         cursor_date = datetime.fromtimestamp(float(cursor.value)).replace(tzinfo=timezone.utc)
 
         alert_rule_queryset = (
-            AlertRule.objects.fetch_for_project(project).order_by("-date_added")
-            .filter(date_added__gte=cursor_date)
-            [ :  (page_size+1)]
+            AlertRule.objects.fetch_for_project(project)
+            .order_by("-date_added")
+            .filter(date_added__gte=cursor_date)[: (page_size + 1)]
         )
 
         legacy_rule_queryset = (
@@ -105,11 +81,11 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
             )
             .select_related("project")
             .filter(date_added__gte=cursor_date)
-            .order_by("-date_added")[ :  (page_size+1)]
+            .order_by("-date_added")[: (page_size + 1)]
         )
-        combined_rules = list(alert_rule_queryset)+list(legacy_rule_queryset)
+        combined_rules = list(alert_rule_queryset) + list(legacy_rule_queryset)
         combined_rules.sort(key=lambda instance: (instance.date_added, type(instance)))
-        combined_rules = combined_rules[cursor.offset:cursor.offset+(page_size+1)]
+        combined_rules = combined_rules[cursor.offset : cursor.offset + (page_size + 1)]
 
         def get_item_key(item, for_prev=False):
             value = getattr(item, "date_added")
@@ -117,10 +93,7 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
             return math.floor(value)
 
         cursor_result = build_cursor(
-            results=combined_rules,
-            cursor=cursor,
-            key=get_item_key,
-            limit=page_size,
+            results=combined_rules, cursor=cursor, key=get_item_key, limit=page_size
         )
         results = list(cursor_result)
         context = serialize(results, request.user, CombinedRuleSerializer())
