@@ -45,10 +45,9 @@ class KafkaEventStream(SnubaProtocolEventStream):
         key = six.text_type(project_id)
 
         event_type = get_path(extra_data, 0, "data", "type")
-        topic_config = None
-        if event_type:
-            topic_config = settings.SENTRY_EVENTSTREAM_TOPICS.get(event_type)
-        topic_config = topic_config or settings.SENTRY_EVENTSTREAM_DEFAULT_TOPIC
+        topic_config = settings.SENTRY_EVENTSTREAM_TOPICS.get(
+            event_type, settings.SENTRY_EVENTSTREAM_DEFAULT_TOPIC
+        )
         topic = settings.KAFKA_TOPICS[topic_config]["topic"]
         try:
             self.producer.produce(
@@ -80,9 +79,10 @@ class KafkaEventStream(SnubaProtocolEventStream):
         logger.debug("Starting post-process forwarder...")
 
         topic_config = None
-        if event_type:
-            topic_config = settings.SENTRY_EVENTSTREAM_TOPICS.get(event_type)
-        topic_config = topic_config or settings.SENTRY_EVENTSTREAM_DEFAULT_TOPIC
+
+        topic_config = settings.SENTRY_EVENTSTREAM_TOPICS.get(
+            event_type, settings.SENTRY_EVENTSTREAM_DEFAULT_TOPIC
+        )
         topic_name = settings.KAFKA_TOPICS[topic_config]["topic"]
 
         cluster_name = settings.KAFKA_TOPICS[settings.KAFKA_EVENTS]["cluster"]
