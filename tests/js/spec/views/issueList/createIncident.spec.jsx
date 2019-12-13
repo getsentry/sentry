@@ -60,6 +60,10 @@ describe('IssueList --> Create Incident', function() {
   beforeEach(function() {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/searches/',
       body: [savedSearch],
     });

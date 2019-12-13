@@ -32,6 +32,11 @@ describe('IncidentDetails', function() {
     });
 
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/incidents/123/seen/',
+      method: 'POST',
+    });
+
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/123/suspects/',
       body: [TestStubs.IncidentSuspectCommit()],
     });
@@ -41,6 +46,10 @@ describe('IncidentDetails', function() {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/456/suspects/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/incidents/456/activity/',
       body: [],
     });
     activitiesList = MockApiClient.addMockResponse({
