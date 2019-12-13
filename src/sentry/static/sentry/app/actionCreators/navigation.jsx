@@ -9,7 +9,7 @@ export function navigateTo(to, router) {
   // Check for placeholder params
   const needOrg = to.indexOf(':orgId') > -1;
   const needProject = to.indexOf(':projectId') > -1;
-  const comingFromPojectId = get(router, 'location.query.project');
+  const comingFromProjectId = get(router, 'location.query.project');
 
   if (needOrg || needProject) {
     openModal(
@@ -20,7 +20,7 @@ export function navigateTo(to, router) {
           nextPath={to}
           needOrg={needOrg}
           needProject={needProject}
-          comingFromPojectId={comingFromPojectId}
+          comingFromProjectId={comingFromProjectId}
           onFinish={path => {
             closeModal();
             router.push(path);

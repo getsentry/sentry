@@ -65,7 +65,7 @@ class ContextPickerModal extends React.Component {
      * Id of the project (most likely from the URL)
      * on which the modal was opened
      */
-    comingFromPojectId: PropTypes.string,
+    comingFromProjectId: PropTypes.string,
   };
 
   constructor(props) {
@@ -259,7 +259,7 @@ class ContextPickerModal extends React.Component {
       organizations,
       Header,
       Body,
-      comingFromPojectId,
+      comingFromProjectId,
     } = this.props;
     const {loading} = this.state;
 
@@ -306,7 +306,7 @@ class ContextPickerModal extends React.Component {
               <StyledSelectControl
                 forwardedRef={ref => {
                   this.focusSelector(ref);
-                  this.focusProjectOption(ref, comingFromPojectId, projects);
+                  this.focusProjectOption(ref, comingFromProjectId, projects);
                 }}
                 placeholder="Select a Project"
                 name="project"
