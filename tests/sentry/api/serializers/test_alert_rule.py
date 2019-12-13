@@ -5,7 +5,10 @@ from __future__ import absolute_import
 import six
 
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.alert_rule import DetailedAlertRuleSerializer
+from sentry.api.serializers.models.alert_rule import (
+    DetailedAlertRuleSerializer,
+    CombinedRuleSerializer,
+)
 from sentry.incidents.logic import create_alert_rule, create_alert_rule_trigger
 from sentry.incidents.models import AlertRuleThresholdType
 from sentry.snuba.models import QueryAggregations
@@ -87,3 +90,18 @@ class DetailedAlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         result = serialize([alert_rule, other_alert_rule], serializer=DetailedAlertRuleSerializer())
         assert result[0]["triggers"] == [serialize(trigger)]
         assert result[1]["triggers"] == []
+
+
+class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
+    def test_combined_rules(self):
+        projects = [self.project, self.create_project()]
+        alert_rule = self.create_alert_rule(projects=projects)
+        rule = self.create_alert_rule(projects=projects)
+        other_alert_rule = self.create_alert_rule()
+
+        result = serialize(
+            [alert_rule, rule, other_alert_rule], serializer=CombinedRuleSerializer()
+        )
+        self.assert_alert_rule_serialized(alert_rule, result[0])
+        assert result[1]["id"] == six.text_type(rule.id)
+        self.assert_alert_rule_serialized(other_alert_rule, result[2])

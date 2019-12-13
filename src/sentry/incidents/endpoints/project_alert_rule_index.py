@@ -13,36 +13,10 @@ from sentry import features
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
-from sentry.api.serializers import Serializer, serialize, AlertRuleSerializer
+from sentry.api.serializers import serialize, AlertRuleSerializer, CombinedRuleSerializer
 from sentry.incidents.models import AlertRule
 from sentry.models import Rule, RuleStatus
 from sentry.utils.cursors import build_cursor, Cursor
-
-
-class CombinedRuleSerializer(Serializer):
-    def get_attrs(self, item_list, user, **kwargs):
-        results = super(CombinedRuleSerializer, self).get_attrs(item_list, user)
-
-        # alert_rules = serialize([x for x in item_list if isinstance(x, AlertRule)], user=user)
-        # rules = serialize([x for x in item_list if isinstance(x, Rule)], user=user)
-        # serialized_rules = alert_rules + rules
-        # for rule, serialized_dict in zip(item_list, serialized_rules):
-        #     results[rule] = serialized_dict
-
-        for item in item_list:
-            results[item] = serialize(item, user=user)
-
-        return results
-
-    def serialize(self, obj, attrs, user, **kwargs):
-        if isinstance(obj, AlertRule):
-            attrs["type"] = "alert_rule"
-            return attrs
-        elif isinstance(obj, Rule):
-            attrs["type"] = "rule"
-            return attrs
-        else:
-            raise AssertionError("Invalid rule to serialize: %r" % type(obj))
 
 
 class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
@@ -64,8 +38,8 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
 
         alert_rule_queryset = (
             AlertRule.objects.fetch_for_project(project)
-            .order_by("-date_added")
-            .filter(date_added__gte=cursor_date)[: (page_size + 1)]
+            .filter(date_added__gte=cursor_date)
+            .order_by("-date_added")[: page_size + 1]
         )
 
         legacy_rule_queryset = (
@@ -78,7 +52,7 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
         )
         combined_rules = list(alert_rule_queryset) + list(legacy_rule_queryset)
         combined_rules.sort(key=lambda instance: (instance.date_added, type(instance)))
-        combined_rules = combined_rules[cursor.offset : cursor.offset + (page_size + 1)]
+        combined_rules = combined_rules[cursor.offset : cursor.offset + page_size + 1]
 
         def get_item_key(item, for_prev=False):
             value = getattr(item, "date_added")
