@@ -450,7 +450,6 @@
         },
         {
           "stacktrace": {
-          "stacktrace": {
             "frames": [
               {
                 "function": "run",
