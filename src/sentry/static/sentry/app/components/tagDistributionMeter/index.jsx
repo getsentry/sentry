@@ -61,7 +61,7 @@ export default class TagDistributionMeter extends React.Component {
 
           const tooltipHtml = (
             <React.Fragment>
-              <div className="truncate">{value.name}</div>
+              <div className="truncate">{value.name || t('n/a')}</div>
               {pctLabel}%
             </React.Fragment>
           );
@@ -81,7 +81,7 @@ export default class TagDistributionMeter extends React.Component {
                 >
                   <Description first={index === 0}>
                     <Percentage>{pctLabel}%</Percentage>
-                    <Label>{value.name}</Label>
+                    <Label>{value.name || t('n/a')}</Label>
                   </Description>
                 </Segment>
               </Tooltip>
