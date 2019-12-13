@@ -26,6 +26,12 @@ const CongratsRobots = React.lazy(() =>
   import(/* webpackChunkName: "CongratsRobots" */ 'app/views/issueList/congratsRobots')
 );
 
+/**
+ * Component which is rendered when no groups/issues were found. This could
+ * either be caused by having no first events, having resolved all issues, or
+ * having no issues be returned from a query. This component will conditionally
+ * render one of those states.
+ */
 class NoGroupsHandler extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
