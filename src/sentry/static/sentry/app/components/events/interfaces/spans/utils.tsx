@@ -1,4 +1,6 @@
 import isString from 'lodash/isString';
+import moment from 'moment';
+
 import CHART_PALETTE from 'app/constants/chartPalette';
 import {ParsedTraceType, SpanType} from './types';
 
@@ -313,4 +315,25 @@ export function generateRootSpan(trace: ParsedTraceType): SpanType {
   };
 
   return rootSpan;
+}
+
+// start and end are assumed to be unix timestamps with fractional seconds
+export function getTraceDateTimeRange(input: {
+  start: number;
+  end: number;
+}): {start: string; end: string} {
+  const start = moment
+    .unix(input.start)
+    .subtract(12, 'hours')
+    .format('YYYY-MM-DDTHH:mm:ss.SSS');
+
+  const end = moment
+    .unix(input.end)
+    .add(12, 'hours')
+    .format('YYYY-MM-DDTHH:mm:ss.SSS');
+
+  return {
+    start,
+    end,
+  };
 }
