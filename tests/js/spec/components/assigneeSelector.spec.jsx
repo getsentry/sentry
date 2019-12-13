@@ -101,7 +101,6 @@ describe('AssigneeSelector', function() {
 
       assigneeSelector.update();
       expect(assigneeSelector.find('LoadingIndicator')).toHaveLength(0);
-      expect(assigneeSelector.find('Avatar')).toHaveLength(3);
       expect(assigneeSelector.find('UserAvatar')).toHaveLength(2);
       expect(assigneeSelector.find('TeamAvatar')).toHaveLength(1);
 
@@ -147,7 +146,6 @@ describe('AssigneeSelector', function() {
     expect(assigneeSelector.instance().assignableTeams()).toHaveLength(1);
 
     expect(assigneeSelector.find('LoadingIndicator')).toHaveLength(0);
-    expect(assigneeSelector.find('Avatar')).toHaveLength(3);
     expect(assigneeSelector.find('UserAvatar')).toHaveLength(2);
     expect(assigneeSelector.find('TeamAvatar')).toHaveLength(1);
   });
@@ -157,13 +155,13 @@ describe('AssigneeSelector', function() {
     MemberListStore.loadInitialData([USER_1, USER_2]);
     assigneeSelector.update();
 
-    expect(assigneeSelector.find('Avatar')).toHaveLength(3);
+    expect(assigneeSelector.find('UserAvatar')).toHaveLength(2);
     expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
 
     MemberListStore.loadInitialData([USER_1, USER_2, USER_3]);
     assigneeSelector.update();
 
-    expect(assigneeSelector.find('Avatar')).toHaveLength(3);
+    expect(assigneeSelector.find('UserAvatar')).toHaveLength(2);
     expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
   });
 
@@ -232,7 +230,7 @@ describe('AssigneeSelector', function() {
     // Assign first item in list, which is TEAM_1
     assigneeSelector.update();
     assigneeSelector
-      .find('Avatar')
+      .find('TeamAvatar')
       .first()
       .simulate('click');
     assigneeSelector.update();
@@ -289,8 +287,8 @@ describe('AssigneeSelector', function() {
       .find('StyledInput')
       .simulate('change', {target: {value: 'JohnSmith@example.com'}});
 
-    expect(assigneeSelector.find('Avatar')).toHaveLength(1);
-    expect(assigneeSelector.find('Avatar').prop('user')).toEqual(USER_2);
+    expect(assigneeSelector.find('UserAvatar')).toHaveLength(1);
+    expect(assigneeSelector.find('UserAvatar').prop('user')).toEqual(USER_2);
 
     assigneeSelector.find('StyledInput').simulate('keyDown', {key: 'Enter'});
     assigneeSelector.update();
