@@ -592,3 +592,23 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.data["meta"]["transaction.duration"] == "duration"
         assert response.data["meta"]["transaction.status"] == "string"
         assert response.data["data"][0]["transaction.status"] == "ok"
+
+    def test_trace_columns(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        data = load_data("transaction")
+        data["timestamp"] = iso_format(before_now(minutes=1))
+        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+        self.store_event(data=data, project_id=project.id)
+
+        with self.feature("organizations:events-v2"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={"field": ["trace"], "query": "event.type:transaction"},
+            )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["meta"]["trace"] == "string"
+        assert response.data["data"][0]["trace"] == data["contexts"]["trace"]["trace_id"]
