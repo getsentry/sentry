@@ -40,7 +40,7 @@ def _get_test_message(project):
     em.normalize()
     normalized_event = dict(em.get_data())
     message = {
-        "ty": (0, ()),
+        "type": "event",
         "start_time": time.time(),
         "event_id": event_id,
         "project_id": int(project_id),

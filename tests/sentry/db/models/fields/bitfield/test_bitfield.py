@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import pickle
 import six
 
+from django import forms
 from django.db import connection, models
 from django.db.models import F
 from django.test import TestCase
@@ -10,8 +11,20 @@ from django.test import TestCase
 from bitfield import Bit, BitField, BitHandler
 from bitfield.compat import bitand, bitor
 
-from .forms import BitFieldTestModelForm
-from .models import BitFieldTestModel
+
+class BitFieldTestModel(models.Model):
+    class Meta:
+        app_label = "sentry"
+
+    flags = BitField(
+        flags=("FLAG_0", "FLAG_1", "FLAG_2", "FLAG_3"), default=3, db_column="another_name"
+    )
+
+
+class BitFieldTestModelForm(forms.ModelForm):
+    class Meta:
+        model = BitFieldTestModel
+        exclude = tuple()
 
 
 class BitHandlerTest(TestCase):
@@ -176,17 +189,28 @@ class BitFieldTest(TestCase):
 
     def test_select(self):
         BitFieldTestModel.objects.create(flags=3)
+        # This F().bitor style of lookup is used extensively throughout sentry/getsentry.
+        # If this test breaks, then that most likely means our custom lookup doesn't work
+        # with sentry/getsentry code.
         self.assertTrue(
-            BitFieldTestModel.objects.filter(flags=BitFieldTestModel.flags.FLAG_1).exists()
+            BitFieldTestModel.objects.filter(
+                flags=F("flags").bitor(BitFieldTestModel.flags.FLAG_1)
+            ).exists()
         )
         self.assertTrue(
-            BitFieldTestModel.objects.filter(flags=BitFieldTestModel.flags.FLAG_0).exists()
+            BitFieldTestModel.objects.filter(
+                flags=F("flags").bitor(BitFieldTestModel.flags.FLAG_0)
+            ).exists()
         )
         self.assertFalse(
-            BitFieldTestModel.objects.exclude(flags=BitFieldTestModel.flags.FLAG_0).exists()
+            BitFieldTestModel.objects.exclude(
+                flags=F("flags").bitor(BitFieldTestModel.flags.FLAG_0)
+            ).exists()
         )
         self.assertFalse(
-            BitFieldTestModel.objects.exclude(flags=BitFieldTestModel.flags.FLAG_1).exists()
+            BitFieldTestModel.objects.exclude(
+                flags=F("flags").bitor(BitFieldTestModel.flags.FLAG_1)
+            ).exists()
         )
 
     def test_update(self):
@@ -209,7 +233,9 @@ class BitFieldTest(TestCase):
         self.assertTrue(instance.flags.FLAG_1)
         self.assertTrue(instance.flags.FLAG_3)
         self.assertFalse(
-            BitFieldTestModel.objects.filter(flags=BitFieldTestModel.flags.FLAG_0).exists()
+            BitFieldTestModel.objects.filter(
+                flags=F("flags").bitor(BitFieldTestModel.flags.FLAG_0)
+            ).exists()
         )
 
         BitFieldTestModel.objects.filter(pk=instance.pk).update(
@@ -237,14 +263,26 @@ class BitFieldTest(TestCase):
             flags=BitFieldTestModel.flags.FLAG_0 | BitFieldTestModel.flags.FLAG_1
         )
         BitFieldTestModel.objects.create(flags=BitFieldTestModel.flags.FLAG_1)
+        # This F().bitand style of lookup is used extensively throughout sentry/getsentry.
+        # If this test breaks, then that most likely means our custom lookup doesn't work
+        # with sentry/getsentry code.
         self.assertEqual(
-            BitFieldTestModel.objects.filter(flags=~BitFieldTestModel.flags.FLAG_0).count(), 1
+            BitFieldTestModel.objects.filter(
+                flags=F("flags").bitand(~BitFieldTestModel.flags.FLAG_0)
+            ).count(),
+            1,
         )
         self.assertEqual(
-            BitFieldTestModel.objects.filter(flags=~BitFieldTestModel.flags.FLAG_1).count(), 0
+            BitFieldTestModel.objects.filter(
+                flags=F("flags").bitand(~BitFieldTestModel.flags.FLAG_1)
+            ).count(),
+            0,
         )
         self.assertEqual(
-            BitFieldTestModel.objects.filter(flags=~BitFieldTestModel.flags.FLAG_2).count(), 2
+            BitFieldTestModel.objects.filter(
+                flags=F("flags").bitand(~BitFieldTestModel.flags.FLAG_2)
+            ).count(),
+            2,
         )
 
     def test_default_value(self):

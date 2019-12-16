@@ -36,6 +36,7 @@ export type SavedTrigger = UnsavedTrigger & {
 export type Trigger = Partial<SavedTrigger> & UnsavedTrigger;
 
 export type UnsavedIncidentRule = {
+  aggregation: AlertRuleAggregations;
   aggregations: AlertRuleAggregations[];
   projects: string[];
   query: string;
@@ -91,7 +92,7 @@ export type Action = {
   id?: string;
   type: ActionType;
 
-  targetType: TargetType;
+  targetType: TargetType | null;
 
   // How to identify the target. Can be email, slack channel, pagerduty service, user_id, team_id, etc
   targetIdentifier: string | null;

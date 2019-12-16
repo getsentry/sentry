@@ -141,44 +141,42 @@ class Results extends React.Component<Props, State> {
               location={location}
               eventView={eventView}
             />
-            <div>
-              <ContentBox>
-                <Top>
-                  <StyledSearchBar
-                    organization={organization}
-                    projectIds={eventView.project}
-                    query={query}
-                    onSearch={this.handleSearch}
-                  />
-                  <Panel>
-                    {getDynamicText({
-                      value: (
-                        <EventsChart
-                          router={router}
-                          query={eventView.getEventsAPIPayload(location).query}
-                          organization={organization}
-                          showLegend
-                          yAxisOptions={yAxisOptions}
-                          yAxisValue={eventView.yAxis}
-                          onYAxisChange={this.handleYAxisChange}
-                          project={eventView.project as number[]}
-                          environment={eventView.environment as string[]}
-                        />
-                      ),
-                      fixed: 'events chart',
-                    })}
-                  </Panel>
-                </Top>
-                <Main eventView={eventView}>
-                  <Table
-                    organization={organization}
-                    eventView={eventView}
-                    location={location}
-                  />
-                </Main>
-                <Side eventView={eventView}>{this.renderTagsTable()}</Side>
-              </ContentBox>
-            </div>
+            <ContentBox>
+              <Top>
+                <StyledSearchBar
+                  organization={organization}
+                  projectIds={eventView.project}
+                  query={query}
+                  onSearch={this.handleSearch}
+                />
+                <StyledPanel>
+                  {getDynamicText({
+                    value: (
+                      <EventsChart
+                        router={router}
+                        query={eventView.getEventsAPIPayload(location).query}
+                        organization={organization}
+                        showLegend
+                        yAxisOptions={yAxisOptions}
+                        yAxisValue={eventView.yAxis}
+                        onYAxisChange={this.handleYAxisChange}
+                        project={eventView.project as number[]}
+                        environment={eventView.environment as string[]}
+                      />
+                    ),
+                    fixed: 'events chart',
+                  })}
+                </StyledPanel>
+              </Top>
+              <Main eventView={eventView}>
+                <Table
+                  organization={organization}
+                  eventView={eventView}
+                  location={location}
+                />
+              </Main>
+              <Side eventView={eventView}>{this.renderTagsTable()}</Side>
+            </ContentBox>
           </NoProjectMessage>
         </React.Fragment>
       </SentryDocumentTitle>
@@ -188,6 +186,12 @@ class Results extends React.Component<Props, State> {
 
 const StyledSearchBar = styled(SearchBar)`
   margin-bottom: ${space(2)};
+`;
+
+const StyledPanel = styled(Panel)`
+  .echarts-for-react div:first-child {
+    width: 100% !important;
+  }
 `;
 
 const Top = styled('div')`
@@ -200,7 +204,8 @@ const Main = styled('div')<{eventView: EventView}>`
 `;
 
 const Side = styled('div')<{eventView: EventView}>`
-  grid-column: ${p => (p.eventView.tags.length <= 0 ? 'none' : '2/3')};
+  display: ${p => (p.eventView.tags.length <= 0 ? 'none' : 'initial')};
+  grid-column: 2/3;
 `;
 
 const ContentBox = styled(PageContent)`
@@ -214,8 +219,12 @@ const ContentBox = styled(PageContent)`
   }
 
   @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-columns: auto 350px;
+    grid-template-columns: auto 325px;
   }
 `;
+
+export function generateDiscoverResultsRoute(orgSlug: string): string {
+  return `/organizations/${orgSlug}/eventsv2/results/`;
+}
 
 export default withOrganization(Results);

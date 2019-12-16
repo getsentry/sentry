@@ -31,6 +31,13 @@ describe('DiscoverContainer', function() {
           meta: [],
         },
       });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/projects',
+        method: 'GET',
+        body: {
+          data: organization.projects,
+        },
+      });
       wrapper = mountWithTheme(
         <DiscoverContainer
           location={{query: {}, search: ''}}
@@ -101,8 +108,8 @@ describe('DiscoverContainer', function() {
         TestStubs.DiscoverSavedQuery({
           id: '2',
           name: 'two',
-          start: '2019-04-01T07:00:00.000Z',
-          end: '2019-04-04T06:59:59.000Z',
+          start: '2019-04-01T07:00:00.000',
+          end: '2019-04-04T06:59:59.000',
         }),
       ];
 
@@ -196,8 +203,8 @@ describe('DiscoverContainer', function() {
             data: {
               aggregations: [],
               conditions: [],
-              start: '2019-04-01T07:00:00.000Z',
-              end: '2019-04-04T06:59:59.000Z',
+              start: '2019-04-01T07:00:00.000',
+              end: '2019-04-04T06:59:59.000',
               fields: ['test'],
               limit: expect.any(Number),
               orderby: expect.any(String),
@@ -232,7 +239,7 @@ describe('DiscoverContainer', function() {
         expect.anything(),
         expect.objectContaining({
           data: expect.objectContaining({
-            range: '7d',
+            range: '14d',
             start: null,
             end: null,
             utc: null,

@@ -65,6 +65,35 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
         self.assertDialogSuccess(resp)
         return resp
 
+    def assert_add_service_flow(self, integration):
+        query_param = "?account=%s" % (integration.metadata["domain_name"])
+        init_path_with_account = "%s%s" % (self.init_path, query_param)
+        resp = self.client.get(init_path_with_account)
+        assert resp.status_code == 302
+        redirect = urlparse(resp["Location"])
+        assert redirect.scheme == "https"
+        assert redirect.netloc == "%s.pagerduty.com" % integration.metadata["domain_name"]
+        assert redirect.path == "/install/integration"
+
+        config = {
+            "integration_keys": [
+                {
+                    "integration_key": "additional-service",
+                    "name": "Additional Service",
+                    "id": "PD123467",
+                    "type": "service",
+                }
+            ],
+            "account": {"subdomain": "test-app", "name": "Test App"},
+        }
+
+        resp = self.client.get(
+            u"{}?{}".format(self.setup_path, urlencode({"config": json.dumps(config)}))
+        )
+
+        self.assertDialogSuccess(resp)
+        return resp
+
     @responses.activate
     def test_basic_flow(self):
         with self.tasks():
@@ -86,6 +115,32 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
             integration=integration, organization=self.organization
         )
         assert oi.config == {}
+
+    @responses.activate
+    def test_add_services_flow(self):
+        with self.tasks():
+            self.assert_setup_flow()
+
+        integration = Integration.objects.get(provider=self.provider.key)
+        service = PagerDutyService.objects.get(
+            organization_integration=OrganizationIntegration.objects.get(
+                integration=integration, organization=self.organization
+            )
+        )
+
+        url = "https://%s.pagerduty.com" % (integration.metadata["domain_name"])
+        responses.add(
+            responses.GET,
+            url
+            + "/install/integration?app_id=%sredirect_url=%s&version=1"
+            % (self.app_id, self.setup_path),
+        )
+
+        with self.tasks():
+            self.assert_add_service_flow(integration)
+
+        assert PagerDutyService.objects.filter(id=service.id).exists()
+        assert PagerDutyService.objects.filter(service_name="Additional Service").exists()
 
     @responses.activate
     def test_update_organization_config(self):

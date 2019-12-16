@@ -1,9 +1,11 @@
 from __future__ import absolute_import
 
+import six
+
 from django.db.models.fields import BigIntegerField, Field
 
 from bitfield.forms import BitFormField
-from bitfield.query import BitQueryLookupWrapper
+from bitfield.query import BitQueryExactLookupStub
 from bitfield.types import Bit, BitHandler
 
 # Count binary capacity. Truncate "0b" prefix from binary form.
@@ -133,31 +135,32 @@ class BitField(BigIntegerField):
         return int(value)
 
     def get_db_prep_lookup(self, lookup_type, value, connection, prepared=False):
-        if isinstance(getattr(value, "expression", None), Bit):
-            value = value.expression
         if isinstance(value, (BitHandler, Bit)):
-            if hasattr(self, "class_lookups"):
-                # Django 1.7+
-                return [value.mask]
-            else:
-                return BitQueryLookupWrapper(
-                    self.model._meta.db_table, self.db_column or self.name, value
-                )
+            raise NotImplementedError("get_db_prep_lookup not supported with types Bit, BitHandler")
+
         return BigIntegerField.get_db_prep_lookup(
             self, lookup_type=lookup_type, value=value, connection=connection, prepared=prepared
         )
 
     def get_prep_lookup(self, lookup_type, value):
-        if isinstance(getattr(value, "expression", None), Bit):
-            value = value.expression
         if isinstance(value, Bit):
-            raise TypeError("Lookup type %r not supported with `Bit` type." % lookup_type)
+            raise NotImplementedError("Lookup type %r not supported with Bit type." % lookup_type)
+
         return BigIntegerField.get_prep_lookup(self, lookup_type, value)
 
     def to_python(self, value):
         if isinstance(value, Bit):
             value = value.mask
         if not isinstance(value, BitHandler):
+            # Regression for #1425: fix bad data that was created resulting
+            # in negative values for flags.  Compute the value that would
+            # have been visible ot the application to preserve compatibility.
+            if isinstance(value, six.integer_types) and value < 0:
+                new_value = 0
+                for bit_number, _ in enumerate(self.flags):
+                    new_value |= value & (2 ** bit_number)
+                value = new_value
+
             value = BitHandler(value, self.flags, self.labels)
         else:
             # Ensure flags are consistent for unpickling
@@ -170,7 +173,4 @@ class BitField(BigIntegerField):
         return name, path, args, kwargs
 
 
-try:
-    BitField.register_lookup(BitQueryLookupWrapper)
-except AttributeError:
-    pass
+BitField.register_lookup(BitQueryExactLookupStub)

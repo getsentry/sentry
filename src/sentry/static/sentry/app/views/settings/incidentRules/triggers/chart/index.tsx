@@ -13,8 +13,8 @@ import LoadingMask from 'app/components/loadingMask';
 import Placeholder from 'app/components/placeholder';
 import space from 'app/styles/space';
 
-import {AlertRuleAggregations, IncidentRule, TimeWindow} from '../../types';
-import DraggableChart from './draggableChart';
+import {AlertRuleAggregations, IncidentRule, TimeWindow, Trigger} from '../../types';
+import ThresholdsChart from './thresholdsChart';
 
 type Props = {
   api: Client;
@@ -24,15 +24,14 @@ type Props = {
 
   query: IncidentRule['query'];
   timeWindow: IncidentRule['timeWindow'];
-  aggregations: IncidentRule['aggregations'];
-
-  isInverted?: boolean;
-  alertThreshold?: number | null;
-  resolveThreshold?: number | null;
-  onChangeIncidentThreshold?: (alertThreshold: number) => void;
-  onChangeResolutionThreshold?: (resolveThreshold: number) => void;
+  aggregation: IncidentRule['aggregation'];
+  triggers: Trigger[];
 };
 
+/**
+ * This is a chart to be used in Metric Alert rules that fetches events based on
+ * query, timewindow, and aggregations.
+ */
 class TriggersChart extends React.PureComponent<Props> {
   render() {
     const {
@@ -40,12 +39,10 @@ class TriggersChart extends React.PureComponent<Props> {
       config,
       organization,
       projects,
-      alertThreshold,
-      resolveThreshold,
-      isInverted,
       timeWindow,
       query,
-      aggregations,
+      aggregation,
+      triggers,
     } = this.props;
 
     return (
@@ -56,9 +53,7 @@ class TriggersChart extends React.PureComponent<Props> {
         project={projects.map(({id}) => Number(id))}
         interval={`${timeWindow}s`}
         period={getPeriodForTimeWindow(timeWindow)}
-        yAxis={
-          aggregations[0] === AlertRuleAggregations.TOTAL ? 'event_count' : 'user_count'
-        }
+        yAxis={aggregation === AlertRuleAggregations.TOTAL ? 'event_count' : 'user_count'}
         includePrevious={false}
       >
         {({loading, reloading, timeseriesData}) => {
@@ -75,7 +70,7 @@ class TriggersChart extends React.PureComponent<Props> {
                 ) : (
                   <React.Fragment>
                     <TransparentLoadingMask visible={reloading} />
-                    <DraggableChart
+                    <ThresholdsChart
                       xAxis={{
                         axisLabel: {
                           formatter: (value: moment.MomentInput, index: number) => {
@@ -91,12 +86,8 @@ class TriggersChart extends React.PureComponent<Props> {
                         },
                       }}
                       maxValue={maxValue ? maxValue.value : maxValue}
-                      onChangeIncidentThreshold={this.props.onChangeIncidentThreshold}
-                      alertThreshold={alertThreshold}
-                      onChangeResolutionThreshold={this.props.onChangeResolutionThreshold}
-                      resolveThreshold={resolveThreshold}
-                      isInverted={isInverted}
                       data={timeseriesData}
+                      triggers={triggers}
                     />
                   </React.Fragment>
                 )}

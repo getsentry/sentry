@@ -1,5 +1,8 @@
 import isString from 'lodash/isString';
+import moment from 'moment';
+
 import CHART_PALETTE from 'app/constants/chartPalette';
+import {ParsedTraceType, SpanType} from './types';
 
 type Rect = {
   // x and y are left/top coords respectively
@@ -299,3 +302,38 @@ export const setBodyUserSelect = (nextValues: UserSelectValues): UserSelectValue
 
   return previousValues;
 };
+
+export function generateRootSpan(trace: ParsedTraceType): SpanType {
+  const rootSpan: SpanType = {
+    trace_id: trace.traceID,
+    span_id: trace.rootSpanID,
+    parent_span_id: trace.parentSpanID,
+    start_timestamp: trace.traceStartTimestamp,
+    timestamp: trace.traceEndTimestamp,
+    op: trace.op,
+    data: {},
+  };
+
+  return rootSpan;
+}
+
+// start and end are assumed to be unix timestamps with fractional seconds
+export function getTraceDateTimeRange(input: {
+  start: number;
+  end: number;
+}): {start: string; end: string} {
+  const start = moment
+    .unix(input.start)
+    .subtract(12, 'hours')
+    .format('YYYY-MM-DDTHH:mm:ss.SSS');
+
+  const end = moment
+    .unix(input.end)
+    .add(12, 'hours')
+    .format('YYYY-MM-DDTHH:mm:ss.SSS');
+
+  return {
+    start,
+    end,
+  };
+}

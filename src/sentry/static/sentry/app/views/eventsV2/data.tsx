@@ -10,7 +10,7 @@ import ProjectBadge from 'app/components/idBadge/projectBadge';
 import UserBadge from 'app/components/idBadge/userBadge';
 import getDynamicText from 'app/utils/getDynamicText';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import pinIcon from 'app/../images/location-pin.png';
+import pinIcon from 'app/../images/icons/icon-location-filled.svg';
 import {Organization, NewQuery} from 'app/types';
 import Duration from 'app/components/duration';
 import floatFormat from 'app/utils/floatFormat';
@@ -258,7 +258,7 @@ const eventLink = (
 ): React.ReactNode => {
   const eventSlug = generateEventSlug(data);
   const pathname = generateEventDetailsRoute({
-    organization,
+    orgSlug: organization.slug,
     eventSlug,
   });
 
@@ -362,7 +362,7 @@ export const SPECIAL_FIELDS: SpecialFields = {
     renderFunc: (data, {location, organization}) => {
       const eventSlug = generateEventSlug(data);
       const pathname = generateEventDetailsRoute({
-        organization,
+        orgSlug: organization.slug,
         eventSlug,
       });
 
@@ -384,7 +384,7 @@ export const SPECIAL_FIELDS: SpecialFields = {
     renderFunc: (data, {location, organization}) => {
       const eventSlug = generateEventSlug(data);
       const pathname = generateEventDetailsRoute({
-        organization,
+        orgSlug: organization.slug,
         eventSlug,
       });
 
