@@ -27,7 +27,6 @@ type GridEditableProps = {
 
 export const Header = styled('div')`
   display: flex;
-  /* flex-direction: ; */
   justify-content: space-between;
   align-items: center;
 

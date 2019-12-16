@@ -187,26 +187,20 @@ class GridEditable<
       return null;
     }
 
-    const sorryMessage = t('This will be improved soon! Please bear with us!');
-
     if (!this.state.isEditing) {
       return (
-        <ToolTip title={sorryMessage}>
-          <HeaderButton onClick={this.toggleEdit}>
-            <InlineSvg src="icon-edit-pencil" />
-            Edit Columns
-          </HeaderButton>
-        </ToolTip>
+        <HeaderButton onClick={this.toggleEdit}>
+          <InlineSvg src="icon-edit-pencil" />
+          {t('Edit Columns')}
+        </HeaderButton>
       );
     }
 
     return (
-      <ToolTip title={sorryMessage}>
-        <HeaderButton onClick={this.toggleEdit}>
-          <InlineSvg src="icon-circle-close" />
-          Exit Edit
-        </HeaderButton>
-      </ToolTip>
+      <HeaderButton onClick={this.toggleEdit}>
+        <InlineSvg src="icon-circle-close" />
+        {t('Exit Edit')}
+      </HeaderButton>
     );
   };
 
@@ -332,7 +326,7 @@ class GridEditable<
         <Header>
           {/* TODO(leedongwei): Check with Bowen/Dora on what they want the
           default title to be */}
-          <HeaderTitle>{title || 'Query Builder'}</HeaderTitle>
+          <HeaderTitle>{title || t('Query Builder')}</HeaderTitle>
 
           {/* TODO(leedongwei): This is ugly but I need to move it to work on
           resizing columns. It will be refactored in a upcoming PR */}
