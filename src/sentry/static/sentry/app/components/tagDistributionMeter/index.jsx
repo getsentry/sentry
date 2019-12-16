@@ -45,7 +45,7 @@ export default class TagDistributionMeter extends React.Component {
     const pct = percent(value.count, totalValues);
     const pctLabel = Math.floor(pct);
 
-    if(!Array.isArray(segments) || segments.length <=0) {
+    if (!Array.isArray(segments) || segments.length <= 0) {
       return null;
     }
 
@@ -53,13 +53,13 @@ export default class TagDistributionMeter extends React.Component {
 
     return (
       <Title>
-        <TitleType>{title}</TitleType>
+        <TitleType>{segment.title}</TitleType>
         <TitleDescription>
-          <Label>{value.name}</Label>
-          <Percent>{pctLabel}%</Percent>
+          <Label>{segment.value.name}</Label>
+          <Percent>{segment.pctLabel}%</Percent>
         </TitleDescription>
       </Title>
-    )
+    );
   }
 
   renderSegments() {
