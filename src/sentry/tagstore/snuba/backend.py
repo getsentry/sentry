@@ -591,7 +591,9 @@ class SnubaTagStorage(TagStorage):
             snuba_key = "tags[%s]" % (key,)
 
         if key in SearchVisitor.numeric_keys:
-            if query:
+            if query is not None and key in SearchVisitor.boolean_keys:
+                query = SearchVisitor.convert_boolean_text(query)
+            if query is not None:
                 conditions.append([snuba_key, ">=", int(query) - 50])
                 conditions.append([snuba_key, "<=", int(query) + 50])
             else:

@@ -110,7 +110,7 @@ specific_time_filter = search_key sep date_format
 # Numeric comparison filter
 numeric_filter       = search_key sep operator? ~r"[0-9]+(?=\s|$)"
 # filter for boolean values
-boolean_filter       = search_key sep boolean_value
+boolean_filter       = negation? search_key sep boolean_value
 
 # has filter for not null type checks
 has_filter           = negation? "has" sep (search_key / search_value)
@@ -232,7 +232,7 @@ class SearchVisitor(NodeVisitor):
             # so they can be used in conditions
         ]
     )
-    boolean_keys = set(["error.handled"])
+    boolean_keys = set(["error.handled", "device.online", "stack.in_app"])
     date_keys = set(
         [
             "start",
@@ -347,12 +347,17 @@ class SearchVisitor(NodeVisitor):
 
         return self.flatten(children[1])
 
+    @staticmethod
+    def convert_boolean_text(search_text):
+        return {"true": 1, "false": 0}.get(search_text.lower())
+
     def visit_boolean_filter(self, node, children):
-        (search_key, _, search_value) = children
+        (negation, search_key, _, search_value) = children
 
         if search_key.name in self.boolean_keys:
-            search_value = SearchValue({"true": 1, "false": 0}.get(search_value.text.lower()))
-            return SearchFilter(search_key, "=", search_value)
+            search_value = SearchVisitor.convert_boolean_text(search_value.text)
+            search_value = 1 - search_value if self.is_negated(negation) else search_value
+            return SearchFilter(search_key, "=", SearchValue(search_value))
         else:
             return self._handle_basic_filter(search_key, "=", SearchValue(search_value.text))
 
