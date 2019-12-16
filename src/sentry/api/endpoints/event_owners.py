@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import six
 from rest_framework.response import Response
 
 from sentry import eventstore
@@ -7,7 +8,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.fields.actor import Actor
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer
-from sentry.models import ProjectOwnership
+from sentry.models import ProjectOwnership, Team
 
 
 class EventOwnersEndpoint(ProjectEndpoint):
@@ -35,9 +36,19 @@ class EventOwnersEndpoint(ProjectEndpoint):
         if owners == ProjectOwnership.Everyone:
             owners = []
 
+        serialized_owners = serialize(Actor.resolve_many(owners), request.user, ActorSerializer())
+
+        # Make sure the serialized owners are in the correct order
+        ordered_owners = []
+        owner_by_id = {(o["id"], o["type"]): o for o in serialized_owners}
+        for o in owners:
+            key = (six.text_type(o.id), "team" if o.type == Team else "user")
+            if owner_by_id.get(key):
+                ordered_owners.append(owner_by_id[key])
+
         return Response(
             {
-                "owners": serialize(Actor.resolve_many(owners), request.user, ActorSerializer()),
+                "owners": ordered_owners,
                 # TODO(mattrobenolt): We need to change the API here to return
                 # all rules, just keeping this way currently for API compat
                 "rule": rules[0].matcher if rules else None,
