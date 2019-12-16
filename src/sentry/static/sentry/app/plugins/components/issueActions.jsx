@@ -86,9 +86,8 @@ class IssueActions extends PluginComponentBase {
     this.setState({dependentFieldState});
   }
 
-  async searchDependentField(action, field) {
-    const key = action + 'FormData';
-    const formData = this.state[key];
+  searchDependentField = async field => {
+    const formData = this.getFormData();
 
     const url =
       '/issues/' +
@@ -106,18 +105,20 @@ class IssueActions extends PluginComponentBase {
     try {
       this.setDependentFieldState(field.name, FormState.LOADING);
       const result = await this.api.requestPromise(url, {query});
-      this.updateOptions(action, field, result[field.name]);
+      this.updateOptionsOfDependentField(field, result[field.name]);
       this.setDependentFieldState(field.name, FormState.READY);
-      this.setState({dependentFieldState: {[field.name]: FormState.READY}});
     } catch (err) {
       this.setDependentFieldState(field.name, FormState.ERROR);
       this.errorHandler(err);
     }
-  }
+  };
 
-  updateOptions(action, field, choices) {
-    const key = action + 'FieldList';
-    let fieldList = this.state[key];
+  updateOptionsOfDependentField = (field, choices) => {
+    const formDataKey = this.props.actionType + 'FormData';
+    const formListKey = this.props.actionType + 'FieldList';
+
+    let formData = this.state[formDataKey];
+    let fieldList = this.state[formListKey];
     const indexOfField = fieldList.findIndex(({name}) => name === field.name);
 
     field = {...field, choices};
@@ -125,8 +126,14 @@ class IssueActions extends PluginComponentBase {
     //make a copy of the array to avoid mutation
     fieldList = fieldList.slice();
     fieldList[indexOfField] = field;
-    this.setState({[key]: fieldList});
-  }
+
+    //unset value
+    formData = {...formData};
+    formData[field.name] = '';
+
+    this.setState({[formListKey]: fieldList, [formDataKey]: formData});
+    this.setDependentFieldState(field.name, FormState.DISABLED);
+  };
 
   getInputProps(field) {
     const props = {};
@@ -175,7 +182,7 @@ class IssueActions extends PluginComponentBase {
   onLoadSuccess(...args) {
     super.onLoadSuccess(...args);
 
-    //dependant fields need to be set to disabled upl loading
+    //dependent fields need to be set to disabled upl loading
     const fieldList = this.getFieldList();
     fieldList.forEach(field => {
       if (field.depends && field.depends.length > 0) {
@@ -265,14 +272,14 @@ class IssueActions extends PluginComponentBase {
 
   changeField(action, name, value) {
     const formDataKey = action + 'FormData';
-    const fieldListKey = action + 'FieldList';
 
     //copy so we don't mutate
     const formData = {...this.state[formDataKey]};
-    const fieldList = this.state[fieldListKey];
+    const fieldList = this.getFieldList();
 
     formData[name] = value;
-    this.setState({[formDataKey]: formData});
+
+    let callback = () => {};
 
     //only works with one impacted field
     const impactedField = fieldList.find(({depends}) => {
@@ -286,12 +293,14 @@ class IssueActions extends PluginComponentBase {
     if (impactedField) {
       //if every dependent field is set, then search
       if (!impactedField.depends.some(dependentField => !formData[dependentField])) {
-        this.searchDependentField(action, impactedField);
+        callback = () => this.searchDependentField(impactedField);
       } else {
         //otherwise reset the options
-        this.updateOptions(action, impactedField, []);
+        callback = () => this.updateOptionsOfDependentField(impactedField, []);
       }
     }
+
+    this.setState({[formDataKey]: formData}, callback);
   }
 
   renderForm() {

@@ -5,9 +5,9 @@ import six
 from django.conf.urls import url
 from rest_framework.response import Response
 from requests.exceptions import RequestException
-from django.utils.translation import ugettext_lazy as _
 
 
+from sentry.utils.http import absolute_uri
 from sentry.exceptions import PluginError
 from sentry.plugins.bases.issue2 import IssuePlugin2, IssueGroupActionEndpoint
 from sentry_plugins.base import CorePluginMixin
@@ -41,7 +41,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
         token_config = {
             'name': 'token',
             'type': 'secret',
-            'label': _('Trello API Token'),
+            'label': 'Trello API Token',
             'default': None
         }
 
@@ -59,7 +59,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
             'name': 'key',
             'type': 'text',
             'required': True,
-            'label': _('Trello API Key'),
+            'label': 'Trello API Key',
             'default': key_val,
         }
 
@@ -72,7 +72,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
                 org_options = trello_client.get_organization_options()
                 config.append({
                     'name': 'organization',
-                    'label': _('Trello Organization'),
+                    'label': 'Trello Organization',
                     'choices': org_options,
                     'type': 'select',
                     'required': False,
@@ -88,6 +88,10 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
             url(
                 r"^options",
                 IssueGroupActionEndpoint.as_view(view_method_name="view_options", plugin=self),
+            ),
+            url(
+                r"^autocomplete",
+                IssueGroupActionEndpoint.as_view(view_method_name="view_autocomplete", plugin=self),
             )
         ]
 
@@ -131,7 +135,25 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
         ]
 
     def get_link_existing_issue_fields(self, request, group, event, **kwargs):
-        return []
+        return [
+            {
+                "name": "card_id",
+                "label": "Card",
+                "type": "select",
+                "has_autocomplete": True,
+                "required": True,
+            },
+            {
+                "name": "comment",
+                "label": "Comment",
+                "default": absolute_uri(
+                    group.get_absolute_url(params={"referrer": "trello_plugin"})
+                ),
+                "type": "textarea",
+                "help": ("Leave blank if you don't want to " "add a comment to the Trello card."),
+                "required": False,
+            },
+        ]
 
     def get_client(self, project):
         return TrelloApiClient(
@@ -155,6 +177,23 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
             self.raise_error(e, identity=client.auth)
 
         return response["shortLink"]
+
+    def link_issue(self, request, group, form_data, **kwargs):
+        client = self.get_client(group.project)
+
+        try:
+            card = client.get_card(form_data["card_id"])
+        except Exception as e:
+            self.raise_error(e)
+
+        comment = form_data.get("comment")
+        if comment:
+            try:
+                client.create_comment(card["id"], comment)
+            except Exception as e:
+                self.raise_error(e)
+
+        return {"title": card["name"], "id": card["id"]}
 
     def get_issue_label(self, group, issue, **kwargs):
         # the old version of the plugin stores the url in the issue
@@ -204,3 +243,18 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
                 results = self.map_to_options(response)
 
         return Response({field: results})
+
+    def view_autocomplete(self, request, group, **kwargs):
+        field = request.GET.get("autocomplete_field")
+        query = request.GET.get("autocomplete_query")
+
+        output = []
+        if field == "card_id" and query:
+            organization = self.get_option('organization', group.project)
+            print("organization", organization, group.project)
+
+            client = self.get_client(group.project)
+            cards = client.get_cards(query, organization)
+            output = [{"text": "(#%s) %s" % (i["idShort"], i["name"]), "id": i["id"]} for i in cards]
+
+        return Response({field: output})
