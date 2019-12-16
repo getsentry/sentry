@@ -206,8 +206,11 @@ class GlobalSelectionHeader extends React.Component {
       return true;
     }
 
-    // Update if `forceProject` changes
-    if (this.props.forceProject !== nextProps.forceProject) {
+    // Update if `forceProject` changes or loading state changes
+    if (
+      this.props.forceProject !== nextProps.forceProject ||
+      this.props.loadingProjects !== nextProps.loadingProjects
+    ) {
       return true;
     }
 
