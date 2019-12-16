@@ -77,7 +77,7 @@ export default class GenericField extends React.Component {
         // it's required (with *) and rely on server validation
         delete props.required;
         if (props.has_autocomplete) {
-          return <SelectAsyncField filterOption={() => true} {...props} />;
+          return <SelectAsyncField {...props} />;
         }
         return <SelectField {...props} />;
       default:
