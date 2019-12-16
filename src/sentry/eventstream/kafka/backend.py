@@ -17,9 +17,6 @@ logger = logging.getLogger(__name__)
 
 
 class KafkaEventStream(SnubaProtocolEventStream):
-    def __init__(self, **options):
-        pass
-
     @cached_property
     def producer(self):
         return kafka.producers.get(settings.KAFKA_EVENTS)
