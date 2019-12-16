@@ -804,7 +804,7 @@ SENTRY_FEATURES = {
     # is not enabled).
     "organizations:create": True,
     # Enable the 'discover' interface.
-    "organizations:discover": False,
+    "organizations:discover": True,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": False,
     # Allow organizations to configure built-in symbol sources.
@@ -812,9 +812,9 @@ SENTRY_FEATURES = {
     # Allow organizations to configure custom external symbol sources.
     "organizations:custom-symbol-sources": True,
     # Enable the events stream interface.
-    "organizations:events": False,
+    "organizations:events": True,
     # Enable events v2 instead of the events stream
-    "organizations:events-v2": False,
+    "organizations:events-v2": True,
     # Enable multi project selection
     "organizations:global-views": False,
     # Turns on grouping info.

@@ -5,7 +5,7 @@ import isString from 'lodash/isString';
 import isUndefined from 'lodash/isUndefined';
 
 import {NewQuery, Project} from 'app/types';
-import {appendTagCondition} from 'app/utils/queryString';
+import {addKeyValueToQueryString} from 'app/utils/queryString';
 
 function arrayIsEqual(arr?: any[], other?: any[], deep?: boolean): boolean {
   // if the other array is a falsy value, return
@@ -269,7 +269,7 @@ export function generateQueryWithTag(
       query.project = tag.value;
       break;
     default:
-      query.query = appendTagCondition(query.query, tag.key, tag.value);
+      query.query = addKeyValueToQueryString(query, tag.key, tag.value).query;
   }
 
   return query;

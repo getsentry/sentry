@@ -9,7 +9,7 @@ import {Event, Organization} from 'app/types';
 import {Client} from 'app/api';
 import {getTitle} from 'app/utils/events';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {generateQueryWithTag} from 'app/utils';
+import {addKeyValueToQueryString} from 'app/utils/queryString';
 
 import {
   AGGREGATE_ALIASES,
@@ -82,6 +82,23 @@ export function isAggregateField(field: string): boolean {
   return (
     AGGREGATE_ALIASES.includes(field as any) || field.match(AGGREGATE_PATTERN) !== null
   );
+}
+
+/**
+ * This function mutates `Location.query` in a way that is specific to facets
+ * on Discover2.
+ */
+export function generateQueryWithTag(
+  currQuery: Query,
+  tag: {key: string; value: string}
+): Query {
+  switch (tag.key) {
+    case 'environment':
+    case 'project':
+      return addKeyValueToQueryString(currQuery, tag.key, tag.value);
+    default:
+      return addKeyValueToQueryString(currQuery, 'query', `${tag.key}:${tag.value}`);
+  }
 }
 
 /**

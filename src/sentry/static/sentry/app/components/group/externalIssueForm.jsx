@@ -45,7 +45,7 @@ class ExternalIssueForm extends AsyncComponent {
     this.props.onSubmitSuccess(data);
   };
 
-  onRequestSuccess({stateKey, data, jqXHR}) {
+  onRequestSuccess({stateKey, data, _jqXHR}) {
     if (stateKey === 'integrationDetails' && !this.state.dynamicFieldValues) {
       this.setState({
         dynamicFieldValues: this.getDynamicFields(data),
@@ -155,9 +155,9 @@ class ExternalIssueForm extends AsyncComponent {
       <Form
         apiEndpoint={`/groups/${group.id}/integrations/${integration.id}/`}
         apiMethod={action === 'create' ? 'POST' : 'PUT'}
-        onSubmitSuccess={this.onSubmitSuccess}
         initialData={initialData}
         onFieldChange={this.onFieldChange}
+        onSubmitSuccess={this.onSubmitSuccess}
         submitLabel={SUBMIT_LABEL_BY_ACTION[action]}
         submitDisabled={this.state.reloading}
         footerClass="modal-footer"
