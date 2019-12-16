@@ -13,7 +13,9 @@ logger = logging.getLogger(__name__)
 
 
 def get_regions():
-    return boto3.session.Session().get_available_regions("sqs")
+    public_region_list = boto3.session.Session().get_available_regions("sqs")
+    cn_region_list = boto3.session.Session().get_available_regions("sqs", partition_name='aws-cn')
+    return public_region_list + cn_region_list
 
 
 class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):

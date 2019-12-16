@@ -75,7 +75,7 @@
     "less": "^3.9.0",
     "less-loader": "^4.1.0",
     "lodash": "^4.17.11",
-    "marked": "0.6.2",
+    "marked": "0.7.0",
     "mini-css-extract-plugin": "^v0.5.0",
     "mobx": "^5.13.0",
     "mobx-react": "~5.4.4",
@@ -191,6 +191,6 @@
   },
   "volta": {
     "node": "10.16.3",
-    "yarn": "1.17.3"
+    "yarn": "1.21.1"
   }
 }
