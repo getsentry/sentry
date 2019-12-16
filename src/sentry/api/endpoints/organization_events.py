@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import logging
 import six
+import uuid
 from functools import partial
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
@@ -164,9 +165,22 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
 
         # TODO(mark) move all of this result formatting into discover.query()
         # once those APIs are used across the application.
-        if "transaction.status" in first_row:
+        tests = {
+            "transaction.status": "transaction.status" in first_row,
+            "trace": "trace" in first_row,
+            "trace.span": "trace.span" in first_row,
+        }
+        if any(tests.values()):
             for row in results:
-                row["transaction.status"] = SPAN_STATUS_CODE_TO_NAME.get(row["transaction.status"])
+                if tests["transaction.status"]:
+                    row["transaction.status"] = SPAN_STATUS_CODE_TO_NAME.get(
+                        row["transaction.status"]
+                    )
+                if tests["trace"]:
+                    row["trace"] = uuid.UUID(row["trace"]).hex
+                if tests["trace.span"]:
+                    row["trace.span"] = hex(row["trace.span"]).lstrip("0x").rstrip("L")
+
         if not ("project.id" in first_row or "projectid" in first_row):
             return results
         fields = request.GET.getlist("field")
