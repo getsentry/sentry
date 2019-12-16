@@ -5,6 +5,7 @@ import Enzyme from 'enzyme'; // eslint-disable-line no-restricted-imports
 import MockDate from 'mockdate';
 import PropTypes from 'prop-types';
 import fromEntries from 'object.fromentries';
+import xhrmock from 'xhr-mock';
 
 import ConfigStore from 'app/stores/configStore';
 
@@ -100,24 +101,19 @@ jest.mock('echarts-for-react/lib/core', () => {
 
 jest.mock('@sentry/browser', () => {
   const SentryBrowser = require.requireActual('@sentry/browser');
+  const sentryTestkit = require('sentry-testkit');
+
+  const {testkit, sentryTransport} = sentryTestkit();
+
   return {
-    init: jest.fn(),
-    configureScope: jest.fn(),
-    setTag: jest.fn(),
-    setTags: jest.fn(),
-    setExtra: jest.fn(),
-    setExtras: jest.fn(),
-    captureBreadcrumb: jest.fn(),
-    addBreadcrumb: jest.fn(),
-    captureMessage: jest.fn(),
-    captureException: jest.fn(),
-    showReportDialog: jest.fn(),
-    startSpan: jest.fn(),
-    finishSpan: jest.fn(),
-    lastEventId: jest.fn(),
-    getCurrentHub: jest.spyOn(SentryBrowser, 'getCurrentHub'),
-    withScope: jest.spyOn(SentryBrowser, 'withScope'),
-    Severity: SentryBrowser.Severity,
+    ...SentryBrowser,
+    testkit,
+    init: options => {
+      return SentryBrowser.init({
+        ...options,
+        transport: sentryTransport,
+      });
+    },
   };
 });
 
@@ -136,8 +132,18 @@ jest.mock('popper.js', () => {
   };
 });
 
+window.fetch = require('jest-fetch-mock');
+
+// we reference this webpack global, which is not defined in jest
+window.__webpack_public_path__ = null;
+
 // We generally use actual jQuery, and jest mocks takes precedence over node_modules.
 jest.unmock('jquery');
+
+xhrmock.error(error => {
+  // eslint-disable-next-line
+  console.error(error.err, {url: error.req.url()});
+});
 
 /**
  * Test Globals

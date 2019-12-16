@@ -1,4 +1,4 @@
-import $ from 'jquery';
+import xhrmock from 'xhr-mock';
 
 import {Client, Request, paramsToQueryArgs} from 'app/api';
 import GroupActions from 'app/actions/groupActions';
@@ -86,8 +86,16 @@ describe('api', function() {
 
   describe('Client', function() {
     beforeEach(function() {
-      jest.spyOn($, 'ajax');
+      xhrmock.setup();
+
+      xhrmock.use(() => ({
+        status: 200,
+        reason: 'Internal server error',
+        body: '{}',
+      }));
     });
+
+    afterEach(() => xhrmock.teardown());
 
     describe('cancel()', function() {
       it('should abort any open XHR requests', function() {
@@ -260,40 +268,35 @@ describe('api', function() {
 
   describe('Sentry reporting', function() {
     beforeEach(function() {
-      jest.spyOn($, 'ajax');
+      xhrmock.setup();
 
-      $.ajax.mockReset();
-      Sentry.captureException.mockClear();
-
-      $.ajax.mockImplementation(async ({error}) => {
-        await tick();
-        error({
-          status: 500,
-          statusText: 'Internal server error',
-          responseJSON: {detail: 'Item was not found'},
-        });
-
-        return {};
+      xhrmock.get('/some/url/', {
+        status: 500,
+        reason: 'Internal server error',
+        body: '{"detail": "Item was not found"}',
       });
     });
+
+    afterEach(() => xhrmock.teardown());
 
     it('reports correct error and stacktrace to Sentry', async function() {
       api.request('/some/url/');
       await tick();
 
-      const errorObjectSentryCalled = Sentry.captureException.mock.calls[0][0];
-      expect(errorObjectSentryCalled.name).toBe('InternalServerError');
-      expect(errorObjectSentryCalled.message).toBe('GET /some/url/ 500');
+      expect(Sentry.testkit.reports()).toHaveLength(1);
+      const {originalReport} = Sentry.testkit.reports()[0];
+      expect(originalReport.name).toBe('InternalServerError');
+      expect(originalReport.message).toBe('GET /some/url/ 500');
 
       // First line of stack should be this test case
-      expect(errorObjectSentryCalled.stack.split('\n')[1]).toContain('api.spec.jsx');
+      expect(originalReport.stack.split('\n')[1]).toContain('api.spec.jsx');
     });
 
     it('reports correct error and stacktrace to Sentry when using promises', async function() {
       await expect(
         api.requestPromise('/some/url/')
-      ).rejects.toThrowErrorMatchingInlineSnapshot('"GET /some/url/ 500"');
-      expect(Sentry.captureException).toHaveBeenCalled();
+      ).rejects.toThrowErrorMatchingInlineSnapshot('"GET /some/url/ 0"');
+      expect(Sentry.testkit.reports()).toHaveLength(1);
     });
   });
 });
