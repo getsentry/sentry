@@ -587,10 +587,7 @@ class SnubaTagStorage(TagStorage):
 
         conditions = []
 
-        if snuba_key in BLACKLISTED_COLUMNS:
-            snuba_key = "tags[%s]" % (key,)
-
-        if key in SearchVisitor.numeric_keys:
+        if key in SearchVisitor.numeric_keys and snuba_key not in BLACKLISTED_COLUMNS:
             if query is not None and key in SearchVisitor.boolean_keys:
                 query = SearchVisitor.convert_boolean_text(query)
             if query is not None:
@@ -599,6 +596,9 @@ class SnubaTagStorage(TagStorage):
             else:
                 conditions.append([[snuba_key, ">=", 0], [snuba_key, "<", 0]])
         else:
+            if snuba_key in BLACKLISTED_COLUMNS:
+                snuba_key = "tags[%s]" % (key,)
+
             if query:
                 conditions.append([snuba_key, "LIKE", u"%{}%".format(query)])
             else:
