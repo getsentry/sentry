@@ -4,6 +4,7 @@ import get from 'lodash/get';
 import map from 'lodash/map';
 
 import {t} from 'app/locale';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import DateTime from 'app/components/dateTime';
 import Pills from 'app/components/pills';
 import Pill from 'app/components/pill';
@@ -18,7 +19,8 @@ import {
 import EventView from 'app/views/eventsV2/eventView';
 import {generateDiscoverResultsRoute} from 'app/views/eventsV2/results';
 
-import {SpanType} from './types';
+import {SpanType, ParsedTraceType} from './types';
+import {getTraceDateTimeRange} from './utils';
 
 type TransactionResult = {
   'project.name': string;
@@ -32,6 +34,7 @@ type Props = {
   span: Readonly<SpanType>;
   isRoot: boolean;
   eventView: EventView;
+  trace: Readonly<ParsedTraceType>;
 };
 
 type State = {
@@ -66,14 +69,23 @@ class SpanDetail extends React.Component<Props, State> {
   }
 
   fetchSpanDescendents(spanID: string): Promise<any> {
-    const {api, orgId, span} = this.props;
+    const {api, orgId, span, trace} = this.props;
 
     const url = `/organizations/${orgId}/eventsv2/`;
+
+    const {start, end} = getParams(
+      getTraceDateTimeRange({
+        start: trace.traceStartTimestamp,
+        end: trace.traceEndTimestamp,
+      })
+    );
 
     const query = {
       field: ['transaction', 'id', 'trace.span'],
       sort: ['-id'],
       query: `event.type:transaction trace:${span.trace_id} trace.parent_span:${spanID}`,
+      start,
+      end,
     };
 
     return api.requestPromise(url, {
@@ -101,11 +113,9 @@ class SpanDetail extends React.Component<Props, State> {
       };
 
       return (
-        <div>
-          <Button size="xsmall" to={to}>
-            {t('View child')}
-          </Button>
-        </div>
+        <StyledButton size="xsmall" to={to}>
+          {t('View Child')}
+        </StyledButton>
       );
     }
 
@@ -131,16 +141,19 @@ class SpanDetail extends React.Component<Props, State> {
     };
 
     return (
-      <div>
-        <Button size="xsmall" to={to}>
-          {t('View children')}
-        </Button>
-      </div>
+      <StyledButton size="xsmall" to={to}>
+        {t('View Children')}
+      </StyledButton>
     );
   }
 
   renderTraceButton() {
-    const {span, orgId} = this.props;
+    const {span, orgId, trace} = this.props;
+
+    const {start, end} = getTraceDateTimeRange({
+      start: trace.traceStartTimestamp,
+      end: trace.traceEndTimestamp,
+    });
 
     const eventView = EventView.fromSavedQuery({
       id: undefined,
@@ -152,6 +165,9 @@ class SpanDetail extends React.Component<Props, State> {
       tags: ['release', 'project.name', 'user.email', 'user.ip', 'environment'],
       projects: [],
       version: 2,
+
+      start,
+      end,
     });
 
     const to = {
@@ -160,11 +176,9 @@ class SpanDetail extends React.Component<Props, State> {
     };
 
     return (
-      <div>
-        <Button size="xsmall" to={to}>
-          {t('Search by Trace')}
-        </Button>
-      </div>
+      <StyledButton size="xsmall" to={to}>
+        {t('Search by Trace')}
+      </StyledButton>
     );
   }
 
@@ -228,6 +242,12 @@ class SpanDetail extends React.Component<Props, State> {
   }
 }
 
+const StyledButton = styled(Button)`
+  position: absolute;
+  top: ${space(0.75)};
+  right: ${space(0.5)};
+`;
+
 const SpanDetailContainer = styled('div')`
   border-bottom: 1px solid ${p => p.theme.gray1};
   padding: ${space(2)};
@@ -235,13 +255,7 @@ const SpanDetailContainer = styled('div')`
 `;
 
 const ValueTd = styled('td')`
-  display: flex !important;
-  max-width: 100% !important;
-  align-items: center;
-`;
-
-const PreValue = styled('pre')`
-  flex: 1;
+  position: relative;
 `;
 
 const Row = ({
@@ -263,9 +277,9 @@ const Row = ({
     <tr>
       <td className="key">{title}</td>
       <ValueTd className="value">
-        <PreValue className="val">
+        <pre className="val">
           <span className="val-string">{children}</span>
-        </PreValue>
+        </pre>
         {extra}
       </ValueTd>
     </tr>

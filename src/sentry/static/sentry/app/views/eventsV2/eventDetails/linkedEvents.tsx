@@ -1,6 +1,8 @@
 import React from 'react';
 import styled from 'react-emotion';
+import get from 'lodash/get';
 
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {Organization, Event, Project} from 'app/types';
 import AsyncComponent from 'app/components/asyncComponent';
 import DateTime from 'app/components/dateTime';
@@ -10,6 +12,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import withProjects from 'app/utils/withProjects';
+import {getTraceDateTimeRange} from 'app/components/events/interfaces/spans/utils.tsx';
 
 import {generateEventDetailsRoute, generateEventSlug} from './utils';
 import {SectionHeading} from '../styles';
@@ -43,6 +46,13 @@ class LinkedEvents extends AsyncComponent<Props, State> {
 
     const trace = event.tags.find(tag => tag.key === 'trace');
     if (trace) {
+      const {start, end} = getParams(
+        getTraceDateTimeRange({
+          start: get(event, 'startTimestamp', 0),
+          end: get(event, 'endTimestamp', 0),
+        })
+      );
+
       endpoints.push([
         'linkedEvents',
         `/organizations/${organization.slug}/eventsv2/`,
@@ -58,6 +68,8 @@ class LinkedEvents extends AsyncComponent<Props, State> {
             ],
             sort: ['-timestamp'],
             query: `trace:${trace.value}`,
+            start,
+            end,
           },
         },
       ]);

@@ -76,3 +76,17 @@ class TeamProjectsCreateTest(APITestCase):
         response = self.client.post(path, data={"name": "Test Project", "slug": "test-project"})
 
         assert response.status_code == 409, response.content
+
+    def test_with_invalid_platform(self):
+        user = self.create_user()
+        org = self.create_organization(owner=user)
+        team1 = self.create_team(organization=org, name="foo")
+
+        path = u"/api/0/teams/{}/{}/projects/".format(org.slug, team1.slug)
+
+        self.login_as(user=user)
+
+        response = self.client.post(
+            path, data={"name": "Test Project", "slug": "test-project", "platform": "lol"}
+        )
+        assert response.status_code == 400, response.content

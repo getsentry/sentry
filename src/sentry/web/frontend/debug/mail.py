@@ -133,18 +133,19 @@ class MailPreview(object):
         add_unsubscribe_link(self.context)
 
     def text_body(self):
-        return render_to_string(self.text_template, self.context)
+        return render_to_string(self.text_template, context=self.context)
 
     def html_body(self):
         try:
-            return inline_css(render_to_string(self.html_template, self.context))
+            return inline_css(render_to_string(self.html_template, context=self.context))
         except Exception:
             traceback.print_exc()
             raise
 
     def render(self, request):
         return render_to_response(
-            "sentry/debug/mail/preview.html", {"preview": self, "format": request.GET.get("format")}
+            "sentry/debug/mail/preview.html",
+            context={"preview": self, "format": request.GET.get("format")},
         )
 
 
@@ -163,11 +164,13 @@ class ActivityMailPreview(object):
         return context
 
     def text_body(self):
-        return render_to_string(self.email.get_template(), self.get_context())
+        return render_to_string(self.email.get_template(), context=self.get_context())
 
     def html_body(self):
         try:
-            return inline_css(render_to_string(self.email.get_html_template(), self.get_context()))
+            return inline_css(
+                render_to_string(self.email.get_html_template(), context=self.get_context())
+            )
         except Exception:
             import traceback
 
@@ -209,7 +212,7 @@ class ActivityMailDebugView(View):
 
         return render_to_response(
             "sentry/debug/mail/preview.html",
-            {
+            context={
                 "preview": ActivityMailPreview(request, activity),
                 "format": request.GET.get("format"),
             },

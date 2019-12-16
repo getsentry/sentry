@@ -287,10 +287,10 @@ class SimpleEventSerializerTest(TestCase):
         assert result["location"] == event.location
         assert result["culprit"] == event.culprit
         assert result["dateCreated"] == event.datetime
-        assert result["user"]["id"] == event.user_id
-        assert result["user"]["email"] == event.email
-        assert result["user"]["username"] == event.username
-        assert result["user"]["ip_address"] == event.ip_address
+        assert result["user"]["id"] == event.get_minimal_user().id
+        assert result["user"]["email"] == event.get_minimal_user().email
+        assert result["user"]["username"] == event.get_minimal_user().username
+        assert result["user"]["ip_address"] == event.get_minimal_user().ip_address
         assert result["tags"] == [
             {"key": "user", "value": "email:test@test.com", "query": 'user.email:"test@test.com"'}
         ]
