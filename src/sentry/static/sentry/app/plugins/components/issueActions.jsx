@@ -86,11 +86,7 @@ class IssueActions extends PluginComponentBase {
     this.setState({dependentFieldState});
   }
 
-<<<<<<< Updated upstream
-  searchDependentField = async field => {
-=======
   loadOptionsForDependentField = async field => {
->>>>>>> Stashed changes
     const formData = this.getFormData();
 
     const url =
@@ -100,10 +96,7 @@ class IssueActions extends PluginComponentBase {
       this.props.plugin.slug +
       '/options/';
 
-<<<<<<< Updated upstream
-=======
     //find the fields that this field is dependent on
->>>>>>> Stashed changes
     const dependentFields =
       fromPairs(field.depends.map(fieldKey => [fieldKey, formData[fieldKey]])) || {};
     const query = {
@@ -122,41 +115,29 @@ class IssueActions extends PluginComponentBase {
   };
 
   updateOptionsOfDependentField = (field, choices) => {
-    const formDataKey = this.props.actionType + 'FormData';
     const formListKey = this.props.actionType + 'FieldList';
-
-    let formData = this.state[formDataKey];
     let fieldList = this.state[formListKey];
-    const indexOfField = fieldList.findIndex(({name}) => name === field.name);
 
+    //find the location of the field in our list and replace it
+    const indexOfField = fieldList.findIndex(({name}) => name === field.name);
     field = {...field, choices};
 
     //make a copy of the array to avoid mutation
     fieldList = fieldList.slice();
     fieldList[indexOfField] = field;
 
-<<<<<<< Updated upstream
-    //unset value
-    formData = {...formData};
-    formData[field.name] = '';
+    this.setState({[formListKey]: fieldList});
+  };
 
-    this.setState({[formListKey]: fieldList, [formDataKey]: formData});
+  resetOptionsOfDependentField = field => {
+    this.updateOptionsOfDependentField(field, []);
+    const formDataKey = this.props.actionType + 'FormData';
+    const formData = {...this.state[formDataKey]};
+    formData[field.name] = '';
+    this.setState({[formDataKey]: formData});
     this.setDependentFieldState(field.name, FormState.DISABLED);
   };
 
-=======
-    this.setState({[formListKey]: fieldList, [formDataKey]: formData});
-
-    //unset value if we removed choices
-    formData = {...formData};
-    formData[field.name] = '';
-
-    this.setDependentFieldState(field.name, FormState.DISABLED);
-  };
-
-  resetOptionsOfDependentField = field => {};
-
->>>>>>> Stashed changes
   getInputProps(field) {
     const props = {};
 
@@ -315,14 +296,10 @@ class IssueActions extends PluginComponentBase {
     if (impactedField) {
       //if every dependent field is set, then search
       if (!impactedField.depends.some(dependentField => !formData[dependentField])) {
-<<<<<<< Updated upstream
-        callback = () => this.searchDependentField(impactedField);
-=======
         callback = () => this.loadOptionsForDependentField(impactedField);
->>>>>>> Stashed changes
       } else {
         //otherwise reset the options
-        callback = () => this.updateOptionsOfDependentField(impactedField, []);
+        callback = () => this.resetOptionsOfDependentField(impactedField);
       }
     }
 
