@@ -232,7 +232,7 @@ class SearchVisitor(NodeVisitor):
             # so they can be used in conditions
         ]
     )
-    boolean_keys = set(["error.handled", "device.online", "stack.in_app"])
+    boolean_keys = set(["error.handled", "device.charging", "device.online", "stack.in_app"])
     date_keys = set(
         [
             "start",
