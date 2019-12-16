@@ -46,11 +46,11 @@ describe('IncidentDetails', function() {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/456/suspects/',
-      body: [],
+      statusCode: 404,
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/456/activity/',
-      body: [],
+      statusCode: 404,
     });
     activitiesList = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/incidents/${
