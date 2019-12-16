@@ -29,7 +29,7 @@ class IssueActions extends PluginComponentBase {
       error: null,
       createFormData: {},
       linkFormData: {},
-      inputProps: {},
+      dependentFieldState: {},
     });
   }
 
@@ -43,6 +43,16 @@ class IssueActions extends PluginComponentBase {
 
   getOrganization() {
     return this.props.organization;
+  }
+
+  getFormData() {
+    const key = this.props.actionType + 'FormData';
+    return this.state[key] || {};
+  }
+
+  getFieldList() {
+    const key = this.props.actionType + 'FieldList';
+    return this.state[key] || [];
   }
 
   componentDidMount() {
@@ -70,6 +80,12 @@ class IssueActions extends PluginComponentBase {
     );
   }
 
+  setDependentFieldState(fieldName, state) {
+    const dependentFieldState = {...this.state.dependentFieldState};
+    dependentFieldState[fieldName] = state;
+    this.setState({dependentFieldState});
+  }
+
   async searchDependentField(action, field) {
     const key = action + 'FormData';
     const formData = this.state[key];
@@ -88,13 +104,15 @@ class IssueActions extends PluginComponentBase {
       ...dependentFields,
     };
     try {
-      this.setState({inputProps: {[field.name]: {isLoading: true}}});
+      this.setDependentFieldState(field.name, FormState.LOADING);
       const result = await this.api.requestPromise(url, {query});
       this.updateOptions(action, field, result[field.name]);
+      this.setDependentFieldState(field.name, FormState.READY);
+      this.setState({dependentFieldState: {[field.name]: FormState.READY}});
     } catch (err) {
-      console.error(err);
+      this.setDependentFieldState(field.name, FormState.ERROR);
+      this.errorHandler(err);
     }
-    this.setState({inputProps: {[field.name]: {isLoading: false}}});
   }
 
   updateOptions(action, field, choices) {
@@ -111,15 +129,25 @@ class IssueActions extends PluginComponentBase {
   }
 
   getInputProps(field) {
-    // const formDataKey = this.props.actionType + 'FormData';
-    // const formData = this.state[formDataKey];
+    const props = {};
 
-    // //special logic for fields that have dependencies
-    // if (field.depends && field.depends.length) {
-    //   const disabled = field.depends.some(dependentField => !formData[dependentField]);
-    // }
+    //special logic for fields that have dependencies
+    if (field.depends && field.depends.length > 0) {
+      switch (this.state.dependentFieldState[field.name]) {
+        case FormState.LOADING:
+          props.isLoading = true;
+          props.readonly = true;
+          break;
+        case FormState.DISABLED:
+        case FormState.ERROR:
+          props.readonly = true;
+          break;
+        default:
+          break;
+      }
+    }
 
-    return this.state.inputProps[field.name];
+    return props;
   }
 
   setError(error, defaultMessage) {
@@ -142,6 +170,18 @@ class IssueActions extends PluginComponentBase {
       state.error = {message: t('An unknown error occurred.')};
     }
     this.setState(state);
+  }
+
+  onLoadSuccess(...args) {
+    super.onLoadSuccess(...args);
+
+    //dependant fields need to be set to disabled upl loading
+    const fieldList = this.getFieldList();
+    fieldList.forEach(field => {
+      if (field.depends && field.depends.length > 0) {
+        this.setDependentFieldState(field.name, FormState.DISABLED);
+      }
+    });
   }
 
   fetchData() {
@@ -224,7 +264,6 @@ class IssueActions extends PluginComponentBase {
   }
 
   changeField(action, name, value) {
-    console.log('on change', action, name, value);
     const formDataKey = action + 'FormData';
     const fieldListKey = action + 'FieldList';
 
@@ -283,10 +322,9 @@ class IssueActions extends PluginComponentBase {
                 return (
                   <div key={field.name}>
                     {this.renderField({
-                      config: field,
+                      config: {...field, ...this.getInputProps(field)},
                       formData: this.state.createFormData,
                       onChange: this.changeField.bind(this, 'create', field.name),
-                      ...this.getInputProps(field),
                     })}
                   </div>
                 );
@@ -316,10 +354,9 @@ class IssueActions extends PluginComponentBase {
                 return (
                   <div key={field.name}>
                     {this.renderField({
-                      config: field,
+                      config: {...field, ...this.getInputProps(field)},
                       formData: this.state.linkFormData,
                       onChange: this.changeField.bind(this, 'link', field.name),
-                      ...this.getInputProps(field),
                     })}
                   </div>
                 );
