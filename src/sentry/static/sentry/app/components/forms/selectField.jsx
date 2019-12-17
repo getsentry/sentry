@@ -111,6 +111,7 @@ export default class SelectField extends FormField {
       disabled,
       required,
       name,
+      isLoading,
     } = this.props;
 
     return (
@@ -127,6 +128,7 @@ export default class SelectField extends FormField {
         clearable={clearable}
         multiple={this.isMultiple()}
         name={name}
+        isLoading={isLoading}
       />
     );
   }
