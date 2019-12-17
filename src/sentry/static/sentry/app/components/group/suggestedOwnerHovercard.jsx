@@ -4,7 +4,6 @@ import moment from 'moment';
 import styled from 'react-emotion';
 
 import {t, tct} from 'app/locale';
-import {inviteRow} from 'app/components/modals/inviteMembersModal';
 import {openInviteMembersModal} from 'app/actionCreators/modal';
 import ActorAvatar from 'app/components/avatar/actorAvatar';
 import Alert from 'app/components/alert';
@@ -36,7 +35,6 @@ const SuggestedOwnerHovercard = ({actor, commits, rules, ...props}) => (
                       openInviteMembersModal({
                         initialData: [
                           {
-                            ...inviteRow,
                             emails: new Set([actor.email]),
                           },
                         ],

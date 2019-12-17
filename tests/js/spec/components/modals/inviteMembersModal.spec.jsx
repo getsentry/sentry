@@ -2,7 +2,7 @@ import {Modal} from 'react-bootstrap';
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
-import InviteMembersModal, {inviteRow} from 'app/components/modals/inviteMembersModal';
+import InviteMembersModal from 'app/components/modals/inviteMembersModal';
 import TeamStore from 'app/stores/teamStore';
 
 describe('InviteMembersModal', function() {
@@ -274,7 +274,7 @@ describe('InviteMembersModal', function() {
     });
 
     const initialEmail = 'test@gmail.com';
-    const initialData = [{...inviteRow, emails: new Set([initialEmail])}];
+    const initialData = [{emails: new Set([initialEmail])}];
 
     const wrapper = mountWithTheme(
       <InviteMembersModal

@@ -3,7 +3,6 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {Commit} from 'app/types';
-import {inviteRow} from 'app/components/modals/inviteMembersModal';
 import {openInviteMembersModal} from 'app/actionCreators/modal';
 import {PanelItem} from 'app/components/panels';
 import {t, tct} from 'app/locale';
@@ -51,7 +50,6 @@ export default class CommitRow extends React.Component<Props> {
                   openInviteMembersModal({
                     initialData: [
                       {
-                        ...inviteRow,
                         emails: new Set([author.email]),
                       },
                     ],
