@@ -144,6 +144,36 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["id"] == self.event.event_id
         assert data[0]["message"] == self.event.message
 
+    def test_reference_event(self):
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "oh no",
+                "timestamp": iso_format(before_now(minutes=2)),
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "no match",
+                "timestamp": iso_format(before_now(minutes=2)),
+            },
+            project_id=self.project.id,
+        )
+        ref = discover.ReferenceEvent(
+            self.organization, "{}:{}".format(self.project.slug, "a" * 32), ["message", "count()"]
+        )
+        result = discover.query(
+            selected_columns=["id", "message"],
+            query="",
+            reference_event=ref,
+            params={"project_id": [self.project.id]},
+        )
+        assert len(result["data"]) == 2
+        for row in result["data"]:
+            assert row["message"] == "oh no"
+
 
 class QueryTransformTest(TestCase):
     """
@@ -165,6 +195,21 @@ class QueryTransformTest(TestCase):
         assert mock_query.call_count == 0
 
     @patch("sentry.snuba.discover.raw_query")
+    def test_query_no_fields(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "duration"}],
+            "data": [{"transaction": "api.do_things", "duration": 200}],
+        }
+        with pytest.raises(InvalidSearchQuery) as err:
+            discover.query(
+                selected_columns=[],
+                query="event.type:transaction",
+                params={"project_id": [self.project.id]},
+            )
+        assert "No fields" in six.text_type(err)
+        assert mock_query.call_count == 0
+
+    @patch("sentry.snuba.discover.raw_query")
     def test_selected_columns_field_alias_macro(self, mock_query):
         mock_query.return_value = {
             "meta": [{"name": "user_id"}, {"name": "email"}],
@@ -183,6 +228,8 @@ class QueryTransformTest(TestCase):
             conditions=[],
             groupby=[],
             orderby=None,
+            limit=50,
+            offset=None,
             referrer=None,
         )
 
@@ -208,6 +255,8 @@ class QueryTransformTest(TestCase):
             conditions=[],
             groupby=[],
             orderby=None,
+            limit=50,
+            offset=None,
             referrer=None,
         )
 
@@ -241,6 +290,8 @@ class QueryTransformTest(TestCase):
             conditions=[],
             groupby=["transaction", "duration"],
             orderby=None,
+            limit=50,
+            offset=None,
             referrer=None,
         )
 
@@ -271,11 +322,13 @@ class QueryTransformTest(TestCase):
             end=None,
             start=None,
             orderby=None,
+            limit=50,
+            offset=None,
             referrer=None,
         )
 
     @patch("sentry.snuba.discover.raw_query")
-    def test_orderby(self, mock_query):
+    def test_orderby_limit_offset(self, mock_query):
         mock_query.return_value = {
             "meta": [{"name": "title"}, {"name": "project.id"}],
             "data": [{"project.id": "tester", "title": "test title"}],
@@ -285,6 +338,8 @@ class QueryTransformTest(TestCase):
             query="",
             params={"project_id": [self.project.id]},
             orderby=["project.id"],
+            offset=100,
+            limit=200,
         )
         mock_query.assert_called_with(
             selected_columns=["project_id", "title"],
@@ -296,6 +351,8 @@ class QueryTransformTest(TestCase):
             start=None,
             conditions=[],
             groupby=[],
+            limit=200,
+            offset=100,
             referrer=None,
         )
 
@@ -332,6 +389,8 @@ class QueryTransformTest(TestCase):
             start=None,
             conditions=[],
             groupby=["project_id", "event_id"],
+            limit=50,
+            offset=None,
             referrer=None,
         )
 
@@ -361,6 +420,8 @@ class QueryTransformTest(TestCase):
             dataset=Dataset.Discover,
             end=None,
             start=None,
+            limit=50,
+            offset=None,
             referrer=None,
         )
 
@@ -389,6 +450,8 @@ class QueryTransformTest(TestCase):
             orderby=None,
             end=None,
             start=None,
+            limit=50,
+            offset=None,
             referrer=None,
         )
 
@@ -413,6 +476,8 @@ class QueryTransformTest(TestCase):
             orderby=None,
             end=None,
             start=None,
+            limit=50,
+            offset=None,
             referrer=None,
         )
 
@@ -439,6 +504,8 @@ class QueryTransformTest(TestCase):
             end=end_time,
             start=start_time,
             orderby=None,
+            limit=50,
+            offset=None,
             referrer=None,
         )
 
@@ -524,7 +591,7 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
             },
             rollup=3600,
         )
-        assert len(result.data) == 3
+        assert len(result.data["data"]) == 3
 
     def test_aggregate_function(self):
         result = discover.timeseries_query(
@@ -537,8 +604,8 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
             },
             rollup=3600,
         )
-        assert len(result.data) == 3
-        assert [2] == [val["count"] for val in result.data if "count" in val]
+        assert len(result.data["data"]) == 3
+        assert [2] == [val["count"] for val in result.data["data"] if "count" in val]
 
     def test_zerofilling(self):
         result = discover.timeseries_query(
@@ -551,8 +618,10 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
             },
             rollup=3600,
         )
-        assert len(result.data) == 4, "Should have empty results"
-        assert [2, 1] == [val["count"] for val in result.data if "count" in val], result.data
+        assert len(result.data["data"]) == 4, "Should have empty results"
+        assert [2, 1] == [
+            val["count"] for val in result.data["data"] if "count" in val
+        ], result.data["data"]
 
     def test_reference_event(self):
         ref = discover.ReferenceEvent(
@@ -571,8 +640,8 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
             reference_event=ref,
             rollup=3600,
         )
-        assert len(result.data) == 4
-        assert [1, 1] == [val["count"] for val in result.data if "count" in val]
+        assert len(result.data["data"]) == 4
+        assert [1, 1] == [val["count"] for val in result.data["data"] if "count" in val]
 
 
 class CreateReferenceEventConditionsTest(SnubaTestCase, TestCase):

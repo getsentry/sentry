@@ -73,7 +73,7 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
         event = self.get_event(json.loads(resp.content)["id"])
 
         contexts = event.interfaces["contexts"].to_json()
-        assert contexts.get("os") == {"name": "Windows 8", "type": "os"}
+        assert contexts.get("os") == {"name": "Windows", "version": "8", "type": "os"}
         assert contexts.get("device") is None
 
     def test_adds_contexts_with_device(self):

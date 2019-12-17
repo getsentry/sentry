@@ -299,9 +299,14 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
 const ButtonGroup = styled('div')`
   display: flex;
   align-items: center;
+  margin-top: ${space(1)};
 
   > * + * {
     margin-left: ${space(1)};
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    margin-top: 0;
   }
 `;
 

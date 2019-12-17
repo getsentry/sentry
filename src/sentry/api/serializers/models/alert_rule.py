@@ -47,7 +47,7 @@ class AlertRuleSerializer(Serializer):
             "triggers": attrs.get("triggers", []),
             "includeAllProjects": obj.include_all_projects,
             "dateModified": obj.date_modified,
-            "dateAdded": obj.date_added,
+            "dateCreated": obj.date_added,
         }
 
 
@@ -85,9 +85,9 @@ class CombinedRuleSerializer(Serializer):
 
         for item in item_list:
             if isinstance(item, AlertRule):
-                results[item] = alert_rules.pop()
+                results[item] = alert_rules.pop(0)
             elif isinstance(item, Rule):
-                results[item] = rules.pop()
+                results[item] = rules.pop(0)
 
         return results
 

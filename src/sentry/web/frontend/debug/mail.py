@@ -16,6 +16,7 @@ from django.views.generic import View
 from loremipsum import Generator
 from random import Random
 
+from sentry import options
 from sentry.app import tsdb
 from sentry.constants import LOG_LEVELS
 from sentry.digests import Record
@@ -133,18 +134,19 @@ class MailPreview(object):
         add_unsubscribe_link(self.context)
 
     def text_body(self):
-        return render_to_string(self.text_template, self.context)
+        return render_to_string(self.text_template, context=self.context)
 
     def html_body(self):
         try:
-            return inline_css(render_to_string(self.html_template, self.context))
+            return inline_css(render_to_string(self.html_template, context=self.context))
         except Exception:
             traceback.print_exc()
             raise
 
     def render(self, request):
         return render_to_response(
-            "sentry/debug/mail/preview.html", {"preview": self, "format": request.GET.get("format")}
+            "sentry/debug/mail/preview.html",
+            context={"preview": self, "format": request.GET.get("format")},
         )
 
 
@@ -163,11 +165,13 @@ class ActivityMailPreview(object):
         return context
 
     def text_body(self):
-        return render_to_string(self.email.get_template(), self.get_context())
+        return render_to_string(self.email.get_template(), context=self.get_context())
 
     def html_body(self):
         try:
-            return inline_css(render_to_string(self.email.get_html_template(), self.get_context()))
+            return inline_css(
+                render_to_string(self.email.get_html_template(), context=self.get_context())
+            )
         except Exception:
             import traceback
 
@@ -209,7 +213,7 @@ class ActivityMailDebugView(View):
 
         return render_to_response(
             "sentry/debug/mail/preview.html",
-            {
+            context={
                 "preview": ActivityMailPreview(request, activity),
                 "format": request.GET.get("format"),
             },
@@ -242,7 +246,10 @@ def alert(request):
     data = event_manager.get_data()
     event = event_manager.save(project.id)
     # Prevent Percy screenshot from constantly changing
-    event.datetime = datetime(2017, 9, 6, 0, 0)
+    if options.get("store.use-django-event"):
+        event.datetime = datetime(2017, 9, 6, 0, 0)
+    else:
+        event.data["timestamp"] = 1504656000.0  # datetime(2017, 9, 6, 0, 0)
     event_type = event_manager.get_event_type()
 
     group.message = event_manager.get_search_message()

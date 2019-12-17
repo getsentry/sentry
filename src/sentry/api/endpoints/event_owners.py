@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
-import logging
-
+import six
 from rest_framework.response import Response
 
 from sentry import eventstore
@@ -9,9 +8,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.fields.actor import Actor
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer
-from sentry.models import ProjectOwnership
-
-logger = logging.getLogger(__name__)
+from sentry.models import ProjectOwnership, Team
 
 
 class EventOwnersEndpoint(ProjectEndpoint):
@@ -40,30 +37,20 @@ class EventOwnersEndpoint(ProjectEndpoint):
             owners = []
 
         serialized_owners = serialize(Actor.resolve_many(owners), request.user, ActorSerializer())
-        # We do so many dict/set casts on these owners that the order is not preserved at all.
-        # Re-order the results according to how the rules are ordered.
-        owner_map = {o["name"]: o for o in serialized_owners}
-        ordered_owners = []
-        for rule in rules:
-            for o in rule.owners:
-                found = owner_map.get(o.identifier)
-                if found:
-                    ordered_owners.append(found)
 
-        if len(serialized_owners) != len(ordered_owners):
-            logger.error(
-                "unexpected owners in response",
-                extra={
-                    "project_id": project.id,
-                    "event_id": event_id,
-                    "expected_length": len(ordered_owners),
-                    "calculated_length": len(serialized_owners),
-                },
-            )
+        # Make sure the serialized owners are in the correct order
+        ordered_owners = []
+        owner_by_id = {(o["id"], o["type"]): o for o in serialized_owners}
+        for o in owners:
+            key = (six.text_type(o.id), "team" if o.type == Team else "user")
+            if owner_by_id.get(key):
+                ordered_owners.append(owner_by_id[key])
 
         return Response(
             {
                 "owners": ordered_owners,
+                # TODO(mattrobenolt): We need to change the API here to return
+                # all rules, just keeping this way currently for API compat
                 "rule": rules[0].matcher if rules else None,
                 "rules": rules or [],
             }

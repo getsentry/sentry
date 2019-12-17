@@ -540,18 +540,19 @@ def convert_search_filter_to_snuba_query(search_filter):
         # conditions added to env_conditions are OR'd
         env_conditions = []
 
-        _envs = set(value if isinstance(value, (list, tuple)) else [value])
+        values = set(value if isinstance(value, (list, tuple)) else [value])
         # the "no environment" environment is null in snuba
-        if "" in _envs:
-            _envs.remove("")
+        if "" in values:
+            values.remove("")
             operator = "IS NULL" if search_filter.operator == "=" else "IS NOT NULL"
             env_conditions.append(["environment", operator, None])
-
-        if _envs:
-            env_conditions.append(["environment", "IN", _envs])
-
+        if len(values) == 1:
+            operator = "=" if search_filter.operator == "=" else "!="
+            env_conditions.append(["environment", operator, values.pop()])
+        elif values:
+            operator = "IN" if search_filter.operator == "=" else "NOT IN"
+            env_conditions.append(["environment", operator, values])
         return env_conditions
-
     elif name == "message":
         if search_filter.value.is_wildcard():
             # XXX: We don't want the '^$' values at the beginning and end of
@@ -644,14 +645,12 @@ def get_filter(query=None, params=None):
 
     kwargs = {"start": None, "end": None, "conditions": [], "project_ids": [], "group_ids": []}
 
-    projects = {}
-    has_project_term = any(
-        isinstance(term, SearchFilter) and term.key.name == PROJECT_KEY for term in parsed_terms
-    )
-    if has_project_term:
-        projects = {
+    def get_projects(params):
+        return {
             p["slug"]: p["id"]
-            for p in Project.objects.filter(id__in=params["project_id"]).values("id", "slug")
+            for p in Project.objects.filter(id__in=params.get("project_id", [])).values(
+                "id", "slug"
+            )
         }
 
     def to_list(value):
@@ -659,10 +658,13 @@ def get_filter(query=None, params=None):
             return value
         return [value]
 
+    projects = None
     for term in parsed_terms:
         if isinstance(term, SearchFilter):
             name = term.key.name
             if name == PROJECT_KEY:
+                if projects is None:
+                    projects = get_projects(params)
                 condition = ["project_id", "=", projects.get(term.value.value)]
                 kwargs["conditions"].append(condition)
             elif name == "issue.id":
@@ -722,6 +724,7 @@ VALID_AGGREGATES = {
     "min": {"snuba_name": "min", "fields": ["time", "timestamp", "transaction.duration"]},
     "max": {"snuba_name": "max", "fields": ["time", "timestamp", "transaction.duration"]},
     "avg": {"snuba_name": "avg", "fields": ["transaction.duration"]},
+    "sum": {"snuba_name": "sum", "fields": ["transaction.duration"]},
 }
 
 AGGREGATE_PATTERN = re.compile(r"^(?P<function>[^\(]+)\((?P<column>[a-z\._]*)\)$")

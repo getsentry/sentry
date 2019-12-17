@@ -89,7 +89,7 @@ class DiscoverQuerySerializer(serializers.Serializer):
         return [self.get_condition(condition) for condition in value]
 
     def validate_aggregations(self, value):
-        valid_functions = set(["count()", "uniq", "avg"])
+        valid_functions = set(["count()", "uniq", "avg", "sum"])
         requested_functions = set(agg[0] for agg in value)
 
         if not requested_functions.issubset(valid_functions):

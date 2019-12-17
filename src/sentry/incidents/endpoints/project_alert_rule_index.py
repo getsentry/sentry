@@ -42,7 +42,7 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
         alert_rule_queryset = (
             AlertRule.objects.fetch_for_project(project)
             .filter(date_added__gte=cursor_date)
-            .order_by("date_added")[: limit + 1]
+            .order_by("-date_added")[: limit + 1]
         )
 
         legacy_rule_queryset = (
@@ -51,14 +51,13 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
             )
             .select_related("project")
             .filter(date_added__gte=cursor_date)
-            .order_by("date_added")[: (limit + 1)]
+            .order_by("-date_added")[: (limit + 1)]
         )
         combined_rules = list(alert_rule_queryset) + list(legacy_rule_queryset)
-        combined_rules.sort(key=lambda instance: (instance.date_added, type(instance)), reverse=True)
+        combined_rules.sort(
+            key=lambda instance: (instance.date_added, type(instance)), reverse=True
+        )
         combined_rules = combined_rules[cursor.offset : cursor.offset + limit + 1]
-
-        print("Combined rules:", combined_rules)
-        print("less:", [(x.id,type(x),x.date_added) for x in combined_rules])
 
         def get_item_key(item, for_prev=False):
             value = getattr(item, "date_added")
@@ -69,10 +68,7 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
             results=combined_rules, cursor=cursor, key=get_item_key, limit=limit
         )
         results = list(cursor_result)
-        print("built results:",results)
         context = serialize(results, request.user, CombinedRuleSerializer())
-        print("serialized:",context)
-        print("less serialized:",[(x["id"],x["type"],x["dateCreated"]) for x in context])
         response = Response(context)
         self.add_cursor_headers(request, response, cursor_result)
         return response
