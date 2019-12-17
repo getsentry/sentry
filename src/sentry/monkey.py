@@ -84,10 +84,13 @@ def patch_django_views_debug():
     debug.get_safe_settings = lambda: {}
 
 
-import django.db.models.base
+# For distribution builds, can't be inside `model_unpickle_compat` since we're patching the functions
+try:
+    import django.db.models.base
 
-
-model_unpickle = django.db.models.base.model_unpickle
+    model_unpickle = django.db.models.base.model_unpickle
+except ImportError:
+    pass
 
 
 def model_unpickle_compat(model_id, attrs=None, factory=None):
