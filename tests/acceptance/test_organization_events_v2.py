@@ -23,7 +23,7 @@ def all_events_query(**kwargs):
     options = {
         "sort": ["-timestamp"],
         "field": ["title", "event.type", "project", "user", "timestamp"],
-        "tag": ["event.type", "release", "project.name", "user.email", "user.ip", "environment"],
+        "tag": ["event.type", "release", "project", "user.email", "user.ip", "environment"],
         "name": ["All Events"],
         "fieldnames": ["title", "type", "project", "user", "time"],
     }
@@ -38,7 +38,7 @@ def errors_query(**kwargs):
         "name": ["Errors"],
         "fieldnames": ["error", "events", "users", "project", "last seen"],
         "field": ["title", "count(id)", "count_unique(user)", "project", "last_seen"],
-        "tag": ["error.type", "project.name"],
+        "tag": ["error.type", "project"],
         "query": ["event.type:error"],
     }
     options.update(kwargs)
@@ -52,7 +52,7 @@ def transactions_query(**kwargs):
         "name": ["Transactions"],
         "fieldnames": ["transaction", "project", "volume"],
         "field": ["transaction", "project", "count()"],
-        "tag": ["release", "project.name", "user.email", "user.ip", "environment"],
+        "tag": ["release", "project", "user.email", "user.ip", "environment"],
         "statsPeriod": ["14d"],
         "query": ["event.type:transaction"],
     }
