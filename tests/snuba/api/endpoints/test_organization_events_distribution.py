@@ -333,16 +333,16 @@ class OrganizationEventsDistributionEndpointTest(SnubaTestCase, APITestCase):
         )
 
         with self.feature(self.feature_list):
-            response = self.client.get(self.url, {"key": "project.name"}, format="json")
+            response = self.client.get(self.url, {"key": "project"}, format="json")
 
         assert response.status_code == 200, response.content
 
         assert response.data == {
             "topValues": [
-                {"count": 3, "name": self.project.slug, "value": self.project.slug},
-                {"count": 1, "name": self.project2.slug, "value": self.project2.slug},
+                {"count": 3, "name": self.project.slug, "value": self.project.id},
+                {"count": 1, "name": self.project2.slug, "value": self.project2.id},
             ],
-            "key": "project.name",
+            "key": "project",
         }
 
     def test_non_tag_key(self):

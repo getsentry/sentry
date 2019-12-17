@@ -9,9 +9,9 @@ from sentry import features, tagstore
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 
 
-# If the requested key is project.name, we get the distribution by project.id
-# from Snuba and convert those values back to names
-PROJECT_KEY = "project.name"
+# If the requested key is project, we get the distribution by project.id
+# from Snuba and convert those values back to project names
+PROJECT_KEY = "project"
 
 
 class OrganizationEventsDistributionEndpoint(OrganizationEventsEndpointBase):
@@ -56,14 +56,14 @@ class OrganizationEventsDistributionEndpoint(OrganizationEventsEndpointBase):
             referrer="api.organization-events-distribution",
         )["data"]
 
-        projects = {p.id: p.slug for p in self.get_projects(request, organization)}
-
         if key == PROJECT_KEY:
+            projects = {p.id: p.slug for p in self.get_projects(request, organization)}
+
             resp = {
                 "key": PROJECT_KEY,
                 "topValues": [
                     {
-                        "value": projects[v["project_id"]],
+                        "value": v["project_id"],
                         "name": projects[v["project_id"]],
                         "count": v["count"],
                     }
