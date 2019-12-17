@@ -15,18 +15,24 @@ export type Avatar = {
   avatarType: 'letter_avatar' | 'upload' | 'gravatar';
 };
 
+export type Actor = {
+  id: string;
+  type: 'user' | 'team';
+  name: string;
+};
+
 export type LightWeightOrganization = {
   id: string;
   slug: string;
   name: string;
   access: string[];
   features: string[];
+  avatar: Avatar;
 };
 
 export type Organization = LightWeightOrganization & {
   projects: Project[];
   teams: Team[];
-  avatar: Avatar;
 };
 
 export type OrganizationDetailed = Organization & {

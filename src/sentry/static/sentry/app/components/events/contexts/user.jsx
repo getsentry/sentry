@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import each from 'lodash/each';
 
-import Avatar from 'app/components/avatar';
+import UserAvatar from 'app/components/avatar/userAvatar';
 import ErrorBoundary from 'app/components/errorBoundary';
 import ExternalLink from 'app/components/links/externalLink';
 import KeyValueList from 'app/components/events/interfaces/keyValueList';
@@ -49,7 +49,7 @@ class UserContextType extends React.Component {
     return (
       <div className="user-widget">
         <div className="pull-left">
-          <Avatar user={removeFilterMaskedEntries(user)} size={48} gravatar={false} />
+          <UserAvatar user={removeFilterMaskedEntries(user)} size={48} gravatar={false} />
         </div>
         <table className="key-value table">
           <tbody>

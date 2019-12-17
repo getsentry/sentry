@@ -9,7 +9,7 @@ import Field from 'app/views/settings/components/forms/field';
 import IndicatorStore from 'app/stores/indicatorStore';
 import NarrowLayout from 'app/components/narrowLayout';
 import SelectControl from 'app/components/forms/selectControl';
-import Avatar from 'app/components/avatar';
+import OrganizationAvatar from 'app/components/avatar/organizationAvatar';
 import SentryAppDetailsModal from 'app/components/modals/sentryAppDetailsModal';
 import {installSentryApp} from 'app/actionCreators/sentryAppInstallations';
 import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
@@ -147,7 +147,7 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
     return this.state.organizations.map(org => [
       org.slug,
       <div key={org.slug}>
-        <Avatar organization={org} />
+        <OrganizationAvatar organization={org} />
         <OrgNameHolder>{org.slug}</OrgNameHolder>
       </div>,
     ]);

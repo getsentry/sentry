@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import Avatar from 'app/components/avatar';
+import UserAvatar from 'app/components/avatar/userAvatar';
 
 const GroupParticipants = props => {
   const participants = props.participants;
@@ -14,10 +14,10 @@ const GroupParticipants = props => {
         </span>
       </h6>
       <ul className="faces">
-        {participants.map((user, i) => {
+        {participants.map(user => {
           return (
             <li key={user.username}>
-              <Avatar size={28} user={user} hasTooltip />
+              <UserAvatar size={28} user={user} hasTooltip />
             </li>
           );
         })}

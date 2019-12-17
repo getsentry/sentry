@@ -1,9 +1,10 @@
 import React from 'react';
 
+import {Actor} from 'app/types';
 import ActorAvatar from 'app/components/avatar/actorAvatar';
 
 type Value = {
-  actor: {};
+  actor: Actor;
 };
 
 type Props = {

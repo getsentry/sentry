@@ -41,8 +41,8 @@ exports[`SettingsIndex renders 1`] = `
             to="/settings/account/"
           >
             <AvatarContainer>
-              <Avatar
-                hasTooltip={false}
+              <UserAvatar
+                gravatar={false}
                 size={76}
                 user={
                   Object {
@@ -106,8 +106,7 @@ exports[`SettingsIndex renders 1`] = `
             to="/settings/org-slug/"
           >
             <AvatarContainer>
-              <Avatar
-                hasTooltip={false}
+              <OrganizationAvatar
                 organization={
                   Object {
                     "access": Array [

@@ -5,14 +5,15 @@ import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
 import SentryTypes from 'app/sentryTypes';
-import {Member, User} from 'app/types';
+import {User} from 'app/types';
 
 import {assignToUser, assignToActor, clearAssignment} from 'app/actionCreators/group';
 import {openInviteMembersModal} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import {valueIsEqual, buildUserId, buildTeamId} from 'app/utils';
 import ActorAvatar from 'app/components/avatar/actorAvatar';
-import Avatar from 'app/components/avatar';
+import UserAvatar from 'app/components/avatar/userAvatar';
+import TeamAvatar from 'app/components/avatar/teamAvatar';
 import ConfigStore from 'app/stores/configStore';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownBubble from 'app/components/dropdownBubble';
@@ -29,13 +30,13 @@ import space from 'app/styles/space';
 type Props = {
   id: string | null;
   size: number;
-  memberList?: Member[];
+  memberList?: User[];
 };
 
 type State = {
   loading: boolean;
   assignedTo: User;
-  memberList: Member[];
+  memberList: User[];
 };
 
 const AssigneeSelectorComponent = createReactClass<Props, State>({
@@ -191,7 +192,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
             onSelect={this.assignToUser.bind(this, member)}
           >
             <IconContainer>
-              <Avatar user={member} size={size} />
+              <UserAvatar user={member} size={size} />
             </IconContainer>
             <Label>
               <Highlight text={inputValue}>{member.name || member.email}</Highlight>
@@ -216,7 +217,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
             onSelect={this.assignToTeam.bind(this, team)}
           >
             <IconContainer>
-              <Avatar team={team} size={size} />
+              <TeamAvatar team={team} size={size} />
             </IconContainer>
             <Label>
               <Highlight text={inputValue}>{display}</Highlight>
@@ -314,7 +315,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
   },
 });
 
-export function putSessionUserFirst(members: Member[]): Member[] {
+export function putSessionUserFirst(members: User[]): User[] {
   // If session user is in the filtered list of members, put them at the top
   if (!members) {
     return [];
