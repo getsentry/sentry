@@ -32,6 +32,7 @@ type Props = {
   projects: Project[];
   trigger: Trigger;
   triggerIndex: number;
+  isCritical: boolean;
 
   onChange: (trigger: Trigger) => void;
 };
@@ -220,6 +221,7 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
       config,
       currentProject,
       error,
+      isCritical,
       organization,
       trigger,
       triggerIndex,
@@ -236,6 +238,7 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
           organization={organization}
           projects={projects}
           triggerIndex={triggerIndex}
+          isCritical={isCritical}
           onChange={this.handleChangeTrigger}
         />
         <ActionsPanel
