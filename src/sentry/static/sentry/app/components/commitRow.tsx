@@ -120,6 +120,10 @@ const EmailWarning = styled('div')`
 const StyledLink = styled(Link)`
   color: ${p => p.theme.textColor};
   border-bottom: 1px dotted ${p => p.theme.textColor};
+
+  &:hover {
+    color: ${p => p.theme.textColor};
+  }
 `;
 
 const EmailWarningIcon = styled(InlineSvg)`
