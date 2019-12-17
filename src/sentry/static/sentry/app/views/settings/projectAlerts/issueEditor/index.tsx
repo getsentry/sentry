@@ -123,7 +123,7 @@ class IssueRuleEditor extends React.Component<Props, State> {
     const {project, organization} = this.props;
 
     const endpoint = `/projects/${organization.slug}/${project.slug}/rules/${
-      isSavedAlertRule(rule) ? `${rule.id}/` : ''
+      !isNew ? `${rule.id}/` : ''
     }`;
 
     if (rule && rule.environment === ALL_ENVIRONMENTS_KEY) {
