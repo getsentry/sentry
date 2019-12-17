@@ -119,12 +119,11 @@ class IssueRuleEditor extends React.Component<Props, State> {
 
   handleSubmit = async () => {
     const {rule} = this.state;
-    const isNew = !isSavedAlertRule(rule);
+    const ruleId = isSavedAlertRule(rule) ? `${rule.id}/` : '';
+    const isNew = !ruleId;
     const {project, organization} = this.props;
 
-    const endpoint = `/projects/${organization.slug}/${project.slug}/rules/${
-      !isNew ? `${rule.id}/` : ''
-    }`;
+    const endpoint = `/projects/${organization.slug}/${project.slug}/rules/${ruleId}`;
 
     if (rule && rule.environment === ALL_ENVIRONMENTS_KEY) {
       delete rule.environment;
