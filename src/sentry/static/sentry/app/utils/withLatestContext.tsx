@@ -8,10 +8,10 @@ import LatestContextStore from 'app/stores/latestContextStore';
 import SentryTypes from 'app/sentryTypes';
 import getDisplayName from 'app/utils/getDisplayName';
 import withOrganizations from 'app/utils/withOrganizations';
-import {Project, Organization} from 'app/types';
+import {Project, Organization, OrganizationSummary} from 'app/types';
 
 type InjectedLatestContextProps = {
-  organizations?: Organization[];
+  organizations?: OrganizationSummary[];
   organization?: Organization;
   project?: Project;
   lastRoute?: string;
@@ -19,7 +19,7 @@ type InjectedLatestContextProps = {
 
 type WithPluginProps = {
   organization?: Organization;
-  organizations: Organization[];
+  organizations: OrganizationSummary[];
 };
 
 type State = {
@@ -69,7 +69,7 @@ const withLatestContext = <P extends InjectedLatestContextProps>(
         // project from `latestContext`
         return (
           <WrappedComponent
-            organizations={organizations as Organization[]}
+            organizations={organizations as OrganizationSummary[]}
             project={project as Project}
             lastRoute={lastRoute as string}
             {...this.props as P}

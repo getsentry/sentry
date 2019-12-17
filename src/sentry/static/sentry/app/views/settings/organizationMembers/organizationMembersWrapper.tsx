@@ -2,7 +2,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {openInviteMembersModal} from 'app/actionCreators/modal';
-import {OrganizationDetailed, Member} from 'app/types';
+import {Organization, Member} from 'app/types';
 import {Panel} from 'app/components/panels';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -19,7 +19,7 @@ import withOrganization from 'app/utils/withOrganization';
 
 type Props = AsyncView['props'] & {
   children?: any;
-  organization: OrganizationDetailed;
+  organization: Organization;
 };
 
 type State = AsyncView['state'] & {
