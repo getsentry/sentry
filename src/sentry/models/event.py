@@ -528,6 +528,10 @@ class SnubaEvent(EventCommon):
     def group_id(self):
         return self.snuba_data["group_id"]
 
+    @group_id.setter
+    def group_id(self, value):
+        self.snuba_data["group_id"] = value
+
     def save(self):
         raise NotImplementedError
 

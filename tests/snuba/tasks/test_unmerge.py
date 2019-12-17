@@ -308,7 +308,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             GroupRelease.objects.filter(group_id=source.id).values_list(
                 "environment", "first_seen", "last_seen"
             )
-        ) == set([(u"production", time_from_now(10), time_from_now(15))])
+        ) == set([(u"production", time_from_now(0), time_from_now(16))])
 
         assert set(
             [
