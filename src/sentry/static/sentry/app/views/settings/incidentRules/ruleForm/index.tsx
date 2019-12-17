@@ -194,7 +194,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
    */
   handleAddTrigger = () => {
     this.setState(({triggers}) => ({
-      triggers: [...triggers, createDefaultTrigger()],
+      triggers: [...triggers, {...createDefaultTrigger(), label: 'warning'}],
     }));
   };
 
