@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from 'react-emotion';
 import get from 'lodash/get';
 
 import {Event} from 'app/types';
@@ -8,6 +9,9 @@ import {
   SpanType,
 } from 'app/components/events/interfaces/spans/types';
 import {TraceContextType} from 'app/components/events/interfaces/spans/traceView';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {SectionHeading} from '../../styles';
 
 type OpStats = {percentage: number; totalDuration: number};
 
@@ -157,11 +161,40 @@ class EventBreakdown extends React.Component<Props> {
       return null;
     }
 
-    // TODO: Dora to take over
-    // const results = this.generateCounts();
+    const results = this.generateStats();
 
-    return null;
+    return (
+      <StyledBreakdown>
+        <SectionHeading>{t('Event Breakdown')}</SectionHeading>
+        {results.ops.map(currentOp => {
+          const {name, percentage, totalDuration} = currentOp;
+          const pctLabel = Math.floor(percentage);
+          const durLabel = Math.floor(totalDuration);
+
+          return (
+            <OpsLine key={name}>
+              <span>{name}</span>
+              <div>
+                <span>{pctLabel}%</span>
+                <span>{durLabel}ms</span>
+              </div>
+            </OpsLine>
+          );
+        })}
+      </StyledBreakdown>
+    );
   }
 }
+
+const StyledBreakdown = styled('div')`
+  color: ${p => p.theme.gray3};
+  font-size: ${p => p.theme.fontSizeMedium};
+  margin-bottom: ${space(3)};
+`;
+
+const OpsLine = styled('div')`
+  display: flex;
+  justify-content: space-between;
+`;
 
 export default EventBreakdown;

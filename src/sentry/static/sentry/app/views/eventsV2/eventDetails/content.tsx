@@ -171,12 +171,12 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
             />
           </div>
           <div style={{gridColumn: '2/3', display: isSidebarVisible ? '' : 'none'}}>
-            <EventBreakdown event={event} />
             <EventMetadata
               event={event}
               organization={organization}
               projectId={this.projectId}
             />
+            <EventBreakdown event={event} />
             {event.groupID && (
               <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
             )}
