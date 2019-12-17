@@ -78,7 +78,6 @@ class IssueActions extends DefaultIssuePlugin.DefaultIssueActions {
               field
             );
           }
-
           return (
             <div key={field.name}>
               {this.renderField({
