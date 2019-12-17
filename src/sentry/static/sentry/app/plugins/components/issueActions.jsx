@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import fromPairs from 'lodash/fromPairs';
 
 import {Form, FormState} from 'app/components/forms';
 import GroupActions from 'app/actions/groupActions';
@@ -189,7 +188,6 @@ class IssueActions extends PluginComponentBase {
 
   onLoadSuccess(...args) {
     super.onLoadSuccess(...args);
-    console.log('loadings');
 
     //dependent fields need to be set to disabled upon loading
     const fieldList = this.getFieldList();
@@ -198,7 +196,6 @@ class IssueActions extends PluginComponentBase {
         this.setDependentFieldState(field.name, FormState.DISABLED);
       }
     });
-    console.log('lel');
   }
 
   fetchData() {

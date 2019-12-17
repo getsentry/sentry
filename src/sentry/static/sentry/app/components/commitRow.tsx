@@ -5,7 +5,7 @@ import styled from 'react-emotion';
 import {Commit} from 'app/types';
 import {PanelItem} from 'app/components/panels';
 import {t, tct} from 'app/locale';
-import Avatar from 'app/components/avatar';
+import UserAvatar from 'app/components/avatar/userAvatar';
 import CommitLink from 'app/components/commitLink';
 import TextOverflow from 'app/components/textOverflow';
 import TimeSince from 'app/components/timeSince';
@@ -42,7 +42,7 @@ export default class CommitRow extends React.Component<Props> {
           customAvatar
         ) : (
           <AvatarWrapper>
-            <Avatar size={36} user={author} />
+            <UserAvatar size={36} user={author} />
           </AvatarWrapper>
         )}
 

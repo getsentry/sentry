@@ -40,6 +40,11 @@ describe('GroupSidebar', function() {
       body: group,
     });
 
+    MockApiClient.addMockResponse({
+      url: '/groups/1/external-issues/',
+      body: [],
+    });
+
     tagsMock = MockApiClient.addMockResponse({
       url: '/issues/1/tags/',
       body: TestStubs.Tags(),
