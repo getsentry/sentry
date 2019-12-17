@@ -26,7 +26,7 @@ const SuggestedOwnerHovercard = ({actor, commits, rules, ...props}) => (
         {actor.id === undefined && (
           <EmailAlert icon="icon-warning-sm" type="warning">
             {tct(
-              'The email [actorEmail] has no associated Sentry account. You can [inviteUser:invite this user] to your organization or link additional emails in [accountSettings:account settings].',
+              'The email [actorEmail] is not a member of your organization. [inviteUser:Invite] them or link additional emails in [accountSettings:account settings].',
               {
                 actorEmail: <strong>{actor.email}</strong>,
                 accountSettings: <Link to="/settings/account/emails/" />,
