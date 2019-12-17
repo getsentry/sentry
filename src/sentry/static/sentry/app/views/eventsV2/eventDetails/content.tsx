@@ -350,7 +350,7 @@ const StyledTitle = styled('span')`
 `;
 
 const MetaDataID = styled('div')`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${space(4)};
 `;
 
 const MetadataContainer = styled('div')`

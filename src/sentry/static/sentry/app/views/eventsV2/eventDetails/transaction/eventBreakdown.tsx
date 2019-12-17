@@ -169,15 +169,15 @@ class EventBreakdown extends React.Component<Props> {
         {results.ops.map(currentOp => {
           const {name, percentage, totalDuration} = currentOp;
           const pctLabel = Math.floor(percentage);
-          const durLabel = Math.floor(totalDuration);
+          const durLabel = Math.round(totalDuration * 100) / 100;
 
           return (
             <OpsLine key={name}>
-              <span>{name}</span>
-              <div>
-                <span>{pctLabel}%</span>
-                <span>{durLabel}ms</span>
-              </div>
+              <OpsName>{name}</OpsName>
+              <OpsDescription>
+                <Dur>{durLabel}ms</Dur>
+                <Pct>{pctLabel}%</Pct>
+              </OpsDescription>
             </OpsLine>
           );
         })}
@@ -189,12 +189,41 @@ class EventBreakdown extends React.Component<Props> {
 const StyledBreakdown = styled('div')`
   color: ${p => p.theme.gray3};
   font-size: ${p => p.theme.fontSizeMedium};
-  margin-bottom: ${space(3)};
+  margin-bottom: ${space(4)};
 `;
 
 const OpsLine = styled('div')`
   display: flex;
   justify-content: space-between;
+  margin-bottom: ${space(0.5)};
+`;
+
+const OpsName = styled('div')`
+  display: flex;
+  align-items: center;
+
+  &:before {
+    display: block;
+    content: '';
+    background-color: ${p => p.theme.gray2};
+    border-radius: 100%;
+    width: 8px;
+    height: 8px;
+    margin-right: ${space(1)};
+  }
+`;
+
+const OpsDescription = styled('div')`
+  display: flex;
+  text-align: right;
+`;
+
+const Dur = styled('div')`
+  color: ${p => p.theme.gray2};
+`;
+
+const Pct = styled('div')`
+  width: 30px;
 `;
 
 export default EventBreakdown;
