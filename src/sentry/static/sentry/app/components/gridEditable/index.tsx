@@ -6,7 +6,6 @@ import {openModal} from 'app/actionCreators/modal';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import InlineSvg from 'app/components/inlineSvg';
 import LoadingContainer from 'app/components/loading/loadingContainer';
-import ToolTip from 'app/components/tooltip';
 
 import {
   GridColumn,
