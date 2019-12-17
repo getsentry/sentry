@@ -16,7 +16,7 @@ import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
 import {recordInteraction} from 'app/utils/recordSentryAppInteraction';
 import {
   LightWeightOrganization,
-  OrganizationDetailed,
+  Organization,
   SentryApp,
   SentryAppInstallation,
 } from 'app/types';
@@ -25,7 +25,7 @@ type Props = AsyncView['props'];
 
 type State = AsyncView['state'] & {
   selectedOrgSlug: string | null;
-  organization: OrganizationDetailed | null;
+  organization: Organization | null;
   organizations: LightWeightOrganization[];
   reloading: boolean;
   sentryApp: SentryApp;
@@ -118,7 +118,7 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
 
     try {
       const [organization, installations]: [
-        OrganizationDetailed,
+        Organization,
         SentryAppInstallation[]
       ] = await Promise.all([
         this.api.requestPromise(`/organizations/${orgSlug}/`),
