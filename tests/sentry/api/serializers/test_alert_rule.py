@@ -154,7 +154,6 @@ class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestC
         # Call wtih over limit gets capped
         # Call with page size = 1 or 2 and valid cursor's get correct results
         # user = self.create_user("foo@example.com", is_superuser=True, is_staff = True)
-
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
@@ -178,7 +177,7 @@ class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestC
 
         request_data = {
             "cursor": "0:0:0",
-            "limit": "3"
+            "limit": "5"
         }
 
         print("request_data:",request_data)
@@ -195,12 +194,12 @@ class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestC
 
         assert response.status_code == 200
         result = json.loads(response.content)
-        # assert len(result) == 3
-        import pdb; pdb.set_trace()
+        assert len(result) == 4
         self.assert_alert_rule_serialized(yet_another_alert_rule, result[0], skip_dates=True)
-        assert result[1]["id"] == six.text_type(rule.id)
+        assert result[1]["id"] == six.text_type(issue_rule.id)
         assert result[1]["type"] == "rule"
-        self.assert_alert_rule_serialized(alert_rule, result[2], skip_dates=True)
+        self.assert_alert_rule_serialized(other_alert_rule, result[2], skip_dates=True)
+        self.assert_alert_rule_serialized(alert_rule, result[3], skip_dates=True)
 
         # Test Limit as 1, no cursor:
         request_data = {
@@ -217,13 +216,15 @@ class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestC
         assert response.status_code == 200
         result = json.loads(response.content)
         assert len(result) == 1
-        import pdb; pdb.set_trace()
-        self.assert_alert_rule_serialized(alert_rule, result[0])
+        self.assert_alert_rule_serialized(yet_another_alert_rule, result[0])
 
         links = requests.utils.parse_header_links(response.get('link').rstrip('>').replace('>,<', ',<'))
+        next_cursor = links[1]['cursor']
+        print(next_cursor)
+        import pdb; pdb.set_trace()
         # Test Limit 1, next page of previous request:
         request_data = {
-            "cursor": links[1]['cursor'],
+            "cursor": next_cursor,
             "limit": "1"
         }
         with self.feature("organizations:incidents"):
@@ -236,5 +237,5 @@ class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestC
         assert response.status_code == 200
         result = json.loads(response.content)
         assert len(response.content) == 1
-        assert result[1]["id"] == six.text_type(rule.id)
-        assert result[1]["type"] == "rule"
+        assert result[0]["id"] == six.text_type(issue_rule.id)
+        assert result[0]["type"] == "rule"
