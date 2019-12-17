@@ -35,7 +35,7 @@ export const Header = styled('div')`
 export const HeaderTitle = styled('h2')`
   margin: 0;
 
-  font-size: 20px;
+  font-size: ${p => p.theme.headerFontSize};
   font-weight: normal;
   color: ${p => p.theme.gray3};
 `;

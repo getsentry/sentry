@@ -212,33 +212,31 @@ class GridEditable<
     const enableEdit = isEditing && columnOrder.length > 1;
 
     return (
-      <GridHead>
-        <GridRow>
-          {columnOrder.map((column, columnIndex) => (
-            <GridHeadCell
-              openModalAddColumnAt={this.openModalAddColumnAt}
-              isLast={columnOrder.length - 1 === columnIndex}
-              key={`${columnIndex}.${column.key}`}
-              isColumnDragging={this.props.isColumnDragging}
-              isPrimary={column.isPrimary}
-              isEditing={enableEdit}
-              indexColumnOrder={columnIndex}
-              column={column}
-              gridHeadCellButtonProps={this.props.gridHeadCellButtonProps || {}}
-              actions={{
-                moveColumnCommit: actions.moveColumnCommit,
-                onDragStart: actions.onDragStart,
-                deleteColumn: actions.deleteColumn,
-                toggleModalEditColumn: this.toggleModalEditColumn,
-              }}
-            >
-              {grid.renderHeaderCell
-                ? grid.renderHeaderCell(column, columnIndex)
-                : column.name}
-            </GridHeadCell>
-          ))}
-        </GridRow>
-      </GridHead>
+      <GridRow>
+        {columnOrder.map((column, columnIndex) => (
+          <GridHeadCell
+            openModalAddColumnAt={this.openModalAddColumnAt}
+            isLast={columnOrder.length - 1 === columnIndex}
+            key={`${columnIndex}.${column.key}`}
+            isColumnDragging={this.props.isColumnDragging}
+            isPrimary={column.isPrimary}
+            isEditing={enableEdit}
+            indexColumnOrder={columnIndex}
+            column={column}
+            gridHeadCellButtonProps={this.props.gridHeadCellButtonProps || {}}
+            actions={{
+              moveColumnCommit: actions.moveColumnCommit,
+              onDragStart: actions.onDragStart,
+              deleteColumn: actions.deleteColumn,
+              toggleModalEditColumn: this.toggleModalEditColumn,
+            }}
+          >
+            {grid.renderHeaderCell
+              ? grid.renderHeaderCell(column, columnIndex)
+              : column.name}
+          </GridHeadCell>
+        ))}
+      </GridRow>
     );
   };
 
@@ -257,7 +255,7 @@ class GridEditable<
       return this.renderEmptyData();
     }
 
-    return <GridBody>{data.map(this.renderGridBodyRow)}</GridBody>;
+    return data.map(this.renderGridBodyRow);
   };
 
   renderGridBodyRow = (dataRow: DataRow, row: number) => {
@@ -278,43 +276,37 @@ class GridEditable<
     const {error} = this.props;
 
     return (
-      <GridBody>
-        <GridRow>
-          <GridBodyCellSpan>
-            <GridBodyErrorAlert type="error" icon="icon-circle-exclamation">
-              {error}
-            </GridBodyErrorAlert>
-          </GridBodyCellSpan>
-        </GridRow>
-      </GridBody>
+      <GridRow>
+        <GridBodyCellSpan>
+          <GridBodyErrorAlert type="error" icon="icon-circle-exclamation">
+            {error}
+          </GridBodyErrorAlert>
+        </GridBodyCellSpan>
+      </GridRow>
     );
   };
 
   renderLoading = () => {
     return (
-      <GridBody>
-        <GridRow>
-          <GridBodyCellSpan>
-            <GridBodyCellLoading>
-              <LoadingContainer isLoading />
-            </GridBodyCellLoading>
-          </GridBodyCellSpan>
-        </GridRow>
-      </GridBody>
+      <GridRow>
+        <GridBodyCellSpan>
+          <GridBodyCellLoading>
+            <LoadingContainer isLoading />
+          </GridBodyCellLoading>
+        </GridBodyCellSpan>
+      </GridRow>
     );
   };
 
   renderEmptyData = () => {
     return (
-      <GridBody>
-        <GridRow>
-          <GridBodyCellSpan>
-            <EmptyStateWarning>
-              <p>{t('No results found')}</p>
-            </EmptyStateWarning>
-          </GridBodyCellSpan>
-        </GridRow>
-      </GridBody>
+      <GridRow>
+        <GridBodyCellSpan>
+          <EmptyStateWarning>
+            <p>{t('No results found')}</p>
+          </EmptyStateWarning>
+        </GridBodyCellSpan>
+      </GridRow>
     );
   };
 
@@ -345,8 +337,8 @@ class GridEditable<
             isEditing={this.state.isEditing}
             numColumn={this.state.numColumn}
           >
-            {this.renderGridHead()}
-            {this.renderGridBody()}
+            <GridHead>{this.renderGridHead()}</GridHead>
+            <GridBody>{this.renderGridBody()}</GridBody>
           </Grid>
         </Body>
       </React.Fragment>
