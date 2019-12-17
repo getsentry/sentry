@@ -59,7 +59,7 @@ class IssueActions extends PluginComponentBase {
   }
 
   getFieldList() {
-    const key = this.getFormListKey();
+    const key = this.getFieldListKey();
     return this.state[key] || [];
   }
 
@@ -96,7 +96,7 @@ class IssueActions extends PluginComponentBase {
   loadOptionsForDependentField = async field => {
     const formData = this.getFormData();
 
-    const groupId = this.group().id;
+    const groupId = this.getGroup().id;
     const pluginSlug = this.props.plugin.slug;
     const url = `/issues/${groupId}/plugins/${pluginSlug}/options/`;
 
@@ -120,7 +120,7 @@ class IssueActions extends PluginComponentBase {
   };
 
   updateOptionsOfDependentField = (field, choices) => {
-    const formListKey = this.getFormListKey();
+    const formListKey = this.getFieldListKey();
     let fieldList = this.state[formListKey];
 
     //find the location of the field in our list and replace it
