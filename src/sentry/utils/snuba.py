@@ -332,6 +332,7 @@ def detect_dataset(query_args, aliased_conditions=False):
         # Check for transaction only field aliases
         if isinstance(field[2], six.string_types) and field[2] in (
             "apdex",
+            "error_ratio",
             "impact",
             "p75",
             "p95",

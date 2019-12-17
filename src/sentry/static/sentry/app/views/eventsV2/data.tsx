@@ -21,6 +21,7 @@ import {generateEventDetailsRoute, generateEventSlug} from './eventDetails/utils
 export const PIN_ICON = `image://${pinIcon}`;
 export const AGGREGATE_ALIASES = [
   'apdex',
+  'error_ratio',
   'impact',
   'p75',
   'p95',

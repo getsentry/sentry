@@ -703,6 +703,10 @@ FIELD_ALIASES = {
     # Long term these will become more complex functions but these are
     # field aliases.
     "apdex": {"result_type": "number", "aggregations": [["apdex(duration, 300)", "", "apdex"]]},
+    "error_ratio": {
+        "result_type": "number",
+        "aggregations": [["countIf(transaction_status > 0) / count()", "", "error_ratio"]],
+    },
     "impact": {
         "result_type": "number",
         "aggregations": [
