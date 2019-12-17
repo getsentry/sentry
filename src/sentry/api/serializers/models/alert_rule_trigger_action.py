@@ -24,5 +24,5 @@ class AlertRuleTriggerActionSerializer(Serializer):
             if obj.target_display is not None
             else obj.target_identifier,
             "integrationId": obj.integration_id,
-            "dateAdded": obj.date_added,
+            "dateCreated": obj.date_added,
         }
