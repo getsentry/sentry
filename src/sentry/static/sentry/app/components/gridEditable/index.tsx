@@ -174,7 +174,10 @@ class GridEditable<
     }
 
     return (
-      <HeaderButton onClick={() => this.openModalAddColumnAt()}>
+      <HeaderButton
+        onClick={() => this.openModalAddColumnAt()}
+        data-test-id="grid-add-column"
+      >
         <InlineSvg src="icon-circle-add" />
         {t('Add Column')}
       </HeaderButton>
@@ -188,7 +191,7 @@ class GridEditable<
 
     if (!this.state.isEditing) {
       return (
-        <HeaderButton onClick={this.toggleEdit}>
+        <HeaderButton onClick={this.toggleEdit} data-test-id="grid-edit-enable">
           <InlineSvg src="icon-edit-pencil" />
           {t('Edit Columns')}
         </HeaderButton>
@@ -196,7 +199,7 @@ class GridEditable<
     }
 
     return (
-      <HeaderButton onClick={this.toggleEdit}>
+      <HeaderButton onClick={this.toggleEdit} data-test-id="grid-edit-disable">
         <InlineSvg src="icon-circle-close" />
         {t('Exit Edit')}
       </HeaderButton>
