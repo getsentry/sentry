@@ -2,6 +2,7 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import {browserHistory} from 'react-router';
 import React from 'react';
 import * as Sentry from '@sentry/browser';
+import styled from 'react-emotion';
 
 import {Member, Organization, Team} from 'app/types';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
@@ -10,6 +11,7 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'app/actionCreators/indicator';
+import {inputStyles} from 'app/styles/input';
 import {removeAuthenticator} from 'app/actionCreators/account';
 import {resendMemberInvite, updateMember} from 'app/actionCreators/members';
 import {t, tct} from 'app/locale';
@@ -18,12 +20,14 @@ import AutoSelectText from 'app/components/autoSelectText';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import DateTime from 'app/components/dateTime';
+import ExternalLink from 'app/components/links/externalLink';
 import Field from 'app/views/settings/components/forms/field';
 import NotFound from 'app/components/errors/notFound';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TeamSelect from 'app/views/settings/components/teamSelect';
 import Tooltip from 'app/components/tooltip';
 import recreateRoute from 'app/utils/recreateRoute';
+import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 
 import RoleSelect from './inviteMember/roleSelect';
@@ -211,7 +215,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
     }
 
     const {access} = organization;
-    const inviteLink = member.invite_link;
+    const inviteLink = member.invite_link || 'test';
     const canEdit = access.includes('org:write');
 
     const {email, expired, pending} = member;
@@ -219,17 +223,13 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
     const showAuth = !pending;
 
     return (
-      <div>
+      <React.Fragment>
         <SettingsPageHeader
           title={
-            <div>
-              <div style={{fontSize: '1.4em'}}>{member.name}</div>
-              <div>
-                <small style={{opacity: 0.6, fontSize: '0.8em', fontWeight: 'normal'}}>
-                  {t('Member Settings')}
-                </small>
-              </div>
-            </div>
+            <React.Fragment>
+              <div>{member.name}</div>
+              <ExtraHeaderText>{t('Member Settings')}</ExtraHeaderText>
+            </React.Fragment>
           }
         />
 
@@ -237,71 +237,62 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
           <PanelHeader>{t('Basics')}</PanelHeader>
 
           <PanelBody>
-            <PanelItem direction="column">
-              <div className="row" style={{width: '100%'}}>
-                <div className="col-md-6">
-                  <div className="control-group">
-                    <label>{t('Email')}</label>
-                    <div className="controls">
-                      <a href={`mailto:${email}`}>{email}</a>
+            <PanelItem>
+              <OverflowWrapper>
+                <Details>
+                  <div>
+                    <DetailLabel>{t('Email')}</DetailLabel>
+                    <div>
+                      <ExternalLink href={`mailto:${email}`}>{email}</ExternalLink>
                     </div>
                   </div>
-                </div>
-                <div className="col-md-3">
-                  <div className="control-group">
-                    <label>{t('Status')}</label>
-                    <div className="controls" data-test-id="member-status">
+                  <div>
+                    <DetailLabel>{t('Status')}</DetailLabel>
+                    <div data-test-id="member-status">
                       {member.expired ? (
-                        <em>Invitation Expired</em>
+                        <em>{t('Invitation Expired')}</em>
                       ) : member.pending ? (
-                        <em>Invitation Pending</em>
+                        <em>{t('Invitation Pending')}</em>
                       ) : (
-                        'Active'
+                        t('Active')
                       )}
                     </div>
                   </div>
-                </div>
-                <div className="col-md-3">
-                  <div className="control-group">
-                    <label>{t('Added')}</label>
-                    <div className="controls">
+                  <div>
+                    <DetailLabel>{t('Added')}</DetailLabel>
+                    <div>
                       <DateTime dateOnly date={member.dateCreated} />
                     </div>
                   </div>
-                </div>
-              </div>
+                </Details>
 
-              {inviteLink && (
-                <div className="form-actions">
-                  <div className="control-group">
-                    <label>{t('Invite Link')}</label>
-                    <AutoSelectText className="controls">
-                      <code className="form-control" style={{overflow: 'auto'}}>
-                        {inviteLink}
-                      </code>
-                    </AutoSelectText>
-                    <p className="help-block">
-                      This unique invite link may only be used by this member.
-                    </p>
-                  </div>
-                  <div className="align-right">
-                    <Button
-                      style={{marginRight: 10}}
-                      onClick={() => this.handleInvite(true)}
-                    >
-                      {t('Generate New Invite')}
-                    </Button>
-                    {canResend && (
-                      <Button
-                        data-test-id="resend-invite"
-                        onClick={() => this.handleInvite(false)}
-                      >
-                        {t('Resend Invite')}
+                {inviteLink && (
+                  <InviteSection>
+                    <div>
+                      <DetailLabel>{t('Invite Link')}</DetailLabel>
+                      <AutoSelectText>
+                        <CodeInput>{inviteLink}</CodeInput>
+                      </AutoSelectText>
+                      <p className="help-block">
+                        {t('This unique invite link may only be used by this member.')}
+                      </p>
+                    </div>
+                    <InviteActions>
+                      <Button onClick={() => this.handleInvite(true)}>
+                        {t('Generate New Invite')}
                       </Button>
-                    )}
-                  </div>
-                </div>
-              )}
+                      {canResend && (
+                        <Button
+                          data-test-id="resend-invite"
+                          onClick={() => this.handleInvite(false)}
+                        >
+                          {t('Resend Invite')}
+                        </Button>
+                      )}
+                    </InviteActions>
+                  </InviteSection>
+                )}
+              </OverflowWrapper>
             </PanelItem>
           </PanelBody>
         </Panel>
@@ -358,18 +349,73 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
           onRemoveTeam={this.handleRemoveTeam}
         />
 
-        <Button
-          priority="primary"
-          busy={this.state.busy}
-          className="invite-member-submit"
-          onClick={this.handleSave}
-          disabled={!canEdit}
-        >
-          {t('Save Member')}
-        </Button>
-      </div>
+        <Footer>
+          <Button
+            priority="primary"
+            busy={this.state.busy}
+            onClick={this.handleSave}
+            disabled={!canEdit}
+          >
+            {t('Save Member')}
+          </Button>
+        </Footer>
+      </React.Fragment>
     );
   }
 }
 
 export default withOrganization(OrganizationMemberDetail);
+
+const ExtraHeaderText = styled('div')`
+  color: ${p => p.theme.gray2};
+  font-weight: normal;
+  font-size: ${p => p.theme.fontSizeLarge};
+`;
+
+const Details = styled('div')`
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-columns: 2fr 1fr 1fr;
+  grid-gap: ${space(2)};
+  width: 100%;
+
+  ${p => `
+  @media (max-width: ${p.theme.breakpoints[0]}) {
+  grid-auto-flow: row;
+  grid-template-columns: auto;
+  }`}
+`;
+
+const DetailLabel = styled('div')`
+  font-weight: bold;
+  margin-bottom: ${space(0.5)};
+  color: ${p => p.theme.gray4};
+`;
+
+const OverflowWrapper = styled('div')`
+  overflow: hidden;
+  flex: 1;
+`;
+
+const InviteSection = styled('div')`
+  border-top: 1px solid ${p => p.theme.borderLight};
+  margin-top: ${space(2)};
+  padding-top: ${space(2)};
+`;
+
+const CodeInput = styled('code')`
+  ${inputStyles};
+`;
+
+const InviteActions = styled('div')`
+  display: grid;
+  grid-gap: ${space(1)};
+  grid-auto-flow: column;
+  justify-content: flex-end;
+  margin-top: ${space(2)};
+`;
+
+const Footer = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+`;
