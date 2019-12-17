@@ -510,6 +510,30 @@ class ParseSearchQueryTest(unittest.TestCase):
             ):
                 parse_search_query(invalid_query)
 
+    def test_boolean_filter(self):
+        assert parse_search_query("error.handled:TrUe") == [
+            SearchFilter(
+                key=SearchKey(name="error.handled"), operator="=", value=SearchValue(raw_value=1)
+            )
+        ]
+        assert parse_search_query("error.handled:fAlSe") == [
+            SearchFilter(
+                key=SearchKey(name="error.handled"), operator="=", value=SearchValue(raw_value=0)
+            )
+        ]
+
+    def test_negated_boolean_filter(self):
+        assert parse_search_query("!error.handled:TrUe") == [
+            SearchFilter(
+                key=SearchKey(name="error.handled"), operator="=", value=SearchValue(raw_value=0)
+            )
+        ]
+        assert parse_search_query("!error.handled:fAlSe") == [
+            SearchFilter(
+                key=SearchKey(name="error.handled"), operator="=", value=SearchValue(raw_value=1)
+            )
+        ]
+
     def test_quotes_filtered_on_raw(self):
         # Enclose the full raw query? Strip it.
         assert parse_search_query('thinger:unknown "what is this?"') == [

@@ -60,6 +60,14 @@ class TagStorageTest(TestCase, SnubaTestCase):
                             "sentry:user": u"id:user{}".format(r),
                         },
                         "user": {"id": u"user{}".format(r), "email": u"user{}@sentry.io".format(r)},
+                        "exception": {
+                            "values": [
+                                {
+                                    "mechanism": {"handled": True},
+                                    "stacktrace": {"frames": [{"lineno": 29}]},
+                                }
+                            ]
+                        },
                     },
                 }
                 for r in [1, 2]
@@ -412,6 +420,68 @@ class TagStorageTest(TestCase, SnubaTestCase):
             )
             is None
         )
+
+    def test_get_tag_value_paginator_boolean(self):
+        from sentry.tagstore.types import TagValue
+
+        assert list(
+            self.ts.get_tag_value_paginator(
+                self.proj1.id, self.proj1env1.id, "error.handled"
+            ).get_result(10)
+        ) == [
+            TagValue(
+                key="error.handled",
+                value="1",
+                times_seen=2,
+                first_seen=self.now - timedelta(seconds=2),
+                last_seen=self.now - timedelta(seconds=1),
+            )
+        ]
+
+        assert list(
+            self.ts.get_tag_value_paginator(
+                self.proj1.id, self.proj1env1.id, "error.handled", query="True"
+            ).get_result(10)
+        ) == [
+            TagValue(
+                key="error.handled",
+                value="1",
+                times_seen=2,
+                first_seen=self.now - timedelta(seconds=2),
+                last_seen=self.now - timedelta(seconds=1),
+            )
+        ]
+
+    def test_get_tag_value_paginator_numeric(self):
+        from sentry.tagstore.types import TagValue
+
+        assert list(
+            self.ts.get_tag_value_paginator(
+                self.proj1.id, self.proj1env1.id, "stack.lineno"
+            ).get_result(10)
+        ) == [
+            TagValue(
+                key="stack.lineno",
+                value="29",
+                times_seen=2,
+                first_seen=self.now - timedelta(seconds=2),
+                last_seen=self.now - timedelta(seconds=1),
+            )
+        ]
+
+        assert list(
+            self.ts.get_tag_value_paginator(
+                self.proj1.id, self.proj1env1.id, "stack.lineno", query="30"
+            ).get_result(10)
+        ) == [
+            TagValue(
+                key="stack.lineno",
+                value="29",
+                times_seen=2,
+                first_seen=self.now - timedelta(seconds=2),
+                last_seen=self.now - timedelta(seconds=1),
+            )
+        ]
 
     def test_get_tag_value_paginator(self):
         from sentry.tagstore.types import TagValue
