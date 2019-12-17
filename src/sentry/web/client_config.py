@@ -146,6 +146,7 @@ def get_client_config(request=None):
         "dsn": public_dsn,
         "statuspage": _get_statuspage(),
         "messages": [{"message": msg.message, "level": msg.tags} for msg in messages],
+        "apmSampling": float(settings.SENTRY_APM_SAMPLING or 0),
         "isOnPremise": settings.SENTRY_ONPREMISE,
         "invitesEnabled": settings.SENTRY_ENABLE_INVITES,
         "gravatarBaseUrl": settings.SENTRY_GRAVATAR_BASE_URL,
