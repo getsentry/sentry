@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import six
 import math
 from datetime import datetime
 from copy import deepcopy
@@ -27,11 +28,13 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
         if not features.has("organizations:incidents", project.organization, actor=request.user):
             raise ResourceDoesNotExist
 
-        cursor_string = request.GET.get("cursor", None)
-        page_size = 25
-
-        if cursor_string is None:
-            cursor_string = "0:0:0"
+        cursor_string = request.GET.get("cursor", "0:0:0")
+        try:
+            limit = min(100, int(request.GET.get("limit", 25)))
+        except ValueError as e:
+            return Response(
+                {"detail": "Invalid input for `limit`. Error: %s" % six.text_type(e)}, status=400
+            )
 
         cursor = Cursor.from_string(cursor_string)
         cursor_date = datetime.fromtimestamp(float(cursor.value)).replace(tzinfo=timezone.utc)
@@ -39,7 +42,7 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
         alert_rule_queryset = (
             AlertRule.objects.fetch_for_project(project)
             .filter(date_added__gte=cursor_date)
-            .order_by("-date_added")[: page_size + 1]
+            .order_by("date_added")[: limit + 1]
         )
 
         legacy_rule_queryset = (
@@ -48,11 +51,11 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
             )
             .select_related("project")
             .filter(date_added__gte=cursor_date)
-            .order_by("-date_added")[: (page_size + 1)]
+            .order_by("date_added")[: (limit + 1)]
         )
         combined_rules = list(alert_rule_queryset) + list(legacy_rule_queryset)
         combined_rules.sort(key=lambda instance: (instance.date_added, type(instance)))
-        combined_rules = combined_rules[cursor.offset : cursor.offset + page_size + 1]
+        combined_rules = combined_rules[cursor.offset : cursor.offset + limit + 1]
 
         def get_item_key(item, for_prev=False):
             value = getattr(item, "date_added")
@@ -60,7 +63,7 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
             return math.floor(value)
 
         cursor_result = build_cursor(
-            results=combined_rules, cursor=cursor, key=get_item_key, limit=page_size
+            results=combined_rules, cursor=cursor, key=get_item_key, limit=limit
         )
         results = list(cursor_result)
         context = serialize(results, request.user, CombinedRuleSerializer())

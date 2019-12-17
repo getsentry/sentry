@@ -85,11 +85,9 @@ class CombinedRuleSerializer(Serializer):
 
         for item in item_list:
             if isinstance(item, AlertRule):
-                results[item] = alert_rules[0]
-                alert_rules = alert_rules[1:]
+                results[item] = alert_rules.pop()
             elif isinstance(item, Rule):
-                results[item] = rules[0]
-                rules = rules[1:]
+                results[item] = rules.pop()
 
         return results
 
