@@ -120,10 +120,5 @@ def patch_model_unpickle():
     django.db.models.base.simple_class_factory = simple_class_factory_compat
 
 
-for patch in (
-    patch_parse_cookie,
-    patch_httprequest_repr,
-    patch_django_views_debug,
-    patch_model_unpickle,
-):
+for patch in (patch_parse_cookie, patch_httprequest_repr, patch_django_views_debug):
     patch()
