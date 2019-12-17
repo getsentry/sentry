@@ -35,11 +35,9 @@ class OrganizationMemberDetail extends AsyncView {
     organization: SentryTypes.Organization,
   };
 
-  constructor(...args) {
-    super(...args);
-
-    this.state = {
-      ...this.state,
+  getDefaultState() {
+    return {
+      ...super.state(),
       roleList: [],
       selectedRole: '',
       member: null,
