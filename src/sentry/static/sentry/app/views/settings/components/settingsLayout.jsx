@@ -54,6 +54,7 @@ class SettingsLayout extends React.Component {
 const MaxWidthContainer = styled('div')`
   display: flex;
   max-width: ${p => p.theme.settings.containerWidth};
+  min-width: 600px; /* for small screen sizes, we need a min width to make it semi digestible */
   flex: 1;
 `;
 
