@@ -1,9 +1,15 @@
+import {RouteComponentProps} from 'react-router/lib/Router';
 import {browserHistory} from 'react-router';
 import React from 'react';
 import * as Sentry from '@sentry/browser';
 
+import {Member, Organization, Team} from 'app/types';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'app/actionCreators/indicator';
 import {removeAuthenticator} from 'app/actionCreators/account';
 import {resendMemberInvite, updateMember} from 'app/actionCreators/members';
 import {t, tct} from 'app/locale';
@@ -13,13 +19,12 @@ import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import DateTime from 'app/components/dateTime';
 import Field from 'app/views/settings/components/forms/field';
-import IndicatorStore from 'app/stores/indicatorStore';
 import NotFound from 'app/components/errors/notFound';
-import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TeamSelect from 'app/views/settings/components/teamSelect';
 import Tooltip from 'app/components/tooltip';
 import recreateRoute from 'app/utils/recreateRoute';
+import withOrganization from 'app/utils/withOrganization';
 
 import RoleSelect from './inviteMember/roleSelect';
 
@@ -30,146 +35,152 @@ const TWO_FACTOR_REQUIRED = t(
   'Cannot be reset since two-factor is required for this organization'
 );
 
-class OrganizationMemberDetail extends AsyncView {
-  static contextTypes = {
-    organization: SentryTypes.Organization,
-  };
+type Props = {
+  organization: Organization;
+} & AsyncView['props'] &
+  RouteComponentProps<
+    {
+      orgId: string;
+      memberId: string;
+    },
+    {}
+  >;
 
+type State = {
+  roleList: Member['roles'];
+  selectedRole: Member['role'];
+  member: Member | null;
+} & AsyncView['state'];
+
+class OrganizationMemberDetail extends AsyncView<Props, State> {
   getDefaultState() {
     return {
-      ...super.state(),
+      ...super.getDefaultState(),
       roleList: [],
       selectedRole: '',
       member: null,
     };
   }
 
-  getEndpoints() {
-    const {slug} = this.getOrganization();
-    const {params} = this.props;
-    return [['member', `/organizations/${slug}/members/${params.memberId}/`]];
-  }
-
-  getOrganization() {
-    return this.context.organization;
+  getEndpoints(): [string, string][] {
+    const {organization, params} = this.props;
+    return [
+      ['member', `/organizations/${organization.slug}/members/${params.memberId}/`],
+    ];
   }
 
   redirectToMemberPage() {
+    const {location, params, routes} = this.props;
     const members = recreateRoute('members/', {
-      routes: this.props.routes,
-      params: this.props.params,
+      location,
+      routes,
+      params,
       stepBack: -2,
     });
     browserHistory.push(members);
   }
 
-  handleSave = () => {
-    const {slug} = this.getOrganization();
-    const {params} = this.props;
+  handleSave = async () => {
+    const {organization, params} = this.props;
 
-    const indicator = IndicatorStore.add('Saving...');
+    addLoadingMessage(t('Saving...'));
     this.setState({busy: true});
 
-    updateMember(this.api, {
-      orgId: slug,
-      memberId: params.memberId,
-      data: this.state.member,
-    })
-      .then(() => {
-        IndicatorStore.addSuccess('Saved');
-        this.redirectToMemberPage();
-      })
-      .catch(resp => {
-        const errorMessage =
-          (resp && resp.responseJSON && resp.responseJSON.detail) ||
-          t('Could not save...');
-        IndicatorStore.addError(errorMessage);
-      })
-      .then(() => {
-        IndicatorStore.remove(indicator);
-        this.setState({busy: false});
+    try {
+      await updateMember(this.api, {
+        orgId: organization.slug,
+        memberId: params.memberId,
+        data: this.state.member,
       });
+      addSuccessMessage(t('Saved'));
+      this.redirectToMemberPage();
+    } catch (resp) {
+      const errorMessage =
+        (resp && resp.responseJSON && resp.responseJSON.detail) || t('Could not save...');
+      addErrorMessage(errorMessage);
+    }
+    this.setState({busy: false});
   };
 
-  handleInvite = regenerate => {
-    const {slug} = this.getOrganization();
-    const {params} = this.props;
+  handleInvite = async (regenerate: boolean) => {
+    const {organization, params} = this.props;
 
-    const indicator = IndicatorStore.add('Sending invite...');
+    addLoadingMessage(t('Sending invite...'));
+
     this.setState({busy: true});
 
-    resendMemberInvite(this.api, {
-      orgId: slug,
-      memberId: params.memberId,
-      regenerate,
-    })
-      .then(data => {
-        IndicatorStore.add('Sent invite!', 'success', {duration: 5000});
-        if (regenerate) {
-          this.setState(state => ({member: {...state.member, ...data}}));
-        }
-      })
-      .catch(() => IndicatorStore.add('Could not send invite', 'error', {duration: 5000}))
-      .then(() => {
-        IndicatorStore.remove(indicator);
-        this.setState({busy: false});
+    try {
+      const data = await resendMemberInvite(this.api, {
+        orgId: organization.slug,
+        memberId: params.memberId,
+        regenerate,
       });
+
+      addSuccessMessage(t('Sent invite!'));
+
+      if (regenerate) {
+        this.setState(state => ({member: {...state.member, ...data}}));
+      }
+    } catch (_err) {
+      addErrorMessage(t('Could not send invite'));
+    }
+
+    this.setState({busy: false});
   };
 
-  handleAddTeam = team => {
+  handleAddTeam = (team: Team) => {
     const {member} = this.state;
-    if (!member.teams.includes(team.slug)) {
-      member.teams.push(team.slug);
+    if (!member!.teams.includes(team.slug)) {
+      member!.teams.push(team.slug);
     }
     this.setState({member});
   };
 
-  handleRemoveTeam = removedTeam => {
+  handleRemoveTeam = (removedTeam: string) => {
     const {member} = this.state;
 
     this.setState({
       member: {
-        ...member,
-        teams: member.teams.filter(slug => slug !== removedTeam),
+        ...member!,
+        teams: member!.teams.filter(slug => slug !== removedTeam),
       },
     });
   };
 
-  handle2faReset = () => {
-    const {user} = this.state.member;
-    const {slug} = this.getOrganization();
+  handle2faReset = async () => {
+    const {organization, router} = this.props;
+    const {user} = this.state.member!;
 
     const requests = user.authenticators.map(auth =>
       removeAuthenticator(this.api, user.id, auth.id)
     );
 
-    Promise.all(requests)
-      .then(() => {
-        this.props.router.push(`/settings/${slug}/members/`);
-        addSuccessMessage(t('All authenticators have been removed'));
-      })
-      .catch(err => {
-        addErrorMessage(t('Error removing authenticators'));
-        Sentry.captureException(err);
-      });
+    try {
+      await Promise.all(requests);
+      router.push(`/settings/${organization.slug}/members/`);
+      addSuccessMessage(t('All authenticators have been removed'));
+    } catch (err) {
+      addErrorMessage(t('Error removing authenticators'));
+      Sentry.captureException(err);
+    }
   };
 
   showResetButton = () => {
+    const {organization} = this.props;
     const {member} = this.state;
-    const {require2FA} = this.getOrganization();
-    const {user} = member;
+    const {user} = member!;
 
-    if (!user || !user.authenticators || require2FA) {
+    if (!user || !user.authenticators || organization.require2FA) {
       return false;
     }
     const hasAuth = user.authenticators.length >= 1;
     return hasAuth && user.canReset2fa;
   };
 
-  getTooltip = () => {
+  getTooltip = (): string => {
+    const {organization} = this.props;
     const {member} = this.state;
-    const {require2FA} = this.getOrganization();
-    const {user} = member;
+    const {user} = member!;
 
     if (!user) {
       return '';
@@ -184,7 +195,7 @@ class OrganizationMemberDetail extends AsyncView {
     if (!user.canReset2fa) {
       return MULTIPLE_ORGS;
     }
-    if (require2FA) {
+    if (organization.require2FA) {
       return TWO_FACTOR_REQUIRED;
     }
 
@@ -192,14 +203,14 @@ class OrganizationMemberDetail extends AsyncView {
   };
 
   renderBody() {
-    const {error, member} = this.state;
-    const organization = this.getOrganization();
-    const access = organization.access;
+    const {organization} = this.props;
+    const {member} = this.state;
 
     if (!member) {
       return <NotFound />;
     }
 
+    const {access} = organization;
     const inviteLink = member.invite_link;
     const canEdit = access.includes('org:write');
 
@@ -221,8 +232,6 @@ class OrganizationMemberDetail extends AsyncView {
             </div>
           }
         />
-
-        {error && error.role && <p className="error alert-error">{error.role}</p>}
 
         <Panel>
           <PanelHeader>{t('Basics')}</PanelHeader>
@@ -363,4 +372,4 @@ class OrganizationMemberDetail extends AsyncView {
   }
 }
 
-export default OrganizationMemberDetail;
+export default withOrganization(OrganizationMemberDetail);
