@@ -470,7 +470,7 @@ export const Incident = PropTypes.shape({
   dateClosed: PropTypes.string,
   dateStarted: PropTypes.string.isRequired,
   dateDetected: PropTypes.string.isRequired,
-  dateAdded: PropTypes.string.isRequired,
+  dateCreated: PropTypes.string.isRequired,
 });
 
 export const IncidentSuspectData = PropTypes.shape({

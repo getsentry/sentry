@@ -18,7 +18,7 @@ class AlertRuleTriggerSerializer(Serializer):
             "thresholdType": obj.threshold_type,
             "alertThreshold": obj.alert_threshold,
             "resolveThreshold": obj.resolve_threshold,
-            "dateAdded": obj.date_added,
+            "dateCreated": obj.date_added,
         }
 
 

@@ -7,7 +7,7 @@ export type Incident = {
   dateClosed: string;
   dateStarted: string;
   dateDetected: string;
-  dateAdded: string;
+  dateCreated: string;
   eventStats: {
     data: Data;
   };

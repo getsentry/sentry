@@ -28,7 +28,7 @@ class BaseAlertRuleSerializerTest(object):
         assert result["thresholdPeriod"] == alert_rule.threshold_period
         assert result["includeAllProjects"] == alert_rule.include_all_projects
         assert result["dateModified"] == alert_rule.date_modified
-        assert result["dateAdded"] == alert_rule.date_added
+        assert result["dateCreated"] == alert_rule.date_added
 
 
 class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
