@@ -215,7 +215,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
     }
 
     const {access} = organization;
-    const inviteLink = member.invite_link || 'test';
+    const inviteLink = member.invite_link;
     const canEdit = access.includes('org:write');
 
     const {email, expired, pending} = member;
