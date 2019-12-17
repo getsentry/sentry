@@ -38,6 +38,14 @@ describe('Command Palette Modal', function() {
       query: 'foo',
       body: TestStubs.Members(),
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/plugins/?plugins=_all',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/config/integrations/',
+      body: [],
+    });
 
     MockApiClient.addMockResponse({
       url: '/internal/health/',

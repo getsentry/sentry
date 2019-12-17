@@ -66,6 +66,10 @@ describe('GlobalSelectionHeader', function() {
       router.push,
       router.replace,
     ].forEach(mock => mock.mockClear());
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [],
+    });
   });
 
   it('does not update router if there is custom routing', function() {

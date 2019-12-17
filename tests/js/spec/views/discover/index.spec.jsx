@@ -9,6 +9,10 @@ import ProjectsStore from 'app/stores/projectsStore';
 describe('DiscoverContainer', function() {
   beforeEach(function() {
     browserHistory.push = jest.fn();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [],
+    });
   });
 
   afterEach(function() {

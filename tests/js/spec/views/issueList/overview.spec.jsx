@@ -71,6 +71,11 @@ describe('IssueList,', function() {
       body: [],
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      method: 'POST',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/processingissues/',
       method: 'GET',
       body: [

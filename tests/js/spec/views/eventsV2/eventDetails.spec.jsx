@@ -14,6 +14,11 @@ describe('EventsV2 > EventDetails', function() {
 
   beforeEach(function() {
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventsv2/',
       body: {
         meta: {

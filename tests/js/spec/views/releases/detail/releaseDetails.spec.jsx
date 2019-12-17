@@ -9,6 +9,10 @@ describe('ReleaseDetails', function() {
   beforeEach(function() {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/acme/releases/9.1.1/',
       body: {
         version: '9.1.1',

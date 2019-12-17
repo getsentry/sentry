@@ -25,6 +25,11 @@ describe('ReleaseList', function() {
     });
 
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
       url: '/promptsactivity/',
     });
 

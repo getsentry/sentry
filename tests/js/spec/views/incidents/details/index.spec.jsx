@@ -32,6 +32,11 @@ describe('IncidentDetails', function() {
     });
 
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/incidents/123/seen/',
+      method: 'POST',
+    });
+
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/123/suspects/',
       body: [TestStubs.IncidentSuspectCommit()],
     });
@@ -41,7 +46,11 @@ describe('IncidentDetails', function() {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/456/suspects/',
-      body: [],
+      statusCode: 404,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/incidents/456/activity/',
+      statusCode: 404,
     });
     activitiesList = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/incidents/${
