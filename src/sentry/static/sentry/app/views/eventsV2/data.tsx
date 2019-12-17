@@ -96,6 +96,19 @@ export const ALL_VIEWS: Readonly<Array<NewQuery>> = [
     projects: [],
     version: 2,
   },
+  {
+    version: 2,
+    id: undefined,
+    name: t('Errors by Release'),
+    fields: ['release', 'count(id)', 'count_unique(user)', 'timestamp'],
+    fieldnames: ['Release', 'Issue', 'Users', 'time'],
+    orderby: '-count_id',
+    tags: ['event.type', 'release', 'project', 'user.email', 'user.ip', 'environment'],
+    projects: [],
+    range: '14d',
+    environment: [],
+    query: '',
+  },
 ];
 
 export type EventData = {[key: string]: any};
