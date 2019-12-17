@@ -81,8 +81,10 @@ class AuthenticationForm(forms.Form):
         if not self.fields["username"].label:
             self.fields["username"].label = capfirst(self.username_field.verbose_name)
 
-    def clean_username(self):
-        value = (self.cleaned_data.get("username") or "").strip()
+    def clean_username(self, value=None):
+        if not value:
+            value = self.cleaned_data.get("username") or ""
+        value = value.strip(" \n\t\r\0")
         if not value:
             return
         return value.lower()
