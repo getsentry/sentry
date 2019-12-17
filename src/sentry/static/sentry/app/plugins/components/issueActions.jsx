@@ -104,7 +104,7 @@ class IssueActions extends PluginComponentBase {
       field.depends.map(fieldKey => [fieldKey, formData[fieldKey]])
     );
     const query = {
-      field: field.name,
+      option_field: field.name,
       ...dependentFormValues,
     };
     try {
