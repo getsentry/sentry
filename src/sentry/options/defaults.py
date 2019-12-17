@@ -167,12 +167,6 @@ register("store.empty-interface-sample-rate", default=0.0)
 # regards to filter responses.
 register("store.lie-about-filter-status", default=False)
 
-# Skip nodestore save when saving an event
-register("store.save-event-skips-nodestore", default=False, flags=FLAG_PRIORITIZE_DISK)
-
-# Skip saving an event to postgres
-register("store.skip-pg-save", default=True, flags=FLAG_PRIORITIZE_DISK)
-
 # Use Django event
 register("store.use-django-event", default=False, flags=FLAG_PRIORITIZE_DISK)
 
