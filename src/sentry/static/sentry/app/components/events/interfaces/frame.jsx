@@ -164,7 +164,9 @@ export class Frame extends React.Component {
   }
 
   shouldShowLinkToImage() {
-    return this.props.data.symbolicatorStatus !== SymbolicatorStatus.UNKNOWN_IMAGE;
+    const {symbolicatorStatus} = this.props.data;
+
+    return symbolicatorStatus && symbolicatorStatus !== SymbolicatorStatus.UNKNOWN_IMAGE;
   }
 
   packageStatus() {

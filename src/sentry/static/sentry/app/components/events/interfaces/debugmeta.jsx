@@ -71,7 +71,7 @@ function getImageStatusDetails(status) {
     case 'unused':
       return t('The image was not required for processing the stack trace.');
     case 'missing':
-      return t('No debug information could not be in any of the specified sources.');
+      return t('No debug information could be found in any of the specified sources.');
     case 'malformed':
       return t('The debug information file for this image failed to process.');
     case 'timeout':
