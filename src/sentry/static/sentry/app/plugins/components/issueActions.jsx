@@ -45,13 +45,21 @@ class IssueActions extends PluginComponentBase {
     return this.props.organization;
   }
 
+  getFieldListKey() {
+    return this.props.actionType + 'FieldList';
+  }
+
+  getFormDataKey() {
+    return this.props.actionType + 'FormData';
+  }
+
   getFormData() {
-    const key = this.props.actionType + 'FormData';
+    const key = this.getFormDataKey();
     return this.state[key] || {};
   }
 
   getFieldList() {
-    const key = this.props.actionType + 'FieldList';
+    const key = this.getFormListKey();
     return this.state[key] || [];
   }
 
@@ -81,27 +89,24 @@ class IssueActions extends PluginComponentBase {
   }
 
   setDependentFieldState(fieldName, state) {
-    const dependentFieldState = {...this.state.dependentFieldState};
-    dependentFieldState[fieldName] = state;
+    const dependentFieldState = {...this.state.dependentFieldState, [fieldName]: state};
     this.setState({dependentFieldState});
   }
 
   loadOptionsForDependentField = async field => {
     const formData = this.getFormData();
 
-    const url =
-      '/issues/' +
-      this.getGroup().id +
-      '/plugins/' +
-      this.props.plugin.slug +
-      '/options/';
+    const groupId = this.group().id;
+    const pluginSlug = this.props.plugin.slug;
+    const url = `/issues/${groupId}/plugins/${pluginSlug}/options/`;
 
     //find the fields that this field is dependent on
-    const dependentFields =
-      fromPairs(field.depends.map(fieldKey => [fieldKey, formData[fieldKey]])) || {};
+    const dependentFormValues = Object.fromEntries(
+      field.depends.map(fieldKey => [fieldKey, formData[fieldKey]])
+    );
     const query = {
-      field: field.name,
-      ...dependentFields,
+      option_field: field.name,
+      ...dependentFormValues,
     };
     try {
       this.setDependentFieldState(field.name, FormState.LOADING);
@@ -115,7 +120,7 @@ class IssueActions extends PluginComponentBase {
   };
 
   updateOptionsOfDependentField = (field, choices) => {
-    const formListKey = this.props.actionType + 'FieldList';
+    const formListKey = this.getFormListKey();
     let fieldList = this.state[formListKey];
 
     //find the location of the field in our list and replace it
@@ -131,7 +136,7 @@ class IssueActions extends PluginComponentBase {
 
   resetOptionsOfDependentField = field => {
     this.updateOptionsOfDependentField(field, []);
-    const formDataKey = this.props.actionType + 'FormData';
+    const formDataKey = this.getFormDataKey();
     const formData = {...this.state[formDataKey]};
     formData[field.name] = '';
     this.setState({[formDataKey]: formData});
@@ -184,14 +189,16 @@ class IssueActions extends PluginComponentBase {
 
   onLoadSuccess(...args) {
     super.onLoadSuccess(...args);
+    console.log('loadings');
 
-    //dependent fields need to be set to disabled upl loading
+    //dependent fields need to be set to disabled upon loading
     const fieldList = this.getFieldList();
     fieldList.forEach(field => {
       if (field.depends && field.depends.length > 0) {
         this.setDependentFieldState(field.name, FormState.DISABLED);
       }
     });
+    console.log('lel');
   }
 
   fetchData() {

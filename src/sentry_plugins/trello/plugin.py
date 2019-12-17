@@ -105,12 +105,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
     def is_configured(self, request, project, **kwargs):
         return all((self.get_option(key, project) for key in ("token", "key")))
 
-    def has_workspace_access(self, workspace, choices):
-        for c in choices:
-            if workspace == c:
-                return True
-        return False
-
+    # used for boards and lists but not cards (shortLink used as ID for cards)
     def map_to_options(self, items):
         return [(item["id"], item["name"]) for item in items]
 
@@ -220,7 +215,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
         return "https://trello.com/c/%s" % issue
 
     def view_options(self, request, group, **kwargs):
-        field = request.GET.get("field")
+        field = request.GET.get("option_field")
         board = request.GET.get("board")
 
         results = []
