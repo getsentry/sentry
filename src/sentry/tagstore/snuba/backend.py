@@ -588,11 +588,17 @@ class SnubaTagStorage(TagStorage):
         conditions = []
 
         if key in SearchVisitor.numeric_keys and snuba_key not in BLACKLISTED_COLUMNS:
-            if query is not None and key in SearchVisitor.boolean_keys:
-                query = SearchVisitor.convert_boolean_text(query)
-            if query is not None and query.isdigit():
-                conditions.append([snuba_key, ">=", int(query) - 50])
-                conditions.append([snuba_key, "<=", int(query) + 50])
+            converted_query = None
+            if query is not None:
+                # Ignore numeric values can't be converted to an int, or handled as a bool
+                if key in SearchVisitor.boolean_keys:
+                    converted_query = SearchVisitor.convert_boolean_text(query)
+                elif query.isdigit():
+                    converted_query = int(query)
+
+            if converted_query is not None:
+                conditions.append([snuba_key, ">=", converted_query - 50])
+                conditions.append([snuba_key, "<=", converted_query + 50])
             else:
                 conditions.append([[snuba_key, ">=", 0], [snuba_key, "<", 0]])
         else:
