@@ -25,6 +25,7 @@ class AsanaBackend(OAuthBackend):
         ("gid", "id"),
         ("refresh_token", "refresh_token"),
     ]
+    ID_KEY = "gid"
 
     def get_user_details(self, response):
         """Return user details from Asana account"""
