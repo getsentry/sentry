@@ -31,12 +31,7 @@ class TrelloApiClient(ApiClient):
             params = {}
         params["token"] = self.token
         params["key"] = self.api_key
-        print (path, data, params)
-        out = self._request(method, path, data=data, params=params)
-        import json
-
-        print (json.dumps(out))
-        return out
+        return self._request(method, path, data=data, params=params)
 
     def get_organization_boards(self, org_id_or_name, fields=None):
         return self.request(path=org_board_path % (org_id_or_name), params={"fields": fields})
