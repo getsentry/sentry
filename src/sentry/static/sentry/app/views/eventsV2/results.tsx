@@ -189,6 +189,8 @@ const StyledSearchBar = styled(SearchBar)`
 `;
 
 const StyledPanel = styled(Panel)`
+  margin-bottom: ${space(1.5)};
+
   .echarts-for-react div:first-child {
     width: 100% !important;
   }
