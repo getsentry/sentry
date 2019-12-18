@@ -4,7 +4,23 @@ import Modal from 'react-bootstrap/lib/Modal';
 import {SelectField} from 'app/components/forms';
 import {t} from 'app/locale';
 
-export default class CustomIgnoreCountModal extends React.Component {
+type Props = {
+  onSelected: (statusDetails: {[key: string]: number}) => void;
+  onCanceled: () => void;
+  show: boolean;
+  label: string;
+  countLabel: string;
+  countName: string;
+  windowName: string;
+  windowChoices: string[];
+};
+
+type State = {
+  count: number;
+  window: number | null;
+};
+
+export default class CustomIgnoreCountModal extends React.Component<Props, State> {
   static propTypes = {
     onSelected: PropTypes.func,
     onCanceled: PropTypes.func,
@@ -16,27 +32,24 @@ export default class CustomIgnoreCountModal extends React.Component {
     windowChoices: PropTypes.array.isRequired,
   };
 
-  constructor(...args) {
-    super(...args);
-    this.state = {
-      count: 100,
-      window: '',
-    };
-  }
+  state: State = {
+    count: 100,
+    window: null,
+  };
 
   onSubmit = () => {
     const {count, window} = this.state;
     const {countName, windowName} = this.props;
 
-    const statusDetails = {[countName]: count};
+    const statusDetails: {[key: string]: number} = {[countName]: count};
     if (window) {
       statusDetails[windowName] = window;
     }
     this.props.onSelected(statusDetails);
   };
 
-  onChange = (name, value) => {
-    this.setState({[name]: value});
+  onChange = (name: keyof State, value: number) => {
+    this.setState({[name]: value} as State);
   };
 
   render() {
@@ -54,7 +67,7 @@ export default class CustomIgnoreCountModal extends React.Component {
                 className="form-control"
                 type="number"
                 value={count}
-                onChange={e => this.onChange('count', e.target.value)}
+                onChange={e => this.onChange('count' as 'count', Number(e.target.value))}
                 style={{padding: '3px 10px'}}
                 required
                 placeholder={t('e.g. 100')}
@@ -65,7 +78,7 @@ export default class CustomIgnoreCountModal extends React.Component {
               <SelectField
                 value={window}
                 name="window"
-                onChange={v => this.onChange('window', v)}
+                onChange={v => this.onChange('window' as 'window', v)}
                 choices={this.props.windowChoices}
                 placeholder={t('e.g. per hour')}
                 allowClear
