@@ -141,10 +141,10 @@ class MergeGroupTest(TestCase):
     def test_merge_with_group_meta(self):
         project1 = self.create_project()
         group1 = self.create_group(project1)
-        event1 = self.create_event("a" * 32, group=group1, data={"foo": "bar"})
+        event1 = self.create_event_deprecated("a" * 32, group=group1, data={"foo": "bar"})
         project2 = self.create_project()
         group2 = self.create_group(project2)
-        event2 = self.create_event("b" * 32, group=group2, data={"foo": "baz"})
+        event2 = self.create_event_deprecated("b" * 32, group=group2, data={"foo": "baz"})
 
         GroupMeta.objects.create(group=event1.group, key="github:tid", value="134")
 
@@ -175,7 +175,7 @@ class MergeGroupTest(TestCase):
     def test_user_report_merge(self):
         project1 = self.create_project()
         group1 = self.create_group(project1)
-        event1 = self.create_event("a" * 32, group=group1, data={"foo": "bar"})
+        event1 = self.create_event_deprecated("a" * 32, group=group1, data={"foo": "bar"})
         project2 = self.create_project()
         group2 = self.create_group(project2)
         ur = UserReport.objects.create(project=project1, group=group1, event_id=event1.event_id)

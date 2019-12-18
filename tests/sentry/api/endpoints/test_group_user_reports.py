@@ -36,7 +36,7 @@ class GroupUserReport(APITestCase, SnubaTestCase):
 
     def create_events_for_environment(self, group, environment, num_events):
         return [
-            self.create_event(group=group, tags={"environment": environment.name})
+            self.create_event_deprecated(group=group, tags={"environment": environment.name})
             for __i in range(num_events)
         ]
 

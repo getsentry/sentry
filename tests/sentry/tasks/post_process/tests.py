@@ -43,7 +43,7 @@ class PostProcessGroupTest(TestCase):
     @patch("sentry.rules.processor.RuleProcessor")
     def test_rule_processor(self, mock_processor):
         group = self.create_group(project=self.project)
-        event = self.create_event(group=group)
+        event = self.create_event_deprecated(group=group)
 
         mock_callback = Mock()
         mock_futures = [Mock()]
@@ -63,7 +63,7 @@ class PostProcessGroupTest(TestCase):
     def test_group_refresh(self, mock_processor):
         group1 = self.create_group(project=self.project)
         group2 = self.create_group(project=self.project)
-        event = self.create_event(group=group1)
+        event = self.create_event_deprecated(group=group1)
 
         assert event.group_id == group1.id
         assert event.group == group1
@@ -86,7 +86,7 @@ class PostProcessGroupTest(TestCase):
     @patch("sentry.rules.processor.RuleProcessor")
     def test_invalidates_snooze(self, mock_processor):
         group = self.create_group(project=self.project, status=GroupStatus.IGNORED)
-        event = self.create_event(group=group)
+        event = self.create_event_deprecated(group=group)
         snooze = GroupSnooze.objects.create(group=group, until=timezone.now() - timedelta(hours=1))
 
         # Check for has_reappeared=False if is_new=True
@@ -111,7 +111,7 @@ class PostProcessGroupTest(TestCase):
     @patch("sentry.rules.processor.RuleProcessor")
     def test_maintains_valid_snooze(self, mock_processor):
         group = self.create_group(project=self.project)
-        event = self.create_event(group=group)
+        event = self.create_event_deprecated(group=group)
         snooze = GroupSnooze.objects.create(group=group, until=timezone.now() + timedelta(hours=1))
 
         post_process_group(
@@ -222,7 +222,7 @@ class PostProcessGroupTest(TestCase):
     @patch("sentry.tasks.servicehooks.process_service_hook")
     def test_service_hook_fires_on_new_event(self, mock_process_service_hook):
         group = self.create_group(project=self.project)
-        event = self.create_event(group=group)
+        event = self.create_event_deprecated(group=group)
 
         hook = self.create_service_hook(
             project=self.project,
@@ -242,7 +242,7 @@ class PostProcessGroupTest(TestCase):
     @patch("sentry.rules.processor.RuleProcessor")
     def test_service_hook_fires_on_alert(self, mock_processor, mock_process_service_hook):
         group = self.create_group(project=self.project)
-        event = self.create_event(group=group)
+        event = self.create_event_deprecated(group=group)
 
         mock_callback = Mock()
         mock_futures = [Mock()]
@@ -269,7 +269,7 @@ class PostProcessGroupTest(TestCase):
         self, mock_processor, mock_process_service_hook
     ):
         group = self.create_group(project=self.project)
-        event = self.create_event(group=group)
+        event = self.create_event_deprecated(group=group)
 
         mock_processor.return_value.apply.return_value = []
 
@@ -290,7 +290,7 @@ class PostProcessGroupTest(TestCase):
     @patch("sentry.tasks.servicehooks.process_service_hook")
     def test_service_hook_does_not_fire_without_event(self, mock_process_service_hook):
         group = self.create_group(project=self.project)
-        event = self.create_event(group=group)
+        event = self.create_event_deprecated(group=group)
 
         self.create_service_hook(
             project=self.project, organization=self.project.organization, actor=self.user, events=[]
@@ -306,7 +306,7 @@ class PostProcessGroupTest(TestCase):
     @patch("sentry.tasks.sentry_apps.process_resource_change_bound.delay")
     def test_processes_resource_change_task_on_new_group(self, delay):
         group = self.create_group(project=self.project)
-        event = self.create_event(group=group)
+        event = self.create_event_deprecated(group=group)
 
         post_process_group(
             event=event, is_new=True, is_regression=False, is_new_group_environment=False

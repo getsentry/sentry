@@ -40,7 +40,9 @@ class PushoverPluginTest(PluginTestCase):
         self.plugin.set_option("apikey", "ghijkl", self.project)
 
         group = self.create_group(message="Hello world", culprit="foo.bar")
-        event = self.create_event(group=group, message="Hello world", tags={"level": "warning"})
+        event = self.create_event_deprecated(
+            group=group, message="Hello world", tags={"level": "warning"}
+        )
 
         rule = Rule.objects.create(project=self.project, label="my rule")
 
@@ -77,7 +79,9 @@ class PushoverPluginTest(PluginTestCase):
         self.plugin.set_option("retry", 30, self.project)
 
         group = self.create_group(message="Hello world", culprit="foo.bar")
-        event = self.create_event(group=group, message="Hello world", tags={"level": "warning"})
+        event = self.create_event_deprecated(
+            group=group, message="Hello world", tags={"level": "warning"}
+        )
 
         rule = Rule.objects.create(project=self.project, label="my rule")
 

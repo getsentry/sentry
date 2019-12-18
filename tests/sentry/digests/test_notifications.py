@@ -64,7 +64,7 @@ class GroupRecordsTestCase(TestCase):
         return self.project.rule_set.all()[0]
 
     def test_success(self):
-        events = [self.create_event(group=self.group) for _ in range(3)]
+        events = [self.create_event_deprecated(group=self.group) for _ in range(3)]
         records = [
             Record(event.event_id, Notification(event, [self.rule]), event.datetime)
             for event in events

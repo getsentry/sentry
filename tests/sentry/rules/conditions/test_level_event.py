@@ -14,7 +14,7 @@ class LevelConditionTest(RuleTestCase):
         assert rule.render_label() == u"An event's level is equal to warning"
 
     def test_equals(self):
-        event = self.create_event(event_id="a" * 32, tags={"level": "info"})
+        event = self.create_event_deprecated(event_id="a" * 32, tags={"level": "info"})
         rule = self.get_rule(data={"match": MatchType.EQUAL, "level": "20"})
         self.assertPasses(rule, event)
 
@@ -22,7 +22,7 @@ class LevelConditionTest(RuleTestCase):
         self.assertDoesNotPass(rule, event)
 
     def test_greater_than(self):
-        event = self.create_event(event_id="a" * 32, tags={"level": "info"})
+        event = self.create_event_deprecated(event_id="a" * 32, tags={"level": "info"})
         rule = self.get_rule(data={"match": MatchType.GREATER_OR_EQUAL, "level": "40"})
         self.assertDoesNotPass(rule, event)
 
@@ -30,7 +30,7 @@ class LevelConditionTest(RuleTestCase):
         self.assertPasses(rule, event)
 
     def test_less_than(self):
-        event = self.create_event(event_id="a" * 32, tags={"level": "info"})
+        event = self.create_event_deprecated(event_id="a" * 32, tags={"level": "info"})
         rule = self.get_rule(data={"match": MatchType.LESS_OR_EQUAL, "level": "10"})
         self.assertDoesNotPass(rule, event)
 
@@ -38,12 +38,12 @@ class LevelConditionTest(RuleTestCase):
         self.assertPasses(rule, event)
 
     def test_without_tag(self):
-        event = self.create_event(event_id="a" * 32)
+        event = self.create_event_deprecated(event_id="a" * 32)
         rule = self.get_rule(data={"match": MatchType.EQUAL, "level": "30"})
         self.assertDoesNotPass(rule, event)
 
     def test_errors_with_invalid_level(self):
-        event = self.create_event(event_id="a" * 32, tags={"level": "foobar"})
+        event = self.create_event_deprecated(event_id="a" * 32, tags={"level": "foobar"})
         rule = self.get_rule(data={"match": MatchType.EQUAL, "level": "30"})
         self.assertDoesNotPass(rule, event)
 
@@ -57,8 +57,8 @@ class LevelConditionTest(RuleTestCase):
     # Specifically here to make sure the check is properly checking the event's level
     def test_differing_levels(self):
 
-        eevent = self.create_event(tags={"level": "error"})
-        wevent = self.create_event(tags={"level": "warning"})
+        eevent = self.create_event_deprecated(tags={"level": "error"})
+        wevent = self.create_event_deprecated(tags={"level": "warning"})
 
         assert wevent.event_id != eevent.event_id
         assert wevent.group.id == eevent.group.id

@@ -18,8 +18,8 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
         project2 = self.create_project()
         group = self.create_group(project=project)
         group2 = self.create_group(project=project2)
-        self.create_event(event_id="a" * 32, group=group, datetime=self.min_ago)
-        self.create_event(event_id="m" * 32, group=group2, datetime=self.min_ago)
+        self.create_event_deprecated(event_id="a" * 32, group=group, datetime=self.min_ago)
+        self.create_event_deprecated(event_id="m" * 32, group=group2, datetime=self.min_ago)
 
         url = reverse(
             "sentry-api-0-organization-events-meta",
@@ -35,10 +35,10 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
 
         project = self.create_project()
         group = self.create_group(project=project)
-        self.create_event(
+        self.create_event_deprecated(
             event_id="x" * 32, group=group, message="how to make fast", datetime=self.min_ago
         )
-        self.create_event(
+        self.create_event_deprecated(
             event_id="m" * 32, group=group, message="Delet the Data", datetime=self.min_ago
         )
 

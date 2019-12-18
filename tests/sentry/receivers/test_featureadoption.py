@@ -53,7 +53,7 @@ class FeatureAdoptionTest(TestCase):
         assert feature_complete.complete
 
     def test_first_event(self):
-        event = self.create_event(
+        event = self.create_event_deprecated(
             project=self.project, platform="javascript", message="javascript error message"
         )
         first_event_received.send(project=self.project, event=event, sender=type(self.project))
@@ -67,7 +67,7 @@ class FeatureAdoptionTest(TestCase):
         group = self.create_group(
             project=self.project, platform="javascript", message="javascript error message"
         )
-        event = self.create_event(group=group, data={"platform": "javascript"})
+        event = self.create_event_deprecated(group=group, data={"platform": "javascript"})
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         js = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="javascript")
@@ -77,7 +77,7 @@ class FeatureAdoptionTest(TestCase):
         group = self.create_group(
             project=self.project, platform="python", message="python error message"
         )
-        event = self.create_event(group=group)
+        event = self.create_event_deprecated(group=group)
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         python = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="python")
@@ -87,7 +87,7 @@ class FeatureAdoptionTest(TestCase):
         group = self.create_group(
             project=self.project, platform="node", message="node error message"
         )
-        event = self.create_event(group=group, data={"platform": "node"})
+        event = self.create_event_deprecated(group=group, data={"platform": "node"})
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         node = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="node")
@@ -97,7 +97,7 @@ class FeatureAdoptionTest(TestCase):
         group = self.create_group(
             project=self.project, platform="ruby", message="ruby error message"
         )
-        event = self.create_event(group=group, data={"platform": "ruby"})
+        event = self.create_event_deprecated(group=group, data={"platform": "ruby"})
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         ruby = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="ruby")
@@ -107,7 +107,7 @@ class FeatureAdoptionTest(TestCase):
         group = self.create_group(
             project=self.project, platform="java", message="java error message"
         )
-        event = self.create_event(group=group, data={"platform": "java"})
+        event = self.create_event_deprecated(group=group, data={"platform": "java"})
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         java = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="java")
@@ -117,7 +117,7 @@ class FeatureAdoptionTest(TestCase):
         group = self.create_group(
             project=self.project, platform="cocoa", message="cocoa error message"
         )
-        event = self.create_event(group=group, data={"platform": "cocoa"})
+        event = self.create_event_deprecated(group=group, data={"platform": "cocoa"})
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         cocoa = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="cocoa")
@@ -127,7 +127,7 @@ class FeatureAdoptionTest(TestCase):
         group = self.create_group(
             project=self.project, platform="objc", message="objc error message"
         )
-        event = self.create_event(group=group, data={"platform": "objc"})
+        event = self.create_event_deprecated(group=group, data={"platform": "objc"})
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         objc = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="objc")
@@ -135,7 +135,7 @@ class FeatureAdoptionTest(TestCase):
 
     def test_php(self):
         group = self.create_group(project=self.project, platform="php", message="php error message")
-        event = self.create_event(group=group, data={"platform": "php"})
+        event = self.create_event_deprecated(group=group, data={"platform": "php"})
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         php = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="php")
@@ -143,7 +143,7 @@ class FeatureAdoptionTest(TestCase):
 
     def test_go(self):
         group = self.create_group(project=self.project, platform="go", message="go error message")
-        event = self.create_event(group=group, data={"platform": "go"})
+        event = self.create_event_deprecated(group=group, data={"platform": "go"})
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         go = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="go")
@@ -153,7 +153,7 @@ class FeatureAdoptionTest(TestCase):
         group = self.create_group(
             project=self.project, platform="csharp", message="csharp error message"
         )
-        event = self.create_event(group=group, data={"platform": "csharp"})
+        event = self.create_event_deprecated(group=group, data={"platform": "csharp"})
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         csharp = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="csharp")
@@ -163,7 +163,7 @@ class FeatureAdoptionTest(TestCase):
         group = self.create_group(
             project=self.project, platform="perl", message="perl error message"
         )
-        event = self.create_event(group=group, data={"platform": "perl"})
+        event = self.create_event_deprecated(group=group, data={"platform": "perl"})
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         perl = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="perl")
@@ -173,7 +173,7 @@ class FeatureAdoptionTest(TestCase):
         group = self.create_group(
             project=self.project, platform="elixir", message="elixir error message"
         )
-        event = self.create_event(group=group, data={"platform": "elixir"})
+        event = self.create_event_deprecated(group=group, data={"platform": "elixir"})
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         elixir = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="elixir")
@@ -183,7 +183,7 @@ class FeatureAdoptionTest(TestCase):
         group = self.create_group(
             project=self.project, platform="cfml", message="cfml error message"
         )
-        event = self.create_event(group=group, data={"platform": "cfml"})
+        event = self.create_event_deprecated(group=group, data={"platform": "cfml"})
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         cfml = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="cfml")
@@ -193,7 +193,7 @@ class FeatureAdoptionTest(TestCase):
         group = self.create_group(
             project=self.project, platform="groovy", message="groovy error message"
         )
-        event = self.create_event(group=group, data={"platform": "groovy"})
+        event = self.create_event_deprecated(group=group, data={"platform": "groovy"})
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         groovy = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="groovy")
@@ -201,7 +201,7 @@ class FeatureAdoptionTest(TestCase):
 
     def test_csp(self):
         group = self.create_group(project=self.project, platform="csp", message="csp error message")
-        event = self.create_event(group=group, data={"platform": "csp"})
+        event = self.create_event_deprecated(group=group, data={"platform": "csp"})
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         csp = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="csp")
@@ -347,7 +347,7 @@ class FeatureAdoptionTest(TestCase):
                     ]
                 }
             }"""
-        userless_event = self.create_event(
+        userless_event = self.create_event_deprecated(
             event_id="a", platform="javascript", data=json.loads(userless_payload)
         )
         event_processed.send(project=self.project, event=userless_event, sender=type(self.project))
@@ -442,7 +442,7 @@ class FeatureAdoptionTest(TestCase):
                     ]
                 }
             }"""
-        envless_event = self.create_event(
+        envless_event = self.create_event_deprecated(
             event_id="a", platform="javascript", data=json.loads(envless_payload)
         )
         event_processed.send(project=self.project, event=envless_event, sender=type(self.project))
@@ -485,7 +485,7 @@ class FeatureAdoptionTest(TestCase):
         group = self.create_group(
             project=self.project, platform="javascript", message="javascript error message"
         )
-        simple_event = self.create_event(group=group, platform="javascript")
+        simple_event = self.create_event_deprecated(group=group, platform="javascript")
         first_event_received.send(
             project=self.project, event=simple_event, sender=type(self.project)
         )

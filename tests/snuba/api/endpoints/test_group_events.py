@@ -19,8 +19,12 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         group = self.create_group()
-        event_1 = self.create_event(event_id="a" * 32, datetime=self.min_ago, group=group)
-        event_2 = self.create_event(event_id="b" * 32, datetime=self.min_ago, group=group)
+        event_1 = self.create_event_deprecated(
+            event_id="a" * 32, datetime=self.min_ago, group=group
+        )
+        event_2 = self.create_event_deprecated(
+            event_id="b" * 32, datetime=self.min_ago, group=group
+        )
 
         url = u"/api/0/issues/{}/events/".format(group.id)
         response = self.client.get(url, format="json")
@@ -35,10 +39,10 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         group = self.create_group()
-        event_1 = self.create_event(
+        event_1 = self.create_event_deprecated(
             event_id="a" * 32, datetime=self.min_ago, group=group, tags={"foo": "baz", "bar": "buz"}
         )
-        event_2 = self.create_event(
+        event_2 = self.create_event_deprecated(
             event_id="b" * 32,
             datetime=self.min_ago - timedelta(minutes=1),
             group=group,
@@ -96,8 +100,10 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         group = self.create_group()
-        event_1 = self.create_event(event_id="a" * 32, datetime=self.min_ago, group=group)
-        self.create_event(event_id="b" * 32, datetime=self.min_ago, group=group)
+        event_1 = self.create_event_deprecated(
+            event_id="a" * 32, datetime=self.min_ago, group=group
+        )
+        self.create_event_deprecated(event_id="b" * 32, datetime=self.min_ago, group=group)
 
         url = u"/api/0/issues/{}/events/?query={}".format(group.id, event_1.event_id)
         response = self.client.get(url, format="json")
@@ -110,11 +116,11 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         group = self.create_group()
-        event_1 = self.create_event(
+        event_1 = self.create_event_deprecated(
             event_id="a" * 32, datetime=self.min_ago, group=group, message="foo bar hello world"
         )
 
-        event_2 = self.create_event(
+        event_2 = self.create_event_deprecated(
             event_id="b" * 32, datetime=self.min_ago, group=group, message="this bar hello world "
         )
 
@@ -189,10 +195,12 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
 
         project = self.create_project()
         group = self.create_group(project=project)
-        self.create_event(
+        self.create_event_deprecated(
             event_id="a" * 32, group=group, datetime=timezone.now() - timedelta(days=2)
         )
-        event_2 = self.create_event(event_id="b" * 32, datetime=self.min_ago, group=group)
+        event_2 = self.create_event_deprecated(
+            event_id="b" * 32, datetime=self.min_ago, group=group
+        )
 
         with self.options({"system.event-retention-days": 1}):
             response = self.client.get(u"/api/0/issues/{}/events/".format(group.id))
@@ -207,7 +215,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         group = self.create_group()
-        self.create_event(
+        self.create_event_deprecated(
             event_id="a" * 32,
             datetime=self.min_ago,
             group=group,
@@ -229,14 +237,14 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
         first_seen = timezone.now() - timedelta(days=5)
 
         group = self.create_group(first_seen=first_seen)
-        event_1 = self.create_event(
+        event_1 = self.create_event_deprecated(
             event_id="a" * 32,
             datetime=first_seen,
             group=group,
             message="foo",
             tags={"logger": "python"},
         )
-        event_2 = self.create_event(
+        event_2 = self.create_event_deprecated(
             event_id="b" * 32,
             datetime=timezone.now() - timedelta(days=1),
             group=group,

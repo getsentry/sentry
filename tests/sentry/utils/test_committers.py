@@ -222,7 +222,7 @@ class GetEventFileCommitters(CommitTestCase):
         )
 
     def test_java_sdk_path_mangling(self):
-        event = self.create_event(
+        event = self.create_event_deprecated(
             group=self.group,
             message="Kaboom!",
             platform="java",
@@ -276,7 +276,7 @@ class GetEventFileCommitters(CommitTestCase):
         assert result[0]["commits"][0]["id"] == "a" * 40
 
     def test_matching(self):
-        event = self.create_event(
+        event = self.create_event_deprecated(
             group=self.group,
             message="Kaboom!",
             platform="python",
@@ -321,7 +321,7 @@ class GetEventFileCommitters(CommitTestCase):
         assert result[0]["commits"][0]["id"] == "a" * 40
 
     def test_matching_case_insensitive(self):
-        event = self.create_event(
+        event = self.create_event_deprecated(
             group=self.group,
             message="Kaboom!",
             platform="cpp",
@@ -358,7 +358,7 @@ class GetEventFileCommitters(CommitTestCase):
         assert result[0]["commits"][0]["id"] == "a" * 40
 
     def test_not_matching(self):
-        event = self.create_event(
+        event = self.create_event_deprecated(
             group=self.group,
             message="Kaboom!",
             platform="python",
@@ -400,7 +400,7 @@ class GetEventFileCommitters(CommitTestCase):
         assert len(result) == 0
 
     def test_no_commits(self):
-        event = self.create_event(
+        event = self.create_event_deprecated(
             group=self.group,
             message="Kaboom!",
             platform="python",

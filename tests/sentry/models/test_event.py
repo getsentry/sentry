@@ -11,7 +11,7 @@ from sentry.testutils.factories import Factories
 
 class EventTest(TestCase):
     def test_pickling_compat(self):
-        event = self.create_event(
+        event = self.create_event_deprecated(
             data={"tags": [("logger", "foobar"), ("site", "foo"), ("server_name", "bar")]}
         )
 
@@ -40,16 +40,16 @@ class EventTest(TestCase):
         assert event2.data == event.data
 
     def test_event_as_dict(self):
-        event = self.create_event(data={"logentry": {"formatted": "Hello World!"}})
+        event = self.create_event_deprecated(data={"logentry": {"formatted": "Hello World!"}})
 
         d = event.as_dict()
         assert d["logentry"] == {"formatted": "Hello World!"}
 
     def test_email_subject(self):
-        event1 = self.create_event(
+        event1 = self.create_event_deprecated(
             event_id="a" * 32, group=self.group, tags={"level": "info"}, message="Foo bar"
         )
-        event2 = self.create_event(
+        event2 = self.create_event_deprecated(
             event_id="b" * 32, group=self.group, tags={"level": "ERROR"}, message="Foo bar"
         )
         self.group.level = 30
@@ -77,7 +77,7 @@ class EventTest(TestCase):
         assert event1.get_email_subject() == "BAR-1 - production@0 $ baz ${tag:invalid} $invalid"
 
     def test_as_dict_hides_client_ip(self):
-        event = self.create_event(
+        event = self.create_event_deprecated(
             data={"sdk": {"name": "foo", "version": "1.0", "client_ip": "127.0.0.1"}}
         )
         result = event.as_dict()
@@ -93,7 +93,7 @@ class EventTest(TestCase):
             event.get_environment() == environment
 
     def test_ip_address(self):
-        event = self.create_event(
+        event = self.create_event_deprecated(
             data={
                 "user": {"ip_address": "127.0.0.1"},
                 "request": {"url": "http://some.com", "env": {"REMOTE_ADDR": "::1"}},
@@ -101,7 +101,7 @@ class EventTest(TestCase):
         )
         assert event.ip_address == "127.0.0.1"
 
-        event = self.create_event(
+        event = self.create_event_deprecated(
             data={
                 "user": {"ip_address": None},
                 "request": {"url": "http://some.com", "env": {"REMOTE_ADDR": "::1"}},
@@ -109,7 +109,7 @@ class EventTest(TestCase):
         )
         assert event.ip_address == "::1"
 
-        event = self.create_event(
+        event = self.create_event_deprecated(
             data={
                 "user": None,
                 "request": {"url": "http://some.com", "env": {"REMOTE_ADDR": "::1"}},
@@ -117,17 +117,17 @@ class EventTest(TestCase):
         )
         assert event.ip_address == "::1"
 
-        event = self.create_event(
+        event = self.create_event_deprecated(
             data={"request": {"url": "http://some.com", "env": {"REMOTE_ADDR": "::1"}}}
         )
         assert event.ip_address == "::1"
 
-        event = self.create_event(
+        event = self.create_event_deprecated(
             data={"request": {"url": "http://some.com", "env": {"REMOTE_ADDR": None}}}
         )
         assert event.ip_address is None
 
-        event = self.create_event()
+        event = self.create_event_deprecated()
         assert event.ip_address is None
 
     def test_issueless_event(self):

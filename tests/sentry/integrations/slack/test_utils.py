@@ -164,7 +164,7 @@ class BuildIncidentAttachmentTest(TestCase):
             "fallback": u"[{}] {}".format(self.project.slug, group.title),
             "footer_icon": u"http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png",
         }
-        event = self.create_event()
+        event = self.create_event_deprecated()
         ts = event.datetime
         assert build_group_attachment(group, event) == {
             "color": "error",

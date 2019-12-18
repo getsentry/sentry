@@ -29,7 +29,9 @@ class SlackPluginTest(PluginTestCase):
         self.plugin.set_option("webhook", "http://example.com/slack", self.project)
 
         group = self.create_group(message="Hello world", culprit="foo.bar")
-        event = self.create_event(group=group, message="Hello world", tags={"level": "warning"})
+        event = self.create_event_deprecated(
+            group=group, message="Hello world", tags={"level": "warning"}
+        )
 
         rule = Rule.objects.create(project=self.project, label="my rule")
 
@@ -64,7 +66,9 @@ class SlackPluginTest(PluginTestCase):
         self.plugin.set_option("exclude_culprit", True, self.project)
 
         group = self.create_group(message="Hello world", culprit="foo.bar")
-        event = self.create_event(group=group, message="Hello world", tags={"level": "warning"})
+        event = self.create_event_deprecated(
+            group=group, message="Hello world", tags={"level": "warning"}
+        )
 
         rule = Rule.objects.create(project=self.project, label="my rule")
 
@@ -96,7 +100,9 @@ class SlackPluginTest(PluginTestCase):
         self.plugin.set_option("exclude_project", True, self.project)
 
         group = self.create_group(message="Hello world", culprit="foo.bar")
-        event = self.create_event(group=group, message="Hello world", tags={"level": "warning"})
+        event = self.create_event_deprecated(
+            group=group, message="Hello world", tags={"level": "warning"}
+        )
 
         rule = Rule.objects.create(project=self.project, label="my rule")
 

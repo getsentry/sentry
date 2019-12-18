@@ -470,7 +470,7 @@ class Factories(object):
         return useremail
 
     @staticmethod
-    def create_event(group=None, project=None, event_id=None, normalize=True, **kwargs):
+    def create_event_deprecated(group=None, project=None, event_id=None, normalize=True, **kwargs):
         # XXX: Do not use this method for new tests! Prefer `store_event`.
         if event_id is None:
             event_id = uuid4().hex

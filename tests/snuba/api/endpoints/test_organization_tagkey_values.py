@@ -36,19 +36,19 @@ class OrganizationTagKeyValuesTest(APITestCase, SnubaTestCase):
         return self.create_group(project=self.project)
 
     def test_simple(self):
-        self.create_event(
+        self.create_event_deprecated(
             event_id="a" * 32, group=self.group, datetime=self.day_ago, tags={"fruit": "apple"}
         )
-        self.create_event(
+        self.create_event_deprecated(
             event_id="b" * 32, group=self.group, datetime=self.min_ago, tags={"fruit": "orange"}
         )
-        self.create_event(
+        self.create_event_deprecated(
             event_id="c" * 32,
             group=self.group,
             datetime=self.min_ago,
             tags={"some_tag": "some_value"},
         )
-        self.create_event(
+        self.create_event_deprecated(
             event_id="d" * 32, group=self.group, datetime=self.min_ago, tags={"fruit": "orange"}
         )
 
@@ -66,25 +66,25 @@ class OrganizationTagKeyValuesTest(APITestCase, SnubaTestCase):
         assert response.data == {"detail": 'Invalid tag key format for "fr uit"'}
 
     def test_snuba_column(self):
-        self.create_event(
+        self.create_event_deprecated(
             event_id="a" * 32,
             group=self.group,
             datetime=self.day_ago,
             user={"email": "foo@example.com"},
         )
-        self.create_event(
+        self.create_event_deprecated(
             event_id="b" * 32,
             group=self.group,
             datetime=self.min_ago,
             user={"email": "bar@example.com"},
         )
-        self.create_event(
+        self.create_event_deprecated(
             event_id="c" * 32,
             group=self.group,
             datetime=before_now(seconds=10),
             user={"email": "baz@example.com"},
         )
-        self.create_event(
+        self.create_event_deprecated(
             event_id="d" * 32,
             group=self.group,
             datetime=before_now(seconds=10),
@@ -96,25 +96,25 @@ class OrganizationTagKeyValuesTest(APITestCase, SnubaTestCase):
         )
 
     def test_release(self):
-        self.create_event(
+        self.create_event_deprecated(
             event_id="a" * 32,
             group=self.group,
             datetime=self.day_ago,
             tags={"sentry:release": "3.1.2"},
         )
-        self.create_event(
+        self.create_event_deprecated(
             event_id="b" * 32,
             group=self.group,
             datetime=self.min_ago,
             tags={"sentry:release": "4.1.2"},
         )
-        self.create_event(
+        self.create_event_deprecated(
             event_id="c" * 32,
             group=self.group,
             datetime=self.day_ago,
             tags={"sentry:release": "3.1.2"},
         )
-        self.create_event(
+        self.create_event_deprecated(
             event_id="d" * 32,
             group=self.group,
             datetime=before_now(seconds=10),
@@ -123,16 +123,16 @@ class OrganizationTagKeyValuesTest(APITestCase, SnubaTestCase):
         self.run_test("release", expected=[("5.1.2", 1), ("4.1.2", 1), ("3.1.2", 2)])
 
     def test_user_tag(self):
-        self.create_event(
+        self.create_event_deprecated(
             event_id="a" * 32, group=self.group, datetime=self.day_ago, tags={"sentry:user": "1"}
         )
-        self.create_event(
+        self.create_event_deprecated(
             event_id="b" * 32, group=self.group, datetime=self.min_ago, tags={"sentry:user": "2"}
         )
-        self.create_event(
+        self.create_event_deprecated(
             event_id="c" * 32, group=self.group, datetime=self.day_ago, tags={"sentry:user": "1"}
         )
-        self.create_event(
+        self.create_event_deprecated(
             event_id="d" * 32,
             group=self.group,
             datetime=before_now(seconds=10),
@@ -145,15 +145,15 @@ class OrganizationTagKeyValuesTest(APITestCase, SnubaTestCase):
         other_project = self.create_project(organization=other_org)
         other_group = self.create_group(project=other_project)
 
-        self.create_event(event_id="a" * 32, group=self.group, datetime=self.day_ago)
-        self.create_event(event_id="b" * 32, group=self.group, datetime=self.min_ago)
-        self.create_event(event_id="c" * 32, group=other_group, datetime=self.day_ago)
+        self.create_event_deprecated(event_id="a" * 32, group=self.group, datetime=self.day_ago)
+        self.create_event_deprecated(event_id="b" * 32, group=self.group, datetime=self.min_ago)
+        self.create_event_deprecated(event_id="c" * 32, group=other_group, datetime=self.day_ago)
         self.run_test("project.id", expected=[])
 
     def test_array_column(self):
-        self.create_event(event_id="a" * 32, group=self.group, datetime=self.day_ago)
-        self.create_event(event_id="b" * 32, group=self.group, datetime=self.min_ago)
-        self.create_event(event_id="c" * 32, group=self.group, datetime=self.day_ago)
+        self.create_event_deprecated(event_id="a" * 32, group=self.group, datetime=self.day_ago)
+        self.create_event_deprecated(event_id="b" * 32, group=self.group, datetime=self.min_ago)
+        self.create_event_deprecated(event_id="c" * 32, group=self.group, datetime=self.day_ago)
         self.run_test("error.type", expected=[])
 
     def test_no_projects(self):

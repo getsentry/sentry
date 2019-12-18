@@ -81,7 +81,7 @@ class TestSendAlertEvent(TestCase):
     @patch("sentry.tasks.sentry_apps.safe_urlopen")
     def test_no_sentry_app(self, safe_urlopen):
         group = self.create_group(project=self.project)
-        event = self.create_event(group=group)
+        event = self.create_event_deprecated(group=group)
 
         send_alert_event(event, self.rule, 9999)
 
@@ -90,7 +90,7 @@ class TestSendAlertEvent(TestCase):
     @patch("sentry.tasks.sentry_apps.safe_urlopen")
     def test_no_sentry_app_in_future(self, safe_urlopen):
         group = self.create_group(project=self.project)
-        event = self.create_event(group=group)
+        event = self.create_event_deprecated(group=group)
         rule_future = RuleFuture(rule=self.rule, kwargs={})
 
         with self.tasks():
@@ -102,7 +102,7 @@ class TestSendAlertEvent(TestCase):
     def test_no_installation(self, safe_urlopen):
         sentry_app = self.create_sentry_app(organization=self.organization)
         group = self.create_group(project=self.project)
-        event = self.create_event(group=group)
+        event = self.create_event_deprecated(group=group)
         rule_future = RuleFuture(rule=self.rule, kwargs={"sentry_app": sentry_app})
 
         with self.tasks():
@@ -113,7 +113,7 @@ class TestSendAlertEvent(TestCase):
     @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponseInstance)
     def test_send_alert_event(self, safe_urlopen):
         group = self.create_group(project=self.project)
-        event = self.create_event(group=group)
+        event = self.create_event_deprecated(group=group)
         rule_future = RuleFuture(rule=self.rule, kwargs={"sentry_app": self.sentry_app})
 
         with self.tasks():
@@ -180,7 +180,7 @@ class TestProcessResourceChange(TestCase):
 
     def test_group_created_sends_webhook(self, safe_urlopen):
         issue = self.create_group(project=self.project)
-        event = self.create_event(group=issue)
+        event = self.create_event_deprecated(group=issue)
 
         with self.tasks():
             post_process_group(

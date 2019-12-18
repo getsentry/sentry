@@ -130,7 +130,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         now = timezone.now()
         project = self.create_project(first_event=now)
         project_created.send(project=project, user=self.user, sender=type(project))
-        event = self.create_event(
+        event = self.create_event_deprecated(
             project=project, platform="javascript", message="javascript error message"
         )
         first_event_received.send(project=project, event=event, sender=type(project))
@@ -153,7 +153,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert second_task is not None
 
-        second_event = self.create_event(
+        second_event = self.create_event_deprecated(
             project=second_project, platform="python", message="python error message"
         )
         first_event_received.send(
@@ -250,7 +250,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         user = self.create_user(email="test@example.org")
         project = self.create_project(first_event=now)
         second_project = self.create_project(first_event=now)
-        second_event = self.create_event(
+        second_event = self.create_event_deprecated(
             project=second_project, platform="python", message="python error message"
         )
         event = self.create_full_event(project=project)

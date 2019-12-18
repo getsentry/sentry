@@ -27,7 +27,7 @@ class SegmentPluginTest(PluginTestCase):
         self.plugin.set_option("write_key", "secret-api-key", self.project)
 
         group = self.create_group(message="Hello world", culprit="foo.bar")
-        event = self.create_event(
+        event = self.create_event_deprecated(
             group=group,
             data={
                 "sentry.interfaces.Exception": {"type": "ValueError", "value": "foo bar"},

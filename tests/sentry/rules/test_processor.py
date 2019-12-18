@@ -14,7 +14,7 @@ from sentry.rules.processor import EventCompatibilityProxy, RuleProcessor
 class RuleProcessorTest(TestCase):
     # this test relies on a few other tests passing
     def test_integrated(self):
-        event = self.create_event()
+        event = self.create_event_deprecated()
 
         action_data = {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
         condition_data = {"id": "sentry.rules.conditions.every_event.EveryEventCondition"}
@@ -55,7 +55,7 @@ class RuleProcessorTest(TestCase):
 
 class EventCompatibilityProxyTest(TestCase):
     def test_simple(self):
-        event = self.create_event(
+        event = self.create_event_deprecated(
             message="biz baz",
             data={"logentry": {"message": "foo %s", "formatted": "foo bar", "params": ["bar"]}},
         )

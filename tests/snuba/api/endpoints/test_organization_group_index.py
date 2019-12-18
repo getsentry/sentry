@@ -61,7 +61,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         # XXX(dcramer): this tests a case where an ambiguous column name existed
         now = timezone.now()
         group1 = self.create_group(checksum="a" * 32, last_seen=now - timedelta(seconds=1))
-        self.create_event(group=group1, datetime=now - timedelta(seconds=1))
+        self.create_event_deprecated(group=group1, datetime=now - timedelta(seconds=1))
         self.login_as(user=self.user)
 
         response = self.get_valid_response(sort_by="date", query="is:unresolved")
@@ -118,9 +118,9 @@ class GroupListTest(APITestCase, SnubaTestCase):
     def test_simple_pagination(self):
         now = timezone.now()
         group1 = self.create_group(project=self.project, last_seen=now - timedelta(seconds=2))
-        self.create_event(group=group1, datetime=now - timedelta(seconds=2))
+        self.create_event_deprecated(group=group1, datetime=now - timedelta(seconds=2))
         group2 = self.create_group(project=self.project, last_seen=now - timedelta(seconds=1))
-        self.create_event(
+        self.create_event_deprecated(
             stacktrace=[["foo.py"]], group=group2, datetime=now - timedelta(seconds=1)
         )
         self.login_as(user=self.user)
@@ -189,9 +189,9 @@ class GroupListTest(APITestCase, SnubaTestCase):
         project.update_option("sentry:resolve_age", 1)
         now = timezone.now()
         group = self.create_group(checksum="a" * 32, last_seen=now - timedelta(days=1))
-        self.create_event(group=group, datetime=now - timedelta(days=1))
+        self.create_event_deprecated(group=group, datetime=now - timedelta(days=1))
         group2 = self.create_group(checksum="b" * 32, last_seen=now - timedelta(seconds=1))
-        self.create_event(
+        self.create_event_deprecated(
             group=group2, datetime=now - timedelta(seconds=1), stacktrace=[["foo.py"]]
         )
 
@@ -335,9 +335,9 @@ class GroupListTest(APITestCase, SnubaTestCase):
         release.add_project(project)
         release.add_project(project2)
         group = self.create_group(checksum="a" * 32, project=project, first_release=release)
-        self.create_event(group=group, datetime=now - timedelta(seconds=1))
+        self.create_event_deprecated(group=group, datetime=now - timedelta(seconds=1))
         group2 = self.create_group(checksum="b" * 32, project=project2, first_release=release)
-        self.create_event(group=group2, datetime=now - timedelta(seconds=1))
+        self.create_event_deprecated(group=group2, datetime=now - timedelta(seconds=1))
         with self.feature("organizations:global-views"):
             response = self.get_valid_response(**{"first-release": '"%s"' % release.version})
         issues = json.loads(response.content)
@@ -350,7 +350,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         project = self.project
         release = Release.objects.create(organization=project.organization, version="12345")
         release.add_project(project)
-        self.create_event(
+        self.create_event_deprecated(
             group=self.group, datetime=self.min_ago, tags={"sentry:release": release.version}
         )
 
@@ -361,13 +361,21 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
     def test_pending_delete_pending_merge_excluded(self):
         group = self.create_group(checksum="a" * 32, status=GroupStatus.PENDING_DELETION)
-        self.create_event(group=group, datetime=self.min_ago, data={"checksum": "a" * 32})
+        self.create_event_deprecated(
+            group=group, datetime=self.min_ago, data={"checksum": "a" * 32}
+        )
         group2 = self.create_group(checksum="b" * 32)
-        self.create_event(group=group2, datetime=self.min_ago, data={"checksum": "b" * 32})
+        self.create_event_deprecated(
+            group=group2, datetime=self.min_ago, data={"checksum": "b" * 32}
+        )
         group3 = self.create_group(checksum="c" * 32, status=GroupStatus.DELETION_IN_PROGRESS)
-        self.create_event(group=group3, datetime=self.min_ago, data={"checksum": "c" * 32})
+        self.create_event_deprecated(
+            group=group3, datetime=self.min_ago, data={"checksum": "c" * 32}
+        )
         group4 = self.create_group(checksum="d" * 32, status=GroupStatus.PENDING_MERGE)
-        self.create_event(group=group4, datetime=self.min_ago, data={"checksum": "d" * 32})
+        self.create_event_deprecated(
+            group=group4, datetime=self.min_ago, data={"checksum": "d" * 32}
+        )
 
         self.login_as(user=self.user)
 
@@ -404,7 +412,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 project=self.project,
             )
 
-            self.create_event(group=group, datetime=now - timedelta(hours=5))
+            self.create_event_deprecated(group=group, datetime=now - timedelta(hours=5))
             self.login_as(user=self.user)
 
             response = self.get_valid_response(statsPeriod="6h")
@@ -525,7 +533,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
                 project=self.project,
                 first_seen=self.min_ago - timedelta(seconds=i),
             )
-            self.create_event(
+            self.create_event_deprecated(
                 group=group,
                 data={"checksum": six.binary_type(i)},
                 datetime=self.min_ago - timedelta(seconds=i),
@@ -549,7 +557,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         integration = Integration.objects.create(provider="example", name="Example")
         integration.add_organization(org, self.user)
         group = self.create_group(status=GroupStatus.UNRESOLVED, first_seen=self.min_ago)
-        self.create_event(group=group, datetime=self.min_ago)
+        self.create_event_deprecated(group=group, datetime=self.min_ago)
 
         OrganizationIntegration.objects.filter(
             integration_id=integration.id, organization_id=group.organization.id

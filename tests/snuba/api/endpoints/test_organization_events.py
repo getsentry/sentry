@@ -26,8 +26,12 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         project2 = self.create_project()
         group = self.create_group(project=project)
         group2 = self.create_group(project=project2)
-        event_1 = self.create_event(event_id="a" * 32, group=group, datetime=self.min_ago)
-        event_2 = self.create_event(event_id="b" * 32, group=group2, datetime=self.min_ago)
+        event_1 = self.create_event_deprecated(
+            event_id="a" * 32, group=group, datetime=self.min_ago
+        )
+        event_2 = self.create_event_deprecated(
+            event_id="b" * 32, group=group2, datetime=self.min_ago
+        )
 
         url = reverse(
             "sentry-api-0-organization-events",
@@ -47,8 +51,12 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         project2 = self.create_project()
         group = self.create_group(project=project)
         group2 = self.create_group(project=project2)
-        event_1 = self.create_event(event_id="a" * 32, group=group, datetime=self.min_ago)
-        event_2 = self.create_event(event_id="b" * 32, group=group2, datetime=self.min_ago)
+        event_1 = self.create_event_deprecated(
+            event_id="a" * 32, group=group, datetime=self.min_ago
+        )
+        event_2 = self.create_event_deprecated(
+            event_id="b" * 32, group=group2, datetime=self.min_ago
+        )
 
         url = reverse(
             "sentry-api-0-organization-events",
@@ -65,10 +73,10 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
 
         project = self.create_project()
         group = self.create_group(project=project)
-        self.create_event(
+        self.create_event_deprecated(
             event_id="x" * 32, group=group, message="how to make fast", datetime=self.min_ago
         )
-        event_2 = self.create_event(
+        event_2 = self.create_event_deprecated(
             event_id="y" * 32, group=group, message="Delet the Data", datetime=self.min_ago
         )
 
@@ -88,10 +96,10 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
 
         project = self.create_project()
         group = self.create_group(project=project)
-        event_1 = self.create_event(
+        event_1 = self.create_event_deprecated(
             event_id="x" * 32, group=group, message="how to make fast", datetime=self.min_ago
         )
-        event_2 = self.create_event(
+        event_2 = self.create_event_deprecated(
             event_id="y" * 32,
             group=group,
             message="Delet the Data",
@@ -121,7 +129,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
 
         project = self.create_project()
         group = self.create_group(project=project)
-        self.create_event(
+        self.create_event_deprecated(
             event_id="x" * 32, group=group, message="how to make fast", datetime=self.min_ago
         )
 
@@ -166,9 +174,13 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         group = self.create_group(project=project)
         group2 = self.create_group(project=project2)
         group3 = self.create_group(project=project3)
-        event_1 = self.create_event(event_id="a" * 32, group=group, datetime=self.min_ago)
-        event_2 = self.create_event(event_id="b" * 32, group=group2, datetime=self.min_ago)
-        self.create_event(event_id="c" * 32, group=group3, datetime=self.min_ago)
+        event_1 = self.create_event_deprecated(
+            event_id="a" * 32, group=group, datetime=self.min_ago
+        )
+        event_2 = self.create_event_deprecated(
+            event_id="b" * 32, group=group2, datetime=self.min_ago
+        )
+        self.create_event_deprecated(event_id="c" * 32, group=group3, datetime=self.min_ago)
 
         base_url = reverse(
             "sentry-api-0-organization-events",
@@ -208,8 +220,10 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         project2 = self.create_project()
         group = self.create_group(project=project)
         group2 = self.create_group(project=project2)
-        event_1 = self.create_event(event_id="a" * 32, group=group, datetime=self.min_ago)
-        self.create_event(event_id="b" * 32, group=group2, datetime=self.day_ago)
+        event_1 = self.create_event_deprecated(
+            event_id="a" * 32, group=group, datetime=self.min_ago
+        )
+        self.create_event_deprecated(event_id="b" * 32, group=group2, datetime=self.day_ago)
 
         url = reverse(
             "sentry-api-0-organization-events",
@@ -229,8 +243,10 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         project2 = self.create_project()
         group = self.create_group(project=project)
         group2 = self.create_group(project=project2)
-        event_1 = self.create_event(event_id="a" * 32, group=group, datetime=self.min_ago)
-        self.create_event(event_id="b" * 32, group=group2, datetime=self.day_ago)
+        event_1 = self.create_event_deprecated(
+            event_id="a" * 32, group=group, datetime=self.min_ago
+        )
+        self.create_event_deprecated(event_id="b" * 32, group=group2, datetime=self.day_ago)
 
         now = timezone.now()
 
@@ -361,10 +377,10 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         project = self.create_project(organization=org, teams=[team])
         group = self.create_group(project=project)
 
-        event_1 = self.create_event(
+        event_1 = self.create_event_deprecated(
             event_id="a" * 32, group=group, datetime=self.min_ago, tags={"fruit": "apple"}
         )
-        event_2 = self.create_event(
+        event_2 = self.create_event_deprecated(
             event_id="b" * 32, group=group, datetime=self.min_ago, tags={"fruit": "orange"}
         )
 
@@ -392,17 +408,17 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         project = self.create_project(organization=org, teams=[team])
         group = self.create_group(project=project)
 
-        event_1 = self.create_event(
+        event_1 = self.create_event_deprecated(
             event_id="a" * 32, group=group, datetime=self.min_ago, tags={"sentry:release": "3.1.2"}
         )
-        event_2 = self.create_event(
+        event_2 = self.create_event_deprecated(
             event_id="b" * 32, group=group, datetime=self.min_ago, tags={"sentry:release": "4.1.2"}
         )
-        event_3 = self.create_event(
+        event_3 = self.create_event_deprecated(
             event_id="c" * 32, group=group, datetime=self.min_ago, user={"email": "foo@example.com"}
         )
 
-        event_4 = self.create_event(
+        event_4 = self.create_event_deprecated(
             event_id="d" * 32,
             group=group,
             datetime=self.min_ago,
@@ -450,10 +466,10 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         project = self.create_project(organization=org, teams=[team])
         group = self.create_group(project=project)
 
-        event_1 = self.create_event(
+        event_1 = self.create_event_deprecated(
             event_id="a" * 32, group=group, datetime=self.min_ago, user={"email": "foo@example.com"}
         )
-        event_2 = self.create_event(
+        event_2 = self.create_event_deprecated(
             event_id="b" * 32,
             group=group,
             datetime=self.min_ago,
@@ -506,7 +522,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
 
         project = self.create_project(organization=org, teams=[team])
         group = self.create_group(project=project)
-        self.create_event(
+        self.create_event_deprecated(
             event_id="a" * 32, group=group, message="best event", datetime=self.min_ago
         )
 

@@ -55,7 +55,9 @@ class VictorOpsPluginTest(PluginTestCase):
         self.plugin.set_option("routing_key", "everyone", self.project)
 
         group = self.create_group(message="Hello world", culprit="foo.bar")
-        event = self.create_event(group=group, message="Hello world", tags={"level": "warning"})
+        event = self.create_event_deprecated(
+            group=group, message="Hello world", tags={"level": "warning"}
+        )
 
         rule = Rule.objects.create(project=self.project, label="my rule")
 
@@ -80,7 +82,9 @@ class VictorOpsPluginTest(PluginTestCase):
 
     def test_build_description_unicode(self):
         group = self.create_group(message=u"Message", culprit=u"foo.bar")
-        event = self.create_event(group=group, message=u"Messages", tags={u"level": u"error"})
+        event = self.create_event_deprecated(
+            group=group, message=u"Messages", tags={u"level": u"error"}
+        )
         event.interfaces = {
             u"Message": UnicodeTestInterface(u"abcd\xde\xb4", u"\xdc\xea\x80\x80abcd\xde\xb4")
         }

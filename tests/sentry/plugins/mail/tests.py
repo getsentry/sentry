@@ -55,7 +55,9 @@ class MailPluginTest(TestCase):
 
     def test_simple_notification(self):
         group = self.create_group(message="Hello world")
-        event = self.create_event(group=group, message="Hello world", tags={"level": "error"})
+        event = self.create_event_deprecated(
+            group=group, message="Hello world", tags={"level": "error"}
+        )
 
         rule = Rule.objects.create(project=self.project, label="my rule")
 
@@ -224,7 +226,9 @@ class MailPluginTest(TestCase):
 
     def test_notify_users_with_utf8_subject(self):
         group = self.create_group(message="Hello world")
-        event = self.create_event(group=group, message=u"רונית מגן", tags={"level": "error"})
+        event = self.create_event_deprecated(
+            group=group, message=u"רונית מגן", tags={"level": "error"}
+        )
 
         notification = Notification(event=event)
 
@@ -252,7 +256,7 @@ class MailPluginTest(TestCase):
         digest = build_digest(
             project,
             (
-                event_to_record(self.create_event(group=self.create_group()), (rule,)),
+                event_to_record(self.create_event_deprecated(group=self.create_group()), (rule,)),
                 event_to_record(self.event, (rule,)),
             ),
         )
@@ -290,7 +294,7 @@ class MailPluginTest(TestCase):
         digest = build_digest(
             project,
             (
-                event_to_record(self.create_event(group=self.create_group()), (rule,)),
+                event_to_record(self.create_event_deprecated(group=self.create_group()), (rule,)),
                 event_to_record(self.event, (rule,)),
             ),
         )
@@ -387,7 +391,7 @@ class MailPluginTest(TestCase):
     def test_notify_with_suspect_commits(self):
         release = self.create_release(project=self.project, user=self.user)
         group = self.create_group(project=self.project, first_release=release)
-        event = self.create_event(group=group, tags={"sentry:release": release.version})
+        event = self.create_event_deprecated(group=group, tags={"sentry:release": release.version})
 
         notification = Notification(event=event)
 

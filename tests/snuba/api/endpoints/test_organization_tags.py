@@ -22,16 +22,16 @@ class OrganizationTagsTest(APITestCase, SnubaTestCase):
         project = self.create_project(organization=org, teams=[team])
         group = self.create_group(project=project)
 
-        self.create_event(
+        self.create_event_deprecated(
             event_id="a" * 32, group=group, datetime=self.min_ago, tags={"fruit": "apple"}
         )
-        self.create_event(
+        self.create_event_deprecated(
             event_id="b" * 32, group=group, datetime=self.min_ago, tags={"fruit": "orange"}
         )
-        self.create_event(
+        self.create_event_deprecated(
             event_id="c" * 32, group=group, datetime=self.min_ago, tags={"some_tag": "some_value"}
         )
-        self.create_event(
+        self.create_event_deprecated(
             event_id="d" * 32, group=group, datetime=self.min_ago, tags={"fruit": "orange"}
         )
 

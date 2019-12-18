@@ -13,7 +13,7 @@ body_plain = "foo bar"
 class TestMailgunInboundWebhookView(TestCase):
     def setUp(self):
         super(TestMailgunInboundWebhookView, self).setUp()
-        self.event = self.create_event(event_id="a" * 32)
+        self.event = self.create_event_deprecated(event_id="a" * 32)
         self.mailto = group_id_to_email(self.group.pk)
 
     @mock.patch("sentry.web.frontend.mailgun_inbound_webhook.process_inbound_email")

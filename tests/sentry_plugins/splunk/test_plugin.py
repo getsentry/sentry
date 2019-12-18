@@ -29,7 +29,7 @@ class SplunkPluginTest(PluginTestCase):
         self.plugin.set_option("instance", "https://splunk.example.com:8088", self.project)
 
         group = self.create_group(message="Hello world", culprit="foo.bar")
-        event = self.create_event(
+        event = self.create_event_deprecated(
             group=group,
             data={
                 "sentry.interfaces.Exception": {"type": "ValueError", "value": "foo bar"},
@@ -54,7 +54,7 @@ class SplunkPluginTest(PluginTestCase):
         assert headers["Authorization"] == "Splunk 12345678-1234-1234-1234-1234567890AB"
 
     def test_http_payload(self):
-        event = self.create_event(
+        event = self.create_event_deprecated(
             group=self.group,
             data={
                 "sentry.interfaces.Http": {
@@ -71,7 +71,7 @@ class SplunkPluginTest(PluginTestCase):
         assert result["request_referer"] == "http://example.com/foo"
 
     def test_error_payload(self):
-        event = self.create_event(
+        event = self.create_event_deprecated(
             group=self.group,
             data={
                 "sentry.interfaces.Exception": {
@@ -87,7 +87,7 @@ class SplunkPluginTest(PluginTestCase):
         assert result["exception_value"] == "foo bar"
 
     def test_csp_payload(self):
-        event = self.create_event(
+        event = self.create_event_deprecated(
             group=self.group,
             data={
                 "csp": {
@@ -108,7 +108,7 @@ class SplunkPluginTest(PluginTestCase):
         assert result["csp_effective_directive"] == "style-src"
 
     def test_user_payload(self):
-        event = self.create_event(
+        event = self.create_event_deprecated(
             group=self.group,
             data={
                 "sentry.interfaces.User": {

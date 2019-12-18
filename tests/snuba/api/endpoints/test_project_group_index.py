@@ -289,7 +289,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         project = self.project
         release = Release.objects.create(organization=project.organization, version="12345")
         release.add_project(project)
-        self.create_event(
+        self.create_event_deprecated(
             group=self.group, datetime=self.min_ago, tags={"sentry:release": release.version}
         )
 

@@ -24,7 +24,7 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
 
         self.group = self.create_group(project=self.project, short_id=20)
 
-        self.event = self.create_event(
+        self.event = self.create_event_deprecated(
             group=self.group,
             platform="python",
             datetime=one_second_ago,
@@ -131,7 +131,7 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
     def test_conditional_fields(self):
         with self.feature("organizations:discover"):
             one_second_ago = self.now - timedelta(seconds=1)
-            self.create_event(
+            self.create_event_deprecated(
                 group=self.group,
                 platform="javascript",
                 datetime=one_second_ago,
@@ -139,7 +139,7 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
                 data={},
             )
 
-            self.create_event(
+            self.create_event_deprecated(
                 group=self.group,
                 platform="javascript",
                 datetime=one_second_ago,
