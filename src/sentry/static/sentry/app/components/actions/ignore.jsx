@@ -116,7 +116,7 @@ export default class IgnoreActions extends React.Component {
           onSelected={details => this.onCustomIgnore(details)}
           onCanceled={() => this.setState({modal: null})}
           label={t('Ignore this issue until it affects an additional\u2026')}
-          countLabel={t('Numbers of users')}
+          countLabel={t('Number of users')}
           countName="ignoreUserCount"
           windowName="ignoreUserWindow"
           windowChoices={this.getIgnoreWindows()}

@@ -74,7 +74,7 @@ export default class CustomIgnoreCountModal extends React.Component<Props, State
             name="count"
             type="number"
             value={count}
-            onChange={e => this.handleChange('count' as 'count', Number(e.target.value))}
+            onChange={val => this.handleChange('count' as 'count', Number(val))}
             required
             placeholder={t('e.g. 100')}
           />
@@ -85,7 +85,7 @@ export default class CustomIgnoreCountModal extends React.Component<Props, State
             label={t('Time window')}
             value={window}
             name="window"
-            onChange={v => this.handleChange('window' as 'window', v)}
+            onChange={val => this.handleChange('window' as 'window', val)}
             choices={windowChoices}
             placeholder={t('e.g. per hour')}
             allowClear

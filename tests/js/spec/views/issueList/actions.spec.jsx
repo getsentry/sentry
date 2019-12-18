@@ -1,8 +1,9 @@
 import React from 'react';
-import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 
 import {IssueListActions} from 'app/views/issueList/actions';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountWithTheme, shallow} from 'sentry-test/enzyme';
+import {selectByLabel} from 'sentry-test/select';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 
 describe('IssueListActions', function() {
@@ -215,6 +216,51 @@ describe('IssueListActions', function() {
               project: [1],
             },
             data: {status: 'resolved'},
+          })
+        );
+      });
+
+      it('ignores selected items', function() {
+        const apiMock = MockApiClient.addMockResponse({
+          url: '/organizations/1337/issues/',
+          method: 'PUT',
+        });
+        jest
+          .spyOn(SelectedGroupStore, 'getSelectedIds')
+          .mockImplementation(() => new Set([3, 6, 9]));
+
+        wrapper.setState({allInQuerySelected: false, anySelected: true});
+        wrapper
+          .find('IgnoreActions MenuItem a')
+          .last()
+          .simulate('click');
+
+        wrapper
+          .find('CustomIgnoreCountModal input[label="Number of users"]')
+          .simulate('change', {target: {value: 300}});
+
+        selectByLabel(wrapper, 'per week', {
+          name: 'window',
+        });
+
+        wrapper
+          .find('CustomIgnoreCountModal Button[priority="primary"]')
+          .simulate('click');
+
+        expect(apiMock).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            query: {
+              id: [3, 6, 9],
+              project: [1],
+            },
+            data: {
+              status: 'ignored',
+              statusDetails: {
+                ignoreUserCount: 300,
+                ignoreUserWindow: 10080,
+              },
+            },
           })
         );
       });
