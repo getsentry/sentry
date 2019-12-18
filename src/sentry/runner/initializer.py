@@ -392,11 +392,13 @@ def validate_options(settings):
     default_manager.validate(settings.SENTRY_OPTIONS, warn=True)
 
 
+import django.db.models.base
+
+model_unpickle = django.db.models.base.model_unpickle
+
+
 def __model_unpickle_compat(model_id, attrs=None, factory=None):
     from django import VERSION
-    import django.db.models.base
-
-    model_unpickle = django.db.models.base.model_unpickle
 
     if VERSION[:2] == (1, 9):
         attrs = [] if attrs is None else attrs
@@ -413,8 +415,6 @@ def __simple_class_factory_compat(model, attrs):
 
 
 def monkeypatch_model_unpickle():
-    import django.db.models.base
-
     # https://code.djangoproject.com/ticket/27187
     # Django 1.10 breaks pickle compat with 1.9 models.
     django.db.models.base.model_unpickle = __model_unpickle_compat
