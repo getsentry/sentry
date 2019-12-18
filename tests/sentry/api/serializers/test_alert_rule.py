@@ -3,9 +3,6 @@
 from __future__ import absolute_import
 
 import six
-import json
-import requests
-import pytz
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import (
@@ -17,7 +14,6 @@ from sentry.incidents.logic import create_alert_rule, create_alert_rule_trigger
 from sentry.incidents.models import AlertRuleThresholdType
 from sentry.snuba.models import QueryAggregations
 from sentry.testutils import TestCase, APITestCase
-from sentry.testutils.helpers.datetime import before_now
 
 
 class BaseAlertRuleSerializerTest(object):
@@ -38,6 +34,38 @@ class BaseAlertRuleSerializerTest(object):
         if not skip_dates:
             assert result["dateModified"] == alert_rule.date_modified
             assert result["dateCreated"] == alert_rule.date_added
+
+    def create_issue_alert_rule(self, data):
+        """data format
+        {
+            "project": project
+            "environment": environment
+            "name": "My rule name",
+            "conditions": [],
+            "actions": [],
+            "actionMatch": "all"
+        }
+        """
+        rule = Rule()
+        rule.project = data["project"]
+        if "environment" in data:
+            environment = data["environment"]
+            rule.environment_id = int(environment) if environment else environment
+        if data.get("name"):
+            rule.label = data["name"]
+        if data.get("actionMatch"):
+            rule.data["action_match"] = data["actionMatch"]
+        if data.get("actions") is not None:
+            rule.data["actions"] = data["actions"]
+        if data.get("conditions") is not None:
+            rule.data["conditions"] = data["conditions"]
+        if data.get("frequency"):
+            rule.data["frequency"] = data["frequency"]
+        if data.get("date_added"):
+            rule.date_added = data["date_added"]
+
+        rule.save()
+        return rule
 
 
 class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
@@ -99,67 +127,6 @@ class DetailedAlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
 
 
 class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestCase):
-    def setup_project_and_rules(self):
-        self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
-        self.team = self.create_team(organization=self.org, name="Mariachi Band")
-        self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
-        self.login_as(self.user)
-        self.projects = [self.project, self.create_project()]
-        self.alert_rule = self.create_alert_rule(
-            projects=self.projects, date_added=before_now(minutes=6).replace(tzinfo=pytz.UTC)
-        )
-        self.other_alert_rule = self.create_alert_rule(
-            projects=self.projects, date_added=before_now(minutes=5).replace(tzinfo=pytz.UTC)
-        )
-        self.issue_rule = self.create_issue_alert_rule(
-            data={
-                "project": self.project,
-                "name": "Issue Rule Test",
-                "conditions": [],
-                "actions": [],
-                "actionMatch": "all",
-                "date_added": before_now(minutes=4).replace(tzinfo=pytz.UTC),
-            }
-        )
-        self.yet_another_alert_rule = self.create_alert_rule(
-            projects=self.projects, date_added=before_now(minutes=3).replace(tzinfo=pytz.UTC)
-        )
-        self.combined_rules_url = "/api/0/projects/{0}/{1}/combined-rules/".format(
-            self.org.slug, self.project.slug
-        )
-
-    def create_issue_alert_rule(self, data):
-        """data format
-        {
-            "project": project
-            "environment": environment
-            "name": "My rule name",
-            "conditions": [],
-            "actions": [],
-            "actionMatch": "all"
-        }
-        """
-        rule = Rule()
-        rule.project = data["project"]
-        if "environment" in data:
-            environment = data["environment"]
-            rule.environment_id = int(environment) if environment else environment
-        if data.get("name"):
-            rule.label = data["name"]
-        if data.get("actionMatch"):
-            rule.data["action_match"] = data["actionMatch"]
-        if data.get("actions") is not None:
-            rule.data["actions"] = data["actions"]
-        if data.get("conditions") is not None:
-            rule.data["conditions"] = data["conditions"]
-        if data.get("frequency"):
-            rule.data["frequency"] = data["frequency"]
-        if data.get("date_added"):
-            rule.date_added = data["date_added"]
-
-        rule.save()
-        return rule
-
     def test_combined_serializer(self):
         projects = [self.project, self.create_project()]
         alert_rule = self.create_alert_rule(projects=projects)
@@ -181,173 +148,3 @@ class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestC
         self.assert_alert_rule_serialized(alert_rule, result[0])
         assert result[1]["id"] == six.text_type(issue_rule.id)
         self.assert_alert_rule_serialized(other_alert_rule, result[2])
-
-    def test_invalid_limit(self):
-        self.setup_project_and_rules()
-        with self.feature("organizations:incidents"):
-            request_data = {"limit": "notaninteger"}
-            response = self.client.get(
-                path=self.combined_rules_url, data=request_data, content_type="application/json"
-            )
-        assert response.status_code == 400
-
-    def test_limit_higher_than_cap(self):
-        self.setup_project_and_rules()
-        for _ in range(125):
-            self.create_alert_rule(projects=self.projects)
-
-        # Test limit above result cap (which is 100), no cursor.
-        with self.feature("organizations:incidents"):
-            request_data = {"limit": "125"}
-            response = self.client.get(
-                path=self.combined_rules_url, data=request_data, content_type="application/json"
-            )
-        assert response.status_code == 200
-        result = json.loads(response.content)
-        assert len(result) == 100
-
-    def test_limit_higher_than_results_no_cursor(self):
-        self.setup_project_and_rules()
-        # Test limit above result count (which is 4), no cursor.
-        with self.feature("organizations:incidents"):
-            request_data = {"limit": "5"}
-            response = self.client.get(
-                path=self.combined_rules_url, data=request_data, content_type="application/json"
-            )
-        assert response.status_code == 200
-        result = json.loads(response.content)
-        assert len(result) == 4
-        self.assert_alert_rule_serialized(self.yet_another_alert_rule, result[0], skip_dates=True)
-        assert result[1]["id"] == six.text_type(self.issue_rule.id)
-        assert result[1]["type"] == "rule"
-        self.assert_alert_rule_serialized(self.other_alert_rule, result[2], skip_dates=True)
-        self.assert_alert_rule_serialized(self.alert_rule, result[3], skip_dates=True)
-
-    def test_limit_as_1_with_paging(self):
-        self.setup_project_and_rules()
-
-        # Test Limit as 1, no cursor:
-        with self.feature("organizations:incidents"):
-            request_data = {"limit": "1"}
-            response = self.client.get(
-                path=self.combined_rules_url, data=request_data, content_type="application/json"
-            )
-        assert response.status_code == 200
-
-        result = json.loads(response.content)
-        assert len(result) == 1
-        self.assert_alert_rule_serialized(self.yet_another_alert_rule, result[0], skip_dates=True)
-
-        links = requests.utils.parse_header_links(
-            response.get("link").rstrip(">").replace(">,<", ",<")
-        )
-        next_cursor = links[1]["cursor"]
-
-        # Test Limit as 1, next page of previous request:
-        with self.feature("organizations:incidents"):
-            request_data = {"cursor": next_cursor, "limit": "1"}
-            response = self.client.get(
-                path=self.combined_rules_url, data=request_data, content_type="application/json"
-            )
-        assert response.status_code == 200
-        result = json.loads(response.content)
-        assert len(result) == 1
-        assert result[0]["id"] == six.text_type(self.issue_rule.id)
-        assert result[0]["type"] == "rule"
-
-    def test_limit_as_2_with_paging(self):
-        self.setup_project_and_rules()
-
-        # Test Limit as 2, no cursor:
-        with self.feature("organizations:incidents"):
-            request_data = {"limit": "2"}
-            response = self.client.get(
-                path=self.combined_rules_url, data=request_data, content_type="application/json"
-            )
-        assert response.status_code == 200
-
-        result = json.loads(response.content)
-        assert len(result) == 2
-        self.assert_alert_rule_serialized(self.yet_another_alert_rule, result[0], skip_dates=True)
-        assert result[1]["id"] == six.text_type(self.issue_rule.id)
-        assert result[1]["type"] == "rule"
-
-        links = requests.utils.parse_header_links(
-            response.get("link").rstrip(">").replace(">,<", ",<")
-        )
-        next_cursor = links[1]["cursor"]
-
-        # Test Limit 2, next page of previous request:
-        with self.feature("organizations:incidents"):
-            request_data = {"cursor": next_cursor, "limit": "2"}
-            response = self.client.get(
-                path=self.combined_rules_url, data=request_data, content_type="application/json"
-            )
-        assert response.status_code == 200
-
-        result = json.loads(response.content)
-        assert len(result) == 2
-        self.assert_alert_rule_serialized(self.other_alert_rule, result[0], skip_dates=True)
-        self.assert_alert_rule_serialized(self.alert_rule, result[1], skip_dates=True)
-
-        links = requests.utils.parse_header_links(
-            response.get("link").rstrip(">").replace(">,<", ",<")
-        )
-        next_cursor = links[1]["cursor"]
-
-        # Test Limit 2, next page of previous request - should get no results since there are only 4 total:
-        with self.feature("organizations:incidents"):
-            request_data = {"cursor": next_cursor, "limit": "2"}
-            response = self.client.get(
-                path=self.combined_rules_url, data=request_data, content_type="application/json"
-            )
-        assert response.status_code == 200
-
-        result = json.loads(response.content)
-        assert len(result) == 0
-
-    def test_offset_pagination(self):
-        self.setup_project_and_rules()
-
-        self.one_alert_rule = self.create_alert_rule(
-            projects=self.projects, date_added=before_now(minutes=2).replace(tzinfo=pytz.UTC)
-        )
-        self.two_alert_rule = self.create_alert_rule(
-            projects=self.projects, date_added=before_now(minutes=1).replace(tzinfo=pytz.UTC)
-        )
-        self.three_alert_rule = self.create_alert_rule(projects=self.projects)
-
-        # Modify 2nd rule to be date of 3rd rule. Second page offset should now be 1, or else we'll get the incorrect results (we should get one_alert_rule on the second page, but without an offset we would get two_alert_rule).
-        self.one_alert_rule.date_added = self.two_alert_rule.date_added
-        self.one_alert_rule.save()
-
-        with self.feature("organizations:incidents"):
-            request_data = {"limit": "2"}
-            response = self.client.get(
-                path=self.combined_rules_url, data=request_data, content_type="application/json"
-            )
-        assert response.status_code == 200
-
-        result = json.loads(response.content)
-        assert len(result) == 2
-        self.assert_alert_rule_serialized(self.three_alert_rule, result[0], skip_dates=True)
-        self.assert_alert_rule_serialized(self.one_alert_rule, result[1], skip_dates=True)
-
-        links = requests.utils.parse_header_links(
-            response.get("link").rstrip(">").replace(">,<", ",<")
-        )
-        next_cursor = links[1]["cursor"]
-        assert next_cursor.split(":")[1] == "1"  # Assert offset is properly calculated.
-
-        with self.feature("organizations:incidents"):
-            request_data = {"cursor": next_cursor, "limit": "2"}
-            response = self.client.get(
-                path=self.combined_rules_url, data=request_data, content_type="application/json"
-            )
-        assert response.status_code == 200
-
-        result = json.loads(response.content)
-        assert len(result) == 2
-
-        self.assert_alert_rule_serialized(self.two_alert_rule, result[0], skip_dates=True)
-        self.assert_alert_rule_serialized(self.yet_another_alert_rule, result[1], skip_dates=True)

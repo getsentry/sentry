@@ -14,7 +14,8 @@ from sentry import features
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
-from sentry.api.serializers import serialize, AlertRuleSerializer, CombinedRuleSerializer
+from sentry.api.serializers import serialize, CombinedRuleSerializer
+from sentry.incidents.endpoints.serializers import AlertRuleSerializer
 from sentry.incidents.models import AlertRule
 from sentry.models import Rule, RuleStatus
 from sentry.utils.cursors import build_cursor, Cursor
@@ -101,7 +102,6 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
 
         data = deepcopy(request.data)
         data["projects"] = [project.slug]
-
         serializer = AlertRuleSerializer(
             context={"organization": project.organization, "access": request.access}, data=data
         )
