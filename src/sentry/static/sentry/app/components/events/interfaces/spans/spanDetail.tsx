@@ -129,8 +129,8 @@ class SpanDetail extends React.Component<Props, State> {
     const eventView = EventView.fromSavedQuery({
       id: undefined,
       name: t('Transactions'),
-      fields: ['transaction', 'trace.span', 'timestamp'],
-      fieldnames: ['transaction', 'trace.span', 'timestamp'],
+      fields: ['transaction', 'trace.span', 'transaction.duration', 'timestamp'],
+      fieldnames: ['transaction', 'trace.span', 'duration', 'timestamp'],
       orderby: '-timestamp',
       query: `event.type:transaction trace:${span.trace_id} trace.parent_span:${
         span.span_id
