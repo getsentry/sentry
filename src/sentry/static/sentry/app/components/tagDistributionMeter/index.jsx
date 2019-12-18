@@ -86,7 +86,7 @@ export default class TagDistributionMeter extends React.Component {
       return <SegmentBar>{renderError()}</SegmentBar>;
     }
 
-    if (!totalValues) {
+    if (totalValues === 0) {
       return <SegmentBar>{renderEmpty()}</SegmentBar>;
     }
 
@@ -148,7 +148,7 @@ export default class TagDistributionMeter extends React.Component {
   }
 }
 
-const colors = [
+const COLORS = [
   '#3A3387',
   '#5F40A3',
   '#8C4FBD',
@@ -207,5 +207,5 @@ const Segment = styled(Link, {shouldForwardProp: isPropValid})`
   height: 16px;
   color: inherit;
   outline: none;
-  background-color: ${p => (p.isOther ? colors[colors.length - 1] : colors[p.index])};
+  background-color: ${p => (p.isOther ? COLORS[COLORS.length - 1] : COLORS[p.index])};
 `;
