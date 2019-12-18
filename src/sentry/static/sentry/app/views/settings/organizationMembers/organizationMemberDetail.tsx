@@ -39,16 +39,15 @@ const TWO_FACTOR_REQUIRED = t(
   'Cannot be reset since two-factor is required for this organization'
 );
 
+type RouteParams = {
+  orgId: string;
+  memberId: string;
+};
+
 type Props = {
   organization: Organization;
 } & AsyncView['props'] &
-  RouteComponentProps<
-    {
-      orgId: string;
-      memberId: string;
-    },
-    {}
-  >;
+  RouteComponentProps<RouteParams, {}>;
 
 type State = {
   roleList: Member['roles'];
@@ -57,7 +56,7 @@ type State = {
 } & AsyncView['state'];
 
 class OrganizationMemberDetail extends AsyncView<Props, State> {
-  getDefaultState() {
+  getDefaultState(): State {
     return {
       ...super.getDefaultState(),
       roleList: [],
@@ -379,11 +378,10 @@ const Details = styled('div')`
   grid-gap: ${space(2)};
   width: 100%;
 
-  ${p => `
-  @media (max-width: ${p.theme.breakpoints[0]}) {
-  grid-auto-flow: row;
-  grid-template-columns: auto;
-  }`}
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    grid-auto-flow: row;
+    grid-template-columns: auto;
+  }
 `;
 
 const DetailLabel = styled('div')`
