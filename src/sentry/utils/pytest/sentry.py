@@ -143,12 +143,15 @@ def pytest_configure(config):
         bootstrap_options,
         configure_structlog,
         initialize_receivers,
+        monkeypatch_model_unpickle,
         monkeypatch_django_migrations,
         setup_services,
     )
 
     bootstrap_options(settings)
     configure_structlog()
+
+    monkeypatch_model_unpickle()
 
     import django
 
