@@ -13,7 +13,6 @@ import {
   GridHeadCellResizer,
 } from './styles';
 import {GridColumnHeader} from './types';
-import AddColumnButton from './addColumnButton';
 
 export type GridHeadCellProps<Column> = {
   isColumnDragging: boolean;
@@ -132,31 +131,6 @@ class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
     return <GridHeadCellResizer isEditing={isEditing} />;
   };
 
-  renderAddColumnButton = () => {
-    const {
-      isEditing,
-      isLast,
-      openModalAddColumnAt,
-      indexColumnOrder,
-      isColumnDragging,
-    } = this.props;
-
-    if (isLast || !isEditing || isColumnDragging) {
-      return null;
-    }
-
-    return (
-      <AddColumnButton
-        align="right"
-        onClick={() => {
-          const insertIndex = indexColumnOrder + 1;
-          openModalAddColumnAt(insertIndex);
-        }}
-        data-test-id={`grid-add-column-${indexColumnOrder}`}
-      />
-    );
-  };
-
   render() {
     const {isEditing, children, column, gridHeadCellButtonProps} = this.props;
 
@@ -179,7 +153,6 @@ class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
           to ensure that it is will always
           float on top of everything else */
         this.renderResizeGrabbable()}
-        {this.renderAddColumnButton()}
       </GridHeadCellWrapper>
     );
   }

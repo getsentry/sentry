@@ -1,3 +1,4 @@
+import React from 'react';
 import styled from 'react-emotion';
 
 import Alert from 'app/components/alert';
@@ -7,9 +8,6 @@ import space from 'app/styles/space';
 
 export const ADD_BUTTON_SIZE = 16; // this is an even number
 export const GRID_HEADER_HEIGHT = 45;
-const GRID_EDIT_WIDTH = 35;
-const GRID_EDIT_WIDTH_EDIT_MODE =
-  GRID_EDIT_WIDTH + ADD_BUTTON_SIZE / 2 + (12 - ADD_BUTTON_SIZE / 2);
 
 /**
  * Explanation of z-index:
@@ -17,8 +15,7 @@ const GRID_EDIT_WIDTH_EDIT_MODE =
  *  - Editable needs to float above Resizer to hide the right-most Resizer,
  */
 const Z_INDEX_RESIZER = '1';
-const Z_INDEX_EDITABLE = '10';
-export const Z_INDEX_ADD_COLUMN = '20';
+export const Z_INDEX_ADD_COLUMN = '20'; // TODO(leedongwei): Remove with addColumnButton.tsx
 
 type GridEditableProps = {
   numColumn?: number;
@@ -28,10 +25,42 @@ type GridEditableProps = {
   isDragging?: boolean;
 };
 
-export const GridPanel = styled(Panel)`
-  /* overflow: hidden; */
+export const Header = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  margin-bottom: ${space(1)};
 `;
-export const GridPanelBody = styled(PanelBody)``;
+export const HeaderTitle = styled('h2')`
+  margin: 0;
+
+  font-size: ${p => p.theme.headerFontSize};
+  font-weight: normal;
+  color: ${p => p.theme.gray3};
+`;
+export const HeaderButton = styled('div')`
+  display: flex;
+  align-items: center;
+
+  color: ${p => p.theme.gray3};
+  cursor: pointer;
+
+  > svg {
+    margin-right: ${space(1)};
+  }
+
+  &:hover,
+  &:active {
+    color: ${p => p.theme.gray4};
+  }
+`;
+
+export const Body: React.FC = props => (
+  <Panel>
+    <PanelBody>{props.children}</PanelBody>
+  </Panel>
+);
 
 /**
  *
@@ -58,25 +87,6 @@ export const Grid = styled('table')<GridEditableProps>`
   margin: 0;
 
   /* background-color: ${p => p.theme.offWhite}; */
-  /* overflow: hidden; */
-
-  /* For the last column, we want to have some space on the right if column
-     is editable.
-
-     For the header, we set padding for 1 or 2 buttons depending on state
-     For the body, use "td:last-child" */
-  th:last-child {
-    ${p => {
-      if (!p.isEditable) {
-        return 'padding-right: 0px';
-      }
-      if (!p.isEditing) {
-        return `padding-right: ${GRID_EDIT_WIDTH}px;`;
-      }
-
-      return `padding-right: ${GRID_EDIT_WIDTH_EDIT_MODE}px;`;
-    }}
-  }
 `;
 export const GridRow = styled('tr')`
   display: contents;
@@ -314,53 +324,4 @@ export const GridBodyCellLoading = styled('div')`
 
 export const GridBodyErrorAlert = styled(Alert)`
   margin: 0;
-`;
-
-/**
- *
- * GridEditGroup are the buttons that are on the top right of the Grid that
- * allows the user to add/remove/resize the columns of the Grid
- *
- */
-export const GridEditGroup = styled('th')`
-  position: absolute;
-  top: 0;
-  right: 0;
-  display: flex;
-  height: ${GRID_HEADER_HEIGHT}px;
-
-  background-color: ${p => p.theme.offWhite};
-  border-bottom: 1px solid ${p => p.theme.borderDark};
-  border-top-right-radius: ${p => p.theme.borderRadius};
-
-  z-index: ${Z_INDEX_EDITABLE};
-`;
-export const GridEditGroupButton = styled('div')`
-  display: block;
-  width: ${GRID_EDIT_WIDTH}px;
-  height: ${GRID_HEADER_HEIGHT}px;
-
-  color: ${p => p.theme.gray2};
-  font-size: 16px;
-  cursor: pointer;
-
-  &:hover {
-    color: ${p => p.theme.gray3};
-  }
-  &:active {
-    color: ${p => p.theme.gray4};
-  }
-  &:last-child {
-    border-left: 1px solid ${p => p.theme.borderDark};
-  }
-
-  /* Targets ToolTip to ensure that it will fill up the parent element and
-     its child elements will float in its center */
-  > span {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 100%;
-    height: 100%;
-  }
 `;
