@@ -140,13 +140,13 @@ class Fixtures(object):
     def create_useremail(self, *args, **kwargs):
         return Factories.create_useremail(*args, **kwargs)
 
-    def create_event(self, event_id=None, group=None, *args, **kwargs):
+    def create_event_deprecated(self, event_id=None, group=None, *args, **kwargs):
         if group is None:
             group = self.group
-        return Factories.create_event(event_id=event_id, group=group, *args, **kwargs)
+        return Factories.create_event_deprecated(event_id=event_id, group=group, *args, **kwargs)
 
     def create_issueless_event(self, event_id=None, *args, **kwargs):
-        return Factories.create_event(event_id=event_id, group=None, *args, **kwargs)
+        return Factories.create_event_deprecated(event_id=event_id, group=None, *args, **kwargs)
 
     def store_event(self, *args, **kwargs):
         return Factories.store_event(*args, **kwargs)

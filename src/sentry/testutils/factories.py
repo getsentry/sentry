@@ -619,7 +619,7 @@ class Factories(object):
                 }
             }"""
 
-        event = Factories.create_event(
+        event = Factories.create_event_deprecated(
             group=group,
             event_id=event_id,
             platform="javascript",

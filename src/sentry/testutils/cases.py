@@ -803,7 +803,7 @@ class SnubaTestCase(BaseTestCase):
         world all test events would go through the full regular pipeline.
         """
         # XXX: Use `store_event` instead of this!
-        event = Factories.create_event(*args, **kwargs)
+        event = Factories.create_event_deprecated(*args, **kwargs)
 
         data = event.data.data
         tags = dict(data.get("tags", []))
