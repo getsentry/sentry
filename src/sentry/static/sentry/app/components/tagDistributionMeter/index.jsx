@@ -46,6 +46,14 @@ export default class TagDistributionMeter extends React.Component {
       return null;
     }
 
+    if (!totalValues) {
+      <TagSummary>
+        <Title>
+          <TitleType>{this.renderEmpty()}</TitleType>
+        </Title>
+      </TagSummary>;
+    }
+
     const largestSegment = segments[0];
     const pct = percent(largestSegment.count, totalValues);
     const pctLabel = Math.floor(pct);
@@ -149,7 +157,6 @@ const colors = [
   '#F7B2EC',
   '#FCD8F4',
   '#FEEBF9',
-  '#FFFFFF',
 ];
 
 const TagSummary = styled('div')`
