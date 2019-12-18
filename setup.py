@@ -20,7 +20,7 @@ Python, but it contains a full API for sending events from any language, in
 any application.
 
 :copyright: (c) 2011-2019 by the Sentry Team, see AUTHORS for more details.
-:license: BSL, see LICENSE for more details.
+:license: BSL-1.1, see LICENSE for more details.
 """
 from __future__ import absolute_import
 
