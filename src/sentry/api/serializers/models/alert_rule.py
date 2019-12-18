@@ -46,7 +46,7 @@ class AlertRuleSerializer(Serializer):
             "triggers": attrs.get("triggers", []),
             "includeAllProjects": obj.include_all_projects,
             "dateModified": obj.date_modified,
-            "dateAdded": obj.date_added,
+            "dateCreated": obj.date_added,
         }
 
 

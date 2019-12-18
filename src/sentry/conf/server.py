@@ -916,6 +916,9 @@ SENTRY_FRONTEND_DSN = None
 # Configuration for JavaScript's whitelistUrls - defaults to ALLOWED_HOSTS
 SENTRY_FRONTEND_WHITELIST_URLS = None
 
+# Sample rate for Sentry transactions
+SENTRY_APM_SAMPLING = 0
+
 # DSN to use for Sentry monitors
 SENTRY_MONITOR_DSN = None
 SENTRY_MONITOR_API_ROOT = None

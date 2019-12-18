@@ -7,7 +7,7 @@ import {Team} from 'app/types';
 
 type Props = {
   team: Team | null;
-} & BaseAvatar['props'];
+} & Omit<BaseAvatar['props'], 'uploadPath' | 'uploadId'>;
 
 class TeamAvatar extends React.Component<Props> {
   static propTypes = {

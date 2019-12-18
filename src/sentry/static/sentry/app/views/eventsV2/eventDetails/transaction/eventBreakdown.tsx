@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from 'react-emotion';
 import get from 'lodash/get';
 
 import {Event} from 'app/types';
@@ -7,13 +8,21 @@ import {
   SpanEntry,
   SpanType,
 } from 'app/components/events/interfaces/spans/types';
+import {pickSpanBarColour} from 'app/components/events/interfaces/spans/utils';
 import {TraceContextType} from 'app/components/events/interfaces/spans/traceView';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {SectionHeading} from '../../styles';
 
 type OpStats = {percentage: number; totalDuration: number};
 
+const TOP_N_SPANS = 4;
+
 type EventBreakdownType = {
+  // top TOP_N_SPANS spans
   ops: ({name: string} & OpStats)[];
-  unknown: OpStats | undefined;
+  // the rest of the spans
+  other: OpStats | undefined;
 };
 
 type Props = {
@@ -37,7 +46,7 @@ class EventBreakdown extends React.Component<Props> {
     if (!event) {
       return {
         ops: [],
-        unknown: undefined,
+        other: undefined,
       };
     }
 
@@ -46,7 +55,7 @@ class EventBreakdown extends React.Component<Props> {
     if (!traceContext) {
       return {
         ops: [],
-        unknown: undefined,
+        other: undefined,
       };
     }
 
@@ -56,17 +65,15 @@ class EventBreakdown extends React.Component<Props> {
 
     const spans: SpanType[] = get(spanEntry, 'data', []);
 
-    // track stats on spans with no operation
-    const spansWithNoOperation = {count: 0, totalDuration: 0};
-
     type AggregateType = {
       [opname: string]: {
         totalDuration: number; // num of seconds
       };
     };
 
-    const totalDuration = Math.abs(event.endTimestamp - event.startTimestamp);
+    let cumulativeDuration = 0;
 
+    // add the transaction itself as a span
     spans.push({
       op: traceContext.op,
       timestamp: event.endTimestamp,
@@ -78,14 +85,14 @@ class EventBreakdown extends React.Component<Props> {
 
     const aggregateByOp: AggregateType = spans.reduce(
       (aggregate: AggregateType, span: SpanType) => {
-        const op = span.op;
+        let op = span.op;
+
         const duration = Math.abs(span.timestamp - span.start_timestamp);
+        cumulativeDuration += duration;
 
         if (typeof op !== 'string') {
-          spansWithNoOperation.count += 1;
-          spansWithNoOperation.totalDuration += duration;
-
-          return aggregate;
+          // a span with no operation name is considered an 'unknown' op
+          op = 'unknown';
         }
         const opStats = aggregate[op];
 
@@ -106,7 +113,7 @@ class EventBreakdown extends React.Component<Props> {
     const ops = Object.keys(aggregateByOp).map(opName => {
       return {
         name: opName,
-        percentage: aggregateByOp[opName].totalDuration / totalDuration,
+        percentage: aggregateByOp[opName].totalDuration / cumulativeDuration,
         totalDuration: aggregateByOp[opName].totalDuration,
       };
     });
@@ -125,16 +132,26 @@ class EventBreakdown extends React.Component<Props> {
       return 1;
     });
 
+    const other = ops
+      .slice(TOP_N_SPANS)
+      .reduce((accOther: OpStats | undefined, currentOp) => {
+        if (!accOther) {
+          return {
+            percentage: currentOp.totalDuration / cumulativeDuration,
+            totalDuration: currentOp.totalDuration,
+          };
+        }
+
+        accOther.totalDuration += currentOp.totalDuration;
+        accOther.percentage = accOther.totalDuration / cumulativeDuration;
+
+        return accOther;
+      }, undefined);
+
     return {
-      // use the first 4 ops with the top total duration
-      ops: ops.slice(0, 4),
-      unknown:
-        spansWithNoOperation.count > 0
-          ? {
-              percentage: spansWithNoOperation.totalDuration / totalDuration,
-              totalDuration: spansWithNoOperation.totalDuration,
-            }
-          : undefined,
+      // use the first TOP_N_SPANS ops with the top total duration
+      ops: ops.slice(0, TOP_N_SPANS),
+      other,
     };
   }
 
@@ -145,11 +162,68 @@ class EventBreakdown extends React.Component<Props> {
       return null;
     }
 
-    // TODO: Dora to take over
-    // const results = this.generateCounts();
+    const results = this.generateStats();
 
-    return null;
+    return (
+      <StyledBreakdown>
+        <SectionHeading>{t('Ops Breakdown')}</SectionHeading>
+        {results.ops.map(currOp => {
+          const {name, percentage, totalDuration} = currOp;
+          const durLabel = Math.round(totalDuration * 1000 * 100) / 100;
+          const pctLabel = Math.round(percentage * 100);
+          const opsColor: string = pickSpanBarColour(name);
+
+          return (
+            <OpsLine key={name}>
+              <OpsContent>
+                <OpsDot style={{backgroundColor: opsColor}} />
+                <div>{name}</div>
+              </OpsContent>
+              <OpsContent>
+                <Dur>{durLabel}ms</Dur>
+                <Pct>{pctLabel}%</Pct>
+              </OpsContent>
+            </OpsLine>
+          );
+        })}
+      </StyledBreakdown>
+    );
   }
 }
+
+const StyledBreakdown = styled('div')`
+  color: ${p => p.theme.gray3};
+  font-size: ${p => p.theme.fontSizeMedium};
+  margin-bottom: ${space(4)};
+`;
+
+const OpsLine = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: ${space(0.5)};
+`;
+
+const OpsDot = styled('div')`
+  content: '';
+  display: block;
+  width: 8px;
+  height: 8px;
+  margin-right: ${space(1)};
+  border-radius: 100%;
+`;
+
+const OpsContent = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+const Dur = styled('div')`
+  color: ${p => p.theme.gray2};
+`;
+
+const Pct = styled('div')`
+  min-width: 40px;
+  text-align: right;
+`;
 
 export default EventBreakdown;

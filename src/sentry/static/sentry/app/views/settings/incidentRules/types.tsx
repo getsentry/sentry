@@ -30,7 +30,7 @@ export type ThresholdControlValue = {
 
 export type SavedTrigger = UnsavedTrigger & {
   id: string;
-  dateAdded: string;
+  dateCreated: string;
 };
 
 export type Trigger = Partial<SavedTrigger> & UnsavedTrigger;
@@ -45,7 +45,7 @@ export type UnsavedIncidentRule = {
 };
 
 export type SavedIncidentRule = UnsavedIncidentRule & {
-  dateAdded: string;
+  dateCreated: string;
   dateModified: string;
   id: string;
   status: number;
