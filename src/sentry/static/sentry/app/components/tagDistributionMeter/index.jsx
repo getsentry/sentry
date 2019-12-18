@@ -35,28 +35,27 @@ export default class TagDistributionMeter extends React.Component {
     isLoading: false,
     hasError: false,
     renderLoading: () => null,
-    renderEmpty: () => <Title>{t('No recent data.')}</Title>,
+    renderEmpty: () => <p>{t('No recent data.')}</p>,
     renderError: () => null,
   };
 
   renderTitle() {
     const {segments, totalValues, title} = this.props;
 
-    const pct = percent(value.count, totalValues);
-    const pctLabel = Math.floor(pct);
-
     if (!Array.isArray(segments) || segments.length <= 0) {
       return null;
     }
 
-    const segment = segments[0];
+    const largestSegment = segments[0];
+    const pct = percent(largestSegment.count, totalValues);
+    const pctLabel = Math.floor(pct);
 
     return (
       <Title>
-        <TitleType>{segment.title}</TitleType>
+        <TitleType>{title}</TitleType>
         <TitleDescription>
-          <Label>{segment.value.name}</Label>
-          <Percent>{segment.pctLabel}%</Percent>
+          <Label>{largestSegment.name}</Label>
+          <Percent>{pctLabel}%</Percent>
         </TitleDescription>
       </Title>
     );
