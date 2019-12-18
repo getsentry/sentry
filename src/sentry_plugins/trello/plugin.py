@@ -12,9 +12,7 @@ from sentry_plugins.base import CorePluginMixin
 from .client import TrelloApiClient
 
 
-SETUP_URL = (
-    "https://github.com/getsentry/sentry/blob/master/src/sentry_plugins/trello/HOW_TO_SETUP.md"
-)  # NOQA
+SETUP_URL = "https://github.com/getsentry/sentry/blob/master/src/sentry_plugins/trello/Trello_Instructions.md"  # NOQA
 
 
 class TrelloPlugin(CorePluginMixin, IssuePlugin2):
@@ -24,7 +22,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
     conf_title = title
     conf_key = "trello"
     auth_provider = None
-    resource_links = [("How do I configure this?", SETUP_URL)] + CorePluginMixin.resource_links
+    resource_links = [("Trello Setup Instructions", SETUP_URL)] + CorePluginMixin.resource_links
 
     def get_config(self, project, **kwargs):
         # function to pull the value out of our the arguments to this function or from the DB
