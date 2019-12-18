@@ -8,6 +8,7 @@ import {
   SpanEntry,
   SpanType,
 } from 'app/components/events/interfaces/spans/types';
+import {pickSpanBarColour} from 'app/components/events/interfaces/spans/utils';
 import {TraceContextType} from 'app/components/events/interfaces/spans/traceView';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -165,19 +166,23 @@ class EventBreakdown extends React.Component<Props> {
 
     return (
       <StyledBreakdown>
-        <SectionHeading>{t('Event Breakdown')}</SectionHeading>
+        <SectionHeading>{t('Ops Breakdown')}</SectionHeading>
         {results.ops.map(currentOp => {
           const {name, percentage, totalDuration} = currentOp;
           const pctLabel = Math.floor(percentage);
           const durLabel = Math.round(totalDuration * 100) / 100;
+          const opsColor: string = pickSpanBarColour(name);
 
           return (
             <OpsLine key={name}>
-              <OpsName>{name}</OpsName>
-              <OpsDescription>
+              <OpsContent>
+                <OpsDot style={{backgroundColor: opsColor}} />
+                <div>{name}</div>
+              </OpsContent>
+              <OpsContent>
                 <Dur>{durLabel}ms</Dur>
                 <Pct>{pctLabel}%</Pct>
-              </OpsDescription>
+              </OpsContent>
             </OpsLine>
           );
         })}
@@ -198,24 +203,18 @@ const OpsLine = styled('div')`
   margin-bottom: ${space(0.5)};
 `;
 
-const OpsName = styled('div')`
-  display: flex;
-  align-items: center;
-
-  &:before {
-    display: block;
-    content: '';
-    background-color: ${p => p.theme.gray2};
-    border-radius: 100%;
-    width: 8px;
-    height: 8px;
-    margin-right: ${space(1)};
-  }
+const OpsDot = styled('div')`
+  display: block;
+  content: '';
+  border-radius: 100%;
+  width: 8px;
+  height: 8px;
+  margin-right: ${space(1)};
 `;
 
-const OpsDescription = styled('div')`
+const OpsContent = styled('div')`
   display: flex;
-  text-align: right;
+  align-items: center;
 `;
 
 const Dur = styled('div')`
@@ -224,6 +223,7 @@ const Dur = styled('div')`
 
 const Pct = styled('div')`
   width: 30px;
+  text-align: right;
 `;
 
 export default EventBreakdown;
