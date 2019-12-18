@@ -16,7 +16,7 @@ import {SectionHeading} from '../../styles';
 
 type OpStats = {percentage: number; totalDuration: number};
 
-const TOP_N_SPANS = 3;
+const TOP_N_SPANS = 4;
 
 type EventBreakdownType = {
   // top TOP_N_SPANS spans
