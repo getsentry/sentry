@@ -113,8 +113,6 @@ def simple_class_factory_compat(model, attrs):
 def patch_model_unpickle():
     # https://code.djangoproject.com/ticket/27187
     # Django 1.10 breaks pickle compat with 1.9 models.
-    import django.db.models.base
-
     django.db.models.base.model_unpickle = model_unpickle_compat
 
     # Django 1.10 needs this to unpickle 1.9 models, but we can't branch while
