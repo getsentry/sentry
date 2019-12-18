@@ -19,7 +19,7 @@ class BaseAlertRuleTriggerSerializerTest(object):
         assert result["thresholdType"] == trigger.threshold_type
         assert result["alertThreshold"] == trigger.alert_threshold
         assert result["resolveThreshold"] == trigger.resolve_threshold
-        assert result["dateAdded"] == trigger.date_added
+        assert result["dateCreated"] == trigger.date_added
 
 
 class AlertRuleTriggerSerializerTest(BaseAlertRuleTriggerSerializerTest, TestCase):
