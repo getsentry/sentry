@@ -5,7 +5,7 @@ import get from 'lodash/get';
 import Frame from 'app/components/events/interfaces/frame';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
-import {parseAddress} from 'app/components/events/interfaces/utils';
+import {parseAddress, getImageRange} from 'app/components/events/interfaces/utils';
 
 export default class StacktraceContent extends React.Component {
   static propTypes = {
@@ -45,13 +45,18 @@ export default class StacktraceContent extends React.Component {
     );
   };
 
-  findImageForPackage(framePackage) {
+  findImageForAddress(address) {
     const images = get(
       this.props.event.entries.find(entry => entry.type === 'debugmeta'),
       'data.images'
     );
 
-    return images ? images.find(img => get(img, 'code_file') === framePackage) : null;
+    return images
+      ? images.find(img => {
+          const [startAddress, endAddress] = getImageRange(img);
+          return address >= startAddress && address < endAddress;
+        })
+      : null;
   }
 
   handleToggleAddresses = event => {
@@ -91,7 +96,7 @@ export default class StacktraceContent extends React.Component {
 
     const maxLengthOfAllRelativeAddresses = data.frames.reduce(
       (maxLengthUntilThisPoint, frame) => {
-        const correspondingImage = this.findImageForPackage(frame.package);
+        const correspondingImage = this.findImageForAddress(frame.instructionAddr);
 
         try {
           const relativeAddress = (
@@ -125,7 +130,7 @@ export default class StacktraceContent extends React.Component {
       }
 
       if (this.frameIsVisible(frame, nextFrame) && !repeatedFrame) {
-        const image = this.findImageForPackage(frame.package);
+        const image = this.findImageForAddress(frame.instructionAddr);
 
         frames.push(
           <Frame
