@@ -164,18 +164,28 @@ export class Frame extends React.Component {
   }
 
   shouldShowLinkToImage() {
-    return this.props.data.symbolicatorStatus !== SymbolicatorStatus.UNKNOWN_IMAGE;
+    const {symbolicatorStatus} = this.props.data;
+
+    return symbolicatorStatus && symbolicatorStatus !== SymbolicatorStatus.UNKNOWN_IMAGE;
   }
 
-  packageStatusIsError() {
+  packageStatus() {
+    // this is the status of image that belongs to this frame
     const {image} = this.props;
     if (!image) {
-      return true;
+      return 'empty';
     }
 
-    const imageStatus = combineStatus(image.debug_status, image.unwind_status);
+    const combinedStatus = combineStatus(image.debug_status, image.unwind_status);
 
-    return imageStatus !== 'found';
+    switch (combinedStatus) {
+      case 'unused':
+        return 'empty';
+      case 'found':
+        return 'success';
+      default:
+        return 'error';
+    }
   }
 
   scrollToImage = event => {
@@ -515,7 +525,7 @@ export class Frame extends React.Component {
               onClick={this.scrollToImage}
               isClickable={this.shouldShowLinkToImage()}
             >
-              <PackageStatus isError={this.packageStatusIsError()} />
+              <PackageStatus status={this.packageStatus()} />
             </PackageLink>
             <TogglableAddress
               address={data.instructionAddr}

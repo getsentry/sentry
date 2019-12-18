@@ -2,6 +2,7 @@ import isEmpty from 'lodash/isEmpty';
 import isString from 'lodash/isString';
 import * as Sentry from '@sentry/browser';
 import queryString from 'query-string';
+import get from 'lodash/get';
 
 import {FILTER_MASK} from 'app/constants';
 import {defined} from 'app/utils';
@@ -147,4 +148,17 @@ export function parseAddress(address) {
   } catch (_e) {
     return 0;
   }
+}
+
+export function getImageRange(image) {
+  // The start address is normalized to a `0x` prefixed hex string. The event
+  // schema also allows ingesting plain numbers, but this is converted during
+  // ingestion.
+  const startAddress = parseAddress(get(image, 'image_addr'));
+
+  // The image size is normalized to a regular number. However, it can also be
+  // `null`, in which case we assume that it counts up to the next image.
+  const endAddress = startAddress + (get(image, 'image_size') || 0);
+
+  return [startAddress, endAddress];
 }

@@ -6,16 +6,33 @@ import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 
 type Props = {
-  isError: boolean;
+  status: 'error' | 'success' | 'empty';
   tooltip?: string;
 };
 
 class PackageStatus extends React.Component<Props> {
-  render() {
-    const {isError, tooltip} = this.props;
+  getIconTypeAndSource(
+    status: Props['status']
+  ): {iconType: PackageStatusIconProps['type']; iconSrc: string} {
+    switch (status) {
+      case 'success':
+        return {iconType: 'success', iconSrc: 'icon-circle-check'};
+      case 'empty':
+        return {iconType: 'muted', iconSrc: 'icon-circle-empty'};
+      case 'error':
+      default:
+        return {iconType: 'error', iconSrc: 'icon-circle-exclamation'};
+    }
+  }
 
-    const iconType = isError ? 'error' : 'success';
-    const iconSrc = isError ? 'icon-circle-exclamation' : 'icon-circle-check';
+  render() {
+    const {status, tooltip} = this.props;
+
+    const {iconType, iconSrc} = this.getIconTypeAndSource(status);
+
+    if (status === 'empty') {
+      return null;
+    }
 
     return (
       <Tooltip title={tooltip} disabled={!(tooltip && tooltip.length)}>
@@ -26,7 +43,7 @@ class PackageStatus extends React.Component<Props> {
 }
 
 type PackageStatusIconProps = {
-  type: 'error' | 'success';
+  type: 'error' | 'success' | 'muted';
 };
 export const PackageStatusIcon = styled(InlineSvg)<PackageStatusIconProps>`
   color: ${p => p.theme.alert[p.type!].iconColor};

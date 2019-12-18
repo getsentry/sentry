@@ -15,7 +15,11 @@ import {Panel, PanelBody, PanelItem} from 'app/components/panels';
 import Tooltip from 'app/components/tooltip';
 import DebugMetaStore, {DebugMetaActions} from 'app/stores/debugMetaStore';
 import SearchInput from 'app/components/forms/searchInput';
-import {formatAddress, parseAddress} from 'app/components/events/interfaces/utils';
+import {
+  formatAddress,
+  parseAddress,
+  getImageRange,
+} from 'app/components/events/interfaces/utils';
 import ImageForBar from 'app/components/events/interfaces/imageForBar';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
@@ -23,19 +27,6 @@ import space from 'app/styles/space';
 
 const IMAGE_ADDR_LEN = 12;
 const MIN_FILTER_LEN = 3;
-
-function getImageRange(image) {
-  // The start address is normalized to a `0x` prefixed hex string. The event
-  // schema also allows ingesting plain numbers, but this is converted during
-  // ingestion.
-  const startAddress = parseAddress(image.image_addr);
-
-  // The image size is normalized to a regular number. However, it can also be
-  // `null`, in which case we assume that it counts up to the next image.
-  const endAddress = startAddress + (image.image_size || 0);
-
-  return [startAddress, endAddress];
-}
 
 function getFileName(path) {
   const directorySeparator = /^([a-z]:\\|\\\\)/i.test(path) ? '\\' : '/';
@@ -80,7 +71,7 @@ function getImageStatusDetails(status) {
     case 'unused':
       return t('The image was not required for processing the stack trace.');
     case 'missing':
-      return t('No debug information could not be in any of the specified sources.');
+      return t('No debug information could be found in any of the specified sources.');
     case 'malformed':
       return t('The debug information file for this image failed to process.');
     case 'timeout':
