@@ -84,44 +84,5 @@ def patch_django_views_debug():
     debug.get_safe_settings = lambda: {}
 
 
-# For distribution builds, can't be inside `model_unpickle_compat` since we're patching the functions
-try:
-    import django.db.models.base
-
-    model_unpickle = django.db.models.base.model_unpickle
-except ImportError:
-    pass
-
-
-def model_unpickle_compat(model_id, attrs=None, factory=None):
-    from django import VERSION
-
-    if VERSION[:2] == (1, 9):
-        attrs = [] if attrs is None else attrs
-        factory = django.db.models.base.simple_class_factory if factory is None else factory
-        return model_unpickle(model_id, attrs, factory)
-    elif VERSION[:2] == (1, 10):
-        return model_unpickle(model_id)
-    else:
-        raise NotImplementedError
-
-
-def simple_class_factory_compat(model, attrs):
-    return model
-
-
-def patch_model_unpickle():
-    # https://code.djangoproject.com/ticket/27187
-    # Django 1.10 breaks pickle compat with 1.9 models.
-    import django.db.models.base
-
-    django.db.models.base.model_unpickle = model_unpickle_compat
-
-    # Django 1.10 needs this to unpickle 1.9 models, but we can't branch while
-    # monkeypatching else our monkeypatched funcs won't be pickleable.
-    # So just vendor simple_class_factory from 1.9.
-    django.db.models.base.simple_class_factory = simple_class_factory_compat
-
-
 for patch in (patch_parse_cookie, patch_httprequest_repr, patch_django_views_debug):
     patch()
