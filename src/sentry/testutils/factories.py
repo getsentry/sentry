@@ -27,7 +27,6 @@ from sentry.incidents.logic import (
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
 )
-from sentry.eventstore.models import Event
 from sentry.incidents.models import (
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
@@ -46,6 +45,7 @@ from sentry.mediators import (
 from sentry.models import (
     Activity,
     Environment,
+    Event,
     EventError,
     Group,
     Organization,
