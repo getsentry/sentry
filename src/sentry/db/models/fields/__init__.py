@@ -8,6 +8,5 @@ from .foreignkey import *  # NOQA
 from .jsonfield import *  # NOQA
 from .gzippeddict import *  # NOQA
 from .node import *  # NOQA
-from .pickle import *  # NOQA
 from .uuid import *  # NOQA
 from .onetoone import *  # NOQA
