@@ -40,18 +40,14 @@ export default class TagDistributionMeter extends React.Component {
   };
 
   renderTitle() {
-    const {segments, totalValues, title} = this.props;
+    const {segments, totalValues, title, isLoading, hasError} = this.props;
 
     if (!Array.isArray(segments) || segments.length <= 0) {
-      return null;
-    }
-
-    if (!totalValues) {
-      <TagSummary>
+      return (
         <Title>
-          <TitleType>{this.renderEmpty()}</TitleType>
+          <TitleType>{title}</TitleType>
         </Title>
-      </TagSummary>;
+      );
     }
 
     const largestSegment = segments[0];
@@ -63,14 +59,73 @@ export default class TagDistributionMeter extends React.Component {
         <TitleType>{title}</TitleType>
         <TitleDescription>
           <Label>{largestSegment.name}</Label>
-          <Percent>{pctLabel}%</Percent>
+          {isLoading || hasError ? null : <Percent>{pctLabel}%</Percent>}
         </TitleDescription>
       </Title>
     );
   }
 
   renderSegments() {
-    const {segments, totalValues, onTagClick, title} = this.props;
+    const {
+      segments,
+      onTagClick,
+      title,
+      isLoading,
+      hasError,
+      totalValues,
+      renderLoading,
+      renderError,
+      renderEmpty,
+    } = this.props;
+
+    if (isLoading) {
+      return renderLoading();
+    }
+
+    if (hasError) {
+      return <SegmentBar>{renderError()}</SegmentBar>;
+    }
+
+    if (!totalValues) {
+      return <SegmentBar>{renderEmpty()}</SegmentBar>;
+    }
+
+    return (
+      <SegmentBar>
+        {segments.map((value, index) => {
+          const pct = percent(value.count, totalValues);
+          const pctLabel = Math.floor(pct);
+
+          const tooltipHtml = (
+            <React.Fragment>
+              <div className="truncate">{value.name}</div>
+              {pctLabel}%
+            </React.Fragment>
+          );
+
+          return (
+            <div key={value.value} style={{width: pct + '%'}}>
+              <Tooltip title={tooltipHtml} containerDisplayMode="block">
+                <Segment
+                  to={value.isOther ? null : value.url}
+                  index={index}
+                  isOther={!!value.isOther}
+                  onClick={() => {
+                    if (onTagClick) {
+                      onTagClick(title, value);
+                    }
+                  }}
+                />
+              </Tooltip>
+            </div>
+          );
+        })}
+      </SegmentBar>
+    );
+  }
+
+  render() {
+    const {segments, totalValues} = this.props;
 
     const totalVisible = segments.reduce((sum, value) => sum + value.count, 0);
     const hasOther = totalVisible < totalValues;
@@ -87,63 +142,9 @@ export default class TagDistributionMeter extends React.Component {
     return (
       <TagSummary>
         {this.renderTitle()}
-        <SegmentBar>
-          {segments.map((value, index) => {
-            const pct = percent(value.count, totalValues);
-            const pctLabel = Math.floor(pct);
-
-            const tooltipHtml = (
-              <React.Fragment>
-                <div className="truncate">{value.name}</div>
-                {pctLabel}%
-              </React.Fragment>
-            );
-
-            return (
-              <div key={value.value} style={{width: pct + '%'}}>
-                <Tooltip title={tooltipHtml} containerDisplayMode="block">
-                  <Segment
-                    to={value.isOther ? null : value.url}
-                    index={index}
-                    isOther={!!value.isOther}
-                    onClick={() => {
-                      if (onTagClick) {
-                        onTagClick(title, value);
-                      }
-                    }}
-                  />
-                </Tooltip>
-              </div>
-            );
-          })}
-        </SegmentBar>
+        {this.renderSegments()}
       </TagSummary>
     );
-  }
-
-  render() {
-    const {
-      isLoading,
-      hasError,
-      totalValues,
-      renderLoading,
-      renderError,
-      renderEmpty,
-    } = this.props;
-
-    if (isLoading) {
-      return renderLoading();
-    }
-
-    if (hasError) {
-      return renderError();
-    }
-
-    if (!totalValues) {
-      return renderEmpty();
-    }
-
-    return this.renderSegments();
   }
 }
 
