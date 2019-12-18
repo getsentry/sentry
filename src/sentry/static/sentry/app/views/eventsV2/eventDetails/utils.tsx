@@ -1,15 +1,13 @@
-import {Organization} from 'app/types';
-
 import {EventData} from '../data';
 
 export function generateEventDetailsRoute({
   eventSlug,
-  organization,
+  orgSlug,
 }: {
   eventSlug: string;
-  organization: Organization;
+  orgSlug: String;
 }): string {
-  return `/organizations/${organization.slug}/eventsv2/${eventSlug}/`;
+  return `/organizations/${orgSlug}/eventsv2/${eventSlug}/`;
 }
 
 export function generateEventSlug(eventData: EventData): string {

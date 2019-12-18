@@ -3,17 +3,17 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
-import {browserHistory} from 'react-router';
 
 import SentryTypes from 'app/sentryTypes';
-import {Member, User} from 'app/types';
+import {User} from 'app/types';
 
 import {assignToUser, assignToActor, clearAssignment} from 'app/actionCreators/group';
 import {openInviteMembersModal} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import {valueIsEqual, buildUserId, buildTeamId} from 'app/utils';
 import ActorAvatar from 'app/components/avatar/actorAvatar';
-import Avatar from 'app/components/avatar';
+import UserAvatar from 'app/components/avatar/userAvatar';
+import TeamAvatar from 'app/components/avatar/teamAvatar';
 import ConfigStore from 'app/stores/configStore';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownBubble from 'app/components/dropdownBubble';
@@ -30,13 +30,13 @@ import space from 'app/styles/space';
 type Props = {
   id: string | null;
   size: number;
-  memberList?: Member[];
+  memberList?: User[];
 };
 
 type State = {
   loading: boolean;
   assignedTo: User;
-  memberList: Member[];
+  memberList: User[];
 };
 
 const AssigneeSelectorComponent = createReactClass<Props, State>({
@@ -177,17 +177,6 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
     e.stopPropagation();
   },
 
-  hasInviteRequestExperiment() {
-    const {organization} = this.context;
-
-    if (!organization || !organization.experiments) {
-      return false;
-    }
-
-    const variant = organization.experiments.ImprovedInvitesExperiment;
-    return variant === 'all' || variant === 'invite_request';
-  },
-
   renderNewMemberNodes() {
     const {size} = this.props;
     const members = putSessionUserFirst(this.memberList());
@@ -203,7 +192,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
             onSelect={this.assignToUser.bind(this, member)}
           >
             <IconContainer>
-              <Avatar user={member} size={size} />
+              <UserAvatar user={member} size={size} />
             </IconContainer>
             <Label>
               <Highlight text={inputValue}>{member.name || member.email}</Highlight>
@@ -228,7 +217,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
             onSelect={this.assignToTeam.bind(this, team)}
           >
             <IconContainer>
-              <Avatar team={team} size={size} />
+              <TeamAvatar team={team} size={size} />
             </IconContainer>
             <Label>
               <Highlight text={inputValue}>{display}</Highlight>
@@ -251,13 +240,8 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
 
   render() {
     const {className} = this.props;
-    const {organization} = this.context;
     const {loading, assignedTo} = this.state;
-    const canInvite = ConfigStore.get('invitesEnabled');
-    const hasOrgWrite = organization.access.includes('org:write');
     const memberList = this.memberList();
-    const hasExperiment = this.hasInviteRequestExperiment();
-    const showInviteMemberButton = (canInvite && hasOrgWrite) || hasExperiment;
 
     return (
       <div className={className}>
@@ -298,28 +282,18 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
               )
             }
             menuFooter={
-              showInviteMemberButton && (
-                <InviteMemberLink
-                  data-test-id="invite-member"
-                  disabled={loading}
-                  onClick={() =>
-                    hasExperiment
-                      ? openInviteMembersModal({source: 'assignee_selector'})
-                      : browserHistory.push(
-                          `/settings/${
-                            organization.slug
-                          }/members/new/?referrer=assignee_selector`
-                        )
-                  }
-                >
-                  <MenuItemWrapper>
-                    <IconContainer>
-                      <InviteMemberIcon />
-                    </IconContainer>
-                    <Label>{t('Invite Member')}</Label>
-                  </MenuItemWrapper>
-                </InviteMemberLink>
-              )
+              <InviteMemberLink
+                data-test-id="invite-member"
+                disabled={loading}
+                onClick={() => openInviteMembersModal({source: 'assignee_selector'})}
+              >
+                <MenuItemWrapper>
+                  <IconContainer>
+                    <InviteMemberIcon />
+                  </IconContainer>
+                  <Label>{t('Invite Member')}</Label>
+                </MenuItemWrapper>
+              </InviteMemberLink>
             }
           >
             {({getActorProps}) => {
@@ -341,7 +315,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
   },
 });
 
-export function putSessionUserFirst(members: Member[]): Member[] {
+export function putSessionUserFirst(members: User[]): User[] {
   // If session user is in the filtered list of members, put them at the top
   if (!members) {
     return [];

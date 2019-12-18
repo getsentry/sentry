@@ -43,7 +43,7 @@ class KeyValueList extends React.Component {
               return [
                 <tr key={key}>
                   <td className="key">{key}</td>
-                  <td className="value">
+                  <td className="val">
                     <ContextData data={!raw ? value : JSON.stringify(value)} />
                   </td>
                 </tr>,
@@ -52,8 +52,8 @@ class KeyValueList extends React.Component {
               return [
                 <tr key={key}>
                   <td className="key">{key}</td>
-                  <td className="value">
-                    <pre>{'' + value || ' '}</pre>
+                  <td className="val">
+                    <pre className="val-string">{'' + value || ' '}</pre>
                   </td>
                 </tr>,
               ];

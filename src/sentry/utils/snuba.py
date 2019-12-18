@@ -5,7 +5,6 @@ from copy import deepcopy
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_datetime
-from enum import Enum, unique
 import os
 import pytz
 import re
@@ -31,6 +30,7 @@ from sentry.net.http import connection_from_url
 from sentry.utils import metrics, json
 from sentry.utils.dates import to_timestamp
 from sentry.snuba.events import Columns
+from sentry.snuba.dataset import Dataset
 
 # TODO remove this when Snuba accepts more than 500 issues
 MAX_ISSUES = 500
@@ -69,15 +69,6 @@ DISCOVER_COLUMN_MAP = {
 }
 
 
-@unique
-class Dataset(Enum):
-    Events = "events"
-    Transactions = "transactions"
-    Discover = "discover"
-    Outcomes = "outcomes"
-    OutcomesRaw = "outcomes_raw"
-
-
 DATASETS = {
     Dataset.Events: SENTRY_SNUBA_MAP,
     Dataset.Transactions: TRANSACTIONS_SENTRY_SNUBA_MAP,
@@ -88,7 +79,7 @@ DATASETS = {
 # Add `group_id` to the events dataset list as we don't want to publically
 # expose that field, but it is used by eventstore and other internals.
 DATASET_FIELDS = {
-    Dataset.Events: list(SENTRY_SNUBA_MAP.values()) + ["group_id"],
+    Dataset.Events: list(SENTRY_SNUBA_MAP.values()),
     Dataset.Transactions: list(TRANSACTIONS_SENTRY_SNUBA_MAP.values()),
     Dataset.Discover: list(DISCOVER_COLUMN_MAP.values()),
 }
@@ -262,7 +253,7 @@ def get_snuba_column_name(name, dataset=Dataset.Events):
     the column is assumed to be a tag. If name is falsy or name is a quoted literal
     (e.g. "'name'"), leave unchanged.
     """
-    no_conversion = set(["issue", "project_id", "start", "end"])
+    no_conversion = set(["group_id", "project_id", "start", "end"])
 
     if name in no_conversion:
         return name
@@ -285,6 +276,9 @@ def detect_dataset(query_args, aliased_conditions=False):
     the public aliases and the internal names. When query conditions
     have been pre-parsed by api.event_search set aliased_conditions=True
     as we need to look for internal names.
+
+    :deprecated: This method and the automatic dataset resolution is deprecated.
+    You should use sentry.snuba.discover instead.
     """
     if query_args.get("dataset", None):
         return query_args["dataset"]
@@ -460,6 +454,8 @@ def transform_aliases_and_query(**kwargs):
     orderby and arrayjoin fields to their internal Snuba format and post the
     query to Snuba. Convert back translated aliases before returning snuba
     results.
+
+    :deprecated: This method is deprecated. You should use sentry.snuba.discover instead.
     """
 
     arrayjoin_map = {"error": "exception_stacks", "stack": "exception_frames"}
@@ -473,7 +469,6 @@ def transform_aliases_and_query(**kwargs):
     conditions = kwargs.get("conditions")
     filter_keys = kwargs["filter_keys"]
     arrayjoin = kwargs.get("arrayjoin")
-    rollup = kwargs.get("rollup")
     orderby = kwargs.get("orderby")
     having = kwargs.get("having", [])
     dataset = detect_dataset(kwargs)
@@ -546,6 +541,16 @@ def transform_aliases_and_query(**kwargs):
 
     result = dataset_query(**kwargs)
 
+    return transform_results(result, translated_columns, kwargs)
+
+
+def transform_results(result, translated_columns, snuba_args):
+    """
+    Transform internal names back to the public schema ones.
+
+    When getting timeseries results via rollup, this function will
+    zerofill the output results.
+    """
     # Translate back columns that were converted to snuba format
     for col in result["meta"]:
         col["name"] = translated_columns.get(col["name"], col["name"])
@@ -555,10 +560,12 @@ def transform_aliases_and_query(**kwargs):
 
     if len(translated_columns):
         result["data"] = [get_row(row) for row in result["data"]]
-        if rollup and rollup > 0:
-            result["data"] = zerofill(
-                result["data"], kwargs["start"], kwargs["end"], kwargs["rollup"], kwargs["orderby"]
-            )
+
+    rollup = snuba_args.get("rollup")
+    if rollup and rollup > 0:
+        result["data"] = zerofill(
+            result["data"], snuba_args["start"], snuba_args["end"], rollup, snuba_args["orderby"]
+        )
 
     return result
 
@@ -660,7 +667,7 @@ def _prepare_query_params(query_params):
     # if `shrink_time_window` pushed `start` after `end` it means the user queried
     # a Group for T1 to T2 when the group was only active for T3 to T4, so the query
     # wouldn't return any results anyway
-    new_start = shrink_time_window(query_params.filter_keys.get("issue"), start)
+    new_start = shrink_time_window(query_params.filter_keys.get("group_id"), start)
 
     # TODO (alexh) this is a quick emergency fix for an occasion where a search
     # results in only 1 django candidate, which is then passed to snuba to
@@ -734,7 +741,7 @@ class SnubaQueryParams(object):
         # TODO: instead of having events be the default, make dataset required.
         self.dataset = dataset or Dataset.Events
         self.start = start or datetime.utcfromtimestamp(0)  # will be clamped to project retention
-        self.end = end or datetime.utcnow()
+        self.end = end or datetime.utcnow() + timedelta(seconds=1)
         self.groupby = groupby or []
         self.conditions = conditions or []
         self.aggregations = aggregations or []
@@ -919,6 +926,9 @@ def constrain_column_to_dataset(col, dataset, value=None):
     Ensure conditions only reference valid columns on the provided
     dataset. Return none for conditions to be removed, and convert
     unknown columns into tags expressions.
+
+    :deprecated: This method and the automatic dataset resolution is deprecated.
+    You should use sentry.snuba.discover instead.
     """
     if col.startswith("tags["):
         return col
@@ -944,6 +954,9 @@ def constrain_condition_to_dataset(cond, dataset):
 
     We have the dataset context here, so we need to re-scope conditions to the
     current dataset.
+
+    :deprecated: This method and the automatic dataset resolution is deprecated.
+    You should use sentry.snuba.discover instead.
     """
     index = get_function_index(cond)
     if index is not None:
@@ -1004,6 +1017,9 @@ def dataset_query(
     either error or transaction events.
 
     This function will also re-alias columns to match the selected dataset
+
+    :deprecated: This method and the automatic dataset resolution is deprecated.
+    You should use sentry.snuba.discover instead.
     """
     if dataset is None:
         dataset = detect_dataset(
@@ -1165,7 +1181,7 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
                     # returned by the query.
                     row,
                     col,
-                    trans.get((row["issue"], row[col])),
+                    trans.get((row["group_id"], row[col])),
                 )
             )(col, rev_map)
 
@@ -1215,7 +1231,7 @@ def get_related_project_ids(column, ids):
     Get the project_ids from a model that has a foreign key to project.
     """
     mappings = {
-        "issue": (Group, "id", "project_id"),
+        "group_id": (Group, "id", "project_id"),
         "tags[sentry:release]": (ReleaseProject, "release_id", "project_id"),
         "release": (ReleaseProject, "release_id", "project_id"),
     }

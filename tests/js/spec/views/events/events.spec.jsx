@@ -49,7 +49,20 @@ describe('EventsErrors', function() {
 
   beforeAll(function() {
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/releases/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/recent-searches/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      method: 'POST',
       body: [],
     });
     MockApiClient.addMockResponse({

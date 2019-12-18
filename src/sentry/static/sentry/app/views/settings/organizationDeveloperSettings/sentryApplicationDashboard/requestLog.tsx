@@ -15,6 +15,7 @@ import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Checkbox from 'app/components/checkbox';
 import Button from 'app/components/button';
+import InlineSvg from 'app/components/inlineSvg';
 
 import space from 'app/styles/space';
 import {t} from 'app/locale';
@@ -54,8 +55,10 @@ const getEventTypes = memoize((app: SentryApp) => {
 
   const events = [
     ALL_EVENTS,
-    'installation.created',
-    'installation.deleted',
+    // Internal apps don't have installation webhooks
+    ...(app.status !== 'internal'
+      ? ['installation.created', 'installation.deleted']
+      : []),
     ...(app.events.includes('error') ? ['error.created'] : []),
     ...(app.events.includes('issue')
       ? ['issue.created', 'issue.resolved', 'issue.ignored', 'issue.assigned']
@@ -84,8 +87,9 @@ const ResponseCode = ({code}: {code: number}) => {
 
 const TimestampLink = ({date, link}: {date: moment.MomentInput; link?: string}) => {
   return link ? (
-    <Link to={link}>
+    <Link to={link} target="_blank">
       <DateTime date={date} />
+      <StyledInlineSvg src="icon-open" size="12px" />
     </Link>
   ) : (
     <DateTime date={date} />
@@ -141,19 +145,23 @@ export default class RequestLog extends AsyncComponent<Props, State> {
   }
 
   handleChangeEventType = (eventType: string) => {
-    this.setState({
-      eventType,
-      currentPage: 0,
-    });
-    this.remountComponent();
+    this.setState(
+      {
+        eventType,
+        currentPage: 0,
+      },
+      this.remountComponent
+    );
   };
 
   handleChangeErrorsOnly = () => {
-    this.setState({
-      errorsOnly: !this.state.errorsOnly,
-      currentPage: 0,
-    });
-    this.remountComponent();
+    this.setState(
+      {
+        errorsOnly: !this.state.errorsOnly,
+        currentPage: 0,
+      },
+      this.remountComponent
+    );
   };
 
   handleNextPage = () => {
@@ -228,7 +236,7 @@ export default class RequestLog extends AsyncComponent<Props, State> {
 
         <Panel>
           <PanelHeader>
-            <TableLayout>
+            <TableLayout hasOrganization={app.status !== 'internal'}>
               <div>{t('Time')}</div>
               <div>{t('Status Code')}</div>
               {app.status !== 'internal' && <div>{t('Organization')}</div>}
@@ -242,11 +250,13 @@ export default class RequestLog extends AsyncComponent<Props, State> {
               {currentRequests.length > 0 ? (
                 currentRequests.map((request, idx) => (
                   <PanelItem key={idx}>
-                    <TableLayout>
-                      <TimestampLink date={request.date} />
+                    <TableLayout hasOrganization={app.status !== 'internal'}>
+                      <TimestampLink date={request.date} link={request.errorUrl} />
                       <ResponseCode code={request.responseCode} />
-                      {app.status !== 'internal' && request.organization && (
-                        <div>{request.organization.name}</div>
+                      {app.status !== 'internal' && (
+                        <div>
+                          {request.organization ? request.organization.name : null}
+                        </div>
                       )}
                       <div>{request.eventType}</div>
                       <OverflowBox>{request.webhookUrl}</OverflowBox>
@@ -283,9 +293,9 @@ export default class RequestLog extends AsyncComponent<Props, State> {
   }
 }
 
-const TableLayout = styled('div')`
+const TableLayout = styled('div')<{hasOrganization: boolean}>`
   display: grid;
-  grid-template-columns: 1fr 0.5fr 1fr 1fr 1fr;
+  grid-template-columns: 1fr 0.5fr ${p => (p.hasOrganization ? '1fr' : '')} 1fr 1fr;
   grid-column-gap: ${space(1.5)};
   width: 100%;
   align-items: center;
@@ -341,4 +351,9 @@ const StyledErrorsOnlyButton = styled(Button)`
   margin-left: -1px;
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
+`;
+
+const StyledInlineSvg = styled(InlineSvg)`
+  margin-left: 6px;
+  color: ${p => p.theme.gray3};
 `;

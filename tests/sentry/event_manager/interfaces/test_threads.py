@@ -2,7 +2,6 @@
 
 from __future__ import absolute_import
 
-from copy import deepcopy
 import pytest
 
 from sentry.event_manager import EventManager
@@ -52,12 +51,6 @@ basic_payload = dict(
 
 def test_basics(make_threads_snapshot):
     make_threads_snapshot(basic_payload)
-
-
-def test_errored(make_threads_snapshot):
-    payload = deepcopy(basic_payload)
-    payload["values"][0]["errored"] = True
-    make_threads_snapshot(payload)
 
 
 @pytest.mark.parametrize(

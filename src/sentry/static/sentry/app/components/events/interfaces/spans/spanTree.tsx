@@ -3,6 +3,7 @@ import styled from 'react-emotion';
 import get from 'lodash/get';
 
 import {t} from 'app/locale';
+import EventView from 'app/views/eventsV2/eventView';
 
 import {SpanType, SpanChildrenLookupType, ParsedTraceType} from './types';
 import {
@@ -10,21 +11,27 @@ import {
   SpanBoundsType,
   SpanGeneratedBoundsType,
   pickSpanBarColour,
+  generateRootSpan,
 } from './utils';
 import {DragManagerChildrenProps} from './dragManager';
 import SpanGroup from './spanGroup';
 import {SpanRowMessage} from './styles';
 import * as DividerHandlerManager from './dividerHandlerManager';
+import {FilterSpans} from './traceView';
 
 type RenderedSpanTree = {
   spanTree: JSX.Element | null;
   nextSpanNumber: number;
-  numOfHiddenSpansAbove: number;
+  numOfSpansOutOfViewAbove: number;
+  numOfFilteredSpansAbove: number;
 };
 
 type PropType = {
+  orgId: string;
+  eventView: EventView;
   trace: ParsedTraceType;
   dragProps: DragManagerChildrenProps;
+  filterSpans: FilterSpans | undefined;
 };
 
 class SpanTree extends React.Component<PropType> {
@@ -38,13 +45,69 @@ class SpanTree extends React.Component<PropType> {
     return true;
   }
 
+  generateInfoMessage(input: {
+    isCurrentSpanHidden: boolean;
+    numOfSpansOutOfViewAbove: number;
+    isCurrentSpanFilteredOut: boolean;
+    numOfFilteredSpansAbove: number;
+  }): React.ReactNode {
+    const {
+      isCurrentSpanHidden,
+      numOfSpansOutOfViewAbove,
+      isCurrentSpanFilteredOut,
+      numOfFilteredSpansAbove,
+    } = input;
+
+    const messages: React.ReactNode[] = [];
+
+    const showHiddenSpansMessage = !isCurrentSpanHidden && numOfSpansOutOfViewAbove > 0;
+
+    if (showHiddenSpansMessage) {
+      messages.push(
+        <span key="spans-out-of-view">
+          <strong>{numOfSpansOutOfViewAbove}</strong> {t('spans out of view')}
+        </span>
+      );
+    }
+
+    const showFilteredSpansMessage =
+      !isCurrentSpanFilteredOut && numOfFilteredSpansAbove > 0;
+
+    if (showFilteredSpansMessage) {
+      if (!isCurrentSpanHidden) {
+        messages.push(
+          <span key="spans-filtered">
+            <strong>{numOfFilteredSpansAbove}</strong> {t('spans filtered out')}
+          </span>
+        );
+      }
+    }
+
+    if (messages.length <= 0) {
+      return null;
+    }
+
+    return <SpanRowMessage>{messages}</SpanRowMessage>;
+  }
+
+  isSpanFilteredOut(span: Readonly<SpanType>): boolean {
+    const {filterSpans} = this.props;
+
+    if (!filterSpans) {
+      return false;
+    }
+
+    return !filterSpans.spanIDs.has(span.span_id);
+  }
+
   renderSpan = ({
     spanNumber,
     isRoot,
     isLast,
     treeDepth,
     continuingTreeDepths,
-    numOfHiddenSpansAbove,
+    numOfSpansOutOfViewAbove,
+    numOfFilteredSpansAbove,
     childSpans,
     span,
     generateBounds,
@@ -54,11 +117,14 @@ class SpanTree extends React.Component<PropType> {
     continuingTreeDepths: Array<number>;
     isLast: boolean;
     isRoot?: boolean;
-    numOfHiddenSpansAbove: number;
+    numOfSpansOutOfViewAbove: number;
+    numOfFilteredSpansAbove: number;
     span: Readonly<SpanType>;
     childSpans: Readonly<SpanChildrenLookupType>;
     generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   }): RenderedSpanTree => {
+    const {orgId, eventView} = this.props;
+
     const spanBarColour: string = pickSpanBarColour(span.op);
     const spanChildren: Array<SpanType> = get(childSpans, span.span_id, []);
 
@@ -68,11 +134,13 @@ class SpanTree extends React.Component<PropType> {
     });
 
     const isCurrentSpanHidden = !bounds.isSpanVisibleInView;
+    const isCurrentSpanFilteredOut = this.isSpanFilteredOut(span);
 
     type AccType = {
       renderedSpanChildren: Array<JSX.Element>;
       nextSpanNumber: number;
-      numOfHiddenSpansAbove: number;
+      numOfSpansOutOfViewAbove: number;
+      numOfFilteredSpansAbove: number;
     };
 
     const treeArr = isLast ? continuingTreeDepths : [...continuingTreeDepths, treeDepth];
@@ -86,7 +154,8 @@ class SpanTree extends React.Component<PropType> {
           isLast: index + 1 === spanChildren.length,
           continuingTreeDepths: treeArr,
           treeDepth: treeDepth + 1,
-          numOfHiddenSpansAbove: acc.numOfHiddenSpansAbove,
+          numOfSpansOutOfViewAbove: acc.numOfSpansOutOfViewAbove,
+          numOfFilteredSpansAbove: acc.numOfFilteredSpansAbove,
           span: spanChild,
           childSpans,
           generateBounds,
@@ -96,7 +165,8 @@ class SpanTree extends React.Component<PropType> {
           <React.Fragment key={key}>{results.spanTree}</React.Fragment>
         );
 
-        acc.numOfHiddenSpansAbove = results.numOfHiddenSpansAbove;
+        acc.numOfSpansOutOfViewAbove = results.numOfSpansOutOfViewAbove;
+        acc.numOfFilteredSpansAbove = results.numOfFilteredSpansAbove;
 
         acc.nextSpanNumber = results.nextSpanNumber;
 
@@ -105,27 +175,32 @@ class SpanTree extends React.Component<PropType> {
       {
         renderedSpanChildren: [],
         nextSpanNumber: spanNumber + 1,
-        numOfHiddenSpansAbove: isCurrentSpanHidden ? numOfHiddenSpansAbove + 1 : 0,
+        numOfSpansOutOfViewAbove: isCurrentSpanHidden ? numOfSpansOutOfViewAbove + 1 : 0,
+        numOfFilteredSpansAbove: isCurrentSpanFilteredOut
+          ? numOfFilteredSpansAbove + 1
+          : isCurrentSpanHidden
+          ? numOfFilteredSpansAbove
+          : 0,
       }
     );
 
-    const showHiddenSpansMessage = !isCurrentSpanHidden && numOfHiddenSpansAbove > 0;
-
-    const hiddenSpansMessage = showHiddenSpansMessage ? (
-      <SpanRowMessage>
-        <span>
-          {t('Number of hidden spans:')} {numOfHiddenSpansAbove}
-        </span>
-      </SpanRowMessage>
-    ) : null;
+    const infoMessage = this.generateInfoMessage({
+      isCurrentSpanHidden,
+      numOfSpansOutOfViewAbove,
+      isCurrentSpanFilteredOut,
+      numOfFilteredSpansAbove,
+    });
 
     return {
-      numOfHiddenSpansAbove: reduced.numOfHiddenSpansAbove,
+      numOfSpansOutOfViewAbove: reduced.numOfSpansOutOfViewAbove,
+      numOfFilteredSpansAbove: reduced.numOfFilteredSpansAbove,
       nextSpanNumber: reduced.nextSpanNumber,
       spanTree: (
         <React.Fragment>
-          {hiddenSpansMessage}
+          {infoMessage}
           <SpanGroup
+            eventView={eventView}
+            orgId={orgId}
             spanNumber={spanNumber}
             isLast={isLast}
             continuingTreeDepths={continuingTreeDepths}
@@ -137,6 +212,7 @@ class SpanTree extends React.Component<PropType> {
             numOfSpanChildren={spanChildren.length}
             renderedSpanChildren={reduced.renderedSpanChildren}
             spanBarColour={spanBarColour}
+            isCurrentSpanFilteredOut={isCurrentSpanFilteredOut}
           />
         </React.Fragment>
       ),
@@ -146,14 +222,7 @@ class SpanTree extends React.Component<PropType> {
   renderRootSpan = (): RenderedSpanTree => {
     const {dragProps, trace} = this.props;
 
-    const rootSpan: SpanType = {
-      trace_id: trace.traceID,
-      span_id: trace.rootSpanID,
-      start_timestamp: trace.traceStartTimestamp,
-      timestamp: trace.traceEndTimestamp,
-      op: trace.op,
-      data: {},
-    };
+    const rootSpan: SpanType = generateRootSpan(trace);
 
     const generateBounds = boundsGenerator({
       traceStartTimestamp: trace.traceStartTimestamp,
@@ -168,7 +237,8 @@ class SpanTree extends React.Component<PropType> {
       spanNumber: 1,
       treeDepth: 0,
       continuingTreeDepths: [],
-      numOfHiddenSpansAbove: 0,
+      numOfSpansOutOfViewAbove: 0,
+      numOfFilteredSpansAbove: 0,
       span: rootSpan,
       childSpans: trace.childSpans,
       generateBounds,
@@ -176,22 +246,24 @@ class SpanTree extends React.Component<PropType> {
   };
 
   render() {
-    const {spanTree, numOfHiddenSpansAbove} = this.renderRootSpan();
+    const {
+      spanTree,
+      numOfSpansOutOfViewAbove,
+      numOfFilteredSpansAbove,
+    } = this.renderRootSpan();
 
-    const hiddenSpansMessage =
-      numOfHiddenSpansAbove > 0 ? (
-        <SpanRowMessage>
-          <span>
-            {t('Number of hidden spans:')} {numOfHiddenSpansAbove}
-          </span>
-        </SpanRowMessage>
-      ) : null;
+    const infoMessage = this.generateInfoMessage({
+      isCurrentSpanHidden: false,
+      numOfSpansOutOfViewAbove,
+      isCurrentSpanFilteredOut: false,
+      numOfFilteredSpansAbove,
+    });
 
     return (
       <DividerHandlerManager.Provider interactiveLayerRef={this.traceViewRef}>
         <TraceViewContainer innerRef={this.traceViewRef}>
           {spanTree}
-          {hiddenSpansMessage}
+          {infoMessage}
         </TraceViewContainer>
       </DividerHandlerManager.Provider>
     );

@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 
 from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
 
@@ -13,6 +14,7 @@ class SentryAppRequestsTest(APITestCase):
         self.user = self.create_user(email="user@example.com")
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.org)
+        self.event_id = "d5111da2c28645c5889d072017e3445d"
 
         self.published_app = self.create_sentry_app(
             name="Published App", organization=self.org, published=True
@@ -194,3 +196,102 @@ class GetSentryAppRequestsTest(SentryAppRequestsTest):
         response = self.client.get(url, format="json")
         assert response.status_code == 200
         assert len(response.data) == 2
+
+    def test_linked_error_id_converts_to_url(self):
+        self.login_as(user=self.user)
+
+        event = self.store_event(
+            data={"event_id": self.event_id, "timestamp": iso_format(before_now(minutes=1))},
+            project_id=self.project.id,
+        )
+
+        buffer = SentryAppWebhookRequestsBuffer(self.published_app)
+        buffer.add_request(
+            response_code=200,
+            org_id=self.org.id,
+            event="issue.assigned",
+            url=self.unpublished_app.webhook_url,
+            error_id=self.event_id,
+            project_id=self.project.id,
+        )
+
+        url = reverse("sentry-api-0-sentry-app-requests", args=[self.published_app.slug])
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["organization"]["slug"] == self.org.slug
+        assert response.data[0]["sentryAppSlug"] == self.published_app.slug
+        assert response.data[0]["errorUrl"] == reverse(
+            "sentry-organization-event-detail", args=[self.org.slug, event.group_id, event.event_id]
+        )
+
+    def test_linked_error_not_returned_if_project_does_not_exist(self):
+        self.login_as(user=self.user)
+
+        self.store_event(
+            data={"event_id": self.event_id, "timestamp": iso_format(before_now(minutes=1))},
+            project_id=self.project.id,
+        )
+
+        buffer = SentryAppWebhookRequestsBuffer(self.published_app)
+        buffer.add_request(
+            response_code=200,
+            org_id=self.org.id,
+            event="issue.assigned",
+            url=self.unpublished_app.webhook_url,
+            error_id=self.event_id,
+            project_id="1000",
+        )
+
+        url = reverse("sentry-api-0-sentry-app-requests", args=[self.published_app.slug])
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["organization"]["slug"] == self.org.slug
+        assert response.data[0]["sentryAppSlug"] == self.published_app.slug
+        assert "errorUrl" not in response.data[0]
+
+    def test_linked_error_not_returned_if_event_does_not_exist(self):
+        self.login_as(user=self.user)
+
+        # event_id doesn't correspond to an existing event because we didn't call store_event
+
+        buffer = SentryAppWebhookRequestsBuffer(self.published_app)
+        buffer.add_request(
+            response_code=200,
+            org_id=self.org.id,
+            event="issue.assigned",
+            url=self.unpublished_app.webhook_url,
+            error_id=self.event_id,
+            project_id=self.project.id,
+        )
+
+        url = reverse("sentry-api-0-sentry-app-requests", args=[self.published_app.slug])
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["organization"]["slug"] == self.org.slug
+        assert response.data[0]["sentryAppSlug"] == self.published_app.slug
+        assert "errorUrl" not in response.data[0]
+
+    def test_linked_error_not_returned_if_project_doesnt_belong_to_org(self):
+        self.login_as(user=self.user)
+        unowned_project = self.create_project(organization=self.create_organization())
+
+        buffer = SentryAppWebhookRequestsBuffer(self.published_app)
+        buffer.add_request(
+            response_code=200,
+            org_id=self.org.id,
+            event="issue.assigned",
+            url=self.unpublished_app.webhook_url,
+            error_id=self.event_id,
+            project_id=unowned_project.id,
+        )
+
+        url = reverse("sentry-api-0-sentry-app-requests", args=[self.published_app.slug])
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["organization"]["slug"] == self.org.slug
+        assert response.data[0]["sentryAppSlug"] == self.published_app.slug
+        assert "errorUrl" not in response.data[0]

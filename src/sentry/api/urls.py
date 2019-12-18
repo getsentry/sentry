@@ -31,6 +31,7 @@ from .endpoints.event_file_committers import EventFileCommittersEndpoint
 from .endpoints.event_grouping_info import EventGroupingInfoEndpoint
 from .endpoints.event_owners import EventOwnersEndpoint
 from .endpoints.filechange import CommitFileChangeEndpoint
+from .endpoints.group_attachments import GroupAttachmentsEndpoint
 from .endpoints.group_details import GroupDetailsEndpoint
 from .endpoints.group_events import GroupEventsEndpoint
 from .endpoints.group_events_latest import GroupEventsLatestEndpoint
@@ -223,6 +224,7 @@ from .endpoints.prompts_activity import PromptsActivityEndpoint
 from .endpoints.relay_details import RelayDetailsEndpoint
 from .endpoints.relay_index import RelayIndexEndpoint
 from .endpoints.relay_projectconfigs import RelayProjectConfigsEndpoint
+from .endpoints.relay_projectids import RelayProjectIdsEndpoint
 from .endpoints.relay_publickeys import RelayPublicKeysEndpoint
 from .endpoints.relay_register import RelayRegisterChallengeEndpoint, RelayRegisterResponseEndpoint
 from .endpoints.release_deploys import ReleaseDeploysEndpoint
@@ -327,6 +329,7 @@ GROUP_URLS = [
         r"^(?P<issue_id>[^\/]+)/(?:user-feedback|user-reports)/$",
         GroupUserReportsEndpoint.as_view(),
     ),
+    url(r"^(?P<issue_id>[^\/]+)/attachments/$", GroupAttachmentsEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/similar/$", GroupSimilarIssuesEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/external-issues/$", GroupExternalIssuesEndpoint.as_view()),
     url(
@@ -363,6 +366,11 @@ urlpatterns = [
                     r"^projectconfigs/$",
                     RelayProjectConfigsEndpoint.as_view(),
                     name="sentry-api-0-relay-projectconfigs",
+                ),
+                url(
+                    r"^projectids/$",
+                    RelayProjectIdsEndpoint.as_view(),
+                    name="sentry-api-0-relay-projectids",
                 ),
                 url(
                     r"^publickeys/$",

@@ -81,7 +81,12 @@ class OrganizationMemberDetail extends AsyncView {
         IndicatorStore.addSuccess('Saved');
         this.redirectToMemberPage();
       })
-      .catch(() => IndicatorStore.addError('Could not save...'))
+      .catch(resp => {
+        const errorMessage =
+          (resp && resp.responseJSON && resp.responseJSON.detail) ||
+          t('Could not save...');
+        IndicatorStore.addError(errorMessage);
+      })
       .then(() => {
         IndicatorStore.remove(indicator);
         this.setState({busy: false});

@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
+import logging
 import six
 import string
-import warnings
 import pytz
 
 from collections import OrderedDict
@@ -30,6 +30,8 @@ from sentry.utils.cache import memoize
 from sentry.utils.canonical import CanonicalKeyDict, CanonicalKeyView
 from sentry.utils.safe import get_path
 from sentry.utils.strings import truncatechars
+
+logger = logging.getLogger(__name__)
 
 
 class EventDict(CanonicalKeyDict):
@@ -278,12 +280,8 @@ class EventCommon(object):
             # vs ((tag, foo), (tag, bar))
             return []
 
-    # For compatibility, still used by plugins.
-    def get_tags(self):
-        return self.tags
-
     def get_tag(self, key):
-        for t, v in self.get_tags():
+        for t, v in self.tags:
             if t == key:
                 return v
         return None
@@ -372,35 +370,6 @@ class EventCommon(object):
         ref = self.data.get_ref(self)
         self.data.bind_data(node_data, ref=ref)
 
-    # ============================================
-    # DEPRECATED
-    # ============================================
-
-    @property
-    def level(self):
-        # we might want to move to this:
-        # return LOG_LEVELS_MAP.get(self.get_level_display()) or self.group.level
-        if self.group:
-            return self.group.level
-        else:
-            return None
-
-    def get_level_display(self):
-        # we might want to move to this:
-        # return self.get_tag('level') or self.group.get_level_display()
-        if self.group:
-            return self.group.get_level_display()
-        else:
-            return None
-
-    # TODO: This is currently used in the Twilio and Flowdock plugins
-    # Remove this after usage has been removed there.
-    def error(self):  # TODO why is this not a property?
-        warnings.warn("Event.error is deprecated, use Event.title", DeprecationWarning)
-        return self.title
-
-    error.short_description = _("error")
-
 
 class SnubaEvent(EventCommon):
     """
@@ -417,24 +386,6 @@ class SnubaEvent(EventCommon):
     # nodestore anyway, we may as well only fetch the minimum from snuba to
     # avoid duplicated work.
     minimal_columns = ["event_id", "group_id", "project_id", "timestamp"]
-
-    # A list of all useful columns we can get from snuba.
-    selected_columns = minimal_columns + [
-        "culprit",
-        "location",
-        "message",
-        "platform",
-        "title",
-        "type",
-        # Required to provide snuba-only tags
-        "tags.key",
-        "tags.value",
-        # Required to provide snuba-only 'user' interface
-        "email",
-        "ip_address",
-        "user_id",
-        "username",
-    ]
 
     __repr__ = sane_repr("project_id", "group_id")
 
@@ -458,7 +409,7 @@ class SnubaEvent(EventCommon):
         node_id = SnubaEvent.generate_node_id(
             self.snuba_data["project_id"], self.snuba_data["event_id"]
         )
-        self.data = NodeData(None, node_id, data=None, wrapper=EventDict)
+        self.data = NodeData(node_id, data=None, wrapper=EventDict)
 
     def __getattr__(self, name):
         """
@@ -469,6 +420,11 @@ class SnubaEvent(EventCommon):
         """
         if name in ("_project_cache", "_group_cache", "_environment_cache"):
             raise AttributeError()
+
+        allowed_attributes = ["timestamp", "event_id", "group_id", "project_id"]
+
+        if name not in allowed_attributes:
+            logger.warn("event.invalid-attribute", extra={"attribute_name": name})
 
         if name in self.snuba_data:
             return self.snuba_data[name]
@@ -487,8 +443,8 @@ class SnubaEvent(EventCommon):
         tag deletions without having to rewrite nodestore blobs.
         """
         if "tags.key" in self.snuba_data and "tags.value" in self.snuba_data:
-            keys = getattr(self, "tags.key")
-            values = getattr(self, "tags.value")
+            keys = self.snuba_data["tags.key"]
+            values = self.snuba_data["tags.value"]
             if keys and values and len(keys) == len(values):
                 return sorted(zip(keys, values))
             else:
@@ -499,13 +455,19 @@ class SnubaEvent(EventCommon):
     def get_minimal_user(self):
         from sentry.interfaces.user import User
 
+        if all(key in self.snuba_data for key in ["user_id", "email", "username", "ip_address"]):
+            user_id = self.snuba_data["user_id"]
+            email = self.snuba_data["email"]
+            username = self.snuba_data["username"]
+            ip_address = self.snuba_data["ip_address"]
+        else:
+            user_id = self.data["user_id"]
+            email = self.data["email"]
+            username = self.data["username"]
+            ip_address = self.data["ip_address"]
+
         return User.to_python(
-            {
-                "id": self.user_id,
-                "email": self.email,
-                "username": self.username,
-                "ip_address": self.ip_address,
-            }
+            {"id": user_id, "email": email, "username": username, "ip_address": ip_address}
         )
 
     # If the data for these is available from snuba, we assume
@@ -576,6 +538,10 @@ class SnubaEvent(EventCommon):
         raise NotImplementedError
 
 
+def ref_func(x):
+    return x.project_id or x.project.id
+
+
 class Event(EventCommon, Model):
     """
     An event backed by data stored in postgres.
@@ -594,7 +560,7 @@ class Event(EventCommon, Model):
     data = NodeField(
         blank=True,
         null=True,
-        ref_func=lambda x: x.project_id or x.project.id,
+        ref_func=ref_func,
         ref_version=2,
         wrapper=EventDict,
         skip_nodestore_save=True,

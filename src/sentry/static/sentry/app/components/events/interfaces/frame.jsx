@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
 import styled, {css} from 'react-emotion';
+import scrollToElement from 'scroll-to-element';
 
 import {defined, objectIsEmpty, isUrl} from 'app/utils';
 import {t} from 'app/locale';
@@ -10,6 +11,9 @@ import ContextLine from 'app/components/events/interfaces/contextLine';
 import ExternalLink from 'app/components/links/externalLink';
 import FrameRegisters from 'app/components/events/interfaces/frameRegisters';
 import FrameVariables from 'app/components/events/interfaces/frameVariables';
+import TogglableAddress from 'app/components/events/interfaces/togglableAddress';
+import PackageLink from 'app/components/events/interfaces/packageLink';
+import PackageStatus from 'app/components/events/interfaces/packageStatus';
 import StrictClick from 'app/components/strictClick';
 import Tooltip from 'app/components/tooltip';
 import Truncate from 'app/components/truncate';
@@ -17,6 +21,10 @@ import OpenInContextLine from 'app/components/events/interfaces/openInContextLin
 import space from 'app/styles/space';
 import ErrorBoundary from 'app/components/errorBoundary';
 import withSentryAppComponents from 'app/utils/withSentryAppComponents';
+import {DebugMetaActions} from 'app/stores/debugMetaStore';
+import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
+import InlineSvg from 'app/components/inlineSvg';
+import {combineStatus} from 'app/components/events/interfaces/debugmeta';
 
 export function trimPackage(pkg) {
   const pieces = pkg.split(/^([a-z]:\\|\\\\)/i.test(pkg) ? '\\' : '/');
@@ -24,7 +32,7 @@ export function trimPackage(pkg) {
   return filename.replace(/\.(dylib|so|a|dll|exe)$/, '');
 }
 
-class FunctionName extends React.Component {
+export class FunctionName extends React.Component {
   static propTypes = {
     frame: PropTypes.object,
   };
@@ -70,6 +78,10 @@ export class Frame extends React.Component {
     timesRepeated: PropTypes.number,
     registers: PropTypes.objectOf(PropTypes.string.isRequired),
     components: PropTypes.array.isRequired,
+    showingAbsoluteAddress: PropTypes.bool,
+    onAddressToggle: PropTypes.func,
+    image: PropTypes.object,
+    maxLengthOfRelativeAddress: PropTypes.number,
   };
 
   static defaultProps = {
@@ -142,6 +154,45 @@ export class Frame extends React.Component {
         return false;
     }
   }
+
+  isInlineFrame() {
+    return (
+      this.props.prevFrame &&
+      this.getPlatform() === (this.props.prevFrame.platform || this.props.platform) &&
+      this.props.data.instructionAddr === this.props.prevFrame.instructionAddr
+    );
+  }
+
+  shouldShowLinkToImage() {
+    const {symbolicatorStatus} = this.props.data;
+
+    return symbolicatorStatus && symbolicatorStatus !== SymbolicatorStatus.UNKNOWN_IMAGE;
+  }
+
+  packageStatus() {
+    // this is the status of image that belongs to this frame
+    const {image} = this.props;
+    if (!image) {
+      return 'empty';
+    }
+
+    const combinedStatus = combineStatus(image.debug_status, image.unwind_status);
+
+    switch (combinedStatus) {
+      case 'unused':
+        return 'empty';
+      case 'found':
+        return 'success';
+      default:
+        return 'error';
+    }
+  }
+
+  scrollToImage = event => {
+    event.stopPropagation(); // to prevent collapsing if collapsable
+    DebugMetaActions.updateFilter(this.props.data.instructionAddr);
+    scrollToElement('#packages');
+  };
 
   preventCollapse = evt => {
     evt.stopPropagation();
@@ -362,34 +413,51 @@ export class Frame extends React.Component {
     return !this.props.data.inApp && this.props.nextFrame && this.props.nextFrame.inApp;
   }
 
-  isInlineFrame() {
-    return (
-      this.props.prevFrame &&
-      this.getPlatform() === (this.props.prevFrame.platform || this.props.platform) &&
-      this.props.data.instructionAddr === this.props.prevFrame.instructionAddr
-    );
+  isFoundByStackScanning() {
+    const {data} = this.props;
+
+    return data.trust === 'scan' || data.trust === 'cfi-scan';
   }
 
   getFrameHint() {
-    if (this.isInlineFrame()) {
-      return t('Inlined frame');
+    // returning [hintText, hintType]
+    const {symbolicatorStatus} = this.props.data;
+    const func = this.props.data.function || '<unknown>';
+    const warningType = 'question';
+    const errorType = 'exclamation';
+
+    if (func.match(/^@objc\s/)) {
+      return [t('Objective-C -> Swift shim frame'), warningType];
     }
-    if (this.props.data.trust === 'scan' || this.props.data.trust === 'cfi-scan') {
-      return t('Found by stack scanning');
+    if (func === '<redacted>') {
+      return [t('Unknown system frame. Usually from beta SDKs'), warningType];
     }
-    if (this.getPlatform() === 'cocoa') {
-      const func = this.props.data.function || '<unknown>';
-      if (func.match(/^@objc\s/)) {
-        return t('Objective-C -> Swift shim frame');
-      }
-      if (func === '<redacted>') {
-        return t('Unknown system frame. Usually from beta SDKs');
-      }
-      if (func.match(/^__?hidden#\d+/)) {
-        return t('Hidden function from bitcode build');
+    if (func.match(/^__?hidden#\d+/)) {
+      return [t('Hidden function from bitcode build'), errorType];
+    }
+    if (!symbolicatorStatus && func === '<unknown>') {
+      // Only render this if the event was not symbolicated.
+      return [t('No function name was supplied by the client SDK.'), warningType];
+    }
+
+    if (func === '<unknown>') {
+      switch (symbolicatorStatus) {
+        case SymbolicatorStatus.MISSING_SYMBOL:
+          return [t('The symbol was not found within the debug file.'), warningType];
+        case SymbolicatorStatus.UNKNOWN_IMAGE:
+          return [t('No image is specified for the address of the frame.'), warningType];
+        case SymbolicatorStatus.MISSING:
+          return [
+            t('The debug file could not be retrieved from any of the sources.'),
+            errorType,
+          ];
+        case SymbolicatorStatus.MALFORMED:
+          return [t('The retrieved debug file could not be processed.'), errorType];
+        default:
       }
     }
-    return null;
+
+    return [null, null];
   }
 
   renderLeadHint() {
@@ -436,8 +504,14 @@ export class Frame extends React.Component {
   }
 
   renderNativeLine() {
-    const data = this.props.data;
-    const hint = this.getFrameHint();
+    const {
+      data,
+      showingAbsoluteAddress,
+      onAddressToggle,
+      image,
+      maxLengthOfRelativeAddress,
+    } = this.props;
+    const [hint, hintType] = this.getFrameHint();
 
     const enablePathTooltip = defined(data.absPath) && data.absPath !== data.filename;
 
@@ -446,16 +520,33 @@ export class Frame extends React.Component {
         <DefaultLine className="title as-table">
           <NativeLineContent>
             {this.renderLeadHint()}
-            {defined(data.package) ? (
-              <span className="package" title={data.package}>
-                {trimPackage(data.package)}
-              </span>
-            ) : (
-              <span className="package">{'<unknown>'}</span>
-            )}
-            <span className="address">{data.instructionAddr}</span>
+            <PackageLink
+              packagePath={data.package}
+              onClick={this.scrollToImage}
+              isClickable={this.shouldShowLinkToImage()}
+            >
+              <PackageStatus status={this.packageStatus()} />
+            </PackageLink>
+            <TogglableAddress
+              address={data.instructionAddr}
+              startingAddress={image ? image.image_addr : null}
+              isAbsolute={showingAbsoluteAddress}
+              isFoundByStackScanning={this.isFoundByStackScanning()}
+              isInlineFrame={this.isInlineFrame()}
+              onToggle={onAddressToggle}
+              maxLengthOfRelativeAddress={maxLengthOfRelativeAddress}
+            />
             <span className="symbol">
               <FunctionName frame={data} />{' '}
+              {hint !== null ? (
+                <Tooltip title={hint}>
+                  <HintStatus
+                    src={`icon-circle-${hintType}`}
+                    danger={hintType === 'exclamation'}
+                    size="1em"
+                  />
+                </Tooltip>
+              ) : null}
               {data.filename && (
                 <Tooltip title={data.absPath} disabled={!enablePathTooltip}>
                   <span className="filename">
@@ -464,13 +555,6 @@ export class Frame extends React.Component {
                   </span>
                 </Tooltip>
               )}
-              {hint !== null ? (
-                <Tooltip title={hint}>
-                  <a key="inline">
-                    <span className="icon-question" />
-                  </a>
-                </Tooltip>
-              ) : null}
             </span>
           </NativeLineContent>
           {this.renderExpander()}
@@ -551,6 +635,12 @@ const NativeLineContent = styled(RepeatedContent)`
 
 const DefaultLine = styled(VertCenterWrapper)`
   justify-content: space-between;
+`;
+
+const HintStatus = styled(InlineSvg)`
+  margin: 0 ${space(0.75)} 0 -${space(0.25)};
+  color: ${p => (p.danger ? p.theme.alert.error.iconColor : '#2c58a8')};
+  transform: translateY(-1px);
 `;
 
 export default withSentryAppComponents(Frame, {componentType: 'stacktrace-link'});

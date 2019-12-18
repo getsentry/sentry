@@ -15,7 +15,8 @@ import NavTabs from 'app/components/navTabs';
 import {objectIsEmpty, toTitleCase} from 'app/utils';
 import {Event, Organization} from 'app/types';
 
-import RelatedItems from './relatedItems';
+import LinkedEvents from './linkedEvents';
+import EventView from '../eventView';
 
 const OTHER_SECTIONS = {
   contexts: EventContexts,
@@ -24,11 +25,20 @@ const OTHER_SECTIONS = {
   device: EventDevice,
 };
 
+function getTabTitle(type: string): string {
+  if (type === 'spans') {
+    return 'Trace View';
+  }
+
+  return type;
+}
+
 type ActiveTabProps = {
   organization: Organization;
   projectId: string;
   event: Event;
   activeTab: string;
+  eventView: EventView;
 };
 
 /**
@@ -36,7 +46,7 @@ type ActiveTabProps = {
  * Some but not all interface elements require a projectId.
  */
 const ActiveTab = (props: ActiveTabProps) => {
-  const {organization, projectId, event, activeTab} = props;
+  const {organization, projectId, event, activeTab, eventView} = props;
   if (!activeTab) {
     return null;
   }
@@ -48,6 +58,7 @@ const ActiveTab = (props: ActiveTabProps) => {
         projectId={projectId}
         orgId={organization.slug}
         event={event}
+        eventView={eventView}
         type={entry.type}
         data={entry.data}
         isShare={false}
@@ -57,9 +68,14 @@ const ActiveTab = (props: ActiveTabProps) => {
   } else if (OTHER_SECTIONS[activeTab]) {
     const Component = OTHER_SECTIONS[activeTab];
     return <Component event={event} isShare={false} hideGuide />;
-  } else if (activeTab === 'related') {
+  } else if (activeTab === 'linked') {
     return (
-      <RelatedItems event={event} projectId={projectId} organization={organization} />
+      <LinkedEvents
+        event={event}
+        projectId={projectId}
+        organization={organization}
+        eventView={eventView}
+      />
     );
   } else {
     /*eslint no-console:0*/
@@ -87,6 +103,7 @@ type EventInterfacesProps = {
   event: Event;
   projectId: string;
   organization: Organization;
+  eventView: EventView;
 };
 type EventInterfacesState = {
   activeTab: string;
@@ -106,7 +123,7 @@ class EventInterfaces extends React.Component<
   handleTabChange = tab => this.setState({activeTab: tab});
 
   render() {
-    const {event, projectId, organization} = this.props;
+    const {event, projectId, organization, eventView} = this.props;
     const {activeTab} = this.state;
 
     return (
@@ -127,7 +144,7 @@ class EventInterfaces extends React.Component<
                     this.handleTabChange(type);
                   }}
                 >
-                  {toTitleCase(type)}
+                  {toTitleCase(getTabTitle(type))}
                 </a>
               </li>
             );
@@ -155,15 +172,15 @@ class EventInterfaces extends React.Component<
               </li>
             );
           })}
-          <li key="related" className={activeTab === 'related' ? 'active' : undefined}>
+          <li key="linked" className={activeTab === 'linked' ? 'active' : undefined}>
             <a
               href="#"
               onClick={evt => {
                 evt.preventDefault();
-                this.handleTabChange('related');
+                this.handleTabChange('linked');
               }}
             >
-              {t('Related')}
+              {t('Linked')}
             </a>
           </li>
         </NavTabs>
@@ -173,6 +190,7 @@ class EventInterfaces extends React.Component<
             activeTab={activeTab}
             projectId={projectId}
             organization={organization}
+            eventView={eventView}
           />
         </ErrorBoundary>
       </React.Fragment>

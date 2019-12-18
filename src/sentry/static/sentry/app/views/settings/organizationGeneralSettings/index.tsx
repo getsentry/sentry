@@ -3,7 +3,7 @@ import {browserHistory} from 'react-router';
 import React from 'react';
 
 import {Client} from 'app/api';
-import {OrganizationDetailed} from 'app/types';
+import {Organization} from 'app/types';
 import {Panel, PanelHeader} from 'app/components/panels';
 import {addLoadingMessage} from 'app/actionCreators/indicator';
 import {
@@ -24,7 +24,7 @@ import OrganizationSettingsForm from './organizationSettingsForm';
 
 type Props = {
   api: Client;
-  organization: OrganizationDetailed;
+  organization: Organization;
 } & RouteComponentProps<{orgId: string}, {}>;
 
 class OrganizationGeneralSettings extends React.Component<Props> {
@@ -42,7 +42,7 @@ class OrganizationGeneralSettings extends React.Component<Props> {
     });
   };
 
-  handleSave = (prevData: OrganizationDetailed, data: OrganizationDetailed) => {
+  handleSave = (prevData: Organization, data: Organization) => {
     if (data.slug && data.slug !== prevData.slug) {
       changeOrganizationSlug(prevData, data);
       browserHistory.replace(`/settings/${data.slug}/`);

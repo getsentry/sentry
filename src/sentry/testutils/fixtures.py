@@ -48,6 +48,10 @@ class Fixtures(object):
         )
 
     @cached_property
+    def release(self):
+        return self.create_release(project=self.project, version="foo-1.0")
+
+    @cached_property
     def environment(self):
         return self.create_environment(name="development", project=self.project)
 
@@ -103,6 +107,11 @@ class Fixtures(object):
         if project is None:
             project = self.project
         return Factories.create_release(project=project, user=user, *args, **kwargs)
+
+    def create_release_file(self, release=None, file=None, name=None, dist=None):
+        if release is None:
+            release = self.release
+        return Factories.create_release_file(release, file, name, dist)
 
     def create_artifact_bundle(self, org=None, release=None, *args, **kwargs):
         if org is None:

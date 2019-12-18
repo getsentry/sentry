@@ -10,7 +10,7 @@ import ProjectBadge from 'app/components/idBadge/projectBadge';
 import UserBadge from 'app/components/idBadge/userBadge';
 import getDynamicText from 'app/utils/getDynamicText';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import pinIcon from 'app/../images/location-pin.png';
+import pinIcon from 'app/../images/icons/icon-location-filled.svg';
 import {Organization, NewQuery} from 'app/types';
 import Duration from 'app/components/duration';
 import floatFormat from 'app/utils/floatFormat';
@@ -53,7 +53,7 @@ export const TRANSACTION_VIEWS: Readonly<Array<NewQuery>> = [
       'p75',
       'p95',
     ],
-    fieldnames: ['transaction', 'project', '# of events', 'avg', '75th', '95th'],
+    fieldnames: ['transaction', 'project', 'count', 'avg', '75th', '95th'],
     orderby: '-count_id',
     query: 'event.type:transaction',
     tags: ['release', 'project.name', 'user.email', 'user.ip', 'environment'],
@@ -67,7 +67,7 @@ export const ALL_VIEWS: Readonly<Array<NewQuery>> = [
     id: undefined,
     name: t('Errors'),
     fields: ['title', 'count(id)', 'count_unique(user)', 'project', 'last_seen'],
-    fieldnames: ['error', '# of events', 'users', 'project', 'last seen'],
+    fieldnames: ['error', 'count', 'users', 'project', 'last seen'],
     orderby: '-count_id',
     query: 'event.type:error',
     tags: ['project.name', 'release', 'environment'],
@@ -76,28 +76,9 @@ export const ALL_VIEWS: Readonly<Array<NewQuery>> = [
   },
   {
     id: undefined,
-    name: t('Content Security Policy (CSP)'),
-    fields: ['title', 'count(id)', 'count_unique(user)', 'project', 'last_seen'],
-    fieldnames: ['csp', '# of events', 'users', 'project', 'last seen'],
-    orderby: '-count_id',
-    query: 'event.type:csp',
-    tags: [
-      'project.name',
-      'blocked-uri',
-      'browser.name',
-      'os.name',
-      'effective-directive',
-      'release',
-      'environment',
-    ],
-    projects: [],
-    version: 2,
-  },
-  {
-    id: undefined,
     name: t('Project Summary'),
     fields: ['project', 'count(id)', 'count_unique(issue.id)'],
-    fieldnames: ['project', '# of events', 'unique errors'],
+    fieldnames: ['project', 'count', 'unique errors'],
     orderby: '-count_id',
     query: 'event.type:error',
     tags: ['error.type', 'project.name', 'release', 'environment'],
@@ -108,7 +89,7 @@ export const ALL_VIEWS: Readonly<Array<NewQuery>> = [
     id: undefined,
     name: t('Errors by URL'),
     fields: ['url', 'count(id)', 'count_unique(issue.id)'],
-    fieldnames: ['URL', '# of events', 'unique errors'],
+    fieldnames: ['URL', 'count', 'unique errors'],
     orderby: '-count_id',
     query: 'event.type:error',
     tags: ['error.type', 'project.name', 'url', 'release', 'environment'],
@@ -116,22 +97,17 @@ export const ALL_VIEWS: Readonly<Array<NewQuery>> = [
     version: 2,
   },
   {
-    id: undefined,
-    name: t('Content Security Policy (CSP) Report by Directive'),
-    fields: ['effective-directive', 'count(id)', 'count_unique(title)'],
-    fieldnames: ['directive', '# of events', 'reports'],
-    orderby: '-count_id',
-    query: 'event.type:csp',
-    tags: [
-      'project.name',
-      'blocked-uri',
-      'browser.name',
-      'os.name',
-      'release',
-      'environment',
-    ],
-    projects: [],
     version: 2,
+    id: undefined,
+    name: t('Errors by Release'),
+    fields: ['release', 'count(id)', 'count_unique(user)', 'timestamp'],
+    fieldnames: ['Release', 'Issue', 'Users', 'time'],
+    orderby: '-count_id',
+    tags: ['event.type', 'release', 'project', 'user.email', 'user.ip', 'environment'],
+    projects: [],
+    range: '14d',
+    environment: [],
+    query: '',
   },
 ];
 
@@ -258,7 +234,7 @@ const eventLink = (
 ): React.ReactNode => {
   const eventSlug = generateEventSlug(data);
   const pathname = generateEventDetailsRoute({
-    organization,
+    orgSlug: organization.slug,
     eventSlug,
   });
 
@@ -362,7 +338,7 @@ export const SPECIAL_FIELDS: SpecialFields = {
     renderFunc: (data, {location, organization}) => {
       const eventSlug = generateEventSlug(data);
       const pathname = generateEventDetailsRoute({
-        organization,
+        orgSlug: organization.slug,
         eventSlug,
       });
 
@@ -384,7 +360,7 @@ export const SPECIAL_FIELDS: SpecialFields = {
     renderFunc: (data, {location, organization}) => {
       const eventSlug = generateEventSlug(data);
       const pathname = generateEventDetailsRoute({
-        organization,
+        orgSlug: organization.slug,
         eventSlug,
       });
 

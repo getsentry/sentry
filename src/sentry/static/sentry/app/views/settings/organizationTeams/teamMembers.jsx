@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import debounce from 'lodash/debounce';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -9,7 +8,7 @@ import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {joinTeam, leaveTeam} from 'app/actionCreators/teams';
 import {openInviteMembersModal} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
-import Avatar from 'app/components/avatar';
+import UserAvatar from 'app/components/avatar/userAvatar';
 import Button from 'app/components/button';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
@@ -199,20 +198,7 @@ class TeamMembers extends React.Component {
     this.debouncedFetchMembersRequest(e.target.value);
   };
 
-  get hasInviteRequestExperiment() {
-    const {organization} = this.props;
-
-    if (!organization || !organization.experiments) {
-      return false;
-    }
-
-    const variant = organization.experiments.ImprovedInvitesExperiment;
-    return variant === 'all' || variant === 'invite_request';
-  }
-
   renderDropdown = access => {
-    const {params} = this.props;
-
     // You can add members if you have `org:write` or you have `team:admin` AND you belong to the team
     // a parent "team details" request should determine your team membership, so this only view is rendered only
     // when you are a member
@@ -252,13 +238,7 @@ class TeamMembers extends React.Component {
       <StyledMembersLabel>
         {t('Members')}
         <StyledCreateMemberLink
-          onClick={() =>
-            this.hasInviteRequestExperiment
-              ? openInviteMembersModal({source: 'teams'})
-              : browserHistory.push(
-                  `/settings/${params.orgId}/members/new/?referrer=teams`
-                )
-          }
+          onClick={() => openInviteMembersModal({source: 'teams'})}
           data-test-id="invite-member"
         >
           {t('Invite Member')}
@@ -361,7 +341,7 @@ const StyledNameOrEmail = styled('div')`
   ${overflowEllipsis};
 `;
 
-const StyledAvatar = styled(props => <Avatar {...props} />)`
+const StyledAvatar = styled(props => <UserAvatar {...props} />)`
   min-width: 1.75em;
   min-height: 1.75em;
   width: 1.5em;

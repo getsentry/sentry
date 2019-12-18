@@ -5,7 +5,7 @@ import logging
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.http import HttpResponse
-from django.template import loader, RequestContext, Context
+from django.template import loader
 
 from sentry.api.serializers.base import serialize
 from sentry.auth import access
@@ -45,8 +45,6 @@ def get_default_context(request, existing_context=None, team=None):
         organization = None
 
     if request:
-        context.update({"request": request})
-
         if (not existing_context or "TEAM_LIST" not in existing_context) and team:
             context["TEAM_LIST"] = Team.objects.get_for_user(
                 organization=team.organization, user=request.user, with_projects=True
@@ -92,12 +90,7 @@ def render_to_string(template, context=None, request=None):
         context = dict(context)
         context.update(default_context)
 
-    if request:
-        context = RequestContext(request, context)
-    else:
-        context = Context(context)
-
-    return loader.render_to_string(template, context)
+    return loader.render_to_string(template, context=context, request=request)
 
 
 def render_to_response(template, context=None, request=None, status=200, content_type="text/html"):

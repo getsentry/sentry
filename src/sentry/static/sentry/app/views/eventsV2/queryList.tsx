@@ -2,6 +2,7 @@ import React, {MouseEvent} from 'react';
 import {Location, Query} from 'history';
 import styled from 'react-emotion';
 import classNames from 'classnames';
+import moment from 'moment';
 import {browserHistory} from 'react-router';
 
 import {t} from 'app/locale';
@@ -21,6 +22,7 @@ import QueryCard from './querycard';
 import MiniGraph from './miniGraph';
 import {getPrebuiltQueries} from './utils';
 import {handleDeleteQuery, handleCreateQuery} from './savedQuery/utils';
+import {generateDiscoverResultsRoute} from './results';
 
 type Props = {
   api: Client;
@@ -28,6 +30,8 @@ type Props = {
   location: Location;
   savedQueries: SavedQuery[];
   pageLinks: string;
+  onQueryChange: () => void;
+  savedQuerySearchQuery: string;
 };
 
 class QueryList extends React.Component<Props> {
@@ -35,13 +39,17 @@ class QueryList extends React.Component<Props> {
     event.preventDefault();
     event.stopPropagation();
 
-    const {api, location, organization} = this.props;
+    const {api, organization, onQueryChange, location, savedQueries} = this.props;
 
     handleDeleteQuery(api, organization, eventView).then(() => {
-      browserHistory.push({
-        pathname: location.pathname,
-        query: {},
-      });
+      if (savedQueries.length === 1 && location.query.cursor) {
+        browserHistory.push({
+          pathname: location.pathname,
+          query: {...location.query, cursor: undefined},
+        });
+      } else {
+        onQueryChange();
+      }
     });
   };
 
@@ -49,12 +57,13 @@ class QueryList extends React.Component<Props> {
     event.preventDefault();
     event.stopPropagation();
 
-    const {api, location, organization} = this.props;
+    const {api, location, organization, onQueryChange} = this.props;
 
     eventView = eventView.clone();
     eventView.name = `${eventView.name} copy`;
 
     handleCreateQuery(api, organization, eventView).then(() => {
+      onQueryChange();
       browserHistory.push({
         pathname: location.pathname,
         query: {},
@@ -64,7 +73,7 @@ class QueryList extends React.Component<Props> {
 
   renderQueries() {
     const {pageLinks} = this.props;
-    const links = parseLinkHeader(pageLinks);
+    const links = parseLinkHeader(pageLinks || '');
     let cards: React.ReactNode[] = [];
 
     // If we're on the first page (no-previous page exists)
@@ -78,15 +87,38 @@ class QueryList extends React.Component<Props> {
   }
 
   renderPrebuiltQueries() {
-    const {location, organization} = this.props;
+    const {location, organization, savedQuerySearchQuery} = this.props;
     const views = getPrebuiltQueries(organization);
 
+    const hasSearchQuery =
+      typeof savedQuerySearchQuery === 'string' && savedQuerySearchQuery.length > 0;
+    const needleSearch = hasSearchQuery ? savedQuerySearchQuery.toLowerCase() : '';
+
     const list = views.map((view, index) => {
-      const eventView = EventView.fromSavedQueryWithLocation(view, location);
+      const eventView = EventView.fromNewQueryWithLocation(view, location);
+
+      // if a search is performed on the list of queries, we filter
+      // on the pre-built queries
+      if (
+        hasSearchQuery &&
+        eventView.name &&
+        !eventView.name.toLowerCase().includes(needleSearch)
+      ) {
+        return null;
+      }
+
+      const recentTimeline = t('Last ') + eventView.statsPeriod;
+      const customTimeline =
+        moment(eventView.start).format('MMM D, YYYY h:mm A') +
+        ' - ' +
+        moment(eventView.end).format('MMM D, YYYY h:mm A');
+
       const to = {
-        pathname: location.pathname,
+        pathname: generateDiscoverResultsRoute(organization.slug),
         query: {
           ...location.query,
+          // remove any landing page cursor
+          cursor: undefined,
           ...eventView.generateQueryStringObject(),
         },
       };
@@ -96,7 +128,7 @@ class QueryList extends React.Component<Props> {
           key={`${index}-${eventView.name}`}
           to={to}
           title={eventView.name}
-          subtitle={t('Pre-Built Query')}
+          subtitle={eventView.statsPeriod ? recentTimeline : customTimeline}
           queryDetail={eventView.query}
           renderGraph={() => {
             return (
@@ -131,10 +163,17 @@ class QueryList extends React.Component<Props> {
 
     return savedQueries.map((savedQuery, index) => {
       const eventView = EventView.fromSavedQuery(savedQuery);
+      const recentTimeline = t('Last ') + eventView.statsPeriod;
+      const customTimeline =
+        moment(eventView.start).format('MMM D, YYYY h:mm A') +
+        ' - ' +
+        moment(eventView.end).format('MMM D, YYYY h:mm A');
       const to = {
-        pathname: location.pathname,
+        pathname: generateDiscoverResultsRoute(organization.slug),
         query: {
           ...location.query,
+          // remove any landing page cursor
+          cursor: undefined,
           ...eventView.generateQueryStringObject(),
         },
       };
@@ -143,8 +182,9 @@ class QueryList extends React.Component<Props> {
         <QueryCard
           key={`${index}-${eventView.id}`}
           to={to}
+          starred
           title={eventView.name}
-          subtitle={t('Saved Query')}
+          subtitle={eventView.statsPeriod ? recentTimeline : customTimeline}
           queryDetail={eventView.query}
           onEventClick={() => {
             trackAnalyticsEvent({
@@ -248,6 +288,7 @@ class ContextMenu extends React.Component {
               })}
             >
               <ContextMenuButton
+                data-test-id="context-menu"
                 {...getActorProps({
                   onClick: (event: MouseEvent) => {
                     event.stopPropagation();
