@@ -72,6 +72,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
         self.login_as(self.user)
+
         with self.feature("organizations:incidents"):
             resp = self.get_valid_response(
                 self.organization.slug,
@@ -85,6 +86,48 @@ class AlertRuleCreateEndpointTest(APITestCase):
                 resolveThreshold=300,
                 status_code=201,
             )
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert resp.data == serialize(alert_rule, self.user)
+
+    def test_unified_create(self):
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+
+        rule_two_triggers_two_actions = {
+            "aggregation": 0,
+            "aggregations": [0],
+            "query": "",
+            "timeWindow": "300",
+            "triggers": [
+                {
+                    "label": "WARNING",
+                    "alertThreshold": 200,
+                    "resolveThreshold": 300,
+                    "thresholdType": 1,
+                    "actions": [{"type": "email", "targetType": "team", "targetIdentifier": "2"}],
+                },
+                {
+                    "label": "CRITICAL",
+                    "alertThreshold": 150,
+                    "resolveThreshold": 300,
+                    "thresholdType": 1,
+                    "actions": [
+                        {"type": "email", "targetType": "team", "targetIdentifier": "2"},
+                        {"type": "email", "targetType": "user", "targetIdentifier": "1"},
+                    ],
+                },
+            ],
+            "projects": [self.project.slug],
+            "name": "JustATestRule",
+        }
+        with self.feature("organizations:incidents"):
+            resp = self.get_valid_response(
+                self.organization.slug, status_code=201, **rule_two_triggers_two_actions
+            )
+
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert resp.data == serialize(alert_rule, self.user)

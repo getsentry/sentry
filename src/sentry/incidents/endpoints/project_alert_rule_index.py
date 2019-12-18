@@ -39,46 +39,14 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
             raise ResourceDoesNotExist
 
         data = deepcopy(request.data)
-        trigger_data = data["triggers"]
-        print ("data is:", data)
-        print ("trigger_data is:", trigger_data)
-
         data["projects"] = [project.slug]
 
-        rule_serializer = AlertRuleSerializer(
+        serializer = AlertRuleSerializer(
             context={"organization": project.organization, "access": request.access}, data=data
         )
+
         if serializer.is_valid():
-            alert_rule = alert_rule_serializer.save()
-            trigger_serializer = AlertRuleTriggerSerializer(
-                context={
-                    "organization": project.organization,
-                    "alert_rule": alert_rule,
-                    "access": request.access,
-                },
-                data=request.data,
-            )
-            if serializer.is_valid():
-                trigger = serializer.save()
-                action_serializer = AlertRuleTriggerActionSerializer(
-                    context={
-                        "organization": organization,
-                        "alert_rule": alert_rule,
-                        "trigger": alert_rule_trigger,
-                        "access": request.access,
-                    },
-                    data=request.data,
-                )
-
-                if serializer.is_valid():
-                    try:
-                        action = serializer.save()
-                    except InvalidTriggerActionError as e:
-                        return Response(e.message, status=status.HTTP_400_BAD_REQUEST)
-                    return Response(serialize(action, request.user), status=status.HTTP_201_CREATED)
-
-                return Response(serialize(trigger, request.user), status=status.HTTP_201_CREATED)
-
+            alert_rule = serializer.save()
             return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
