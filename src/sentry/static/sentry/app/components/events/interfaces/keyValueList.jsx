@@ -11,12 +11,14 @@ class KeyValueList extends React.Component {
     isSorted: PropTypes.bool,
     onClick: PropTypes.func,
     raw: PropTypes.bool,
+    longKeys: PropTypes.bool,
   };
 
   static defaultProps = {
     isContextData: false,
     isSorted: true,
     raw: false,
+    longKeys: false,
   };
 
   render() {
@@ -51,7 +53,12 @@ class KeyValueList extends React.Component {
             } else {
               return [
                 <tr key={key}>
-                  <td className="key">{key}</td>
+                  <td
+                    className="key"
+                    css={this.props.longKeys && {maxWidth: '620px !important'}}
+                  >
+                    {key}
+                  </td>
                   <td className="val">
                     <pre className="val-string">{'' + value || ' '}</pre>
                   </td>

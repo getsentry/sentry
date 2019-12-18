@@ -12,18 +12,30 @@ class EventPackageData extends React.Component {
     event: SentryTypes.Event.isRequired,
   };
 
-  shouldComponentUpdate(nextProps, nextState) {
+  shouldComponentUpdate(nextProps) {
     return this.props.event.id !== nextProps.event.id;
   }
 
   render() {
-    const packages = Object.entries(this.props.event.packages);
+    let longKeys, title;
+    const {event} = this.props;
+    const packages = Object.entries(event.packages);
+
+    switch (event.platform) {
+      case 'csharp':
+        longKeys = true;
+        title = t('Assemblies');
+        break;
+      default:
+        longKeys = false;
+        title = t('Packages');
+    }
 
     return (
-      <EventDataSection event={this.props.event} type="packages" title={t('Packages')}>
+      <EventDataSection event={event} type="packages" title={title}>
         <ClippedBox>
           <ErrorBoundary mini>
-            <KeyValueList data={packages} />
+            <KeyValueList data={packages} longKeys={longKeys} />
           </ErrorBoundary>
         </ClippedBox>
       </EventDataSection>
