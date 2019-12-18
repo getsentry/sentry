@@ -51,16 +51,6 @@ from sentry.utils.distutils import (
 # The version of sentry
 VERSION = "10.0.0.dev0"
 
-# Hack to prevent stupid "TypeError: 'NoneType' object is not callable" error
-# in multiprocessing/util.py _exit_function when running `python
-# setup.py test` (see
-# http://www.eby-sarna.com/pipermail/peak/2010-May/003357.html)
-for m in ("multiprocessing", "billiard"):
-    try:
-        __import__(m)
-    except ImportError:
-        pass
-
 IS_LIGHT_BUILD = os.environ.get("SENTRY_LIGHT_BUILD") == "1"
 
 # we use pip requirements files to improve Docker layer caching
