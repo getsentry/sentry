@@ -24,13 +24,13 @@ any application.
 """
 from __future__ import absolute_import
 
-# if sys.version_info[:2] != (2, 7):
-#     print 'Error: Sentry requires Python 2.7'
-#     sys.exit(1)
+import sys
+
+if sys.version_info[:2] != (2, 7):
+    sys.exit("Error: Sentry requires Python 2.7.")
 
 import os
 import os.path
-import sys
 
 from distutils.command.build import build as BuildCommand
 from setuptools import setup, find_packages
