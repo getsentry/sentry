@@ -404,7 +404,7 @@ const InviteSection = styled('div')`
 `;
 
 const CodeInput = styled('code')`
-  ${inputStyles};
+  ${p => inputStyles(p)}; /* Have to do this for typescript :( */
 `;
 
 const InviteActions = styled('div')`
