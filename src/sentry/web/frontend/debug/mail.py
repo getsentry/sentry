@@ -16,7 +16,6 @@ from django.views.generic import View
 from loremipsum import Generator
 from random import Random
 
-from sentry import options
 from sentry.app import tsdb
 from sentry.constants import LOG_LEVELS
 from sentry.digests import Record
@@ -246,10 +245,7 @@ def alert(request):
     data = event_manager.get_data()
     event = event_manager.save(project.id)
     # Prevent Percy screenshot from constantly changing
-    if options.get("store.use-django-event"):
-        event.datetime = datetime(2017, 9, 6, 0, 0)
-    else:
-        event.data["timestamp"] = 1504656000.0  # datetime(2017, 9, 6, 0, 0)
+    event.data["timestamp"] = 1504656000.0  # datetime(2017, 9, 6, 0, 0)
     event_type = event_manager.get_event_type()
 
     group.message = event_manager.get_search_message()

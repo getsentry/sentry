@@ -167,9 +167,6 @@ register("store.empty-interface-sample-rate", default=0.0)
 # regards to filter responses.
 register("store.lie-about-filter-status", default=False)
 
-# Use Django event
-register("store.use-django-event", default=False, flags=FLAG_PRIORITIZE_DISK)
-
 # Symbolicator refactors
 # - Disabling minidump stackwalking in endpoints
 register("symbolicator.minidump-refactor-projects-opt-in", type=Sequence, default=[])  # unused

@@ -7,15 +7,14 @@ import ipaddress
 import jsonschema
 import six
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 from django.conf import settings
 from django.core.cache import cache
 from django.db import connection, IntegrityError, router, transaction
 from django.db.models import Func
-from django.utils import timezone
 from django.utils.encoding import force_text
 
-from sentry import buffer, eventstore, eventtypes, eventstream, options, tsdb
+from sentry import buffer, eventstore, eventtypes, eventstream, tsdb
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS,
@@ -46,7 +45,6 @@ from sentry.interfaces.base import get_interface
 from sentry.models import (
     Activity,
     Environment,
-    Event,
     EventDict,
     EventError,
     EventUser,
@@ -379,36 +377,15 @@ class EventManager(object):
         return self._data
 
     def _get_event_instance(self, project_id=None):
-        if options.get("store.use-django-event"):
-            data = self._data
-            event_id = data.get("event_id")
-            platform = data.get("platform")
+        data = self._data
+        event_id = data.get("event_id")
 
-            recorded_timestamp = data.get("timestamp")
-            date = datetime.fromtimestamp(recorded_timestamp)
-            date = date.replace(tzinfo=timezone.utc)
-            time_spent = data.get("time_spent")
-
-            data["node_id"] = Event.generate_node_id(project_id, event_id)
-
-            return Event(
-                project_id=project_id or self._project.id,
-                event_id=event_id,
-                data=EventDict(data, skip_renormalization=True),
-                time_spent=time_spent,
-                datetime=date,
-                platform=platform,
-            )
-        else:
-            data = self._data
-            event_id = data.get("event_id")
-
-            return eventstore.create_event(
-                project_id=project_id or self._project.id,
-                event_id=event_id,
-                group_id=None,
-                data=EventDict(data, skip_renormalization=True),
-            )
+        return eventstore.create_event(
+            project_id=project_id or self._project.id,
+            event_id=event_id,
+            group_id=None,
+            data=EventDict(data, skip_renormalization=True),
+        )
 
     def get_culprit(self):
         """Helper to calculate the default culprit"""
