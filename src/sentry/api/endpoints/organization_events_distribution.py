@@ -56,9 +56,9 @@ class OrganizationEventsDistributionEndpoint(OrganizationEventsEndpointBase):
             referrer="api.organization-events-distribution",
         )["data"]
 
-        projects = {p.id: p.slug for p in self.get_projects(request, organization)}
-
         if key == PROJECT_KEY:
+            projects = {p.id: p.slug for p in self.get_projects(request, organization)}
+
             resp = {
                 "key": PROJECT_KEY,
                 "topValues": [
