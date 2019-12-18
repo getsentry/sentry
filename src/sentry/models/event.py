@@ -122,10 +122,9 @@ class EventCommon(object):
         return self.interfaces.get(name)
 
     def get_legacy_message(self):
-        # TODO(mitsuhiko): remove this code once it's unused.  It's still
-        # being used by plugin code and once the message rename is through
-        # plugins should instead swithc to the actual message attribute or
-        # this method could return what currently is real_message.
+        # TODO: This is only used in the pagerduty plugin. We should use event.title
+        # there and remove this function once users have been notified, since PD
+        # alert routing may be based off the message field.
         return (
             get_path(self.data, "logentry", "formatted")
             or get_path(self.data, "logentry", "message")
