@@ -1,8 +1,13 @@
+import Modal from 'react-bootstrap/lib/Modal';
 import PropTypes from 'prop-types';
 import React from 'react';
-import Modal from 'react-bootstrap/lib/Modal';
-import {SelectField} from 'app/components/forms';
+import styled from 'react-emotion';
+
 import {t} from 'app/locale';
+import Button from 'app/components/button';
+import InputField from 'app/views/settings/components/forms/inputField';
+import SelectField from 'app/views/settings/components/forms/selectField';
+import space from 'app/styles/space';
 
 type Props = {
   onSelected: (statusDetails: {[key: string]: number}) => void;
@@ -37,7 +42,7 @@ export default class CustomIgnoreCountModal extends React.Component<Props, State
     window: null,
   };
 
-  onSubmit = () => {
+  handleSubmit = () => {
     const {count, window} = this.state;
     const {countName, windowName} = this.props;
 
@@ -48,60 +53,62 @@ export default class CustomIgnoreCountModal extends React.Component<Props, State
     this.props.onSelected(statusDetails);
   };
 
-  onChange = (name: keyof State, value: number) => {
+  handleChange = (name: keyof State, value: number) => {
     this.setState({[name]: value} as State);
   };
 
   render() {
+    const {countLabel, label, show, windowChoices, onCanceled} = this.props;
     const {count, window} = this.state;
     return (
-      <Modal show={this.props.show} animation={false} onHide={this.props.onCanceled}>
-        <div className="modal-header">
-          <h4>{this.props.label}</h4>
-        </div>
-        <div className="modal-body">
-          <form className="m-b-1">
-            <div className="control-group">
-              <h6 className="nav-header">{this.props.countLabel}</h6>
-              <input
-                className="form-control"
-                type="number"
-                value={count}
-                onChange={e => this.onChange('count' as 'count', Number(e.target.value))}
-                style={{padding: '3px 10px'}}
-                required
-                placeholder={t('e.g. 100')}
-              />
-            </div>
-            <div className="control-group m-b-1">
-              <h6 className="nav-header">{t('Time window')}</h6>
-              <SelectField
-                value={window}
-                name="window"
-                onChange={v => this.onChange('window' as 'window', v)}
-                choices={this.props.windowChoices}
-                placeholder={t('e.g. per hour')}
-                allowClear
-                help={t(
-                  '(Optional) If supplied, this rule will apply as a rate of change.'
-                )}
-              />
-            </div>
-          </form>
-        </div>
-        <div className="modal-footer m-t-1">
-          <button
-            type="button"
-            className="btn btn-default"
-            onClick={this.props.onCanceled}
-          >
-            {t('Cancel')}
-          </button>
-          <button type="button" className="btn btn-primary" onClick={this.onSubmit}>
-            {t('Ignore')}
-          </button>
-        </div>
+      <Modal show={show} animation={false} onHide={onCanceled}>
+        <Modal.Header>
+          <h4>{label}</h4>
+        </Modal.Header>
+        <Modal.Body>
+          <InputField
+            inline={false}
+            flexibleControlStateSize
+            stacked
+            label={countLabel}
+            name="count"
+            type="number"
+            value={count}
+            onChange={e => this.handleChange('count' as 'count', Number(e.target.value))}
+            required
+            placeholder={t('e.g. 100')}
+          />
+          <SelectField
+            inline={false}
+            flexibleControlStateSize
+            stacked
+            label={t('Time window')}
+            value={window}
+            name="window"
+            onChange={v => this.handleChange('window' as 'window', v)}
+            choices={windowChoices}
+            placeholder={t('e.g. per hour')}
+            allowClear
+            help={t('(Optional) If supplied, this rule will apply as a rate of change.')}
+          />
+        </Modal.Body>
+        <Modal.Footer>
+          <Actions>
+            <Button type="button" onClick={onCanceled}>
+              {t('Cancel')}
+            </Button>
+            <Button type="button" priority="primary" onClick={this.handleSubmit}>
+              {t('Ignore')}
+            </Button>
+          </Actions>
+        </Modal.Footer>
       </Modal>
     );
   }
 }
+
+const Actions = styled('div')`
+  display: grid;
+  grid-auto-flow: column;
+  grid-gap: ${space(1)};
+`;
