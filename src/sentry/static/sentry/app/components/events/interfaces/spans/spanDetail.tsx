@@ -119,7 +119,12 @@ class SpanDetail extends React.Component<Props, State> {
       );
     }
 
-    const {span, orgId} = this.props;
+    const {span, orgId, trace} = this.props;
+
+    const {start, end} = getTraceDateTimeRange({
+      start: trace.traceStartTimestamp,
+      end: trace.traceEndTimestamp,
+    });
 
     const eventView = EventView.fromSavedQuery({
       id: undefined,
@@ -133,6 +138,8 @@ class SpanDetail extends React.Component<Props, State> {
       tags: ['release', 'project.name', 'user.email', 'user.ip', 'environment'],
       projects: [],
       version: 2,
+      start,
+      end,
     });
 
     const to = {
@@ -171,7 +178,6 @@ class SpanDetail extends React.Component<Props, State> {
       tags: ['release', 'project.name', 'user.email', 'user.ip', 'environment'],
       projects: [],
       version: 2,
-
       start,
       end,
     });
