@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from 'react-emotion';
 import get from 'lodash/get';
 
 import {Event} from 'app/types';
@@ -7,11 +8,15 @@ import {
   SpanEntry,
   SpanType,
 } from 'app/components/events/interfaces/spans/types';
+import {pickSpanBarColour} from 'app/components/events/interfaces/spans/utils';
 import {TraceContextType} from 'app/components/events/interfaces/spans/traceView';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {SectionHeading} from '../../styles';
 
 type OpStats = {percentage: number; totalDuration: number};
 
-const TOP_N_SPANS = 3;
+const TOP_N_SPANS = 4;
 
 type EventBreakdownType = {
   // top TOP_N_SPANS spans
@@ -157,11 +162,68 @@ class EventBreakdown extends React.Component<Props> {
       return null;
     }
 
-    // TODO: Dora to take over
-    // const results = this.generateCounts();
+    const results = this.generateStats();
 
-    return null;
+    return (
+      <StyledBreakdown>
+        <SectionHeading>{t('Ops Breakdown')}</SectionHeading>
+        {results.ops.map(currOp => {
+          const {name, percentage, totalDuration} = currOp;
+          const durLabel = Math.round(totalDuration * 1000 * 100) / 100;
+          const pctLabel = Math.round(percentage * 100);
+          const opsColor: string = pickSpanBarColour(name);
+
+          return (
+            <OpsLine key={name}>
+              <OpsContent>
+                <OpsDot style={{backgroundColor: opsColor}} />
+                <div>{name}</div>
+              </OpsContent>
+              <OpsContent>
+                <Dur>{durLabel}ms</Dur>
+                <Pct>{pctLabel}%</Pct>
+              </OpsContent>
+            </OpsLine>
+          );
+        })}
+      </StyledBreakdown>
+    );
   }
 }
+
+const StyledBreakdown = styled('div')`
+  color: ${p => p.theme.gray3};
+  font-size: ${p => p.theme.fontSizeMedium};
+  margin-bottom: ${space(4)};
+`;
+
+const OpsLine = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: ${space(0.5)};
+`;
+
+const OpsDot = styled('div')`
+  content: '';
+  display: block;
+  width: 8px;
+  height: 8px;
+  margin-right: ${space(1)};
+  border-radius: 100%;
+`;
+
+const OpsContent = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+const Dur = styled('div')`
+  color: ${p => p.theme.gray2};
+`;
+
+const Pct = styled('div')`
+  min-width: 40px;
+  text-align: right;
+`;
 
 export default EventBreakdown;
