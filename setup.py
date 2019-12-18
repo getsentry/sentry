@@ -39,7 +39,8 @@ from setuptools.command.develop import develop as DevelopCommand
 
 ROOT = os.path.realpath(os.path.join(os.path.dirname(sys.modules["__main__"].__file__)))
 
-# Add Sentry to path so we can import distutils
+# add sentry to path so we can import distutils
+# XXX: consequentially, this means sentry must be pip installed with --no-use-pep517
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
 from sentry.utils.distutils import (
@@ -48,12 +49,8 @@ from sentry.utils.distutils import (
     BuildJsSdkRegistryCommand,
 )
 
-# The version of sentry
 VERSION = "10.0.0.dev0"
-
 IS_LIGHT_BUILD = os.environ.get("SENTRY_LIGHT_BUILD") == "1"
-
-# we use pip requirements files to improve Docker layer caching
 
 
 def get_requirements(env):
