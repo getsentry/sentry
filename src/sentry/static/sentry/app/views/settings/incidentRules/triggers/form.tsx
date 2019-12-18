@@ -8,7 +8,6 @@ import {fetchOrgMembers} from 'app/actionCreators/members';
 import {t} from 'app/locale';
 import ActionsPanel from 'app/views/settings/incidentRules/triggers/actionsPanel';
 import Field from 'app/views/settings/components/forms/field';
-import Input from 'app/views/settings/components/forms/controls/input';
 import ThresholdControl from 'app/views/settings/incidentRules/triggers/thresholdControl';
 import withApi from 'app/utils/withApi';
 import withConfig from 'app/utils/withConfig';
