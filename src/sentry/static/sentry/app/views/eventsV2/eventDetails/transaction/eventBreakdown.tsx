@@ -169,7 +169,7 @@ class EventBreakdown extends React.Component<Props> {
         <SectionHeading>{t('Ops Breakdown')}</SectionHeading>
         {results.ops.map(currentOp => {
           const {name, percentage, totalDuration} = currentOp;
-          const pctLabel = Math.floor(percentage);
+          const pctLabel = Math.round(percentage * 100) / 100;
           const durLabel = Math.round(totalDuration * 100) / 100;
           const opsColor: string = pickSpanBarColour(name);
 
@@ -222,7 +222,7 @@ const Dur = styled('div')`
 `;
 
 const Pct = styled('div')`
-  width: 30px;
+  min-width: 50px;
   text-align: right;
 `;
 
