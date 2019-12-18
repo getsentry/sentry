@@ -412,21 +412,25 @@ export type Group = {
 };
 
 export type Member = {
-  id: string;
-  user: User;
-  name: string;
+  dateCreated: string;
   email: string;
-  pending: boolean | undefined;
-  role: string;
-  roleName: string;
+  expired: boolean;
   flags: {
     'sso:linked': boolean;
     'sso:invalid': boolean;
   };
-  dateCreated: string;
+  id: string;
   inviteStatus: 'approved' | 'requested_to_be_invited' | 'requested_to_join';
+  invite_link: string | null;
   inviterName: string | null;
+  isOnlyOwner: boolean;
+  name: string;
+  pending: boolean | undefined;
+  role: string;
+  roleName: string;
+  roles: MemberRole[];
   teams: string[];
+  user: User;
 };
 
 export type AccessRequest = {
