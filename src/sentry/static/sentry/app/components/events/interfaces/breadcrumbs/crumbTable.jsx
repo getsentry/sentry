@@ -4,6 +4,7 @@ import map from 'lodash/map';
 import isObject from 'lodash/isObject';
 
 import Category from 'app/components/events/interfaces/breadcrumbs/category';
+import {PlatformContext} from 'app/components/events/interfaces/breadcrumbs/platformContext';
 
 class CrumbTable extends React.Component {
   static propTypes = {
@@ -11,6 +12,7 @@ class CrumbTable extends React.Component {
     kvData: PropTypes.object,
     summary: PropTypes.object,
   };
+  static contextType = PlatformContext;
 
   renderData = () => {
     if (!this.props.kvData) {
@@ -29,11 +31,19 @@ class CrumbTable extends React.Component {
   };
 
   render() {
+    const platform = this.context;
+    const widerCategory = platform === 'csharp';
+
     return (
       <table className="table key-value">
         <thead>
           <tr>
-            <td className="key">
+            <td
+              className="key"
+              css={
+                widerCategory && {maxWidth: '200px !important', width: '200px !important'}
+              }
+            >
               <Category value={this.props.crumb.category} />
             </td>
             <td className="value">{this.props.summary}</td>
