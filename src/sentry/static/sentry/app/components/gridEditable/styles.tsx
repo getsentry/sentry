@@ -115,11 +115,16 @@ export const GridHeadCell = styled('th')`
   min-width: 0;
   height: ${GRID_HEADER_HEIGHT}px;
 
-  background: ${p => p.theme.offWhite};
+  background-color: ${p => p.theme.offWhite};
   border-bottom: 1px solid ${p => p.theme.borderDark};
   border-right: 1px solid ${p => p.theme.borderDark};
 
+  &:first-child {
+    border-top-left-radius: ${p => p.theme.borderRadius};
+  }
+
   &:last-child {
+    border-top-right-radius: ${p => p.theme.borderRadius};
     border-right: none;
   }
 `;
