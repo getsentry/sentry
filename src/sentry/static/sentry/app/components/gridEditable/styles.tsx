@@ -29,25 +29,24 @@ export const Header = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-
-  margin-bottom: ${space(1)};
+  margin: 0 ${space(1)} ${space(1)} 0;
 `;
-export const HeaderTitle = styled('h2')`
-  margin: 0;
 
-  font-size: ${p => p.theme.headerFontSize};
-  font-weight: normal;
+export const HeaderTitle = styled('h4')`
+  margin: 0;
+  font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.gray3};
 `;
+
 export const HeaderButton = styled('div')`
   display: flex;
   align-items: center;
-
   color: ${p => p.theme.gray3};
   cursor: pointer;
+  font-size: ${p => p.theme.fontSizeSmall};
 
   > svg {
-    margin-right: ${space(1)};
+    margin-right: ${space(0.5)};
   }
 
   &:hover,
