@@ -524,6 +524,10 @@ class SnubaEvent(EventCommon):
     def project_id(self):
         return self.snuba_data["project_id"]
 
+    @project_id.setter
+    def project_id(self, value):
+        self.snuba_data["project_id"] = value
+
     @property
     def group_id(self):
         return self.snuba_data["group_id"]
