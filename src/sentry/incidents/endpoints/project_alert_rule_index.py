@@ -29,6 +29,7 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
             raise ResourceDoesNotExist
 
         cursor_string = request.GET.get("cursor", six.binary_type(int(time.time())) + ":0:0")
+        print("cursor_string:",cursor_string)
         try:
             limit = min(100, int(request.GET.get("limit", 25)))
         except ValueError as e:
@@ -38,7 +39,7 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
 
         cursor = Cursor.from_string(cursor_string)
         cursor_date = datetime.fromtimestamp(float(cursor.value)).replace(tzinfo=timezone.utc)
-
+        print("cursor_date", cursor_date)
         alert_rule_queryset = (
             AlertRule.objects.fetch_for_project(project)
             .filter(date_added__lte=cursor_date)
@@ -53,6 +54,8 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
             .filter(date_added__lte=cursor_date)
             .order_by("-date_added")[: (limit + 1)]
         )
+        print(list(alert_rule_queryset))
+        print(list(legacy_rule_queryset))
         combined_rules = list(alert_rule_queryset) + list(legacy_rule_queryset)
         combined_rules.sort(
             key=lambda instance: (instance.date_added, type(instance)), reverse=True

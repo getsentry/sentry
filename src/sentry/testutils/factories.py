@@ -958,6 +958,7 @@ class Factories(object):
 
         if date_added is not None:
             alert_rule.update(date_added=date_added)
+
         return alert_rule
 
     @staticmethod

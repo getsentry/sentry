@@ -5,6 +5,7 @@ from __future__ import absolute_import
 import six
 import json
 import requests
+import pytz
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import (
@@ -105,10 +106,10 @@ class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestC
         self.login_as(self.user)
         self.projects = [self.project, self.create_project()]
         self.alert_rule = self.create_alert_rule(
-            projects=self.projects, date_added=before_now(minutes=6)
+            projects=self.projects, date_added=before_now(minutes=6).replace(tzinfo=pytz.UTC)
         )
         self.other_alert_rule = self.create_alert_rule(
-            projects=self.projects, date_added=before_now(minutes=5)
+            projects=self.projects, date_added=before_now(minutes=5).replace(tzinfo=pytz.UTC)
         )
         self.issue_rule = self.create_issue_alert_rule(
             data={
@@ -117,11 +118,11 @@ class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestC
                 "conditions": [],
                 "actions": [],
                 "actionMatch": "all",
-                "aded_added": before_now(minutes=4),
+                "date_added": before_now(minutes=4).replace(tzinfo=pytz.UTC),
             }
         )
         self.yet_another_alert_rule = self.create_alert_rule(
-            projects=self.projects, date_added=before_now(minutes=3)
+            projects=self.projects, date_added=before_now(minutes=3).replace(tzinfo=pytz.UTC)
         )
         self.combined_rules_url = "/api/0/projects/{0}/{1}/combined-rules/".format(
             self.org.slug, self.project.slug
@@ -154,7 +155,9 @@ class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestC
         if data.get("frequency"):
             rule.data["frequency"] = data["frequency"]
         if data.get("date_added"):
-            rule.data["date_added"] = data["date_added"]
+            print("modifying issue_rule date_added", data["date_added"])
+            rule.date_added = data["date_added"]
+        print("rule date added first:",rule.date_added)
         rule.save()
         return rule
 
@@ -183,7 +186,7 @@ class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestC
     def test_invalid_limit(self):
         self.setup_project_and_rules()
         with self.feature("organizations:incidents"):
-            request_data = {"cursor": "0:0:0", "limit": "notaninteger"}
+            request_data = {"limit": "notaninteger"}
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )
@@ -196,7 +199,7 @@ class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestC
 
         # Test limit above result cap (which is 100), no cursor.
         with self.feature("organizations:incidents"):
-            request_data = {"cursor": "0:0:0", "limit": "125"}
+            request_data = {"limit": "125"}
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )
@@ -208,7 +211,7 @@ class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestC
         self.setup_project_and_rules()
         # Test limit above result count (which is 4), no cursor.
         with self.feature("organizations:incidents"):
-            request_data = {"cursor": "0:0:0", "limit": "5"}
+            request_data = {"limit": "5"}
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )
@@ -226,7 +229,7 @@ class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestC
 
         # Test Limit as 1, no cursor:
         with self.feature("organizations:incidents"):
-            request_data = {"cursor": "0:0:0", "limit": "1"}
+            request_data = {"limit": "1"}
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )
@@ -259,7 +262,7 @@ class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestC
 
         # Test Limit as 2, no cursor:
         with self.feature("organizations:incidents"):
-            request_data = {"cursor": "0:0:0", "limit": "2"}
+            request_data = {"limit": "2"}
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )
@@ -309,21 +312,23 @@ class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestC
         self.setup_project_and_rules()
 
         self.one_alert_rule = self.create_alert_rule(
-            projects=self.projects, date_added=before_now(minutes=2)
+            projects=self.projects, date_added=before_now(minutes=2).replace(tzinfo=pytz.UTC)
         )
         self.two_alert_rule = self.create_alert_rule(
-            projects=self.projects, date_added=before_now(minutes=1)
+            projects=self.projects, date_added=before_now(minutes=1).replace(tzinfo=pytz.UTC)
         )
         self.three_alert_rule = self.create_alert_rule(
-            projects=self.projects, date_added=before_now(minutes=0)
+            projects=self.projects
         )
 
+        print("two_alert_rule.date_added",self.two_alert_rule.date_added)
+        print("three_alert_rule.date_added",self.three_alert_rule.date_added)
         # Modify 2nd rule to be date of 3rd rule. Second page offset should now be 1, or else we'll get the incorrect results (we should get one_alert_rule on the second page, but without an offset we would get two_alert_rule).
         self.one_alert_rule.date_added = self.two_alert_rule.date_added
         self.one_alert_rule.save()
 
         with self.feature("organizations:incidents"):
-            request_data = {"cursor": "0:0:0", "limit": "2"}
+            request_data = {"limit": "2"}
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )
@@ -331,6 +336,7 @@ class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestC
 
         result = json.loads(response.content)
         assert len(result) == 2
+        import pdb; pdb.set_trace()
         self.assert_alert_rule_serialized(self.three_alert_rule, result[0], skip_dates=True)
         self.assert_alert_rule_serialized(self.one_alert_rule, result[1], skip_dates=True)
 
