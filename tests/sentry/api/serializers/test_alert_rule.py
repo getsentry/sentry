@@ -16,6 +16,7 @@ from sentry.incidents.logic import create_alert_rule, create_alert_rule_trigger
 from sentry.incidents.models import AlertRuleThresholdType
 from sentry.snuba.models import QueryAggregations
 from sentry.testutils import TestCase, APITestCase
+from sentry.testutils.helpers.datetime import before_now
 
 
 class BaseAlertRuleSerializerTest(object):
@@ -103,8 +104,12 @@ class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestC
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.login_as(self.user)
         self.projects = [self.project, self.create_project()]
-        self.alert_rule = self.create_alert_rule(projects=self.projects)
-        self.other_alert_rule = self.create_alert_rule(projects=self.projects)
+        self.alert_rule = self.create_alert_rule(
+            projects=self.projects, date_added=before_now(minutes=6)
+        )
+        self.other_alert_rule = self.create_alert_rule(
+            projects=self.projects, date_added=before_now(minutes=5)
+        )
         self.issue_rule = self.create_issue_alert_rule(
             data={
                 "project": self.project,
@@ -112,9 +117,12 @@ class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestC
                 "conditions": [],
                 "actions": [],
                 "actionMatch": "all",
+                "aded_added": before_now(minutes=4),
             }
         )
-        self.yet_another_alert_rule = self.create_alert_rule(projects=self.projects)
+        self.yet_another_alert_rule = self.create_alert_rule(
+            projects=self.projects, date_added=before_now(minutes=3)
+        )
         self.combined_rules_url = "/api/0/projects/{0}/{1}/combined-rules/".format(
             self.org.slug, self.project.slug
         )
@@ -145,6 +153,8 @@ class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestC
             rule.data["conditions"] = data["conditions"]
         if data.get("frequency"):
             rule.data["frequency"] = data["frequency"]
+        if data.get("date_added"):
+            rule.data["date_added"] = data["date_added"]
         rule.save()
         return rule
 
@@ -181,12 +191,12 @@ class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestC
 
     def test_limit_higher_than_cap(self):
         self.setup_project_and_rules()
-        for _ in xrange(150):
+        for _ in range(125):
             self.create_alert_rule(projects=self.projects)
 
         # Test limit above result cap (which is 100), no cursor.
         with self.feature("organizations:incidents"):
-            request_data = {"cursor": "0:0:0", "limit": "325"}
+            request_data = {"cursor": "0:0:0", "limit": "125"}
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )
@@ -231,7 +241,7 @@ class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestC
         )
         next_cursor = links[1]["cursor"]
 
-        # Test Limit 1, next page of previous request:
+        # Test Limit as 1, next page of previous request:
         with self.feature("organizations:incidents"):
             request_data = {"cursor": next_cursor, "limit": "1"}
             response = self.client.get(
@@ -294,3 +304,51 @@ class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestC
 
         result = json.loads(response.content)
         assert len(result) == 0
+
+    def test_offset_pagination(self):
+        self.setup_project_and_rules()
+
+        self.one_alert_rule = self.create_alert_rule(
+            projects=self.projects, date_added=before_now(minutes=2)
+        )
+        self.two_alert_rule = self.create_alert_rule(
+            projects=self.projects, date_added=before_now(minutes=1)
+        )
+        self.three_alert_rule = self.create_alert_rule(
+            projects=self.projects, date_added=before_now(minutes=0)
+        )
+
+        # Modify 2nd rule to be date of 3rd rule. Second page offset should now be 1, or else we'll get the incorrect results (we should get one_alert_rule on the second page, but without an offset we would get two_alert_rule).
+        self.one_alert_rule.date_added = self.two_alert_rule.date_added
+        self.one_alert_rule.save()
+
+        with self.feature("organizations:incidents"):
+            request_data = {"cursor": "0:0:0", "limit": "2"}
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+
+        result = json.loads(response.content)
+        assert len(result) == 2
+        self.assert_alert_rule_serialized(self.three_alert_rule, result[0], skip_dates=True)
+        self.assert_alert_rule_serialized(self.one_alert_rule, result[1], skip_dates=True)
+
+        links = requests.utils.parse_header_links(
+            response.get("link").rstrip(">").replace(">,<", ",<")
+        )
+        next_cursor = links[1]["cursor"]
+        assert next_cursor.split(":")[1] == "1"  # Assert offset is properly calculated.
+
+        with self.feature("organizations:incidents"):
+            request_data = {"cursor": next_cursor, "limit": "2"}
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+
+        result = json.loads(response.content)
+        assert len(result) == 2
+
+        self.assert_alert_rule_serialized(self.two_alert_rule, result[0], skip_dates=True)
+        self.assert_alert_rule_serialized(self.yet_another_alert_rule, result[1], skip_dates=True)

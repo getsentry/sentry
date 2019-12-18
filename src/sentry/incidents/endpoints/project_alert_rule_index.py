@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import six
-import math
+import time
 from datetime import datetime
 from copy import deepcopy
 
@@ -28,7 +28,7 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
         if not features.has("organizations:incidents", project.organization, actor=request.user):
             raise ResourceDoesNotExist
 
-        cursor_string = request.GET.get("cursor", "0:0:0")
+        cursor_string = request.GET.get("cursor", six.binary_type(int(time.time())) + ":0:0")
         try:
             limit = min(100, int(request.GET.get("limit", 25)))
         except ValueError as e:
@@ -41,7 +41,7 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
 
         alert_rule_queryset = (
             AlertRule.objects.fetch_for_project(project)
-            .filter(date_added__gte=cursor_date)
+            .filter(date_added__lte=cursor_date)
             .order_by("-date_added")[: limit + 1]
         )
 
@@ -50,7 +50,7 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
                 project=project, status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE]
             )
             .select_related("project")
-            .filter(date_added__gte=cursor_date)
+            .filter(date_added__lte=cursor_date)
             .order_by("-date_added")[: (limit + 1)]
         )
         combined_rules = list(alert_rule_queryset) + list(legacy_rule_queryset)
@@ -60,9 +60,7 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
         combined_rules = combined_rules[cursor.offset : cursor.offset + limit + 1]
 
         def get_item_key(item, for_prev=False):
-            value = getattr(item, "date_added")
-            value = float(value.strftime("%s.%f"))
-            return math.floor(value)
+            return float(item.date_added.strftime("%s.%f"))
 
         cursor_result = build_cursor(
             results=combined_rules, cursor=cursor, key=get_item_key, limit=limit
