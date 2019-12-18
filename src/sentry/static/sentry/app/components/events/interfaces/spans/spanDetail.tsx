@@ -119,13 +119,24 @@ class SpanDetail extends React.Component<Props, State> {
       );
     }
 
-    const {span, orgId} = this.props;
+    const {span, orgId, trace} = this.props;
+
+    const {start, end} = getTraceDateTimeRange({
+      start: trace.traceStartTimestamp,
+      end: trace.traceEndTimestamp,
+    });
 
     const eventView = EventView.fromSavedQuery({
       id: undefined,
       name: t('Transactions'),
-      fields: ['transaction', 'trace.span', 'timestamp'],
-      fieldnames: ['transaction', 'trace.span', 'timestamp'],
+      fields: [
+        'transaction',
+        'project',
+        'trace.span',
+        'transaction.duration',
+        'timestamp',
+      ],
+      fieldnames: ['transaction', 'project', 'trace.span', 'duration', 'timestamp'],
       orderby: '-timestamp',
       query: `event.type:transaction trace:${span.trace_id} trace.parent_span:${
         span.span_id
@@ -133,6 +144,8 @@ class SpanDetail extends React.Component<Props, State> {
       tags: ['release', 'project.name', 'user.email', 'user.ip', 'environment'],
       projects: [],
       version: 2,
+      start,
+      end,
     });
 
     const to = {
@@ -158,14 +171,19 @@ class SpanDetail extends React.Component<Props, State> {
     const eventView = EventView.fromSavedQuery({
       id: undefined,
       name: t('Transactions'),
-      fields: ['transaction', 'trace.span', 'transaction.duration', 'timestamp'],
-      fieldnames: ['transaction', 'trace.span', 'duration', 'timestamp'],
+      fields: [
+        'transaction',
+        'project',
+        'trace.span',
+        'transaction.duration',
+        'timestamp',
+      ],
+      fieldnames: ['transaction', 'project', 'trace.span', 'duration', 'timestamp'],
       orderby: '-timestamp',
       query: `event.type:transaction trace:${span.trace_id}`,
       tags: ['release', 'project.name', 'user.email', 'user.ip', 'environment'],
       projects: [],
       version: 2,
-
       start,
       end,
     });
