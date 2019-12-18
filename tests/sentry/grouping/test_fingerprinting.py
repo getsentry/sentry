@@ -6,7 +6,7 @@ import os
 import json
 import pytest
 
-from sentry.models import Event
+from sentry import eventstore
 from sentry.event_manager import EventManager
 from sentry.grouping.api import apply_server_fingerprinting
 from sentry.grouping.fingerprinting import FingerprintingRules
@@ -73,7 +73,7 @@ def test_event_hash_variant(insta_snapshot, testcase):
     data.setdefault("fingerprint", ["{{ default }}"])
     apply_server_fingerprinting(data, config)
 
-    evt = Event(data=data, platform=data["platform"])
+    evt = eventstore.create_event(data=data)
 
     def dump_variant(v):
         rv = v.as_dict()
