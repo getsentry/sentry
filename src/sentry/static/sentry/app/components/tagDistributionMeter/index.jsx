@@ -190,6 +190,7 @@ const Label = styled('div')`
 const Percent = styled('div')`
   font-weight: bold;
   padding-left: ${space(0.5)};
+  color: ${p => p.theme.gray4};
 `;
 
 const Segment = styled(Link, {shouldForwardProp: isPropValid})`
