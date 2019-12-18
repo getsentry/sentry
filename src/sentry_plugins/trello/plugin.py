@@ -25,7 +25,11 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
     resource_links = [("Trello Setup Instructions", SETUP_URL)] + CorePluginMixin.resource_links
 
     def get_config(self, project, **kwargs):
-        # function to pull the value out of our the arguments to this function or from the DB
+        """
+        Return the configuration of the plugin.
+        Pull the value out of our the arguments to this function or from the DB
+        """
+
         def get_value(field):
             initial_values = kwargs.get("initial") or {}
             if initial_values.get(field):
@@ -79,6 +83,9 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
         return config
 
     def validate_config(self, project, config, actor=None):
+        """
+        Make sure the configuration is valid by trying to query for the organizations with the auth
+        """
         trello_client = TrelloApiClient(config["key"], config["token"])
         try:
             trello_client.get_organization_options()
@@ -87,6 +94,9 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
         return config
 
     def get_group_urls(self):
+        """
+        Return the URLs and the matching views
+        """
         return super(TrelloPlugin, self).get_group_urls() + [
             url(
                 r"^options",
@@ -106,6 +116,9 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
         return [(item["id"], item["name"]) for item in items]
 
     def get_new_issue_fields(self, request, group, event, **kwargs):
+        """
+        Return the fields needed for creating a new issue
+        """
         fields = super(TrelloPlugin, self).get_new_issue_fields(request, group, event, **kwargs)
         client = self.get_client(group.project)
         organization = self.get_option("organization", group.project)
@@ -133,6 +146,9 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
         ]
 
     def get_link_existing_issue_fields(self, request, group, event, **kwargs):
+        """
+        Return the fields needed for linking to an existing issue
+        """
         return [
             {
                 "name": "issue_id",
@@ -194,6 +210,9 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
         return {"title": card["name"], "id": card["shortLink"]}
 
     def get_issue_label(self, group, issue, **kwargs):
+        """
+        Return label of the linked issue we show in the UI from the issue string
+        """
         # the old version of the plugin stores the url in the issue
         if re.search("\w+/https://trello.com/", issue):
             short_issue = issue.partition("/")[0]
@@ -201,6 +220,9 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
         return "Trello-%s" % issue
 
     def get_issue_url(self, group, issue, **kwargs):
+        """
+        Return label of the url of card in Trello based off the issue object or issue ID
+        """
         # TODO(Steve): figure out why we sometimes get a string and sometimes a dict
         if isinstance(issue, dict):
             issue = issue["id"]
@@ -211,6 +233,9 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
         return "https://trello.com/c/%s" % issue
 
     def view_options(self, request, group, **kwargs):
+        """
+        Return the lists on a given Trello board
+        """
         field = request.GET.get("option_field")
         board = request.GET.get("board")
 
@@ -233,6 +258,9 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
         return Response({field: results})
 
     def view_autocomplete(self, request, group, **kwargs):
+        """
+        Return the cards matching a given query and the organization of the configuration
+        """
         field = request.GET.get("autocomplete_field")
         query = request.GET.get("autocomplete_query")
 
