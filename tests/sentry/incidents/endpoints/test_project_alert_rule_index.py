@@ -242,7 +242,6 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestC
             response.get("link").rstrip(">").replace(">,<", ",<")
         )
         next_cursor = links[1]["cursor"]
-
         # Test Limit 2, next page of previous request:
         with self.feature("organizations:incidents"):
             request_data = {"cursor": next_cursor, "limit": "2"}

@@ -43,6 +43,7 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
         cursor_date = datetime.fromtimestamp(float(cursor.value) / 1000000).replace(
             tzinfo=timezone.utc
         )
+
         alert_rule_queryset = (
             AlertRule.objects.fetch_for_project(project)
             .filter(date_added__lte=cursor_date)
