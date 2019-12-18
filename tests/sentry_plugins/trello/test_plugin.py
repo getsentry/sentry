@@ -48,7 +48,7 @@ class TrelloPluginTest(TrelloPluginTestBase):
 
     def test_is_configured(self):
         assert self.plugin.is_configured(None, self.project) is False
-        self.plugin.set_option("token", "43f", self.project)
+        self.plugin.set_option("token", "7c8951d1", self.project)
         assert self.plugin.is_configured(None, self.project) is False
         self.plugin.set_option("key", "39g", self.project)
         assert self.plugin.is_configured(None, self.project) is True
@@ -57,7 +57,7 @@ class TrelloPluginTest(TrelloPluginTestBase):
 class TrelloPluginApiTests(TrelloPluginTestBase):
     def setUp(self):
         self.group = self.create_group(message="Hello world", culprit="foo.bar")
-        self.plugin.set_option("token", "43f", self.project)
+        self.plugin.set_option("token", "7c8951d1", self.project)
         self.plugin.set_option("key", "39g", self.project)
         self.plugin.set_option("organization", "f187", self.project)
 
@@ -79,7 +79,7 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
                 "default": None,
                 "required": False,
                 "label": "Trello API Token",
-                "prefix": "43f",
+                "prefix": "7c895",
                 "type": "secret",
                 "has_saved_value": True,
             },
@@ -108,7 +108,7 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
                 "default": None,
                 "required": False,
                 "label": "Trello API Token",
-                "prefix": "43f",
+                "prefix": "7c895",
                 "type": "secret",
                 "has_saved_value": True,
             },
@@ -136,7 +136,7 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
 
         assert self.plugin.create_issue(request, self.group, form_data) == "rds43"
         request = responses.calls[0].request
-        assert request.url == "https://api.trello.com/1/cards?token=43f&key=39g"
+        assert request.url == "https://api.trello.com/1/cards?token=7c8951d1&key=39g"
         payload = json.loads(request.body)
         assert payload == {"name": "Hello", "desc": "Fix this.", "idList": "23tds"}
 
@@ -162,13 +162,13 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
         request = responses.calls[0].request
         assert (
             request.url
-            == "https://api.trello.com/1/cards/SstgnBIQ?fields=name%2CshortLink%2CidShort&token=43f&key=39g"
+            == "https://api.trello.com/1/cards/SstgnBIQ?fields=name%2CshortLink%2CidShort&token=7c8951d1&key=39g"
         )
 
         request = responses.calls[1].request
         assert (
             request.url
-            == "https://api.trello.com/1/cards/SstgnBIQ/actions/comments?text=please+fix+this&token=43f&key=39g"
+            == "https://api.trello.com/1/cards/SstgnBIQ/actions/comments?text=please+fix+this&token=7c8951d1&key=39g"
         )
 
     @responses.activate
@@ -187,7 +187,7 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
         assert response.data == {"list": [("8f3", "list 1"), ("j8f", "list 2")]}
 
         request = responses.calls[0].request
-        assert request.url == "https://api.trello.com/1/boards/f34/lists?token=43f&key=39g"
+        assert request.url == "https://api.trello.com/1/boards/f34/lists?token=7c8951d1&key=39g"
 
     @responses.activate
     def test_view_autocomplete(self):
@@ -217,7 +217,7 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
         request = responses.calls[0].request
         assert (
             request.url
-            == "https://api.trello.com/1/search?cards_limit=100&partial=true&modelTypes=cards&idOrganizations=f187&token=43f&card_fields=name%2CshortLink%2CidShort&key=39g&query=Key"
+            == "https://api.trello.com/1/search?cards_limit=100&partial=true&modelTypes=cards&idOrganizations=f187&token=7c8951d1&card_fields=name%2CshortLink%2CidShort&key=39g&query=Key"
         )
 
     @responses.activate
@@ -250,5 +250,5 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
         request = responses.calls[0].request
         assert (
             request.url
-            == "https://api.trello.com/1/search?cards_limit=100&partial=true&modelTypes=cards&token=43f&card_fields=name%2CshortLink%2CidShort&key=39g&query=Key"
+            == "https://api.trello.com/1/search?cards_limit=100&partial=true&modelTypes=cards&token=7c8951d1&card_fields=name%2CshortLink%2CidShort&key=39g&query=Key"
         )
