@@ -5,6 +5,7 @@ from collections import defaultdict, Iterable
 from dateutil.parser import parse as parse_datetime
 import six
 
+from sentry.api.event_search import SearchVisitor
 from sentry.tagstore import TagKeyStatus
 from sentry.tagstore.base import TagStorage, TOP_VALUES_DEFAULT_LIMIT
 from sentry.tagstore.exceptions import (
@@ -595,13 +596,21 @@ class SnubaTagStorage(TagStorage):
 
         conditions = []
 
-        if snuba_key in BLACKLISTED_COLUMNS:
-            snuba_key = "tags[%s]" % (key,)
-
-        if query:
-            conditions.append([snuba_key, "LIKE", u"%{}%".format(query)])
+        if key in SearchVisitor.numeric_keys and snuba_key not in BLACKLISTED_COLUMNS:
+            converted_query = int(query) if query is not None and query.isdigit() else None
+            if converted_query is not None:
+                conditions.append([snuba_key, ">=", converted_query - 50])
+                conditions.append([snuba_key, "<=", converted_query + 50])
+            else:
+                conditions.append([[snuba_key, ">=", 0], [snuba_key, "<", 0]])
         else:
-            conditions.append([snuba_key, "!=", ""])
+            if snuba_key in BLACKLISTED_COLUMNS:
+                snuba_key = "tags[%s]" % (key,)
+
+            if query:
+                conditions.append([snuba_key, "LIKE", u"%{}%".format(query)])
+            else:
+                conditions.append([snuba_key, "!=", ""])
 
         filters = {"project_id": projects}
         if environments:
@@ -626,7 +635,7 @@ class SnubaTagStorage(TagStorage):
         )
 
         tag_values = [
-            TagValue(key=key, value=value, **fix_tag_value_data(data))
+            TagValue(key=key, value=six.binary_type(value), **fix_tag_value_data(data))
             for value, data in six.iteritems(results)
         ]
 
