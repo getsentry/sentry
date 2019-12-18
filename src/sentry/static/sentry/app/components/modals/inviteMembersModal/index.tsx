@@ -25,6 +25,7 @@ type Props = AsyncComponent['props'] &
     organization: Organization;
     teams: Team[];
     source?: string;
+    initialData?: Partial<InviteRow>[];
   };
 
 type State = AsyncComponent['state'] & {
@@ -46,7 +47,11 @@ type InviteModalRenderFunc = React.ComponentProps<typeof InviteModalHook>['child
 
 class InviteMembersModal extends AsyncComponent<Props, State> {
   get inviteTemplate(): InviteRow {
-    return {emails: new Set(), teams: new Set(), role: DEFAULT_ROLE};
+    return {
+      emails: new Set(),
+      teams: new Set(),
+      role: DEFAULT_ROLE,
+    };
   }
 
   /**
@@ -77,9 +82,18 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
 
   getDefaultState() {
     const state = super.getDefaultState();
+    const {initialData} = this.props;
+
+    const pendingInvites = initialData
+      ? initialData.map(initial => ({
+          ...this.inviteTemplate,
+          ...initial,
+        }))
+      : [this.inviteTemplate];
+
     return {
       ...state,
-      pendingInvites: [this.inviteTemplate],
+      pendingInvites,
       inviteStatus: {},
       complete: false,
       sendingInvites: false,
@@ -486,5 +500,6 @@ const modalClassName = css`
     margin: 50px auto;
   }
 `;
+
 export {modalClassName};
 export default withLatestContext(withTeams(InviteMembersModal));

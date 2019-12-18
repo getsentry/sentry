@@ -47,6 +47,7 @@ const InviteRowControl = ({
   <div className={className}>
     <div>
       <SelectControl
+        data-test-id="select-emails"
         disabled={disabled}
         placeholder={t('Enter one or more email')}
         value={emails}
@@ -74,6 +75,7 @@ const InviteRowControl = ({
     </div>
     <div>
       <RoleSelectControl
+        data-test-id="select-role"
         disabled={disabled}
         value={role}
         roles={roleOptions}
@@ -83,6 +85,7 @@ const InviteRowControl = ({
     </div>
     <div>
       <SelectControl
+        data-test-id="select-teams"
         disabled={disabled}
         placeholder={t('Add to teams...')}
         value={teams}
