@@ -124,8 +124,8 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                           <div
                             className="css-wh8qge-AvatarWrapper eyce8w20"
                           >
-                            <Avatar
-                              hasTooltip={false}
+                            <UserAvatar
+                              gravatar={false}
                               size={36}
                               user={
                                 Object {
@@ -156,62 +156,38 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                 }
                               }
                             >
-                              <UserAvatar
-                                gravatar={false}
+                              <BaseAvatar
+                                gravatarId="example@sentry.io"
                                 hasTooltip={false}
+                                letterId="example@sentry.io"
+                                round={true}
                                 size={36}
-                                user={
-                                  Object {
-                                    "avatar": Object {
-                                      "avatarType": "letter_avatar",
-                                      "avatarUuid": null,
-                                    },
-                                    "avatarUrl": "https://example.com/avatar.png",
-                                    "dateJoined": "2018-02-26T23:57:43.766Z",
-                                    "email": "example@sentry.io",
-                                    "emails": Array [
-                                      Object {
-                                        "email": "example@sentry.io",
-                                        "id": "231605",
-                                        "is_verified": true,
-                                      },
-                                    ],
-                                    "has2fa": false,
-                                    "hasPasswordAuth": true,
-                                    "id": "224288",
-                                    "isActive": true,
-                                    "isManaged": false,
-                                    "isSuperuser": true,
-                                    "lastActive": "2018-11-30T21:25:15.222Z",
-                                    "lastLogin": "2018-11-30T21:18:09.812Z",
-                                    "name": "Foo Bar",
-                                    "username": "example@sentry.io",
-                                  }
-                                }
+                                style={Object {}}
+                                title="Foo Bar"
+                                tooltip="Foo Bar (example@sentry.io)"
+                                type="letter_avatar"
+                                uploadId=""
+                                uploadPath="avatar"
                               >
-                                <BaseAvatar
-                                  gravatarId="example@sentry.io"
-                                  hasTooltip={false}
-                                  letterId="example@sentry.io"
-                                  round={true}
-                                  size={36}
-                                  style={Object {}}
-                                  title="Foo Bar"
-                                  tooltip="Foo Bar (example@sentry.io)"
-                                  type="letter_avatar"
-                                  uploadId=""
-                                  uploadPath="avatar"
+                                <Tooltip
+                                  containerDisplayMode="inline-block"
+                                  disabled={true}
+                                  position="top"
+                                  title="Foo Bar (example@sentry.io)"
                                 >
-                                  <Tooltip
-                                    containerDisplayMode="inline-block"
-                                    disabled={true}
-                                    position="top"
-                                    title="Foo Bar (example@sentry.io)"
+                                  <StyledBaseAvatar
+                                    className="avatar"
+                                    loaded={true}
+                                    round={true}
+                                    style={
+                                      Object {
+                                        "height": "36px",
+                                        "width": "36px",
+                                      }
+                                    }
                                   >
-                                    <StyledBaseAvatar
-                                      className="avatar"
-                                      loaded={true}
-                                      round={true}
+                                    <span
+                                      className="avatar css-3f9bmx-StyledBaseAvatar e147uwb0"
                                       style={
                                         Object {
                                           "height": "36px",
@@ -219,62 +195,52 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                         }
                                       }
                                     >
-                                      <span
-                                        className="avatar css-3f9bmx-StyledBaseAvatar e147uwb0"
-                                        style={
-                                          Object {
-                                            "height": "36px",
-                                            "width": "36px",
-                                          }
-                                        }
+                                      <LetterAvatar
+                                        displayName="Foo Bar"
+                                        identifier="example@sentry.io"
+                                        round={true}
                                       >
-                                        <LetterAvatar
+                                        <Component
+                                          className="css-vyy37i-LetterAvatar e12lgfev0"
                                           displayName="Foo Bar"
                                           identifier="example@sentry.io"
                                           round={true}
                                         >
-                                          <Component
+                                          <svg
                                             className="css-vyy37i-LetterAvatar e12lgfev0"
-                                            displayName="Foo Bar"
-                                            identifier="example@sentry.io"
-                                            round={true}
+                                            viewBox="0 0 120 120"
                                           >
-                                            <svg
-                                              className="css-vyy37i-LetterAvatar e12lgfev0"
-                                              viewBox="0 0 120 120"
-                                            >
-                                              <rect
-                                                fill="#847a8c"
-                                                height="120"
-                                                rx="15"
-                                                ry="15"
-                                                width="120"
-                                                x="0"
-                                                y="0"
-                                              />
-                                              <text
-                                                fill="#FFFFFF"
-                                                fontSize="65"
-                                                style={
-                                                  Object {
-                                                    "dominantBaseline": "central",
-                                                  }
+                                            <rect
+                                              fill="#847a8c"
+                                              height="120"
+                                              rx="15"
+                                              ry="15"
+                                              width="120"
+                                              x="0"
+                                              y="0"
+                                            />
+                                            <text
+                                              fill="#FFFFFF"
+                                              fontSize="65"
+                                              style={
+                                                Object {
+                                                  "dominantBaseline": "central",
                                                 }
-                                                textAnchor="middle"
-                                                x="50%"
-                                                y="50%"
-                                              >
-                                                FB
-                                              </text>
-                                            </svg>
-                                          </Component>
-                                        </LetterAvatar>
-                                      </span>
-                                    </StyledBaseAvatar>
-                                  </Tooltip>
-                                </BaseAvatar>
-                              </UserAvatar>
-                            </Avatar>
+                                              }
+                                              textAnchor="middle"
+                                              x="50%"
+                                              y="50%"
+                                            >
+                                              FB
+                                            </text>
+                                          </svg>
+                                        </Component>
+                                      </LetterAvatar>
+                                    </span>
+                                  </StyledBaseAvatar>
+                                </Tooltip>
+                              </BaseAvatar>
+                            </UserAvatar>
                           </div>
                         </AvatarWrapper>
                         <CommitMessage>
@@ -481,8 +447,8 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                           <div
                             className="css-wh8qge-AvatarWrapper eyce8w20"
                           >
-                            <Avatar
-                              hasTooltip={false}
+                            <UserAvatar
+                              gravatar={false}
                               size={36}
                               user={
                                 Object {
@@ -513,62 +479,38 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                 }
                               }
                             >
-                              <UserAvatar
-                                gravatar={false}
+                              <BaseAvatar
+                                gravatarId="example@sentry.io"
                                 hasTooltip={false}
+                                letterId="example@sentry.io"
+                                round={true}
                                 size={36}
-                                user={
-                                  Object {
-                                    "avatar": Object {
-                                      "avatarType": "letter_avatar",
-                                      "avatarUuid": null,
-                                    },
-                                    "avatarUrl": "https://example.com/avatar.png",
-                                    "dateJoined": "2018-02-26T23:57:43.766Z",
-                                    "email": "example@sentry.io",
-                                    "emails": Array [
-                                      Object {
-                                        "email": "example@sentry.io",
-                                        "id": "231605",
-                                        "is_verified": true,
-                                      },
-                                    ],
-                                    "has2fa": false,
-                                    "hasPasswordAuth": true,
-                                    "id": "224288",
-                                    "isActive": true,
-                                    "isManaged": false,
-                                    "isSuperuser": true,
-                                    "lastActive": "2018-11-30T21:25:15.222Z",
-                                    "lastLogin": "2018-11-30T21:18:09.812Z",
-                                    "name": "Foo Bar",
-                                    "username": "example@sentry.io",
-                                  }
-                                }
+                                style={Object {}}
+                                title="Foo Bar"
+                                tooltip="Foo Bar (example@sentry.io)"
+                                type="letter_avatar"
+                                uploadId=""
+                                uploadPath="avatar"
                               >
-                                <BaseAvatar
-                                  gravatarId="example@sentry.io"
-                                  hasTooltip={false}
-                                  letterId="example@sentry.io"
-                                  round={true}
-                                  size={36}
-                                  style={Object {}}
-                                  title="Foo Bar"
-                                  tooltip="Foo Bar (example@sentry.io)"
-                                  type="letter_avatar"
-                                  uploadId=""
-                                  uploadPath="avatar"
+                                <Tooltip
+                                  containerDisplayMode="inline-block"
+                                  disabled={true}
+                                  position="top"
+                                  title="Foo Bar (example@sentry.io)"
                                 >
-                                  <Tooltip
-                                    containerDisplayMode="inline-block"
-                                    disabled={true}
-                                    position="top"
-                                    title="Foo Bar (example@sentry.io)"
+                                  <StyledBaseAvatar
+                                    className="avatar"
+                                    loaded={true}
+                                    round={true}
+                                    style={
+                                      Object {
+                                        "height": "36px",
+                                        "width": "36px",
+                                      }
+                                    }
                                   >
-                                    <StyledBaseAvatar
-                                      className="avatar"
-                                      loaded={true}
-                                      round={true}
+                                    <span
+                                      className="avatar css-3f9bmx-StyledBaseAvatar e147uwb0"
                                       style={
                                         Object {
                                           "height": "36px",
@@ -576,62 +518,52 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                         }
                                       }
                                     >
-                                      <span
-                                        className="avatar css-3f9bmx-StyledBaseAvatar e147uwb0"
-                                        style={
-                                          Object {
-                                            "height": "36px",
-                                            "width": "36px",
-                                          }
-                                        }
+                                      <LetterAvatar
+                                        displayName="Foo Bar"
+                                        identifier="example@sentry.io"
+                                        round={true}
                                       >
-                                        <LetterAvatar
+                                        <Component
+                                          className="css-vyy37i-LetterAvatar e12lgfev0"
                                           displayName="Foo Bar"
                                           identifier="example@sentry.io"
                                           round={true}
                                         >
-                                          <Component
+                                          <svg
                                             className="css-vyy37i-LetterAvatar e12lgfev0"
-                                            displayName="Foo Bar"
-                                            identifier="example@sentry.io"
-                                            round={true}
+                                            viewBox="0 0 120 120"
                                           >
-                                            <svg
-                                              className="css-vyy37i-LetterAvatar e12lgfev0"
-                                              viewBox="0 0 120 120"
-                                            >
-                                              <rect
-                                                fill="#847a8c"
-                                                height="120"
-                                                rx="15"
-                                                ry="15"
-                                                width="120"
-                                                x="0"
-                                                y="0"
-                                              />
-                                              <text
-                                                fill="#FFFFFF"
-                                                fontSize="65"
-                                                style={
-                                                  Object {
-                                                    "dominantBaseline": "central",
-                                                  }
+                                            <rect
+                                              fill="#847a8c"
+                                              height="120"
+                                              rx="15"
+                                              ry="15"
+                                              width="120"
+                                              x="0"
+                                              y="0"
+                                            />
+                                            <text
+                                              fill="#FFFFFF"
+                                              fontSize="65"
+                                              style={
+                                                Object {
+                                                  "dominantBaseline": "central",
                                                 }
-                                                textAnchor="middle"
-                                                x="50%"
-                                                y="50%"
-                                              >
-                                                FB
-                                              </text>
-                                            </svg>
-                                          </Component>
-                                        </LetterAvatar>
-                                      </span>
-                                    </StyledBaseAvatar>
-                                  </Tooltip>
-                                </BaseAvatar>
-                              </UserAvatar>
-                            </Avatar>
+                                              }
+                                              textAnchor="middle"
+                                              x="50%"
+                                              y="50%"
+                                            >
+                                              FB
+                                            </text>
+                                          </svg>
+                                        </Component>
+                                      </LetterAvatar>
+                                    </span>
+                                  </StyledBaseAvatar>
+                                </Tooltip>
+                              </BaseAvatar>
+                            </UserAvatar>
                           </div>
                         </AvatarWrapper>
                         <CommitMessage>

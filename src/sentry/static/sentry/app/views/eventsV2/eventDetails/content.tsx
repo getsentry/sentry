@@ -31,6 +31,7 @@ import EventInterfaces from './eventInterfaces';
 import LinkedIssue from './linkedIssue';
 import DiscoverBreadcrumb from '../breadcrumb';
 import {SectionHeading} from '../styles';
+import EventBreakdown from './transaction/eventBreakdown';
 
 const slugValidator = function(
   props: {[key: string]: any},
@@ -170,6 +171,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
             />
           </div>
           <div style={{gridColumn: '2/3', display: isSidebarVisible ? '' : 'none'}}>
+            <EventBreakdown event={event} />
             <EventMetadata
               event={event}
               organization={organization}

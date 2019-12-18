@@ -4,7 +4,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {t, tn, tct} from 'app/locale';
-import Avatar from 'app/components/avatar';
+import UserAvatar from 'app/components/avatar/userAvatar';
 import CommitLink from 'app/components/commitLink';
 import Duration from 'app/components/duration';
 import IssueLink from 'app/components/issueLink';
@@ -309,7 +309,7 @@ class ActivityItem extends React.Component {
     }
 
     const avatar = item.user ? (
-      <Avatar user={item.user} size={36} className="activity-avatar" />
+      <UserAvatar user={item.user} size={36} className="activity-avatar" />
     ) : (
       <div className="activity-avatar avatar sentry">
         <span className="icon-sentry-logo" />
