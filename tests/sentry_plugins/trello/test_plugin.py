@@ -59,8 +59,68 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
         self.group = self.create_group(message="Hello world", culprit="foo.bar")
         self.plugin.set_option("token", "43f", self.project)
         self.plugin.set_option("key", "39g", self.project)
+        self.plugin.set_option("organization", "f187", self.project)
 
         self.login_as(self.user)
+
+    def test_get_config_no_org(self):
+        self.plugin.unset_option("organization", self.project)
+        out = self.plugin.get_config(self.project)
+        assert out == [
+            {
+                "default": "39g",
+                "required": True,
+                "type": "text",
+                "name": "key",
+                "label": "Trello API Key",
+            },
+            {
+                "name": "token",
+                "default": None,
+                "required": False,
+                "label": "Trello API Token",
+                "prefix": "43f",
+                "type": "secret",
+                "has_saved_value": True,
+            },
+        ]
+
+    @responses.activate
+    def test_get_config_include_additional(self):
+        self.plugin.unset_option("organization", self.project)
+
+        responses.add(
+            responses.GET,
+            "https://api.trello.com/1/members/me/organizations",
+            json=[{"name": "team 1", "id": "2d8e"}, {"name": "team 2", "id": "d0cc"}],
+        )
+        out = self.plugin.get_config(self.project, add_additial_fields=True)
+        assert out == [
+            {
+                "default": "39g",
+                "required": True,
+                "type": "text",
+                "name": "key",
+                "label": "Trello API Key",
+            },
+            {
+                "name": "token",
+                "default": None,
+                "required": False,
+                "label": "Trello API Token",
+                "prefix": "43f",
+                "type": "secret",
+                "has_saved_value": True,
+            },
+            {
+                "name": "organization",
+                "default": None,
+                "required": False,
+                "choices": [("2d8e", "team 1"), ("d0cc", "team 2")],
+                "label": "Trello Organization",
+                "type": "select",
+            },
+        ]
 
     @responses.activate
     def test_create_issue(self):
@@ -91,7 +151,7 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
             responses.POST, "https://api.trello.com/1/cards/SstgnBIQ/actions/comments", json={}
         )
 
-        form_data = {"comment": "please fix this", "card_short_link": "SstgnBIQ"}
+        form_data = {"comment": "please fix this", "issue_id": "SstgnBIQ"}
         request = self.make_request(user=self.user, method="POST")
 
         assert self.plugin.link_issue(request, self.group, form_data) == {
@@ -120,8 +180,75 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
         )
 
         request = self.make_request(user=self.user, method="GET")
-        request.GET["field"] = "list"
+        request.GET["option_field"] = "list"
         request.GET["board"] = "f34"
 
         response = self.plugin.view_options(request, self.group)
         assert response.data == {"list": [("8f3", "list 1"), ("j8f", "list 2")]}
+
+        request = responses.calls[0].request
+        assert request.url == "https://api.trello.com/1/boards/f34/lists?token=43f&key=39g"
+
+    @responses.activate
+    def test_view_autocomplete(self):
+        responses.add(
+            responses.GET,
+            "https://api.trello.com/1/search",
+            json={
+                "cards": [
+                    {"id": "4fsdafad", "name": "KeyError", "idShort": 1, "shortLink": "0lr"},
+                    {"id": "f4usdfa", "name": "Key Missing", "idShort": 3, "shortLink": "9lf"},
+                ]
+            },
+        )
+
+        request = self.make_request(user=self.user, method="GET")
+        request.GET["autocomplete_field"] = "issue_id"
+        request.GET["autocomplete_query"] = "Key"
+
+        response = self.plugin.view_autocomplete(request, self.group)
+        assert response.data == {
+            "issue_id": [
+                {"id": "0lr", "text": "(#1) KeyError"},
+                {"id": "9lf", "text": "(#3) Key Missing"},
+            ]
+        }
+
+        request = responses.calls[0].request
+        assert (
+            request.url
+            == "https://api.trello.com/1/search?cards_limit=100&partial=true&modelTypes=cards&idOrganizations=f187&token=43f&card_fields=name%2CshortLink%2CidShort&key=39g&query=Key"
+        )
+
+    @responses.activate
+    def test_view_autocomplete_no_org(self):
+        self.plugin.unset_option("organization", self.project)
+
+        responses.add(
+            responses.GET,
+            "https://api.trello.com/1/search",
+            json={
+                "cards": [
+                    {"id": "4fsdafad", "name": "KeyError", "idShort": 1, "shortLink": "0lr"},
+                    {"id": "f4usdfa", "name": "Key Missing", "idShort": 3, "shortLink": "9lf"},
+                ]
+            },
+        )
+
+        request = self.make_request(user=self.user, method="GET")
+        request.GET["autocomplete_field"] = "issue_id"
+        request.GET["autocomplete_query"] = "Key"
+
+        response = self.plugin.view_autocomplete(request, self.group)
+        assert response.data == {
+            "issue_id": [
+                {"id": "0lr", "text": "(#1) KeyError"},
+                {"id": "9lf", "text": "(#3) Key Missing"},
+            ]
+        }
+
+        request = responses.calls[0].request
+        assert (
+            request.url
+            == "https://api.trello.com/1/search?cards_limit=100&partial=true&modelTypes=cards&token=43f&card_fields=name%2CshortLink%2CidShort&key=39g&query=Key"
+        )

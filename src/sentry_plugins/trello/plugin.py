@@ -135,7 +135,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
     def get_link_existing_issue_fields(self, request, group, event, **kwargs):
         return [
             {
-                "name": "card_short_link",
+                "name": "issue_id",
                 "label": "Card",
                 "type": "select",
                 "has_autocomplete": True,
@@ -180,7 +180,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
         client = self.get_client(group.project)
 
         try:
-            card = client.get_card(form_data["card_short_link"])
+            card = client.get_card(form_data["issue_id"])
         except Exception as e:
             self.raise_error(e)
 
@@ -237,7 +237,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
         query = request.GET.get("autocomplete_query")
 
         output = []
-        if field == "card_short_link" and query:
+        if field == "issue_id" and query:
             organization = self.get_option("organization", group.project)
 
             client = self.get_client(group.project)

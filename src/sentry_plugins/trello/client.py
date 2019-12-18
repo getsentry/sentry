@@ -72,10 +72,12 @@ class TrelloApiClient(ApiClient):
         out = self.request(path=search_path, params=params)
         return out["cards"]
 
-    def get_card(self, card_short_link):
-        return self.request(path=single_card_path % card_short_link, params={"fields": card_fields})
-
-    def create_comment(self, card_short_link, comment):
+    def get_card(self, card_id_or_short_link):
         return self.request(
-            method="POST", path=add_comment_path % card_short_link, params={"text": comment}
+            path=single_card_path % card_id_or_short_link, params={"fields": card_fields}
+        )
+
+    def create_comment(self, card_id_or_short_link, comment):
+        return self.request(
+            method="POST", path=add_comment_path % card_id_or_short_link, params={"text": comment}
         )
