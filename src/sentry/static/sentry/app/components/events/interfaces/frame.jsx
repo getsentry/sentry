@@ -430,21 +430,24 @@ export class Frame extends React.Component {
       return [t('No function name was supplied by the client SDK.'), warningType];
     }
 
-    switch (symbolicatorStatus) {
-      case SymbolicatorStatus.MISSING_SYMBOL:
-        return [t('The symbol was not found within the debug file.'), warningType];
-      case SymbolicatorStatus.UNKNOWN_IMAGE:
-        return [t('No image is specified for the address of the frame.'), warningType];
-      case SymbolicatorStatus.MISSING:
-        return [
-          t('The debug file could not be retrieved from any of the sources.'),
-          errorType,
-        ];
-      case SymbolicatorStatus.MALFORMED:
-        return [t('The retrieved debug file could not be processed.'), errorType];
-      default:
-        return [null, null];
+    if (func === '<unknown>') {
+      switch (symbolicatorStatus) {
+        case SymbolicatorStatus.MISSING_SYMBOL:
+          return [t('The symbol was not found within the debug file.'), warningType];
+        case SymbolicatorStatus.UNKNOWN_IMAGE:
+          return [t('No image is specified for the address of the frame.'), warningType];
+        case SymbolicatorStatus.MISSING:
+          return [
+            t('The debug file could not be retrieved from any of the sources.'),
+            errorType,
+          ];
+        case SymbolicatorStatus.MALFORMED:
+          return [t('The retrieved debug file could not be processed.'), errorType];
+        default:
+      }
     }
+
+    return [null, null];
   }
 
   renderLeadHint() {
