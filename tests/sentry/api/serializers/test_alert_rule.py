@@ -155,9 +155,8 @@ class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestC
         if data.get("frequency"):
             rule.data["frequency"] = data["frequency"]
         if data.get("date_added"):
-            print("modifying issue_rule date_added", data["date_added"])
             rule.date_added = data["date_added"]
-        print("rule date added first:",rule.date_added)
+
         rule.save()
         return rule
 
@@ -251,7 +250,6 @@ class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestC
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )
         assert response.status_code == 200
-
         result = json.loads(response.content)
         assert len(result) == 1
         assert result[0]["id"] == six.text_type(self.issue_rule.id)
@@ -317,12 +315,8 @@ class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestC
         self.two_alert_rule = self.create_alert_rule(
             projects=self.projects, date_added=before_now(minutes=1).replace(tzinfo=pytz.UTC)
         )
-        self.three_alert_rule = self.create_alert_rule(
-            projects=self.projects
-        )
+        self.three_alert_rule = self.create_alert_rule(projects=self.projects)
 
-        print("two_alert_rule.date_added",self.two_alert_rule.date_added)
-        print("three_alert_rule.date_added",self.three_alert_rule.date_added)
         # Modify 2nd rule to be date of 3rd rule. Second page offset should now be 1, or else we'll get the incorrect results (we should get one_alert_rule on the second page, but without an offset we would get two_alert_rule).
         self.one_alert_rule.date_added = self.two_alert_rule.date_added
         self.one_alert_rule.save()
@@ -336,7 +330,6 @@ class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestC
 
         result = json.loads(response.content)
         assert len(result) == 2
-        import pdb; pdb.set_trace()
         self.assert_alert_rule_serialized(self.three_alert_rule, result[0], skip_dates=True)
         self.assert_alert_rule_serialized(self.one_alert_rule, result[1], skip_dates=True)
 

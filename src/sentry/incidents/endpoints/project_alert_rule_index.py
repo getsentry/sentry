@@ -28,8 +28,9 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
         if not features.has("organizations:incidents", project.organization, actor=request.user):
             raise ResourceDoesNotExist
 
-        cursor_string = request.GET.get("cursor", six.binary_type(int(time.time())) + ":0:0")
-        print("cursor_string:",cursor_string)
+        cursor_string = request.GET.get(
+            "cursor", six.binary_type(int(time.time() * 1000000)) + ":0:0"
+        )
         try:
             limit = min(100, int(request.GET.get("limit", 25)))
         except ValueError as e:
@@ -38,8 +39,9 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
             )
 
         cursor = Cursor.from_string(cursor_string)
-        cursor_date = datetime.fromtimestamp(float(cursor.value)).replace(tzinfo=timezone.utc)
-        print("cursor_date", cursor_date)
+        cursor_date = datetime.fromtimestamp(float(cursor.value) / 1000000).replace(
+            tzinfo=timezone.utc
+        )
         alert_rule_queryset = (
             AlertRule.objects.fetch_for_project(project)
             .filter(date_added__lte=cursor_date)
@@ -54,8 +56,6 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
             .filter(date_added__lte=cursor_date)
             .order_by("-date_added")[: (limit + 1)]
         )
-        print(list(alert_rule_queryset))
-        print(list(legacy_rule_queryset))
         combined_rules = list(alert_rule_queryset) + list(legacy_rule_queryset)
         combined_rules.sort(
             key=lambda instance: (instance.date_added, type(instance)), reverse=True
@@ -63,10 +63,10 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
         combined_rules = combined_rules[cursor.offset : cursor.offset + limit + 1]
 
         def get_item_key(item, for_prev=False):
-            return float(item.date_added.strftime("%s.%f"))
+            return 1000000 * float(item.date_added.strftime("%s.%f"))
 
         cursor_result = build_cursor(
-            results=combined_rules, cursor=cursor, key=get_item_key, limit=limit
+            results=combined_rules, cursor=cursor, key=get_item_key, limit=limit, is_desc=True
         )
         results = list(cursor_result)
         context = serialize(results, request.user, CombinedRuleSerializer())
