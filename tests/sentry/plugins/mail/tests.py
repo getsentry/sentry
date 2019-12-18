@@ -18,8 +18,6 @@ from sentry.api.serializers import serialize, UserReportWithGroupSerializer
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.models import (
     Activity,
-    Event,
-    Group,
     GroupSubscription,
     Organization,
     OrganizationMember,
@@ -54,8 +52,9 @@ class MailPluginTest(TestCase):
         assert not self.plugin.should_notify(group=Mock(), event=Mock())
 
     def test_simple_notification(self):
-        group = self.create_group(message="Hello world")
-        event = self.create_event(group=group, message="Hello world", tags={"level": "error"})
+        event = self.store_event(
+            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
+        )
 
         rule = Rule.objects.create(project=self.project, label="my rule")
 
@@ -74,19 +73,15 @@ class MailPluginTest(TestCase):
     def test_notify_users_renders_interfaces_with_utf8(
         self, _send_mail, _to_email_html, _get_title
     ):
-        group = self.create_group(
-            first_seen=timezone.now(), last_seen=timezone.now(), project=self.project
-        )
-
         _to_email_html.return_value = u"רונית מגן"
         _get_title.return_value = "Stacktrace"
 
-        event = Event(
-            group_id=group.id,
-            project_id=self.project.id,
-            message="Soubor ji\xc5\xbe existuje",
-            # Create interface so get_title will be called on it.
-            data={"stacktrace": {"frames": [{}]}},
+        event = self.store_event(
+            data={
+                "message": "Soubor ji\xc5\xbe existuje",
+                "stacktrace": {"frames": [{}]}
+            },
+            project_id=self.project.id
         )
 
         notification = Notification(event=event)
@@ -106,24 +101,8 @@ class MailPluginTest(TestCase):
         event_data["type"] = event_type.key
         event_data["metadata"] = event_type.get_metadata(event_data)
 
-        group = Group(
-            id=2,
-            first_seen=timezone.now(),
-            last_seen=timezone.now(),
-            project=self.project,
-            message=event_manager.get_search_message(),
-            logger="root",
-            short_id=2,
-            data={"type": event_type.key, "metadata": event_type.get_metadata(event_data)},
-        )
-
-        event = Event(
-            group=group,
-            message=group.message,
-            project=self.project,
-            datetime=group.last_seen,
-            data=event_data,
-        )
+        event = event_manager.save(self.project.id)
+        group = event.group
 
         notification = Notification(event=event)
 
@@ -134,7 +113,7 @@ class MailPluginTest(TestCase):
         args, kwargs = _send_mail.call_args
         self.assertEquals(kwargs.get("project"), self.project)
         self.assertEquals(kwargs.get("reference"), group)
-        assert kwargs.get("subject") == u"BAR-2 - hello world"
+        assert kwargs.get("subject") == u"BAR-1 - hello world"
 
     @mock.patch("sentry.plugins.sentry_mail.models.MailPlugin._send_mail")
     def test_multiline_error(self, _send_mail):
@@ -145,24 +124,7 @@ class MailPluginTest(TestCase):
         event_data["type"] = event_type.key
         event_data["metadata"] = event_type.get_metadata(event_data)
 
-        group = Group(
-            id=2,
-            first_seen=timezone.now(),
-            last_seen=timezone.now(),
-            project=self.project,
-            message=event_manager.get_search_message(),
-            logger="root",
-            short_id=2,
-            data={"type": event_type.key, "metadata": event_type.get_metadata(event_data)},
-        )
-
-        event = Event(
-            group=group,
-            message=group.message,
-            project=self.project,
-            datetime=group.last_seen,
-            data=event_data,
-        )
+        event = event_manager.save(self.project.id)
 
         notification = Notification(event=event)
 
@@ -171,7 +133,7 @@ class MailPluginTest(TestCase):
 
         assert _send_mail.call_count == 1
         args, kwargs = _send_mail.call_args
-        assert kwargs.get("subject") == u"BAR-2 - hello world"
+        assert kwargs.get("subject") == u"BAR-1 - hello world"
 
     def test_get_sendable_users(self):
         from sentry.models import UserOption, User
@@ -223,8 +185,9 @@ class MailPluginTest(TestCase):
         assert user4.pk not in self.plugin.get_sendable_users(project)
 
     def test_notify_users_with_utf8_subject(self):
-        group = self.create_group(message="Hello world")
-        event = self.create_event(group=group, message=u"רונית מגן", tags={"level": "error"})
+        event = self.store_event(
+            data={"message": "רונית מגן", "level": "error"}, project_id=self.project.id
+        )
 
         notification = Notification(event=event)
 
@@ -592,13 +555,7 @@ class MailPluginOwnersTest(TestCase):
         assert sorted(email.to[0] for email in mail.outbox) == sorted(emails_sent_to)
 
     def test_get_send_to_with_team_owners(self):
-        event = Event(
-            group=self.group,
-            message=self.group.message,
-            project=self.project,
-            datetime=self.group.last_seen,
-            data=self.make_event_data("foo.py"),
-        )
+        event = self.store_event(data=self.make_event_data("foo.py"), project_id=self.project.id)
         assert sorted(set([self.user.pk, self.user2.pk])) == sorted(
             self.plugin.get_send_to(self.project, event.data)
         )
@@ -610,13 +567,7 @@ class MailPluginOwnersTest(TestCase):
         assert set([self.user.pk]) == self.plugin.get_send_to(self.project, event.data)
 
     def test_get_send_to_with_user_owners(self):
-        event = Event(
-            group=self.group,
-            message=self.group.message,
-            project=self.project,
-            datetime=self.group.last_seen,
-            data=self.make_event_data("foo.cbl"),
-        )
+        event = self.store_event(data=self.make_event_data("foo.cbl"), project_id=self.project.id)
         assert sorted(set([self.user.pk, self.user2.pk])) == sorted(
             self.plugin.get_send_to(self.project, event.data)
         )
@@ -628,61 +579,31 @@ class MailPluginOwnersTest(TestCase):
         assert set([self.user.pk]) == self.plugin.get_send_to(self.project, event.data)
 
     def test_get_send_to_with_user_owner(self):
-        event = Event(
-            group=self.group,
-            message=self.group.message,
-            project=self.project,
-            datetime=self.group.last_seen,
-            data=self.make_event_data("foo.jx"),
-        )
+        event = self.store_event(data=self.make_event_data("foo.jx"), project_id=self.project.id)
         assert set([self.user2.pk]) == self.plugin.get_send_to(self.project, event.data)
 
     def test_get_send_to_with_fallthrough(self):
-        event = Event(
-            group=self.group,
-            message=self.group.message,
-            project=self.project,
-            datetime=self.group.last_seen,
-            data=self.make_event_data("foo.jx"),
-        )
+        event = self.store_event(data=self.make_event_data("foo.jx"), project_id=self.project.id)
         assert set([self.user2.pk]) == self.plugin.get_send_to(self.project, event.data)
 
     def test_get_send_to_without_fallthrough(self):
         ProjectOwnership.objects.get(project_id=self.project.id).update(fallthrough=False)
-        event = Event(
-            group=self.group,
-            message=self.group.message,
-            project=self.project,
-            datetime=self.group.last_seen,
-            data=self.make_event_data("foo.cpp"),
-        )
+        event = self.store_event(data=self.make_event_data("foo.cpp"), project_id=self.project.id)
         assert [] == self.plugin.get_send_to(self.project, event.data)
 
     def test_notify_users_with_owners(self):
-        event_all_users = Event(
-            group=self.group,
-            message=self.group.message,
-            project=self.project,
-            datetime=self.group.last_seen,
-            data=self.make_event_data("foo.cbl"),
+        event_all_users = self.store_event(
+            data=self.make_event_data("foo.cbl"), project_id=self.project.id
         )
         self.assert_notify(event_all_users, [self.user.email, self.user2.email])
 
-        event_team = Event(
-            group=self.group,
-            message=self.group.message,
-            project=self.project,
-            datetime=self.group.last_seen,
-            data=self.make_event_data("foo.py"),
+        event_team = self.store_event(
+            data=self.make_event_data("foo.py"), project_id=self.project.id
         )
         self.assert_notify(event_team, [self.user.email, self.user2.email])
 
-        event_single_user = Event(
-            group=self.group,
-            message=self.group.message,
-            project=self.project,
-            datetime=self.group.last_seen,
-            data=self.make_event_data("foo.jx"),
+        event_single_user = self.store_event(
+            data=self.make_event_data("foo.jx"), project_id=self.project.id
         )
         self.assert_notify(event_single_user, [self.user2.email])
 
@@ -690,11 +611,7 @@ class MailPluginOwnersTest(TestCase):
         UserOption.objects.set_value(
             user=self.user2, key="mail:alert", value=0, project=self.project
         )
-        event_all_users = Event(
-            group=self.group,
-            message=self.group.message,
-            project=self.project,
-            datetime=self.group.last_seen,
-            data=self.make_event_data("foo.cbl"),
+        event_all_users = self.store_event(
+            data=self.make_event_data("foo.cbl"), project_id=self.project.id
         )
         self.assert_notify(event_all_users, [self.user.email])
