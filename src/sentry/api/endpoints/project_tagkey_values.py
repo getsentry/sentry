@@ -45,10 +45,10 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint, EnvironmentMixin):
             project.id,
             environment_id,
             tagkey.key,
-            query=request.GET.get("query"),
-            order_by="-last_seen",
             start=start,
             end=end,
+            query=request.GET.get("query"),
+            order_by="-last_seen",
         )
 
         return self.paginate(
