@@ -28,7 +28,7 @@ class TrelloApiClient(ApiClient):
         self.api_key = api_key
         self.token = token
         self.timeout = timeout
-        super(TrelloApiClient, self).__init__()
+        super(TrelloApiClient, self).__init__(**kwargs)
 
     def request(self, method="GET", path="", data=None, params=None):
         if params is None:
