@@ -231,8 +231,8 @@ matrix:
 
     # allowed to fail
     - python: 2.7
-      name: '[Django 1.11] Snuba Integration'
-      env: DJANGO_VERSION=">=1.10,<1.11" TEST_SUITE=snuba USE_SNUBA=1 SENTRY_ZOOKEEPER_HOSTS=localhost:2181 SENTRY_KAFKA_HOSTS=localhost:9092
+      name: '[Django 1.11] Snuba Integration with migrations'
+      env: DJANGO_VERSION=">=1.11,<1.12" TEST_SUITE=snuba USE_SNUBA=1 SENTRY_ZOOKEEPER_HOSTS=localhost:2181 SENTRY_KAFKA_HOSTS=localhost:9092 MIGRATIONS_TEST_MIGRATE=1
       services:
         - docker
         - memcached
@@ -276,7 +276,7 @@ matrix:
     - name: '[Django 1.11] Backend with migrations [Postgres] (1/2)'
     - name: '[Django 1.11] Backend with migrations [Postgres] (2/2)'
     - name: '[Django 1.11] Acceptance'
-    - name: '[Django 1.11] Snuba Integration'
+    - name: '[Django 1.11] Snuba Integration with migrations'
 
 notifications:
   webhooks:
