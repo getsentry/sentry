@@ -13,29 +13,23 @@ ADD_COMMENT_PATH = "/cards/%s/actions/comments"
 MEMBER_BOARD_PATH = "/members/me/boards"
 SEARCH_PATH = "/search"
 
-CARD_FIELDS = ",".join(
-  "name",
-  "shortLink",
-  "idShort",
-)
+CARD_FIELDS = ",".join(["name", "shortLink", "idShort"])
 
 
 class TrelloApiClient(ApiClient):
     base_url = "https://api.trello.com/1"
     plugin_name = "trello"
 
-    def __init__(self, api_key, token=None, timeout=5):
+    def __init__(self, api_key, token=None, **kwargs):
         self.api_key = api_key
         self.token = token
-        self.timeout = timeout
         super(TrelloApiClient, self).__init__(**kwargs)
 
-    def request(self, method="GET", path="", data=None, params=None):
-        if params is None:
-            params = {}
+    def request(self, method="GET", path="", data=None, params=None, **kwargs):
+        params = {} if params is None else params.copy()
         params["token"] = self.token
         params["key"] = self.api_key
-        return self._request(method, path, data=data, params=params)
+        return self._request(method, path, data=data, params=params, **kwargs)
 
     def get_organization_boards(self, org_id_or_name, fields=None):
         """

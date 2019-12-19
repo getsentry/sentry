@@ -14,6 +14,8 @@ from .client import TrelloApiClient
 
 SETUP_URL = "https://github.com/getsentry/sentry/blob/master/src/sentry_plugins/trello/Trello_Instructions.md"  # NOQA
 
+LABLEX_REGEX = re.compile("\w+/https://trello.com/")
+
 
 class TrelloPlugin(CorePluginMixin, IssuePlugin2):
     description = "Create Trello cards on issues"
@@ -214,8 +216,8 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
         Return label of the linked issue we show in the UI from the issue string
         """
         # the old version of the plugin stores the url in the issue
-        if re.search("\w+/https://trello.com/", issue):
-            short_issue = issue.partition("/")[0]
+        if LABLEX_REGEX.search(issue):
+            short_issue = issue.split("/", 1)[0]
             return "Trello-%s" % short_issue
         return "Trello-%s" % issue
 
@@ -227,9 +229,8 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
         if isinstance(issue, dict):
             issue = issue["id"]
         # the old version of the plugin stores the url in the issue
-        if re.search("\w+/https://trello.com/", issue):
-            url = issue.partition("/")[2]
-            return url
+        if LABLEX_REGEX.search(issue):
+            return issue.split("/", 1)[1]
         return "https://trello.com/c/%s" % issue
 
     def view_options(self, request, group, **kwargs):
@@ -271,7 +272,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
             client = self.get_client(group.project)
             cards = client.get_cards(query, organization)
             output = [
-                {"text": "(#%s) %s" % (i["idShort"], i["name"]), "id": i["shortLink"]}
+                {"text": "(#%s) %s" % (card["idShort"], card["name"]), "id": card["shortLink"]}
                 for card in cards
             ]
 

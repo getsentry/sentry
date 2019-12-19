@@ -217,7 +217,7 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
         request = responses.calls[0].request
         assert (
             request.url
-            == "https://api.trello.com/1/search?cards_limit=100&partial=true&modelTypes=cards&idOrganizations=f187&token=7c8951d1&card_fields=name%2CshortLink%2CidShort&key=39g&query=Key"
+            == "https://api.trello.com/1/search?cards_limit=100&partial=true&card_fields=name%2CshortLink%2CidShort&key=39g&query=Key&modelTypes=cards&token=7c8951d1&idOrganizations=f187"
         )
 
     @responses.activate
