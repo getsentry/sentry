@@ -71,6 +71,7 @@ exports[`GuideAnchor renders, advances, and finishes 1`] = `
           >
             <div
               class="hovercard css-17wb929-StyledHovercard e38w1je0"
+              id="hovercard-123456"
               style="position: absolute; top: 0px; left: 0px; opacity: 0; pointer-events: none;"
             >
               <div
@@ -180,6 +181,7 @@ exports[`GuideAnchor renders, advances, and finishes 1`] = `
           >
             <StyledHovercard
               className="hovercard"
+              id="hovercard-123456"
               innerRef={[Function]}
               style={
                 Object {
@@ -195,6 +197,7 @@ exports[`GuideAnchor renders, advances, and finishes 1`] = `
             >
               <div
                 className="hovercard css-17wb929-StyledHovercard e38w1je0"
+                id="hovercard-123456"
                 style={
                   Object {
                     "left": 0,
@@ -428,6 +431,7 @@ exports[`GuideAnchor renders, advances, and finishes 2`] = `
           >
             <div
               class="hovercard css-17wb929-StyledHovercard e38w1je0"
+              id="hovercard-123456"
               style="position: absolute; top: 0px; left: 0px; opacity: 0; pointer-events: none;"
             >
               <div
@@ -520,6 +524,7 @@ exports[`GuideAnchor renders, advances, and finishes 2`] = `
           >
             <StyledHovercard
               className="hovercard"
+              id="hovercard-123456"
               innerRef={[Function]}
               style={
                 Object {
@@ -535,6 +540,7 @@ exports[`GuideAnchor renders, advances, and finishes 2`] = `
             >
               <div
                 className="hovercard css-17wb929-StyledHovercard e38w1je0"
+                id="hovercard-123456"
                 style={
                   Object {
                     "left": 0,
