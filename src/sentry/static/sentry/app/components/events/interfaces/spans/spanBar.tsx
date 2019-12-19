@@ -713,7 +713,10 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
                 width: toPercent(bounds.width || 0),
               }}
             >
-              <DurationPill durationDisplay={durationDisplay}>
+              <DurationPill
+                durationDisplay={durationDisplay}
+                showDetail={this.state.showDetail}
+              >
                 {durationString}
                 {this.renderWarningText({warningText: bounds.warning})}
               </DurationPill>
@@ -785,7 +788,7 @@ const SpanRowCell = styled('div')<SpanRowCellProps>`
   height: 100%;
   overflow: hidden;
   background-color: ${p => getBackgroundColor(p)};
-  color: ${p => (p.showDetail ? p.theme.white : null)};
+  color: ${p => (p.showDetail ? p.theme.white : 'inherit')};
 `;
 
 const SpanRowCellContainer = styled('div')`
@@ -956,15 +959,18 @@ const getDurationPillAlignment = ({durationDisplay}) => {
   }
 };
 
-const DurationPill = styled('div')<{durationDisplay: DurationDisplay}>`
+const DurationPill = styled('div')<{
+  durationDisplay: DurationDisplay;
+  showDetail: boolean;
+}>`
   position: absolute;
-  color: ${p => p.theme.gray2};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
-  white-space: nowrap;
+  top: 50%;
   display: flex;
   align-items: center;
-  top: 50%;
   transform: translateY(-50%);
+  white-space: nowrap;
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  color: ${p => (p.showDetail === true ? p.theme.gray1 : p.theme.gray2)};
 
   ${getDurationPillAlignment}
 
