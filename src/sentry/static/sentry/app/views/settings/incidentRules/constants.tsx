@@ -7,7 +7,7 @@ import {
 
 export function createDefaultTrigger(): Trigger {
   return {
-    label: '',
+    label: 'critical',
     alertThreshold: 0,
     resolveThreshold: '',
     thresholdType: AlertRuleThresholdType.ABOVE,

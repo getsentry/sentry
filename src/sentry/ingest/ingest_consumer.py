@@ -14,10 +14,12 @@ from sentry.models import Project, File, EventAttachment
 from sentry.signals import event_accepted
 from sentry.tasks.store import preprocess_event
 from sentry.utils import json
+from sentry.utils.dates import to_datetime
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.kafka import create_batching_kafka_consumer
 from sentry.utils.batching_kafka_consumer import AbstractBatchWorker
 from sentry.attachments import CachedAttachment, attachment_cache
+from sentry.ingest.userreport import Conflict, save_userreport
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +58,8 @@ class IngestConsumerWorker(AbstractBatchWorker):
             process_attachment_chunk(message)
         elif message_type == "attachment":
             process_individual_attachment(message)
+        elif message_type == "user_report":
+            process_userreport(message)
         else:
             raise ValueError("Unknown message type: {}".format(message_type))
 
@@ -171,6 +175,25 @@ def process_individual_attachment(message):
     )
 
     attachment.delete()
+
+
+def process_userreport(message):
+    project_id = message["project_id"]
+    start_time = to_datetime(message["start_time"])
+    feedback = json.loads(message["payload"])
+
+    try:
+        project = Project.objects.get_from_cache(id=project_id)
+    except Project.DoesNotExist:
+        logger.error("Project for ingested event does not exist: %s", project_id)
+        return False
+
+    try:
+        save_userreport(project, feedback, start_time=start_time)
+        return True
+    except Conflict as e:
+        logger.info("Invalid userreport: %s", e)
+        return False
 
 
 def get_ingest_consumer(consumer_type, once=False, **options):
