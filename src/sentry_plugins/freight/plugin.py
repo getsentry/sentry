@@ -1,10 +1,3 @@
-"""
-freight.plugin
-~~~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2015 by Sentry Team, see AUTHORS for more details.
-:license: Apache 2.0, see LICENSE for more details.
-"""
 from __future__ import absolute_import
 
 import json
