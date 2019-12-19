@@ -141,7 +141,7 @@ describe('Incident Rules Details', function() {
     });
 
     // Save Trigger
-    wrapper.find('button[aria-label="Save Changes"]').simulate('submit');
+    wrapper.find('button[aria-label="Save Rule"]').simulate('submit');
 
     expect(editRule).toHaveBeenCalledWith(
       expect.anything(),
@@ -222,7 +222,7 @@ describe('Incident Rules Details', function() {
       .simulate('click');
 
     // Save Trigger
-    wrapper.find('button[aria-label="Save Changes"]').simulate('submit');
+    wrapper.find('button[aria-label="Save Rule"]').simulate('submit');
 
     expect(editRule).toHaveBeenCalledWith(
       expect.anything(),
