@@ -68,6 +68,15 @@ class CursorWrapper(object):
     def __iter__(self):
         return iter(self.cursor)
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        try:
+            self.close()
+        except self.db.Database.Error:
+            pass
+
     @capture_transaction_exceptions
     @auto_reconnect_cursor
     @less_shitty_error_messages
