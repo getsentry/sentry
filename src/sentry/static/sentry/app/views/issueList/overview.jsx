@@ -597,8 +597,9 @@ const IssueListOverview = createReactClass({
   tagValueLoader(key, search) {
     const {orgId} = this.props.params;
     const projectIds = this.getGlobalSearchProjects().map(p => p.id);
+    const endpointParams = this.getEndpointParams();
 
-    return fetchTagValues(this.api, orgId, key, search, projectIds);
+    return fetchTagValues(this.api, orgId, key, search, projectIds, endpointParams);
   },
 
   render() {

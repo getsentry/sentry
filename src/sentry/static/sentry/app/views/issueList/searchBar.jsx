@@ -88,9 +88,9 @@ class IssueListSearchBar extends React.Component {
    * with data when ready
    */
   getTagValues = (tag, query) => {
-    const {tagValueLoader} = this.props;
+    const {tagValueLoader, projectIds} = this.props;
 
-    return tagValueLoader(tag.key, query).then(
+    return tagValueLoader(tag.key, query, projectIds).then(
       values => values.map(({value}) => value),
       () => {
         throw new Error('Unable to fetch project tags');

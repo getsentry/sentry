@@ -564,12 +564,21 @@ class SnubaTagStorage(TagStorage):
         return defaultdict(int, {k: v for k, v in result.items() if v})
 
     def get_tag_value_paginator(
-        self, project_id, environment_id, key, query=None, order_by="-last_seen"
+        self,
+        project_id,
+        environment_id,
+        key,
+        start=None,
+        end=None,
+        query=None,
+        order_by="-last_seen",
     ):
         return self.get_tag_value_paginator_for_projects(
             get_project_list(project_id),
             [environment_id] if environment_id else None,
             key,
+            start=start,
+            end=end,
             query=query,
             order_by=order_by,
         )
