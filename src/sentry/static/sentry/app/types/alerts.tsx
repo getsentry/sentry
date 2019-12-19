@@ -44,16 +44,18 @@ export type IssueAlertRuleCondition = Omit<
   [key: string]: number | string;
 };
 
-// Issue-based alert rule
-export type IssueAlertRule = {
+export type UnsavedIssueAlertRule = {
   actionMatch: 'all' | 'any';
   actions: IssueAlertRuleAction[];
   conditions: IssueAlertRuleCondition[];
-  dateCreated: string;
   environment: null | string;
   frequency: number;
-  id: string;
   name: string;
+};
+// Issue-based alert rule
+export type IssueAlertRule = UnsavedIssueAlertRule & {
+  dateCreated: string;
+  id: string;
 };
 
 /**
