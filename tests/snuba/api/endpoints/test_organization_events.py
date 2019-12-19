@@ -13,8 +13,8 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super(OrganizationEventsEndpointTest, self).setUp()
-        self.min_ago = before_now(minutes=1)
-        self.day_ago = before_now(days=1)
+        self.min_ago = iso_format(before_now(minutes=1))
+        self.day_ago = iso_format(before_now(days=1))
 
     def assert_events_in_response(self, response, event_ids):
         assert sorted(map(lambda x: x["eventID"], response.data)) == sorted(event_ids)
@@ -26,12 +26,10 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         project2 = self.create_project()
 
         event_1 = self.store_event(
-            data={"event_id": "a" * 32, "timestamp": iso_format(self.min_ago)},
-            project_id=project.id,
+            data={"event_id": "a" * 32, "timestamp": self.min_ago}, project_id=project.id
         )
         event_2 = self.store_event(
-            data={"event_id": "b" * 32, "timestamp": iso_format(self.min_ago)},
-            project_id=project2.id,
+            data={"event_id": "b" * 32, "timestamp": self.min_ago}, project_id=project2.id
         )
 
         url = reverse(
@@ -50,11 +48,14 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
 
         project = self.create_project()
         project2 = self.create_project()
-        group = self.create_group(project=project)
-        group2 = self.create_group(project=project2)
-        event_1 = self.create_event(event_id="a" * 32, group=group, datetime=self.min_ago)
-        event_2 = self.create_event(event_id="b" * 32, group=group2, datetime=self.min_ago)
-
+        event_1 = self.store_event(
+            data={"event_id": "a" * 32, "timestamp": iso_format(before_now(seconds=1))},
+            project_id=project.id,
+        )
+        event_2 = self.store_event(
+            data={"event_id": "b" * 32, "timestamp": iso_format(before_now(seconds=1))},
+            project_id=project2.id,
+        )
         url = reverse(
             "sentry-api-0-organization-events",
             kwargs={"organization_slug": project.organization.slug},
@@ -69,14 +70,14 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         project = self.create_project()
-        group = self.create_group(project=project)
-        self.create_event(
-            event_id="x" * 32, group=group, message="how to make fast", datetime=self.min_ago
+        self.store_event(
+            data={"message": "how to make fast", "timestamp": iso_format(before_now(seconds=1))},
+            project_id=project.id,
         )
-        event_2 = self.create_event(
-            event_id="y" * 32, group=group, message="Delet the Data", datetime=self.min_ago
+        event_2 = self.store_event(
+            data={"message": "Delet the Data", "timestamp": iso_format(before_now(seconds=1))},
+            project_id=project.id,
         )
-
         url = reverse(
             "sentry-api-0-organization-events",
             kwargs={"organization_slug": project.organization.slug},
@@ -92,16 +93,25 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         project = self.create_project()
-        group = self.create_group(project=project)
-        event_1 = self.create_event(
-            event_id="x" * 32, group=group, message="how to make fast", datetime=self.min_ago
+
+        event_1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "how to make fast",
+                "timestamp": iso_format(before_now(seconds=1)),
+                "fingerprint": ["group-1"],
+            },
+            project_id=project.id,
         )
-        event_2 = self.create_event(
-            event_id="y" * 32,
-            group=group,
-            message="Delet the Data",
-            datetime=self.min_ago,
-            user={"email": "foo@example.com"},
+        event_2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "Delet the Data",
+                "timestamp": iso_format(before_now(seconds=1)),
+                "fingerprint": ["group-1"],
+                "user": {"email": "foo@example.com"},
+            },
+            project_id=project.id,
         )
 
         url = reverse(
@@ -125,11 +135,9 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         project = self.create_project()
-        group = self.create_group(project=project)
-        self.create_event(
-            event_id="x" * 32, group=group, message="how to make fast", datetime=self.min_ago
+        self.store_event(
+            data={"event_id": "a" * 32, "message": "how to make fast"}, project_id=project.id
         )
-
         url = reverse(
             "sentry-api-0-organization-events",
             kwargs={"organization_slug": project.organization.slug},
@@ -168,13 +176,15 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         project = self.create_project(organization=org, teams=[team])
         project2 = self.create_project(organization=org, teams=[team])
         project3 = self.create_project(organization=org)
-        group = self.create_group(project=project)
-        group2 = self.create_group(project=project2)
-        group3 = self.create_group(project=project3)
-        event_1 = self.create_event(event_id="a" * 32, group=group, datetime=self.min_ago)
-        event_2 = self.create_event(event_id="b" * 32, group=group2, datetime=self.min_ago)
-        self.create_event(event_id="c" * 32, group=group3, datetime=self.min_ago)
-
+        event_1 = self.store_event(
+            data={"event_id": "a" * 32, "timestamp": self.min_ago}, project_id=project.id
+        )
+        event_2 = self.store_event(
+            data={"event_id": "b" * 32, "timestamp": self.min_ago}, project_id=project2.id
+        )
+        self.store_event(
+            data={"event_id": "c" * 32, "timestamp": self.min_ago}, project_id=project3.id
+        )
         base_url = reverse(
             "sentry-api-0-organization-events",
             kwargs={"organization_slug": project.organization.slug},
@@ -211,11 +221,12 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
 
         project = self.create_project()
         project2 = self.create_project()
-        group = self.create_group(project=project)
-        group2 = self.create_group(project=project2)
-        event_1 = self.create_event(event_id="a" * 32, group=group, datetime=self.min_ago)
-        self.create_event(event_id="b" * 32, group=group2, datetime=self.day_ago)
-
+        event_1 = self.store_event(
+            data={"event_id": "a" * 32, "timestamp": self.min_ago}, project_id=project.id
+        )
+        self.store_event(
+            data={"event_id": "b" * 32, "timestamp": self.day_ago}, project_id=project2.id
+        )
         url = reverse(
             "sentry-api-0-organization-events",
             kwargs={"organization_slug": project.organization.slug},
@@ -232,10 +243,12 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
 
         project = self.create_project()
         project2 = self.create_project()
-        group = self.create_group(project=project)
-        group2 = self.create_group(project=project2)
-        event_1 = self.create_event(event_id="a" * 32, group=group, datetime=self.min_ago)
-        self.create_event(event_id="b" * 32, group=group2, datetime=self.day_ago)
+        event_1 = self.store_event(
+            data={"event_id": "a" * 32, "timestamp": self.min_ago}, project_id=project.id
+        )
+        self.store_event(
+            data={"event_id": "b" * 32, "timestamp": self.day_ago}, project_id=project2.id
+        )
 
         now = timezone.now()
 
@@ -286,7 +299,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
                 self.store_event(
                     data={
                         "event_id": event_id,
-                        "timestamp": iso_format(self.min_ago),
+                        "timestamp": self.min_ago,
                         "fingerprint": ["put-me-in-group1"],
                         "environment": env.name or None,
                     },
@@ -364,15 +377,14 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         self.login_as(user=user)
 
         project = self.create_project(organization=org, teams=[team])
-        group = self.create_group(project=project)
-
-        event_1 = self.create_event(
-            event_id="a" * 32, group=group, datetime=self.min_ago, tags={"fruit": "apple"}
+        event_1 = self.store_event(
+            data={"event_id": "a" * 32, "tags": {"fruit": "apple"}, "fingerprint": ["group-1"]},
+            project_id=project.id,
         )
-        event_2 = self.create_event(
-            event_id="b" * 32, group=group, datetime=self.min_ago, tags={"fruit": "orange"}
+        event_2 = self.store_event(
+            data={"event_id": "b" * 32, "tags": {"fruit": "orange"}, "fingerprint": ["group-1"]},
+            project_id=project.id,
         )
-
         base_url = reverse(
             "sentry-api-0-organization-events", kwargs={"organization_slug": org.slug}
         )
@@ -395,23 +407,38 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         self.login_as(user=user)
 
         project = self.create_project(organization=org, teams=[team])
-        group = self.create_group(project=project)
 
-        event_1 = self.create_event(
-            event_id="a" * 32, group=group, datetime=self.min_ago, tags={"sentry:release": "3.1.2"}
+        event_1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "tags": {"sentry:release": "3.1.2"},
+                "timestamp": self.min_ago,
+            },
+            project_id=project.id,
         )
-        event_2 = self.create_event(
-            event_id="b" * 32, group=group, datetime=self.min_ago, tags={"sentry:release": "4.1.2"}
+        event_2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "tags": {"sentry:release": "4.1.2"},
+                "timestamp": self.min_ago,
+            },
+            project_id=project.id,
         )
-        event_3 = self.create_event(
-            event_id="c" * 32, group=group, datetime=self.min_ago, user={"email": "foo@example.com"}
+        event_3 = self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "user": {"email": "foo@example.com"},
+                "timestamp": self.min_ago,
+            },
+            project_id=project.id,
         )
-
-        event_4 = self.create_event(
-            event_id="d" * 32,
-            group=group,
-            datetime=self.min_ago,
-            user={"email": "foo@example.commmmmmmm"},
+        event_4 = self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "user": {"email": "foo@example.commmmmmmm"},
+                "timestamp": self.min_ago,
+            },
+            project_id=project.id,
         )
 
         base_url = reverse(
@@ -453,16 +480,21 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         self.login_as(user=user)
 
         project = self.create_project(organization=org, teams=[team])
-        group = self.create_group(project=project)
-
-        event_1 = self.create_event(
-            event_id="a" * 32, group=group, datetime=self.min_ago, user={"email": "foo@example.com"}
+        event_1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "user": {"email": "foo@example.com"},
+                "timestamp": self.min_ago,
+            },
+            project_id=project.id,
         )
-        event_2 = self.create_event(
-            event_id="b" * 32,
-            group=group,
-            datetime=self.min_ago,
-            tags={"example_tag": "example_value"},
+        event_2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "tags": {"example_tag": "example_value"},
+                "timestamp": self.min_ago,
+            },
+            project_id=project.id,
         )
 
         base_url = reverse(
@@ -510,11 +542,10 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         self.login_as(user=user)
 
         project = self.create_project(organization=org, teams=[team])
-        group = self.create_group(project=project)
-        self.create_event(
-            event_id="a" * 32, group=group, message="best event", datetime=self.min_ago
+        self.store_event(
+            data={"event_id": "a" * 32, "message": "best event", "timestamp": self.min_ago},
+            project_id=project.id,
         )
-
         url = reverse("sentry-api-0-organization-events", kwargs={"organization_slug": org.slug})
 
         response = self.client.get(url, {"query": "a" * 32}, format="json")
@@ -561,7 +592,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
                 self.store_event(
                     data={
                         "event_id": event_id,
-                        "timestamp": iso_format(self.min_ago),
+                        "timestamp": self.min_ago,
                         "fingerprint": [fingerprint],
                     },
                     project_id=project.id,
@@ -607,11 +638,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         team = self.create_team(organization=self.organization, members=[self.user])
         project = self.create_project(organization=self.organization, teams=[team])
         self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "message": "best event",
-                "timestamp": iso_format(self.min_ago),
-            },
+            data={"event_id": "a" * 32, "message": "best event", "timestamp": self.min_ago},
             project_id=project.id,
         )
         url = reverse(

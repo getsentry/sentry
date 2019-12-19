@@ -222,37 +222,40 @@ class GetEventFileCommitters(CommitTestCase):
         )
 
     def test_java_sdk_path_mangling(self):
-        event = self.create_event(
-            group=self.group,
-            message="Kaboom!",
-            platform="java",
-            stacktrace={
-                "frames": [
-                    {
-                        "function": "invoke0",
-                        "abs_path": "NativeMethodAccessorImpl.java",
-                        "in_app": False,
-                        "module": "jdk.internal.reflect.NativeMethodAccessorImpl",
-                        "filename": "NativeMethodAccessorImpl.java",
-                    },
-                    {
-                        "function": "home",
-                        "abs_path": "Application.java",
-                        "module": "io.sentry.example.Application",
-                        "in_app": True,
-                        "lineno": 30,
-                        "filename": "Application.java",
-                    },
-                    {
-                        "function": "handledError",
-                        "abs_path": "Application.java",
-                        "module": "io.sentry.example.Application",
-                        "in_app": True,
-                        "lineno": 39,
-                        "filename": "Application.java",
-                    },
-                ]
+        event = self.store_event(
+            data={
+                "message": "Kaboom!",
+                "platform": "java",
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "function": "invoke0",
+                            "abs_path": "NativeMethodAccessorImpl.java",
+                            "in_app": False,
+                            "module": "jdk.internal.reflect.NativeMethodAccessorImpl",
+                            "filename": "NativeMethodAccessorImpl.java",
+                        },
+                        {
+                            "function": "home",
+                            "abs_path": "Application.java",
+                            "module": "io.sentry.example.Application",
+                            "in_app": True,
+                            "lineno": 30,
+                            "filename": "Application.java",
+                        },
+                        {
+                            "function": "handledError",
+                            "abs_path": "Application.java",
+                            "module": "io.sentry.example.Application",
+                            "in_app": True,
+                            "lineno": 39,
+                            "filename": "Application.java",
+                        },
+                    ]
+                },
+                "tags": {"sentry:release": self.release.version},
             },
+            project_id=self.project.id,
         )
         self.release.set_commits(
             [
