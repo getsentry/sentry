@@ -290,7 +290,6 @@ const ContextPickerModalContainer = createReactClass<ContainerProps, ContainerSt
 });
 
 export default ContextPickerModalContainer;
-export {ContextPickerModal};
 
 const StyledSelectControl = styled(SelectControl)`
   margin-top: ${space(1)};
