@@ -7,9 +7,9 @@ import pytest
 import mock
 from django.conf import settings
 
+from sentry import eventstore
 from sentry.interfaces.stacktrace import get_context, is_url
 from sentry.event_manager import EventManager
-from sentry.models import Event
 
 
 def test_is_url():
@@ -33,7 +33,7 @@ def make_stacktrace_snapshot(insta_snapshot):
     def inner(data):
         mgr = EventManager(data={"stacktrace": data})
         mgr.normalize()
-        evt = Event(data=mgr.get_data())
+        evt = eventstore.create_event(data=mgr.get_data())
 
         interface = evt.interfaces.get("stacktrace")
 
