@@ -6,6 +6,7 @@ import six
 
 from sentry.api.serializers import register, serialize, Serializer
 from sentry.incidents.models import AlertRule, AlertRuleExcludedProjects, AlertRuleTrigger
+from sentry.models import Rule
 
 
 @register(AlertRule)
@@ -73,3 +74,29 @@ class DetailedAlertRuleSerializer(AlertRuleSerializer):
         data["projects"] = sorted(attrs["projects"])
         data["excludedProjects"] = sorted(attrs.get("excludedProjects", []))
         return data
+
+
+class CombinedRuleSerializer(Serializer):
+    def get_attrs(self, item_list, user, **kwargs):
+        results = super(CombinedRuleSerializer, self).get_attrs(item_list, user)
+
+        alert_rules = serialize([x for x in item_list if isinstance(x, AlertRule)], user=user)
+        rules = serialize([x for x in item_list if isinstance(x, Rule)], user=user)
+
+        for item in item_list:
+            if isinstance(item, AlertRule):
+                results[item] = alert_rules.pop(0)
+            elif isinstance(item, Rule):
+                results[item] = rules.pop(0)
+
+        return results
+
+    def serialize(self, obj, attrs, user, **kwargs):
+        if isinstance(obj, AlertRule):
+            attrs["type"] = "alert_rule"
+            return attrs
+        elif isinstance(obj, Rule):
+            attrs["type"] = "rule"
+            return attrs
+        else:
+            raise AssertionError("Invalid rule to serialize: %r" % type(obj))

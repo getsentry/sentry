@@ -286,19 +286,17 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
     def test_lookup_by_release(self):
         self.login_as(self.user)
-        project = self.project
-        release = Release.objects.create(organization=project.organization, version="12345")
-        release.add_project(project)
-        self.create_event(
-            group=self.group, datetime=self.min_ago, tags={"sentry:release": release.version}
+        version = "12345"
+        event = self.store_event(
+            data={"tags": {"sentry:release": version}}, project_id=self.project.id
         )
-
-        url = "%s?query=%s" % (self.path, quote('release:"%s"' % release.version))
+        group = event.group
+        url = "%s?query=%s" % (self.path, quote('release:"%s"' % version))
         response = self.client.get(url, format="json")
         issues = json.loads(response.content)
         assert response.status_code == 200
         assert len(issues) == 1
-        assert int(issues[0]["id"]) == self.group.id
+        assert int(issues[0]["id"]) == group.id
 
     def test_pending_delete_pending_merge_excluded(self):
         self.create_group(checksum="a" * 32, status=GroupStatus.PENDING_DELETION)
