@@ -1,27 +1,4 @@
 #!/usr/bin/env python
-"""
-Sentry
-======
-
-Sentry is a realtime event logging and aggregation platform. It specializes
-in monitoring errors and extracting all the information needed to do a proper
-post-mortem without any of the hassle of the standard user feedback loop.
-
-Sentry is a Server
-------------------
-
-The Sentry package, at its core, is just a simple server and web UI. It will
-handle authentication clients (such as `the Python one
-<https://github.com/getsentry/sentry-python>`_)
-and all of the logic behind storage and aggregation.
-
-That said, Sentry is not limited to Python. The primary implementation is in
-Python, but it contains a full API for sending events from any language, in
-any application.
-
-:copyright: (c) 2011-2019 by the Sentry Team, see AUTHORS for more details.
-:license: BSL-1.1, see LICENSE for more details.
-"""
 from __future__ import absolute_import
 
 import sys
