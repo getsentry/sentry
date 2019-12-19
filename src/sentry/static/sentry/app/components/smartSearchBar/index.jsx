@@ -15,6 +15,7 @@ import {
 } from 'app/constants';
 import {analytics} from 'app/utils/analytics';
 import {callIfFunction} from 'app/utils/callIfFunction';
+import {getUtcDateString} from 'app/utils/dates';
 import {defined} from 'app/utils';
 import {
   fetchRecentSearches,
@@ -482,7 +483,16 @@ class SmartSearchBar extends React.Component {
       });
 
       try {
-        const values = await this.props.onGetTagValues(tag, query);
+        const {location} = this.context.router;
+        const endpointParams = {};
+
+        if (location && location.query){
+          endpointParams.statsPeriod = location.query.statsPeriod ? location.query.statsPeriod : "14d";
+          endpointParams.start = location.query.start ? getUtcDateString(location.query.start) : null;
+          endpointParams.end = location.query.end ? getUtcDateString(location.query.end) : null;
+        }
+
+        const values = await this.props.onGetTagValues(tag, query, endpointParams);
         this.setState({loading: false});
         return values.map(value => {
           // Wrap in quotes if there is a space
