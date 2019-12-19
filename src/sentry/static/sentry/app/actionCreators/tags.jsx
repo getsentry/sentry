@@ -87,7 +87,14 @@ export function fetchOrganizationTags(api, orgId, projectIds = null) {
  * Fetch tag values for an organization.
  * The `projectIds` argument can be used to subset projects.
  */
-export function fetchTagValues(api, orgId, tagKey, search = null, projectIds = null, endpointParams = null) {
+export function fetchTagValues(
+  api,
+  orgId,
+  tagKey,
+  search = null,
+  projectIds = null,
+  endpointParams = null
+) {
   const url = `/organizations/${orgId}/tags/${tagKey}/values/`;
 
   const query = {};

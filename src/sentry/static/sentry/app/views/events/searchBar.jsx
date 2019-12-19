@@ -69,7 +69,14 @@ class SearchBar extends React.PureComponent {
     (tag, query, endpointParams) => {
       const {api, organization, projectIds} = this.props;
 
-      return fetchTagValues(api, organization.slug, tag.key, query, projectIds, endpointParams).then(
+      return fetchTagValues(
+        api,
+        organization.slug,
+        tag.key,
+        query,
+        projectIds,
+        endpointParams
+      ).then(
         results =>
           flatten(results.filter(({name}) => defined(name)).map(({name}) => name)),
         () => {

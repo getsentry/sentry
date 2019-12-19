@@ -15,7 +15,6 @@ import {
 } from 'app/constants';
 import {analytics} from 'app/utils/analytics';
 import {callIfFunction} from 'app/utils/callIfFunction';
-import {getUtcDateString} from 'app/utils/dates';
 import {defined} from 'app/utils';
 import {
   fetchRecentSearches,
@@ -36,7 +35,7 @@ import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams'
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 
 import SearchDropdown from './searchDropdown';
 
@@ -485,12 +484,7 @@ class SmartSearchBar extends React.Component {
 
       try {
         const {location} = this.context.router;
-        const {start, end, statsPeriod} = getParams(location.query);
-        const endpointParams = {
-          statsPeriod: statsPeriod,
-          start: start,
-          end: end
-        }
+        const endpointParams = getParams(location.query);
 
         const values = await this.props.onGetTagValues(tag, query, endpointParams);
         this.setState({loading: false});
