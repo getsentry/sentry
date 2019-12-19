@@ -200,8 +200,8 @@ class GridEditable<
 
     return (
       <HeaderButton onClick={this.toggleEdit} data-test-id="grid-edit-disable">
-        <InlineSvg src="icon-circle-close" />
-        {t('Exit Edit')}
+        <InlineSvg src="icon-circle-check" />
+        {t('Save & Close')}
       </HeaderButton>
     );
   };
