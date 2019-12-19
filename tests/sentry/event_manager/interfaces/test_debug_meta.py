@@ -4,7 +4,7 @@ from __future__ import absolute_import
 
 import pytest
 
-from sentry.models import Event
+from sentry import eventstore
 from sentry.event_manager import EventManager
 
 
@@ -13,7 +13,7 @@ def make_debug_meta_snapshot(insta_snapshot):
     def inner(data):
         mgr = EventManager(data={"debug_meta": data})
         mgr.normalize()
-        evt = Event(data=mgr.get_data())
+        evt = eventstore.create_event(data=mgr.get_data())
         interface = evt.interfaces.get("debug_meta")
         insta_snapshot(
             {"errors": evt.data.get("errors"), "to_json": interface and interface.to_json()}

@@ -1,12 +1,10 @@
-# -*- coding: utf-8 -*-
-
 from __future__ import absolute_import, print_function
 
 import os
 import json
 import pytest
 
-from sentry.models import Event
+from sentry import eventstore
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.event_manager import EventManager
 from sentry.grouping.component import GroupingComponent
@@ -95,7 +93,7 @@ def test_event_hash_variant(insta_snapshot, config_name, test_name, log):
     # Normalize the stacktrace for grouping.  This normally happens in
     # save()
     normalize_stacktraces_for_grouping(data, load_grouping_config(grouping_config))
-    evt = Event(data=data, platform=data["platform"])
+    evt = eventstore.create_event(data=data)
 
     # Make sure we don't need to touch the DB here because this would
     # break stuff later on.
