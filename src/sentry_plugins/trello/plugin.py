@@ -272,7 +272,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
             cards = client.get_cards(query, organization)
             output = [
                 {"text": "(#%s) %s" % (i["idShort"], i["name"]), "id": i["shortLink"]}
-                for i in cards
+                for card in cards
             ]
 
         return Response({field: output})
