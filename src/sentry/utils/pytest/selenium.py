@@ -11,7 +11,7 @@ import pytest
 from datetime import datetime
 from django.conf import settings
 from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException, WebDriverException
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.common.action_chains import ActionChains
@@ -312,6 +312,19 @@ def percy(request):
     return percy
 
 
+start_chrome_retry_attempts = 5
+
+
+def start_chrome(**chrome_args):
+    try:
+        return webdriver.Chrome(**chrome_args)
+    except WebDriverException:
+        if start_chrome_retry_attempts > 0:
+            global start_chrome_retry_attempts
+            start_chrome_retry_attempts = start_chrome_retry_attempts - 1
+            start_chrome(**chrome_args)
+
+
 @pytest.fixture(scope="function")
 def browser(request, percy, live_server):
     window_size = request.config.getoption("window_size")
@@ -330,10 +343,13 @@ def browser(request, percy, live_server):
         if chrome_path:
             options.binary_location = chrome_path
         chromedriver_path = request.config.getoption("chromedriver_path")
+        chrome_args = {
+            'options': options,
+        }
         if chromedriver_path:
-            driver = webdriver.Chrome(executable_path=chromedriver_path, options=options)
-        else:
-            driver = webdriver.Chrome(options=options)
+            chrome_args['executable_path'] = chromedriver_path
+
+        driver = start_chrome(**chrome_args)
     elif driver_type == "firefox":
         driver = webdriver.Firefox()
     elif driver_type == "phantomjs":
