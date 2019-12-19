@@ -1,4 +1,3 @@
-import React from 'react';
 import styled, {css} from 'react-emotion';
 
 import space from 'app/styles/space';
