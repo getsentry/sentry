@@ -713,7 +713,10 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
                 width: toPercent(bounds.width || 0),
               }}
             >
-              <DurationPill durationDisplay={durationDisplay}>
+              <DurationPill
+                durationDisplay={durationDisplay}
+                showDetail={this.state.showDetail}
+              >
                 {durationString}
                 {this.renderWarningText({warningText: bounds.warning})}
               </DurationPill>
@@ -956,7 +959,10 @@ const getDurationPillAlignment = ({durationDisplay}) => {
   }
 };
 
-const DurationPill = styled('div')<SpanRowCellProps & {durationDisplay: DurationDisplay}>`
+const DurationPill = styled('div')<{
+  durationDisplay: DurationDisplay;
+  showDetail: boolean;
+}>`
   position: absolute;
   top: 50%;
   display: flex;
@@ -964,7 +970,7 @@ const DurationPill = styled('div')<SpanRowCellProps & {durationDisplay: Duration
   transform: translateY(-50%);
   white-space: nowrap;
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  color: ${p => (p.showDetail ? p.theme.white : p.theme.gray2)};
+  color: ${p => (p.showDetail === true ? p.theme.gray1 : p.theme.gray2)};
 
   ${getDurationPillAlignment}
 
