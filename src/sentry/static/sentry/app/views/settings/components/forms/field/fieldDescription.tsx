@@ -14,7 +14,7 @@ const inlineStyle = p =>
         margin-bottom: ${space(1)};
       `;
 
-const FieldDescription = styled(({inline, ...props}) => <label {...props} />)`
+const FieldDescription = styled('label')<{inline?: boolean}>`
   font-weight: normal;
   margin-bottom: 0;
 
