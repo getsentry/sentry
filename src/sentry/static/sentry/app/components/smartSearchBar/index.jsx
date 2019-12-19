@@ -220,6 +220,7 @@ class SmartSearchBar extends React.Component {
 
     this.state = {
       query: props.query !== null ? addSpace(props.query) : props.defaultQuery,
+      noValueQuery: undefined,
 
       searchTerm: '',
       searchItems: [],
@@ -486,17 +487,30 @@ class SmartSearchBar extends React.Component {
         const {location} = this.context.router;
         const endpointParams = getParams(location.query);
 
-        const values = await this.props.onGetTagValues(tag, query, endpointParams);
-        this.setState({loading: false});
-        return values.map(value => {
-          // Wrap in quotes if there is a space
-          const escapedValue =
-            value.indexOf(' ') > -1 ? `"${value.replace('"', '\\"')}"` : value;
-          return {
-            value: escapedValue,
-            desc: escapedValue,
-          };
-        });
+        if (
+          this.state.noValueQuery === undefined ||
+          !query.startsWith(this.state.noValueQuery)
+        ) {
+          const values = await this.props.onGetTagValues(tag, query, endpointParams);
+          this.setState({loading: false});
+          if (values.length === 0 && query.length > 0) {
+            this.setState({noValueQuery: query});
+          } else {
+            this.setState({noValueQuery: undefined});
+          }
+          return values.map(value => {
+            // Wrap in quotes if there is a space
+            const escapedValue =
+              value.indexOf(' ') > -1 ? `"${value.replace('"', '\\"')}"` : value;
+            return {
+              value: escapedValue,
+              desc: escapedValue,
+            };
+          });
+        } else {
+          this.setState({loading: false});
+          return [];
+        }
       } catch (err) {
         this.setState({loading: false});
         Sentry.captureException(err);
