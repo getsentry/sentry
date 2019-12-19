@@ -41,7 +41,7 @@ class CrumbTable extends React.Component {
             <td
               className="key"
               css={
-                widerCategory && {maxWidth: '200px !important', width: '200px !important'}
+                widerCategory && {maxWidth: '215px !important', width: '215px !important'}
               }
             >
               <Category value={this.props.crumb.category} />
