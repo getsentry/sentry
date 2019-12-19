@@ -14,7 +14,7 @@ from setuptools import setup, find_packages
 from setuptools.command.sdist import sdist as SDistCommand
 from setuptools.command.develop import develop as DevelopCommand
 
-ROOT = os.path.realpath(os.path.join(os.path.dirname(sys.modules["__main__"].__file__)))
+ROOT = os.path.dirname(os.path.abspath(__file__))
 
 # add sentry to path so we can import distutils
 # XXX: consequentially, this means sentry must be pip installed with --no-use-pep517
