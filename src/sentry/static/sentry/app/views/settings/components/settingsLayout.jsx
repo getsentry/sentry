@@ -54,6 +54,7 @@ class SettingsLayout extends React.Component {
 const MaxWidthContainer = styled('div')`
   display: flex;
   max-width: ${p => p.theme.settings.containerWidth};
+  min-width: 600px; /* for small screen sizes, we need a min width to make it semi digestible */
   flex: 1;
 `;
 
@@ -69,6 +70,7 @@ const SettingsColumn = styled('div')`
   display: flex;
   flex-direction: column;
   flex: 1; /* so this stretches vertically so that footer is fixed at bottom */
+  min-width: 0; /* fixes problem when child content stretches beyond layout width */
   footer {
     margin-top: 0;
   }

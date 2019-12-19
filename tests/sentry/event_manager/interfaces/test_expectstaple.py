@@ -4,9 +4,9 @@ from __future__ import absolute_import
 
 import pytest
 
+from sentry import eventstore
 from sentry.interfaces.security import ExpectStaple
 from sentry.event_manager import EventManager
-from sentry.models import Event
 
 
 @pytest.fixture
@@ -14,7 +14,7 @@ def make_csp_snapshot(insta_snapshot):
     def inner(data):
         mgr = EventManager(data={"expectstaple": data})
         mgr.normalize()
-        evt = Event(data=mgr.get_data())
+        evt = eventstore.create_event(data=mgr.get_data())
         insta_snapshot(
             {
                 "errors": evt.data.get("errors"),
