@@ -39,6 +39,7 @@ export const DEFAULT_EVENT_VIEW: Readonly<NewQuery> = {
   orderby: '-timestamp',
   version: 2,
   tags: ['event.type', 'release', 'project.name', 'user.email', 'user.ip', 'environment'],
+  range: '24h',
 };
 
 export const TRANSACTION_VIEWS: Readonly<Array<NewQuery>> = [
@@ -59,6 +60,7 @@ export const TRANSACTION_VIEWS: Readonly<Array<NewQuery>> = [
     tags: ['release', 'project.name', 'user.email', 'user.ip', 'environment'],
     projects: [],
     version: 2,
+    range: '24h',
   },
 ];
 
@@ -73,6 +75,7 @@ export const ALL_VIEWS: Readonly<Array<NewQuery>> = [
     tags: ['project.name', 'release', 'environment'],
     projects: [],
     version: 2,
+    range: '24h',
   },
   {
     id: undefined,
@@ -84,6 +87,7 @@ export const ALL_VIEWS: Readonly<Array<NewQuery>> = [
     tags: ['error.type', 'project.name', 'release', 'environment'],
     projects: [],
     version: 2,
+    range: '24h',
   },
   {
     id: undefined,
@@ -95,6 +99,7 @@ export const ALL_VIEWS: Readonly<Array<NewQuery>> = [
     tags: ['error.type', 'project.name', 'url', 'release', 'environment'],
     projects: [],
     version: 2,
+    range: '24h',
   },
   {
     version: 2,
@@ -105,7 +110,7 @@ export const ALL_VIEWS: Readonly<Array<NewQuery>> = [
     orderby: '-count_id',
     tags: ['event.type', 'release', 'project', 'user.email', 'user.ip', 'environment'],
     projects: [],
-    range: '14d',
+    range: '24h',
     environment: [],
     query: '',
   },
