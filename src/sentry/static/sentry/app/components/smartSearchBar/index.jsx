@@ -504,7 +504,6 @@ class SmartSearchBar extends React.Component {
           };
         });
       } catch (err) {
-        console.log(err);
         this.setState({loading: false});
         Sentry.captureException(err);
 
