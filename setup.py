@@ -37,7 +37,7 @@ from setuptools import setup, find_packages
 from setuptools.command.sdist import sdist as SDistCommand
 from setuptools.command.develop import develop as DevelopCommand
 
-ROOT = os.path.realpath(os.path.join(os.path.dirname(sys.modules["__main__"].__file__)))
+ROOT = os.path.dirname(os.path.abspath(__file__))
 
 # Add Sentry to path so we can import distutils
 sys.path.insert(0, os.path.join(ROOT, "src"))
