@@ -24,10 +24,15 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
 
         project = self.create_project()
         project2 = self.create_project()
-        group = self.create_group(project=project)
-        group2 = self.create_group(project=project2)
-        event_1 = self.create_event(event_id="a" * 32, group=group, datetime=self.min_ago)
-        event_2 = self.create_event(event_id="b" * 32, group=group2, datetime=self.min_ago)
+
+        event_1 = self.store_event(
+            data={"event_id": "a" * 32, "timestamp": iso_format(self.min_ago)},
+            project_id=project.id,
+        )
+        event_2 = self.store_event(
+            data={"event_id": "b" * 32, "timestamp": iso_format(self.min_ago)},
+            project_id=project2.id,
+        )
 
         url = reverse(
             "sentry-api-0-organization-events",
