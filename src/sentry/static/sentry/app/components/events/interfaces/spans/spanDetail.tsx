@@ -128,7 +128,7 @@ class SpanDetail extends React.Component<Props, State> {
 
     const eventView = EventView.fromSavedQuery({
       id: undefined,
-      name: `Child transactions of span ${span.span_id}`,
+      name: `Children from Span ID ${span.span_id}`,
       fields: [
         'transaction',
         'project',
@@ -170,7 +170,7 @@ class SpanDetail extends React.Component<Props, State> {
 
     const eventView = EventView.fromSavedQuery({
       id: undefined,
-      name: `Transactions for trace ${span.trace_id}`,
+      name: `Transactions with Trace ID ${span.trace_id}`,
       fields: [
         'transaction',
         'project',
