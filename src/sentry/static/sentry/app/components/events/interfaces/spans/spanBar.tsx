@@ -19,7 +19,7 @@ import {
   getSpanID,
   getSpanOperation,
 } from './utils';
-import {ParsedTraceType, ProcessedSpanType, SentryTransactionEvent} from './types';
+import {ParsedTraceType, ProcessedSpanType} from './types';
 import {
   MINIMAP_CONTAINER_HEIGHT,
   MINIMAP_SPAN_BAR_HEIGHT,
@@ -182,7 +182,6 @@ type SpanBarProps = {
   toggleSpanTree: () => void;
   isCurrentSpanFilteredOut: boolean;
   eventView: EventView;
-  event: SentryTransactionEvent;
 };
 
 type SpanBarState = {
@@ -224,7 +223,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       return null;
     }
 
-    const {span, orgId, isRoot, eventView, trace, event} = this.props;
+    const {span, orgId, isRoot, eventView, trace} = this.props;
 
     return (
       <SpanDetail
@@ -233,7 +232,6 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         isRoot={!!isRoot}
         eventView={eventView}
         trace={trace}
-        event={event}
       />
     );
   };

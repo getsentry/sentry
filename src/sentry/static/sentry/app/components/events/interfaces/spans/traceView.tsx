@@ -225,7 +225,6 @@ class TraceView extends React.PureComponent<Props, State> {
                 dragProps={dragProps}
                 filterSpans={this.state.filterSpans}
                 orgId={orgId}
-                event={event}
               />
             </CursorGuideHandler.Provider>
           );

@@ -3,6 +3,7 @@ import styled from 'react-emotion';
 import get from 'lodash/get';
 
 import {t} from 'app/locale';
+import theme from 'app/utils/theme';
 import EventView from 'app/views/eventsV2/eventView';
 
 import {
@@ -11,7 +12,6 @@ import {
   SpanChildrenLookupType,
   ParsedTraceType,
   GapSpanType,
-  SentryTransactionEvent,
 } from './types';
 import {
   boundsGenerator,
@@ -43,7 +43,6 @@ type PropType = {
   trace: ParsedTraceType;
   dragProps: DragManagerChildrenProps;
   filterSpans: FilterSpans | undefined;
-  event: SentryTransactionEvent;
 };
 
 class SpanTree extends React.Component<PropType> {
@@ -137,7 +136,7 @@ class SpanTree extends React.Component<PropType> {
     generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
     previousSiblingEndTimestamp: undefined | number;
   }): RenderedSpanTree => {
-    const {orgId, eventView, event} = this.props;
+    const {orgId, eventView} = this.props;
 
     const spanBarColour: string = pickSpanBarColour(getSpanOperation(span));
     const spanChildren: Array<RawSpanType> = get(childSpans, getSpanID(span), []);
@@ -213,10 +212,12 @@ class SpanTree extends React.Component<PropType> {
     });
 
     const isSpanDisplayed = !isCurrentSpanHidden && !isCurrentSpanFilteredOut;
+
     const isValidGap =
       typeof previousSiblingEndTimestamp === 'number' &&
       previousSiblingEndTimestamp < span.start_timestamp &&
-      0.1 <= span.start_timestamp - previousSiblingEndTimestamp;
+      // gap is at least 100 ms
+      span.start_timestamp - previousSiblingEndTimestamp >= 0.1;
 
     const spanGap: Readonly<GapSpanType> = {
       type: 'gap',
@@ -240,9 +241,8 @@ class SpanTree extends React.Component<PropType> {
           treeDepth={treeDepth}
           numOfSpanChildren={spanChildren.length}
           renderedSpanChildren={reduced.renderedSpanChildren}
-          spanBarColour={'#FF00FF'}
+          spanBarColour={theme.gray2}
           isCurrentSpanFilteredOut={isCurrentSpanFilteredOut}
-          event={event}
         />
       ) : null;
 
@@ -269,7 +269,6 @@ class SpanTree extends React.Component<PropType> {
             renderedSpanChildren={reduced.renderedSpanChildren}
             spanBarColour={spanBarColour}
             isCurrentSpanFilteredOut={isCurrentSpanFilteredOut}
-            event={event}
           />
         </React.Fragment>
       ),
