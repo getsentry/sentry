@@ -318,11 +318,12 @@ start_chrome_retry_attempts = 5
 def start_chrome(**chrome_args):
     try:
         return webdriver.Chrome(**chrome_args)
-    except WebDriverException:
+    except WebDriverException as e:
+        global start_chrome_retry_attempts
         if start_chrome_retry_attempts > 0:
-            global start_chrome_retry_attempts
             start_chrome_retry_attempts = start_chrome_retry_attempts - 1
-            start_chrome(**chrome_args)
+            return start_chrome(**chrome_args)
+        raise e
 
 
 @pytest.fixture(scope="function")
@@ -343,11 +344,9 @@ def browser(request, percy, live_server):
         if chrome_path:
             options.binary_location = chrome_path
         chromedriver_path = request.config.getoption("chromedriver_path")
-        chrome_args = {
-            'options': options,
-        }
+        chrome_args = {"options": options}
         if chromedriver_path:
-            chrome_args['executable_path'] = chromedriver_path
+            chrome_args["executable_path"] = chromedriver_path
 
         driver = start_chrome(**chrome_args)
     elif driver_type == "firefox":
