@@ -13,7 +13,11 @@ ADD_COMMENT_PATH = "/cards/%s/actions/comments"
 MEMBER_BOARD_PATH = "/members/me/boards"
 SEARCH_PATH = "/search"
 
-CARD_FIELDS = "name,shortLink,idShort"
+CARD_FIELDS = ",".join(
+  "name",
+  "shortLink",
+  "idShort",
+)
 
 
 class TrelloApiClient(ApiClient):
