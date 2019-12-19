@@ -65,7 +65,7 @@ describe('EventsV2 > QueryList', function() {
     );
     const content = wrapper.find('QueryCard');
     // pre built + saved queries
-    expect(content).toHaveLength(7);
+    expect(content).toHaveLength(6);
   });
 
   it('can duplicate and trigger change callback', async function() {

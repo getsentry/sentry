@@ -89,6 +89,17 @@ class UserUpdateTest(APITestCase):
         assert UserOption.objects.get_value(user=self.user, key="clock_24_hours")
         assert not UserOption.objects.get_value(user=self.user, key="extra")
 
+    def test_saving_changes_value(self):
+        """ Even when saving on an option directly, we should still be able to use get_value to retrieve updated options
+        """
+        UserOption.objects.set_value(user=self.user, key="language", value="fr")
+
+        uo = UserOption.objects.get(user=self.user, key="language")
+        uo.value = "en"
+        uo.save()
+
+        assert UserOption.objects.get_value(user=self.user, key="language") == "en"
+
     def test_superuser(self):
         # superuser should be able to change self.user's name
         superuser = self.create_user(email="b@example.com", is_superuser=True)

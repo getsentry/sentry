@@ -42,10 +42,17 @@ register(
 )
 register("redis.options", type=Dict, flags=FLAG_NOSTORE)
 
-# symbolizer specifics
+# Processing worker caches
 register(
     "dsym.cache-path", type=String, default="/tmp/sentry-dsym-cache", flags=FLAG_PRIORITIZE_DISK
 )
+register(
+    "releasefile.cache-path",
+    type=String,
+    default="/tmp/sentry-releasefile-cache",
+    flags=FLAG_PRIORITIZE_DISK,
+)
+register("releasefile.cache-limit", type=Int, default=10 * 1024 * 1024, flags=FLAG_PRIORITIZE_DISK)
 
 # Mail
 register("mail.backend", default="smtp", flags=FLAG_NOSTORE)
@@ -160,11 +167,8 @@ register("store.empty-interface-sample-rate", default=0.0)
 # regards to filter responses.
 register("store.lie-about-filter-status", default=False)
 
-# Skip nodestore save when saving an event
-register("store.save-event-skips-nodestore", default=False, flags=FLAG_PRIORITIZE_DISK)
-
-# Skip saving an event to postgres
-register("store.skip-pg-save", default=True, flags=FLAG_PRIORITIZE_DISK)
+# Use Django event
+register("store.use-django-event", default=False, flags=FLAG_PRIORITIZE_DISK)
 
 # Symbolicator refactors
 # - Disabling minidump stackwalking in endpoints

@@ -1,18 +1,20 @@
-import maxBy from 'lodash/maxBy';
 import React from 'react';
+import maxBy from 'lodash/maxBy';
 import moment from 'moment-timezone';
 import styled from 'react-emotion';
 
 import {Client} from 'app/api';
 import {Config, Organization, Project} from 'app/types';
+import {Panel} from 'app/components/panels';
 import {SeriesDataUnit} from 'app/types/echarts';
 import {getFormattedDate} from 'app/utils/dates';
 import EventsRequest from 'app/views/events/utils/eventsRequest';
 import LoadingMask from 'app/components/loadingMask';
 import Placeholder from 'app/components/placeholder';
+import space from 'app/styles/space';
 
-import {AlertRuleAggregations, IncidentRule, TimeWindow} from '../../types';
-import DraggableChart from './draggableChart';
+import {AlertRuleAggregations, IncidentRule, TimeWindow, Trigger} from '../../types';
+import ThresholdsChart from './thresholdsChart';
 
 type Props = {
   api: Client;
@@ -22,28 +24,25 @@ type Props = {
 
   query: IncidentRule['query'];
   timeWindow: IncidentRule['timeWindow'];
-  aggregations: IncidentRule['aggregations'];
-
-  isInverted?: boolean;
-  alertThreshold?: number | null;
-  resolveThreshold?: number | null;
-  onChangeIncidentThreshold?: (alertThreshold: number) => void;
-  onChangeResolutionThreshold?: (resolveThreshold: number) => void;
+  aggregation: IncidentRule['aggregation'];
+  triggers: Trigger[];
 };
 
-class TriggersChart extends React.Component<Props> {
+/**
+ * This is a chart to be used in Metric Alert rules that fetches events based on
+ * query, timewindow, and aggregations.
+ */
+class TriggersChart extends React.PureComponent<Props> {
   render() {
     const {
       api,
       config,
       organization,
       projects,
-      alertThreshold,
-      resolveThreshold,
-      isInverted,
       timeWindow,
       query,
-      aggregations,
+      aggregation,
+      triggers,
     } = this.props;
 
     return (
@@ -54,9 +53,7 @@ class TriggersChart extends React.Component<Props> {
         project={projects.map(({id}) => Number(id))}
         interval={`${timeWindow}s`}
         period={getPeriodForTimeWindow(timeWindow)}
-        yAxis={
-          aggregations[0] === AlertRuleAggregations.TOTAL ? 'event_count' : 'user_count'
-        }
+        yAxis={aggregation === AlertRuleAggregations.TOTAL ? 'event_count' : 'user_count'}
         includePrevious={false}
       >
         {({loading, reloading, timeseriesData}) => {
@@ -66,38 +63,36 @@ class TriggersChart extends React.Component<Props> {
           }
 
           return (
-            <React.Fragment>
-              {loading ? (
-                <Placeholder height="200px" bottomGutter={1} />
-              ) : (
-                <React.Fragment>
-                  <TransparentLoadingMask visible={reloading} />
-                  <DraggableChart
-                    xAxis={{
-                      axisLabel: {
-                        formatter: (value: moment.MomentInput, index: number) => {
-                          const firstItem = index === 0;
-                          const format =
-                            timeWindow <= TimeWindow.FIVE_MINUTES && !firstItem
-                              ? 'LT'
-                              : 'MMM Do';
-                          return getFormattedDate(value, format, {
-                            local: config.user.options.timezone !== 'UTC',
-                          });
+            <StickyWrapper>
+              <PanelNoMargin>
+                {loading ? (
+                  <Placeholder height="200px" />
+                ) : (
+                  <React.Fragment>
+                    <TransparentLoadingMask visible={reloading} />
+                    <ThresholdsChart
+                      xAxis={{
+                        axisLabel: {
+                          formatter: (value: moment.MomentInput, index: number) => {
+                            const firstItem = index === 0;
+                            const format =
+                              timeWindow <= TimeWindow.FIVE_MINUTES && !firstItem
+                                ? 'LT'
+                                : 'MMM Do';
+                            return getFormattedDate(value, format, {
+                              local: config.user.options.timezone !== 'UTC',
+                            });
+                          },
                         },
-                      },
-                    }}
-                    maxValue={maxValue ? maxValue.value : maxValue}
-                    onChangeIncidentThreshold={this.props.onChangeIncidentThreshold}
-                    alertThreshold={alertThreshold}
-                    onChangeResolutionThreshold={this.props.onChangeResolutionThreshold}
-                    resolveThreshold={resolveThreshold}
-                    isInverted={isInverted}
-                    data={timeseriesData}
-                  />
-                </React.Fragment>
-              )}
-            </React.Fragment>
+                      }}
+                      maxValue={maxValue ? maxValue.value : maxValue}
+                      data={timeseriesData}
+                      triggers={triggers}
+                    />
+                  </React.Fragment>
+                )}
+              </PanelNoMargin>
+            </StickyWrapper>
           );
         }}
       </EventsRequest>
@@ -135,4 +130,20 @@ const TransparentLoadingMask = styled(LoadingMask)<{visible: boolean}>`
   ${p => !p.visible && 'display: none;'};
   opacity: 0.4;
   z-index: 1;
+`;
+
+const PanelNoMargin = styled(Panel)`
+  margin: 0;
+`;
+
+/**
+ * We wrap Panel with this (instead of applying styles to Panel) so that we can get the extra padding
+ * at the bottom so sticky chart does not bleed into other content.
+ */
+const StickyWrapper = styled('div')`
+  position: sticky;
+  top: 69px; /* Height of settings breadcrumb */
+  z-index: ${p => p.theme.zIndex.dropdown + 1};
+  padding-bottom: ${space(2)};
+  background-color: rgba(251, 251, 252, 0.9); /* p.theme.whiteDark */
 `;

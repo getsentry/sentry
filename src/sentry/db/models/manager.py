@@ -12,14 +12,16 @@ from django.db import router
 from django.db.models import Model
 from django.db.models.manager import Manager, QuerySet
 from django.db.models.signals import post_save, post_delete, post_init, class_prepared
+from django.core.signals import request_finished
 from django.utils.encoding import smart_text
+from celery.signals import task_postrun
 
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
 from .query import create_or_update
 
-__all__ = ("BaseManager",)
+__all__ = ("BaseManager", "OptionManager")
 
 logger = logging.getLogger("sentry")
 
@@ -76,7 +78,7 @@ class BaseManager(Manager):
     def __init__(self, *args, **kwargs):
         self.cache_fields = kwargs.pop("cache_fields", [])
         self.cache_ttl = kwargs.pop("cache_ttl", 60 * 5)
-        self.cache_version = kwargs.pop("cache_version", None)
+        self._cache_version = kwargs.pop("cache_version", None)
         self.__local_cache = threading.local()
         super(BaseManager, self).__init__(*args, **kwargs)
 
@@ -115,10 +117,13 @@ class BaseManager(Manager):
     def _set_cache(self, value):
         self.__local_cache.value = value
 
-    def _generate_cache_version(self):
-        return md5_text("&".join(sorted(f.attname for f in self.model._meta.fields))).hexdigest()[
-            :3
-        ]
+    @property
+    def cache_version(self):
+        if self._cache_version is None:
+            self._cache_version = md5_text(
+                "&".join(sorted(f.attname for f in self.model._meta.fields))
+            ).hexdigest()[:3]
+        return self._cache_version
 
     __cache = property(_get_cache, _set_cache)
 
@@ -142,9 +147,6 @@ class BaseManager(Manager):
 
         if not self.cache_fields:
             return
-
-        if not self.cache_version:
-            self.cache_version = self._generate_cache_version()
 
         post_init.connect(self.__post_init, sender=sender, weak=False)
         post_save.connect(self.__post_save, sender=sender, weak=False)
@@ -451,3 +453,23 @@ class BaseManager(Manager):
         if hasattr(self, "_hints"):
             return self._queryset_class(self.model, using=self._db, hints=self._hints)
         return self._queryset_class(self.model, using=self._db)
+
+
+class OptionManager(BaseManager):
+    @property
+    def _option_cache(self):
+        if not hasattr(_local_cache, "option_cache"):
+            _local_cache.option_cache = {}
+        return _local_cache.option_cache
+
+    def clear_local_cache(self, **kwargs):
+        self._option_cache.clear()
+
+    def contribute_to_class(self, model, name):
+        super(OptionManager, self).contribute_to_class(model, name)
+        task_postrun.connect(self.clear_local_cache)
+        request_finished.connect(self.clear_local_cache)
+
+    def _make_key(self, instance_id):
+        assert instance_id
+        return u"%s:%s" % (self.model._meta.db_table, instance_id)

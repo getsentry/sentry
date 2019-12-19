@@ -16,10 +16,7 @@ from sentry.integrations.base import (
     FeatureDescription,
 )
 
-from sentry.models import (
-    OrganizationIntegration,
-    PagerDutyService,
-)
+from sentry.models import OrganizationIntegration, PagerDutyService
 
 from sentry.pipeline import PipelineView
 from .client import PagerDutyClient
@@ -65,10 +62,10 @@ class PagerDutyIntegration(IntegrationInstallation):
                 "name": "service_table",
                 "type": "table",
                 "label": "PagerDuty services with the Sentry integration enabled",
-                "help": "If a services needs to be updated, deleted, or added manually please do so here. Alert rules will need to be individually updated for any additions or deletions of services.",
+                "help": "If services need to be updated, deleted, or added manually please do so here. Alert rules will need to be individually updated for any additions or deletions of services.",
                 "addButtonText": "",
                 "columnLabels": {"service": "Service", "integration_key": "Integration Key"},
-                "columnKeys": ["service", "integration_key"]
+                "columnKeys": ["service", "integration_key"],
             }
         ]
 
@@ -77,7 +74,9 @@ class PagerDutyIntegration(IntegrationInstallation):
     def update_organization_config(self, data):
         if "service_table" in data:
             with transaction.atomic():
-                PagerDutyService.objects.filter(organization_integration=self.org_integration).delete()
+                PagerDutyService.objects.filter(
+                    organization_integration=self.org_integration
+                ).delete()
                 for item in data["service_table"]:
                     service_name = item["service"]
                     key = item["integration_key"]
@@ -92,7 +91,9 @@ class PagerDutyIntegration(IntegrationInstallation):
     def get_config_data(self):
         service_list = []
         for s in self.services:
-            service_list.append({"service": s.service_name, "integration_key": s.integration_key, "id": s.id})
+            service_list.append(
+                {"service": s.service_name, "integration_key": s.integration_key, "id": s.id}
+            )
         return {"service_table": service_list}
 
     @property
@@ -141,10 +142,7 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
         return {
             "name": account["name"],
             "external_id": account["subdomain"],
-            "metadata": {
-                "services": services,
-                "domain_name": account["subdomain"],
-            },
+            "metadata": {"services": services, "domain_name": account["subdomain"]},
         }
 
 
@@ -166,6 +164,6 @@ class PagerDutyInstallationRedirect(PipelineView):
             pipeline.bind_state("config", request.GET["config"])
             return pipeline.next_step()
 
-        account_name = getattr(request, "account", None)
+        account_name = request.GET.get("account", None)
 
         return self.redirect(self.get_app_url(account_name))

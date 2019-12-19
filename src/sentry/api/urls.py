@@ -224,6 +224,7 @@ from .endpoints.prompts_activity import PromptsActivityEndpoint
 from .endpoints.relay_details import RelayDetailsEndpoint
 from .endpoints.relay_index import RelayIndexEndpoint
 from .endpoints.relay_projectconfigs import RelayProjectConfigsEndpoint
+from .endpoints.relay_projectids import RelayProjectIdsEndpoint
 from .endpoints.relay_publickeys import RelayPublicKeysEndpoint
 from .endpoints.relay_register import RelayRegisterChallengeEndpoint, RelayRegisterResponseEndpoint
 from .endpoints.release_deploys import ReleaseDeploysEndpoint
@@ -305,7 +306,10 @@ from sentry.incidents.endpoints.organization_alert_rule_trigger_index import (
     OrganizationAlertRuleTriggerIndexEndpoint,
 )
 from sentry.incidents.endpoints.project_alert_rule_details import ProjectAlertRuleDetailsEndpoint
-from sentry.incidents.endpoints.project_alert_rule_index import ProjectAlertRuleIndexEndpoint
+from sentry.incidents.endpoints.project_alert_rule_index import (
+    ProjectAlertRuleIndexEndpoint,
+    ProjectCombinedRuleIndexEndpoint,
+)
 
 # issues endpoints are available both top level (by numerical ID) as well as coupled
 # to the organization (and queryable via short ID)
@@ -365,6 +369,11 @@ urlpatterns = [
                     r"^projectconfigs/$",
                     RelayProjectConfigsEndpoint.as_view(),
                     name="sentry-api-0-relay-projectconfigs",
+                ),
+                url(
+                    r"^projectids/$",
+                    RelayProjectIdsEndpoint.as_view(),
+                    name="sentry-api-0-relay-projectids",
                 ),
                 url(
                     r"^publickeys/$",
@@ -1118,6 +1127,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/alert-rules/$",
                     ProjectAlertRuleIndexEndpoint.as_view(),
                     name="sentry-api-0-project-alert-rules",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/combined-rules/$",
+                    ProjectCombinedRuleIndexEndpoint.as_view(),
+                    name="sentry-api-0-project-combined-rules",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/avatar/$",

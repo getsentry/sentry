@@ -3,12 +3,8 @@ from __future__ import absolute_import
 from rest_framework.exceptions import PermissionDenied
 
 from sentry.api.bases import OrganizationEndpoint, OrganizationEventsError
-from sentry.api.event_search import (
-    get_filter,
-    resolve_field_list,
-    InvalidSearchQuery,
-    get_reference_event_conditions,
-)
+from sentry.api.event_search import get_filter, resolve_field_list, InvalidSearchQuery
+from sentry.snuba.discover import ReferenceEvent, create_reference_event_conditions
 from sentry.models.project import Project
 from sentry.snuba.dataset import Dataset
 from sentry.utils import snuba
@@ -54,10 +50,8 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
         reference_event_id = request.GET.get("referenceEvent")
         if reference_event_id:
-            snuba_args["conditions"] = get_reference_event_conditions(
-                organization, snuba_args, reference_event_id
-            )
-
+            reference = ReferenceEvent(organization, reference_event_id, fields)
+            snuba_args["conditions"].extend(create_reference_event_conditions(reference))
         return snuba_args
 
     def get_snuba_query_args_legacy(self, request, organization):

@@ -8,7 +8,7 @@ import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {joinTeam, leaveTeam} from 'app/actionCreators/teams';
 import {openInviteMembersModal} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
-import Avatar from 'app/components/avatar';
+import UserAvatar from 'app/components/avatar/userAvatar';
 import Button from 'app/components/button';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
@@ -341,7 +341,7 @@ const StyledNameOrEmail = styled('div')`
   ${overflowEllipsis};
 `;
 
-const StyledAvatar = styled(props => <Avatar {...props} />)`
+const StyledAvatar = styled(props => <UserAvatar {...props} />)`
   min-width: 1.75em;
   min-height: 1.75em;
   width: 1.5em;

@@ -68,6 +68,7 @@ from sentry.models import (
     EventAttachment,
     UserReport,
     PlatformExternalIssue,
+    ReleaseFile,
 )
 from sentry.models.integrationfeature import Feature, IntegrationFeature
 from sentry.signals import project_created
@@ -344,6 +345,23 @@ class Factories(object):
             )
 
         return release
+
+    @staticmethod
+    def create_release_file(release, file=None, name=None, dist=None):
+        if file is None:
+            file = Factories.create_file(
+                name="log.txt",
+                size=32,
+                headers={"Content-Type": "text/plain"},
+                checksum="dc1e3f3e411979d336c3057cce64294f3420f93a",
+            )
+
+        if name is None:
+            name = file.name
+
+        return ReleaseFile.objects.create(
+            organization=release.organization, release=release, name=name, file=file, dist=dist
+        )
 
     @staticmethod
     def create_artifact_bundle(org, release, project=None):
@@ -921,11 +939,12 @@ class Factories(object):
         threshold_period=1,
         include_all_projects=False,
         excluded_projects=None,
+        date_added=None,
     ):
         if not name:
             name = petname.Generate(2, " ", letters=10).title()
 
-        return create_alert_rule(
+        alert_rule = create_alert_rule(
             organization,
             projects,
             name,
@@ -936,6 +955,11 @@ class Factories(object):
             include_all_projects=include_all_projects,
             excluded_projects=excluded_projects,
         )
+
+        if date_added is not None:
+            alert_rule.update(date_added=date_added)
+
+        return alert_rule
 
     @staticmethod
     def create_alert_rule_trigger(

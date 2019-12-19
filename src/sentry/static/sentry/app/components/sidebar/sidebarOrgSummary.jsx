@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from 'react-emotion';
 
-import Avatar from 'app/components/avatar';
+import OrganizationAvatar from 'app/components/avatar/organizationAvatar';
 import SentryTypes from 'app/sentryTypes';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 
@@ -21,7 +21,7 @@ class SidebarOrgSummary extends React.Component {
 
     return (
       <OrgSummary>
-        <Avatar css={{flexShrink: 0}} organization={organization} size={36} />
+        <OrganizationAvatar css={{flexShrink: 0}} organization={organization} size={36} />
 
         <Details>
           <SummaryOrgName>{organization.name}</SummaryOrgName>
