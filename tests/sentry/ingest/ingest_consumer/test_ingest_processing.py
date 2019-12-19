@@ -126,41 +126,36 @@ def test_with_attachments(default_project, task_runner, preprocess_event):
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize("event_attachments", ["with_feature", "without_feature"])
-def test_individual_attachments(default_project, monkeypatch, event_attachments):
-    has_feature = event_attachments == "with_feature"
-    monkeypatch.setattr("sentry.features.has", lambda *a, **kw: has_feature)
+@pytest.mark.parametrize(
+    "event_attachments", [True, False], ids=["with_feature", "without_feature"]
+)
+@pytest.mark.parametrize(
+    "chunks", [(b"Hello ", b"World!"), (b"",), ()], ids=["basic", "zerolen", "nochunks"]
+)
+def test_individual_attachments(default_project, monkeypatch, event_attachments, chunks):
+    monkeypatch.setattr("sentry.features.has", lambda *a, **kw: event_attachments)
 
     event_id = "515539018c9b4260a6f999572f1661ee"
     attachment_id = "ca90fb45-6dd9-40a0-a18f-8693aa621abb"
     project_id = default_project.id
 
-    process_attachment_chunk(
-        {
-            "payload": b"Hello ",
-            "event_id": event_id,
-            "project_id": project_id,
-            "id": attachment_id,
-            "chunk_index": 0,
-        }
-    )
-
-    process_attachment_chunk(
-        {
-            "payload": b"World!",
-            "event_id": event_id,
-            "project_id": project_id,
-            "id": attachment_id,
-            "chunk_index": 1,
-        }
-    )
+    for i, chunk in enumerate(chunks):
+        process_attachment_chunk(
+            {
+                "payload": chunk,
+                "event_id": event_id,
+                "project_id": project_id,
+                "id": attachment_id,
+                "chunk_index": i,
+            }
+        )
 
     process_individual_attachment(
         {
             "type": "attachment",
             "attachment": {
                 "attachment_type": "event.attachment",
-                "chunks": 2,
+                "chunks": len(chunks),
                 "content_type": "application/octet-stream",
                 "id": attachment_id,
                 "name": "foo.txt",
@@ -176,14 +171,14 @@ def test_individual_attachments(default_project, monkeypatch, event_attachments)
         )
     )
 
-    if not has_feature:
+    if not event_attachments:
         assert not attachments
     else:
         att1, = attachments
         assert att1.file.type == "event.attachment"
         assert att1.file.headers == {"Content-Type": "application/octet-stream"}
         f = att1.file.getfile()
-        assert f.read() == b"Hello World!"
+        assert f.read() == b"".join(chunks)
         assert f.name == "foo.txt"
 
 
