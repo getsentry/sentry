@@ -132,8 +132,8 @@ export const GridHeadCellButton = styled('div')<GridEditableProps>`
   position: relative;
   min-width: 24px; /* Ensure that edit/remove buttons are never hidden */
   display: block;
-  margin: ${space(1)} ${space(1.5)};
-  padding: ${space(1)} ${space(0.5)};
+  margin: ${space(0.5)};
+  padding: ${space(1.5)} ${space(1.5)};
   border-radius: ${p => p.theme.borderRadius};
 
   color: ${p => {

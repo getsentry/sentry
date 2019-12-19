@@ -785,7 +785,7 @@ const SpanRowCell = styled('div')<SpanRowCellProps>`
   height: 100%;
   overflow: hidden;
   background-color: ${p => getBackgroundColor(p)};
-  color: ${p => (p.showDetail ? p.theme.white : null)};
+  color: ${p => (p.showDetail ? p.theme.white : 'inherit')};
 `;
 
 const SpanRowCellContainer = styled('div')`
@@ -956,15 +956,15 @@ const getDurationPillAlignment = ({durationDisplay}) => {
   }
 };
 
-const DurationPill = styled('div')<{durationDisplay: DurationDisplay}>`
+const DurationPill = styled('div')<SpanRowCellProps & {durationDisplay: DurationDisplay}>`
   position: absolute;
-  color: ${p => p.theme.gray2};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
-  white-space: nowrap;
+  top: 50%;
   display: flex;
   align-items: center;
-  top: 50%;
   transform: translateY(-50%);
+  white-space: nowrap;
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  color: ${p => (p.showDetail ? p.theme.white : p.theme.gray2)};
 
   ${getDurationPillAlignment}
 
