@@ -99,12 +99,6 @@ describe('Incident Rules Details', function() {
     // has existing trigger
     expect(
       wrapper
-        .find('input[name="label"]')
-        .first()
-        .prop('value')
-    ).toEqual('Trigger');
-    expect(
-      wrapper
         .find('input[name="alertThresholdInput"]')
         .first()
         .prop('value')
@@ -119,12 +113,8 @@ describe('Incident Rules Details', function() {
     expect(req).toHaveBeenCalled();
 
     // Create a new Trigger
-    wrapper.find('button[aria-label="Add another Trigger"]').simulate('click');
+    wrapper.find('button[aria-label="Add Warning Trigger"]').simulate('click');
 
-    wrapper
-      .find('input[name="label"]')
-      .at(1)
-      .simulate('change', {target: {value: 'New Trigger'}});
     wrapper
       .find('input[name="alertThresholdInput"]')
       .at(1)
@@ -167,17 +157,15 @@ describe('Incident Rules Details', function() {
               alertRuleId: '4',
               alertThreshold: 70,
               id: '1',
-              label: 'Trigger',
               resolveThreshold: 36,
               thresholdType: 0,
             }),
-            {
+            expect.objectContaining({
               actions: [],
               alertThreshold: 13,
-              label: 'New Trigger',
               resolveThreshold: 12,
               thresholdType: 0,
-            },
+            }),
           ],
         }),
         method: 'PUT',
@@ -198,12 +186,6 @@ describe('Incident Rules Details', function() {
     // Has correct values
     expect(
       wrapper
-        .find('input[name="label"]')
-        .at(1)
-        .prop('value')
-    ).toBe('New Trigger');
-    expect(
-      wrapper
         .find('input[name="alertThresholdInput"]')
         .at(1)
         .prop('value')
@@ -214,6 +196,8 @@ describe('Incident Rules Details', function() {
         .at(1)
         .prop('value')
     ).toBe(12);
+
+    editRule.mockReset();
 
     // Delete Trigger
     wrapper
@@ -237,32 +221,24 @@ describe('Incident Rules Details', function() {
           status: 0,
           timeWindow: 60,
           triggers: [
-            {
-              actions: [],
-              alertThreshold: 13,
-              label: 'New Trigger',
-              resolveThreshold: 12,
+            expect.objectContaining({
+              actions: [
+                {
+                  targetIdentifier: '',
+                  targetType: 'user',
+                  type: 'email',
+                },
+              ],
+              alertRuleId: '4',
+              alertThreshold: 70,
+              id: '1',
+              resolveThreshold: 36,
               thresholdType: 0,
-            },
+            }),
           ],
         }),
         method: 'PUT',
       })
     );
-
-    expect(
-      wrapper
-        .find('input[name="label"]')
-        .first()
-        .prop('value')
-    ).toBe('New Trigger');
-
-    // The last trigger is now the first trigger
-    expect(
-      wrapper
-        .find('input[name="label"]')
-        .last()
-        .prop('value')
-    ).toBe('New Trigger');
   });
 });
