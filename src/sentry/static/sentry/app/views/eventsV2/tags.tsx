@@ -68,10 +68,10 @@ class Tags extends React.Component<Props, State> {
 
   shouldRefetchData = (prevProps: Props): boolean => {
     const thisAPIPayload = pickTagParams(
-      this.props.eventView.getTagsAPIPayload(this.props.location)
+      this.props.eventView.getEventsAPIPayload(this.props.location)
     );
     const otherAPIPayload = pickTagParams(
-      prevProps.eventView.getTagsAPIPayload(prevProps.location)
+      prevProps.eventView.getEventsAPIPayload(prevProps.location)
     );
 
     return !isEqual(thisAPIPayload, otherAPIPayload);
@@ -83,7 +83,7 @@ class Tags extends React.Component<Props, State> {
     const tagsFetchID = Symbol('tagsFetchID');
     this.setState({tags: {}, totalValues: null, isLoading: true, tagsFetchID});
 
-    const queryPayload = pickTagParams(eventView.getTagsAPIPayload(location));
+    const queryPayload = pickTagParams(eventView.getEventsAPIPayload(location));
 
     eventView.tags.forEach(async tag => {
       try {
