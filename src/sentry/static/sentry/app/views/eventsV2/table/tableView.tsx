@@ -3,7 +3,7 @@ import {Location} from 'history';
 
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import GridEditable from 'app/components/gridEditable';
+import GridEditable, {COL_WIDTH_DEFAULT} from 'app/components/gridEditable';
 import {
   tokenizeSearch,
   stringifyQueryObject,
@@ -42,7 +42,6 @@ export type TableViewProps = {
 };
 
 /**
- *
  * The `TableView` is marked with leading _ in its method names. It consumes
  * the EventView object given in its props to generate new EventView objects
  * for actions such as creating new columns, updating columns, sorting columns,
@@ -72,6 +71,7 @@ class TableView extends React.Component<TableViewProps> {
         aggregation: String(nextColumn.aggregation),
         field: String(nextColumn.field),
         fieldname: nextColumn.name,
+        width: COL_WIDTH_DEFAULT,
       };
 
       // create and insert a column at a specific index
@@ -120,7 +120,8 @@ class TableView extends React.Component<TableViewProps> {
     const payload = {
       aggregation: String(nextColumn.aggregation),
       field: String(nextColumn.field),
-      fieldname: nextColumn.name,
+      fieldname: String(nextColumn.name),
+      width: Number(nextColumn.width) || 0,
     };
 
     const tableMeta = (tableData && tableData.meta) || undefined;
@@ -135,6 +136,7 @@ class TableView extends React.Component<TableViewProps> {
       const aggregationChanged = prevField.aggregation !== nextField.aggregation;
       const fieldChanged = prevField.field !== nextField.field;
       const fieldnameChanged = prevField.fieldname !== nextField.fieldname;
+      const widthChanged = prevField.width !== nextField.width;
 
       if (aggregationChanged) {
         changed.push('aggregate');
@@ -148,7 +150,10 @@ class TableView extends React.Component<TableViewProps> {
         changed.push('fieldname');
       }
 
-      // metrics
+      if (widthChanged) {
+        changed.push('width');
+      }
+
       trackAnalyticsEvent({
         eventKey: 'discover_v2.update_column',
         eventName: 'Discoverv2: A column was updated',
@@ -417,8 +422,9 @@ class TableView extends React.Component<TableViewProps> {
               })}
               columnSortBy={columnSortBy}
               grid={{
-                renderHeaderCell: this._renderGridHeaderCell as any,
+                renderHeadCell: this._renderGridHeaderCell as any,
                 renderBodyCell: this._renderGridBodyCell as any,
+                onResizeColumn: this._updateColumn as any,
               }}
               modalEditColumn={{
                 renderBodyWithForm: renderModalBodyWithForm as any,
@@ -448,7 +454,6 @@ const ExpandAggregateRow = (props: {
   tableMeta: MetaType;
 }) => {
   const {children, column, dataRow, eventView, location, tableMeta} = props;
-
   const {eventViewField} = column;
 
   const exploded = explodeField(eventViewField);
@@ -479,7 +484,6 @@ const ExpandAggregateRow = (props: {
       }
 
       // add this field to the search conditions
-
       const dataKey = getAggregateAlias(field.field);
       const value = dataRow[dataKey];
 
@@ -494,6 +498,7 @@ const ExpandAggregateRow = (props: {
           aggregation: '',
           field: exploded.field,
           fieldname: exploded.field,
+          width: exploded.width,
         };
 
         return currentEventView.withUpdatedColumn(

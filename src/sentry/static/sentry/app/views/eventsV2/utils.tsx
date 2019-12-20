@@ -10,6 +10,7 @@ import {Client} from 'app/api';
 import {getTitle} from 'app/utils/events';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {generateQueryWithTag} from 'app/utils';
+import {COL_WIDTH_DEFAULT} from 'app/components/gridEditable/utils';
 
 import {
   AGGREGATE_ALIASES,
@@ -54,10 +55,20 @@ function explodeFieldString(field: string): {aggregation: string; field: string}
 
 export function explodeField(
   field: FieldType
-): {aggregation: string; field: string; fieldname: string} {
+): {
+  aggregation: string;
+  field: string;
+  fieldname: string;
+  width: number;
+} {
   const results = explodeFieldString(field.field);
 
-  return {aggregation: results.aggregation, field: results.field, fieldname: field.title};
+  return {
+    aggregation: results.aggregation,
+    field: results.field,
+    fieldname: field.title,
+    width: field.width || COL_WIDTH_DEFAULT,
+  };
 }
 
 /**
@@ -236,24 +247,21 @@ const TEMPLATE_TABLE_COLUMN: TableColumn<React.ReactText> = {
   name: '',
   aggregation: '',
   field: '',
-  eventViewField: Object.freeze({field: '', title: ''}),
-  isDragging: false,
+  width: COL_WIDTH_DEFAULT,
 
   type: 'never',
+  isDragging: false,
   isSortable: false,
   isPrimary: false,
+
+  eventViewField: Object.freeze({field: '', title: '', width: COL_WIDTH_DEFAULT}),
 };
 
-export function decodeColumnOrder(props: {
-  fieldnames: string[];
-  field: string[];
-  fields: Readonly<FieldType[]>;
-}): TableColumn<React.ReactText>[] {
-  const {fieldnames, field, fields} = props;
-
-  return field.map((f: string, index: number) => {
-    const col = {aggregationField: f, name: fieldnames[index]};
-
+export function decodeColumnOrder(
+  fields: Readonly<FieldType[]>
+): TableColumn<React.ReactText>[] {
+  return fields.map((f: FieldType) => {
+    const col = {aggregationField: f.field, name: f.title, width: f.width};
     const column: TableColumn<React.ReactText> = {...TEMPLATE_TABLE_COLUMN};
 
     // "field" will be split into ["field"]
@@ -272,16 +280,13 @@ export function decodeColumnOrder(props: {
     column.key = col.aggregationField;
     column.name = col.name;
     column.type = (FIELDS[column.field] || 'never') as ColumnValueType;
+    column.width = col.width || COL_WIDTH_DEFAULT;
 
     column.isSortable = AGGREGATIONS[column.aggregation]
       ? AGGREGATIONS[column.aggregation].isSortable
       : false;
     column.isPrimary = column.field === 'title';
-
-    column.eventViewField = {
-      title: fields[index].title,
-      field: fields[index].field,
-    };
+    column.eventViewField = f;
 
     return column;
   });

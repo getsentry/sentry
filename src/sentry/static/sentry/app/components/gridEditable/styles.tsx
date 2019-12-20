@@ -51,14 +51,16 @@ export const HeaderButton = styled('div')`
   }
 `;
 
+const PanelWithProtectedBorder = styled(Panel)`
+  overflow: hidden;
+`;
 export const Body: React.FC = props => (
-  <Panel>
+  <PanelWithProtectedBorder>
     <PanelBody>{props.children}</PanelBody>
-  </Panel>
+  </PanelWithProtectedBorder>
 );
 
 /**
- *
  * Grid is the parent element for the tableResizable component.
  *
  * On newer browsers, it will use CSS Grids to implement its layout.
@@ -70,18 +72,20 @@ export const Body: React.FC = props => (
  *
  * <thead>, <tbody>, <tr> are ignored by CSS Grid.
  * The entire layout is determined by the usage of <th> and <td>.
- *
  */
-export const Grid = styled('table')<GridEditableProps>`
+export const Grid = styled('table')`
   position: relative;
   display: grid;
-  grid-template-columns: 2.5fr repeat(${p => (p.numColumn ? p.numColumn - 1 : 0)}, 1fr);
+
+  /* Overwritten by GridEditable.setGridTemplateColumns */
+  grid-template-columns: repeat(auto-fill, 1fr);
 
   box-sizing: border-box;
   border-collapse: collapse;
   margin: 0;
 
   /* background-color: ${p => p.theme.offWhite}; */
+  overflow-x: scroll;
 `;
 export const GridRow = styled('tr')`
   display: contents;
@@ -95,11 +99,9 @@ export const GridRow = styled('tr')`
 `;
 
 /**
- *
  * GridHead is the collection of elements that builds the header section of the
  * Grid. As the entirety of the add/remove/resize actions are performed on the
  * header, most of the elements behave different for each stage.
- *
  */
 export const GridHead = styled('thead')`
   display: contents;
@@ -113,7 +115,6 @@ export const GridHeadCell = styled('th')`
 
   background-color: ${p => p.theme.offWhite};
   border-bottom: 1px solid ${p => p.theme.borderDark};
-  /* border-right: 1px solid ${p => p.theme.borderDark}; */
 
   &:first-child {
     border-top-left-radius: ${p => p.theme.borderRadius};
@@ -193,10 +194,8 @@ export const GridHeadCellButton = styled('div')<GridEditableProps>`
 `;
 
 /**
- *
  * GridHeadCellButtonHover is the collection of interactive elements to add or
  * move the columns. They are expected to be draggable.
- *
  */
 export const GridHeadCellButtonHover = styled('div')<GridEditableProps>`
   position: absolute;
@@ -264,10 +263,8 @@ export const GridHeadCellButtonHoverDraggable = styled(InlineSvg)`
 `;
 
 /**
- *
  * GridBody are the collection of elements that contains and display the data
  * of the Grid. They are rather simple.
- *
  */
 export const GridBody = styled('tbody')`
   display: contents;
@@ -277,14 +274,16 @@ export const GridBody = styled('tbody')`
   }
 `;
 export const GridBodyCell = styled('td')`
+  position: relative;
   /* By default, a grid item cannot be smaller than the size of its content.
      We override this by setting min-width to be 0. */
   min-width: 0;
+  /* Locking in the height makes a lot of things easier */
+  height: ${GRID_BODY_ROW_HEIGHT}px;
   padding: ${space(1)} ${space(2)};
 
   background-color: ${p => p.theme.white};
   border-bottom: 1px solid ${p => p.theme.borderLight};
-  border-right: 1px solid ${p => p.theme.borderDark};
 
   font-size: ${p => p.theme.fontSizeMedium};
 
@@ -301,4 +300,50 @@ export const GridBodyCellLoading = styled('div')`
 
 export const GridBodyErrorAlert = styled(Alert)`
   margin: 0;
+`;
+
+/**
+ * We have a fat GridResizer and we use the ::after pseudo-element to draw
+ * a thin 1px border.
+ *
+ * The right-most GridResizer has a width of 2px and no right padding to make it
+ * more obvious as it is usually sitting next to the border for <Panel>
+ */
+export const GridResizer = styled('div')<{dataRows: number; isLast?: boolean}>`
+  position: absolute;
+  top: 0px;
+  right: ${p => (p.isLast ? '0px' : '-4px')};
+  width: ${p => (p.isLast ? '6px' : '9px')};
+
+  height: ${p => GRID_HEAD_ROW_HEIGHT + p.dataRows * GRID_BODY_ROW_HEIGHT}px;
+
+  padding-left: 4px;
+  padding-right: ${p => (p.isLast ? '0px' : '4px')};
+
+  cursor: col-resize;
+  z-index: ${Z_INDEX_RESIZER};
+
+  /**
+   * This element allows us to have a fat GridResizer that is easy to hover and
+   * drag, but still draws an appealing thin line for the border
+   */
+  &::after {
+    content: ' ';
+    display: block;
+    width: 100%; /* Equivalent to 1px */
+    height: 100%;
+  }
+
+  &:hover::after {
+    background-color: ${p => p.theme.borderDark};
+  }
+
+  /**
+   * Ensure that this rule is after :hover, otherwise it will flicker when
+   * the GridResizer is dragged
+   */
+  &:active::after,
+  &:focus::after {
+    background-color: ${p => p.theme.gray2};
+  }
 `;

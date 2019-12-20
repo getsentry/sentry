@@ -29,7 +29,16 @@ import {
   GridBodyCellSpan,
   GridBodyCellLoading,
   GridBodyErrorAlert,
+  GridResizer,
 } from './styles';
+import {
+  COL_WIDTH_MIN,
+  COL_WIDTH_DEFAULT,
+  COL_WIDTH_NUMBER,
+  COL_WIDTH_STRING,
+  COL_WIDTH_STRING_LONG,
+  ColResizeMetadata,
+} from './utils';
 
 type GridEditableProps<DataRow, ColumnKey> = {
   onToggleEdit?: (nextValue: boolean) => void;
@@ -60,7 +69,7 @@ type GridEditableProps<DataRow, ColumnKey> = {
    * data within it. Note that this is optional.
    */
   grid: {
-    renderHeaderCell?: (
+    renderHeadCell?: (
       column: GridColumnOrder<ColumnKey>,
       columnIndex: number
     ) => React.ReactNode;
@@ -68,6 +77,10 @@ type GridEditableProps<DataRow, ColumnKey> = {
       column: GridColumnOrder<ColumnKey>,
       dataRow: DataRow
     ) => React.ReactNode;
+    onResizeColumn?: (
+      columnIndex: number,
+      nextColumn: GridColumnOrder<ColumnKey>
+    ) => void;
   };
 
   /**
@@ -88,7 +101,8 @@ type GridEditableProps<DataRow, ColumnKey> = {
 
   /**
    * As there is no internal state being maintained, the parent component will
-   * have to provide functions to move/delete the columns
+   * have to provide functions to update the state of the columns, especially
+   * after moving/resizing
    */
   actions: {
     moveColumnCommit: (indexFrom: number, indexTo: number) => void;
@@ -113,11 +127,6 @@ class GridEditable<
     isEditable: false,
   };
 
-  state = {
-    numColumn: 0,
-    isEditing: false,
-  };
-
   // Static methods do not allow the use of generics bounded to the parent class
   // For more info: https://github.com/microsoft/TypeScript/issues/14600
   static getDerivedStateFromProps(
@@ -129,6 +138,92 @@ class GridEditable<
       numColumn: props.columnOrder.length,
     };
   }
+
+  state = {
+    numColumn: 0,
+    isEditing: false,
+  };
+
+  componentDidUpdate() {
+    // Redraw columns whenever new props are recieved
+    this.setGridTemplateColumns(this.props.columnOrder);
+  }
+
+  componentWillUnmount() {
+    this.clearWindowLifecycleEvents();
+  }
+
+  private refGrid = React.createRef<HTMLTableElement>();
+  private resizeMetadata?: ColResizeMetadata;
+  private resizeWindowLifecycleEvents: {
+    [eventName: string]: any[];
+  } = {
+    mousemove: [],
+    mouseup: [],
+  };
+
+  clearWindowLifecycleEvents = () => {
+    Object.keys(this.resizeWindowLifecycleEvents).forEach(e => {
+      this.resizeWindowLifecycleEvents[e].forEach(c => window.removeEventListener(e, c));
+      this.resizeWindowLifecycleEvents[e] = [];
+    });
+  };
+
+  onResizeMouseDown = (e: React.MouseEvent, i: number = -1) => {
+    e.preventDefault();
+
+    // Block right-click and other funky stuff
+    if (i === -1 || e.type === 'contextmenu') {
+      return;
+    }
+
+    // <GridResizer> is nested 2 levels down from <GridHeadCell>
+    const cell = e.currentTarget!.parentElement!.parentElement;
+    if (!cell) {
+      return;
+    }
+
+    // HACK: Do not put into state to prevent re-rendering of component
+    this.resizeMetadata = {
+      columnIndex: i,
+      columnWidth: cell.offsetWidth,
+      cursorX: e.clientX,
+    };
+
+    window.addEventListener('mousemove', this.onResizeMouseMove);
+    this.resizeWindowLifecycleEvents.mousemove.push(this.onResizeMouseMove);
+
+    window.addEventListener('mouseup', this.onResizeMouseUp);
+    this.resizeWindowLifecycleEvents.mouseup.push(this.onResizeMouseUp);
+  };
+
+  onResizeMouseUp = (e: MouseEvent) => {
+    const metadata = this.resizeMetadata;
+    const onResizeColumn = this.props.grid.onResizeColumn;
+    if (!metadata || !onResizeColumn) {
+      return;
+    }
+
+    const {columnOrder} = this.props;
+    const widthChange = e.clientX - metadata.cursorX;
+
+    onResizeColumn(metadata.columnIndex, {
+      ...columnOrder[metadata.columnIndex],
+      width: metadata.columnWidth + widthChange,
+    });
+
+    this.resizeMetadata = undefined;
+    this.clearWindowLifecycleEvents();
+  };
+
+  onResizeMouseMove = (e: MouseEvent) => {
+    const {resizeMetadata} = this;
+    if (!resizeMetadata) {
+      return;
+    }
+
+    window.requestAnimationFrame(() => this.resizeGridColumn(e, resizeMetadata));
+  };
 
   toggleEdit = () => {
     const nextValue = !this.state.isEditing;
@@ -167,6 +262,48 @@ class GridEditable<
       />
     ));
   };
+
+  resizeGridColumn = (e: MouseEvent, metadata: ColResizeMetadata) => {
+    const grid = this.refGrid.current;
+    if (!grid) {
+      return;
+    }
+
+    const widthChange = e.clientX - metadata.cursorX;
+
+    const nextColumnOrder = [...this.props.columnOrder];
+    nextColumnOrder[metadata.columnIndex] = {
+      ...nextColumnOrder[metadata.columnIndex],
+      width: metadata.columnWidth + widthChange,
+    };
+
+    this.setGridTemplateColumns(
+      this.props.columnOrder,
+      metadata.columnIndex,
+      metadata.columnWidth + e.clientX - metadata.cursorX
+    );
+  };
+
+  /**
+   * Set the CSS for Grid Column
+   */
+  setGridTemplateColumns(
+    columnOrder: GridColumnOrder[],
+    columnIndex: number = -1,
+    columnWidth: number = 0
+  ) {
+    const grid = this.refGrid.current;
+    if (!grid) {
+      return;
+    }
+
+    const columnWidths = columnOrder.map((c, i) => {
+      const width = i !== columnIndex ? c.width : columnWidth;
+      return `${Math.max(COL_WIDTH_MIN, Number(width) || COL_WIDTH_DEFAULT)}px`;
+    });
+
+    grid.style.gridTemplateColumns = columnWidths.join(' ');
+  }
 
   renderHeaderButton = () => {
     if (!this.props.isEditable) {
@@ -207,23 +344,26 @@ class GridEditable<
   };
 
   renderGridHead = () => {
-    const {columnOrder, actions, grid} = this.props;
+    const {error, isLoading, columnOrder, actions, grid, data} = this.props;
     const {isEditing} = this.state;
 
     // Ensure that the last column cannot be removed
-    const enableEdit = isEditing && columnOrder.length > 1;
+    const numColumn = columnOrder.length;
+    const enableEdit = isEditing && numColumn > 1;
 
     return (
       <GridRow>
-        {columnOrder.map((column, columnIndex) => (
+        {/* Note that this.onResizeMouseDown assumes GridResizer is nested
+            2 levels under GridHeadCell */
+        columnOrder.map((column, i) => (
           <GridHeadCell
             openModalAddColumnAt={this.openModalAddColumnAt}
-            isLast={columnOrder.length - 1 === columnIndex}
-            key={`${columnIndex}.${column.key}`}
+            isLast={columnOrder.length - 1 === i}
+            key={`${i}.${column.key}`}
             isColumnDragging={this.props.isColumnDragging}
             isPrimary={column.isPrimary}
             isEditing={enableEdit}
-            indexColumnOrder={columnIndex}
+            indexColumnOrder={i}
             column={column}
             gridHeadCellButtonProps={this.props.gridHeadCellButtonProps || {}}
             actions={{
@@ -233,9 +373,13 @@ class GridEditable<
               toggleModalEditColumn: this.toggleModalEditColumn,
             }}
           >
-            {grid.renderHeaderCell
-              ? grid.renderHeaderCell(column, columnIndex)
-              : column.name}
+            {grid.renderHeadCell ? grid.renderHeadCell(column, i) : column.name}
+            <GridResizer
+              isLast={i === numColumn - 1}
+              dataRows={!error && !isLoading && data ? data.length : 0}
+              onMouseDown={e => this.onResizeMouseDown(e, i)}
+              onContextMenu={this.onResizeMouseDown}
+            />
           </GridHeadCell>
         ))}
       </GridRow>
@@ -261,11 +405,11 @@ class GridEditable<
   };
 
   renderGridBodyRow = (dataRow: DataRow, row: number) => {
-    const {grid} = this.props;
+    const {columnOrder, grid} = this.props;
 
     return (
       <GridRow key={row}>
-        {this.props.columnOrder.map((col, i) => (
+        {columnOrder.map((col, i) => (
           <GridBodyCell key={`${col.key}${i}`}>
             {grid.renderBodyCell ? grid.renderBodyCell(col, dataRow) : dataRow[col.key]}
           </GridBodyCell>
@@ -334,11 +478,7 @@ class GridEditable<
         </Header>
 
         <Body>
-          <Grid
-            isEditable={this.props.isEditable}
-            isEditing={this.state.isEditing}
-            numColumn={this.state.numColumn}
-          >
+          <Grid innerRef={this.refGrid}>
             <GridHead>{this.renderGridHead()}</GridHead>
             <GridBody>{this.renderGridBody()}</GridBody>
           </Grid>
@@ -350,6 +490,11 @@ class GridEditable<
 
 export default GridEditable;
 export {
+  COL_WIDTH_MIN,
+  COL_WIDTH_DEFAULT,
+  COL_WIDTH_NUMBER,
+  COL_WIDTH_STRING,
+  COL_WIDTH_STRING_LONG,
   GridColumn,
   GridColumnHeader,
   GridColumnOrder,

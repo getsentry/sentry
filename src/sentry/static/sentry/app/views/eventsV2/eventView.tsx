@@ -9,6 +9,7 @@ import moment from 'moment';
 import {DEFAULT_PER_PAGE} from 'app/constants';
 import {SavedQuery, NewQuery} from 'app/types';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import {COL_WIDTH_DEFAULT} from 'app/components/gridEditable';
 
 import {AUTOLINK_FIELDS, SPECIAL_FIELDS, FIELD_FORMATTERS} from './data';
 import {
@@ -51,8 +52,7 @@ const reverseSort = (sort: Sort): Sort => {
 export type Field = {
   field: string;
   title: string;
-  // TODO: implement later
-  // width: number;
+  width: number;
 };
 
 const isSortEqualToField = (
@@ -115,16 +115,25 @@ const generateFieldAsString = (props: {aggregation: string; field: string}): str
 
 const decodeFields = (location: Location): Array<Field> => {
   const {query} = location;
-
   if (!query || !query.field) {
     return [];
   }
 
-  const fields: string[] = isString(query.field) ? [query.field] : query.field;
+  // TODO(leedongwei): Probably need to refactor this into utils.tsx
+  const fields: string[] = Array.isArray(query.field)
+    ? query.field
+    : isString(query.field)
+    ? [query.field]
+    : [];
   const fieldnames: string[] = Array.isArray(query.fieldnames)
     ? query.fieldnames
     : isString(query.fieldnames)
     ? [query.fieldnames]
+    : [];
+  const widths = Array.isArray(query.widths)
+    ? query.widths
+    : isString(query.widths)
+    ? [query.widths]
     : [];
 
   const parsed: Field[] = [];
@@ -133,7 +142,9 @@ const decodeFields = (location: Location): Array<Field> => {
     if (fieldnames[i]) {
       title = fieldnames[i];
     }
-    parsed.push({field, title});
+
+    const width = widths.length > i ? Number(widths[i]) : COL_WIDTH_DEFAULT;
+    parsed.push({field, title, width});
   });
 
   return parsed;
@@ -285,14 +296,13 @@ class EventView {
     environment: Readonly<string[]>;
     yAxis: string | undefined;
   }) {
-    const fields = Array.isArray(props.fields) ? props.fields : [];
-    let sorts = Array.isArray(props.sorts) ? props.sorts : [];
+    const fields: Field[] = Array.isArray(props.fields) ? props.fields : [];
+    let sorts: Sort[] = Array.isArray(props.sorts) ? props.sorts : [];
     const tags = Array.isArray(props.tags) ? props.tags : [];
     const project = Array.isArray(props.project) ? props.project : [];
     const environment = Array.isArray(props.environment) ? props.environment : [];
 
     // only include sort keys that are included in the fields
-
     const sortKeys = fields
       .map(field => {
         return getSortKeyFromField(field, undefined);
@@ -348,7 +358,6 @@ class EventView {
     const query = location.query;
 
     // apply global selection header values from location whenever possible
-
     const environment: string[] =
       Array.isArray(newQuery.environment) && newQuery.environment.length > 0
         ? newQuery.environment
@@ -366,7 +375,6 @@ class EventView {
       projects: project,
 
       // datetime selection
-
       start: newQuery.start || decodeScalar(query.start),
       end: newQuery.end || decodeScalar(query.end),
       range: newQuery.range || decodeScalar(query.statsPeriod),
@@ -378,7 +386,10 @@ class EventView {
   static fromSavedQuery(saved: NewQuery | SavedQuery): EventView {
     const fields = saved.fields.map((field, i) => {
       const title = saved.fieldnames && saved.fieldnames[i] ? saved.fieldnames[i] : field;
-      return {field, title};
+      const width =
+        saved.widths && saved.widths[i] ? Number(saved.widths[i]) : COL_WIDTH_DEFAULT;
+
+      return {field, title, width};
     });
     const yAxis = saved.yAxis;
 
@@ -390,9 +401,9 @@ class EventView {
     });
 
     return new EventView({
-      fields,
       id: saved.id,
       name: saved.name,
+      fields,
       query: queryStringFromSavedQuery(saved),
       project: saved.projects,
       start: decodeScalar(start),
@@ -468,6 +479,7 @@ class EventView {
       name: this.name || '',
       fields: this.getFields(),
       fieldnames: this.getFieldNames(),
+      widths: this.getWidths().map(w => String(w)),
       orderby,
       tags: this.tags,
       query: this.query || '',
@@ -504,6 +516,7 @@ class EventView {
       name: undefined,
       field: undefined,
       fieldnames: undefined,
+      widths: undefined,
       sort: undefined,
       tag: undefined,
       query: undefined,
@@ -514,7 +527,7 @@ class EventView {
       output[field] = undefined;
     }
 
-    return cloneDeep(output as any);
+    return output;
   }
 
   generateQueryStringObject(): Query {
@@ -523,6 +536,7 @@ class EventView {
       name: this.name,
       field: this.getFields(),
       fieldnames: this.getFieldNames(),
+      widths: this.getWidths(),
       sort: encodeSorts(this.sorts),
       tag: this.tags,
       environment: this.environment,
@@ -544,16 +558,16 @@ class EventView {
     return this.fields.length > 0;
   }
 
-  getFieldNames(): string[] {
-    return this.fields.map(field => {
-      return field.title;
-    });
+  getFields(): string[] {
+    return this.fields.map(field => field.field);
   }
 
-  getFields(): string[] {
-    return this.fields.map(field => {
-      return field.field;
-    });
+  getFieldNames(): string[] {
+    return this.fields.map(field => field.title);
+  }
+
+  getWidths(): number[] {
+    return this.fields.map(field => field.width || COL_WIDTH_DEFAULT);
   }
 
   getAggregateFields(): Field[] {
@@ -574,11 +588,7 @@ class EventView {
   }
 
   getColumns(): TableColumn<React.ReactText>[] {
-    return decodeColumnOrder({
-      field: this.getFields(),
-      fieldnames: this.getFieldNames(),
-      fields: this.fields,
-    });
+    return decodeColumnOrder(this.fields);
   }
 
   clone(): EventView {
@@ -608,21 +618,18 @@ class EventView {
     fieldname: string;
   }): EventView {
     const field = newColumn.field.trim();
-
     const aggregation = newColumn.aggregation.trim();
-
     const fieldAsString = generateFieldAsString({field, aggregation});
-
     const name = newColumn.fieldname.trim();
     const hasName = name.length > 0;
 
     const newField: Field = {
       field: fieldAsString,
       title: hasName ? name : fieldAsString,
+      width: COL_WIDTH_DEFAULT,
     };
 
     const newEventView = this.clone();
-
     newEventView.fields = [...newEventView.fields, newField];
 
     return newEventView;
@@ -637,7 +644,6 @@ class EventView {
     insertIndex: number
   ): EventView {
     const newEventView = this.withNewColumn(newColumn);
-
     const fromIndex = newEventView.fields.length - 1;
 
     return newEventView.withMovedColumn({fromIndex, toIndex: insertIndex});
@@ -649,19 +655,20 @@ class EventView {
       aggregation: string;
       field: string;
       fieldname: string;
+      width: number;
     },
     tableMeta: MetaType | undefined
   ): EventView {
-    const {field, aggregation, fieldname} = updatedColumn;
+    const {aggregation, field, fieldname, width} = updatedColumn;
 
     const columnToBeUpdated = this.fields[columnIndex];
-
     const fieldAsString = generateFieldAsString({field, aggregation});
 
     const updateField = columnToBeUpdated.field !== fieldAsString;
     const updateFieldName = columnToBeUpdated.title !== fieldname;
+    const updateWidth = columnToBeUpdated.width !== width;
 
-    if (!updateField && !updateFieldName) {
+    if (!updateField && !updateFieldName && !updateWidth) {
       return this;
     }
 
@@ -673,6 +680,7 @@ class EventView {
     const updatedField: Field = {
       field: fieldAsString,
       title: fieldname,
+      width,
     };
 
     const fields = [...newEventView.fields];
@@ -682,7 +690,6 @@ class EventView {
 
     // if the updated column is one of the sorted columns, we may need to remove
     // it from the list of sorts
-
     const needleSortIndex = this.sorts.findIndex(sort => {
       return isSortEqualToField(sort, columnToBeUpdated, tableMeta);
     });
@@ -700,7 +707,6 @@ class EventView {
 
       // do not bother deleting the sort key if there are more than one columns
       // of it in the table.
-
       if (numOfColumns <= 1) {
         if (isFieldSortable(updatedField, tableMeta)) {
           // use the current updated field as the sort key
@@ -756,18 +762,14 @@ class EventView {
     tableMeta = validateTableMeta(tableMeta);
 
     // delete the column
-
     const newEventView = this.clone();
-
     const fields = [...newEventView.fields];
     fields.splice(columnIndex, 1);
     newEventView.fields = fields;
 
     // if the deleted column is one of the sorted columns, we need to remove
     // it from the list of sorts
-
     const columnToBeDeleted = this.fields[columnIndex];
-
     const needleSortIndex = this.sorts.findIndex(sort => {
       return isSortEqualToField(sort, columnToBeDeleted, tableMeta);
     });
@@ -785,7 +787,6 @@ class EventView {
 
       // do not bother deleting the sort key if there are more than one columns
       // of it in the table.
-
       if (numOfColumns <= 1) {
         const sorts = [...newEventView.sorts];
         sorts.splice(needleSortIndex, 1);
@@ -793,7 +794,6 @@ class EventView {
 
         if (newEventView.sorts.length <= 0 && newEventView.fields.length > 0) {
           // establish a default sort by finding the first sortable field
-
           const sortableFieldIndex = newEventView.fields.findIndex(field => {
             return isFieldSortable(field, tableMeta);
           });
@@ -818,7 +818,6 @@ class EventView {
     const newEventView = this.clone();
 
     const fields = [...newEventView.fields];
-
     fields.splice(toIndex, 0, fields.splice(fromIndex, 1)[0]);
 
     newEventView.fields = fields;
@@ -883,11 +882,9 @@ class EventView {
     const query = (location && location.query) || {};
 
     // pick only the query strings that we care about
-
     const picked = pickRelevantLocationQueryStrings(location);
 
     // normalize datetime selection
-
     const normalizedTimeWindowParams = getParams({
       start: this.start || picked.start,
       end: this.end || picked.end,
@@ -902,7 +899,6 @@ class EventView {
     const environment = this.environment as string[];
 
     // generate event query
-
     const eventQuery: EventQuery & LocationQuery = Object.assign(
       omit(picked, DATETIME_QUERY_STRING_KEYS),
       normalizedTimeWindowParams,
@@ -955,7 +951,6 @@ class EventView {
     }
 
     // field is currently not sorted; so, we sort on it
-
     const newEventView = this.clone();
 
     // invariant: this is not falsey, since sortKey exists
@@ -997,7 +992,6 @@ export const isAPIPayloadSimilar = (
 
 export function pickRelevantLocationQueryStrings(location: Location): LocationQuery {
   const query = location.query || {};
-
   const picked = pick<LocationQuery>(query || {}, EXTERNAL_QUERY_STRING_KEYS);
 
   return picked;
