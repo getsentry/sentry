@@ -36,6 +36,7 @@ type Props = {
 type State = {
   tags: {[key: string]: Tag};
   totalValues: null | number;
+  tagsFetchID: symbol | undefined;
 };
 
 class Tags extends React.Component<Props, State> {
@@ -49,6 +50,7 @@ class Tags extends React.Component<Props, State> {
   state: State = {
     tags: {},
     totalValues: null,
+    tagsFetchID: undefined,
   };
 
   componentDidMount() {
@@ -81,7 +83,7 @@ class Tags extends React.Component<Props, State> {
     const {api, organization, eventView, location} = this.props;
 
     const tagsFetchID = Symbol('tagsFetchID');
-    this.setState({tags: {}, totalValues: null, isLoading: true, tagsFetchID});
+    this.setState({tags: {}, totalValues: null, tagsFetchID});
 
     const queryPayload = pickTagParams(eventView.getEventsAPIPayload(location));
 
@@ -89,7 +91,17 @@ class Tags extends React.Component<Props, State> {
       try {
         const val = await fetchTagDistribution(api, organization.slug, tag, queryPayload);
 
-        this.setState(state => ({tags: {...state.tags, [tag]: val}}));
+        this.setState((state: Readonly<State>) => {
+          if (state.tagsFetchID !== tagsFetchID) {
+            // invariant: a different request was initiated after this request
+            return state;
+          }
+
+          return {
+            ...state,
+            tags: {...state.tags, [tag]: val},
+          };
+        });
       } catch (err) {
         Sentry.captureException(err);
       }
@@ -97,7 +109,14 @@ class Tags extends React.Component<Props, State> {
 
     try {
       const totalValues = await fetchTotalCount(api, organization.slug, queryPayload);
-      this.setState({totalValues});
+      this.setState(state => {
+        if (state.tagsFetchID !== tagsFetchID) {
+          // invariant: a different request was initiated after this request
+          return state;
+        }
+
+        return {...state, totalValues};
+      });
     } catch (err) {
       Sentry.captureException(err);
     }
