@@ -17,6 +17,8 @@ from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.common.action_chains import ActionChains
 from six.moves.urllib.parse import quote, urlparse
 
+from sentry.utils.retries import TimedRetryPolicy
+
 # if we're not running in a PR, we kill the PERCY_TOKEN because its a push
 # to a branch, and we dont want percy comparing things
 # we do need to ensure its run on master so that changes get updated
@@ -312,19 +314,9 @@ def percy(request):
     return percy
 
 
-start_chrome_retry_attempts = 5
-
-
+@TimedRetryPolicy.wrap(timeout=15, exceptions=(WebDriverException,))
 def start_chrome(**chrome_args):
-    try:
-        return webdriver.Chrome(**chrome_args)
-    except WebDriverException as e:
-        global start_chrome_retry_attempts
-        if start_chrome_retry_attempts > 0:
-            print("lol retrying opening chrome %s\n" % start_chrome_retry_attempts)  # NOQA
-            start_chrome_retry_attempts = start_chrome_retry_attempts - 1
-            return start_chrome(**chrome_args)
-        raise e
+    return webdriver.Chrome(**chrome_args)
 
 
 @pytest.fixture(scope="function")
