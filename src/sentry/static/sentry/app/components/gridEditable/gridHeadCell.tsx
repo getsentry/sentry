@@ -2,7 +2,6 @@ import React from 'react';
 
 import InlineSvg from 'app/components/inlineSvg';
 
-import {FLAG_GRID_RESIZABLE} from './flags';
 import {
   GridHeadCell as GridHeadCellWrapper,
   GridHeadCellButton,
@@ -10,7 +9,6 @@ import {
   GridHeadCellButtonHoverBackground,
   GridHeadCellButtonHoverButton,
   GridHeadCellButtonHoverDraggable,
-  GridHeadCellResizer,
 } from './styles';
 import {GridColumnHeader} from './types';
 
@@ -121,16 +119,6 @@ class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
     );
   }
 
-  renderResizeGrabbable = () => {
-    const {isEditing} = this.props;
-
-    if (!FLAG_GRID_RESIZABLE || !isEditing) {
-      return null;
-    }
-
-    return <GridHeadCellResizer isEditing={isEditing} />;
-  };
-
   render() {
     const {isEditing, children, column, gridHeadCellButtonProps} = this.props;
 
@@ -147,12 +135,6 @@ class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
           {children}
           {this.renderButtonHoverDraggable(children)}
         </GridHeadCellButton>
-
-        {/*
-          Keep the Resizer component and the add column button at the bottom
-          to ensure that it is will always
-          float on top of everything else */
-        this.renderResizeGrabbable()}
       </GridHeadCellWrapper>
     );
   }
