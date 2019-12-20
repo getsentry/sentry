@@ -3,13 +3,13 @@ import React from 'react';
 import EventView from 'app/views/eventsV2/eventView';
 
 import {SpanBoundsType, SpanGeneratedBoundsType} from './utils';
-import {SpanType, ParsedTraceType} from './types';
+import {ProcessedSpanType, ParsedTraceType} from './types';
 import SpanBar from './spanBar';
 
 type PropType = {
   orgId: string;
   eventView: EventView;
-  span: Readonly<SpanType>;
+  span: Readonly<ProcessedSpanType>;
   trace: Readonly<ParsedTraceType>;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   treeDepth: number;

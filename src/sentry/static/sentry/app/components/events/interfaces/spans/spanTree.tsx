@@ -3,15 +3,26 @@ import styled from 'react-emotion';
 import get from 'lodash/get';
 
 import {t} from 'app/locale';
+import theme from 'app/utils/theme';
 import EventView from 'app/views/eventsV2/eventView';
 
-import {SpanType, SpanChildrenLookupType, ParsedTraceType} from './types';
+import {
+  ProcessedSpanType,
+  RawSpanType,
+  SpanChildrenLookupType,
+  ParsedTraceType,
+  GapSpanType,
+} from './types';
 import {
   boundsGenerator,
   SpanBoundsType,
   SpanGeneratedBoundsType,
   pickSpanBarColour,
   generateRootSpan,
+  getSpanID,
+  getSpanOperation,
+  getSpanTraceID,
+  isGapSpan,
 } from './utils';
 import {DragManagerChildrenProps} from './dragManager';
 import SpanGroup from './spanGroup';
@@ -90,14 +101,14 @@ class SpanTree extends React.Component<PropType> {
     return <SpanRowMessage>{messages}</SpanRowMessage>;
   }
 
-  isSpanFilteredOut(span: Readonly<SpanType>): boolean {
+  isSpanFilteredOut(span: Readonly<RawSpanType>): boolean {
     const {filterSpans} = this.props;
 
     if (!filterSpans) {
       return false;
     }
 
-    return !filterSpans.spanIDs.has(span.span_id);
+    return !filterSpans.spanIDs.has(getSpanID(span));
   }
 
   renderSpan = ({
@@ -111,6 +122,7 @@ class SpanTree extends React.Component<PropType> {
     childSpans,
     span,
     generateBounds,
+    previousSiblingEndTimestamp,
   }: {
     spanNumber: number;
     treeDepth: number;
@@ -119,14 +131,15 @@ class SpanTree extends React.Component<PropType> {
     isRoot?: boolean;
     numOfSpansOutOfViewAbove: number;
     numOfFilteredSpansAbove: number;
-    span: Readonly<SpanType>;
+    span: Readonly<ProcessedSpanType>;
     childSpans: Readonly<SpanChildrenLookupType>;
     generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
+    previousSiblingEndTimestamp: undefined | number;
   }): RenderedSpanTree => {
     const {orgId, eventView} = this.props;
 
-    const spanBarColour: string = pickSpanBarColour(span.op);
-    const spanChildren: Array<SpanType> = get(childSpans, span.span_id, []);
+    const spanBarColour: string = pickSpanBarColour(getSpanOperation(span));
+    const spanChildren: Array<RawSpanType> = get(childSpans, getSpanID(span), []);
 
     const bounds = generateBounds({
       startTimestamp: span.start_timestamp,
@@ -134,20 +147,33 @@ class SpanTree extends React.Component<PropType> {
     });
 
     const isCurrentSpanHidden = !bounds.isSpanVisibleInView;
-    const isCurrentSpanFilteredOut = this.isSpanFilteredOut(span);
+    const isCurrentSpanFilteredOut = isGapSpan(span)
+      ? false
+      : this.isSpanFilteredOut(span);
+
+    const isSpanDisplayed = !isCurrentSpanHidden && !isCurrentSpanFilteredOut;
+
+    const isValidGap =
+      typeof previousSiblingEndTimestamp === 'number' &&
+      previousSiblingEndTimestamp < span.start_timestamp &&
+      // gap is at least 100 ms
+      span.start_timestamp - previousSiblingEndTimestamp >= 0.1;
+
+    const spanGroupNumber = isValidGap && isSpanDisplayed ? spanNumber + 1 : spanNumber;
 
     type AccType = {
       renderedSpanChildren: Array<JSX.Element>;
       nextSpanNumber: number;
       numOfSpansOutOfViewAbove: number;
       numOfFilteredSpansAbove: number;
+      previousSiblingEndTimestamp: undefined | number;
     };
 
     const treeArr = isLast ? continuingTreeDepths : [...continuingTreeDepths, treeDepth];
 
     const reduced: AccType = spanChildren.reduce(
       (acc: AccType, spanChild, index) => {
-        const key = `${span.trace_id}${spanChild.span_id}`;
+        const key = `${getSpanTraceID(span)}${getSpanID(spanChild)}`;
 
         const results = this.renderSpan({
           spanNumber: acc.nextSpanNumber,
@@ -159,6 +185,7 @@ class SpanTree extends React.Component<PropType> {
           span: spanChild,
           childSpans,
           generateBounds,
+          previousSiblingEndTimestamp: acc.previousSiblingEndTimestamp,
         });
 
         acc.renderedSpanChildren.push(
@@ -170,17 +197,20 @@ class SpanTree extends React.Component<PropType> {
 
         acc.nextSpanNumber = results.nextSpanNumber;
 
+        acc.previousSiblingEndTimestamp = spanChild.timestamp;
+
         return acc;
       },
       {
         renderedSpanChildren: [],
-        nextSpanNumber: spanNumber + 1,
+        nextSpanNumber: spanGroupNumber + 1,
         numOfSpansOutOfViewAbove: isCurrentSpanHidden ? numOfSpansOutOfViewAbove + 1 : 0,
         numOfFilteredSpansAbove: isCurrentSpanFilteredOut
           ? numOfFilteredSpansAbove + 1
           : isCurrentSpanHidden
           ? numOfFilteredSpansAbove
           : 0,
+        previousSiblingEndTimestamp: undefined,
       }
     );
 
@@ -191,6 +221,33 @@ class SpanTree extends React.Component<PropType> {
       numOfFilteredSpansAbove,
     });
 
+    const spanGap: Readonly<GapSpanType> = {
+      type: 'gap',
+      start_timestamp: previousSiblingEndTimestamp || span.start_timestamp,
+      timestamp: span.start_timestamp, // this is essentially end_timestamp
+      description: t('Potential area for tracing instrumentation'),
+    };
+
+    const spanGapComponent =
+      isValidGap && isSpanDisplayed ? (
+        <SpanGroup
+          eventView={eventView}
+          orgId={orgId}
+          spanNumber={spanNumber}
+          isLast={isLast}
+          continuingTreeDepths={continuingTreeDepths}
+          isRoot={isRoot}
+          span={spanGap}
+          trace={this.props.trace}
+          generateBounds={generateBounds}
+          treeDepth={treeDepth}
+          numOfSpanChildren={spanChildren.length}
+          renderedSpanChildren={reduced.renderedSpanChildren}
+          spanBarColour={theme.gray2}
+          isCurrentSpanFilteredOut={isCurrentSpanFilteredOut}
+        />
+      ) : null;
+
     return {
       numOfSpansOutOfViewAbove: reduced.numOfSpansOutOfViewAbove,
       numOfFilteredSpansAbove: reduced.numOfFilteredSpansAbove,
@@ -198,10 +255,11 @@ class SpanTree extends React.Component<PropType> {
       spanTree: (
         <React.Fragment>
           {infoMessage}
+          {spanGapComponent}
           <SpanGroup
             eventView={eventView}
             orgId={orgId}
-            spanNumber={spanNumber}
+            spanNumber={spanGroupNumber}
             isLast={isLast}
             continuingTreeDepths={continuingTreeDepths}
             isRoot={isRoot}
@@ -222,7 +280,7 @@ class SpanTree extends React.Component<PropType> {
   renderRootSpan = (): RenderedSpanTree => {
     const {dragProps, trace} = this.props;
 
-    const rootSpan: SpanType = generateRootSpan(trace);
+    const rootSpan: RawSpanType = generateRootSpan(trace);
 
     const generateBounds = boundsGenerator({
       traceStartTimestamp: trace.traceStartTimestamp,
@@ -242,6 +300,7 @@ class SpanTree extends React.Component<PropType> {
       span: rootSpan,
       childSpans: trace.childSpans,
       generateBounds,
+      previousSiblingEndTimestamp: undefined,
     });
   };
 
