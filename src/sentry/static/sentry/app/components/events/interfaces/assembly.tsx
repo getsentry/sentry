@@ -24,7 +24,7 @@ const Assembly: React.FC<Props> = ({
     <AssemblyWrapper>
       <Icon src="icon-return-key" />
       <AssemblyInfo>
-        <Caption>AssemblyName:</Caption>
+        <Caption>Assembly:</Caption>
         {name || '-'}
       </AssemblyInfo>
       <AssemblyInfo>
@@ -42,7 +42,7 @@ const Assembly: React.FC<Props> = ({
 
       {filePath && (
         <FilePathInfo>
-          <Caption>FilePath:</Caption>
+          <Caption>Path:</Caption>
           <TextCopyInput>{filePath}</TextCopyInput>
         </FilePathInfo>
       )}
