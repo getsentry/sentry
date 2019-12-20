@@ -321,6 +321,7 @@ def start_chrome(**chrome_args):
     except WebDriverException as e:
         global start_chrome_retry_attempts
         if start_chrome_retry_attempts > 0:
+            print("lol retrying opening chrome %s\n" % start_chrome_retry_attempts)  # NOQA
             start_chrome_retry_attempts = start_chrome_retry_attempts - 1
             return start_chrome(**chrome_args)
         raise e
