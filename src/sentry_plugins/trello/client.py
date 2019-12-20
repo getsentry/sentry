@@ -91,7 +91,7 @@ class TrelloApiClient(ApiClient):
         }
         if org_id:
             params["idOrganizations"] = org_id
-        out = self.request(path=SEARCH_PATH, params=params)
+        response = self.request(path=SEARCH_PATH, params=params)
         return out["cards"]
 
     def get_card(self, card_id_or_short_link):
