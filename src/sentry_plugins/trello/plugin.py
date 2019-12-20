@@ -33,7 +33,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
         """
 
         def get_value(field):
-            initial_values = kwargs.get("initial") or {}
+            initial_values = kwargs.get("initial", {})
             return initial_values.get(field, self.get_option(field, project))
                 return initial_values[field]
             return self.get_option(field, project)
