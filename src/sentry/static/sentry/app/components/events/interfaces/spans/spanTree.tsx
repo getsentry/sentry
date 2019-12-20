@@ -45,8 +45,6 @@ type PropType = {
 };
 
 class SpanTree extends React.Component<PropType> {
-  traceViewRef = React.createRef<HTMLDivElement>();
-
   shouldComponentUpdate(nextProps: PropType) {
     if (nextProps.dragProps.isDragging || nextProps.dragProps.isWindowSelectionDragging) {
       return false;
@@ -54,6 +52,8 @@ class SpanTree extends React.Component<PropType> {
 
     return true;
   }
+
+  traceViewRef = React.createRef<HTMLDivElement>();
 
   generateInfoMessage(input: {
     isCurrentSpanHidden: boolean;
