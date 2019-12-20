@@ -151,6 +151,16 @@ class SpanTree extends React.Component<PropType> {
       ? false
       : this.isSpanFilteredOut(span);
 
+    const isSpanDisplayed = !isCurrentSpanHidden && !isCurrentSpanFilteredOut;
+
+    const isValidGap =
+      typeof previousSiblingEndTimestamp === 'number' &&
+      previousSiblingEndTimestamp < span.start_timestamp &&
+      // gap is at least 100 ms
+      span.start_timestamp - previousSiblingEndTimestamp >= 0.1;
+
+    const spanGroupNumber = isValidGap && isSpanDisplayed ? spanNumber + 1 : spanNumber;
+
     type AccType = {
       renderedSpanChildren: Array<JSX.Element>;
       nextSpanNumber: number;
@@ -193,7 +203,7 @@ class SpanTree extends React.Component<PropType> {
       },
       {
         renderedSpanChildren: [],
-        nextSpanNumber: spanNumber + 1,
+        nextSpanNumber: spanGroupNumber + 1,
         numOfSpansOutOfViewAbove: isCurrentSpanHidden ? numOfSpansOutOfViewAbove + 1 : 0,
         numOfFilteredSpansAbove: isCurrentSpanFilteredOut
           ? numOfFilteredSpansAbove + 1
@@ -210,14 +220,6 @@ class SpanTree extends React.Component<PropType> {
       isCurrentSpanFilteredOut,
       numOfFilteredSpansAbove,
     });
-
-    const isSpanDisplayed = !isCurrentSpanHidden && !isCurrentSpanFilteredOut;
-
-    const isValidGap =
-      typeof previousSiblingEndTimestamp === 'number' &&
-      previousSiblingEndTimestamp < span.start_timestamp &&
-      // gap is at least 100 ms
-      span.start_timestamp - previousSiblingEndTimestamp >= 0.1;
 
     const spanGap: Readonly<GapSpanType> = {
       type: 'gap',
@@ -257,7 +259,7 @@ class SpanTree extends React.Component<PropType> {
           <SpanGroup
             eventView={eventView}
             orgId={orgId}
-            spanNumber={spanNumber}
+            spanNumber={spanGroupNumber}
             isLast={isLast}
             continuingTreeDepths={continuingTreeDepths}
             isRoot={isRoot}
