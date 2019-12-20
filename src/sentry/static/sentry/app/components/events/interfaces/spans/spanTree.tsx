@@ -3,7 +3,6 @@ import styled from 'react-emotion';
 import get from 'lodash/get';
 
 import {t} from 'app/locale';
-import theme from 'app/utils/theme';
 import EventView from 'app/views/eventsV2/eventView';
 
 import {
@@ -230,7 +229,7 @@ class SpanTree extends React.Component<PropType> {
 
     const spanGapComponent =
       isValidGap && isSpanDisplayed ? (
-        <SpanGroup
+        <StyledSpanGroup
           eventView={eventView}
           orgId={orgId}
           spanNumber={spanNumber}
@@ -243,7 +242,6 @@ class SpanTree extends React.Component<PropType> {
           treeDepth={treeDepth}
           numOfSpanChildren={spanChildren.length}
           renderedSpanChildren={reduced.renderedSpanChildren}
-          spanBarColour={theme.gray2}
           isCurrentSpanFilteredOut={isCurrentSpanFilteredOut}
         />
       ) : null;
@@ -328,6 +326,20 @@ class SpanTree extends React.Component<PropType> {
     );
   }
 }
+
+const StyledSpanGroup = styled(SpanGroup)`
+  background-image: linear-gradient(
+    45deg,
+    #dedae3 10%,
+    #f4f2f7 10%,
+    #f4f2f7 50%,
+    #dedae3 50%,
+    #dedae3 60%,
+    #f4f2f7 60%,
+    #f4f2f7 100%
+  );
+  background-size: 6.5px 6.5px;
+`;
 
 const TraceViewContainer = styled('div')`
   overflow-x: hidden;
