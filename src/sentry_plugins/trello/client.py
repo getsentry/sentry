@@ -63,7 +63,7 @@ class TrelloApiClient(ApiClient):
         """
         return self.request(path=LISTS_OF_BOARD_PATH % (board_id), params={"fields": fields})
 
-    def new_card(self, name, idList, desc=None):
+    def new_card(self, name, id_list, desc=None):
         """
         Create a Trello card
         """
