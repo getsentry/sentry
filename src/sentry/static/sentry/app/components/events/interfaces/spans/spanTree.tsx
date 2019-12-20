@@ -3,7 +3,6 @@ import styled from 'react-emotion';
 import get from 'lodash/get';
 
 import {t} from 'app/locale';
-import theme from 'app/utils/theme';
 import EventView from 'app/views/eventsV2/eventView';
 
 import {
@@ -243,7 +242,6 @@ class SpanTree extends React.Component<PropType> {
           treeDepth={treeDepth}
           numOfSpanChildren={spanChildren.length}
           renderedSpanChildren={reduced.renderedSpanChildren}
-          spanBarColour={theme.offWhite}
           isCurrentSpanFilteredOut={isCurrentSpanFilteredOut}
           spanBarHatch
         />

@@ -170,7 +170,7 @@ type SpanBarProps = {
   orgId: string;
   trace: Readonly<ParsedTraceType>;
   span: Readonly<ProcessedSpanType>;
-  spanBarColour: string;
+  spanBarColour?: string;
   spanBarHatch?: boolean;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   treeDepth: number;

@@ -16,7 +16,7 @@ type PropType = {
   continuingTreeDepths: Array<number>;
   numOfSpanChildren: number;
   renderedSpanChildren: Array<JSX.Element>;
-  spanBarColour: string;
+  spanBarColour?: string;
   spanBarHatch?: boolean;
   spanNumber: number;
   isLast: boolean;
