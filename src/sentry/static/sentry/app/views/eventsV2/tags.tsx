@@ -22,8 +22,9 @@ import {
   getEventTagSearchUrl,
   Tag,
   TagTopValue,
+  pickTagParams,
 } from './utils';
-import EventView, {isAPIPayloadSimilar} from './eventView';
+import EventView from './eventView';
 
 type Props = {
   api: Client;
@@ -66,25 +67,27 @@ class Tags extends React.Component<Props, State> {
   }
 
   shouldRefetchData = (prevProps: Props): boolean => {
-    const thisAPIPayload = this.props.eventView.getTagsAPIPayload(this.props.location);
-    const otherAPIPayload = prevProps.eventView.getTagsAPIPayload(prevProps.location);
+    const thisAPIPayload = pickTagParams(
+      this.props.eventView.getTagsAPIPayload(this.props.location)
+    );
+    const otherAPIPayload = pickTagParams(
+      prevProps.eventView.getTagsAPIPayload(prevProps.location)
+    );
 
-    return !isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
+    return !isEqual(thisAPIPayload, otherAPIPayload);
   };
 
   fetchData = async () => {
     const {api, organization, eventView, location} = this.props;
 
-    this.setState({tags: {}, totalValues: null});
+    const tagsFetchID = Symbol('tagsFetchID');
+    this.setState({tags: {}, totalValues: null, isLoading: true, tagsFetchID});
+
+    const queryPayload = pickTagParams(eventView.getTagsAPIPayload(location));
 
     eventView.tags.forEach(async tag => {
       try {
-        const val = await fetchTagDistribution(
-          api,
-          organization.slug,
-          tag,
-          eventView.getTagsAPIPayload(location)
-        );
+        const val = await fetchTagDistribution(api, organization.slug, tag, queryPayload);
 
         this.setState(state => ({tags: {...state.tags, [tag]: val}}));
       } catch (err) {
@@ -93,11 +96,7 @@ class Tags extends React.Component<Props, State> {
     });
 
     try {
-      const totalValues = await fetchTotalCount(
-        api,
-        organization.slug,
-        eventView.getEventsAPIPayload(location)
-      );
+      const totalValues = await fetchTotalCount(api, organization.slug, queryPayload);
       this.setState({totalValues});
     } catch (err) {
       Sentry.captureException(err);
