@@ -6,16 +6,12 @@ import InlineSvg from 'app/components/inlineSvg';
 import {Panel, PanelBody} from 'app/components/panels';
 import space from 'app/styles/space';
 
-export const ADD_BUTTON_SIZE = 16; // this is an even number
-export const GRID_HEADER_HEIGHT = 45;
+export const GRID_HEAD_ROW_HEIGHT = 45;
+export const GRID_BODY_ROW_HEIGHT = 40;
 
-/**
- * Explanation of z-index:
- *  - Resizer needs to float above <th> cells to be interactive.
- *  - Editable needs to float above Resizer to hide the right-most Resizer,
- */
-const Z_INDEX_RESIZER = '1';
-export const Z_INDEX_ADD_COLUMN = '20'; // TODO(leedongwei): Remove with addColumnButton.tsx
+// Local z-index stacking context
+// https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Positioning/Understanding_z_index/The_stacking_context
+export const Z_INDEX_RESIZER = 1;
 
 type GridEditableProps = {
   numColumn?: number;
@@ -111,13 +107,13 @@ export const GridHead = styled('thead')`
 export const GridHeadCell = styled('th')`
   /* By default, a grid item cannot be smaller than the size of its content.
      We override this by setting min-width to be 0. */
-  position: relative;
+  position: relative; /* Used by GridResizer */
   min-width: 0;
-  height: ${GRID_HEADER_HEIGHT}px;
+  height: ${GRID_HEAD_ROW_HEIGHT}px;
 
   background-color: ${p => p.theme.offWhite};
   border-bottom: 1px solid ${p => p.theme.borderDark};
-  border-right: 1px solid ${p => p.theme.borderDark};
+  /* border-right: 1px solid ${p => p.theme.borderDark}; */
 
   &:first-child {
     border-top-left-radius: ${p => p.theme.borderRadius};
@@ -129,7 +125,6 @@ export const GridHeadCell = styled('th')`
   }
 `;
 export const GridHeadCellButton = styled('div')<GridEditableProps>`
-  position: relative;
   min-width: 24px; /* Ensure that edit/remove buttons are never hidden */
   display: block;
   margin: ${space(0.5)};
@@ -195,28 +190,6 @@ export const GridHeadCellButton = styled('div')<GridEditableProps>`
   }
 
   user-select: none;
-`;
-export const GridHeadCellResizer = styled('span')<GridEditableProps>`
-  position: absolute;
-  top: 0;
-  right: -2px; /* Overlap half of Resizer into the right neighbor */
-  display: block;
-  width: 4px;
-  height: 100%;
-
-  padding: ${space(1.5)} 1px; /* Padding sets the size of ::after  */
-  z-index: ${Z_INDEX_RESIZER};
-  cursor: col-resize;
-
-  &::after {
-    content: ' ';
-    display: block;
-    width: 2px;
-    height: 100%;
-
-    border-left: 1px solid ${p => p.theme.gray2};
-    border-right: 1px solid ${p => p.theme.gray2};
-  }
 `;
 
 /**
