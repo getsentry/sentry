@@ -17,6 +17,7 @@ type PropType = {
   numOfSpanChildren: number;
   renderedSpanChildren: Array<JSX.Element>;
   spanBarColour: string;
+  spanBarHatch?: boolean;
   spanNumber: number;
   isLast: boolean;
   isRoot?: boolean;
@@ -51,6 +52,7 @@ class SpanGroup extends React.Component<PropType, State> {
   render() {
     const {
       spanBarColour,
+      spanBarHatch,
       span,
       numOfSpanChildren,
       trace,
@@ -71,6 +73,7 @@ class SpanGroup extends React.Component<PropType, State> {
           eventView={eventView}
           orgId={orgId}
           spanBarColour={spanBarColour}
+          spanBarHatch={spanBarHatch}
           span={span}
           showSpanTree={this.state.showSpanTree}
           numOfSpanChildren={numOfSpanChildren}

@@ -243,8 +243,9 @@ class SpanTree extends React.Component<PropType> {
           treeDepth={treeDepth}
           numOfSpanChildren={spanChildren.length}
           renderedSpanChildren={reduced.renderedSpanChildren}
-          spanBarColour={theme.gray1}
+          spanBarColour={theme.offWhite}
           isCurrentSpanFilteredOut={isCurrentSpanFilteredOut}
+          spanBarHatch
         />
       ) : null;
 
@@ -271,6 +272,7 @@ class SpanTree extends React.Component<PropType> {
             renderedSpanChildren={reduced.renderedSpanChildren}
             spanBarColour={spanBarColour}
             isCurrentSpanFilteredOut={isCurrentSpanFilteredOut}
+            spanBarHatch={false}
           />
         </React.Fragment>
       ),
