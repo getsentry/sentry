@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from 'react-emotion';
 import get from 'lodash/get';
+import isFinite from 'lodash/isFinite';
 
 import {Event} from 'app/types';
 import {
@@ -186,7 +187,7 @@ class OpsBreakdown extends React.Component<Props> {
         {results.ops.map(currOp => {
           const {name, percentage, totalDuration} = currOp;
           const durLabel = Math.round(totalDuration * 1000 * 100) / 100;
-          const pctLabel = Math.round(percentage * 100);
+          const pctLabel = isFinite(percentage) ? Math.round(percentage * 100) : '∞';
           const opsColor: string = pickSpanBarColour(name);
 
           return (
