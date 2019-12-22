@@ -110,6 +110,22 @@ class OpsBreakdown extends React.Component<Props> {
       {}
     );
 
+    // cumulativeDuration is the cumulative duration sum of the transaction span,
+    // and all of its descendants.
+    // If the cumulative duration sum of the transaction's descendants (excluding the transaction span)
+    // is non-zero, then we can subtract the transaction span's duration away from cumulativeDuration.
+    //
+    // In cases when (cumulativeDuration - transactionDuration) <= 0, this could mean either:
+    // 1. There are no descendants, or
+    // 2. All descendants have durations of 0.
+    //
+    // This change for cumulativeDuration ensures that the duration sum of the transaction
+    // span with respect to cumulativeDuration is at least 100%.
+    const transactionDuration = Math.abs(event.endTimestamp - event.startTimestamp);
+    if (cumulativeDuration - transactionDuration > 0) {
+      cumulativeDuration = cumulativeDuration - transactionDuration;
+    }
+
     const ops = Object.keys(aggregateByOp).map(opName => {
       return {
         name: opName,
