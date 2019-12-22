@@ -18,7 +18,7 @@ type OpStats = {percentage: number; totalDuration: number};
 
 const TOP_N_SPANS = 4;
 
-type EventBreakdownType = {
+type OpBreakdownType = {
   // top TOP_N_SPANS spans
   ops: ({name: string} & OpStats)[];
   // the rest of the spans
@@ -29,7 +29,7 @@ type Props = {
   event: Event;
 };
 
-class EventBreakdown extends React.Component<Props> {
+class OpsBreakdown extends React.Component<Props> {
   getTransactionEvent(): SentryTransactionEvent | undefined {
     const {event} = this.props;
 
@@ -40,7 +40,7 @@ class EventBreakdown extends React.Component<Props> {
     return undefined;
   }
 
-  generateStats(): EventBreakdownType {
+  generateStats(): OpBreakdownType {
     const event = this.getTransactionEvent();
 
     if (!event) {
@@ -226,4 +226,4 @@ const Pct = styled('div')`
   text-align: right;
 `;
 
-export default EventBreakdown;
+export default OpsBreakdown;
