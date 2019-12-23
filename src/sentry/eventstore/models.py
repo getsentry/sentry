@@ -53,3 +53,11 @@ class Event(EventCommon):
         date = datetime.fromtimestamp(recorded_timestamp)
         date = date.replace(tzinfo=timezone.utc)
         return date
+
+    @property
+    def timestamp(self):
+        return self.datetime.isoformat()
+
+    @property
+    def id(self):
+        return self.event_id
