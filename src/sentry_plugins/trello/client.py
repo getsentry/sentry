@@ -68,7 +68,7 @@ class TrelloApiClient(ApiClient):
         Create a Trello card
         """
         return self.request(
-            method="POST", path=NEW_CARD_PATH, data={"name": name, "idList": idList, "desc": desc}
+            method="POST", path=NEW_CARD_PATH, data={"name": name, "idList": id_list, "desc": desc}
         )
 
     def get_organization_options(self):
@@ -76,7 +76,7 @@ class TrelloApiClient(ApiClient):
         Return organization options to use in a Django form
         """
         organizations = self.get_organization_list(fields="name")
-        return ((org["id"], org["name"]) for org in organizations)
+        return list((org["id"], org["name"]) for org in organizations)
 
     def get_cards(self, query, org_id=None):
         """
@@ -92,7 +92,7 @@ class TrelloApiClient(ApiClient):
         if org_id:
             params["idOrganizations"] = org_id
         response = self.request(path=SEARCH_PATH, params=params)
-        return out["cards"]
+        return response["cards"]
 
     def get_card(self, card_id_or_short_link):
         """

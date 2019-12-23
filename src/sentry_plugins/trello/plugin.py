@@ -6,7 +6,6 @@ from rest_framework.response import Response
 
 
 from sentry.utils.http import absolute_uri
-from sentry.exceptions import PluginError
 from sentry.plugins.bases.issue2 import IssuePlugin2, IssueGroupActionEndpoint
 from sentry_plugins.base import CorePluginMixin
 from .client import TrelloApiClient
@@ -14,7 +13,7 @@ from .client import TrelloApiClient
 
 SETUP_URL = "https://github.com/getsentry/sentry/blob/master/src/sentry_plugins/trello/Trello_Instructions.md"  # NOQA
 
-LABLEX_REGEX = re.compile("\w+/https://trello.com/")
+LABLEX_REGEX = re.compile(r"\w+/https://trello\.com/")
 
 
 class TrelloPlugin(CorePluginMixin, IssuePlugin2):
@@ -34,7 +33,8 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
 
         def get_value(field):
             initial_values = kwargs.get("initial", {})
-            return initial_values.get(field, self.get_option(field, project))
+            # return initial_values.get(field, self.get_option(field, project))
+            if initial_values.get(field):
                 return initial_values[field]
             return self.get_option(field, project)
 
@@ -47,6 +47,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
 
         token_val = get_value("token")
         if token_val:
+            # The token is sensitive so we should mask the value by only sending back the first 5 characters
             token_config["required"] = False
             token_config["prefix"] = token_val[:5]
             token_config["has_saved_value"] = True
@@ -60,14 +61,14 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
             "type": "text",
             "required": True,
             "label": "Trello API Key",
-            "default": key_val,
+            "default": api_key,
         }
 
         config = [key_config, token_config]
         org_value = get_value("organization")
         include_org = kwargs.get("add_additial_fields", org_value)
-        if key_val and token_val and include_org:
-            trello_client = TrelloApiClient(key_val, token_val)
+        if api_key and token_val and include_org:
+            trello_client = TrelloApiClient(api_key, token_val)
             try:
                 org_options = trello_client.get_organization_options()
                 config.append(
@@ -92,7 +93,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
         try:
             trello_client.get_organization_options()
         except Exception as e:
-            raise PluginError(self.message_from_error(e))
+            self.raise_error(e)
         return config
 
     def get_group_urls(self):
@@ -187,7 +188,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
 
         try:
             response = client.new_card(
-                idList=form_data["list"], name=form_data["title"], desc=form_data["description"]
+                id_list=form_data["list"], name=form_data["title"], desc=form_data["description"]
             )
         except Exception as e:
             self.raise_error(e)
