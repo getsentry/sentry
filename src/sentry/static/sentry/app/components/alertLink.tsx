@@ -16,7 +16,7 @@ type Props = {
   icon?: string;
   size: Size;
   priority: Priority;
-  onClick: (e: React.MouseEvent) => void;
+  onClick?: (e: React.MouseEvent) => void;
 };
 
 export default class AlertLink extends React.Component<Props> {
