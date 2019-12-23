@@ -75,15 +75,15 @@ class SnubaEventStorage(EventStorage):
         Get an event given a project ID and event ID
         Returns None if an event cannot be found
         """
-        if options.get("eventstore.use-nodestore"):
-            return self.__get_event_by_id_nodestore(project_id, event_id)
-
-        cols = self.__get_columns(additional_columns)
-
         event_id = normalize_event_id(event_id)
 
         if not event_id:
             return None
+
+        if options.get("eventstore.use-nodestore"):
+            return self.__get_event_by_id_nodestore(project_id, event_id)
+
+        cols = self.__get_columns(additional_columns)
 
         result = snuba.raw_query(
             selected_columns=cols,
