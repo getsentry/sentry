@@ -20,7 +20,7 @@ type Props = {
 };
 
 export default class AlertLink extends React.Component<Props> {
-  static defaultProps = {
+  static defaultProps: Partial<Props> = {
     priority: 'warning',
     size: 'normal',
   };
