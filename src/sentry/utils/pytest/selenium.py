@@ -15,6 +15,7 @@ from selenium.common.exceptions import NoSuchElementException, WebDriverExceptio
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from six.moves.urllib.parse import quote, urlparse
 
 from sentry.utils.retries import TimedRetryPolicy
@@ -340,6 +341,10 @@ def browser(request, percy, live_server):
         chrome_args = {"options": options}
         if chromedriver_path:
             chrome_args["executable_path"] = chromedriver_path
+
+        d = DesiredCapabilities.CHROME
+        d["goog:loggingPrefs"] = {"browser": "ALL"}
+        chrome_args["desired_capabilities"] = d
 
         driver = start_chrome(**chrome_args)
     elif driver_type == "firefox":
