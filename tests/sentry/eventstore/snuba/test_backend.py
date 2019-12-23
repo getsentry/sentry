@@ -122,8 +122,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         with self.settings(SENTRY_OPTIONS=options):
             event = self.eventstore.get_event_by_id(self.project1.id, "a" * 32)
             assert event
-            assert event.group_id == 4
-            assert event.group.id == 4
+            assert event.group_id == event.group.id
 
             # Transaction event
             event = self.eventstore.get_event_by_id(self.project2.id, "d" * 32)
