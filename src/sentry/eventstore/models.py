@@ -12,10 +12,11 @@ def ref_func(x):
 
 
 class Event(EventCommon):
-    def __init__(self, project_id, event_id, group_id=None, data=None):
+    def __init__(self, project_id, event_id, group_id=None, message=None, data=None):
         self.project_id = project_id
         self.event_id = event_id
         self.group_id = group_id
+        self.message = message
         self.data = data
         super(Event, self).__init__()
 
@@ -46,6 +47,16 @@ class Event(EventCommon):
     @property
     def platform(self):
         return self.data.get("platform", None)
+
+    @property
+    def message(self):
+        if self._message:
+            return self._message
+        return self.data.get("message")
+
+    @message.setter
+    def message(self, value):
+        self._message = value
 
     @property
     def datetime(self):
