@@ -76,7 +76,7 @@ class TrelloApiClient(ApiClient):
         Return organization options to use in a Django form
         """
         organizations = self.get_organization_list(fields="name")
-        return list((org["id"], org["name"]) for org in organizations)
+        return [(org["id"], org["name"]) for org in organizations]
 
     def get_cards(self, query, org_id=None):
         """
