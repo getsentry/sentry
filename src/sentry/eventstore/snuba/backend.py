@@ -2,15 +2,11 @@ from __future__ import absolute_import
 
 import six
 from copy import deepcopy
-from datetime import datetime, timedelta
 
-from sentry import options
 from sentry.models import SnubaEvent
 from sentry.utils import snuba
 from sentry.eventstore.base import EventStorage
 from sentry.utils.validators import normalize_event_id
-
-from ..models import Event
 
 DESC_ORDERING = ["-timestamp", "-event_id"]
 ASC_ORDERING = ["timestamp", "event_id"]
@@ -75,15 +71,12 @@ class SnubaEventStorage(EventStorage):
         Get an event given a project ID and event ID
         Returns None if an event cannot be found
         """
+        cols = self.__get_columns(additional_columns)
+
         event_id = normalize_event_id(event_id)
 
         if not event_id:
             return None
-
-        if options.get("eventstore.use-nodestore"):
-            return self.__get_event_by_id_nodestore(project_id, event_id)
-
-        cols = self.__get_columns(additional_columns)
 
         result = snuba.raw_query(
             selected_columns=cols,
@@ -94,31 +87,6 @@ class SnubaEventStorage(EventStorage):
         if "error" not in result and len(result["data"]) == 1:
             return SnubaEvent(result["data"][0])
         return None
-
-    def __get_event_by_id_nodestore(self, project_id, event_id):
-        event = Event(project_id=project_id, event_id=event_id)
-        event.bind_node_data()
-
-        # Return None if there was no data in nodestore
-        if len(event.data) == 0:
-            return None
-
-        event_time = datetime.fromtimestamp(event.data["timestamp"])
-
-        # Load group_id from Snuba if not a transaction
-        if event.get_event_type() != "transaction":
-            result = snuba.raw_query(
-                selected_columns=["group_id"],
-                start=event_time,
-                end=event_time + timedelta(seconds=1),
-                filter_keys={"project_id": [project_id], "event_id": [event_id]},
-                limit=1,
-            )
-
-            if "error" not in result and len(result["data"]) == 1:
-                event.group_id = result["data"][0]["group_id"]
-
-        return event
 
     def get_earliest_event_id(self, event, filter):
         filter = deepcopy(filter)

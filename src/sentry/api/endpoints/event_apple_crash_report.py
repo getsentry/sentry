@@ -4,7 +4,7 @@ import six
 
 from django.http import HttpResponse, StreamingHttpResponse
 
-from sentry import eventstore, options
+from sentry import eventstore
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.lang.native.applecrashreport import AppleCrashReport
@@ -24,8 +24,7 @@ class EventAppleCrashReportEndpoint(ProjectEndpoint):
         if event is None:
             raise ResourceDoesNotExist
 
-        if not options.get("eventstore.use-nodestore"):
-            event.bind_node_data()
+        event.bind_node_data()
 
         if event.platform not in ("cocoa", "native"):
             return HttpResponse(
