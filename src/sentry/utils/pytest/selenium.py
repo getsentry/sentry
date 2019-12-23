@@ -331,7 +331,7 @@ def browser(request, percy, live_server):
         options = webdriver.ChromeOptions()
         options.add_argument("no-sandbox")
         options.add_argument("disable-gpu")
-        options.add_argument("w3c", False)
+        options.add_argument("w3c=false")
         options.add_argument(u"window-size={}".format(window_size))
         if headless:
             options.add_argument("headless")
@@ -345,6 +345,7 @@ def browser(request, percy, live_server):
 
         d = DesiredCapabilities.CHROME
         d["goog:loggingPrefs"] = {"browser": "ALL"}
+        d["loggingPrefs"] = {"browser": "ALL"}
         chrome_args["desired_capabilities"] = d
 
         driver = start_chrome(**chrome_args)
