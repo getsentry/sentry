@@ -9,7 +9,11 @@ from sentry.api.serializers.rest_framework import ListField
 from sentry.api.serializers.rest_framework.base import camel_to_snake_case
 from sentry.api.validators.sentry_apps.schema import validate_ui_element_schema
 from sentry.models import ApiScopes
-from sentry.models.sentryapp import VALID_EVENT_RESOURCES, REQUIRED_EVENT_PERMISSIONS
+from sentry.models.sentryapp import (
+    VALID_EVENT_RESOURCES,
+    REQUIRED_EVENT_PERMISSIONS,
+    UUID_CHARS_IN_SLUG,
+)
 
 
 class ApiScopesField(serializers.Field):
@@ -97,6 +101,14 @@ class SentryAppSerializer(Serializer):
                 return None
 
         return get_current_value
+
+    def validate_name(self, value):
+        # even though we technically don't have an issue renaming something to a really long time
+        # there's no reason we should allow this
+        max_length = 64 - UUID_CHARS_IN_SLUG - 1  # -1 comes from the - before the UUID bit
+        if len(value) > max_length:
+            raise ValidationError("cannot exceed %d characters" % max_length)
+        return value
 
     def validate_allowedOrigins(self, value):
         for allowed_origin in value:

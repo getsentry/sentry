@@ -327,6 +327,14 @@ class PostSentryAppsTest(SentryAppsTest):
         assert response.data["name"] == sentry_app.name
         assert response.data["slug"] != sentry_app.slug
 
+    def test_long_name_internal_integration(self):
+        self.create_project(organization=self.org)
+        self.login_as(user=self.user)
+        kwargs = {"name": "k" * 58}
+        response = self._post(**kwargs)
+        assert response.status_code == 400
+        assert response.data == {"name": ["cannot exceed 57 characters"]}
+
     def test_invalid_with_missing_webhool_url_scheme(self):
         self.login_as(user=self.user)
         kwargs = {"webhookUrl": "example.com"}

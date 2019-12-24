@@ -49,6 +49,8 @@ VALID_EVENTS = tuple(itertools.chain(*EVENT_EXPANSION.values()))
 
 MASKED_VALUE = "*" * 64
 
+UUID_CHARS_IN_SLUG = 6
+
 
 def default_uuid():
     return six.binary_type(uuid.uuid4())
@@ -58,7 +60,7 @@ def generate_slug(name, is_internal=False):
     slug = slugify(name)
     # for internal, add some uuid to make it unique
     if is_internal:
-        slug = u"{}-{}".format(slug, default_uuid()[0:6])
+        slug = u"{}-{}".format(slug, default_uuid()[:UUID_CHARS_IN_SLUG])
 
     return slug
 
