@@ -45,7 +45,7 @@ class ExternalIssueForm extends AsyncComponent {
     this.props.onSubmitSuccess(data);
   };
 
-  onRequestSuccess({stateKey, data, jqXHR}) {
+  onRequestSuccess({stateKey, data}) {
     if (stateKey === 'integrationDetails' && !this.state.dynamicFieldValues) {
       this.setState({
         dynamicFieldValues: this.getDynamicFields(data),
@@ -100,15 +100,23 @@ class ExternalIssueForm extends AsyncComponent {
   };
 
   getOptions = (field, input) => {
-    if (!input) {
-      const options = (field.choices || []).map(([value, label]) => ({value, label}));
-      return Promise.resolve({options});
-    }
-    return this.debouncedOptionLoad(field, input);
+    return new Promise((resolve, reject) => {
+      if (!input) {
+        const options = (field.choices || []).map(([value, label]) => ({value, label}));
+        return resolve({options});
+      }
+      return this.debouncedOptionLoad(field, input, (err, result) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(result);
+        }
+      });
+    });
   };
 
   debouncedOptionLoad = debounce(
-    async (field, input) => {
+    async (field, input, cb) => {
       const query = queryString.stringify({
         ...this.state.dynamicFieldValues,
         field: field.name,
@@ -119,8 +127,12 @@ class ExternalIssueForm extends AsyncComponent {
       const separator = url.includes('?') ? '&' : '?';
       // We can't use the API client here since the URL is not scoped under the
       // API endpoints (which the client prefixes)
-      const response = await fetch(url + separator + query);
-      return {options: response.ok ? await response.json() : []};
+      try {
+        const response = await fetch(url + separator + query);
+        cb(undefined, {options: response.ok ? await response.json() : []});
+      } catch (err) {
+        cb(err);
+      }
     },
     200,
     {trailing: true}
