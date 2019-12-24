@@ -81,9 +81,7 @@ class SentryAppSerializer(Serializer):
 
     def __init__(self, *args, **kwargs):
         self.access = kwargs["access"]
-        self.organization = kwargs["organization"]
         del kwargs["access"]
-        del kwargs["organization"]
         Serializer.__init__(self, *args, **kwargs)
 
     # an abstraction to pull fields from attrs if they are available or the sentry_app if not

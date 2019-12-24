@@ -80,9 +80,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
                 status=403,
             )
 
-        serializer = SentryAppSerializer(
-            data=data, access=request.access, organization=organization
-        )
+        serializer = SentryAppSerializer(data=data, access=request.access)
 
         if serializer.is_valid():
             data["redirect_url"] = data["redirectUrl"]
@@ -95,6 +93,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             try:
                 sentry_app = creator.run(request=request, **data)
             except ValidationError as e:
+                # we generate and validate the slug here instead of the serializer since the slug never changes
                 return Response(e.detail, status=400)
 
             return Response(serialize(sentry_app, access=request.access), status=201)
