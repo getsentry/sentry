@@ -378,11 +378,21 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
 
         project = self.create_project(organization=org, teams=[team])
         event_1 = self.store_event(
-            data={"event_id": "a" * 32, "tags": {"fruit": "apple"}, "fingerprint": ["group-1"]},
+            data={
+                "event_id": "a" * 32,
+                "tags": {"fruit": "apple"},
+                "fingerprint": ["group-1"],
+                "timestamp": iso_format(before_now(seconds=1)),
+            },
             project_id=project.id,
         )
         event_2 = self.store_event(
-            data={"event_id": "b" * 32, "tags": {"fruit": "orange"}, "fingerprint": ["group-1"]},
+            data={
+                "event_id": "b" * 32,
+                "tags": {"fruit": "orange"},
+                "fingerprint": ["group-1"],
+                "timestamp": iso_format(before_now(seconds=1)),
+            },
             project_id=project.id,
         )
         base_url = reverse(
