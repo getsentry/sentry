@@ -95,11 +95,25 @@ class OrganizationTagKeyValuesTest(APITestCase, SnubaTestCase):
         )
 
     def test_release(self):
-        for i in ["3.1.2", "4.1.2", "3.1.2", "5.1.2"]:
-            self.store_event(
-                data={"timestamp": iso_format(self.min_ago), "tags": {"sentry:release": i}},
-                project_id=self.project.id,
-            )
+        self.store_event(
+            data={"timestamp": iso_format(self.day_ago), "tags": {"sentry:release": "3.1.2"}},
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={"timestamp": iso_format(self.min_ago), "tags": {"sentry:release": "4.1.2"}},
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={"timestamp": iso_format(self.day_ago), "tags": {"sentry:release": "3.1.2"}},
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=10)),
+                "tags": {"sentry:release": "5.1.2"},
+            },
+            project_id=self.project.id,
+        )
         self.run_test("release", expected=[("5.1.2", 1), ("4.1.2", 1), ("3.1.2", 2)])
 
     def test_user_tag(self):
