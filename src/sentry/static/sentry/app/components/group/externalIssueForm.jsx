@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import queryString from 'query-string';
-import debounce from 'lodash/debounce';
+import pDebounce from 'p-debounce';
 
 import {addSuccessMessage} from 'app/actionCreators/indicator';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -45,7 +45,7 @@ class ExternalIssueForm extends AsyncComponent {
     this.props.onSubmitSuccess(data);
   };
 
-  onRequestSuccess({stateKey, data, jqXHR}) {
+  onRequestSuccess({stateKey, data}) {
     if (stateKey === 'integrationDetails' && !this.state.dynamicFieldValues) {
       this.setState({
         dynamicFieldValues: this.getDynamicFields(data),
@@ -107,7 +107,7 @@ class ExternalIssueForm extends AsyncComponent {
     return this.debouncedOptionLoad(field, input);
   };
 
-  debouncedOptionLoad = debounce(
+  debouncedOptionLoad = pDebounce(
     async (field, input) => {
       const query = queryString.stringify({
         ...this.state.dynamicFieldValues,
