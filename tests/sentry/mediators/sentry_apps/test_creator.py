@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import hashlib
-
 from mock import patch
 from django.db import IntegrityError
 
@@ -31,25 +29,22 @@ class TestCreator(TestCase):
             webhook_url="http://example.com",
             schema={"elements": [self.create_issue_link_schema()]},
         )
-        self.proxy_user_username = u"{}-{}".format(
-            "nulldb", hashlib.sha1(self.org.slug).hexdigest()[0:6]
-        )
 
     def test_creates_proxy_user(self):
         self.creator.call()
 
-        assert User.objects.get(username=self.proxy_user_username, is_sentry_app=True)
+        assert User.objects.get(username__contains="nulldb", is_sentry_app=True)
 
     def test_creates_api_application(self):
         self.creator.call()
-        proxy = User.objects.get(username=self.proxy_user_username)
+        proxy = User.objects.get(username__contains="nulldb")
 
         assert ApiApplication.objects.get(owner=proxy)
 
     def test_creates_sentry_app(self):
         self.creator.call()
 
-        proxy = User.objects.get(username=self.proxy_user_username)
+        proxy = User.objects.get(username__contains="nulldb")
         app = ApiApplication.objects.get(owner=proxy)
 
         sentry_app = SentryApp.objects.get(

@@ -18,6 +18,7 @@ from sentry.models import (
     OrganizationMember,
 )
 from sentry.models.sentryapp import MASKED_VALUE
+from sentry.mediators import sentry_apps
 
 
 class SentryAppsTest(APITestCase):
@@ -309,15 +310,22 @@ class PostSentryAppsTest(SentryAppsTest):
         assert response.status_code == 201, response.content
         assert six.viewitems(expected) <= six.viewitems(json.loads(response.content))
 
-    def test_non_unique_app_slug(self):
-        from sentry.mediators import sentry_apps
-
+    def test_non_unique_app_slug_fails(self):
         self.login_as(user=self.user)
         sentry_app = self.create_sentry_app(name="Foo Bar", organization=self.org)
         sentry_apps.Destroyer.run(sentry_app=sentry_app, user=self.user)
         response = self._post(**{"name": sentry_app.name})
         assert response.status_code == 400
         assert response.data == {"name": ["Name Foo Bar is already taken, please use another."]}
+
+    def test_same_name_internal_integration(self):
+        self.create_project(organization=self.org)
+        self.login_as(user=self.user)
+        sentry_app = self.create_internal_integration(name="Foo Bar", organization=self.org)
+        response = self._post(**{"name": sentry_app.name})
+        assert response.status_code == 201
+        assert response.data["name"] == sentry_app.name
+        assert response.data["slug"] != sentry_app.slug
 
     def test_invalid_with_missing_webhool_url_scheme(self):
         self.login_as(user=self.user)

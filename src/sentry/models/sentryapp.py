@@ -2,9 +2,8 @@ from __future__ import absolute_import
 
 import six
 import uuid
-import hmac
 import itertools
-import hashlib
+import hmac
 
 from django.db import models
 from django.utils import timezone
@@ -55,10 +54,11 @@ def default_uuid():
     return six.binary_type(uuid.uuid4())
 
 
-def generate_slug(name, is_internal=False, organization_slug=None):
+def generate_slug(name, is_internal=False):
     slug = slugify(name)
+    # for internal, add some uuid to make it unique
     if is_internal:
-        slug = u"{}-{}".format(slug, hashlib.sha1(organization_slug).hexdigest()[0:6])
+        slug = u"{}-{}".format(slug, default_uuid()[0:6])
 
     return slug
 
@@ -134,25 +134,11 @@ class SentryApp(ParanoidModel, HasApiScopes):
         return self.status == SentryAppStatus.INTERNAL
 
     def save(self, *args, **kwargs):
-        self._set_slug()
         self.date_updated = timezone.now()
         return super(SentryApp, self).save(*args, **kwargs)
 
     def is_installed_on(self, organization):
         return SentryAppInstallation.objects.filter(organization=organization).exists()
-
-    def _set_slug(self):
-        """
-        Matches ``name``, but in lowercase, dash form.
-
-        >>> self._set_slug('My Cool App')
-        >>> self.slug
-        my-cool-app
-        """
-        if not self.slug:
-            self.slug = generate_slug(
-                self.name, is_internal=self.is_internal, organization_slug=self.owner.slug
-            )
 
     def build_signature(self, body):
         secret = self.application.client_secret

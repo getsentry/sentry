@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from rest_framework.response import Response
+from rest_framework.serializers import ValidationError
 
 import logging
 
@@ -91,7 +92,10 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             data["allowed_origins"] = data["allowedOrigins"]
 
             creator = InternalCreator if data.get("isInternal") else Creator
-            sentry_app = creator.run(request=request, **data)
+            try:
+                sentry_app = creator.run(request=request, **data)
+            except ValidationError as e:
+                return Response(e.detail, status=400)
 
             return Response(serialize(sentry_app, access=request.access), status=201)
 

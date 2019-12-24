@@ -1,10 +1,10 @@
 from __future__ import absolute_import
 
 import six
-import hashlib
 
 from collections import Iterable
 from django.db import IntegrityError, transaction
+from rest_framework.serializers import ValidationError
 
 from sentry import analytics
 from sentry.mediators import Mediator, Param
@@ -17,6 +17,7 @@ from sentry.models import (
     User,
 )
 from sentry.constants import SentryAppStatus
+from sentry.models.sentryapp import generate_slug, default_uuid
 
 
 class Creator(Mediator):
@@ -39,6 +40,7 @@ class Creator(Mediator):
     is_internal = Param(bool, default=False)
 
     def call(self):
+        self.slug = self._generate_and_validate_slug()
         self.proxy = self._create_proxy_user()
         self.api_app = self._create_api_application()
         self.sentry_app = self._create_sentry_app()
@@ -46,12 +48,23 @@ class Creator(Mediator):
         self._create_integration_feature()
         return self.sentry_app
 
+    def _generate_and_validate_slug(self):
+        slug = generate_slug(self.name, is_internal=self.is_internal)
+
+        # validate globally unique slug
+        queryset = SentryApp.with_deleted.filter(slug=slug)
+
+        if queryset.exists():
+            # In reality, the slug is taken but it's determined by the name field
+            raise ValidationError(
+                {"name": [u"Name {} is already taken, please use another.".format(self.name)]}
+            )
+        return slug
+
     def _create_proxy_user(self):
+        # need a proxy user name that will always be unique
         return User.objects.create(
-            username=u"{}-{}".format(
-                self.name.lower(), hashlib.sha1(self.organization.slug).hexdigest()[0:6]
-            ),
-            is_sentry_app=True,
+            username=u"{}-{}".format(self.slug, default_uuid()), is_sentry_app=True
         )
 
     def _create_api_application(self):
@@ -64,6 +77,7 @@ class Creator(Mediator):
 
         kwargs = {
             "name": self.name,
+            "slug": self.slug,
             "author": self.author,
             "application_id": self.api_app.id,
             "owner_id": self.organization.id,
