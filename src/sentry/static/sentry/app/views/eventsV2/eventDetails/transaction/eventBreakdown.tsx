@@ -6,7 +6,7 @@ import {Event} from 'app/types';
 import {
   SentryTransactionEvent,
   SpanEntry,
-  SpanType,
+  RawSpanType,
 } from 'app/components/events/interfaces/spans/types';
 import {pickSpanBarColour} from 'app/components/events/interfaces/spans/utils';
 import {TraceContextType} from 'app/components/events/interfaces/spans/traceView';
@@ -63,7 +63,7 @@ class EventBreakdown extends React.Component<Props> {
       (entry: {type: string}) => entry.type === 'spans'
     );
 
-    const spans: SpanType[] = get(spanEntry, 'data', []);
+    const spans: RawSpanType[] = get(spanEntry, 'data', []);
 
     type AggregateType = {
       [opname: string]: {
@@ -84,7 +84,7 @@ class EventBreakdown extends React.Component<Props> {
     });
 
     const aggregateByOp: AggregateType = spans.reduce(
-      (aggregate: AggregateType, span: SpanType) => {
+      (aggregate: AggregateType, span: RawSpanType) => {
         let op = span.op;
 
         const duration = Math.abs(span.timestamp - span.start_timestamp);
