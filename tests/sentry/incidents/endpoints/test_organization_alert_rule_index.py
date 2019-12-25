@@ -72,65 +72,151 @@ class AlertRuleCreateEndpointTest(APITestCase):
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
         self.login_as(self.user)
-
-        with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(
-                self.organization.slug,
-                projects=[self.project.slug],
-                name="an alert",
-                thresholdType=1,
-                query="hi",
-                aggregation=0,
-                timeWindow=10,
-                alertThreshold=1000,
-                resolveThreshold=300,
-                status_code=201,
-            )
-        assert "id" in resp.data
-        alert_rule = AlertRule.objects.get(id=resp.data["id"])
-        assert resp.data == serialize(alert_rule, self.user)
-
-    def test_unified_create(self):
-        self.create_member(
-            user=self.user, organization=self.organization, role="owner", teams=[self.team]
-        )
-        self.login_as(self.user)
-
-        rule_two_triggers_two_actions = {
+        valid_alert_rule = {
             "aggregation": 0,
             "aggregations": [0],
             "query": "",
             "timeWindow": "300",
             "triggers": [
                 {
-                    "label": "WARNING",
+                    "label": "CRITICAL",
                     "alertThreshold": 200,
                     "resolveThreshold": 300,
                     "thresholdType": 1,
-                    "actions": [{"type": "email", "targetType": "team", "targetIdentifier": "2"}],
+                    "actions": [
+                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
+                    ],
                 },
                 {
-                    "label": "CRITICAL",
+                    "label": "WARNING",
                     "alertThreshold": 150,
                     "resolveThreshold": 300,
                     "thresholdType": 1,
                     "actions": [
-                        {"type": "email", "targetType": "team", "targetIdentifier": "2"},
-                        {"type": "email", "targetType": "user", "targetIdentifier": "1"},
+                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
+                        {"type": "email", "targetType": "user", "targetIdentifier": self.user.id},
                     ],
                 },
             ],
             "projects": [self.project.slug],
-            "name": "JustATestRule",
+            "name": "JustAValidTestRule",
         }
         with self.feature("organizations:incidents"):
             resp = self.get_valid_response(
-                self.organization.slug, status_code=201, **rule_two_triggers_two_actions
+                self.organization.slug, status_code=201, **valid_alert_rule
             )
-
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert resp.data == serialize(alert_rule, self.user)
+
+    def test_only_critical_trigger(self):
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+        rule_one_trigger_only_critical = {
+            "aggregation": 0,
+            "aggregations": [0],
+            "query": "",
+            "timeWindow": "300",
+            "projects": [self.project.slug],
+            "name": "OneTriggerOnlyCritical",
+            "triggers": [
+                {
+                    "label": "CRITICAL",
+                    "alertThreshold": 200,
+                    "resolveThreshold": 300,
+                    "thresholdType": 1,
+                    "actions": [
+                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
+                    ],
+                }
+            ],
+        }
+        with self.feature("organizations:incidents"):
+            resp = self.get_valid_response(
+                self.organization.slug, status_code=201, **rule_one_trigger_only_critical
+            )
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert resp.data == serialize(alert_rule, self.user)
+
+    def test_no_triggers(self):
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+
+        rule_no_triggers = {
+            "aggregation": 0,
+            "aggregations": [0],
+            "query": "",
+            "timeWindow": "300",
+            "projects": [self.project.slug],
+            "name": "JustATestRuleWithNoTriggers",
+        }
+
+        with self.feature("organizations:incidents"):
+            self.get_valid_response(self.organization.slug, status_code=400, **rule_no_triggers)
+
+    def test_no_critical_trigger(self):
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+
+        rule_one_trigger_only_warning = {
+            "aggregation": 0,
+            "aggregations": [0],
+            "query": "",
+            "timeWindow": "300",
+            "projects": [self.project.slug],
+            "name": "JustATestRule",
+            "triggers": [
+                {
+                    "label": "WARNING",
+                    "alertThreshold": 200,
+                    "resolveThreshold": 300,
+                    "thresholdType": 1,
+                    "actions": [
+                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
+                    ],
+                }
+            ],
+        }
+
+        with self.feature("organizations:incidents"):
+            self.get_valid_response(
+                self.organization.slug, status_code=400, **rule_one_trigger_only_warning
+            )
+
+    def test_critical_trigger_no_action(self):
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+
+        rule_one_trigger_only_critical_no_action = {
+            "aggregation": 0,
+            "aggregations": [0],
+            "query": "",
+            "timeWindow": "300",
+            "projects": [self.project.slug],
+            "name": "JustATestRule",
+            "triggers": [
+                {
+                    "label": "CRITICAL",
+                    "alertThreshold": 200,
+                    "resolveThreshold": 300,
+                    "thresholdType": 1,
+                }
+            ],
+        }
+
+        with self.feature("organizations:incidents"):
+            self.get_valid_response(
+                self.organization.slug, status_code=400, **rule_one_trigger_only_critical_no_action
+            )
 
     def test_invalid_projects(self):
         self.create_member(
@@ -140,6 +226,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
         with self.feature("organizations:incidents"):
             resp = self.get_valid_response(
                 self.organization.slug,
+                status_code=400,
                 projects=[
                     self.project.slug,
                     self.create_project(organization=self.create_organization()).slug,
@@ -151,9 +238,23 @@ class AlertRuleCreateEndpointTest(APITestCase):
                 timeWindow=10,
                 alertThreshold=1000,
                 resolveThreshold=300,
-                status_code=400,
+                triggers=[
+                    {
+                        "label": "CRITICAL",
+                        "alertThreshold": 200,
+                        "resolveThreshold": 300,
+                        "thresholdType": 1,
+                        "actions": [
+                            {
+                                "type": "email",
+                                "targetType": "team",
+                                "targetIdentifier": self.team.id,
+                            }
+                        ],
+                    }
+                ],
             )
-        assert resp.data == {"projects": [u"Invalid project"]}
+        assert resp.data == {"error": True, "message": {"projects": [u"Invalid project"]}}
 
     def test_no_feature(self):
         self.create_member(

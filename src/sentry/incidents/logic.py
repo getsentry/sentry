@@ -13,6 +13,13 @@ from django.utils import timezone
 from sentry import analytics
 from sentry.api.event_search import get_filter
 from sentry.incidents import tasks
+
+# from sentry.incidents.endpoints.serializers import (
+# AlertRuleSerializer,
+#     AlertRuleTriggerSerializer,
+#     AlertRuleTriggerActionSerializer,
+#     # CombinedAlertRuleSerializer
+# )
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleExcludedProjects,
@@ -45,6 +52,8 @@ from sentry.utils.committers import get_event_file_committers
 from sentry.utils.snuba import bulk_raw_query, raw_query, SnubaQueryParams, SnubaTSResult, zerofill
 
 MAX_INITIAL_INCIDENT_PERIOD = timedelta(days=7)
+CRITICAL_TRIGGER = "CRITICAL"
+WARNING_TRIGGER = "WARNING"
 
 
 class StatusAlreadyChangedError(Exception):
@@ -589,6 +598,146 @@ class AlertRuleNameAlreadyUsedError(Exception):
 
 
 DEFAULT_ALERT_RULE_RESOLUTION = 1
+
+
+def validate_unified_alert_rule(data):
+    """Performs validation on an alert rule's POSTed data
+    This includes ensuring there is either 1 or 2 triggers, which each have actions, and have proper thresholds set.
+    The critical trigger should both alert and resolve 'after' the warning trigger. """
+    triggers = data.get("triggers", [])
+    if triggers:
+        if len(triggers) == 1:
+            if triggers[0]["label"] != CRITICAL_TRIGGER:
+                return False, "Trigger must be labeled 'CRITICAL'"
+        elif len(triggers) == 2:
+            if triggers[0]["label"] != CRITICAL_TRIGGER or triggers[1]["label"] != WARNING_TRIGGER:
+                return (
+                    False,
+                    "First trigger must be labeled 'CRITICAL', second trigger must be labeled 'WARNING'",
+                )
+            else:
+                # Verify thresholds. alertThreshold, resolveThreshold, threshholdType
+                if triggers[0]["thresholdType"] != triggers[1]["thresholdType"]:
+                    return False, "Must have matching threshold types (???)"
+                if triggers[0]["thresholdType"] == 1:
+                    if triggers[0]["alertThreshold"] < triggers[1]["alertThreshold"]:
+                        return (
+                            False,
+                            "CRITICAL trigger must have an alert threshold above WARNING trigger",
+                        )
+                    elif triggers[0]["resolveThreshold"] > triggers[1]["resolveThreshold"]:
+                        return (
+                            False,
+                            "CRITICAL trigger must have a resolution threshold below (or equal to) WARNING trigger",
+                        )
+                else:
+                    if triggers[0]["alertThreshold"] > triggers[1]["alertThreshold"]:
+                        return (
+                            False,
+                            "CRITICAL trigger must have an alert threshold below WARNING trigger",
+                        )
+                    elif triggers[0]["resolveThreshold"] < triggers[1]["resolveThreshold"]:
+                        return (
+                            False,
+                            "CRITICAL trigger must have a resolution threshold above (or equal to) WARNING trigger",
+                        )
+        else:
+            return (
+                False,
+                "Must send 1 or 2 triggers - either 1 CRITICAL trigger, or 1 CRITICAL and 1 WARNING trigger",
+            )
+
+        # Triggers have passed checks. Check that all triggers have at least one action now.
+        for trigger in triggers:
+            actions = trigger.get("actions", [])
+            if actions == []:
+                return False, trigger["label"] + " trigger must have an action."
+    else:
+        return False, "Must include at least one trigger"
+
+    return True, "Valid"
+
+
+def create_alert_rule_unified(data, organization, access):
+    """
+    Creates an alert rule for an organization, just like create_alert_rule, but
+    this function also accepts trigger and action data, and creates those as well.
+    This function uses the serializers which end up calling their underlying create functions - such as `create_alert_rule`.
+
+    Additionally, it enforces these criteria:
+        -1 Trigger must be present of CRITICAL_TRIGGER type.
+        -A second trigger can be supplied, of a WARNING_TRIGGER type.
+            - If the optional warning trigger is supplied, the thresholdType must be the same (???)
+        -If two triggers are supplied, their alert and resolution thresholds must:
+            - Critical alert thresholds must be triggered *before* the warning (whether this means the threshold has to be larger or smaller depends on the thresholdType)
+            - Critical resolution thresholds must be triggered before or at the same time as the warning
+
+        -Each trigger is enforced to have at least one action.
+
+    If those enforced criteria are not met, nothing is created and this function will return an error status and message.
+    If it is created, it will return the created rule as the value of "rule" in the returned dict.
+
+    :return:
+        {
+            "error": True/False, # required.
+            "rule": The created `AlertRule`, # if 'error' is False, this is required.
+            "message": A unicode string representing the error encountered. Optional if 'error' is False, required if 'error' is True
+        }
+    """
+
+    is_valid, message = validate_unified_alert_rule(data)
+    if not is_valid:
+        return {"error": True, "message": message}
+
+    from sentry.incidents.endpoints.serializers import (
+        AlertRuleSerializer,
+        AlertRuleTriggerSerializer,
+        AlertRuleTriggerActionSerializer,
+    )
+
+    with transaction.atomic():
+
+        alert_rule_serializer = AlertRuleSerializer(
+            context={"organization": organization, "access": access}, data=data
+        )
+        if alert_rule_serializer.is_valid():
+            alert_rule = alert_rule_serializer.save()
+        else:
+            return {"error": True, "message": alert_rule_serializer.errors}
+
+        triggers = data.get("triggers", [])
+        for trigger in triggers:
+            trigger_serializer = AlertRuleTriggerSerializer(
+                context={"organization": organization, "alert_rule": alert_rule, "access": access},
+                data=trigger,
+            )
+            if trigger_serializer.is_valid():
+                trigger_obj = trigger_serializer.save()
+            else:
+                return {"error": True, "message": trigger_serializer.errors}
+
+            actions = trigger.get("actions", [])
+            for action in actions:
+                action_serializer = AlertRuleTriggerActionSerializer(
+                    context={
+                        "organization": organization,
+                        "alert_rule": alert_rule,
+                        "trigger": trigger_obj,
+                        "access": access,
+                    },
+                    data=action,
+                )
+
+                if action_serializer.is_valid():
+                    try:
+                        action = action_serializer.save()
+                    except InvalidTriggerActionError as e:
+                        # Could not create a trigger action
+                        return {"error": True, "message": e.message}
+                else:
+                    return {"error": True, "message": action_serializer.errors}
+
+    return {"error": False, "rule": alert_rule}
 
 
 def create_alert_rule(
