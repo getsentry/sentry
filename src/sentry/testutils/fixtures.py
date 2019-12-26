@@ -8,6 +8,7 @@ from sentry.incidents.models import IncidentActivityType
 import pytest
 from django.utils.functional import cached_property
 from sentry.testutils.factories import Factories
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 # XXX(dcramer): this is a compatibility layer to transition to pytest-based fixtures
@@ -61,7 +62,14 @@ class Fixtures(object):
 
     @cached_property
     def event(self):
-        return self.create_event(event_id="a" * 32, message="\u3053\u3093\u306b\u3061\u306f")
+        return self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "\u3053\u3093\u306b\u3061\u306f",
+                "timestamp": iso_format(before_now(seconds=1)),
+            },
+            project_id=self.project.id,
+        )
 
     @cached_property
     def activity(self):
