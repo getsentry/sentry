@@ -131,7 +131,7 @@ class IncidentDetails extends React.Component<Props, State> {
           onStatusChange={this.handleStatusChange}
         />
 
-        <DetailsBody incident={incident} {...this.props} />
+        <DetailsBody {...this.props} incident={incident} />
       </React.Fragment>
     );
   }
