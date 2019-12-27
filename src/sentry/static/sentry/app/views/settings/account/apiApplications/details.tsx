@@ -15,7 +15,7 @@ import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 import apiApplication from 'app/data/forms/apiApplication';
 import getDynamicText from 'app/utils/getDynamicText';
 
-type Props = RouteComponentProps<{appId: string}, {}> & AsyncView['props'];
+type Props = RouteComponentProps<{appId: string}, {}>;
 type State = {
   app: ApiApplication;
 } & AsyncView['state'];

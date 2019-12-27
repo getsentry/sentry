@@ -30,7 +30,7 @@ type State = AsyncView['state'] & {
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   organization: Organization;
-} & AsyncView['props'];
+};
 
 class OrganizationUserFeedback extends AsyncView<Props, State> {
   static propTypes = {

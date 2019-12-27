@@ -22,7 +22,7 @@ import {
   SentryAppInstallation,
 } from 'app/types';
 
-type Props = AsyncView['props'] & RouteComponentProps<{sentryAppSlug: string}, {}>;
+type Props = RouteComponentProps<{sentryAppSlug: string}, {}>;
 
 type State = AsyncView['state'] & {
   selectedOrgSlug: string | null;

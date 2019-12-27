@@ -112,8 +112,7 @@ class SentryAppFormModel extends FormModel {
   }
 }
 
-type Props = AsyncView['props'] &
-  RouteComponentProps<{orgId: string; appSlug?: string}, {}>;
+type Props = RouteComponentProps<{orgId: string; appSlug?: string}, {}>;
 
 type State = AsyncView['state'] & {
   app: SentryApp | null;

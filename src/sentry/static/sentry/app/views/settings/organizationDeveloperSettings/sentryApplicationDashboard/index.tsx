@@ -17,8 +17,7 @@ import {SentryApp} from 'app/types';
 
 import RequestLog from './requestLog';
 
-type Props = AsyncView['props'] &
-  RouteComponentProps<{appSlug: string; orgId: string}, {}>;
+type Props = RouteComponentProps<{appSlug: string; orgId: string}, {}>;
 
 type State = AsyncView['state'] & {
   stats: {

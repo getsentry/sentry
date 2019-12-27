@@ -22,7 +22,7 @@ type RouteParams = {
 };
 type Props = RouteComponentProps<RouteParams, {}> & {
   setProjectNavSection: (section: string) => void;
-} & AsyncView['props'];
+};
 
 class ProjectUserFeedbackSettings extends AsyncView<Props> {
   static propTypes = {

@@ -24,8 +24,7 @@ type InviteDetails = {
   ssoProvider?: string;
 };
 
-type Props = AsyncView['props'] &
-  RouteComponentProps<{memberId: string; token: string}, {}>;
+type Props = RouteComponentProps<{memberId: string; token: string}, {}>;
 
 type State = AsyncView['state'] & {
   inviteDetails: InviteDetails;

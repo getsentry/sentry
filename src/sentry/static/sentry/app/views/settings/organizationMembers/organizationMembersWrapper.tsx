@@ -18,7 +18,7 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 
-type Props = AsyncView['props'] & {
+type Props = {
   children?: any;
   organization: Organization;
 } & RouteComponentProps<{orgId: string}, {}>;

@@ -24,7 +24,7 @@ import theme from 'app/utils/theme';
 import OrganizationMemberRow from './organizationMemberRow';
 import MembersFilter from './components/membersFilter';
 
-type Props = AsyncView['props'] & {
+type Props = {
   organization: Organization;
 } & RouteComponentProps<{orgId: string}, {}>;
 

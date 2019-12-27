@@ -19,9 +19,7 @@ type AsyncComponentProps = {
   // Note we don't decorate `AsyncComponent` but rather the subclass
   // so we can get its component name
   finishProfile?: () => void;
-};
-
-type RouteProps = Partial<RouteComponentProps<{}, {}>>;
+} & Partial<RouteComponentProps<{}, {}>>;
 
 type AsyncComponentState = {
   loading: boolean;
@@ -66,7 +64,7 @@ function wrapErrorHandling<T extends any[], U>(
 }
 
 export default class AsyncComponent<
-  P extends AsyncComponentProps & RouteProps = AsyncComponentProps,
+  P extends AsyncComponentProps = AsyncComponentProps,
   S extends AsyncComponentState = AsyncComponentState
 > extends React.Component<P, S> {
   static propTypes: any = {

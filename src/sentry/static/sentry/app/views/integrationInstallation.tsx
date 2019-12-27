@@ -14,8 +14,7 @@ import NarrowLayout from 'app/components/narrowLayout';
 import SelectControl from 'app/components/forms/selectControl';
 import {Organization, IntegrationProvider, Integration} from 'app/types';
 
-type Props = RouteComponentProps<{providerId: string; installationId: string}, {}> &
-  AsyncView['props'];
+type Props = RouteComponentProps<{providerId: string; installationId: string}, {}>;
 
 type State = AsyncView['state'] & {
   selectedOrg: string | null;
