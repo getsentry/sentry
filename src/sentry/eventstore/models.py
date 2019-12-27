@@ -59,9 +59,7 @@ class Event(EventCommon):
         column = self.__get_column_name(Columns.GROUP_ID)
         if column in self._snuba_data and self._snuba_data[column]:
             return self._snuba_data[column]
-        if self.get_event_type() == "transaction":
-            return None
-        raise AttributeError("Unknown group ID")
+        return None
 
     @group_id.setter
     def group_id(self, value):

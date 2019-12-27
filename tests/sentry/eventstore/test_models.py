@@ -218,9 +218,9 @@ class EventTest(TestCase):
         # Group ID must be fetched from Snuba since it is not present in nodestore
         assert event_from_snuba.group_id
         assert event_from_snuba.group
-        with pytest.raises(AttributeError):
-            event_from_nodestore.group_id
-            event_from_nodestore.group
+
+        assert not event_from_nodestore.group_id
+        assert not event_from_nodestore.group
 
 
 @pytest.mark.django_db
