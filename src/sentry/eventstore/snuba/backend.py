@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import six
 
-# from collections import defaultdict
 from copy import deepcopy
 
 from sentry.models import SnubaEvent
