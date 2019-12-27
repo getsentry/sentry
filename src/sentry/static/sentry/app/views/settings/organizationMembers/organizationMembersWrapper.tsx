@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from 'react-emotion';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {openInviteMembersModal} from 'app/actionCreators/modal';
 import {Organization, Member} from 'app/types';
@@ -20,7 +21,7 @@ import withOrganization from 'app/utils/withOrganization';
 type Props = AsyncView['props'] & {
   children?: any;
   organization: Organization;
-};
+} & RouteComponentProps<{orgId: string}, {}>;
 
 type State = AsyncView['state'] & {
   inviteRequests: Member[];

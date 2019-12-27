@@ -16,10 +16,17 @@ import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup'
 import withOrganization from 'app/utils/withOrganization';
 import withProject from 'app/utils/withProject';
 
+type RouteParams = {
+  orgId: string;
+  projectId: string;
+  incidentRuleId: string;
+  ruleId: string; //TOOD: Make ruleId optional
+};
+
 type Props = {
   organization: Organization;
   project: Project;
-} & RouteComponentProps<{organizationId: string; projectId: string}, {}> &
+} & RouteComponentProps<RouteParams, {}> &
   AsyncView['props'];
 
 type State = {
@@ -32,8 +39,7 @@ type State = {
 
 class RuleDetails extends AsyncView<Props, State> {
   getDefaultState() {
-    const {router} = this.props;
-    const {pathname} = router.location;
+    const {pathname} = this.props.location;
 
     return {
       ...super.getDefaultState(),

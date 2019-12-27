@@ -1,4 +1,4 @@
-import {Params} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
 import styled from 'react-emotion';
 
@@ -22,9 +22,8 @@ import Suspects from './suspects';
 import {Incident} from '../types';
 
 type Props = {
-  params: Params;
   incident?: Incident;
-};
+} & RouteComponentProps<{incidentId: string; orgId: string}, {}>;
 
 export default class DetailsBody extends React.Component<Props> {
   render() {
@@ -87,7 +86,7 @@ export default class DetailsBody extends React.Component<Props> {
               )}
             </div>
 
-            <Suspects params={params} />
+            <Suspects {...this.props} />
 
             <RelatedIssues params={params} incident={incident} />
           </PageContent>

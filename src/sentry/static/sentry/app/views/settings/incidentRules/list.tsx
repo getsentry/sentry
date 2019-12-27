@@ -26,7 +26,7 @@ type RouteParams = {
   projectId: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}>;
+type Props = AsyncView['props'] & RouteComponentProps<RouteParams, {}>;
 
 class IncidentRulesList extends AsyncView<Props, State> {
   getEndpoints() {

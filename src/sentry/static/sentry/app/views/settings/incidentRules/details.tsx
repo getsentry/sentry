@@ -17,17 +17,15 @@ type RouteParams = {
 
 type Props = {
   organization: Organization;
-};
+} & RouteComponentProps<RouteParams, {}> &
+  AsyncView['props'];
 
 type State = {
   rule: IncidentRule;
   actions: Map<string, any>; // This is temp
 } & AsyncView['state'];
 
-class IncidentRulesDetails extends AsyncView<
-  RouteComponentProps<RouteParams, {}> & Props,
-  State
-> {
+class IncidentRulesDetails extends AsyncView<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
