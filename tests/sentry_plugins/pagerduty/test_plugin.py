@@ -54,7 +54,12 @@ class PagerDutyPluginTest(PluginTestCase):
         self.plugin.set_option("service_key", "abcdef", self.project)
 
         event = self.store_event(
-            data={"message": "Hello world", "level": "warning", "platform": "python"},
+            data={
+                "message": "Hello world",
+                "level": "warning",
+                "platform": "python",
+                "culprit": "foo.bar",
+            },
             project_id=self.project.id,
         )
         group = event.group
