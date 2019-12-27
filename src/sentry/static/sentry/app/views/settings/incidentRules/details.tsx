@@ -17,8 +17,7 @@ type RouteParams = {
 
 type Props = {
   organization: Organization;
-} & RouteComponentProps<RouteParams, {}> &
-  AsyncView['props'];
+} & RouteComponentProps<RouteParams, {}>;
 
 type State = {
   rule: IncidentRule;

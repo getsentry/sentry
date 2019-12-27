@@ -26,8 +26,7 @@ type RouteParams = {
 type Props = {
   organization: Organization;
   project: Project;
-} & RouteComponentProps<RouteParams, {}> &
-  AsyncView['props'];
+} & RouteComponentProps<RouteParams, {}>;
 
 type State = {
   alertType: string | null;

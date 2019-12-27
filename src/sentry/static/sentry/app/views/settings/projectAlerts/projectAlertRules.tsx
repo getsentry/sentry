@@ -12,9 +12,7 @@ import RuleRow from 'app/views/settings/projectAlerts/ruleRow';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import SentryTypes from 'app/sentryTypes';
 
-type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> &
-  AsyncView['props'];
-
+type Props = RouteComponentProps<{orgId: string; projectId: string}, {}>;
 type State = {
   ruleList: IssueAlertRule[];
 } & AsyncView['state'];

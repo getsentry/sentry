@@ -25,8 +25,7 @@ type Props = {
   onRemoveInviteRequest: (id: string) => void;
   onRemoveAccessRequest: (id: string) => void;
   showInviteRequests: boolean;
-} & RouteComponentProps<{orgId: string}, {}> &
-  AsyncView['props'];
+} & RouteComponentProps<{orgId: string}, {}>;
 
 type State = AsyncView['state'] & {
   inviteRequestBusy: {[key: string]: boolean};
