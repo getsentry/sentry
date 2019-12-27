@@ -4,7 +4,6 @@ import six
 
 from copy import deepcopy
 
-from sentry.models import SnubaEvent
 from sentry.snuba.events import Columns
 from sentry.utils import snuba
 from sentry.eventstore.base import EventStorage
@@ -70,15 +69,6 @@ class SnubaEventStorage(EventStorage):
 
         return []
 
-    def __make_event(self, snuba_data):
-        event_id = snuba_data[Columns.EVENT_ID.value.event_name]
-        group_id = snuba_data[Columns.GROUP_ID.value.event_name]
-        project_id = snuba_data[Columns.PROJECT_ID.value.event_name]
-
-        return Event(
-            event_id=event_id, group_id=group_id, project_id=project_id, snuba_data=snuba_data
-        )
-
     def get_event_by_id(self, project_id, event_id, additional_columns=None):
         """
         Get an event given a project ID and event ID
@@ -98,7 +88,7 @@ class SnubaEventStorage(EventStorage):
             limit=1,
         )
         if "error" not in result and len(result["data"]) == 1:
-            return SnubaEvent(result["data"][0])
+            return self.__make_event(result["data"][0])
         return None
 
     def get_earliest_event_id(self, event, filter):
@@ -184,3 +174,12 @@ class SnubaEventStorage(EventStorage):
         row = result["data"][0]
 
         return (six.text_type(row["project_id"]), six.text_type(row["event_id"]))
+
+    def __make_event(self, snuba_data):
+        event_id = snuba_data[Columns.EVENT_ID.value.event_name]
+        group_id = snuba_data[Columns.GROUP_ID.value.event_name]
+        project_id = snuba_data[Columns.PROJECT_ID.value.event_name]
+
+        return Event(
+            event_id=event_id, group_id=group_id, project_id=project_id, snuba_data=snuba_data
+        )
