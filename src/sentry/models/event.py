@@ -219,9 +219,6 @@ class EventCommon(object):
 
     @property
     def culprit(self):
-        # For a while events did not save the culprit
-        if self.group_id:
-            return self.data.get("culprit") or self.group.culprit
         return self.data.get("culprit")
 
     @property
