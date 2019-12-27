@@ -146,6 +146,11 @@ describe('ExternalIssueForm', () => {
         jest.useFakeTimers();
       });
 
+      afterEach(() => {
+        window.fetch.mockClear();
+        delete window.fetch;
+      });
+
       it('long delay in typing', () => {
         wrapper.instance().getOptions(externalIssueField, 'd');
         jest.advanceTimersByTime(300);
