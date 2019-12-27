@@ -16,8 +16,10 @@ import {
   SpanBoundsType,
   SpanGeneratedBoundsType,
   getHumanDuration,
+  getSpanID,
+  getSpanOperation,
 } from './utils';
-import {SpanType, ParsedTraceType} from './types';
+import {ParsedTraceType, ProcessedSpanType} from './types';
 import {
   MINIMAP_CONTAINER_HEIGHT,
   MINIMAP_SPAN_BAR_HEIGHT,
@@ -167,7 +169,7 @@ const getDurationDisplay = ({
 type SpanBarProps = {
   orgId: string;
   trace: Readonly<ParsedTraceType>;
-  span: Readonly<SpanType>;
+  span: Readonly<ProcessedSpanType>;
   spanBarColour: string;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   treeDepth: number;
@@ -298,12 +300,14 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   renderSpanTreeConnector = ({hasToggler}: {hasToggler: boolean}) => {
     const {isLast, isRoot, treeDepth, continuingTreeDepths, span} = this.props;
 
+    const spanID = getSpanID(span);
+
     if (isRoot) {
       if (hasToggler) {
         return (
           <ConnectorBar
             style={{right: '16px', height: '10px', bottom: '-5px', top: 'auto'}}
-            key={`${span.span_id}-last`}
+            key={`${spanID}-last`}
           />
         );
       }
@@ -313,14 +317,14 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
 
     const connectorBars: Array<React.ReactNode> = continuingTreeDepths.map(depth => {
       const left = ((treeDepth - depth) * (TOGGLE_BORDER_BOX / 2) + 1) * -1;
-      return <ConnectorBar style={{left}} key={`${span.span_id}-${depth}`} />;
+      return <ConnectorBar style={{left}} key={`${spanID}-${depth}`} />;
     });
 
     if (hasToggler) {
       connectorBars.push(
         <ConnectorBar
           style={{right: '16px', height: '10px', bottom: '0', top: 'auto'}}
-          key={`${span.span_id}-last`}
+          key={`${spanID}-last`}
         />
       );
     }
@@ -374,8 +378,12 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   renderTitle = () => {
     const {span, treeDepth} = this.props;
 
-    const op = span.op ? <strong>{`${span.op} \u2014 `}</strong> : '';
-    const description = get(span, 'description', span.span_id);
+    const op = getSpanOperation(span) ? (
+      <strong>{`${getSpanOperation(span)} \u2014 `}</strong>
+    ) : (
+      ''
+    );
+    const description = get(span, 'description', getSpanID(span));
 
     const left = treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
 
@@ -713,7 +721,10 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
                 width: toPercent(bounds.width || 0),
               }}
             >
-              <DurationPill durationDisplay={durationDisplay}>
+              <DurationPill
+                durationDisplay={durationDisplay}
+                showDetail={this.state.showDetail}
+              >
                 {durationString}
                 {this.renderWarningText({warningText: bounds.warning})}
               </DurationPill>
@@ -785,7 +796,7 @@ const SpanRowCell = styled('div')<SpanRowCellProps>`
   height: 100%;
   overflow: hidden;
   background-color: ${p => getBackgroundColor(p)};
-  color: ${p => (p.showDetail ? p.theme.white : null)};
+  color: ${p => (p.showDetail ? p.theme.white : 'inherit')};
 `;
 
 const SpanRowCellContainer = styled('div')`
@@ -956,15 +967,18 @@ const getDurationPillAlignment = ({durationDisplay}) => {
   }
 };
 
-const DurationPill = styled('div')<{durationDisplay: DurationDisplay}>`
+const DurationPill = styled('div')<{
+  durationDisplay: DurationDisplay;
+  showDetail: boolean;
+}>`
   position: absolute;
-  color: ${p => p.theme.gray2};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
-  white-space: nowrap;
+  top: 50%;
   display: flex;
   align-items: center;
-  top: 50%;
   transform: translateY(-50%);
+  white-space: nowrap;
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  color: ${p => (p.showDetail === true ? p.theme.gray1 : p.theme.gray2)};
 
   ${getDurationPillAlignment}
 
