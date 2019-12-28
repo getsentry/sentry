@@ -20,7 +20,6 @@ __all__ = (
 )
 
 import base64
-import calendar
 import contextlib
 import os
 import os.path
@@ -63,13 +62,10 @@ from sentry.auth.superuser import (
 from sentry.constants import MODULE_ROOT
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.models import (
-    GroupEnvironment,
-    GroupHash,
     GroupMeta,
     ProjectOption,
     Repository,
     DeletedOrganization,
-    Environment,
     Organization,
     TotpInterface,
     Dashboard,
@@ -791,42 +787,6 @@ class SnubaTestCase(BaseTestCase):
             "data": dict(data),
             "primary_hash": primary_hash,
         }
-
-    def create_event(self, *args, **kwargs):
-        """\
-        Takes the results from the existing `create_event` method and
-        inserts into the local test Snuba cluster so that tests can be
-        run against the same event data.
-
-        Note that we create a GroupHash as necessary because `create_event`
-        doesn't run them through the 'real' event pipeline. In a perfect
-        world all test events would go through the full regular pipeline.
-        """
-        # XXX: Use `store_event` instead of this!
-        event = Factories.create_event(*args, **kwargs)
-
-        data = event.data.data
-        tags = dict(data.get("tags", []))
-
-        if not data.get("received"):
-            data["received"] = calendar.timegm(event.datetime.timetuple())
-
-        if "environment" in tags:
-            environment = Environment.get_or_create(event.project, tags["environment"])
-
-            GroupEnvironment.objects.get_or_create(
-                environment_id=environment.id, group_id=event.group_id
-            )
-
-        primary_hash = event.get_primary_hash()
-
-        grouphash, _ = GroupHash.objects.get_or_create(
-            project=event.project, group=event.group, hash=primary_hash
-        )
-
-        self.snuba_insert(self.__wrap_event(event, data, grouphash.hash))
-
-        return event
 
     def snuba_insert(self, events):
         "Write a (wrapped) event (or events) to Snuba."
