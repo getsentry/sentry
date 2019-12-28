@@ -279,8 +279,10 @@ class MessageBuilderTest(TestCase):
             MessageBuilder, subject="Test", body="hello world", html_body="<b>hello world</b>"
         )
 
+        event = self.create_event()
+
         expected = u"{event.project.slug}.{event.organization.slug}.{namespace}".format(
-            event=self.event, namespace=options.get("mail.list-namespace")
+            event=event, namespace=options.get("mail.list-namespace")
         )
 
         references = (self.event.group, self.event.project, self.activity)

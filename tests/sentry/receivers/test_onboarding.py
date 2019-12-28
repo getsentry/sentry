@@ -27,7 +27,8 @@ class OrganizationOnboardingTaskTest(TestCase):
     def test_no_existing_task(self):
         now = timezone.now()
         project = self.create_project(first_event=now)
-        first_event_received.send(project=project, event=self.event, sender=type(project))
+        event = self.store_event(data={}, project_id=project.id)
+        first_event_received.send(project=project, event=event, sender=type(project))
 
         task = OrganizationOnboardingTask.objects.get(
             organization=project.organization, task=OnboardingTask.FIRST_EVENT
@@ -49,7 +50,8 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert task.status == OnboardingTaskStatus.PENDING
         assert task.project_id == project.id
 
-        first_event_received.send(project=project, event=self.event, sender=type(project))
+        event = self.store_event(data={}, project_id=project.id)
+        first_event_received.send(project=project, event=event, sender=type(project))
 
         task = OrganizationOnboardingTask.objects.get(
             organization=project.organization, task=OnboardingTask.FIRST_EVENT
@@ -68,7 +70,8 @@ class OrganizationOnboardingTaskTest(TestCase):
             status=OnboardingTaskStatus.COMPLETE,
         )
 
-        first_event_received.send(project=project, event=self.event, sender=type(project))
+        event = self.store_event(data={}, project_id=project.id)
+        first_event_received.send(project=project, event=event, sender=type(project))
 
         task = OrganizationOnboardingTask.objects.get(id=task.id)
         assert task.status == OnboardingTaskStatus.COMPLETE
