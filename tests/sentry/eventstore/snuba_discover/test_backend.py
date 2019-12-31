@@ -7,7 +7,6 @@ from sentry.testutils import TestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.eventstore.snuba_discover.backend import SnubaDiscoverEventStorage
 from sentry.eventstore.base import Filter
-
 from sentry.utils.samples import load_data
 
 
@@ -73,45 +72,6 @@ class SnubaDiscoverEventStorageTest(TestCase, SnubaTestCase):
         self.transaction_event_2 = self.store_event(data=event_data_2, project_id=self.project2.id)
 
         self.eventstore = SnubaDiscoverEventStorage()
-
-    def test_get_events(self):
-        events = self.eventstore.get_events(
-            filter=Filter(project_ids=[self.project1.id, self.project2.id])
-        )
-        assert len(events) == 5
-        # Default sort is timestamp desc, event_id desc
-        assert events[0].id == "e" * 32
-        assert events[1].id == "d" * 32
-        assert events[2].id == "c" * 32
-        assert events[3].id == "b" * 32
-        assert events[4].id == "a" * 32
-
-        # No events found
-        project = self.create_project()
-        events = self.eventstore.get_events(filter=Filter(project_ids=[project.id]))
-        assert events == []
-
-    def test_get_event_by_id(self):
-        # Get event with default columns
-        event = self.eventstore.get_event_by_id(self.project1.id, "a" * 32)
-
-        assert event.id == "a" * 32
-        assert event.event_id == "a" * 32
-        assert event.project_id == self.project1.id
-        assert len(event.snuba_data.keys()) == 4
-
-        # Get all columns
-        event = self.eventstore.get_event_by_id(
-            self.project2.id, "b" * 32, self.eventstore.full_columns
-        )
-        assert event.id == "b" * 32
-        assert event.event_id == "b" * 32
-        assert event.project_id == self.project2.id
-        assert len(event.snuba_data.keys()) == 17
-
-        # Get non existent event
-        event = self.eventstore.get_event_by_id(self.project2.id, "f" * 32)
-        assert event is None
 
     def test_get_next_prev_event_id(self):
         event = self.eventstore.get_event_by_id(self.project2.id, "b" * 32)

@@ -46,11 +46,8 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             # or user doesn't have access to projects in org
             data_fn = lambda *args, **kwargs: []
         else:
-            cols = None if full else eventstore.full_columns
-
             data_fn = partial(
                 eventstore.get_events,
-                additional_columns=cols,
                 referrer="api.organization-events",
                 filter=eventstore.Filter(
                     start=snuba_args["start"],

@@ -19,9 +19,6 @@ class EventStorageTest(TestCase):
     def test_minimal_columns(self):
         assert len(self.eventstorage.minimal_columns) == 4
 
-    def test_full_columns(self):
-        assert len(self.eventstorage.full_columns) == 17
-
     def test_bind_nodes(self):
         """
         Test that bind_nodes populates _node_data

@@ -79,14 +79,17 @@ class GroupHashesEndpoint(GroupEndpoint):
         return [self.__handle_result(user, project_id, group_id, result) for result in results]
 
     def __handle_result(self, user, project_id, group_id, result):
-        event = {
-            "timestamp": result["latest_event_timestamp"],
-            "event_id": result["event_id"],
-            "group_id": group_id,
-            "project_id": project_id,
-        }
+        event = SnubaEvent(
+            {
+                "timestamp": result["latest_event_timestamp"],
+                "event_id": result["event_id"],
+                "group_id": group_id,
+                "project_id": project_id,
+            }
+        )
+        event.bind_node_data()
 
         return {
             "id": result["primary_hash"],
-            "latestEvent": serialize(SnubaEvent(event), user, EventSerializer()),
+            "latestEvent": serialize(event, user, EventSerializer()),
         }

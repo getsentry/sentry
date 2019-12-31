@@ -62,7 +62,9 @@ class SnubaEventStorage(EventStorage):
         )
 
         if "error" not in result:
-            return [SnubaEvent(evt) for evt in result["data"]]
+            events = [SnubaEvent(evt) for evt in result["data"]]
+            self.bind_nodes(events)
+            return events
 
         return []
 

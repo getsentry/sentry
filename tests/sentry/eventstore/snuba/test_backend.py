@@ -7,7 +7,7 @@ from sentry.testutils import TestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.eventstore.snuba.backend import SnubaEventStorage
 from sentry.eventstore.base import Filter
-
+from sentry.snuba.events import Columns
 from sentry.utils.samples import load_data
 
 
@@ -96,14 +96,14 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         assert event.project_id == self.project1.id
         assert len(event.snuba_data.keys()) == 4
 
-        # Get all columns
+        # Get additional columns
         event = self.eventstore.get_event_by_id(
-            self.project2.id, "b" * 32, self.eventstore.full_columns
+            self.project2.id, "b" * 32, [Columns.CULPRIT, Columns.LOCATION, Columns.MESSAGE]
         )
         assert event.id == "b" * 32
         assert event.event_id == "b" * 32
         assert event.project_id == self.project2.id
-        assert len(event.snuba_data.keys()) == 17
+        assert len(event.snuba_data.keys()) == 7
 
         # Get non existent event
         event = self.eventstore.get_event_by_id(self.project2.id, "f" * 32)
