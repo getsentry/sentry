@@ -2,8 +2,6 @@ from __future__ import absolute_import
 
 import logging
 
-from sentry import options
-
 get_by_id_methods = [
     "get_next_event_id",
     "get_prev_event_id",
@@ -15,7 +13,7 @@ logger = logging.getLogger("sentry.eventstore")
 
 
 def selector_func(context, method, callargs):
-    if method == "get_event_by_id" and options.get("eventstore.use-nodestore"):
+    if method == "get_event_by_id":
         return ["snuba", "nodestore"]
     if method in get_by_id_methods:
         return ["snuba", "snuba_discover"]
