@@ -107,10 +107,6 @@ def pytest_configure(config):
     eventstore_options["backends"]["snuba_discover"]["executor"][
         "path"
     ] = "sentry.utils.concurrent.SynchronousExecutor"
-    eventstore_options["backends"]["nodestore"]["executor"][
-        "path"
-    ] = "sentry.utils.concurrent.SynchronousExecutor"
-
     settings.SENTRY_EVENTSTORE_OPTIONS = eventstore_options
 
     if not hasattr(settings, "SENTRY_OPTIONS"):

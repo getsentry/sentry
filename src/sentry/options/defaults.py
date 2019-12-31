@@ -197,3 +197,6 @@ register("transaction-events.force-disable-internal-project", default=False)
 # Moving signals and TSDB into outcomes consumer
 register("outcomes.signals-in-consumer-sample-rate", default=0.0)
 register("outcomes.tsdb-in-consumer-sample-rate", default=0.0)
+
+# Eventstore uses Nodestore instead of Snuba for get_event_by_id
+register("eventstore.use-nodestore", default=True, flags=FLAG_PRIORITIZE_DISK)

@@ -9,13 +9,13 @@ get_by_id_methods = [
     "get_latest_event_id",
 ]
 
+methods_to_test = get_by_id_methods
+
 logger = logging.getLogger("sentry.eventstore")
 
 
 def selector_func(context, method, callargs):
-    if method == "get_event_by_id":
-        return ["snuba", "nodestore"]
-    if method in get_by_id_methods:
+    if method in methods_to_test:
         return ["snuba", "snuba_discover"]
 
     return ["snuba"]
@@ -42,21 +42,3 @@ def callback_func(context, method, callargs, backends, results):
                         "snuba_discover_result": results[1].result(),
                     },
                 )
-
-    if method == "get_event_by_id" and backends == ["snuba", "nodestore"]:
-        snuba_result = results[0].result()
-        nodestore_result = results[1].result()
-
-        snuba_event_id = snuba_result.event_id if snuba_result else None
-        nodestore_event_id = nodestore_result.event_id if nodestore_result else None
-
-        if snuba_event_id != nodestore_event_id:
-            logger.info(
-                "nodestore-snuba-mismatch",
-                extra={
-                    "project_id": callargs["project_id"],
-                    "event_id": callargs["event_id"],
-                    "snuba_result": snuba_event_id,
-                    "nodestore_result": nodestore_event_id,
-                },
-            )

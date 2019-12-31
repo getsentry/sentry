@@ -1073,10 +1073,6 @@ SENTRY_EVENTSTORE_OPTIONS = {
             "path": "sentry.eventstore.snuba_discover.SnubaDiscoverEventStorage",
             "executor": {"path": "sentry.utils.services.ThreadedExecutor"},
         },
-        "nodestore": {
-            "path": "sentry.eventstore.nodestore.NodestoreEventStorage",
-            "executor": {"path": "sentry.utils.services.ThreadedExecutor"},
-        },
     },
     "selector_func": "sentry.eventstore.utils.selector_func",
     "callback_func": "sentry.eventstore.utils.callback_func",

@@ -4,7 +4,7 @@ import logging
 import mock
 import six
 
-from sentry import eventstore, nodestore
+from sentry import eventstore
 from sentry.eventstore.models import Event
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
@@ -37,8 +37,8 @@ class EventStorageTest(TestCase):
             project_id=self.project.id,
         )
 
-        event = eventstore.get_event_by_id(self.project.id, "a" * 32)
-        event2 = eventstore.get_event_by_id(self.project.id, "b" * 32)
+        event = Event(project_id=self.project.id, event_id="a" * 32)
+        event2 = Event(project_id=self.project.id, event_id="b" * 32)
         assert event.data._node_data is None
         self.eventstorage.bind_nodes([event, event2], "data")
         assert event.data._node_data is not None
@@ -98,27 +98,5 @@ class ServiceDelegationTest(TestCase, SnubaTestCase):
                     "event_id": event.event_id,
                     "filter_keys": filter.filter_keys,
                     "conditions": filter.conditions,
-                },
-            )
-
-    def test_logs_differences_nodestore(self):
-        # Remove the event from nodestore to simulate event with no body
-        event_id = "a" * 32
-        node_id = Event.generate_node_id(self.project.id, event_id)
-        nodestore.delete(node_id)
-
-        logger = logging.getLogger("sentry.eventstore")
-
-        with mock.patch.object(logger, "info") as mock_logger:
-            eventstore.get_event_by_id(self.project.id, event_id)
-
-            assert mock_logger.call_count == 1
-            mock_logger.assert_called_with(
-                "nodestore-snuba-mismatch",
-                extra={
-                    "event_id": event_id,
-                    "project_id": self.project.id,
-                    "snuba_result": event_id,
-                    "nodestore_result": None,
                 },
             )
