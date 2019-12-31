@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 from sentry.api.serializers import serialize
 from sentry.models.event import SnubaEvent
 from sentry.testutils import SnubaTestCase, TestCase
-from sentry import eventstore, nodestore
 from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
@@ -38,8 +37,14 @@ class SnubaEventTest(TestCase, SnubaTestCase):
         self.proj1group1 = event1.group
 
     def test_fetch(self):
-        event = eventstore.get_event_by_id(self.proj1.id, self.event_id)
-
+        event = SnubaEvent(
+            {
+                "event_id": self.event_id,
+                "project_id": self.proj1.id,
+                "group_id": self.proj1group1.id,
+                "timestamp": self.data["timestamp"],
+            }
+        )
         # Make sure we get back event properties from snuba
         assert event.event_id == self.event_id
         assert event.group.id == self.proj1group1.id
@@ -59,9 +64,15 @@ class SnubaEventTest(TestCase, SnubaTestCase):
         Test that a SnubaEvent that only loads minimal data from snuba
         can still be serialized completely by falling back to nodestore data.
         """
-        snuba_event = eventstore.get_event_by_id(self.proj1.id, self.event_id)
-
-        snuba_serialized = serialize(snuba_event)
+        event = SnubaEvent(
+            {
+                "event_id": self.event_id,
+                "project_id": self.proj1.id,
+                "group_id": self.proj1group1.id,
+                "timestamp": self.data["timestamp"],
+            }
+        )
+        snuba_serialized = serialize(event)
 
         assert snuba_serialized["message"] == self.data["message"]
         assert snuba_serialized["eventID"] == self.data["event_id"]
@@ -73,31 +84,15 @@ class SnubaEventTest(TestCase, SnubaTestCase):
         Test that bind_nodes works on snubaevents to populate their
         NodeDatas.
         """
-        event = eventstore.get_event_by_id(self.proj1.id, self.event_id)
+        event = SnubaEvent(
+            {
+                "event_id": self.event_id,
+                "project_id": self.proj1.id,
+                "group_id": self.proj1group1.id,
+                "timestamp": self.data["timestamp"],
+            }
+        )
         assert event.data._node_data is None
         event.bind_node_data()
         assert event.data._node_data is not None
         assert event.data["user"]["id"] == u"user1"
-
-    def test_event_with_no_body(self):
-        # remove the event from nodestore to simulate an event with no body.
-        node_id = SnubaEvent.generate_node_id(self.proj1.id, self.event_id)
-        nodestore.delete(node_id)
-        assert nodestore.get(node_id) is None
-
-        # Check that we can still serialize it
-        event = eventstore.get_event_by_id(
-            self.proj1.id, self.event_id, additional_columns=eventstore.full_columns
-        )
-        serialized = serialize(event)
-        assert event.data == {}
-
-        # Check that the regular serializer still gives us back tags
-        assert serialized["tags"] == [
-            {"_meta": None, "key": "baz", "value": "quux"},
-            {"_meta": None, "key": "environment", "value": "prod"},
-            {"_meta": None, "key": "foo", "value": "bar"},
-            {"_meta": None, "key": "level", "value": "error"},
-            {"_meta": None, "key": "release", "value": "release1"},
-            {"_meta": None, "key": "user", "query": 'user.id:"user1"', "value": "id:user1"},
-        ]
