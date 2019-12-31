@@ -31,6 +31,7 @@ describe('SearchBar', function() {
   const organization = TestStubs.Organization();
   const props = {
     organization,
+    projectIds: [1, 2],
   };
 
   beforeEach(function() {
@@ -84,7 +85,7 @@ describe('SearchBar', function() {
 
     expect(tagValuesMock).toHaveBeenCalledWith(
       '/organizations/org-slug/tags/gpu/values/',
-      expect.objectContaining({query: {}})
+      expect.objectContaining({query: {project: [1, 2], statsPeriod: '14d'}})
     );
 
     await tick();
@@ -115,7 +116,7 @@ describe('SearchBar', function() {
 
     expect(tagValuesMock).toHaveBeenCalledWith(
       '/organizations/org-slug/tags/gpu/values/',
-      expect.objectContaining({query: {}})
+      expect.objectContaining({query: {project: [1, 2], statsPeriod: '14d'}})
     );
 
     await tick();
@@ -190,7 +191,7 @@ describe('SearchBar', function() {
 
     expect(tagValuesMock).toHaveBeenCalledWith(
       '/organizations/org-slug/tags/gpu/values/',
-      expect.objectContaining({query: {}})
+      expect.objectContaining({query: {project: [1, 2], statsPeriod: '14d'}})
     );
     selectFirstAutocompleteItem(wrapper);
     expect(wrapper.find('input').prop('value')).toBe('!gpu:*"Nvidia 1080ti" ');

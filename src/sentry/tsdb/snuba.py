@@ -36,24 +36,24 @@ class SnubaTSDB(BaseTSDB):
     # other models.
     non_outcomes_query_settings = {
         TSDBModel.project: SnubaModelQuerySettings(snuba.Dataset.Events, "project_id", None, None),
-        TSDBModel.group: SnubaModelQuerySettings(snuba.Dataset.Events, "issue", None, None),
+        TSDBModel.group: SnubaModelQuerySettings(snuba.Dataset.Events, "group_id", None, None),
         TSDBModel.release: SnubaModelQuerySettings(
             snuba.Dataset.Events, "tags[sentry:release]", None, None
         ),
         TSDBModel.users_affected_by_group: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "issue", "tags[sentry:user]", None
+            snuba.Dataset.Events, "group_id", "tags[sentry:user]", None
         ),
         TSDBModel.users_affected_by_project: SnubaModelQuerySettings(
             snuba.Dataset.Events, "project_id", "tags[sentry:user]", None
         ),
         TSDBModel.frequent_environments_by_group: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "issue", "environment", None
+            snuba.Dataset.Events, "group_id", "environment", None
         ),
         TSDBModel.frequent_releases_by_group: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "issue", "tags[sentry:release]", None
+            snuba.Dataset.Events, "group_id", "tags[sentry:release]", None
         ),
         TSDBModel.frequent_issues_by_project: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "project_id", "issue", None
+            snuba.Dataset.Events, "project_id", "group_id", None
         ),
     }
 
@@ -129,12 +129,6 @@ class SnubaTSDB(BaseTSDB):
         + outcomes_partial_query_settings.items()
         + non_outcomes_query_settings.items()
     )
-
-    # ``model_columns_being_upgraded`` are models that currently use Redis but are being
-    # transitioned to use Snuba.
-    model_being_upgraded_query_settings = {}
-
-    model_being_upgraded_query_settings2 = {}
 
     project_filter_model_query_settings_lower_rollup = {
         model: SnubaModelQuerySettings(

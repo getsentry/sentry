@@ -17,6 +17,7 @@ import {
   isAggregateField,
   getAggregateAlias,
   decodeColumnOrder,
+  decodeScalar,
 } from './utils';
 import {TableColumn, TableColumnSort} from './table/types';
 
@@ -243,21 +244,6 @@ const decodeProjects = (location: Location): number[] => {
 
   const value = location.query.project;
   return Array.isArray(value) ? value.map(i => parseInt(i, 10)) : [parseInt(value, 10)];
-};
-
-const decodeScalar = (
-  value: string[] | string | undefined | null
-): string | undefined => {
-  if (!value) {
-    return undefined;
-  }
-  const unwrapped =
-    Array.isArray(value) && value.length > 0
-      ? value[0]
-      : isString(value)
-      ? value
-      : undefined;
-  return isString(unwrapped) ? unwrapped : undefined;
 };
 
 const queryStringFromSavedQuery = (saved: NewQuery | SavedQuery): string => {
@@ -716,9 +702,21 @@ class EventView {
       // of it in the table.
 
       if (numOfColumns <= 1) {
-        const sorts = [...newEventView.sorts];
-        sorts.splice(needleSortIndex, 1);
-        newEventView.sorts = [...new Set(sorts)];
+        if (isFieldSortable(updatedField, tableMeta)) {
+          // use the current updated field as the sort key
+          const sort = fieldToSort(updatedField, tableMeta)!;
+
+          // preserve the sort kind
+          sort.kind = needleSort.kind;
+
+          const sorts = [...newEventView.sorts];
+          sorts[needleSortIndex] = sort;
+          newEventView.sorts = sorts;
+        } else {
+          const sorts = [...newEventView.sorts];
+          sorts.splice(needleSortIndex, 1);
+          newEventView.sorts = [...new Set(sorts)];
+        }
       }
 
       if (newEventView.sorts.length <= 0 && newEventView.fields.length > 0) {

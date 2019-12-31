@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import six
 import string
-import warnings
 import pytz
 
 from collections import OrderedDict
@@ -120,10 +119,9 @@ class EventCommon(object):
         return self.interfaces.get(name)
 
     def get_legacy_message(self):
-        # TODO(mitsuhiko): remove this code once it's unused.  It's still
-        # being used by plugin code and once the message rename is through
-        # plugins should instead swithc to the actual message attribute or
-        # this method could return what currently is real_message.
+        # TODO: This is only used in the pagerduty plugin. We should use event.title
+        # there and remove this function once users have been notified, since PD
+        # alert routing may be based off the message field.
         return (
             get_path(self.data, "logentry", "formatted")
             or get_path(self.data, "logentry", "message")
@@ -279,12 +277,8 @@ class EventCommon(object):
             # vs ((tag, foo), (tag, bar))
             return []
 
-    # For compatibility, still used by plugins.
-    def get_tags(self):
-        return self.tags
-
     def get_tag(self, key):
-        for t, v in self.get_tags():
+        for t, v in self.tags:
             if t == key:
                 return v
         return None
@@ -373,18 +367,6 @@ class EventCommon(object):
         ref = self.data.get_ref(self)
         self.data.bind_data(node_data, ref=ref)
 
-    # ============================================
-    # DEPRECATED
-    # ============================================
-
-    # TODO: This is currently used in the Twilio and Flowdock plugins
-    # Remove this after usage has been removed there.
-    def error(self):  # TODO why is this not a property?
-        warnings.warn("Event.error is deprecated, use Event.title", DeprecationWarning)
-        return self.title
-
-    error.short_description = _("error")
-
 
 class SnubaEvent(EventCommon):
     """
@@ -424,22 +406,7 @@ class SnubaEvent(EventCommon):
         node_id = SnubaEvent.generate_node_id(
             self.snuba_data["project_id"], self.snuba_data["event_id"]
         )
-        self.data = NodeData(None, node_id, data=None, wrapper=EventDict)
-
-    def __getattr__(self, name):
-        """
-        Depending on what snuba data this event was initialized with, we may
-        have the data available to return, or we may have to look in the
-        `data` dict (which would force a nodestore load). All unresolved
-        self.foo type accesses will come through here.
-        """
-        if name in ("_project_cache", "_group_cache", "_environment_cache"):
-            raise AttributeError()
-
-        if name in self.snuba_data:
-            return self.snuba_data[name]
-        else:
-            return self.data[name]
+        self.data = NodeData(node_id, data=None, wrapper=EventDict)
 
     # ============================================
     # Snuba-only implementations of properties that
@@ -453,8 +420,8 @@ class SnubaEvent(EventCommon):
         tag deletions without having to rewrite nodestore blobs.
         """
         if "tags.key" in self.snuba_data and "tags.value" in self.snuba_data:
-            keys = getattr(self, "tags.key")
-            values = getattr(self, "tags.value")
+            keys = self.snuba_data["tags.key"]
+            values = self.snuba_data["tags.value"]
             if keys and values and len(keys) == len(values):
                 return sorted(zip(keys, values))
             else:
@@ -465,13 +432,19 @@ class SnubaEvent(EventCommon):
     def get_minimal_user(self):
         from sentry.interfaces.user import User
 
+        if all(key in self.snuba_data for key in ["user_id", "email", "username", "ip_address"]):
+            user_id = self.snuba_data["user_id"]
+            email = self.snuba_data["email"]
+            username = self.snuba_data["username"]
+            ip_address = self.snuba_data["ip_address"]
+        else:
+            user_id = self.data["user_id"]
+            email = self.data["email"]
+            username = self.data["username"]
+            ip_address = self.data["ip_address"]
+
         return User.to_python(
-            {
-                "id": self.user_id,
-                "email": self.email,
-                "username": self.username,
-                "ip_address": self.ip_address,
-            }
+            {"id": user_id, "email": email, "username": username, "ip_address": ip_address}
         )
 
     # If the data for these is available from snuba, we assume
@@ -538,8 +511,36 @@ class SnubaEvent(EventCommon):
         # have to reference the row id anyway.
         return self.event_id
 
+    @property
+    def timestamp(self):
+        return self.snuba_data["timestamp"]
+
+    @property
+    def event_id(self):
+        return self.snuba_data["event_id"]
+
+    @property
+    def project_id(self):
+        return self.snuba_data["project_id"]
+
+    @project_id.setter
+    def project_id(self, value):
+        self.snuba_data["project_id"] = value
+
+    @property
+    def group_id(self):
+        return self.snuba_data["group_id"]
+
+    @group_id.setter
+    def group_id(self, value):
+        self.snuba_data["group_id"] = value
+
     def save(self):
         raise NotImplementedError
+
+
+def ref_func(x):
+    return x.project_id or x.project.id
 
 
 class Event(EventCommon, Model):
@@ -560,7 +561,7 @@ class Event(EventCommon, Model):
     data = NodeField(
         blank=True,
         null=True,
-        ref_func=lambda x: x.project_id or x.project.id,
+        ref_func=ref_func,
         ref_version=2,
         wrapper=EventDict,
         skip_nodestore_save=True,

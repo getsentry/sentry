@@ -56,15 +56,17 @@ class OrganizationMembersList extends AsyncView<Props, State> {
 
     return [
       ['members', `/organizations/${orgId}/members/`, {}, {paginate: true}],
-      ['member', `/organizations/${orgId}/members/me/`, {}, {}],
+      [
+        'member',
+        `/organizations/${orgId}/members/me/`,
+        {},
+        {allowError: error => error.status === 404},
+      ],
       [
         'authProvider',
         `/organizations/${orgId}/auth-provider/`,
         {},
-        {
-          // Allow for 403s
-          allowError: error => error.status === 403,
-        },
+        {allowError: error => error.status === 403},
       ],
     ];
   }

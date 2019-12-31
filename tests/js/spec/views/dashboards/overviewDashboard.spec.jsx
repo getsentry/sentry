@@ -40,6 +40,10 @@ describe('OverviewDashboard', function() {
 
   beforeEach(function() {
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/environments/`,
       body: TestStubs.Environments(),
     });
@@ -202,7 +206,7 @@ describe('OverviewDashboard', function() {
         data: expect.objectContaining({
           environments: [],
           projects: [2, 3],
-          range: '7d',
+          range: '14d',
 
           fields: [],
           conditions: [],

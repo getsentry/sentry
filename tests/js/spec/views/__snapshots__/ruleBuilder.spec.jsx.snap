@@ -349,7 +349,7 @@ exports[`RuleBuilder renders 1`] = `
                               onTouchMove={[Function]}
                               onTouchStart={[Function]}
                             >
-                              <span
+                              <div
                                 className="Select-multi-value-wrapper"
                                 id="react-select-2--value"
                               >
@@ -437,7 +437,7 @@ exports[`RuleBuilder renders 1`] = `
                                     />
                                   </div>
                                 </AutosizeInput>
-                              </span>
+                              </div>
                               <span
                                 className="Select-arrow-zone"
                                 onMouseDown={[Function]}
@@ -884,7 +884,7 @@ exports[`RuleBuilder renders 1`] = `
                                 onTouchMove={[Function]}
                                 onTouchStart={[Function]}
                               >
-                                <span
+                                <div
                                   className="Select-multi-value-wrapper"
                                   id="react-select-3--value"
                                 >
@@ -949,7 +949,7 @@ exports[`RuleBuilder renders 1`] = `
                                       />
                                     </div>
                                   </AutosizeInput>
-                                </span>
+                                </div>
                                 <span
                                   className="Select-arrow-zone"
                                   onMouseDown={[Function]}
@@ -1607,7 +1607,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                               onTouchMove={[Function]}
                               onTouchStart={[Function]}
                             >
-                              <span
+                              <div
                                 className="Select-multi-value-wrapper"
                                 id="react-select-4--value"
                               >
@@ -1695,7 +1695,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                     />
                                   </div>
                                 </AutosizeInput>
-                              </span>
+                              </div>
                               <span
                                 className="Select-arrow-zone"
                                 onMouseDown={[Function]}
@@ -2446,7 +2446,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                 onTouchMove={[Function]}
                                 onTouchStart={[Function]}
                               >
-                                <span
+                                <div
                                   className="Select-multi-value-wrapper"
                                   id="react-select-5--value"
                                 >
@@ -2495,6 +2495,45 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                         "value": "user:1",
                                       }
                                     }
+                                    values={
+                                      Array [
+                                        Object {
+                                          "actor": Object {
+                                            "id": "1",
+                                            "name": "Jane Bloggs",
+                                            "type": "user",
+                                          },
+                                          "label": <IdBadge
+                                            avatarSize={24}
+                                            hideEmail={true}
+                                            useLink={false}
+                                            user={
+                                              Object {
+                                                "email": "janebloggs@example.com",
+                                                "flags": Object {
+                                                  "newsletter_consent_prompt": false,
+                                                },
+                                                "hasPasswordAuth": true,
+                                                "id": "1",
+                                                "isAuthenticated": true,
+                                                "name": "Jane Bloggs",
+                                                "options": Object {
+                                                  "timezone": "UTC",
+                                                },
+                                                "user": Object {
+                                                  "email": "janebloggs@example.com",
+                                                  "id": "1",
+                                                  "name": "Jane Bloggs",
+                                                },
+                                                "username": "foo@example.com",
+                                              }
+                                            }
+                                          />,
+                                          "searchKey": "janebloggs@example.com jane bloggs",
+                                          "value": "user:1",
+                                        },
+                                      ]
+                                    }
                                   >
                                     <a
                                       onClick={[Function]}
@@ -2509,7 +2548,8 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                         }
                                         size={28}
                                       >
-                                        <Avatar
+                                        <UserAvatar
+                                          gravatar={false}
                                           hasTooltip={true}
                                           size={28}
                                           user={
@@ -2534,77 +2574,60 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                             }
                                           }
                                         >
-                                          <UserAvatar
-                                            gravatar={false}
+                                          <BaseAvatar
+                                            gravatarId="janebloggs@example.com"
                                             hasTooltip={true}
+                                            letterId="janebloggs@example.com"
+                                            round={true}
                                             size={28}
-                                            user={
-                                              Object {
-                                                "email": "janebloggs@example.com",
-                                                "flags": Object {
-                                                  "newsletter_consent_prompt": false,
-                                                },
-                                                "hasPasswordAuth": true,
-                                                "id": "1",
-                                                "isAuthenticated": true,
-                                                "name": "Jane Bloggs",
-                                                "options": Object {
-                                                  "timezone": "UTC",
-                                                },
-                                                "user": Object {
-                                                  "email": "janebloggs@example.com",
-                                                  "id": "1",
-                                                  "name": "Jane Bloggs",
-                                                },
-                                                "username": "foo@example.com",
-                                              }
-                                            }
+                                            style={Object {}}
+                                            title="Jane Bloggs"
+                                            tooltip="Jane Bloggs (janebloggs@example.com)"
+                                            type="letter_avatar"
+                                            uploadId=""
+                                            uploadPath="avatar"
                                           >
-                                            <BaseAvatar
-                                              gravatarId="janebloggs@example.com"
-                                              hasTooltip={true}
-                                              letterId="janebloggs@example.com"
-                                              round={true}
-                                              size={28}
-                                              style={Object {}}
-                                              title="Jane Bloggs"
-                                              tooltip="Jane Bloggs (janebloggs@example.com)"
-                                              type="letter_avatar"
-                                              uploadId=""
-                                              uploadPath="avatar"
+                                            <Tooltip
+                                              containerDisplayMode="inline-block"
+                                              disabled={false}
+                                              position="top"
+                                              title="Jane Bloggs (janebloggs@example.com)"
                                             >
-                                              <Tooltip
-                                                containerDisplayMode="inline-block"
-                                                disabled={false}
-                                                position="top"
-                                                title="Jane Bloggs (janebloggs@example.com)"
-                                              >
-                                                <Manager>
-                                                  <Reference>
-                                                    <InnerReference
-                                                      setReferenceNode={[Function]}
+                                              <Manager>
+                                                <Reference>
+                                                  <InnerReference
+                                                    setReferenceNode={[Function]}
+                                                  >
+                                                    <Container
+                                                      aria-describedby="tooltip-123456"
+                                                      containerDisplayMode="inline-block"
+                                                      innerRef={[Function]}
+                                                      onBlur={[Function]}
+                                                      onFocus={[Function]}
+                                                      onMouseEnter={[Function]}
+                                                      onMouseLeave={[Function]}
                                                     >
-                                                      <Container
+                                                      <span
                                                         aria-describedby="tooltip-123456"
-                                                        containerDisplayMode="inline-block"
-                                                        innerRef={[Function]}
+                                                        className="css-1vf31z4-Container eowlwvy0"
                                                         onBlur={[Function]}
                                                         onFocus={[Function]}
                                                         onMouseEnter={[Function]}
                                                         onMouseLeave={[Function]}
                                                       >
-                                                        <span
-                                                          aria-describedby="tooltip-123456"
-                                                          className="css-1vf31z4-Container eowlwvy0"
-                                                          onBlur={[Function]}
-                                                          onFocus={[Function]}
-                                                          onMouseEnter={[Function]}
-                                                          onMouseLeave={[Function]}
+                                                        <StyledBaseAvatar
+                                                          className="avatar"
+                                                          loaded={true}
+                                                          round={true}
+                                                          style={
+                                                            Object {
+                                                              "height": "28px",
+                                                              "width": "28px",
+                                                            }
+                                                          }
                                                         >
-                                                          <StyledBaseAvatar
-                                                            className="avatar"
-                                                            loaded={true}
-                                                            round={true}
+                                                          <span
+                                                            className="avatar css-3f9bmx-StyledBaseAvatar e147uwb0"
                                                             style={
                                                               Object {
                                                                 "height": "28px",
@@ -2612,67 +2635,57 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                                               }
                                                             }
                                                           >
-                                                            <span
-                                                              className="avatar css-3f9bmx-StyledBaseAvatar e147uwb0"
-                                                              style={
-                                                                Object {
-                                                                  "height": "28px",
-                                                                  "width": "28px",
-                                                                }
-                                                              }
+                                                            <LetterAvatar
+                                                              displayName="Jane Bloggs"
+                                                              identifier="janebloggs@example.com"
+                                                              round={true}
                                                             >
-                                                              <LetterAvatar
+                                                              <Component
+                                                                className="css-vyy37i-LetterAvatar e12lgfev0"
                                                                 displayName="Jane Bloggs"
                                                                 identifier="janebloggs@example.com"
                                                                 round={true}
                                                               >
-                                                                <Component
+                                                                <svg
                                                                   className="css-vyy37i-LetterAvatar e12lgfev0"
-                                                                  displayName="Jane Bloggs"
-                                                                  identifier="janebloggs@example.com"
-                                                                  round={true}
+                                                                  viewBox="0 0 120 120"
                                                                 >
-                                                                  <svg
-                                                                    className="css-vyy37i-LetterAvatar e12lgfev0"
-                                                                    viewBox="0 0 120 120"
-                                                                  >
-                                                                    <rect
-                                                                      fill="#4e3fb4"
-                                                                      height="120"
-                                                                      rx="15"
-                                                                      ry="15"
-                                                                      width="120"
-                                                                      x="0"
-                                                                      y="0"
-                                                                    />
-                                                                    <text
-                                                                      fill="#FFFFFF"
-                                                                      fontSize="65"
-                                                                      style={
-                                                                        Object {
-                                                                          "dominantBaseline": "central",
-                                                                        }
+                                                                  <rect
+                                                                    fill="#4e3fb4"
+                                                                    height="120"
+                                                                    rx="15"
+                                                                    ry="15"
+                                                                    width="120"
+                                                                    x="0"
+                                                                    y="0"
+                                                                  />
+                                                                  <text
+                                                                    fill="#FFFFFF"
+                                                                    fontSize="65"
+                                                                    style={
+                                                                      Object {
+                                                                        "dominantBaseline": "central",
                                                                       }
-                                                                      textAnchor="middle"
-                                                                      x="50%"
-                                                                      y="50%"
-                                                                    >
-                                                                      JB
-                                                                    </text>
-                                                                  </svg>
-                                                                </Component>
-                                                              </LetterAvatar>
-                                                            </span>
-                                                          </StyledBaseAvatar>
-                                                        </span>
-                                                      </Container>
-                                                    </InnerReference>
-                                                  </Reference>
-                                                </Manager>
-                                              </Tooltip>
-                                            </BaseAvatar>
-                                          </UserAvatar>
-                                        </Avatar>
+                                                                    }
+                                                                    textAnchor="middle"
+                                                                    x="50%"
+                                                                    y="50%"
+                                                                  >
+                                                                    JB
+                                                                  </text>
+                                                                </svg>
+                                                              </Component>
+                                                            </LetterAvatar>
+                                                          </span>
+                                                        </StyledBaseAvatar>
+                                                      </span>
+                                                    </Container>
+                                                  </InnerReference>
+                                                </Reference>
+                                              </Manager>
+                                            </Tooltip>
+                                          </BaseAvatar>
+                                        </UserAvatar>
                                       </ActorAvatar>
                                     </a>
                                   </ValueComponent>
@@ -2732,7 +2745,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                       />
                                     </div>
                                   </AutosizeInput>
-                                </span>
+                                </div>
                                 <span
                                   aria-live="assertive"
                                   className="Select-aria-only"

@@ -84,5 +84,5 @@ def patch_django_views_debug():
     debug.get_safe_settings = lambda: {}
 
 
-for patch in patch_parse_cookie, patch_httprequest_repr, patch_django_views_debug:
+for patch in (patch_parse_cookie, patch_httprequest_repr, patch_django_views_debug):
     patch()

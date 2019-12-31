@@ -202,12 +202,11 @@ def discover_sourcemap(result):
 
 
 def fetch_release_file(filename, release, dist=None):
-    cache_key = "releasefile:v1:%s:%s" % (release.id, md5_text(filename).hexdigest())
+    dist_name = dist and dist.name or None
+    cache_key = "releasefile:v1:%s:%s" % (release.id, ReleaseFile.get_ident(filename, dist_name))
 
     logger.debug("Checking cache for release artifact %r (release_id=%s)", filename, release.id)
     result = cache.get(cache_key)
-
-    dist_name = dist and dist.name or None
 
     if result is None:
         filename_choices = ReleaseFile.normalize(filename)

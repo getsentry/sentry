@@ -1,4 +1,3 @@
-import $ from 'jquery';
 import React from 'react';
 import PropTypes from 'prop-types';
 import queryString from 'query-string';
@@ -105,13 +104,11 @@ class ExternalIssueForm extends AsyncComponent {
       const options = (field.choices || []).map(([value, label]) => ({value, label}));
       return Promise.resolve({options});
     }
-    return new Promise(resolve => {
-      this.debouncedOptionLoad(field, input, resolve);
-    });
+    return this.debouncedOptionLoad(field, input);
   };
 
   debouncedOptionLoad = debounce(
-    (field, input, resolve) => {
+    async (field, input) => {
       const query = queryString.stringify({
         ...this.state.dynamicFieldValues,
         field: field.name,
@@ -120,15 +117,10 @@ class ExternalIssueForm extends AsyncComponent {
 
       const url = field.url;
       const separator = url.includes('?') ? '&' : '?';
-
-      const request = {
-        url: [url, separator, query].join(''),
-        method: 'GET',
-      };
-
       // We can't use the API client here since the URL is not scoped under the
       // API endpoints (which the client prefixes)
-      $.ajax(request).then(data => resolve({options: data}));
+      const response = await fetch(url + separator + query);
+      return {options: response.ok ? await response.json() : []};
     },
     200,
     {trailing: true}

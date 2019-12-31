@@ -276,6 +276,14 @@ MIDDLEWARE_CLASSES = (
 
 ROOT_URLCONF = "sentry.conf.urls"
 
+# TODO(joshuarli): Django 1.10 introduced this option, which restricts the size of a
+# request body. We have some middleware in sentry.middleware.proxy that sets the
+# Content Length to max uint32 in certain cases related to minidump.
+# Once relay's fully rolled out, that can be deleted.
+# Until then, the safest and easiest thing to do is to disable this check
+# to leave things the way they were with Django <1.9.
+DATA_UPLOAD_MAX_MEMORY_SIZE = None
+
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
@@ -828,8 +836,6 @@ SENTRY_FEATURES = {
     # Special feature flag primarily used on the sentry.io SAAS product for
     # easily enabling features while in early development.
     "organizations:internal-catchall": False,
-    # Enable v2 of pagerduty integration
-    "organizations:pagerduty-v2": False,
     # Enable inviting members to organizations.
     "organizations:invite-members": True,
     # Enable org-wide saved searches and user pinned search
@@ -906,6 +912,12 @@ SENTRY_FRONTEND_PROJECT = None
 # DSN for the frontend to use explicitly, which takes priority
 # over SENTRY_FRONTEND_PROJECT or SENTRY_PROJECT
 SENTRY_FRONTEND_DSN = None
+
+# Configuration for JavaScript's whitelistUrls - defaults to ALLOWED_HOSTS
+SENTRY_FRONTEND_WHITELIST_URLS = None
+
+# Sample rate for Sentry transactions
+SENTRY_APM_SAMPLING = 0
 
 # DSN to use for Sentry monitors
 SENTRY_MONITOR_DSN = None
@@ -1419,9 +1431,6 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.vsts_extension.VstsExtensionIntegrationProvider",
     "sentry.integrations.pagerduty.integration.PagerDutyIntegrationProvider",
 )
-
-
-SENTRY_INTERNAL_INTEGRATIONS = ["pagerduty"]
 
 
 def get_sentry_sdk_config():

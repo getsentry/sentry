@@ -375,6 +375,7 @@
       float: left;
       font-weight: normal;
       line-height: 1.8;
+      margin: 0 0.5em 0 0;
     }
 
     dd {
@@ -1692,23 +1693,13 @@ span.val {
 }
 
 .val-string-multiline {
-  background: white;
-  display: block !important;
-  margin: 0px 0px 0px 15px;
+  display: block;
   overflow: auto;
 }
 
 .val-stripped {
   color: darken(@red, 10);
   background: transparent;
-}
-
-.val-repr {
-  color: darken(@blue, 10);
-}
-
-.val-number {
-  color: darken(@pink, 10);
 }
 
 .val-bool,
@@ -1745,7 +1736,8 @@ span.val {
     padding: 0 0 0 15px;
 
     .val-array-item {
-      display: block;
+      display: flex;
+      flex-direction: row;
     }
   }
 }

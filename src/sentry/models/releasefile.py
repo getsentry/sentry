@@ -4,6 +4,7 @@ import os
 import errno
 import six
 
+from django.core.files.base import File as FileObj
 from django.db import models
 from six.moves.urllib.parse import urlsplit, urlunsplit
 
@@ -112,7 +113,7 @@ class ReleaseFileCache(object):
             hit = False
 
         metrics.timing("release_file.cache.get.size", file_size, tags={"hit": hit, "cutoff": False})
-        return open(file_path, "rb")
+        return FileObj(open(file_path, "rb"))
 
     def clear_old_entries(self):
         clear_cached_files(self.cache_path)
