@@ -274,17 +274,14 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestC
     def test_offset_pagination(self):
         self.setup_project_and_rules()
 
+        date_added = before_now(minutes=1)
         self.one_alert_rule = self.create_alert_rule(
-            projects=self.projects, date_added=before_now(minutes=2).replace(tzinfo=pytz.UTC)
+            projects=self.projects, date_added=date_added.replace(tzinfo=pytz.UTC)
         )
         self.two_alert_rule = self.create_alert_rule(
-            projects=self.projects, date_added=before_now(minutes=1).replace(tzinfo=pytz.UTC)
+            projects=self.projects, date_added=date_added.replace(tzinfo=pytz.UTC)
         )
         self.three_alert_rule = self.create_alert_rule(projects=self.projects)
-
-        # Modify 2nd rule to be date of 3rd rule. Second page offset should now be 1, or else we'll get the incorrect results (we should get one_alert_rule on the second page, but without an offset we would get two_alert_rule).
-        self.one_alert_rule.date_added = self.two_alert_rule.date_added
-        self.one_alert_rule.save()
 
         with self.feature("organizations:incidents"):
             request_data = {"limit": "2"}
