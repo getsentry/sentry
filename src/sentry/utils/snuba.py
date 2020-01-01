@@ -31,7 +31,6 @@ from sentry.utils import metrics, json
 from sentry.utils.dates import to_timestamp
 from sentry.snuba.events import Columns
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.discover import resolve_discover_aliases
 
 # TODO remove this when Snuba accepts more than 500 issues
 MAX_ISSUES = 500
@@ -1036,13 +1035,15 @@ def dataset_query(
     if dataset == Dataset.Discover:
         # We don't need to constrain columns for the Discover dataset
         # just resolve aliases
+        from sentry.snuba.discover import resolve_discover_aliases
+
         snuba_args, translated_columns = resolve_discover_aliases(
             {
-                groupby: groupby,
-                conditions: conditions,
-                aggregations: aggregations,
-                selected_columns: selected_columns,
-                orderby: orderby,
+                "groupby": groupby,
+                "conditions": conditions,
+                "aggregations": aggregations,
+                "selected_columns": selected_columns,
+                "orderby": orderby,
             }
         )
 
