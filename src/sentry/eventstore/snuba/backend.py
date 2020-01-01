@@ -3,28 +3,33 @@ from __future__ import absolute_import
 import six
 from copy import deepcopy
 
-from sentry.models import SnubaEvent
-from sentry.utils import snuba
 from sentry.eventstore.base import EventStorage
+from sentry.models import SnubaEvent
+from sentry.snuba.events import Columns
+from sentry.utils import snuba
 from sentry.utils.validators import normalize_event_id
 
-DESC_ORDERING = ["-timestamp", "-event_id"]
-ASC_ORDERING = ["timestamp", "event_id"]
+EVENT_ID = Columns.EVENT_ID.value.alias
+PROJECT_ID = Columns.PROJECT_ID.value.alias
+TIMESTAMP = Columns.TIMESTAMP.value.alias
+
+DESC_ORDERING = ["-{}".format(TIMESTAMP), "-{}".format(EVENT_ID)]
+ASC_ORDERING = [TIMESTAMP, EVENT_ID]
 DEFAULT_LIMIT = 100
 DEFAULT_OFFSET = 0
 
 
 def get_before_event_condition(event):
     return [
-        ["timestamp", "<=", event.timestamp],
-        [["timestamp", "<", event.timestamp], ["event_id", "<", event.event_id]],
+        [TIMESTAMP, "<=", event.timestamp],
+        [[TIMESTAMP, "<", event.timestamp], [EVENT_ID, "<", event.event_id]],
     ]
 
 
 def get_after_event_condition(event):
     return [
-        ["timestamp", ">=", event.timestamp],
-        [["timestamp", ">", event.timestamp], ["event_id", ">", event.event_id]],
+        [TIMESTAMP, ">=", event.timestamp],
+        [[TIMESTAMP, ">", event.timestamp], [EVENT_ID, ">", event.event_id]],
     ]
 
 
@@ -147,7 +152,8 @@ class SnubaEventStorage(EventStorage):
         return [col.value.event_name for col in columns]
 
     def __get_event_id_from_filter(self, filter=None, orderby=None):
-        columns = ["event_id", "project_id"]
+        columns = [Columns.EVENT_ID.value.alias, Columns.PROJECT_ID.value.alias]
+
         try:
             result = snuba.dataset_query(
                 selected_columns=columns,
