@@ -51,6 +51,18 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data["count"] == 1
 
+    def test_invalid_query(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+
+        url = reverse(
+            "sentry-api-0-organization-events-meta",
+            kwargs={"organization_slug": project.organization.slug},
+        )
+        response = self.client.get(url, {"query": "is:unresolved"}, format="json")
+
+        assert response.status_code == 400, response.content
+
     def test_no_projects(self):
         org = self.create_organization(owner=self.user)
         self.login_as(user=self.user)

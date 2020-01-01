@@ -1,3 +1,4 @@
+import {PlainRoute} from 'react-router/lib/Route';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
 
@@ -14,27 +15,34 @@ import {createDefaultTrigger} from 'app/views/settings/incidentRules/constants';
 import {defined} from 'app/utils';
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
+import Button from 'app/components/button';
+import Confirm from 'app/components/confirm';
 import Form from 'app/views/settings/components/forms/form';
 import RuleNameForm from 'app/views/settings/incidentRules/ruleNameForm';
 import Triggers from 'app/views/settings/incidentRules/triggers';
 import TriggersChart from 'app/views/settings/incidentRules/triggers/chart';
+import recreateRoute from 'app/utils/recreateRoute';
 import withApi from 'app/utils/withApi';
 import withConfig from 'app/utils/withConfig';
 import withProject from 'app/utils/withProject';
 
-import {IncidentRule, Trigger} from '../types';
-import RuleConditionsForm from '../ruleConditionsForm';
-import FormModel from '../../components/forms/model';
+import {AlertRuleAggregations, IncidentRule, Trigger} from '../types';
 import {addOrUpdateRule} from '../actions';
+import FormModel from '../../components/forms/model';
+import RuleConditionsForm from '../ruleConditionsForm';
 
 type Props = {
   api: Client;
   config: Config;
   organization: Organization;
   project: Project;
+  routes: PlainRoute[];
   rule: IncidentRule;
   incidentRuleId?: string;
-} & Pick<RouteComponentProps<{orgId: string; projectId: string}, {}>, 'params'> & {
+} & RouteComponentProps<
+  {orgId: string; projectId: string; incidentRuleId: string},
+  {}
+> & {
     onSubmitSuccess?: Form['props']['onSubmitSuccess'];
   } & AsyncComponent['props'];
 
@@ -45,14 +53,26 @@ type State = {
 
   // `null` means loading
   availableActions: MetricAction[] | null;
+
+  // Rule conditions form inputs
+  // Needed for TriggersChart
+  query: string;
+  aggregation: AlertRuleAggregations;
+  timeWindow: number;
 } & AsyncComponent['state'];
 
 const isEmpty = (str: unknown): boolean => str === '' || !defined(str);
 
 class RuleFormContainer extends AsyncComponent<Props, State> {
   getDefaultState(): State {
+    const {rule} = this.props;
+
     return {
       ...super.getDefaultState(),
+
+      aggregation: rule.aggregation,
+      query: rule.query || '',
+      timeWindow: rule.timeWindow,
       triggerErrors: new Map(),
       availableActions: null,
       triggers: this.props.rule.triggers,
@@ -72,6 +92,12 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         `/organizations/${params.orgId}/alert-rules/available-actions/`,
       ],
     ];
+  }
+
+  goBack() {
+    const {router, routes, params, location} = this.props;
+
+    router.replace(recreateRoute('', {routes, params, location, stepBack: -2}));
   }
 
   validateFieldInTrigger({errors, triggerIndex, field, message, isValid}) {
@@ -126,6 +152,12 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     return triggerErrors;
   }
 
+  handleFieldChange = (name: string, value: unknown) => {
+    if (['query', 'timeWindow', 'aggregation'].includes(name)) {
+      this.setState({[name]: value});
+    }
+  };
+
   handleSubmit = async (
     _data: Partial<IncidentRule>,
     _onSubmitSuccess,
@@ -176,7 +208,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
    */
   handleAddTrigger = () => {
     this.setState(({triggers}) => ({
-      triggers: [...triggers, createDefaultTrigger()],
+      triggers: [...triggers, {...createDefaultTrigger(), label: 'warning'}],
     }));
   };
 
@@ -204,6 +236,27 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     });
   };
 
+  handleDeleteRule = async () => {
+    const {api, params} = this.props;
+    const {orgId, projectId, incidentRuleId} = params;
+
+    try {
+      await api.requestPromise(
+        `/projects/${orgId}/${projectId}/alert-rules/${incidentRuleId}/`,
+        {
+          method: 'DELETE',
+        }
+      );
+      this.goBack();
+    } catch (_err) {
+      addErrorMessage(t('Error deleting rule'));
+    }
+  };
+
+  handleCancel = () => {
+    this.goBack();
+  };
+
   renderLoading() {
     return this.renderBody();
   }
@@ -218,7 +271,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       params,
       onSubmitSuccess,
     } = this.props;
-    const {triggers} = this.state;
+    const {query, aggregation, timeWindow, triggers} = this.state;
 
     return (
       <Form
@@ -228,23 +281,41 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         }`}
         initialData={{
           name: rule.name || '',
-          aggregations: rule.aggregations,
+          aggregation: rule.aggregation,
           query: rule.query || '',
           timeWindow: rule.timeWindow,
         }}
         saveOnBlur={false}
         onSubmit={this.handleSubmit}
         onSubmitSuccess={onSubmitSuccess}
+        onCancel={this.handleCancel}
+        onFieldChange={this.handleFieldChange}
+        extraButton={
+          !!rule.id ? (
+            <Confirm
+              message={t('Are you sure you want to delete this alert rule?')}
+              header={t('Delete Alert Rule?')}
+              priority="danger"
+              confirmText={t('Delete Rule')}
+              onConfirm={this.handleDeleteRule}
+            >
+              <Button type="button" priority="danger">
+                {t('Delete Rule')}
+              </Button>
+            </Confirm>
+          ) : null
+        }
+        submitLabel={t('Save Rule')}
       >
-        {/* TODO(billy): Temp */}
         <TriggersChart
           api={api}
           config={config}
           organization={organization}
           projects={this.state.projects}
-          query={rule.query}
-          aggregations={rule.aggregations}
-          timeWindow={rule.timeWindow}
+          triggers={triggers}
+          query={query}
+          aggregation={aggregation}
+          timeWindow={timeWindow}
         />
 
         <RuleConditionsForm organization={organization} />

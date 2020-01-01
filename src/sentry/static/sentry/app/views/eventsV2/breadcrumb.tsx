@@ -10,6 +10,7 @@ import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
 
 import EventView from './eventView';
+import {generateDiscoverResultsRoute} from './results';
 
 type Props = {
   eventView: EventView;
@@ -44,7 +45,7 @@ class DiscoverBreadcrumb extends React.Component<Props> {
 
     if (eventView && eventView.isValid()) {
       const eventTarget = {
-        pathname: `/organizations/${organization.slug}/eventsv2/`,
+        pathname: generateDiscoverResultsRoute(organization.slug),
         query: eventView.generateQueryStringObject(),
       };
 

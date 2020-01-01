@@ -1,5 +1,8 @@
 import isString from 'lodash/isString';
+import moment from 'moment';
+
 import CHART_PALETTE from 'app/constants/chartPalette';
+import {ParsedTraceType, ProcessedSpanType, GapSpanType, RawSpanType} from './types';
 
 type Rect = {
   // x and y are left/top coords respectively
@@ -299,3 +302,75 @@ export const setBodyUserSelect = (nextValues: UserSelectValues): UserSelectValue
 
   return previousValues;
 };
+
+export function generateRootSpan(trace: ParsedTraceType): RawSpanType {
+  const rootSpan: RawSpanType = {
+    trace_id: trace.traceID,
+    span_id: trace.rootSpanID,
+    parent_span_id: trace.parentSpanID,
+    start_timestamp: trace.traceStartTimestamp,
+    timestamp: trace.traceEndTimestamp,
+    op: trace.op,
+    data: {},
+  };
+
+  return rootSpan;
+}
+
+// start and end are assumed to be unix timestamps with fractional seconds
+export function getTraceDateTimeRange(input: {
+  start: number;
+  end: number;
+}): {start: string; end: string} {
+  const start = moment
+    .unix(input.start)
+    .subtract(12, 'hours')
+    .format('YYYY-MM-DDTHH:mm:ss.SSS');
+
+  const end = moment
+    .unix(input.end)
+    .add(12, 'hours')
+    .format('YYYY-MM-DDTHH:mm:ss.SSS');
+
+  return {
+    start,
+    end,
+  };
+}
+
+export function isGapSpan(span: ProcessedSpanType): span is GapSpanType {
+  // @ts-ignore
+  return span.type === 'gap';
+}
+
+export function getSpanID(span: ProcessedSpanType, defaultSpanID: string = ''): string {
+  if (isGapSpan(span)) {
+    return defaultSpanID;
+  }
+
+  return span.span_id;
+}
+
+export function getSpanOperation(span: ProcessedSpanType): string | undefined {
+  if (isGapSpan(span)) {
+    return undefined;
+  }
+
+  return span.op;
+}
+
+export function getSpanTraceID(span: ProcessedSpanType): string {
+  if (isGapSpan(span)) {
+    return 'gap-span';
+  }
+
+  return span.trace_id;
+}
+
+export function getSpanParentSpanID(span: ProcessedSpanType): string | undefined {
+  if (isGapSpan(span)) {
+    return 'gap-span';
+  }
+
+  return span.parent_span_id;
+}

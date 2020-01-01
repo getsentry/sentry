@@ -15,39 +15,79 @@ export type Avatar = {
   avatarType: 'letter_avatar' | 'upload' | 'gravatar';
 };
 
-export type LightWeightOrganization = {
+export type Actor = {
   id: string;
-  slug: string;
+  type: 'user' | 'team';
   name: string;
-  access: string[];
-  features: string[];
 };
 
+/**
+ * Organization summaries are sent when you request a
+ * list of all organiations
+ */
+export type OrganizationSummary = {
+  status: {
+    // TODO(ts): Are these fields == `ObjectStatus`?
+    id: string;
+    name: string;
+  };
+  require2FA: boolean;
+  avatar: Avatar;
+  features: string[];
+  name: string;
+  dateCreated: string;
+  id: string;
+  isEarlyAdopter: boolean;
+  slug: string;
+};
+
+/**
+ * Detailed organization (e.g. when requesting details for a single org)
+ *
+ * Lightweight in this case means it does not contain `projects` or `teams`
+ */
+export type LightWeightOrganization = OrganizationSummary & {
+  scrubIPAddresses: boolean;
+  attachmentsRole: string;
+  sensitiveFields: string[];
+  openMembership: boolean;
+  quota: {
+    maxRateInterval: number | null;
+    projectLimit: number | null;
+    accountLimit: number | null;
+    maxRate: number | null;
+  };
+  defaultRole: string;
+  experiments: ActiveExperiments;
+  allowJoinRequests: boolean;
+  scrapeJavaScript: boolean;
+  isDefault: boolean;
+  pendingAccessRequests: number;
+  availableRoles: {id: string; name: string}[];
+  enhancedPrivacy: boolean;
+  safeFields: string[];
+  storeCrashReports: number;
+  access: string[];
+  allowSharedIssues: boolean;
+  dataScrubberDefaults: boolean;
+  dataScrubber: boolean;
+  role?: string;
+  onboardingTasks: Array<{
+    status: string;
+    dateCompleted: string;
+    task: number;
+    data: object;
+    user: string | null;
+  }>;
+  trustedRelays: string[];
+};
+
+/**
+ * Full organization details
+ */
 export type Organization = LightWeightOrganization & {
   projects: Project[];
   teams: Team[];
-  avatar: Avatar;
-};
-
-export type OrganizationDetailed = Organization & {
-  isDefault: boolean;
-  defaultRole: string;
-  availableRoles: {id: string; name: string}[];
-  openMembership: boolean;
-  require2FA: boolean;
-  allowSharedIssues: boolean;
-  enhancedPrivacy: boolean;
-  dataScrubber: boolean;
-  dataScrubberDefaults: boolean;
-  sensitiveFields: string[];
-  safeFields: string[];
-  storeCrashReports: boolean;
-  attachmentsRole: string;
-  scrubIPAddresses: boolean;
-  scrapeJavaScript: boolean;
-  trustedRelays: string[];
-  role?: string;
-  experiments: ActiveExperiments;
 };
 
 export type Project = {
@@ -60,6 +100,7 @@ export type Project = {
   isBookmarked: boolean;
   hasUserReports?: boolean;
   hasAccess: boolean;
+  platform: string;
 };
 
 export type Team = {
@@ -371,21 +412,25 @@ export type Group = {
 };
 
 export type Member = {
-  id: string;
-  user: User;
-  name: string;
+  dateCreated: string;
   email: string;
-  pending: boolean | undefined;
-  role: string;
-  roleName: string;
+  expired: boolean;
   flags: {
     'sso:linked': boolean;
     'sso:invalid': boolean;
   };
-  dateCreated: string;
+  id: string;
   inviteStatus: 'approved' | 'requested_to_be_invited' | 'requested_to_join';
+  invite_link: string | null;
   inviterName: string | null;
+  isOnlyOwner: boolean;
+  name: string;
+  pending: boolean | undefined;
+  role: string;
+  roleName: string;
+  roles: MemberRole[];
   teams: string[];
+  user: User;
 };
 
 export type AccessRequest = {

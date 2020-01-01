@@ -16,6 +16,7 @@ import img from '../../images/dashboard/hair-on-fire.svg';
 type Props = {
   organization: LightWeightOrganization | Organization;
   projects?: Project[];
+  loadingProjects?: boolean;
 };
 
 export default class NoProjectMessage extends React.Component<Props> {
@@ -25,10 +26,11 @@ export default class NoProjectMessage extends React.Component<Props> {
     children: PropTypes.node,
     organization: SentryTypes.Organization,
     projects: PropTypes.arrayOf(SentryTypes.Project),
+    loadingProjects: PropTypes.bool,
   };
 
   render() {
-    const {children, organization, projects} = this.props;
+    const {children, organization, projects, loadingProjects} = this.props;
     const orgId = organization.slug;
     const canCreateProject = organization.access.includes('project:write');
     const canJoinTeam = organization.access.includes('team:read');
@@ -44,7 +46,7 @@ export default class NoProjectMessage extends React.Component<Props> {
       hasProjects = projects && projects.length > 0;
     }
 
-    return hasProjects ? (
+    return hasProjects || loadingProjects ? (
       children
     ) : (
       <Wrapper>

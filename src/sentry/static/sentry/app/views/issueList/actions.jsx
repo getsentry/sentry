@@ -1,5 +1,5 @@
-import {Flex, Box} from 'grid-emotion';
 import capitalize from 'lodash/capitalize';
+import uniq from 'lodash/uniq';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
@@ -8,15 +8,19 @@ import styled from 'react-emotion';
 
 import {openCreateIncidentModal} from 'app/actionCreators/modal';
 import {t, tct, tn} from 'app/locale';
+import space from 'app/styles/space';
+import theme from 'app/utils/theme';
 import ActionLink from 'app/components/actions/actionLink';
 import Checkbox from 'app/components/checkbox';
 import DropdownLink from 'app/components/dropdownLink';
 import ExternalLink from 'app/components/links/externalLink';
 import Feature from 'app/components/acl/feature';
+import GroupStore from 'app/stores/groupStore';
 import IgnoreActions from 'app/components/actions/ignore';
 import IndicatorStore from 'app/stores/indicatorStore';
 import InlineSvg from 'app/components/inlineSvg';
 import MenuItem from 'app/components/menuItem';
+import Projects from 'app/utils/projects';
 import ResolveActions from 'app/components/actions/resolve';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 import SentryTypes from 'app/sentryTypes';
@@ -144,7 +148,6 @@ const IssueListActions = createReactClass({
     api: PropTypes.object,
     allResultsVisible: PropTypes.bool,
     orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string,
     selection: SentryTypes.GlobalSelection.isRequired,
     groupIds: PropTypes.instanceOf(Array).isRequired,
     onRealtimeChange: PropTypes.func.isRequired,
@@ -153,8 +156,6 @@ const IssueListActions = createReactClass({
     statsPeriod: PropTypes.string.isRequired,
     query: PropTypes.string.isRequired,
     queryCount: PropTypes.number,
-    hasReleases: PropTypes.bool,
-    latestRelease: PropTypes.object,
     organization: SentryTypes.Organization,
   },
 
@@ -200,12 +201,29 @@ const IssueListActions = createReactClass({
 
   // Handler for when `SelectedGroupStore` changes
   handleSelectedGroupChange() {
+    const selected = SelectedGroupStore.getSelectedIds();
+    const projects = [...selected]
+      .map(id => GroupStore.get(id))
+      .filter(group => group && group.project)
+      .map(group => group.project.slug);
+
+    const uniqProjects = uniq(projects);
+
+    let selectedProjectSlug = null;
+    // we only want selectedProjectSlug set if there is 1 project
+    // more or fewer should result in a null so that the action toolbar
+    // can behave correctly.
+    if (uniqProjects.length === 1) {
+      selectedProjectSlug = uniqProjects[0];
+    }
+
     this.setState({
       pageSelected: SelectedGroupStore.allSelected(),
       multiSelected: SelectedGroupStore.multiSelected(),
       anySelected: SelectedGroupStore.anySelected(),
       allInQuerySelected: false, // any change resets
       selectedIds: SelectedGroupStore.getSelectedIds(),
+      selectedProjectSlug,
     });
   },
 
@@ -328,13 +346,44 @@ const IssueListActions = createReactClass({
     }
   },
 
+  renderResolveActions({
+    hasReleases,
+    latestRelease,
+    projectId,
+    confirm,
+    label,
+    loadingProjects,
+    projectFetchError,
+  }) {
+    const {orgId} = this.props;
+    const {anySelected} = this.state;
+
+    // resolve requires a single project to be active in an org context
+    // projectId is null when 0 or >1 projects are selected.
+    const resolveDisabled = !anySelected || projectFetchError;
+    const resolveDropdownDisabled =
+      !(anySelected && projectId) || loadingProjects || projectFetchError;
+    return (
+      <ResolveActions
+        hasRelease={hasReleases}
+        latestRelease={latestRelease}
+        orgId={orgId}
+        projectId={projectId}
+        onUpdate={this.handleUpdate}
+        shouldConfirm={this.shouldConfirm('resolve')}
+        confirmMessage={confirm('resolve', true)}
+        confirmLabel={label('resolve')}
+        disabled={resolveDisabled}
+        disableDropdown={resolveDropdownDisabled}
+        projectFetchError={projectFetchError}
+      />
+    );
+  },
+
   render() {
     const {
       allResultsVisible,
-      hasReleases,
-      latestRelease,
       orgId,
-      projectId,
       queryCount,
       query,
       realtimeActive,
@@ -342,36 +391,52 @@ const IssueListActions = createReactClass({
     } = this.props;
     const issues = this.state.selectedIds;
     const numIssues = issues.size;
-    const {allInQuerySelected, anySelected, multiSelected, pageSelected} = this.state;
+    const {
+      allInQuerySelected,
+      anySelected,
+      multiSelected,
+      pageSelected,
+      selectedProjectSlug,
+    } = this.state;
     const confirm = getConfirm(numIssues, allInQuerySelected, query, queryCount);
     const label = getLabel(numIssues, allInQuerySelected);
 
-    // resolve and merge require a single project to be active
-    // in an org context projectId is null when 0 or >1 projects are selected.
-    const resolveDisabled = !anySelected;
-    const resolveDropdownDisabled = !(anySelected && projectId);
-    const mergeDisabled = !(multiSelected && projectId);
+    // merges require a single project to be active in an org context
+    // selectedProjectSlug is null when 0 or >1 projects are selected.
+    const mergeDisabled = !(multiSelected && selectedProjectSlug);
     const createNewIncidentDisabled = !anySelected || allInQuerySelected;
 
     return (
       <Sticky>
-        <StyledFlex py={1}>
-          <ActionsCheckbox pl={2}>
+        <StyledFlex>
+          <ActionsCheckbox>
             <Checkbox onChange={this.handleSelectAll} checked={pageSelected} />
           </ActionsCheckbox>
-          <ActionSet w={[8 / 12, 8 / 12, 6 / 12]} mx={1} flex="1">
-            <ResolveActions
-              hasRelease={hasReleases}
-              latestRelease={latestRelease}
-              orgId={orgId}
-              projectId={projectId}
-              onUpdate={this.handleUpdate}
-              shouldConfirm={this.shouldConfirm('resolve')}
-              confirmMessage={confirm('resolve', true)}
-              confirmLabel={label('resolve')}
-              disabled={resolveDisabled}
-              disableDropdown={resolveDropdownDisabled}
-            />
+          <ActionSet>
+            {selectedProjectSlug ? (
+              <Projects orgId={orgId} slugs={[selectedProjectSlug]}>
+                {({projects, initiallyLoaded, fetchError}) => {
+                  const selectedProject = projects[0];
+                  return this.renderResolveActions({
+                    hasReleases: new Set(selectedProject.features).has('releases'),
+                    latestRelease: selectedProject.latestRelease,
+                    projectId: selectedProject.slug,
+                    confirm,
+                    label,
+                    loadingProjects: !initiallyLoaded,
+                    projectFetchError: !!fetchError,
+                  });
+                }}
+              </Projects>
+            ) : (
+              this.renderResolveActions({
+                hasReleases: false,
+                latestRelease: null,
+                projectId: null,
+                confirm,
+                label,
+              })
+            )}
             <IgnoreActions
               onUpdate={this.handleUpdate}
               shouldConfirm={this.shouldConfirm('ignore')}
@@ -520,8 +585,8 @@ const IssueListActions = createReactClass({
               </Tooltip>
             </div>
           </ActionSet>
-          <Box w={160} mx={2} className="hidden-xs hidden-sm">
-            <Flex>
+          <GraphHeaderWrapper className="hidden-xs hidden-sm">
+            <GraphHeader>
               <StyledToolbarHeader>{t('Graph:')}</StyledToolbarHeader>
               <GraphToggle
                 active={statsPeriod === '24h'}
@@ -536,17 +601,17 @@ const IssueListActions = createReactClass({
               >
                 {t('14d')}
               </GraphToggle>
-            </Flex>
-          </Box>
-          <Box w={[40, 60, 80, 80]} mx={2} className="align-right">
+            </GraphHeader>
+          </GraphHeaderWrapper>
+          <EventsOrUsersLabel className="align-right">
             <ToolbarHeader>{t('Events')}</ToolbarHeader>
-          </Box>
-          <Box w={[40, 60, 80, 80]} mx={2} className="align-right">
+          </EventsOrUsersLabel>
+          <EventsOrUsersLabel className="align-right">
             <ToolbarHeader>{t('Users')}</ToolbarHeader>
-          </Box>
-          <Box w={80} mx={2} className="align-right hidden-xs hidden-sm">
+          </EventsOrUsersLabel>
+          <AssigneesLabel className="align-right hidden-xs hidden-sm">
             <ToolbarHeader>{t('Assignee')}</ToolbarHeader>
-          </Box>
+          </AssigneesLabel>
         </StyledFlex>
 
         {!allResultsVisible && pageSelected && (
@@ -600,7 +665,10 @@ const Sticky = styled('div')`
   top: -1px;
 `;
 
-const StyledFlex = styled(Flex)`
+const StyledFlex = styled('div')`
+  display: flex;
+  padding-top: ${space(1)};
+  padding-bottom: ${space(1)};
   align-items: center;
   background: ${p => p.theme.offWhite};
   border-bottom: 1px solid ${p => p.theme.borderDark};
@@ -608,20 +676,41 @@ const StyledFlex = styled(Flex)`
   margin-bottom: -1px;
 `;
 
-const ActionsCheckbox = styled(Box)`
+const ActionsCheckbox = styled('div')`
+  padding-left: ${space(2)};
   & input[type='checkbox'] {
     margin: 0;
     display: block;
   }
 `;
 
-const ActionSet = styled(Box)`
+const ActionSet = styled('div')`
+  @media (min-width: ${theme.breakpoints[0]}) {
+    width: 66.66%;
+  }
+  @media (min-width: ${theme.breakpoints[2]}) {
+    width: 50%;
+  }
+  flex: 1;
+  margin-left: ${space(1)};
+  margin-right: ${space(1)};
+
   display: flex;
 
   .btn-group {
     display: flex;
     margin-right: 6px;
   }
+`;
+
+const GraphHeaderWrapper = styled('div')`
+  width: 160px;
+  margin-left: ${space(2)};
+  margin-right: ${space(2)};
+`;
+
+const GraphHeader = styled('div')`
+  display: flex;
 `;
 
 const StyledToolbarHeader = styled(ToolbarHeader)`
@@ -638,6 +727,26 @@ const GraphToggle = styled('a')`
   &:active {
     color: ${p => (p.active ? p.theme.gray4 : p.theme.disabled)};
   }
+`;
+
+const EventsOrUsersLabel = styled('div')`
+  @media (min-width: ${theme.breakpoints[0]}) {
+    width: 40px;
+  }
+  @media (min-width: ${theme.breakpoints[1]}) {
+    width: 60px;
+  }
+  @media (min-width: ${theme.breakpoints[2]}) {
+    width: 80px;
+  }
+  margin-left: ${space(2)};
+  margin-right: ${space(2)};
+`;
+
+const AssigneesLabel = styled('div')`
+  width: 80px;
+  margin-left: ${space(2)};
+  margin-right: ${space(2)};
 `;
 
 const IncidentLabel = styled('div')`

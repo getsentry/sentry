@@ -1,34 +1,14 @@
 from __future__ import absolute_import, print_function
 
-from celery.signals import task_postrun
-from django.core.signals import request_finished
 from django.db import models
 
 from sentry.db.models import Model, FlexibleForeignKey, sane_repr
 from sentry.db.models.fields import EncryptedPickledObjectField
-from sentry.db.models.manager import BaseManager
+from sentry.db.models.manager import OptionManager
 from sentry.utils.cache import cache
 
 
-class OrganizationOptionManager(BaseManager):
-    def __init__(self, *args, **kwargs):
-        super(OrganizationOptionManager, self).__init__(*args, **kwargs)
-        self.__cache = {}
-
-    def __getstate__(self):
-        d = self.__dict__.copy()
-        # we cant serialize weakrefs
-        d.pop("_OrganizationOptionManager__cache", None)
-        return d
-
-    def __setstate__(self, state):
-        self.__dict__.update(state)
-        self.__cache = {}
-
-    def _make_key(self, instance_id):
-        assert instance_id
-        return "%s:%s" % (self.model._meta.db_table, instance_id)
-
+class OrganizationOptionManager(OptionManager):
     def get_value_bulk(self, instances, key):
         instance_map = dict((i.id, i) for i in instances)
         queryset = self.filter(organization__in=instances, key=key)
@@ -58,24 +38,21 @@ class OrganizationOptionManager(BaseManager):
             organization_id = organization.id
         else:
             organization_id = organization
+        cache_key = self._make_key(organization_id)
 
-        if organization_id not in self.__cache:
-            cache_key = self._make_key(organization_id)
+        if cache_key not in self._option_cache:
             result = cache.get(cache_key)
             if result is None:
                 result = self.reload_cache(organization_id)
             else:
-                self.__cache[organization_id] = result
-        return self.__cache.get(organization_id, {})
-
-    def clear_local_cache(self, **kwargs):
-        self.__cache = {}
+                self._option_cache[cache_key] = result
+        return self._option_cache.get(cache_key, {})
 
     def reload_cache(self, organization_id):
         cache_key = self._make_key(organization_id)
         result = dict((i.key, i.value) for i in self.filter(organization=organization_id))
         cache.set(cache_key, result)
-        self.__cache[organization_id] = result
+        self._option_cache[cache_key] = result
         return result
 
     def post_save(self, instance, **kwargs):
@@ -83,11 +60,6 @@ class OrganizationOptionManager(BaseManager):
 
     def post_delete(self, instance, **kwargs):
         self.reload_cache(instance.organization_id)
-
-    def contribute_to_class(self, model, name):
-        super(OrganizationOptionManager, self).contribute_to_class(model, name)
-        task_postrun.connect(self.clear_local_cache)
-        request_finished.connect(self.clear_local_cache)
 
 
 class OrganizationOption(Model):

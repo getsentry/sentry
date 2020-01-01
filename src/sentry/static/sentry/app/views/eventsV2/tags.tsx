@@ -155,7 +155,7 @@ class Tags extends React.Component<Props, State> {
 }
 
 const StyledHeading = styled(SectionHeading)`
-  margin: 0 0 ${space(2)} 0;
+  margin: 0 0 ${space(1.5)} 0;
 `;
 
 const TagSection = styled('div')`

@@ -474,7 +474,7 @@ def save_attachments(cache_key, event):
     if not features.has("organizations:event-attachments", event.project.organization, actor=None):
         return
 
-    attachments = attachment_cache.get(cache_key) or []
+    attachments = list(attachment_cache.get(cache_key))
     if not attachments:
         return
 

@@ -39,20 +39,13 @@ def get_project_list(project_id):
 
 
 class SnubaTagStorage(TagStorage):
-
-    # These keys correspond to tags that are typically prefixed with `sentry:`
-    # and will wreak havok in the UI if both the `sentry:`-prefixed and
-    # non-prefixed variations occur in a response. For now, it's easier to hide
-    # these results since they happen relatively infrequently.
-    EXCLUDE_TAG_KEYS = frozenset(["dist", "release", "user"])
-
     def __get_tag_key(self, project_id, group_id, environment_id, key):
         tag = u"tags[{}]".format(key)
         filters = {"project_id": get_project_list(project_id)}
         if environment_id:
             filters["environment"] = [environment_id]
         if group_id is not None:
-            filters["issue"] = [group_id]
+            filters["group_id"] = [group_id]
         conditions = [[tag, "!=", ""]]
         aggregations = [["uniq", tag, "values_seen"], ["count()", "", "count"]]
 
@@ -80,7 +73,7 @@ class SnubaTagStorage(TagStorage):
         if environment_id:
             filters["environment"] = [environment_id]
         if group_id is not None:
-            filters["issue"] = [group_id]
+            filters["group_id"] = [group_id]
         conditions = kwargs.get("conditions", [])
         aggregations = kwargs.get("aggregations", [])
 
@@ -170,14 +163,14 @@ class SnubaTagStorage(TagStorage):
         if environments:
             filters["environment"] = environments
         if group_id is not None:
-            filters["issue"] = [group_id]
+            filters["group_id"] = [group_id]
         if keys is not None:
             filters["tags_key"] = keys
         aggregations = [["count()", "", "count"]]
 
         if include_values_seen:
             aggregations.append(["uniq", "tags_value", "values_seen"])
-        conditions = [["tags_key", "NOT IN", self.EXCLUDE_TAG_KEYS]]
+        conditions = []
 
         result = snuba.query(
             start=start,
@@ -217,7 +210,7 @@ class SnubaTagStorage(TagStorage):
         if environment_id:
             filters["environment"] = [environment_id]
         if group_id is not None:
-            filters["issue"] = [group_id]
+            filters["group_id"] = [group_id]
         conditions = [[tag, "=", value]]
         aggregations = [
             ["count()", "", "times_seen"],
@@ -306,7 +299,7 @@ class SnubaTagStorage(TagStorage):
 
     def get_group_list_tag_value(self, project_ids, group_id_list, environment_ids, key, value):
         tag = u"tags[{}]".format(key)
-        filters = {"project_id": project_ids, "issue": group_id_list}
+        filters = {"project_id": project_ids, "group_id": group_id_list}
         if environment_ids:
             filters["environment"] = environment_ids
         conditions = [[tag, "=", value]]
@@ -317,7 +310,7 @@ class SnubaTagStorage(TagStorage):
         ]
 
         result = snuba.query(
-            groupby=["issue"],
+            groupby=["group_id"],
             conditions=conditions,
             filter_keys=filters,
             aggregations=aggregations,
@@ -333,7 +326,7 @@ class SnubaTagStorage(TagStorage):
         self, project_ids, group_id_list, environment_ids, start=None, end=None
     ):
         # Get the total times seen, first seen, and last seen across multiple environments
-        filters = {"project_id": project_ids, "issue": group_id_list}
+        filters = {"project_id": project_ids, "group_id": group_id_list}
         conditions = None
         if environment_ids:
             filters["environment"] = environment_ids
@@ -347,7 +340,7 @@ class SnubaTagStorage(TagStorage):
         result = snuba.query(
             start=start,
             end=end,
-            groupby=["issue"],
+            groupby=["group_id"],
             conditions=conditions,
             filter_keys=filters,
             aggregations=aggregations,
@@ -358,7 +351,7 @@ class SnubaTagStorage(TagStorage):
 
     def get_group_tag_value_count(self, project_id, group_id, environment_id, key):
         tag = u"tags[{}]".format(key)
-        filters = {"project_id": get_project_list(project_id), "issue": [group_id]}
+        filters = {"project_id": get_project_list(project_id), "group_id": [group_id]}
         if environment_id:
             filters["environment"] = [environment_id]
         conditions = [[tag, "!=", ""]]
@@ -402,7 +395,7 @@ class SnubaTagStorage(TagStorage):
         if keys is not None:
             filters["tags_key"] = keys
         if group_id is not None:
-            filters["issue"] = [group_id]
+            filters["group_id"] = [group_id]
         conditions = kwargs.get("conditions", [])
         aggregations = kwargs.get("aggregations", [])
         aggregations += [
@@ -410,8 +403,6 @@ class SnubaTagStorage(TagStorage):
             ["min", SEEN_COLUMN, "first_seen"],
             ["max", SEEN_COLUMN, "last_seen"],
         ]
-        if not kwargs.get("get_excluded_tags"):
-            conditions.append(["tags_key", "NOT IN", self.EXCLUDE_TAG_KEYS])
 
         values_by_key = snuba.query(
             start=kwargs.get("start"),
@@ -451,7 +442,7 @@ class SnubaTagStorage(TagStorage):
         filters = {"project_id": get_project_list(project_id)}
         conditions = [["tags[sentry:release]", "IS NOT NULL", None]]
         if group_id is not None:
-            filters["issue"] = [group_id]
+            filters["group_id"] = [group_id]
         aggregations = [["min" if first else "max", SEEN_COLUMN, "seen"]]
         orderby = "seen" if first else "-seen"
 
@@ -514,7 +505,7 @@ class SnubaTagStorage(TagStorage):
         aggregations = [["max", SEEN_COLUMN, "last_seen"]]
 
         result = snuba.query(
-            groupby=["issue"],
+            groupby=["group_id"],
             conditions=conditions,
             filter_keys=filters,
             aggregations=aggregations,
@@ -536,7 +527,7 @@ class SnubaTagStorage(TagStorage):
         ]
 
         result = snuba.query(
-            groupby=["issue", "user_id"],
+            groupby=["group_id", "user_id"],
             conditions=conditions,
             filter_keys=filters,
             aggregations=aggregations,
@@ -556,7 +547,7 @@ class SnubaTagStorage(TagStorage):
         return values
 
     def get_groups_user_counts(self, project_ids, group_ids, environment_ids, start=None, end=None):
-        filters = {"project_id": project_ids, "issue": group_ids}
+        filters = {"project_id": project_ids, "group_id": group_ids}
         if environment_ids:
             filters["environment"] = environment_ids
         aggregations = [["uniq", "tags[sentry:user]", "count"]]
@@ -564,7 +555,7 @@ class SnubaTagStorage(TagStorage):
         result = snuba.query(
             start=start,
             end=end,
-            groupby=["issue"],
+            groupby=["group_id"],
             conditions=None,
             filter_keys=filters,
             aggregations=aggregations,
@@ -573,12 +564,21 @@ class SnubaTagStorage(TagStorage):
         return defaultdict(int, {k: v for k, v in result.items() if v})
 
     def get_tag_value_paginator(
-        self, project_id, environment_id, key, query=None, order_by="-last_seen"
+        self,
+        project_id,
+        environment_id,
+        key,
+        start=None,
+        end=None,
+        query=None,
+        order_by="-last_seen",
     ):
         return self.get_tag_value_paginator_for_projects(
             get_project_list(project_id),
             [environment_id] if environment_id else None,
             key,
+            start=start,
+            end=end,
             query=query,
             order_by=order_by,
         )
@@ -641,7 +641,7 @@ class SnubaTagStorage(TagStorage):
         filters = {
             "project_id": get_project_list(project_id),
             "tags_key": [key],
-            "issue": [group_id],
+            "group_id": [group_id],
         }
         if environment_id:
             filters["environment"] = [environment_id]
@@ -700,7 +700,7 @@ class SnubaTagStorage(TagStorage):
         raise NotImplementedError
 
     def get_group_event_filter(self, project_id, group_id, environment_ids, tags, start, end):
-        filters = {"project_id": get_project_list(project_id), "issue": [group_id]}
+        filters = {"project_id": get_project_list(project_id), "group_id": [group_id]}
         if environment_ids:
             filters["environment"] = environment_ids
 

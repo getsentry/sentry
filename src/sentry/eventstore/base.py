@@ -5,6 +5,8 @@ from sentry import nodestore
 from sentry.snuba.events import Columns
 from sentry.utils.services import Service
 
+from .models import Event
+
 
 class Filter(object):
     """
@@ -46,7 +48,7 @@ class Filter(object):
             filter_keys["project_id"] = self.project_ids
 
         if self.group_ids:
-            filter_keys["issue"] = self.group_ids
+            filter_keys["group_id"] = self.group_ids
 
         if self.event_ids:
             filter_keys["event_id"] = self.event_ids
@@ -58,6 +60,7 @@ class EventStorage(Service):
     __all__ = (
         "minimal_columns",
         "full_columns",
+        "create_event",
         "get_event_by_id",
         "get_events",
         "get_prev_event_id",
@@ -168,6 +171,12 @@ class EventStorage(Service):
         filter (Filter): Filter
         """
         raise NotImplementedError
+
+    def create_event(self, project_id=None, event_id=None, group_id=None, data=None):
+        """
+        Returns an Event from processed data
+        """
+        return Event(project_id=project_id, event_id=event_id, group_id=group_id, data=data)
 
     def bind_nodes(self, object_list, node_name="data"):
         """

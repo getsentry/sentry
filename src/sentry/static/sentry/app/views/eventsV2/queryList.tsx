@@ -22,6 +22,7 @@ import QueryCard from './querycard';
 import MiniGraph from './miniGraph';
 import {getPrebuiltQueries} from './utils';
 import {handleDeleteQuery, handleCreateQuery} from './savedQuery/utils';
+import {generateDiscoverResultsRoute} from './results';
 
 type Props = {
   api: Client;
@@ -41,7 +42,7 @@ class QueryList extends React.Component<Props> {
     const {api, organization, onQueryChange, location, savedQueries} = this.props;
 
     handleDeleteQuery(api, organization, eventView).then(() => {
-      if (savedQueries.length === 1) {
+      if (savedQueries.length === 1 && location.query.cursor) {
         browserHistory.push({
           pathname: location.pathname,
           query: {...location.query, cursor: undefined},
@@ -72,7 +73,7 @@ class QueryList extends React.Component<Props> {
 
   renderQueries() {
     const {pageLinks} = this.props;
-    const links = parseLinkHeader(pageLinks);
+    const links = parseLinkHeader(pageLinks || '');
     let cards: React.ReactNode[] = [];
 
     // If we're on the first page (no-previous page exists)
@@ -111,8 +112,9 @@ class QueryList extends React.Component<Props> {
         moment(eventView.start).format('MMM D, YYYY h:mm A') +
         ' - ' +
         moment(eventView.end).format('MMM D, YYYY h:mm A');
+
       const to = {
-        pathname: location.pathname,
+        pathname: generateDiscoverResultsRoute(organization.slug),
         query: {
           ...location.query,
           // remove any landing page cursor
@@ -167,7 +169,7 @@ class QueryList extends React.Component<Props> {
         ' - ' +
         moment(eventView.end).format('MMM D, YYYY h:mm A');
       const to = {
-        pathname: location.pathname,
+        pathname: generateDiscoverResultsRoute(organization.slug),
         query: {
           ...location.query,
           // remove any landing page cursor
@@ -286,6 +288,7 @@ class ContextMenu extends React.Component {
               })}
             >
               <ContextMenuButton
+                data-test-id="context-menu"
                 {...getActorProps({
                   onClick: (event: MouseEvent) => {
                     event.stopPropagation();

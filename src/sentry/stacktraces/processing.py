@@ -404,6 +404,21 @@ def process_single_stacktrace(processing_task, stacktrace_info, processable_fram
 
 
 def get_crash_frame_from_event_data(data, frame_filter=None):
+    """
+    Return the highest (closest to the crash) in-app frame in the top stacktrace
+    which doesn't fail the given filter test.
+
+    If no such frame is available, return the highest non-in-app frame which
+    otherwise meets the same criteria.
+
+    Return None if any of the following are true:
+        - there are no frames
+        - all frames fail the given filter test
+        - we're unable to find any frames nested in either event.exception or
+          event.stacktrace, and there's anything other than exactly one thread
+          in the data
+    """
+
     frames = get_path(data, "exception", "values", -1, "stacktrace", "frames") or get_path(
         data, "stacktrace", "frames"
     )
