@@ -101,7 +101,6 @@ COPY --from=sdist /usr/local/bin/gosu /usr/local/bin/tini /usr/local/bin/
 # Sane defaults for pip
 ENV PIP_NO_CACHE_DIR=off \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PIP_USE_PEP517=off \
     # Sentry config params
     SENTRY_CONF=/etc/sentry \
     SENTRY_FILESTORE_DIR=/var/lib/sentry/files \

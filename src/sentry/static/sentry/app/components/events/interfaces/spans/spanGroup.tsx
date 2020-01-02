@@ -3,20 +3,21 @@ import React from 'react';
 import EventView from 'app/views/eventsV2/eventView';
 
 import {SpanBoundsType, SpanGeneratedBoundsType} from './utils';
-import {SpanType, ParsedTraceType} from './types';
+import {ProcessedSpanType, ParsedTraceType} from './types';
 import SpanBar from './spanBar';
 
 type PropType = {
   orgId: string;
   eventView: EventView;
-  span: Readonly<SpanType>;
+  span: Readonly<ProcessedSpanType>;
   trace: Readonly<ParsedTraceType>;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   treeDepth: number;
   continuingTreeDepths: Array<number>;
   numOfSpanChildren: number;
   renderedSpanChildren: Array<JSX.Element>;
-  spanBarColour: string;
+  spanBarColour?: string;
+  spanBarHatch?: boolean;
   spanNumber: number;
   isLast: boolean;
   isRoot?: boolean;
@@ -51,6 +52,7 @@ class SpanGroup extends React.Component<PropType, State> {
   render() {
     const {
       spanBarColour,
+      spanBarHatch,
       span,
       numOfSpanChildren,
       trace,
@@ -71,6 +73,7 @@ class SpanGroup extends React.Component<PropType, State> {
           eventView={eventView}
           orgId={orgId}
           spanBarColour={spanBarColour}
+          spanBarHatch={spanBarHatch}
           span={span}
           showSpanTree={this.state.showSpanTree}
           numOfSpanChildren={numOfSpanChildren}
