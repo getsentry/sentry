@@ -905,7 +905,8 @@ describe('IssueList,', function() {
         wrapper
           .find('Pagination a')
           .first()
-          .prop('disabled')
+          .prop('className')
+          .includes('disabled')
       ).toBe(true);
 
       issuesRequest = MockApiClient.addMockResponse({
@@ -942,7 +943,8 @@ describe('IssueList,', function() {
         wrapper
           .find('Pagination a')
           .first()
-          .prop('disabled')
+          .prop('className')
+          .includes('disabled')
       ).toBe(false);
 
       // Click next again
