@@ -28,7 +28,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                 request,
                 query,
                 self.get_filter_params(request, organization),
-                "api.organization-events",
+                "api.organization-events-direct-hit",
             )
         except (OrganizationEventsError, NoProjects):
             pass
