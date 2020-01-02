@@ -82,6 +82,7 @@ def find_reference_event(reference_event):
         filter_keys={"project_id": [project.id], "event_id": [event_id]},
         dataset=Dataset.Discover,
         limit=1,
+        referrer="discover.find_reference_event",
     )
     if "error" in event or len(event["data"]) != 1:
         raise InvalidSearchQuery("Invalid reference event")
