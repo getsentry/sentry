@@ -21,6 +21,7 @@ from sentry.signals import (
 from sentry.plugins.bases import IssueTrackingPlugin
 from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 class OrganizationOnboardingTaskTest(TestCase):
@@ -78,7 +79,36 @@ class OrganizationOnboardingTaskTest(TestCase):
     def test_event_processed(self):
         now = timezone.now()
         project = self.create_project(first_event=now)
-        event = self.create_full_event()
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "platform": "javascript",
+                "timestamp": iso_format(before_now(minutes=1)),
+                "tags": {
+                    "sentry:release": "e1b5d1900526feaf20fe2bc9cad83d392136030a",
+                    "sentry:user": "id:41656",
+                },
+                "user": {"ip_address": "0.0.0.0", "id": "41656", "email": "test@example.com"},
+                "exception": {
+                    "values": [
+                        {
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "data": {
+                                            "sourcemap": "https://media.sentry.io/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js.map"
+                                        }
+                                    }
+                                ]
+                            },
+                            "type": "TypeError",
+                        }
+                    ]
+                },
+            },
+            project_id=project.id,
+        )
+
         event_processed.send(project=project, event=event, sender=type(project))
 
         task = OrganizationOnboardingTask.objects.get(
@@ -130,8 +160,9 @@ class OrganizationOnboardingTaskTest(TestCase):
         now = timezone.now()
         project = self.create_project(first_event=now)
         project_created.send(project=project, user=self.user, sender=type(project))
-        event = self.create_event(
-            project=project, platform="javascript", message="javascript error message"
+        event = self.store_event(
+            data={"platform": "javascript", "message": "javascript error message"},
+            project_id=project.id,
         )
         first_event_received.send(project=project, event=event, sender=type(project))
 
@@ -250,10 +281,39 @@ class OrganizationOnboardingTaskTest(TestCase):
         user = self.create_user(email="test@example.org")
         project = self.create_project(first_event=now)
         second_project = self.create_project(first_event=now)
-        second_event = self.create_event(
-            project=second_project, platform="python", message="python error message"
+        second_event = self.store_event(
+            data={"platform": "python", "message": "python error message"},
+            project_id=second_project.id,
         )
-        event = self.create_full_event(project=project)
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "platform": "javascript",
+                "timestamp": iso_format(before_now(minutes=1)),
+                "tags": {
+                    "sentry:release": "e1b5d1900526feaf20fe2bc9cad83d392136030a",
+                    "sentry:user": "id:41656",
+                },
+                "user": {"ip_address": "0.0.0.0", "id": "41656", "email": "test@example.com"},
+                "exception": {
+                    "values": [
+                        {
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "data": {
+                                            "sourcemap": "https://media.sentry.io/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js.map"
+                                        }
+                                    }
+                                ]
+                            },
+                            "type": "TypeError",
+                        }
+                    ]
+                },
+            },
+            project_id=project.id,
+        )
         member = self.create_member(organization=self.organization, teams=[self.team], user=user)
 
         event_processed.send(project=project, event=event, sender=type(project))
