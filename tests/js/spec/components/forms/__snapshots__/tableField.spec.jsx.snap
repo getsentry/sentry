@@ -391,87 +391,73 @@ exports[`TableField renders renders with form context 1`] = `
                                                 <FieldControlState
                                                   flexibleControlStateSize={false}
                                                 >
-                                                  <Component
-                                                    className="css-1j6hng-FieldControlState e1rziqw00"
-                                                    flexibleControlStateSize={false}
+                                                  <div
+                                                    className="css-oiazm4-FieldControlState ep9s0su0"
                                                   >
-                                                    <Flex
-                                                      className="css-1j6hng-FieldControlState e1rziqw00"
+                                                    <FormFieldControlState
+                                                      model={
+                                                        FormModel {
+                                                          "api": Client {
+                                                            "_chain": [Function],
+                                                            "_wrapRequest": [Function],
+                                                            "bulkUpdate": [Function],
+                                                            "handleRequestError": [Function],
+                                                            "hasProjectBeenRenamed": [Function],
+                                                          },
+                                                          "errors": Object {},
+                                                          "fieldDescriptor": Map {
+                                                            "fieldName" => Object {
+                                                              "addButtonText": "Add Thing",
+                                                              "allowEmpty": false,
+                                                              "children": [Function],
+                                                              "className": undefined,
+                                                              "columnKeys": Array [
+                                                                "column1",
+                                                                "column2",
+                                                              ],
+                                                              "columnLabels": Object {
+                                                                "column1": "Column 1",
+                                                                "column2": "Column 2",
+                                                              },
+                                                              "field": [Function],
+                                                              "flexibleControlStateSize": false,
+                                                              "formatMessageValue": false,
+                                                              "hideErrorMessage": false,
+                                                              "inline": [Function],
+                                                              "name": "fieldName",
+                                                            },
+                                                          },
+                                                          "fieldState": Object {},
+                                                          "fields": Object {},
+                                                          "formErrors": undefined,
+                                                          "formState": undefined,
+                                                          "initialData": Object {},
+                                                          "options": Object {
+                                                            "allowUndo": false,
+                                                            "apiEndpoint": undefined,
+                                                            "apiMethod": undefined,
+                                                            "onFieldChange": undefined,
+                                                            "onSubmitError": undefined,
+                                                            "onSubmitSuccess": undefined,
+                                                            "resetOnError": undefined,
+                                                            "saveOnBlur": false,
+                                                          },
+                                                          "snapshots": Array [
+                                                            Map {},
+                                                          ],
+                                                        }
+                                                      }
+                                                      name="fieldName"
                                                     >
-                                                      <Base
-                                                        className="e1rziqw00 css-1fqbh7r-FieldControlState"
-                                                      >
-                                                        <div
-                                                          className="e1rziqw00 css-1fqbh7r-FieldControlState"
-                                                          is={null}
-                                                        >
-                                                          <FormFieldControlState
-                                                            model={
-                                                              FormModel {
-                                                                "api": Client {
-                                                                  "_chain": [Function],
-                                                                  "_wrapRequest": [Function],
-                                                                  "bulkUpdate": [Function],
-                                                                  "handleRequestError": [Function],
-                                                                  "hasProjectBeenRenamed": [Function],
-                                                                },
-                                                                "errors": Object {},
-                                                                "fieldDescriptor": Map {
-                                                                  "fieldName" => Object {
-                                                                    "addButtonText": "Add Thing",
-                                                                    "allowEmpty": false,
-                                                                    "children": [Function],
-                                                                    "className": undefined,
-                                                                    "columnKeys": Array [
-                                                                      "column1",
-                                                                      "column2",
-                                                                    ],
-                                                                    "columnLabels": Object {
-                                                                      "column1": "Column 1",
-                                                                      "column2": "Column 2",
-                                                                    },
-                                                                    "field": [Function],
-                                                                    "flexibleControlStateSize": false,
-                                                                    "formatMessageValue": false,
-                                                                    "hideErrorMessage": false,
-                                                                    "inline": [Function],
-                                                                    "name": "fieldName",
-                                                                  },
-                                                                },
-                                                                "fieldState": Object {},
-                                                                "fields": Object {},
-                                                                "formErrors": undefined,
-                                                                "formState": undefined,
-                                                                "initialData": Object {},
-                                                                "options": Object {
-                                                                  "allowUndo": false,
-                                                                  "apiEndpoint": undefined,
-                                                                  "apiMethod": undefined,
-                                                                  "onFieldChange": undefined,
-                                                                  "onSubmitError": undefined,
-                                                                  "onSubmitSuccess": undefined,
-                                                                  "resetOnError": undefined,
-                                                                  "saveOnBlur": false,
-                                                                },
-                                                                "snapshots": Array [
-                                                                  Map {},
-                                                                ],
-                                                              }
-                                                            }
-                                                            name="fieldName"
-                                                          >
-                                                            <Observer>
-                                                              <ControlState
-                                                                error={false}
-                                                                isSaved={null}
-                                                                isSaving={null}
-                                                              />
-                                                            </Observer>
-                                                          </FormFieldControlState>
-                                                        </div>
-                                                      </Base>
-                                                    </Flex>
-                                                  </Component>
+                                                      <Observer>
+                                                        <ControlState
+                                                          error={false}
+                                                          isSaved={null}
+                                                          isSaving={null}
+                                                        />
+                                                      </Observer>
+                                                    </FormFieldControlState>
+                                                  </div>
                                                 </FieldControlState>
                                               </div>
                                             </Base>
@@ -871,61 +857,47 @@ exports[`TableField renders renders without form context 1`] = `
                                           <FieldControlState
                                             flexibleControlStateSize={false}
                                           >
-                                            <Component
-                                              className="css-1j6hng-FieldControlState e1rziqw00"
-                                              flexibleControlStateSize={false}
+                                            <div
+                                              className="css-oiazm4-FieldControlState ep9s0su0"
                                             >
-                                              <Flex
-                                                className="css-1j6hng-FieldControlState e1rziqw00"
+                                              <FormFieldControlState
+                                                model={
+                                                  MockModel {
+                                                    "initialData": Object {
+                                                      "fieldName": undefined,
+                                                    },
+                                                    "props": Object {
+                                                      "addButtonText": "Add Item",
+                                                      "allowEmpty": false,
+                                                      "children": [Function],
+                                                      "className": undefined,
+                                                      "columnKeys": Array [
+                                                        "column1",
+                                                        "column2",
+                                                      ],
+                                                      "columnLabels": Object {
+                                                        "column1": "Column 1",
+                                                        "column2": "Column 2",
+                                                      },
+                                                      "field": [Function],
+                                                      "flexibleControlStateSize": false,
+                                                      "formatMessageValue": false,
+                                                      "hideErrorMessage": false,
+                                                      "inline": [Function],
+                                                      "name": "fieldName",
+                                                    },
+                                                  }
+                                                }
+                                                name="fieldName"
                                               >
-                                                <Base
-                                                  className="e1rziqw00 css-1fqbh7r-FieldControlState"
-                                                >
-                                                  <div
-                                                    className="e1rziqw00 css-1fqbh7r-FieldControlState"
-                                                    is={null}
-                                                  >
-                                                    <FormFieldControlState
-                                                      model={
-                                                        MockModel {
-                                                          "initialData": Object {
-                                                            "fieldName": undefined,
-                                                          },
-                                                          "props": Object {
-                                                            "addButtonText": "Add Item",
-                                                            "allowEmpty": false,
-                                                            "children": [Function],
-                                                            "className": undefined,
-                                                            "columnKeys": Array [
-                                                              "column1",
-                                                              "column2",
-                                                            ],
-                                                            "columnLabels": Object {
-                                                              "column1": "Column 1",
-                                                              "column2": "Column 2",
-                                                            },
-                                                            "field": [Function],
-                                                            "flexibleControlStateSize": false,
-                                                            "formatMessageValue": false,
-                                                            "hideErrorMessage": false,
-                                                            "inline": [Function],
-                                                            "name": "fieldName",
-                                                          },
-                                                        }
-                                                      }
-                                                      name="fieldName"
-                                                    >
-                                                      <Observer>
-                                                        <ControlState
-                                                          isSaved={false}
-                                                          isSaving={false}
-                                                        />
-                                                      </Observer>
-                                                    </FormFieldControlState>
-                                                  </div>
-                                                </Base>
-                                              </Flex>
-                                            </Component>
+                                                <Observer>
+                                                  <ControlState
+                                                    isSaved={false}
+                                                    isSaving={false}
+                                                  />
+                                                </Observer>
+                                              </FormFieldControlState>
+                                            </div>
                                           </FieldControlState>
                                         </div>
                                       </Base>

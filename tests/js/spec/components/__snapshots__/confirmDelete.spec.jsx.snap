@@ -194,25 +194,11 @@ exports[`ConfirmDelete renders 1`] = `
                                             <FieldControlState
                                               flexibleControlStateSize={true}
                                             >
-                                              <Component
-                                                className="css-1x60lk6-FieldControlState e1rziqw00"
-                                                flexibleControlStateSize={true}
+                                              <div
+                                                className="css-18vhbhh-FieldControlState ep9s0su0"
                                               >
-                                                <Flex
-                                                  className="css-1x60lk6-FieldControlState e1rziqw00"
-                                                >
-                                                  <Base
-                                                    className="e1rziqw00 css-dgyrfj-FieldControlState"
-                                                  >
-                                                    <div
-                                                      className="e1rziqw00 css-dgyrfj-FieldControlState"
-                                                      is={null}
-                                                    >
-                                                      <ControlState />
-                                                    </div>
-                                                  </Base>
-                                                </Flex>
-                                              </Component>
+                                                <ControlState />
+                                              </div>
                                             </FieldControlState>
                                           </div>
                                         </Base>
