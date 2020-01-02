@@ -5,7 +5,6 @@ from collections import defaultdict, Iterable
 from dateutil.parser import parse as parse_datetime
 import six
 
-from sentry.api.event_search import SearchVisitor
 from sentry.tagstore import TagKeyStatus
 from sentry.tagstore.base import TagStorage, TOP_VALUES_DEFAULT_LIMIT
 from sentry.tagstore.exceptions import (
@@ -24,6 +23,22 @@ SEEN_COLUMN = "timestamp"
 # columns we want to exclude from methods that return
 # all values for a given tag/column
 BLACKLISTED_COLUMNS = frozenset(["project_id"])
+
+FUZZY_NUMERIC_KEYS = frozenset(
+    [
+        "device.battery_level",
+        "device.charging",
+        "device.online",
+        "device.simulator",
+        "error.handled",
+        "stack.colno",
+        "stack.in_app",
+        "stack.lineno",
+        "stack.stack_level",
+        "transaction.duration",
+    ]
+)
+FUZZY_NUMERIC_DISTANCE = 50
 
 tag_value_data_transformers = {"first_seen": parse_datetime, "last_seen": parse_datetime}
 
@@ -596,13 +611,11 @@ class SnubaTagStorage(TagStorage):
 
         conditions = []
 
-        if key in SearchVisitor.numeric_keys and snuba_key not in BLACKLISTED_COLUMNS:
+        if key in FUZZY_NUMERIC_KEYS:
             converted_query = int(query) if query is not None and query.isdigit() else None
             if converted_query is not None:
-                conditions.append([snuba_key, ">=", converted_query - 50])
-                conditions.append([snuba_key, "<=", converted_query + 50])
-            else:
-                conditions.append([[snuba_key, ">=", 0], [snuba_key, "<", 0]])
+                conditions.append([snuba_key, ">=", converted_query - FUZZY_NUMERIC_DISTANCE])
+                conditions.append([snuba_key, "<=", converted_query + FUZZY_NUMERIC_DISTANCE])
         else:
             if snuba_key in BLACKLISTED_COLUMNS:
                 snuba_key = "tags[%s]" % (key,)
@@ -635,7 +648,7 @@ class SnubaTagStorage(TagStorage):
         )
 
         tag_values = [
-            TagValue(key=key, value=six.binary_type(value), **fix_tag_value_data(data))
+            TagValue(key=key, value=six.text_type(value), **fix_tag_value_data(data))
             for value, data in six.iteritems(results)
         ]
 
