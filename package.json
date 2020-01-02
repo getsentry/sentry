@@ -169,7 +169,8 @@
     "caniuse-lite": ">=1.0.30000989",
     "browserslist": ">=4.7.0",
     "set-value": "^2.0.1",
-    "querystringify": ">=2.0.0"
+    "querystringify": ">=2.0.0",
+    "handlebars": ">=4.3.0"
   },
   "APIMethod": "stub",
   "proxyURL": "http://localhost:8000",
