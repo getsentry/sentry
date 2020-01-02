@@ -11,11 +11,13 @@ import pytest
 from datetime import datetime
 from django.conf import settings
 from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException, WebDriverException
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.common.action_chains import ActionChains
 from six.moves.urllib.parse import quote, urlparse
+
+from sentry.utils.retries import TimedRetryPolicy
 
 # if we're not running in a PR, we kill the PERCY_TOKEN because its a push
 # to a branch, and we dont want percy comparing things
@@ -312,6 +314,11 @@ def percy(request):
     return percy
 
 
+@TimedRetryPolicy.wrap(timeout=15, exceptions=(WebDriverException,))
+def start_chrome(**chrome_args):
+    return webdriver.Chrome(**chrome_args)
+
+
 @pytest.fixture(scope="function")
 def browser(request, percy, live_server):
     window_size = request.config.getoption("window_size")
@@ -330,10 +337,11 @@ def browser(request, percy, live_server):
         if chrome_path:
             options.binary_location = chrome_path
         chromedriver_path = request.config.getoption("chromedriver_path")
+        chrome_args = {"options": options}
         if chromedriver_path:
-            driver = webdriver.Chrome(executable_path=chromedriver_path, options=options)
-        else:
-            driver = webdriver.Chrome(options=options)
+            chrome_args["executable_path"] = chromedriver_path
+
+        driver = start_chrome(**chrome_args)
     elif driver_type == "firefox":
         driver = webdriver.Firefox()
     elif driver_type == "phantomjs":
