@@ -1,16 +1,18 @@
 import React from 'react';
 import styled from 'react-emotion';
 
-import {Trigger} from 'app/views/settings/incidentRules/types';
+import {MetricAction} from 'app/types/alerts';
 import {Organization, Project} from 'app/types';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {Trigger} from 'app/views/settings/incidentRules/types';
 import {removeAtArrayIndex} from 'app/utils/removeAtArrayIndex';
 import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
+import CircleIndicator from 'app/components/circleIndicator';
 import TriggerForm from 'app/views/settings/incidentRules/triggers/form';
+import space from 'app/styles/space';
 import withProjects from 'app/utils/withProjects';
-import {MetricAction} from 'app/types/alerts';
 
 type DeleteButtonProps = {
   triggerIndex: number;
@@ -78,17 +80,29 @@ class Triggers extends React.Component<Props> {
       onAdd,
     } = this.props;
 
+    // Note we only support 2 triggers on UI - API can support many
     return (
       <React.Fragment>
         {triggers.map((trigger, index) => {
+          const isCritical = index === 0;
+          const title = isCritical ? t('Critical Trigger') : t('Warning Trigger');
           return (
             <Panel key={index}>
-              <PanelHeader hasButtons>
-                {t('Define Trigger')}
-                <DeleteButton triggerIndex={index} onDelete={this.handleDeleteTrigger} />
+              <PanelHeader hasButtons={!isCritical}>
+                <Title>
+                  {isCritical ? <CriticalIndicator /> : <WarningIndicator />}
+                  {title}
+                </Title>
+                {!isCritical && (
+                  <DeleteButton
+                    triggerIndex={index}
+                    onDelete={this.handleDeleteTrigger}
+                  />
+                )}
               </PanelHeader>
               <PanelBody>
                 <TriggerForm
+                  isCritical={isCritical}
                   error={errors && errors.get(index)}
                   availableActions={availableActions}
                   organization={organization}
@@ -103,16 +117,18 @@ class Triggers extends React.Component<Props> {
           );
         })}
 
-        <BorderlessPanel>
-          <FullWidthButton
-            type="button"
-            size="small"
-            icon="icon-circle-add"
-            onClick={onAdd}
-          >
-            {t('Add another Trigger')}
-          </FullWidthButton>
-        </BorderlessPanel>
+        {triggers.length < 2 && (
+          <BorderlessPanel>
+            <FullWidthButton
+              type="button"
+              size="small"
+              icon="icon-circle-add"
+              onClick={onAdd}
+            >
+              {t('Add Warning Trigger')}
+            </FullWidthButton>
+          </BorderlessPanel>
+        )}
       </React.Fragment>
     );
   }
@@ -124,6 +140,21 @@ const BorderlessPanel = styled(Panel)`
 
 const FullWidthButton = styled(Button)`
   width: 100%;
+`;
+
+const Title = styled('div')`
+  display: grid;
+  grid-auto-flow: column;
+  grid-gap: ${space(1)};
+  align-items: center;
+`;
+
+const CriticalIndicator = styled(CircleIndicator)`
+  background: ${p => p.theme.redLight};
+`;
+
+const WarningIndicator = styled(CircleIndicator)`
+  background: ${p => p.theme.yellowDark};
 `;
 
 export default withProjects(Triggers);

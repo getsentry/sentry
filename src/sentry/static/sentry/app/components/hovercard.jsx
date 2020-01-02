@@ -140,6 +140,7 @@ class Hovercard extends React.Component {
             <Popper placement={position} modifiers={modifiers}>
               {({ref, style, placement, arrowProps}) => (
                 <StyledHovercard
+                  id={this.tooltipId}
                   visible={visible}
                   innerRef={ref}
                   style={style}

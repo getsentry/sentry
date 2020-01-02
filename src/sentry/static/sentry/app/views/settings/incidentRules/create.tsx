@@ -23,14 +23,13 @@ class IncidentRulesCreate extends React.Component<RouteComponentProps<{}, {}> & 
   };
 
   render() {
-    const {organization, project} = this.props;
+    const {project, ...props} = this.props;
 
     return (
       <RuleForm
-        organization={organization}
         onSubmitSuccess={this.handleSubmitSuccess}
         rule={{...createDefaultRule(), projects: [project.slug]}}
-        params={this.props.params}
+        {...props}
       />
     );
   }

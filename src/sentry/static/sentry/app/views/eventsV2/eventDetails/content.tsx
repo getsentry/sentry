@@ -21,7 +21,6 @@ import FileSize from 'app/components/fileSize';
 import NotFound from 'app/components/errors/notFound';
 import AsyncComponent from 'app/components/asyncComponent';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {PageContent} from 'app/styles/organization';
 
 import EventView from '../eventView';
 import {hasAggregateField, EventQuery, generateTitle} from '../utils';
@@ -32,6 +31,7 @@ import EventInterfaces from './eventInterfaces';
 import LinkedIssue from './linkedIssue';
 import DiscoverBreadcrumb from '../breadcrumb';
 import {SectionHeading} from '../styles';
+import EventBreakdown from './transaction/eventBreakdown';
 
 const slugValidator = function(
   props: {[key: string]: any},
@@ -176,6 +176,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
               organization={organization}
               projectId={this.projectId}
             />
+            <EventBreakdown event={event} />
             {event.groupID && (
               <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
             )}
@@ -297,18 +298,19 @@ const EventMetadata = (props: {
   );
 };
 
-const ContentBox = styled(PageContent)`
+const ContentBox = styled('div')`
+  padding: ${space(2)} ${space(4)};
   margin: 0;
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     display: grid;
-    grid-template-rows: 1fr auto;
+    grid-template-rows: 1fr 30px;
     grid-template-columns: 65% auto;
     grid-column-gap: ${space(3)};
   }
 
   @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-columns: auto 350px;
+    grid-template-columns: auto 325px;
   }
 `;
 
@@ -348,7 +350,7 @@ const StyledTitle = styled('span')`
 `;
 
 const MetaDataID = styled('div')`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${space(4)};
 `;
 
 const MetadataContainer = styled('div')`

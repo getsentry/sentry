@@ -54,7 +54,7 @@ class RuleRow extends React.Component<Props, State> {
 
     return (
       <RuleItem>
-        <div>{t('Issue')}</div>
+        <RuleType>{t('Issue')}</RuleType>
         <div>
           {canEdit ? <RuleName to={editLink}>{data.name}</RuleName> : data.name}
           <RuleDescription>
@@ -98,7 +98,7 @@ class RuleRow extends React.Component<Props, State> {
 
     return (
       <RuleItem>
-        <div>{t('Metric')}</div>
+        <RuleType>{t('Metric')}</RuleType>
         <div>
           {canEdit ? <RuleName to={editLink}>{data.name}</RuleName> : data.name}
           <RuleDescription />
@@ -145,6 +145,13 @@ const RuleItem = styled(PanelItem)`
   grid-gap: ${space(1)};
   grid-template-columns: 1fr 3fr 6fr;
   grid-auto-flow: column;
+`;
+
+const RuleType = styled('div')`
+  color: ${p => p.theme.gray3};
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: bold;
+  text-transform: uppercase;
 `;
 
 const RuleName = styled(Link)`

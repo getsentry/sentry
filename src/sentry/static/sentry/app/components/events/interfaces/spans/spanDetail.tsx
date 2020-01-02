@@ -2,7 +2,6 @@ import React from 'react';
 import styled from 'react-emotion';
 import get from 'lodash/get';
 import map from 'lodash/map';
-import moment from 'moment';
 
 import {t} from 'app/locale';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
@@ -19,8 +18,10 @@ import {
 } from 'app/views/eventsV2/eventDetails/utils';
 import EventView from 'app/views/eventsV2/eventView';
 import {generateDiscoverResultsRoute} from 'app/views/eventsV2/results';
+import {assert} from 'app/types/utils';
 
-import {SpanType, ParsedTraceType} from './types';
+import {ProcessedSpanType, RawSpanType, ParsedTraceType} from './types';
+import {isGapSpan, getTraceDateTimeRange} from './utils';
 
 type TransactionResult = {
   'project.name': string;
@@ -31,7 +32,7 @@ type TransactionResult = {
 type Props = {
   api: Client;
   orgId: string;
-  span: Readonly<SpanType>;
+  span: Readonly<ProcessedSpanType>;
   isRoot: boolean;
   eventView: EventView;
   trace: Readonly<ParsedTraceType>;
@@ -49,7 +50,11 @@ class SpanDetail extends React.Component<Props, State> {
   componentDidMount() {
     const {span} = this.props;
 
-    this.fetchSpanDescendents(span.span_id)
+    if (isGapSpan(span)) {
+      return;
+    }
+
+    this.fetchSpanDescendents(span.span_id, span.trace_id)
       .then(response => {
         if (
           !response.data ||
@@ -68,26 +73,22 @@ class SpanDetail extends React.Component<Props, State> {
       });
   }
 
-  fetchSpanDescendents(spanID: string): Promise<any> {
-    const {api, orgId, span, trace} = this.props;
+  fetchSpanDescendents(spanID: string, traceID: string): Promise<any> {
+    const {api, orgId, trace} = this.props;
 
     const url = `/organizations/${orgId}/eventsv2/`;
 
-    const {start, end} = getParams({
-      start: moment
-        .unix(trace.traceStartTimestamp)
-        .subtract(12, 'hours')
-        .format('YYYY-MM-DDTHH:mm:ss.SSS'),
-      end: moment
-        .unix(trace.traceEndTimestamp)
-        .add(12, 'hours')
-        .format('YYYY-MM-DDTHH:mm:ss.SSS'),
-    });
+    const {start, end} = getParams(
+      getTraceDateTimeRange({
+        start: trace.traceStartTimestamp,
+        end: trace.traceEndTimestamp,
+      })
+    );
 
     const query = {
       field: ['transaction', 'id', 'trace.span'],
       sort: ['-id'],
-      query: `event.type:transaction trace:${span.trace_id} trace.parent_span:${spanID}`,
+      query: `event.type:transaction trace:${traceID} trace.parent_span:${spanID}`,
       start,
       end,
     };
@@ -103,6 +104,10 @@ class SpanDetail extends React.Component<Props, State> {
       return null;
     }
 
+    const {span, orgId, trace} = this.props;
+
+    assert(!isGapSpan(span));
+
     if (this.state.transactionResults.length === 1) {
       const {eventView} = this.props;
 
@@ -117,21 +122,28 @@ class SpanDetail extends React.Component<Props, State> {
       };
 
       return (
-        <div>
-          <Button size="xsmall" to={to}>
-            {t('View child')}
-          </Button>
-        </div>
+        <StyledButton size="xsmall" to={to}>
+          {t('View Child')}
+        </StyledButton>
       );
     }
 
-    const {span, orgId} = this.props;
+    const {start, end} = getTraceDateTimeRange({
+      start: trace.traceStartTimestamp,
+      end: trace.traceEndTimestamp,
+    });
 
     const eventView = EventView.fromSavedQuery({
       id: undefined,
-      name: t('Transactions'),
-      fields: ['transaction', 'trace.span', 'timestamp'],
-      fieldnames: ['transaction', 'trace.span', 'timestamp'],
+      name: `Children from Span ID ${span.span_id}`,
+      fields: [
+        'transaction',
+        'project',
+        'trace.span',
+        'transaction.duration',
+        'timestamp',
+      ],
+      fieldnames: ['transaction', 'project', 'trace.span', 'duration', 'timestamp'],
       orderby: '-timestamp',
       query: `event.type:transaction trace:${span.trace_id} trace.parent_span:${
         span.span_id
@@ -139,6 +151,8 @@ class SpanDetail extends React.Component<Props, State> {
       tags: ['release', 'project.name', 'user.email', 'user.ip', 'environment'],
       projects: [],
       version: 2,
+      start,
+      end,
     });
 
     const to = {
@@ -147,27 +161,42 @@ class SpanDetail extends React.Component<Props, State> {
     };
 
     return (
-      <div>
-        <Button size="xsmall" to={to}>
-          {t('View children')}
-        </Button>
-      </div>
+      <StyledButton size="xsmall" to={to}>
+        {t('View Children')}
+      </StyledButton>
     );
   }
 
   renderTraceButton() {
-    const {span, orgId} = this.props;
+    const {span, orgId, trace} = this.props;
+
+    const {start, end} = getTraceDateTimeRange({
+      start: trace.traceStartTimestamp,
+      end: trace.traceEndTimestamp,
+    });
+
+    if (isGapSpan(span)) {
+      return null;
+    }
 
     const eventView = EventView.fromSavedQuery({
       id: undefined,
-      name: t('Transactions'),
-      fields: ['transaction', 'trace.span', 'transaction.duration', 'timestamp'],
-      fieldnames: ['transaction', 'trace.span', 'duration', 'timestamp'],
+      name: `Transactions with Trace ID ${span.trace_id}`,
+      fields: [
+        'transaction',
+        'project',
+        'trace.span',
+        'transaction.duration',
+        'timestamp',
+      ],
+      fieldnames: ['transaction', 'project', 'trace.span', 'duration', 'timestamp'],
       orderby: '-timestamp',
       query: `event.type:transaction trace:${span.trace_id}`,
       tags: ['release', 'project.name', 'user.email', 'user.ip', 'environment'],
       projects: [],
       version: 2,
+      start,
+      end,
     });
 
     const to = {
@@ -190,6 +219,10 @@ class SpanDetail extends React.Component<Props, State> {
 
     const duration = (endTimestamp - startTimestamp) * 1000;
     const durationString = `${duration.toFixed(3)} ms`;
+
+    if (isGapSpan(span)) {
+      return null;
+    }
 
     return (
       <SpanDetailContainer
@@ -286,7 +319,7 @@ const Row = ({
   );
 };
 
-const Tags = ({span}: {span: SpanType}) => {
+const Tags = ({span}: {span: RawSpanType}) => {
   const tags: {[tag_name: string]: string} | undefined = get(span, 'tags');
 
   if (!tags) {

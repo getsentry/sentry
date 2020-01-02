@@ -45,7 +45,3 @@ class ArrayField(models.Field):
         if isinstance(value, six.text_type):
             value = json.loads(value)
         return map(self.of.to_python, value)
-
-
-if hasattr(models, "SubfieldBase"):
-    ArrayField = six.add_metaclass(models.SubfieldBase)(ArrayField)

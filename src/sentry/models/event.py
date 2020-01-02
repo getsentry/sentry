@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import logging
 import six
 import string
 import pytz
@@ -10,10 +9,11 @@ from dateutil.parser import parse as parse_date
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
+from hashlib import md5
 
 from semaphore.processing import StoreNormalizer
 
-from sentry import eventstore, eventtypes, nodestore
+from sentry import eventtypes, nodestore
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedIntegerField,
@@ -29,8 +29,6 @@ from sentry.utils.cache import memoize
 from sentry.utils.canonical import CanonicalKeyDict, CanonicalKeyView
 from sentry.utils.safe import get_path
 from sentry.utils.strings import truncatechars
-
-logger = logging.getLogger(__name__)
 
 
 class EventDict(CanonicalKeyDict):
@@ -59,6 +57,16 @@ class EventCommon(object):
     """
     Methods and properties common to both Event and SnubaEvent.
     """
+
+    @classmethod
+    def generate_node_id(cls, project_id, event_id):
+        """
+        Returns a deterministic node_id for this event based on the project_id
+        and event_id which together are globally unique. The event body should
+        be saved under this key in nodestore so it can be retrieved using the
+        same generated id when we only have project_id and event_id.
+        """
+        return md5("{}:{}".format(project_id, event_id)).hexdigest()
 
     # TODO (alex) We need a better way to cache these properties.  functools32
     # doesn't quite do the trick as there is a reference bug with unsaved
@@ -111,10 +119,9 @@ class EventCommon(object):
         return self.interfaces.get(name)
 
     def get_legacy_message(self):
-        # TODO(mitsuhiko): remove this code once it's unused.  It's still
-        # being used by plugin code and once the message rename is through
-        # plugins should instead swithc to the actual message attribute or
-        # this method could return what currently is real_message.
+        # TODO: This is only used in the pagerduty plugin. We should use event.title
+        # there and remove this function once users have been notified, since PD
+        # alert routing may be based off the message field.
         return (
             get_path(self.data, "logentry", "formatted")
             or get_path(self.data, "logentry", "message")
@@ -355,7 +362,7 @@ class EventCommon(object):
         return data
 
     def bind_node_data(self):
-        node_id = eventstore.generate_node_id(self.project_id, self.event_id)
+        node_id = Event.generate_node_id(self.project_id, self.event_id)
         node_data = nodestore.get(node_id) or {}
         ref = self.data.get_ref(self)
         self.data.bind_data(node_data, ref=ref)
@@ -396,30 +403,10 @@ class SnubaEvent(EventCommon):
         self.snuba_data = snuba_values
 
         # self.data is a (lazy) dict of everything we got from nodestore
-        node_id = eventstore.generate_node_id(
+        node_id = SnubaEvent.generate_node_id(
             self.snuba_data["project_id"], self.snuba_data["event_id"]
         )
         self.data = NodeData(node_id, data=None, wrapper=EventDict)
-
-    def __getattr__(self, name):
-        """
-        Depending on what snuba data this event was initialized with, we may
-        have the data available to return, or we may have to look in the
-        `data` dict (which would force a nodestore load). All unresolved
-        self.foo type accesses will come through here.
-        """
-        if name in ("_project_cache", "_group_cache", "_environment_cache"):
-            raise AttributeError()
-
-        allowed_attributes = ["timestamp", "event_id", "group_id", "project_id"]
-
-        if name not in allowed_attributes:
-            logger.warn("event.invalid-attribute", extra={"attribute_name": name})
-
-        if name in self.snuba_data:
-            return self.snuba_data[name]
-        else:
-            return self.data[name]
 
     # ============================================
     # Snuba-only implementations of properties that
@@ -523,6 +510,30 @@ class SnubaEvent(EventCommon):
         # the hex event_id here. We should be moving to a world where we never
         # have to reference the row id anyway.
         return self.event_id
+
+    @property
+    def timestamp(self):
+        return self.snuba_data["timestamp"]
+
+    @property
+    def event_id(self):
+        return self.snuba_data["event_id"]
+
+    @property
+    def project_id(self):
+        return self.snuba_data["project_id"]
+
+    @project_id.setter
+    def project_id(self, value):
+        self.snuba_data["project_id"] = value
+
+    @property
+    def group_id(self):
+        return self.snuba_data["group_id"]
+
+    @group_id.setter
+    def group_id(self, value):
+        self.snuba_data["group_id"] = value
 
     def save(self):
         raise NotImplementedError

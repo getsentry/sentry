@@ -28,7 +28,7 @@ describe('SeenByList', function() {
 
     expect(wrapper.find('EyeIcon')).toHaveLength(1);
     expect(wrapper.find('AvatarList')).toHaveLength(1);
-    expect(wrapper.find('Avatar')).toHaveLength(2);
+    expect(wrapper.find('UserAvatar')).toHaveLength(2);
   });
 
   it('filters out the current user from list of users', function() {
@@ -47,7 +47,7 @@ describe('SeenByList', function() {
 
     expect(wrapper.find('EyeIcon')).toHaveLength(1);
     expect(wrapper.find('AvatarList')).toHaveLength(1);
-    expect(wrapper.find('Avatar')).toHaveLength(1);
+    expect(wrapper.find('UserAvatar')).toHaveLength(1);
     expect(wrapper.find('LetterAvatar').prop('displayName')).toBe('john@example.com');
   });
 });

@@ -6,8 +6,9 @@ from uuid import uuid4
 
 import pytest
 
-from sentry import eventstore, nodestore
+from sentry import nodestore
 from sentry.constants import ObjectStatus
+from sentry.eventstore.models import Event
 from sentry.exceptions import DeleteAborted
 from sentry.models import (
     ApiApplication,
@@ -181,8 +182,8 @@ class DeleteGroupTest(TestCase):
         event_id_2 = "b" * 32
         project = self.create_project()
 
-        node_id = eventstore.generate_node_id(project.id, event_id)
-        node_id_2 = eventstore.generate_node_id(project.id, event_id_2)
+        node_id = Event.generate_node_id(project.id, event_id)
+        node_id_2 = Event.generate_node_id(project.id, event_id_2)
 
         event = self.store_event(
             data={

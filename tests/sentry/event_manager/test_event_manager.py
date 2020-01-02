@@ -12,9 +12,10 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 from time import time
 
-from sentry import eventstore, nodestore
+from sentry import nodestore
 from sentry.app import tsdb
 from sentry.constants import MAX_VERSION_LENGTH
+from sentry.eventstore.models import Event
 from sentry.event_manager import HashDiscarded, EventManager, EventUser
 from sentry.grouping.utils import hash_from_values
 from sentry.models import (
@@ -88,7 +89,7 @@ class EventManagerTest(TestCase):
         # Saves the latest event to nodestore and eventstream
         project_id = 1
         event_id = "a" * 32
-        node_id = eventstore.generate_node_id(project_id, event_id)
+        node_id = Event.generate_node_id(project_id, event_id)
 
         manager = EventManager(make_event(event_id=event_id, message="first"))
         manager.normalize()

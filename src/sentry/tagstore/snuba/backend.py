@@ -39,13 +39,6 @@ def get_project_list(project_id):
 
 
 class SnubaTagStorage(TagStorage):
-
-    # These keys correspond to tags that are typically prefixed with `sentry:`
-    # and will wreak havok in the UI if both the `sentry:`-prefixed and
-    # non-prefixed variations occur in a response. For now, it's easier to hide
-    # these results since they happen relatively infrequently.
-    EXCLUDE_TAG_KEYS = frozenset(["dist", "release", "user"])
-
     def __get_tag_key(self, project_id, group_id, environment_id, key):
         tag = u"tags[{}]".format(key)
         filters = {"project_id": get_project_list(project_id)}
@@ -177,7 +170,7 @@ class SnubaTagStorage(TagStorage):
 
         if include_values_seen:
             aggregations.append(["uniq", "tags_value", "values_seen"])
-        conditions = [["tags_key", "NOT IN", self.EXCLUDE_TAG_KEYS]]
+        conditions = []
 
         result = snuba.query(
             start=start,
@@ -410,8 +403,6 @@ class SnubaTagStorage(TagStorage):
             ["min", SEEN_COLUMN, "first_seen"],
             ["max", SEEN_COLUMN, "last_seen"],
         ]
-        if not kwargs.get("get_excluded_tags"):
-            conditions.append(["tags_key", "NOT IN", self.EXCLUDE_TAG_KEYS])
 
         values_by_key = snuba.query(
             start=kwargs.get("start"),
@@ -573,12 +564,21 @@ class SnubaTagStorage(TagStorage):
         return defaultdict(int, {k: v for k, v in result.items() if v})
 
     def get_tag_value_paginator(
-        self, project_id, environment_id, key, query=None, order_by="-last_seen"
+        self,
+        project_id,
+        environment_id,
+        key,
+        start=None,
+        end=None,
+        query=None,
+        order_by="-last_seen",
     ):
         return self.get_tag_value_paginator_for_projects(
             get_project_list(project_id),
             [environment_id] if environment_id else None,
             key,
+            start=start,
+            end=end,
             query=query,
             order_by=order_by,
         )

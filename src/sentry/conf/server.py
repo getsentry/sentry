@@ -836,8 +836,6 @@ SENTRY_FEATURES = {
     # Special feature flag primarily used on the sentry.io SAAS product for
     # easily enabling features while in early development.
     "organizations:internal-catchall": False,
-    # Enable v2 of pagerduty integration
-    "organizations:pagerduty-v2": False,
     # Enable inviting members to organizations.
     "organizations:invite-members": True,
     # Enable org-wide saved searches and user pinned search
@@ -914,6 +912,12 @@ SENTRY_FRONTEND_PROJECT = None
 # DSN for the frontend to use explicitly, which takes priority
 # over SENTRY_FRONTEND_PROJECT or SENTRY_PROJECT
 SENTRY_FRONTEND_DSN = None
+
+# Configuration for JavaScript's whitelistUrls - defaults to ALLOWED_HOSTS
+SENTRY_FRONTEND_WHITELIST_URLS = None
+
+# Sample rate for Sentry transactions
+SENTRY_APM_SAMPLING = 0
 
 # DSN to use for Sentry monitors
 SENTRY_MONITOR_DSN = None

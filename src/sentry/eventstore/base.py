@@ -1,10 +1,11 @@
 from __future__ import absolute_import
 
-from hashlib import md5
 
 from sentry import nodestore
 from sentry.snuba.events import Columns
 from sentry.utils.services import Service
+
+from .models import Event
 
 
 class Filter(object):
@@ -59,6 +60,7 @@ class EventStorage(Service):
     __all__ = (
         "minimal_columns",
         "full_columns",
+        "create_event",
         "get_event_by_id",
         "get_events",
         "get_prev_event_id",
@@ -66,7 +68,6 @@ class EventStorage(Service):
         "get_earliest_event_id",
         "get_latest_event_id",
         "bind_nodes",
-        "generate_node_id",
     )
 
     # The minimal list of columns we need to get from snuba to bootstrap an
@@ -171,6 +172,12 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
+    def create_event(self, project_id=None, event_id=None, group_id=None, data=None):
+        """
+        Returns an Event from processed data
+        """
+        return Event(project_id=project_id, event_id=event_id, group_id=group_id, data=data)
+
     def bind_nodes(self, object_list, node_name="data"):
         """
         For a list of Event objects, and a property name where we might find an
@@ -194,12 +201,3 @@ class EventStorage(Service):
         for item, node in object_node_list:
             data = node_results.get(node.id) or {}
             node.bind_data(data, ref=node.get_ref(item))
-
-    def generate_node_id(self, project_id, event_id):
-        """
-        Returns a deterministic node_id for this event based on the project_id
-        and event_id which together are globally unique. The event body should
-        be saved under this key in nodestore so it can be retrieved using the
-        same generated id when we only have project_id and event_id.
-        """
-        return md5("{}:{}".format(project_id, event_id)).hexdigest()

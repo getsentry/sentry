@@ -20,7 +20,6 @@ from hashlib import sha1
 from loremipsum import Generator
 from uuid import uuid4
 
-from sentry import eventstore
 from sentry.event_manager import EventManager
 from sentry.constants import SentryAppStatus
 from sentry.incidents.logic import (
@@ -508,9 +507,7 @@ class Factories(object):
 
         # This is needed so that create_event saves the event in nodestore
         # under the correct key. This is usually dont in EventManager.save()
-        kwargs["data"].setdefault(
-            "node_id", eventstore.generate_node_id(kwargs["project"].id, event_id)
-        )
+        kwargs["data"].setdefault("node_id", Event.generate_node_id(kwargs["project"].id, event_id))
 
         event = Event(event_id=event_id, group=group, **kwargs)
         # emulate EventManager refs
@@ -942,11 +939,12 @@ class Factories(object):
         threshold_period=1,
         include_all_projects=False,
         excluded_projects=None,
+        date_added=None,
     ):
         if not name:
             name = petname.Generate(2, " ", letters=10).title()
 
-        return create_alert_rule(
+        alert_rule = create_alert_rule(
             organization,
             projects,
             name,
@@ -957,6 +955,11 @@ class Factories(object):
             include_all_projects=include_all_projects,
             excluded_projects=excluded_projects,
         )
+
+        if date_added is not None:
+            alert_rule.update(date_added=date_added)
+
+        return alert_rule
 
     @staticmethod
     def create_alert_rule_trigger(
