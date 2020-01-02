@@ -48,5 +48,6 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
         self.browser.snapshot(name="onboarding - invite members")
 
         self.browser.click('[data-test-id="onboarding-getting-started-learn-more"]')
-        self.browser.wait_until('input[name="email"]')
+        self.browser.wait_until('[name="email"]')
+
         self.browser.snapshot(name="onboarding - learn more")
