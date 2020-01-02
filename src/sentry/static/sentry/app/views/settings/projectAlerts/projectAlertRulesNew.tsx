@@ -24,17 +24,15 @@ type Props = {organization: Organization} & RouteComponentProps<
 >;
 
 type State = {
-  issueRules: IssueAlertRule[];
-  metricRules: SavedIncidentRule[];
+  rules: Array<
+    ({type: 'alert_rule'} & IssueAlertRule) | ({type: 'rule'} & SavedIncidentRule)
+  >;
 } & AsyncView['state'];
 
 class ProjectAlertRules extends AsyncView<Props, State> {
   getEndpoints(): [string, string][] {
     const {orgId, projectId} = this.props.params;
-    return [
-      ['issueRules', `/projects/${orgId}/${projectId}/rules/`],
-      ['metricRules', `/projects/${orgId}/${projectId}/alert-rules/`],
-    ];
+    return [['rules', `/projects/${orgId}/${projectId}/combined-rules/`]];
   }
 
   getTitle() {
@@ -57,39 +55,20 @@ class ProjectAlertRules extends AsyncView<Props, State> {
 
     return (
       <React.Fragment>
-        {this.state.issueRules.map(rule => {
-          return (
-            <RuleRow
-              type="issue"
-              api={this.api}
-              key={rule.id}
-              data={rule}
-              orgId={orgId}
-              projectId={projectId}
-              params={this.props.params}
-              location={this.props.location}
-              routes={this.props.routes}
-              canEdit={canEditRule}
-            />
-          );
-        })}
-
-        {this.state.metricRules.map(rule => {
-          return (
-            <RuleRow
-              type="metric"
-              api={this.api}
-              key={`metric-${rule.id}`}
-              data={rule}
-              orgId={orgId}
-              projectId={projectId}
-              params={this.props.params}
-              location={this.props.location}
-              routes={this.props.routes}
-              canEdit={canEditRule}
-            />
-          );
-        })}
+        {this.state.rules.map(rule => (
+          <RuleRow
+            type={rule.type === 'alert_rule' ? 'issue' : 'metric'}
+            api={this.api}
+            key={`${rule.type}-${rule.id}`}
+            data={rule}
+            orgId={orgId}
+            projectId={projectId}
+            params={this.props.params}
+            location={this.props.location}
+            routes={this.props.routes}
+            canEdit={canEditRule}
+          />
+        ))}
       </React.Fragment>
     );
   }
@@ -99,7 +78,7 @@ class ProjectAlertRules extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {loading, issueRules} = this.state;
+    const {loading, rules} = this.state;
 
     return (
       <React.Fragment>
@@ -118,7 +97,7 @@ class ProjectAlertRules extends AsyncView<Props, State> {
           <PanelBody>
             {loading
               ? super.renderLoading()
-              : !!issueRules.length
+              : !!rules.length
               ? this.renderResults()
               : this.renderEmpty()}
           </PanelBody>
