@@ -20,7 +20,7 @@ type RouteParams = {
   orgId: string;
   projectId: string;
   incidentRuleId: string;
-  ruleId: string; //TOOD: Make ruleId optional
+  ruleId: string; //TODO(ts): Make ruleId optional
 };
 
 type Props = {

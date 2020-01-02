@@ -10,7 +10,7 @@ import RuleForm from './ruleForm';
 type RouteParams = {
   orgId: string;
   projectId: string;
-  incidentRuleId: string; //TODO: make optional
+  incidentRuleId: string; //TODO(ts): make optional
 };
 
 type Props = {
