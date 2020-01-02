@@ -1,5 +1,5 @@
-import {Params} from 'react-router/lib/Router';
 import React from 'react';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {Client} from 'app/api';
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -21,8 +21,7 @@ import {Incident} from '../types';
 
 type Props = {
   api: Client;
-  params: Params;
-};
+} & RouteComponentProps<{incidentId: string; orgId: string}, {}>;
 
 type State = {
   isLoading: boolean;
@@ -132,7 +131,7 @@ class IncidentDetails extends React.Component<Props, State> {
           onStatusChange={this.handleStatusChange}
         />
 
-        <DetailsBody params={params} incident={incident} />
+        <DetailsBody {...this.props} incident={incident} />
       </React.Fragment>
     );
   }
