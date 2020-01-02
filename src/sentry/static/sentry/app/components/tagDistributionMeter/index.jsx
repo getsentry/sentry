@@ -18,10 +18,8 @@ export default class TagDistributionMeter extends React.Component {
     segments: PropTypes.arrayOf(
       PropTypes.shape({
         count: PropTypes.number.isRequired,
-        name: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.array])
-          .isRequired,
-        value: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.array])
-          .isRequired,
+        name: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.array]),
+        value: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.array]),
         url: PropTypes.oneOfType([PropTypes.string, PropTypes.object]).isRequired,
       })
     ).isRequired,
