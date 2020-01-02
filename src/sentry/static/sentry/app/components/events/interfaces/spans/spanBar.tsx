@@ -955,7 +955,15 @@ const SpanTreeToggler = styled('div')<SpanTreeTogglerAndDivProps>`
   ${p => getTogglerTheme(p)}
 `;
 
-const getDurationPillAlignment = ({durationDisplay}) => {
+const getDurationPillAlignment = ({
+  durationDisplay,
+  theme,
+  spanBarHatch,
+}: {
+  durationDisplay: DurationDisplay;
+  theme: any;
+  spanBarHatch: boolean;
+}) => {
   switch (durationDisplay) {
     case 'left':
       return `right: calc(100% + ${space(0.5)});`;
@@ -964,7 +972,7 @@ const getDurationPillAlignment = ({durationDisplay}) => {
     default:
       return `
         right: ${space(0.75)};
-        color: #fff;
+        color: ${spanBarHatch === true ? theme.gray2 : theme.white};
       `;
   }
 };
@@ -972,6 +980,7 @@ const getDurationPillAlignment = ({durationDisplay}) => {
 const DurationPill = styled('div')<{
   durationDisplay: DurationDisplay;
   showDetail: boolean;
+  spanBarHatch: boolean;
 }>`
   position: absolute;
   top: 50%;
