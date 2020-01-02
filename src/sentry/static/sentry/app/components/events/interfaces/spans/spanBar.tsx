@@ -726,6 +726,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
               <DurationPill
                 durationDisplay={durationDisplay}
                 showDetail={this.state.showDetail}
+                spanBarHatch={spanBarHatch}
               >
                 {durationString}
                 {this.renderWarningText({warningText: bounds.warning})}
