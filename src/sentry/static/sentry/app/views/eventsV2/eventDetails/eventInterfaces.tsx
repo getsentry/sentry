@@ -26,7 +26,7 @@ const OTHER_SECTIONS = {
 
 function getTabTitle(type: string): string {
   if (type === 'spans') {
-    return 'Trace View';
+    return 'Transaction';
   }
 
   return type;
