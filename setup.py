@@ -105,6 +105,7 @@ setup(
     entry_points={
         "console_scripts": ["sentry = sentry.runner:main"],
         "sentry.apps": [
+            "auth_github = sentry.auth.providers.github",
             "jira_ac = sentry_plugins.jira_ac",
             "jira = sentry_plugins.jira",
             "freight = sentry_plugins.freight",

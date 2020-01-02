@@ -1,0 +1,14 @@
+{% extends "sentry/bases/auth.html" %}
+
+{% block auth_main %}
+  <h3>Select Organization</h3>
+
+  <p>
+    Select the GitHub organization to link with Sentry. This will restrict
+    access to only organization members.
+  </p>
+
+  {% with submit_label="Continue" %}
+    {% include "sentry/partial/_form.html" %}
+  {% endwith %}
+{% endblock %}
