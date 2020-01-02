@@ -6,6 +6,8 @@ from datetime import timedelta, datetime
 
 from django.db import migrations
 
+from sentry import options
+
 
 def backfill_eventstream(apps, schema_editor):
     """
@@ -21,7 +23,10 @@ def backfill_eventstream(apps, schema_editor):
     Group = apps.get_model('sentry', 'Group')
     Project = apps.get_model('sentry', 'Project')
 
-    days_to_check = 14
+    # Use 90 day retention if the option has not been set or set to 0
+    DEFAULT_RETENTION = 90
+
+    retention_days = options.get("system.event-retention-days") or DEFAULT_RETENTION
 
     def get_events(last_days):
         to_date = datetime.now()
@@ -38,21 +43,14 @@ def backfill_eventstream(apps, schema_editor):
             event.group = groups[event.group_id]
         eventstore.bind_nodes(_events, "data")
 
-    # If there are no events in Postgres in the last 14 days, skip migration
-    should_migrate = get_events(days_to_check).count() > 0
-
-    if not should_migrate:
-        print("No recent events, skipping migration.\n")
-        return
-
-    events = Event.objects.all()
-
+    events = get_events(retention_days)
     count = events.count()
-    print("Events to process: {}\n".format(count))
 
     if count == 0:
-        print("Nothing to do.\n")
+        print("Nothing to do, skipping migration.\n")
         return
+
+    print("Events to process: {}\n".format(count))
 
     for event in RangeQuerySetWrapper(events, step=100, callbacks=(_attach_related,)):
         primary_hash = event.get_primary_hash()
