@@ -7,8 +7,19 @@ import {
   PERMISSIONS_MAP,
 } from 'app/views/settings/organizationDeveloperSettings/constants';
 import styled from 'react-emotion';
+import {WebhookEvent, Permissions} from 'app/types';
+import {Context} from 'app/components/forms/form';
 
-export default class Subscriptions extends React.Component {
+type Resource = typeof EVENT_CHOICES[number];
+
+type Props = {
+  permissions: Permissions;
+  events: WebhookEvent[];
+  onChange: (events: WebhookEvent[]) => void;
+  webhookDisabled: boolean;
+};
+
+export default class Subscriptions extends React.Component<Props> {
   static contextTypes = {
     router: PropTypes.object.isRequired,
     form: PropTypes.object,
@@ -25,12 +36,12 @@ export default class Subscriptions extends React.Component {
     webhookDisabled: false,
   };
 
-  constructor(...args) {
-    super(...args);
+  constructor(props: Props, context: Context) {
+    super(props, context);
     this.context.form.setValue('events', this.props.events);
   }
 
-  componentWillReceiveProps(nextProps) {
+  componentWillReceiveProps(nextProps: Props) {
     // if webhooks are disabled, unset the events
     if (nextProps.webhookDisabled && this.props.events.length) {
       this.save([]);
@@ -49,13 +60,13 @@ export default class Subscriptions extends React.Component {
     }
   }
 
-  onChange = (resource, checked) => {
+  onChange = (resource: Resource, checked: boolean) => {
     const events = new Set(this.props.events);
     checked ? events.add(resource) : events.delete(resource);
     this.save(Array.from(events));
   };
 
-  save = events => {
+  save = (events: WebhookEvent[]) => {
     this.props.onChange(events);
     this.context.form.setValue('events', events);
   };
