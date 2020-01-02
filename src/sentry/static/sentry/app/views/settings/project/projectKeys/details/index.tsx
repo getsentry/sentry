@@ -17,8 +17,7 @@ type Props = RouteComponentProps<
     projectId: string;
   },
   {}
-> &
-  AsyncView['props'];
+>;
 
 type State = {
   data: ProjectKey;

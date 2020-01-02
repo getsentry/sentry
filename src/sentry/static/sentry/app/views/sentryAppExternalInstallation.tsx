@@ -1,4 +1,5 @@
 import React from 'react';
+import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from 'react-emotion';
 import get from 'lodash/get';
 
@@ -21,7 +22,7 @@ import {
   SentryAppInstallation,
 } from 'app/types';
 
-type Props = AsyncView['props'];
+type Props = RouteComponentProps<{sentryAppSlug: string}, {}>;
 
 type State = AsyncView['state'] & {
   selectedOrgSlug: string | null;

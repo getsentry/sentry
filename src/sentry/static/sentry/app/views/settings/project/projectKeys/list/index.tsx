@@ -28,8 +28,7 @@ import KeyRow from './keyRow';
 type Props = {
   organization: Organization;
   project: Project;
-} & RouteComponentProps<{orgId: string; projectId: string}, {}> &
-  AsyncView['props'];
+} & RouteComponentProps<{orgId: string; projectId: string}, {}>;
 
 type State = {
   keyList: ProjectKey[];
