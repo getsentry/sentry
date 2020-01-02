@@ -25,7 +25,7 @@ def backfill_eventstream(apps, schema_editor):
     Project = apps.get_model('sentry', 'Project')
 
     # Kill switch to skip this migration
-    skip_backfill = os.environ.get("SKIP_EVENTS_BACKFILL", False)
+    skip_backfill = os.environ.get("SENTRY_SKIP_EVENTS_BACKFILL_FOR_10", False)
 
     # Use 90 day retention if the option has not been set or set to 0
     DEFAULT_RETENTION = 90
@@ -46,12 +46,12 @@ def backfill_eventstream(apps, schema_editor):
             event.group = groups[event.group_id]
         eventstore.bind_nodes(_events, "data")
 
-    events = get_events(retention_days)
-    count = events.count()
-
     if skip_backfill:
         print("Skipping backfill\n")
         return
+
+    events = get_events(retention_days)
+    count = events.count()
 
     if count == 0:
         print("Nothing to do, skipping migration.\n")
