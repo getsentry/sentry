@@ -129,7 +129,7 @@ class ExternalIssueForm extends AsyncComponent {
       // API endpoints (which the client prefixes)
       try {
         const response = await fetch(url + separator + query);
-        cb(undefined, {options: response.ok ? await response.json() : []});
+        cb(null, {options: response.ok ? await response.json() : []});
       } catch (err) {
         cb(err);
       }
