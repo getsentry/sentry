@@ -35,6 +35,7 @@ import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 
 import SearchDropdown from './searchDropdown';
 
@@ -482,7 +483,10 @@ class SmartSearchBar extends React.Component {
       });
 
       try {
-        const values = await this.props.onGetTagValues(tag, query);
+        const {location} = this.context.router;
+        const endpointParams = getParams(location.query);
+
+        const values = await this.props.onGetTagValues(tag, query, endpointParams);
         this.setState({loading: false});
         return values.map(value => {
           // Wrap in quotes if there is a space

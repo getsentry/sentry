@@ -8,6 +8,8 @@ from sentry.eventstore.base import EventStorage
 from sentry.eventstore.snuba.backend import (
     ASC_ORDERING,
     DESC_ORDERING,
+    EVENT_ID,
+    PROJECT_ID,
     get_after_event_condition,
     get_before_event_condition,
     SnubaEventStorage,
@@ -78,7 +80,8 @@ class SnubaDiscoverEventStorage(EventStorage):
         return self.__get_event_id_from_filter(filter=filter, orderby=DESC_ORDERING)
 
     def __get_event_id_from_filter(self, filter=None, orderby=None):
-        columns = ["event_id", "project_id", "timestamp"]
+        columns = [EVENT_ID, PROJECT_ID]
+
         try:
             result = snuba.dataset_query(
                 selected_columns=columns,
