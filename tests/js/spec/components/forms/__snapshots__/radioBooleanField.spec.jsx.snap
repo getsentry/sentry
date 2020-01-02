@@ -223,51 +223,37 @@ exports[`RadioBooleanField render() renders new field without form context 1`] =
                                         <FieldControlState
                                           flexibleControlStateSize={false}
                                         >
-                                          <Component
-                                            className="css-1j6hng-FieldControlState e1rziqw00"
-                                            flexibleControlStateSize={false}
+                                          <div
+                                            className="css-oiazm4-FieldControlState ep9s0su0"
                                           >
-                                            <Flex
-                                              className="css-1j6hng-FieldControlState e1rziqw00"
+                                            <FormFieldControlState
+                                              model={
+                                                MockModel {
+                                                  "initialData": Object {
+                                                    "fieldName": undefined,
+                                                  },
+                                                  "props": Object {
+                                                    "children": [Function],
+                                                    "className": undefined,
+                                                    "field": [Function],
+                                                    "flexibleControlStateSize": false,
+                                                    "hideErrorMessage": false,
+                                                    "name": "fieldName",
+                                                    "noLabel": "No",
+                                                    "yesLabel": "Yes",
+                                                  },
+                                                }
+                                              }
+                                              name="fieldName"
                                             >
-                                              <Base
-                                                className="e1rziqw00 css-1fqbh7r-FieldControlState"
-                                              >
-                                                <div
-                                                  className="e1rziqw00 css-1fqbh7r-FieldControlState"
-                                                  is={null}
-                                                >
-                                                  <FormFieldControlState
-                                                    model={
-                                                      MockModel {
-                                                        "initialData": Object {
-                                                          "fieldName": undefined,
-                                                        },
-                                                        "props": Object {
-                                                          "children": [Function],
-                                                          "className": undefined,
-                                                          "field": [Function],
-                                                          "flexibleControlStateSize": false,
-                                                          "hideErrorMessage": false,
-                                                          "name": "fieldName",
-                                                          "noLabel": "No",
-                                                          "yesLabel": "Yes",
-                                                        },
-                                                      }
-                                                    }
-                                                    name="fieldName"
-                                                  >
-                                                    <Observer>
-                                                      <ControlState
-                                                        isSaved={false}
-                                                        isSaving={false}
-                                                      />
-                                                    </Observer>
-                                                  </FormFieldControlState>
-                                                </div>
-                                              </Base>
-                                            </Flex>
-                                          </Component>
+                                              <Observer>
+                                                <ControlState
+                                                  isSaved={false}
+                                                  isSaving={false}
+                                                />
+                                              </Observer>
+                                            </FormFieldControlState>
+                                          </div>
                                         </FieldControlState>
                                       </div>
                                     </Base>

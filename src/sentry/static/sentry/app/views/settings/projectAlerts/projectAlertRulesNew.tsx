@@ -21,8 +21,7 @@ type Props = {organization: Organization} & RouteComponentProps<
     projectId: string;
   },
   {}
-> &
-  AsyncView['props'];
+>;
 
 type State = {
   rules: Array<

@@ -32,11 +32,9 @@ class ListResolverTestCase(TestCase):
             self.resolver(object())
 
     def test_generates_list_ids(self):
-        event = self.create_event()
-        expected = u"{0.project.slug}.{0.organization.slug}.namespace".format(event)
-        assert self.resolver(event) == expected
-        assert self.resolver(event.group) == expected
-        assert self.resolver(event.project) == expected
+        expected = u"{0.project.slug}.{0.organization.slug}.namespace".format(self.event)
+        assert self.resolver(self.event.group) == expected
+        assert self.resolver(self.event.project) == expected
 
     def test_rejects_invalid_objects(self):
         resolver = ListResolver("namespace", {object: lambda value: ("\x00",)})
@@ -281,13 +279,11 @@ class MessageBuilderTest(TestCase):
             MessageBuilder, subject="Test", body="hello world", html_body="<b>hello world</b>"
         )
 
-        event = self.create_event()
-
         expected = u"{event.project.slug}.{event.organization.slug}.{namespace}".format(
-            event=event, namespace=options.get("mail.list-namespace")
+            event=self.event, namespace=options.get("mail.list-namespace")
         )
 
-        references = (event, event.group, event.project, self.activity)
+        references = (self.event.group, self.event.project, self.activity)
 
         for reference in references:
             (message,) = build_message(reference=reference).get_built_messages(["foo@example.com"])
