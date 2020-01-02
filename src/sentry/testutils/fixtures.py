@@ -151,11 +151,6 @@ class Fixtures(object):
     def store_event(self, *args, **kwargs):
         return Factories.store_event(*args, **kwargs)
 
-    def create_full_event(self, group=None, *args, **kwargs):
-        if group is None:
-            group = self.group
-        return Factories.create_full_event(group=group, *args, **kwargs)
-
     def create_group(self, project=None, *args, **kwargs):
         if project is None:
             project = self.project
