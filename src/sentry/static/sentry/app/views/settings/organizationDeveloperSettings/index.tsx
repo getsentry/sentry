@@ -1,4 +1,5 @@
 import React from 'react';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
 import AlertLink from 'app/components/alertLink';
 import AsyncView from 'app/views/asyncView';
@@ -12,8 +13,17 @@ import SentryApplicationRow from 'app/views/settings/organizationDeveloperSettin
 import withOrganization from 'app/utils/withOrganization';
 import {t} from 'app/locale';
 import routeTitleGen from 'app/utils/routeTitle';
+import {Organization, SentryApp} from 'app/types';
 
-class OrganizationDeveloperSettings extends AsyncView {
+type Props = Omit<AsyncView['props'], 'params'> & {
+  organization: Organization;
+} & RouteComponentProps<{orgId: string}, {}>;
+
+type State = AsyncView['state'] & {
+  applications: SentryApp[];
+};
+
+class OrganizationDeveloperSettings extends AsyncView<Props, State> {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
   };
@@ -23,13 +33,13 @@ class OrganizationDeveloperSettings extends AsyncView {
     return routeTitleGen(t('Developer Settings'), orgId, false);
   }
 
-  getEndpoints() {
+  getEndpoints(): [string, string][] {
     const {orgId} = this.props.params;
 
     return [['applications', `/organizations/${orgId}/sentry-apps/`]];
   }
 
-  removeApp = app => {
+  removeApp = (app: SentryApp) => {
     const apps = this.state.applications.filter(a => a.slug !== app.slug);
     removeSentryApp(this.api, app).then(
       () => {
@@ -39,7 +49,7 @@ class OrganizationDeveloperSettings extends AsyncView {
     );
   };
 
-  renderApplicationRow = app => {
+  renderApplicationRow = (app: SentryApp) => {
     const {organization} = this.props;
     return (
       <SentryApplicationRow
@@ -54,7 +64,9 @@ class OrganizationDeveloperSettings extends AsyncView {
 
   renderInternalIntegrations() {
     const {orgId} = this.props.params;
-    const integrations = this.state.applications.filter(app => app.status === 'internal');
+    const integrations = this.state.applications.filter(
+      (app: SentryApp) => app.status === 'internal'
+    );
     const isEmpty = integrations.length === 0;
 
     const action = (
