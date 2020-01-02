@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from 'react-emotion';
 import get from 'lodash/get';
+import isFinite from 'lodash/isFinite';
 
 import {Event} from 'app/types';
 import {
@@ -18,7 +19,7 @@ type OpStats = {percentage: number; totalDuration: number};
 
 const TOP_N_SPANS = 4;
 
-type EventBreakdownType = {
+type OpBreakdownType = {
   // top TOP_N_SPANS spans
   ops: ({name: string} & OpStats)[];
   // the rest of the spans
@@ -29,7 +30,7 @@ type Props = {
   event: Event;
 };
 
-class EventBreakdown extends React.Component<Props> {
+class OpsBreakdown extends React.Component<Props> {
   getTransactionEvent(): SentryTransactionEvent | undefined {
     const {event} = this.props;
 
@@ -40,7 +41,7 @@ class EventBreakdown extends React.Component<Props> {
     return undefined;
   }
 
-  generateStats(): EventBreakdownType {
+  generateStats(): OpBreakdownType {
     const event = this.getTransactionEvent();
 
     if (!event) {
@@ -110,6 +111,22 @@ class EventBreakdown extends React.Component<Props> {
       {}
     );
 
+    // cumulativeDuration is the cumulative duration sum of the transaction span,
+    // and all of its descendants.
+    // If the cumulative duration sum of the transaction's descendants (excluding the transaction span)
+    // is non-zero, then we can subtract the transaction span's duration away from cumulativeDuration.
+    //
+    // In cases when (cumulativeDuration - transactionDuration) <= 0, this could mean either:
+    // 1. There are no descendants, or
+    // 2. All descendants have durations of 0.
+    //
+    // This change for cumulativeDuration ensures that the duration sum of the transaction
+    // span with respect to cumulativeDuration is at least 100%.
+    const transactionDuration = Math.abs(event.endTimestamp - event.startTimestamp);
+    if (cumulativeDuration - transactionDuration > 0) {
+      cumulativeDuration = cumulativeDuration - transactionDuration;
+    }
+
     const ops = Object.keys(aggregateByOp).map(opName => {
       return {
         name: opName,
@@ -170,7 +187,7 @@ class EventBreakdown extends React.Component<Props> {
         {results.ops.map(currOp => {
           const {name, percentage, totalDuration} = currOp;
           const durLabel = Math.round(totalDuration * 1000 * 100) / 100;
-          const pctLabel = Math.round(percentage * 100);
+          const pctLabel = isFinite(percentage) ? Math.round(percentage * 100) : '∞';
           const opsColor: string = pickSpanBarColour(name);
 
           return (
@@ -226,4 +243,4 @@ const Pct = styled('div')`
   text-align: right;
 `;
 
-export default EventBreakdown;
+export default OpsBreakdown;
