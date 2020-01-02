@@ -30,6 +30,10 @@ class TestCreator(TestCase):
             schema={"elements": [self.create_issue_link_schema()]},
         )
 
+    def test_slug(self):
+        app = self.creator.call()
+        assert app.slug == "nulldb"
+
     def test_creates_proxy_user(self):
         self.creator.call()
 
