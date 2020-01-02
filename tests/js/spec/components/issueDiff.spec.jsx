@@ -1,7 +1,6 @@
 import React from 'react';
 import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 import {IssueDiff} from 'app/components/issueDiff';
-import {Client} from 'app/api';
 
 jest.mock('app/api');
 
@@ -9,6 +8,26 @@ describe('IssueDiff', function() {
   const entries = TestStubs.Entries();
   const routerContext = TestStubs.routerContext();
   const api = new MockApiClient();
+
+  beforeEach(function() {
+    MockApiClient.addMockResponse({
+      url: '/issues/target/events/latest/',
+      body: {
+        entries: entries[0],
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: '/issues/base/events/latest/',
+      body: {
+        platform: 'javascript',
+        entries: entries[1],
+      },
+    });
+  });
+
+  afterEach(function() {
+    MockApiClient.clearMockResponses();
+  });
 
   it('is loading when initially rendering', function() {
     const wrapper = shallow(
@@ -25,20 +44,6 @@ describe('IssueDiff', function() {
   });
 
   it('can dynamically import SplitDiff', async function() {
-    Client.addMockResponse({
-      url: '/issues/target/events/latest/',
-      body: {
-        entries: entries[0],
-      },
-    });
-    Client.addMockResponse({
-      url: '/issues/base/events/latest/',
-      body: {
-        platform: 'javascript',
-        entries: entries[1],
-      },
-    });
-
     // Need `mount` because of componentDidMount in <IssueDiff>
     const wrapper = mountWithTheme(
       <IssueDiff
@@ -59,13 +64,13 @@ describe('IssueDiff', function() {
   });
 
   it('can diff message', async function() {
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/issues/target/events/latest/',
       body: {
         entries: [{type: 'message', data: {formatted: 'Hello World'}}],
       },
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/issues/base/events/latest/',
       body: {
         platform: 'javascript',

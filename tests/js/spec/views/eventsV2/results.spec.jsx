@@ -41,11 +41,16 @@ describe('EventsV2 > Results', function() {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/event-stats/',
+      url: '/organizations/org-slug/events-stats/',
+      body: {data: [[123, []]]},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
       body: [],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
+      method: 'POST',
       body: [],
     });
     MockApiClient.addMockResponse({
@@ -93,6 +98,10 @@ describe('EventsV2 > Results', function() {
         tags: [{key: 'browser', value: 'Firefox'}],
       },
     });
+  });
+
+  afterEach(function() {
+    MockApiClient.clearMockResponses();
   });
 
   it('pagination cursor should be cleared when making a search', function() {

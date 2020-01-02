@@ -16,8 +16,10 @@ import {
   SpanBoundsType,
   SpanGeneratedBoundsType,
   getHumanDuration,
+  getSpanID,
+  getSpanOperation,
 } from './utils';
-import {SpanType, ParsedTraceType} from './types';
+import {ParsedTraceType, ProcessedSpanType} from './types';
 import {
   MINIMAP_CONTAINER_HEIGHT,
   MINIMAP_SPAN_BAR_HEIGHT,
@@ -167,8 +169,9 @@ const getDurationDisplay = ({
 type SpanBarProps = {
   orgId: string;
   trace: Readonly<ParsedTraceType>;
-  span: Readonly<SpanType>;
-  spanBarColour: string;
+  span: Readonly<ProcessedSpanType>;
+  spanBarColour?: string;
+  spanBarHatch?: boolean;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   treeDepth: number;
   continuingTreeDepths: Array<number>;
@@ -298,12 +301,14 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   renderSpanTreeConnector = ({hasToggler}: {hasToggler: boolean}) => {
     const {isLast, isRoot, treeDepth, continuingTreeDepths, span} = this.props;
 
+    const spanID = getSpanID(span);
+
     if (isRoot) {
       if (hasToggler) {
         return (
           <ConnectorBar
             style={{right: '16px', height: '10px', bottom: '-5px', top: 'auto'}}
-            key={`${span.span_id}-last`}
+            key={`${spanID}-last`}
           />
         );
       }
@@ -313,14 +318,14 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
 
     const connectorBars: Array<React.ReactNode> = continuingTreeDepths.map(depth => {
       const left = ((treeDepth - depth) * (TOGGLE_BORDER_BOX / 2) + 1) * -1;
-      return <ConnectorBar style={{left}} key={`${span.span_id}-${depth}`} />;
+      return <ConnectorBar style={{left}} key={`${spanID}-${depth}`} />;
     });
 
     if (hasToggler) {
       connectorBars.push(
         <ConnectorBar
           style={{right: '16px', height: '10px', bottom: '0', top: 'auto'}}
-          key={`${span.span_id}-last`}
+          key={`${spanID}-last`}
         />
       );
     }
@@ -374,8 +379,12 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   renderTitle = () => {
     const {span, treeDepth} = this.props;
 
-    const op = span.op ? <strong>{`${span.op} \u2014 `}</strong> : '';
-    const description = get(span, 'description', span.span_id);
+    const op = getSpanOperation(span) ? (
+      <strong>{`${getSpanOperation(span)} \u2014 `}</strong>
+    ) : (
+      ''
+    );
+    const description = get(span, 'description', getSpanID(span));
 
     const left = treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
 
@@ -669,7 +678,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   renderHeader = (
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
   ) => {
-    const {span, spanBarColour, spanNumber} = this.props;
+    const {span, spanBarColour, spanBarHatch, spanNumber} = this.props;
 
     const startTimestamp: number = span.start_timestamp;
     const endTimestamp: number = span.timestamp;
@@ -707,6 +716,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         >
           {displaySpanBar && (
             <SpanBarRectangle
+              spanBarHatch={spanBarHatch}
               style={{
                 backgroundColor: spanBarColour,
                 left: toPercent(bounds.left || 0),
@@ -979,6 +989,17 @@ const DurationPill = styled('div')<{
   }
 `;
 
+const getHatchPattern = ({spanBarHatch}) => {
+  if (spanBarHatch === true) {
+    return `
+      background-image: linear-gradient(45deg, #dedae3 10%, #f4f2f7 10%, #f4f2f7 50%, #dedae3 50%, #dedae3 60%, #f4f2f7 60%, #f4f2f7 100%);
+      background-size: 6.5px 6.5px;
+  `;
+  }
+
+  return null;
+};
+
 const SpanBarRectangle = styled('div')`
   position: relative;
   height: 100%;
@@ -986,6 +1007,7 @@ const SpanBarRectangle = styled('div')`
   user-select: none;
   transition: border-color 0.15s ease-in-out;
   border-right: 1px solid rgba(0, 0, 0, 0);
+  ${getHatchPattern}
 `;
 
 const WarningIcon = styled(InlineSvg)`
