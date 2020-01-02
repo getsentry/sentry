@@ -170,7 +170,8 @@ type SpanBarProps = {
   orgId: string;
   trace: Readonly<ParsedTraceType>;
   span: Readonly<ProcessedSpanType>;
-  spanBarColour: string;
+  spanBarColour?: string;
+  spanBarHatch?: boolean;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   treeDepth: number;
   continuingTreeDepths: Array<number>;
@@ -677,7 +678,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   renderHeader = (
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
   ) => {
-    const {span, spanBarColour, spanNumber} = this.props;
+    const {span, spanBarColour, spanBarHatch, spanNumber} = this.props;
 
     const startTimestamp: number = span.start_timestamp;
     const endTimestamp: number = span.timestamp;
@@ -715,6 +716,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         >
           {displaySpanBar && (
             <SpanBarRectangle
+              spanBarHatch={spanBarHatch}
               style={{
                 backgroundColor: spanBarColour,
                 left: toPercent(bounds.left || 0),
@@ -987,6 +989,17 @@ const DurationPill = styled('div')<{
   }
 `;
 
+const getHatchPattern = ({spanBarHatch}) => {
+  if (spanBarHatch === true) {
+    return `
+      background-image: linear-gradient(45deg, #dedae3 10%, #f4f2f7 10%, #f4f2f7 50%, #dedae3 50%, #dedae3 60%, #f4f2f7 60%, #f4f2f7 100%);
+      background-size: 6.5px 6.5px;
+  `;
+  }
+
+  return null;
+};
+
 const SpanBarRectangle = styled('div')`
   position: relative;
   height: 100%;
@@ -994,6 +1007,7 @@ const SpanBarRectangle = styled('div')`
   user-select: none;
   transition: border-color 0.15s ease-in-out;
   border-right: 1px solid rgba(0, 0, 0, 0);
+  ${getHatchPattern}
 `;
 
 const WarningIcon = styled(InlineSvg)`
