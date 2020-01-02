@@ -1236,165 +1236,151 @@ exports[`ExternalIssueForm link renders 1`] = `
                                                   <FieldControlState
                                                     flexibleControlStateSize={true}
                                                   >
-                                                    <Component
-                                                      className="css-1x60lk6-FieldControlState e1rziqw00"
-                                                      flexibleControlStateSize={true}
+                                                    <div
+                                                      className="css-18vhbhh-FieldControlState ep9s0su0"
                                                     >
-                                                      <Flex
-                                                        className="css-1x60lk6-FieldControlState e1rziqw00"
-                                                      >
-                                                        <Base
-                                                          className="e1rziqw00 css-dgyrfj-FieldControlState"
-                                                        >
-                                                          <div
-                                                            className="e1rziqw00 css-dgyrfj-FieldControlState"
-                                                            is={null}
-                                                          >
-                                                            <FormFieldControlState
-                                                              model={
-                                                                FormModel {
-                                                                  "api": Client {
-                                                                    "_chain": [Function],
-                                                                    "_wrapRequest": [Function],
-                                                                    "bulkUpdate": [Function],
-                                                                    "handleRequestError": [Function],
-                                                                    "hasProjectBeenRenamed": [Function],
-                                                                  },
-                                                                  "errors": Object {},
-                                                                  "fieldDescriptor": Map {
-                                                                    "repo" => Object {
-                                                                      "alignRight": false,
-                                                                      "allowEmpty": false,
-                                                                      "async": true,
-                                                                      "autoload": true,
-                                                                      "cache": false,
-                                                                      "children": [Function],
-                                                                      "choices": Array [
-                                                                        Array [
-                                                                          "scefali/test",
-                                                                          "test",
-                                                                        ],
-                                                                        Array [
-                                                                          "scefali/ZeldaBazaar",
-                                                                          "ZeldaBazaar",
-                                                                        ],
-                                                                      ],
-                                                                      "className": undefined,
-                                                                      "default": "scefali/test",
-                                                                      "disabled": false,
-                                                                      "escapeMarkup": true,
-                                                                      "field": [Function],
-                                                                      "flexibleControlStateSize": true,
-                                                                      "formatMessageValue": [Function],
-                                                                      "hideErrorMessage": false,
-                                                                      "inline": false,
-                                                                      "label": "GitHub Repository",
-                                                                      "loadOptions": [Function],
-                                                                      "name": "repo",
-                                                                      "onBlurResetsInput": false,
-                                                                      "onCloseResetsInput": false,
-                                                                      "onSelectResetsInput": false,
-                                                                      "placeholder": "--",
-                                                                      "required": true,
-                                                                      "small": false,
-                                                                      "stacked": true,
-                                                                      "type": "select",
-                                                                      "updatesForm": true,
-                                                                      "url": "/search",
-                                                                    },
-                                                                    "externalIssue" => Object {
-                                                                      "alignRight": false,
-                                                                      "allowEmpty": false,
-                                                                      "async": true,
-                                                                      "autoload": true,
-                                                                      "cache": false,
-                                                                      "children": [Function],
-                                                                      "choices": Array [],
-                                                                      "className": undefined,
-                                                                      "default": "",
-                                                                      "disabled": false,
-                                                                      "escapeMarkup": true,
-                                                                      "field": [Function],
-                                                                      "flexibleControlStateSize": true,
-                                                                      "formatMessageValue": [Function],
-                                                                      "hideErrorMessage": false,
-                                                                      "inline": false,
-                                                                      "label": "Issue",
-                                                                      "loadOptions": [Function],
-                                                                      "name": "externalIssue",
-                                                                      "onBlurResetsInput": false,
-                                                                      "onCloseResetsInput": false,
-                                                                      "onSelectResetsInput": false,
-                                                                      "placeholder": "--",
-                                                                      "required": true,
-                                                                      "small": false,
-                                                                      "stacked": true,
-                                                                      "type": "select",
-                                                                      "url": "/search",
-                                                                    },
-                                                                    "comment" => Object {
-                                                                      "children": [Function],
-                                                                      "className": undefined,
-                                                                      "default": "Default Value",
-                                                                      "disabled": false,
-                                                                      "field": [Function],
-                                                                      "flexibleControlStateSize": true,
-                                                                      "help": "Leave blank if you don't want to add a comment to the GitHub issue.",
-                                                                      "hideErrorMessage": false,
-                                                                      "inline": false,
-                                                                      "label": "Comment",
-                                                                      "name": "comment",
-                                                                      "required": false,
-                                                                      "stacked": true,
-                                                                      "type": "textarea",
-                                                                    },
-                                                                  },
-                                                                  "fieldState": Object {},
-                                                                  "fields": Object {
-                                                                    "comment": "Default Value",
-                                                                    "externalIssue": "",
-                                                                    "repo": "scefali/test",
-                                                                  },
-                                                                  "formErrors": undefined,
-                                                                  "formState": undefined,
-                                                                  "initialData": Object {
-                                                                    "comment": "Default Value",
-                                                                    "externalIssue": "",
-                                                                    "repo": "scefali/test",
-                                                                  },
-                                                                  "options": Object {
-                                                                    "allowUndo": false,
-                                                                    "apiEndpoint": "/groups/1/integrations/1/",
-                                                                    "apiMethod": "PUT",
-                                                                    "onFieldChange": [Function],
-                                                                    "onSubmitError": undefined,
-                                                                    "onSubmitSuccess": [Function],
-                                                                    "resetOnError": undefined,
-                                                                    "saveOnBlur": false,
-                                                                  },
-                                                                  "snapshots": Array [
-                                                                    Map {
-                                                                      "repo" => "scefali/test",
-                                                                      "externalIssue" => "",
-                                                                      "comment" => "Default Value",
-                                                                    },
+                                                      <FormFieldControlState
+                                                        model={
+                                                          FormModel {
+                                                            "api": Client {
+                                                              "_chain": [Function],
+                                                              "_wrapRequest": [Function],
+                                                              "bulkUpdate": [Function],
+                                                              "handleRequestError": [Function],
+                                                              "hasProjectBeenRenamed": [Function],
+                                                            },
+                                                            "errors": Object {},
+                                                            "fieldDescriptor": Map {
+                                                              "repo" => Object {
+                                                                "alignRight": false,
+                                                                "allowEmpty": false,
+                                                                "async": true,
+                                                                "autoload": true,
+                                                                "cache": false,
+                                                                "children": [Function],
+                                                                "choices": Array [
+                                                                  Array [
+                                                                    "scefali/test",
+                                                                    "test",
                                                                   ],
-                                                                }
-                                                              }
-                                                              name="repo"
-                                                            >
-                                                              <Observer>
-                                                                <ControlState
-                                                                  error={false}
-                                                                  isSaved={null}
-                                                                  isSaving={null}
-                                                                />
-                                                              </Observer>
-                                                            </FormFieldControlState>
-                                                          </div>
-                                                        </Base>
-                                                      </Flex>
-                                                    </Component>
+                                                                  Array [
+                                                                    "scefali/ZeldaBazaar",
+                                                                    "ZeldaBazaar",
+                                                                  ],
+                                                                ],
+                                                                "className": undefined,
+                                                                "default": "scefali/test",
+                                                                "disabled": false,
+                                                                "escapeMarkup": true,
+                                                                "field": [Function],
+                                                                "flexibleControlStateSize": true,
+                                                                "formatMessageValue": [Function],
+                                                                "hideErrorMessage": false,
+                                                                "inline": false,
+                                                                "label": "GitHub Repository",
+                                                                "loadOptions": [Function],
+                                                                "name": "repo",
+                                                                "onBlurResetsInput": false,
+                                                                "onCloseResetsInput": false,
+                                                                "onSelectResetsInput": false,
+                                                                "placeholder": "--",
+                                                                "required": true,
+                                                                "small": false,
+                                                                "stacked": true,
+                                                                "type": "select",
+                                                                "updatesForm": true,
+                                                                "url": "/search",
+                                                              },
+                                                              "externalIssue" => Object {
+                                                                "alignRight": false,
+                                                                "allowEmpty": false,
+                                                                "async": true,
+                                                                "autoload": true,
+                                                                "cache": false,
+                                                                "children": [Function],
+                                                                "choices": Array [],
+                                                                "className": undefined,
+                                                                "default": "",
+                                                                "disabled": false,
+                                                                "escapeMarkup": true,
+                                                                "field": [Function],
+                                                                "flexibleControlStateSize": true,
+                                                                "formatMessageValue": [Function],
+                                                                "hideErrorMessage": false,
+                                                                "inline": false,
+                                                                "label": "Issue",
+                                                                "loadOptions": [Function],
+                                                                "name": "externalIssue",
+                                                                "onBlurResetsInput": false,
+                                                                "onCloseResetsInput": false,
+                                                                "onSelectResetsInput": false,
+                                                                "placeholder": "--",
+                                                                "required": true,
+                                                                "small": false,
+                                                                "stacked": true,
+                                                                "type": "select",
+                                                                "url": "/search",
+                                                              },
+                                                              "comment" => Object {
+                                                                "children": [Function],
+                                                                "className": undefined,
+                                                                "default": "Default Value",
+                                                                "disabled": false,
+                                                                "field": [Function],
+                                                                "flexibleControlStateSize": true,
+                                                                "help": "Leave blank if you don't want to add a comment to the GitHub issue.",
+                                                                "hideErrorMessage": false,
+                                                                "inline": false,
+                                                                "label": "Comment",
+                                                                "name": "comment",
+                                                                "required": false,
+                                                                "stacked": true,
+                                                                "type": "textarea",
+                                                              },
+                                                            },
+                                                            "fieldState": Object {},
+                                                            "fields": Object {
+                                                              "comment": "Default Value",
+                                                              "externalIssue": "",
+                                                              "repo": "scefali/test",
+                                                            },
+                                                            "formErrors": undefined,
+                                                            "formState": undefined,
+                                                            "initialData": Object {
+                                                              "comment": "Default Value",
+                                                              "externalIssue": "",
+                                                              "repo": "scefali/test",
+                                                            },
+                                                            "options": Object {
+                                                              "allowUndo": false,
+                                                              "apiEndpoint": "/groups/1/integrations/1/",
+                                                              "apiMethod": "PUT",
+                                                              "onFieldChange": [Function],
+                                                              "onSubmitError": undefined,
+                                                              "onSubmitSuccess": [Function],
+                                                              "resetOnError": undefined,
+                                                              "saveOnBlur": false,
+                                                            },
+                                                            "snapshots": Array [
+                                                              Map {
+                                                                "repo" => "scefali/test",
+                                                                "externalIssue" => "",
+                                                                "comment" => "Default Value",
+                                                              },
+                                                            ],
+                                                          }
+                                                        }
+                                                        name="repo"
+                                                      >
+                                                        <Observer>
+                                                          <ControlState
+                                                            error={false}
+                                                            isSaved={null}
+                                                            isSaving={null}
+                                                          />
+                                                        </Observer>
+                                                      </FormFieldControlState>
+                                                    </div>
                                                   </FieldControlState>
                                                 </div>
                                               </Base>
@@ -2213,165 +2199,151 @@ exports[`ExternalIssueForm link renders 1`] = `
                                                   <FieldControlState
                                                     flexibleControlStateSize={true}
                                                   >
-                                                    <Component
-                                                      className="css-1x60lk6-FieldControlState e1rziqw00"
-                                                      flexibleControlStateSize={true}
+                                                    <div
+                                                      className="css-18vhbhh-FieldControlState ep9s0su0"
                                                     >
-                                                      <Flex
-                                                        className="css-1x60lk6-FieldControlState e1rziqw00"
-                                                      >
-                                                        <Base
-                                                          className="e1rziqw00 css-dgyrfj-FieldControlState"
-                                                        >
-                                                          <div
-                                                            className="e1rziqw00 css-dgyrfj-FieldControlState"
-                                                            is={null}
-                                                          >
-                                                            <FormFieldControlState
-                                                              model={
-                                                                FormModel {
-                                                                  "api": Client {
-                                                                    "_chain": [Function],
-                                                                    "_wrapRequest": [Function],
-                                                                    "bulkUpdate": [Function],
-                                                                    "handleRequestError": [Function],
-                                                                    "hasProjectBeenRenamed": [Function],
-                                                                  },
-                                                                  "errors": Object {},
-                                                                  "fieldDescriptor": Map {
-                                                                    "repo" => Object {
-                                                                      "alignRight": false,
-                                                                      "allowEmpty": false,
-                                                                      "async": true,
-                                                                      "autoload": true,
-                                                                      "cache": false,
-                                                                      "children": [Function],
-                                                                      "choices": Array [
-                                                                        Array [
-                                                                          "scefali/test",
-                                                                          "test",
-                                                                        ],
-                                                                        Array [
-                                                                          "scefali/ZeldaBazaar",
-                                                                          "ZeldaBazaar",
-                                                                        ],
-                                                                      ],
-                                                                      "className": undefined,
-                                                                      "default": "scefali/test",
-                                                                      "disabled": false,
-                                                                      "escapeMarkup": true,
-                                                                      "field": [Function],
-                                                                      "flexibleControlStateSize": true,
-                                                                      "formatMessageValue": [Function],
-                                                                      "hideErrorMessage": false,
-                                                                      "inline": false,
-                                                                      "label": "GitHub Repository",
-                                                                      "loadOptions": [Function],
-                                                                      "name": "repo",
-                                                                      "onBlurResetsInput": false,
-                                                                      "onCloseResetsInput": false,
-                                                                      "onSelectResetsInput": false,
-                                                                      "placeholder": "--",
-                                                                      "required": true,
-                                                                      "small": false,
-                                                                      "stacked": true,
-                                                                      "type": "select",
-                                                                      "updatesForm": true,
-                                                                      "url": "/search",
-                                                                    },
-                                                                    "externalIssue" => Object {
-                                                                      "alignRight": false,
-                                                                      "allowEmpty": false,
-                                                                      "async": true,
-                                                                      "autoload": true,
-                                                                      "cache": false,
-                                                                      "children": [Function],
-                                                                      "choices": Array [],
-                                                                      "className": undefined,
-                                                                      "default": "",
-                                                                      "disabled": false,
-                                                                      "escapeMarkup": true,
-                                                                      "field": [Function],
-                                                                      "flexibleControlStateSize": true,
-                                                                      "formatMessageValue": [Function],
-                                                                      "hideErrorMessage": false,
-                                                                      "inline": false,
-                                                                      "label": "Issue",
-                                                                      "loadOptions": [Function],
-                                                                      "name": "externalIssue",
-                                                                      "onBlurResetsInput": false,
-                                                                      "onCloseResetsInput": false,
-                                                                      "onSelectResetsInput": false,
-                                                                      "placeholder": "--",
-                                                                      "required": true,
-                                                                      "small": false,
-                                                                      "stacked": true,
-                                                                      "type": "select",
-                                                                      "url": "/search",
-                                                                    },
-                                                                    "comment" => Object {
-                                                                      "children": [Function],
-                                                                      "className": undefined,
-                                                                      "default": "Default Value",
-                                                                      "disabled": false,
-                                                                      "field": [Function],
-                                                                      "flexibleControlStateSize": true,
-                                                                      "help": "Leave blank if you don't want to add a comment to the GitHub issue.",
-                                                                      "hideErrorMessage": false,
-                                                                      "inline": false,
-                                                                      "label": "Comment",
-                                                                      "name": "comment",
-                                                                      "required": false,
-                                                                      "stacked": true,
-                                                                      "type": "textarea",
-                                                                    },
-                                                                  },
-                                                                  "fieldState": Object {},
-                                                                  "fields": Object {
-                                                                    "comment": "Default Value",
-                                                                    "externalIssue": "",
-                                                                    "repo": "scefali/test",
-                                                                  },
-                                                                  "formErrors": undefined,
-                                                                  "formState": undefined,
-                                                                  "initialData": Object {
-                                                                    "comment": "Default Value",
-                                                                    "externalIssue": "",
-                                                                    "repo": "scefali/test",
-                                                                  },
-                                                                  "options": Object {
-                                                                    "allowUndo": false,
-                                                                    "apiEndpoint": "/groups/1/integrations/1/",
-                                                                    "apiMethod": "PUT",
-                                                                    "onFieldChange": [Function],
-                                                                    "onSubmitError": undefined,
-                                                                    "onSubmitSuccess": [Function],
-                                                                    "resetOnError": undefined,
-                                                                    "saveOnBlur": false,
-                                                                  },
-                                                                  "snapshots": Array [
-                                                                    Map {
-                                                                      "repo" => "scefali/test",
-                                                                      "externalIssue" => "",
-                                                                      "comment" => "Default Value",
-                                                                    },
+                                                      <FormFieldControlState
+                                                        model={
+                                                          FormModel {
+                                                            "api": Client {
+                                                              "_chain": [Function],
+                                                              "_wrapRequest": [Function],
+                                                              "bulkUpdate": [Function],
+                                                              "handleRequestError": [Function],
+                                                              "hasProjectBeenRenamed": [Function],
+                                                            },
+                                                            "errors": Object {},
+                                                            "fieldDescriptor": Map {
+                                                              "repo" => Object {
+                                                                "alignRight": false,
+                                                                "allowEmpty": false,
+                                                                "async": true,
+                                                                "autoload": true,
+                                                                "cache": false,
+                                                                "children": [Function],
+                                                                "choices": Array [
+                                                                  Array [
+                                                                    "scefali/test",
+                                                                    "test",
                                                                   ],
-                                                                }
-                                                              }
-                                                              name="externalIssue"
-                                                            >
-                                                              <Observer>
-                                                                <ControlState
-                                                                  error={false}
-                                                                  isSaved={null}
-                                                                  isSaving={null}
-                                                                />
-                                                              </Observer>
-                                                            </FormFieldControlState>
-                                                          </div>
-                                                        </Base>
-                                                      </Flex>
-                                                    </Component>
+                                                                  Array [
+                                                                    "scefali/ZeldaBazaar",
+                                                                    "ZeldaBazaar",
+                                                                  ],
+                                                                ],
+                                                                "className": undefined,
+                                                                "default": "scefali/test",
+                                                                "disabled": false,
+                                                                "escapeMarkup": true,
+                                                                "field": [Function],
+                                                                "flexibleControlStateSize": true,
+                                                                "formatMessageValue": [Function],
+                                                                "hideErrorMessage": false,
+                                                                "inline": false,
+                                                                "label": "GitHub Repository",
+                                                                "loadOptions": [Function],
+                                                                "name": "repo",
+                                                                "onBlurResetsInput": false,
+                                                                "onCloseResetsInput": false,
+                                                                "onSelectResetsInput": false,
+                                                                "placeholder": "--",
+                                                                "required": true,
+                                                                "small": false,
+                                                                "stacked": true,
+                                                                "type": "select",
+                                                                "updatesForm": true,
+                                                                "url": "/search",
+                                                              },
+                                                              "externalIssue" => Object {
+                                                                "alignRight": false,
+                                                                "allowEmpty": false,
+                                                                "async": true,
+                                                                "autoload": true,
+                                                                "cache": false,
+                                                                "children": [Function],
+                                                                "choices": Array [],
+                                                                "className": undefined,
+                                                                "default": "",
+                                                                "disabled": false,
+                                                                "escapeMarkup": true,
+                                                                "field": [Function],
+                                                                "flexibleControlStateSize": true,
+                                                                "formatMessageValue": [Function],
+                                                                "hideErrorMessage": false,
+                                                                "inline": false,
+                                                                "label": "Issue",
+                                                                "loadOptions": [Function],
+                                                                "name": "externalIssue",
+                                                                "onBlurResetsInput": false,
+                                                                "onCloseResetsInput": false,
+                                                                "onSelectResetsInput": false,
+                                                                "placeholder": "--",
+                                                                "required": true,
+                                                                "small": false,
+                                                                "stacked": true,
+                                                                "type": "select",
+                                                                "url": "/search",
+                                                              },
+                                                              "comment" => Object {
+                                                                "children": [Function],
+                                                                "className": undefined,
+                                                                "default": "Default Value",
+                                                                "disabled": false,
+                                                                "field": [Function],
+                                                                "flexibleControlStateSize": true,
+                                                                "help": "Leave blank if you don't want to add a comment to the GitHub issue.",
+                                                                "hideErrorMessage": false,
+                                                                "inline": false,
+                                                                "label": "Comment",
+                                                                "name": "comment",
+                                                                "required": false,
+                                                                "stacked": true,
+                                                                "type": "textarea",
+                                                              },
+                                                            },
+                                                            "fieldState": Object {},
+                                                            "fields": Object {
+                                                              "comment": "Default Value",
+                                                              "externalIssue": "",
+                                                              "repo": "scefali/test",
+                                                            },
+                                                            "formErrors": undefined,
+                                                            "formState": undefined,
+                                                            "initialData": Object {
+                                                              "comment": "Default Value",
+                                                              "externalIssue": "",
+                                                              "repo": "scefali/test",
+                                                            },
+                                                            "options": Object {
+                                                              "allowUndo": false,
+                                                              "apiEndpoint": "/groups/1/integrations/1/",
+                                                              "apiMethod": "PUT",
+                                                              "onFieldChange": [Function],
+                                                              "onSubmitError": undefined,
+                                                              "onSubmitSuccess": [Function],
+                                                              "resetOnError": undefined,
+                                                              "saveOnBlur": false,
+                                                            },
+                                                            "snapshots": Array [
+                                                              Map {
+                                                                "repo" => "scefali/test",
+                                                                "externalIssue" => "",
+                                                                "comment" => "Default Value",
+                                                              },
+                                                            ],
+                                                          }
+                                                        }
+                                                        name="externalIssue"
+                                                      >
+                                                        <Observer>
+                                                          <ControlState
+                                                            error={false}
+                                                            isSaved={null}
+                                                            isSaving={null}
+                                                          />
+                                                        </Observer>
+                                                      </FormFieldControlState>
+                                                    </div>
                                                   </FieldControlState>
                                                 </div>
                                               </Base>
@@ -2513,7 +2485,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                     stacked={true}
                                   >
                                     <div
-                                      className="css-18eefdy-FieldHelp e19g0xdp0"
+                                      className="css-18eefdy-FieldHelp e54sr8f0"
                                     >
                                       Leave blank if you don't want to add a comment to the GitHub issue.
                                     </div>
@@ -2778,165 +2750,151 @@ exports[`ExternalIssueForm link renders 1`] = `
                                                   <FieldControlState
                                                     flexibleControlStateSize={true}
                                                   >
-                                                    <Component
-                                                      className="css-1x60lk6-FieldControlState e1rziqw00"
-                                                      flexibleControlStateSize={true}
+                                                    <div
+                                                      className="css-18vhbhh-FieldControlState ep9s0su0"
                                                     >
-                                                      <Flex
-                                                        className="css-1x60lk6-FieldControlState e1rziqw00"
-                                                      >
-                                                        <Base
-                                                          className="e1rziqw00 css-dgyrfj-FieldControlState"
-                                                        >
-                                                          <div
-                                                            className="e1rziqw00 css-dgyrfj-FieldControlState"
-                                                            is={null}
-                                                          >
-                                                            <FormFieldControlState
-                                                              model={
-                                                                FormModel {
-                                                                  "api": Client {
-                                                                    "_chain": [Function],
-                                                                    "_wrapRequest": [Function],
-                                                                    "bulkUpdate": [Function],
-                                                                    "handleRequestError": [Function],
-                                                                    "hasProjectBeenRenamed": [Function],
-                                                                  },
-                                                                  "errors": Object {},
-                                                                  "fieldDescriptor": Map {
-                                                                    "repo" => Object {
-                                                                      "alignRight": false,
-                                                                      "allowEmpty": false,
-                                                                      "async": true,
-                                                                      "autoload": true,
-                                                                      "cache": false,
-                                                                      "children": [Function],
-                                                                      "choices": Array [
-                                                                        Array [
-                                                                          "scefali/test",
-                                                                          "test",
-                                                                        ],
-                                                                        Array [
-                                                                          "scefali/ZeldaBazaar",
-                                                                          "ZeldaBazaar",
-                                                                        ],
-                                                                      ],
-                                                                      "className": undefined,
-                                                                      "default": "scefali/test",
-                                                                      "disabled": false,
-                                                                      "escapeMarkup": true,
-                                                                      "field": [Function],
-                                                                      "flexibleControlStateSize": true,
-                                                                      "formatMessageValue": [Function],
-                                                                      "hideErrorMessage": false,
-                                                                      "inline": false,
-                                                                      "label": "GitHub Repository",
-                                                                      "loadOptions": [Function],
-                                                                      "name": "repo",
-                                                                      "onBlurResetsInput": false,
-                                                                      "onCloseResetsInput": false,
-                                                                      "onSelectResetsInput": false,
-                                                                      "placeholder": "--",
-                                                                      "required": true,
-                                                                      "small": false,
-                                                                      "stacked": true,
-                                                                      "type": "select",
-                                                                      "updatesForm": true,
-                                                                      "url": "/search",
-                                                                    },
-                                                                    "externalIssue" => Object {
-                                                                      "alignRight": false,
-                                                                      "allowEmpty": false,
-                                                                      "async": true,
-                                                                      "autoload": true,
-                                                                      "cache": false,
-                                                                      "children": [Function],
-                                                                      "choices": Array [],
-                                                                      "className": undefined,
-                                                                      "default": "",
-                                                                      "disabled": false,
-                                                                      "escapeMarkup": true,
-                                                                      "field": [Function],
-                                                                      "flexibleControlStateSize": true,
-                                                                      "formatMessageValue": [Function],
-                                                                      "hideErrorMessage": false,
-                                                                      "inline": false,
-                                                                      "label": "Issue",
-                                                                      "loadOptions": [Function],
-                                                                      "name": "externalIssue",
-                                                                      "onBlurResetsInput": false,
-                                                                      "onCloseResetsInput": false,
-                                                                      "onSelectResetsInput": false,
-                                                                      "placeholder": "--",
-                                                                      "required": true,
-                                                                      "small": false,
-                                                                      "stacked": true,
-                                                                      "type": "select",
-                                                                      "url": "/search",
-                                                                    },
-                                                                    "comment" => Object {
-                                                                      "children": [Function],
-                                                                      "className": undefined,
-                                                                      "default": "Default Value",
-                                                                      "disabled": false,
-                                                                      "field": [Function],
-                                                                      "flexibleControlStateSize": true,
-                                                                      "help": "Leave blank if you don't want to add a comment to the GitHub issue.",
-                                                                      "hideErrorMessage": false,
-                                                                      "inline": false,
-                                                                      "label": "Comment",
-                                                                      "name": "comment",
-                                                                      "required": false,
-                                                                      "stacked": true,
-                                                                      "type": "textarea",
-                                                                    },
-                                                                  },
-                                                                  "fieldState": Object {},
-                                                                  "fields": Object {
-                                                                    "comment": "Default Value",
-                                                                    "externalIssue": "",
-                                                                    "repo": "scefali/test",
-                                                                  },
-                                                                  "formErrors": undefined,
-                                                                  "formState": undefined,
-                                                                  "initialData": Object {
-                                                                    "comment": "Default Value",
-                                                                    "externalIssue": "",
-                                                                    "repo": "scefali/test",
-                                                                  },
-                                                                  "options": Object {
-                                                                    "allowUndo": false,
-                                                                    "apiEndpoint": "/groups/1/integrations/1/",
-                                                                    "apiMethod": "PUT",
-                                                                    "onFieldChange": [Function],
-                                                                    "onSubmitError": undefined,
-                                                                    "onSubmitSuccess": [Function],
-                                                                    "resetOnError": undefined,
-                                                                    "saveOnBlur": false,
-                                                                  },
-                                                                  "snapshots": Array [
-                                                                    Map {
-                                                                      "repo" => "scefali/test",
-                                                                      "externalIssue" => "",
-                                                                      "comment" => "Default Value",
-                                                                    },
+                                                      <FormFieldControlState
+                                                        model={
+                                                          FormModel {
+                                                            "api": Client {
+                                                              "_chain": [Function],
+                                                              "_wrapRequest": [Function],
+                                                              "bulkUpdate": [Function],
+                                                              "handleRequestError": [Function],
+                                                              "hasProjectBeenRenamed": [Function],
+                                                            },
+                                                            "errors": Object {},
+                                                            "fieldDescriptor": Map {
+                                                              "repo" => Object {
+                                                                "alignRight": false,
+                                                                "allowEmpty": false,
+                                                                "async": true,
+                                                                "autoload": true,
+                                                                "cache": false,
+                                                                "children": [Function],
+                                                                "choices": Array [
+                                                                  Array [
+                                                                    "scefali/test",
+                                                                    "test",
                                                                   ],
-                                                                }
-                                                              }
-                                                              name="comment"
-                                                            >
-                                                              <Observer>
-                                                                <ControlState
-                                                                  error={false}
-                                                                  isSaved={null}
-                                                                  isSaving={null}
-                                                                />
-                                                              </Observer>
-                                                            </FormFieldControlState>
-                                                          </div>
-                                                        </Base>
-                                                      </Flex>
-                                                    </Component>
+                                                                  Array [
+                                                                    "scefali/ZeldaBazaar",
+                                                                    "ZeldaBazaar",
+                                                                  ],
+                                                                ],
+                                                                "className": undefined,
+                                                                "default": "scefali/test",
+                                                                "disabled": false,
+                                                                "escapeMarkup": true,
+                                                                "field": [Function],
+                                                                "flexibleControlStateSize": true,
+                                                                "formatMessageValue": [Function],
+                                                                "hideErrorMessage": false,
+                                                                "inline": false,
+                                                                "label": "GitHub Repository",
+                                                                "loadOptions": [Function],
+                                                                "name": "repo",
+                                                                "onBlurResetsInput": false,
+                                                                "onCloseResetsInput": false,
+                                                                "onSelectResetsInput": false,
+                                                                "placeholder": "--",
+                                                                "required": true,
+                                                                "small": false,
+                                                                "stacked": true,
+                                                                "type": "select",
+                                                                "updatesForm": true,
+                                                                "url": "/search",
+                                                              },
+                                                              "externalIssue" => Object {
+                                                                "alignRight": false,
+                                                                "allowEmpty": false,
+                                                                "async": true,
+                                                                "autoload": true,
+                                                                "cache": false,
+                                                                "children": [Function],
+                                                                "choices": Array [],
+                                                                "className": undefined,
+                                                                "default": "",
+                                                                "disabled": false,
+                                                                "escapeMarkup": true,
+                                                                "field": [Function],
+                                                                "flexibleControlStateSize": true,
+                                                                "formatMessageValue": [Function],
+                                                                "hideErrorMessage": false,
+                                                                "inline": false,
+                                                                "label": "Issue",
+                                                                "loadOptions": [Function],
+                                                                "name": "externalIssue",
+                                                                "onBlurResetsInput": false,
+                                                                "onCloseResetsInput": false,
+                                                                "onSelectResetsInput": false,
+                                                                "placeholder": "--",
+                                                                "required": true,
+                                                                "small": false,
+                                                                "stacked": true,
+                                                                "type": "select",
+                                                                "url": "/search",
+                                                              },
+                                                              "comment" => Object {
+                                                                "children": [Function],
+                                                                "className": undefined,
+                                                                "default": "Default Value",
+                                                                "disabled": false,
+                                                                "field": [Function],
+                                                                "flexibleControlStateSize": true,
+                                                                "help": "Leave blank if you don't want to add a comment to the GitHub issue.",
+                                                                "hideErrorMessage": false,
+                                                                "inline": false,
+                                                                "label": "Comment",
+                                                                "name": "comment",
+                                                                "required": false,
+                                                                "stacked": true,
+                                                                "type": "textarea",
+                                                              },
+                                                            },
+                                                            "fieldState": Object {},
+                                                            "fields": Object {
+                                                              "comment": "Default Value",
+                                                              "externalIssue": "",
+                                                              "repo": "scefali/test",
+                                                            },
+                                                            "formErrors": undefined,
+                                                            "formState": undefined,
+                                                            "initialData": Object {
+                                                              "comment": "Default Value",
+                                                              "externalIssue": "",
+                                                              "repo": "scefali/test",
+                                                            },
+                                                            "options": Object {
+                                                              "allowUndo": false,
+                                                              "apiEndpoint": "/groups/1/integrations/1/",
+                                                              "apiMethod": "PUT",
+                                                              "onFieldChange": [Function],
+                                                              "onSubmitError": undefined,
+                                                              "onSubmitSuccess": [Function],
+                                                              "resetOnError": undefined,
+                                                              "saveOnBlur": false,
+                                                            },
+                                                            "snapshots": Array [
+                                                              Map {
+                                                                "repo" => "scefali/test",
+                                                                "externalIssue" => "",
+                                                                "comment" => "Default Value",
+                                                              },
+                                                            ],
+                                                          }
+                                                        }
+                                                        name="comment"
+                                                      >
+                                                        <Observer>
+                                                          <ControlState
+                                                            error={false}
+                                                            isSaved={null}
+                                                            isSaving={null}
+                                                          />
+                                                        </Observer>
+                                                      </FormFieldControlState>
+                                                    </div>
                                                   </FieldControlState>
                                                 </div>
                                               </Base>
