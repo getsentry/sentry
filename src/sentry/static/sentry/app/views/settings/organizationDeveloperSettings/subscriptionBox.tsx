@@ -2,16 +2,30 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {t} from 'app/locale';
-import {DESCRIPTIONS} from 'app/views/settings/organizationDeveloperSettings/constants';
+import {
+  DESCRIPTIONS,
+  EVENT_CHOICES,
+} from 'app/views/settings/organizationDeveloperSettings/constants';
 import styled from 'react-emotion';
 import Checkbox from 'app/components/checkbox';
 import Tooltip from 'app/components/tooltip';
-import {Flex} from 'grid-emotion';
 import withOrganization from 'app/utils/withOrganization';
 import SentryTypes from 'app/sentryTypes';
+import {Organization} from 'app/types';
 
-export class SubscriptionBox extends React.Component {
-  static propTypes = {
+type Resource = typeof EVENT_CHOICES[number];
+
+type Props = {
+  resource: Resource;
+  disabledFromPermissions: boolean;
+  webhookDisabled: boolean;
+  checked: boolean;
+  onChange: (resource: Resource, checked: boolean) => void;
+  organization: Organization;
+};
+
+export class SubscriptionBox extends React.Component<Props> {
+  static propTypes: any = {
     resource: PropTypes.string.isRequired,
     disabledFromPermissions: PropTypes.bool.isRequired,
     webhookDisabled: PropTypes.bool.isRequired,
@@ -24,7 +38,7 @@ export class SubscriptionBox extends React.Component {
     webhookDisabled: false,
   };
 
-  onChange = evt => {
+  onChange = (evt: React.ChangeEvent<HTMLInputElement>) => {
     const checked = evt.target.checked;
     const {resource} = this.props;
     this.props.onChange(resource, checked);
@@ -74,7 +88,8 @@ export class SubscriptionBox extends React.Component {
 
 export default withOrganization(SubscriptionBox);
 
-const SubscriptionInfo = styled(Flex)`
+const SubscriptionInfo = styled('div')`
+  display: flex;
   flex-direction: column;
 `;
 
@@ -83,7 +98,7 @@ const SubscriptionGridItem = styled('div')`
   flex-direction: row;
   justify-content: space-between;
   background: ${p => p.theme.whiteDark};
-  opacity: ${p => (p.disabled ? 0.3 : 1)};
+  opacity: ${({disabled}: {disabled: boolean}) => (disabled ? 0.3 : 1)};
   border-radius: 3px;
   flex: 1;
   padding: 12px;
