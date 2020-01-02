@@ -34,9 +34,9 @@ def backfill_eventstream(apps, schema_editor):
         return Event.objects.filter(datetime__gte=from_date, datetime__lte=to_date)
 
     def _attach_related(_events):
-        project_ids = set([event.project_id for event in _events])
+        project_ids = {event.project_id for event in _events}
         projects = {p.id: p for p in Project.objects.filter(id__in=project_ids)}
-        group_ids = set([event.group_id for event in _events])
+        group_ids = {event.group_id for event in _events}
         groups = {g.id: g for g in Group.objects.filter(id__in=group_ids)}
         for event in _events:
             event.project = projects[event.project_id]
