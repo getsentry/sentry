@@ -297,10 +297,26 @@ class GridEditable<
       return;
     }
 
+    let sumWidth = 0;
     const columnWidths = columnOrder.map((c, i) => {
-      const width = i !== columnIndex ? c.width : columnWidth;
-      return `${Math.max(COL_WIDTH_MIN, Number(width) || COL_WIDTH_DEFAULT)}px`;
+      let width =
+        i === columnIndex // Case 1: Resize, then draw a specific column
+          ? columnWidth
+          : !c.width || isNaN(c.width) // Case 2: Draw a column with no width
+          ? COL_WIDTH_DEFAULT
+          : Number(c.width); // Case 3: Draw a column with width
+
+      width = Math.max(COL_WIDTH_MIN, width);
+      sumWidth += width;
+
+      return `${width}px`;
     });
+
+    // If columns are smaller than grid, let the last column fill the remaining
+    // blank space on the right of the grid
+    if (sumWidth < grid.offsetWidth) {
+      columnWidths[columnWidths.length - 1] = '1fr';
+    }
 
     grid.style.gridTemplateColumns = columnWidths.join(' ');
   }

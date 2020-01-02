@@ -278,8 +278,10 @@ export const GridBodyCell = styled('td')`
   /* By default, a grid item cannot be smaller than the size of its content.
      We override this by setting min-width to be 0. */
   min-width: 0;
-  /* Locking in the height makes a lot of things easier */
-  height: ${GRID_BODY_ROW_HEIGHT}px;
+  /* Locking in the height makes calculation for resizer to be easier.
+     min-height is used to allow a cell to expand and this is used to display
+     feedback duringempty/error state */
+  min-height: ${GRID_BODY_ROW_HEIGHT}px;
   padding: ${space(1)} ${space(2)};
 
   background-color: ${p => p.theme.white};
@@ -344,6 +346,6 @@ export const GridResizer = styled('div')<{dataRows: number; isLast?: boolean}>`
    */
   &:active::after,
   &:focus::after {
-    background-color: ${p => p.theme.gray2};
+    background-color: ${p => p.theme.purple};
   }
 `;
