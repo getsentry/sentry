@@ -1645,8 +1645,4 @@ describe('IssueList,', function() {
       expect(wrapper.find(ErrorRobot)).toHaveLength(0);
     });
   });
-
-  describe('Incidents', function() {
-    it.todo('creates an incident by selecting issues from stream');
-  });
 });
