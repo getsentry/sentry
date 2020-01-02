@@ -60,6 +60,10 @@ describe('IssueList --> Create Incident', function() {
   beforeEach(function() {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/searches/',
       body: [savedSearch],
     });
@@ -107,6 +111,14 @@ describe('IssueList --> Create Incident', function() {
           id: '2',
         }),
       ],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sent-first-event/',
+      body: {sentFirstEvent: true},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [project],
     });
   });
 

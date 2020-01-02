@@ -33,7 +33,7 @@ class IncidentSerializerTest(TestCase):
         assert result["aggregation"] == incident.aggregation
         assert result["dateStarted"] == incident.date_started
         assert result["dateDetected"] == incident.date_detected
-        assert result["dateAdded"] == incident.date_added
+        assert result["dateCreated"] == incident.date_added
         assert result["dateClosed"] == incident.date_closed
         assert len(result["eventStats"]["data"]) == 52
         assert [data[1] for data in result["eventStats"]["data"]] == [[]] * 52

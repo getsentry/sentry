@@ -1,19 +1,22 @@
 from __future__ import absolute_import
 
-import pytest
 import pickle
+import pytest
 
-from sentry.models import Environment
 from sentry.db.models.fields.node import NodeData
-from sentry.event_manager import EventManager
+from sentry.models import Environment
 from sentry.testutils import TestCase
-from sentry.testutils.factories import Factories
+from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
 class EventTest(TestCase):
     def test_pickling_compat(self):
-        event = self.create_event(
-            data={"tags": [("logger", "foobar"), ("site", "foo"), ("server_name", "bar")]}
+        event = self.store_event(
+            data={
+                "message": "Hello World!",
+                "tags": {"logger": "foobar", "site": "foo", "server_name": "bar"},
+            },
+            project_id=self.project.id,
         )
 
         # Ensure we load and memoize the interfaces as well.
@@ -41,19 +44,34 @@ class EventTest(TestCase):
         assert event2.data == event.data
 
     def test_event_as_dict(self):
-        event = self.create_event(data={"logentry": {"formatted": "Hello World!"}})
+        event = self.store_event(data={"message": "Hello World!"}, project_id=self.project.id)
 
         d = event.as_dict()
-        assert d["logentry"] == {"formatted": "Hello World!"}
+        assert d["logentry"] == {"formatted": "Hello World!", "message": None, "params": None}
 
     def test_email_subject(self):
-        event1 = self.create_event(
-            event_id="a" * 32, group=self.group, tags={"level": "info"}, message="Foo bar"
+        event1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "Foo bar",
+                "level": "info",
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
         )
-        event2 = self.create_event(
-            event_id="b" * 32, group=self.group, tags={"level": "ERROR"}, message="Foo bar"
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "Foo bar",
+                "level": "error",
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
         )
-        self.group.level = 30
+
+        group = event1.group
+
+        group.level = 30
 
         assert event1.get_email_subject() == "BAR-1 - Foo bar"
         assert event2.get_email_subject() == "BAR-1 - Foo bar"
@@ -78,11 +96,17 @@ class EventTest(TestCase):
         assert event1.get_email_subject() == "BAR-1 - production@0 $ baz ${tag:invalid} $invalid"
 
     def test_as_dict_hides_client_ip(self):
-        event = self.create_event(
-            data={"sdk": {"name": "foo", "version": "1.0", "client_ip": "127.0.0.1"}}
+        event = self.store_event(
+            data={"sdk": {"name": "foo", "version": "1.0", "client_ip": "127.0.0.1"}},
+            project_id=self.project.id,
         )
         result = event.as_dict()
-        assert result["sdk"] == {"name": "foo", "version": "1.0"}
+        assert result["sdk"] == {
+            "name": "foo",
+            "version": "1.0",
+            "integrations": None,
+            "packages": None,
+        }
 
     def test_get_environment(self):
         environment = Environment.get_or_create(self.project, "production")
@@ -132,13 +156,20 @@ class EventTest(TestCase):
         assert event.ip_address is None
 
     def test_issueless_event(self):
-        event = Factories.create_event(
-            group=None,
-            project=self.project,
-            event_id="a" * 32,
-            tags={"level": "info"},
-            message="Foo bar",
-            data={"culprit": "app/components/events/eventEntries in map"},
+        min_ago = iso_format(before_now(minutes=1))
+
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "level": "info",
+                "message": "Foo bar",
+                "culprit": "app/components/events/eventEntries in map",
+                "type": "transaction",
+                "timestamp": min_ago,
+                "start_timestamp": min_ago,
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+            },
+            project_id=self.project.id,
         )
         assert event.group is None
         assert event.culprit == "app/components/events/eventEntries in map"
@@ -166,47 +197,3 @@ def test_renormalization(monkeypatch, factories, task_runner, default_project):
     # that you will encounter severe performance issues during event processing
     # or postprocessing.
     assert len(normalize_mock_calls) == 1
-
-
-class EventGetLegacyMessageTest(TestCase):
-    def test_message(self):
-        event = self.create_event(message="foo bar")
-        assert event.get_legacy_message() == "foo bar"
-
-    def test_message_interface(self):
-        event = self.create_event(message="biz baz", data={"logentry": {"message": "foo bar"}})
-        assert event.get_legacy_message() == "foo bar"
-
-    def test_message_interface_with_formatting(self):
-        event = self.create_event(
-            message="biz baz",
-            data={"logentry": {"message": "foo %s", "formatted": "foo bar", "params": ["bar"]}},
-        )
-        assert event.get_legacy_message() == "foo bar"
-
-    def test_none(self):
-        event = self.create_event(data={"logentry": None})
-        assert event.get_legacy_message() == "<unlabeled event>"
-
-        event = self.create_event(data={"logentry": {"formatted": None, "message": None}})
-        assert event.get_legacy_message() == "<unlabeled event>"
-
-    def test_get_hashes(self):
-        manager = EventManager({"message": "Hello World!"})
-        manager.normalize()
-        event = manager.save(1)
-
-        # Have hashes by default
-        hashes = event.get_hashes()
-        assert hashes == ["ed076287532e86365e841e92bfc50d8c"]
-        assert event.data.data["hashes"] == ["ed076287532e86365e841e92bfc50d8c"]
-
-        # if hashes are reset, generate new ones
-        event.data.data["hashes"] = None
-        hashes = event.get_hashes()
-        assert hashes == ["ed076287532e86365e841e92bfc50d8c"]
-        assert event.data.data["hashes"] is None
-
-        # Use stored hashes
-        event.data.data["hashes"] = ["x"]
-        assert event.get_hashes() == ["x"]

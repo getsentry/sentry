@@ -11,7 +11,7 @@ import pickBy from 'lodash/pickBy';
 import qs from 'query-string';
 
 import {Client} from 'app/api';
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
+import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'app/constants';
 import {Panel, PanelBody} from 'app/components/panels';
 import {analytics} from 'app/utils/analytics';
 import {defined} from 'app/utils';
@@ -24,10 +24,7 @@ import {extractSelectionParameters} from 'app/components/organizations/globalSel
 import {fetchOrgMembers, indexMembersByProject} from 'app/actionCreators/members';
 import {fetchOrganizationTags, fetchTagValues} from 'app/actionCreators/tags';
 import {getUtcDateString} from 'app/utils/dates';
-import {t} from 'app/locale';
 import CursorPoller from 'app/utils/cursorPoller';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import ErrorRobot from 'app/components/errorRobot';
 import GroupStore from 'app/stores/groupStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -47,18 +44,14 @@ import withSavedSearches from 'app/utils/withSavedSearches';
 import IssueListActions from './actions';
 import IssueListFilters from './filters';
 import IssueListSidebar from './sidebar';
+import NoGroupsHandler from './noGroupsHandler';
 
 const MAX_ITEMS = 25;
-const DEFAULT_QUERY = 'is:unresolved';
 const DEFAULT_SORT = 'date';
 // the default period for the graph in each issue row
 const DEFAULT_GRAPH_STATS_PERIOD = '24h';
 // the allowed period choices for graph in each issue row
 const STATS_PERIODS = new Set(['14d', '24h']);
-
-const CongratsRobots = React.lazy(() =>
-  import(/* webpackChunkName: "CongratsRobots" */ 'app/views/issueList/congratsRobots')
-);
 
 const IssueListOverview = createReactClass({
   displayName: 'IssueListOverview',
@@ -546,38 +539,12 @@ const IssueListOverview = createReactClass({
     return <PanelBody>{groupNodes}</PanelBody>;
   },
 
-  renderEmpty() {
-    return (
-      <EmptyStateWarning>
-        <p>{t('Sorry, no issues match your filters.')}</p>
-      </EmptyStateWarning>
-    );
-  },
-
   renderLoading() {
     return <LoadingIndicator />;
   },
 
-  renderNoUnresolvedIssues() {
-    return (
-      <React.Suspense fallback={this.renderLoading()}>
-        <CongratsRobots data-test-id="congrats-robots" />
-      </React.Suspense>
-    );
-  },
-
   renderStreamBody() {
     let body;
-    const {organization} = this.props;
-    const selectedProjects = this.getGlobalSearchProjects();
-    const query = this.getQuery();
-
-    // If no projects are selected, then we must check every project the user is a
-    // member of and make sure there are no first events for all of the projects
-    const projects = !selectedProjects.length
-      ? organization.projects.filter(p => p.isMember)
-      : selectedProjects;
-    const noFirstEvents = projects.every(p => !p.firstEvent);
 
     if (this.state.issuesLoading) {
       body = this.renderLoading();
@@ -585,12 +552,16 @@ const IssueListOverview = createReactClass({
       body = <LoadingError message={this.state.error} onRetry={this.fetchData} />;
     } else if (this.state.groupIds.length > 0) {
       body = this.renderGroupNodes(this.state.groupIds, this.getGroupStatsPeriod());
-    } else if (noFirstEvents) {
-      body = this.renderAwaitingEvents(projects);
-    } else if (query === DEFAULT_QUERY) {
-      body = this.renderNoUnresolvedIssues();
     } else {
-      body = this.renderEmpty();
+      body = (
+        <NoGroupsHandler
+          api={this.api}
+          organization={this.props.organization}
+          query={this.getQuery()}
+          selectedProjectIds={this.props.selection.projects}
+          groupIds={this.state.groupIds}
+        />
+      );
     }
     return body;
   },
@@ -623,26 +594,12 @@ const IssueListOverview = createReactClass({
     });
   },
 
-  renderAwaitingEvents(projects) {
-    const {organization} = this.props;
-    const project = projects.length > 0 ? projects[0] : null;
-
-    const sampleIssueId = this.state.groupIds.length > 0 ? this.state.groupIds[0] : '';
-    return (
-      <ErrorRobot
-        org={organization}
-        project={project}
-        sampleIssueId={sampleIssueId}
-        gradient
-      />
-    );
-  },
-
   tagValueLoader(key, search) {
     const {orgId} = this.props.params;
     const projectIds = this.getGlobalSearchProjects().map(p => p.id);
+    const endpointParams = this.getEndpointParams();
 
-    return fetchTagValues(this.api, orgId, key, search, projectIds);
+    return fetchTagValues(this.api, orgId, key, search, projectIds, endpointParams);
   },
 
   render() {

@@ -10,7 +10,7 @@ import ProjectBadge from 'app/components/idBadge/projectBadge';
 import UserBadge from 'app/components/idBadge/userBadge';
 import getDynamicText from 'app/utils/getDynamicText';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import pinIcon from 'app/../images/location-pin.png';
+import pinIcon from 'app/../images/icons/icon-location-filled.svg';
 import {Organization, NewQuery} from 'app/types';
 import Duration from 'app/components/duration';
 import floatFormat from 'app/utils/floatFormat';
@@ -39,6 +39,7 @@ export const DEFAULT_EVENT_VIEW: Readonly<NewQuery> = {
   orderby: '-timestamp',
   version: 2,
   tags: ['event.type', 'release', 'project.name', 'user.email', 'user.ip', 'environment'],
+  range: '24h',
 };
 
 export const TRANSACTION_VIEWS: Readonly<Array<NewQuery>> = [
@@ -59,6 +60,7 @@ export const TRANSACTION_VIEWS: Readonly<Array<NewQuery>> = [
     tags: ['release', 'project.name', 'user.email', 'user.ip', 'environment'],
     projects: [],
     version: 2,
+    range: '24h',
   },
 ];
 
@@ -73,25 +75,7 @@ export const ALL_VIEWS: Readonly<Array<NewQuery>> = [
     tags: ['project.name', 'release', 'environment'],
     projects: [],
     version: 2,
-  },
-  {
-    id: undefined,
-    name: t('Content Security Policy (CSP)'),
-    fields: ['title', 'count(id)', 'count_unique(user)', 'project', 'last_seen'],
-    fieldnames: ['csp', 'count', 'users', 'project', 'last seen'],
-    orderby: '-count_id',
-    query: 'event.type:csp',
-    tags: [
-      'project.name',
-      'blocked-uri',
-      'browser.name',
-      'os.name',
-      'effective-directive',
-      'release',
-      'environment',
-    ],
-    projects: [],
-    version: 2,
+    range: '24h',
   },
   {
     id: undefined,
@@ -103,6 +87,7 @@ export const ALL_VIEWS: Readonly<Array<NewQuery>> = [
     tags: ['error.type', 'project.name', 'release', 'environment'],
     projects: [],
     version: 2,
+    range: '24h',
   },
   {
     id: undefined,
@@ -114,24 +99,20 @@ export const ALL_VIEWS: Readonly<Array<NewQuery>> = [
     tags: ['error.type', 'project.name', 'url', 'release', 'environment'],
     projects: [],
     version: 2,
+    range: '24h',
   },
   {
-    id: undefined,
-    name: t('Content Security Policy (CSP) Report by Directive'),
-    fields: ['effective-directive', 'count(id)', 'count_unique(title)'],
-    fieldnames: ['directive', 'count', 'reports'],
-    orderby: '-count_id',
-    query: 'event.type:csp',
-    tags: [
-      'project.name',
-      'blocked-uri',
-      'browser.name',
-      'os.name',
-      'release',
-      'environment',
-    ],
-    projects: [],
     version: 2,
+    id: undefined,
+    name: t('Errors by Release'),
+    fields: ['release', 'count(id)', 'count_unique(user)', 'timestamp'],
+    fieldnames: ['Release', 'Issue', 'Users', 'time'],
+    orderby: '-count_id',
+    tags: ['event.type', 'release', 'project', 'user.email', 'user.ip', 'environment'],
+    projects: [],
+    range: '24h',
+    environment: [],
+    query: '',
   },
 ];
 

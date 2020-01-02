@@ -31,6 +31,7 @@ import EventInterfaces from './eventInterfaces';
 import LinkedIssue from './linkedIssue';
 import DiscoverBreadcrumb from '../breadcrumb';
 import {SectionHeading} from '../styles';
+import OpsBreakdown from './transaction/opsBreakdown';
 
 const slugValidator = function(
   props: {[key: string]: any},
@@ -175,6 +176,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
               organization={organization}
               projectId={this.projectId}
             />
+            <OpsBreakdown event={event} />
             {event.groupID && (
               <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
             )}
@@ -348,7 +350,7 @@ const StyledTitle = styled('span')`
 `;
 
 const MetaDataID = styled('div')`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${space(4)};
 `;
 
 const MetadataContainer = styled('div')`

@@ -233,7 +233,9 @@ class BitFieldTest(TestCase):
         self.assertTrue(instance.flags.FLAG_1)
         self.assertTrue(instance.flags.FLAG_3)
         self.assertFalse(
-            BitFieldTestModel.objects.filter(flags=BitFieldTestModel.flags.FLAG_0).exists()
+            BitFieldTestModel.objects.filter(
+                flags=F("flags").bitor(BitFieldTestModel.flags.FLAG_0)
+            ).exists()
         )
 
         BitFieldTestModel.objects.filter(pk=instance.pk).update(
