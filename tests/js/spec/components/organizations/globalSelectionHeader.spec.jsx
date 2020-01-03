@@ -57,7 +57,7 @@ describe('GlobalSelectionHeader', function() {
     MockApiClient.clearMockResponses();
     jest.spyOn(ProjectsStore, 'getState').mockImplementation(() => ({
       projects: organization.projects,
-      loadingProjects: false,
+      loading: false,
     }));
     GlobalSelectionStore.reset();
     [
@@ -274,7 +274,7 @@ describe('GlobalSelectionHeader', function() {
     });
     jest.spyOn(ProjectsStore, 'getState').mockImplementation(() => ({
       projects: initialData.projects,
-      loadingProjects: false,
+      loading: false,
     }));
 
     const wrapper = mountWithTheme(
@@ -498,7 +498,7 @@ describe('GlobalSelectionHeader', function() {
       const org = TestStubs.Organization({projects: [project]});
       jest
         .spyOn(ProjectsStore, 'getState')
-        .mockImplementation(() => ({projects: org.projects, loadingProjects: false}));
+        .mockImplementation(() => ({projects: org.projects, loading: false}));
 
       const initializationObj = initializeOrg({
         organization: org,
@@ -590,7 +590,7 @@ describe('GlobalSelectionHeader', function() {
       beforeEach(function() {
         jest.spyOn(ProjectsStore, 'getState').mockImplementation(() => ({
           projects: initialData.organization.projects,
-          loadingProjects: false,
+          loading: false,
         }));
         initialData.router.push.mockClear();
         initialData.router.replace.mockClear();
@@ -723,7 +723,7 @@ describe('GlobalSelectionHeader', function() {
       const org = TestStubs.Organization({projects: [memberProject, nonMemberProject]});
       jest
         .spyOn(ProjectsStore, 'getState')
-        .mockImplementation(() => ({projects: org.projects, loadingProjects: false}));
+        .mockImplementation(() => ({projects: org.projects, loading: false}));
 
       initialData = initializeOrg({
         organization: org,
