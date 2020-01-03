@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import functools
-import datetime
 import six
 from collections import defaultdict, Iterable
 from dateutil.parser import parse as parse_datetime
@@ -197,12 +196,10 @@ class SnubaTagStorage(TagStorage):
         cache_key = u"tagstore.__get_tag_keys:{}".format(md5_text(*filtering_strings).hexdigest())
         # Round times by 5 minutes since we cache for 5 minutes
         if start:
-            start = datetime.datetime(
-                start.year, start.month, start.day, start.hour, start.minute // 5 * 5
-            )
+            start = start.replace(minute=start.minute // 5 * 5, second=0, microsecond=0)
             cache_key += ":" + start.isoformat()
         if end:
-            end = datetime.datetime(end.year, end.month, end.day, end.hour, end.minute // 5 * 5)
+            end = end.replace(minute=end.minute // 5 * 5, second=0, microsecond=0)
             cache_key += ":" + end.isoformat()
 
         result = cache.get(cache_key, None)
