@@ -4,7 +4,7 @@ import TagActions from 'app/actions/tagActions';
 import AlertActions from 'app/actions/alertActions';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 
-const MAX_TAGS = 500;
+const MAX_TAGS = 1000;
 
 const BUILTIN_TAGS = [
   'event.type',
