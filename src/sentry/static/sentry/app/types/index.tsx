@@ -101,6 +101,10 @@ export type Project = {
   hasUserReports?: boolean;
   hasAccess: boolean;
   platform: string;
+
+  // XXX: These are part of the DetailedProject serializer
+  plugins: Plugin[];
+  processingIssues: number;
 };
 
 export type Team = {
