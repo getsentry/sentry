@@ -346,7 +346,7 @@ class BitbucketServerIntegrationProvider(IntegrationProvider):
         }
 
     def setup(self):
-        from sentry.plugins import bindings
+        from sentry.plugins.base import bindings
 
         bindings.add(
             "integration-repository.provider",
