@@ -302,8 +302,6 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
         return self.resource_links
 
     def get_view_response(self, request, group):
-        from sentry.models import Event
-
         self.selected = request.path == self.get_url(group)
 
         if not self.selected:
@@ -320,8 +318,9 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
         if not isinstance(response, Response):
             raise NotImplementedError("Use self.render() when returning responses.")
 
-        event = group.get_latest_event() or Event()
-        event.group = group
+        event = group.get_latest_event()
+        if event:
+            event.group = group
 
         request.access = access.from_request(request, group.organization)
 
