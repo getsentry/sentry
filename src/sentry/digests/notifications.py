@@ -8,10 +8,9 @@ import six
 from collections import OrderedDict, defaultdict, namedtuple
 from six.moves import reduce
 
-from sentry import options
 from sentry.app import tsdb
 from sentry.digests import Record
-from sentry.models import Project, Group, GroupStatus, Rule
+from sentry.models import Event, Project, Group, GroupStatus, Rule
 from sentry.utils.dates import to_timestamp
 
 logger = logging.getLogger("sentry.digests")
@@ -39,7 +38,7 @@ def event_to_record(event, rules):
     if not rules:
         logger.warning("Creating record for %r that does not contain any rules!", event)
 
-    if options.get("store.use-django-event"):
+    if isinstance(event, Event):
         event_data = strip_for_serialization(event)
     else:
         event_data = event
