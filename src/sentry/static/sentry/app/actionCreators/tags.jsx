@@ -76,14 +76,17 @@ export function loadOrganizationTags(api, orgId, selection) {
   //       themselves are also tags. Hence, we do not pass the list of environments
   //       as part of the query payload.
 
-  api
+  const promise = api
     .requestPromise(url, {
       method: 'GET',
       query,
     })
     .then(tags => {
-      tagFetchSuccess([...BUILTIN_TAGS, ...tags]);
-    }, TagActions.loadTagsError);
+      return [...BUILTIN_TAGS, ...tags];
+    });
+  promise.then(tagFetchSuccess, TagActions.loadTagsError);
+
+  return promise;
 }
 
 /**
