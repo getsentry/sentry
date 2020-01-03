@@ -1,8 +1,15 @@
 import {t} from 'app/locale';
+import {NavigationSection} from 'app/views/settings/types';
+import {Organization, Project} from 'app/types';
+
+type ConfigParams = {
+  organization: Organization;
+  project: Project;
+};
 
 const pathPrefix = '/settings/:orgId/projects/:projectId';
 
-export default function getConfiguration({project}) {
+export default function getConfiguration({project}: ConfigParams): NavigationSection[] {
   const plugins = ((project && project.plugins) || []).filter(plugin => plugin.enabled);
   return [
     {
@@ -28,7 +35,7 @@ export default function getConfiguration({project}) {
           path: `${pathPrefix}/alerts-v2/`,
           title: t('Alerts (New)'),
           description: t('Manage alerts and alert rules for a project'),
-          show: ({features}) => features.has('incidents'),
+          show: ({features}) => features!.has('incidents'),
         },
         {
           path: `${pathPrefix}/tags/`,
@@ -58,6 +65,9 @@ export default function getConfiguration({project}) {
           title: t('Processing Issues'),
           // eslint-disable-next-line no-shadow
           badge: ({project}) => {
+            if (!project) {
+              return null;
+            }
             if (project.processingIssues <= 0) {
               return null;
             }

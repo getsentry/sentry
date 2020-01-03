@@ -1,24 +1,31 @@
 import * as Sentry from '@sentry/browser';
-import {Box} from 'grid-emotion';
-import PropTypes from 'prop-types';
 import React from 'react';
 
 import SettingsNavigationGroup from 'app/views/settings/components/settingsNavigationGroup';
-import SentryTypes from 'app/sentryTypes';
+import {NavigationSection, NavigationProps} from 'app/views/settings/types';
 
-class SettingsNavigation extends React.Component {
-  static propTypes = {
-    hooks: PropTypes.array,
-    hookConfigs: PropTypes.array,
-    navigationObjects: PropTypes.arrayOf(SentryTypes.NavigationObject).isRequired,
-  };
+type Props = NavigationProps & {
+  /**
+   * The configuration for this navigation panel
+   */
+  navigationObjects: NavigationSection[];
+  /**
+   * Additional navigation configuration driven by hooks
+   */
+  hookConfigs: NavigationSection[];
+  /**
+   * Additional navigation elements driven from hooks
+   */
+  hooks: React.ReactElement[];
+};
 
+class SettingsNavigation extends React.Component<Props> {
   static defaultProps = {
     hooks: [],
     hookConfigs: [],
   };
 
-  componentDidCatch(error, errorInfo) {
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     Sentry.withScope(scope => {
       Object.keys(errorInfo).forEach(key => {
         scope.setExtra(key, errorInfo[key]);
@@ -33,16 +40,12 @@ class SettingsNavigation extends React.Component {
     const navWithHooks = navigationObjects.concat(hookConfigs);
 
     return (
-      <Box>
+      <div>
         {navWithHooks.map(config => (
           <SettingsNavigationGroup key={config.name} {...otherProps} {...config} />
         ))}
-        {hooks.map((Hook, i) =>
-          React.cloneElement(Hook, {
-            key: `hook-${i}`,
-          })
-        )}
-      </Box>
+        {hooks.map((Hook, i) => React.cloneElement(Hook, {key: `hook-${i}`}))}
+      </div>
     );
   }
 }

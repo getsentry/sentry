@@ -11,7 +11,7 @@ const priorityColors = {
 } as const;
 
 type Props = React.HTMLProps<HTMLSpanElement> & {
-  text?: string | number;
+  text?: string | number | null;
   priority?: keyof typeof priorityColors;
   className?: string;
 };
