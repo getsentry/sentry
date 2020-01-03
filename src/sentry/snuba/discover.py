@@ -419,19 +419,18 @@ def get_pagination_ids(event, query, params, reference_event=None, referrer=None
     )
 
 
-def get_facets(query, params, limit=20, referrer=None, sample=True):
+def get_facets(query, params, limit=20, referrer=None):
     """
     High-level API for getting 'facet map' results.
 
     Facets are high frequency tags and attribute results that
-    can be used to further refine user queries.
+    can be used to further refine user queries. When many projects
+    are requested sampling will be enabled to help keep response times low.
 
     query (str) Filter query string to create conditions from.
     params (Dict[str, str]) Filtering parameters with start, end, project_id, environment
     limit (int) The number of records to fetch.
     referrer (str|None) A referrer string to help locate the origin of this query.
-    sample (bool) Enabling sampling when getting tag keys. Enables faster results by accepting
-        lower accuracy.
 
     Returns Sequence[FacetResult]
     """
@@ -446,6 +445,9 @@ def get_facets(query, params, limit=20, referrer=None, sample=True):
     }
     # Resolve the public aliases into the discover dataset names.
     snuba_args, translated_columns = resolve_discover_aliases(snuba_args)
+
+    # Force sampling for more than 9 projects. 9 was chosen arbitrarily.
+    sample = len(snuba_filter.filter_keys["project_id"]) > 9
 
     # Exclude tracing tags as they are noisy and generally not helpful.
     conditions = snuba_args.get("conditions", [])
@@ -506,7 +508,7 @@ def get_facets(query, params, limit=20, referrer=None, sample=True):
         start=snuba_args.get("start"),
         end=snuba_args.get("end"),
         filter_keys=snuba_args.get("filter_keys"),
-        orderby=["tags_key"],
+        orderby=["tags_key", "-count"],
         groupby=["tags_key", "tags_value"],
         dataset=Dataset.Discover,
         referrer=referrer,
