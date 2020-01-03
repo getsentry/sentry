@@ -22,7 +22,9 @@ from sentry.models import (
     Organization,
     OrganizationMember,
     OrganizationMemberTeam,
+    ProjectOption,
     ProjectOwnership,
+    Repository,
     Rule,
     UserOption,
     UserOptionValue,
@@ -35,6 +37,7 @@ from sentry.plugins.sentry_mail.models import MailPlugin
 from sentry.testutils import TestCase
 from sentry.utils.email import MessageBuilder
 from sentry.event_manager import EventManager
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 class MailPluginTest(TestCase):
@@ -77,11 +80,8 @@ class MailPluginTest(TestCase):
         _get_title.return_value = "Stacktrace"
 
         event = self.store_event(
-            data={
-                "message": "Soubor ji\xc5\xbe existuje",
-                "stacktrace": {"frames": [{}]}
-            },
-            project_id=self.project.id
+            data={"message": "Soubor ji\xc5\xbe existuje", "stacktrace": {"frames": [{}]}},
+            project_id=self.project.id,
         )
 
         notification = Notification(event=event)
@@ -210,14 +210,19 @@ class MailPluginTest(TestCase):
 
     @mock.patch.object(MailPlugin, "notify", side_effect=MailPlugin.notify, autospec=True)
     def test_notify_digest(self, notify):
-        project = self.event.project
+        project = self.project
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(minutes=1)), "fingerprint": ["group-1"]},
+            project_id=project.id,
+        )
+        event2 = self.store_event(
+            data={"timestamp": iso_format(before_now(minutes=1)), "fingerprint": ["group-2"]},
+            project_id=project.id,
+        )
+
         rule = project.rule_set.all()[0]
         digest = build_digest(
-            project,
-            (
-                event_to_record(self.create_event(group=self.create_group()), (rule,)),
-                event_to_record(self.event, (rule,)),
-            ),
+            project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
         )
 
         with self.tasks():
@@ -232,34 +237,34 @@ class MailPluginTest(TestCase):
     @mock.patch.object(MailPlugin, "notify", side_effect=MailPlugin.notify, autospec=True)
     @mock.patch.object(MessageBuilder, "send_async", autospec=True)
     def test_notify_digest_single_record(self, send_async, notify):
-        project = self.event.project
-        rule = project.rule_set.all()[0]
-        digest = build_digest(project, (event_to_record(self.event, (rule,)),))
-        self.plugin.notify_digest(project, digest)
+        event = self.store_event(data={}, project_id=self.project.id)
+        rule = self.project.rule_set.all()[0]
+        digest = build_digest(self.project, (event_to_record(event, (rule,)),))
+        self.plugin.notify_digest(self.project, digest)
         assert send_async.call_count == 1
         assert notify.call_count == 1
 
-    @mock.patch(
-        "sentry.models.ProjectOption.objects.get_value",
-        Mock(
-            side_effect=lambda p, k, d, **kw: "[Example prefix] "
-            if k == "mail:subject_prefix"
-            else d
-        ),
-    )
     def test_notify_digest_subject_prefix(self):
-        project = self.event.project
-        rule = project.rule_set.all()[0]
+        ProjectOption.objects.set_value(
+            project=self.project, key=u"mail:subject_prefix", value="[Example prefix] "
+        )
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(minutes=1)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        event2 = self.store_event(
+            data={"timestamp": iso_format(before_now(minutes=1)), "fingerprint": ["group-2"]},
+            project_id=self.project.id,
+        )
+
+        rule = self.project.rule_set.all()[0]
+
         digest = build_digest(
-            project,
-            (
-                event_to_record(self.create_event(group=self.create_group()), (rule,)),
-                event_to_record(self.event, (rule,)),
-            ),
+            self.project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
         )
 
         with self.tasks():
-            self.plugin.notify_digest(project, digest)
+            self.plugin.notify_digest(self.project, digest)
 
         assert len(mail.outbox) == 1
 
@@ -348,15 +353,56 @@ class MailPluginTest(TestCase):
         assert msg.to == [self.user.email]
 
     def test_notify_with_suspect_commits(self):
-        release = self.create_release(project=self.project, user=self.user)
-        group = self.create_group(project=self.project, first_release=release)
-        event = self.create_event(group=group, tags={"sentry:release": release.version})
+        repo = Repository.objects.create(
+            organization_id=self.organization.id, name=self.organization.id
+        )
+        release = self.create_release(project=self.project, version="v12")
+        release.set_commits(
+            [
+                {
+                    "id": "a" * 40,
+                    "repository": repo.name,
+                    "author_email": "bob@example.com",
+                    "author_name": "Bob",
+                    "message": "i fixed a bug",
+                    "patch_set": [{"path": "src/sentry/models/release.py", "type": "M"}],
+                }
+            ]
+        )
 
-        notification = Notification(event=event)
+        event = self.store_event(
+            data={
+                "message": "Kaboom!",
+                "platform": "python",
+                "timestamp": iso_format(before_now(seconds=1)),
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "function": "handle_set_commits",
+                            "abs_path": "/usr/src/sentry/src/sentry/tasks.py",
+                            "module": "sentry.tasks",
+                            "in_app": True,
+                            "lineno": 30,
+                            "filename": "sentry/tasks.py",
+                        },
+                        {
+                            "function": "set_commits",
+                            "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
+                            "module": "sentry.models.release",
+                            "in_app": True,
+                            "lineno": 39,
+                            "filename": "sentry/models/release.py",
+                        },
+                    ]
+                },
+                "tags": {"sentry:release": release.version},
+            },
+            project_id=self.project.id,
+        )
 
-        with self.tasks(), self.options({"system.url-prefix": "http://example.com"}), self.feature(
-            "organizations:suggested-commits"
-        ):
+        with self.tasks():
+            notification = Notification(event=event)
+
             self.plugin.notify(notification)
 
         assert len(mail.outbox) >= 1
