@@ -493,9 +493,7 @@ class SnubaEvent(EventCommon):
     def message(self):
         if "message" in self.snuba_data:
             return self.snuba_data["message"]
-        from sentry.event_manager import EventManager
-        event_manager = EventManager(self.data.data)
-        return event_manager.get_search_message()
+        return self.data.get("message")
 
     @property
     def platform(self):
