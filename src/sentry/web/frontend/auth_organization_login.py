@@ -66,7 +66,7 @@ class AuthOrganizationLoginView(AuthLoginView):
         if session_expired:
             messages.add_message(request, messages.WARNING, WARN_SESSION_EXPIRED)
 
-        if not auth_provider:
+        if not auth_provider or auth_provider.flags.allow_unlinked:
             response = self.handle_basic_auth(request, organization=organization)
         else:
             response = self.handle_sso(request, organization, auth_provider)
