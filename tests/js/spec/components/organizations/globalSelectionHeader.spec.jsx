@@ -609,8 +609,21 @@ describe('GlobalSelectionHeader', function() {
       });
 
       it('appends projectId to URL when `forceProject` becomes available (async)', async function() {
+        const mockProjectsStoreState = {
+          projects: [],
+          loading: true,
+        };
+
+        jest
+          .spyOn(ProjectsStore, 'getState')
+          .mockImplementation(() => mockProjectsStoreState);
+
         // forceProject generally starts undefined
         createWrapper({shouldForceProject: true});
+
+        // load the projects
+        mockProjectsStoreState.projects = initialData.organization.projects;
+        mockProjectsStoreState.loading = false;
 
         wrapper.setProps({
           forceProject: initialData.organization.projects[1],
@@ -622,6 +635,8 @@ describe('GlobalSelectionHeader', function() {
           pathname: undefined,
           query: {project: [1]},
         });
+
+        expect(initialData.router.replace).toHaveBeenCalledTimes(1);
       });
 
       it('does not append projectId to URL when `forceProject` becomes available but project id already exists in URL', async function() {
