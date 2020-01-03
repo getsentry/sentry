@@ -207,7 +207,9 @@ class OAuthCallbackView(PipelineView):
             return pipeline.next_step()
         except ApiError as error:
             logger.info("identity.bitbucket-server.access-token", extra={"error": error})
-            return pipeline.error(six.binary_type(error))
+            return pipeline.error(
+                "Could not fetch an access token from Bitbucket. %s" % six.binary_type(error)
+            )
 
 
 class BitbucketServerIntegration(IntegrationInstallation, RepositoryMixin):

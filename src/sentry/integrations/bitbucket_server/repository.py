@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 import six
 
+from datetime import datetime
+from django.utils import timezone
 from django.core.urlresolvers import reverse
 from sentry.models.integration import Integration
 from sentry.plugins.providers.integration_repository import IntegrationRepositoryProvider
@@ -48,7 +50,7 @@ class BitbucketServerRepositoryProvider(IntegrationRepositoryProvider):
                             "sentry-extensions-bitbucketserver-webhook",
                             kwargs={
                                 "organization_id": organization.id,
-                                "integration_id": data.get("installation").encode("utf-8"),
+                                "integration_id": data.get("installation"),
                             },
                         )
                     ),
@@ -69,7 +71,7 @@ class BitbucketServerRepositoryProvider(IntegrationRepositoryProvider):
                 "config": {
                     "name": data["identifier"],
                     "project": data["project"],
-                    "repo": data["rep"],
+                    "repo": data["repo"],
                     "webhook_id": resp["id"],
                 },
                 "integration_id": data["installation"],
@@ -94,12 +96,12 @@ class BitbucketServerRepositoryProvider(IntegrationRepositoryProvider):
                 "id": c["id"],
                 "repository": repo.name,
                 "author_email": c["author"]["emailAddress"],
-                "author_name": c["author"]["name"],
+                "author_name": c["author"]["displayName"],
                 "message": c["message"],
-                "timestamp": self.format_date(c["authorTimestamp"]),
+                "timestamp": datetime.fromtimestamp(c["authorTimestamp"] / 1000, timezone.utc),
                 "patch_set": None,
             }
-            for c in commit_list
+            for c in commit_list["values"]
         ]
 
     def compare_commits(self, repo, start_sha, end_sha):
@@ -112,7 +114,7 @@ class BitbucketServerRepositoryProvider(IntegrationRepositoryProvider):
             start_sha = None
 
         try:
-            res = client.compare_commits(
+            res = client.get_commits(
                 repo.config["project"], repo.config["repo"], start_sha, end_sha
             )
         except Exception as e:
