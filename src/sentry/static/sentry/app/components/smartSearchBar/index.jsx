@@ -493,11 +493,9 @@ class SmartSearchBar extends React.Component {
         ) {
           const values = await this.props.onGetTagValues(tag, query, endpointParams);
           this.setState({loading: false});
-          if (values.length === 0 && query.length > 0) {
-            this.setState({noValueQuery: query});
-          } else {
-            this.setState({noValueQuery: undefined});
-          }
+          const noValueQuery =
+            values.length === 0 && query.length > 0 ? query : undefined;
+          this.setState({noValueQuery});
           return values.map(value => {
             // Wrap in quotes if there is a space
             const escapedValue =
