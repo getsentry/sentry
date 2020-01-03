@@ -2,6 +2,7 @@ import {t} from 'app/locale';
 import TagStore from 'app/stores/tagStore';
 import TagActions from 'app/actions/tagActions';
 import AlertActions from 'app/actions/alertActions';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 
 const MAX_TAGS = 500;
 
@@ -58,6 +59,31 @@ function tagFetchSuccess(tags) {
     });
   }
   TagActions.loadTagsSuccess(trimmedTags);
+}
+
+export function loadOrganizationTags(api, orgId, selection) {
+  TagStore.reset();
+
+  const url = `/organizations/${orgId}/tags/`;
+
+  const query = {...getParams(selection.datetime)};
+
+  if (selection.projects) {
+    query.project = selection.projects;
+  }
+
+  // NOTE: Organization tags do not depend on environments, since environments
+  //       themselves are also tags. Hence, we do not pass the list of environments
+  //       as part of the query payload.
+
+  api
+    .requestPromise(url, {
+      method: 'GET',
+      query,
+    })
+    .then(tags => {
+      tagFetchSuccess([...BUILTIN_TAGS, ...tags]);
+    }, TagActions.loadTagsError);
 }
 
 /**
