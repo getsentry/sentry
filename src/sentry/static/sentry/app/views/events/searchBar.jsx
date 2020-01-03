@@ -7,11 +7,12 @@ import React from 'react';
 import {NEGATION_OPERATOR, SEARCH_TYPES, SEARCH_WILDCARD} from 'app/constants';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {defined} from 'app/utils';
-import {fetchOrganizationTags, fetchTagValues} from 'app/actionCreators/tags';
+import {loadOrganizationTags, fetchTagValues} from 'app/actionCreators/tags';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import SmartSearchBar from 'app/components/smartSearchBar';
 import withApi from 'app/utils/withApi';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
 
 const tagToObjectReducer = (acc, name) => {
   acc[name] = {
@@ -31,6 +32,7 @@ class SearchBar extends React.PureComponent {
     api: PropTypes.object,
     organization: SentryTypes.Organization,
     projectIds: PropTypes.arrayOf(PropTypes.number),
+    selection: SentryTypes.GlobalSelection,
   };
 
   state = {
@@ -50,9 +52,9 @@ class SearchBar extends React.PureComponent {
   }
 
   fetchData = async () => {
-    const {api, organization, projectIds} = this.props;
+    const {api, organization, selection} = this.props;
     try {
-      const tags = await fetchOrganizationTags(api, organization.slug, projectIds);
+      const tags = await loadOrganizationTags(api, organization.slug, selection);
       this.setState({
         tags: this.getAllTags(tags.map(({key}) => key)),
       });
@@ -115,4 +117,4 @@ class SearchBar extends React.PureComponent {
   }
 }
 
-export default withApi(SearchBar);
+export default withGlobalSelection(withApi(SearchBar));
