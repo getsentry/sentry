@@ -456,7 +456,6 @@ def get_facets(query, params, limit=20, referrer=None):
     # Get the most frequent tag keys, enable sampling
     # as we don't need accuracy here.
     key_names = raw_query(
-        selected_columns=["tags_key"],
         aggregations=[["count", None, "count"]],
         start=snuba_args.get("start"),
         end=snuba_args.get("end"),
@@ -469,7 +468,6 @@ def get_facets(query, params, limit=20, referrer=None):
         referrer=referrer,
         turbo=sample,
     )
-
     top_tags = [r["tags_key"] for r in key_names["data"]]
     if not top_tags:
         return []
@@ -483,26 +481,45 @@ def get_facets(query, params, limit=20, referrer=None):
     results = []
     if fetch_projects:
         project_values = raw_query(
-            selected_columns=["project_id"],
-            aggregations=[["count", None, "count"]],
+            aggregations=[["uniq", "event_id", "count"]],
             start=snuba_args.get("start"),
             end=snuba_args.get("end"),
             conditions=snuba_args.get("conditions"),
             filter_keys=snuba_args.get("filter_keys"),
             groupby="project_id",
+            orderby="-count",
             dataset=Dataset.Discover,
             referrer=referrer,
         )
-        projects = [
-            FacetResult("project", r["project_id"], r["count"]) for r in project_values["data"]
-        ]
-        results.extend(projects)
+        results.extend(
+            [FacetResult("project", r["project_id"], r["count"]) for r in project_values["data"]]
+        )
+
+    # Environment is a special case because of the "" value which is stored as null
+    # in the environment column but not in the tag arrays.
+    if "environment" in top_tags:
+        top_tags.remove("environment")
+        environment_values = raw_query(
+            aggregations=[["uniq", "event_id", "count"]],
+            start=snuba_args.get("start"),
+            end=snuba_args.get("end"),
+            conditions=snuba_args.get("conditions"),
+            filter_keys=snuba_args.get("filter_keys"),
+            groupby="environment",
+            orderby=["-count", "environment"],
+            dataset=Dataset.Discover,
+            referrer=referrer,
+        )
+        results.extend(
+            [
+                FacetResult("environment", r["environment"], r["count"])
+                for r in environment_values["data"]
+            ]
+        )
 
     # Get tag counts for our top tags.
     conditions.append(["tags_key", "IN", top_tags])
-
     tag_values = raw_query(
-        selected_columns=["tags_key", "tags_value"],
         aggregations=[["count", None, "count"]],
         conditions=conditions,
         start=snuba_args.get("start"),
@@ -513,9 +530,8 @@ def get_facets(query, params, limit=20, referrer=None):
         dataset=Dataset.Discover,
         referrer=referrer,
     )
-    tag_results = [
-        FacetResult(r["tags_key"], r["tags_value"], int(r["count"])) for r in tag_values["data"]
-    ]
-    results.extend(tag_results)
+    results.extend(
+        [FacetResult(r["tags_key"], r["tags_value"], int(r["count"])) for r in tag_values["data"]]
+    )
 
     return results

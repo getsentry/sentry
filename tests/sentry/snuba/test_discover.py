@@ -1092,9 +1092,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
         params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
         result = discover.get_facets("", params)
         keys = {r.key for r in result}
-        assert "toy" not in keys
-        assert "color" in keys
-        assert "project" not in keys
+        assert keys == {"color", "level"}
 
         # Query more than one project.
         params = {
@@ -1104,9 +1102,28 @@ class GetFacetsTest(SnubaTestCase, TestCase):
         }
         result = discover.get_facets("", params)
         keys = {r.key for r in result}
-        assert "toy" in keys
-        assert "color" in keys
-        assert "project" in keys
+        assert keys == {"level", "toy", "color", "project"}
+
+        projects = [f for f in result if f.key == "project"]
+        assert [p.count for p in projects] == [1, 1]
+
+    def test_enviroment_promoted_tag(self):
+        for env in ("prod", "staging", None):
+            self.store_event(
+                data={
+                    "message": "very bad",
+                    "type": "default",
+                    "environment": env,
+                    "timestamp": iso_format(before_now(minutes=2)),
+                },
+                project_id=self.project.id,
+            )
+        params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
+        result = discover.get_facets("", params)
+        keys = {r.key for r in result}
+        assert keys == {"environment", "level"}
+        assert {"prod", "staging", None} == {f.value for f in result if f.key == "environment"}
+        assert {1} == {f.count for f in result if f.key == "environment"}
 
     def test_query_string(self):
         self.store_event(
