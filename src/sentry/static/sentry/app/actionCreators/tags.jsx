@@ -69,6 +69,7 @@ export function fetchOrganizationTags(api, orgId, projectIds = null) {
 
   const url = `/organizations/${orgId}/tags/`;
   const query = projectIds ? {project: projectIds} : null;
+  // TODO: needs global datetime selection
 
   const promise = api
     .requestPromise(url, {
