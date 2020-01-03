@@ -22,7 +22,7 @@ type Props = {
   access?: Scope[];
   features?: string[];
 
-  additionalFieldProps?: {[key: string]: any};
+  additionalFieldProps: {[key: string]: any};
 
   /**
    * The name of the field that should be highlighted
