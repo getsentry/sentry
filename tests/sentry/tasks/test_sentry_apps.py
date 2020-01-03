@@ -80,17 +80,14 @@ class TestSendAlertEvent(TestCase):
 
     @patch("sentry.tasks.sentry_apps.safe_urlopen")
     def test_no_sentry_app(self, safe_urlopen):
-        group = self.create_group(project=self.project)
-        event = self.create_event(group=group)
-
+        event = self.store_event(data={}, project_id=self.project.id)
         send_alert_event(event, self.rule, 9999)
 
         assert not safe_urlopen.called
 
     @patch("sentry.tasks.sentry_apps.safe_urlopen")
     def test_no_sentry_app_in_future(self, safe_urlopen):
-        group = self.create_group(project=self.project)
-        event = self.create_event(group=group)
+        event = self.store_event(data={}, project_id=self.project.id)
         rule_future = RuleFuture(rule=self.rule, kwargs={})
 
         with self.tasks():
@@ -101,8 +98,7 @@ class TestSendAlertEvent(TestCase):
     @patch("sentry.tasks.sentry_apps.safe_urlopen")
     def test_no_installation(self, safe_urlopen):
         sentry_app = self.create_sentry_app(organization=self.organization)
-        group = self.create_group(project=self.project)
-        event = self.create_event(group=group)
+        event = self.store_event(data={}, project_id=self.project.id)
         rule_future = RuleFuture(rule=self.rule, kwargs={"sentry_app": sentry_app})
 
         with self.tasks():
@@ -112,8 +108,8 @@ class TestSendAlertEvent(TestCase):
 
     @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponseInstance)
     def test_send_alert_event(self, safe_urlopen):
-        group = self.create_group(project=self.project)
-        event = self.create_event(group=group)
+        event = self.store_event(data={}, project_id=self.project.id)
+        group = event.group
         rule_future = RuleFuture(rule=self.rule, kwargs={"sentry_app": self.sentry_app})
 
         with self.tasks():
@@ -179,9 +175,7 @@ class TestProcessResourceChange(TestCase):
         )
 
     def test_group_created_sends_webhook(self, safe_urlopen):
-        issue = self.create_group(project=self.project)
-        event = self.create_event(group=issue)
-
+        event = self.store_event(data={}, project_id=self.project.id)
         with self.tasks():
             post_process_group(
                 event=event, is_new=True, is_regression=False, is_new_group_environment=False
@@ -191,7 +185,7 @@ class TestProcessResourceChange(TestCase):
 
         assert data["action"] == "created"
         assert data["installation"]["uuid"] == self.install.uuid
-        assert data["data"]["issue"]["id"] == six.text_type(issue.id)
+        assert data["data"]["issue"]["id"] == six.text_type(event.group.id)
         assert faux(safe_urlopen).kwargs_contain("headers.Content-Type")
         assert faux(safe_urlopen).kwargs_contain("headers.Request-ID")
         assert faux(safe_urlopen).kwargs_contain("headers.Sentry-Hook-Resource")

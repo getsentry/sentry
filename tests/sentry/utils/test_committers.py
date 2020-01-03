@@ -9,6 +9,7 @@ from uuid import uuid4
 
 from sentry.models import Commit, CommitAuthor, CommitFileChange, Release, Repository
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.committers import (
     _get_commit_file_changes,
     _get_frame_paths,
@@ -222,37 +223,40 @@ class GetEventFileCommitters(CommitTestCase):
         )
 
     def test_java_sdk_path_mangling(self):
-        event = self.create_event(
-            group=self.group,
-            message="Kaboom!",
-            platform="java",
-            stacktrace={
-                "frames": [
-                    {
-                        "function": "invoke0",
-                        "abs_path": "NativeMethodAccessorImpl.java",
-                        "in_app": False,
-                        "module": "jdk.internal.reflect.NativeMethodAccessorImpl",
-                        "filename": "NativeMethodAccessorImpl.java",
-                    },
-                    {
-                        "function": "home",
-                        "abs_path": "Application.java",
-                        "module": "io.sentry.example.Application",
-                        "in_app": True,
-                        "lineno": 30,
-                        "filename": "Application.java",
-                    },
-                    {
-                        "function": "handledError",
-                        "abs_path": "Application.java",
-                        "module": "io.sentry.example.Application",
-                        "in_app": True,
-                        "lineno": 39,
-                        "filename": "Application.java",
-                    },
-                ]
+        event = self.store_event(
+            data={
+                "message": "Kaboom!",
+                "platform": "java",
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "function": "invoke0",
+                            "abs_path": "NativeMethodAccessorImpl.java",
+                            "in_app": False,
+                            "module": "jdk.internal.reflect.NativeMethodAccessorImpl",
+                            "filename": "NativeMethodAccessorImpl.java",
+                        },
+                        {
+                            "function": "home",
+                            "abs_path": "Application.java",
+                            "module": "io.sentry.example.Application",
+                            "in_app": True,
+                            "lineno": 30,
+                            "filename": "Application.java",
+                        },
+                        {
+                            "function": "handledError",
+                            "abs_path": "Application.java",
+                            "module": "io.sentry.example.Application",
+                            "in_app": True,
+                            "lineno": 39,
+                            "filename": "Application.java",
+                        },
+                    ]
+                },
+                "tags": {"sentry:release": self.release.version},
             },
+            project_id=self.project.id,
         )
         self.release.set_commits(
             [
@@ -276,30 +280,34 @@ class GetEventFileCommitters(CommitTestCase):
         assert result[0]["commits"][0]["id"] == "a" * 40
 
     def test_matching(self):
-        event = self.create_event(
-            group=self.group,
-            message="Kaboom!",
-            platform="python",
-            stacktrace={
-                "frames": [
-                    {
-                        "function": "handle_set_commits",
-                        "abs_path": "/usr/src/sentry/src/sentry/tasks.py",
-                        "module": "sentry.tasks",
-                        "in_app": True,
-                        "lineno": 30,
-                        "filename": "sentry/tasks.py",
-                    },
-                    {
-                        "function": "set_commits",
-                        "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
-                        "module": "sentry.models.release",
-                        "in_app": True,
-                        "lineno": 39,
-                        "filename": "sentry/models/release.py",
-                    },
-                ]
+        event = self.store_event(
+            data={
+                "message": "Kaboom!",
+                "platform": "python",
+                "timestamp": iso_format(before_now(seconds=1)),
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "function": "handle_set_commits",
+                            "abs_path": "/usr/src/sentry/src/sentry/tasks.py",
+                            "module": "sentry.tasks",
+                            "in_app": True,
+                            "lineno": 30,
+                            "filename": "sentry/tasks.py",
+                        },
+                        {
+                            "function": "set_commits",
+                            "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
+                            "module": "sentry.models.release",
+                            "in_app": True,
+                            "lineno": 39,
+                            "filename": "sentry/models/release.py",
+                        },
+                    ]
+                },
+                "tags": {"sentry:release": self.release.version},
             },
+            project_id=self.project.id,
         )
         self.release.set_commits(
             [
@@ -321,22 +329,25 @@ class GetEventFileCommitters(CommitTestCase):
         assert result[0]["commits"][0]["id"] == "a" * 40
 
     def test_matching_case_insensitive(self):
-        event = self.create_event(
-            group=self.group,
-            message="Kaboom!",
-            platform="cpp",
-            stacktrace={
-                "frames": [
-                    {
-                        "function": "roar",
-                        "abs_path": "/usr/src/app/TigerMachine.cpp",
-                        "module": "",
-                        "in_app": True,
-                        "lineno": 30,
-                        "filename": "app/TigerMachine.cpp",
-                    }
-                ]
+        event = self.store_event(
+            data={
+                "message": "Kaboom!",
+                "platform": "csp",
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "function": "roar",
+                            "abs_path": "/usr/src/app/TigerMachine.cpp",
+                            "module": "",
+                            "in_app": True,
+                            "lineno": 30,
+                            "filename": "app/TigerMachine.cpp",
+                        }
+                    ]
+                },
+                "tags": {"sentry:release": self.release.version},
             },
+            project_id=self.project.id,
         )
         self.release.set_commits(
             [
@@ -358,30 +369,33 @@ class GetEventFileCommitters(CommitTestCase):
         assert result[0]["commits"][0]["id"] == "a" * 40
 
     def test_not_matching(self):
-        event = self.create_event(
-            group=self.group,
-            message="Kaboom!",
-            platform="python",
-            stacktrace={
-                "frames": [
-                    {
-                        "function": "handle_set_commits",
-                        "abs_path": "/usr/src/sentry/src/sentry/tasks.py",
-                        "module": "sentry.tasks",
-                        "in_app": True,
-                        "lineno": 30,
-                        "filename": "sentry/tasks.py",
-                    },
-                    {
-                        "function": "set_commits",
-                        "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
-                        "module": "sentry.models.release",
-                        "in_app": True,
-                        "lineno": 39,
-                        "filename": "sentry/models/release.py",
-                    },
-                ]
+        event = self.store_event(
+            data={
+                "message": "Kaboom!",
+                "platform": "python",
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "function": "handle_set_commits",
+                            "abs_path": "/usr/src/sentry/src/sentry/tasks.py",
+                            "module": "sentry.tasks",
+                            "in_app": True,
+                            "lineno": 30,
+                            "filename": "sentry/tasks.py",
+                        },
+                        {
+                            "function": "set_commits",
+                            "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
+                            "module": "sentry.models.release",
+                            "in_app": True,
+                            "lineno": 39,
+                            "filename": "sentry/models/release.py",
+                        },
+                    ]
+                },
+                "tags": {"sentry:release": self.release.version},
             },
+            project_id=self.project.id,
         )
         self.release.set_commits(
             [
@@ -400,30 +414,33 @@ class GetEventFileCommitters(CommitTestCase):
         assert len(result) == 0
 
     def test_no_commits(self):
-        event = self.create_event(
-            group=self.group,
-            message="Kaboom!",
-            platform="python",
-            stacktrace={
-                "frames": [
-                    {
-                        "function": "handle_set_commits",
-                        "abs_path": "/usr/src/sentry/src/sentry/tasks.py",
-                        "module": "sentry.tasks",
-                        "in_app": True,
-                        "lineno": 30,
-                        "filename": "sentry/tasks.py",
-                    },
-                    {
-                        "function": "set_commits",
-                        "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
-                        "module": "sentry.models.release",
-                        "in_app": True,
-                        "lineno": 39,
-                        "filename": "sentry/models/release.py",
-                    },
-                ]
+        event = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=1)),
+                "message": "Kaboom!",
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "function": "handle_set_commits",
+                            "abs_path": "/usr/src/sentry/src/sentry/tasks.py",
+                            "module": "sentry.tasks",
+                            "in_app": True,
+                            "lineno": 30,
+                            "filename": "sentry/tasks.py",
+                        },
+                        {
+                            "function": "set_commits",
+                            "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
+                            "module": "sentry.models.release",
+                            "in_app": True,
+                            "lineno": 39,
+                            "filename": "sentry/models/release.py",
+                        },
+                    ]
+                },
+                "tags": {"sentry:release": self.release.version},
             },
+            project_id=self.project.id,
         )
 
         with self.assertRaises(Commit.DoesNotExist):

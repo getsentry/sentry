@@ -26,16 +26,15 @@ class SegmentPluginTest(PluginTestCase):
 
         self.plugin.set_option("write_key", "secret-api-key", self.project)
 
-        group = self.create_group(message="Hello world", culprit="foo.bar")
-        event = self.create_event(
-            group=group,
+        event = self.store_event(
             data={
-                "sentry.interfaces.Exception": {"type": "ValueError", "value": "foo bar"},
-                "sentry.interfaces.User": {"id": "1", "email": "foo@example.com"},
+                "exception": {"type": "ValueError", "value": "foo bar"},
+                "user": {"id": "1", "email": "foo@example.com"},
                 "type": "error",
                 "metadata": {"type": "ValueError", "value": "foo bar"},
+                "level": "warning",
             },
-            tags={"level": "warning"},
+            project_id=self.project.id,
         )
 
         with self.options({"system.url-prefix": "http://example.com"}):

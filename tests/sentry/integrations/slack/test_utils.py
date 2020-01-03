@@ -164,10 +164,10 @@ class BuildIncidentAttachmentTest(TestCase):
             "fallback": u"[{}] {}".format(self.project.slug, group.title),
             "footer_icon": u"http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png",
         }
-        event = self.create_event()
+        event = self.store_event(data={}, project_id=self.project.id)
         ts = event.datetime
         assert build_group_attachment(group, event) == {
-            "color": "error",
+            "color": "#E03E2F",
             "text": "",
             "actions": [
                 {"name": "status", "text": "Resolve", "type": "button", "value": "resolved"},
