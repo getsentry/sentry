@@ -262,6 +262,7 @@ class GlobalSelectionHeader extends React.Component {
       return;
     }
 
+    let singleProjectIsEnforced = false;
     // This means that previously forceProject was falsey (e.g. loading) and now
     // we have the project to force.
     //
@@ -272,12 +273,17 @@ class GlobalSelectionHeader extends React.Component {
       // Make sure a project isn't specified in query param already, since it should take precendence
       const {project} = getStateFromQuery(location.query);
       if (!project) {
+        singleProjectIsEnforced = true;
         this.enforceSingleProject({forceProject});
       }
     }
 
     // Projects have finished loading so now we can enforce a single project
-    if (prevProps.loadingProjects && !this.props.loadingProjects) {
+    if (
+      !singleProjectIsEnforced &&
+      prevProps.loadingProjects &&
+      !this.props.loadingProjects
+    ) {
       const {project} = getStateFromQuery(location.query);
       if (!project) {
         this.enforceSingleProject({forceProject});
