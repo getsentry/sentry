@@ -1,9 +1,12 @@
 from __future__ import absolute_import
 
 import functools
+import datetime
+import six
 from collections import defaultdict, Iterable
 from dateutil.parser import parse as parse_datetime
-import six
+
+from django.core.cache import cache
 
 from sentry.tagstore import TagKeyStatus
 from sentry.tagstore.base import TagStorage, TOP_VALUES_DEFAULT_LIMIT
@@ -15,6 +18,7 @@ from sentry.tagstore.exceptions import (
 )
 from sentry.tagstore.types import TagKey, TagValue, GroupTagKey, GroupTagValue
 from sentry.utils import snuba
+from sentry.utils.hashlib import md5_text
 from sentry.utils.dates import to_timestamp
 
 
@@ -188,18 +192,34 @@ class SnubaTagStorage(TagStorage):
             aggregations.append(["uniq", "tags_value", "values_seen"])
         conditions = []
 
-        result = snuba.query(
-            start=start,
-            end=end,
-            groupby=["tags_key"],
-            conditions=conditions,
-            filter_keys=filters,
-            aggregations=aggregations,
-            limit=limit,
-            orderby="-count",
-            referrer="tagstore.__get_tag_keys",
-            **kwargs
-        )
+        filtering_strings = [u"{}={}".format(key, value) for key, value in six.iteritems(filters)]
+
+        cache_key = u"tagstore.__get_tag_keys:{}".format(md5_text(*filtering_strings).hexdigest())
+        # Round times by 5 minutes since we cache for 5 minutes
+        if start:
+            start = datetime.datetime(
+                start.year, start.month, start.day, start.hour, start.minute // 5 * 5
+            )
+            cache_key += ":" + start.isoformat()
+        if end:
+            end = datetime.datetime(end.year, end.month, end.day, end.hour, end.minute // 5 * 5)
+            cache_key += ":" + end.isoformat()
+
+        result = cache.get(cache_key, None)
+        if result is None:
+            result = snuba.query(
+                start=start,
+                end=end,
+                groupby=["tags_key"],
+                conditions=conditions,
+                filter_keys=filters,
+                aggregations=aggregations,
+                limit=limit,
+                orderby="-count",
+                referrer="tagstore.__get_tag_keys",
+                **kwargs
+            )
+            cache.set(cache_key, result, 300)
 
         if group_id is None:
             ctor = TagKey
