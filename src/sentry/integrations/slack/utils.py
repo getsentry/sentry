@@ -159,7 +159,7 @@ def build_group_attachment(group, event=None, tags=None, identity=None, actions=
     members = get_member_assignees(group)
     teams = get_team_assignees(group)
 
-    logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
+    logo_url = absolute_uri(get_asset_url("sentry", "images/email/sentry-email-avatar.png"))
     color = (
         LEVEL_TO_COLOR.get(event.get_tag("level"), "error") if event else LEVEL_TO_COLOR["error"]
     )
@@ -278,7 +278,7 @@ def build_group_attachment(group, event=None, tags=None, identity=None, actions=
 
 
 def build_incident_attachment(incident):
-    logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
+    logo_url = absolute_uri(get_asset_url("sentry", "images/email/sentry-email-avatar.png"))
 
     aggregates = get_incident_aggregates(incident)
 
