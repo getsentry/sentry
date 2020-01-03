@@ -2,8 +2,10 @@ from __future__ import absolute_import
 
 import pickle
 import pytest
+import six
 
 from sentry import eventstore
+from sentry.api.serializers import serialize
 from sentry.db.models.fields.node import NodeData
 from sentry.eventstore.models import Event
 from sentry.models import Environment
@@ -121,41 +123,46 @@ class EventTest(TestCase):
             event.get_environment() == environment
 
     def test_ip_address(self):
-        event = self.create_event(
+        event = self.store_event(
             data={
                 "user": {"ip_address": "127.0.0.1"},
                 "request": {"url": "http://some.com", "env": {"REMOTE_ADDR": "::1"}},
-            }
+            },
+            project_id=self.project.id,
         )
         assert event.ip_address == "127.0.0.1"
 
-        event = self.create_event(
+        event = self.store_event(
             data={
                 "user": {"ip_address": None},
                 "request": {"url": "http://some.com", "env": {"REMOTE_ADDR": "::1"}},
-            }
+            },
+            project_id=self.project.id,
         )
         assert event.ip_address == "::1"
 
-        event = self.create_event(
+        event = self.store_event(
             data={
                 "user": None,
                 "request": {"url": "http://some.com", "env": {"REMOTE_ADDR": "::1"}},
-            }
+            },
+            project_id=self.project.id,
         )
         assert event.ip_address == "::1"
 
-        event = self.create_event(
-            data={"request": {"url": "http://some.com", "env": {"REMOTE_ADDR": "::1"}}}
+        event = self.store_event(
+            data={"request": {"url": "http://some.com", "env": {"REMOTE_ADDR": "::1"}}},
+            project_id=self.project.id,
         )
         assert event.ip_address == "::1"
 
-        event = self.create_event(
-            data={"request": {"url": "http://some.com", "env": {"REMOTE_ADDR": None}}}
+        event = self.store_event(
+            data={"request": {"url": "http://some.com", "env": {"REMOTE_ADDR": None}}},
+            project_id=self.project.id,
         )
         assert event.ip_address is None
 
-        event = self.create_event()
+        event = self.store_event(data={}, project_id=self.project.id)
         assert event.ip_address is None
 
     def test_issueless_event(self):

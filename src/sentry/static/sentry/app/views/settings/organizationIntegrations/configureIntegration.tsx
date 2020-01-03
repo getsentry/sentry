@@ -20,10 +20,9 @@ type RouteParams = {
   orgId: string;
   integrationId: string;
 };
-type Props = RouteComponentProps<RouteParams, {}> &
-  AsyncView['props'] & {
-    organization: Organization;
-  };
+type Props = RouteComponentProps<RouteParams, {}> & {
+  organization: Organization;
+};
 type State = AsyncView['state'] & {
   config: {providers: IntegrationProvider[]};
   integration: Integration;

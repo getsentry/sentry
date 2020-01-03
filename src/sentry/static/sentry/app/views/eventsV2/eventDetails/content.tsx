@@ -31,7 +31,7 @@ import EventInterfaces from './eventInterfaces';
 import LinkedIssue from './linkedIssue';
 import DiscoverBreadcrumb from '../breadcrumb';
 import {SectionHeading} from '../styles';
-import EventBreakdown from './transaction/eventBreakdown';
+import OpsBreakdown from './transaction/opsBreakdown';
 
 const slugValidator = function(
   props: {[key: string]: any},
@@ -176,7 +176,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
               organization={organization}
               projectId={this.projectId}
             />
-            <EventBreakdown event={event} />
+            <OpsBreakdown event={event} />
             {event.groupID && (
               <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
             )}

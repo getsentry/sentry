@@ -4,6 +4,7 @@ import {Observer} from 'mobx-react';
 import omit from 'lodash/omit';
 import get from 'lodash/get';
 import scrollToElement from 'scroll-to-element';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import {Panel, PanelItem, PanelBody, PanelHeader} from 'app/components/panels';
@@ -111,11 +112,7 @@ class SentryAppFormModel extends FormModel {
   }
 }
 
-type Props = AsyncView['props'] & {
-  route: {
-    path: string;
-  };
-};
+type Props = RouteComponentProps<{orgId: string; appSlug?: string}, {}>;
 
 type State = AsyncView['state'] & {
   app: SentryApp | null;

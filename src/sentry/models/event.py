@@ -434,15 +434,12 @@ class SnubaEvent(EventCommon):
             email = self.snuba_data["email"]
             username = self.snuba_data["username"]
             ip_address = self.snuba_data["ip_address"]
-        else:
-            user_id = self.data["user_id"]
-            email = self.data["email"]
-            username = self.data["username"]
-            ip_address = self.data["ip_address"]
 
-        return User.to_python(
-            {"id": user_id, "email": email, "username": username, "ip_address": ip_address}
-        )
+            return User.to_python(
+                {"id": user_id, "email": email, "username": username, "ip_address": ip_address}
+            )
+
+        return super(SnubaEvent, self).get_minimal_user()
 
     # If the data for these is available from snuba, we assume
     # it was already normalized on the way in and we can just return

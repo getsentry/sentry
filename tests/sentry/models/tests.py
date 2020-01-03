@@ -139,11 +139,11 @@ class EventNodeStoreTest(TestCase):
             event.bind_node_data()
 
     def test_accepts_valid_ref(self):
-        event = self.create_event()
+        event = self.store_event(data={}, project_id=self.project.id)
         event.data.bind_ref(event)
         event.bind_node_data()
         assert event.data.ref == event.project.id
 
     def test_basic_ref_binding(self):
-        event = self.create_event()
+        event = self.store_event(data={}, project_id=self.project.id)
         assert event.data.get_ref(event) == event.project.id
