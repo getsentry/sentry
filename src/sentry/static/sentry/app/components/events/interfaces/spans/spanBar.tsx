@@ -679,20 +679,13 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
   ) => {
     const {span, spanBarColour, spanBarHatch, spanNumber} = this.props;
-
     const startTimestamp: number = span.start_timestamp;
     const endTimestamp: number = span.timestamp;
-
     const duration = Math.abs(endTimestamp - startTimestamp);
-
     const durationString = getHumanDuration(duration);
-
     const bounds = this.getBounds();
-
     const {dividerPosition} = dividerHandlerChildrenProps;
-
     const displaySpanBar = defined(bounds.left) && defined(bounds.width);
-
     const durationDisplay = getDurationDisplay(bounds);
 
     return (
@@ -726,7 +719,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
               <DurationPill
                 durationDisplay={durationDisplay}
                 showDetail={this.state.showDetail}
-                spanBarHatch={spanBarHatch}
+                spanBarHatch={!!spanBarHatch}
               >
                 {durationString}
                 {this.renderWarningText({warningText: bounds.warning})}
