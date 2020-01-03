@@ -35,14 +35,14 @@ class AuthOrganizationLoginView(AuthLoginView):
         provider = auth_provider.get_provider()
 
         context = {
-            "CAN_REGISTER": False,
+            "CAN_REGISTER": auth_provider.flags.allow_unlinked,
             "organization": organization,
             "provider_key": provider.key,
             "provider_name": provider.name,
             "authenticated": request.user.is_authenticated(),
         }
 
-        return self.respond("sentry/organization-login.html", context)
+        return self.respond_login(request, context)
 
     @never_cache
     @transaction.atomic
@@ -66,7 +66,7 @@ class AuthOrganizationLoginView(AuthLoginView):
         if session_expired:
             messages.add_message(request, messages.WARNING, WARN_SESSION_EXPIRED)
 
-        if not auth_provider or auth_provider.flags.allow_unlinked:
+        if not auth_provider:
             response = self.handle_basic_auth(request, organization=organization)
         else:
             response = self.handle_sso(request, organization, auth_provider)
