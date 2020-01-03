@@ -3,7 +3,6 @@ import styled from 'react-emotion';
 import get from 'lodash/get';
 
 import {t} from 'app/locale';
-import theme from 'app/utils/theme';
 import EventView from 'app/views/eventsV2/eventView';
 
 import {
@@ -46,8 +45,6 @@ type PropType = {
 };
 
 class SpanTree extends React.Component<PropType> {
-  traceViewRef = React.createRef<HTMLDivElement>();
-
   shouldComponentUpdate(nextProps: PropType) {
     if (nextProps.dragProps.isDragging || nextProps.dragProps.isWindowSelectionDragging) {
       return false;
@@ -55,6 +52,8 @@ class SpanTree extends React.Component<PropType> {
 
     return true;
   }
+
+  traceViewRef = React.createRef<HTMLDivElement>();
 
   generateInfoMessage(input: {
     isCurrentSpanHidden: boolean;
@@ -243,8 +242,8 @@ class SpanTree extends React.Component<PropType> {
           treeDepth={treeDepth}
           numOfSpanChildren={spanChildren.length}
           renderedSpanChildren={reduced.renderedSpanChildren}
-          spanBarColour={theme.gray2}
           isCurrentSpanFilteredOut={isCurrentSpanFilteredOut}
+          spanBarHatch
         />
       ) : null;
 
@@ -271,6 +270,7 @@ class SpanTree extends React.Component<PropType> {
             renderedSpanChildren={reduced.renderedSpanChildren}
             spanBarColour={spanBarColour}
             isCurrentSpanFilteredOut={isCurrentSpanFilteredOut}
+            spanBarHatch={false}
           />
         </React.Fragment>
       ),

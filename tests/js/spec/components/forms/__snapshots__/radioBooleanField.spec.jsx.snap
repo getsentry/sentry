@@ -86,199 +86,144 @@ exports[`RadioBooleanField render() renders new field without form context 1`] =
                     <FieldControlErrorWrapper
                       inline={true}
                     >
-                      <Component
-                        className="css-1xbxyck-FieldControlErrorWrapper e78b1iv0"
-                        inline={true}
+                      <div
+                        className="css-1xbxyck-FieldControlErrorWrapper e12jpfuq0"
                       >
-                        <Box
-                          className="css-1xbxyck-FieldControlErrorWrapper e78b1iv0"
-                        >
-                          <Base
-                            className="e78b1iv0 css-1kkovz0-FieldControlErrorWrapper"
+                        <FieldControlWrapper>
+                          <div
+                            className="css-1muvdry-FieldControlWrapper e12jpfuq2"
                           >
-                            <div
-                              className="e78b1iv0 css-1kkovz0-FieldControlErrorWrapper"
-                              is={null}
+                            <FieldControlStyled
+                              alignRight={false}
                             >
-                              <FieldControlWrapper>
-                                <Component
-                                  className="css-1ke1xob-FieldControlWrapper e78b1iv2"
-                                >
-                                  <Flex
-                                    className="css-1ke1xob-FieldControlWrapper e78b1iv2"
+                              <div
+                                className="css-1e3k5jy-FieldControlStyled e12jpfuq1"
+                              >
+                                <Observer>
+                                  <RadioBoolean
+                                    disabled={false}
+                                    field={[Function]}
+                                    id="fieldName"
+                                    initialData={
+                                      Object {
+                                        "fieldName": undefined,
+                                      }
+                                    }
+                                    innerRef={[Function]}
+                                    name="fieldName"
+                                    noLabel="No"
+                                    onBlur={[Function]}
+                                    onChange={[Function]}
+                                    yesFirst={true}
+                                    yesLabel="Yes"
                                   >
-                                    <Base
-                                      className="e78b1iv2 css-w4o1g8-FieldControlWrapper"
-                                    >
-                                      <div
-                                        className="e78b1iv2 css-w4o1g8-FieldControlWrapper"
-                                        is={null}
+                                    <div>
+                                      <Option
+                                        checked={false}
+                                        disabled={false}
+                                        label="Yes"
+                                        name="fieldName"
+                                        onChange={[Function]}
+                                        value="true"
                                       >
-                                        <FieldControlStyled
-                                          alignRight={false}
+                                        <div
+                                          className="radio"
                                         >
-                                          <Component
-                                            alignRight={false}
-                                            className="css-1e3k5jy-FieldControlStyled e78b1iv1"
+                                          <label
+                                            style={
+                                              Object {
+                                                "fontWeight": "normal",
+                                              }
+                                            }
                                           >
-                                            <Box
-                                              className="css-1e3k5jy-FieldControlStyled e78b1iv1"
-                                            >
-                                              <Base
-                                                className="e78b1iv1 css-1b7m0vu-FieldControlStyled"
-                                              >
-                                                <div
-                                                  className="e78b1iv1 css-1b7m0vu-FieldControlStyled"
-                                                  is={null}
-                                                >
-                                                  <Observer>
-                                                    <RadioBoolean
-                                                      disabled={false}
-                                                      field={[Function]}
-                                                      id="fieldName"
-                                                      initialData={
-                                                        Object {
-                                                          "fieldName": undefined,
-                                                        }
-                                                      }
-                                                      innerRef={[Function]}
-                                                      name="fieldName"
-                                                      noLabel="No"
-                                                      onBlur={[Function]}
-                                                      onChange={[Function]}
-                                                      yesFirst={true}
-                                                      yesLabel="Yes"
-                                                    >
-                                                      <div>
-                                                        <Option
-                                                          checked={false}
-                                                          disabled={false}
-                                                          label="Yes"
-                                                          name="fieldName"
-                                                          onChange={[Function]}
-                                                          value="true"
-                                                        >
-                                                          <div
-                                                            className="radio"
-                                                          >
-                                                            <label
-                                                              style={
-                                                                Object {
-                                                                  "fontWeight": "normal",
-                                                                }
-                                                              }
-                                                            >
-                                                              <input
-                                                                checked={false}
-                                                                disabled={false}
-                                                                name="fieldName"
-                                                                onChange={[Function]}
-                                                                type="radio"
-                                                                value="true"
-                                                              />
-                                                               
-                                                              Yes
-                                                            </label>
-                                                          </div>
-                                                        </Option>
-                                                        <Option
-                                                          checked={false}
-                                                          disabled={false}
-                                                          label="No"
-                                                          name="fieldName"
-                                                          onChange={[Function]}
-                                                          value="false"
-                                                        >
-                                                          <div
-                                                            className="radio"
-                                                          >
-                                                            <label
-                                                              style={
-                                                                Object {
-                                                                  "fontWeight": "normal",
-                                                                }
-                                                              }
-                                                            >
-                                                              <input
-                                                                checked={false}
-                                                                disabled={false}
-                                                                name="fieldName"
-                                                                onChange={[Function]}
-                                                                type="radio"
-                                                                value="false"
-                                                              />
-                                                               
-                                                              No
-                                                            </label>
-                                                          </div>
-                                                        </Option>
-                                                      </div>
-                                                    </RadioBoolean>
-                                                  </Observer>
-                                                </div>
-                                              </Base>
-                                            </Box>
-                                          </Component>
-                                        </FieldControlStyled>
-                                        <FieldControlState
-                                          flexibleControlStateSize={false}
+                                            <input
+                                              checked={false}
+                                              disabled={false}
+                                              name="fieldName"
+                                              onChange={[Function]}
+                                              type="radio"
+                                              value="true"
+                                            />
+                                             
+                                            Yes
+                                          </label>
+                                        </div>
+                                      </Option>
+                                      <Option
+                                        checked={false}
+                                        disabled={false}
+                                        label="No"
+                                        name="fieldName"
+                                        onChange={[Function]}
+                                        value="false"
+                                      >
+                                        <div
+                                          className="radio"
                                         >
-                                          <Component
-                                            className="css-1j6hng-FieldControlState e1rziqw00"
-                                            flexibleControlStateSize={false}
+                                          <label
+                                            style={
+                                              Object {
+                                                "fontWeight": "normal",
+                                              }
+                                            }
                                           >
-                                            <Flex
-                                              className="css-1j6hng-FieldControlState e1rziqw00"
-                                            >
-                                              <Base
-                                                className="e1rziqw00 css-1fqbh7r-FieldControlState"
-                                              >
-                                                <div
-                                                  className="e1rziqw00 css-1fqbh7r-FieldControlState"
-                                                  is={null}
-                                                >
-                                                  <FormFieldControlState
-                                                    model={
-                                                      MockModel {
-                                                        "initialData": Object {
-                                                          "fieldName": undefined,
-                                                        },
-                                                        "props": Object {
-                                                          "children": [Function],
-                                                          "className": undefined,
-                                                          "field": [Function],
-                                                          "flexibleControlStateSize": false,
-                                                          "hideErrorMessage": false,
-                                                          "name": "fieldName",
-                                                          "noLabel": "No",
-                                                          "yesLabel": "Yes",
-                                                        },
-                                                      }
-                                                    }
-                                                    name="fieldName"
-                                                  >
-                                                    <Observer>
-                                                      <ControlState
-                                                        isSaved={false}
-                                                        isSaving={false}
-                                                      />
-                                                    </Observer>
-                                                  </FormFieldControlState>
-                                                </div>
-                                              </Base>
-                                            </Flex>
-                                          </Component>
-                                        </FieldControlState>
-                                      </div>
-                                    </Base>
-                                  </Flex>
-                                </Component>
-                              </FieldControlWrapper>
-                              <Observer />
-                            </div>
-                          </Base>
-                        </Box>
-                      </Component>
+                                            <input
+                                              checked={false}
+                                              disabled={false}
+                                              name="fieldName"
+                                              onChange={[Function]}
+                                              type="radio"
+                                              value="false"
+                                            />
+                                             
+                                            No
+                                          </label>
+                                        </div>
+                                      </Option>
+                                    </div>
+                                  </RadioBoolean>
+                                </Observer>
+                              </div>
+                            </FieldControlStyled>
+                            <FieldControlState
+                              flexibleControlStateSize={false}
+                            >
+                              <div
+                                className="css-oiazm4-FieldControlState ep9s0su0"
+                              >
+                                <FormFieldControlState
+                                  model={
+                                    MockModel {
+                                      "initialData": Object {
+                                        "fieldName": undefined,
+                                      },
+                                      "props": Object {
+                                        "children": [Function],
+                                        "className": undefined,
+                                        "field": [Function],
+                                        "flexibleControlStateSize": false,
+                                        "hideErrorMessage": false,
+                                        "name": "fieldName",
+                                        "noLabel": "No",
+                                        "yesLabel": "Yes",
+                                      },
+                                    }
+                                  }
+                                  name="fieldName"
+                                >
+                                  <Observer>
+                                    <ControlState
+                                      isSaved={false}
+                                      isSaving={false}
+                                    />
+                                  </Observer>
+                                </FormFieldControlState>
+                              </div>
+                            </FieldControlState>
+                          </div>
+                        </FieldControlWrapper>
+                        <Observer />
+                      </div>
                     </FieldControlErrorWrapper>
                   </FieldControl>
                 </div>

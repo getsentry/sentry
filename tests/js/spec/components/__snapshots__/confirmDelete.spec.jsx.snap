@@ -90,31 +90,26 @@ exports[`ConfirmDelete renders 1`] = `
                       <FieldDescription
                         inline={false}
                       >
-                        <Component
-                          className="css-jq43rd-FieldDescription-inlineStyle e12jefmo0"
-                          inline={false}
+                        <label
+                          className="css-jq43rd-FieldDescription-inlineStyle e3z18c30"
                         >
-                          <label
-                            className="css-jq43rd-FieldDescription-inlineStyle e12jefmo0"
+                          <FieldLabel
+                            disabled={false}
                           >
-                            <FieldLabel
-                              disabled={false}
+                            <div
+                              className="css-qzvhly-FieldLabel e16ushrl0"
                             >
-                              <div
-                                className="css-qzvhly-FieldLabel ejkuyjq0"
-                              >
-                                <div>
-                                  Please enter 
-                                  <code>
-                                    CoolOrg
-                                  </code>
-                                   to confirm the deletion
-                                </div>
-                                 
+                              <div>
+                                Please enter 
+                                <code>
+                                  CoolOrg
+                                </code>
+                                 to confirm the deletion
                               </div>
-                            </FieldLabel>
-                          </label>
-                        </Component>
+                               
+                            </div>
+                          </FieldLabel>
+                        </label>
                       </FieldDescription>
                       <FieldControl
                         alignRight={false}
@@ -127,102 +122,47 @@ exports[`ConfirmDelete renders 1`] = `
                         <FieldControlErrorWrapper
                           inline={false}
                         >
-                          <Component
-                            className="css-1ge7tqf-FieldControlErrorWrapper e78b1iv0"
-                            inline={false}
+                          <div
+                            className="css-1ge7tqf-FieldControlErrorWrapper e12jpfuq0"
                           >
-                            <Box
-                              className="css-1ge7tqf-FieldControlErrorWrapper e78b1iv0"
-                            >
-                              <Base
-                                className="e78b1iv0 css-nnn2ut-FieldControlErrorWrapper"
+                            <FieldControlWrapper>
+                              <div
+                                className="css-1muvdry-FieldControlWrapper e12jpfuq2"
                               >
-                                <div
-                                  className="e78b1iv0 css-nnn2ut-FieldControlErrorWrapper"
-                                  is={null}
+                                <FieldControlStyled
+                                  alignRight={false}
                                 >
-                                  <FieldControlWrapper>
-                                    <Component
-                                      className="css-1ke1xob-FieldControlWrapper e78b1iv2"
+                                  <div
+                                    className="css-1pkvhmy-FieldControlStyled e12jpfuq1"
+                                  >
+                                    <Input
+                                      onChange={[Function]}
+                                      placeholder="CoolOrg"
+                                      type="text"
+                                      value=""
                                     >
-                                      <Flex
-                                        className="css-1ke1xob-FieldControlWrapper e78b1iv2"
-                                      >
-                                        <Base
-                                          className="e78b1iv2 css-w4o1g8-FieldControlWrapper"
-                                        >
-                                          <div
-                                            className="e78b1iv2 css-w4o1g8-FieldControlWrapper"
-                                            is={null}
-                                          >
-                                            <FieldControlStyled
-                                              alignRight={false}
-                                            >
-                                              <Component
-                                                alignRight={false}
-                                                className="css-1pkvhmy-FieldControlStyled e78b1iv1"
-                                              >
-                                                <Box
-                                                  className="css-1pkvhmy-FieldControlStyled e78b1iv1"
-                                                >
-                                                  <Base
-                                                    className="e78b1iv1 css-wkkbba-FieldControlStyled"
-                                                  >
-                                                    <div
-                                                      className="e78b1iv1 css-wkkbba-FieldControlStyled"
-                                                      is={null}
-                                                    >
-                                                      <Input
-                                                        onChange={[Function]}
-                                                        placeholder="CoolOrg"
-                                                        type="text"
-                                                        value=""
-                                                      >
-                                                        <input
-                                                          className="css-1b7nva7-Input-inputStyles e1xej46s0"
-                                                          onChange={[Function]}
-                                                          placeholder="CoolOrg"
-                                                          type="text"
-                                                          value=""
-                                                        />
-                                                      </Input>
-                                                    </div>
-                                                  </Base>
-                                                </Box>
-                                              </Component>
-                                            </FieldControlStyled>
-                                            <FieldControlState
-                                              flexibleControlStateSize={true}
-                                            >
-                                              <Component
-                                                className="css-1x60lk6-FieldControlState e1rziqw00"
-                                                flexibleControlStateSize={true}
-                                              >
-                                                <Flex
-                                                  className="css-1x60lk6-FieldControlState e1rziqw00"
-                                                >
-                                                  <Base
-                                                    className="e1rziqw00 css-dgyrfj-FieldControlState"
-                                                  >
-                                                    <div
-                                                      className="e1rziqw00 css-dgyrfj-FieldControlState"
-                                                      is={null}
-                                                    >
-                                                      <ControlState />
-                                                    </div>
-                                                  </Base>
-                                                </Flex>
-                                              </Component>
-                                            </FieldControlState>
-                                          </div>
-                                        </Base>
-                                      </Flex>
-                                    </Component>
-                                  </FieldControlWrapper>
-                                </div>
-                              </Base>
-                            </Box>
-                          </Component>
+                                      <input
+                                        className="css-1b7nva7-Input-inputStyles e1xej46s0"
+                                        onChange={[Function]}
+                                        placeholder="CoolOrg"
+                                        type="text"
+                                        value=""
+                                      />
+                                    </Input>
+                                  </div>
+                                </FieldControlStyled>
+                                <FieldControlState
+                                  flexibleControlStateSize={true}
+                                >
+                                  <div
+                                    className="css-18vhbhh-FieldControlState ep9s0su0"
+                                  >
+                                    <ControlState />
+                                  </div>
+                                </FieldControlState>
+                              </div>
+                            </FieldControlWrapper>
+                          </div>
                         </FieldControlErrorWrapper>
                       </FieldControl>
                     </div>
