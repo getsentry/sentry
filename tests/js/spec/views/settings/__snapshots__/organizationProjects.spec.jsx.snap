@@ -358,7 +358,7 @@ exports[`OrganizationProjects should render the projects in the store 1`] = `
                   flex={false}
                 >
                   <div
-                    className="css-z3t9gf-textStyles"
+                    className="css-wu9jw5-textStyles"
                   >
                     <GridPanelItem
                       key="2"

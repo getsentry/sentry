@@ -1,8 +1,7 @@
 import {Flex} from 'grid-emotion';
-import {css} from 'react-emotion';
+import {cx, css} from 'react-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import classNames from 'classnames';
 
 import space from 'app/styles/space';
 import textStyles from 'app/styles/text';
@@ -19,7 +18,7 @@ const PanelBody = ({className, disablePadding, flex, direction, ...props}) => {
 
   return (
     <Comp
-      className={classNames(padding, textClassName, className)}
+      className={cx(className, padding, textClassName)}
       {...props}
       direction={flexDirection}
     />
