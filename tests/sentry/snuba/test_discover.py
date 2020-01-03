@@ -1021,3 +1021,144 @@ class GetPaginationIdsTest(SnubaTestCase, TestCase):
         assert result.next == "c" * 32
         assert result.oldest == "a" * 32
         assert result.latest == "c" * 32
+
+
+class GetFacetsTest(SnubaTestCase, TestCase):
+    def setUp(self):
+        super(GetFacetsTest, self).setUp()
+
+        self.project = self.create_project()
+        self.min_ago = before_now(minutes=1)
+        self.day_ago = before_now(days=1)
+
+    def test_invalid_query(self):
+        with pytest.raises(InvalidSearchQuery):
+            discover.get_facets(
+                "\n", {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago}
+            )
+
+    def test_no_results(self):
+        results = discover.get_facets(
+            "", {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago}
+        )
+        assert results == []
+
+    def test_single_project(self):
+        self.store_event(
+            data={
+                "message": "very bad",
+                "type": "default",
+                "timestamp": iso_format(before_now(minutes=2)),
+                "tags": {"color": "red", "paying": "1"},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "message": "very bad",
+                "type": "default",
+                "timestamp": iso_format(before_now(minutes=2)),
+                "tags": {"color": "blue", "paying": "0"},
+            },
+            project_id=self.project.id,
+        )
+        params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
+        result = discover.get_facets("", params, sample=False)
+        assert len(result) == 5
+        assert {r.key for r in result} == {"color", "paying", "level"}
+        assert {r.value for r in result} == {"red", "blue", "1", "0", "error"}
+        assert {r.count for r in result} == {1, 2}
+
+    def test_project_filter(self):
+        self.store_event(
+            data={
+                "message": "very bad",
+                "type": "default",
+                "timestamp": iso_format(before_now(minutes=2)),
+                "tags": {"color": "red"},
+            },
+            project_id=self.project.id,
+        )
+        other_project = self.create_project()
+        self.store_event(
+            data={
+                "message": "very bad",
+                "type": "default",
+                "timestamp": iso_format(before_now(minutes=2)),
+                "tags": {"toy": "train"},
+            },
+            project_id=other_project.id,
+        )
+        params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
+        result = discover.get_facets("", params, sample=False)
+        keys = {r.key for r in result}
+        assert "toy" not in keys
+        assert "color" in keys
+        assert "project" not in keys
+
+        # Query more than one project.
+        params = {
+            "project_id": [self.project.id, other_project.id],
+            "start": self.day_ago,
+            "end": self.min_ago,
+        }
+        result = discover.get_facets("", params, sample=False)
+        keys = {r.key for r in result}
+        assert "toy" in keys
+        assert "color" in keys
+        assert "project" in keys
+
+    def test_query_string(self):
+        self.store_event(
+            data={
+                "message": "very bad",
+                "type": "default",
+                "timestamp": iso_format(before_now(minutes=2)),
+                "tags": {"color": "red"},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "message": "oh my",
+                "type": "default",
+                "timestamp": iso_format(before_now(minutes=2)),
+                "tags": {"toy": "train"},
+            },
+            project_id=self.project.id,
+        )
+        params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
+        result = discover.get_facets("bad", params, sample=False)
+        keys = {r.key for r in result}
+        assert "color" in keys
+        assert "toy" not in keys
+
+        result = discover.get_facets("color:red", params, sample=False)
+        keys = {r.key for r in result}
+        assert "color" in keys
+        assert "toy" not in keys
+
+    def test_date_params(self):
+        self.store_event(
+            data={
+                "message": "very bad",
+                "type": "default",
+                "timestamp": iso_format(before_now(minutes=2)),
+                "tags": {"color": "red"},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "message": "oh my",
+                "type": "default",
+                "timestamp": iso_format(before_now(days=2)),
+                "tags": {"toy": "train"},
+            },
+            project_id=self.project.id,
+        )
+        params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
+        result = discover.get_facets("", params, sample=False)
+        keys = {r.key for r in result}
+        assert "color" in keys
+        assert "toy" not in keys

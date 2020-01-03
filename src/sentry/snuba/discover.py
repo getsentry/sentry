@@ -35,11 +35,13 @@ __all__ = (
     "query",
     "timeseries_query",
     "get_pagination_ids",
+    "get_facets",
 )
 
 
 ReferenceEvent = namedtuple("ReferenceEvent", ["organization", "slug", "fields"])
 PaginationResult = namedtuple("PaginationResult", ["next", "previous", "oldest", "latest"])
+FacetResult = namedtuple("FacetResult", ["key", "value", "count"])
 
 
 def is_real_column(col):
@@ -415,3 +417,103 @@ def get_pagination_ids(event, query, params, reference_event=None, referrer=None
         latest=get_id(eventstore.get_latest_event_id(event, filter=snuba_filter)),
         oldest=get_id(eventstore.get_earliest_event_id(event, filter=snuba_filter)),
     )
+
+
+def get_facets(query, params, limit=20, referrer=None, sample=True):
+    """
+    High-level API for getting 'facet map' results.
+
+    Facets are high frequency tags and attribute results that
+    can be used to further refine user queries.
+
+    query (str) Filter query string to create conditions from.
+    params (Dict[str, str]) Filtering parameters with start, end, project_id, environment
+    limit (int) The number of records to fetch.
+    referrer (str|None) A referrer string to help locate the origin of this query.
+    sample (bool) Enabling sampling when getting tag keys. Enables faster results by accepting
+        lower accuracy.
+
+    Returns Sequence[FacetResult]
+    """
+    snuba_filter = get_filter(query, params)
+
+    # TODO(mark) Refactor the need for this translation shim.
+    snuba_args = {
+        "start": snuba_filter.start,
+        "end": snuba_filter.end,
+        "conditions": snuba_filter.conditions,
+        "filter_keys": snuba_filter.filter_keys,
+    }
+    # Resolve the public aliases into the discover dataset names.
+    snuba_args, translated_columns = resolve_discover_aliases(snuba_args)
+
+    # Exclude tracing tags as they are noisy and generally not helpful.
+    conditions = snuba_args.get("conditions", [])
+    conditions.append(["tags_key", "NOT IN", ["trace", "trace.ctx", "trace.span"]])
+
+    # Get the most frequent tag keys, enable sampling
+    # as we don't need accuracy here.
+    key_names = raw_query(
+        selected_columns=["tags_key"],
+        aggregations=[["count", None, "count"]],
+        start=snuba_args.get("start"),
+        end=snuba_args.get("end"),
+        conditions=snuba_args.get("conditions"),
+        filter_keys=snuba_args.get("filter_keys"),
+        orderby=["-count", "tags_key"],
+        groupby="tags_key",
+        dataset=Dataset.Discover,
+        limit=limit,
+        referrer=referrer,
+        turbo=sample,
+    )
+
+    top_tags = [r["tags_key"] for r in key_names["data"]]
+    if not top_tags:
+        return []
+
+    fetch_projects = False
+    if len(params.get("project_id", [])) > 1:
+        if len(top_tags) == limit:
+            top_tags.pop()
+        fetch_projects = True
+
+    results = []
+    if fetch_projects:
+        project_values = raw_query(
+            selected_columns=["project_id"],
+            aggregations=[["count", None, "count"]],
+            start=snuba_args.get("start"),
+            end=snuba_args.get("end"),
+            conditions=snuba_args.get("conditions"),
+            filter_keys=snuba_args.get("filter_keys"),
+            groupby="project_id",
+            dataset=Dataset.Discover,
+            referrer=referrer,
+        )
+        projects = [
+            FacetResult("project", r["project_id"], r["count"]) for r in project_values["data"]
+        ]
+        results.extend(projects)
+
+    # Get tag counts for our top tags.
+    conditions.append(["tags_key", "IN", top_tags])
+
+    tag_values = raw_query(
+        selected_columns=["tags_key", "tags_value"],
+        aggregations=[["count", None, "count"]],
+        conditions=conditions,
+        start=snuba_args.get("start"),
+        end=snuba_args.get("end"),
+        filter_keys=snuba_args.get("filter_keys"),
+        orderby=["tags_key"],
+        groupby=["tags_key", "tags_value"],
+        dataset=Dataset.Discover,
+        referrer=referrer,
+    )
+    tag_results = [
+        FacetResult(r["tags_key"], r["tags_value"], int(r["count"])) for r in tag_values["data"]
+    ]
+    results.extend(tag_results)
+
+    return results
