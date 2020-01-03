@@ -642,7 +642,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                 flex={false}
                               >
                                 <div
-                                  className="e1ueudyh4 css-6ffm7b-StyledPanelBody-textStyles"
+                                  className="e1ueudyh4 css-sykvmd-textStyles-StyledPanelBody"
                                 >
                                   <div
                                     dangerouslySetInnerHTML={
