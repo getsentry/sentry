@@ -482,6 +482,64 @@ class QueryTransformTest(TestCase):
         )
 
     @patch("sentry.snuba.discover.raw_query")
+    def test_condition_projectid_transform(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "duration"}],
+            "data": [{"transaction": "api.do_things", "duration": 200}],
+        }
+        # The project_id column is not a public column, but we
+        # have to let it through in conditions to ensure project.name works.
+        discover.query(
+            selected_columns=["transaction", "transaction.duration"],
+            query="project_id:1",
+            params={"project_id": [self.project.id]},
+        )
+        mock_query.assert_called_with(
+            selected_columns=["transaction", "duration"],
+            conditions=[["project_id", "=", 1]],
+            filter_keys={"project_id": [self.project.id]},
+            groupby=[],
+            dataset=Dataset.Discover,
+            aggregations=[],
+            orderby=None,
+            end=None,
+            start=None,
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_condition_projectname_transform(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "duration"}],
+            "data": [{"transaction": "api.do_things", "duration": 200}],
+        }
+        project2 = self.create_project(organization=self.organization)
+
+        # project.name is in the public schema and should be converted to a
+        # project_id condition.
+        discover.query(
+            selected_columns=["transaction", "transaction.duration"],
+            query="project.name:{}".format(project2.slug),
+            params={"project_id": [self.project.id, project2.id]},
+        )
+        mock_query.assert_called_with(
+            selected_columns=["transaction", "duration"],
+            conditions=[["project_id", "=", project2.id]],
+            filter_keys={"project_id": [self.project.id, project2.id]},
+            groupby=[],
+            dataset=Dataset.Discover,
+            aggregations=[],
+            orderby=None,
+            end=None,
+            start=None,
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
     def test_params_forward(self, mock_query):
         mock_query.return_value = {
             "meta": [{"name": "transaction"}, {"name": "duration"}],
@@ -523,6 +581,7 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
                 "timestamp": iso_format(self.day_ago + timedelta(hours=1)),
                 "fingerprint": ["group1"],
                 "tags": {"important": "yes"},
+                "user": {"id": 1},
             },
             project_id=self.project.id,
         )
@@ -606,6 +665,23 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
         )
         assert len(result.data["data"]) == 3
         assert [2] == [val["count"] for val in result.data["data"] if "count" in val]
+
+        result = discover.timeseries_query(
+            selected_columns=["count_unique(user)"],
+            query="",
+            params={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
+                "project_id": [self.project.id],
+            },
+            rollup=3600,
+        )
+        assert len(result.data["data"]) == 3
+        keys = []
+        for row in result.data["data"]:
+            keys.extend(list(row.keys()))
+        assert "count" in keys
+        assert "time" in keys
 
     def test_zerofilling(self):
         result = discover.timeseries_query(

@@ -18,10 +18,8 @@ export default class TagDistributionMeter extends React.Component {
     segments: PropTypes.arrayOf(
       PropTypes.shape({
         count: PropTypes.number.isRequired,
-        name: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.array])
-          .isRequired,
-        value: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.array])
-          .isRequired,
+        name: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.array]),
+        value: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.array]),
         url: PropTypes.oneOfType([PropTypes.string, PropTypes.object]).isRequired,
       })
     ).isRequired,
@@ -58,7 +56,7 @@ export default class TagDistributionMeter extends React.Component {
       <Title>
         <TitleType>{title}</TitleType>
         <TitleDescription>
-          <Label>{largestSegment.name}</Label>
+          <Label>{largestSegment.name || t('n/a')}</Label>
           {isLoading || hasError ? null : <Percent>{pctLabel}%</Percent>}
         </TitleDescription>
       </Title>
@@ -98,7 +96,7 @@ export default class TagDistributionMeter extends React.Component {
 
           const tooltipHtml = (
             <React.Fragment>
-              <div className="truncate">{value.name}</div>
+              <div className="truncate">{value.name || t('n/a')}</div>
               {pctLabel}%
             </React.Fragment>
           );

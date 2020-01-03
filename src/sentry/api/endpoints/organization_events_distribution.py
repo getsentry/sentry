@@ -3,9 +3,11 @@ from __future__ import absolute_import
 import six
 
 from rest_framework.response import Response
+from rest_framework.exceptions import ParseError
+
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
-from sentry.utils.snuba import transform_aliases_and_query
 from sentry import features, tagstore
+from sentry.snuba import discover
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 
 
@@ -20,54 +22,46 @@ class OrganizationEventsDistributionEndpoint(OrganizationEventsEndpointBase):
             return Response(status=404)
         try:
             params = self.get_filter_params(request, organization)
-            snuba_args = self.get_snuba_query_args(request, organization, params)
-        except OrganizationEventsError as exc:
-            return Response({"detail": exc.message}, status=400)
+        except OrganizationEventsError as error:
+            raise ParseError(detail=six.text_type(error))
         except NoProjects:
             return Response({"detail": "A valid project must be included."}, status=400)
 
         try:
             key = self._validate_key(request)
-            self._validate_project_ids(request, organization, snuba_args)
+            self._validate_project_ids(request, organization, params)
         except OrganizationEventsError as error:
-            return Response({"detail": six.text_type(error)}, status=400)
+            raise ParseError(detail=six.text_type(error))
 
         if key == PROJECT_KEY:
-            colname = "project_id"
-            conditions = snuba_args["conditions"]
+            colname = "project.id"
+        elif key == "user":
+            colname = "sentry:user"
         else:
             colname = key
-            additional_conditions = []
-            # the "no environment" environment is null in snuba
-            if not ("environment" in params and "" in params["environment"]):
-                additional_conditions = [[colname, "IS NOT NULL", None]]
-
-            conditions = snuba_args["conditions"] + additional_conditions
-
-        top_values = transform_aliases_and_query(
-            start=snuba_args["start"],
-            end=snuba_args["end"],
-            conditions=conditions,
-            filter_keys=snuba_args["filter_keys"],
-            groupby=[colname],
-            aggregations=[("count()", None, "count")],
-            orderby="-count",
-            limit=TOP_VALUES_DEFAULT_LIMIT,
-            referrer="api.organization-events-distribution",
-        )["data"]
+        try:
+            result = discover.query(
+                selected_columns=[colname, "count()"],
+                params=params,
+                query=request.GET.get("query"),
+                orderby="-count",
+                limit=TOP_VALUES_DEFAULT_LIMIT,
+                referrer="api.organization-events-distribution",
+            )
+        except discover.InvalidSearchQuery as error:
+            raise ParseError(detail=six.text_type(error))
 
         if key == PROJECT_KEY:
             projects = {p.id: p.slug for p in self.get_projects(request, organization)}
-
             resp = {
                 "key": PROJECT_KEY,
                 "topValues": [
                     {
-                        "value": projects[v["project_id"]],
-                        "name": projects[v["project_id"]],
+                        "value": projects[v["project.id"]],
+                        "name": projects[v["project.id"]],
                         "count": v["count"],
                     }
-                    for v in top_values
+                    for v in result["data"]
                 ],
             }
         else:
@@ -79,7 +73,7 @@ class OrganizationEventsDistributionEndpoint(OrganizationEventsEndpointBase):
                         "name": tagstore.get_tag_value_label(colname, v[colname]),
                         "count": v["count"],
                     }
-                    for v in top_values
+                    for v in result["data"]
                 ],
             }
 
@@ -96,8 +90,8 @@ class OrganizationEventsDistributionEndpoint(OrganizationEventsEndpointBase):
 
         return key
 
-    def _validate_project_ids(self, request, organization, snuba_args):
-        project_ids = snuba_args["filter_keys"]["project_id"]
+    def _validate_project_ids(self, request, organization, params):
+        project_ids = params["project_id"]
 
         has_global_views = features.has(
             "organizations:global-views", organization, actor=request.user

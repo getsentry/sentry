@@ -393,10 +393,10 @@ class OrganizationEventsDistributionEndpointTest(SnubaTestCase, APITestCase):
             response = self.client.get(self.url, {"key": "user.email"}, format="json")
 
         assert response.status_code == 200, response.content
-
         assert response.data == {
             "topValues": [
                 {"count": 2, "name": user1["email"], "value": user1["email"]},
+                {"count": 1, "name": None, "value": None},
                 {"count": 1, "name": user2["email"], "value": user2["email"]},
             ],
             "key": "user.email",
@@ -490,6 +490,7 @@ class OrganizationEventsDistributionEndpointTest(SnubaTestCase, APITestCase):
 
             assert response.data == {
                 "topValues": [
+                    {"count": 1, "name": None, "value": None},
                     {"count": 1, "name": "staging", "value": "staging"},
                     {"count": 1, "name": "production", "value": "production"},
                 ],

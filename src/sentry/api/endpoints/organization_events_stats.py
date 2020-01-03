@@ -10,28 +10,46 @@ from sentry import features
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
 from sentry.api.event_search import resolve_field_list, InvalidSearchQuery
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
-from sentry.utils.dates import parse_stats_period
+from sentry.snuba import discover
 from sentry.utils import snuba
+from sentry.utils.dates import parse_stats_period
 
 
 class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
     def get(self, request, organization):
+        if not features.has("organizations:events-v2", organization, actor=request.user):
+            return self.get_v1_results(request, organization)
+
         try:
-            if features.has("organizations:events-v2", organization, actor=request.user):
-                params = self.get_filter_params(request, organization)
-                snuba_args = self.get_snuba_query_args(request, organization, params)
-            else:
-                snuba_args = self.get_snuba_query_args_legacy(request, organization)
+            params = self.get_filter_params(request, organization)
+            result = discover.timeseries_query(
+                selected_columns=[request.GET.get("yAxis", "count()")],
+                query=request.GET.get("query"),
+                params=params,
+                rollup=self.get_rollup(request),
+                reference_event=self.reference_event(request, organization),
+                referrer="api.organization-event-stats",
+            )
+        except InvalidSearchQuery as err:
+            raise ParseError(detail=six.text_type(err))
+        serializer = SnubaTSResultSerializer(organization, None, request.user)
+        return Response(serializer.serialize(result), status=200)
+
+    def get_rollup(self, request):
+        interval = parse_stats_period(request.GET.get("interval", "1h"))
+        if interval is None:
+            interval = timedelta(hours=1)
+        return int(interval.total_seconds())
+
+    def get_v1_results(self, request, organization):
+        try:
+            snuba_args = self.get_snuba_query_args_legacy(request, organization)
         except (OrganizationEventsError, InvalidSearchQuery) as exc:
             raise ParseError(detail=six.text_type(exc))
         except NoProjects:
             return Response({"data": []})
 
-        interval = parse_stats_period(request.GET.get("interval", "1h"))
-        if interval is None:
-            interval = timedelta(hours=1)
-        rollup = int(interval.total_seconds())
-
+        rollup = self.get_rollup(request)
         snuba_args = self.get_field(request, snuba_args)
 
         result = snuba.transform_aliases_and_query(
