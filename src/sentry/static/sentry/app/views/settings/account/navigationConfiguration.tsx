@@ -1,8 +1,9 @@
 import {t} from 'app/locale';
+import {NavigationSection} from 'app/views/settings/types';
 
 const pathPrefix = '/settings/account';
 
-const accountNavigation = [
+const accountNavigation: NavigationSection[] = [
   {
     name: t('Account'),
     items: [

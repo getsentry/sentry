@@ -1,5 +1,4 @@
 import {Link} from 'react-router';
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
@@ -7,45 +6,37 @@ import Badge from 'app/components/badge';
 import HookOrDefault from 'app/components/hookOrDefault';
 import Tag from 'app/views/settings/components/tag';
 
-class SettingsNavItem extends React.Component {
-  static propTypes = {
-    label: PropTypes.node.isRequired,
-    badge: PropTypes.node,
-    index: PropTypes.bool,
-    id: PropTypes.string,
-  };
+type Props = {
+  to: React.ComponentProps<Link>['to'];
+  label: React.ReactNode;
+  badge?: string | number | null;
+  index?: boolean;
+  id?: string;
+};
 
-  render() {
-    const {badge, label, index, id, ...props} = this.props;
+const SettingsNavItem = ({badge, label, index, id, ...props}: Props) => {
+  const LabelHook = HookOrDefault({
+    hookName: 'sidebar:item-label',
+    defaultComponent: ({children}) => <React.Fragment>{children}</React.Fragment>,
+  });
 
-    const LabelHook = HookOrDefault({
-      hookName: 'sidebar:item-label',
-      defaultComponent: ({children}) => {
-        return <React.Fragment>{children}</React.Fragment>;
-      },
-    });
-
-    let renderedBadge = '';
-
-    if (badge === 'new') {
-      renderedBadge = (
-        <StyledTag priority="warning" size="small" border>
-          {badge}
-        </StyledTag>
-      );
-    } else {
-      renderedBadge = <Badge text={badge} />;
-    }
-
-    return (
-      <StyledNavItem onlyActiveOnIndex={index} activeClassName="active" {...props}>
-        <LabelHook id={id}>{label}</LabelHook>
-
-        {badge ? renderedBadge : null}
-      </StyledNavItem>
+  const renderedBadge =
+    badge === 'new' ? (
+      <StyledTag priority="warning" size="small" border>
+        {badge}
+      </StyledTag>
+    ) : (
+      <Badge text={badge} />
     );
-  }
-}
+
+  return (
+    <StyledNavItem onlyActiveOnIndex={index} activeClassName="active" {...props}>
+      <LabelHook id={id}>{label}</LabelHook>
+
+      {badge ? renderedBadge : null}
+    </StyledNavItem>
+  );
+};
 
 const StyledTag = styled(Tag)`
   margin-left: 0.25em;
