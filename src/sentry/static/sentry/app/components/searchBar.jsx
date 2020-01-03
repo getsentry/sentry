@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {cx} from 'react-emotion';
+import classNames from 'classnames';
 
 class SearchBar extends React.PureComponent {
   static propTypes = {
@@ -65,7 +65,7 @@ class SearchBar extends React.PureComponent {
   render() {
     const {className} = this.props;
     return (
-      <div className={cx('search', className)}>
+      <div className={classNames('search', className)}>
         <form className="form-horizontal" onSubmit={this.onSubmit}>
           <div>
             <input

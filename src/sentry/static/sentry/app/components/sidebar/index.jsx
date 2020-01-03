@@ -3,8 +3,9 @@ import {withRouter, browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
+import classNames from 'classnames';
 import createReactClass from 'create-react-class';
-import styled, {css, cx} from 'react-emotion';
+import styled, {css} from 'react-emotion';
 import queryString from 'query-string';
 
 import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
@@ -621,7 +622,7 @@ const CollapsedIcon = css`
 `;
 const StyledInlineSvg = styled(({className, collapsed, ...props}) => (
   <InlineSvg
-    className={cx(className, ExpandedIcon, collapsed && CollapsedIcon)}
+    className={classNames(className, ExpandedIcon, collapsed && CollapsedIcon)}
     {...props}
   />
 ))``;
