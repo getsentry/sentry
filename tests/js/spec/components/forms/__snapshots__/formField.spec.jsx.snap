@@ -161,154 +161,113 @@ exports[`FormField + model renders with Form 1`] = `
                           <FieldControlErrorWrapper
                             inline={true}
                           >
-                            <Component
-                              className="css-1xbxyck-FieldControlErrorWrapper e78b1iv0"
-                              inline={true}
+                            <div
+                              className="css-1xbxyck-FieldControlErrorWrapper e12jpfuq0"
                             >
-                              <Box
-                                className="css-1xbxyck-FieldControlErrorWrapper e78b1iv0"
-                              >
-                                <Base
-                                  className="e78b1iv0 css-1kkovz0-FieldControlErrorWrapper"
+                              <FieldControlWrapper>
+                                <div
+                                  className="css-1muvdry-FieldControlWrapper e12jpfuq2"
                                 >
-                                  <div
-                                    className="e78b1iv0 css-1kkovz0-FieldControlErrorWrapper"
-                                    is={null}
+                                  <FieldControlStyled
+                                    alignRight={false}
                                   >
-                                    <FieldControlWrapper>
-                                      <Component
-                                        className="css-1ke1xob-FieldControlWrapper e78b1iv2"
-                                      >
-                                        <Flex
-                                          className="css-1ke1xob-FieldControlWrapper e78b1iv2"
+                                    <div
+                                      className="css-1pkvhmy-FieldControlStyled e12jpfuq1"
+                                    >
+                                      <Observer>
+                                        <Input
+                                          disabled={false}
+                                          error={false}
+                                          field={[Function]}
+                                          id="fieldName"
+                                          initialData={Object {}}
+                                          innerRef={[Function]}
+                                          name="fieldName"
+                                          onBlur={[Function]}
+                                          onChange={[Function]}
+                                          onKeyDown={[Function]}
+                                          type="text"
+                                          value=""
                                         >
-                                          <Base
-                                            className="e78b1iv2 css-w4o1g8-FieldControlWrapper"
-                                          >
-                                            <div
-                                              className="e78b1iv2 css-w4o1g8-FieldControlWrapper"
-                                              is={null}
-                                            >
-                                              <FieldControlStyled
-                                                alignRight={false}
-                                              >
-                                                <Component
-                                                  alignRight={false}
-                                                  className="css-1pkvhmy-FieldControlStyled e78b1iv1"
-                                                >
-                                                  <Box
-                                                    className="css-1pkvhmy-FieldControlStyled e78b1iv1"
-                                                  >
-                                                    <Base
-                                                      className="e78b1iv1 css-wkkbba-FieldControlStyled"
-                                                    >
-                                                      <div
-                                                        className="e78b1iv1 css-wkkbba-FieldControlStyled"
-                                                        is={null}
-                                                      >
-                                                        <Observer>
-                                                          <Input
-                                                            disabled={false}
-                                                            error={false}
-                                                            field={[Function]}
-                                                            id="fieldName"
-                                                            initialData={Object {}}
-                                                            innerRef={[Function]}
-                                                            name="fieldName"
-                                                            onBlur={[Function]}
-                                                            onChange={[Function]}
-                                                            onKeyDown={[Function]}
-                                                            type="text"
-                                                            value=""
-                                                          >
-                                                            <input
-                                                              className="css-1b7nva7-Input-inputStyles e1xej46s0"
-                                                              disabled={false}
-                                                              id="fieldName"
-                                                              name="fieldName"
-                                                              onBlur={[Function]}
-                                                              onChange={[Function]}
-                                                              onKeyDown={[Function]}
-                                                              type="text"
-                                                              value=""
-                                                            />
-                                                          </Input>
-                                                        </Observer>
-                                                      </div>
-                                                    </Base>
-                                                  </Box>
-                                                </Component>
-                                              </FieldControlStyled>
-                                              <FieldControlState
-                                                flexibleControlStateSize={false}
-                                              >
-                                                <div
-                                                  className="css-oiazm4-FieldControlState ep9s0su0"
-                                                >
-                                                  <FormFieldControlState
-                                                    model={
-                                                      FormModel {
-                                                        "api": Client {
-                                                          "_chain": [Function],
-                                                          "_wrapRequest": [Function],
-                                                          "bulkUpdate": [Function],
-                                                          "handleRequestError": [Function],
-                                                          "hasProjectBeenRenamed": [Function],
-                                                        },
-                                                        "errors": Object {},
-                                                        "fieldDescriptor": Map {
-                                                          "fieldName" => Object {
-                                                            "children": [Function],
-                                                            "className": undefined,
-                                                            "field": [Function],
-                                                            "flexibleControlStateSize": false,
-                                                            "hideErrorMessage": false,
-                                                            "name": "fieldName",
-                                                            "type": "text",
-                                                          },
-                                                        },
-                                                        "fieldState": Object {},
-                                                        "fields": Object {},
-                                                        "formErrors": undefined,
-                                                        "formState": undefined,
-                                                        "initialData": Object {},
-                                                        "options": Object {
-                                                          "allowUndo": false,
-                                                          "apiEndpoint": undefined,
-                                                          "apiMethod": undefined,
-                                                          "onFieldChange": undefined,
-                                                          "onSubmitError": undefined,
-                                                          "onSubmitSuccess": undefined,
-                                                          "resetOnError": undefined,
-                                                          "saveOnBlur": false,
-                                                        },
-                                                        "snapshots": Array [
-                                                          Map {},
-                                                        ],
-                                                      }
-                                                    }
-                                                    name="fieldName"
-                                                  >
-                                                    <Observer>
-                                                      <ControlState
-                                                        error={false}
-                                                        isSaved={null}
-                                                        isSaving={null}
-                                                      />
-                                                    </Observer>
-                                                  </FormFieldControlState>
-                                                </div>
-                                              </FieldControlState>
-                                            </div>
-                                          </Base>
-                                        </Flex>
-                                      </Component>
-                                    </FieldControlWrapper>
-                                    <Observer />
-                                  </div>
-                                </Base>
-                              </Box>
-                            </Component>
+                                          <input
+                                            className="css-1b7nva7-Input-inputStyles e1xej46s0"
+                                            disabled={false}
+                                            id="fieldName"
+                                            name="fieldName"
+                                            onBlur={[Function]}
+                                            onChange={[Function]}
+                                            onKeyDown={[Function]}
+                                            type="text"
+                                            value=""
+                                          />
+                                        </Input>
+                                      </Observer>
+                                    </div>
+                                  </FieldControlStyled>
+                                  <FieldControlState
+                                    flexibleControlStateSize={false}
+                                  >
+                                    <div
+                                      className="css-oiazm4-FieldControlState ep9s0su0"
+                                    >
+                                      <FormFieldControlState
+                                        model={
+                                          FormModel {
+                                            "api": Client {
+                                              "_chain": [Function],
+                                              "_wrapRequest": [Function],
+                                              "bulkUpdate": [Function],
+                                              "handleRequestError": [Function],
+                                              "hasProjectBeenRenamed": [Function],
+                                            },
+                                            "errors": Object {},
+                                            "fieldDescriptor": Map {
+                                              "fieldName" => Object {
+                                                "children": [Function],
+                                                "className": undefined,
+                                                "field": [Function],
+                                                "flexibleControlStateSize": false,
+                                                "hideErrorMessage": false,
+                                                "name": "fieldName",
+                                                "type": "text",
+                                              },
+                                            },
+                                            "fieldState": Object {},
+                                            "fields": Object {},
+                                            "formErrors": undefined,
+                                            "formState": undefined,
+                                            "initialData": Object {},
+                                            "options": Object {
+                                              "allowUndo": false,
+                                              "apiEndpoint": undefined,
+                                              "apiMethod": undefined,
+                                              "onFieldChange": undefined,
+                                              "onSubmitError": undefined,
+                                              "onSubmitSuccess": undefined,
+                                              "resetOnError": undefined,
+                                              "saveOnBlur": false,
+                                            },
+                                            "snapshots": Array [
+                                              Map {},
+                                            ],
+                                          }
+                                        }
+                                        name="fieldName"
+                                      >
+                                        <Observer>
+                                          <ControlState
+                                            error={false}
+                                            isSaved={null}
+                                            isSaving={null}
+                                          />
+                                        </Observer>
+                                      </FormFieldControlState>
+                                    </div>
+                                  </FieldControlState>
+                                </div>
+                              </FieldControlWrapper>
+                              <Observer />
+                            </div>
                           </FieldControlErrorWrapper>
                         </FieldControl>
                       </div>

@@ -125,6 +125,10 @@ def resolve_column(col):
     """
     if col is None:
         return col
+    # Whilst project_id is not part of the public schema we convert
+    # the project.name field into project_id way before we get here.
+    if col == "project_id":
+        return col
     if col.startswith("tags[") or QUOTED_LITERAL_RE.match(col):
         return col
     return DISCOVER_COLUMN_MAP.get(col, u"tags[{}]".format(col))
@@ -355,6 +359,11 @@ def timeseries_query(selected_columns, query, params, rollup, reference_event=No
     snuba_args, _ = resolve_discover_aliases(snuba_args)
     if not snuba_args["aggregations"]:
         raise InvalidSearchQuery("Cannot get timeseries result with no aggregation.")
+
+    # Change the alias of the first aggregation to count. This ensures compatibility
+    # with other parts of the timeseries endpoint expectations
+    if len(snuba_args["aggregations"]) == 1:
+        snuba_args["aggregations"][0][2] = "count"
 
     result = raw_query(
         aggregations=snuba_args.get("aggregations"),
