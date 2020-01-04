@@ -95,7 +95,7 @@ export function loadOrganizationTags(api, orgId, selection) {
 
   const url = `/organizations/${orgId}/tags/`;
 
-  const query = {...getParams(selection.datetime)};
+  const query = selection.datetime ? {...getParams(selection.datetime)} : {};
 
   if (selection.projects) {
     query.project = selection.projects;

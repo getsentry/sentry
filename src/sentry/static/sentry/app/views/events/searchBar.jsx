@@ -3,6 +3,7 @@ import flatten from 'lodash/flatten';
 import memoize from 'lodash/memoize';
 import PropTypes from 'prop-types';
 import React from 'react';
+import isEqual from 'lodash/isEqual';
 
 import {NEGATION_OPERATOR, SEARCH_TYPES, SEARCH_WILDCARD} from 'app/constants';
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -31,7 +32,11 @@ class SearchBar extends React.PureComponent {
     api: PropTypes.object,
     organization: SentryTypes.Organization,
     projectIds: PropTypes.arrayOf(PropTypes.number),
-    selection: SentryTypes.GlobalSelection,
+    datetime: PropTypes.shape({
+      start: PropTypes.string,
+      end: PropTypes.string,
+      statsPeriod: PropTypes.string,
+    }),
   };
 
   state = {
@@ -43,7 +48,10 @@ class SearchBar extends React.PureComponent {
   }
 
   componentDidUpdate(prevProps) {
-    if (this.props.projectIds !== prevProps.projectIds) {
+    if (
+      !isEqual(this.props.projectIds, prevProps.projectIds) ||
+      !isEqual(this.props.datetime, prevProps.datetime)
+    ) {
       this.fetchData();
       // Clear memoized data when projects change.
       this.getEventFieldValues.cache.clear();
@@ -51,8 +59,16 @@ class SearchBar extends React.PureComponent {
   }
 
   fetchData = async () => {
-    const {api, organization, selection} = this.props;
+    const {api, organization, projectIds, datetime} = this.props;
     try {
+      const selection = {
+        projects: projectIds || [],
+      };
+
+      if (datetime) {
+        selection.datetime = datetime;
+      }
+
       const tags = await loadOrganizationTags(api, organization.slug, selection);
       this.setState({
         tags: this.getAllTags(tags.map(({key}) => key)),

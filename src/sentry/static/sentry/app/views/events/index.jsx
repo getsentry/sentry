@@ -63,6 +63,7 @@ class EventsContainer extends React.Component {
                 <StyledSearchBar
                   organization={organization}
                   projectIds={selection.projects}
+                  datetime={selection.datetime}
                   query={(location.query && location.query.query) || ''}
                   placeholder={t('Search for events, users, tags, and everything else.')}
                   onSearch={this.handleSearch}
