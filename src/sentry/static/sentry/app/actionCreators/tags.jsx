@@ -64,7 +64,7 @@ function tagFetchSuccess(tags) {
 }
 
 export function loadOrganizationTags(api, orgId, selection) {
-  if (isEqual(TagStore.getSelectionOnPreviousFetch(), selection)) {
+  if (isEqual(TagStore.getSelectionOnLatestFetch(), selection)) {
     const tags = Object.keys(TagStore.getAllTags()).map(key => {
       return {
         key,
@@ -88,7 +88,7 @@ export function loadOrganizationTags(api, orgId, selection) {
   //       themselves are also tags. Hence, we do not pass the list of environments
   //       as part of the query payload.
 
-  TagStore.setSelectionOnPreviousFetch(selection);
+  TagStore.setSelectionOnLatestFetch(selection);
 
   const promise = api
     .requestPromise(url, {

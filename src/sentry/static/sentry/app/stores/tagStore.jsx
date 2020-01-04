@@ -29,9 +29,9 @@ const TagStore = Reflux.createStore({
   },
 
   reset() {
-    // track the global header selection on the previous API fetch of the org tags.
+    // track the global header selection on the latest API fetch of the org tags.
     // If null, this indicates that an API fetch has not occurred.
-    this.selectionOnPreviousFetch = null;
+    this.selectionOnLatestFetch = null;
 
     // TODO(mitsuhiko): what do we do with translations here?
     this.tags = {
@@ -104,12 +104,12 @@ const TagStore = Reflux.createStore({
     this.trigger(this.tags);
   },
 
-  getSelectionOnPreviousFetch() {
-    return this.selectionOnPreviousFetch;
+  getSelectionOnLatestFetch() {
+    return this.selectionOnLatestFetch;
   },
 
-  setSelectionOnPreviousFetch(selection) {
-    this.selectionOnPreviousFetch = selection;
+  setSelectionOnLatestFetch(selection) {
+    this.selectionOnLatestFetch = selection;
   },
 
   getTag(tagName) {
