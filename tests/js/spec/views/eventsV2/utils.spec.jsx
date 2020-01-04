@@ -11,6 +11,7 @@ import {
   decodeColumnOrder,
   pushEventViewToLocation,
 } from 'app/views/eventsV2/utils';
+import {COL_WIDTH_UNDEFINED, COL_WIDTH_NUMBER} from 'app/components/gridEditable';
 
 describe('eventTagSearchUrl()', function() {
   let location;
@@ -306,7 +307,7 @@ describe('decodeColumnOrder', function() {
       name: 'average',
       aggregation: 'avg',
       field: 'transaction.duration',
-      width: 300,
+      width: COL_WIDTH_NUMBER,
       eventViewField: {field: 'avg(transaction.duration)', title: 'average'},
       isDragging: false,
       isPrimary: false,
@@ -354,7 +355,7 @@ describe('pushEventViewToLocation', function() {
         name: 'best query',
         field: ['count()', 'project.id'],
         fieldnames: ['events', 'project'],
-        widths: [300, 300],
+        widths: [COL_WIDTH_UNDEFINED, COL_WIDTH_UNDEFINED],
         sort: ['-count'],
         tag: ['foo', 'bar'],
         query: 'event.type:error',
@@ -384,7 +385,7 @@ describe('pushEventViewToLocation', function() {
         name: 'best query',
         field: ['count()', 'project.id'],
         fieldnames: ['events', 'project'],
-        widths: [300, 300],
+        widths: [COL_WIDTH_UNDEFINED, COL_WIDTH_UNDEFINED],
         sort: ['-count'],
         tag: ['foo', 'bar'],
         query: 'event.type:error',

@@ -9,7 +9,7 @@ import moment from 'moment';
 import {DEFAULT_PER_PAGE} from 'app/constants';
 import {SavedQuery, NewQuery} from 'app/types';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {COL_WIDTH_DEFAULT} from 'app/components/gridEditable';
+import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 
 import {AUTOLINK_FIELDS, SPECIAL_FIELDS, FIELD_FORMATTERS} from './data';
 import {
@@ -52,7 +52,13 @@ const reverseSort = (sort: Sort): Sort => {
 export type Field = {
   field: string;
   title: string;
-  width: number;
+  width?: number;
+};
+export type Column = {
+  aggregation: string;
+  field: string;
+  fieldname: string;
+  width?: number;
 };
 
 const isSortEqualToField = (
@@ -138,12 +144,11 @@ const decodeFields = (location: Location): Array<Field> => {
 
   const parsed: Field[] = [];
   fields.forEach((field, i) => {
-    let title = field;
-    if (fieldnames[i]) {
-      title = fieldnames[i];
-    }
+    const title = fieldnames[i] ? fieldnames[i] : field;
 
-    const width = widths.length > i ? Number(widths[i]) : COL_WIDTH_DEFAULT;
+    const w = Number(widths[i]);
+    const width = !isNaN(w) ? w : COL_WIDTH_UNDEFINED;
+
     parsed.push({field, title, width});
   });
 
@@ -387,7 +392,7 @@ class EventView {
     const fields = saved.fields.map((field, i) => {
       const title = saved.fieldnames && saved.fieldnames[i] ? saved.fieldnames[i] : field;
       const width =
-        saved.widths && saved.widths[i] ? Number(saved.widths[i]) : COL_WIDTH_DEFAULT;
+        saved.widths && saved.widths[i] ? Number(saved.widths[i]) : COL_WIDTH_UNDEFINED;
 
       return {field, title, width};
     });
@@ -567,7 +572,7 @@ class EventView {
   }
 
   getWidths(): number[] {
-    return this.fields.map(field => field.width || COL_WIDTH_DEFAULT);
+    return this.fields.map(field => (field.width ? field.width : COL_WIDTH_UNDEFINED));
   }
 
   getAggregateFields(): Field[] {
@@ -612,11 +617,7 @@ class EventView {
     });
   }
 
-  withNewColumn(newColumn: {
-    aggregation: string;
-    field: string;
-    fieldname: string;
-  }): EventView {
+  withNewColumn(newColumn: Column): EventView {
     const field = newColumn.field.trim();
     const aggregation = newColumn.aggregation.trim();
     const fieldAsString = generateFieldAsString({field, aggregation});
@@ -626,7 +627,7 @@ class EventView {
     const newField: Field = {
       field: fieldAsString,
       title: hasName ? name : fieldAsString,
-      width: COL_WIDTH_DEFAULT,
+      width: newColumn.width || COL_WIDTH_UNDEFINED,
     };
 
     const newEventView = this.clone();
@@ -635,14 +636,7 @@ class EventView {
     return newEventView;
   }
 
-  withNewColumnAt(
-    newColumn: {
-      aggregation: string;
-      field: string;
-      fieldname: string;
-    },
-    insertIndex: number
-  ): EventView {
+  withNewColumnAt(newColumn: Column, insertIndex: number): EventView {
     const newEventView = this.withNewColumn(newColumn);
     const fromIndex = newEventView.fields.length - 1;
 
@@ -651,12 +645,7 @@ class EventView {
 
   withUpdatedColumn(
     columnIndex: number,
-    updatedColumn: {
-      aggregation: string;
-      field: string;
-      fieldname: string;
-      width: number;
-    },
+    updatedColumn: Column,
     tableMeta: MetaType | undefined
   ): EventView {
     const {aggregation, field, fieldname, width} = updatedColumn;
@@ -680,7 +669,7 @@ class EventView {
     const updatedField: Field = {
       field: fieldAsString,
       title: fieldname,
-      width,
+      width: width || COL_WIDTH_UNDEFINED,
     };
 
     const fields = [...newEventView.fields];

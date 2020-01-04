@@ -32,11 +32,13 @@ import {
   GridResizer,
 } from './styles';
 import {
+  COL_WIDTH_UNDEFINED,
   COL_WIDTH_MIN,
   COL_WIDTH_DEFAULT,
+  COL_WIDTH_BOOLEAN,
+  COL_WIDTH_DATETIME,
   COL_WIDTH_NUMBER,
   COL_WIDTH_STRING,
-  COL_WIDTH_STRING_LONG,
   ColResizeMetadata,
 } from './utils';
 
@@ -506,11 +508,13 @@ class GridEditable<
 
 export default GridEditable;
 export {
+  COL_WIDTH_UNDEFINED,
   COL_WIDTH_MIN,
   COL_WIDTH_DEFAULT,
+  COL_WIDTH_BOOLEAN,
+  COL_WIDTH_DATETIME,
   COL_WIDTH_NUMBER,
   COL_WIDTH_STRING,
-  COL_WIDTH_STRING_LONG,
   GridColumn,
   GridColumnHeader,
   GridColumnOrder,

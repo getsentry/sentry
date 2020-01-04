@@ -10,7 +10,14 @@ import {Client} from 'app/api';
 import {getTitle} from 'app/utils/events';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {generateQueryWithTag} from 'app/utils';
-import {COL_WIDTH_DEFAULT} from 'app/components/gridEditable/utils';
+import {
+  COL_WIDTH_UNDEFINED,
+  COL_WIDTH_DEFAULT,
+  COL_WIDTH_BOOLEAN,
+  COL_WIDTH_DATETIME,
+  COL_WIDTH_NUMBER,
+  COL_WIDTH_STRING,
+} from 'app/components/gridEditable';
 
 import {
   AGGREGATE_ALIASES,
@@ -189,6 +196,26 @@ export type MetaType = {
   [key: string]: FieldTypes;
 };
 
+export function getDefaultWidth(key: Aggregation | Field): number {
+  if (AGGREGATIONS[key]) {
+    return COL_WIDTH_NUMBER;
+  }
+
+  switch (FIELDS[key]) {
+    case 'string':
+      return COL_WIDTH_STRING;
+    case 'boolean':
+      return COL_WIDTH_BOOLEAN;
+    case 'number':
+      return COL_WIDTH_NUMBER;
+    case 'duration':
+    case 'never': // never is usually a timestamp
+      return COL_WIDTH_DATETIME;
+    default:
+      return COL_WIDTH_DEFAULT;
+  }
+}
+
 /**
  * Get the field renderer for the named field and metadata
  *
@@ -280,7 +307,10 @@ export function decodeColumnOrder(
     column.key = col.aggregationField;
     column.name = col.name;
     column.type = (FIELDS[column.field] || 'never') as ColumnValueType;
-    column.width = col.width || COL_WIDTH_DEFAULT;
+    column.width =
+      col.width && col.width !== COL_WIDTH_UNDEFINED
+        ? col.width
+        : getDefaultWidth(aggregationField[0]);
 
     column.isSortable = AGGREGATIONS[column.aggregation]
       ? AGGREGATIONS[column.aggregation].isSortable

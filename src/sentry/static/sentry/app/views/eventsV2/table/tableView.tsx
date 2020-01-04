@@ -3,7 +3,7 @@ import {Location} from 'history';
 
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import GridEditable, {COL_WIDTH_DEFAULT} from 'app/components/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 import {
   tokenizeSearch,
   stringifyQueryObject,
@@ -13,8 +13,8 @@ import {assert} from 'app/types/utils';
 import Link from 'app/components/links/link';
 
 import {
-  getFieldRenderer,
   getAggregateAlias,
+  getFieldRenderer,
   pushEventViewToLocation,
   explodeField,
   MetaType,
@@ -65,15 +65,14 @@ class TableView extends React.Component<TableViewProps> {
     const {location, eventView, organization} = this.props;
 
     let nextEventView: EventView;
+    const payload = {
+      aggregation: String(nextColumn.aggregation),
+      field: String(nextColumn.field),
+      fieldname: nextColumn.name,
+      width: COL_WIDTH_UNDEFINED,
+    };
 
     if (typeof insertAt === 'number') {
-      const payload = {
-        aggregation: String(nextColumn.aggregation),
-        field: String(nextColumn.field),
-        fieldname: nextColumn.name,
-        width: COL_WIDTH_DEFAULT,
-      };
-
       // create and insert a column at a specific index
       nextEventView = eventView.withNewColumnAt(payload, insertAt);
 
@@ -86,12 +85,6 @@ class TableView extends React.Component<TableViewProps> {
         ...payload,
       });
     } else {
-      const payload = {
-        aggregation: String(nextColumn.aggregation),
-        field: String(nextColumn.field),
-        fieldname: nextColumn.name,
-      };
-
       // create and insert a column at the right end of the table
       nextEventView = eventView.withNewColumn(payload);
 
@@ -121,7 +114,7 @@ class TableView extends React.Component<TableViewProps> {
       aggregation: String(nextColumn.aggregation),
       field: String(nextColumn.field),
       fieldname: String(nextColumn.name),
-      width: Number(nextColumn.width) || 0,
+      width: nextColumn.width ? Number(nextColumn.width) : COL_WIDTH_UNDEFINED,
     };
 
     const tableMeta = (tableData && tableData.meta) || undefined;
