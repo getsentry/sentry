@@ -57,9 +57,8 @@ class Event(EventCommon):
             return self._group_id
 
         column = self.__get_column_name(Columns.GROUP_ID)
-        if column in self._snuba_data and self._snuba_data[column]:
-            return self._snuba_data[column]
-        return None
+
+        return self._snuba_data.get(column)
 
     @group_id.setter
     def group_id(self, value):
