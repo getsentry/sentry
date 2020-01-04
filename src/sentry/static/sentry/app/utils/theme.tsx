@@ -87,6 +87,7 @@ const alert = {
   muted: {
     backgroundLight: colors.offWhite,
     background: colors.gray1,
+    iconColor: colors.gray1,
     border: colors.gray6,
   },
   info: {
