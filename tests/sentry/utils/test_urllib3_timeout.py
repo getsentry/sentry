@@ -1,0 +1,40 @@
+from __future__ import absolute_import
+
+import mock
+import pytest
+
+from urllib3 import HTTPConnectionPool
+from urllib3.exceptions import HTTPError, ReadTimeoutError
+
+from sentry.utils.snuba import RetrySkipTimeout
+
+
+class FakeConnectionPool(HTTPConnectionPool):
+    def __init__(self, connection, **kwargs):
+        self.connection = connection
+        super(FakeConnectionPool, self).__init__(**kwargs)
+
+    def _new_conn(self):
+        return self.connection
+
+
+def test_retries():
+    """
+    5 Attempts for protocol errors
+    """
+    conneciton_mock = mock.Mock()
+    conneciton_mock.request.side_effect = ReadTimeoutError(None, "test.com", "Timeout")
+
+    snuba_pool = FakeConnectionPool(
+        connection=conneciton_mock,
+        host="www.test.com",
+        port=80,
+        retries=RetrySkipTimeout(total=5, method_whitelist={"GET", "POST"}),
+        timeout=30,
+        maxsize=10,
+    )
+
+    with pytest.raises(HTTPError):
+        snuba_pool.urlopen("POST", "/query", body="{}")
+
+    assert conneciton_mock.request.call_count == 1
