@@ -5,11 +5,12 @@ import styled from 'react-emotion';
 
 import {Client} from 'app/api';
 import space from 'app/styles/space';
-import {Organization} from 'app/types';
+import {Organization, GlobalSelection} from 'app/types';
 import withApi from 'app/utils/withApi';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
 
 import Pagination from 'app/components/pagination';
-import {fetchOrganizationTags} from 'app/actionCreators/tags';
+import {loadOrganizationTags} from 'app/actionCreators/tags';
 
 import {DEFAULT_EVENT_VIEW} from '../data';
 import EventView, {isAPIPayloadSimilar} from '../eventView';
@@ -21,7 +22,9 @@ type TableProps = {
   location: Location;
   eventView: EventView;
   organization: Organization;
+  selection: GlobalSelection;
 };
+
 type TableState = {
   isLoading: boolean;
   tableFetchID: symbol | undefined;
@@ -87,7 +90,7 @@ class Table extends React.PureComponent<TableProps, TableState> {
   };
 
   fetchData = () => {
-    const {eventView, organization, location} = this.props;
+    const {eventView, organization, location, selection} = this.props;
     const url = `/organizations/${organization.slug}/eventsv2/`;
 
     const tableFetchID = Symbol('tableFetchID');
@@ -127,7 +130,7 @@ class Table extends React.PureComponent<TableProps, TableState> {
         });
       });
 
-    fetchOrganizationTags(this.props.api, organization.slug)
+    loadOrganizationTags(this.props.api, organization.slug, selection)
       .then(tags => {
         if (this.state.orgTagsFetchID !== orgTagsFetchID) {
           // invariant: a different request was initiated after this request
@@ -162,7 +165,7 @@ class Table extends React.PureComponent<TableProps, TableState> {
   }
 }
 
-export default withApi<TableProps>(Table);
+export default withGlobalSelection(withApi(Table));
 
 const Container = styled('div')`
   min-width: 0;

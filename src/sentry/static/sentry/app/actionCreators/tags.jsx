@@ -1,3 +1,5 @@
+import isEqual from 'lodash/isEqual';
+
 import {t} from 'app/locale';
 import TagStore from 'app/stores/tagStore';
 import TagActions from 'app/actions/tagActions';
@@ -62,6 +64,17 @@ function tagFetchSuccess(tags) {
 }
 
 export function loadOrganizationTags(api, orgId, selection) {
+  if (isEqual(TagStore.getSelectionOnPreviousFetch(), selection)) {
+    console.log('no need to fetch');
+    const tags = Object.keys(TagStore.getAllTags()).map(key => {
+      return {
+        key,
+      };
+    });
+
+    return Promise.resolve(tags);
+  }
+
   TagStore.reset();
 
   const url = `/organizations/${orgId}/tags/`;
@@ -76,6 +89,8 @@ export function loadOrganizationTags(api, orgId, selection) {
   //       themselves are also tags. Hence, we do not pass the list of environments
   //       as part of the query payload.
 
+  TagStore.setSelectionOnPreviousFetch(selection);
+
   const promise = api
     .requestPromise(url, {
       method: 'GET',
@@ -84,7 +99,15 @@ export function loadOrganizationTags(api, orgId, selection) {
     .then(tags => {
       return [...BUILTIN_TAGS, ...tags];
     });
-  promise.then(tagFetchSuccess, TagActions.loadTagsError);
+
+  promise.then(
+    results => {
+      tagFetchSuccess(results);
+    },
+    reason => {
+      TagActions.loadTagsError(reason);
+    }
+  );
 
   return promise;
 }
