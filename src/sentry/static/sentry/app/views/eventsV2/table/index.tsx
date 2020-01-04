@@ -9,6 +9,7 @@ import {Organization} from 'app/types';
 import withApi from 'app/utils/withApi';
 import Pagination from 'app/components/pagination';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
+import {extractDatetimeSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
 
 import {DEFAULT_EVENT_VIEW} from '../data';
 import EventView, {isAPIPayloadSimilar} from '../eventView';
@@ -130,10 +131,10 @@ class Table extends React.PureComponent<TableProps, TableState> {
       });
 
     // construct and emulate global selection header from eventview
-    const {start, end, statsPeriod, utc} = apiPayload;
+    // const {start, end, statsPeriod, utc} = apiPayload;
     const selection = {
       projects: eventView.project,
-      datetime: {start, end, statsPeriod, utc},
+      datetime: extractDatetimeSelectionParameters(apiPayload),
     };
 
     loadOrganizationTags(this.props.api, organization.slug, selection)

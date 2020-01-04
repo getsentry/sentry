@@ -7,7 +7,7 @@ import {defined} from 'app/utils';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 
-import {URL_PARAM} from 'app/constants/globalSelectionHeader';
+import {URL_PARAM, DATE_TIME_KEYS} from 'app/constants/globalSelectionHeader';
 
 // Parses URL query parameters for values relevant to global selection header
 export function getStateFromQuery(query) {
@@ -57,4 +57,11 @@ export function getStateFromQuery(query) {
  */
 export function extractSelectionParameters(query) {
   return pickBy(pick(query, Object.values(URL_PARAM)), identity);
+}
+
+/**
+ * Extract the global selection datetime parameters from an object.
+ */
+export function extractDatetimeSelectionParameters(query) {
+  return pickBy(pick(query, Object.values(DATE_TIME_KEYS)), identity);
 }
