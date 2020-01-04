@@ -21,7 +21,7 @@ type Props = AsyncComponent['props'] & {
 
 type State = AsyncComponent['state'] & {
   showModal: boolean;
-  action: string | null;
+  action: 'create' | 'link' | null;
   selectedIntegration: GroupIntegration;
   issue: IntegrationExternalIssue | null;
 };

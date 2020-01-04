@@ -7,8 +7,16 @@ import {addSuccessMessage} from 'app/actionCreators/indicator';
 import AsyncComponent from 'app/components/asyncComponent';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
 import Form from 'app/views/settings/components/forms/form';
+import {FieldValue} from 'app/views/settings/components/forms/model';
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
+import {
+  Group,
+  Integration,
+  PlatformExternalIssue,
+  IntegrationIssueConfig,
+  IssueConfigField,
+} from 'app/types';
 
 const MESSAGES_BY_ACTION = {
   link: t('Successfully linked issue.'),
@@ -20,7 +28,19 @@ const SUBMIT_LABEL_BY_ACTION = {
   create: t('Create Issue'),
 };
 
-class ExternalIssueForm extends AsyncComponent {
+type Props = {
+  group: Group;
+  integration: Integration;
+  action: 'create' | 'link';
+  onSubmitSuccess: (externalIssue: PlatformExternalIssue) => void;
+} & AsyncComponent['props'];
+
+type State = {
+  integrationDetails: IntegrationIssueConfig;
+  dynamicFieldValues?: {[key: string]: FieldValue};
+} & AsyncComponent['state'];
+
+class ExternalIssueForm extends AsyncComponent<Props, State> {
   static propTypes = {
     group: SentryTypes.Group.isRequired,
     integration: PropTypes.object.isRequired,
@@ -30,7 +50,7 @@ class ExternalIssueForm extends AsyncComponent {
 
   shouldRenderBadRequests = true;
 
-  getEndpoints() {
+  getEndpoints(): [string, string][] {
     const {group, integration, action} = this.props;
     return [
       [
@@ -40,7 +60,7 @@ class ExternalIssueForm extends AsyncComponent {
     ];
   }
 
-  onSubmitSuccess = data => {
+  onSubmitSuccess = (data: PlatformExternalIssue) => {
     addSuccessMessage(MESSAGES_BY_ACTION[this.props.action]);
     this.props.onSubmitSuccess(data);
   };
@@ -71,17 +91,20 @@ class ExternalIssueForm extends AsyncComponent {
     });
   };
 
-  getDynamicFields(integrationDetails) {
+  getDynamicFields(integrationDetails?: IntegrationIssueConfig) {
     integrationDetails = integrationDetails || this.state.integrationDetails;
     const {action} = this.props;
-    const config = integrationDetails[`${action}IssueConfig`];
+    const config: IssueConfigField[] = integrationDetails[`${action}IssueConfig`];
 
     return config
-      .filter(field => field.updatesForm)
-      .reduce((a, field) => ({...a, [field.name]: field.default}), {});
+      .filter((field: IssueConfigField) => field.updatesForm)
+      .reduce(
+        (a: object, field: IssueConfigField) => ({...a, [field.name]: field.default}),
+        {}
+      );
   }
 
-  onFieldChange = (label, value) => {
+  onFieldChange = (label: string, value: FieldValue) => {
     const dynamicFields = this.getDynamicFields();
     if (label in dynamicFields) {
       const dynamicFieldValues = this.state.dynamicFieldValues || {};
@@ -99,7 +122,7 @@ class ExternalIssueForm extends AsyncComponent {
     }
   };
 
-  getOptions = (field, input) => {
+  getOptions = (field: IssueConfigField, input: string) => {
     return new Promise((resolve, reject) => {
       if (!input) {
         const options = (field.choices || []).map(([value, label]) => ({value, label}));
@@ -116,14 +139,14 @@ class ExternalIssueForm extends AsyncComponent {
   };
 
   debouncedOptionLoad = debounce(
-    async (field, input, cb) => {
+    async (field: IssueConfigField, input: string, cb: (err, result?) => void) => {
       const query = queryString.stringify({
         ...this.state.dynamicFieldValues,
         field: field.name,
         query: input,
       });
 
-      const url = field.url;
+      const url = field.url || '';
       const separator = url.includes('?') ? '&' : '?';
       // We can't use the API client here since the URL is not scoped under the
       // API endpoints (which the client prefixes)
@@ -138,10 +161,10 @@ class ExternalIssueForm extends AsyncComponent {
     {trailing: true}
   );
 
-  getFieldProps = field =>
+  getFieldProps = (field: IssueConfigField) =>
     field.url
       ? {
-          loadOptions: input => this.getOptions(field, input),
+          loadOptions: (input: string) => this.getOptions(field, input),
           async: true,
           cache: false,
           onSelectResetsInput: false,
@@ -154,7 +177,7 @@ class ExternalIssueForm extends AsyncComponent {
   renderBody() {
     const {integrationDetails} = this.state;
     const {action, group, integration} = this.props;
-    const config = integrationDetails[`${action}IssueConfig`];
+    const config: IssueConfigField[] = integrationDetails[`${action}IssueConfig`];
 
     const initialData = {};
     config.forEach(field => {
