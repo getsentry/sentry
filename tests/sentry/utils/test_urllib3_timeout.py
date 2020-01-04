@@ -20,7 +20,8 @@ class FakeConnectionPool(HTTPConnectionPool):
 
 def test_retries():
     """
-    5 Attempts for protocol errors
+    Tests that, even if I set up 5 retries, there is only one request
+    made since it times out.
     """
     conneciton_mock = mock.Mock()
     conneciton_mock.request.side_effect = ReadTimeoutError(None, "test.com", "Timeout")
