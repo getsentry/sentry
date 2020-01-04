@@ -6,7 +6,7 @@ import theme from 'app/utils/theme';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 
-import spaceBg from '../../images/pattern/background-space.svg';
+import spaceBg from '../../images/spot/background-space.svg';
 
 type Props = {
   title?: string;
