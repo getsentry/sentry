@@ -65,7 +65,6 @@ function tagFetchSuccess(tags) {
 
 export function loadOrganizationTags(api, orgId, selection) {
   if (isEqual(TagStore.getSelectionOnPreviousFetch(), selection)) {
-    console.log('no need to fetch');
     const tags = Object.keys(TagStore.getAllTags()).map(key => {
       return {
         key,
