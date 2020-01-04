@@ -125,7 +125,7 @@ class EventManagerTest(TestCase):
 
         assert group.times_seen == 2
         assert group.last_seen == event2.datetime
-        assert group.message == event2.message
+        assert group.message == event2.search_message
         assert group.data.get("type") == "default"
         assert group.data.get("metadata") == {"title": "foo bar"}
 
@@ -147,7 +147,7 @@ class EventManagerTest(TestCase):
 
         assert group.times_seen == 2
         assert group.last_seen == event.datetime
-        assert group.message == event2.message
+        assert group.message == event2.search_message
 
     def test_differentiates_with_fingerprint(self):
         manager = EventManager(
@@ -927,7 +927,7 @@ class EventManagerTest(TestCase):
         manager.normalize()
         event = manager.save(self.project.id)
 
-        assert event.message == "hello world"
+        assert event.search_message == "hello world"
 
     def test_stringified_message(self):
         manager = EventManager(make_event(**{"message": 1234}))
@@ -942,7 +942,7 @@ class EventManagerTest(TestCase):
         manager.normalize()
         event = manager.save(self.project.id)
 
-        assert event.message == '["asdf"]'
+        assert event.search_message == '["asdf"]'
         assert "logentry" in event.data
 
     def test_message_attribute_goes_to_interface(self):
