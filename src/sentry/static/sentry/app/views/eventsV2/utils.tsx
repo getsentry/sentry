@@ -30,13 +30,7 @@ import {
   TRANSACTION_VIEWS,
 } from './data';
 import EventView, {Field as FieldType} from './eventView';
-import {
-  Aggregation,
-  Field,
-  AGGREGATIONS,
-  FIELDS,
-  ColumnValueType,
-} from './eventQueryParams';
+import {Aggregation, Field, AGGREGATIONS, FIELDS} from './eventQueryParams';
 import {TableColumn} from './table/types';
 
 export type EventQuery = {
@@ -306,7 +300,7 @@ export function decodeColumnOrder(
 
     column.key = col.aggregationField;
     column.name = col.name;
-    column.type = (FIELDS[column.field] || 'never') as ColumnValueType;
+    column.type = column.aggregation ? 'number' : FIELDS[column.field];
     column.width =
       col.width && col.width !== COL_WIDTH_UNDEFINED
         ? col.width

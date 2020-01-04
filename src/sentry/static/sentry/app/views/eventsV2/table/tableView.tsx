@@ -20,7 +20,7 @@ import {
   MetaType,
 } from '../utils';
 import EventView, {pickRelevantLocationQueryStrings, Field} from '../eventView';
-import SortLink from '../sortLink';
+import SortLink, {Alignments} from '../sortLink';
 import renderTableModalEditColumnFactory from './tableModalEditColumn';
 import {TableColumn, TableData, TableDataRow} from './types';
 import {ColumnValueType} from '../eventQueryParams';
@@ -223,20 +223,18 @@ class TableView extends React.Component<TableViewProps> {
 
   _renderGridHeaderCell = (column: TableColumn<keyof TableDataRow>): React.ReactNode => {
     const {eventView, location, tableData} = this.props;
-
-    if (!tableData || !tableData.meta) {
-      return column.name;
-    }
-
     const field = column.eventViewField;
 
     // establish alignment based on the type
     const alignedTypes: ColumnValueType[] = ['number', 'duration', 'integer'];
-    let align: 'right' | 'left' = alignedTypes.includes(column.type) ? 'right' : 'left';
+    let align: Alignments = alignedTypes.includes(column.type) ? 'right' : 'left';
 
     if (column.type === 'never' || column.type === '*') {
       // fallback to align the column based on the table metadata
-      const maybeType = tableData.meta[getAggregateAlias(field.field)];
+      const maybeType =
+        tableData && tableData.meta
+          ? tableData.meta[getAggregateAlias(field.field)]
+          : undefined;
 
       if (maybeType === 'integer' || maybeType === 'number') {
         align = 'right';
@@ -249,7 +247,9 @@ class TableView extends React.Component<TableViewProps> {
         field={field}
         location={location}
         eventView={eventView}
-        tableDataMeta={tableData.meta}
+        /* TODO(leedongwei): Verbosity is due to error in Prettier, fix after
+           upgrade to v1.19.1 */
+        tableDataMeta={tableData && tableData.meta ? tableData.meta : undefined}
       />
     );
   };
