@@ -5,10 +5,8 @@ import styled from 'react-emotion';
 
 import {Client} from 'app/api';
 import space from 'app/styles/space';
-import {Organization, GlobalSelection} from 'app/types';
+import {Organization} from 'app/types';
 import withApi from 'app/utils/withApi';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-
 import Pagination from 'app/components/pagination';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
 
@@ -22,7 +20,6 @@ type TableProps = {
   location: Location;
   eventView: EventView;
   organization: Organization;
-  selection: GlobalSelection;
 };
 
 type TableState = {
@@ -90,7 +87,7 @@ class Table extends React.PureComponent<TableProps, TableState> {
   };
 
   fetchData = () => {
-    const {eventView, organization, location, selection} = this.props;
+    const {eventView, organization, location} = this.props;
     const url = `/organizations/${organization.slug}/eventsv2/`;
 
     const tableFetchID = Symbol('tableFetchID');
@@ -98,11 +95,13 @@ class Table extends React.PureComponent<TableProps, TableState> {
 
     this.setState({isLoading: true, tableFetchID, orgTagsFetchID});
 
+    const apiPayload = eventView.getEventsAPIPayload(location);
+
     this.props.api
       .requestPromise(url, {
         method: 'GET',
         includeAllArgs: true,
-        query: eventView.getEventsAPIPayload(location),
+        query: apiPayload,
       })
       .then(([data, _, jqXHR]) => {
         if (this.state.tableFetchID !== tableFetchID) {
@@ -129,6 +128,13 @@ class Table extends React.PureComponent<TableProps, TableState> {
           tableData: null,
         });
       });
+
+    // construct and emulate global selection header from eventview
+    const {start, end, statsPeriod, utc} = apiPayload;
+    const selection = {
+      projects: eventView.project,
+      datetime: {start, end, statsPeriod, utc},
+    };
 
     loadOrganizationTags(this.props.api, organization.slug, selection)
       .then(tags => {
@@ -165,7 +171,7 @@ class Table extends React.PureComponent<TableProps, TableState> {
   }
 }
 
-export default withGlobalSelection(withApi(Table));
+export default withApi(Table);
 
 const Container = styled('div')`
   min-width: 0;

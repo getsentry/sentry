@@ -1,4 +1,5 @@
 import isEqual from 'lodash/isEqual';
+import pick from 'lodash/pick';
 
 import {t} from 'app/locale';
 import TagStore from 'app/stores/tagStore';
@@ -63,8 +64,24 @@ function tagFetchSuccess(tags) {
   TagActions.loadTagsSuccess(trimmedTags);
 }
 
+function normalizeSelection(selection) {
+  if (!selection) {
+    return selection;
+  }
+
+  selection = pick(selection, ['projects', 'datetime']);
+
+  if (selection.datetime) {
+    selection.datetime = getParams(selection.datetime);
+  }
+
+  return selection;
+}
+
 export function loadOrganizationTags(api, orgId, selection) {
-  if (isEqual(TagStore.getSelectionOnLatestFetch(), selection)) {
+  selection = normalizeSelection(selection);
+
+  if (isEqual(normalizeSelection(TagStore.getSelectionOnLatestFetch()), selection)) {
     const tags = Object.keys(TagStore.getAllTags()).map(key => {
       return {
         key,
