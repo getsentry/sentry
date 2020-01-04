@@ -12,7 +12,6 @@ import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import SmartSearchBar from 'app/components/smartSearchBar';
 import withApi from 'app/utils/withApi';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
 
 const tagToObjectReducer = (acc, name) => {
   acc[name] = {
@@ -117,4 +116,4 @@ class SearchBar extends React.PureComponent {
   }
 }
 
-export default withGlobalSelection(withApi(SearchBar));
+export default withApi(SearchBar);
