@@ -1,3 +1,4 @@
+import {css} from '@emotion/core';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -110,7 +111,12 @@ const RadioLineButtonFill = styled('div', {shouldForwardProp})<{
   height: 1rem;
   border-radius: 50%;
   background-color: ${p => p.theme.green};
-  animation: ${p => (p.animate ? `0.2s ${growIn} ease` : 'none')};
+  ${p =>
+    p.animate
+      ? css`
+          animation: 0.2s ${growIn} ease;
+        `
+      : 'animation: none'};
   opacity: ${p => (p.disabled ? 0.4 : null)};
 `;
 
