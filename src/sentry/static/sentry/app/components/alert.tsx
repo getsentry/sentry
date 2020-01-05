@@ -1,6 +1,7 @@
-import {css, cx} from 'emotion';
+import {css} from 'emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
+import classNames from 'classnames';
 import color from 'color';
 import styled from 'react-emotion';
 
@@ -90,7 +91,7 @@ const StyledTextBlock = styled(TextBlock)`
 
 const Alert = styled(
   ({type, icon, iconSize, children, system, className, ...props}: AlertProps) => (
-    <div className={cx(type ? `ref-${type}` : '', className)} {...props}>
+    <div className={classNames(type ? `ref-${type}` : '', className)} {...props}>
       {icon && <StyledInlineSvg src={icon} size={iconSize!} />}
       <StyledTextBlock>{children}</StyledTextBlock>
     </div>
