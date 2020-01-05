@@ -1,4 +1,4 @@
-import {Box} from 'grid-emotion';
+import {Box} from 'reflexbox';
 
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -55,7 +55,7 @@ export default class MultipleCheckbox extends React.Component {
       <MultipleCheckboxWrapper>
         {choices.map(([choiceValue, choiceLabel]) => {
           return (
-            <Box key={choiceValue} w={[1, 1 / 2, 1 / 3, 1 / 4]}>
+            <Box key={choiceValue} width={[1, 1 / 2, 1 / 3, 1 / 4]}>
               <Label>
                 <input
                   type="checkbox"

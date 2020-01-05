@@ -1,4 +1,4 @@
-import {Flex, Box} from 'grid-emotion';
+import {Flex, Box} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -47,8 +47,8 @@ class EmailRow extends React.Component {
     const {email, isPrimary, isVerified, hideRemove} = this.props;
 
     return (
-      <PanelItem justify="space-between">
-        <Flex align="center">
+      <PanelItem justifyContent="space-between">
+        <Flex alignItems="center">
           {email}
           {!isVerified && (
             <TagWithSpace priority="warning">{t('Unverified')}</TagWithSpace>

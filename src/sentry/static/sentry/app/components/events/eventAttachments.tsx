@@ -109,7 +109,7 @@ class EventAttachments extends React.Component<Props, State> {
             <PanelBody>
               {attachmentList.map(attachment => {
                 return (
-                  <PanelItem key={attachment.id} align="center">
+                  <PanelItem key={attachment.id} alignItems="center">
                     <AttachmentName>{attachment.name}</AttachmentName>
                     <FileSizeWithGap bytes={attachment.size} />
                     <AttachmentUrl

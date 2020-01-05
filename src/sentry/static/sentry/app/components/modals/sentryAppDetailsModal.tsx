@@ -1,4 +1,4 @@
-import {Box, Flex} from 'grid-emotion';
+import {Box, Flex} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -154,10 +154,15 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
 
     return (
       <React.Fragment>
-        <Flex align="center" mb={2}>
+        <Flex alignItems="center" mb={2}>
           <PluginIcon pluginId={sentryApp.slug} size={50} />
 
-          <Flex pl={1} align="flex-start" direction="column" justify="center">
+          <Flex
+            pl={1}
+            alignItems="flex-start"
+            flexDirection="column"
+            justifyContent="center"
+          >
             <Name>{sentryApp.name}</Name>
             <Flex>{features.length && this.featureTags(features)}</Flex>
           </Flex>
@@ -225,7 +230,7 @@ const Author = styled(Box)`
 `;
 
 const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
-  <Flex align="center" flex={1} {...p}>
+  <Flex alignItems="center" flex={1} {...p}>
     <InlineSvg src="icon-circle-exclamation" size="1.5em" />
     <Box ml={1}>{reason}</Box>
   </Flex>

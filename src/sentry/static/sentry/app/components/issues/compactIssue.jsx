@@ -211,7 +211,7 @@ const CompactIssue = createReactClass({
       <PanelItem
         className={className}
         onClick={this.toggleSelect}
-        direction="column"
+        flexDirection="column"
         style={{paddingTop: '12px', paddingBottom: '6px'}}
       >
         <CompactIssueHeader

@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import {Flex} from 'grid-emotion';
+import {Flex} from 'reflexbox';
 
 import {t} from 'app/locale';
 import memberListStore from 'app/stores/memberListStore';
@@ -137,7 +137,7 @@ class RuleBuilder extends React.Component {
             }
           />
           <Divider src="icon-chevron-right" />
-          <Flex flex="1" align="center" mr={1}>
+          <Flex flex="1" alignItems="center" mr={1}>
             <SelectOwners
               organization={organization}
               project={project}

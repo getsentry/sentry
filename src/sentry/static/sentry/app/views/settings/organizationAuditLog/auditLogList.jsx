@@ -109,7 +109,7 @@ class AuditLogList extends React.Component {
             {hasEntries &&
               entries.map(entry => {
                 return (
-                  <StyledPanelItem align="center" key={entry.id}>
+                  <StyledPanelItem alignItems="center" key={entry.id}>
                     <UserInfo>
                       <div>
                         {entry.actor.email && (

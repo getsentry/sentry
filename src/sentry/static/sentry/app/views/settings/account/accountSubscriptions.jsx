@@ -1,4 +1,4 @@
-import {Box} from 'grid-emotion';
+import {Box} from 'reflexbox';
 import React from 'react';
 import styled from 'react-emotion';
 
@@ -94,8 +94,8 @@ class AccountSubscriptions extends AsyncView {
               <PanelHeader>{t('Subscription')}</PanelHeader>
               <PanelBody>
                 {this.state.subscriptions.map((subscription, index) => (
-                  <PanelItem p={2} align="center" key={subscription.listId}>
-                    <Box w={1 / 2} pr={2}>
+                  <PanelItem p={2} alignItems="center" key={subscription.listId}>
+                    <Box width={1 / 2} pr={2}>
                       <SubscriptionName>{subscription.listName}</SubscriptionName>
                       {subscription.listDescription && (
                         <Description>{subscription.listDescription}</Description>

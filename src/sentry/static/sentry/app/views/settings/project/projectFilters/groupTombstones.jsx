@@ -24,7 +24,7 @@ class GroupTombstoneRow extends React.Component {
       actor = data.actor;
 
     return (
-      <PanelItem align="center">
+      <PanelItem alignItems="center">
         <StyledBox>
           <EventOrGroupHeader
             includeLink={false}
