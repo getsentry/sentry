@@ -14,90 +14,85 @@ const staticPath = path.resolve(
   'app'
 );
 
-module.exports = {
-  module: {
-    rules: [
-      {
-        test: /\.stories\.jsx?$/,
-        loaders: [
-          {
-            loader: require.resolve('@storybook/addon-storysource/loader'),
-            options: {
-              prettierConfig: {
-                parser: 'babylon',
-              },
-            },
-          },
-        ],
-        enforce: 'pre',
-      },
-      {
-        test: /\.tsx?$/,
-        loader: 'ts-loader',
-      },
-      {
-        test: /\.po$/,
-        loader: 'po-catalog-loader',
-        query: {
-          referenceExtensions: ['.js', '.jsx'],
-          domain: 'sentry',
+module.exports = ({config}) => {
+  return {
+    ...config,
+    module: {
+      ...config.module,
+      rules: [
+        ...config.module.rules,
+        {
+          test: /\.tsx?$/,
+          loader: 'ts-loader',
         },
-      },
-      {
-        test: /\.css$/,
-        use: ['style-loader', 'css-loader'],
-      },
-      {
-        test: /app\/icons\/.*\.svg$/,
-        use: [
-          {
-            loader: 'svg-sprite-loader',
+        {
+          test: /\.po$/,
+          loader: 'po-catalog-loader',
+          query: {
+            referenceExtensions: ['.js', '.jsx'],
+            domain: 'sentry',
           },
-          {
-            loader: 'svgo-loader',
-          },
-        ],
-      },
-      {
-        test: /\.less$/,
-        use: [
-          {
-            loader: 'style-loader',
-          },
-          {
-            loader: 'css-loader',
-          },
-          {
-            loader: 'less-loader',
-          },
-        ],
-      },
-      {
-        test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg)($|\?)/,
-        exclude: /app\/icons\/.*\.svg$/,
-        loader: 'file-loader?name=' + '[name].[ext]',
-      },
+        },
+        {
+          test: /app\/icons\/.*\.svg$/,
+          use: [
+            {
+              loader: 'svg-sprite-loader',
+            },
+            {
+              loader: 'svgo-loader',
+            },
+          ],
+        },
+        {
+          test: /\.less$/,
+          use: [
+            {
+              loader: 'style-loader',
+            },
+            {
+              loader: 'css-loader',
+            },
+            {
+              loader: 'less-loader',
+            },
+          ],
+        },
+        {
+          test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg)($|\?)/,
+          exclude: /app\/icons\/.*\.svg$/,
+          loader: 'file-loader?name=' + '[name].[ext]',
+        },
+      ],
+    },
+
+    plugins: [
+      ...config.plugins,
+      new webpack.ProvidePlugin({
+        $: 'jquery',
+        jQuery: 'jquery',
+        'window.jQuery': 'jquery',
+        'root.jQuery': 'jquery',
+        underscore: 'underscore',
+        _: 'underscore',
+      }),
+      new webpack.DefinePlugin({
+        'process.env': {
+          IS_PERCY: true,
+        },
+      }),
     ],
-  },
-  plugins: [
-    new webpack.ProvidePlugin({
-      $: 'jquery',
-      jQuery: 'jquery',
-      'window.jQuery': 'jquery',
-      'root.jQuery': 'jquery',
-      underscore: 'underscore',
-      _: 'underscore',
-    }),
-    new webpack.DefinePlugin({
-      'process.env': {
-        IS_PERCY: true,
+
+    resolve: {
+      ...config.resolve,
+      extensions: Array.from(
+        new Set([...config.resolve.extensions, ...appConfig.resolve.extensions])
+      ),
+      alias: {
+        ...config.resolve.alias,
+        ...appConfig.resolve.alias,
+        app: staticPath,
       },
-    }),
-  ],
-  resolve: {
-    extensions: appConfig.resolve.extensions,
-    alias: Object.assign({}, appConfig.resolve.alias, {
-      app: staticPath,
-    }),
-  },
+    },
+  };
 };
