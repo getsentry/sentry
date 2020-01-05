@@ -13,7 +13,7 @@ exports[`ProjectTeams renders 1`] = `
       confirmLastTeamRemoveMessage="This is the last team with access to this project. Removing it will mean only organization owners and managers will be able to access the project pages. Are you sure you want to remove this team from the project project-slug?"
       disabled={false}
       menuHeader={
-        <StyledTeamsLabel>
+        <ForwardRef(render)>
           Teams
           <Tooltip
             containerDisplayMode="inline-block"
@@ -21,14 +21,14 @@ exports[`ProjectTeams renders 1`] = `
             position="top"
             title="You must be a project admin to create teams"
           >
-            <StyledCreateTeamLink
+            <ForwardRef(render)
               disabled={false}
               onClick={[Function]}
             >
               Create Team
-            </StyledCreateTeamLink>
+            </ForwardRef(render)>
           </Tooltip>
-        </StyledTeamsLabel>
+        </ForwardRef(render)>
       }
       onAddTeam={[Function]}
       onRemoveTeam={[Function]}
