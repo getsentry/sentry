@@ -179,14 +179,14 @@ class Tooltip extends React.Component<Props, State> {
               id={this.tooltipId}
               className="tooltip-content"
               aria-hidden={!isOpen}
-              innerRef={ref}
+              ref={ref}
               style={style}
               data-placement={placement}
               popperStyle={popperStyle}
             >
               {title}
               <TooltipArrow
-                innerRef={arrowProps.ref}
+                ref={arrowProps.ref}
                 data-placement={placement}
                 style={arrowProps.style}
               />

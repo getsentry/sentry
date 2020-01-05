@@ -34,7 +34,7 @@ const StyledChevronDown = styled(props => (
 const StyledButton = styled(
   React.forwardRef((props, ref) => {
     const forwardProps = omit(props, ['isOpen']);
-    return <Button innerRef={ref} {...forwardProps} />;
+    return <Button ref={ref} {...forwardProps} />;
   })
 )`
   border-bottom-right-radius: ${p => (p.isOpen ? 0 : p.theme.borderRadius)};

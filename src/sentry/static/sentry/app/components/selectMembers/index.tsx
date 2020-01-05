@@ -314,7 +314,7 @@ class SelectMembers extends React.Component<Props> {
 
     return (
       <StyledSelectControl
-        innerRef={this.selectRef}
+        ref={this.selectRef}
         filterOptions={(options, filterText) =>
           options.filter(({searchKey}) => searchKey.indexOf(filterText) > -1)
         }

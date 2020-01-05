@@ -39,7 +39,7 @@ const YAxisSelector = props => {
 };
 
 const StyledDropdownButton = styled(
-  React.forwardRef((prop, ref) => <DropdownButton innerRef={ref} {...prop} />)
+  React.forwardRef((prop, ref) => <DropdownButton ref={ref} {...prop} />)
 )`
   color: ${p => p.theme.gray2};
   font-weight: normal;

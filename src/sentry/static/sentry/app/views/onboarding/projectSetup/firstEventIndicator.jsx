@@ -113,7 +113,7 @@ const WaitingIndicator = styled(posed.div(indicatorPoses))`
 `;
 
 const PosedReceivedIndicator = posed(
-  React.forwardRef((props, ref) => <InlineSvg {...props} innerRef={ref} />)
+  React.forwardRef((props, ref) => <InlineSvg {...props} ref={ref} />)
 )(indicatorPoses);
 
 const ReceivedIndicator = styled(PosedReceivedIndicator)`

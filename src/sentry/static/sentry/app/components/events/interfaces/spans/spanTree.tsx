@@ -320,7 +320,7 @@ class SpanTree extends React.Component<PropType> {
 
     return (
       <DividerHandlerManager.Provider interactiveLayerRef={this.traceViewRef}>
-        <TraceViewContainer innerRef={this.traceViewRef}>
+        <TraceViewContainer ref={this.traceViewRef}>
           {spanTree}
           {infoMessage}
         </TraceViewContainer>

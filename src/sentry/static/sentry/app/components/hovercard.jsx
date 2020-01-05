@@ -142,7 +142,7 @@ class Hovercard extends React.Component {
                 <StyledHovercard
                   id={this.tooltipId}
                   visible={visible}
-                  innerRef={ref}
+                  ref={ref}
                   style={style}
                   placement={placement}
                   withHeader={!!header}
@@ -152,7 +152,7 @@ class Hovercard extends React.Component {
                   {header && <Header>{header}</Header>}
                   {body && <Body className={bodyClassName}>{body}</Body>}
                   <HovercardArrow
-                    innerRef={arrowProps.ref}
+                    ref={arrowProps.ref}
                     style={arrowProps.style}
                     placement={placement}
                     tipColor={tipColor}

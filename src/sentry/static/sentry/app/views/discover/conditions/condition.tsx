@@ -213,7 +213,7 @@ export default class ConditionRow extends React.Component<
     return (
       <Box>
         <SelectControl
-          innerRef={(ref: any) => (this.select = ref)}
+          ref={(ref: any) => (this.select = ref)}
           value={getInternal(this.props.value)}
           placeholder={<PlaceholderText>{t('Add condition...')}</PlaceholderText>}
           options={this.getOptions()}

@@ -298,7 +298,7 @@ class FormField extends React.Component {
                   return (
                     <React.Fragment>
                       {this.props.children({
-                        innerRef: this.handleInputMount,
+                        ref: this.handleInputMount,
                         ...props,
                         name,
                         id,

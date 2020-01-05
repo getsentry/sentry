@@ -158,7 +158,7 @@ class InputInline extends React.Component<Props, State> {
       >
         <Input
           {...this.props} // Pass DOMAttributes props first, extend/overwrite below
-          innerRef={this.refInput}
+          ref={this.refInput}
           contentEditable={!this.props.disabled}
           dangerouslySetInnerHTML={{__html: value || placeholder || ''}}
           isHovering={this.state.isHovering}
