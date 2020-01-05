@@ -1,6 +1,6 @@
 import React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 import memoize from 'lodash/memoize';
 

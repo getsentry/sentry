@@ -1,7 +1,7 @@
 import {Flex} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import TextareaAutosize from 'react-autosize-textarea';
 
 import {Client} from 'app/api';

@@ -1,5 +1,5 @@
 import React from 'react';
-import {css} from 'react-emotion';
+import {css} from '@emotion/core';
 import {ModalHeader, ModalBody, ModalFooter} from 'react-bootstrap';
 
 import ModalActions from 'app/actions/modalActions';

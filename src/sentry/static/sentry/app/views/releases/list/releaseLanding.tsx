@@ -1,6 +1,6 @@
 import React from 'react';
 import {t} from 'app/locale';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import minified from 'sentry-dreamy-components/dist/minified.svg';
 import emails from 'sentry-dreamy-components/dist/emails.svg';

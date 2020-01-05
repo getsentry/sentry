@@ -2,7 +2,7 @@ import {Link} from 'react-router';
 import React from 'react';
 import PropTypes from 'prop-types';
 import isPropValid from '@emotion/is-prop-valid';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import InlineSvg from 'app/components/inlineSvg';
 import Tooltip from 'app/components/tooltip';

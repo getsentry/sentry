@@ -1,7 +1,7 @@
 import {Flex, Box} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {defined, objectIsEmpty} from 'app/utils';
 import {t} from 'app/locale';

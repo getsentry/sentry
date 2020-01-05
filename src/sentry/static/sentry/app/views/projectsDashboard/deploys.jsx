@@ -1,7 +1,7 @@
 import {Flex, Box} from 'reflexbox';
 import React from 'react';
 import moment from 'moment-timezone';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import Button from 'app/components/button';

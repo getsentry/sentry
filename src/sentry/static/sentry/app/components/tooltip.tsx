@@ -3,7 +3,7 @@ import * as PopperJS from 'popper.js';
 import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {domId} from 'app/utils/domId';
 

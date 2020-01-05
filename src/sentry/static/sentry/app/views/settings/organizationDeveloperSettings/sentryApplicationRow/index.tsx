@@ -3,7 +3,7 @@ import {Box, Flex} from 'reflexbox';
 import {Link} from 'react-router';
 import capitalize from 'lodash/capitalize';
 import omit from 'lodash/omit';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
 import SentryTypes from 'app/sentryTypes';

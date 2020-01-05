@@ -6,7 +6,7 @@ import Reflux from 'reflux';
 import * as Sentry from '@sentry/browser';
 import debounce from 'lodash/debounce';
 import createReactClass from 'create-react-class';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {
   DEFAULT_DEBOUNCE_DURATION,

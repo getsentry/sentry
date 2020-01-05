@@ -1,6 +1,6 @@
 import React from 'react';
 import keydown from 'react-keydown';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import InlineSvg from 'app/components/inlineSvg';
