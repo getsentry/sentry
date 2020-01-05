@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled, {css} from 'react-emotion';
+import isPropValid from '@emotion/is-prop-valid';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
