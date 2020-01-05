@@ -1,6 +1,7 @@
-import React from 'react';
-import styled, {css} from 'react-emotion';
+import {ClassNames} from '@emotion/core';
 import {RouteComponentProps} from 'react-router/lib/Router';
+import React from 'react';
+import styled from 'react-emotion';
 
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
@@ -190,15 +191,19 @@ class OrganizationMembersList extends AsyncView<Props, State> {
 
     return (
       <React.Fragment>
-        {this.renderSearchInput({
-          updateRoute: true,
-          placeholder: t('Search Members'),
-          children: renderSearch,
-          className: css`
-            font-size: ${theme.fontSizeMedium};
-            padding: ${space(0.75)};
-          `,
-        })}
+        <ClassNames>
+          {({css}) =>
+            this.renderSearchInput({
+              updateRoute: true,
+              placeholder: t('Search Members'),
+              children: renderSearch,
+              className: css`
+                font-size: ${theme.fontSizeMedium};
+                padding: ${space(0.75)};
+              `,
+            })
+          }
+        </ClassNames>
         <Panel data-test-id="org-member-list">
           <PanelHeader>{t('Members')}</PanelHeader>
 

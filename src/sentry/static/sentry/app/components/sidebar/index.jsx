@@ -3,7 +3,6 @@ import {withRouter, browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
-import classNames from 'classnames';
 import createReactClass from 'create-react-class';
 import styled, {css} from 'react-emotion';
 import queryString from 'query-string';
@@ -620,11 +619,8 @@ const ExpandedIcon = css`
 const CollapsedIcon = css`
   transform: rotate(180deg);
 `;
-const StyledInlineSvg = styled(({className, collapsed, ...props}) => (
-  <InlineSvg
-    className={classNames(className, ExpandedIcon, collapsed && CollapsedIcon)}
-    {...props}
-  />
+const StyledInlineSvg = styled(({collapsed, ...props}) => (
+  <InlineSvg css={[ExpandedIcon, collapsed && CollapsedIcon]} {...props} />
 ))``;
 
 const SidebarCollapseItem = styled(SidebarItem)`

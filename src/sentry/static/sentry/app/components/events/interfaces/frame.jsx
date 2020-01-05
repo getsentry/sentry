@@ -352,7 +352,7 @@ export class Frame extends React.Component {
               const isActive = data.lineNo === line[0];
               const components = this.getSentryAppComponents();
               const hasComponents = isActive && components.length > 0;
-              const className = hasComponents
+              const contextLineCss = hasComponents
                 ? css`
                     background: inherit;
                     padding: 0;
@@ -368,7 +368,7 @@ export class Frame extends React.Component {
                   key={index}
                   line={line}
                   isActive={isActive}
-                  className={className}
+                  css={contextLineCss}
                 >
                   {hasComponents && (
                     <ErrorBoundary mini>

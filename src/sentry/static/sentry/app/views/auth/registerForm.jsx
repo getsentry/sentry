@@ -1,3 +1,4 @@
+import {ClassNames} from '@emotion/core';
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -81,43 +82,49 @@ class RegisterForm extends React.Component {
     const {errorMessage, errors} = this.state;
 
     return (
-      <Form
-        initialData={{subscribe: true}}
-        submitLabel={t('Continue')}
-        onSubmit={this.handleSubmit}
-        footerClass={formFooterClass}
-        errorMessage={errorMessage}
-        extraButton={
-          <PrivacyPolicyLink href="https://sentry.io/privacy/">
-            {t('Privacy Policy')}
-          </PrivacyPolicyLink>
-        }
-      >
-        <TextField
-          name="name"
-          placeholder={t('Jane Bloggs')}
-          maxlength={30}
-          label={t('Name')}
-          error={errors.name}
-          required
-        />
-        <TextField
-          name="username"
-          placeholder={t('you@example.com')}
-          maxlength={128}
-          label={t('Email')}
-          error={errors.username}
-          required
-        />
-        <PasswordField
-          name="password"
-          placeholder={t('something super secret')}
-          label={t('Password')}
-          error={errors.password}
-          required
-        />
-        {hasNewsletter && <SubscribeField />}
-      </Form>
+      <ClassNames>
+        {({css}) => (
+          <Form
+            initialData={{subscribe: true}}
+            submitLabel={t('Continue')}
+            onSubmit={this.handleSubmit}
+            footerClass={css`
+              ${formFooterClass}
+            `}
+            errorMessage={errorMessage}
+            extraButton={
+              <PrivacyPolicyLink href="https://sentry.io/privacy/">
+                {t('Privacy Policy')}
+              </PrivacyPolicyLink>
+            }
+          >
+            <TextField
+              name="name"
+              placeholder={t('Jane Bloggs')}
+              maxlength={30}
+              label={t('Name')}
+              error={errors.name}
+              required
+            />
+            <TextField
+              name="username"
+              placeholder={t('you@example.com')}
+              maxlength={128}
+              label={t('Email')}
+              error={errors.username}
+              required
+            />
+            <PasswordField
+              name="password"
+              placeholder={t('something super secret')}
+              label={t('Password')}
+              error={errors.password}
+              required
+            />
+            {hasNewsletter && <SubscribeField />}
+          </Form>
+        )}
+      </ClassNames>
     );
   }
 }

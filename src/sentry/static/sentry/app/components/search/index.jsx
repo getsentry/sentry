@@ -201,7 +201,7 @@ class Search extends React.Component {
                   sources={sources}
                 >
                   {({isLoading, results, hasAnyResults}) => (
-                    <DropdownBox css={dropdownStyle}>
+                    <DropdownBox className={dropdownStyle}>
                       {isLoading && (
                         <LoadingWrapper>
                           <LoadingIndicator mini hideMessage relative />
