@@ -136,22 +136,24 @@ class Tooltip extends React.Component<Props, State> {
     };
 
     // Use the `type` property of the react instance to detect whether we
-    // have a basic element (type=string) or a class/function component (type=function)
+    // have a basic element (type=string) or a class/function component (type=function or object)
     // Because we can't rely on the child element implementing forwardRefs we wrap
     // it with a span tag so that popper has ref
-    if (children.type instanceof Function) {
-      propList.containerDisplayMode = this.props.containerDisplayMode;
-      return (
-        <Container {...propList} innerRef={ref}>
-          {children}
-        </Container>
-      );
+
+    if (typeof children.type === 'string') {
+      // Basic DOM nodes can be cloned and have more props applied.
+      return React.cloneElement(children, {
+        ...propList,
+        ref,
+      });
     }
-    // Basic DOM nodes can be cloned and have more props applied.
-    return React.cloneElement(children, {
-      ...propList,
-      ref,
-    });
+
+    propList.containerDisplayMode = this.props.containerDisplayMode;
+    return (
+      <Container {...propList} ref={ref}>
+        {children}
+      </Container>
+    );
   }
 
   render() {
