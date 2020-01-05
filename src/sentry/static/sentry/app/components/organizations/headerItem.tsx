@@ -1,6 +1,7 @@
 import {Link} from 'react-router';
 import React from 'react';
 import PropTypes from 'prop-types';
+import isPropValid from '@emotion/is-prop-valid';
 import styled from 'react-emotion';
 
 import InlineSvg from 'app/components/inlineSvg';
@@ -18,9 +19,8 @@ type Props = {
   isOpen: boolean;
   locked: boolean;
   loading: boolean;
-  innerRef: React.Ref<HTMLDivElement>;
   onClear: () => void;
-} & HTMLDivElement;
+} & React.HTMLProps<HTMLDivElement>;
 
 class HeaderItem extends React.Component<Props> {
   static propTypes = {
@@ -106,7 +106,12 @@ type ColorProps = {
   hasSelected: boolean;
 };
 
-const StyledHeaderItem = styled('div')`
+const StyledHeaderItem = styled('div', {shouldForwardProp: isPropValid})<{
+  isOpen: boolean;
+  hasSelected: boolean;
+  locked: boolean;
+  loading: boolean;
+}>`
   display: flex;
   padding: 0 ${space(4)};
   align-items: center;
@@ -122,12 +127,12 @@ const Content = styled('div')`
   ${overflowEllipsis};
 `;
 
-const IconContainer = styled('span')<ColorProps>`
+const IconContainer = styled('span', {shouldForwardProp: isPropValid})<ColorProps>`
   color: ${getColor};
   margin-right: ${space(1.5)};
 `;
 
-const StyledClose = styled(InlineSvg)<ColorProps>`
+const StyledClose = styled(InlineSvg, {shouldForwardProp: isPropValid})<ColorProps>`
   color: ${getColor};
   height: ${space(1.5)};
   width: ${space(1.5)};
@@ -172,6 +177,4 @@ const StyledLock = styled(InlineSvg)`
   stroke-width: 1.5;
 `;
 
-export default React.forwardRef((props: Props, ref: React.Ref<HTMLDivElement>) => (
-  <HeaderItem {...props} innerRef={ref} />
-));
+export default HeaderItem;
