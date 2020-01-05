@@ -5,7 +5,7 @@
     "declaration": false,
     "declarationMap": false,
     "downlevelIteration": true,
-    "inlineSources": true,
+    "inlineSources": false,
     "importHelpers": true,
     "lib": ["esnext", "dom"],
     "module": "esnext",
@@ -30,7 +30,9 @@
     "baseUrl": ".",
     "outDir": "src/sentry/static/sentry/dist",
     "paths": {
-      "app/*": ["src/sentry/static/sentry/app/*"]
+      "app/*": ["src/sentry/static/sentry/app/*"],
+      "@emotion/styled": ["src/sentry/static/sentry/app/styled.tsx"],
+      "@original-emotion/*": ["node_modules/@emotion/*"]
     },
     "plugins": [{"name": "typescript-styled-plugin"}]
   },
