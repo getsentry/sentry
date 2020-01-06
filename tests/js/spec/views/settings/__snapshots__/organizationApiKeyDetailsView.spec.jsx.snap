@@ -222,6 +222,10 @@ exports[`OrganizationApiKeyDetails renders 1`] = `
                       "org:admin",
                     ],
                     Array [
+                      "org:integrations",
+                      "org:integrations",
+                    ],
+                    Array [
                       "member:read",
                       "member:read",
                     ],
@@ -436,6 +440,19 @@ exports[`OrganizationApiKeyDetails renders 1`] = `
                         value="org:admin"
                       />
                       org:admin
+                    </label>
+                    <label
+                      className="checkbox"
+                      key="org:integrations"
+                    >
+                      <input
+                        checked={false}
+                        disabled={false}
+                        onChange={[Function]}
+                        type="checkbox"
+                        value="org:integrations"
+                      />
+                      org:integrations
                     </label>
                     <label
                       className="checkbox"

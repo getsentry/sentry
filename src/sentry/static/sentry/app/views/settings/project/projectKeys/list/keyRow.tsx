@@ -13,13 +13,14 @@ import Confirm from 'app/components/confirm';
 import ProjectKeyCredentials from 'app/views/settings/project/projectKeys/projectKeyCredentials';
 import recreateRoute from 'app/utils/recreateRoute';
 import space from 'app/styles/space';
+import {Scope} from 'app/types';
 
 type Props = {
   api: Client;
   orgId: string;
   projectId: string;
   data: ProjectKey;
-  access: Set<string>;
+  access: Set<Scope>;
   onToggle: (isActive: boolean, data: ProjectKey) => void;
   onRemove: (data: ProjectKey) => void;
 } & Pick<RouteComponentProps<{}, {}>, 'routes' | 'location' | 'params'>;

@@ -129,6 +129,10 @@ exports[`ApiNewToken render() renders 1`] = `
                   "org:admin",
                 ],
                 Array [
+                  "org:integrations",
+                  "org:integrations",
+                ],
+                Array [
                   "member:read",
                   "member:read",
                 ],

@@ -1,10 +1,10 @@
-import {Organization, Project} from 'app/types';
+import {Organization, Project, Scope} from 'app/types';
 
 export type NavigationProps = {
   id?: string;
   organization?: Organization;
   project?: Project;
-  access?: Set<string>;
+  access?: Set<Scope>;
   features?: Set<string>;
 };
 
