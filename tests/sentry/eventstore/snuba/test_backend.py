@@ -94,7 +94,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         assert event.id == "a" * 32
         assert event.event_id == "a" * 32
         assert event.project_id == self.project1.id
-        assert len(event.snuba_data.keys()) == 4
+        assert len(event._snuba_data.keys()) == 4
 
         # Get all columns
         event = self.eventstore.get_event_by_id(
@@ -103,7 +103,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         assert event.id == "b" * 32
         assert event.event_id == "b" * 32
         assert event.project_id == self.project2.id
-        assert len(event.snuba_data.keys()) == 17
+        assert len(event._snuba_data.keys()) == 17
 
         # Get non existent event
         event = self.eventstore.get_event_by_id(self.project2.id, "f" * 32)
