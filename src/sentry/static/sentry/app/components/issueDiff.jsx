@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import isPropValid from '@emotion/is-prop-valid';
 import styled, {css} from 'react-emotion';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -106,7 +107,7 @@ const getLoadingStyle = p =>
     `) ||
   '';
 
-const StyledIssueDiff = styled('div')`
+const StyledIssueDiff = styled('div', {shouldForwardProp: isPropValid})`
   background-color: #f7f8f9;
   overflow: auto;
   padding: 10px;

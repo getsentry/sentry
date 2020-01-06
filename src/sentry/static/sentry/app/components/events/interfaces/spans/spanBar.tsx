@@ -716,7 +716,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         >
           {displaySpanBar && (
             <SpanBarRectangle
-              spanBarHatch={spanBarHatch}
+              spanBarHatch={!!spanBarHatch}
               style={{
                 backgroundColor: spanBarColour,
                 left: toPercent(bounds.left || 0),
@@ -1000,7 +1000,7 @@ const getHatchPattern = ({spanBarHatch}) => {
   return null;
 };
 
-const SpanBarRectangle = styled('div')`
+const SpanBarRectangle = styled('div')<{spanBarHatch: boolean}>`
   position: relative;
   height: 100%;
   min-width: 1px;
