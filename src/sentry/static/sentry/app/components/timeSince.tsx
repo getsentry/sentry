@@ -75,7 +75,7 @@ class TimeSince extends React.PureComponent<Props, State> {
   };
 
   render() {
-    const {date, ...props} = this.props;
+    const {date, suffix: _suffix, ...props} = this.props;
     const dateObj = getDateObj(date);
     const user = ConfigStore.get('user');
     const options = user ? user.options : {};
