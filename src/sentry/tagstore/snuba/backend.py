@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import functools
+import random
 import six
 from collections import defaultdict, Iterable
 from dateutil.parser import parse as parse_datetime
@@ -194,7 +195,7 @@ class SnubaTagStorage(TagStorage):
         conditions = []
 
         should_cache = (
-            not options.get("snuba.tagstore.disable-cache-tagkeys")
+            random.random() <= options.get("snuba.tagstore.cache-tagkeys-rate")
             and use_cache
             and group_id is None
         )
