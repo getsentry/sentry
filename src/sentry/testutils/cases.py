@@ -769,13 +769,29 @@ class SnubaTestCase(BaseTestCase):
         self.snuba_eventstream = SnubaEventStream()
         self.snuba_tagstore = SnubaTagStorage()
         assert requests.post(settings.SENTRY_SNUBA + "/tests/events/drop").status_code == 200
+        assert (
+            requests.post(settings.SENTRY_SNUBA + "/tests/groupedmessage/drop").status_code == 200
+        )
         assert requests.post(settings.SENTRY_SNUBA + "/tests/transactions/drop").status_code == 200
 
     def store_event(self, *args, **kwargs):
         with contextlib.nested(
             mock.patch("sentry.eventstream.insert", self.snuba_eventstream.insert)
         ):
-            return Factories.store_event(*args, **kwargs)
+            stored_event = Factories.store_event(*args, **kwargs)
+            stored_group = stored_event.group
+            if stored_group is not None:
+                self.store_group(stored_group)
+            return stored_event
+
+    def store_group(self, group):
+        data = [self.__wrap_group(group)]
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + "/tests/groupedmessage/insert", data=json.dumps(data)
+            ).status_code
+            == 200
+        )
 
     def __wrap_event(self, event, data, primary_hash):
         # TODO: Abstract and combine this with the stream code in
@@ -790,6 +806,61 @@ class SnubaTestCase(BaseTestCase):
             "datetime": event.datetime,
             "data": dict(data),
             "primary_hash": primary_hash,
+        }
+
+    def to_snuba_time_format(self, datetime_value):
+        date_format = "%Y-%m-%d %H:%M:%S%z"
+        return datetime_value.strftime(date_format)
+
+    def __wrap_group(self, group):
+        return {
+            "event": "change",
+            "kind": "insert",
+            "table": "sentry_groupedmessage",
+            "columnnames": [
+                "id",
+                "logger",
+                "level",
+                "message",
+                "status",
+                "times_seen",
+                "last_seen",
+                "first_seen",
+                "data",
+                "score",
+                "project_id",
+                "time_spent_total",
+                "time_spent_count",
+                "resolved_at",
+                "active_at",
+                "is_public",
+                "platform",
+                "num_comments",
+                "first_release_id",
+                "short_id",
+            ],
+            "columnvalues": [
+                group.id,
+                group.logger,
+                group.level,
+                group.message,
+                group.status,
+                group.times_seen,
+                self.to_snuba_time_format(group.last_seen),
+                self.to_snuba_time_format(group.first_seen),
+                group.data,
+                group.score,
+                group.project.id,
+                group.time_spent_total,
+                group.time_spent_count,
+                group.resolved_at,
+                self.to_snuba_time_format(group.active_at),
+                group.is_public,
+                group.platform,
+                group.num_comments,
+                group.first_release.id if group.first_release else None,
+                group.short_id,
+            ],
         }
 
     def create_event(self, *args, **kwargs):

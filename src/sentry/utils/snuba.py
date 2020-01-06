@@ -52,6 +52,8 @@ OVERRIDE_OPTIONS = {
 SENTRY_SNUBA_MAP = {
     col.value.alias: col.value.event_name for col in Columns if col.value.event_name is not None
 }
+
+
 TRANSACTIONS_SENTRY_SNUBA_MAP = {
     col.value.alias: col.value.transaction_name
     for col in Columns
@@ -932,6 +934,7 @@ def constrain_column_to_dataset(col, dataset, value=None):
     """
     if col.startswith("tags["):
         return col
+
     # Special case for the type condition as we only want
     # to drop it when we are querying transactions.
     if dataset == Dataset.Transactions and col == "event.type" and value == "transaction":
@@ -942,6 +945,7 @@ def constrain_column_to_dataset(col, dataset, value=None):
         return DATASETS[dataset][col]
     if col in DATASET_FIELDS[dataset]:
         return col
+
     return u"tags[{}]".format(col)
 
 
