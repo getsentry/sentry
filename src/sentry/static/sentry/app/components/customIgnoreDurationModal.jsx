@@ -15,7 +15,7 @@ export default class CustomIgnoreDurationModal extends React.Component {
   };
 
   static defaultProps = {
-    label: t('Ignore this issue until it occurs after ..'),
+    label: t('Ignore this issue until ..'),
   };
 
   constructor(...args) {
