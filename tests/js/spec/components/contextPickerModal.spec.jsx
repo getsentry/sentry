@@ -43,24 +43,6 @@ describe('ContextPickerModal', function() {
     expect(wrapper.find('StyledSelectControl[name="project"]').exists()).toBe(false);
   });
 
-  it('fetches org details and sets as active org if there is only one org', function() {
-    const spy = jest.spyOn(OrgActions, 'fetchOrganizationDetails');
-    const api = MockApiClient.addMockResponse({
-      url: `/organizations/${org2.slug}/`,
-    });
-    const wrapper = mountWithTheme(
-      getComponent({organizations: [org2]}),
-      TestStubs.routerContext()
-    );
-
-    wrapper.update();
-    expect(spy).toHaveBeenCalledWith('org2', {
-      setActive: true,
-      loadProjects: true,
-    });
-    expect(api).toHaveBeenCalled();
-  });
-
   it('calls onFinish after latestContext is set, if project id is not needed, and only 1 org', function() {
     const spy = jest.spyOn(OrgActions, 'fetchOrganizationDetails');
     const api = MockApiClient.addMockResponse({
@@ -151,7 +133,7 @@ describe('ContextPickerModal', function() {
     ]);
   });
 
-  it('can select org and project', async function() {
+  it.only('can select org and project', async function() {
     const spy = jest.spyOn(OrgActions, 'fetchOrganizationDetails');
     const api = MockApiClient.addMockResponse({
       url: `/organizations/${org2.slug}/`,
@@ -175,9 +157,14 @@ describe('ContextPickerModal', function() {
       TestStubs.routerContext()
     );
 
+    await tick();
+    wrapper.update();
+
+    console.log(wrapper.debug());
+
     // Should not have anything selected
     expect(wrapper.find('StyledSelectControl[name="organization"]').prop('value')).toBe(
-      ''
+      null
     );
 
     spy.mockClear();
@@ -188,6 +175,7 @@ describe('ContextPickerModal', function() {
       .simulate('change', {value: org2.slug, label: org2.slug});
 
     wrapper.find('StyledSelectControl[name="organization"] input').simulate('focus');
+    console.log(wrapper.debug());
     wrapper
       .find('Select[name="organization"] Option')
       .at(1)
