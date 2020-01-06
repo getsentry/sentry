@@ -2,8 +2,11 @@ from __future__ import absolute_import
 
 import pickle
 import pytest
+import six
 
+from sentry.api.serializers import serialize
 from sentry.db.models.fields.node import NodeData
+from sentry.eventstore.models import Event
 from sentry.models import Environment
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
@@ -118,41 +121,46 @@ class EventTest(TestCase):
             event.get_environment() == environment
 
     def test_ip_address(self):
-        event = self.create_event(
+        event = self.store_event(
             data={
                 "user": {"ip_address": "127.0.0.1"},
                 "request": {"url": "http://some.com", "env": {"REMOTE_ADDR": "::1"}},
-            }
+            },
+            project_id=self.project.id,
         )
         assert event.ip_address == "127.0.0.1"
 
-        event = self.create_event(
+        event = self.store_event(
             data={
                 "user": {"ip_address": None},
                 "request": {"url": "http://some.com", "env": {"REMOTE_ADDR": "::1"}},
-            }
+            },
+            project_id=self.project.id,
         )
         assert event.ip_address == "::1"
 
-        event = self.create_event(
+        event = self.store_event(
             data={
                 "user": None,
                 "request": {"url": "http://some.com", "env": {"REMOTE_ADDR": "::1"}},
-            }
+            },
+            project_id=self.project.id,
         )
         assert event.ip_address == "::1"
 
-        event = self.create_event(
-            data={"request": {"url": "http://some.com", "env": {"REMOTE_ADDR": "::1"}}}
+        event = self.store_event(
+            data={"request": {"url": "http://some.com", "env": {"REMOTE_ADDR": "::1"}}},
+            project_id=self.project.id,
         )
         assert event.ip_address == "::1"
 
-        event = self.create_event(
-            data={"request": {"url": "http://some.com", "env": {"REMOTE_ADDR": None}}}
+        event = self.store_event(
+            data={"request": {"url": "http://some.com", "env": {"REMOTE_ADDR": None}}},
+            project_id=self.project.id,
         )
         assert event.ip_address is None
 
-        event = self.create_event()
+        event = self.store_event(data={}, project_id=self.project.id)
         assert event.ip_address is None
 
     def test_issueless_event(self):
@@ -173,6 +181,30 @@ class EventTest(TestCase):
         )
         assert event.group is None
         assert event.culprit == "app/components/events/eventEntries in map"
+
+    def test_serialize_event(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "Hello World!",
+                "tags": {"logger": "foobar", "site": "foo", "server_name": "bar"},
+            },
+            project_id=self.project.id,
+        )
+        group_id = event.group_id
+        serialized = serialize(event)
+        assert serialized["eventID"] == "a" * 32
+        assert serialized["projectID"] == six.text_type(self.project.id)
+        assert serialized["groupID"] == six.text_type(group_id)
+        assert serialized["message"] == "Hello World!"
+
+        # Can serialize an event by loading node data
+        event = Event(project_id=self.project.id, event_id="a" * 32, group_id=group_id)
+        serialized = serialize(event)
+        assert serialized["eventID"] == "a" * 32
+        assert serialized["projectID"] == six.text_type(self.project.id)
+        assert serialized["groupID"] == six.text_type(group_id)
+        assert serialized["message"] == "Hello World!"
 
 
 @pytest.mark.django_db

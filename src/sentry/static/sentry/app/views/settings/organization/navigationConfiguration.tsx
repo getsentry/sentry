@@ -1,8 +1,9 @@
 import {t} from 'app/locale';
+import {NavigationSection} from 'app/views/settings/types';
 
 const pathPrefix = '/settings/:orgId';
 
-const organizationNavigation = [
+const organizationNavigation: NavigationSection[] = [
   {
     name: t('Organization'),
     items: [
@@ -28,7 +29,7 @@ const organizationNavigation = [
       {
         path: `${pathPrefix}/members/`,
         title: t('Members'),
-        show: ({access}) => access.has('member:read'),
+        show: ({access}) => access!.has('member:read'),
         description: t('Manage user membership for an organization'),
         id: 'members',
       },
@@ -41,13 +42,14 @@ const organizationNavigation = [
       {
         path: `${pathPrefix}/api-keys/`,
         title: t('API Keys'),
-        show: ({access, features}) => features.has('api-keys') && access.has('org:admin'),
+        show: ({access, features}) =>
+          features!.has('api-keys') && access!.has('org:admin'),
         id: 'api-keys',
       },
       {
         path: `${pathPrefix}/audit-log/`,
         title: t('Audit Log'),
-        show: ({access}) => access.has('org:write'),
+        show: ({access}) => access!.has('org:write'),
         description: t('View the audit log for an organization'),
         id: 'audit-log',
       },
@@ -55,7 +57,7 @@ const organizationNavigation = [
         path: `${pathPrefix}/rate-limits/`,
         title: t('Rate Limits'),
         show: ({access, features}) =>
-          features.has('legacy-rate-limits') && access.has('org:write'),
+          features!.has('legacy-rate-limits') && access!.has('org:write'),
         description: t('Configure rate limits for all projects in the organization'),
         id: 'rate-limits',
       },
@@ -82,5 +84,4 @@ const organizationNavigation = [
     ],
   },
 ];
-
 export default organizationNavigation;
