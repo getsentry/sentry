@@ -1860,10 +1860,14 @@ exports[`Issues Similar View renders with mocked data 1`] = `
             </button>
           </div>
         </div>
-        <Pagination
-          className="css-1yt0wm7-streamCss"
+        <Styled(Pagination)
           onCursor={[Function]}
-        />
+        >
+          <Pagination
+            className="css-yneqnx e1vkspke0"
+            onCursor={[Function]}
+          />
+        </Styled(Pagination)>
       </div>
     </SimilarList>
   </div>

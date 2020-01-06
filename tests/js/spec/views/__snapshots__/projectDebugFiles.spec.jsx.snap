@@ -267,10 +267,14 @@ exports[`ProjectDebugFiles renders 1`] = `
       </div>
     </Component>
   </Panel>
-  <Pagination
-    className="css-1yt0wm7-streamCss"
+  <Styled(Pagination)
     onCursor={[Function]}
-  />
+  >
+    <Pagination
+      className="css-yneqnx e1vkspke0"
+      onCursor={[Function]}
+    />
+  </Styled(Pagination)>
 </ProjectDebugSymbols>
 `;
 
@@ -342,8 +346,7 @@ exports[`ProjectDebugFiles renders empty 1`] = `
       </EmptyStateWarning>
     </PanelBody>
   </Panel>
-  <Pagination
-    className="css-1yt0wm7-streamCss"
+  <Styled(Pagination)
     onCursor={[Function]}
   />
 </Fragment>
