@@ -1112,10 +1112,10 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["selected_columns"] == []
         assert result["aggregations"] == [
             ["avg", "transaction.duration", "avg_transaction_duration"],
-            ["apdex(duration, 300)", "", "apdex"],
+            ["apdex(duration, 300)", None, "apdex"],
             [
                 "(1 - ((countIf(duration < 300) + (countIf((duration > 300) AND (duration < 1200)) / 2)) / count())) + ((1 - 1 / sqrt(uniq(user))) * 3)",
-                "",
+                None,
                 "impact",
             ],
             ["quantile(0.75)(duration)", None, "p75"],
