@@ -37,7 +37,7 @@ class Creator(Mediator):
     allowed_origins = Param(Iterable, default=lambda self: [])
     request = Param("rest_framework.request.Request", required=False)
     user = Param("sentry.models.User")
-    is_internal = Param(bool, default=False)
+    is_internal = Param(bool)
 
     def call(self):
         self.slug = self._generate_and_validate_slug()

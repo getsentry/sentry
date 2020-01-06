@@ -88,6 +88,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             data["is_alertable"] = data["isAlertable"]
             data["verify_install"] = data["verifyInstall"]
             data["allowed_origins"] = data["allowedOrigins"]
+            data["is_internal"] = data.get("isInternal")
 
             creator = InternalCreator if data.get("isInternal") else Creator
             try:

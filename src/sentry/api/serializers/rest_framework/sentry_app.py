@@ -103,11 +103,9 @@ class SentryAppSerializer(Serializer):
         return get_current_value
 
     def validate_name(self, value):
-        # even though we technically don't have an issue renaming something to a really long time
-        # there's no reason we should allow this
         max_length = 64 - UUID_CHARS_IN_SLUG - 1  # -1 comes from the - before the UUID bit
         if len(value) > max_length:
-            raise ValidationError("cannot exceed %d characters" % max_length)
+            raise ValidationError("Cannot exceed %d characters" % max_length)
         return value
 
     def validate_allowedOrigins(self, value):

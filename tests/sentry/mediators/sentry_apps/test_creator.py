@@ -28,6 +28,7 @@ class TestCreator(TestCase):
             scopes=("project:read",),
             webhook_url="http://example.com",
             schema={"elements": [self.create_issue_link_schema()]},
+            is_internal=False,
         )
 
     def test_slug(self):
@@ -101,6 +102,7 @@ class TestCreator(TestCase):
             webhook_url="http://example.com",
             schema={"elements": [self.create_issue_link_schema()]},
             request=request,
+            is_internal=False,
         )
         assert AuditLogEntry.objects.filter(event=AuditLogEntryEvent.SENTRY_APP_ADD).exists()
 
@@ -127,6 +129,7 @@ class TestCreator(TestCase):
             webhook_url="http://example.com",
             schema={"elements": [self.create_issue_link_schema()]},
             request=self.make_request(user=self.user, method="GET"),
+            is_internal=False,
         )
 
         record.assert_called_with(

@@ -333,7 +333,7 @@ class PostSentryAppsTest(SentryAppsTest):
         kwargs = {"name": "k" * 58}
         response = self._post(**kwargs)
         assert response.status_code == 400
-        assert response.data == {"name": ["cannot exceed 57 characters"]}
+        assert response.data == {"name": ["Cannot exceed 57 characters"]}
 
     def test_invalid_with_missing_webhool_url_scheme(self):
         self.login_as(user=self.user)
