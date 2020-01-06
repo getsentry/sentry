@@ -590,7 +590,6 @@ def convert_search_filter_to_snuba_query(search_filter):
             if isinstance(value, datetime) and name != "timestamp"
             else value
         )
-
         # Tags are never null, but promoted tags are columns and so can be null.
         # To handle both cases, use `ifNull` to convert to an empty string and
         # compare so we need to check for empty values.
@@ -702,13 +701,13 @@ FIELD_ALIASES = {
     "user": {"fields": ["user.id", "user.username", "user.email", "user.ip"]},
     # Long term these will become more complex functions but these are
     # field aliases.
-    "apdex": {"result_type": "number", "aggregations": [["apdex(duration, 300)", "", "apdex"]]},
+    "apdex": {"result_type": "number", "aggregations": [["apdex(duration, 300)", None, "apdex"]]},
     "impact": {
         "result_type": "number",
         "aggregations": [
             [
                 "(1 - ((countIf(duration < 300) + (countIf((duration > 300) AND (duration < 1200)) / 2)) / count())) + ((1 - 1 / sqrt(uniq(user))) * 3)",
-                "",
+                None,
                 "impact",
             ]
         ],

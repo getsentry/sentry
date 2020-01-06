@@ -105,7 +105,9 @@ setup(
     entry_points={
         "console_scripts": ["sentry = sentry.runner:main"],
         "sentry.apps": [
+            # TODO: This can be removed once the getsentry tests no longer check for this app
             "auth_auth0 = sentry.auth.providers.saml2.auth0",
+            "auth_github = sentry.auth.providers.github",
             "auth_okta = sentry.auth.providers.saml2.okta",
             "auth_onelogin = sentry.auth.providers.saml2.onelogin",
             "auth_rippling = sentry.auth.providers.saml2.rippling",

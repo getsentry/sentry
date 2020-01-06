@@ -120,7 +120,7 @@ class GridParent extends React.Component {
   render() {
     return (
       <GridEditable
-        isEditable={true}
+        isEditable
         isLoading={false}
         error={null}
         data={DATA}
@@ -180,7 +180,7 @@ storiesOf('UI|GridEditable', module)
         <h2>Loading</h2>
         <GridEditable
           isEditable={false}
-          isLoading={true}
+          isLoading
           error={null}
           data={DATA}
           columnOrder={COLUMN_ORDER}
@@ -205,7 +205,7 @@ storiesOf('UI|GridEditable', module)
         <h2>Error</h2>
         <GridEditable
           isEditable={false}
-          isLoading={true}
+          isLoading
           error="These aren't the droids you're looking for."
           data={DATA}
           columnOrder={COLUMN_ORDER}
