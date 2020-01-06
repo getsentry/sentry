@@ -206,7 +206,9 @@ const Breadcrumb = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-const IncidentTitle = styled('div', {shouldForwardProp: isPropValid})<{loading: boolean}>`
+const IncidentTitle = styled('div', {
+  shouldForwardProp: p => isPropValid(p) && p !== 'loading',
+})<{loading: boolean}>`
   ${p => p.loading && 'opacity: 0'};
 `;
 

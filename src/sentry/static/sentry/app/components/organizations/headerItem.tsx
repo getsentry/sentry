@@ -106,12 +106,13 @@ type ColorProps = {
   hasSelected: boolean;
 };
 
-const StyledHeaderItem = styled('div', {shouldForwardProp: isPropValid})<{
-  isOpen: boolean;
-  hasSelected: boolean;
-  locked: boolean;
-  loading: boolean;
-}>`
+const StyledHeaderItem = styled('div', {
+  shouldForwardProp: p => isPropValid(p) && p !== 'loading',
+})<
+  ColorProps & {
+    loading: boolean;
+  }
+>`
   display: flex;
   padding: 0 ${space(4)};
   align-items: center;

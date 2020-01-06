@@ -108,7 +108,9 @@ const getLoadingStyle = p =>
     `) ||
   '';
 
-const StyledIssueDiff = styled('div', {shouldForwardProp: isPropValid})`
+const StyledIssueDiff = styled('div', {
+  shouldForwardProp: p => isPropValid(p) && p !== 'loading',
+})`
   background-color: #f7f8f9;
   overflow: auto;
   padding: 10px;

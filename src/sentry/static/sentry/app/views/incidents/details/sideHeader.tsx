@@ -23,7 +23,9 @@ const SideHeader = styled(function SideHeader({className, loading, children}: Pr
   text-transform: uppercase;
 `;
 
-const Title = styled('span', {shouldForwardProp: isPropValid})<{loading: boolean}>`
+const Title = styled('span', {
+  shouldForwardProp: p => isPropValid(p) && p !== 'loading',
+})<{loading: boolean}>`
   ${p =>
     p.loading
       ? `
