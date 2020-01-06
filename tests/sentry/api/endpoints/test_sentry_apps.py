@@ -18,6 +18,7 @@ from sentry.models import (
     OrganizationMember,
 )
 from sentry.models.sentryapp import MASKED_VALUE
+from sentry.mediators import sentry_apps
 
 
 class SentryAppsTest(APITestCase):
@@ -309,15 +310,30 @@ class PostSentryAppsTest(SentryAppsTest):
         assert response.status_code == 201, response.content
         assert six.viewitems(expected) <= six.viewitems(json.loads(response.content))
 
-    def test_non_unique_app_slug(self):
-        from sentry.mediators import sentry_apps
-
+    def test_non_unique_app_slug_fails(self):
         self.login_as(user=self.user)
         sentry_app = self.create_sentry_app(name="Foo Bar", organization=self.org)
         sentry_apps.Destroyer.run(sentry_app=sentry_app, user=self.user)
         response = self._post(**{"name": sentry_app.name})
         assert response.status_code == 400
         assert response.data == {"name": ["Name Foo Bar is already taken, please use another."]}
+
+    def test_same_name_internal_integration(self):
+        self.create_project(organization=self.org)
+        self.login_as(user=self.user)
+        sentry_app = self.create_internal_integration(name="Foo Bar", organization=self.org)
+        response = self._post(**{"name": sentry_app.name})
+        assert response.status_code == 201
+        assert response.data["name"] == sentry_app.name
+        assert response.data["slug"] != sentry_app.slug
+
+    def test_long_name_internal_integration(self):
+        self.create_project(organization=self.org)
+        self.login_as(user=self.user)
+        kwargs = {"name": "k" * 58}
+        response = self._post(**kwargs)
+        assert response.status_code == 400
+        assert response.data == {"name": ["Cannot exceed 57 characters"]}
 
     def test_invalid_with_missing_webhool_url_scheme(self):
         self.login_as(user=self.user)
@@ -538,6 +554,26 @@ class PostSentryAppsTest(SentryAppsTest):
                 "Requested permission of member:admin exceeds requester's permission. Please contact an administrator to make the requested change.",
             ]
         }
+
+    def test_create_internal_integration_with_non_globally_unique_name(self):
+        # Internal integration names should only need to be unique within an organization
+        self.login_as(user=self.user)
+        self.create_project(organization=self.org)
+
+        other_org = self.create_organization()
+        other_org_integration = self.create_sentry_app(name="Foo Bar", organization=other_org)
+
+        response = self._post(name=other_org_integration.name, isInternal=True)
+        assert response.status_code == 201
+
+        other_org = self.create_organization()
+        self.create_project(organization=other_org)
+        other_org_internal_integration = self.create_internal_integration(
+            name="Foo Bar 2", organization=other_org
+        )
+
+        response = self._post(name=other_org_internal_integration.name, isInternal=True)
+        assert response.status_code == 201
 
     def _post(self, **kwargs):
         body = {

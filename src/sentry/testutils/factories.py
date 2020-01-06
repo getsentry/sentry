@@ -627,7 +627,7 @@ class Factories(object):
 
     @staticmethod
     def create_sentry_app(**kwargs):
-        app = sentry_apps.Creator.run(**Factories._sentry_app_kwargs(**kwargs))
+        app = sentry_apps.Creator.run(is_internal=False, **Factories._sentry_app_kwargs(**kwargs))
 
         if kwargs.get("published"):
             app.update(status=SentryAppStatus.PUBLISHED)
@@ -636,7 +636,9 @@ class Factories(object):
 
     @staticmethod
     def create_internal_integration(**kwargs):
-        return sentry_apps.InternalCreator.run(**Factories._sentry_app_kwargs(**kwargs))
+        return sentry_apps.InternalCreator.run(
+            is_internal=True, **Factories._sentry_app_kwargs(**kwargs)
+        )
 
     @staticmethod
     def create_internal_integration_token(install, **kwargs):

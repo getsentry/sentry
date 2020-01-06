@@ -23,6 +23,12 @@ class TestInternalCreator(TestCase):
             schema={"elements": [self.create_issue_link_schema()]},
         )
 
+    def test_slug(self):
+        sentry_app = self.creator.call()
+        # test slug is the name + a UUID
+        assert sentry_app.slug[:7] == "nulldb-"
+        assert len(sentry_app.slug) == 13
+
     def test_creates_internal_sentry_app(self):
         sentry_app = self.creator.call()
         assert SentryApp.objects.filter(slug=sentry_app.slug).exists()

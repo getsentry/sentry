@@ -126,6 +126,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
 
     def test_update_unpublished_app(self):
         self.login_as(user=self.user)
+        slug = self.unpublished_app.slug
         url = reverse("sentry-api-0-sentry-app-details", args=[self.unpublished_app.slug])
 
         response = self.client.put(
@@ -141,12 +142,13 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
 
         assert response.status_code == 200
         assert response.data["name"] == "NewName"
+        assert response.data["slug"] == slug
         assert response.data["scopes"] == ["event:read"]
         assert response.data["events"] == set(["issue"])
         assert response.data["uuid"] == self.unpublished_app.uuid
         assert response.data["webhookUrl"] == "https://newurl.com"
 
-    def test_cannot_update_name_with_non_unique_slug(self):
+    def test_can_update_name_with_non_unique_name(self):
         from sentry.mediators import sentry_apps
 
         self.login_as(user=self.user)
@@ -155,8 +157,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         sentry_apps.Destroyer.run(sentry_app=sentry_app, user=self.user)
 
         response = self.client.put(self.url, data={"name": sentry_app.name}, format="json")
-        assert response.status_code == 400
-        assert response.data == {"name": ["Name Foo Bar is already taken, please use another."]}
+        assert response.status_code == 200
 
     def test_cannot_update_events_without_permissions(self):
         self.login_as(user=self.user)

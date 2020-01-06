@@ -4,7 +4,6 @@ import six
 
 from collections import Iterable
 
-from sentry.constants import SentryAppStatus
 from sentry.mediators import Mediator, Param
 from sentry.models import AuditLogEntryEvent
 from .creator import Creator as SentryAppCreator
@@ -31,8 +30,8 @@ class InternalCreator(Mediator):
     def call(self):
         # SentryAppCreator expects an author so just set it to the org name
         self.kwargs["author"] = self.organization.name
+        self.kwargs["is_internal"] = True
         self.sentry_app = SentryAppCreator.run(**self.kwargs)
-        self.sentry_app.status = SentryAppStatus.INTERNAL
         self.sentry_app.verify_install = False
         self.sentry_app.save()
 
