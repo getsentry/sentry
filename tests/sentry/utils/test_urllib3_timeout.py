@@ -23,11 +23,11 @@ def test_retries():
     Tests that, even if I set up 5 retries, there is only one request
     made since it times out.
     """
-    conneciton_mock = mock.Mock()
-    conneciton_mock.request.side_effect = ReadTimeoutError(None, "test.com", "Timeout")
+    connection_mock = mock.Mock()
+    connection_mock.request.side_effect = ReadTimeoutError(None, "test.com", "Timeout")
 
     snuba_pool = FakeConnectionPool(
-        connection=conneciton_mock,
+        connection=connection_mock,
         host="www.test.com",
         port=80,
         retries=RetrySkipTimeout(total=5, method_whitelist={"GET", "POST"}),
@@ -38,4 +38,4 @@ def test_retries():
     with pytest.raises(HTTPError):
         snuba_pool.urlopen("POST", "/query", body="{}")
 
-    assert conneciton_mock.request.call_count == 1
+    assert connection_mock.request.call_count == 1
