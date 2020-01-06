@@ -5,12 +5,15 @@ from jsonschema.exceptions import ValidationError as SchemaValidationError
 from rest_framework import serializers
 from rest_framework.serializers import Serializer, ValidationError
 
-from django.template.defaultfilters import slugify
 from sentry.api.serializers.rest_framework import ListField
 from sentry.api.serializers.rest_framework.base import camel_to_snake_case
 from sentry.api.validators.sentry_apps.schema import validate_ui_element_schema
-from sentry.models import ApiScopes, SentryApp
-from sentry.models.sentryapp import VALID_EVENT_RESOURCES, REQUIRED_EVENT_PERMISSIONS
+from sentry.models import ApiScopes
+from sentry.models.sentryapp import (
+    VALID_EVENT_RESOURCES,
+    REQUIRED_EVENT_PERMISSIONS,
+    UUID_CHARS_IN_SLUG,
+)
 
 
 class ApiScopesField(serializers.Field):
@@ -100,16 +103,9 @@ class SentryAppSerializer(Serializer):
         return get_current_value
 
     def validate_name(self, value):
-        if not value:
-            return value
-
-        queryset = SentryApp.with_deleted.filter(slug=slugify(value))
-
-        if self.instance:
-            queryset = queryset.exclude(id=self.instance.id)
-
-        if queryset.exists():
-            raise ValidationError(u"Name {} is already taken, please use another.".format(value))
+        max_length = 64 - UUID_CHARS_IN_SLUG - 1  # -1 comes from the - before the UUID bit
+        if len(value) > max_length:
+            raise ValidationError("Cannot exceed %d characters" % max_length)
         return value
 
     def validate_allowedOrigins(self, value):
