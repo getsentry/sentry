@@ -34,7 +34,7 @@ def backfill_eventstream(apps, schema_editor):
     def get_events(last_days):
         to_date = datetime.now()
         from_date = to_date - timedelta(days=last_days)
-        return Event.objects.filter(datetime__gte=from_date, datetime__lte=to_date)
+        return Event.objects.filter(datetime__gte=from_date, datetime__lte=to_date, group_id__isnull=False)
 
     def _attach_related(_events):
         project_ids = {event.project_id for event in _events}
