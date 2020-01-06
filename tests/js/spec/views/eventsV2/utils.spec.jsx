@@ -291,7 +291,7 @@ describe('decodeColumnOrder', function() {
       isDragging: false,
       isPrimary: false,
       isSortable: true,
-      type: 'never',
+      type: 'number',
     });
   });
 
@@ -312,7 +312,7 @@ describe('decodeColumnOrder', function() {
       isDragging: false,
       isPrimary: false,
       isSortable: true,
-      type: 'duration',
+      type: 'number',
     });
   });
 });

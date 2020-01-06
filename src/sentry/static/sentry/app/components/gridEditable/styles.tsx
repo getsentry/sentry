@@ -280,7 +280,7 @@ export const GridBodyCell = styled('td')`
   min-width: 0;
   /* Locking in the height makes calculation for resizer to be easier.
      min-height is used to allow a cell to expand and this is used to display
-     feedback duringempty/error state */
+     feedback during empty/error state */
   min-height: ${GRID_BODY_ROW_HEIGHT}px;
   padding: ${space(1)} ${space(2)};
 

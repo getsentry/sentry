@@ -164,12 +164,12 @@ class GridEditable<
     mouseup: [],
   };
 
-  clearWindowLifecycleEvents = () => {
+  clearWindowLifecycleEvents() {
     Object.keys(this.resizeWindowLifecycleEvents).forEach(e => {
       this.resizeWindowLifecycleEvents[e].forEach(c => window.removeEventListener(e, c));
       this.resizeWindowLifecycleEvents[e] = [];
     });
-  };
+  }
 
   onResizeMouseDown = (e: React.MouseEvent, i: number = -1) => {
     e.preventDefault();
@@ -306,7 +306,7 @@ class GridEditable<
           ? columnWidth
           : !c.width || isNaN(c.width) // Case 2: Draw a column with no width
           ? COL_WIDTH_DEFAULT
-          : Number(c.width); // Case 3: Draw a column with width
+          : c.width; // Case 3: Draw a column with width
 
       width = Math.max(COL_WIDTH_MIN, width);
       sumWidth += width;
