@@ -33,6 +33,7 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
 
         # Select and create node JS project
         self.browser.click('[data-test-id="platform-node"]')
+        self.browser.wait_until_not('[data-test-id="platform-select-next"][aria-disabled="true"]')
         self.browser.click('[data-test-id="platform-select-next"]')
 
         # Project getting started
