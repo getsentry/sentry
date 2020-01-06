@@ -11,7 +11,7 @@ const BetaTag = () => (
     position="right"
   >
     <StyledTag priority="beta" size="small">
-      beta
+      {t('beta')}
     </StyledTag>
   </Tooltip>
 );
