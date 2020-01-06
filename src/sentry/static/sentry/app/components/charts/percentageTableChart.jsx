@@ -2,6 +2,7 @@ import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
+import isPropValid from '@emotion/is-prop-valid';
 import styled from 'react-emotion';
 
 import {PanelItem} from 'app/components/panels';
@@ -116,7 +117,7 @@ class PercentageTableChart extends React.Component {
             <Percentage>{percentage}%</Percentage>
           </React.Fragment>,
         ])}
-        renderRow={({items, rowIndex, ...other}) => (
+        renderRow={({items, rowIndex}) => (
           <Row
             dataRowClassName={rowClassName}
             headerRowClassName={headerClassName}
@@ -225,7 +226,7 @@ const Percentage = styled('div')`
   width: 60px;
 `;
 
-const Bar = styled(({width, ...props}) => <div {...props} />)`
+const Bar = styled('div', {shouldForwardProp: isPropValid})`
   flex: 1;
   width: ${p => p.width}%;
   background-color: ${p => p.theme.gray1};
