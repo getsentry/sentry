@@ -105,6 +105,8 @@ setup(
     entry_points={
         "console_scripts": ["sentry = sentry.runner:main"],
         "sentry.apps": [
+            # TODO: This can be removed once the getsentry tests no longer check for this app
+            "auth_github = sentry.auth.providers.github",
             "jira_ac = sentry_plugins.jira_ac",
             "jira = sentry_plugins.jira",
             "freight = sentry_plugins.freight",
@@ -112,6 +114,7 @@ setup(
             "redmine = sentry_plugins.redmine",
             "sessionstack = sentry_plugins.sessionstack",
             "teamwork = sentry_plugins.teamwork",
+            "trello = sentry_plugins.trello",
             "twilio = sentry_plugins.twilio",
         ],
         "sentry.plugins": [
@@ -136,6 +139,7 @@ setup(
             "slack = sentry_plugins.slack.plugin:SlackPlugin",
             "splunk = sentry_plugins.splunk.plugin:SplunkPlugin",
             "teamwork = sentry_plugins.teamwork.plugin:TeamworkPlugin",
+            "trello = sentry_plugins.trello.plugin:TrelloPlugin",
             "twilio = sentry_plugins.twilio.plugin:TwilioPlugin",
             "victorops = sentry_plugins.victorops.plugin:VictorOpsPlugin",
             "vsts = sentry_plugins.vsts.plugin:VstsPlugin",

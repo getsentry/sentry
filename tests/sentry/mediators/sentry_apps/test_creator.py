@@ -28,23 +28,28 @@ class TestCreator(TestCase):
             scopes=("project:read",),
             webhook_url="http://example.com",
             schema={"elements": [self.create_issue_link_schema()]},
+            is_internal=False,
         )
+
+    def test_slug(self):
+        app = self.creator.call()
+        assert app.slug == "nulldb"
 
     def test_creates_proxy_user(self):
         self.creator.call()
 
-        assert User.objects.get(username="nulldb", is_sentry_app=True)
+        assert User.objects.get(username__contains="nulldb", is_sentry_app=True)
 
     def test_creates_api_application(self):
         self.creator.call()
-        proxy = User.objects.get(username="nulldb")
+        proxy = User.objects.get(username__contains="nulldb")
 
         assert ApiApplication.objects.get(owner=proxy)
 
     def test_creates_sentry_app(self):
         self.creator.call()
 
-        proxy = User.objects.get(username="nulldb")
+        proxy = User.objects.get(username__contains="nulldb")
         app = ApiApplication.objects.get(owner=proxy)
 
         sentry_app = SentryApp.objects.get(
@@ -97,6 +102,7 @@ class TestCreator(TestCase):
             webhook_url="http://example.com",
             schema={"elements": [self.create_issue_link_schema()]},
             request=request,
+            is_internal=False,
         )
         assert AuditLogEntry.objects.filter(event=AuditLogEntryEvent.SENTRY_APP_ADD).exists()
 
@@ -123,6 +129,7 @@ class TestCreator(TestCase):
             webhook_url="http://example.com",
             schema={"elements": [self.create_issue_link_schema()]},
             request=self.make_request(user=self.user, method="GET"),
+            is_internal=False,
         )
 
         record.assert_called_with(
@@ -131,3 +138,7 @@ class TestCreator(TestCase):
             organization_id=self.org.id,
             sentry_app=sentry_app.slug,
         )
+
+    def test_allows_name_that_exists_as_username_already(self):
+        self.create_user(username="nulldb")
+        assert self.creator.call()

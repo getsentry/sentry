@@ -3,10 +3,13 @@ from __future__ import absolute_import
 import pickle
 import pytest
 
+from sentry import eventstore
 from sentry.db.models.fields.node import NodeData
+from sentry.eventstore.models import Event
 from sentry.models import Environment
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.utils import snuba
 
 
 class EventTest(TestCase):
@@ -118,41 +121,46 @@ class EventTest(TestCase):
             event.get_environment() == environment
 
     def test_ip_address(self):
-        event = self.create_event(
+        event = self.store_event(
             data={
                 "user": {"ip_address": "127.0.0.1"},
                 "request": {"url": "http://some.com", "env": {"REMOTE_ADDR": "::1"}},
-            }
+            },
+            project_id=self.project.id,
         )
         assert event.ip_address == "127.0.0.1"
 
-        event = self.create_event(
+        event = self.store_event(
             data={
                 "user": {"ip_address": None},
                 "request": {"url": "http://some.com", "env": {"REMOTE_ADDR": "::1"}},
-            }
+            },
+            project_id=self.project.id,
         )
         assert event.ip_address == "::1"
 
-        event = self.create_event(
+        event = self.store_event(
             data={
                 "user": None,
                 "request": {"url": "http://some.com", "env": {"REMOTE_ADDR": "::1"}},
-            }
+            },
+            project_id=self.project.id,
         )
         assert event.ip_address == "::1"
 
-        event = self.create_event(
-            data={"request": {"url": "http://some.com", "env": {"REMOTE_ADDR": "::1"}}}
+        event = self.store_event(
+            data={"request": {"url": "http://some.com", "env": {"REMOTE_ADDR": "::1"}}},
+            project_id=self.project.id,
         )
         assert event.ip_address == "::1"
 
-        event = self.create_event(
-            data={"request": {"url": "http://some.com", "env": {"REMOTE_ADDR": None}}}
+        event = self.store_event(
+            data={"request": {"url": "http://some.com", "env": {"REMOTE_ADDR": None}}},
+            project_id=self.project.id,
         )
         assert event.ip_address is None
 
-        event = self.create_event()
+        event = self.store_event(data={}, project_id=self.project.id)
         assert event.ip_address is None
 
     def test_issueless_event(self):
@@ -173,6 +181,51 @@ class EventTest(TestCase):
         )
         assert event.group is None
         assert event.culprit == "app/components/events/eventEntries in map"
+
+    def test_snuba_data(self):
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "Hello World!",
+                "tags": {"logger": "foobar", "site": "foo", "server_name": "bar"},
+                "user": {"id": "test", "email": "test@test.com"},
+                "timestamp": iso_format(before_now(seconds=1)),
+            },
+            project_id=self.project.id,
+        )
+
+        event_from_nodestore = Event(project_id=self.project.id, event_id="a" * 32)
+
+        event_from_snuba = Event(
+            project_id=self.project.id,
+            event_id="a" * 32,
+            snuba_data=snuba.raw_query(
+                selected_columns=[col.value.event_name for col in eventstore.full_columns],
+                filter_keys={"project_id": [self.project.id], "event_id": ["a" * 32]},
+            )["data"][0],
+        )
+
+        assert event_from_nodestore.event_id == event_from_snuba.event_id
+        assert event_from_nodestore.project_id == event_from_snuba.project_id
+        assert event_from_nodestore.project == event_from_snuba.project
+        assert event_from_nodestore.timestamp == event_from_snuba.timestamp
+        assert event_from_nodestore.datetime == event_from_snuba.datetime
+        assert event_from_nodestore.title == event_from_snuba.title
+        assert event_from_nodestore.message["formatted"] == event_from_snuba.message
+        assert event_from_nodestore.platform == event_from_snuba.platform
+        assert event_from_nodestore.location == event_from_snuba.location
+        assert event_from_nodestore.culprit == event_from_snuba.culprit
+
+        assert event_from_nodestore.get_minimal_user() == event_from_snuba.get_minimal_user()
+        assert event_from_nodestore.ip_address == event_from_snuba.ip_address
+        assert event_from_nodestore.tags == event_from_snuba.tags
+
+        # Group ID must be fetched from Snuba since it is not present in nodestore
+        assert event_from_snuba.group_id
+        assert event_from_snuba.group
+
+        assert not event_from_nodestore.group_id
+        assert not event_from_nodestore.group
 
 
 @pytest.mark.django_db

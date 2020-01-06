@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {Panel, PanelBody, PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
@@ -68,7 +69,10 @@ const StyledSuspects = styled(Suspects)<Props>`
   margin-top: ${space(1)};
 `;
 
-export default class SuspectsContainer extends AsyncComponent {
+type SuspectsContainerProps = AsyncComponent['props'] &
+  RouteComponentProps<{incidentId: string; orgId: string}, {}>;
+
+export default class SuspectsContainer extends AsyncComponent<SuspectsContainerProps> {
   getEndpoints(): [string, string][] {
     const {orgId, incidentId} = this.props.params;
 
