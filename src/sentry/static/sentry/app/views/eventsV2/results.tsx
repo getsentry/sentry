@@ -221,7 +221,8 @@ const ContentBox = styled(PageContent)`
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     display: grid;
-    grid-template-rows: 1fr auto;
+    grid-template-rows: 270px auto; /* HACK(leedongwei): Hard-coded height for
+                                       search bar and graph */
     grid-template-columns: 65% auto;
     grid-column-gap: ${space(3)};
   }
