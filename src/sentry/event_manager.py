@@ -621,7 +621,7 @@ class EventManager(object):
 
         # index components into ``Event.message``
         # See GH-3248
-        event.search_message = self.get_search_message(event_metadata, culprit)
+        event.message = self.get_search_message(event_metadata, culprit)
         received_timestamp = event.data.get("received") or float(event.datetime.strftime("%s"))
 
         if not issueless_event:
@@ -632,7 +632,7 @@ class EventManager(object):
             group_metadata["last_received"] = received_timestamp
             kwargs = {
                 "platform": platform,
-                "message": event.search_message,
+                "message": event.message,
                 "culprit": culprit,
                 "logger": logger_name,
                 "level": LOG_LEVELS_MAP.get(level),
@@ -1004,8 +1004,8 @@ class EventManager(object):
     def _process_existing_aggregate(self, group, event, data, release):
         date = max(event.datetime, group.last_seen)
         extra = {"last_seen": date, "score": ScoreClause(group), "data": data["data"]}
-        if event.search_message and event.search_message != group.message:
-            extra["message"] = event.search_message
+        if event.message and event.message != group.message:
+            extra["message"] = event.message
         if group.level != data["level"]:
             extra["level"] = data["level"]
         if group.culprit != data["culprit"]:

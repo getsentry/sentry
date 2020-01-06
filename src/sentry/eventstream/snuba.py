@@ -111,7 +111,7 @@ class SnubaProtocolEventStream(EventStream):
                     "project_id": event.project_id,
                     # TODO(mitsuhiko): We do not want to send this incorrect
                     # message but this is what snuba needs at the moment.
-                    "message": event.search_message,
+                    "message": event.message,
                     "platform": event.platform,
                     "datetime": event.datetime,
                     "data": event_data,
