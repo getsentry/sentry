@@ -1,9 +1,14 @@
 import React from 'react';
 import RouteError from 'app/views/routeError';
 
-export default function errorHandler(Component) {
-  class ErrorHandler extends React.Component {
-    static getDerivedStateFromError(error) {
+type State = {
+  hasError: boolean;
+  error: Error | null;
+};
+
+export default function errorHandler<P>(Component: React.ComponentType<P>) {
+  class ErrorHandler extends React.Component<P, State> {
+    static getDerivedStateFromError(error: Error) {
       // Update state so the next render will show the fallback UI.
       return {
         hasError: true,
@@ -18,7 +23,7 @@ export default function errorHandler(Component) {
       error: null,
     };
 
-    componentDidCatch(error, info) {
+    componentDidCatch(_error: Error, info: React.ErrorInfo) {
       // eslint-disable-next-line no-console
       console.error(
         'Component stack trace caught in <ErrorHandler />:',
