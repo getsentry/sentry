@@ -93,7 +93,7 @@ const SubscriptionInfo = styled('div')`
   flex-direction: column;
 `;
 
-const SubscriptionGridItem = styled('div')`
+const SubscriptionGridItem = styled('div')<{disabled: boolean}>`
   display: flex;
   flex-direction: row;
   justify-content: space-between;

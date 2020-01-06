@@ -10,9 +10,7 @@ import Button from 'app/components/button';
 import Clipboard from 'app/components/clipboard';
 import InlineSvg from 'app/components/inlineSvg';
 
-const StyledInput = styled(props => {
-  return <input {...props} />;
-})`
+const StyledInput = styled('input')`
   ${inputStyles};
   background-color: ${p => p.theme.offWhite};
   border-right-width: 0;

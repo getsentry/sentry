@@ -20,7 +20,7 @@ class SearchInput extends React.Component<Props> {
   render() {
     const {placeholder, value, onChange, smaller} = this.props;
     return (
-      <SearchWrapper smaller={smaller}>
+      <SearchWrapper smaller={!!smaller}>
         <SearchIcon />
         <SearchField placeholder={placeholder} value={value || ''} onChange={onChange} />
         {value && value.length > 0 && (
@@ -56,7 +56,7 @@ const SearchReset = styled(props => <InlineSvg src="icon-circle-close" {...props
   }
 `;
 
-const SearchWrapper = styled('div')<Partial<Props>>`
+const SearchWrapper = styled('div')<{smaller: boolean}>`
   position: relative;
   display: inline-block;
   ${SearchIcon} {
