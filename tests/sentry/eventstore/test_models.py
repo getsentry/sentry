@@ -2,10 +2,8 @@ from __future__ import absolute_import
 
 import pickle
 import pytest
-import six
 
 from sentry import eventstore
-from sentry.api.serializers import serialize
 from sentry.db.models.fields.node import NodeData
 from sentry.eventstore.models import Event
 from sentry.models import Environment
