@@ -615,11 +615,9 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                         }
                       }
                     >
-                      <StyledUserBadge
-                        className="css-1tz319h-UserBadgeNoOverflow e1fowdfw2"
-                      >
+                      <StyledUserBadge>
                         <div
-                          className="e1fowdfw2 css-1dpgz1o-StyledUserBadge-UserBadgeNoOverflow ev46mzr0"
+                          className="css-1u4h4gf-StyledUserBadge e31z2f80"
                         >
                           <StyledAvatar
                             size={32}
@@ -642,7 +640,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                             }
                           >
                             <Component
-                              className="css-1u6j7yz-StyledAvatar ev46mzr4"
+                              className="css-1u6j7yz-StyledAvatar e31z2f84"
                               size={32}
                               user={
                                 Object {
@@ -663,7 +661,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                               }
                             >
                               <UserAvatar
-                                className="css-1u6j7yz-StyledAvatar ev46mzr4"
+                                className="css-1u6j7yz-StyledAvatar e31z2f84"
                                 gravatar={false}
                                 size={32}
                                 user={
@@ -685,7 +683,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                                 }
                               >
                                 <BaseAvatar
-                                  className="css-1u6j7yz-StyledAvatar ev46mzr4"
+                                  className="css-1u6j7yz-StyledAvatar e31z2f84"
                                   gravatarId="foo@example.com"
                                   hasTooltip={false}
                                   letterId="foo@example.com"
@@ -705,7 +703,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                                     title="Foo Bar (foo@example.com)"
                                   >
                                     <StyledBaseAvatar
-                                      className="avatar css-1u6j7yz-StyledAvatar ev46mzr4"
+                                      className="avatar css-1u6j7yz-StyledAvatar e31z2f84"
                                       loaded={true}
                                       round={true}
                                       style={
@@ -716,7 +714,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                                       }
                                     >
                                       <span
-                                        className="avatar ev46mzr4 css-wxw9er-StyledBaseAvatar-StyledAvatar e147uwb0"
+                                        className="avatar e31z2f84 css-wxw9er-StyledBaseAvatar-StyledAvatar e147uwb0"
                                         style={
                                           Object {
                                             "height": "32px",
@@ -774,17 +772,17 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                           </StyledAvatar>
                           <StyledNameAndEmail>
                             <div
-                              className="css-9l6b2w-StyledNameAndEmail ev46mzr1"
+                              className="css-9l6b2w-StyledNameAndEmail e31z2f81"
                             >
                               <StyledName
                                 hideEmail={false}
                               >
                                 <Component
-                                  className="css-12fcmnb-StyledName ev46mzr3"
+                                  className="css-12fcmnb-StyledName e31z2f83"
                                   hideEmail={false}
                                 >
                                   <span
-                                    className="css-12fcmnb-StyledName ev46mzr3"
+                                    className="css-12fcmnb-StyledName e31z2f83"
                                   >
                                     Foo Bar
                                   </span>
@@ -792,7 +790,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                               </StyledName>
                               <StyledEmail>
                                 <div
-                                  className="css-3w2sfq-StyledEmail ev46mzr2"
+                                  className="css-3w2sfq-StyledEmail e31z2f82"
                                 >
                                   foo@example.com
                                 </div>
@@ -3362,11 +3360,9 @@ exports[`Sidebar renders without org and router 1`] = `
                         }
                       }
                     >
-                      <StyledUserBadge
-                        className="css-1tz319h-UserBadgeNoOverflow e1fowdfw2"
-                      >
+                      <StyledUserBadge>
                         <div
-                          className="e1fowdfw2 css-1dpgz1o-StyledUserBadge-UserBadgeNoOverflow ev46mzr0"
+                          className="css-1u4h4gf-StyledUserBadge e31z2f80"
                         >
                           <StyledAvatar
                             size={32}
@@ -3389,7 +3385,7 @@ exports[`Sidebar renders without org and router 1`] = `
                             }
                           >
                             <Component
-                              className="css-1u6j7yz-StyledAvatar ev46mzr4"
+                              className="css-1u6j7yz-StyledAvatar e31z2f84"
                               size={32}
                               user={
                                 Object {
@@ -3410,7 +3406,7 @@ exports[`Sidebar renders without org and router 1`] = `
                               }
                             >
                               <UserAvatar
-                                className="css-1u6j7yz-StyledAvatar ev46mzr4"
+                                className="css-1u6j7yz-StyledAvatar e31z2f84"
                                 gravatar={false}
                                 size={32}
                                 user={
@@ -3432,7 +3428,7 @@ exports[`Sidebar renders without org and router 1`] = `
                                 }
                               >
                                 <BaseAvatar
-                                  className="css-1u6j7yz-StyledAvatar ev46mzr4"
+                                  className="css-1u6j7yz-StyledAvatar e31z2f84"
                                   gravatarId="foo@example.com"
                                   hasTooltip={false}
                                   letterId="foo@example.com"
@@ -3452,7 +3448,7 @@ exports[`Sidebar renders without org and router 1`] = `
                                     title="Foo Bar (foo@example.com)"
                                   >
                                     <StyledBaseAvatar
-                                      className="avatar css-1u6j7yz-StyledAvatar ev46mzr4"
+                                      className="avatar css-1u6j7yz-StyledAvatar e31z2f84"
                                       loaded={true}
                                       round={true}
                                       style={
@@ -3463,7 +3459,7 @@ exports[`Sidebar renders without org and router 1`] = `
                                       }
                                     >
                                       <span
-                                        className="avatar ev46mzr4 css-wxw9er-StyledBaseAvatar-StyledAvatar e147uwb0"
+                                        className="avatar e31z2f84 css-wxw9er-StyledBaseAvatar-StyledAvatar e147uwb0"
                                         style={
                                           Object {
                                             "height": "32px",
@@ -3521,17 +3517,17 @@ exports[`Sidebar renders without org and router 1`] = `
                           </StyledAvatar>
                           <StyledNameAndEmail>
                             <div
-                              className="css-9l6b2w-StyledNameAndEmail ev46mzr1"
+                              className="css-9l6b2w-StyledNameAndEmail e31z2f81"
                             >
                               <StyledName
                                 hideEmail={false}
                               >
                                 <Component
-                                  className="css-12fcmnb-StyledName ev46mzr3"
+                                  className="css-12fcmnb-StyledName e31z2f83"
                                   hideEmail={false}
                                 >
                                   <span
-                                    className="css-12fcmnb-StyledName ev46mzr3"
+                                    className="css-12fcmnb-StyledName e31z2f83"
                                   >
                                     Foo Bar
                                   </span>
@@ -3539,7 +3535,7 @@ exports[`Sidebar renders without org and router 1`] = `
                               </StyledName>
                               <StyledEmail>
                                 <div
-                                  className="css-3w2sfq-StyledEmail ev46mzr2"
+                                  className="css-3w2sfq-StyledEmail e31z2f82"
                                 >
                                   foo@example.com
                                 </div>
