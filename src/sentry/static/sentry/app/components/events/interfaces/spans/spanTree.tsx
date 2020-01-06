@@ -224,7 +224,7 @@ class SpanTree extends React.Component<PropType> {
       type: 'gap',
       start_timestamp: previousSiblingEndTimestamp || span.start_timestamp,
       timestamp: span.start_timestamp, // this is essentially end_timestamp
-      description: t('Potential area for tracing instrumentation'),
+      description: t('Missing instrumentation'),
     };
 
     const spanGapComponent =
