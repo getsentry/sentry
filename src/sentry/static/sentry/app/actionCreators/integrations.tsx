@@ -6,6 +6,7 @@ import {
   clearIndicators,
 } from 'app/actionCreators/indicator';
 import {t, tct} from 'app/locale';
+import {Integration, Repository} from 'app/types';
 
 const api = new Client();
 
@@ -16,7 +17,11 @@ const api = new Client();
  * @param {String} projectId Project Slug
  * @param {Object} integration The organization integration to remove
  */
-export function removeIntegrationFromProject(orgId, projectId, integration) {
+export function removeIntegrationFromProject(
+  orgId: string,
+  projectId: string,
+  integration: Integration
+) {
   const endpoint = `/projects/${orgId}/${projectId}/integrations/${integration.id}/`;
   addLoadingMessage();
 
@@ -24,7 +29,7 @@ export function removeIntegrationFromProject(orgId, projectId, integration) {
     () => {
       addSuccessMessage(t('Disabled %s for %s', integration.name, projectId));
     },
-    err => {
+    () => {
       addErrorMessage(t('Failed to disable %s for %s', integration.name, projectId));
     }
   );
@@ -37,7 +42,11 @@ export function removeIntegrationFromProject(orgId, projectId, integration) {
  * @param {String} projectId Project Slug
  * @param {Object} integration The organization integration to add
  */
-export function addIntegrationToProject(orgId, projectId, integration) {
+export function addIntegrationToProject(
+  orgId: string,
+  projectId: string,
+  integration: Integration
+) {
   const endpoint = `/projects/${orgId}/${projectId}/integrations/${integration.id}/`;
   addLoadingMessage();
 
@@ -45,7 +54,7 @@ export function addIntegrationToProject(orgId, projectId, integration) {
     () => {
       addSuccessMessage(t('Enabled %s for %s', integration.name, projectId));
     },
-    err => {
+    () => {
       addErrorMessage(t('Failed to enabled %s for %s', integration.name, projectId));
     }
   );
@@ -58,7 +67,7 @@ export function addIntegrationToProject(orgId, projectId, integration) {
  * @param {String} orgId Organization Slug
  * @param {String} repositoryId Repository ID
  */
-export function deleteRepository(client, orgId, repositoryId) {
+export function deleteRepository(client: Client, orgId: string, repositoryId: string) {
   addLoadingMessage();
   const promise = client.requestPromise(
     `/organizations/${orgId}/repos/${repositoryId}/`,
@@ -80,7 +89,11 @@ export function deleteRepository(client, orgId, repositoryId) {
  * @param {String} orgId Organization Slug
  * @param {String} repositoryId Repository ID
  */
-export function cancelDeleteRepository(client, orgId, repositoryId) {
+export function cancelDeleteRepository(
+  client: Client,
+  orgId: string,
+  repositoryId: string
+) {
   addLoadingMessage();
   const promise = client.requestPromise(
     `/organizations/${orgId}/repos/${repositoryId}/`,
@@ -96,9 +109,9 @@ export function cancelDeleteRepository(client, orgId, repositoryId) {
   return promise;
 }
 
-function applyRepositoryAddComplete(promise) {
+function applyRepositoryAddComplete(promise: Promise<Repository>) {
   promise.then(
-    repo => {
+    (repo: Repository) => {
       const message = tct('[repo] has been successfully added.', {
         repo: repo.name,
       });
@@ -122,7 +135,12 @@ function applyRepositoryAddComplete(promise) {
  * @param {String} repositoryId Repository ID
  * @param {Object} integration Integration provider data.
  */
-export function migrateRepository(client, orgId, repositoryId, integration) {
+export function migrateRepository(
+  client: Client,
+  orgId: string,
+  repositoryId: string,
+  integration: Integration
+) {
   const data = {integrationId: integration.id};
   addLoadingMessage();
   const promise = client.requestPromise(
@@ -143,7 +161,12 @@ export function migrateRepository(client, orgId, repositoryId, integration) {
  * @param {String} name Repository identifier/name to add
  * @param {Object} integration Integration provider data.
  */
-export function addRepository(client, orgId, name, integration) {
+export function addRepository(
+  client: Client,
+  orgId: string,
+  name: string,
+  integration: Integration
+) {
   const data = {
     installation: integration.id,
     identifier: name,
