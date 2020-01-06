@@ -79,7 +79,7 @@ class GetChannelIdTest(TestCase):
 
 class BuildIncidentAttachmentTest(TestCase):
     def test_simple(self):
-        logo_url = absolute_uri(get_asset_url("sentry", "images/email/sentry-email-avatar.png"))
+        logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
 
         incident = self.create_incident()
         title = "INCIDENT: {} (#{})".format(incident.title, incident.identifier)
@@ -162,7 +162,7 @@ class BuildIncidentAttachmentTest(TestCase):
             + "/?referrer=slack",
             "callback_id": '{"issue":' + six.text_type(group.id) + "}",
             "fallback": u"[{}] {}".format(self.project.slug, group.title),
-            "footer_icon": u"http://testserver/_static/{version}/sentry/images/email/sentry-email-avatar.png",
+            "footer_icon": u"http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png",
         }
         event = self.store_event(data={}, project_id=self.project.id)
         ts = event.datetime
@@ -209,5 +209,5 @@ class BuildIncidentAttachmentTest(TestCase):
             + "/?referrer=slack",
             "callback_id": '{"issue":' + six.text_type(group.id) + "}",
             "fallback": u"[{}] {}".format(self.project.slug, event.title),
-            "footer_icon": u"http://testserver/_static/{version}/sentry/images/email/sentry-email-avatar.png",
+            "footer_icon": u"http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png",
         }
