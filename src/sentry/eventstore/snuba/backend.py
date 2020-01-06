@@ -120,8 +120,8 @@ class SnubaEventStorage(EventStorage):
                 limit=1,
             )
 
-            if "error" not in result and len(result["data"]) == 1:
-                event.group_id = result["data"][0]["group_id"]
+            assert len(result["data"]) == 1
+            event.group_id = result["data"][0]["group_id"]
 
         return event
 
