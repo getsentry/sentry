@@ -7,6 +7,7 @@ from dateutil.parser import parse as parse_datetime
 
 from django.core.cache import cache
 
+from sentry import options
 from sentry.tagstore import TagKeyStatus
 from sentry.tagstore.base import TagStorage, TOP_VALUES_DEFAULT_LIMIT
 from sentry.tagstore.exceptions import (
@@ -16,7 +17,7 @@ from sentry.tagstore.exceptions import (
     TagValueNotFound,
 )
 from sentry.tagstore.types import TagKey, TagValue, GroupTagKey, GroupTagValue
-from sentry.utils import snuba
+from sentry.utils import snuba, metrics
 from sentry.utils.hashlib import md5_text
 from sentry.utils.dates import to_timestamp
 
@@ -176,47 +177,64 @@ class SnubaTagStorage(TagStorage):
         limit=1000,
         keys=None,
         include_values_seen=True,
+        use_cache=True,
         **kwargs
     ):
-        filters = {"project_id": projects}
+        filters = {"project_id": sorted(projects)}
         if environments:
-            filters["environment"] = environments
+            filters["environment"] = sorted(environments)
         if group_id is not None:
             filters["group_id"] = [group_id]
         if keys is not None:
-            filters["tags_key"] = keys
+            filters["tags_key"] = sorted(keys)
         aggregations = [["count()", "", "count"]]
 
         if include_values_seen:
             aggregations.append(["uniq", "tags_value", "values_seen"])
         conditions = []
 
-        filtering_strings = [u"{}={}".format(key, value) for key, value in six.iteritems(filters)]
+        should_cache = (
+            not options.get("snuba.tagstore.disable-cache-tagkeys")
+            and use_cache
+            and group_id is None
+        )
 
-        cache_key = u"tagstore.__get_tag_keys:{}".format(md5_text(*filtering_strings).hexdigest())
-        # Round times by 5 minutes since we cache for 5 minutes
-        if start:
-            start = start.replace(minute=start.minute // 5 * 5, second=0, microsecond=0)
-            cache_key += ":" + start.isoformat()
-        if end:
-            end = end.replace(minute=end.minute // 5 * 5, second=0, microsecond=0)
-            cache_key += ":" + end.isoformat()
-
-        result = cache.get(cache_key, None)
-        if result is None:
-            result = snuba.query(
-                start=start,
-                end=end,
-                groupby=["tags_key"],
-                conditions=conditions,
-                filter_keys=filters,
-                aggregations=aggregations,
-                limit=limit,
-                orderby="-count",
-                referrer="tagstore.__get_tag_keys",
-                **kwargs
+        if should_cache:
+            filtering_strings = [
+                u"{}={}".format(key, value) for key, value in six.iteritems(filters)
+            ]
+            cache_key = u"testing.tagstore.__get_tag_keys:{}".format(
+                md5_text(*filtering_strings).hexdigest()
             )
-            cache.set(cache_key, result, 300)
+            # Round times by 5 minutes since we cache for 5 minutes
+            if start:
+                start = start.replace(minute=start.minute // 5 * 5, second=0, microsecond=0)
+                cache_key += ":" + start.isoformat()
+            if end:
+                end = end.replace(minute=end.minute // 5 * 5, second=0, microsecond=0)
+                cache_key += ":" + end.isoformat()
+
+            cache_result = cache.get(cache_key, False)
+            if cache_result:
+                metrics.incr("testing.tagstore.cache_tag_key.hit")
+            else:
+                metrics.incr("testing.tagstore.cache_tag_key.miss")
+                cache.set(cache_key, True, 300)
+
+        result = snuba.query(
+            start=start,
+            end=end,
+            groupby=["tags_key"],
+            conditions=conditions,
+            filter_keys=filters,
+            aggregations=aggregations,
+            limit=limit,
+            orderby="-count",
+            referrer="tagstore.__get_tag_keys",
+            **kwargs
+        )
+        if should_cache:
+            metrics.incr("testing.tagstore.cache_tag_key.len", amount=len(result))
 
         if group_id is None:
             ctor = TagKey
