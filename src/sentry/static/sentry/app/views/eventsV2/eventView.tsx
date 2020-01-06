@@ -50,7 +50,6 @@ const reverseSort = (sort: Sort): Sort => {
 
 export type Field = {
   field: string;
-  title: string;
   // TODO: implement later
   // width: number;
 };
@@ -121,19 +120,10 @@ const decodeFields = (location: Location): Array<Field> => {
   }
 
   const fields: string[] = isString(query.field) ? [query.field] : query.field;
-  const fieldnames: string[] = Array.isArray(query.fieldnames)
-    ? query.fieldnames
-    : isString(query.fieldnames)
-    ? [query.fieldnames]
-    : [];
 
   const parsed: Field[] = [];
-  fields.forEach((field, i) => {
-    let title = field;
-    if (fieldnames[i]) {
-      title = fieldnames[i];
-    }
-    parsed.push({field, title});
+  fields.forEach(field => {
+    parsed.push({field});
   });
 
   return parsed;
@@ -376,9 +366,8 @@ class EventView {
   }
 
   static fromSavedQuery(saved: NewQuery | SavedQuery): EventView {
-    const fields = saved.fields.map((field, i) => {
-      const title = saved.fieldnames && saved.fieldnames[i] ? saved.fieldnames[i] : field;
-      return {field, title};
+    const fields = saved.fields.map(field => {
+      return {field};
     });
     const yAxis = saved.yAxis;
 
@@ -467,7 +456,6 @@ class EventView {
       id: this.id,
       name: this.name || '',
       fields: this.getFields(),
-      fieldnames: this.getFieldNames(),
       orderby,
       tags: this.tags,
       query: this.query || '',
@@ -503,7 +491,6 @@ class EventView {
       id: undefined,
       name: undefined,
       field: undefined,
-      fieldnames: undefined,
       sort: undefined,
       tag: undefined,
       query: undefined,
@@ -522,7 +509,6 @@ class EventView {
       id: this.id,
       name: this.name,
       field: this.getFields(),
-      fieldnames: this.getFieldNames(),
       sort: encodeSorts(this.sorts),
       tag: this.tags,
       environment: this.environment,
@@ -542,12 +528,6 @@ class EventView {
 
   isValid(): boolean {
     return this.fields.length > 0;
-  }
-
-  getFieldNames(): string[] {
-    return this.fields.map(field => {
-      return field.title;
-    });
   }
 
   getFields(): string[] {
@@ -576,7 +556,6 @@ class EventView {
   getColumns(): TableColumn<React.ReactText>[] {
     return decodeColumnOrder({
       field: this.getFields(),
-      fieldnames: this.getFieldNames(),
       fields: this.fields,
     });
   }
@@ -602,23 +581,15 @@ class EventView {
     });
   }
 
-  withNewColumn(newColumn: {
-    aggregation: string;
-    field: string;
-    fieldname: string;
-  }): EventView {
+  withNewColumn(newColumn: {aggregation: string; field: string}): EventView {
     const field = newColumn.field.trim();
 
     const aggregation = newColumn.aggregation.trim();
 
     const fieldAsString = generateFieldAsString({field, aggregation});
 
-    const name = newColumn.fieldname.trim();
-    const hasName = name.length > 0;
-
     const newField: Field = {
       field: fieldAsString,
-      title: hasName ? name : fieldAsString,
     };
 
     const newEventView = this.clone();
@@ -632,7 +603,6 @@ class EventView {
     newColumn: {
       aggregation: string;
       field: string;
-      fieldname: string;
     },
     insertIndex: number
   ): EventView {
@@ -648,20 +618,18 @@ class EventView {
     updatedColumn: {
       aggregation: string;
       field: string;
-      fieldname: string;
     },
     tableMeta: MetaType | undefined
   ): EventView {
-    const {field, aggregation, fieldname} = updatedColumn;
+    const {field, aggregation} = updatedColumn;
 
     const columnToBeUpdated = this.fields[columnIndex];
 
     const fieldAsString = generateFieldAsString({field, aggregation});
 
     const updateField = columnToBeUpdated.field !== fieldAsString;
-    const updateFieldName = columnToBeUpdated.title !== fieldname;
 
-    if (!updateField && !updateFieldName) {
+    if (!updateField) {
       return this;
     }
 
@@ -672,7 +640,6 @@ class EventView {
 
     const updatedField: Field = {
       field: fieldAsString,
-      title: fieldname,
     };
 
     const fields = [...newEventView.fields];

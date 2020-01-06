@@ -71,7 +71,6 @@ class TableView extends React.Component<TableViewProps> {
       const payload = {
         aggregation: String(nextColumn.aggregation),
         field: String(nextColumn.field),
-        fieldname: nextColumn.name,
       };
 
       // create and insert a column at a specific index
@@ -89,7 +88,6 @@ class TableView extends React.Component<TableViewProps> {
       const payload = {
         aggregation: String(nextColumn.aggregation),
         field: String(nextColumn.field),
-        fieldname: nextColumn.name,
       };
 
       // create and insert a column at the right end of the table
@@ -120,7 +118,6 @@ class TableView extends React.Component<TableViewProps> {
     const payload = {
       aggregation: String(nextColumn.aggregation),
       field: String(nextColumn.field),
-      fieldname: nextColumn.name,
     };
 
     const tableMeta = (tableData && tableData.meta) || undefined;
@@ -134,7 +131,6 @@ class TableView extends React.Component<TableViewProps> {
 
       const aggregationChanged = prevField.aggregation !== nextField.aggregation;
       const fieldChanged = prevField.field !== nextField.field;
-      const fieldnameChanged = prevField.fieldname !== nextField.fieldname;
 
       if (aggregationChanged) {
         changed.push('aggregate');
@@ -142,10 +138,6 @@ class TableView extends React.Component<TableViewProps> {
 
       if (fieldChanged) {
         changed.push('field');
-      }
-
-      if (fieldnameChanged) {
-        changed.push('fieldname');
       }
 
       // metrics
@@ -185,7 +177,6 @@ class TableView extends React.Component<TableViewProps> {
       organization_id: organization.id,
       aggregation: prevField.aggregation,
       field: prevField.field,
-      fieldname: prevField.fieldname,
     });
 
     pushEventViewToLocation({
@@ -213,7 +204,6 @@ class TableView extends React.Component<TableViewProps> {
       organization_id: organization.id,
       aggregation: prevField.aggregation,
       field: prevField.field,
-      fieldname: prevField.fieldname,
     });
 
     pushEventViewToLocation({
@@ -493,7 +483,6 @@ const ExpandAggregateRow = (props: {
         const updatedColumn = {
           aggregation: '',
           field: exploded.field,
-          fieldname: exploded.field,
         };
 
         return currentEventView.withUpdatedColumn(

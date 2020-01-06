@@ -52,12 +52,10 @@ function explodeFieldString(field: string): {aggregation: string; field: string}
   return {aggregation: '', field};
 }
 
-export function explodeField(
-  field: FieldType
-): {aggregation: string; field: string; fieldname: string} {
+export function explodeField(field: FieldType): {aggregation: string; field: string} {
   const results = explodeFieldString(field.field);
 
-  return {aggregation: results.aggregation, field: results.field, fieldname: field.title};
+  return {aggregation: results.aggregation, field: results.field};
 }
 
 /**
@@ -226,17 +224,16 @@ export function getAggregateAlias(field: string): string {
 export type QueryWithColumnState =
   | Query
   | {
-      fieldnames: string | string[] | null | undefined;
       field: string | string[] | null | undefined;
       sort: string | string[] | null | undefined;
     };
 
 const TEMPLATE_TABLE_COLUMN: TableColumn<React.ReactText> = {
   key: '',
-  name: '',
   aggregation: '',
   field: '',
-  eventViewField: Object.freeze({field: '', title: ''}),
+  name: '',
+  eventViewField: Object.freeze({field: ''}),
   isDragging: false,
 
   type: 'never',
@@ -245,14 +242,13 @@ const TEMPLATE_TABLE_COLUMN: TableColumn<React.ReactText> = {
 };
 
 export function decodeColumnOrder(props: {
-  fieldnames: string[];
   field: string[];
   fields: Readonly<FieldType[]>;
 }): TableColumn<React.ReactText>[] {
-  const {fieldnames, field, fields} = props;
+  const {field, fields} = props;
 
   return field.map((f: string, index: number) => {
-    const col = {aggregationField: f, name: fieldnames[index]};
+    const col = {aggregationField: f, name: fields[index]};
 
     const column: TableColumn<React.ReactText> = {...TEMPLATE_TABLE_COLUMN};
 
@@ -269,8 +265,7 @@ export function decodeColumnOrder(props: {
       column.field = aggregationField[1] as Field;
     }
 
-    column.key = col.aggregationField;
-    column.name = col.name;
+    column.key = column.name = col.aggregationField;
     column.type = (FIELDS[column.field] || 'never') as ColumnValueType;
 
     column.isSortable = AGGREGATIONS[column.aggregation]
@@ -279,7 +274,6 @@ export function decodeColumnOrder(props: {
     column.isPrimary = column.field === 'title';
 
     column.eventViewField = {
-      title: fields[index].title,
       field: fields[index].field,
     };
 

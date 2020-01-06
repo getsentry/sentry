@@ -25,7 +25,6 @@ def all_events_query(**kwargs):
         "field": ["title", "event.type", "project", "user", "timestamp"],
         "tag": ["event.type", "release", "project.name", "user.email", "user.ip", "environment"],
         "name": ["All Events"],
-        "fieldnames": ["title", "type", "project", "user", "time"],
     }
     options.update(kwargs)
 
@@ -36,7 +35,6 @@ def errors_query(**kwargs):
     options = {
         "sort": ["-last_seen", "-title"],
         "name": ["Errors"],
-        "fieldnames": ["error", "events", "users", "project", "last seen"],
         "field": ["title", "count(id)", "count_unique(user)", "project", "last_seen"],
         "tag": ["error.type", "project.name"],
         "query": ["event.type:error"],
@@ -50,7 +48,6 @@ def transactions_query(**kwargs):
     options = {
         "sort": ["-count"],
         "name": ["Transactions"],
-        "fieldnames": ["transaction", "project", "volume"],
         "field": ["transaction", "project", "count()"],
         "tag": ["release", "project.name", "user.email", "user.ip", "environment"],
         "statsPeriod": ["14d"],
@@ -380,11 +377,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
     def test_create_saved_query(self):
         # Simulate a custom query
-        query = {
-            "fieldnames": ["project", "count"],
-            "field": ["project.id", "count()"],
-            "query": "event.type:error",
-        }
+        query = {"field": ["project.id", "count()"], "query": "event.type:error"}
         query_name = "A new custom query"
         with self.feature(FEATURE_NAMES):
             # Go directly to the query builder view
