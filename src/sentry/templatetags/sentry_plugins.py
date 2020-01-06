@@ -31,33 +31,6 @@ def get_actions(group, request):
 
 
 @register.filter
-def get_panels(group, request):
-    project = group.project
-
-    panel_list = []
-    for plugin in plugins.for_project(project):
-        results = safe_execute(plugin.panels, request, group, panel_list, _with_transaction=False)
-
-        if not results:
-            continue
-
-        panel_list = results
-
-    return [(p[0], p[1], request.path == p[1]) for p in panel_list]
-
-
-@register.filter
-def get_widgets(group, request):
-    project = group.project
-
-    for plugin in plugins.for_project(project):
-        resp = safe_execute(plugin.widget, request, group, _with_transaction=False)
-
-        if resp:
-            yield resp.render(request)
-
-
-@register.filter
 def get_annotations(group, request=None):
     project = group.project
 
@@ -71,20 +44,3 @@ def get_annotations(group, request=None):
                 annotation_list.append(annotation)
 
     return annotation_list
-
-
-@register.filter
-def get_plugins(project):
-    results = []
-    for plugin in plugins.for_project(project, version=None):
-        if plugin.has_project_conf():
-            results.append(plugin)
-    return results
-
-
-@register.filter
-def get_plugins_with_status(project):
-    return [
-        (plugin, safe_execute(plugin.is_enabled, project, _with_transaction=False))
-        for plugin in plugins.configurable_for_project(project, version=None)
-    ]
