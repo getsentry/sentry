@@ -183,6 +183,8 @@ class IssueTrackingPlugin(Plugin):
             else:
                 required_auth_settings = None
 
+            project = group.project
+
             return self.render(
                 self.not_configured_template,
                 {
@@ -190,6 +192,9 @@ class IssueTrackingPlugin(Plugin):
                     "project": group.project,
                     "has_auth_configured": has_auth_configured,
                     "required_auth_settings": required_auth_settings,
+                    "plugin_link": u"/settings/{}/projects/{}/plugins/{}/".format(
+                        project.organization.slug, project.slug, self.slug
+                    ),
                 },
             )
 
