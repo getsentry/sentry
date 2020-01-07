@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
@@ -8,13 +7,45 @@ import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
 import space from 'app/styles/space';
+import {CONFIG_DOCS_URL} from 'app/constants';
 
-const CONFIG_DOCS_URL = 'https://docs.sentry.io/server/config/';
-
-const installText = (features, featureName) =>
+const installText = (features: string[], featureName: string): string =>
   `# ${t('Enables the %s feature', featureName)}\n${features
     .map(f => `SENTRY_FEATURES['${f}'] = True`)
     .join('\n')}`;
+
+type Props = {
+  /**
+   * The feature flag keys that should be awed in the code example for
+   * enabling the feature.
+   */
+  features: string[];
+  /**
+   * The English name of the feature. This is used in the comment that will
+   * be outputted above the example line of code to enable the feature.
+   */
+  featureName: string;
+  /**
+   * Render the disabled message within a warning Alert. A custom Alert
+   * component may be provided.
+   *
+   * Attaches additional styles to the FeatureDisabled component to make it
+   * look consistent within the Alert.
+   */
+  alert?: boolean | React.ReactElement;
+  /**
+   * Do not show the help toggle. The description will always be rendered.
+   */
+  hideHelpToggle?: boolean;
+  /**
+   * A custom message to display. Defaults to a generic disabled message.
+   */
+  message: string;
+};
+
+type State = {
+  showHelp: boolean;
+};
 
 /**
  * DisabledInfo renders a component informing that a feature has been disabled.
@@ -23,37 +54,8 @@ const installText = (features, featureName) =>
  * information about why the feature is disabled, showing the missing feature
  * flag and linking to documentation for managing sentry server feature flags.
  */
-class FeatureDisabled extends React.Component {
-  static propTypes = {
-    /**
-     * The feature flag keys that should be awed in the code example for
-     * enabling the feature.
-     */
-    features: PropTypes.arrayOf(PropTypes.string).isRequired,
-    /**
-     * The English name of the feature. This is used in the comment that will
-     * be outputted above the example line of code to enable the feature.
-     */
-    featureName: PropTypes.string.isRequired,
-    /**
-     * Render the disabled message within a warning Alert. A custom Alert
-     * component may be provided.
-     *
-     * Attaches additional styles to the FeatureDisabled component to make it
-     * look consistent within the Alert.
-     */
-    alert: PropTypes.oneOfType([PropTypes.bool, PropTypes.func]),
-    /**
-     * Do not show the help toggle. The description will always be rendered.
-     */
-    hideHelpToggle: PropTypes.bool,
-    /**
-     * A custom message to display. Defaults to a generic disabled message.
-     */
-    message: PropTypes.string,
-  };
-
-  static defaultProps = {
+class FeatureDisabled extends React.Component<Props, State> {
+  static defaultProps: Partial<Props> = {
     message: t('This feature is not enabled on your Sentry installation.'),
   };
 
@@ -61,17 +63,17 @@ class FeatureDisabled extends React.Component {
     showHelp: false,
   };
 
-  toggleHelp = e => {
+  toggleHelp = (e: React.MouseEvent) => {
     e.preventDefault();
     this.setState(state => ({showHelp: !state.showHelp}));
   };
 
-  render() {
+  renderFeatureDisabled() {
     const {showHelp} = this.state;
-    const {message, features, featureName, hideHelpToggle, alert} = this.props;
+    const {message, features, featureName, hideHelpToggle} = this.props;
     const showDescription = hideHelpToggle || showHelp;
 
-    const featureDisabled = (
+    return (
       <React.Fragment>
         <FeatureDisabledMessage>
           {message}
@@ -91,9 +93,9 @@ class FeatureDisabled extends React.Component {
             <p>
               {tct(
                 `Enable this feature on your sentry installation by adding the
-                  following configuration into your [configFile:sentry.conf.py].
-                  See [configLink:the configuration documentation] for more
-                  details.`,
+              following configuration into your [configFile:sentry.conf.py].
+              See [configLink:the configuration documentation] for more
+              details.`,
                 {
                   configFile: <code />,
                   configLink: <ExternalLink href={CONFIG_DOCS_URL} />,
@@ -107,14 +109,20 @@ class FeatureDisabled extends React.Component {
         )}
       </React.Fragment>
     );
+  }
 
-    const AlertComponent = alert === true ? Alert : alert;
+  render() {
+    const {alert} = this.props;
 
-    return !alert ? (
-      featureDisabled
-    ) : (
+    if (!alert) {
+      return this.renderFeatureDisabled();
+    }
+
+    const AlertComponent = typeof alert === 'function' ? alert : Alert;
+
+    return (
       <AlertComponent type="warning" icon="icon-lock">
-        <AlertWrapper>{featureDisabled}</AlertWrapper>
+        <AlertWrapper>{this.renderFeatureDisabled()}</AlertWrapper>
       </AlertComponent>
     );
   }

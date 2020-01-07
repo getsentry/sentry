@@ -241,3 +241,5 @@ export const FILTER_MASK = '[Filtered]';
 export const ORGANIZATION_FETCH_ERROR_TYPES = {
   ORG_NOT_FOUND: 'ORG_NOT_FOUND',
 };
+
+export const CONFIG_DOCS_URL = 'https://docs.sentry.io/server/config/';
