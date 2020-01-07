@@ -43,7 +43,7 @@ function getDuration(
 
   const {label} = roundWithFixed(value, fixedDigits);
 
-  return `${label} ms`;
+  return `${label}ms`;
 }
 
 type Props = React.HTMLProps<HTMLSpanElement> & {
