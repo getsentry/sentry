@@ -1,8 +1,9 @@
 from __future__ import absolute_import, print_function
 
 import os
-from sentry import eventstore, nodestore
+from sentry import nodestore
 from sentry.models import Event, EventAttachment, UserReport
+from sentry.utils.snuba import raw_query
 
 from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation
 
@@ -25,22 +26,21 @@ class EventDataDeletionTask(BaseDeletionTask):
         if self.last_event is not None:
             conditions.extend(
                 [
-                    ["timestamp", "<=", self.last_event.timestamp],
+                    ["timestamp", "<=", self.last_event["timestamp"]],
                     [
-                        ["timestamp", "<", self.last_event.timestamp],
-                        ["event_id", "<", self.last_event.event_id],
+                        ["timestamp", "<", self.last_event["timestamp"]],
+                        ["event_id", "<", self.last_event["event_id"]],
                     ],
                 ]
             )
 
-        events = eventstore.get_events(
-            filter=eventstore.Filter(
-                conditions=conditions, project_ids=[self.project_id], group_ids=[self.group_id]
-            ),
-            limit=self.DEFAULT_CHUNK_SIZE,
+        events = raw_query(
+            selected_columns=["event_id", "timestamp"],
+            filter_keys={"project_id": [self.project_id], "group_id": [self.group_id]},
+            conditions=conditions,
             referrer="deletions.group",
             orderby=["-timestamp", "-event_id"],
-        )
+        )["data"]
 
         if not events:
             return False
@@ -48,11 +48,11 @@ class EventDataDeletionTask(BaseDeletionTask):
         self.last_event = events[-1]
 
         # Remove from nodestore
-        node_ids = [Event.generate_node_id(self.project_id, event.event_id) for event in events]
+        node_ids = [Event.generate_node_id(self.project_id, event["event_id"]) for event in events]
         nodestore.delete_multi(node_ids)
 
         # Remove EventAttachment and UserReport
-        event_ids = [event.event_id for event in events]
+        event_ids = [event["event_id"] for event in events]
         EventAttachment.objects.filter(event_id__in=event_ids, project_id=self.project_id).delete()
         UserReport.objects.filter(event_id__in=event_ids, project_id=self.project_id).delete()
 
