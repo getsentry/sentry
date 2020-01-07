@@ -203,6 +203,12 @@ const Top = styled('div')`
 
 const Main = styled('div')<{eventView: EventView}>`
   grid-column: ${p => (p.eventView.tags.length <= 0 ? '1/3' : '1/2')};
+
+  /* Defining the width prevent child elements from expanding the grid
+     past the width of the screen */
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
 `;
 
 const Side = styled('div')<{eventView: EventView}>`
@@ -215,7 +221,8 @@ const ContentBox = styled(PageContent)`
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     display: grid;
-    grid-template-rows: 1fr auto;
+    grid-template-rows: 270px auto; /* HACK(leedongwei): Hard-coded height for
+                                       search bar and graph */
     grid-template-columns: 65% auto;
     grid-column-gap: ${space(3)};
   }

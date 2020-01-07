@@ -93,7 +93,8 @@ setup(
     author_email="hello@sentry.io",
     url="https://sentry.io",
     description="A realtime logging and aggregation server.",
-    long_description=open(os.path.join(ROOT, "README.rst")).read(),
+    long_description=open(os.path.join(ROOT, "README.md")).read(),
+    long_description_content_type="text/markdown",
     package_dir={"": "src"},
     packages=find_packages("src"),
     zip_safe=False,
@@ -105,6 +106,8 @@ setup(
     entry_points={
         "console_scripts": ["sentry = sentry.runner:main"],
         "sentry.apps": [
+            # TODO: This can be removed once the getsentry tests no longer check for this app
+            "auth_github = sentry.auth.providers.github",
             "jira_ac = sentry_plugins.jira_ac",
             "jira = sentry_plugins.jira",
             "freight = sentry_plugins.freight",

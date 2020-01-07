@@ -3,6 +3,7 @@ import EventView, {
   pickRelevantLocationQueryStrings,
 } from 'app/views/eventsV2/eventView';
 import {AUTOLINK_FIELDS} from 'app/views/eventsV2/data';
+import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable/utils';
 
 const generateFields = fields => {
   return fields.map(field => {
@@ -49,6 +50,7 @@ describe('EventView.fromLocation()', function() {
         id: '42',
         name: 'best query',
         field: ['count()', 'id'],
+        widths: ['123', '456'],
         sort: ['title', '-count'],
         tag: ['foo', 'bar'],
         query: 'event.type:transaction',
@@ -66,7 +68,7 @@ describe('EventView.fromLocation()', function() {
     expect(eventView).toMatchObject({
       id: '42',
       name: 'best query',
-      fields: [{field: 'count()'}, {field: 'id'}],
+      fields: [{field: 'count()', width: 123}, {field: 'id', width: 456}],
       sorts: generateSorts(['count']),
       tags: ['foo', 'bar'],
       query: 'event.type:transaction',
@@ -85,6 +87,7 @@ describe('EventView.fromLocation()', function() {
         id: '42',
         name: 'best query',
         field: ['count()', 'id'],
+        widths: ['123', '456'],
         sort: ['title', '-count'],
         tag: ['foo', 'bar'],
         query: 'event.type:transaction',
@@ -101,7 +104,7 @@ describe('EventView.fromLocation()', function() {
     expect(eventView).toMatchObject({
       id: '42',
       name: 'best query',
-      fields: [{field: 'count()'}, {field: 'id'}],
+      fields: [{field: 'count()', width: 123}, {field: 'id', width: 456}],
       sorts: generateSorts(['count']),
       tags: ['foo', 'bar'],
       query: 'event.type:transaction',
@@ -119,6 +122,7 @@ describe('EventView.fromLocation()', function() {
         id: '42',
         name: 'best query',
         field: ['count()', 'id'],
+        widths: ['123', '456'],
         sort: ['title', '-count'],
         tag: ['foo', 'bar'],
         query: 'event.type:transaction',
@@ -134,7 +138,7 @@ describe('EventView.fromLocation()', function() {
     expect(eventView).toMatchObject({
       id: '42',
       name: 'best query',
-      fields: [{field: 'count()'}, {field: 'id'}],
+      fields: [{field: 'count()', width: 123}, {field: 'id', width: 456}],
       sorts: generateSorts(['count']),
       tags: ['foo', 'bar'],
       query: 'event.type:transaction',
@@ -188,7 +192,10 @@ describe('EventView.fromSavedQuery()', function() {
     expect(eventView).toMatchObject({
       id: saved.id,
       name: saved.name,
-      fields: [{field: 'count()'}, {field: 'id'}],
+      fields: [
+        {field: 'count()', width: COL_WIDTH_UNDEFINED},
+        {field: 'id', width: COL_WIDTH_UNDEFINED},
+      ],
       sorts: [{field: 'id', kind: 'desc'}],
       tags: [],
       query: 'event.type:transaction',
@@ -208,7 +215,10 @@ describe('EventView.fromSavedQuery()', function() {
     expect(eventView2).toMatchObject({
       id: saved.id,
       name: saved.name,
-      fields: [{field: 'count()'}, {field: 'id'}],
+      fields: [
+        {field: 'count()', width: COL_WIDTH_UNDEFINED},
+        {field: 'id', width: COL_WIDTH_UNDEFINED},
+      ],
       sorts: [{field: 'id', kind: 'desc'}],
       tags: [],
       query: 'event.type:transaction',
@@ -225,6 +235,7 @@ describe('EventView.fromSavedQuery()', function() {
       orderby: '-count_id',
       name: 'foo bar',
       fields: ['release', 'count(id)'],
+      widths: [111, 222],
       dateCreated: '2019-10-30T06:13:17.632078Z',
       environment: ['dev', 'production'],
       version: 2,
@@ -240,7 +251,7 @@ describe('EventView.fromSavedQuery()', function() {
     const expected = {
       id: '5',
       name: 'foo bar',
-      fields: [{field: 'release'}, {field: 'count(id)'}],
+      fields: [{field: 'release', width: 111}, {field: 'count(id)', width: 222}],
       sorts: generateSorts(['count_id']),
       query: '',
       project: [1],
@@ -260,7 +271,10 @@ describe('EventView.fromSavedQuery()', function() {
       end: '',
     };
     const eventView = EventView.fromSavedQuery(saved);
-    expect(eventView.fields).toEqual([{field: 'count()'}, {field: 'title'}]);
+    expect(eventView.fields).toEqual([
+      {field: 'count()', width: COL_WIDTH_UNDEFINED},
+      {field: 'title', width: COL_WIDTH_UNDEFINED},
+    ]);
     expect(eventView.name).toEqual(saved.name);
     expect(eventView.statsPeriod).toEqual('14d');
     expect(eventView.start).toEqual(undefined);
@@ -558,6 +572,7 @@ describe('EventView.generateQueryStringObject()', function() {
       id: undefined,
       name: undefined,
       field: ['id', 'title'],
+      widths: [COL_WIDTH_UNDEFINED, COL_WIDTH_UNDEFINED],
       sort: [],
       tag: [],
       query: '',
@@ -572,7 +587,7 @@ describe('EventView.generateQueryStringObject()', function() {
     const state = {
       id: '1234',
       name: 'best query',
-      fields: [{field: 'count()'}, {field: 'project.id'}],
+      fields: [{field: 'count()', width: 123}, {field: 'project.id', width: 456}],
       sorts: generateSorts(['count']),
       tags: ['foo', 'bar'],
       query: 'event.type:error',
@@ -590,6 +605,7 @@ describe('EventView.generateQueryStringObject()', function() {
       id: '1234',
       name: 'best query',
       field: ['count()', 'project.id'],
+      widths: [123, 456],
       sort: ['-count'],
       tag: ['foo', 'bar'],
       query: 'event.type:error',
@@ -924,7 +940,7 @@ describe('EventView.toNewQuery()', function() {
   const state = {
     id: '1234',
     name: 'best query',
-    fields: [{field: 'count()'}, {field: 'project.id'}],
+    fields: [{field: 'count()', width: 123}, {field: 'project.id', width: 456}],
     sorts: generateSorts(['count']),
     tags: ['foo', 'bar'],
     query: 'event.type:error',
@@ -945,6 +961,7 @@ describe('EventView.toNewQuery()', function() {
       id: '1234',
       name: 'best query',
       fields: ['count()', 'project.id'],
+      widths: ['123', '456'],
       orderby: '-count',
       query: 'event.type:error',
       projects: [42],
@@ -974,6 +991,7 @@ describe('EventView.toNewQuery()', function() {
       id: '1234',
       name: 'best query',
       fields: ['count()', 'project.id'],
+      widths: ['123', '456'],
       orderby: '-count',
       projects: [42],
       start: '2019-10-01T00:00:00',
@@ -1002,6 +1020,7 @@ describe('EventView.toNewQuery()', function() {
       id: '1234',
       name: 'best query',
       fields: ['count()', 'project.id'],
+      widths: ['123', '456'],
       orderby: '-count',
       projects: [42],
       start: '2019-10-01T00:00:00',

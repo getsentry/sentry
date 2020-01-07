@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 
 import {t} from 'app/locale';
-import {Config, Organization} from 'app/types';
+import {Config, Organization, Scope} from 'app/types';
 import Alert from 'app/components/alert';
 import SentryTypes from 'app/sentryTypes';
 import withConfig from 'app/utils/withConfig';
@@ -47,7 +47,7 @@ type DefaultProps = {
   /**
    * List of required access levels
    */
-  access: string[];
+  access: Scope[];
 };
 
 const defaultProps: DefaultProps = {

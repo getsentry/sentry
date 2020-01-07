@@ -1,5 +1,5 @@
 import {SpanEntry} from 'app/components/events/interfaces/spans/types';
-import {API_SCOPES} from 'app/constants';
+import {API_ACCESS_SCOPES} from 'app/constants';
 import {Field} from 'app/views/settings/components/forms/type';
 import {Params} from 'react-router/lib/Router';
 import {Location} from 'history';
@@ -67,7 +67,7 @@ export type LightWeightOrganization = OrganizationSummary & {
   enhancedPrivacy: boolean;
   safeFields: string[];
   storeCrashReports: number;
-  access: string[];
+  access: Scope[];
   allowSharedIssues: boolean;
   dataScrubberDefaults: boolean;
   dataScrubber: boolean;
@@ -472,7 +472,7 @@ export type IntegrationFeature = {
 
 export type WebhookEvent = 'issue' | 'error';
 
-export type Scope = typeof API_SCOPES[number];
+export type Scope = typeof API_ACCESS_SCOPES[number];
 
 export type SentryAppSchemaIssueLink = {
   type: 'issue-link';
@@ -673,6 +673,7 @@ export type NewQuery = {
   name: string;
   projects: Readonly<number[]>;
   fields: Readonly<string[]>;
+  widths?: Readonly<string[]>;
   query: string;
   orderby?: string;
   range?: string;

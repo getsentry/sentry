@@ -10,6 +10,14 @@ import {Client} from 'app/api';
 import {getTitle} from 'app/utils/events';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {generateQueryWithTag} from 'app/utils';
+import {
+  COL_WIDTH_UNDEFINED,
+  COL_WIDTH_DEFAULT,
+  COL_WIDTH_BOOLEAN,
+  COL_WIDTH_DATETIME,
+  COL_WIDTH_NUMBER,
+  COL_WIDTH_STRING,
+} from 'app/components/gridEditable';
 
 import {
   AGGREGATE_ALIASES,
@@ -22,13 +30,7 @@ import {
   TRANSACTION_VIEWS,
 } from './data';
 import EventView, {Field as FieldType} from './eventView';
-import {
-  Aggregation,
-  Field,
-  AGGREGATIONS,
-  FIELDS,
-  ColumnValueType,
-} from './eventQueryParams';
+import {Aggregation, Field, AGGREGATIONS, FIELDS} from './eventQueryParams';
 import {TableColumn} from './table/types';
 
 export type EventQuery = {
@@ -52,10 +54,20 @@ function explodeFieldString(field: string): {aggregation: string; field: string}
   return {aggregation: '', field};
 }
 
-export function explodeField(field: FieldType): {aggregation: string; field: string} {
+export function explodeField(
+  field: FieldType
+): {
+  aggregation: string;
+  field: string;
+  width: number;
+} {
   const results = explodeFieldString(field.field);
 
-  return {aggregation: results.aggregation, field: results.field};
+  return {
+    aggregation: results.aggregation,
+    field: results.field,
+    width: field.width || COL_WIDTH_DEFAULT,
+  };
 }
 
 /**
@@ -176,6 +188,26 @@ export type MetaType = {
   [key: string]: FieldTypes;
 };
 
+export function getDefaultWidth(key: Aggregation | Field): number {
+  if (AGGREGATIONS[key]) {
+    return COL_WIDTH_NUMBER;
+  }
+
+  switch (FIELDS[key]) {
+    case 'string':
+      return COL_WIDTH_STRING;
+    case 'boolean':
+      return COL_WIDTH_BOOLEAN;
+    case 'number':
+      return COL_WIDTH_NUMBER;
+    case 'duration':
+    case 'never': // never is usually a timestamp
+      return COL_WIDTH_DATETIME;
+    default:
+      return COL_WIDTH_DEFAULT;
+  }
+}
+
 /**
  * Get the field renderer for the named field and metadata
  *
@@ -233,23 +265,21 @@ const TEMPLATE_TABLE_COLUMN: TableColumn<React.ReactText> = {
   aggregation: '',
   field: '',
   name: '',
-  eventViewField: Object.freeze({field: ''}),
-  isDragging: false,
+  width: COL_WIDTH_DEFAULT,
 
   type: 'never',
+  isDragging: false,
   isSortable: false,
   isPrimary: false,
+
+  eventViewField: Object.freeze({field: '', width: COL_WIDTH_DEFAULT}),
 };
 
-export function decodeColumnOrder(props: {
-  field: string[];
-  fields: Readonly<FieldType[]>;
-}): TableColumn<React.ReactText>[] {
-  const {field, fields} = props;
-
-  return field.map((f: string, index: number) => {
-    const col = {aggregationField: f, name: fields[index]};
-
+export function decodeColumnOrder(
+  fields: Readonly<FieldType[]>
+): TableColumn<React.ReactText>[] {
+  return fields.map((f: FieldType) => {
+    const col = {aggregationField: f.field, name: f.field, width: f.width};
     const column: TableColumn<React.ReactText> = {...TEMPLATE_TABLE_COLUMN};
 
     // "field" will be split into ["field"]
@@ -264,18 +294,19 @@ export function decodeColumnOrder(props: {
       column.aggregation = aggregationField[0] as Aggregation;
       column.field = aggregationField[1] as Field;
     }
+    column.key = col.aggregationField;
+    column.type = column.aggregation ? 'number' : FIELDS[column.field];
+    column.width =
+      col.width && col.width !== COL_WIDTH_UNDEFINED
+        ? col.width
+        : getDefaultWidth(aggregationField[0]);
 
-    column.key = column.name = col.aggregationField;
-    column.type = (FIELDS[column.field] || 'never') as ColumnValueType;
-
+    column.name = column.field;
     column.isSortable = AGGREGATIONS[column.aggregation]
       ? AGGREGATIONS[column.aggregation].isSortable
       : false;
     column.isPrimary = column.field === 'title';
-
-    column.eventViewField = {
-      field: fields[index].field,
-    };
+    column.eventViewField = f;
 
     return column;
   });

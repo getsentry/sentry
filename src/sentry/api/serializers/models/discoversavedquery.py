@@ -14,6 +14,7 @@ class DiscoverSavedQuerySerializer(Serializer):
             "environment",
             "query",
             "fields",
+            "widths",
             "conditions",
             "aggregations",
             "range",

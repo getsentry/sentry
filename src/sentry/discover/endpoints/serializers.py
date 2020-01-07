@@ -160,6 +160,7 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
     environment = ListField(child=serializers.CharField(), required=False, allow_null=True)
     query = serializers.CharField(required=False, allow_null=True)
     tags = ListField(child=serializers.CharField(), required=False, allow_null=True)
+    widths = ListField(child=serializers.CharField(), required=False, allow_null=True)
     yAxis = serializers.CharField(required=False, allow_null=True)
 
     disallowed_fields = {
@@ -198,6 +199,7 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
             "orderby",
             "limit",
             "tags",
+            "widths",
             "yAxis",
         ]
 

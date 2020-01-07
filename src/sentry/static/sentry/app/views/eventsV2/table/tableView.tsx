@@ -3,7 +3,7 @@ import {Location} from 'history';
 
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import GridEditable from 'app/components/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 import {
   tokenizeSearch,
   stringifyQueryObject,
@@ -13,14 +13,14 @@ import {assert} from 'app/types/utils';
 import Link from 'app/components/links/link';
 
 import {
-  getFieldRenderer,
   getAggregateAlias,
+  getFieldRenderer,
   pushEventViewToLocation,
   explodeField,
   MetaType,
 } from '../utils';
 import EventView, {pickRelevantLocationQueryStrings, Field} from '../eventView';
-import SortLink from '../sortLink';
+import SortLink, {Alignments} from '../sortLink';
 import renderTableModalEditColumnFactory from './tableModalEditColumn';
 import {TableColumn, TableData, TableDataRow} from './types';
 import {ColumnValueType} from '../eventQueryParams';
@@ -42,7 +42,6 @@ export type TableViewProps = {
 };
 
 /**
- *
  * The `TableView` is marked with leading _ in its method names. It consumes
  * the EventView object given in its props to generate new EventView objects
  * for actions such as creating new columns, updating columns, sorting columns,
@@ -66,13 +65,14 @@ class TableView extends React.Component<TableViewProps> {
     const {location, eventView, organization} = this.props;
 
     let nextEventView: EventView;
+    const payload = {
+      aggregation: String(nextColumn.aggregation),
+      field: String(nextColumn.field),
+      fieldname: nextColumn.name,
+      width: COL_WIDTH_UNDEFINED,
+    };
 
     if (typeof insertAt === 'number') {
-      const payload = {
-        aggregation: String(nextColumn.aggregation),
-        field: String(nextColumn.field),
-      };
-
       // create and insert a column at a specific index
       nextEventView = eventView.withNewColumnAt(payload, insertAt);
 
@@ -85,11 +85,6 @@ class TableView extends React.Component<TableViewProps> {
         ...payload,
       });
     } else {
-      const payload = {
-        aggregation: String(nextColumn.aggregation),
-        field: String(nextColumn.field),
-      };
-
       // create and insert a column at the right end of the table
       nextEventView = eventView.withNewColumn(payload);
 
@@ -118,6 +113,7 @@ class TableView extends React.Component<TableViewProps> {
     const payload = {
       aggregation: String(nextColumn.aggregation),
       field: String(nextColumn.field),
+      width: nextColumn.width ? Number(nextColumn.width) : COL_WIDTH_UNDEFINED,
     };
 
     const tableMeta = (tableData && tableData.meta) || undefined;
@@ -131,6 +127,7 @@ class TableView extends React.Component<TableViewProps> {
 
       const aggregationChanged = prevField.aggregation !== nextField.aggregation;
       const fieldChanged = prevField.field !== nextField.field;
+      const widthChanged = prevField.width !== nextField.width;
 
       if (aggregationChanged) {
         changed.push('aggregate');
@@ -140,7 +137,10 @@ class TableView extends React.Component<TableViewProps> {
         changed.push('field');
       }
 
-      // metrics
+      if (widthChanged) {
+        changed.push('width');
+      }
+
       trackAnalyticsEvent({
         eventKey: 'discover_v2.update_column',
         eventName: 'Discoverv2: A column was updated',
@@ -215,20 +215,18 @@ class TableView extends React.Component<TableViewProps> {
 
   _renderGridHeaderCell = (column: TableColumn<keyof TableDataRow>): React.ReactNode => {
     const {eventView, location, tableData} = this.props;
-
-    if (!tableData || !tableData.meta) {
-      return column.name;
-    }
-
     const field = column.eventViewField;
 
     // establish alignment based on the type
     const alignedTypes: ColumnValueType[] = ['number', 'duration', 'integer'];
-    let align: 'right' | 'left' = alignedTypes.includes(column.type) ? 'right' : 'left';
+    let align: Alignments = alignedTypes.includes(column.type) ? 'right' : 'left';
 
     if (column.type === 'never' || column.type === '*') {
       // fallback to align the column based on the table metadata
-      const maybeType = tableData.meta[getAggregateAlias(field.field)];
+      const maybeType =
+        tableData && tableData.meta
+          ? tableData.meta[getAggregateAlias(field.field)]
+          : undefined;
 
       if (maybeType === 'integer' || maybeType === 'number') {
         align = 'right';
@@ -241,7 +239,9 @@ class TableView extends React.Component<TableViewProps> {
         field={field}
         location={location}
         eventView={eventView}
-        tableDataMeta={tableData.meta}
+        /* TODO(leedongwei): Verbosity is due to error in Prettier, fix after
+           upgrade to v1.19.1 */
+        tableDataMeta={tableData && tableData.meta ? tableData.meta : undefined}
       />
     );
   };
@@ -407,8 +407,9 @@ class TableView extends React.Component<TableViewProps> {
               })}
               columnSortBy={columnSortBy}
               grid={{
-                renderHeaderCell: this._renderGridHeaderCell as any,
+                renderHeadCell: this._renderGridHeaderCell as any,
                 renderBodyCell: this._renderGridBodyCell as any,
+                onResizeColumn: this._updateColumn as any,
               }}
               modalEditColumn={{
                 renderBodyWithForm: renderModalBodyWithForm as any,
@@ -438,7 +439,6 @@ const ExpandAggregateRow = (props: {
   tableMeta: MetaType;
 }) => {
   const {children, column, dataRow, eventView, location, tableMeta} = props;
-
   const {eventViewField} = column;
 
   const exploded = explodeField(eventViewField);
@@ -469,7 +469,6 @@ const ExpandAggregateRow = (props: {
       }
 
       // add this field to the search conditions
-
       const dataKey = getAggregateAlias(field.field);
       const value = dataRow[dataKey];
 
@@ -483,6 +482,7 @@ const ExpandAggregateRow = (props: {
         const updatedColumn = {
           aggregation: '',
           field: exploded.field,
+          width: exploded.width,
         };
 
         return currentEventView.withUpdatedColumn(
