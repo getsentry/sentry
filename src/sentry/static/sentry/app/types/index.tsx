@@ -705,7 +705,7 @@ export type SelectValue<T> = {
 
 /**
  * The issue config form fields we get are basically the form fields we use in the UI but with some extra information.
- * we can also assume that certain optional fields are required.
+ * Some fields marked optional in the form field are guarnteed to exist so we can mark them as required here
  */
 
 export type IssueConfigField = Field & {
