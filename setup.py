@@ -26,7 +26,7 @@ from sentry.utils.distutils import (
     BuildJsSdkRegistryCommand,
 )
 
-VERSION = "10.0.0.dev0"
+VERSION = "10.0.0"
 IS_LIGHT_BUILD = os.environ.get("SENTRY_LIGHT_BUILD") == "1"
 
 
