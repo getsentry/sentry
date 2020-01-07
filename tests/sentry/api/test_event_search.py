@@ -4,6 +4,7 @@ import datetime
 import pytest
 import six
 import unittest
+import uuid
 from datetime import timedelta
 from semaphore.consts import SPAN_STATUS_CODE_TO_NAME
 
@@ -1078,6 +1079,10 @@ class GetSnubaQueryArgsTest(TestCase):
             get_filter("transaction.status:lol")
         assert "Invalid value" in six.text_type(err)
         assert "cancelled," in six.text_type(err)
+
+    def test_trace_id(self):
+        result = get_filter("trace:{}".format("a0fa8803753e40fd8124b21eeb2986b5"))
+        assert result.conditions == [["trace", "=", uuid.UUID("a0fa8803753e40fd8124b21eeb2986b5")]]
 
 
 class ResolveFieldListTest(unittest.TestCase):
