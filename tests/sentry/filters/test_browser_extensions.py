@@ -65,6 +65,10 @@ class BrowserExtensionsFilterTest(TestCase):
         data = self.get_mock_data(exc_source="moz-extension://my-extension/or/something")
         assert self.apply_filter(data)
 
+    def test_filters_safari_extensions(self):
+        data = self.get_mock_data(exc_source="safari-extension://my-extension/or/something")
+        assert self.apply_filter(data)
+
     def test_does_not_filter_generic_data(self):
         data = self.get_mock_data()
         assert not self.apply_filter(data)
