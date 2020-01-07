@@ -5,6 +5,7 @@ import mock
 import six
 
 from sentry import eventstore
+from sentry.eventstore.models import Event
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.eventstore.base import EventStorage
@@ -36,8 +37,8 @@ class EventStorageTest(TestCase):
             project_id=self.project.id,
         )
 
-        event = eventstore.get_event_by_id(self.project.id, "a" * 32)
-        event2 = eventstore.get_event_by_id(self.project.id, "b" * 32)
+        event = Event(project_id=self.project.id, event_id="a" * 32)
+        event2 = Event(project_id=self.project.id, event_id="b" * 32)
         assert event.data._node_data is None
         self.eventstorage.bind_nodes([event, event2], "data")
         assert event.data._node_data is not None

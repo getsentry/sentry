@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import logging
 import six
 
-from sentry import features
+from sentry import features, options
 from sentry.integrations.exceptions import ApiError, IntegrationError
 from sentry.models import Activity, ExternalIssue, Group, GroupLink, GroupStatus, Organization
 from sentry.utils.http import absolute_uri
@@ -59,7 +59,8 @@ class IssueBasicMixin(object):
         """
         event = group.get_latest_event()
         if event is not None:
-            event.bind_node_data()
+            if not options.get("eventstore.use-nodestore"):
+                event.bind_node_data()
 
         return [
             {
