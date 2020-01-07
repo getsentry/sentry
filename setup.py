@@ -9,6 +9,8 @@ if sys.version_info[:2] != (2, 7):
 import os
 import os.path
 
+import re
+
 from distutils.command.build import build as BuildCommand
 from setuptools import setup, find_packages
 from setuptools.command.sdist import sdist as SDistCommand
@@ -93,7 +95,14 @@ setup(
     author_email="hello@sentry.io",
     url="https://sentry.io",
     description="A realtime logging and aggregation server.",
-    long_description=open(os.path.join(ROOT, "README.rst")).read(),
+    long_description=re.sub(
+        # This cleans the raw HTML, not supported by PyPI
+        r"^\.\. raw:: html$(?:\n^\s+.+$)+\n\n",
+        "",
+        open(os.path.join(ROOT, "README.rst")).read(),
+        flags=re.M,
+    ),
+    long_description_content_type="text/x-rst",
     package_dir={"": "src"},
     packages=find_packages("src"),
     zip_safe=False,
