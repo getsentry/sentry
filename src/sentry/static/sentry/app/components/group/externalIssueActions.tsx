@@ -31,7 +31,7 @@ class ExternalIssueActions extends AsyncComponent<Props, State> {
     integration: PropTypes.object.isRequired,
   };
 
-  constructor(props, context) {
+  constructor(props: Props, context) {
     super(props, context);
 
     this.state = {
@@ -53,7 +53,7 @@ class ExternalIssueActions extends AsyncComponent<Props, State> {
       : null;
   }
 
-  deleteIssue(issueId) {
+  deleteIssue(issueId: string) {
     const {group, integration} = this.props;
     const endpoint = `/groups/${group.id}/integrations/${
       integration.id
@@ -89,7 +89,7 @@ class ExternalIssueActions extends AsyncComponent<Props, State> {
     });
   };
 
-  handleClick = action => {
+  handleClick = (action: 'create' | 'link') => {
     this.setState({action});
   };
 
