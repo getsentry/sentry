@@ -301,7 +301,7 @@ export function decodeColumnOrder(
         ? col.width
         : getDefaultWidth(aggregationField[0]);
 
-    column.name = column.field;
+    column.name = column.key;
     column.isSortable = AGGREGATIONS[column.aggregation]
       ? AGGREGATIONS[column.aggregation].isSortable
       : false;

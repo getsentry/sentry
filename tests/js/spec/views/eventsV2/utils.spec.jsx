@@ -246,9 +246,7 @@ describe('decodeColumnOrder', function() {
   });
 
   it('can decode fields', function() {
-    const results = decodeColumnOrder([
-      {field: 'title', title: 'Event title', width: 123},
-    ]);
+    const results = decodeColumnOrder([{field: 'title', width: 123}]);
 
     expect(Array.isArray(results)).toBeTruthy();
 

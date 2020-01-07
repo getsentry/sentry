@@ -1714,7 +1714,6 @@ describe('EventView.isFieldSorted()', function() {
 
     const field = {
       field: 'count()',
-      title: 'events',
     };
 
     const actual = eventView.isFieldSorted(field, meta);
@@ -1731,7 +1730,6 @@ describe('EventView.isFieldSorted()', function() {
 
     const field = {
       field: 'project.id',
-      title: 'project',
     };
 
     expect(eventView.isFieldSorted(field, meta)).toBe(void 0);
