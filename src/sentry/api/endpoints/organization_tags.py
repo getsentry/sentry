@@ -21,5 +21,6 @@ class OrganizationTagsEndpoint(OrganizationEventsEndpointBase):
             filter_params.get("environment"),
             filter_params["start"],
             filter_params["end"],
+            use_cache=request.GET.get("cache", "0") == "1",
         )
         return Response(serialize(results, request.user))

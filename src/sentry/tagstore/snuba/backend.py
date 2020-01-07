@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import functools
-import random
 import six
 from collections import defaultdict, Iterable
 from dateutil.parser import parse as parse_datetime
@@ -178,7 +177,7 @@ class SnubaTagStorage(TagStorage):
         limit=1000,
         keys=None,
         include_values_seen=True,
-        use_cache=True,
+        use_cache=False,
         **kwargs
     ):
         filters = {"project_id": sorted(projects)}
@@ -194,48 +193,45 @@ class SnubaTagStorage(TagStorage):
             aggregations.append(["uniq", "tags_value", "values_seen"])
         conditions = []
 
-        should_cache = (
-            random.random() <= options.get("snuba.tagstore.cache-tagkeys-rate")
-            and use_cache
-            and group_id is None
-        )
+        should_cache = use_cache and group_id is None
+        result = None
 
         if should_cache:
             filtering_strings = [
                 u"{}={}".format(key, value) for key, value in six.iteritems(filters)
             ]
-            cache_key = u"testing.tagstore.__get_tag_keys:{}".format(
+            cache_key = u"tagstore.__get_tag_keys:{}".format(
                 md5_text(*filtering_strings).hexdigest()
             )
-            # Round times by 5 minutes since we cache for 5 minutes
-            if start:
-                start = start.replace(minute=start.minute // 5 * 5, second=0, microsecond=0)
-                cache_key += ":" + start.isoformat()
-            if end:
-                end = end.replace(minute=end.minute // 5 * 5, second=0, microsecond=0)
-                cache_key += ":" + end.isoformat()
+            key_hash = hash(cache_key)
+            should_cache = (key_hash % 1000) / 1000.0 <= options.get(
+                "snuba.tagstore.cache-tagkeys-rate"
+            )
 
-            cache_result = cache.get(cache_key, False)
-            if cache_result:
+        # If we want to continue attempting to cache after checking against the cache rate
+        if should_cache:
+            result = cache.get(cache_key, None)
+            if result:
                 metrics.incr("testing.tagstore.cache_tag_key.hit")
             else:
                 metrics.incr("testing.tagstore.cache_tag_key.miss")
-                cache.set(cache_key, True, 300)
 
-        result = snuba.query(
-            start=start,
-            end=end,
-            groupby=["tags_key"],
-            conditions=conditions,
-            filter_keys=filters,
-            aggregations=aggregations,
-            limit=limit,
-            orderby="-count",
-            referrer="tagstore.__get_tag_keys",
-            **kwargs
-        )
-        if should_cache:
-            metrics.incr("testing.tagstore.cache_tag_key.len", amount=len(result))
+        if result is None:
+            result = snuba.query(
+                start=start,
+                end=end,
+                groupby=["tags_key"],
+                conditions=conditions,
+                filter_keys=filters,
+                aggregations=aggregations,
+                limit=limit,
+                orderby="-count",
+                referrer="tagstore.__get_tag_keys",
+                **kwargs
+            )
+            if should_cache:
+                cache.set(cache_key, result, 270 + key_hash % 60)
+                metrics.incr("testing.tagstore.cache_tag_key.len", amount=len(result))
 
         if group_id is None:
             ctor = TagKey
@@ -296,7 +292,7 @@ class SnubaTagStorage(TagStorage):
         return self.__get_tag_keys(project_id, None, environment_id and [environment_id])
 
     def get_tag_keys_for_projects(
-        self, projects, environments, start, end, status=TagKeyStatus.VISIBLE
+        self, projects, environments, start, end, status=TagKeyStatus.VISIBLE, use_cache=False
     ):
         MAX_UNSAMPLED_PROJECTS = 50
         # We want to disable FINAL in the snuba query to reduce load.
@@ -308,7 +304,14 @@ class SnubaTagStorage(TagStorage):
         if len(projects) <= MAX_UNSAMPLED_PROJECTS:
             optimize_kwargs["sample"] = 1
         return self.__get_tag_keys_for_projects(
-            projects, None, environments, start, end, include_values_seen=False, **optimize_kwargs
+            projects,
+            None,
+            environments,
+            start,
+            end,
+            include_values_seen=False,
+            use_cache=use_cache,
+            **optimize_kwargs
         )
 
     def get_tag_value(self, project_id, environment_id, key, value):
