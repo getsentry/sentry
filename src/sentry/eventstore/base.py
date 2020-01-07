@@ -177,7 +177,7 @@ class EventStorage(Service):
         Returns an Event from processed data
         """
         return Event(
-            project_id=project_id, event_id=event_id, group_id=group_id, message=None, data=data
+            project_id=project_id, event_id=event_id, group_id=group_id, message=message, data=data
         )
 
     def bind_nodes(self, object_list, node_name="data"):
