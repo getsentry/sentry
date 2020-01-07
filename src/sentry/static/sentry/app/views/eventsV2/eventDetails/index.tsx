@@ -74,8 +74,3 @@ class EventDetails extends React.Component<Props> {
 }
 
 export default withOrganization(EventDetails);
-
-// const StyledLoadingMask = styled(LoadingMask)`
-//   z-index: 999999999;
-//   opacity: 0.8;
-// `;
