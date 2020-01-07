@@ -28,10 +28,11 @@
     <h3>{{ organization.name }}</h3>
   </div>
 
-  {% if provider_name %}
+  {% if provider_name and not CAN_REGISTER %}
     <form class="form-stacked m-b-2" action="" method="post" autocomplete="off">
       {% csrf_token %}
       <input type="hidden" name="init" value="1" />
+      <input type="hidden" name="op" value="sso" />
 
       <div class="align-center">
         <p>
@@ -90,8 +91,20 @@
               </div>
             </form>
           </div>
-          {% if github_login_link or vsts_login_link %}
+          {% if provider_name or github_login_link or vsts_login_link %}
           <div class="auth-provider-column">
+            {% if provider_name %}
+              <form class="form-stacked m-b-2" action="" method="post" autocomplete="off">
+              {% csrf_token %}
+              <input type="hidden" name="init" value="1" />
+              <input type="hidden" name="op" value="sso" />
+              <p>
+                <button type="submit" class="btn btn-default btn-login-{{ provider_key }}">
+                  <span class="provider-logo {{ provider_name | lower}}"></span> Login with {{ provider_name }}
+                </button>
+              </p>
+            </form>
+            {% endif %}
             {% if github_login_link %}
               <p>
                 <a class="btn btn-default btn-login-github" href="{{ github_login_link }}" style="display: block">

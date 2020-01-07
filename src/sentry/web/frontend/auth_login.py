@@ -13,7 +13,7 @@ from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
-from sentry.models import AuthProvider, Organization, OrganizationStatus
+from sentry.models import AuthProvider, Organization, OrganizationMember, OrganizationStatus
 from sentry.signals import join_request_link_viewed
 from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
 from sentry.web.frontend.base import BaseView
@@ -126,6 +126,11 @@ class AuthLoginView(BaseView):
 
             # HACK: grab whatever the first backend is and assume it works
             user.backend = settings.AUTHENTICATION_BACKENDS[0]
+
+            if organization:
+                OrganizationMember.objects.create(
+                    organization=organization, role=organization.default_role, user=user,
+                )
 
             auth.login(request, user, organization_id=organization.id if organization else None)
 
