@@ -21,9 +21,19 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
             return self.get_v1_results(request, organization)
 
         try:
+            column = request.GET.get("yAxis", "count()")
+            # Backwards compatibility for incidents which uses the old
+            # column aliases as it straddles both versions of events/discover.
+            # We will need these aliases until discover2 flags are enabled for all
+            # users.
+            if column == "user_count":
+                column = "count_unique(user)"
+            elif column == "event_count":
+                column = "count()"
+
             params = self.get_filter_params(request, organization)
             result = discover.timeseries_query(
-                selected_columns=[request.GET.get("yAxis", "count()")],
+                selected_columns=[column],
                 query=request.GET.get("query"),
                 params=params,
                 rollup=self.get_rollup(request),
