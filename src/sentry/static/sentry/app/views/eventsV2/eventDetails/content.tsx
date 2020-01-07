@@ -18,6 +18,7 @@ import DateTime from 'app/components/dateTime';
 import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
 import FileSize from 'app/components/fileSize';
+import LoadingError from 'app/components/loadingError';
 import NotFound from 'app/components/errors/notFound';
 import AsyncComponent from 'app/components/asyncComponent';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
@@ -191,9 +192,17 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     const notFound = Object.values(this.state.errors).find(
       resp => resp && resp.status === 404
     );
+    const permissionDenied = Object.values(this.state.errors).find(
+      resp => resp && resp.status === 403
+    );
 
     if (notFound) {
       return this.renderWrapper(<NotFound />);
+    }
+    if (permissionDenied) {
+      return this.renderWrapper(
+        <LoadingError message={t('You do not have permission to view that event.')} />
+      );
     }
 
     return this.renderWrapper(super.renderError(error, true, true));
