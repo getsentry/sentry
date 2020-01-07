@@ -117,6 +117,7 @@ def get_client_config(request=None):
         user = None
         user_identity = {}
         messages = []
+        session = None
         is_superuser = False
         language_code = "en"
 

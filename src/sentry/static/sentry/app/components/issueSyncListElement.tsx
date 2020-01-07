@@ -169,7 +169,7 @@ export const IntegrationLink = styled('a')`
   }
 `;
 
-export const OpenCloseIcon = styled(InlineSvg)`
+export const OpenCloseIcon = styled(InlineSvg)<{isLinked: boolean}>`
   height: ${space(1.5)};
   color: ${p => p.theme.gray4};
   transition: 0.2s transform;
@@ -177,7 +177,7 @@ export const OpenCloseIcon = styled(InlineSvg)`
   box-sizing: content-box;
   padding: ${space(1)};
   margin: -${space(1)};
-  ${(p: any) => (p.isLinked ? '' : 'transform: rotate(45deg) scale(0.9);')};
+  ${p => (p.isLinked ? '' : 'transform: rotate(45deg) scale(0.9);')};
 `;
 
 export default IssueSyncListElement;

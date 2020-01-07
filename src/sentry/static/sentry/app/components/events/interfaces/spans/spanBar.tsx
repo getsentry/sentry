@@ -170,7 +170,8 @@ type SpanBarProps = {
   orgId: string;
   trace: Readonly<ParsedTraceType>;
   span: Readonly<ProcessedSpanType>;
-  spanBarColour: string;
+  spanBarColour?: string;
+  spanBarHatch?: boolean;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   treeDepth: number;
   continuingTreeDepths: Array<number>;
@@ -677,21 +678,14 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   renderHeader = (
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
   ) => {
-    const {span, spanBarColour, spanNumber} = this.props;
-
+    const {span, spanBarColour, spanBarHatch, spanNumber} = this.props;
     const startTimestamp: number = span.start_timestamp;
     const endTimestamp: number = span.timestamp;
-
     const duration = Math.abs(endTimestamp - startTimestamp);
-
     const durationString = getHumanDuration(duration);
-
     const bounds = this.getBounds();
-
     const {dividerPosition} = dividerHandlerChildrenProps;
-
     const displaySpanBar = defined(bounds.left) && defined(bounds.width);
-
     const durationDisplay = getDurationDisplay(bounds);
 
     return (
@@ -715,6 +709,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         >
           {displaySpanBar && (
             <SpanBarRectangle
+              spanBarHatch={!!spanBarHatch}
               style={{
                 backgroundColor: spanBarColour,
                 left: toPercent(bounds.left || 0),
@@ -724,6 +719,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
               <DurationPill
                 durationDisplay={durationDisplay}
                 showDetail={this.state.showDetail}
+                spanBarHatch={!!spanBarHatch}
               >
                 {durationString}
                 {this.renderWarningText({warningText: bounds.warning})}
@@ -953,7 +949,15 @@ const SpanTreeToggler = styled('div')<SpanTreeTogglerAndDivProps>`
   ${p => getTogglerTheme(p)}
 `;
 
-const getDurationPillAlignment = ({durationDisplay}) => {
+const getDurationPillAlignment = ({
+  durationDisplay,
+  theme,
+  spanBarHatch,
+}: {
+  durationDisplay: DurationDisplay;
+  theme: any;
+  spanBarHatch: boolean;
+}) => {
   switch (durationDisplay) {
     case 'left':
       return `right: calc(100% + ${space(0.5)});`;
@@ -962,7 +966,7 @@ const getDurationPillAlignment = ({durationDisplay}) => {
     default:
       return `
         right: ${space(0.75)};
-        color: #fff;
+        color: ${spanBarHatch === true ? theme.gray2 : theme.white};
       `;
   }
 };
@@ -970,6 +974,7 @@ const getDurationPillAlignment = ({durationDisplay}) => {
 const DurationPill = styled('div')<{
   durationDisplay: DurationDisplay;
   showDetail: boolean;
+  spanBarHatch: boolean;
 }>`
   position: absolute;
   top: 50%;
@@ -987,13 +992,25 @@ const DurationPill = styled('div')<{
   }
 `;
 
-const SpanBarRectangle = styled('div')`
+const getHatchPattern = ({spanBarHatch}) => {
+  if (spanBarHatch === true) {
+    return `
+      background-image: linear-gradient(45deg, #dedae3 10%, #f4f2f7 10%, #f4f2f7 50%, #dedae3 50%, #dedae3 60%, #f4f2f7 60%, #f4f2f7 100%);
+      background-size: 6.5px 6.5px;
+  `;
+  }
+
+  return null;
+};
+
+const SpanBarRectangle = styled('div')<{spanBarHatch: boolean}>`
   position: relative;
   height: 100%;
   min-width: 1px;
   user-select: none;
   transition: border-color 0.15s ease-in-out;
   border-right: 1px solid rgba(0, 0, 0, 0);
+  ${getHatchPattern}
 `;
 
 const WarningIcon = styled(InlineSvg)`

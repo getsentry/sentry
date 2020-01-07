@@ -765,13 +765,29 @@ class SnubaTestCase(BaseTestCase):
         self.snuba_eventstream = SnubaEventStream()
         self.snuba_tagstore = SnubaTagStorage()
         assert requests.post(settings.SENTRY_SNUBA + "/tests/events/drop").status_code == 200
+        assert (
+            requests.post(settings.SENTRY_SNUBA + "/tests/groupedmessage/drop").status_code == 200
+        )
         assert requests.post(settings.SENTRY_SNUBA + "/tests/transactions/drop").status_code == 200
 
     def store_event(self, *args, **kwargs):
         with contextlib.nested(
             mock.patch("sentry.eventstream.insert", self.snuba_eventstream.insert)
         ):
-            return Factories.store_event(*args, **kwargs)
+            stored_event = Factories.store_event(*args, **kwargs)
+            stored_group = stored_event.group
+            if stored_group is not None:
+                self.store_group(stored_group)
+            return stored_event
+
+    def store_group(self, group):
+        data = [self.__wrap_group(group)]
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + "/tests/groupedmessage/insert", data=json.dumps(data)
+            ).status_code
+            == 200
+        )
 
     def __wrap_event(self, event, data, primary_hash):
         # TODO: Abstract and combine this with the stream code in

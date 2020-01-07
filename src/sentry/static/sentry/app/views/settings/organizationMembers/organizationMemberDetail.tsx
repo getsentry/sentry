@@ -46,8 +46,7 @@ type RouteParams = {
 
 type Props = {
   organization: Organization;
-} & AsyncView['props'] &
-  RouteComponentProps<RouteParams, {}>;
+} & RouteComponentProps<RouteParams, {}>;
 
 type State = {
   roleList: Member['roles'];

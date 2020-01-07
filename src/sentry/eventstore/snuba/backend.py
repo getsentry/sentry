@@ -1,30 +1,37 @@
 from __future__ import absolute_import
 
 import six
+
 from copy import deepcopy
 
-from sentry.models import SnubaEvent
-from sentry.utils import snuba
 from sentry.eventstore.base import EventStorage
+from sentry.snuba.events import Columns
+from sentry.utils import snuba
 from sentry.utils.validators import normalize_event_id
 
-DESC_ORDERING = ["-timestamp", "-event_id"]
-ASC_ORDERING = ["timestamp", "event_id"]
+from ..models import Event
+
+EVENT_ID = Columns.EVENT_ID.value.alias
+PROJECT_ID = Columns.PROJECT_ID.value.alias
+TIMESTAMP = Columns.TIMESTAMP.value.alias
+
+DESC_ORDERING = ["-{}".format(TIMESTAMP), "-{}".format(EVENT_ID)]
+ASC_ORDERING = [TIMESTAMP, EVENT_ID]
 DEFAULT_LIMIT = 100
 DEFAULT_OFFSET = 0
 
 
 def get_before_event_condition(event):
     return [
-        ["timestamp", "<=", event.timestamp],
-        [["timestamp", "<", event.timestamp], ["event_id", "<", event.event_id]],
+        [TIMESTAMP, "<=", event.timestamp],
+        [[TIMESTAMP, "<", event.timestamp], [EVENT_ID, "<", event.event_id]],
     ]
 
 
 def get_after_event_condition(event):
     return [
-        ["timestamp", ">=", event.timestamp],
-        [["timestamp", ">", event.timestamp], ["event_id", ">", event.event_id]],
+        [TIMESTAMP, ">=", event.timestamp],
+        [[TIMESTAMP, ">", event.timestamp], [EVENT_ID, ">", event.event_id]],
     ]
 
 
@@ -62,7 +69,7 @@ class SnubaEventStorage(EventStorage):
         )
 
         if "error" not in result:
-            return [SnubaEvent(evt) for evt in result["data"]]
+            return [self.__make_event(evt) for evt in result["data"]]
 
         return []
 
@@ -85,7 +92,7 @@ class SnubaEventStorage(EventStorage):
             limit=1,
         )
         if "error" not in result and len(result["data"]) == 1:
-            return SnubaEvent(result["data"][0])
+            return self.__make_event(result["data"][0])
         return None
 
     def get_earliest_event_id(self, event, filter):
@@ -147,7 +154,8 @@ class SnubaEventStorage(EventStorage):
         return [col.value.event_name for col in columns]
 
     def __get_event_id_from_filter(self, filter=None, orderby=None):
-        columns = ["event_id", "project_id"]
+        columns = [Columns.EVENT_ID.value.alias, Columns.PROJECT_ID.value.alias]
+
         try:
             result = snuba.dataset_query(
                 selected_columns=columns,
@@ -171,3 +179,12 @@ class SnubaEventStorage(EventStorage):
         row = result["data"][0]
 
         return (six.text_type(row["project_id"]), six.text_type(row["event_id"]))
+
+    def __make_event(self, snuba_data):
+        event_id = snuba_data[Columns.EVENT_ID.value.event_name]
+        group_id = snuba_data[Columns.GROUP_ID.value.event_name]
+        project_id = snuba_data[Columns.PROJECT_ID.value.event_name]
+
+        return Event(
+            event_id=event_id, group_id=group_id, project_id=project_id, snuba_data=snuba_data
+        )
