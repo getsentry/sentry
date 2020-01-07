@@ -150,16 +150,16 @@ type StatusProps = {
 
 const Status = styled(
   withTheme((props: StatusProps) => {
-    const {enabled, ...p} = props;
+    const {enabled, theme, ...p} = props;
     return (
-      <Flex align="center">
+      <StatusWrapper>
         <CircleIndicator
           enabled={enabled}
           size={6}
-          color={enabled ? p.theme.success : p.theme.gray2}
+          color={enabled ? theme.success : theme.gray2}
         />
         <div {...p}>{enabled ? t('Installed') : t('Not Installed')}</div>
-      </Flex>
+      </StatusWrapper>
     );
   })
 )`
@@ -172,6 +172,11 @@ const Status = styled(
     font-weight: normal;
   }
   margin-right: ${space(0.75)};
+`;
+
+const StatusWrapper = styled('div')`
+  display: flex;
+  align-items: center;
 `;
 
 const NewInstallation = styled('div')`
