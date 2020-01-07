@@ -523,6 +523,7 @@ CELERYD_HIJACK_ROOT_LOGGER = False
 CELERY_IMPORTS = (
     "sentry.discover.tasks",
     "sentry.incidents.tasks",
+    "sentry.tasks.assemble",
     "sentry.tasks.auth",
     "sentry.tasks.auto_resolve_issues",
     "sentry.tasks.beacon",
@@ -534,6 +535,8 @@ CELERY_IMPORTS = (
     "sentry.tasks.deletion",
     "sentry.tasks.digests",
     "sentry.tasks.email",
+    "sentry.tasks.files",
+    "sentry.tasks.integrations",
     "sentry.tasks.members",
     "sentry.tasks.merge",
     "sentry.tasks.options",
@@ -543,14 +546,12 @@ CELERY_IMPORTS = (
     "sentry.tasks.reports",
     "sentry.tasks.reprocessing",
     "sentry.tasks.scheduler",
+    "sentry.tasks.sentry_apps",
+    "sentry.tasks.servicehooks",
     "sentry.tasks.signals",
     "sentry.tasks.store",
     "sentry.tasks.unmerge",
-    "sentry.tasks.servicehooks",
-    "sentry.tasks.assemble",
-    "sentry.tasks.integrations",
-    "sentry.tasks.files",
-    "sentry.tasks.sentry_apps",
+    "sentry.tasks.update_user_reports",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -661,6 +662,11 @@ CELERYBEAT_SCHEDULE = {
         "task": "sentry.tasks.collect_project_platforms",
         "schedule": timedelta(days=1),
         "options": {"expires": 3600 * 24},
+    },
+    "update-user-reports": {
+        "task": "sentry.tasks.update_user_reports",
+        "schedule": timedelta(minutes=15),
+        "options": {"expires": 300},
     },
     "schedule-auto-resolution": {
         "task": "sentry.tasks.schedule_auto_resolution",
