@@ -93,7 +93,7 @@ class AuthSAML2Test(AuthProviderTestCase):
         return reverse("sentry-organization-auth-provider-settings", args=["saml2-org"])
 
     def test_redirects_to_idp(self):
-        resp = self.client.post(self.login_path, {"init": True})
+        resp = self.client.post(self.login_path, {"init": True, "op": "sso"})
 
         assert resp.status_code == 302
         redirect = urlparse(resp.get("Location", ""))
