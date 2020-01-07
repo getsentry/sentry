@@ -4,6 +4,9 @@ import styled from 'react-emotion';
 
 import InlineSvg from 'app/components/inlineSvg';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import theme from 'app/utils/theme';
 
 interface Props {
   name: string;
@@ -24,25 +27,25 @@ const Assembly: React.FC<Props> = ({
     <AssemblyWrapper>
       <Icon src="icon-return-key" />
       <AssemblyInfo>
-        <Caption>Assembly:</Caption>
+        <Caption>{t('Assembly')}:</Caption>
         {name || '-'}
       </AssemblyInfo>
       <AssemblyInfo>
-        <Caption>Version:</Caption>
+        <Caption>{t('Version')}:</Caption>
         {version || '-'}
       </AssemblyInfo>
       <AssemblyInfo>
-        <Caption>Culture:</Caption>
+        <Caption>{t('Culture')}:</Caption>
         {culture || '-'}
       </AssemblyInfo>
       <AssemblyInfo>
-        <Caption>PublicKeyToken:</Caption>
+        <Caption>{t('PublicKeyToken')}:</Caption>
         {publicKeyToken || '-'}
       </AssemblyInfo>
 
       {filePath && (
         <FilePathInfo>
-          <Caption>Path:</Caption>
+          <Caption>{t('Path')}:</Caption>
           <TextCopyInput>{filePath}</TextCopyInput>
         </FilePathInfo>
       )}
@@ -50,7 +53,7 @@ const Assembly: React.FC<Props> = ({
   );
 };
 
-// TODO: we should be able to delete these after disabling react/prop-types rule in tsx functional components
+// TODO(ts): we should be able to delete these after disabling react/prop-types rule in tsx functional components
 Assembly.propTypes = {
   name: PropTypes.string.isRequired,
   version: PropTypes.string.isRequired,
@@ -66,7 +69,7 @@ const AssemblyWrapper = styled('div')`
   color: ${p => p.theme.gray5};
   text-align: center;
   position: relative;
-  padding: 0 20px 0 50px;
+  padding: 0 ${space(3)} 0 50px;
 `;
 
 const Icon = styled(InlineSvg)`
@@ -95,6 +98,9 @@ const FilePathInfo = styled('div')`
     padding-top: 0;
     padding-bottom: 0;
     line-height: 1.5;
+    @media (max-width: ${theme.breakpoints[1]}) {
+      width: auto;
+    }
   }
   button > span {
     padding: 2px 5px;

@@ -2,9 +2,11 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import map from 'lodash/map';
 import isObject from 'lodash/isObject';
+import styled from 'react-emotion';
 
 import Category from 'app/components/events/interfaces/breadcrumbs/category';
 import {PlatformContext} from 'app/components/events/interfaces/breadcrumbs/platformContext';
+import theme from 'app/utils/theme';
 
 class CrumbTable extends React.Component {
   static propTypes = {
@@ -38,14 +40,9 @@ class CrumbTable extends React.Component {
       <table className="table key-value">
         <thead>
           <tr>
-            <td
-              className="key"
-              css={
-                widerCategory && {maxWidth: '215px !important', width: '215px !important'}
-              }
-            >
+            <TableData className="key" wide={widerCategory}>
               <Category value={this.props.crumb.category} />
-            </td>
+            </TableData>
             <td className="value">{this.props.summary}</td>
           </tr>
         </thead>
@@ -57,5 +54,12 @@ class CrumbTable extends React.Component {
     );
   }
 }
+
+const TableData = styled('td')`
+  @media (min-width: ${theme.breakpoints[2]}) {
+    max-width: ${p => (p.wide ? 215 : 175)}px !important;
+    width: ${p => (p.wide ? 215 : 175)}px !important;
+  }
+`;
 
 export default CrumbTable;

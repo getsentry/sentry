@@ -1,8 +1,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import sortBy from 'lodash/sortBy';
+import styled from 'react-emotion';
 
 import ContextData from 'app/components/contextData';
+import theme from 'app/utils/theme';
 
 class KeyValueList extends React.Component {
   static propTypes = {
@@ -53,12 +55,9 @@ class KeyValueList extends React.Component {
             } else {
               return [
                 <tr key={key}>
-                  <td
-                    className="key"
-                    css={this.props.longKeys && {maxWidth: '620px !important'}}
-                  >
+                  <TableData className="key" wide={this.props.longKeys}>
                     {key}
-                  </td>
+                  </TableData>
                   <td className="val">
                     <pre className="val-string">{'' + value || ' '}</pre>
                   </td>
@@ -71,6 +70,12 @@ class KeyValueList extends React.Component {
     );
   }
 }
+
+const TableData = styled('td')`
+  @media (min-width: ${theme.breakpoints[2]}) {
+    max-width: ${p => (p.wide ? 620 : 175)}px !important;
+  }
+`;
 
 KeyValueList.displayName = 'KeyValueList';
 
