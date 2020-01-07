@@ -349,6 +349,10 @@ def digest(request):
             event_manager.normalize()
             data = event_manager.get_data()
 
+            data["timestamp"] = random.randint(
+                to_timestamp(group.first_seen), to_timestamp(group.last_seen)
+            )
+
             event = eventstore.create_event(
                 event_id=uuid.uuid4().hex, group_id=group.id, project_id=project.id, data=data.data
             )
