@@ -197,9 +197,35 @@ def options_override(overrides):
             OVERRIDE_OPTIONS.pop(k)
 
 
+class RetrySkipTimeout(urllib3.Retry):
+    """
+    urllib3 Retry class does not allow us to retry on read errors but to exclude
+    read timeout. Retrying after a timeout adds useless load to Snuba.
+    """
+
+    def increment(
+        self, method=None, url=None, response=None, error=None, _pool=None, _stacktrace=None
+    ):
+        """
+        Just rely on the parent class unless we have a read timeout. In that case
+        immediately give up
+        """
+        if error and isinstance(error, urllib3.exceptions.ReadTimeoutError):
+            raise six.reraise(type(error), error, _stacktrace)
+
+        return super(RetrySkipTimeout, self).increment(
+            method=method,
+            url=url,
+            response=response,
+            error=error,
+            _pool=_pool,
+            _stacktrace=_stacktrace,
+        )
+
+
 _snuba_pool = connection_from_url(
     settings.SENTRY_SNUBA,
-    retries=urllib3.Retry(
+    retries=RetrySkipTimeout(
         total=5,
         # Expand our retries to POST since all of
         # our requests are POST and they don't mutate, so they
