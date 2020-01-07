@@ -187,8 +187,9 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert second_task is not None
 
-        second_event = self.create_event(
-            project=second_project, platform="python", message="python error message"
+        second_event = self.store_event(
+            data={"platform": "python", "message": "python error message"},
+            project_id=second_project.id,
         )
         first_event_received.send(
             project=second_project, event=second_event, sender=type(second_project)
