@@ -198,11 +198,7 @@ class ActivityMailDebugView(View):
         group.data = {"type": event_type.key, "metadata": event_type.get_metadata(data)}
 
         event = eventstore.create_event(
-            event_id="a" * 32,
-            group_id=group.id,
-            project_id=project.id,
-            # message=event_manager.get_search_message(),
-            data=data.data,
+            event_id="a" * 32, group_id=group.id, project_id=project.id, data=data.data
         )
 
         activity = Activity(group=group, project=event.project, **self.get_activity(request, event))
@@ -354,11 +350,7 @@ def digest(request):
             data = event_manager.get_data()
 
             event = eventstore.create_event(
-                event_id=uuid.uuid4().hex,
-                group_id=group.id,
-                project_id=project.id,
-                message=group.message,
-                data=data.data,
+                event_id=uuid.uuid4().hex, group_id=group.id, project_id=project.id, data=data.data
             )
 
             records.append(
