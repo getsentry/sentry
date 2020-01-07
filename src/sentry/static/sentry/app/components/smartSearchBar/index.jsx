@@ -35,6 +35,7 @@ import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 
 import SearchDropdown from './searchDropdown';
 
@@ -219,6 +220,7 @@ class SmartSearchBar extends React.Component {
 
     this.state = {
       query: props.query !== null ? addSpace(props.query) : props.defaultQuery,
+      noValueQuery: undefined,
 
       searchTerm: '',
       searchItems: [],
@@ -482,17 +484,31 @@ class SmartSearchBar extends React.Component {
       });
 
       try {
-        const values = await this.props.onGetTagValues(tag, query);
-        this.setState({loading: false});
-        return values.map(value => {
-          // Wrap in quotes if there is a space
-          const escapedValue =
-            value.indexOf(' ') > -1 ? `"${value.replace('"', '\\"')}"` : value;
-          return {
-            value: escapedValue,
-            desc: escapedValue,
-          };
-        });
+        const {location} = this.context.router;
+        const endpointParams = getParams(location.query);
+
+        if (
+          this.state.noValueQuery === undefined ||
+          !query.startsWith(this.state.noValueQuery)
+        ) {
+          const values = await this.props.onGetTagValues(tag, query, endpointParams);
+          this.setState({loading: false});
+          const noValueQuery =
+            values.length === 0 && query.length > 0 ? query : undefined;
+          this.setState({noValueQuery});
+          return values.map(value => {
+            // Wrap in quotes if there is a space
+            const escapedValue =
+              value.indexOf(' ') > -1 ? `"${value.replace('"', '\\"')}"` : value;
+            return {
+              value: escapedValue,
+              desc: escapedValue,
+            };
+          });
+        } else {
+          this.setState({loading: false});
+          return [];
+        }
       } catch (err) {
         this.setState({loading: false});
         Sentry.captureException(err);

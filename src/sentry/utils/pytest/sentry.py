@@ -98,7 +98,7 @@ def pytest_configure(config):
     settings.CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
 
     if os.environ.get("USE_SNUBA", False):
-        settings.SENTRY_SEARCH = "sentry.search.snuba.SnubaSearchBackend"
+        settings.SENTRY_SEARCH = "sentry.search.snuba.EventsDatasetSnubaSearchBackend"
         settings.SENTRY_TSDB = "sentry.tsdb.redissnuba.RedisSnubaTSDB"
         settings.SENTRY_EVENTSTREAM = "sentry.eventstream.snuba.SnubaEventStream"
 
@@ -143,12 +143,15 @@ def pytest_configure(config):
         bootstrap_options,
         configure_structlog,
         initialize_receivers,
+        monkeypatch_model_unpickle,
         monkeypatch_django_migrations,
         setup_services,
     )
 
     bootstrap_options(settings)
     configure_structlog()
+
+    monkeypatch_model_unpickle()
 
     import django
 

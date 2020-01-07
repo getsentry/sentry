@@ -1,6 +1,5 @@
 import React from 'react';
 
-import {Client} from 'app/api';
 import {EventsChart} from 'app/views/events/eventsChart';
 import {mockZoomRange} from 'sentry-test/charts';
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -12,7 +11,11 @@ describe('EventsChart > EventsLineChart', function() {
 
   beforeEach(function() {
     mockZoomRange(1543449600000, 1543708800000);
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/releases/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/events-stats/`,
       method: 'GET',
       body: {

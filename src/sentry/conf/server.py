@@ -916,6 +916,9 @@ SENTRY_FRONTEND_DSN = None
 # Configuration for JavaScript's whitelistUrls - defaults to ALLOWED_HOSTS
 SENTRY_FRONTEND_WHITELIST_URLS = None
 
+# Sample rate for Sentry transactions
+SENTRY_APM_SAMPLING = 0
+
 # DSN to use for Sentry monitors
 SENTRY_MONITOR_DSN = None
 SENTRY_MONITOR_API_ROOT = None
@@ -1046,7 +1049,9 @@ SENTRY_TAGSTORE = os.environ.get("SENTRY_TAGSTORE", "sentry.tagstore.snuba.Snuba
 SENTRY_TAGSTORE_OPTIONS = {}
 
 # Search backend
-SENTRY_SEARCH = os.environ.get("SENTRY_SEARCH", "sentry.search.snuba.SnubaSearchBackend")
+SENTRY_SEARCH = os.environ.get(
+    "SENTRY_SEARCH", "sentry.search.snuba.EventsDatasetSnubaSearchBackend"
+)
 SENTRY_SEARCH_OPTIONS = {}
 # SENTRY_SEARCH_OPTIONS = {
 #     'urls': ['http://localhost:9200/'],

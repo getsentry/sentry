@@ -17,17 +17,14 @@ type RouteParams = {
 
 type Props = {
   organization: Organization;
-};
+} & RouteComponentProps<RouteParams, {}>;
 
 type State = {
   rule: IncidentRule;
   actions: Map<string, any>; // This is temp
 } & AsyncView['state'];
 
-class IncidentRulesDetails extends AsyncView<
-  RouteComponentProps<RouteParams, {}> & Props,
-  State
-> {
+class IncidentRulesDetails extends AsyncView<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
@@ -86,15 +83,13 @@ class IncidentRulesDetails extends AsyncView<
   };
 
   renderBody() {
-    const {organization, params} = this.props;
-    const {incidentRuleId} = params;
+    const {incidentRuleId} = this.props.params;
     const {rule} = this.state;
 
     return (
       <RuleForm
-        organization={organization}
+        {...this.props}
         incidentRuleId={incidentRuleId}
-        params={params}
         rule={this.getActions(rule, this.state.actions)}
       />
     );

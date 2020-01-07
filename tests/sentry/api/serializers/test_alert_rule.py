@@ -5,15 +5,19 @@ from __future__ import absolute_import
 import six
 
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.alert_rule import DetailedAlertRuleSerializer
+from sentry.api.serializers.models.alert_rule import (
+    DetailedAlertRuleSerializer,
+    CombinedRuleSerializer,
+)
+from sentry.models import Rule
 from sentry.incidents.logic import create_alert_rule, create_alert_rule_trigger
 from sentry.incidents.models import AlertRuleThresholdType
 from sentry.snuba.models import QueryAggregations
-from sentry.testutils import TestCase
+from sentry.testutils import TestCase, APITestCase
 
 
 class BaseAlertRuleSerializerTest(object):
-    def assert_alert_rule_serialized(self, alert_rule, result):
+    def assert_alert_rule_serialized(self, alert_rule, result, skip_dates=False):
         assert result["id"] == six.text_type(alert_rule.id)
         assert result["organizationId"] == six.text_type(alert_rule.organization_id)
         assert result["name"] == alert_rule.name
@@ -27,8 +31,41 @@ class BaseAlertRuleSerializerTest(object):
         assert result["resolveThreshold"] == 0
         assert result["thresholdPeriod"] == alert_rule.threshold_period
         assert result["includeAllProjects"] == alert_rule.include_all_projects
-        assert result["dateModified"] == alert_rule.date_modified
-        assert result["dateCreated"] == alert_rule.date_added
+        if not skip_dates:
+            assert result["dateModified"] == alert_rule.date_modified
+            assert result["dateCreated"] == alert_rule.date_added
+
+    def create_issue_alert_rule(self, data):
+        """data format
+        {
+            "project": project
+            "environment": environment
+            "name": "My rule name",
+            "conditions": [],
+            "actions": [],
+            "actionMatch": "all"
+        }
+        """
+        rule = Rule()
+        rule.project = data["project"]
+        if "environment" in data:
+            environment = data["environment"]
+            rule.environment_id = int(environment) if environment else environment
+        if data.get("name"):
+            rule.label = data["name"]
+        if data.get("actionMatch"):
+            rule.data["action_match"] = data["actionMatch"]
+        if data.get("actions") is not None:
+            rule.data["actions"] = data["actions"]
+        if data.get("conditions") is not None:
+            rule.data["conditions"] = data["conditions"]
+        if data.get("frequency"):
+            rule.data["frequency"] = data["frequency"]
+        if data.get("date_added"):
+            rule.date_added = data["date_added"]
+
+        rule.save()
+        return rule
 
 
 class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
@@ -87,3 +124,27 @@ class DetailedAlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         result = serialize([alert_rule, other_alert_rule], serializer=DetailedAlertRuleSerializer())
         assert result[0]["triggers"] == [serialize(trigger)]
         assert result[1]["triggers"] == []
+
+
+class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestCase):
+    def test_combined_serializer(self):
+        projects = [self.project, self.create_project()]
+        alert_rule = self.create_alert_rule(projects=projects)
+        issue_rule = self.create_issue_alert_rule(
+            data={
+                "project": self.project,
+                "name": "Issue Rule Test",
+                "conditions": [],
+                "actions": [],
+                "actionMatch": "all",
+            }
+        )
+        other_alert_rule = self.create_alert_rule()
+
+        result = serialize(
+            [alert_rule, issue_rule, other_alert_rule], serializer=CombinedRuleSerializer()
+        )
+
+        self.assert_alert_rule_serialized(alert_rule, result[0])
+        assert result[1]["id"] == six.text_type(issue_rule.id)
+        self.assert_alert_rule_serialized(other_alert_rule, result[2])

@@ -10,7 +10,7 @@ endif
 PIP := LDFLAGS="$(LDFLAGS)" python -m pip
 # Note: this has to be synced with the pip version in .travis.yml.
 PIP_VERSION := 19.2.3
-PIP_OPTS := --no-use-pep517 --disable-pip-version-check
+PIP_OPTS := --disable-pip-version-check
 WEBPACK := NODE_ENV=production ./bin/yarn webpack
 YARN := ./bin/yarn
 
@@ -180,9 +180,9 @@ test-acceptance: node-version-check
 	@$(WEBPACK) --display errors-only
 	@echo "--> Running acceptance tests"
 ifndef TEST_GROUP
-	py.test tests/acceptance --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml" --junit-xml=".artifacts/acceptance.junit.xml" --html=".artifacts/acceptance.pytest.html"
+	py.test tests/acceptance --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml" --junit-xml=".artifacts/acceptance.junit.xml" --html=".artifacts/acceptance.pytest.html" --self-contained-html
 else
-	py.test tests/acceptance -m group_$(TEST_GROUP) --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml" --junit-xml=".artifacts/acceptance.junit.xml" --html=".artifacts/acceptance.pytest.html"
+	py.test tests/acceptance -m group_$(TEST_GROUP) --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml" --junit-xml=".artifacts/acceptance.junit.xml" --html=".artifacts/acceptance.pytest.html" --self-contained-html
 endif
 
 	@echo ""

@@ -82,6 +82,7 @@ def find_reference_event(reference_event):
         filter_keys={"project_id": [project.id], "event_id": [event_id]},
         dataset=Dataset.Discover,
         limit=1,
+        referrer="discover.find_reference_event",
     )
     if "error" in event or len(event["data"]) != 1:
         raise InvalidSearchQuery("Invalid reference event")
@@ -123,6 +124,10 @@ def resolve_column(col):
     unknown columns are converted into tags expressions.
     """
     if col is None:
+        return col
+    # Whilst project_id is not part of the public schema we convert
+    # the project.name field into project_id way before we get here.
+    if col == "project_id":
         return col
     if col.startswith("tags[") or QUOTED_LITERAL_RE.match(col):
         return col
@@ -354,6 +359,11 @@ def timeseries_query(selected_columns, query, params, rollup, reference_event=No
     snuba_args, _ = resolve_discover_aliases(snuba_args)
     if not snuba_args["aggregations"]:
         raise InvalidSearchQuery("Cannot get timeseries result with no aggregation.")
+
+    # Change the alias of the first aggregation to count. This ensures compatibility
+    # with other parts of the timeseries endpoint expectations
+    if len(snuba_args["aggregations"]) == 1:
+        snuba_args["aggregations"][0][2] = "count"
 
     result = raw_query(
         aggregations=snuba_args.get("aggregations"),

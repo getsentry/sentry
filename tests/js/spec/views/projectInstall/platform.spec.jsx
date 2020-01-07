@@ -40,9 +40,16 @@ describe('ProjectInstallPlatform', function() {
       const props = {
         ...baseProps,
         params: {
+          orgId: baseProps.organization.slug,
+          projectId: baseProps.project.slug,
           platform: 'lua',
         },
       };
+
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/docs/lua/',
+        statusCode: 404,
+      });
 
       const wrapper = shallow(
         <ProjectInstallPlatform {...props} />,
@@ -53,22 +60,6 @@ describe('ProjectInstallPlatform', function() {
       wrapper.update();
 
       expect(wrapper.find('NotFound')).toHaveLength(1);
-    });
-
-    it('should rendering Loading if integration/platform exists', function() {
-      const props = {
-        ...baseProps,
-        params: {
-          platform: 'node-connect',
-        },
-      };
-
-      const wrapper = shallow(
-        <ProjectInstallPlatform {...props} />,
-        TestStubs.routerContext([{organization: {id: '1337'}}])
-      );
-
-      expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
     });
 
     it('should render documentation', async function() {
@@ -90,6 +81,9 @@ describe('ProjectInstallPlatform', function() {
         <ProjectInstallPlatform {...props} />,
         TestStubs.routerContext([{organization: {id: '1337'}}])
       );
+
+      // Initially has loading indicator
+      expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
 
       await tick();
       wrapper.update();

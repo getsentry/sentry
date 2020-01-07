@@ -7,15 +7,21 @@ import recreateRoute from 'app/utils/recreateRoute';
 
 import RuleForm from './ruleForm';
 
+type RouteParams = {
+  orgId: string;
+  projectId: string;
+  incidentRuleId: string; //TODO(ts): make optional
+};
+
 type Props = {
   organization: Organization;
   project: Project;
-};
+} & RouteComponentProps<RouteParams, {}>;
 
 /**
  * Show metric rules form with an empty rule. Redirects to alerts list after creation.
  */
-class IncidentRulesCreate extends React.Component<RouteComponentProps<{}, {}> & Props> {
+class IncidentRulesCreate extends React.Component<Props> {
   handleSubmitSuccess = () => {
     const {params, routes, router, location} = this.props;
 
@@ -23,14 +29,13 @@ class IncidentRulesCreate extends React.Component<RouteComponentProps<{}, {}> & 
   };
 
   render() {
-    const {organization, project} = this.props;
+    const {project, ...props} = this.props;
 
     return (
       <RuleForm
-        organization={organization}
         onSubmitSuccess={this.handleSubmitSuccess}
         rule={{...createDefaultRule(), projects: [project.slug]}}
-        params={this.props.params}
+        {...props}
       />
     );
   }

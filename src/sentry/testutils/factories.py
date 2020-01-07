@@ -531,107 +531,6 @@ class Factories(object):
         return event
 
     @staticmethod
-    def create_full_event(group, event_id="a", **kwargs):
-        payload = """
-            {
-                "event_id": "f5dd88e612bc406ba89dfebd09120769",
-                "project": 11276,
-                "release": "e1b5d1900526feaf20fe2bc9cad83d392136030a",
-                "platform": "javascript",
-                "culprit": "app/components/events/eventEntries in map",
-                "logentry": {"formatted": "TypeError: Cannot read property '1' of null"},
-                "tags": [
-                    ["environment", "prod"],
-                    ["sentry_version", "e1b5d1900526feaf20fe2bc9cad83d392136030a"],
-                    ["level", "error"],
-                    ["logger", "javascript"],
-                    ["sentry:release", "e1b5d1900526feaf20fe2bc9cad83d392136030a"],
-                    ["browser", "Chrome 48.0"],
-                    ["device", "Other"],
-                    ["os", "Windows 10"],
-                    ["url", "https://sentry.io/katon-direct/localhost/issues/112734598/"],
-                    ["sentry:user", "id:41656"]
-                ],
-                "errors": [{
-                    "url": "<anonymous>",
-                    "type": "js_no_source"
-                }],
-                "extra": {
-                    "session:duration": 40364
-                },
-                "exception": {
-                    "exc_omitted": null,
-                    "values": [{
-                        "stacktrace": {
-                            "frames": [{
-                                "function": "batchedUpdates",
-                                "abs_path": "webpack:////usr/src/getsentry/src/sentry/~/react/lib/ReactUpdates.js",
-                                "pre_context": ["  // verify that that's the case. (This is called by each top-level update", "  // function, like setProps, setState, forceUpdate, etc.; creation and", "  // destruction of top-level components is guarded in ReactMount.)", "", "  if (!batchingStrategy.isBatchingUpdates) {"],
-                                "post_context": ["    return;", "  }", "", "  dirtyComponents.push(component);", "}"],
-                                "filename": "~/react/lib/ReactUpdates.js",
-                                "module": "react/lib/ReactUpdates",
-                                "colno": 0,
-                                "in_app": false,
-                                "data": {
-                                    "orig_filename": "/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js",
-                                    "orig_abs_path": "https://media.sentry.io/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js",
-                                    "sourcemap": "https://media.sentry.io/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js.map",
-                                    "orig_lineno": 37,
-                                    "orig_function": "Object.s [as enqueueUpdate]",
-                                    "orig_colno": 16101
-                                },
-                                "context_line": "    batchingStrategy.batchedUpdates(enqueueUpdate, component);",
-                                "lineno": 176
-                            }],
-                            "frames_omitted": null
-                        },
-                        "type": "TypeError",
-                        "value": "Cannot read property '1' of null",
-                        "module": null
-                    }]
-                },
-                "request": {
-                    "url": "https://sentry.io/katon-direct/localhost/issues/112734598/",
-                    "headers": [
-                        ["Referer", "https://sentry.io/welcome/"],
-                        ["User-Agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.109 Safari/537.36"]
-                    ]
-                },
-                "user": {
-                    "ip_address": "0.0.0.0",
-                    "id": "41656",
-                    "email": "test@example.com"
-                },
-                "version": "7",
-                "breadcrumbs": {
-                    "values": [
-                        {
-                            "category": "xhr",
-                            "timestamp": 1496395011.63,
-                            "type": "http",
-                            "data": {
-                                "url": "/api/path/here",
-                                "status_code": "500",
-                                "method": "POST"
-                            }
-                        }
-                    ]
-                }
-            }"""
-
-        event = Factories.create_event(
-            group=group,
-            event_id=event_id,
-            platform="javascript",
-            data=json.loads(payload),
-            # This payload already went through sourcemap
-            # processing, normalizing it would remove
-            # frame.data (orig_filename, etc)
-            normalize=False,
-        )
-        return event
-
-    @staticmethod
     def create_group(project, checksum=None, **kwargs):
         if checksum:
             warnings.warn("Checksum passed to create_group", DeprecationWarning)
@@ -939,11 +838,12 @@ class Factories(object):
         threshold_period=1,
         include_all_projects=False,
         excluded_projects=None,
+        date_added=None,
     ):
         if not name:
             name = petname.Generate(2, " ", letters=10).title()
 
-        return create_alert_rule(
+        alert_rule = create_alert_rule(
             organization,
             projects,
             name,
@@ -954,6 +854,11 @@ class Factories(object):
             include_all_projects=include_all_projects,
             excluded_projects=excluded_projects,
         )
+
+        if date_added is not None:
+            alert_rule.update(date_added=date_added)
+
+        return alert_rule
 
     @staticmethod
     def create_alert_rule_trigger(

@@ -39,8 +39,10 @@ class PushoverPluginTest(PluginTestCase):
         self.plugin.set_option("userkey", "abcdef", self.project)
         self.plugin.set_option("apikey", "ghijkl", self.project)
 
-        group = self.create_group(message="Hello world", culprit="foo.bar")
-        event = self.create_event(group=group, message="Hello world", tags={"level": "warning"})
+        event = self.store_event(
+            data={"message": "Hello world", "level": "warning"}, project_id=self.project.id
+        )
+        group = event.group
 
         rule = Rule.objects.create(project=self.project, label="my rule")
 
@@ -52,7 +54,7 @@ class PushoverPluginTest(PluginTestCase):
         request = responses.calls[0].request
         payload = parse_qs(request.body)
         assert payload == {
-            "message": ["{}\n\nTags: level=warning".format(event.get_legacy_message())],
+            "message": ["{}\n\nTags: level=warning".format(event.title)],
             "title": ["Bar: Hello world"],
             "url": [
                 "http://example.com/organizations/baz/issues/{}/?referrer=pushover_plugin".format(
@@ -76,8 +78,10 @@ class PushoverPluginTest(PluginTestCase):
         self.plugin.set_option("expire", 90, self.project)
         self.plugin.set_option("retry", 30, self.project)
 
-        group = self.create_group(message="Hello world", culprit="foo.bar")
-        event = self.create_event(group=group, message="Hello world", tags={"level": "warning"})
+        event = self.store_event(
+            data={"message": "Hello world", "level": "warning"}, project_id=self.project.id
+        )
+        group = event.group
 
         rule = Rule.objects.create(project=self.project, label="my rule")
 
@@ -89,7 +93,7 @@ class PushoverPluginTest(PluginTestCase):
         request = responses.calls[0].request
         payload = parse_qs(request.body)
         assert payload == {
-            "message": ["{}\n\nTags: level=warning".format(event.get_legacy_message())],
+            "message": ["{}\n\nTags: level=warning".format(event.title)],
             "title": ["Bar: Hello world"],
             "url": [
                 "http://example.com/organizations/baz/issues/{}/?referrer=pushover_plugin".format(
