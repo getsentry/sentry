@@ -269,7 +269,9 @@ class ProjectDebugSymbols extends AsyncComponent {
         <Panel>
           <PanelHeader hasButtons>
             <Box w={4.5 / 12}>{t('Debug ID')}</Box>
-            <Box flex="1">{t('Name')}</Box>
+            <Box minWidth="auto" flex="1">
+              {t('Name')}
+            </Box>
             <Box>
               {this.renderSearchInput({
                 updateRoute: true,
