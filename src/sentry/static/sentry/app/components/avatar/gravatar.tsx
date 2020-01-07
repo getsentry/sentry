@@ -4,28 +4,35 @@ import qs from 'query-string';
 import styled from 'react-emotion';
 
 import ConfigStore from 'app/stores/configStore';
+import {callIfFunction} from 'app/utils/callIfFunction';
 
 import {imageStyle} from './styles';
 
-class Gravatar extends React.Component {
+type Props = {
+  remoteSize: number;
+  gravatarId?: string;
+  placeholder?: string;
+  /**
+   * Should avatar be round instead of a square
+   */
+  round?: boolean;
+};
+
+type State = {
+  MD5?: any;
+};
+
+class Gravatar extends React.Component<Props, State> {
   static propTypes = {
     remoteSize: PropTypes.number,
     gravatarId: PropTypes.string,
     placeholder: PropTypes.string,
-    /**
-     * Should avatar be round instead of a square
-     */
     round: PropTypes.bool,
   };
 
-  static defaultProps = {};
-
-  constructor(props) {
-    super(props);
-    this.state = {
-      MD5: null,
-    };
-  }
+  state = {
+    MD5: undefined,
+  };
 
   componentDidMount() {
     this._isMounted = true;
@@ -46,11 +53,16 @@ class Gravatar extends React.Component {
     this._isMounted = false;
   }
 
+  private _isMounted: boolean = false;
+
   buildGravatarUrl = () => {
     const {gravatarId, remoteSize, placeholder} = this.props;
     let url = ConfigStore.getConfig().gravatarBaseUrl + '/avatar/';
 
-    url += this.state.MD5(gravatarId);
+    const md5 = callIfFunction(this.state.MD5, gravatarId);
+    if (md5) {
+      url += md5;
+    }
 
     const query = {
       s: remoteSize || undefined,
@@ -69,14 +81,14 @@ class Gravatar extends React.Component {
       return null;
     }
 
-    const {round, ...props} = this.props;
+    const {round} = this.props;
 
-    return <Image round={round} src={this.buildGravatarUrl()} {...props} />;
+    return <Image round={round} src={this.buildGravatarUrl()} />;
   }
 }
 
 export default Gravatar;
 
-const Image = styled('img')`
+const Image = styled('img')<{round?: boolean}>`
   ${imageStyle};
 `;

@@ -178,7 +178,6 @@ class BaseAvatar extends React.Component<Props, State> {
           gravatarId={gravatarId}
           round={round}
           remoteSize={DEFAULT_REMOTE_SIZE}
-          {...eventProps}
         />
       );
     }
