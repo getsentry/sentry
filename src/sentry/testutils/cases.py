@@ -804,6 +804,61 @@ class SnubaTestCase(BaseTestCase):
             "primary_hash": primary_hash,
         }
 
+    def to_snuba_time_format(self, datetime_value):
+        date_format = "%Y-%m-%d %H:%M:%S%z"
+        return datetime_value.strftime(date_format)
+
+    def __wrap_group(self, group):
+        return {
+            "event": "change",
+            "kind": "insert",
+            "table": "sentry_groupedmessage",
+            "columnnames": [
+                "id",
+                "logger",
+                "level",
+                "message",
+                "status",
+                "times_seen",
+                "last_seen",
+                "first_seen",
+                "data",
+                "score",
+                "project_id",
+                "time_spent_total",
+                "time_spent_count",
+                "resolved_at",
+                "active_at",
+                "is_public",
+                "platform",
+                "num_comments",
+                "first_release_id",
+                "short_id",
+            ],
+            "columnvalues": [
+                group.id,
+                group.logger,
+                group.level,
+                group.message,
+                group.status,
+                group.times_seen,
+                self.to_snuba_time_format(group.last_seen),
+                self.to_snuba_time_format(group.first_seen),
+                group.data,
+                group.score,
+                group.project.id,
+                group.time_spent_total,
+                group.time_spent_count,
+                group.resolved_at,
+                self.to_snuba_time_format(group.active_at),
+                group.is_public,
+                group.platform,
+                group.num_comments,
+                group.first_release.id if group.first_release else None,
+                group.short_id,
+            ],
+        }
+
     def snuba_insert(self, events):
         "Write a (wrapped) event (or events) to Snuba."
 
