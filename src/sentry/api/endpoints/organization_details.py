@@ -8,7 +8,7 @@ from uuid import uuid4
 
 from sentry import roles
 from sentry.api.base import DocSection
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.decorators import sudo_required
 from sentry.api.fields import AvatarField
 from sentry.api.fields.empty_integer import EmptyIntegerField
@@ -326,7 +326,17 @@ class OwnerOrganizationSerializer(OrganizationSerializer):
         return super(OwnerOrganizationSerializer, self).save(*args, **kwargs)
 
 
+class OrganizationDetailsPermission(OrganizationPermission):
+    scope_map = {
+        "GET": OrganizationPermission.scope_map["GET"] + ["org:billing"],
+        "POST": OrganizationPermission.scope_map["POST"],
+        "PUT": OrganizationPermission.scope_map["PUT"],
+        "DELETE": OrganizationPermission.scope_map["DELETE"],
+    }
+
+
 class OrganizationDetailsEndpoint(OrganizationEndpoint):
+    permission_classes = (OrganizationDetailsPermission,)
     doc_section = DocSection.ORGANIZATIONS
 
     @attach_scenarios([retrieve_organization_scenario])
