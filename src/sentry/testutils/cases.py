@@ -20,7 +20,6 @@ __all__ = (
 )
 
 import base64
-import calendar
 import contextlib
 import os
 import os.path
@@ -63,13 +62,10 @@ from sentry.auth.superuser import (
 from sentry.constants import MODULE_ROOT
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.models import (
-    GroupEnvironment,
-    GroupHash,
     GroupMeta,
     ProjectOption,
     Repository,
     DeletedOrganization,
-    Environment,
     Organization,
     TotpInterface,
     Dashboard,
@@ -769,13 +765,29 @@ class SnubaTestCase(BaseTestCase):
         self.snuba_eventstream = SnubaEventStream()
         self.snuba_tagstore = SnubaTagStorage()
         assert requests.post(settings.SENTRY_SNUBA + "/tests/events/drop").status_code == 200
+        assert (
+            requests.post(settings.SENTRY_SNUBA + "/tests/groupedmessage/drop").status_code == 200
+        )
         assert requests.post(settings.SENTRY_SNUBA + "/tests/transactions/drop").status_code == 200
 
     def store_event(self, *args, **kwargs):
         with contextlib.nested(
             mock.patch("sentry.eventstream.insert", self.snuba_eventstream.insert)
         ):
-            return Factories.store_event(*args, **kwargs)
+            stored_event = Factories.store_event(*args, **kwargs)
+            stored_group = stored_event.group
+            if stored_group is not None:
+                self.store_group(stored_group)
+            return stored_event
+
+    def store_group(self, group):
+        data = [self.__wrap_group(group)]
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + "/tests/groupedmessage/insert", data=json.dumps(data)
+            ).status_code
+            == 200
+        )
 
     def __wrap_event(self, event, data, primary_hash):
         # TODO: Abstract and combine this with the stream code in
@@ -792,41 +804,60 @@ class SnubaTestCase(BaseTestCase):
             "primary_hash": primary_hash,
         }
 
-    def create_event(self, *args, **kwargs):
-        """\
-        Takes the results from the existing `create_event` method and
-        inserts into the local test Snuba cluster so that tests can be
-        run against the same event data.
+    def to_snuba_time_format(self, datetime_value):
+        date_format = "%Y-%m-%d %H:%M:%S%z"
+        return datetime_value.strftime(date_format)
 
-        Note that we create a GroupHash as necessary because `create_event`
-        doesn't run them through the 'real' event pipeline. In a perfect
-        world all test events would go through the full regular pipeline.
-        """
-        # XXX: Use `store_event` instead of this!
-        event = Factories.create_event(*args, **kwargs)
-
-        data = event.data.data
-        tags = dict(data.get("tags", []))
-
-        if not data.get("received"):
-            data["received"] = calendar.timegm(event.datetime.timetuple())
-
-        if "environment" in tags:
-            environment = Environment.get_or_create(event.project, tags["environment"])
-
-            GroupEnvironment.objects.get_or_create(
-                environment_id=environment.id, group_id=event.group_id
-            )
-
-        primary_hash = event.get_primary_hash()
-
-        grouphash, _ = GroupHash.objects.get_or_create(
-            project=event.project, group=event.group, hash=primary_hash
-        )
-
-        self.snuba_insert(self.__wrap_event(event, data, grouphash.hash))
-
-        return event
+    def __wrap_group(self, group):
+        return {
+            "event": "change",
+            "kind": "insert",
+            "table": "sentry_groupedmessage",
+            "columnnames": [
+                "id",
+                "logger",
+                "level",
+                "message",
+                "status",
+                "times_seen",
+                "last_seen",
+                "first_seen",
+                "data",
+                "score",
+                "project_id",
+                "time_spent_total",
+                "time_spent_count",
+                "resolved_at",
+                "active_at",
+                "is_public",
+                "platform",
+                "num_comments",
+                "first_release_id",
+                "short_id",
+            ],
+            "columnvalues": [
+                group.id,
+                group.logger,
+                group.level,
+                group.message,
+                group.status,
+                group.times_seen,
+                self.to_snuba_time_format(group.last_seen),
+                self.to_snuba_time_format(group.first_seen),
+                group.data,
+                group.score,
+                group.project.id,
+                group.time_spent_total,
+                group.time_spent_count,
+                group.resolved_at,
+                self.to_snuba_time_format(group.active_at),
+                group.is_public,
+                group.platform,
+                group.num_comments,
+                group.first_release.id if group.first_release else None,
+                group.short_id,
+            ],
+        }
 
     def snuba_insert(self, events):
         "Write a (wrapped) event (or events) to Snuba."

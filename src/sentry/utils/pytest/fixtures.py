@@ -211,8 +211,9 @@ def default_group(factories, default_project):
 @pytest.mark.django_db
 @pytest.fixture(scope="function")
 def default_event(factories, default_group):
-    return factories.create_event(
-        group=default_group, event_id="a" * 32, message="\u3053\u3093\u306b\u3061\u306f"
+    return factories.store_event(
+        data={"event_id": "a" * 32, "message": "\u3053\u3093\u306b\u3061\u306f"},
+        project_id=default_project.id,
     )
 
 

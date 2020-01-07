@@ -1033,7 +1033,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
       </div>
     </Component>
   </Panel>
-  <Pagination
+  <Styled(Pagination)
     api={
       Client {
         "_chain": [Function],
@@ -1043,7 +1043,6 @@ exports[`OrganizationTeamProjects Should render 1`] = `
         "hasProjectBeenRenamed": [Function],
       }
     }
-    className="css-1yt0wm7-streamCss"
     location={
       Object {
         "query": Object {},
@@ -1084,6 +1083,59 @@ exports[`OrganizationTeamProjects Should render 1`] = `
         "teamId": "team-slug",
       }
     }
-  />
+  >
+    <Pagination
+      api={
+        Client {
+          "_chain": [Function],
+          "_wrapRequest": [Function],
+          "bulkUpdate": [Function],
+          "handleRequestError": [Function],
+          "hasProjectBeenRenamed": [Function],
+        }
+      }
+      className="css-yneqnx e1vkspke0"
+      location={
+        Object {
+          "query": Object {},
+        }
+      }
+      onCursor={[Function]}
+      organization={
+        Object {
+          "access": Array [
+            "org:read",
+            "org:write",
+            "org:admin",
+            "org:integrations",
+            "project:read",
+            "project:write",
+            "project:admin",
+            "team:read",
+            "team:write",
+            "team:admin",
+          ],
+          "features": Array [],
+          "id": "3",
+          "name": "Organization Name",
+          "onboardingTasks": Array [],
+          "projects": Array [],
+          "scrapeJavaScript": true,
+          "slug": "org-slug",
+          "status": Object {
+            "id": "active",
+            "name": "active",
+          },
+          "teams": Array [],
+        }
+      }
+      params={
+        Object {
+          "orgId": "org-slug",
+          "teamId": "team-slug",
+        }
+      }
+    />
+  </Styled(Pagination)>
 </TeamProjects>
 `;

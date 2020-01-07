@@ -679,20 +679,13 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
   ) => {
     const {span, spanBarColour, spanBarHatch, spanNumber} = this.props;
-
     const startTimestamp: number = span.start_timestamp;
     const endTimestamp: number = span.timestamp;
-
     const duration = Math.abs(endTimestamp - startTimestamp);
-
     const durationString = getHumanDuration(duration);
-
     const bounds = this.getBounds();
-
     const {dividerPosition} = dividerHandlerChildrenProps;
-
     const displaySpanBar = defined(bounds.left) && defined(bounds.width);
-
     const durationDisplay = getDurationDisplay(bounds);
 
     return (
@@ -716,7 +709,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         >
           {displaySpanBar && (
             <SpanBarRectangle
-              spanBarHatch={spanBarHatch}
+              spanBarHatch={!!spanBarHatch}
               style={{
                 backgroundColor: spanBarColour,
                 left: toPercent(bounds.left || 0),
@@ -726,6 +719,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
               <DurationPill
                 durationDisplay={durationDisplay}
                 showDetail={this.state.showDetail}
+                spanBarHatch={!!spanBarHatch}
               >
                 {durationString}
                 {this.renderWarningText({warningText: bounds.warning})}
@@ -955,7 +949,15 @@ const SpanTreeToggler = styled('div')<SpanTreeTogglerAndDivProps>`
   ${p => getTogglerTheme(p)}
 `;
 
-const getDurationPillAlignment = ({durationDisplay}) => {
+const getDurationPillAlignment = ({
+  durationDisplay,
+  theme,
+  spanBarHatch,
+}: {
+  durationDisplay: DurationDisplay;
+  theme: any;
+  spanBarHatch: boolean;
+}) => {
   switch (durationDisplay) {
     case 'left':
       return `right: calc(100% + ${space(0.5)});`;
@@ -964,7 +966,7 @@ const getDurationPillAlignment = ({durationDisplay}) => {
     default:
       return `
         right: ${space(0.75)};
-        color: #fff;
+        color: ${spanBarHatch === true ? theme.gray2 : theme.white};
       `;
   }
 };
@@ -972,6 +974,7 @@ const getDurationPillAlignment = ({durationDisplay}) => {
 const DurationPill = styled('div')<{
   durationDisplay: DurationDisplay;
   showDetail: boolean;
+  spanBarHatch: boolean;
 }>`
   position: absolute;
   top: 50%;
@@ -1000,7 +1003,7 @@ const getHatchPattern = ({spanBarHatch}) => {
   return null;
 };
 
-const SpanBarRectangle = styled('div')`
+const SpanBarRectangle = styled('div')<{spanBarHatch: boolean}>`
   position: relative;
   height: 100%;
   min-width: 1px;
