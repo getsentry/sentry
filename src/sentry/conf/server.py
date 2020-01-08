@@ -840,7 +840,9 @@ SENTRY_FEATURES = {
     "organizations:invite-members": True,
     # Enable org-wide saved searches and user pinned search
     "organizations:org-saved-searches": False,
-    # Enable the relay functionality, for use with sentry semaphore. See
+    # Enable access to more advanced (alpha) datascrubbing settings.
+    "organizations:datascrubbers-v2": False,
+    # Enable usage of external relays, for use with sentry semaphore. See
     # https://github.com/getsentry/semaphore.
     "organizations:relay": False,
     # Enable basic SSO functionality, providing configurable single sign on
