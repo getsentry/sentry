@@ -1,5 +1,16 @@
-Version 10.0 (Unreleased)
+Version 10.1 (Unreleased)
 -------------------------
+
+Version 10.0
+-------------------------
+
+Please refer to our blog post: https://blog.sentry.io/2020/01/07/self-hosted-sentry-10-is-ready-to-serve-get-it-while-its-hot/
+
+Version 9.1.2
+-------------
+
+- Bug fixes from 9.1.1 release.
+- See https://github.com/getsentry/sentry/releases/tag/9.1.2 for a summary
 
 Version 9.1.1
 -------------

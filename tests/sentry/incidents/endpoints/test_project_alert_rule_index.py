@@ -117,7 +117,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
         assert resp.status_code == 403
 
 
-class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestCase, TestCase):
+class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, TestCase):
     def setup_project_and_rules(self):
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
@@ -155,22 +155,6 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestC
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )
         assert response.status_code == 400
-
-    def test_limit_higher_than_cap(self):
-        pass  # TODO: Make limit a variable, so we can set it low for this test and avoid doing so many DB operations for a not-so-important test.
-        # self.setup_project_and_rules()
-        # for _ in range(125):
-        #     self.create_alert_rule(projects=self.projects)
-
-        # # Test limit above result cap (which is 100), no cursor.
-        # with self.feature("organizations:incidents"):
-        #     request_data = {"limit": "125"}
-        #     response = self.client.get(
-        #         path=self.combined_rules_url, data=request_data, content_type="application/json"
-        #     )
-        # assert response.status_code == 200
-        # result = json.loads(response.content)
-        # assert len(result) == 100
 
     def test_limit_higher_than_results_no_cursor(self):
         self.setup_project_and_rules()
@@ -274,17 +258,14 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestC
     def test_offset_pagination(self):
         self.setup_project_and_rules()
 
+        date_added = before_now(minutes=1)
         self.one_alert_rule = self.create_alert_rule(
-            projects=self.projects, date_added=before_now(minutes=2).replace(tzinfo=pytz.UTC)
+            projects=self.projects, date_added=date_added.replace(tzinfo=pytz.UTC)
         )
         self.two_alert_rule = self.create_alert_rule(
-            projects=self.projects, date_added=before_now(minutes=1).replace(tzinfo=pytz.UTC)
+            projects=self.projects, date_added=date_added.replace(tzinfo=pytz.UTC)
         )
         self.three_alert_rule = self.create_alert_rule(projects=self.projects)
-
-        # Modify 2nd rule to be date of 3rd rule. Second page offset should now be 1, or else we'll get the incorrect results (we should get one_alert_rule on the second page, but without an offset we would get two_alert_rule).
-        self.one_alert_rule.date_added = self.two_alert_rule.date_added
-        self.one_alert_rule.save()
 
         with self.feature("organizations:incidents"):
             request_data = {"limit": "2"}
