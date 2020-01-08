@@ -8,21 +8,17 @@ import Results from 'app/views/eventsV2/results';
 const FIELDS = [
   {
     field: 'title',
-    title: 'Custom Title',
   },
   {
     field: 'timestamp',
-    title: 'Custom Time',
   },
   {
     field: 'user',
-    title: 'Custom User',
   },
 ];
 
 const generateFields = () => {
   return {
-    fieldnames: FIELDS.map(i => i.title),
     field: FIELDS.map(i => i.field),
   };
 };
