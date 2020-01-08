@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 
 type Props = {
@@ -23,6 +24,12 @@ const FlowLayout = styled('div')<Props>`
   justify-content: ${p => (p.center ? 'center' : null)};
   overflow: ${p => (p.truncate ? 'hidden' : null)};
 `;
+
+FlowLayout.propTypes = {
+  center: PropTypes.bool,
+  vertical: PropTypes.bool,
+  truncate: PropTypes.bool,
+};
 
 FlowLayout.defaultProps = {
   truncate: true,
