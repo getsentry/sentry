@@ -54,7 +54,6 @@ class RouteError extends React.Component {
         error.message = `${error.message}: ${route}`;
       } catch (e) {
         Sentry.withScope(scope => {
-          scope.setFingerprint(['route-error', 'error-message-mutation-error']);
           enrichScopeContext(scope);
           Sentry.captureException(e);
         });
