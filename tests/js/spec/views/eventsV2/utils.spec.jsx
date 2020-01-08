@@ -246,21 +246,18 @@ describe('decodeColumnOrder', function() {
   });
 
   it('can decode fields', function() {
-    const results = decodeColumnOrder([
-      {field: 'title', title: 'Event title', width: 123},
-    ]);
+    const results = decodeColumnOrder([{field: 'title', width: 123}]);
 
     expect(Array.isArray(results)).toBeTruthy();
 
     expect(results[0]).toEqual({
       key: 'title',
-      name: 'Event title',
+      name: 'title',
       aggregation: '',
       field: 'title',
       width: 123,
       eventViewField: {
         field: 'title',
-        title: 'Event title',
         width: 123,
       },
       isDragging: false,
@@ -271,21 +268,18 @@ describe('decodeColumnOrder', function() {
   });
 
   it('can decode aggregate functions with no arguments', function() {
-    const results = decodeColumnOrder([
-      {field: 'count()', title: 'projects', width: 123},
-    ]);
+    const results = decodeColumnOrder([{field: 'count()', width: 123}]);
 
     expect(Array.isArray(results)).toBeTruthy();
 
     expect(results[0]).toEqual({
       key: 'count()',
-      name: 'projects',
+      name: 'count()',
       aggregation: 'count',
       field: '',
       width: 123,
       eventViewField: {
         field: 'count()',
-        title: 'projects',
         width: 123,
       },
       isDragging: false,
@@ -296,19 +290,17 @@ describe('decodeColumnOrder', function() {
   });
 
   it('can decode elements with aggregate functions with arguments', function() {
-    const results = decodeColumnOrder([
-      {field: 'avg(transaction.duration)', title: 'average'},
-    ]);
+    const results = decodeColumnOrder([{field: 'avg(transaction.duration)'}]);
 
     expect(Array.isArray(results)).toBeTruthy();
 
     expect(results[0]).toEqual({
       key: 'avg(transaction.duration)',
-      name: 'average',
+      name: 'avg(transaction.duration)',
       aggregation: 'avg',
       field: 'transaction.duration',
       width: COL_WIDTH_NUMBER,
-      eventViewField: {field: 'avg(transaction.duration)', title: 'average'},
+      eventViewField: {field: 'avg(transaction.duration)'},
       isDragging: false,
       isPrimary: false,
       isSortable: true,
@@ -321,10 +313,7 @@ describe('pushEventViewToLocation', function() {
   const state = {
     id: '1234',
     name: 'best query',
-    fields: [
-      {field: 'count()', title: 'events'},
-      {field: 'project.id', title: 'project'},
-    ],
+    fields: [{field: 'count()'}, {field: 'project.id'}],
     sorts: [{field: 'count', kind: 'desc'}],
     tags: ['foo', 'bar'],
     query: 'event.type:error',
@@ -354,7 +343,6 @@ describe('pushEventViewToLocation', function() {
         id: '1234',
         name: 'best query',
         field: ['count()', 'project.id'],
-        fieldnames: ['events', 'project'],
         widths: [COL_WIDTH_UNDEFINED, COL_WIDTH_UNDEFINED],
         sort: ['-count'],
         tag: ['foo', 'bar'],
@@ -384,7 +372,6 @@ describe('pushEventViewToLocation', function() {
         id: '1234',
         name: 'best query',
         field: ['count()', 'project.id'],
-        fieldnames: ['events', 'project'],
         widths: [COL_WIDTH_UNDEFINED, COL_WIDTH_UNDEFINED],
         sort: ['-count'],
         tag: ['foo', 'bar'],

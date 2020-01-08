@@ -9,7 +9,6 @@ const generateFields = fields => {
   return fields.map(field => {
     return {
       field,
-      title: field,
     };
   });
 };
@@ -51,7 +50,6 @@ describe('EventView.fromLocation()', function() {
         id: '42',
         name: 'best query',
         field: ['count()', 'id'],
-        fieldnames: ['events', 'projects'],
         widths: ['123', '456'],
         sort: ['title', '-count'],
         tag: ['foo', 'bar'],
@@ -70,10 +68,7 @@ describe('EventView.fromLocation()', function() {
     expect(eventView).toMatchObject({
       id: '42',
       name: 'best query',
-      fields: [
-        {field: 'count()', title: 'events', width: 123},
-        {field: 'id', title: 'projects', width: 456},
-      ],
+      fields: [{field: 'count()', width: 123}, {field: 'id', width: 456}],
       sorts: generateSorts(['count']),
       tags: ['foo', 'bar'],
       query: 'event.type:transaction',
@@ -92,7 +87,6 @@ describe('EventView.fromLocation()', function() {
         id: '42',
         name: 'best query',
         field: ['count()', 'id'],
-        fieldnames: ['events', 'projects'],
         widths: ['123', '456'],
         sort: ['title', '-count'],
         tag: ['foo', 'bar'],
@@ -110,10 +104,7 @@ describe('EventView.fromLocation()', function() {
     expect(eventView).toMatchObject({
       id: '42',
       name: 'best query',
-      fields: [
-        {field: 'count()', title: 'events', width: 123},
-        {field: 'id', title: 'projects', width: 456},
-      ],
+      fields: [{field: 'count()', width: 123}, {field: 'id', width: 456}],
       sorts: generateSorts(['count']),
       tags: ['foo', 'bar'],
       query: 'event.type:transaction',
@@ -131,7 +122,6 @@ describe('EventView.fromLocation()', function() {
         id: '42',
         name: 'best query',
         field: ['count()', 'id'],
-        fieldnames: ['events', 'projects'],
         widths: ['123', '456'],
         sort: ['title', '-count'],
         tag: ['foo', 'bar'],
@@ -148,10 +138,7 @@ describe('EventView.fromLocation()', function() {
     expect(eventView).toMatchObject({
       id: '42',
       name: 'best query',
-      fields: [
-        {field: 'count()', title: 'events', width: 123},
-        {field: 'id', title: 'projects', width: 456},
-      ],
+      fields: [{field: 'count()', width: 123}, {field: 'id', width: 456}],
       sorts: generateSorts(['count']),
       tags: ['foo', 'bar'],
       query: 'event.type:transaction',
@@ -206,8 +193,8 @@ describe('EventView.fromSavedQuery()', function() {
       id: saved.id,
       name: saved.name,
       fields: [
-        {field: 'count()', title: 'count()', width: COL_WIDTH_UNDEFINED},
-        {field: 'id', title: 'id', width: COL_WIDTH_UNDEFINED},
+        {field: 'count()', width: COL_WIDTH_UNDEFINED},
+        {field: 'id', width: COL_WIDTH_UNDEFINED},
       ],
       sorts: [{field: 'id', kind: 'desc'}],
       tags: [],
@@ -229,8 +216,8 @@ describe('EventView.fromSavedQuery()', function() {
       id: saved.id,
       name: saved.name,
       fields: [
-        {field: 'count()', title: 'count()', width: COL_WIDTH_UNDEFINED},
-        {field: 'id', title: 'id', width: COL_WIDTH_UNDEFINED},
+        {field: 'count()', width: COL_WIDTH_UNDEFINED},
+        {field: 'id', width: COL_WIDTH_UNDEFINED},
       ],
       sorts: [{field: 'id', kind: 'desc'}],
       tags: [],
@@ -248,7 +235,6 @@ describe('EventView.fromSavedQuery()', function() {
       orderby: '-count_id',
       name: 'foo bar',
       fields: ['release', 'count(id)'],
-      fieldnames: ['Release tags', 'counts'],
       widths: [111, 222],
       dateCreated: '2019-10-30T06:13:17.632078Z',
       environment: ['dev', 'production'],
@@ -265,10 +251,7 @@ describe('EventView.fromSavedQuery()', function() {
     const expected = {
       id: '5',
       name: 'foo bar',
-      fields: [
-        {field: 'release', title: 'Release tags', width: 111},
-        {field: 'count(id)', title: 'counts', width: 222},
-      ],
+      fields: [{field: 'release', width: 111}, {field: 'count(id)', width: 222}],
       sorts: generateSorts(['count_id']),
       query: '',
       project: [1],
@@ -283,15 +266,14 @@ describe('EventView.fromSavedQuery()', function() {
     const saved = {
       name: 'best query',
       fields: ['count()', 'title'],
-      fieldnames: ['volume', 'caption'],
       range: '14d',
       start: '',
       end: '',
     };
     const eventView = EventView.fromSavedQuery(saved);
     expect(eventView.fields).toEqual([
-      {field: 'count()', title: 'volume', width: COL_WIDTH_UNDEFINED},
-      {field: 'title', title: 'caption', width: COL_WIDTH_UNDEFINED},
+      {field: 'count()', width: COL_WIDTH_UNDEFINED},
+      {field: 'title', width: COL_WIDTH_UNDEFINED},
     ]);
     expect(eventView.name).toEqual(saved.name);
     expect(eventView.statsPeriod).toEqual('14d');
@@ -305,7 +287,6 @@ describe('EventView.fromSavedQuery()', function() {
       end: '2019-10-23T19:27:04+0000',
       name: 'release query',
       fields: ['release', 'count(timestamp)'],
-      fieldnames: ['release', 'counts'],
       dateCreated: '2019-10-30T05:10:23.718937Z',
       environment: ['dev', 'production'],
       start: '2019-10-20T21:02:51+0000',
@@ -347,7 +328,6 @@ describe('EventView.fromSavedQuery()', function() {
       end: '2019-10-23T19:27:04+0000',
       name: 'release query',
       fields: ['release', 'count(timestamp)'],
-      fieldnames: ['release', 'counts'],
       dateCreated: '2019-10-30T05:10:23.718937Z',
       environment: ['dev', 'production'],
       start: '2019-10-20T21:02:51+0000',
@@ -386,7 +366,6 @@ describe('EventView.fromNewQueryWithLocation()', function() {
     query: '',
     projects: [],
     fields: ['title', 'event.type', 'project', 'user', 'timestamp'],
-    fieldnames: ['title', 'type', 'project', 'user', 'time'],
     orderby: '-timestamp',
     version: 2,
     tags: [
@@ -412,11 +391,11 @@ describe('EventView.fromNewQueryWithLocation()', function() {
       id: undefined,
       name: 'All Events',
       fields: [
-        {field: 'title', title: 'title'},
-        {field: 'event.type', title: 'type'},
-        {field: 'project', title: 'project'},
-        {field: 'user', title: 'user'},
-        {field: 'timestamp', title: 'time'},
+        {field: 'title'},
+        {field: 'event.type'},
+        {field: 'project'},
+        {field: 'user'},
+        {field: 'timestamp'},
       ],
       sorts: [{field: 'timestamp', kind: 'desc'}],
       tags: [
@@ -453,11 +432,11 @@ describe('EventView.fromNewQueryWithLocation()', function() {
       id: undefined,
       name: 'All Events',
       fields: [
-        {field: 'title', title: 'title'},
-        {field: 'event.type', title: 'type'},
-        {field: 'project', title: 'project'},
-        {field: 'user', title: 'user'},
-        {field: 'timestamp', title: 'time'},
+        {field: 'title'},
+        {field: 'event.type'},
+        {field: 'project'},
+        {field: 'user'},
+        {field: 'timestamp'},
       ],
       sorts: [{field: 'timestamp', kind: 'desc'}],
       tags: [
@@ -500,11 +479,11 @@ describe('EventView.fromNewQueryWithLocation()', function() {
       id: undefined,
       name: 'All Events',
       fields: [
-        {field: 'title', title: 'title'},
-        {field: 'event.type', title: 'type'},
-        {field: 'project', title: 'project'},
-        {field: 'user', title: 'user'},
-        {field: 'timestamp', title: 'time'},
+        {field: 'title'},
+        {field: 'event.type'},
+        {field: 'project'},
+        {field: 'user'},
+        {field: 'timestamp'},
       ],
       sorts: [{field: 'timestamp', kind: 'desc'}],
       tags: [
@@ -549,11 +528,11 @@ describe('EventView.fromNewQueryWithLocation()', function() {
       id: undefined,
       name: 'All Events',
       fields: [
-        {field: 'title', title: 'title'},
-        {field: 'event.type', title: 'type'},
-        {field: 'project', title: 'project'},
-        {field: 'user', title: 'user'},
-        {field: 'timestamp', title: 'time'},
+        {field: 'title'},
+        {field: 'event.type'},
+        {field: 'project'},
+        {field: 'user'},
+        {field: 'timestamp'},
       ],
       sorts: [{field: 'timestamp', kind: 'desc'}],
       tags: [
@@ -593,7 +572,6 @@ describe('EventView.generateQueryStringObject()', function() {
       id: undefined,
       name: undefined,
       field: ['id', 'title'],
-      fieldnames: ['id', 'title'],
       widths: [COL_WIDTH_UNDEFINED, COL_WIDTH_UNDEFINED],
       sort: [],
       tag: [],
@@ -609,10 +587,7 @@ describe('EventView.generateQueryStringObject()', function() {
     const state = {
       id: '1234',
       name: 'best query',
-      fields: [
-        {field: 'count()', title: 'events', width: 123},
-        {field: 'project.id', title: 'project', width: 456},
-      ],
+      fields: [{field: 'count()', width: 123}, {field: 'project.id', width: 456}],
       sorts: generateSorts(['count']),
       tags: ['foo', 'bar'],
       query: 'event.type:error',
@@ -630,7 +605,6 @@ describe('EventView.generateQueryStringObject()', function() {
       id: '1234',
       name: 'best query',
       field: ['count()', 'project.id'],
-      fieldnames: ['events', 'project'],
       widths: [123, 456],
       sort: ['-count'],
       tag: ['foo', 'bar'],
@@ -646,31 +620,28 @@ describe('EventView.generateQueryStringObject()', function() {
     expect(eventView.generateQueryStringObject()).toEqual(expected);
   });
 
-  it('encodes fields and fieldnames', function() {
+  it('encodes fields', function() {
     const eventView = new EventView({
-      fields: [{field: 'id', title: 'ID'}, {field: 'title', title: 'Event'}],
+      fields: [{field: 'id'}, {field: 'title'}],
       tags: [],
       sorts: [],
     });
     const query = eventView.generateQueryStringObject();
     expect(query.field).toEqual(['id', 'title']);
-    expect(query.fieldnames).toEqual(['ID', 'Event']);
   });
 
   it('returns a copy of data preventing mutation', function() {
     const eventView = new EventView({
-      fields: [{field: 'id', title: 'ID'}, {field: 'title', title: 'Event'}],
+      fields: [{field: 'id'}, {field: 'title'}],
       tags: [],
       sorts: [],
     });
     const query = eventView.generateQueryStringObject();
     query.field.push('newthing');
-    query.fieldnames.push('new thing');
 
     // Getting the query again should return the original values.
     const secondQuery = eventView.generateQueryStringObject();
     expect(secondQuery.field).toEqual(['id', 'title']);
-    expect(secondQuery.fieldnames).toEqual(['ID', 'Event']);
 
     expect(query).not.toEqual(secondQuery);
   });
@@ -969,10 +940,7 @@ describe('EventView.toNewQuery()', function() {
   const state = {
     id: '1234',
     name: 'best query',
-    fields: [
-      {field: 'count()', title: 'events', width: 123},
-      {field: 'project.id', title: 'project', width: 456},
-    ],
+    fields: [{field: 'count()', width: 123}, {field: 'project.id', width: 456}],
     sorts: generateSorts(['count']),
     tags: ['foo', 'bar'],
     query: 'event.type:error',
@@ -992,7 +960,6 @@ describe('EventView.toNewQuery()', function() {
       version: 2,
       id: '1234',
       name: 'best query',
-      fieldnames: ['events', 'project'],
       fields: ['count()', 'project.id'],
       widths: ['123', '456'],
       orderby: '-count',
@@ -1023,7 +990,6 @@ describe('EventView.toNewQuery()', function() {
       version: 2,
       id: '1234',
       name: 'best query',
-      fieldnames: ['events', 'project'],
       fields: ['count()', 'project.id'],
       widths: ['123', '456'],
       orderby: '-count',
@@ -1053,7 +1019,6 @@ describe('EventView.toNewQuery()', function() {
       version: 2,
       id: '1234',
       name: 'best query',
-      fieldnames: ['events', 'project'],
       fields: ['count()', 'project.id'],
       widths: ['123', '456'],
       orderby: '-count',
@@ -1072,10 +1037,7 @@ describe('EventView.toNewQuery()', function() {
 describe('EventView.isValid()', function() {
   it('event view is valid when there is at least one field', function() {
     const eventView = new EventView({
-      fields: [
-        {field: 'count()', title: 'count'},
-        {field: 'project.id', title: 'project'},
-      ],
+      fields: [{field: 'count()'}, {field: 'project.id'}],
       sorts: [],
       tags: [],
       project: [],
@@ -1096,29 +1058,10 @@ describe('EventView.isValid()', function() {
   });
 });
 
-describe('EventView.getFieldNames()', function() {
-  it('returns field names', function() {
-    const eventView = new EventView({
-      fields: [
-        {field: 'count()', title: 'events'},
-        {field: 'project.id', title: 'project'},
-      ],
-      sorts: [],
-      tags: [],
-      project: [],
-    });
-
-    expect(eventView.getFieldNames()).toEqual(['events', 'project']);
-  });
-});
-
 describe('EventView.getFields()', function() {
   it('returns fields', function() {
     const eventView = new EventView({
-      fields: [
-        {field: 'count()', title: 'events'},
-        {field: 'project.id', title: 'project'},
-      ],
+      fields: [{field: 'count()'}, {field: 'project.id'}],
       sorts: [],
       tags: [],
       project: [],
@@ -1131,10 +1074,7 @@ describe('EventView.getFields()', function() {
 describe('EventView.hasAutolinkField()', function() {
   it('returns false when none of the fields are auto-linkable', function() {
     const eventView = new EventView({
-      fields: [
-        {field: 'count()', title: 'events'},
-        {field: 'project.id', title: 'project'},
-      ],
+      fields: [{field: 'count()'}, {field: 'project.id'}],
       sorts: [],
       tags: [],
       project: [],
@@ -1162,10 +1102,7 @@ describe('EventView.numOfColumns()', function() {
     // has columns
 
     const eventView = new EventView({
-      fields: [
-        {field: 'count()', title: 'events'},
-        {field: 'project.id', title: 'project'},
-      ],
+      fields: [{field: 'count()'}, {field: 'project.id'}],
       sorts: [],
       tags: [],
       project: [],
@@ -1191,10 +1128,7 @@ describe('EventView.clone()', function() {
     const state = {
       id: '1234',
       name: 'best query',
-      fields: [
-        {field: 'count()', title: 'events'},
-        {field: 'project.id', title: 'project'},
-      ],
+      fields: [{field: 'count()'}, {field: 'project.id'}],
       sorts: generateSorts(['count']),
       tags: ['foo', 'bar'],
       query: 'event.type:error',
@@ -1221,10 +1155,7 @@ describe('EventView.withNewColumn()', function() {
   const state = {
     id: '1234',
     name: 'best query',
-    fields: [
-      {field: 'count()', title: 'events'},
-      {field: 'project.id', title: 'project'},
-    ],
+    fields: [{field: 'count()'}, {field: 'project.id'}],
     sorts: generateSorts(['count']),
     tags: ['foo', 'bar'],
     query: 'event.type:error',
@@ -1241,7 +1172,6 @@ describe('EventView.withNewColumn()', function() {
     const newColumn = {
       aggregation: '',
       field: 'title',
-      fieldname: 'event title',
     };
 
     const eventView2 = eventView.withNewColumn(newColumn);
@@ -1252,7 +1182,7 @@ describe('EventView.withNewColumn()', function() {
 
     const nextState = {
       ...state,
-      fields: [...state.fields, {field: 'title', title: 'event title'}],
+      fields: [...state.fields, {field: 'title'}],
     };
 
     expect(eventView2).toMatchObject(nextState);
@@ -1264,7 +1194,6 @@ describe('EventView.withNewColumn()', function() {
     const newColumn = {
       aggregation: 'count',
       field: '',
-      fieldname: 'another count column',
     };
 
     const eventView2 = eventView.withNewColumn(newColumn);
@@ -1275,7 +1204,7 @@ describe('EventView.withNewColumn()', function() {
 
     const nextState = {
       ...state,
-      fields: [...state.fields, {field: 'count()', title: 'another count column'}],
+      fields: [...state.fields, {field: 'count()'}],
     };
 
     expect(eventView2).toMatchObject(nextState);
@@ -1287,7 +1216,6 @@ describe('EventView.withNewColumn()', function() {
     const newColumn = {
       aggregation: 'avg',
       field: 'transaction.duration',
-      fieldname: 'average',
     };
 
     const eventView2 = eventView.withNewColumn(newColumn);
@@ -1298,7 +1226,7 @@ describe('EventView.withNewColumn()', function() {
 
     const nextState = {
       ...state,
-      fields: [...state.fields, {field: 'avg(transaction.duration)', title: 'average'}],
+      fields: [...state.fields, {field: 'avg(transaction.duration)'}],
     };
 
     expect(eventView2).toMatchObject(nextState);
@@ -1309,10 +1237,7 @@ describe('EventView.withUpdatedColumn()', function() {
   const state = {
     id: '1234',
     name: 'best query',
-    fields: [
-      {field: 'count()', title: 'events'},
-      {field: 'project.id', title: 'project'},
-    ],
+    fields: [{field: 'count()'}, {field: 'project.id'}],
     sorts: generateSorts(['count']),
     tags: ['foo', 'bar'],
     query: 'event.type:error',
@@ -1333,7 +1258,6 @@ describe('EventView.withUpdatedColumn()', function() {
     const newColumn = {
       aggregation: 'count',
       field: '',
-      fieldname: 'events',
     };
 
     const eventView2 = eventView.withUpdatedColumn(0, newColumn, meta);
@@ -1348,7 +1272,6 @@ describe('EventView.withUpdatedColumn()', function() {
     const newColumn = {
       aggregation: '',
       field: 'title',
-      fieldname: 'event title',
     };
 
     const eventView2 = eventView.withUpdatedColumn(1, newColumn, meta);
@@ -1359,7 +1282,7 @@ describe('EventView.withUpdatedColumn()', function() {
 
     const nextState = {
       ...state,
-      fields: [state.fields[0], {field: 'title', title: 'event title'}],
+      fields: [state.fields[0], {field: 'title'}],
     };
 
     expect(eventView2).toMatchObject(nextState);
@@ -1371,7 +1294,6 @@ describe('EventView.withUpdatedColumn()', function() {
     const newColumn = {
       aggregation: 'count',
       field: '',
-      fieldname: 'counts',
     };
 
     const eventView2 = eventView.withUpdatedColumn(1, newColumn, meta);
@@ -1382,7 +1304,7 @@ describe('EventView.withUpdatedColumn()', function() {
 
     const nextState = {
       ...state,
-      fields: [state.fields[0], {field: 'count()', title: 'counts'}],
+      fields: [state.fields[0], {field: 'count()'}],
     };
 
     expect(eventView2).toMatchObject(nextState);
@@ -1394,7 +1316,6 @@ describe('EventView.withUpdatedColumn()', function() {
     const newColumn = {
       aggregation: 'avg',
       field: 'transaction.duration',
-      fieldname: 'average',
     };
 
     const eventView2 = eventView.withUpdatedColumn(1, newColumn, meta);
@@ -1405,7 +1326,7 @@ describe('EventView.withUpdatedColumn()', function() {
 
     const nextState = {
       ...state,
-      fields: [state.fields[0], {field: 'avg(transaction.duration)', title: 'average'}],
+      fields: [state.fields[0], {field: 'avg(transaction.duration)'}],
     };
 
     expect(eventView2).toMatchObject(nextState);
@@ -1418,7 +1339,6 @@ describe('EventView.withUpdatedColumn()', function() {
       const newColumn = {
         aggregation: '',
         field: 'title',
-        fieldname: 'event title',
       };
 
       const eventView2 = eventView.withUpdatedColumn(0, newColumn, meta);
@@ -1430,7 +1350,7 @@ describe('EventView.withUpdatedColumn()', function() {
       const nextState = {
         ...state,
         sorts: [{field: 'title', kind: 'desc'}],
-        fields: [{field: 'title', title: 'event title'}, state.fields[1]],
+        fields: [{field: 'title'}, state.fields[1]],
       };
 
       expect(eventView2).toMatchObject(nextState);
@@ -1439,7 +1359,7 @@ describe('EventView.withUpdatedColumn()', function() {
     it('the sorted column occurs at least twice', function() {
       const modifiedState = {
         ...state,
-        fields: [...state.fields, {field: 'count()', title: 'events 2'}],
+        fields: [...state.fields, {field: 'count()'}],
       };
 
       const eventView = new EventView(modifiedState);
@@ -1447,7 +1367,6 @@ describe('EventView.withUpdatedColumn()', function() {
       const newColumn = {
         aggregation: '',
         field: 'title',
-        fieldname: 'event title',
       };
 
       const eventView2 = eventView.withUpdatedColumn(0, newColumn, meta);
@@ -1458,11 +1377,7 @@ describe('EventView.withUpdatedColumn()', function() {
 
       const nextState = {
         ...state,
-        fields: [
-          {field: 'title', title: 'event title'},
-          state.fields[1],
-          {field: 'count()', title: 'events 2'},
-        ],
+        fields: [{field: 'title'}, state.fields[1], {field: 'count()'}],
       };
 
       expect(eventView2).toMatchObject(nextState);
@@ -1477,13 +1392,12 @@ describe('EventView.withUpdatedColumn()', function() {
       const expected = {
         ...state,
         sorts: [{field: 'title', kind: 'desc'}],
-        fields: [{field: 'title', title: 'event title'}, state.fields[1]],
+        fields: [{field: 'title'}, state.fields[1]],
       };
 
       const newColumn = {
         aggregation: '',
         field: 'title',
-        fieldname: 'event title',
       };
 
       const eventView2 = eventView.withUpdatedColumn(0, newColumn, {});
@@ -1501,10 +1415,7 @@ describe('EventView.withUpdatedColumn()', function() {
     it('default to a sortable column', function() {
       const modifiedState = {
         ...state,
-        fields: [
-          {field: 'count()', title: 'events'},
-          {field: 'title', title: 'event title'},
-        ],
+        fields: [{field: 'count()'}, {field: 'title'}],
       };
 
       const eventView = new EventView(modifiedState);
@@ -1513,7 +1424,6 @@ describe('EventView.withUpdatedColumn()', function() {
       const newColumn = {
         aggregation: '',
         field: 'project.id',
-        fieldname: 'project',
       };
 
       const eventView2 = eventView.withUpdatedColumn(0, newColumn, meta);
@@ -1525,10 +1435,7 @@ describe('EventView.withUpdatedColumn()', function() {
       const nextState = {
         ...state,
         sorts: [{field: 'title', kind: 'desc'}],
-        fields: [
-          {field: 'project.id', title: 'project'},
-          {field: 'title', title: 'event title'},
-        ],
+        fields: [{field: 'project.id'}, {field: 'title'}],
       };
 
       expect(eventView2).toMatchObject(nextState);
@@ -1537,7 +1444,7 @@ describe('EventView.withUpdatedColumn()', function() {
     it('has no sort if there are no sortable columns', function() {
       const modifiedState = {
         ...state,
-        fields: [{field: 'count()', title: 'events'}],
+        fields: [{field: 'count()'}],
       };
 
       const eventView = new EventView(modifiedState);
@@ -1546,7 +1453,6 @@ describe('EventView.withUpdatedColumn()', function() {
       const newColumn = {
         aggregation: '',
         field: 'project.id',
-        fieldname: 'project',
       };
 
       const eventView2 = eventView.withUpdatedColumn(0, newColumn, meta);
@@ -1558,7 +1464,7 @@ describe('EventView.withUpdatedColumn()', function() {
       const nextState = {
         ...state,
         sorts: [],
-        fields: [{field: 'project.id', title: 'project'}],
+        fields: [{field: 'project.id'}],
       };
 
       expect(eventView2).toMatchObject(nextState);
@@ -1570,10 +1476,7 @@ describe('EventView.withDeletedColumn()', function() {
   const state = {
     id: '1234',
     name: 'best query',
-    fields: [
-      {field: 'count()', title: 'events'},
-      {field: 'project.id', title: 'project'},
-    ],
+    fields: [{field: 'count()'}, {field: 'project.id'}],
     sorts: generateSorts(['count']),
     tags: ['foo', 'bar'],
     query: 'event.type:error',
@@ -1591,7 +1494,7 @@ describe('EventView.withDeletedColumn()', function() {
   it('returns itself when attempting to delete the last remaining column', function() {
     const modifiedState = {
       ...state,
-      fields: [{field: 'count()', title: 'events'}],
+      fields: [{field: 'count()'}],
     };
 
     const eventView = new EventView(modifiedState);
@@ -1609,11 +1512,7 @@ describe('EventView.withDeletedColumn()', function() {
 
       const state2 = {
         ...state,
-        fields: [
-          {field: 'title', title: 'title'},
-          {field: 'timestamp', title: 'timestamp'},
-          {field: 'count(id)', title: 'count(id)'},
-        ],
+        fields: [{field: 'title'}, {field: 'timestamp'}, {field: 'count(id)'}],
         sorts: generateSorts(['timestamp']),
       };
 
@@ -1622,10 +1521,7 @@ describe('EventView.withDeletedColumn()', function() {
       const expected = {
         ...state,
         sorts: generateSorts(['title']),
-        fields: [
-          {field: 'title', title: 'title'},
-          {field: 'count(id)', title: 'count(id)'},
-        ],
+        fields: [{field: 'title'}, {field: 'count(id)'}],
       };
 
       const eventView2 = eventView.withDeletedColumn(1, {});
@@ -1659,11 +1555,7 @@ describe('EventView.withDeletedColumn()', function() {
     it('has a remaining sortable column', function() {
       const modifiedState = {
         ...state,
-        fields: [
-          {field: 'count()', title: 'events'},
-          {field: 'project.id', title: 'project'},
-          {field: 'title', title: 'event title'},
-        ],
+        fields: [{field: 'count()'}, {field: 'project.id'}, {field: 'title'}],
       };
 
       const eventView = new EventView(modifiedState);
@@ -1676,10 +1568,7 @@ describe('EventView.withDeletedColumn()', function() {
       const nextState = {
         ...state,
         sorts: [{field: 'title', kind: 'desc'}],
-        fields: [
-          {field: 'project.id', title: 'project'},
-          {field: 'title', title: 'event title'},
-        ],
+        fields: [{field: 'project.id'}, {field: 'title'}],
       };
 
       expect(eventView2).toMatchObject(nextState);
@@ -1712,10 +1601,7 @@ describe('EventView.withMovedColumn()', function() {
   const state = {
     id: '1234',
     name: 'best query',
-    fields: [
-      {field: 'count()', title: 'events'},
-      {field: 'project.id', title: 'project'},
-    ],
+    fields: [{field: 'count()'}, {field: 'project.id'}],
     sorts: generateSorts(['count']),
     tags: ['foo', 'bar'],
     query: 'event.type:error',
@@ -1755,10 +1641,7 @@ describe('EventView.withMovedColumn()', function() {
 describe('EventView.getSorts()', function() {
   it('returns fields', function() {
     const eventView = new EventView({
-      fields: [
-        {field: 'count()', title: 'events'},
-        {field: 'project.id', title: 'project'},
-      ],
+      fields: [{field: 'count()'}, {field: 'project.id'}],
       sorts: generateSorts(['count']),
       tags: [],
       project: [],
@@ -1812,10 +1695,7 @@ describe('EventView.isFieldSorted()', function() {
   const state = {
     id: '1234',
     name: 'best query',
-    fields: [
-      {field: 'count()', title: 'events'},
-      {field: 'project.id', title: 'project'},
-    ],
+    fields: [{field: 'count()'}, {field: 'project.id'}],
     sorts: generateSorts(['count']),
     tags: ['foo', 'bar'],
     query: 'event.type:error',
@@ -1834,7 +1714,6 @@ describe('EventView.isFieldSorted()', function() {
 
     const field = {
       field: 'count()',
-      title: 'events',
     };
 
     const actual = eventView.isFieldSorted(field, meta);
@@ -1851,7 +1730,6 @@ describe('EventView.isFieldSorted()', function() {
 
     const field = {
       field: 'project.id',
-      title: 'project',
     };
 
     expect(eventView.isFieldSorted(field, meta)).toBe(void 0);
@@ -1862,10 +1740,7 @@ describe('EventView.sortOnField()', function() {
   const state = {
     id: '1234',
     name: 'best query',
-    fields: [
-      {field: 'count()', title: 'events'},
-      {field: 'project.id', title: 'project'},
-    ],
+    fields: [{field: 'count()'}, {field: 'project.id'}],
     sorts: generateSorts(['count']),
     tags: ['foo', 'bar'],
     query: 'event.type:error',
@@ -1910,7 +1785,7 @@ describe('EventView.sortOnField()', function() {
   it('sort on new field', function() {
     const modifiedState = {
       ...state,
-      fields: [...state.fields, {field: 'title', title: 'event title'}],
+      fields: [...state.fields, {field: 'title'}],
     };
 
     const eventView = new EventView(modifiedState);
@@ -1936,10 +1811,7 @@ describe('EventView.isEqualTo()', function() {
     const state = {
       id: '1234',
       name: 'best query',
-      fields: [
-        {field: 'count()', title: 'events'},
-        {field: 'project.id', title: 'project'},
-      ],
+      fields: [{field: 'count()'}, {field: 'project.id'}],
       sorts: generateSorts(['count']),
       tags: ['foo', 'bar'],
       query: 'event.type:error',
@@ -1968,10 +1840,7 @@ describe('EventView.isEqualTo()', function() {
     const state = {
       id: '1234',
       name: 'best query',
-      fields: [
-        {field: 'count()', title: 'events'},
-        {field: 'project.id', title: 'project'},
-      ],
+      fields: [{field: 'count()'}, {field: 'project.id'}],
       sorts: generateSorts(['count']),
       tags: ['foo', 'bar'],
       query: 'event.type:error',
@@ -1995,10 +1864,7 @@ describe('EventView.isEqualTo()', function() {
     const state = {
       id: '1234',
       name: 'best query',
-      fields: [
-        {field: 'count()', title: 'events'},
-        {field: 'project.id', title: 'project'},
-      ],
+      fields: [{field: 'count()'}, {field: 'project.id'}],
       sorts: generateSorts(['count']),
       tags: ['foo', 'bar'],
       query: 'event.type:error',
@@ -2028,8 +1894,8 @@ describe('EventView.isEqualTo()', function() {
       ...state,
       fields: [
         // swapped columns
-        {field: 'project.id', title: 'project'},
-        {field: 'count()', title: 'events'},
+        {field: 'project.id'},
+        {field: 'count()'},
       ],
     });
     expect(eventView.isEqualTo(eventView2)).toBe(false);
@@ -2110,10 +1976,7 @@ describe('isAPIPayloadSimilar', function() {
   const state = {
     id: '1234',
     name: 'best query',
-    fields: [
-      {field: 'count()', title: 'events'},
-      {field: 'project.id', title: 'project'},
-    ],
+    fields: [{field: 'count()'}, {field: 'project.id'}],
     sorts: generateSorts(['count']),
     tags: ['foo', 'bar'],
     query: 'event.type:error',
@@ -2174,10 +2037,7 @@ describe('isAPIPayloadSimilar', function() {
       const location = {};
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
-      const otherEventView = thisEventView.sortOnField(
-        {field: 'count()', title: 'events'},
-        meta
-      );
+      const otherEventView = thisEventView.sortOnField({field: 'count()'}, meta);
       const otherLocation = {};
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
@@ -2194,7 +2054,6 @@ describe('isAPIPayloadSimilar', function() {
       const newColumn = {
         aggregation: '',
         field: 'title',
-        fieldname: 'event title',
       };
 
       const otherEventView = thisEventView.withNewColumn(newColumn);
@@ -2214,7 +2073,6 @@ describe('isAPIPayloadSimilar', function() {
       const newColumn = {
         aggregation: 'count',
         field: '',
-        fieldname: 'events',
       };
 
       const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
@@ -2234,7 +2092,6 @@ describe('isAPIPayloadSimilar', function() {
       const newColumn = {
         aggregation: '',
         field: 'title',
-        fieldname: 'event title',
       };
 
       const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
@@ -2254,7 +2111,6 @@ describe('isAPIPayloadSimilar', function() {
       const newColumn = {
         aggregation: 'avg',
         field: '',
-        fieldname: 'events',
       };
 
       const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
@@ -2274,7 +2130,6 @@ describe('isAPIPayloadSimilar', function() {
       const newColumn = {
         aggregation: 'count',
         field: '',
-        fieldname: 'my events',
       };
 
       const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
@@ -2321,10 +2176,7 @@ describe('isAPIPayloadSimilar', function() {
       const location = {};
       const thisAPIPayload = thisEventView.getTagsAPIPayload(location);
 
-      const otherEventView = thisEventView.sortOnField(
-        {field: 'count()', title: 'events'},
-        meta
-      );
+      const otherEventView = thisEventView.sortOnField({field: 'count()'}, meta);
       const otherLocation = {};
       const otherAPIPayload = otherEventView.getTagsAPIPayload(otherLocation);
 
@@ -2341,7 +2193,6 @@ describe('isAPIPayloadSimilar', function() {
       const newColumn = {
         aggregation: '',
         field: 'title',
-        fieldname: 'event title',
       };
 
       const otherEventView = thisEventView.withNewColumn(newColumn);
@@ -2361,7 +2212,6 @@ describe('isAPIPayloadSimilar', function() {
       const newColumn = {
         aggregation: 'count',
         field: '',
-        fieldname: 'events',
       };
 
       const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
@@ -2381,7 +2231,6 @@ describe('isAPIPayloadSimilar', function() {
       const newColumn = {
         aggregation: '',
         field: 'title',
-        fieldname: 'event title',
       };
 
       const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
@@ -2401,7 +2250,6 @@ describe('isAPIPayloadSimilar', function() {
       const newColumn = {
         aggregation: 'avg',
         field: '',
-        fieldname: 'events',
       };
 
       const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
@@ -2421,7 +2269,6 @@ describe('isAPIPayloadSimilar', function() {
       const newColumn = {
         aggregation: 'count',
         field: '',
-        fieldname: 'my events',
       };
 
       const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);

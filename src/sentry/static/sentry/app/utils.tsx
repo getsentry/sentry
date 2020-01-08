@@ -4,7 +4,7 @@ import isObject from 'lodash/isObject';
 import isString from 'lodash/isString';
 import isUndefined from 'lodash/isUndefined';
 
-import {NewQuery, Project} from 'app/types';
+import {Project} from 'app/types';
 import {appendTagCondition} from 'app/utils/queryString';
 
 function arrayIsEqual(arr?: any[], other?: any[], deep?: boolean): boolean {
@@ -273,19 +273,4 @@ export function generateQueryWithTag(
   }
 
   return query;
-}
-
-/**
- * Takes in a DiscoverV2 NewQuery object and returns a Partial containing
- * the desired fields to populate into reload analytics
- */
-export function extractAnalyticsQueryFields(payload: NewQuery): Partial<NewQuery> {
-  const {projects, fields, fieldnames, query, tags} = payload;
-  return {
-    projects,
-    fields,
-    fieldnames,
-    query,
-    tags,
-  };
 }

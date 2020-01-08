@@ -143,7 +143,6 @@ class SpanDetail extends React.Component<Props, State> {
         'transaction.duration',
         'timestamp',
       ],
-      fieldnames: ['transaction', 'project', 'trace.span', 'duration', 'timestamp'],
       orderby: '-timestamp',
       query: `event.type:transaction trace:${span.trace_id} trace.parent_span:${
         span.span_id
@@ -189,7 +188,6 @@ class SpanDetail extends React.Component<Props, State> {
         'transaction.duration',
         'timestamp',
       ],
-      fieldnames: ['transaction', 'project', 'trace.span', 'duration', 'timestamp'],
       orderby: '-timestamp',
       query: `event.type:transaction trace:${span.trace_id}`,
       tags: ['release', 'project.name', 'user.email', 'user.ip', 'environment'],

@@ -40,7 +40,6 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
   const errorsViewModified = EventView.fromSavedQuery(errorsQuery);
   errorsViewModified.id = '1';
   errorsViewModified.name = 'Modified Name';
-  errorsViewModified.fields[0].title = 'Modified Field Name';
 
   const savedQuery = errorsViewSaved.toNewQuery();
 

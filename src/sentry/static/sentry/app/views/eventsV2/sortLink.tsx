@@ -71,12 +71,12 @@ class SortLink extends React.Component<Props> {
     const {align, field, tableDataMeta} = this.props;
 
     if (!isFieldSortable(field, tableDataMeta)) {
-      return <StyledNonLink align={align}>{field.title}</StyledNonLink>;
+      return <StyledNonLink align={align}>{field.field}</StyledNonLink>;
     }
 
     return (
       <StyledLink align={align} to={this.getTarget()}>
-        {field.title} {this.renderChevron()}
+        {field.field} {this.renderChevron()}
       </StyledLink>
     );
   }

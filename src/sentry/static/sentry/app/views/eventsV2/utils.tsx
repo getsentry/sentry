@@ -59,7 +59,6 @@ export function explodeField(
 ): {
   aggregation: string;
   field: string;
-  fieldname: string;
   width: number;
 } {
   const results = explodeFieldString(field.field);
@@ -67,7 +66,6 @@ export function explodeField(
   return {
     aggregation: results.aggregation,
     field: results.field,
-    fieldname: field.title,
     width: field.width || COL_WIDTH_DEFAULT,
   };
 }
@@ -258,16 +256,15 @@ export function getAggregateAlias(field: string): string {
 export type QueryWithColumnState =
   | Query
   | {
-      fieldnames: string | string[] | null | undefined;
       field: string | string[] | null | undefined;
       sort: string | string[] | null | undefined;
     };
 
 const TEMPLATE_TABLE_COLUMN: TableColumn<React.ReactText> = {
   key: '',
-  name: '',
   aggregation: '',
   field: '',
+  name: '',
   width: COL_WIDTH_DEFAULT,
 
   type: 'never',
@@ -275,14 +272,14 @@ const TEMPLATE_TABLE_COLUMN: TableColumn<React.ReactText> = {
   isSortable: false,
   isPrimary: false,
 
-  eventViewField: Object.freeze({field: '', title: '', width: COL_WIDTH_DEFAULT}),
+  eventViewField: Object.freeze({field: '', width: COL_WIDTH_DEFAULT}),
 };
 
 export function decodeColumnOrder(
   fields: Readonly<FieldType[]>
 ): TableColumn<React.ReactText>[] {
   return fields.map((f: FieldType) => {
-    const col = {aggregationField: f.field, name: f.title, width: f.width};
+    const col = {aggregationField: f.field, name: f.field, width: f.width};
     const column: TableColumn<React.ReactText> = {...TEMPLATE_TABLE_COLUMN};
 
     // "field" will be split into ["field"]
@@ -297,15 +294,14 @@ export function decodeColumnOrder(
       column.aggregation = aggregationField[0] as Aggregation;
       column.field = aggregationField[1] as Field;
     }
-
     column.key = col.aggregationField;
-    column.name = col.name;
     column.type = column.aggregation ? 'number' : FIELDS[column.field];
     column.width =
       col.width && col.width !== COL_WIDTH_UNDEFINED
         ? col.width
         : getDefaultWidth(aggregationField[0]);
 
+    column.name = column.key;
     column.isSortable = AGGREGATIONS[column.aggregation]
       ? AGGREGATIONS[column.aggregation].isSortable
       : false;
