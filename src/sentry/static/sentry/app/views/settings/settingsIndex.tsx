@@ -27,7 +27,6 @@ const LINKS = {
   DOCUMENTATION_CLI: 'https://docs.sentry.io/learn/cli/',
   DOCUMENTATION_API: 'https://docs.sentry.io/hosted/api/',
   API: '/settings/account/api/',
-  API_APPLICATIONS: '/settings/account/api/applications/',
   MANAGE: '/manage/',
   FORUM: 'https://forum.sentry.io/',
   GITHUB_ISSUES: 'https://github.com/getsentry/sentry/issues',
@@ -244,7 +243,9 @@ class SettingsIndex extends React.Component<Props> {
                     <HomeLink to={LINKS.API}>{t('Auth Tokens')}</HomeLink>
                   </li>
                   <li>
-                    <HomeLink to={LINKS.API_APPLICATIONS}>{t('Applications')}</HomeLink>
+                    <HomeLink to={`${organizationSettingsUrl}developer-settings/`}>
+                      {t('Integrations')}
+                    </HomeLink>
                   </li>
                   <li>
                     <ExternalHomeLink href={LINKS.DOCUMENTATION_API}>
