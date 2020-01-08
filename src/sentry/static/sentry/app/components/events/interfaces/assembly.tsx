@@ -39,7 +39,7 @@ const Assembly: React.FC<Props> = ({
         {culture || '-'}
       </AssemblyInfo>
       <AssemblyInfo>
-        <Caption>{'PublicKeyToken'}:</Caption>
+        <Caption>PublicKeyToken:</Caption>
         {publicKeyToken || '-'}
       </AssemblyInfo>
 
