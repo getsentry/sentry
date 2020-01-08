@@ -11,26 +11,26 @@ describe('KeyValueList', function() {
 
       expect(
         wrapper
-          .find('.key')
+          .find('td.key')
           .at(0)
           .text()
       ).toEqual('a');
       expect(
         wrapper
-          .find('.key')
+          .find('td.key')
           .at(1)
           .text()
       ).toEqual('b');
 
       expect(
         wrapper
-          .find('.val')
+          .find('td.val')
           .at(0)
           .text()
       ).toEqual('x');
       expect(
         wrapper
-          .find('.val')
+          .find('td.val')
           .at(1)
           .text()
       ).toEqual('y');
@@ -42,26 +42,26 @@ describe('KeyValueList', function() {
 
       expect(
         wrapper
-          .find('.key')
+          .find('td.key')
           .at(0)
           .text()
       ).toEqual('a');
       expect(
         wrapper
-          .find('.key')
+          .find('td.key')
           .at(1)
           .text()
       ).toEqual('b');
 
       expect(
         wrapper
-          .find('.val')
+          .find('td.val')
           .at(0)
           .text()
       ).toEqual('x');
       expect(
         wrapper
-          .find('.val')
+          .find('td.val')
           .at(1)
           .text()
       ).toEqual('y');
@@ -76,26 +76,26 @@ describe('KeyValueList', function() {
 
       expect(
         wrapper
-          .find('.key')
+          .find('td.key')
           .at(0)
           .text()
       ).toEqual('a');
       expect(
         wrapper
-          .find('.key')
+          .find('td.key')
           .at(1)
           .text()
       ).toEqual('b');
 
       expect(
         wrapper
-          .find('.val')
+          .find('td.val')
           .at(0)
           .text()
       ).toEqual(' ');
       expect(
         wrapper
-          .find('.val')
+          .find('td.val')
           .at(1)
           .text()
       ).toEqual('y');
@@ -108,13 +108,13 @@ describe('KeyValueList', function() {
       // Ignore values, more interested in if keys rendered + are sorted
       expect(
         wrapper
-          .find('.key')
+          .find('td.key')
           .at(0)
           .text()
       ).toEqual('a');
       expect(
         wrapper
-          .find('.key')
+          .find('td.key')
           .at(1)
           .text()
       ).toEqual('b');
@@ -126,13 +126,13 @@ describe('KeyValueList', function() {
 
       expect(
         wrapper
-          .find('.key')
+          .find('td.key')
           .at(0)
           .text()
       ).toEqual('a');
       expect(
         wrapper
-          .find('.val')
+          .find('td.val')
           .at(0)
           .text()
       ).toEqual('false');
@@ -144,13 +144,13 @@ describe('KeyValueList', function() {
 
       expect(
         wrapper
-          .find('.key')
+          .find('td.key')
           .at(0)
           .text()
       ).toEqual('a');
       expect(
         wrapper
-          .find('.val')
+          .find('td.val')
           .at(0)
           .text()
       ).toEqual('null');
