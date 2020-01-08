@@ -24,6 +24,11 @@ def get_datetime_from_stats_period(stats_period, now=None):
     return now - stats_period
 
 
+def default_start_end_dates():
+    now = timezone.now()
+    return now - MAX_STATS_PERIOD, now
+
+
 def get_date_range_from_params(params, optional=False):
     """
     Gets a date range from standard date range params we pass to the api.
@@ -46,8 +51,7 @@ def get_date_range_from_params(params, optional=False):
     """
     now = timezone.now()
 
-    end = now
-    start = now - MAX_STATS_PERIOD
+    start, end = default_start_end_dates()
 
     stats_period = params.get("statsPeriod")
     stats_period_start = params.get("statsPeriodStart")

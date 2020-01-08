@@ -17,6 +17,7 @@ from sentry.tagstore.exceptions import (
     TagValueNotFound,
 )
 from sentry.tagstore.types import TagKey, TagValue, GroupTagKey, GroupTagValue
+from sentry.api.utils import default_start_end_dates
 from sentry.utils import snuba, metrics
 from sentry.utils.hashlib import md5_text
 from sentry.utils.dates import to_timestamp
@@ -180,6 +181,12 @@ class SnubaTagStorage(TagStorage):
         use_cache=False,
         **kwargs
     ):
+        default_start, default_end = default_start_end_dates()
+        if start is None:
+            start = default_start
+        if end is None:
+            end = default_end
+
         filters = {"project_id": sorted(projects)}
         if environments:
             filters["environment"] = sorted(environments)
@@ -210,6 +217,14 @@ class SnubaTagStorage(TagStorage):
 
         # If we want to continue attempting to cache after checking against the cache rate
         if should_cache:
+            # Round times by 5 minutes since we cache for 5 minutes
+            start = start.replace(
+                minute=start.minute // 5 * 5 + key_hash % 5, second=key_hash % 60, microsecond=0
+            )
+            end = end.replace(
+                minute=end.minute // 5 * 5 + key_hash % 5, second=key_hash % 60, microsecond=0
+            )
+            cache_key += u":{}:{}".format(start.isoformat(), end.isoformat())
             result = cache.get(cache_key, None)
             if result:
                 metrics.incr("testing.tagstore.cache_tag_key.hit")
