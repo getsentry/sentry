@@ -118,6 +118,7 @@ class SnubaEventStorage(EventStorage):
                 end=event_time + timedelta(seconds=1),
                 filter_keys={"project_id": [project_id], "event_id": [event_id]},
                 limit=1,
+                referrer="eventstore.get_event_by_id_nodestore",
             )
 
             assert len(result["data"]) == 1
