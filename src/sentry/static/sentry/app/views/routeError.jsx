@@ -35,6 +35,14 @@ class RouteError extends React.Component {
     }
 
     const route = getRouteStringFromRoutes(routes);
+    const enrichScopeContext = scope => {
+      scope.setExtra('route', route);
+      scope.setExtra('orgFeatures', (organization && organization.features) || []);
+      scope.setExtra('orgAccess', (organization && organization.access) || []);
+      scope.setExtra('projectFeatures', (project && project.features) || []);
+      return scope;
+    };
+
     if (route) {
       /**
        * Unexpectedly, error.message would sometimes not have a setter property, causing another exception to be thrown,
@@ -45,19 +53,18 @@ class RouteError extends React.Component {
       try {
         error.message = `${error.message}: ${route}`;
       } catch (e) {
-        if (!(e instanceof TypeError)) {
-          throw e;
-        }
+        Sentry.withScope(scope => {
+          scope.setFingerprint(['route-error', 'error-message-mutation-error']);
+          enrichScopeContext(scope);
+          Sentry.captureException(e);
+        });
       }
     }
     // TODO(dcramer): show something in addition to embed (that contains it?)
     // throw this in a timeout so if it errors we dont fall over
     this._timeout = window.setTimeout(() => {
       Sentry.withScope(scope => {
-        scope.setExtra('route', route);
-        scope.setExtra('orgFeatures', (organization && organization.features) || []);
-        scope.setExtra('orgAccess', (organization && organization.access) || []);
-        scope.setExtra('projectFeatures', (project && project.features) || []);
+        enrichScopeContext(scope);
         Sentry.captureException(error);
       });
 
