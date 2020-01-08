@@ -673,7 +673,6 @@ export type NewQuery = {
   name: string;
   projects: Readonly<number[]>;
   fields: Readonly<string[]>;
-  fieldnames: Readonly<string[]>;
   widths?: Readonly<string[]>;
   query: string;
   orderby?: string;
