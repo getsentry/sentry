@@ -104,10 +104,6 @@ class Results extends React.Component<Props, State> {
     const {organization, location} = this.props;
     const {eventView} = this.state;
 
-    if (eventView.tags.length <= 0) {
-      return null;
-    }
-
     return <Tags eventView={eventView} organization={organization} location={location} />;
   };
 
@@ -202,7 +198,7 @@ const Top = styled('div')`
 `;
 
 const Main = styled('div')<{eventView: EventView}>`
-  grid-column: ${p => (p.eventView.tags.length <= 0 ? '1/3' : '1/2')};
+  grid-column: 1/2;
 
   /* Defining the width prevent child elements from expanding the grid
      past the width of the screen */
@@ -212,7 +208,6 @@ const Main = styled('div')<{eventView: EventView}>`
 `;
 
 const Side = styled('div')<{eventView: EventView}>`
-  display: ${p => (p.eventView.tags.length <= 0 ? 'none' : 'initial')};
   grid-column: 2/3;
 `;
 
