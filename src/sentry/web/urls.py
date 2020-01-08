@@ -22,7 +22,7 @@ from sentry.web.frontend.pipeline_advancer import PipelineAdvancerView
 from sentry.web.frontend.mailgun_inbound_webhook import MailgunInboundWebhookView
 from sentry.web.frontend.oauth_authorize import OAuthAuthorizeView
 from sentry.web.frontend.oauth_token import OAuthTokenView
-from sentry.auth.providers.saml2 import SAML2AcceptACSView, SAML2SLSView, SAML2MetadataView
+from sentry.auth.providers.saml2.provider import SAML2AcceptACSView, SAML2SLSView, SAML2MetadataView
 from sentry.web.frontend.organization_avatar import OrganizationAvatarPhotoView
 from sentry.web.frontend.organization_auth_settings import OrganizationAuthSettingsView
 from sentry.web.frontend.organization_integration_setup import OrganizationIntegrationSetupView

@@ -1,0 +1,20 @@
+{% load crispy_forms_tags %}
+{% load i18n %}
+
+<div class="pull-right">
+  <a target="_blank" href="{{ sp_metadata_url }}">{% trans "Service Provider Metadata" %}</a>
+</div>
+
+<legend style="margin-top: 0;">Identity Provider Metadata</legend>
+{{ forms.saml|as_crispy_errors }}
+
+{% for field in forms.saml %}
+    {{ field|as_crispy_field }}
+{% endfor %}
+
+<legend>Attribute Mappings</legend>
+{{ forms.attrs|as_crispy_errors }}
+
+{% for field in forms.attrs %}
+    {{ field|as_crispy_field }}
+{% endfor %}

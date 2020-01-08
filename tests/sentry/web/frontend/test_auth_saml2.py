@@ -11,7 +11,7 @@ from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import models
 
-from sentry.auth.providers.saml2 import SAML2Provider, Attributes, HAS_SAML2
+from sentry.auth.providers.saml2.provider import SAML2Provider, Attributes, HAS_SAML2
 from sentry.models import (
     AuditLogEntry,
     AuditLogEntryEvent,
