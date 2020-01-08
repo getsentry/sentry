@@ -4,7 +4,8 @@ import pytz
 import logging
 from datetime import datetime
 
-from sentry.models import EventDict, SnubaEvent
+from sentry.eventstore.models import Event
+from sentry.models import EventDict
 from sentry.utils import json, metrics
 
 
@@ -33,15 +34,10 @@ def basic_protocol_handler(unsupported_operations):
         # Rust (re)normalization here again would be too slow.
         event_data["data"] = EventDict(event_data["data"], skip_renormalization=True)
 
-        event = SnubaEvent(
-            {
-                "group_id": event_data["group_id"],
-                "event_id": event_data["event_id"],
-                "project_id": event_data["project_id"],
-                "message": event_data["message"],
-                "platform": event_data["platform"],
-                "timestamp": event_data["datetime"].strftime("%Y-%m-%dT%H:%M:%S"),
-            }
+        event = Event(
+            event_id=event_data["event_id"],
+            group_id=event_data["group_id"],
+            project_id=event_data["project_id"],
         )
         event.data.bind_data(event_data["data"])
 
