@@ -403,4 +403,4 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
                 break
         assert actual is not None, "Could not find {} facet in {}".format(key, response.data)
         assert "topValues" in actual
-        assert expected == actual["topValues"]
+        assert sorted(expected) == sorted(actual["topValues"])
