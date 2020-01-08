@@ -42,7 +42,6 @@ class RouteError extends React.Component {
     // throw this in a timeout so if it errors we dont fall over
     this._timeout = window.setTimeout(() => {
       Sentry.withScope(scope => {
-        scope.setFingerprint(['route-error', ...(route ? [route] : [])]);
         scope.setExtra('route', route);
         scope.setExtra('orgFeatures', (organization && organization.features) || []);
         scope.setExtra('orgAccess', (organization && organization.access) || []);
