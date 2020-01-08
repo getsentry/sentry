@@ -82,6 +82,7 @@ exports[`AccountEmails renders with emails 1`] = `
     <AlertLink
       icon="icon-stack"
       priority="warning"
+      size="normal"
       to="/settings/account/notifications"
     >
       Want to change how many emails you get? Use the notifications panel.
