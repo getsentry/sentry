@@ -57,8 +57,8 @@ class CrumbTable extends React.Component {
 
 const TableData = styled('td')`
   @media (min-width: ${theme.breakpoints[2]}) {
-    max-width: ${p => (p.wide ? 215 : 175)}px !important;
-    width: ${p => (p.wide ? 215 : 175)}px !important;
+    max-width: ${p => (p.wide ? '215px !important' : null)};
+    width: ${p => (p.wide ? '215px !important' : null)};
   }
 `;
 

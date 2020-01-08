@@ -46,7 +46,9 @@ class KeyValueList extends React.Component {
             if (this.props.isContextData) {
               return [
                 <tr key={key}>
-                  <td className="key">{key}</td>
+                  <TableData className="key" wide={this.props.longKeys}>
+                    {key}
+                  </TableData>
                   <td className="val">
                     <ContextData data={!raw ? value : JSON.stringify(value)} />
                   </td>
@@ -73,7 +75,7 @@ class KeyValueList extends React.Component {
 
 const TableData = styled('td')`
   @media (min-width: ${theme.breakpoints[2]}) {
-    max-width: ${p => (p.wide ? 620 : 175)}px !important;
+    max-width: ${p => (p.wide ? '620px !important' : null)};
   }
 `;
 
