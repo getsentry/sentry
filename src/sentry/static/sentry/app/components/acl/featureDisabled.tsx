@@ -16,7 +16,7 @@ const installText = (features: string[], featureName: string): string =>
 
 type Props = {
   /**
-   * The feature flag keys that should be awed in the code example for
+   * The feature flag keys that should be displayed in the code example for
    * enabling the feature.
    */
   features: string[];
