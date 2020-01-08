@@ -12,7 +12,7 @@ type Props = {
 
 export default class ShortId extends React.Component<Props> {
   static propTypes = {
-    shortId: PropTypes.string,
+    shortId: PropTypes.string.isRequired,
     avatar: PropTypes.node,
   };
 
