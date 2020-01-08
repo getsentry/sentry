@@ -85,7 +85,7 @@ class ApiTokens extends AsyncView {
           icon="icon-circle-info"
         >
           {t(
-            'Auth Tokens are tied to the logged in user. If the user leaves the organization, things will break! Avoid this with Internal Integrations!'
+            'Auth Tokens are tied to the logged in user. If the user leaves the organization, the token will no longer work! We suggest using internal integrations to manage tokens which are not tied to a user.'
           )}
         </AlertLink>
         <TextBlock>
