@@ -36,7 +36,19 @@ class RouteError extends React.Component {
 
     const route = getRouteStringFromRoutes(routes);
     if (route) {
-      error.message = `${error.message}: ${route}`;
+      /**
+       * Unexpectedly, error.message would sometimes not have a setter property, causing another exception to be thrown,
+       * and losing the original error in the process. Wrapping the mutation in a try-catch in an attempt to preserve
+       * the original error for logging.
+       * See https://github.com/getsentry/sentry/issues/16314 for more details.
+       */
+      try {
+        error.message = `${error.message}: ${route}`;
+      } catch (e) {
+        if (!(e instanceof TypeError)) {
+          throw e;
+        }
+      }
     }
     // TODO(dcramer): show something in addition to embed (that contains it?)
     // throw this in a timeout so if it errors we dont fall over
