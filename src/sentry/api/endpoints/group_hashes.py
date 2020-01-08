@@ -4,7 +4,7 @@ from functools import partial
 
 from rest_framework.response import Response
 
-from sentry import eventstore
+from sentry import eventstore, options
 from sentry.api.base import DocSection
 from sentry.api.bases import GroupEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
@@ -81,6 +81,8 @@ class GroupHashesEndpoint(GroupEndpoint):
 
     def __handle_result(self, user, project_id, group_id, result):
         event = eventstore.get_event_by_id(project_id, result["event_id"])
+        if not options.get("eventstore.use-nodestore"):
+            event.bind_node_data()
 
         return {
             "id": result["primary_hash"],

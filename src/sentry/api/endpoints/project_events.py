@@ -59,8 +59,13 @@ class ProjectEventsEndpoint(ProjectEndpoint):
         )
 
         serializer = EventSerializer() if full else SimpleEventSerializer()
+
+        def handle_results(results):
+            eventstore.bind_nodes(results)
+            return serialize(results, request.user, serializer)
+
         return self.paginate(
             request=request,
-            on_results=lambda results: serialize(results, request.user, serializer),
+            on_results=handle_results,
             paginator=GenericOffsetPaginator(data_fn=data_fn),
         )
