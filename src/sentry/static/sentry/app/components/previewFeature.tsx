@@ -1,8 +1,8 @@
 import React from 'react';
-import {t} from 'app/locale';
 import PropTypes from 'prop-types';
 
-import Alert from './alert';
+import {t} from 'app/locale';
+import Alert from 'app/components/alert';
 
 type Props = {
   type?: 'success' | 'error' | 'warning' | 'info';
