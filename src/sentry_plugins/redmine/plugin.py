@@ -18,10 +18,6 @@ class RedminePlugin(IssuePlugin):
     author_url = "https://github.com/getsentry/sentry"
     version = sentry.VERSION
     description = "Integrate Redmine issue tracking by linking a user account to a project."
-    resource_links = [
-        ("Bug Tracker", "https://github.com/getsentry/sentry/issues"),
-        ("Source", "https://github.com/getsentry/sentry"),
-    ]
 
     slug = "redmine"
     title = _("Redmine")
