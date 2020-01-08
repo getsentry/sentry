@@ -123,6 +123,8 @@ class ProjectEndpoint(Endpoint):
                 redirect = redirect.get(
                     organization__slug=organization_slug, redirect_slug=project_slug
                 )
+                # Without object permissions don't reveal the rename
+                self.check_object_permissions(request, redirect.project)
 
                 # get full path so that we keep query strings
                 requested_url = request.get_full_path()
