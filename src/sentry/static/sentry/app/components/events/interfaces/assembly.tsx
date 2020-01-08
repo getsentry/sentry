@@ -27,7 +27,7 @@ const Assembly: React.FC<Props> = ({
     <AssemblyWrapper>
       <Icon src="icon-return-key" />
       <AssemblyInfo>
-        <Caption>{t('Assembly')}:</Caption>
+        <Caption>{'Assembly'}:</Caption>
         {name || '-'}
       </AssemblyInfo>
       <AssemblyInfo>
@@ -39,7 +39,7 @@ const Assembly: React.FC<Props> = ({
         {culture || '-'}
       </AssemblyInfo>
       <AssemblyInfo>
-        <Caption>{t('PublicKeyToken')}:</Caption>
+        <Caption>{'PublicKeyToken'}:</Caption>
         {publicKeyToken || '-'}
       </AssemblyInfo>
 
