@@ -96,12 +96,11 @@ class ExternalIssueForm extends AsyncComponent<Props, State> {
     const {action} = this.props;
     const config: IssueConfigField[] = integrationDetails[`${action}IssueConfig`];
 
-    return config
-      .filter((field: IssueConfigField) => field.updatesForm)
-      .reduce(
-        (a: object, field: IssueConfigField) => ({...a, [field.name]: field.default}),
-        {}
-      );
+    return Object.fromEntries(
+      config
+        .filter((field: IssueConfigField) => field.updatesForm)
+        .map((field: IssueConfigField) => [field.name, field.default])
+    );
   }
 
   onFieldChange = (label: string, value: FieldValue) => {
@@ -139,7 +138,11 @@ class ExternalIssueForm extends AsyncComponent<Props, State> {
   };
 
   debouncedOptionLoad = debounce(
-    async (field: IssueConfigField, input: string, cb: (err, result?) => void) => {
+    async (
+      field: IssueConfigField,
+      input: string,
+      cb: (err: Error | null, result?) => void
+    ) => {
       const query = queryString.stringify({
         ...this.state.dynamicFieldValues,
         field: field.name,
