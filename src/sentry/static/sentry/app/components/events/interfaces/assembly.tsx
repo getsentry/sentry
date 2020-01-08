@@ -27,7 +27,7 @@ const Assembly: React.FC<Props> = ({
     <AssemblyWrapper>
       <Icon src="icon-return-key" />
       <AssemblyInfo>
-        <Caption>{'Assembly'}:</Caption>
+        <Caption>Assembly:</Caption>
         {name || '-'}
       </AssemblyInfo>
       <AssemblyInfo>
