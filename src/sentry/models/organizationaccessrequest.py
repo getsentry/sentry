@@ -1,5 +1,6 @@
 from __future__ import absolute_import, print_function
 
+from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db.models import Q
 
@@ -13,6 +14,8 @@ class OrganizationAccessRequest(Model):
 
     team = FlexibleForeignKey("sentry.Team")
     member = FlexibleForeignKey("sentry.OrganizationMember")
+    # access request from a different user than the member
+    requester = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True)
 
     class Meta:
         app_label = "sentry"
