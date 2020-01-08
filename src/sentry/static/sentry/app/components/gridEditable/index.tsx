@@ -145,6 +145,10 @@ class GridEditable<
     isEditing: false,
   };
 
+  componentDidMount() {
+    window.addEventListener('resize', this.redrawGridColumn);
+  }
+
   componentDidUpdate() {
     // Redraw columns whenever new props are recieved
     this.setGridTemplateColumns(this.props.columnOrder);
@@ -152,6 +156,7 @@ class GridEditable<
 
   componentWillUnmount() {
     this.clearWindowLifecycleEvents();
+    window.removeEventListener('resize', this.redrawGridColumn);
   }
 
   private refGrid = React.createRef<HTMLTableElement>();
@@ -283,6 +288,13 @@ class GridEditable<
       metadata.columnIndex,
       metadata.columnWidth + e.clientX - metadata.cursorX
     );
+  };
+
+  /**
+   * Recalculate the dimensions of Grid and Columns and redraws them
+   */
+  redrawGridColumn = () => {
+    this.setGridTemplateColumns(this.props.columnOrder);
   };
 
   /**
