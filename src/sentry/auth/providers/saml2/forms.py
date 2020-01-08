@@ -1,15 +1,11 @@
 from __future__ import absolute_import
 
-import django
 from django import forms
 from django.utils.encoding import force_text
 from django.utils.translation import ugettext_lazy as _
 from onelogin.saml2.idp_metadata_parser import OneLogin_Saml2_IdPMetadataParser
 
-if django.VERSION >= (1, 8):
-    from django.forms.utils import ErrorList
-else:
-    from django.forms.util import ErrorList
+from django.forms.utils import ErrorList
 
 from sentry.http import safe_urlopen
 
