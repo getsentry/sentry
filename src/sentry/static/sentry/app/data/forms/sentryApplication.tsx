@@ -28,7 +28,7 @@ const getPublicFormFields = (): Field[] => [
     label: 'Webhook URL',
     placeholder: 'e.g. https://example.com/sentry/webhook/',
     help:
-      'The URL Sentry will send requests to for events such as installation changes and any Resource Subscriptions the Integration subscribes to.',
+      'Any time an event in Sentry triggers a request to your integration, it will get sent to this URL.',
   },
   {
     name: 'redirectUrl',
