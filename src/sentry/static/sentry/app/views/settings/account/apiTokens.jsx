@@ -80,8 +80,7 @@ class ApiTokens extends AsyncView {
       <div>
         <SettingsPageHeader title="Auth Tokens" action={action} />
         <AlertLink
-          to={`/settings/${(organization && organization.slug) ||
-            ''}/developer-settings/`}
+          to={`/settings/${organization.slug}/developer-settings/`}
           icon="icon-circle-info"
         >
           {t(

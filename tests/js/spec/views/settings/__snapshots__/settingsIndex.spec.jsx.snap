@@ -320,7 +320,7 @@ exports[`SettingsIndex renders 1`] = `
               <HomeLink
                 to="/settings/org-slug/developer-settings/"
               >
-                Integrations
+                Your Integrations
               </HomeLink>
             </li>
             <li>
