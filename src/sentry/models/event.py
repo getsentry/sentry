@@ -479,7 +479,7 @@ class SnubaEvent(EventCommon):
     def message(self):
         if "message" in self.snuba_data:
             return self.snuba_data["message"]
-        return self.data.get("message")
+        return self.real_message
 
     @property
     def platform(self):
