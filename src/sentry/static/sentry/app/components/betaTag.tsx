@@ -1,11 +1,12 @@
 import React from 'react';
 import styled from 'react-emotion';
+
 import Tag from 'app/views/settings/components/tag';
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 
-const BetaTag = () => (
+const BetaTag: React.FC = () => (
   <Tooltip
     title={t('This feature is in beta and may change in the future.')}
     position="right"
@@ -21,7 +22,7 @@ const StyledTag = styled(Tag)`
   top: -1px;
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: normal;
-  padding: 3px 6px;
+  padding: 3px ${space(0.75)};
   margin-left: ${space(0.5)};
   border-radius: 20px;
 `;
