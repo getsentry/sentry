@@ -701,3 +701,26 @@ export type SelectValue<T> = {
   label: string;
   value: T;
 };
+
+/**
+ * The issue config form fields we get are basically the form fields we use in the UI but with some extra information.
+ * Some fields marked optional in the form field are guaranteed to exist so we can mark them as required here
+ */
+
+export type IssueConfigField = Field & {
+  name: string;
+  default?: string;
+  choices?: [number | string, number | string][];
+  url?: string;
+  multiple?: boolean;
+};
+
+export type IntegrationIssueConfig = {
+  status: ObjectStatus;
+  name: string;
+  domainName: string;
+  linkIssueConfig?: IssueConfigField[];
+  createIssueConfig?: IssueConfigField[];
+  provider: IntegrationProvider;
+  icon: string[];
+};

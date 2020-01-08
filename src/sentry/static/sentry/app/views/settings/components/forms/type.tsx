@@ -34,6 +34,7 @@ type BaseField = {
   disabled?: boolean | ((props: any) => boolean);
   disabledReason?: string;
   defaultValue?: FieldValue;
+  updatesForm?: boolean;
 
   /**
    * Function to format the value displayed in the undo toast. May also be
