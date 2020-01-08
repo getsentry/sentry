@@ -7,9 +7,9 @@ import ResourceCard from 'app/components/resourceCard';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 
-import releasesImg from '../../../images/releases.svg';
-import breadcrumbsImg from '../../../images/breadcrumbs-generic.svg';
-import docsImg from '../../../images/code-arguments-tags-mirrored.svg';
+import releasesImg from '../../../images/spot/releases.svg';
+import breadcrumbsImg from '../../../images/spot/breadcrumbs-generic.svg';
+import docsImg from '../../../images/spot/code-arguments-tags-mirrored.svg';
 
 export default class Resources extends React.Component {
   componentDidMount() {

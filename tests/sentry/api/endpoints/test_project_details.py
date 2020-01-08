@@ -89,6 +89,24 @@ class ProjectDetailsTest(APITestCase):
         # (this is with self.assertRedirects(response, ...))
         assert response["Location"] == redirect_path
 
+    def test_non_org_rename_403(self):
+        org = self.create_organization()
+        team = self.create_team(organization=org, name="foo", slug="foo")
+        user = self.create_user(is_superuser=False)
+        self.create_member(user=user, organization=org, role="member", teams=[team])
+
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+        ProjectRedirect.record(other_project, "old_slug")
+
+        url = reverse(
+            "sentry-api-0-project-details",
+            kwargs={"organization_slug": other_org.slug, "project_slug": "old_slug"},
+        )
+        self.login_as(user=user)
+        response = self.client.get(url)
+        assert response.status_code == 403
+
 
 class ProjectUpdateTest(APITestCase):
     def setUp(self):

@@ -10,7 +10,7 @@ import ProjectBadge from 'app/components/idBadge/projectBadge';
 import UserBadge from 'app/components/idBadge/userBadge';
 import getDynamicText from 'app/utils/getDynamicText';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import pinIcon from 'app/../images/icons/icon-location-filled.svg';
+import pinIcon from 'app/../images/graph/icon-location-filled.svg';
 import {Organization, NewQuery} from 'app/types';
 import Duration from 'app/components/duration';
 import floatFormat from 'app/utils/floatFormat';
