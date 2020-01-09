@@ -16,6 +16,7 @@ from sentry.api.event_search import (
 from sentry import eventstore
 
 from sentry.models import Project, ProjectStatus
+from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils.snuba import (
     Dataset,
     SnubaTSResult,
@@ -419,7 +420,7 @@ def get_pagination_ids(event, query, params, reference_event=None, referrer=None
     )
 
 
-def get_facets(query, params, limit=20, referrer=None):
+def get_facets(query, params, limit=10, referrer=None):
     """
     High-level API for getting 'facet map' results.
 
@@ -446,12 +447,12 @@ def get_facets(query, params, limit=20, referrer=None):
     # Resolve the public aliases into the discover dataset names.
     snuba_args, translated_columns = resolve_discover_aliases(snuba_args)
 
-    # Force sampling for more than 9 projects. 9 was chosen arbitrarily.
-    sample = len(snuba_filter.filter_keys["project_id"]) > 9
+    # Force sampling for multi-project results as we don't need accuracy
+    # with that much data.
+    sample = len(snuba_filter.filter_keys["project_id"]) > 2
 
     # Exclude tracing tags as they are noisy and generally not helpful.
-    conditions = snuba_args.get("conditions", [])
-    conditions.append(["tags_key", "NOT IN", ["trace", "trace.ctx", "trace.span"]])
+    excluded_tags = ["tags_key", "NOT IN", ["trace", "trace.ctx", "trace.span"]]
 
     # Get the most frequent tag keys, enable sampling
     # as we don't need accuracy here.
@@ -463,6 +464,7 @@ def get_facets(query, params, limit=20, referrer=None):
         filter_keys=snuba_args.get("filter_keys"),
         orderby=["-count", "tags_key"],
         groupby="tags_key",
+        having=[excluded_tags],
         dataset=Dataset.Discover,
         limit=limit,
         referrer=referrer,
@@ -481,7 +483,7 @@ def get_facets(query, params, limit=20, referrer=None):
     results = []
     if fetch_projects:
         project_values = raw_query(
-            aggregations=[["uniq", "event_id", "count"]],
+            aggregations=[["count", None, "count"]],
             start=snuba_args.get("start"),
             end=snuba_args.get("end"),
             conditions=snuba_args.get("conditions"),
@@ -495,43 +497,23 @@ def get_facets(query, params, limit=20, referrer=None):
             [FacetResult("project", r["project_id"], r["count"]) for r in project_values["data"]]
         )
 
-    # Environment is a special case because of the "" value which is stored as null
-    # in the environment column but not in the tag arrays.
-    if "environment" in top_tags:
-        top_tags.remove("environment")
-        environment_values = raw_query(
-            aggregations=[["uniq", "event_id", "count"]],
+    # Get tag counts for our top tags. Fetching them individually
+    # allows snuba to leverage promoted tags better and enables us to get
+    # the value count we want.
+    for tag_name in top_tags:
+        tag = u"tags[{}]".format(tag_name)
+        tag_values = raw_query(
+            aggregations=[["count", None, "count"]],
+            conditions=snuba_args.get("conditions"),
             start=snuba_args.get("start"),
             end=snuba_args.get("end"),
-            conditions=snuba_args.get("conditions"),
             filter_keys=snuba_args.get("filter_keys"),
-            groupby="environment",
-            orderby=["-count", "environment"],
+            orderby=["-count"],
+            groupby=[tag],
+            limit=TOP_VALUES_DEFAULT_LIMIT,
             dataset=Dataset.Discover,
             referrer=referrer,
         )
-        results.extend(
-            [
-                FacetResult("environment", r["environment"], r["count"])
-                for r in environment_values["data"]
-            ]
-        )
-
-    # Get tag counts for our top tags.
-    conditions.append(["tags_key", "IN", top_tags])
-    tag_values = raw_query(
-        aggregations=[["count", None, "count"]],
-        conditions=conditions,
-        start=snuba_args.get("start"),
-        end=snuba_args.get("end"),
-        filter_keys=snuba_args.get("filter_keys"),
-        orderby=["tags_key", "-count"],
-        groupby=["tags_key", "tags_value"],
-        dataset=Dataset.Discover,
-        referrer=referrer,
-    )
-    results.extend(
-        [FacetResult(r["tags_key"], r["tags_value"], int(r["count"])) for r in tag_values["data"]]
-    )
+        results.extend([FacetResult(tag_name, r[tag], int(r["count"])) for r in tag_values["data"]])
 
     return results
