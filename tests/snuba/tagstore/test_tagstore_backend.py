@@ -17,7 +17,7 @@ from sentry.tagstore.exceptions import (
     TagKeyNotFound,
     TagValueNotFound,
 )
-from sentry.tagstore.snuba.backend import SnubaTagStorage
+from sentry.tagstore.snuba.backend import SnubaTagStorage, cache_suffix_timeformat
 from sentry.testutils import SnubaTestCase, TestCase
 
 
@@ -601,3 +601,42 @@ class TagStorageTest(TestCase, SnubaTestCase):
             )
             == {}
         )
+
+    def test_cache_suffix_timeformat(self):
+        starting_key = cache_suffix_timeformat(self.now, 0)
+        finishing_key = cache_suffix_timeformat(self.now + timedelta(seconds=300), 0)
+
+        assert starting_key != finishing_key
+
+    def test_cache_suffix_timeformat_matches_duration(self):
+        """ The number of seconds between keys changing should match duration """
+        previous_key = cache_suffix_timeformat(self.now, 0, duration=10)
+        changes = []
+        for i in range(21):
+            current_time = self.now + timedelta(seconds=i)
+            current_key = cache_suffix_timeformat(current_time, 0, duration=10)
+            if current_key != previous_key:
+                changes.append(current_time)
+                previous_key = current_key
+
+        assert len(changes) == 2
+        assert (changes[1] - changes[0]).total_seconds() == 10
+
+    def test_cache_suffix_timeformat_jitter(self):
+        """ Different key hashes should change keys at different times
+
+            While starting_key and other_key to begin as the same values they should change at different times
+        """
+        starting_key = cache_suffix_timeformat(self.now, 0, duration=10)
+        for i in range(11):
+            current_key = cache_suffix_timeformat(self.now + timedelta(seconds=i), 0, duration=10)
+            if current_key != starting_key:
+                break
+
+        other_key = cache_suffix_timeformat(self.now, 5, duration=10)
+        for j in range(11):
+            current_key = cache_suffix_timeformat(self.now + timedelta(seconds=j), 5, duration=10)
+            if current_key != other_key:
+                break
+
+        assert i != j

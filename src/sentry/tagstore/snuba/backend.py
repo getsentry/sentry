@@ -59,6 +59,20 @@ def get_project_list(project_id):
     return project_id if isinstance(project_id, Iterable) else [project_id]
 
 
+def cache_suffix_timeformat(time, key_hash, duration=300):
+    """ Adds jitter based on the key_hash around start/end times for caching snuba queries
+
+        Given a time and a key_hash this should result in a string that remains the same for a duration
+        The end of the duration will be different per key_hash which avoids spikes in the number of queries
+        Must be based on the key_hash so they cache keys are consistent per query
+    """
+    return u"{}:{}:{}".format(
+        time.date().isoformat(),
+        time.hour,
+        (time.minute * 60 + time.second + key_hash % duration) // duration * duration,
+    )
+
+
 class SnubaTagStorage(TagStorage):
     def __get_tag_key(self, project_id, group_id, environment_id, key):
         tag = u"tags[{}]".format(key)
@@ -217,14 +231,9 @@ class SnubaTagStorage(TagStorage):
 
         # If we want to continue attempting to cache after checking against the cache rate
         if should_cache:
-            # Round times by 5 minutes since we cache for 5 minutes
-            start = start.replace(
-                minute=start.minute // 5 * 5 + key_hash % 5, second=key_hash % 60, microsecond=0
+            cache_key += u":{}.{}".format(
+                cache_suffix_timeformat(start, key_hash), cache_suffix_timeformat(end, key_hash)
             )
-            end = end.replace(
-                minute=end.minute // 5 * 5 + key_hash % 5, second=key_hash % 60, microsecond=0
-            )
-            cache_key += u":{}:{}".format(start.isoformat(), end.isoformat())
             result = cache.get(cache_key, None)
             if result:
                 metrics.incr("testing.tagstore.cache_tag_key.hit")
@@ -245,7 +254,7 @@ class SnubaTagStorage(TagStorage):
                 **kwargs
             )
             if should_cache:
-                cache.set(cache_key, result, 270 + key_hash % 60)
+                cache.set(cache_key, result, 300)
                 metrics.incr("testing.tagstore.cache_tag_key.len", amount=len(result))
 
         if group_id is None:
