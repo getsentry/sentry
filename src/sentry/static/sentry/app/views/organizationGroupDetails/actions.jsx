@@ -15,6 +15,7 @@ import GroupActions from 'app/actions/groupActions';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import IgnoreActions from 'app/components/actions/ignore';
 import IndicatorStore from 'app/stores/indicatorStore';
+import Link from 'app/components/links/link';
 import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 import MenuItem from 'app/components/menuItem';
 import ResolveActions from 'app/components/actions/resolve';
@@ -133,6 +134,18 @@ const GroupDetailsActions = createReactClass({
     return `${protocol}//${host}${path}`;
   },
 
+  getDiscoverUrl() {
+    const {organization, group} = this.props;
+
+    return {
+      pathname: `/organizations/${organization.slug}/eventsv2/results/`,
+      query: {
+        field: ['title', 'count(id)', 'project', 'last_seen'],
+        query: `event.type:error issue.id:${group.id}`,
+      },
+    };
+  },
+
   onDelete() {
     const {group, project, organization} = this.props;
     const loadingIndicator = IndicatorStore.add(t('Delete event..'));
@@ -232,7 +245,8 @@ const GroupDetailsActions = createReactClass({
     const {group, project, organization} = this.props;
     const orgFeatures = new Set(organization.features);
 
-    let bookmarkClassName = 'group-bookmark btn btn-default btn-sm';
+    const buttonClassName = 'btn btn-default btn-sm';
+    let bookmarkClassName = `group-bookmark ${buttonClassName}`;
     if (group.isBookmarked) {
       bookmarkClassName += ' active';
     }
@@ -253,17 +267,17 @@ const GroupDetailsActions = createReactClass({
           isResolved={isResolved}
           isAutoResolved={isResolved && group.statusDetails.autoResolved}
         />
+
         <IgnoreActions isIgnored={isIgnored} onUpdate={this.onUpdate} />
 
-        <div className="btn-group">
-          <a
-            className={bookmarkClassName}
-            title={t('Bookmark')}
-            onClick={this.onToggleBookmark}
-          >
-            <span className="icon-star-solid" />
-          </a>
+        <div
+          className={bookmarkClassName}
+          title={t('Bookmark')}
+          onClick={this.onToggleBookmark}
+        >
+          <span className="icon-star-solid" />
         </div>
+
         <DeleteActions
           organization={organization}
           project={project}
@@ -282,6 +296,16 @@ const GroupDetailsActions = createReactClass({
               busy={this.state.shareBusy}
             />
           </div>
+        )}
+
+        {orgFeatures.has('events-v2') && (
+          <Link
+            className={buttonClassName}
+            title={t('Open in Discover')}
+            to={this.getDiscoverUrl()}
+          >
+            {t('Open in Discover')}
+          </Link>
         )}
       </div>
     );
