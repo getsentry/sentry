@@ -114,6 +114,7 @@ class App extends React.Component {
       AlertActions.addAlert({
         message: msg.message,
         type: msg.level,
+        neverExpire: true,
       });
     });
 
