@@ -9,9 +9,7 @@ exports[`ProjectSecurityHeaders renders 1`] = `
       noTitleStyles={false}
       title="Security Header Reports"
     />
-    <PreviewFeature
-      type="info"
-    />
+    <PreviewFeature />
     <ReportUri
       keyList={Array []}
       params={
