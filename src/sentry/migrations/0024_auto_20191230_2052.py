@@ -53,7 +53,7 @@ def backfill_eventstream(apps, schema_editor):
         eventstore.bind_nodes(_events, "data")
 
     if skip_backfill:
-        print("Skipping backfill\n")
+        print("Skipping backfill.\n")
         return
 
     events = get_events(retention_days)
@@ -65,10 +65,11 @@ def backfill_eventstream(apps, schema_editor):
 
     print("Events to process: {}\n".format(count))
 
+    processed = 0
     for event in RangeQuerySetWrapper(events, step=100, callbacks=(_attach_related,)):
         primary_hash = event.get_primary_hash()
         if event.project is None or event.group is None:
-            print("Skipping %s as group or project information is invalid..." % event)
+            print("Skipped {} as group or project information is invalid.\n".format(event))
             continue
 
         eventstream.insert(
@@ -80,8 +81,9 @@ def backfill_eventstream(apps, schema_editor):
             primary_hash=primary_hash,
             skip_consume=True,
         )
+        processed += 1
 
-    print("Done.\n")
+    print("Event migration done. Processed {} of {} events.\n".format(processed, count))
 
 
 class Migration(migrations.Migration):
