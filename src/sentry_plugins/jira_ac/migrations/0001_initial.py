@@ -21,7 +21,7 @@ class Migration(migrations.Migration):
     # - Adding columns to highly active tables, even ones that are NULL.
     is_dangerous = False
 
-    dependencies = [("sentry", "0003_auto_20191022_0122")]
+    dependencies = [("sentry", "0001_initial")]
 
     operations = [
         migrations.CreateModel(
