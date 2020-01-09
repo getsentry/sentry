@@ -1743,7 +1743,6 @@ SOUTH_MIGRATION_CONVERSIONS = (
         "Please upgrade to Sentry 9.1.2 before upgrading to any later versions.",
     ),
     # From sentry-plugins
-    ("jira_ac", "0001_initial", "sentry", "0003_auto_20191022_0122", False, ""),
     ("sentry_plugins.jira_ac", "0001_initial", "jira_ac", "0001_initial", False, ""),
     ("jira_ac", "0001_initial", "jira_ac", "0001_initial", False, ""),
 )
