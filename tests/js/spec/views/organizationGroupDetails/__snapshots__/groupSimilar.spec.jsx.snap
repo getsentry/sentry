@@ -1476,9 +1476,11 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                             avatar={true}
                                           >
                                             <AutoSelectText
+                                              avatar={true}
                                               className="css-1m1w4wi-StyledAutoSelectText e10rcxf31"
                                             >
                                               <div
+                                                avatar={true}
                                                 className="auto-select-text css-1m1w4wi-StyledAutoSelectText e10rcxf31"
                                                 onClick={[Function]}
                                               >
