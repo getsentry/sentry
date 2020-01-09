@@ -21,7 +21,13 @@ const Icon = styled('img')<IconProps>`
 
 const IntegrationIcon = ({integration, size}: Props) =>
   integration.icon ? (
-    <Icon size={size} src={integration.icon} />
+    <Icon
+      size={size}
+      src={integration.icon}
+      onError={e => {
+        (e.target as HTMLImageElement).src = integration.provider.key;
+      }}
+    />
   ) : (
     <PluginIcon size={size} pluginId={integration.provider.key} />
   );
