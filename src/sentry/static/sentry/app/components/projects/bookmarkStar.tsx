@@ -22,27 +22,19 @@ type Props = {
   onToggle?: (isBookmarked: boolean) => void;
 };
 
-class BookmarkStar extends React.Component<Props> {
-  static propTypes = {
-    api: PropTypes.any.isRequired,
-    /* used to override when under local state */
-    isBookmarked: PropTypes.bool,
-    className: PropTypes.string,
-    organization: SentryTypes.Organization.isRequired,
-    project: SentryTypes.Project.isRequired,
-    onToggle: PropTypes.func,
-  };
+const BookmarkStar: React.FC<Props> = ({
+  api,
+  isBookmarked: isBookmarkedProp,
+  className,
+  organization,
+  project,
+  onToggle,
+}) => {
+  const isBookmarked = defined(isBookmarkedProp)
+    ? isBookmarkedProp
+    : project.isBookmarked;
 
-  isBookmarked() {
-    return defined(this.props.isBookmarked)
-      ? this.props.isBookmarked
-      : this.props.project.isBookmarked;
-  }
-
-  toggleProjectBookmark = (event: React.MouseEvent) => {
-    const {project, organization, api} = this.props;
-    const isBookmarked = this.isBookmarked();
-
+  const toggleProjectBookmark = (event: React.MouseEvent) => {
     update(api, {
       orgId: organization.slug,
       projectId: project.slug,
@@ -57,25 +49,30 @@ class BookmarkStar extends React.Component<Props> {
     //prevent dropdowns from closing
     event.stopPropagation();
 
-    if (this.props.onToggle) {
-      this.props.onToggle(!isBookmarked);
+    if (onToggle) {
+      onToggle(!isBookmarked);
     }
   };
 
-  render() {
-    const {className} = this.props;
-    const isBookmarked = this.isBookmarked();
+  return (
+    <Star
+      isBookmarked={isBookmarked}
+      src="icon-star-small-filled"
+      onClick={toggleProjectBookmark}
+      className={className}
+    />
+  );
+};
 
-    return (
-      <Star
-        isBookmarked={isBookmarked}
-        src="icon-star-small-filled"
-        onClick={this.toggleProjectBookmark}
-        className={className}
-      />
-    );
-  }
-}
+BookmarkStar.propTypes = {
+  api: PropTypes.any.isRequired,
+  /* used to override when under local state */
+  isBookmarked: PropTypes.bool,
+  className: PropTypes.string,
+  organization: SentryTypes.Organization.isRequired,
+  project: SentryTypes.Project.isRequired,
+  onToggle: PropTypes.func,
+};
 
 const Star = styled(InlineSvg)<{isBookmarked: boolean}>`
   color: ${p => (p.isBookmarked ? p.theme.yellowOrange : p.theme.gray1)};
