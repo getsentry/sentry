@@ -39,7 +39,7 @@ const Footer = () => {
             })}
             {' ('}
             {getDynamicText({
-              fixed: 'master',
+              fixed: 'test',
               value: config.version.build,
             })}
             {')'}
