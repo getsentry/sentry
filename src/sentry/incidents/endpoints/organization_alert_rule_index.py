@@ -12,7 +12,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.incidents.models import AlertRule
 from sentry.incidents.logic import create_alert_rule_unified
-
+from sentry.incidents.endpoints.serializers import AlertRuleSerializer
 
 class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint):
     def get(self, request, organization):
@@ -35,18 +35,41 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint):
         """
         Create an alert rule
         """
+
         if not features.has("organizations:incidents", organization, actor=request.user):
             raise ResourceDoesNotExist
 
-        data = deepcopy(request.data)
-
-        alert_rule = create_alert_rule_unified(
-            data, organization=organization, access=request.access
+        print("Instantiating serializer")
+        serializer = AlertRuleSerializer(
+            context={
+                "organization": organization,
+                "access": request.access,
+            },
+            data=request.data,
         )
+        print("Done. Serializer:", serializer)
 
-        if alert_rule.get("error", False) is True:
-            return Response(serialize(alert_rule, request.user), status=status.HTTP_400_BAD_REQUEST)
-        else:
-            return Response(
-                serialize(alert_rule["rule"], request.user), status=status.HTTP_201_CREATED
-            )
+        if serializer.is_valid():
+            print("It's valid. Saving and returning.")
+            trigger = serializer.save()
+            return Response(serialize(trigger, request.user), status=status.HTTP_201_CREATED)
+
+        print("Returning errors. Serializer invalid.")
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+        # if not features.has("organizations:incidents", organization, actor=request.user):
+        #     raise ResourceDoesNotExist
+
+        # data = request.data
+
+        # alert_rule = create_alert_rule_unified(
+        #     data, organization=organization, access=request.access
+        # )
+
+        # if alert_rule.get("error", False) is True:
+        #     return Response(serialize(alert_rule, request.user), status=status.HTTP_400_BAD_REQUEST)
+        # else:
+        #     return Response(
+        #         serialize(alert_rule["rule"], request.user), status=status.HTTP_201_CREATED
+        #     )

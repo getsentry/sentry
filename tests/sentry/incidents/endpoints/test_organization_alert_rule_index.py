@@ -67,7 +67,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
     def user(self):
         return self.create_user()
 
-    def test_simple(self):
+    def test_simple_create(self):
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
@@ -79,22 +79,22 @@ class AlertRuleCreateEndpointTest(APITestCase):
             "timeWindow": "300",
             "triggers": [
                 {
-                    "label": "CRITICAL",
+                    "label": "critical",
                     "alertThreshold": 200,
                     "resolveThreshold": 300,
                     "thresholdType": 1,
                     "actions": [
-                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
+                        {"type": "email", "target_type": "team", "target_identifier": self.team.id}
                     ],
                 },
                 {
-                    "label": "WARNING",
+                    "label": "warning",
                     "alertThreshold": 150,
                     "resolveThreshold": 300,
                     "thresholdType": 1,
                     "actions": [
-                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
-                        {"type": "email", "targetType": "user", "targetIdentifier": self.user.id},
+                        {"type": "email", "target_type": "team", "target_identifier": self.team.id},
+                        {"type": "email", "target_type": "user", "target_identifier": self.user.id},
                     ],
                 },
             ],
@@ -105,9 +105,39 @@ class AlertRuleCreateEndpointTest(APITestCase):
             resp = self.get_valid_response(
                 self.organization.slug, status_code=201, **valid_alert_rule
             )
+        print("resp:",resp)
+        print("resp.data:",resp.data)
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert resp.data == serialize(alert_rule, self.user)
+
+    def test_no_label(self):
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+        rule_one_trigger_no_label = {
+            "aggregation": 0,
+            "aggregations": [0],
+            "query": "",
+            "timeWindow": "300",
+            "projects": [self.project.slug],
+            "name": "OneTriggerOnlyCritical",
+            "triggers": [
+                {
+                    "alertThreshold": 200,
+                    "resolveThreshold": 300,
+                    "thresholdType": 1,
+                    "actions": [
+                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
+                    ],
+                }
+            ],
+        }
+
+        with self.feature("organizations:incidents"):
+            self.get_valid_response(self.organization.slug, status_code=400, **rule_one_trigger_no_label)
+
 
     def test_only_critical_trigger(self):
         self.create_member(
