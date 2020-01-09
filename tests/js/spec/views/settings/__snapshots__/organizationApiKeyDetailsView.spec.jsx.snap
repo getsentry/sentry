@@ -68,9 +68,7 @@ exports[`OrganizationApiKeyDetails renders 1`] = `
                 splitWidth={15}
               >
                 <SpreadLayout
-                  center={true}
                   className="split-layout"
-                  responsive={false}
                 >
                   <div
                     className="spread-layout split-layout center"
