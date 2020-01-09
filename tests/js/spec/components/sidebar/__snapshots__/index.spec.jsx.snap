@@ -39,7 +39,7 @@ exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
         to="/organizations/new/"
       >
         <Component
-          className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+          className="css-1qkcsvl-MenuItemLink-getMenuItemStyles e1ru2gxu1"
           data-test-id="sidebar-create-org"
           style={
             Object {
@@ -49,7 +49,7 @@ exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
           to="/organizations/new/"
         >
           <Link
-            className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+            className="css-1qkcsvl-MenuItemLink-getMenuItemStyles e1ru2gxu1"
             data-test-id="sidebar-create-org"
             style={
               Object {
@@ -59,7 +59,7 @@ exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
             to="/organizations/new/"
           >
             <Link
-              className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+              className="css-1qkcsvl-MenuItemLink-getMenuItemStyles e1ru2gxu1"
               data-test-id="sidebar-create-org"
               onlyActiveOnIndex={false}
               style={
@@ -70,7 +70,7 @@ exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
               to="/organizations/new/"
             >
               <a
-                className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+                className="css-1qkcsvl-MenuItemLink-getMenuItemStyles e1ru2gxu1"
                 data-test-id="sidebar-create-org"
                 onClick={[Function]}
                 style={
@@ -199,10 +199,9 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
     >
       <OrgSummary>
         <div
-          className="css-1d1he2f-OrgSummary e1dvf3yd0"
+          className="css-1d1he2f-OrgSummary e1h7qc9l0"
         >
           <OrganizationAvatar
-            className="css-6su6fj"
             organization={
               Object {
                 "access": Array [
@@ -232,14 +231,22 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
               }
             }
             size={36}
+            style={
+              Object {
+                "flexShrink": 0,
+              }
+            }
           >
             <BaseAvatar
-              className="css-6su6fj"
               hasTooltip={false}
               letterId="org-slug"
               round={false}
               size={36}
-              style={Object {}}
+              style={
+                Object {
+                  "flexShrink": 0,
+                }
+              }
               title="org slug"
               tooltip="org-slug"
               type="letter_avatar"
@@ -252,20 +259,22 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                 title="org-slug"
               >
                 <StyledBaseAvatar
-                  className="avatar css-6su6fj"
+                  className="avatar"
                   loaded={true}
                   round={false}
                   style={
                     Object {
+                      "flexShrink": 0,
                       "height": "36px",
                       "width": "36px",
                     }
                   }
                 >
                   <span
-                    className="avatar css-1ezk8y8-StyledBaseAvatar e147uwb0"
+                    className="avatar css-1i62700-StyledBaseAvatar e147uwb0"
                     style={
                       Object {
+                        "flexShrink": 0,
                         "height": "36px",
                         "width": "36px",
                       }
@@ -319,11 +328,11 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
           </OrganizationAvatar>
           <Details>
             <div
-              className="css-r07pll-Details e1dvf3yd3"
+              className="css-r07pll-Details e1h7qc9l3"
             >
               <SummaryOrgName>
                 <div
-                  className="css-18gl0tz-SummaryOrgName e1dvf3yd1"
+                  className="css-18gl0tz-SummaryOrgName e1h7qc9l1"
                 >
                   Organization Name
                 </div>
@@ -340,21 +349,21 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
         to="/settings/org-slug/"
       >
         <Component
-          className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+          className="css-1qkcsvl-MenuItemLink-getMenuItemStyles e1ru2gxu1"
           to="/settings/org-slug/"
         >
           <Link
-            className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+            className="css-1qkcsvl-MenuItemLink-getMenuItemStyles e1ru2gxu1"
             to="/settings/org-slug/"
           >
             <Link
-              className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+              className="css-1qkcsvl-MenuItemLink-getMenuItemStyles e1ru2gxu1"
               onlyActiveOnIndex={false}
               style={Object {}}
               to="/settings/org-slug/"
             >
               <a
-                className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+                className="css-1qkcsvl-MenuItemLink-getMenuItemStyles e1ru2gxu1"
                 onClick={[Function]}
                 style={Object {}}
               >
@@ -380,21 +389,21 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
         to="/settings/org-slug/teams/"
       >
         <Component
-          className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+          className="css-1qkcsvl-MenuItemLink-getMenuItemStyles e1ru2gxu1"
           to="/settings/org-slug/teams/"
         >
           <Link
-            className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+            className="css-1qkcsvl-MenuItemLink-getMenuItemStyles e1ru2gxu1"
             to="/settings/org-slug/teams/"
           >
             <Link
-              className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+              className="css-1qkcsvl-MenuItemLink-getMenuItemStyles e1ru2gxu1"
               onlyActiveOnIndex={false}
               style={Object {}}
               to="/settings/org-slug/teams/"
             >
               <a
-                className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+                className="css-1qkcsvl-MenuItemLink-getMenuItemStyles e1ru2gxu1"
                 onClick={[Function]}
                 style={Object {}}
               >
@@ -449,10 +458,10 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
     <SidebarMenuItem>
       <MenuItemLink>
         <Component
-          className="css-1yav7bf-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+          className="css-174zek1-MenuItemLink-getMenuItemStyles e1ru2gxu1"
         >
           <div
-            className="css-1yav7bf-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+            className="css-174zek1-MenuItemLink-getMenuItemStyles e1ru2gxu1"
             tabIndex="0"
           >
             <MenuItemLabel
@@ -530,17 +539,17 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
       to="/settings/account/details/"
     >
       <Link
-        className="css-1eqpqy9-UserSummary-getMenuItemStyles e1fowdfw1"
+        className="css-1ujhs7f-UserSummary-getMenuItemStyles e1fowdfw1"
         to="/settings/account/details/"
       >
         <Link
-          className="css-1eqpqy9-UserSummary-getMenuItemStyles e1fowdfw1"
+          className="css-1ujhs7f-UserSummary-getMenuItemStyles e1fowdfw1"
           onlyActiveOnIndex={false}
           style={Object {}}
           to="/settings/account/details/"
         >
           <a
-            className="css-1eqpqy9-UserSummary-getMenuItemStyles e1fowdfw1"
+            className="css-1ujhs7f-UserSummary-getMenuItemStyles e1fowdfw1"
             onClick={[Function]}
             style={Object {}}
           >
@@ -818,21 +827,21 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
           to="/settings/account/"
         >
           <Component
-            className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+            className="css-1qkcsvl-MenuItemLink-getMenuItemStyles e1ru2gxu1"
             to="/settings/account/"
           >
             <Link
-              className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+              className="css-1qkcsvl-MenuItemLink-getMenuItemStyles e1ru2gxu1"
               to="/settings/account/"
             >
               <Link
-                className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+                className="css-1qkcsvl-MenuItemLink-getMenuItemStyles e1ru2gxu1"
                 onlyActiveOnIndex={false}
                 style={Object {}}
                 to="/settings/account/"
               >
                 <a
-                  className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+                  className="css-1qkcsvl-MenuItemLink-getMenuItemStyles e1ru2gxu1"
                   onClick={[Function]}
                   style={Object {}}
                 >
@@ -858,21 +867,21 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
           to="/settings/account/api/"
         >
           <Component
-            className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+            className="css-1qkcsvl-MenuItemLink-getMenuItemStyles e1ru2gxu1"
             to="/settings/account/api/"
           >
             <Link
-              className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+              className="css-1qkcsvl-MenuItemLink-getMenuItemStyles e1ru2gxu1"
               to="/settings/account/api/"
             >
               <Link
-                className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+                className="css-1qkcsvl-MenuItemLink-getMenuItemStyles e1ru2gxu1"
                 onlyActiveOnIndex={false}
                 style={Object {}}
                 to="/settings/account/api/"
               >
                 <a
-                  className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+                  className="css-1qkcsvl-MenuItemLink-getMenuItemStyles e1ru2gxu1"
                   onClick={[Function]}
                   style={Object {}}
                 >
@@ -900,12 +909,12 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
           onClick={[Function]}
         >
           <Component
-            className="css-1yav7bf-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+            className="css-174zek1-MenuItemLink-getMenuItemStyles e1ru2gxu1"
             data-test-id="sidebarSignout"
             onClick={[Function]}
           >
             <div
-              className="css-1yav7bf-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+              className="css-174zek1-MenuItemLink-getMenuItemStyles e1ru2gxu1"
               data-test-id="sidebarSignout"
               onClick={[Function]}
               tabIndex="0"
@@ -981,11 +990,11 @@ exports[`Sidebar SidebarHelp can toggle help menu 1`] = `
         onClick={[Function]}
       >
         <Component
-          className="css-1yav7bf-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+          className="css-174zek1-MenuItemLink-getMenuItemStyles e1ru2gxu1"
           onClick={[Function]}
         >
           <div
-            className="css-1yav7bf-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+            className="css-174zek1-MenuItemLink-getMenuItemStyles e1ru2gxu1"
             onClick={[Function]}
             tabIndex="0"
           >
@@ -1011,17 +1020,17 @@ exports[`Sidebar SidebarHelp can toggle help menu 1`] = `
         target="_blank"
       >
         <Component
-          className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+          className="css-1qkcsvl-MenuItemLink-getMenuItemStyles e1ru2gxu1"
           href="https://forum.sentry.io/"
           target="_blank"
         >
           <Link
-            className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+            className="css-1qkcsvl-MenuItemLink-getMenuItemStyles e1ru2gxu1"
             href="https://forum.sentry.io/"
             target="_blank"
           >
             <a
-              className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+              className="css-1qkcsvl-MenuItemLink-getMenuItemStyles e1ru2gxu1"
               href="https://forum.sentry.io/"
               target="_blank"
             >
@@ -1048,17 +1057,17 @@ exports[`Sidebar SidebarHelp can toggle help menu 1`] = `
         target="_blank"
       >
         <Component
-          className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+          className="css-1qkcsvl-MenuItemLink-getMenuItemStyles e1ru2gxu1"
           href="https://status.sentry.io/"
           target="_blank"
         >
           <Link
-            className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+            className="css-1qkcsvl-MenuItemLink-getMenuItemStyles e1ru2gxu1"
             href="https://status.sentry.io/"
             target="_blank"
           >
             <a
-              className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+              className="css-1qkcsvl-MenuItemLink-getMenuItemStyles e1ru2gxu1"
               href="https://status.sentry.io/"
               target="_blank"
             >
@@ -3277,17 +3286,17 @@ exports[`Sidebar renders without org and router 1`] = `
       to="/settings/account/details/"
     >
       <Link
-        className="css-1eqpqy9-UserSummary-getMenuItemStyles e1fowdfw1"
+        className="css-1ujhs7f-UserSummary-getMenuItemStyles e1fowdfw1"
         to="/settings/account/details/"
       >
         <Link
-          className="css-1eqpqy9-UserSummary-getMenuItemStyles e1fowdfw1"
+          className="css-1ujhs7f-UserSummary-getMenuItemStyles e1fowdfw1"
           onlyActiveOnIndex={false}
           style={Object {}}
           to="/settings/account/details/"
         >
           <a
-            className="css-1eqpqy9-UserSummary-getMenuItemStyles e1fowdfw1"
+            className="css-1ujhs7f-UserSummary-getMenuItemStyles e1fowdfw1"
             onClick={[Function]}
             style={Object {}}
           >
@@ -3565,21 +3574,21 @@ exports[`Sidebar renders without org and router 1`] = `
           to="/settings/account/"
         >
           <Component
-            className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+            className="css-1qkcsvl-MenuItemLink-getMenuItemStyles e1ru2gxu1"
             to="/settings/account/"
           >
             <Link
-              className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+              className="css-1qkcsvl-MenuItemLink-getMenuItemStyles e1ru2gxu1"
               to="/settings/account/"
             >
               <Link
-                className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+                className="css-1qkcsvl-MenuItemLink-getMenuItemStyles e1ru2gxu1"
                 onlyActiveOnIndex={false}
                 style={Object {}}
                 to="/settings/account/"
               >
                 <a
-                  className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+                  className="css-1qkcsvl-MenuItemLink-getMenuItemStyles e1ru2gxu1"
                   onClick={[Function]}
                   style={Object {}}
                 >
@@ -3605,21 +3614,21 @@ exports[`Sidebar renders without org and router 1`] = `
           to="/settings/account/api/"
         >
           <Component
-            className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+            className="css-1qkcsvl-MenuItemLink-getMenuItemStyles e1ru2gxu1"
             to="/settings/account/api/"
           >
             <Link
-              className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+              className="css-1qkcsvl-MenuItemLink-getMenuItemStyles e1ru2gxu1"
               to="/settings/account/api/"
             >
               <Link
-                className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+                className="css-1qkcsvl-MenuItemLink-getMenuItemStyles e1ru2gxu1"
                 onlyActiveOnIndex={false}
                 style={Object {}}
                 to="/settings/account/api/"
               >
                 <a
-                  className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+                  className="css-1qkcsvl-MenuItemLink-getMenuItemStyles e1ru2gxu1"
                   onClick={[Function]}
                   style={Object {}}
                 >
@@ -3647,12 +3656,12 @@ exports[`Sidebar renders without org and router 1`] = `
           onClick={[Function]}
         >
           <Component
-            className="css-1yav7bf-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+            className="css-174zek1-MenuItemLink-getMenuItemStyles e1ru2gxu1"
             data-test-id="sidebarSignout"
             onClick={[Function]}
           >
             <div
-              className="css-1yav7bf-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+              className="css-174zek1-MenuItemLink-getMenuItemStyles e1ru2gxu1"
               data-test-id="sidebarSignout"
               onClick={[Function]}
               tabIndex="0"
