@@ -68,7 +68,7 @@ const Platformicon = ({platform, size, width, height, ...props}) => {
 
   return (
     <img
-      src={require(`platformicons/svg/${icon}.svg`)}
+      src={require(`platformicons/svg/${icon}.svg`).default}
       width={width || size || '1em'}
       height={height || size || '1em'}
       {...props}
