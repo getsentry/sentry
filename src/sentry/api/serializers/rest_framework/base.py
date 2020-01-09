@@ -59,6 +59,8 @@ class CamelSnakeModelSerializer(ModelSerializer):
 
     @property
     def errors(self):
+        print("errors~", self)
+        print("errors:", super(CamelSnakeModelSerializer, self).errors)
         return convert_dict_key_case(
             super(CamelSnakeModelSerializer, self).errors, snake_to_camel_case
         )

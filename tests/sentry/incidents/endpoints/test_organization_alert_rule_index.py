@@ -82,7 +82,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
                     "label": "critical",
                     "alertThreshold": 200,
                     "resolveThreshold": 300,
-                    "thresholdType": 1,
+                    "thresholdType": 0,
                     "actions": [
                         {"type": "email", "target_type": "team", "target_identifier": self.team.id}
                     ],
@@ -91,7 +91,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
                     "label": "warning",
                     "alertThreshold": 150,
                     "resolveThreshold": 300,
-                    "thresholdType": 1,
+                    "thresholdType": 0,
                     "actions": [
                         {"type": "email", "target_type": "team", "target_identifier": self.team.id},
                         {"type": "email", "target_type": "user", "target_identifier": self.user.id},

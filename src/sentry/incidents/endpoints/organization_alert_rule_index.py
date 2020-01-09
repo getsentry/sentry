@@ -12,7 +12,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.incidents.models import AlertRule
 from sentry.incidents.logic import create_alert_rule_unified
-from sentry.incidents.endpoints.serializers import AlertRuleSerializer
+from sentry.incidents.endpoints.serializers import UnifiedAlertRuleSerializer
 
 class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint):
     def get(self, request, organization):
@@ -40,7 +40,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint):
             raise ResourceDoesNotExist
 
         print("Instantiating serializer")
-        serializer = AlertRuleSerializer(
+        serializer = UnifiedAlertRuleSerializer(
             context={
                 "organization": organization,
                 "access": request.access,
@@ -52,6 +52,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint):
         if serializer.is_valid():
             print("It's valid. Saving and returning.")
             trigger = serializer.save()
+            print("trigger is:",trigger)
             return Response(serialize(trigger, request.user), status=status.HTTP_201_CREATED)
 
         print("Returning errors. Serializer invalid.")
