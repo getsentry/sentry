@@ -2,10 +2,10 @@ import React from 'react';
 import PropTypes from 'prop-types';
 
 import {t} from 'app/locale';
-import Alert from 'app/components/alert';
+import Alert, {Props as AlertProps} from 'app/components/alert';
 
 type Props = {
-  type?: 'success' | 'error' | 'warning' | 'info';
+  type?: AlertProps['type'];
 };
 
 const PreviewFeature: React.FC<Props> = ({type = 'info'}) => {
