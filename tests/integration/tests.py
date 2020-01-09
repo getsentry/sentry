@@ -491,6 +491,7 @@ class SentryRemoteTest(SnubaTestCase):
 
 
 class SentryWsgiRemoteTest(TransactionTestCase):
+    @override_settings(ALLOWED_HOSTS=["localhost"])
     def test_traceparent_header_wsgi(self):
         # Assert that posting something to store will not create another
         # (transaction) event under any circumstances.
