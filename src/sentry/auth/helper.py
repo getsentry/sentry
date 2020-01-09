@@ -4,6 +4,7 @@ import logging
 
 from uuid import uuid4
 
+import six
 from django.conf import settings
 from django.contrib import messages
 from django.core.urlresolvers import reverse
@@ -637,8 +638,8 @@ class AuthHelper(object):
 
         try:
             identity = self.provider.build_identity(data)
-        except IdentityNotValid:
-            return self.error(ERR_INVALID_IDENTITY)
+        except IdentityNotValid as error:
+            return self.error(six.text_type(error) or ERR_INVALID_IDENTITY)
 
         if self.state.flow == self.FLOW_LOGIN:
             # create identity and authenticate the user
