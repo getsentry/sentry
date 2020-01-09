@@ -15,6 +15,7 @@ const SidebarOrgSummary: React.FC<Props> = ({organization}) => {
   const extra: string[] = [];
 
   if (projects) {
+    // should we think about pluralization here?
     extra.push(`${projects} projects`);
   }
 
