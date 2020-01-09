@@ -221,7 +221,7 @@ class ContextPickerModal extends React.Component<Props> {
                 }
                 this.focusOrganizationSelector();
               }}
-              placeholder="Select an Organization"
+              placeholder={t('Select an Organization')}
               name="organization"
               options={orgChoices}
               openOnFocus
