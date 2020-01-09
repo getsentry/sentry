@@ -287,6 +287,7 @@ function routes() {
         />
 
         <Route path="issue-rules/" component={null}>
+          <IndexRedirect to="/settings/:orgId/projects/:projectId/alerts-v2/" />
           <Route
             path="new/"
             name="New Alert Rule"
@@ -306,6 +307,7 @@ function routes() {
         </Route>
 
         <Route path="metric-rules/" component={null}>
+          <IndexRedirect to="/settings/:orgId/projects/:projectId/alerts-v2/" />
           <Route
             name="New Incident Rule"
             path="new/"
