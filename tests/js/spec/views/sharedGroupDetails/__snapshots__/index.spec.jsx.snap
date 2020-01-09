@@ -177,26 +177,26 @@ exports[`SharedGroupDetails renders 1`] = `
                         <h3>
                           ZeroDivisionError
                         </h3>
-                        <Styled(EventMessage)
+                        <StyledEventMessage
                           message="fetchData(app/components/group/suggestedOwners)"
                         >
                           <EventMessage
-                            className="css-1u2jzzx edommoc2"
+                            className="css-j3vomr-StyledEventMessage e1vuddz00"
                             message="fetchData(app/components/group/suggestedOwners)"
                           >
                             <div
-                              className="css-1u2jzzx edommoc2"
+                              className="css-j3vomr-StyledEventMessage e1vuddz00"
                             >
                               <Message>
                                 <span
-                                  className="css-18no1g8-Message edommoc0"
+                                  className="css-18no1g8-Message e1vuddz02"
                                 >
                                   fetchData(app/components/group/suggestedOwners)
                                 </span>
                               </Message>
                             </div>
                           </EventMessage>
-                        </Styled(EventMessage)>
+                        </StyledEventMessage>
                       </div>
                     </div>
                   </SharedGroupHeader>
