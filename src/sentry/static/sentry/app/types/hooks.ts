@@ -168,10 +168,7 @@ type FeatureDisabledHook = (opts: {
  */
 type AnalyticsInitUser = (user: User) => void;
 
-/**
- * Trigger analytics tracking in the hook store.
- */
-type AnalyticsTrackEvent = (opts: {
+export type AnalyticsTrackEventOptions = {
   /**
    * The key used to identify the event.
    */
@@ -184,7 +181,12 @@ type AnalyticsTrackEvent = (opts: {
    * Arbitrary data to track
    */
   [key: string]: any;
-}) => void;
+};
+
+/**
+ * Trigger analytics tracking in the hook store.
+ */
+type AnalyticsTrackEvent = (opts: AnalyticsTrackEventOptions) => void;
 
 /**
  * Trigger adhoc analytics tracking in the hook store.

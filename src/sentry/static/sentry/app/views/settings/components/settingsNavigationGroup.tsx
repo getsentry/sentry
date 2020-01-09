@@ -1,9 +1,13 @@
 import React from 'react';
 import styled from 'react-emotion';
+import omitBy from 'lodash/omitBy';
+import isUndefined from 'lodash/isUndefined';
 
 import SettingsNavItem from 'app/views/settings/components/settingsNavItem';
 import replaceRouterParams from 'app/utils/replaceRouterParams';
 import {NavigationGroupProps} from 'app/views/settings/types';
+import {AnalyticsTrackEventOptions} from 'app/types/hooks';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 
 const SettingsNavigationGroup = (props: NavigationGroupProps) => {
   const {organization, project, name, items} = props;
@@ -11,7 +15,7 @@ const SettingsNavigationGroup = (props: NavigationGroupProps) => {
   return (
     <NavSection data-test-id={name}>
       <SettingsHeading>{name}</SettingsHeading>
-      {items.map(({path, title, index, show, badge, id}) => {
+      {items.map(({path, title, index, show, badge, id, analyticsParams}) => {
         if (typeof show === 'function' && !show(props)) {
           return null;
         }
@@ -24,6 +28,22 @@ const SettingsNavigationGroup = (props: NavigationGroupProps) => {
           ...(project ? {projectId: project.slug} : {}),
         });
 
+        const handleClick = () => {
+          //only call the analytics event if the URL is changing
+          if (analyticsParams && to !== window.location.pathname) {
+            //remvove any undefines to stop warnings
+            analyticsParams = omitBy(
+              {
+                organization_id: organization && organization.id,
+                project_id: project && project.id,
+                ...analyticsParams,
+              },
+              isUndefined
+            ) as AnalyticsTrackEventOptions;
+            trackAnalyticsEvent(analyticsParams);
+          }
+        };
+
         return (
           <SettingsNavItem
             key={title}
@@ -32,6 +52,7 @@ const SettingsNavigationGroup = (props: NavigationGroupProps) => {
             index={index}
             badge={badgeResult}
             id={id}
+            onClick={handleClick}
           />
         );
       })}

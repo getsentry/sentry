@@ -74,6 +74,10 @@ const organizationNavigation: NavigationSection[] = [
           'Manage organization-level integrations, including: Slack, Github, Bitbucket, Jira, and Azure DevOps'
         ),
         id: 'integrations',
+        analyticsParams: {
+          eventKey: 'sidebar.integrations_clicked',
+          eventName: 'Sidebar Integrations Clicked',
+        },
       },
       {
         path: `${pathPrefix}/developer-settings/`,

@@ -1,4 +1,5 @@
 import {Organization, Project, Scope} from 'app/types';
+import {AnalyticsTrackEventOptions} from 'app/types/hooks';
 
 export type NavigationProps = {
   id?: string;
@@ -41,6 +42,11 @@ export type NavigationItem = {
    * Returns the text of the badge to render next to the navigation.
    */
   badge?: (opts: NavigationGroupProps) => string | number | null;
+
+  /**
+   * Parameters to pass to the trackAnalyticsEvent when the navigation item is clicked
+   */
+  analyticsParams?: AnalyticsTrackEventOptions;
 };
 
 export type NavigationSection = {
