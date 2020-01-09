@@ -17,8 +17,11 @@ esac
 if [ "$1" = 'sentry' ]; then
 	set -- tini -- "$@"
 	if [ "$(id -u)" = '0' ]; then
-		mkdir -p "$SENTRY_FILESTORE_DIR"
-		find "$SENTRY_FILESTORE_DIR" ! -user sentry -exec chown sentry {} \;
+        if [ "$(sentry config get -q filestore.backend)" = 'filesystem']; then
+			FILESTORE_DIR=$(sentry config get -q filestore.options | awk 'BEGIN { RS=",|:{\n"; FS="\"|'"'"'"; } $2 == "location" { print $4 }')
+			mkdir -p "$FILESTORE_DIR"
+			find "$FILESTORE_DIR" ! -user sentry -exec chown sentry {} \;
+		fi
 		set -- gosu sentry "$@"
 	fi
 fi
