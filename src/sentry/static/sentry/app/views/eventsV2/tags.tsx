@@ -111,7 +111,6 @@ class Tags extends React.Component<Props, State> {
       eventKey: 'discover_v2.facet_map.clicked',
       eventName: 'Discoverv2: Clicked on a tag on the facet map',
       tag,
-      value: segment.value,
       organization_id: organization.id,
     });
   };
