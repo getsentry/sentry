@@ -14,6 +14,7 @@ import {
 import {createDefaultTrigger} from 'app/views/settings/incidentRules/constants';
 import {defined} from 'app/utils';
 import {t} from 'app/locale';
+import Access from 'app/components/acl/access';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
@@ -274,66 +275,73 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     const {query, aggregation, timeWindow, triggers} = this.state;
 
     return (
-      <Form
-        apiMethod={incidentRuleId ? 'PUT' : 'POST'}
-        apiEndpoint={`/organizations/${organization.slug}/alert-rules/${
-          incidentRuleId ? `${incidentRuleId}/` : ''
-        }`}
-        initialData={{
-          name: rule.name || '',
-          aggregation: rule.aggregation,
-          query: rule.query || '',
-          timeWindow: rule.timeWindow,
-        }}
-        saveOnBlur={false}
-        onSubmit={this.handleSubmit}
-        onSubmitSuccess={onSubmitSuccess}
-        onCancel={this.handleCancel}
-        onFieldChange={this.handleFieldChange}
-        extraButton={
-          !!rule.id ? (
-            <Confirm
-              message={t('Are you sure you want to delete this alert rule?')}
-              header={t('Delete Alert Rule?')}
-              priority="danger"
-              confirmText={t('Delete Rule')}
-              onConfirm={this.handleDeleteRule}
-            >
-              <Button type="button" priority="danger">
-                {t('Delete Rule')}
-              </Button>
-            </Confirm>
-          ) : null
-        }
-        submitLabel={t('Save Rule')}
-      >
-        <TriggersChart
-          api={api}
-          config={config}
-          organization={organization}
-          projects={this.state.projects}
-          triggers={triggers}
-          query={query}
-          aggregation={aggregation}
-          timeWindow={timeWindow}
-        />
+      <Access access={['org:write']}>
+        {({hasAccess}) => (
+          <Form
+            apiMethod={incidentRuleId ? 'PUT' : 'POST'}
+            apiEndpoint={`/organizations/${organization.slug}/alert-rules/${
+              incidentRuleId ? `${incidentRuleId}/` : ''
+            }`}
+            submitDisabled={!hasAccess}
+            initialData={{
+              name: rule.name || '',
+              aggregation: rule.aggregation,
+              query: rule.query || '',
+              timeWindow: rule.timeWindow,
+            }}
+            saveOnBlur={false}
+            onSubmit={this.handleSubmit}
+            onSubmitSuccess={onSubmitSuccess}
+            onCancel={this.handleCancel}
+            onFieldChange={this.handleFieldChange}
+            extraButton={
+              !!rule.id ? (
+                <Confirm
+                  disabled={!hasAccess}
+                  message={t('Are you sure you want to delete this alert rule?')}
+                  header={t('Delete Alert Rule?')}
+                  priority="danger"
+                  confirmText={t('Delete Rule')}
+                  onConfirm={this.handleDeleteRule}
+                >
+                  <Button type="button" priority="danger">
+                    {t('Delete Rule')}
+                  </Button>
+                </Confirm>
+              ) : null
+            }
+            submitLabel={t('Save Rule')}
+          >
+            <TriggersChart
+              api={api}
+              config={config}
+              organization={organization}
+              projects={this.state.projects}
+              triggers={triggers}
+              query={query}
+              aggregation={aggregation}
+              timeWindow={timeWindow}
+            />
 
-        <RuleConditionsForm organization={organization} />
+            <RuleConditionsForm organization={organization} disabled={!hasAccess} />
 
-        <Triggers
-          projects={this.state.projects}
-          errors={this.state.triggerErrors}
-          triggers={triggers}
-          currentProject={params.projectId}
-          organization={organization}
-          incidentRuleId={incidentRuleId}
-          availableActions={this.state.availableActions}
-          onChange={this.handleChangeTriggers}
-          onAdd={this.handleAddTrigger}
-        />
+            <Triggers
+              disabled={!hasAccess}
+              projects={this.state.projects}
+              errors={this.state.triggerErrors}
+              triggers={triggers}
+              currentProject={params.projectId}
+              organization={organization}
+              incidentRuleId={incidentRuleId}
+              availableActions={this.state.availableActions}
+              onChange={this.handleChangeTriggers}
+              onAdd={this.handleAddTrigger}
+            />
 
-        <RuleNameForm />
-      </Form>
+            <RuleNameForm disabled={!hasAccess} />
+          </Form>
+        )}
+      </Access>
     );
   }
 }
