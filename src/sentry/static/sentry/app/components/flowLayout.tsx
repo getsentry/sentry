@@ -1,7 +1,22 @@
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 
-const FlowLayout = styled('div')`
+type Props = {
+  /**
+   * Centers content via `justify-content`
+   */
+  center?: boolean;
+  /**
+   * Changes flex direction to be column
+   */
+  vertical?: boolean;
+  /**
+   * Applies "overflow: hidden" to container so that children can be truncated
+   */
+  truncate?: boolean;
+};
+
+const FlowLayout = styled('div')<Props>`
   display: flex;
   flex: 1;
   align-items: center;
@@ -11,17 +26,8 @@ const FlowLayout = styled('div')`
 `;
 
 FlowLayout.propTypes = {
-  /**
-   * Centers content via `justify-content`
-   */
   center: PropTypes.bool,
-  /**
-   * Changes flex direction to be column
-   */
   vertical: PropTypes.bool,
-  /**
-   * Applies "overflow: hidden" to container so that children can be truncated
-   */
   truncate: PropTypes.bool,
 };
 
