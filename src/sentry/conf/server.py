@@ -1738,6 +1738,7 @@ SOUTH_MIGRATION_CONVERSIONS = (
     ),
     # From sentry-plugins
     ("sentry_plugins.jira_ac", "0001_initial", "jira_ac", "0001_initial", False, ""),
+    ("jira_ac", "0001_initial", "sentry", "0003_auto_20191022_0122", False, ""),
     ("jira_ac", "0001_initial", "jira_ac", "0001_initial", False, ""),
 )
 
