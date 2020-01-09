@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
 
@@ -6,7 +5,7 @@ type Props = {
   query: string;
   defaultQuery: string;
   onSearch: (query: string) => void;
-  placeholder: string;
+  placeholder?: string;
   className?: string;
 };
 
@@ -16,14 +15,6 @@ type State = {
 };
 
 class SearchBar extends React.PureComponent<Props, State> {
-  static propTypes = {
-    query: PropTypes.string,
-    defaultQuery: PropTypes.string,
-    onSearch: PropTypes.func,
-    placeholder: PropTypes.string,
-    className: PropTypes.string,
-  };
-
   static defaultProps: Partial<Props> = {
     query: '',
     defaultQuery: '',
