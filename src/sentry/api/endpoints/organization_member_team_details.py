@@ -56,6 +56,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
         * If they are modifying their own membership
         * If the user's role is higher than the targeted user's role (e.g. "admin" can't modify "owner")
         * If the user is an "admin" and they are modifying a team they are a member of
+        * If the "open membership" setting is enabled and the targeted user is being added to a team
         """
 
         if is_active_superuser(request):
@@ -74,6 +75,9 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
         if roles.get(acting_member.role).is_global and roles.can_manage(
             acting_member.role, member.role
         ):
+            return True
+
+        if request.method == "POST" and organization.flags.allow_joinleave:
             return True
 
         return False
