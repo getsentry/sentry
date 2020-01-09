@@ -574,13 +574,13 @@ exports[`OrganizationProjects should render the projects in the store 1`] = `
                                             src="icon-star-small-filled"
                                           >
                                             <ForwardRef
-                                              className="enngb6z1 css-judnc9-InlineSvg-Star-BookmarkLink e5ekdrk0"
+                                              className="enngb6z1 css-judnc9-InlineSvg-Star-BookmarkLink ez1a7zv0"
                                               isBookmarked={false}
                                               onClick={[Function]}
                                               src="icon-star-small-filled"
                                             >
                                               <svg
-                                                className="enngb6z1 css-judnc9-InlineSvg-Star-BookmarkLink e5ekdrk0"
+                                                className="enngb6z1 css-judnc9-InlineSvg-Star-BookmarkLink ez1a7zv0"
                                                 height="1em"
                                                 onClick={[Function]}
                                                 viewBox={Object {}}
