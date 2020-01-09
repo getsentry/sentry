@@ -417,7 +417,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                     truncate={true}
                   >
                     <div
-                      className="css-gmt0em-FlowLayout envzszi0"
+                      className="css-gmt0em-FlowLayout e1uibv5p0"
                       style={
                         Object {
                           "flex": 1,
@@ -428,7 +428,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                         truncate={true}
                       >
                         <div
-                          className="css-gmt0em-FlowLayout envzszi0"
+                          className="css-gmt0em-FlowLayout e1uibv5p0"
                         >
                           <div
                             className="similar-toolbar-actions"
@@ -639,13 +639,13 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                   truncate={true}
                 >
                   <div
-                    className="css-gmt0em-FlowLayout envzszi0"
+                    className="css-gmt0em-FlowLayout e1uibv5p0"
                   >
                     <FlowLayout
                       truncate={true}
                     >
                       <div
-                        className="css-gmt0em-FlowLayout envzszi0"
+                        className="css-gmt0em-FlowLayout e1uibv5p0"
                       >
                         <div
                           className="action-column"
