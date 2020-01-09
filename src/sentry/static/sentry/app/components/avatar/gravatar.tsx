@@ -16,6 +16,8 @@ type Props = {
    * Should avatar be round instead of a square
    */
   round?: boolean;
+  onLoad?: () => void;
+  onError?: () => void;
 };
 
 type State = {
@@ -81,9 +83,16 @@ class Gravatar extends React.Component<Props, State> {
       return null;
     }
 
-    const {round} = this.props;
+    const {round, onError, onLoad} = this.props;
 
-    return <Image round={round} src={this.buildGravatarUrl()} />;
+    return (
+      <Image
+        round={round}
+        src={this.buildGravatarUrl()}
+        onLoad={onLoad}
+        onError={onError}
+      />
+    );
   }
 }
 
