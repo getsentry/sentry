@@ -236,7 +236,7 @@ class ContextPickerModal extends React.Component<Props> {
                 this.projectSelect = ref;
                 this.focusProjectSelector();
               }}
-              placeholder="Select a Project"
+              placeholder={t('Select a Project')}
               name="project"
               value=""
               openOnFocus
