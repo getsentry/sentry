@@ -37,13 +37,17 @@ def backfill_eventstream(apps, schema_editor):
         return Event.objects.filter(datetime__gte=from_date, datetime__lte=to_date, group_id__isnull=False)
 
     def _attach_related(_events):
-        project_ids = {event.project_id for event in _events}
-        projects = {p.id: p for p in Project.objects.filter(id__in=project_ids)}
-        group_ids = {event.group_id for event in _events}
-        groups = {g.id: g for g in Group.objects.filter(id__in=group_ids)}
+        project_ids = set()
+        group_ids = set()
         for event in _events:
-            event.project = projects[event.project_id]
-            event.group = groups[event.group_id]
+            project_ids.add(event.project_id)
+            group_ids.add(event.group_id)
+        projects = {p.id: p for p in Project.objects.filter(id__in=project_ids)}
+        groups = {g.id: g for g in Group.objects.filter(id__in=group_ids)}
+
+        for event in _events:
+            event.project = projects.get(event.project_id)
+            event.group = groups.get(event.group_id)
         eventstore.bind_nodes(_events, "data")
 
     if skip_backfill:
@@ -61,6 +65,10 @@ def backfill_eventstream(apps, schema_editor):
 
     for event in RangeQuerySetWrapper(events, step=100, callbacks=(_attach_related,)):
         primary_hash = event.get_primary_hash()
+        if event.project is None or event.group is None
+            print "Skipping %s as group or project information is invalid..."
+            continue
+
         eventstream.insert(
             group=event.group,
             event=event,
