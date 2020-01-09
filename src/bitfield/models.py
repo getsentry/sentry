@@ -2,9 +2,8 @@ from __future__ import absolute_import
 
 import six
 
-from django.db.models.fields import BigIntegerField, Field
+from django.db.models.fields import BigIntegerField
 
-from bitfield.forms import BitFormField
 from bitfield.query import BitQueryExactLookupStub
 from bitfield.types import Bit, BitHandler
 
@@ -119,10 +118,6 @@ class BitField(BigIntegerField):
         self.flags = flags
         self.labels = labels
 
-    def formfield(self, form_class=BitFormField, **kwargs):
-        choices = [(k, self.labels[self.flags.index(k)]) for k in self.flags]
-        return Field.formfield(self, form_class, choices=choices, **kwargs)
-
     def pre_save(self, instance, add):
         value = getattr(instance, self.attname)
         return value
@@ -133,20 +128,6 @@ class BitField(BigIntegerField):
         if isinstance(value, (BitHandler, Bit)):
             value = value.mask
         return int(value)
-
-    def get_db_prep_lookup(self, lookup_type, value, connection, prepared=False):
-        if isinstance(value, (BitHandler, Bit)):
-            raise NotImplementedError("get_db_prep_lookup not supported with types Bit, BitHandler")
-
-        return BigIntegerField.get_db_prep_lookup(
-            self, lookup_type=lookup_type, value=value, connection=connection, prepared=prepared
-        )
-
-    def get_prep_lookup(self, lookup_type, value):
-        if isinstance(value, Bit):
-            raise NotImplementedError("Lookup type %r not supported with Bit type." % lookup_type)
-
-        return BigIntegerField.get_prep_lookup(self, lookup_type, value)
 
     def to_python(self, value):
         if isinstance(value, Bit):
