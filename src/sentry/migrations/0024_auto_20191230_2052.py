@@ -68,7 +68,7 @@ def backfill_eventstream(apps, schema_editor):
     for event in RangeQuerySetWrapper(events, step=100, callbacks=(_attach_related,)):
         primary_hash = event.get_primary_hash()
         if event.project is None or event.group is None:
-            print("Skipping %s as group or project information is invalid...")
+            print("Skipping %s as group or project information is invalid..." % event)
             continue
 
         eventstream.insert(
