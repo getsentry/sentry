@@ -34,7 +34,7 @@ env:
     - SENTRY_SKIP_BACKEND_VALIDATION=1
     - MIGRATIONS_TEST_MIGRATE=0
     # Use this to override the django version in the requirements file.
-    - DJANGO_VERSION=">=1.9,<1.10"
+    - DJANGO_VERSION=">=1.10,<1.11"
     # node's version is pinned by .nvmrc and is autodetected by `nvm install`.
     - NODE_DIR="${HOME}/.nvm/versions/node/v$(< .nvmrc)"
     - NODE_OPTIONS=--max-old-space-size=4096
