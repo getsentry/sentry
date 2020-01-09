@@ -9,10 +9,22 @@ import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 import {update} from 'app/actionCreators/projects';
 import withApi from 'app/utils/withApi';
+import {Organization, Project} from 'app/types';
+import {Client} from 'app/api';
 
-class BookmarkStar extends React.Component {
+type Props = {
+  api: Client;
+  /* used to override when under local state */
+  isBookmarked?: boolean;
+  className?: string;
+  organization: Organization;
+  project: Project;
+  onToggle?: (isBookmarked: boolean) => void;
+};
+
+class BookmarkStar extends React.Component<Props> {
   static propTypes = {
-    api: PropTypes.object.isRequired,
+    api: PropTypes.any.isRequired,
     /* used to override when under local state */
     isBookmarked: PropTypes.bool,
     className: PropTypes.string,
@@ -27,7 +39,7 @@ class BookmarkStar extends React.Component {
       : this.props.project.isBookmarked;
   }
 
-  toggleProjectBookmark = event => {
+  toggleProjectBookmark = (event: React.MouseEvent) => {
     const {project, organization, api} = this.props;
     const isBookmarked = this.isBookmarked();
 
@@ -40,7 +52,7 @@ class BookmarkStar extends React.Component {
     });
 
     //needed to dismiss tooltip
-    document.activeElement.blur();
+    (document.activeElement as HTMLElement).blur();
 
     //prevent dropdowns from closing
     event.stopPropagation();
@@ -65,7 +77,7 @@ class BookmarkStar extends React.Component {
   }
 }
 
-const Star = styled(InlineSvg)`
+const Star = styled(InlineSvg)<{isBookmarked: boolean}>`
   color: ${p => (p.isBookmarked ? p.theme.yellowOrange : p.theme.gray1)};
 
   &:hover {
