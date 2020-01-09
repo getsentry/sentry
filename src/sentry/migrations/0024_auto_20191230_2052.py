@@ -20,9 +20,9 @@ def backfill_eventstream(apps, schema_editor):
     from sentry import eventstore, eventstream
     from sentry.utils.query import RangeQuerySetWrapper
 
-    Event = apps.get_model('sentry', 'Event')
-    Group = apps.get_model('sentry', 'Group')
-    Project = apps.get_model('sentry', 'Project')
+    Event = apps.get_model("sentry", "Event")
+    Group = apps.get_model("sentry", "Group")
+    Project = apps.get_model("sentry", "Project")
 
     # Kill switch to skip this migration
     skip_backfill = os.environ.get("SENTRY_SKIP_EVENTS_BACKFILL_FOR_10", False)
@@ -34,7 +34,9 @@ def backfill_eventstream(apps, schema_editor):
     def get_events(last_days):
         to_date = datetime.now()
         from_date = to_date - timedelta(days=last_days)
-        return Event.objects.filter(datetime__gte=from_date, datetime__lte=to_date, group_id__isnull=False)
+        return Event.objects.filter(
+            datetime__gte=from_date, datetime__lte=to_date, group_id__isnull=False
+        )
 
     def _attach_related(_events):
         project_ids = set()
@@ -51,21 +53,21 @@ def backfill_eventstream(apps, schema_editor):
         eventstore.bind_nodes(_events, "data")
 
     if skip_backfill:
-        print("Skipping backfill\n")
+        print ("Skipping backfill\n")
         return
 
     events = get_events(retention_days)
     count = events.count()
 
     if count == 0:
-        print("Nothing to do, skipping migration.\n")
+        print ("Nothing to do, skipping migration.\n")
         return
 
-    print("Events to process: {}\n".format(count))
+    print ("Events to process: {}\n".format(count))
 
     for event in RangeQuerySetWrapper(events, step=100, callbacks=(_attach_related,)):
         primary_hash = event.get_primary_hash()
-        if event.project is None or event.group is None
+        if event.project is None or event.group is None:
             print "Skipping %s as group or project information is invalid..."
             continue
 
@@ -79,7 +81,7 @@ def backfill_eventstream(apps, schema_editor):
             skip_consume=True,
         )
 
-    print("Done.\n")
+    print ("Done.\n")
 
 
 class Migration(migrations.Migration):
@@ -97,9 +99,8 @@ class Migration(migrations.Migration):
     # - Adding columns to highly active tables, even ones that are NULL.
     is_dangerous = True
 
-
     dependencies = [
-        ('sentry', '0023_hide_environment_none_20191126'),
+        ("sentry", "0023_hide_environment_none_20191126"),
     ]
 
     operations = [
