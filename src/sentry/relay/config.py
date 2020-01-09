@@ -65,6 +65,7 @@ def get_project_config(project, org_options=None, full_config=True, project_keys
         org_options = OrganizationOption.objects.get_all_values(project.organization_id)
 
     with Hub.current.start_span(op="get_public_config"):
+
         cfg = {
             "disabled": project.status > 0,
             "slug": project.slug,
