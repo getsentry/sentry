@@ -137,11 +137,11 @@ const TeamDetails = createReactClass({
     } else if (!team || !team.hasAccess) {
       return (
         <Alert type="warning">
-          <h4>{t('You do not have access to this team')}</h4>
-
-          {team && (
+          {team ? (
             <RequestAccessWrapper>
-              {tct('You may try to request access to [team]', {team: `#${team.slug}`})}
+              {tct('You do not have access to the [teamSlug] team.', {
+                teamSlug: <strong>{`#${team.slug}`}</strong>,
+              })}
               <Button
                 disabled={this.state.requesting || team.isPending}
                 size="small"
@@ -150,6 +150,8 @@ const TeamDetails = createReactClass({
                 {team.isPending ? t('Request Pending') : t('Request Access')}
               </Button>
             </RequestAccessWrapper>
+          ) : (
+            <div>{t('You do not have access to this team.')}</div>
           )}
         </Alert>
       );

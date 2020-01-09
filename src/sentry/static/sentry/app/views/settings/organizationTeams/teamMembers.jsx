@@ -199,10 +199,13 @@ class TeamMembers extends React.Component {
   };
 
   renderDropdown = access => {
-    // You can add members if you have `org:write` or you have `team:admin` AND you belong to the team
-    // a parent "team details" request should determine your team membership, so this only view is rendered only
-    // when you are a member
-    const canAddMembers = access.has('org:write') || access.has('team:admin');
+    const {organization} = this.props;
+
+    // members can add other members to a team if the `Open Membership` setting is enabled
+    // otherwise, `org:write` or `team:admin` permissions are required
+    const hasOpenMembership = organization && organization.openMembership;
+    const hasWriteAccess = access.has('org:write') || access.has('team:admin');
+    const canAddMembers = hasOpenMembership || hasWriteAccess;
 
     if (!canAddMembers) {
       return (
@@ -211,6 +214,7 @@ class TeamMembers extends React.Component {
           title={t('You do not have enough permission to add new members')}
           isOpen={false}
           size="xsmall"
+          data-test-id="add-member"
         >
           {t('Add Member')}
         </DropdownButton>
