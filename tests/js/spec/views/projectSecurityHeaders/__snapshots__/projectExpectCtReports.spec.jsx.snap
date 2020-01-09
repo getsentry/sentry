@@ -9,9 +9,7 @@ exports[`ProjectExpectCtReports renders 1`] = `
       noTitleStyles={false}
       title="Certificate Transparency"
     />
-    <PreviewFeature
-      type="info"
-    />
+    <PreviewFeature />
     <ReportUri
       keyList={Array []}
       params={

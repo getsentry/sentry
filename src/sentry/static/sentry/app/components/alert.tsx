@@ -9,7 +9,8 @@ import InlineSvg from 'app/components/inlineSvg';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import space from 'app/styles/space';
 
-type Props = {
+// exporting it down with alertStyles caused error  'Props' is not defined  no-undef
+export type Props = {
   type?: 'muted' | 'info' | 'warning' | 'success' | 'error' | 'beta';
   iconSize?: string;
   icon?: string;
