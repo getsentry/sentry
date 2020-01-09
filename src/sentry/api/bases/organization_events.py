@@ -5,9 +5,7 @@ from rest_framework.exceptions import PermissionDenied
 from sentry.api.bases import OrganizationEndpoint, OrganizationEventsError
 from sentry.api.event_search import get_filter, InvalidSearchQuery
 from sentry.models.project import Project
-from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import ReferenceEvent
-from sentry.utils import snuba
 
 
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
@@ -69,13 +67,5 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             "conditions": _filter.conditions,
             "filter_keys": _filter.filter_keys,
         }
-
-        # 'legacy' endpoints cannot access transactions dataset.
-        # as they often have assumptions about which columns are returned.
-        dataset = snuba.detect_dataset(snuba_args)
-        if dataset != Dataset.Events:
-            raise OrganizationEventsError(
-                "Invalid query. You cannot reference non-events data in this endpoint."
-            )
 
         return snuba_args

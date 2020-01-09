@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import logging
 import mock
+import pytest
 import six
 
 from sentry import eventstore
@@ -71,8 +72,8 @@ class ServiceDelegationTest(TestCase, SnubaTestCase):
 
         self.transaction_event = self.store_event(data=event_data, project_id=self.project.id)
 
+    @pytest.mark.skip(reason="There is no longer a difference in underlying dataset.")
     def test_logs_differences(self):
-
         logger = logging.getLogger("sentry.eventstore")
 
         with mock.patch.object(logger, "info") as mock_logger:

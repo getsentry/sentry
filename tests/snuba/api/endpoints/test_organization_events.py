@@ -151,18 +151,6 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             == "Parse error: 'search' (column 4). This is commonly caused by unmatched-parentheses. Enclose any text in double quotes."
         )
 
-    def test_invalid_search_referencing_transactions(self):
-        self.login_as(user=self.user)
-        project = self.create_project()
-        url = reverse(
-            "sentry-api-0-organization-events",
-            kwargs={"organization_slug": project.organization.slug},
-        )
-        response = self.client.get(url, {"query": "transaction.duration:>200"}, format="json")
-
-        assert response.status_code == 400, response.content
-        assert "cannot reference non-events data" in response.data["detail"]
-
     def test_project_filtering(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
