@@ -449,7 +449,7 @@ class ProjectUpdateTest(APITestCase):
         assert resp.data["storeCrashReports"] == 10
 
     def test_relay_pii_config(self):
-        with self.feature("organizations:relay"):
+        with self.feature("organizations:datascrubbers-v2"):
             value = '{"applications": {"freeform": []}}'
             resp = self.client.put(self.path, data={"relayPiiConfig": value})
             assert resp.status_code == 200, resp.content
