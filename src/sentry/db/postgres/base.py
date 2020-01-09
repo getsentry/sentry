@@ -3,6 +3,8 @@ from __future__ import absolute_import
 from six import string_types
 import psycopg2 as Database
 
+import django
+
 # Some of these imports are unused, but they are inherited from other engines
 # and should be available as part of the backend ``base.py`` namespace.
 from django.db.backends.postgresql_psycopg2.base import DatabaseWrapper
@@ -95,7 +97,18 @@ class DatabaseWrapper(DatabaseWrapper):
     @auto_reconnect_connection
     def _cursor(self, *args, **kwargs):
         cursor = super(DatabaseWrapper, self)._cursor()
-        return CursorWrapper(self, cursor)
+        if django.VERSION[:2] < (1, 11):
+            return CursorWrapper(self, cursor)
+        return cursor
+
+    # We're overriding this internal method that's present in Django 1.11+, because
+    # things were shuffled around since 1.10 resulting in not constructing a django CursorWrapper
+    # with our CursorWrapper. We need to be passing our wrapped cursor to their wrapped cursor,
+    # not the other way around since then we'll lose things like __enter__ due to the way this
+    # wrapper is working (getattr on self.cursor).
+    def _prepare_cursor(self, cursor):
+        cursor = super(DatabaseWrapper, self)._prepare_cursor(CursorWrapper(self, cursor))
+        return cursor
 
     def close(self, reconnect=False):
         """
