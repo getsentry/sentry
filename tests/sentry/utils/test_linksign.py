@@ -2,6 +2,7 @@
 
 from __future__ import absolute_import
 
+from django.test import override_settings
 from django.test.client import RequestFactory
 
 from sentry.testutils import TestCase
@@ -9,6 +10,7 @@ from sentry.utils import linksign
 
 
 class LinkSignTestCase(TestCase):
+    @override_settings(ALLOWED_HOSTS=["something-else", "testserver"])
     def test_link_signing(self):
         rf = RequestFactory()
 
