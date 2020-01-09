@@ -1,5 +1,4 @@
 import {Organization, Project, Scope} from 'app/types';
-import {AnalyticsTrackEventOptions} from 'app/types/hooks';
 
 export type NavigationProps = {
   id?: string;
@@ -44,9 +43,8 @@ export type NavigationItem = {
   badge?: (opts: NavigationGroupProps) => string | number | null;
 
   /**
-   * Parameters to pass to the trackAnalyticsEvent when the navigation item is clicked
    */
-  analyticsParams?: AnalyticsTrackEventOptions;
+  recordAnalytics?: boolean;
 };
 
 export type NavigationSection = {
