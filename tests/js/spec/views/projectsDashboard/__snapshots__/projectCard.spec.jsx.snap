@@ -369,10 +369,8 @@ exports[`ProjectCard renders 1`] = `
                                                     height="18px"
                                                     src={
                                                       Object {
-                                                        "default": Object {
-                                                          "id": "test",
-                                                          "viewBox": Object {},
-                                                        },
+                                                        "id": "test",
+                                                        "viewBox": Object {},
                                                       }
                                                     }
                                                     width="18px"

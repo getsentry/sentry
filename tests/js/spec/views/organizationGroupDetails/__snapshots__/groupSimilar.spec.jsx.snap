@@ -1446,10 +1446,8 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                                       height="14px"
                                                                       src={
                                                                         Object {
-                                                                          "default": Object {
-                                                                            "id": "test",
-                                                                            "viewBox": Object {},
-                                                                          },
+                                                                          "id": "test",
+                                                                          "viewBox": Object {},
                                                                         }
                                                                       }
                                                                       width="14px"
