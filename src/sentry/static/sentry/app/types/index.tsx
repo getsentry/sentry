@@ -627,6 +627,12 @@ export type UserReport = {
   id: string;
   eventID: string;
   issue: Group;
+  name: string;
+  event: {eventID: string; id: string};
+  user: User;
+  dateCreated: string;
+  comments: string;
+  email: string;
 };
 
 export type Commit = {
