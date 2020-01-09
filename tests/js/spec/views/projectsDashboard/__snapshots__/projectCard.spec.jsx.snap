@@ -359,7 +359,7 @@ exports[`ProjectCard renders 1`] = `
                                                 platform="javascript"
                                                 size={18}
                                               >
-                                                <Platformicon
+                                                <PlatformIcon
                                                   className="css-13qi1e0-StyledPlatformIcon ezvce7z1"
                                                   platform="javascript"
                                                   size="18px"
@@ -377,7 +377,7 @@ exports[`ProjectCard renders 1`] = `
                                                     }
                                                     width="18px"
                                                   />
-                                                </Platformicon>
+                                                </PlatformIcon>
                                               </Component>
                                             </StyledPlatformIcon>
                                           </div>
