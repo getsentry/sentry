@@ -1,10 +1,9 @@
-import React from 'react';
 import styled from 'react-emotion';
 
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 
-const BadgeDisplayName = styled(({hideOverflow, ...props}) => <span {...props} />)`
+const BadgeDisplayName = styled('span')<{hideOverflow?: boolean}>`
   ${p => p.hideOverflow && overflowEllipsis};
   ${p =>
     p.hideOverflow &&
