@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from django.utils.text import slugify
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import http, options
@@ -225,7 +226,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
 class GitHubInstallationRedirect(PipelineView):
     def get_app_url(self):
         name = options.get("github-app.name")
-        return "https://github.com/apps/%s" % name
+        return "https://github.com/apps/%s" % slugify(name)
 
     def dispatch(self, request, pipeline):
         if "reinstall_id" in request.GET:
