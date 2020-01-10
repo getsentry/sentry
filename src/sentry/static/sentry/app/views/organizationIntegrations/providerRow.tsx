@@ -158,6 +158,7 @@ const ProviderDetails = styled(Flex)`
 const StatusContainer = styled(Flex)`
   align-items: center;
 `;
+
 type StatusProps = {
   enabled: boolean;
   theme?: any; //TS complains if we don't make this optional
