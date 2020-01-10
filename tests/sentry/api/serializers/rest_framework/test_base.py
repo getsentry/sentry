@@ -49,5 +49,4 @@ def test_convert_dict_key_case():
         ],
     }
 
-    camelData2 = convert_dict_key_case(snake_data, snake_to_camel_case)
-    assert camelData2 == camelData
+    assert camelData == convert_dict_key_case(snake_data, snake_to_camel_case)
