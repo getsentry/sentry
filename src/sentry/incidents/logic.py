@@ -897,7 +897,7 @@ def create_alert_rule_trigger(
         trigger = AlertRuleTrigger.objects.create(
             alert_rule=alert_rule,
             label=label,
-            threshold_type=threshold_type,
+            threshold_type=threshold_type.value,
             alert_threshold=alert_threshold,
             resolve_threshold=resolve_threshold,
         )
@@ -944,7 +944,7 @@ def update_alert_rule_trigger(
     if label is not None:
         updated_fields["label"] = label
     if threshold_type is not None:
-        updated_fields["threshold_type"] = threshold_type
+        updated_fields["threshold_type"] = threshold_type.value
     if alert_threshold is not None:
         updated_fields["alert_threshold"] = alert_threshold
     if resolve_threshold is not None:

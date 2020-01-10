@@ -370,7 +370,7 @@ class UnifiedAlertRuleSerializer(AlertRuleSerializer):
     def validate(self, data):
         """Performs validation on an alert rule's data
         This includes ensuring there is either 1 or 2 triggers, which each have actions, and have proper thresholds set.
-        The critical trigger should both alert and resolve 'after' the warning trigger (whether that means > or < the value depends on threshold type/direction).
+        The critical trigger should both alert and resolve 'after' the warning trigger (whether that means > or < the value depends on threshold type).
         """
         print("running validate: ", data)
         # print("self:",self)
@@ -418,41 +418,47 @@ class UnifiedAlertRuleSerializer(AlertRuleSerializer):
             if "aggregation" not in validated_data:
                 raise serializers.ValidationError("aggregation is required")
 
-            print("saving! validated data:",validated_data)
+            print("validated data:", validated_data)
             triggers_data = validated_data.pop('triggers')
             alert_rule = create_alert_rule(organization=self.context["organization"], **validated_data)
-            if alert_rule:
-                for trigger_data in triggers_data:
-                    # trigger_action_data = trigger_data.pop("actions")
+            for trigger_data in triggers_data:
+                trigger_actions_data = trigger_data.pop("actions")
+                trigger = create_alert_rule_trigger(alert_rule=alert_rule, **trigger_data)
+                for actions_data in trigger_actions_data:
+                    create_alert_rule_trigger_action(trigger=trigger, **actions_data)
 
-                    trigger_serializer = AlertRuleTriggerSerializer(
-                        context={
-                            "organization": self.context["organization"],
-                            "alert_rule": alert_rule,
-                            "access": self.context["access"],
-                        },
-                        data=trigger_data,
-                    )
+            # if alert_rule:
+            #     for trigger_data in triggers_data:
+            #         trigger_action_data = trigger_data.pop("actions")
 
-                    if trigger_serializer.is_valid():  # AlertRuleTriggerSerializer does the validation
-                        trigger = trigger_serializer.save()
-                        # for action_data in trigger_action_data:
-                        #     print("action_data:",action_data)
-                        #     action_serializer = AlertRuleTriggerActionSerializer(
-                        #         context={
-                        #             "organization": self.context["organization"],
-                        #             "trigger": trigger,
-                        #             "access": self.context["access"],
-                        #         },
-                        #         data=action_data,
-                        #     )
-                        #     print("action_serializer:", action_serializer)
-                        #     if action_serializer.is_valid():  # AlertRuleTriggerActionSerializer does the validation
-                        #         action_serializer.save()
-                        #     else:
-                        #         raise serializers.ValidationError(action_serializer.errors)  # throws errors if any
-                    else:
-                        raise serializers.ValidationError(trigger_serializer.errors)  # throws errors if any
+            #         trigger_serializer = AlertRuleTriggerSerializer(
+            #             context={
+            #                 "organization": self.context["organization"],
+            #                 "alert_rule": alert_rule,
+            #                 "access": self.context["access"],
+            #             },
+            #             data=trigger_data,
+            #         )
+
+            #         if trigger_serializer.is_valid():  # AlertRuleTriggerSerializer does the validation
+            #             trigger = trigger_serializer.save()
+            #             for action_data in trigger_action_data:
+            #                 print("action_data:",action_data)
+            #                 action_serializer = AlertRuleTriggerActionSerializer(
+            #                     context={
+            #                         "organization": self.context["organization"],
+            #                         "trigger": trigger,
+            #                         "access": self.context["access"],
+            #                     },
+            #                     data=action_data,
+            #                 )
+            #                 print("action_serializer:", action_serializer)
+            #                 if action_serializer.is_valid():  # AlertRuleTriggerActionSerializer does the validation
+            #                     action_serializer.save()
+            #                 else:
+            #                     raise serializers.ValidationError(action_serializer.errors)  # throws errors if any
+            #         else:
+            #             raise serializers.ValidationError(trigger_serializer.errors)  # throws errors if any
             return alert_rule
         except AlertRuleNameAlreadyUsedError:
             raise serializers.ValidationError("This name is already in use for this project")
