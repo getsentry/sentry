@@ -523,6 +523,7 @@ CELERYD_HIJACK_ROOT_LOGGER = False
 CELERY_IMPORTS = (
     "sentry.discover.tasks",
     "sentry.incidents.tasks",
+    "sentry.tasks.assemble",
     "sentry.tasks.auth",
     "sentry.tasks.auto_resolve_issues",
     "sentry.tasks.beacon",
@@ -534,6 +535,8 @@ CELERY_IMPORTS = (
     "sentry.tasks.deletion",
     "sentry.tasks.digests",
     "sentry.tasks.email",
+    "sentry.tasks.files",
+    "sentry.tasks.integrations",
     "sentry.tasks.members",
     "sentry.tasks.merge",
     "sentry.tasks.options",
@@ -543,14 +546,12 @@ CELERY_IMPORTS = (
     "sentry.tasks.reports",
     "sentry.tasks.reprocessing",
     "sentry.tasks.scheduler",
+    "sentry.tasks.sentry_apps",
+    "sentry.tasks.servicehooks",
     "sentry.tasks.signals",
     "sentry.tasks.store",
     "sentry.tasks.unmerge",
-    "sentry.tasks.servicehooks",
-    "sentry.tasks.assemble",
-    "sentry.tasks.integrations",
-    "sentry.tasks.files",
-    "sentry.tasks.sentry_apps",
+    "sentry.tasks.update_user_reports",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -661,6 +662,11 @@ CELERYBEAT_SCHEDULE = {
         "task": "sentry.tasks.collect_project_platforms",
         "schedule": timedelta(days=1),
         "options": {"expires": 3600 * 24},
+    },
+    "update-user-reports": {
+        "task": "sentry.tasks.update_user_reports",
+        "schedule": timedelta(minutes=15),
+        "options": {"expires": 300},
     },
     "schedule-auto-resolution": {
         "task": "sentry.tasks.schedule_auto_resolution",
@@ -818,7 +824,7 @@ SENTRY_FEATURES = {
     # Enable multi project selection
     "organizations:global-views": False,
     # Turns on grouping info.
-    "organizations:grouping-info": False,
+    "organizations:grouping-info": True,
     # Lets organizations upgrade grouping configs and tweak them
     "organizations:tweak-grouping-config": True,
     # Lets organizations manage grouping configs
@@ -840,7 +846,9 @@ SENTRY_FEATURES = {
     "organizations:invite-members": True,
     # Enable org-wide saved searches and user pinned search
     "organizations:org-saved-searches": False,
-    # Enable the relay functionality, for use with sentry semaphore. See
+    # Enable access to more advanced (alpha) datascrubbing settings.
+    "organizations:datascrubbers-v2": False,
+    # Enable usage of external relays, for use with sentry semaphore. See
     # https://github.com/getsentry/semaphore.
     "organizations:relay": False,
     # Enable basic SSO functionality, providing configurable single sign on

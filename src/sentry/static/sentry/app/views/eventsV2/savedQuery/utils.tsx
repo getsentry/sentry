@@ -1,7 +1,6 @@
 import {Client} from 'app/api';
 import {t} from 'app/locale';
-import {Organization, SavedQuery} from 'app/types';
-import {extractAnalyticsQueryFields} from 'app/utils';
+import {Organization, NewQuery, SavedQuery} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 
 import {
@@ -223,5 +222,19 @@ export function getAnalyticsCreateEventKeyName(
   return {
     eventKey,
     eventName,
+  };
+}
+
+/**
+ * Takes in a DiscoverV2 NewQuery object and returns a Partial containing
+ * the desired fields to populate into reload analytics
+ */
+export function extractAnalyticsQueryFields(payload: NewQuery): Partial<NewQuery> {
+  const {projects, fields, query, tags} = payload;
+  return {
+    projects,
+    fields,
+    query,
+    tags,
   };
 }

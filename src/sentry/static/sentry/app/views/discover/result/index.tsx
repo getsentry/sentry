@@ -167,7 +167,7 @@ class Result extends React.Component<ResultProps, ResultState> {
       `query time: ${getDynamicText({
         value: summaryData.timing.duration_ms,
         fixed: '10',
-      })} ms`,
+      })}ms`,
     ];
     if (this.state.view === 'table') {
       summary.push(getRowsPageRange(baseQuery));

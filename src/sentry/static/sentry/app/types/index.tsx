@@ -627,6 +627,12 @@ export type UserReport = {
   id: string;
   eventID: string;
   issue: Group;
+  name: string;
+  event: {eventID: string; id: string};
+  user: User;
+  dateCreated: string;
+  comments: string;
+  email: string;
 };
 
 export type Commit = {
@@ -673,7 +679,7 @@ export type NewQuery = {
   name: string;
   projects: Readonly<number[]>;
   fields: Readonly<string[]>;
-  fieldnames: Readonly<string[]>;
+  widths?: Readonly<string[]>;
   query: string;
   orderby?: string;
   range?: string;
@@ -700,4 +706,27 @@ export type SavedQueryState = {
 export type SelectValue<T> = {
   label: string;
   value: T;
+};
+
+/**
+ * The issue config form fields we get are basically the form fields we use in the UI but with some extra information.
+ * Some fields marked optional in the form field are guaranteed to exist so we can mark them as required here
+ */
+
+export type IssueConfigField = Field & {
+  name: string;
+  default?: string;
+  choices?: [number | string, number | string][];
+  url?: string;
+  multiple?: boolean;
+};
+
+export type IntegrationIssueConfig = {
+  status: ObjectStatus;
+  name: string;
+  domainName: string;
+  linkIssueConfig?: IssueConfigField[];
+  createIssueConfig?: IssueConfigField[];
+  provider: IntegrationProvider;
+  icon: string[];
 };

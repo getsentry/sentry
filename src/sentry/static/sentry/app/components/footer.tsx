@@ -37,6 +37,12 @@ const Footer = () => {
               fixed: 'Acceptance Test',
               value: config.version.current,
             })}
+            {' ('}
+            {getDynamicText({
+              fixed: 'test',
+              value: config.version.build,
+            })}
+            {')'}
           </div>
         )}
         <a href="/" tabIndex={-1} className="icon-sentry-logo" />
