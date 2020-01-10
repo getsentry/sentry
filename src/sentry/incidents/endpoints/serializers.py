@@ -374,8 +374,16 @@ class UnifiedAlertRuleSerializer(AlertRuleSerializer):
         triggers = data.get('triggers', [])
         if triggers:
             if len(triggers) == 1:
-                if triggers[0].get('label', None) != CRITICAL_TRIGGER_LABEL:
+                critical = triggers[0]
+                if critical.get('label', None) != CRITICAL_TRIGGER_LABEL:
                     raise serializers.ValidationError('First trigger must be labeled "%s"' % (CRITICAL_TRIGGER_LABEL))
+                if critical['threshold_type'] == AlertRuleThresholdType.ABOVE:
+                        alert_op, trigger_error = operator.lt, 'alert threshold must be above resolution threshold'
+                elif critical['threshold_type'] == AlertRuleThresholdType.BELOW:
+                    alert_op, trigger_error = operator.gt, 'alert threshold must be below resolution threshold'
+
+                if alert_op(critical['alert_threshold'], critical['resolve_threshold']):
+                    raise serializers.ValidationError("Critical " + trigger_error)
             elif len(triggers) == 2:
                 critical = triggers[0]
                 warning = triggers[1]
@@ -395,7 +403,6 @@ class UnifiedAlertRuleSerializer(AlertRuleSerializer):
                         alert_error = 'Critical trigger must have an alert threshold below warning trigger'
                         resolve_error = 'Critical trigger must have a resolution threshold below (or equal to) warning trigger'
                         trigger_error = 'alert threshold must be below resolution threshold'
-
                     else:
                         raise serializers.ValidationError('Invalid threshold type. Valid values are %s' % [item.value for item in AlertRuleThresholdType])
 
