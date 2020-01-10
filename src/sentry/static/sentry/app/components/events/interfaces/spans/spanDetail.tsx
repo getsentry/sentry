@@ -265,7 +265,6 @@ class SpanDetail extends React.Component<Props, State> {
                 </Row>
               );
             })}
-            <Row title="Raw">{JSON.stringify(span, null, 4)}</Row>
           </tbody>
         </table>
       </SpanDetailContainer>
