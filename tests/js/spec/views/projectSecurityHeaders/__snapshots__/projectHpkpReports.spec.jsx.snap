@@ -9,9 +9,7 @@ exports[`ProjectHpkpReports renders 1`] = `
       noTitleStyles={false}
       title="HTTP Public Key Pinning"
     />
-    <PreviewFeature
-      type="info"
-    />
+    <PreviewFeature />
     <ReportUri
       keyList={Array []}
       params={

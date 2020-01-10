@@ -149,6 +149,9 @@ register("snuba.search.max-total-chunk-time-seconds", default=30.0)
 register("snuba.search.hits-sample-size", default=100)
 register("snuba.track-outcomes-sample-rate", default=0.0)
 
+# The percentage of tagkeys that we want to cache. Set to 1.0 in order to cache everything, <=0.0 to stop caching
+register("snuba.tagstore.cache-tagkeys-rate", default=0.0, flags=FLAG_PRIORITIZE_DISK)
+
 # Kafka Publisher
 register("kafka-publisher.raw-event-sample-rate", default=0.0)
 register("kafka-publisher.max-event-size", default=100000)
@@ -201,3 +204,6 @@ register("transaction-events.force-disable-internal-project", default=False)
 # Moving signals and TSDB into outcomes consumer
 register("outcomes.signals-in-consumer-sample-rate", default=0.0)
 register("outcomes.tsdb-in-consumer-sample-rate", default=0.0)
+
+# Eventstore uses Nodestore instead of Snuba for get_event_by_id
+register("eventstore.use-nodestore", default=True, flags=FLAG_PRIORITIZE_DISK)

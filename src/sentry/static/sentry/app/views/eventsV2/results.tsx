@@ -30,8 +30,8 @@ import EventView, {Field} from './eventView';
 import {generateTitle} from './utils';
 
 const CHART_AXIS_OPTIONS = [
-  {label: 'count', value: 'count(id)'},
-  {label: 'users', value: 'count_unique(user)'},
+  {label: 'count(id)', value: 'count(id)'},
+  {label: 'count_unique(users)', value: 'count_unique(user)'},
 ];
 
 type Props = {
@@ -125,7 +125,7 @@ class Results extends React.Component<Props, State> {
           (field: Field) => ['last_seen', 'latest_event'].includes(field.field) === false
         )
         .map((field: Field) => {
-          return {label: field.title, value: field.field};
+          return {label: field.field, value: field.field};
         })
         .concat(CHART_AXIS_OPTIONS),
       'value'
@@ -203,6 +203,12 @@ const Top = styled('div')`
 
 const Main = styled('div')<{eventView: EventView}>`
   grid-column: ${p => (p.eventView.tags.length <= 0 ? '1/3' : '1/2')};
+
+  /* Defining the width prevent child elements from expanding the grid
+     past the width of the screen */
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
 `;
 
 const Side = styled('div')<{eventView: EventView}>`
@@ -215,7 +221,8 @@ const ContentBox = styled(PageContent)`
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     display: grid;
-    grid-template-rows: 1fr auto;
+    grid-template-rows: 270px auto; /* HACK(leedongwei): Hard-coded height for
+                                       search bar and graph */
     grid-template-columns: 65% auto;
     grid-column-gap: ${space(3)};
   }

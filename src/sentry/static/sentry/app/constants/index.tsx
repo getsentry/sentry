@@ -5,7 +5,7 @@
 import {t} from 'app/locale';
 import {Scope} from 'app/types';
 
-export const API_SCOPES = [
+export const API_ACCESS_SCOPES = [
   'project:read',
   'project:write',
   'project:admin',
@@ -19,13 +19,14 @@ export const API_SCOPES = [
   'org:read',
   'org:write',
   'org:admin',
+  'org:integrations',
   'member:read',
   'member:write',
   'member:admin',
 ] as const;
 
 // Default API scopes when adding a new API token or org API token
-export const DEFAULT_API_SCOPES = [
+export const DEFAULT_API_ACCESS_SCOPES = [
   'event:read',
   'event:admin',
   'project:read',
@@ -86,7 +87,7 @@ type PermissionObj = {
 };
 
 // We expose permissions for Sentry Apps in a more resource-centric way.
-// All of the API_SCOPES from above should be represented in a more
+// All of the API_ACCESS_SCOPES from above should be represented in a more
 // User-friendly way here.
 export const SENTRY_APP_PERMISSIONS: PermissionObj[] = [
   {
@@ -240,3 +241,5 @@ export const FILTER_MASK = '[Filtered]';
 export const ORGANIZATION_FETCH_ERROR_TYPES = {
   ORG_NOT_FOUND: 'ORG_NOT_FOUND',
 };
+
+export const CONFIG_DOCS_URL = 'https://docs.sentry.io/server/config/';

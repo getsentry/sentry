@@ -36,8 +36,6 @@ exports[`ShareIssue renders when busy 1`] = `
     }
   >
     <SpreadLayout
-      center={true}
-      responsive={false}
       style={
         Object {
           "marginBottom": undefined,
@@ -94,8 +92,6 @@ exports[`ShareIssue renders when not shared 1`] = `
     }
   >
     <SpreadLayout
-      center={true}
-      responsive={false}
       style={
         Object {
           "marginBottom": undefined,
@@ -153,8 +149,6 @@ exports[`ShareIssue renders when shared  1`] = `
     }
   >
     <SpreadLayout
-      center={true}
-      responsive={false}
       style={
         Object {
           "marginBottom": 12,

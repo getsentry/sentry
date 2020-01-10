@@ -3,7 +3,6 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 from django.conf import settings
 
-import copy
 import io
 import os
 import petname
@@ -45,8 +44,6 @@ from sentry.mediators import (
 from sentry.models import (
     Activity,
     Environment,
-    Event,
-    EventError,
     Group,
     Organization,
     OrganizationMember,
@@ -74,7 +71,6 @@ from sentry.models.integrationfeature import Feature, IntegrationFeature
 from sentry.signals import project_created
 from sentry.snuba.models import QueryAggregations
 from sentry.utils import json
-from sentry.utils.canonical import CanonicalKeyDict
 
 loremipsum = Generator()
 
@@ -470,52 +466,6 @@ class Factories(object):
         return useremail
 
     @staticmethod
-    def create_event(group=None, project=None, event_id=None, normalize=True, **kwargs):
-        # XXX: Do not use this method for new tests! Prefer `store_event`.
-        if event_id is None:
-            event_id = uuid4().hex
-        kwargs.setdefault("project", project if project else group.project)
-        kwargs.setdefault("data", copy.deepcopy(DEFAULT_EVENT_DATA))
-        kwargs.setdefault("platform", kwargs["data"].get("platform", "python"))
-        kwargs.setdefault("message", kwargs["data"].get("message", "message"))
-        if kwargs.get("tags"):
-            tags = kwargs.pop("tags")
-            if isinstance(tags, dict):
-                tags = list(tags.items())
-            kwargs["data"]["tags"] = tags
-        if kwargs.get("stacktrace"):
-            stacktrace = kwargs.pop("stacktrace")
-            kwargs["data"]["stacktrace"] = stacktrace
-
-        user = kwargs.pop("user", None)
-        if user is not None:
-            kwargs["data"]["user"] = user
-
-        kwargs["data"].setdefault("errors", [{"type": EventError.INVALID_DATA, "name": "foobar"}])
-
-        # maintain simple event Factories by supporting the legacy message
-        # parameter just like our API would
-        if "logentry" not in kwargs["data"]:
-            kwargs["data"]["logentry"] = {"message": kwargs["message"] or "<unlabeled event>"}
-
-        if normalize:
-            manager = EventManager(CanonicalKeyDict(kwargs["data"]))
-            manager.normalize()
-            kwargs["data"] = manager.get_data()
-            kwargs["data"].update(manager.materialize_metadata())
-            kwargs["message"] = manager.get_search_message()
-
-        # This is needed so that create_event saves the event in nodestore
-        # under the correct key. This is usually dont in EventManager.save()
-        kwargs["data"].setdefault("node_id", Event.generate_node_id(kwargs["project"].id, event_id))
-
-        event = Event(event_id=event_id, group=group, **kwargs)
-        # emulate EventManager refs
-        event.data.bind_ref(event)
-        event.data.save()
-        return event
-
-    @staticmethod
     def store_event(data, project_id, assert_no_errors=True):
         # Like `create_event`, but closer to how events are actually
         # ingested. Prefer to use this method over `create_event`
@@ -627,7 +577,7 @@ class Factories(object):
 
     @staticmethod
     def create_sentry_app(**kwargs):
-        app = sentry_apps.Creator.run(**Factories._sentry_app_kwargs(**kwargs))
+        app = sentry_apps.Creator.run(is_internal=False, **Factories._sentry_app_kwargs(**kwargs))
 
         if kwargs.get("published"):
             app.update(status=SentryAppStatus.PUBLISHED)
@@ -636,7 +586,9 @@ class Factories(object):
 
     @staticmethod
     def create_internal_integration(**kwargs):
-        return sentry_apps.InternalCreator.run(**Factories._sentry_app_kwargs(**kwargs))
+        return sentry_apps.InternalCreator.run(
+            is_internal=True, **Factories._sentry_app_kwargs(**kwargs)
+        )
 
     @staticmethod
     def create_internal_integration_token(install, **kwargs):

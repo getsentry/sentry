@@ -91,6 +91,7 @@ from .endpoints.organization_event_details import OrganizationEventDetailsEndpoi
 from .endpoints.organization_eventid import EventIdLookupEndpoint
 from .endpoints.organization_events import OrganizationEventsEndpoint, OrganizationEventsV2Endpoint
 from .endpoints.organization_events_distribution import OrganizationEventsDistributionEndpoint
+from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
 from .endpoints.organization_events_meta import OrganizationEventsMetaEndpoint
 from .endpoints.organization_events_stats import OrganizationEventsStatsEndpoint
 from .endpoints.organization_group_index import OrganizationGroupIndexEndpoint
@@ -756,6 +757,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/events-distribution/$",
                     OrganizationEventsDistributionEndpoint.as_view(),
                     name="sentry-api-0-organization-events-distribution",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/events-facets/$",
+                    OrganizationEventsFacetsEndpoint.as_view(),
+                    name="sentry-api-0-organization-events-facets",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/events-meta/$",
