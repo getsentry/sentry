@@ -505,7 +505,7 @@ class GridEditable<
         </Header>
 
         <Body>
-          <Grid innerRef={this.refGrid}>
+          <Grid ref={this.refGrid}>
             <GridHead>{this.renderGridHead()}</GridHead>
             <GridBody>{this.renderGridBody()}</GridBody>
           </Grid>

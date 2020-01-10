@@ -28,7 +28,7 @@ import DateTime from 'app/components/dateTime';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import {
   addSentryAppToken,
   removeSentryAppToken,

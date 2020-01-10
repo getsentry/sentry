@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {IncidentActivityType, IncidentStatus} from 'app/views/incidents/utils';
 import {t} from 'app/locale';

@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {StyledForm} from 'app/components/forms/form';
 import {defined} from 'app/utils';

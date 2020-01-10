@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {removeIndicator} from 'app/actionCreators/indicator';
 import IndicatorStore from 'app/stores/indicatorStore';

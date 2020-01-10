@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import ActivityItem from 'app/components/activity/item';
 import space from 'app/styles/space';

@@ -1,4 +1,4 @@
-import {Box, Flex} from 'grid-emotion';
+import {Box, Flex} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
 
@@ -65,7 +65,7 @@ class OrganizationApiKeysList extends React.Component {
 
         <Panel>
           <PanelHeader disablePadding>
-            <Flex align="center" flex="1">
+            <Flex alignItems="center" flex="1">
               <Box px={2} flex="1">
                 {t('Name')}
               </Box>
@@ -74,7 +74,7 @@ class OrganizationApiKeysList extends React.Component {
               </Box>
             </Flex>
 
-            <Box px={2} w={100}>
+            <Box px={2} width={100}>
               {t('Actions')}
             </Box>
           </PanelHeader>
@@ -92,9 +92,9 @@ class OrganizationApiKeysList extends React.Component {
                 });
 
                 return (
-                  <PanelItem align="center" p={0} py={1} key={id}>
-                    <Flex align="center" flex="1">
-                      <Box px={2} flex="1" align="center">
+                  <PanelItem alignItems="center" p={0} py={1} key={id}>
+                    <Flex alignItems="center" flex="1">
+                      <Box px={2} flex="1" alignItems="center">
                         <Link to={apiDetailsUrl}>{label}</Link>
                       </Box>
                       <Box px={2} flex="2">
@@ -104,7 +104,7 @@ class OrganizationApiKeysList extends React.Component {
                       </Box>
                     </Flex>
 
-                    <Box px={2} w={100}>
+                    <Box px={2} width={100}>
                       <LinkWithConfirmation
                         className="btn btn-default btn-sm"
                         onConfirm={e => onRemove(id, e)}

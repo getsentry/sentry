@@ -2,7 +2,7 @@ import {Link} from 'react-router';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {IssueAlertRule} from 'app/types/alerts';
 import {PanelItem} from 'app/components/panels';
