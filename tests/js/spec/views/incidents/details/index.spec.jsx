@@ -37,15 +37,7 @@ describe('IncidentDetails', function() {
     });
 
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/incidents/123/suspects/',
-      body: [TestStubs.IncidentSuspectCommit()],
-    });
-    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/456/',
-      statusCode: 404,
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/incidents/456/suspects/',
       statusCode: 404,
     });
     MockApiClient.addMockResponse({
@@ -89,15 +81,6 @@ describe('IncidentDetails', function() {
         .at(2)
         .text()
     ).toBe('20');
-
-    expect(wrapper.find('SuspectItem')).toHaveLength(1);
-    expect(
-      wrapper
-        .find('SuspectItem')
-        .at(0)
-        .find('MessageOverflow')
-        .text()
-    ).toBe('feat: Do something to raven/base.py');
   });
 
   it('handles invalid incident', async function() {
