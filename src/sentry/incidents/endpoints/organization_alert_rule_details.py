@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import DetailedAlertRuleSerializer
 from sentry.incidents.endpoints.bases import OrganizationAlertRuleEndpoint
-from sentry.incidents.endpoints.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
+from sentry.incidents.endpoints.serializers import UnifiedAlertRuleSerializer as DrfAlertRuleSerializer
 from sentry.incidents.logic import AlreadyDeletedError, delete_alert_rule
 
 
@@ -21,11 +21,13 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
         return Response(data)
 
     def put(self, request, organization, alert_rule):
+        print("Got put request!", alert_rule)
+        print("Data:", request.data)
         serializer = DrfAlertRuleSerializer(
             context={"organization": organization, "access": request.access},
             instance=alert_rule,
             data=request.data,
-            partial=True,
+            # partial=True,
         )
 
         if serializer.is_valid():
@@ -36,6 +38,7 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
 
     def delete(self, request, organization, alert_rule):
         try:
+            # TODO: Ensure delete_alert_rule needs to delete triggers + actions as well.
             delete_alert_rule(alert_rule)
             return Response(status=status.HTTP_204_NO_CONTENT)
         except AlreadyDeletedError:

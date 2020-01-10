@@ -11,7 +11,6 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.incidents.models import AlertRule
-from sentry.incidents.logic import create_alert_rule_unified
 from sentry.incidents.endpoints.serializers import UnifiedAlertRuleSerializer
 
 class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint):
@@ -40,6 +39,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint):
             raise ResourceDoesNotExist
 
         print("Instantiating serializer")
+        print("access:", request.access)
         serializer = UnifiedAlertRuleSerializer(
             context={
                 "organization": organization,
@@ -51,26 +51,9 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint):
 
         if serializer.is_valid():
             print("It's valid. Saving and returning.")
-            trigger = serializer.save()
-            print("trigger is:",trigger)
-            return Response(serialize(trigger, request.user), status=status.HTTP_201_CREATED)
+            alert_rule = serializer.save()
+            print("alert_rule is:",alert_rule)
+            return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
 
         print("Returning errors. Serializer invalid.")
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-        # if not features.has("organizations:incidents", organization, actor=request.user):
-        #     raise ResourceDoesNotExist
-
-        # data = request.data
-
-        # alert_rule = create_alert_rule_unified(
-        #     data, organization=organization, access=request.access
-        # )
-
-        # if alert_rule.get("error", False) is True:
-        #     return Response(serialize(alert_rule, request.user), status=status.HTTP_400_BAD_REQUEST)
-        # else:
-        #     return Response(
-        #         serialize(alert_rule["rule"], request.user), status=status.HTTP_201_CREATED
-        #     )

@@ -464,6 +464,9 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
         return getattr(self.client, method)(url, format="json", data=params)
 
     def get_valid_response(self, *args, **params):
+        print("getting valid response")
+        print(args)
+        print(params)
         status_code = params.pop("status_code", 200)
         resp = self.get_response(*args, **params)
         assert resp.status_code == status_code, (resp.status_code, resp.content)
