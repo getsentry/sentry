@@ -447,15 +447,14 @@ def get_facets(query, params, limit=10, referrer=None):
     # Resolve the public aliases into the discover dataset names.
     snuba_args, translated_columns = resolve_discover_aliases(snuba_args)
 
-    # Force sampling for multi-project results as we don't need accuracy
-    # with that much data.
-    sample = len(snuba_filter.filter_keys["project_id"]) > 2
-
     # Exclude tracing tags as they are noisy and generally not helpful.
     excluded_tags = ["tags_key", "NOT IN", ["trace", "trace.ctx", "trace.span"]]
 
-    # Get the most frequent tag keys, enable sampling
-    # as we don't need accuracy here.
+    # Sampling keys for multi-project results as we don't need accuracy
+    # with that much data.
+    sample = len(snuba_filter.filter_keys["project_id"]) > 2
+
+    # Get the most frequent tag keys
     key_names = raw_query(
         aggregations=[["count", None, "count"]],
         start=snuba_args.get("start"),
@@ -473,6 +472,11 @@ def get_facets(query, params, limit=10, referrer=None):
     top_tags = [r["tags_key"] for r in key_names["data"]]
     if not top_tags:
         return []
+
+    # TODO(mark) Make the sampling rate scale based on the result size and scaling factor in
+    # sentry.options.
+    # To test the lowest acceptable sampling rate, we use turbo mode.
+    turbo_values = key_names["data"][0]["count"] > 10000
 
     fetch_projects = False
     if len(params.get("project_id", [])) > 1:
@@ -492,6 +496,7 @@ def get_facets(query, params, limit=10, referrer=None):
             orderby="-count",
             dataset=Dataset.Discover,
             referrer=referrer,
+            turbo=turbo_values,
         )
         results.extend(
             [FacetResult("project", r["project_id"], r["count"]) for r in project_values["data"]]
@@ -513,6 +518,7 @@ def get_facets(query, params, limit=10, referrer=None):
             limit=TOP_VALUES_DEFAULT_LIMIT,
             dataset=Dataset.Discover,
             referrer=referrer,
+            turbo=turbo_values,
         )
         results.extend([FacetResult(tag_name, r[tag], int(r["count"])) for r in tag_values["data"]])
 
