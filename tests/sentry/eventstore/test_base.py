@@ -2,9 +2,11 @@ from __future__ import absolute_import
 
 import logging
 import mock
+import pytest
 import six
 
 from sentry import eventstore
+from sentry.eventstore.models import Event
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.eventstore.base import EventStorage
@@ -36,8 +38,8 @@ class EventStorageTest(TestCase):
             project_id=self.project.id,
         )
 
-        event = eventstore.get_event_by_id(self.project.id, "a" * 32)
-        event2 = eventstore.get_event_by_id(self.project.id, "b" * 32)
+        event = Event(project_id=self.project.id, event_id="a" * 32)
+        event2 = Event(project_id=self.project.id, event_id="b" * 32)
         assert event.data._node_data is None
         self.eventstorage.bind_nodes([event, event2], "data")
         assert event.data._node_data is not None
@@ -70,8 +72,8 @@ class ServiceDelegationTest(TestCase, SnubaTestCase):
 
         self.transaction_event = self.store_event(data=event_data, project_id=self.project.id)
 
+    @pytest.mark.skip(reason="There is no longer a difference in underlying dataset.")
     def test_logs_differences(self):
-
         logger = logging.getLogger("sentry.eventstore")
 
         with mock.patch.object(logger, "info") as mock_logger:

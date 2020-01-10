@@ -606,11 +606,9 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             response = self.client.get(
                 self.url,
                 format="json",
-                data={"field": ["trace", "trace.span"], "query": "event.type:transaction"},
+                data={"field": ["trace"], "query": "event.type:transaction"},
             )
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         assert response.data["meta"]["trace"] == "string"
-        assert response.data["meta"]["trace.span"] == "integer"
         assert response.data["data"][0]["trace"] == data["contexts"]["trace"]["trace_id"]
-        assert response.data["data"][0]["trace.span"] == data["contexts"]["trace"]["span_id"]

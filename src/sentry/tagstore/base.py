@@ -107,7 +107,7 @@ class TagStorage(Service):
     def get_tag_value_label(self, key, value):
         label = value
 
-        if key == "sentry:user":
+        if key == "sentry:user" and value:
             if value.startswith("id:"):
                 label = value[len("id:") :]
             elif value.startswith("email:"):

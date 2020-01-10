@@ -591,10 +591,14 @@ def convert_search_filter_to_snuba_query(search_filter):
             return [name, operator, None]
 
         try:
-            return [name, search_filter.operator, uuid.UUID(search_filter.value.raw_value)]
+            return [
+                name,
+                search_filter.operator,
+                six.text_type(uuid.UUID(search_filter.value.raw_value)),
+            ]
         except Exception:
             raise InvalidSearchQuery(
-                "Invalid value for the trace condition. Value must be are a hexadecimal UUID string."
+                "Invalid value for the trace condition. Value must be a hexadecimal UUID string."
             )
     else:
         value = (

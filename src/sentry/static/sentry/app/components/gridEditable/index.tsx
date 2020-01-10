@@ -5,7 +5,7 @@ import {openModal} from 'app/actionCreators/modal';
 
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import InlineSvg from 'app/components/inlineSvg';
-import LoadingContainer from 'app/components/loading/loadingContainer';
+import LoadingIndicator from 'app/components/loadingIndicator';
 
 import {
   GridColumn,
@@ -26,9 +26,8 @@ import {
   GridHead,
   GridBody,
   GridBodyCell,
-  GridBodyCellSpan,
-  GridBodyCellLoading,
-  GridBodyErrorAlert,
+  GridBodyCellStatus,
+  GridStatusErrorAlert,
   GridResizer,
 } from './styles';
 import {
@@ -146,6 +145,10 @@ class GridEditable<
     isEditing: false,
   };
 
+  componentDidMount() {
+    window.addEventListener('resize', this.redrawGridColumn);
+  }
+
   componentDidUpdate() {
     // Redraw columns whenever new props are recieved
     this.setGridTemplateColumns(this.props.columnOrder);
@@ -153,6 +156,7 @@ class GridEditable<
 
   componentWillUnmount() {
     this.clearWindowLifecycleEvents();
+    window.removeEventListener('resize', this.redrawGridColumn);
   }
 
   private refGrid = React.createRef<HTMLTableElement>();
@@ -284,6 +288,13 @@ class GridEditable<
       metadata.columnIndex,
       metadata.columnWidth + e.clientX - metadata.cursorX
     );
+  };
+
+  /**
+   * Recalculate the dimensions of Grid and Columns and redraws them
+   */
+  redrawGridColumn = () => {
+    this.setGridTemplateColumns(this.props.columnOrder);
   };
 
   /**
@@ -441,11 +452,11 @@ class GridEditable<
 
     return (
       <GridRow>
-        <GridBodyCellSpan>
-          <GridBodyErrorAlert type="error" icon="icon-circle-exclamation">
+        <GridBodyCellStatus>
+          <GridStatusErrorAlert type="error" icon="icon-circle-exclamation">
             {error}
-          </GridBodyErrorAlert>
-        </GridBodyCellSpan>
+          </GridStatusErrorAlert>
+        </GridBodyCellStatus>
       </GridRow>
     );
   };
@@ -453,11 +464,9 @@ class GridEditable<
   renderLoading = () => {
     return (
       <GridRow>
-        <GridBodyCellSpan>
-          <GridBodyCellLoading>
-            <LoadingContainer isLoading />
-          </GridBodyCellLoading>
-        </GridBodyCellSpan>
+        <GridBodyCellStatus>
+          <LoadingIndicator />
+        </GridBodyCellStatus>
       </GridRow>
     );
   };
@@ -465,11 +474,11 @@ class GridEditable<
   renderEmptyData = () => {
     return (
       <GridRow>
-        <GridBodyCellSpan>
+        <GridBodyCellStatus>
           <EmptyStateWarning>
             <p>{t('No results found')}</p>
           </EmptyStateWarning>
-        </GridBodyCellSpan>
+        </GridBodyCellStatus>
       </GridRow>
     );
   };
@@ -496,7 +505,7 @@ class GridEditable<
         </Header>
 
         <Body>
-          <Grid innerRef={this.refGrid}>
+          <Grid ref={this.refGrid}>
             <GridHead>{this.renderGridHead()}</GridHead>
             <GridBody>{this.renderGridBody()}</GridBody>
           </Grid>

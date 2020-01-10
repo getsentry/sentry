@@ -168,7 +168,6 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
         tests = {
             "transaction.status": "transaction.status" in first_row,
             "trace": "trace" in first_row,
-            "trace.span": "trace.span" in first_row,
         }
         if any(tests.values()):
             for row in results:
@@ -178,8 +177,6 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
                     )
                 if tests["trace"]:
                     row["trace"] = uuid.UUID(row["trace"]).hex
-                if tests["trace.span"]:
-                    row["trace.span"] = hex(row["trace.span"]).lstrip("0x").rstrip("L")
 
         if not ("project.id" in first_row or "projectid" in first_row):
             return results

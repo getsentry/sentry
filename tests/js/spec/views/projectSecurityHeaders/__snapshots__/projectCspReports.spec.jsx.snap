@@ -9,9 +9,7 @@ exports[`ProjectCspReports renders 1`] = `
       noTitleStyles={false}
       title="Content Security Policy"
     />
-    <PreviewFeature
-      type="info"
-    />
+    <PreviewFeature />
     <ReportUri
       keyList={Array []}
       params={

@@ -1,7 +1,7 @@
 import React from 'react';
 import {Location} from 'history';
 import {browserHistory} from 'react-router';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
 import space from 'app/styles/space';

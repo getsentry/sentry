@@ -3,7 +3,9 @@ from __future__ import absolute_import
 import six
 
 from copy import deepcopy
+from datetime import datetime, timedelta
 
+from sentry import options
 from sentry.eventstore.base import EventStorage
 from sentry.snuba.events import Columns
 from sentry.utils import snuba
@@ -66,6 +68,7 @@ class SnubaEventStorage(EventStorage):
             limit=limit,
             offset=offset,
             referrer=referrer,
+            dataset=snuba.Dataset.Events,
         )
 
         if "error" not in result:
@@ -78,12 +81,15 @@ class SnubaEventStorage(EventStorage):
         Get an event given a project ID and event ID
         Returns None if an event cannot be found
         """
-        cols = self.__get_columns(additional_columns)
-
         event_id = normalize_event_id(event_id)
 
         if not event_id:
             return None
+
+        if options.get("eventstore.use-nodestore"):
+            return self.__get_event_by_id_nodestore(project_id, event_id)
+
+        cols = self.__get_columns(additional_columns)
 
         result = snuba.raw_query(
             selected_columns=cols,
@@ -94,6 +100,32 @@ class SnubaEventStorage(EventStorage):
         if "error" not in result and len(result["data"]) == 1:
             return self.__make_event(result["data"][0])
         return None
+
+    def __get_event_by_id_nodestore(self, project_id, event_id):
+        event = Event(project_id=project_id, event_id=event_id)
+        event.bind_node_data()
+
+        # Return None if there was no data in nodestore
+        if len(event.data) == 0:
+            return None
+
+        event_time = datetime.fromtimestamp(event.data["timestamp"])
+
+        # Load group_id from Snuba if not a transaction
+        if event.get_event_type() != "transaction":
+            result = snuba.raw_query(
+                selected_columns=["group_id"],
+                start=event_time,
+                end=event_time + timedelta(seconds=1),
+                filter_keys={"project_id": [project_id], "event_id": [event_id]},
+                limit=1,
+                referrer="eventstore.get_event_by_id_nodestore",
+            )
+
+            assert len(result["data"]) == 1
+            event.group_id = result["data"][0]["group_id"]
+
+        return event
 
     def get_earliest_event_id(self, event, filter):
         filter = deepcopy(filter)
@@ -157,6 +189,9 @@ class SnubaEventStorage(EventStorage):
         columns = [Columns.EVENT_ID.value.alias, Columns.PROJECT_ID.value.alias]
 
         try:
+            # This query uses the discover dataset to enable
+            # getting events across both errors and transactions, which is
+            # required when doing pagination in discover
             result = snuba.dataset_query(
                 selected_columns=columns,
                 conditions=filter.conditions,
@@ -166,7 +201,7 @@ class SnubaEventStorage(EventStorage):
                 limit=1,
                 referrer="eventstore.get_next_or_prev_event_id",
                 orderby=orderby,
-                dataset=snuba.detect_dataset({"conditions": filter.conditions}),
+                dataset=snuba.Dataset.Discover,
             )
         except (snuba.QueryOutsideRetentionError, snuba.QueryOutsideGroupActivityError):
             # This can happen when the date conditions for paging

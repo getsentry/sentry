@@ -1,4 +1,4 @@
-import {css} from 'react-emotion';
+import {ClassNames} from '@emotion/core';
 import PropTypes from 'prop-types';
 import React from 'react';
 
@@ -13,14 +13,6 @@ import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withTeams from 'app/utils/withTeams';
-
-const platformListStyle = css`
-  max-height: 420px;
-  overflow-y: scroll;
-  /* Needed to fix overflow cropping of the de-select button */
-  margin-top: -${space(2)};
-  padding-top: ${space(2)};
-`;
 
 class OnboardingPlatform extends React.Component {
   static propTypes = {
@@ -137,12 +129,23 @@ class OnboardingPlatform extends React.Component {
             {strong: <strong />}
           )}
         </p>
-        <PlatformPicker
-          noAutoFilter
-          listProps={{className: platformListStyle, id: scrollTargetId}}
-          platform={selectedPlatform}
-          setPlatform={this.handleSetPlatform}
-        />
+        <ClassNames>
+          {({css}) => (
+            <PlatformPicker
+              noAutoFilter
+              listClassName={css`
+                max-height: 420px;
+                overflow-y: scroll;
+                /* Needed to fix overflow cropping of the de-select button */
+                margin-top: -${space(2)};
+                padding-top: ${space(2)};
+              `}
+              listProps={{id: scrollTargetId}}
+              platform={selectedPlatform}
+              setPlatform={this.handleSetPlatform}
+            />
+          )}
+        </ClassNames>
         <Button
           data-test-id="platform-select-next"
           priority="primary"
