@@ -8,8 +8,7 @@ import styled from 'react-emotion';
 
 import {PageContent, PageHeader} from 'app/styles/organization';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import {t, tct} from 'app/locale';
-import AlertLink from 'app/components/alertLink';
+import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import BetaTag from 'app/components/betaTag';
 import Button from 'app/components/button';
@@ -174,17 +173,6 @@ class IncidentsListContainer extends React.Component<Props> {
               </div>
             </Actions>
           </PageHeader>
-
-          <AlertLink
-            priority="info"
-            to={`/organizations/${orgId}/issues/`}
-            icon="icon-circle-info"
-          >
-            {tct(
-              'To create a new Incident, select one or more issues from the Issues view. Then, click the [create:Create Incident] button.',
-              {create: <em />}
-            )}
-          </AlertLink>
 
           <IncidentsList {...this.props} />
         </PageContent>
