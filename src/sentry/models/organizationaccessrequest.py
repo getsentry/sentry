@@ -39,11 +39,14 @@ class OrganizationAccessRequest(Model):
             "team": self.team,
             "url": absolute_uri(
                 reverse(
-                    "sentry-organization-members", kwargs={"organization_slug": organization.slug}
+                    "sentry-organization-members-requests",
+                    kwargs={"organization_slug": organization.slug},
                 )
-                + "?ref=access-requests"
             ),
         }
+
+        if self.requester:
+            context.update({"requester": self.requester.get_display_name()})
 
         msg = MessageBuilder(
             subject="Sentry Access Request",
