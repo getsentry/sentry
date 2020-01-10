@@ -21,7 +21,7 @@ const SidebarOrgSummary: React.FC<Props> = ({organization}) => {
 
   return (
     <OrgSummary>
-      <OrganizationAvatar style={{flexShrink: 0}} organization={organization} size={36} />
+      <OrganizationAvatar organization={organization} size={36} />
 
       <Details>
         <SummaryOrgName>{organization.name}</SummaryOrgName>
