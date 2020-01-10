@@ -112,16 +112,6 @@ class EventCommon(object):
     def get_interface(self, name):
         return self.interfaces.get(name)
 
-    def get_legacy_message(self):
-        # TODO: This is only used in the pagerduty plugin. We should use event.title
-        # there and remove this function once users have been notified, since PD
-        # alert routing may be based off the message field.
-        return (
-            get_path(self.data, "logentry", "formatted")
-            or get_path(self.data, "logentry", "message")
-            or self.message
-        )
-
     def get_event_type(self):
         """
         Return the type of this event.
