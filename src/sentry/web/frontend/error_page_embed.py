@@ -7,7 +7,6 @@ from django.db import IntegrityError, transaction
 from django.http import HttpResponse
 from django.views.generic import View
 from django.utils import timezone
-from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
@@ -213,9 +212,9 @@ class ErrorPageEmbedView(View):
             "template": mark_safe("*/" + json.dumps(template) + ";/*"),
             "strings": json.dumps_htmlsafe(
                 {
-                    "generic_error": escape(six.text_type(options["errorGeneric"])),
-                    "form_error": escape(six.text_type(options["errorFormEntry"])),
-                    "sent_message": escape(six.text_type(options["successMessage"])),
+                    "generic_error": six.text_type(options["errorGeneric"]),
+                    "form_error": six.text_type(options["errorFormEntry"]),
+                    "sent_message": six.text_type(options["successMessage"]),
                 }
             ),
         }
