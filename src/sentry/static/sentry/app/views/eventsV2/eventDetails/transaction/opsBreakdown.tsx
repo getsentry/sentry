@@ -64,7 +64,22 @@ class OpsBreakdown extends React.Component<Props> {
       (entry: {type: string}) => entry.type === 'spans'
     );
 
-    const spans: RawSpanType[] = get(spanEntry, 'data', []);
+    let spans: RawSpanType[] = get(spanEntry, 'data', []);
+
+    spans =
+      spans.length > 0
+        ? spans
+        : // if there are no descendent spans, then use the transaction root span
+          [
+            {
+              op: traceContext.op,
+              timestamp: event.endTimestamp,
+              start_timestamp: event.startTimestamp,
+              trace_id: traceContext.trace_id || '',
+              span_id: traceContext.span_id || '',
+              data: {},
+            },
+          ];
 
     type AggregateType = {
       [opname: string]: {
@@ -73,16 +88,6 @@ class OpsBreakdown extends React.Component<Props> {
     };
 
     let cumulativeDuration = 0;
-
-    // add the transaction itself as a span
-    spans.push({
-      op: traceContext.op,
-      timestamp: event.endTimestamp,
-      start_timestamp: event.startTimestamp,
-      trace_id: traceContext.trace_id || '',
-      span_id: traceContext.span_id || '',
-      data: {},
-    });
 
     const aggregateByOp: AggregateType = spans.reduce(
       (aggregate: AggregateType, span: RawSpanType) => {
@@ -110,22 +115,6 @@ class OpsBreakdown extends React.Component<Props> {
       },
       {}
     );
-
-    // cumulativeDuration is the cumulative duration sum of the transaction span,
-    // and all of its descendants.
-    // If the cumulative duration sum of the transaction's descendants (excluding the transaction span)
-    // is non-zero, then we can subtract the transaction span's duration away from cumulativeDuration.
-    //
-    // In cases when (cumulativeDuration - transactionDuration) <= 0, this could mean either:
-    // 1. There are no descendants, or
-    // 2. All descendants have durations of 0.
-    //
-    // This change for cumulativeDuration ensures that the duration sum of the transaction
-    // span with respect to cumulativeDuration is at least 100%.
-    const transactionDuration = Math.abs(event.endTimestamp - event.startTimestamp);
-    if (cumulativeDuration - transactionDuration > 0) {
-      cumulativeDuration = cumulativeDuration - transactionDuration;
-    }
 
     const ops = Object.keys(aggregateByOp).map(opName => {
       return {
