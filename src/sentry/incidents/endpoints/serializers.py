@@ -375,20 +375,22 @@ class UnifiedAlertRuleSerializer(AlertRuleSerializer):
                 if triggers[0].get('label', None) != CRITICAL_TRIGGER_LABEL:
                     raise serializers.ValidationError('First trigger must be labeled "%s"' % (CRITICAL_TRIGGER_LABEL))
             elif len(triggers) == 2:
-                if triggers[0].get('label', None) != CRITICAL_TRIGGER_LABEL or triggers[1]['label'] != WARNING_TRIGGER_LABEL:
+                critical = triggers[0]
+                warning = triggers[1]
+                if critical.get('label', None) != CRITICAL_TRIGGER_LABEL or warning['label'] != WARNING_TRIGGER_LABEL:
                     raise serializers.ValidationError('First trigger must be labeled "%s", second trigger must be labeled "%s"' % (CRITICAL_TRIGGER_LABEL, WARNING_TRIGGER_LABEL))
                 else:
-                    if triggers[0]['threshold_type'] != triggers[1]['threshold_type']:
+                    if critical['threshold_type'] != warning['threshold_type']:
                         raise serializers.ValidationError('Must have matching threshold types (i.e. critical and warning triggers must both be an upper or lower bound)')
-                    if triggers[0]['threshold_type'] == AlertRuleThresholdType.ABOVE:
-                        if triggers[0]['alert_threshold'] < triggers[1]['alert_threshold']:
+                    if critical['threshold_type'] == AlertRuleThresholdType.ABOVE:
+                        if critical['alert_threshold'] < warning['alert_threshold']:
                             raise serializers.ValidationError('"%s" trigger must have an alert threshold above "%s" trigger' % (CRITICAL_TRIGGER_LABEL, WARNING_TRIGGER_LABEL))
-                        elif triggers[0]['resolve_threshold'] > triggers[1]['resolve_threshold']:
+                        elif critical['resolve_threshold'] > warning['resolve_threshold']:
                             raise serializers.ValidationError('"%s" trigger must have a resolution threshold below (or equal to) "%s" trigger' % (CRITICAL_TRIGGER_LABEL, WARNING_TRIGGER_LABEL))
-                    elif triggers[0]['threshold_type'] == AlertRuleThresholdType.BELOW:
-                        if triggers[0]['alert_threshold'] > triggers[1]['alert_threshold']:
+                    elif critical['threshold_type'] == AlertRuleThresholdType.BELOW:
+                        if critical['alert_threshold'] > warning['alert_threshold']:
                             raise serializers.ValidationError('"%s" trigger must have an alert threshold below "%s" trigger' % (CRITICAL_TRIGGER_LABEL, WARNING_TRIGGER_LABEL))
-                        elif triggers[0]['resolve_threshold'] < triggers[1]['resolve_threshold']:
+                        elif critical['resolve_threshold'] < warning['resolve_threshold']:
                             raise serializers.ValidationError('"%s" trigger must have a resolution threshold above (or equal to) "%s" trigger' % (CRITICAL_TRIGGER_LABEL, WARNING_TRIGGER_LABEL))
                     else:
                         raise serializers.ValidationError('Invalid threshold type. Valid values are %s' % [item.value for item in AlertRuleThresholdType])
