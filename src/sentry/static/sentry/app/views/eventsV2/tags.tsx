@@ -104,7 +104,7 @@ class Tags extends React.Component<Props, State> {
     }
   };
 
-  onTagClick = (tag: string, segment: TagTopValue) => {
+  onTagClick = (tag: string) => {
     const {organization} = this.props;
     // metrics
     trackAnalyticsEvent({
