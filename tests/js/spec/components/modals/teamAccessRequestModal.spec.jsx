@@ -7,12 +7,12 @@ import TeamAccessRequestModal from 'app/components/modals/teamAccessRequestModal
 describe('TeamAccessRequestModal', function() {
   let wrapper;
   let createMock;
+
   const closeModal = jest.fn();
   const onClose = jest.fn();
   const orgId = TestStubs.Organization().id;
   const memberId = TestStubs.Member().id;
   const teamId = TestStubs.Team().id;
-  const url = `/organizations/${orgId}/members/${memberId}/teams/${teamId}/`;
 
   const modalRenderProps = {
     Body: Modal.Body,
@@ -33,8 +33,9 @@ describe('TeamAccessRequestModal', function() {
       />,
       TestStubs.routerContext()
     );
+
     createMock = MockApiClient.addMockResponse({
-      url,
+      url: `/organizations/${orgId}/members/${memberId}/teams/${teamId}/`,
       method: 'POST',
     });
   });
@@ -47,12 +48,7 @@ describe('TeamAccessRequestModal', function() {
 
   it('creates access request on continue', function() {
     wrapper.find('button[aria-label="Continue"]').simulate('click');
-    expect(createMock).toHaveBeenCalledWith(
-      url,
-      expect.objectContaining({
-        method: 'POST',
-      })
-    );
+    expect(createMock).toHaveBeenCalled();
   });
 
   it('closes modal on cancel', function() {

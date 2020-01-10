@@ -14,6 +14,8 @@ jest.mock('app/actionCreators/modal', () => ({
 }));
 
 describe('TeamMembers', function() {
+  let createMock;
+
   const organization = TestStubs.Organization();
   const routerContext = TestStubs.routerContext([{organization}]);
   const team = TestStubs.Team();
@@ -36,6 +38,11 @@ describe('TeamMembers', function() {
       method: 'GET',
       body: members,
     });
+
+    createMock = Client.addMockResponse({
+      url: `/organizations/${organization.slug}/members/${member.id}/teams/${team.slug}/`,
+      method: 'POST',
+    });
   });
 
   it('renders', async function() {
@@ -52,11 +59,6 @@ describe('TeamMembers', function() {
 
   it('can add member to team with open membership', async function() {
     const org = TestStubs.Organization({access: [], openMembership: true});
-    const url = `/organizations/${org.slug}/members/${member.id}/teams/${team.slug}/`;
-    const createMock = Client.addMockResponse({
-      url,
-      method: 'POST',
-    });
     const wrapper = mountWithTheme(
       <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
       routerContext
@@ -74,21 +76,11 @@ describe('TeamMembers', function() {
     await tick();
     wrapper.update();
 
-    expect(createMock).toHaveBeenCalledWith(
-      url,
-      expect.objectContaining({
-        method: 'POST',
-      })
-    );
+    expect(createMock).toHaveBeenCalled();
   });
 
   it('can add member to team with team:admin permission', async function() {
     const org = TestStubs.Organization({access: ['team:admin'], openMembership: false});
-    const url = `/organizations/${org.slug}/members/${member.id}/teams/${team.slug}/`;
-    const createMock = Client.addMockResponse({
-      url,
-      method: 'POST',
-    });
     const wrapper = mountWithTheme(
       <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
       routerContext
@@ -103,21 +95,11 @@ describe('TeamMembers', function() {
       .first()
       .simulate('click');
 
-    expect(createMock).toHaveBeenCalledWith(
-      url,
-      expect.objectContaining({
-        method: 'POST',
-      })
-    );
+    expect(createMock).toHaveBeenCalled();
   });
 
   it('can add member to team with org:write permission', async function() {
     const org = TestStubs.Organization({access: ['org:write'], openMembership: false});
-    const url = `/organizations/${org.slug}/members/${member.id}/teams/${team.slug}/`;
-    const createMock = Client.addMockResponse({
-      url,
-      method: 'POST',
-    });
     const wrapper = mountWithTheme(
       <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
       routerContext
@@ -132,12 +114,7 @@ describe('TeamMembers', function() {
       .first()
       .simulate('click');
 
-    expect(createMock).toHaveBeenCalledWith(
-      url,
-      expect.objectContaining({
-        method: 'POST',
-      })
-    );
+    expect(createMock).toHaveBeenCalled();
   });
 
   it('can request access to add member to team without permission', async function() {
@@ -232,14 +209,12 @@ describe('TeamMembers', function() {
   });
 
   it('can remove member from team', async function() {
-    const url = `/organizations/${organization.slug}/members/${members[0].id}/teams/${
-      team.slug
-    }/`;
     const deleteMock = Client.addMockResponse({
-      url,
+      url: `/organizations/${organization.slug}/members/${members[0].id}/teams/${
+        team.slug
+      }/`,
       method: 'DELETE',
     });
-
     const wrapper = mountWithTheme(
       <TeamMembers
         params={{orgId: organization.slug, teamId: team.slug}}
@@ -258,12 +233,7 @@ describe('TeamMembers', function() {
       .at(1)
       .simulate('click');
 
-    expect(deleteMock).toHaveBeenCalledWith(
-      url,
-      expect.objectContaining({
-        method: 'DELETE',
-      })
-    );
+    expect(deleteMock).toHaveBeenCalled();
   });
 
   it('can only remove self from team', async function() {
@@ -277,11 +247,8 @@ describe('TeamMembers', function() {
       body: [...members, me],
     });
 
-    const url = `/organizations/${organization.slug}/members/${me.id}/teams/${
-      team.slug
-    }/`;
     const deleteMock = Client.addMockResponse({
-      url,
+      url: `/organizations/${organization.slug}/members/${me.id}/teams/${team.slug}/`,
       method: 'DELETE',
     });
     const organizationMember = TestStubs.Organization({
@@ -307,11 +274,6 @@ describe('TeamMembers', function() {
     expect(wrapper.find('button[aria-label="Remove"]')).toHaveLength(1);
 
     wrapper.find('button[aria-label="Remove"]').simulate('click');
-    expect(deleteMock).toHaveBeenCalledWith(
-      url,
-      expect.objectContaining({
-        method: 'DELETE',
-      })
-    );
+    expect(deleteMock).toHaveBeenCalled();
   });
 });
