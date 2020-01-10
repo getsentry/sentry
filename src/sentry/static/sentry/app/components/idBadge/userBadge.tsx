@@ -16,6 +16,7 @@ const defaultProps = {
 
 type Props = {
   avatarSize: UserAvatar['props']['size'];
+  className?: string;
   displayName?: string;
   displayEmail?: string;
   user?: AvatarUser;
@@ -34,6 +35,7 @@ function getUser(props: {user?: AvatarUser; member?: Member}): AvatarUser | unde
 }
 
 const UserBadge = ({
+  className,
   displayName,
   displayEmail,
   orgId,
@@ -57,7 +59,7 @@ const UserBadge = ({
     (member && member.name);
 
   return (
-    <StyledUserBadge>
+    <StyledUserBadge className={className}>
       <StyledAvatar user={user} size={avatarSize} />
       <StyledNameAndEmail>
         <StyledName
@@ -116,7 +118,7 @@ type NameProps = {
   hideEmail: boolean;
 } & Link['props'];
 
-const StyledName = styled(({useLink, to, ...props}: NameProps) => {
+const StyledName = styled<NameProps>(({useLink, to, ...props}) => {
   const forwardProps = omit(props, 'hideEmail');
   return useLink ? <Link to={to} {...forwardProps} /> : <span {...forwardProps} />;
 })`
@@ -125,7 +127,7 @@ const StyledName = styled(({useLink, to, ...props}: NameProps) => {
   ${overflowEllipsis};
 `;
 
-const StyledAvatar = styled((props: UserAvatar['props']) => <UserAvatar {...props} />)`
+const StyledAvatar = styled(UserAvatar)`
   min-width: ${space(3)};
   min-height: ${space(3)};
   margin-right: ${space(1)};
