@@ -829,6 +829,8 @@ SENTRY_FEATURES = {
     "organizations:tweak-grouping-config": True,
     # Lets organizations manage grouping configs
     "organizations:set-grouping-config": False,
+    # Enable health feature
+    "organizations:health": False,
     # Enable incidents feature
     "organizations:incidents": False,
     # Enable integration functionality to create and link groups to issues on

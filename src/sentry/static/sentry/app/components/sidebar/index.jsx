@@ -164,6 +164,7 @@ class Sidebar extends React.Component {
       'releases',
       'user-feedback',
       'eventsv2',
+      'health',
     ].map(route => `/organizations/${this.props.organization.slug}/${route}/`);
 
     // Only keep the querystring if the current route matches one of the above
@@ -384,7 +385,23 @@ class Sidebar extends React.Component {
                       id="monitors"
                     />
                   </Feature>
+                  <Feature features={['health']} organization={organization}>
+                    <SidebarItem
+                      {...sidebarItemProps}
+                      onClick={(_id, evt) =>
+                        this.navigateWithGlobalSelection(
+                          `/organizations/${organization.slug}/health/`,
+                          evt
+                        )
+                      }
+                      icon={<InlineSvg src="icon-health" />}
+                      label={t('Health')}
+                      to={`/organizations/${organization.slug}/health/`}
+                      id="health"
+                    />
+                  </Feature>
                 </SidebarSection>
+
                 <SidebarSection>
                   <SidebarItem
                     {...sidebarItemProps}

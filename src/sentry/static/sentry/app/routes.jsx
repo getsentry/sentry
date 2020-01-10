@@ -1223,6 +1223,20 @@ function routes() {
             />
           </Route>
           <Route
+            path="/organizations/:orgId/health/"
+            componentPromise={() =>
+              import(/* webpackChunkName: "HealthContainer" */ 'app/views/health')
+            }
+            component={errorHandler(LazyLoad)}
+          >
+            <IndexRoute
+              componentPromise={() =>
+                import(/* webpackChunkName: "HealthLanding" */ 'app/views/health/landing')
+              }
+              component={errorHandler(LazyLoad)}
+            />
+          </Route>
+          <Route
             path="/organizations/:orgId/incidents/"
             componentPromise={() =>
               import(/* webpackChunkName: "IncidentsContainer" */ 'app/views/incidents')
