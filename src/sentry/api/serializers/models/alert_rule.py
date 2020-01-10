@@ -25,6 +25,8 @@ class AlertRuleSerializer(Serializer):
             )
             alert_rule_triggers.append(serialized)
 
+        # print("result:",result)
+        # import pdb; pdb.set_trace();
         return result
 
     def serialize(self, obj, attrs, user):

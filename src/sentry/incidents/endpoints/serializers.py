@@ -128,9 +128,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         for field_name, value in list(six.iteritems(validated_data)):
             # Remove any fields that haven't actually changed
             if field_name == "triggers":
-                # Uhh, skip for now. TODO: Make sure this is ok.
-                validated_data.pop(field_name)
-                continue
+                continue  # No removal for triggers
 
             if field_name == "projects":
                 project_slugs = Project.objects.filter(
@@ -180,13 +178,13 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
      - `organization`: The organization related to this action.
      - `access`: An access object (from `request.access`)
     """
-
+    id = serializers.IntegerField(required=False)
     type = serializers.CharField()
     target_type = serializers.CharField()
 
     class Meta:
         model = AlertRuleTriggerAction
-        fields = ["type", "target_type", "target_identifier", "integration"]
+        fields = ["id", "type", "target_type", "target_identifier", "integration"]
         extra_kwargs = {
             "target_identifier": {"required": True},
             "target_display": {"required": False},
@@ -291,6 +289,7 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
      - `organization`: The organization related to this trigger.
      - `access`: An access object (from `request.access`)
     """
+    id = serializers.IntegerField(required=False)
 
     # TODO: These might be slow for many projects, since it will query for each
     # individually. If we find this to be a problem then we can look into batching.
@@ -301,6 +300,7 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
     class Meta:
         model = AlertRuleTrigger
         fields = [
+            "id",
             "label",
             "threshold_type",
             "alert_threshold",
@@ -410,12 +410,10 @@ class UnifiedAlertRuleSerializer(AlertRuleSerializer):
 
     def create(self, validated_data):
         try:
-            print("Running create!")
             # TODO: Remove this, just temporary while we're supporting both fields.
             if "aggregation" not in validated_data:
                 raise serializers.ValidationError("aggregation is required")
 
-            print("validated data:", validated_data)
             triggers_data = validated_data.pop('triggers')
             alert_rule = create_alert_rule(organization=self.context["organization"], **validated_data)
             for trigger_data in triggers_data:
@@ -427,6 +425,31 @@ class UnifiedAlertRuleSerializer(AlertRuleSerializer):
         except AlertRuleNameAlreadyUsedError:
             raise serializers.ValidationError("This name is already in use for this project")
 
-    # def update(self, instance, validated_data):
-    #     validated_data = self._remove_unchanged_fields(instance, validated_data)
-    #     return update_alert_rule(instance, **validated_data)
+    def update(self, instance, validated_data):
+        validated_data = self._remove_unchanged_fields(instance, validated_data)
+        triggers_data = validated_data.pop("triggers")
+        alert_rule = update_alert_rule(instance, **validated_data)
+        for trigger_data in triggers_data:
+            actions_data = trigger_data.pop("actions")
+            try:
+                if "id" in trigger_data:
+                    trigger_instance = AlertRuleTrigger.objects.get(alert_rule=alert_rule, id=trigger_data["id"])
+                    trigger_data.pop("id")
+                    trigger = update_alert_rule_trigger(trigger_instance, **trigger_data)
+                else:
+                    trigger = create_alert_rule_trigger(alert_rule=alert_rule, **trigger_data)
+            except AlertRuleTriggerLabelAlreadyUsedError:
+                raise serializers.ValidationError("This trigger label is already in use for this alert rule")
+
+            for action_data in actions_data:
+                if "id" in action_data:
+                    action_instance = AlertRuleTriggerAction.objects.get(
+                        alert_rule_trigger=trigger,
+                        id=action_data["id"],
+                    )
+                    action_data.pop("id")
+                    update_alert_rule_trigger_action(action_instance, **action_data)
+                else:
+                    create_alert_rule_trigger_action(trigger=trigger, **action_data)
+
+        return alert_rule
