@@ -105,8 +105,6 @@ class AlertRuleCreateEndpointTest(APITestCase):
             resp = self.get_valid_response(
                 self.organization.slug, status_code=201, **valid_alert_rule
             )
-        print("resp:",resp)
-        print("resp.data:",resp.data)
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert resp.data == serialize(alert_rule, self.user)
