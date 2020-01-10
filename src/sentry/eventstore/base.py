@@ -16,6 +16,7 @@ class Filter(object):
     start (DateTime): Start datetime - default None
     end (DateTime): Start datetime - default None
     conditions (Sequence[Sequence[str, str, Any]]): List of conditions to fetch - default None
+    having (Sequence[str, str, Any]]): List of having conditions to filter by - default None
     project_ids (Sequence[int]): List of project IDs to fetch - default None
     group_ids (Sequence[int]): List of group IDs to fetch - defualt None
     event_ids (Sequence[int]): List of event IDs to fetch - default None
@@ -26,6 +27,7 @@ class Filter(object):
         start=None,
         end=None,
         conditions=None,
+        having=None,
         project_ids=None,
         group_ids=None,
         event_ids=None,
@@ -33,6 +35,7 @@ class Filter(object):
         self.start = start
         self.end = end
         self.conditions = conditions
+        self.having = having
         self.project_ids = project_ids
         self.group_ids = group_ids
         self.event_ids = event_ids

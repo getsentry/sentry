@@ -227,6 +227,7 @@ class QueryTransformTest(TestCase):
             start=None,
             conditions=[],
             groupby=[],
+            having=[],
             orderby=None,
             limit=50,
             offset=None,
@@ -254,6 +255,7 @@ class QueryTransformTest(TestCase):
             start=None,
             conditions=[],
             groupby=[],
+            having=[],
             orderby=None,
             limit=50,
             offset=None,
@@ -289,6 +291,7 @@ class QueryTransformTest(TestCase):
             start=None,
             conditions=[],
             groupby=["transaction", "duration"],
+            having=[],
             orderby=None,
             limit=50,
             offset=None,
@@ -322,6 +325,7 @@ class QueryTransformTest(TestCase):
             end=None,
             start=None,
             orderby=None,
+            having=[],
             limit=50,
             offset=None,
             referrer=None,
@@ -351,6 +355,7 @@ class QueryTransformTest(TestCase):
             start=None,
             conditions=[],
             groupby=[],
+            having=[],
             limit=200,
             offset=100,
             referrer=None,
@@ -389,6 +394,7 @@ class QueryTransformTest(TestCase):
             start=None,
             conditions=[],
             groupby=["project_id", "event_id"],
+            having=[],
             limit=50,
             offset=None,
             referrer=None,
@@ -416,6 +422,7 @@ class QueryTransformTest(TestCase):
             ],
             filter_keys={"project_id": [self.project.id]},
             groupby=["timestamp", "transaction", "duration"],
+            having=[],
             orderby=["-timestamp", "-count"],
             dataset=Dataset.Discover,
             end=None,
@@ -447,6 +454,7 @@ class QueryTransformTest(TestCase):
             filter_keys={"project_id": [self.project.id]},
             dataset=Dataset.Discover,
             groupby=["transaction"],
+            having=[],
             orderby=None,
             end=None,
             start=None,
@@ -473,6 +481,7 @@ class QueryTransformTest(TestCase):
             groupby=[],
             dataset=Dataset.Discover,
             aggregations=[],
+            having=[],
             orderby=None,
             end=None,
             start=None,
@@ -501,6 +510,7 @@ class QueryTransformTest(TestCase):
             groupby=[],
             dataset=Dataset.Discover,
             aggregations=[],
+            having=[],
             orderby=None,
             end=None,
             start=None,
@@ -531,6 +541,7 @@ class QueryTransformTest(TestCase):
             groupby=[],
             dataset=Dataset.Discover,
             aggregations=[],
+            having=[],
             orderby=None,
             end=None,
             start=None,
@@ -559,6 +570,7 @@ class QueryTransformTest(TestCase):
             groupby=[],
             dataset=Dataset.Discover,
             aggregations=[],
+            having=[],
             end=end_time,
             start=start_time,
             orderby=None,
@@ -566,6 +578,114 @@ class QueryTransformTest(TestCase):
             offset=None,
             referrer=None,
         )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_aggregate_conditions(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "duration"}],
+            "data": [{"transaction": "api.do_things", "duration": 200}],
+        }
+        start_time = before_now(minutes=10)
+        end_time = before_now(seconds=1)
+        discover.query(
+            selected_columns=["transaction", "avg(transaction.duration)"],
+            query="http.method:GET avg(transaction.duration):>5",
+            params={"project_id": [self.project.id], "start": start_time, "end": end_time},
+        )
+        mock_query.assert_called_with(
+            selected_columns=["transaction"],
+            conditions=[["http_method", "=", "GET"]],
+            filter_keys={"project_id": [self.project.id]},
+            groupby=["transaction"],
+            dataset=Dataset.Discover,
+            aggregations=[["avg", "duration", "avg_transaction_duration"]],
+            having=[["avg_transaction_duration", ">", 5]],
+            end=end_time,
+            start=start_time,
+            orderby=None,
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_alias_aggregate_conditions(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "duration"}],
+            "data": [{"transaction": "api.do_things", "duration": 200}],
+        }
+        start_time = before_now(minutes=10)
+        end_time = before_now(seconds=1)
+        discover.query(
+            selected_columns=["transaction", "p95"],
+            query="http.method:GET p95:>5",
+            params={"project_id": [self.project.id], "start": start_time, "end": end_time},
+        )
+
+        mock_query.assert_called_with(
+            selected_columns=["transaction"],
+            conditions=[["http_method", "=", "GET"]],
+            filter_keys={"project_id": [self.project.id]},
+            groupby=["transaction"],
+            dataset=Dataset.Discover,
+            aggregations=[["quantile(0.95)(duration)", None, "p95"]],
+            having=[["p95", ">", 5]],
+            end=end_time,
+            start=start_time,
+            orderby=None,
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_aggregate_date_conditions(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "duration"}],
+            "data": [{"transaction": "api.do_things", "duration": 200}],
+        }
+        start_time = before_now(minutes=10)
+        end_time = before_now(seconds=1)
+
+        discover.query(
+            selected_columns=["transaction", "avg(transaction.duration)", "max(time)"],
+            query="http.method:GET max(time):>5",
+            params={"project_id": [self.project.id], "start": start_time, "end": end_time},
+        )
+        mock_query.assert_called_with(
+            selected_columns=["transaction"],
+            conditions=[["http_method", "=", "GET"]],
+            filter_keys={"project_id": [self.project.id]},
+            groupby=["transaction"],
+            dataset=Dataset.Discover,
+            aggregations=[
+                ["avg", "duration", "avg_transaction_duration"],
+                ["max", "time", "max_time"],
+            ],
+            having=[["max_time", ">", 5]],
+            end=end_time,
+            start=start_time,
+            orderby=None,
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_aggregate_condition_missing_selected_column(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "duration"}],
+            "data": [{"transaction": "api.do_things", "duration": 200}],
+        }
+        start_time = before_now(minutes=10)
+        end_time = before_now(seconds=1)
+
+        with pytest.raises(InvalidSearchQuery):
+            discover.query(
+                selected_columns=["transaction"],
+                query="http.method:GET max(time):>5",
+                params={"project_id": [self.project.id], "start": start_time, "end": end_time},
+            )
 
 
 class TimeseriesQueryTest(SnubaTestCase, TestCase):
