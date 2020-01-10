@@ -16,7 +16,6 @@ import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
 import Activity from './activity';
-import Suspects from './suspects';
 
 import {Incident} from '../types';
 
@@ -84,8 +83,6 @@ export default class DetailsBody extends React.Component<Props> {
                 </div>
               )}
             </div>
-
-            <Suspects {...this.props} />
           </PageContent>
         </Sidebar>
       </StyledPageContent>
