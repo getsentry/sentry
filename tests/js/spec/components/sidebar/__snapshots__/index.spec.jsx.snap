@@ -231,22 +231,13 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
               }
             }
             size={36}
-            style={
-              Object {
-                "flexShrink": 0,
-              }
-            }
           >
             <BaseAvatar
               hasTooltip={false}
               letterId="org-slug"
               round={false}
               size={36}
-              style={
-                Object {
-                  "flexShrink": 0,
-                }
-              }
+              style={Object {}}
               title="org slug"
               tooltip="org-slug"
               type="letter_avatar"
@@ -264,7 +255,6 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                   round={false}
                   style={
                     Object {
-                      "flexShrink": 0,
                       "height": "36px",
                       "width": "36px",
                     }
@@ -274,7 +264,6 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                     className="avatar css-1i62700-StyledBaseAvatar e147uwb0"
                     style={
                       Object {
-                        "flexShrink": 0,
                         "height": "36px",
                         "width": "36px",
                       }
