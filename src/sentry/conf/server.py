@@ -579,6 +579,7 @@ CELERY_QUEUES = [
     Queue("integrations", routing_key="integrations"),
     Queue("merge", routing_key="merge"),
     Queue("options", routing_key="options"),
+    Queue("relay_config", routing_key="relay_config"),
     Queue("reports.deliver", routing_key="reports.deliver"),
     Queue("reports.prepare", routing_key="reports.prepare"),
     Queue("search", routing_key="search"),
@@ -1037,6 +1038,10 @@ SENTRY_DIGESTS_OPTIONS = {}
 # Quota backend
 SENTRY_QUOTAS = "sentry.quotas.Quota"
 SENTRY_QUOTA_OPTIONS = {}
+
+# Cache for Relay project configs
+SENTRY_RELAY_PROJECTCONFIG_CACHE = "sentry.relay.projectconfig_cache.base.ProjectConfigCache"
+SENTRY_RELAY_PROJECTCONFIG_CACHE_OPTIONS = {}
 
 # Rate limiting backend
 SENTRY_RATELIMITER = "sentry.ratelimits.base.RateLimiter"

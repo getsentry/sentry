@@ -7,6 +7,7 @@ from sentry.db.models import Model, FlexibleForeignKey, sane_repr
 from sentry.db.models.fields import EncryptedPickledObjectField
 from sentry.db.models.manager import OptionManager
 from sentry.utils.cache import cache
+from sentry.tasks.relay import schedule_update_config_cache
 
 
 class ProjectOptionManager(OptionManager):
@@ -54,6 +55,7 @@ class ProjectOptionManager(OptionManager):
         return self._option_cache.get(cache_key, {})
 
     def reload_cache(self, project_id):
+        schedule_update_config_cache(project_id=project_id, generate=True)
         cache_key = self._make_key(project_id)
         result = dict((i.key, i.value) for i in self.filter(project=project_id))
         cache.set(cache_key, result)

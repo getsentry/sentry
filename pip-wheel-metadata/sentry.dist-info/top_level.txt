@@ -1,0 +1,4 @@
+bitfield
+sentry
+sentry_plugins
+social_auth
