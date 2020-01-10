@@ -43,6 +43,7 @@ export type NavigationItem = {
   badge?: (opts: NavigationGroupProps) => string | number | null;
 
   /**
+   * Should clicking on the sidebar generate an analytics event
    */
   recordAnalytics?: boolean;
 };
