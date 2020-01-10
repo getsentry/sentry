@@ -3,27 +3,29 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 
-import {analytics} from 'app/utils/analytics';
+import GroupActions from 'app/actions/groupActions';
 import {openModal} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
+import IndicatorStore from 'app/stores/indicatorStore';
+import {analytics} from 'app/utils/analytics';
+import {uniqueId} from 'app/utils/guid';
 import withApi from 'app/utils/withApi';
-import Button from 'app/components/button';
-import DropdownLink from 'app/components/dropdownLink';
+import withOrganization from 'app/utils/withOrganization';
+import EventView from 'app/views/eventsV2/eventView';
+
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
-import GroupActions from 'app/actions/groupActions';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
 import IgnoreActions from 'app/components/actions/ignore';
-import IndicatorStore from 'app/stores/indicatorStore';
+import ResolveActions from 'app/components/actions/resolve';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
+import Button from 'app/components/button';
+import DropdownLink from 'app/components/dropdownLink';
 import Link from 'app/components/links/link';
 import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 import MenuItem from 'app/components/menuItem';
-import ResolveActions from 'app/components/actions/resolve';
-import SentryTypes from 'app/sentryTypes';
 import ShareIssue from 'app/components/shareIssue';
 import space from 'app/styles/space';
-import {uniqueId} from 'app/utils/guid';
-import withOrganization from 'app/utils/withOrganization';
 
 class DeleteActions extends React.Component {
   static propTypes = {
@@ -135,14 +137,26 @@ const GroupDetailsActions = createReactClass({
   },
 
   getDiscoverUrl() {
-    const {organization, group} = this.props;
+    const {group, project, organization} = this.props;
+
+    const discoverQuery = {
+      id: undefined,
+      name: group.title || group.type,
+      fields: ['title', 'count(id)', 'project', 'last_seen'],
+      widths: [450, -1, 200, -1],
+      orderby: '-count_id',
+      query: `event.type:error issue.id:${group.id}`,
+      tags: ['environment', 'release', 'url', 'user.email'],
+      projects: [project.id],
+      version: 2,
+      range: '24h',
+    };
+
+    const discoverView = EventView.fromSavedQuery(discoverQuery);
 
     return {
       pathname: `/organizations/${organization.slug}/eventsv2/results/`,
-      query: {
-        field: ['title', 'count(id)', 'project', 'last_seen'],
-        query: `event.type:error issue.id:${group.id}`,
-      },
+      query: discoverView.generateQueryStringObject(),
     };
   },
 
