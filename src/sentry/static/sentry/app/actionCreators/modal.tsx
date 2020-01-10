@@ -33,6 +33,12 @@ export type SentryAppDetailsModalOptions = {
   organization: Organization;
 };
 
+export type TeamRequestModalOptions = {
+  memberId: string;
+  teamId: string;
+  orgId: string;
+};
+
 /**
  * Show a modal
  */
@@ -147,6 +153,16 @@ export function openRecoveryOptions(options: ModalOptions = {}) {
     .then(Modal => {
       openModal(deps => <Modal {...deps} {...options} />, {
         modalClassName: 'recovery-options',
+      });
+    });
+}
+
+export function openTeamRequestModal(options: TeamRequestModalOptions) {
+  import(/* webpackChunkName: "TeamRequestModal" */ 'app/components/modals/teamRequestModal')
+    .then(mod => mod.default)
+    .then(Modal => {
+      openModal(deps => <Modal {...deps} {...options} />, {
+        modalClassName: 'confirm-team-request',
       });
     });
 }
