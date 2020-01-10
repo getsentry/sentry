@@ -38,7 +38,7 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
 
     def delete(self, request, organization, alert_rule):
         try:
-            # TODO: Ensure delete_alert_rule needs to delete triggers + actions as well.
+            # TODO: Ensure delete_alert_rule deletes triggers + actions as well.
             delete_alert_rule(alert_rule)
             return Response(status=status.HTTP_204_NO_CONTENT)
         except AlreadyDeletedError:

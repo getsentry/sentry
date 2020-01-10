@@ -355,7 +355,7 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
 
 class UnifiedAlertRuleSerializer(AlertRuleSerializer):
     """
-    UNIFIED Serializer for creating/updating an alert rule - accepts trigger and action data, and does validation on it.
+    Unified Serializer for creating/updating an alert rule - accepts trigger and action data, and does validation on it.
     Required context:
      - `organization`: The organization related to this alert rule.
      - `access`: An access object (from `request.access`)
