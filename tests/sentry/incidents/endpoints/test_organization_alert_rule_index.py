@@ -81,7 +81,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
                 {
                     "label": "critical",
                     "alertThreshold": 200,
-                    "resolveThreshold": 300,
+                    "resolveThreshold": 100,
                     "thresholdType": 0,
                     "actions": [
                         {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
@@ -90,7 +90,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
                 {
                     "label": "warning",
                     "alertThreshold": 150,
-                    "resolveThreshold": 300,
+                    "resolveThreshold": 100,
                     "thresholdType": 0,
                     "actions": [
                         {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
@@ -109,6 +109,64 @@ class AlertRuleCreateEndpointTest(APITestCase):
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert resp.data == serialize(alert_rule, self.user)
 
+    def test_invalid_thresholds(self):
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+        alert_rule = {
+            "aggregation": 0,
+            "aggregations": [0],
+            "query": "",
+            "timeWindow": "300",
+            "triggers": [
+                {
+                    "label": "critical",
+                    "alertThreshold": 200,
+                    "resolveThreshold": 100,
+                    "thresholdType": 0,
+                    "actions": [
+                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
+                    ],
+                },
+                {
+                    "label": "warning",
+                    "alertThreshold": 150,
+                    "resolveThreshold": 100,
+                    "thresholdType": 0,
+                    "actions": [
+                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
+                        {"type": "email", "targetType": "user", "targetIdentifier": self.user.id},
+                    ],
+                },
+            ],
+            "projects": [self.project.slug],
+            "name": "JustAValidTestRule",
+        }
+        with self.feature("organizations:incidents"):
+            resp = self.get_valid_response(
+                self.organization.slug, status_code=201, **alert_rule
+            )
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert resp.data == serialize(alert_rule, self.user)
+
+
+        alert_rule["triggers"][0]["alertThreshold"] = 50 # Invalid
+        with self.feature("organizations:incidents"):
+            self.get_valid_response(
+                self.organization.slug, status_code=400, **alert_rule
+            )
+        alert_rule["triggers"][0]["alertThreshold"] = 200 # Back to normal, valid.
+
+        alert_rule["triggers"][0]["resolveThreshold"] = 50 # Invalid, less than warning resolve threshold.
+        with self.feature("organizations:incidents"):
+            self.get_valid_response(
+                self.organization.slug, status_code=400, **alert_rule
+            )
+        alert_rule["triggers"][0]["resolveThreshold"] = 100 # Back to normal, valid.
+
+
     def test_no_label(self):
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
@@ -124,7 +182,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
             "triggers": [
                 {
                     "alertThreshold": 200,
-                    "resolveThreshold": 300,
+                    "resolveThreshold": 100,
                     "thresholdType": 1,
                     "actions": [
                         {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
@@ -153,7 +211,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
                 {
                     "label": "critical",
                     "alertThreshold": 200,
-                    "resolveThreshold": 300,
+                    "resolveThreshold": 100,
                     "thresholdType": 1,
                     "actions": [
                         {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
@@ -206,7 +264,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
                 {
                     "label": "warning",
                     "alertThreshold": 200,
-                    "resolveThreshold": 300,
+                    "resolveThreshold": 100,
                     "thresholdType": 1,
                     "actions": [
                         {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
@@ -239,7 +297,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
                 {
                     "label": "critical",
                     "alertThreshold": 200,
-                    "resolveThreshold": 300,
+                    "resolveThreshold": 100,
                     "thresholdType": 1,
                 }
             ],
@@ -271,12 +329,12 @@ class AlertRuleCreateEndpointTest(APITestCase):
                 aggregation=0,
                 timeWindow=10,
                 alertThreshold=1000,
-                resolveThreshold=300,
+                resolveThreshold=100,
                 triggers=[
                     {
                         "label": "critical",
                         "alertThreshold": 200,
-                        "resolveThreshold": 300,
+                        "resolveThreshold": 100,
                         "thresholdType": 1,
                         "actions": [
                             {

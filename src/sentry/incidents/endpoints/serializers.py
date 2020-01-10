@@ -389,10 +389,13 @@ class UnifiedAlertRuleSerializer(AlertRuleSerializer):
                         alert_op, resolve_op = operator.lt, operator.lt
                         alert_error = 'Critical trigger must have an alert threshold above warning trigger'
                         resolve_error = 'Critical trigger must have a resolution threshold above (or equal to) warning trigger'
+                        trigger_error = 'alert threshold must be above resolution threshold'
                     elif critical['threshold_type'] == AlertRuleThresholdType.BELOW:
                         alert_op, resolve_op = operator.gt, operator.gt
                         alert_error = 'Critical trigger must have an alert threshold below warning trigger'
                         resolve_error = 'Critical trigger must have a resolution threshold below (or equal to) warning trigger'
+                        trigger_error = 'alert threshold must be below resolution threshold'
+
                     else:
                         raise serializers.ValidationError('Invalid threshold type. Valid values are %s' % [item.value for item in AlertRuleThresholdType])
 
@@ -401,6 +404,10 @@ class UnifiedAlertRuleSerializer(AlertRuleSerializer):
                     elif resolve_op(critical['resolve_threshold'], warning['resolve_threshold']):
                         raise serializers.ValidationError(resolve_error)
 
+                    if alert_op(critical['alert_threshold'], critical['resolve_threshold']):
+                        raise serializers.ValidationError("Critical " + trigger_error)
+                    elif alert_op(warning['alert_threshold'], warning['resolve_threshold']):
+                        raise serializers.ValidationError("Warning " + trigger_error)
             else:
                 raise serializers.ValidationError('Must send 1 or 2 triggers - A critical trigger, and an optional warning trigger')
 

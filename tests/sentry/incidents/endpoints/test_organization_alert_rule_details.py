@@ -46,7 +46,7 @@ class AlertRuleDetailsBase(object):
                 {
                     "label": "critical",
                     "alertThreshold": 200,
-                    "resolveThreshold": 300,
+                    "resolveThreshold": 100,
                     "thresholdType": 0,
                     "actions": [
                         {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
@@ -55,7 +55,7 @@ class AlertRuleDetailsBase(object):
                 {
                     "label": "warning",
                     "alertThreshold": 150,
-                    "resolveThreshold": 300,
+                    "resolveThreshold": 100,
                     "thresholdType": 0,
                     "actions": [
                         {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
@@ -212,7 +212,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
         serialized_alert_rule = self.get_serialized_alert_rule()
 
-        serialized_alert_rule["triggers"][1]["alertThreshold"] = 75
+        serialized_alert_rule["triggers"][1]["alertThreshold"] = 125
         serialized_alert_rule["name"] = "AUniqueName"
 
         with self.feature("organizations:incidents"):
@@ -222,7 +222,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
             )
 
         assert resp.data["name"] == "AUniqueName"
-        assert resp.data["triggers"][1]["alertThreshold"] == 75
+        assert resp.data["triggers"][1]["alertThreshold"] == 125
 
     def test_update_trigger_action_type(self):
         self.create_member(
