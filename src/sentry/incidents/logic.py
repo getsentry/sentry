@@ -13,13 +13,6 @@ from django.utils import timezone
 from sentry import analytics
 from sentry.api.event_search import get_filter
 from sentry.incidents import tasks
-
-# from sentry.incidents.endpoints.serializers import (
-# AlertRuleSerializer,
-#     AlertRuleTriggerSerializer,
-#     AlertRuleTriggerActionSerializer,
-#     # CombinedAlertRuleSerializer
-# )
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleExcludedProjects,
@@ -882,7 +875,6 @@ def create_alert_rule_trigger(
     trigger. These projects must be associate with the alert rule already
     :return: The created AlertRuleTrigger
     """
-
     if AlertRuleTrigger.objects.filter(alert_rule=alert_rule, label=label).exists():
         raise AlertRuleTriggerLabelAlreadyUsedError()
 

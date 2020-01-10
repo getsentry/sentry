@@ -67,7 +67,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
     def user(self):
         return self.create_user()
 
-    def test_simple_create(self):
+    def test_simple(self):
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )

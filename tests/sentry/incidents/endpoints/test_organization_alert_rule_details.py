@@ -100,14 +100,6 @@ class AlertRuleDetailsBase(object):
     def alert_rule(self):
         return self.new_alert_rule(data=deepcopy(self.alert_rule_dict))
 
-    @fixture
-    def critical_trigger(self):
-        return AlertRuleTrigger.objects.get(alert_rule=self.alert_rule, label="critical")
-
-    @fixture
-    def warning_trigger(self):
-        return AlertRuleTrigger.objects.get(alert_rule=self.alert_rule, label="warning")
-
     def test_invalid_rule_id(self):
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
@@ -148,7 +140,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase, APITestCase):
 class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
     method = "put"
 
-    def test_simple_put(self):
+    def test_simple(self):
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )

@@ -412,7 +412,7 @@ class UnifiedAlertRuleSerializer(AlertRuleSerializer):
                 raise serializers.ValidationError("aggregation is required")
 
             triggers_data = validated_data.pop('triggers')
-            #TODO: User super.create and don't duplicate the aggreagation + duplicate name check?
+            # TODO: User super.create and don't duplicate the aggreagation + duplicate name check?
             alert_rule = create_alert_rule(organization=self.context["organization"], **validated_data)
             for trigger_data in triggers_data:
                 trigger_actions_data = trigger_data.pop("actions")
@@ -426,7 +426,7 @@ class UnifiedAlertRuleSerializer(AlertRuleSerializer):
     def update(self, instance, validated_data):
         validated_data = self._remove_unchanged_fields(instance, validated_data)
         triggers_data = validated_data.pop("triggers")
-        #TODO: User super.update and don't duplicate the aggreagation + duplicate name check?
+        # TODO: User super.update?
         alert_rule = update_alert_rule(instance, **validated_data)
         for trigger_data in triggers_data:
             actions_data = trigger_data.pop("actions")
