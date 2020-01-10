@@ -476,9 +476,7 @@ def get_facets(query, params, limit=10, referrer=None):
     # TODO(mark) Make the sampling rate scale based on the result size and scaling factor in
     # sentry.options.
     # To test the lowest acceptable sampling rate, we use turbo mode.
-    turbo_values = False
-    if key_names["data"][0]["count"] > 10000:
-        turbo_values = True
+    turbo_values = key_names["data"][0]["count"] > 10000
 
     fetch_projects = False
     if len(params.get("project_id", [])) > 1:
