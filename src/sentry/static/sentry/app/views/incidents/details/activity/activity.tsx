@@ -149,7 +149,6 @@ class Activity extends React.Component<Props> {
                         <ErrorBoundary mini key={`note-${activity.id}`}>
                           <StatusItem
                             showTime
-                            incident={incident}
                             authorName={authorName}
                             activity={activity}
                           />
