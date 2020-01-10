@@ -121,9 +121,9 @@ export default class ProviderRow extends React.Component<Props> {
               <StyledLink onClick={this.openModal}>Learn More</StyledLink>
             </ProviderDetails>
           </ProviderBox>
-          <Box>
+          <div>
             <Button size="small" onClick={this.openModal} {...this.buttonProps} />
-          </Box>
+          </div>
         </PanelItemFlex>
         {this.renderIntegrations()}
       </PanelItem>
@@ -134,16 +134,14 @@ export default class ProviderRow extends React.Component<Props> {
 const Flex = styled('div')`
   display: flex;
 `;
-const Box = styled('div')``;
 
 const PanelItemFlex = styled(Flex)`
-  align-items: 'center';
+  align-items: center;
   padding: ${space(2)};
 `;
 
-const ProviderBox = styled(Box)`
-  padding-right: ${space(2)};
-  padding-left: ${space(2)};
+const ProviderBox = styled('div')`
+  padding: 0 ${space(2)};
   flex: 1;
 `;
 
