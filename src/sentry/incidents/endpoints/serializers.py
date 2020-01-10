@@ -361,7 +361,6 @@ class UnifiedAlertRuleSerializer(AlertRuleSerializer):
      - `access`: An access object (from `request.access`)
     """
 
-    # triggers = serializers.ListField(required=True)
     triggers = AlertRuleTriggerSerializer(many=True, required=True)
 
     class Meta(AlertRuleSerializer.Meta):
@@ -373,8 +372,6 @@ class UnifiedAlertRuleSerializer(AlertRuleSerializer):
         The critical trigger should both alert and resolve 'after' the warning trigger (whether that means > or < the value depends on threshold type).
         """
         print("running validate: ", data)
-        # print("self:",self)
-        # print("self.instance",self.instance)
         triggers = data.get('triggers', [])
         if triggers:
             if len(triggers) == 1:
@@ -402,10 +399,10 @@ class UnifiedAlertRuleSerializer(AlertRuleSerializer):
                 raise serializers.ValidationError('Must send 1 or 2 triggers - 1 "%s" trigger, and 1 optional "%s" trigger' % (CRITICAL_TRIGGER_LABEL, WARNING_TRIGGER_LABEL))
 
             # Triggers have passed checks. Check that all triggers have at least one action now.
-            # for trigger in triggers:
-            #     actions = trigger.get('actions', [])
-            #     if actions == []:
-            #         raise serializers.ValidationError('"' + trigger['label'] + '" trigger must have an action.')
+            for trigger in triggers:
+                actions = trigger.get('actions', [])
+                if actions == []:
+                    raise serializers.ValidationError('"' + trigger['label'] + '" trigger must have an action.')
         else:
             raise serializers.ValidationError('Must include at least one trigger')
 
@@ -426,39 +423,6 @@ class UnifiedAlertRuleSerializer(AlertRuleSerializer):
                 trigger = create_alert_rule_trigger(alert_rule=alert_rule, **trigger_data)
                 for actions_data in trigger_actions_data:
                     create_alert_rule_trigger_action(trigger=trigger, **actions_data)
-
-            # if alert_rule:
-            #     for trigger_data in triggers_data:
-            #         trigger_action_data = trigger_data.pop("actions")
-
-            #         trigger_serializer = AlertRuleTriggerSerializer(
-            #             context={
-            #                 "organization": self.context["organization"],
-            #                 "alert_rule": alert_rule,
-            #                 "access": self.context["access"],
-            #             },
-            #             data=trigger_data,
-            #         )
-
-            #         if trigger_serializer.is_valid():  # AlertRuleTriggerSerializer does the validation
-            #             trigger = trigger_serializer.save()
-            #             for action_data in trigger_action_data:
-            #                 print("action_data:",action_data)
-            #                 action_serializer = AlertRuleTriggerActionSerializer(
-            #                     context={
-            #                         "organization": self.context["organization"],
-            #                         "trigger": trigger,
-            #                         "access": self.context["access"],
-            #                     },
-            #                     data=action_data,
-            #                 )
-            #                 print("action_serializer:", action_serializer)
-            #                 if action_serializer.is_valid():  # AlertRuleTriggerActionSerializer does the validation
-            #                     action_serializer.save()
-            #                 else:
-            #                     raise serializers.ValidationError(action_serializer.errors)  # throws errors if any
-            #         else:
-            #             raise serializers.ValidationError(trigger_serializer.errors)  # throws errors if any
             return alert_rule
         except AlertRuleNameAlreadyUsedError:
             raise serializers.ValidationError("This name is already in use for this project")

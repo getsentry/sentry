@@ -251,7 +251,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
             resp = self.get_valid_response(
                 self.organization.slug, status_code=400, **rule_one_trigger_only_critical_no_action
             )
-            assert resp.data == {"nonFieldErrors": [u'"critical" trigger must have an action.']}
+            assert resp.data == {"triggers": [{'actions': [u'This field is required.']}]}
 
 
     def test_invalid_projects(self):
