@@ -49,7 +49,10 @@ class PagerDutyPlugin(CorePluginMixin, NotifyPlugin):
         if not self.is_configured(group.project):
             return
 
-        description = event.get_legacy_message()[:1024]
+        # TODO: This should eventually be event.title in line with other plugins.
+        # However, we should notify users first, since PD alert routing may be
+        # based off the message field.
+        description = (event.real_message or event.message)[:1024]
 
         tags = dict(event.tags)
         details = {
