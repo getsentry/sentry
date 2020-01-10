@@ -47,22 +47,14 @@ class CamelSnakeModelSerializer(ModelSerializer):
     """
 
     def __init__(self, instance=None, data=empty, **kwargs):
-        print("Init CamelSnakeModelSerializer!")
-        print("self", self)
-        print("instance:", instance)
-        print("data:",data)
-        print("kwargs:",kwargs)
         if data is not empty:
             data = convert_dict_key_case(data, camel_to_snake_case)
-            print("Converted data:",data)
         return super(CamelSnakeModelSerializer, self).__init__(
             instance=instance, data=data, **kwargs
         )
 
     @property
     def errors(self):
-        print("errors~", self)
-        print("errors:", super(CamelSnakeModelSerializer, self).errors)
         return convert_dict_key_case(
             super(CamelSnakeModelSerializer, self).errors, snake_to_camel_case
         )

@@ -312,7 +312,6 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
 
     def validate_threshold_type(self, threshold_type):
         try:
-            print("validating threshold type:",threshold_type)
             return AlertRuleThresholdType(threshold_type)
         except ValueError:
             raise serializers.ValidationError(
@@ -321,7 +320,6 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
             )
 
     def create(self, validated_data):
-        print("in create of alertruletriggerserializer")
         try:
             return create_alert_rule_trigger(
                 alert_rule=self.context["alert_rule"], **validated_data
@@ -371,7 +369,6 @@ class UnifiedAlertRuleSerializer(AlertRuleSerializer):
         This includes ensuring there is either 1 or 2 triggers, which each have actions, and have proper thresholds set.
         The critical trigger should both alert and resolve 'after' the warning trigger (whether that means > or < the value depends on threshold type).
         """
-        print("running validate: ", data)
         triggers = data.get('triggers', [])
         if triggers:
             if len(triggers) == 1:

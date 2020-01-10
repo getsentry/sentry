@@ -12,8 +12,6 @@ from sentry.models import Rule
 @register(AlertRule)
 class AlertRuleSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
-        print("Using registered AlertRuleSerializer get_attrs")
-
         alert_rules = {item.id: item for item in item_list}
         result = defaultdict(dict)
 
@@ -25,12 +23,9 @@ class AlertRuleSerializer(Serializer):
             )
             alert_rule_triggers.append(serialized)
 
-        # print("result:",result)
-        # import pdb; pdb.set_trace();
         return result
 
     def serialize(self, obj, attrs, user):
-        print("Using registered AlertRuleSerializer serialize")
         return {
             "id": six.text_type(obj.id),
             "name": obj.name,

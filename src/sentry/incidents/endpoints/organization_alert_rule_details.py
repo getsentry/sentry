@@ -21,8 +21,6 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
         return Response(data)
 
     def put(self, request, organization, alert_rule):
-        print("Got put request!", alert_rule)
-        print("Data:", request.data)
         serializer = DrfAlertRuleSerializer(
             context={"organization": organization, "access": request.access},
             instance=alert_rule,
