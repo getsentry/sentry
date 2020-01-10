@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from exam import fixture
 
 from sentry.api.serializers import serialize
-from sentry.incidents.models import Incident, IncidentStatus
+from sentry.incidents.models import IncidentStatus
 from sentry.testutils import APITestCase
 
 
