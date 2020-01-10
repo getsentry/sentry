@@ -1,4 +1,4 @@
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 const PanelFooter = styled('div')`
   border-top: 1px solid ${p => p.theme.borderDark};

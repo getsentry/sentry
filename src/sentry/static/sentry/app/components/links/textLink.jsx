@@ -1,5 +1,5 @@
 import {Link} from 'react-router';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 /**
  * Link colored as normal text

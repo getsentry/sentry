@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import Crumb from 'app/views/settings/components/settingsBreadcrumb/crumb';
 import Divider from 'app/views/settings/components/settingsBreadcrumb/divider';
@@ -46,10 +46,11 @@ class SettingsBreadcrumb extends React.Component {
   }
 
   render() {
-    const {routes, params, pathMap} = this.props;
+    const {className, routes, params, pathMap} = this.props;
     const lastRouteIndex = routes.map(r => !!r.name).lastIndexOf(true);
+
     return (
-      <Breadcrumbs>
+      <Breadcrumbs className={className}>
         {routes.map((route, i) => {
           if (!route.name) {
             return null;

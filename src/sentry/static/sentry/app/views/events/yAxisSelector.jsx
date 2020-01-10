@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import space from 'app/styles/space';
@@ -39,7 +39,7 @@ const YAxisSelector = props => {
 };
 
 const StyledDropdownButton = styled(
-  React.forwardRef((prop, ref) => <DropdownButton innerRef={ref} {...prop} />)
+  React.forwardRef((prop, ref) => <DropdownButton ref={ref} {...prop} />)
 )`
   color: ${p => p.theme.gray2};
   font-weight: normal;

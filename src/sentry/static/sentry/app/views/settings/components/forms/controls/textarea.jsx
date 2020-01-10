@@ -1,14 +1,14 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import TextareaAutosize from 'react-autosize-textarea';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import isPropValid from '@emotion/is-prop-valid';
 
 import {inputStyles} from 'app/styles/input';
 
 const TextAreaControl = React.forwardRef(({autosize, rows, ...p}, ref) =>
   autosize ? (
-    <TextareaAutosize async innerRef={ref} rows={rows ? rows : 2} {...p} />
+    <TextareaAutosize async ref={ref} rows={rows ? rows : 2} {...p} />
   ) : (
     <textarea ref={ref} {...p} />
   )

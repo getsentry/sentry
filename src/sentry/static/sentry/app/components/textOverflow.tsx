@@ -1,4 +1,4 @@
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 const TextOverflow = styled('div')`
   text-overflow: ellipsis;

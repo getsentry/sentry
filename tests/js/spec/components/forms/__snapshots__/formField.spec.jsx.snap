@@ -89,7 +89,7 @@ exports[`FormField + model renders with Form 1`] = `
                 inline={true}
               >
                 <div
-                  className="css-nlold9-FieldWrapper-getPadding-inlineStyle-FieldWrapper e2iyls20"
+                  className="css-hkyx7n-FieldWrapper-FieldWrapper e2iyls20"
                 >
                   <FieldControl
                     alignRight={false}
@@ -152,17 +152,17 @@ exports[`FormField + model renders with Form 1`] = `
                       inline={true}
                     >
                       <div
-                        className="css-1xbxyck-FieldControlErrorWrapper e12jpfuq0"
+                        className="css-qe5fr0-FieldControlErrorWrapper e12jpfuq0"
                       >
                         <FieldControlWrapper>
                           <div
-                            className="css-1muvdry-FieldControlWrapper e12jpfuq2"
+                            className="css-1evsibf-FieldControlWrapper e12jpfuq2"
                           >
                             <FieldControlStyled
                               alignRight={false}
                             >
                               <div
-                                className="css-1pkvhmy-FieldControlStyled e12jpfuq1"
+                                className="css-ld1e0a-FieldControlStyled e12jpfuq1"
                               >
                                 <Observer>
                                   <Input
@@ -171,7 +171,6 @@ exports[`FormField + model renders with Form 1`] = `
                                     field={[Function]}
                                     id="fieldName"
                                     initialData={Object {}}
-                                    innerRef={[Function]}
                                     name="fieldName"
                                     onBlur={[Function]}
                                     onChange={[Function]}
@@ -180,7 +179,7 @@ exports[`FormField + model renders with Form 1`] = `
                                     value=""
                                   >
                                     <input
-                                      className="css-1b7nva7-Input-inputStyles e1xej46s0"
+                                      className="css-1h04ndk-Input e1xej46s0"
                                       disabled={false}
                                       id="fieldName"
                                       name="fieldName"
@@ -198,7 +197,7 @@ exports[`FormField + model renders with Form 1`] = `
                               flexibleControlStateSize={false}
                             >
                               <div
-                                className="css-oiazm4-FieldControlState ep9s0su0"
+                                className="css-1347hil-FieldControlState ep9s0su0"
                               >
                                 <FormFieldControlState
                                   model={
@@ -271,11 +270,11 @@ exports[`FormField + model renders with Form 1`] = `
       saveOnBlur={false}
     >
       <div
-        className="css-bobn3u-StyledFooter e1r1zmbj0"
+        className="css-yfxs1k-StyledFooter e1r1zmbj0"
       >
         <DefaultButtons>
           <div
-            className="css-5mbz2j-DefaultButtons e1r1zmbj1"
+            className="css-1utgghf-DefaultButtons e1r1zmbj1"
           >
             <Observer>
               <Button
@@ -298,7 +297,7 @@ exports[`FormField + model renders with Form 1`] = `
                   <ForwardRef
                     aria-disabled={false}
                     aria-label="Save Changes"
-                    className="css-xiynrq-StyledButton-getColors edwq9my0"
+                    className="css-1e05jtd-StyledButton edwq9my0"
                     data-test-id="form-submit"
                     disabled={false}
                     onClick={[Function]}
@@ -309,7 +308,7 @@ exports[`FormField + model renders with Form 1`] = `
                     <button
                       aria-disabled={false}
                       aria-label="Save Changes"
-                      className="css-xiynrq-StyledButton-getColors edwq9my0"
+                      className="css-1e05jtd-StyledButton edwq9my0"
                       data-test-id="form-submit"
                       onClick={[Function]}
                       role="button"
@@ -321,11 +320,11 @@ exports[`FormField + model renders with Form 1`] = `
                       >
                         <Component
                           align="center"
-                          className="css-oo1m2a-ButtonLabel edwq9my1"
+                          className="css-zmpclt-ButtonLabel edwq9my1"
                           priority="primary"
                         >
                           <span
-                            className="css-oo1m2a-ButtonLabel edwq9my1"
+                            className="css-zmpclt-ButtonLabel edwq9my1"
                           >
                             Save Changes
                           </span>

@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import SettingsNavItem from 'app/views/settings/components/settingsNavItem';
 import replaceRouterParams from 'app/utils/replaceRouterParams';

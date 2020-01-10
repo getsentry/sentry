@@ -68,89 +68,62 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
     }
   }
 >
-  <Flex
-    align="center"
+  <Styled(div)
+    alignItems="center"
     mb={2}
   >
-    <Base
-      align="center"
-      className="css-oc829x"
-      mb={2}
+    <div
+      className="css-15was0r"
     >
-      <div
-        className="css-oc829x"
-        is={null}
+      <PluginIcon
+        pluginId="github"
+        size={50}
       >
-        <PluginIcon
-          pluginId="github"
+        <div
+          className="css-1fxjk4u-PluginIcon e7e65lm0"
           size={50}
+        />
+      </PluginIcon>
+      <Styled(div)
+        alignItems="flex-start"
+        flexDirection="column"
+        justifyContent="center"
+        pl={1}
+      >
+        <div
+          className="css-ivx1eb"
         >
-          <div
-            className="css-1pi7709-PluginIcon e7e65lm0"
-            size={50}
-          />
-        </PluginIcon>
-        <Flex
-          align="flex-start"
-          direction="column"
-          justify="center"
-          pl={1}
-        >
-          <Base
-            align="flex-start"
-            className="css-1wqjzd8"
-            direction="column"
-            justify="center"
-            pl={1}
+          <ProviderName
+            data-test-id="provider-name"
           >
-            <div
-              className="css-1wqjzd8"
-              is={null}
+            <Component
+              className="css-1x4y9gk-ProviderName exuwfuv1"
+              data-test-id="provider-name"
             >
-              <ProviderName
+              <Styled(div)
+                className="css-1x4y9gk-ProviderName exuwfuv1"
                 data-test-id="provider-name"
               >
-                <Component
-                  className="css-1pygq0m-ProviderName exuwfuv1"
+                <div
+                  className="exuwfuv1 css-1qwjpp2-ProviderName"
                   data-test-id="provider-name"
                 >
-                  <Box
-                    className="css-1pygq0m-ProviderName exuwfuv1"
-                    data-test-id="provider-name"
-                  >
-                    <Base
-                      className="exuwfuv1 css-cswdqk-ProviderName"
-                      data-test-id="provider-name"
-                    >
-                      <div
-                        className="exuwfuv1 css-cswdqk-ProviderName"
-                        data-test-id="provider-name"
-                        is={null}
-                      >
-                        GitHub Integration
-                      </div>
-                    </Base>
-                  </Box>
-                </Component>
-              </ProviderName>
-              <Flex>
-                <Base
-                  className="css-sncxrr"
-                >
-                  <div
-                    className="css-sncxrr"
-                    is={null}
-                  >
-                    0
-                  </div>
-                </Base>
-              </Flex>
+                  GitHub Integration
+                </div>
+              </Styled(div)>
+            </Component>
+          </ProviderName>
+          <Styled(div)>
+            <div
+              className="css-4cffwv"
+            >
+              0
             </div>
-          </Base>
-        </Flex>
-      </div>
-    </Base>
-  </Flex>
+          </Styled(div)>
+        </div>
+      </Styled(div)>
+    </div>
+  </Styled(div)>
   <Description
     dangerouslySetInnerHTML={
       Object {
@@ -160,7 +133,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
     }
   >
     <div
-      className="css-zqji3g-Description exuwfuv2"
+      className="css-i3aitc-Description exuwfuv2"
       dangerouslySetInnerHTML={
         Object {
           "__html": "<p><em>markdown</em> formatted <em>description</em></p>
@@ -263,63 +236,47 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
     </ul>
   </FeatureList>
   <Metadata>
-    <Base
-      className="css-xm93tv-Metadata exuwfuv3"
+    <div
+      className="css-17nk6hv-Metadata exuwfuv3"
     >
-      <div
-        className="css-xm93tv-Metadata exuwfuv3"
-        is={null}
+      <AuthorName
+        flex={1}
       >
-        <AuthorName
-          flex={1}
+        <div
+          className="css-qvtq0x-AuthorName exuwfuv4"
         >
-          <Base
-            className="css-1uwqb6n-AuthorName exuwfuv4"
-            flex={1}
+          By Morty
+        </div>
+      </AuthorName>
+      <Styled(div)>
+        <div
+          className="css-vurnku"
+        >
+          <ForwardRef
+            href="http://example.com/integration_source_url"
           >
-            <div
-              className="css-1uwqb6n-AuthorName exuwfuv4"
-              is={null}
+            <a
+              href="http://example.com/integration_source_url"
+              rel="noreferrer noopener"
+              target="_blank"
             >
-              By Morty
-            </div>
-          </Base>
-        </AuthorName>
-        <Box>
-          <Base
-            className="css-roynbj"
+              View Source
+            </a>
+          </ForwardRef>
+          <ForwardRef
+            href="http://example.com/integration_issue_url"
           >
-            <div
-              className="css-roynbj"
-              is={null}
+            <a
+              href="http://example.com/integration_issue_url"
+              rel="noreferrer noopener"
+              target="_blank"
             >
-              <ForwardRef
-                href="http://example.com/integration_source_url"
-              >
-                <a
-                  href="http://example.com/integration_source_url"
-                  rel="noreferrer noopener"
-                  target="_blank"
-                >
-                  View Source
-                </a>
-              </ForwardRef>
-              <ForwardRef
-                href="http://example.com/integration_issue_url"
-              >
-                <a
-                  href="http://example.com/integration_issue_url"
-                  rel="noreferrer noopener"
-                  target="_blank"
-                >
-                  Report Issue
-                </a>
-              </ForwardRef>
-            </div>
-          </Base>
-        </Box>
-      </div>
-    </Base>
+              Report Issue
+            </a>
+          </ForwardRef>
+        </div>
+      </Styled(div)>
+    </div>
   </Metadata>
   <Alert
     iconSize="24px"
@@ -327,16 +284,16 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
     type="warning"
   >
     <Component
-      className="css-1g6nbgo-Alert-getAlertColorStyles-alertStyles ejthpj82"
+      className="css-bcq0ox-Alert ejthpj82"
       iconSize="24px"
       type="warning"
     >
       <div
-        className="ref-warning css-1g6nbgo-Alert-getAlertColorStyles-alertStyles ejthpj82"
+        className="ref-warning css-bcq0ox-Alert ejthpj82"
       >
         <StyledTextBlock>
           <div
-            className="css-1h3n7tg-TextBlock-StyledTextBlock ejthpj81"
+            className="css-c2j570-TextBlock-StyledTextBlock ejthpj81"
           >
             <span
               dangerouslySetInnerHTML={
@@ -416,7 +373,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
           <ForwardRef
             aria-disabled={false}
             aria-label="Cancel"
-            className="css-z6hjis-StyledButton-getColors edwq9my0"
+            className="css-12ogwys-StyledButton edwq9my0"
             data-test-id="cancel-button"
             disabled={false}
             onClick={[Function]}
@@ -426,7 +383,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
             <button
               aria-disabled={false}
               aria-label="Cancel"
-              className="css-z6hjis-StyledButton-getColors edwq9my0"
+              className="css-12ogwys-StyledButton edwq9my0"
               data-test-id="cancel-button"
               onClick={[Function]}
               role="button"
@@ -438,11 +395,11 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
               >
                 <Component
                   align="center"
-                  className="css-1h693nz-ButtonLabel edwq9my1"
+                  className="css-19gcr2f-ButtonLabel edwq9my1"
                   size="small"
                 >
                   <span
-                    className="css-1h693nz-ButtonLabel edwq9my1"
+                    className="css-19gcr2f-ButtonLabel edwq9my1"
                   >
                     Cancel
                   </span>
@@ -713,7 +670,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                           <ForwardRef
                             aria-disabled={false}
                             aria-label="Add Installation"
-                            className="css-1lua553-StyledButton-getColors edwq9my0"
+                            className="css-z8at1v-StyledButton edwq9my0"
                             data-test-id="add-button"
                             disabled={false}
                             onClick={[Function]}
@@ -729,7 +686,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                             <button
                               aria-disabled={false}
                               aria-label="Add Installation"
-                              className="css-1lua553-StyledButton-getColors edwq9my0"
+                              className="css-z8at1v-StyledButton edwq9my0"
                               data-test-id="add-button"
                               onClick={[Function]}
                               role="button"
@@ -747,12 +704,12 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                               >
                                 <Component
                                   align="center"
-                                  className="css-1h693nz-ButtonLabel edwq9my1"
+                                  className="css-19gcr2f-ButtonLabel edwq9my1"
                                   priority="primary"
                                   size="small"
                                 >
                                   <span
-                                    className="css-1h693nz-ButtonLabel edwq9my1"
+                                    className="css-19gcr2f-ButtonLabel edwq9my1"
                                   >
                                     Add Installation
                                   </span>

@@ -38,7 +38,7 @@ exports[`RadioBooleanField render() renders new field without form context 1`] =
           inline={true}
         >
           <div
-            className="css-165shxd-FieldWrapper-getPadding-inlineStyle-FieldWrapper e2iyls20"
+            className="css-1vcdyvg-FieldWrapper-FieldWrapper e2iyls20"
           >
             <FieldControl
               alignRight={false}
@@ -77,17 +77,17 @@ exports[`RadioBooleanField render() renders new field without form context 1`] =
                 inline={true}
               >
                 <div
-                  className="css-1xbxyck-FieldControlErrorWrapper e12jpfuq0"
+                  className="css-qe5fr0-FieldControlErrorWrapper e12jpfuq0"
                 >
                   <FieldControlWrapper>
                     <div
-                      className="css-1muvdry-FieldControlWrapper e12jpfuq2"
+                      className="css-1evsibf-FieldControlWrapper e12jpfuq2"
                     >
                       <FieldControlStyled
                         alignRight={false}
                       >
                         <div
-                          className="css-1e3k5jy-FieldControlStyled e12jpfuq1"
+                          className="css-fofrx-FieldControlStyled e12jpfuq1"
                         >
                           <Observer>
                             <RadioBoolean
@@ -99,7 +99,6 @@ exports[`RadioBooleanField render() renders new field without form context 1`] =
                                   "fieldName": undefined,
                                 }
                               }
-                              innerRef={[Function]}
                               name="fieldName"
                               noLabel="No"
                               onBlur={[Function]}
@@ -179,7 +178,7 @@ exports[`RadioBooleanField render() renders new field without form context 1`] =
                         flexibleControlStateSize={false}
                       >
                         <div
-                          className="css-oiazm4-FieldControlState ep9s0su0"
+                          className="css-1347hil-FieldControlState ep9s0su0"
                         >
                           <FormFieldControlState
                             model={

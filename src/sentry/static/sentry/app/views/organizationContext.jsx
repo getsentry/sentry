@@ -4,7 +4,7 @@ import React from 'react';
 import Reflux from 'reflux';
 import * as Sentry from '@sentry/browser';
 import createReactClass from 'create-react-class';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {ORGANIZATION_FETCH_ERROR_TYPES} from 'app/constants';
 import {fetchOrganizationDetails} from 'app/actionCreators/organization';

@@ -1,7 +1,7 @@
 import React from 'react';
 import maxBy from 'lodash/maxBy';
 import moment from 'moment-timezone';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
 import {Config, Organization, Project} from 'app/types';

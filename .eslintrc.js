@@ -1,6 +1,6 @@
 module.exports = {
   parser: '@typescript-eslint/parser',
-  plugins: ['@typescript-eslint'],
+  plugins: ['@typescript-eslint', 'emotion'],
   extends: ['sentry-app/strict'],
   globals: {
     require: false,
@@ -11,7 +11,12 @@ module.exports = {
     tick: true,
     jest: true,
   },
-  rules: {},
+  rules: {
+    'emotion/jsx-import': 'off',
+    'emotion/no-vanilla': 'error',
+    'emotion/import-from-emotion': 'error',
+    'emotion/styled-import': 'error',
+  },
   overrides: [
     {
       files: ['*.ts', '*.tsx'],

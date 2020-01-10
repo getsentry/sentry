@@ -2,7 +2,7 @@ import {Link} from 'react-router';
 import LazyLoad from 'react-lazyload';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import uniq from 'lodash/uniq';
 import flatten from 'lodash/flatten';
 

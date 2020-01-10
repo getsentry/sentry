@@ -1,7 +1,7 @@
-import {Box, Flex} from 'grid-emotion';
+import {Box, Flex} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {fields} from 'app/data/forms/projectDebugFiles';
@@ -129,16 +129,16 @@ class ProjectDebugSymbols extends AsyncComponent {
       const features = dsym.data && dsym.data.features;
 
       return (
-        <PanelItem key={key} align="center" px={2} py={1}>
-          <Box w={4.5 / 12}>
+        <PanelItem key={key} alignItems="center" px={2} py={1}>
+          <Box width={4.5 / 12}>
             <code className="small">{dsym.debugId || dsym.uuid}</code>
             <Flex mt="4px">
-              <Box w={4 / 12} pl="2px">
+              <Box width={4 / 12} pl="2px">
                 <p className="m-b-0 text-light small">
                   <FileSize bytes={dsym.size} />
                 </p>
               </Box>
-              <Box w={8 / 12} pl={1}>
+              <Box width={8 / 12} pl={1}>
                 <p className="m-b-0 text-light small">
                   <span className="icon icon-clock" />{' '}
                   <TimeSince date={dsym.dateCreated} />
@@ -268,8 +268,10 @@ class ProjectDebugSymbols extends AsyncComponent {
 
         <Panel>
           <PanelHeader hasButtons>
-            <Box w={4.5 / 12}>{t('Debug ID')}</Box>
-            <Box flex="1">{t('Name')}</Box>
+            <Box width={4.5 / 12}>{t('Debug ID')}</Box>
+            <Box minWidth="auto" flex="1">
+              {t('Name')}
+            </Box>
             <Box>
               {this.renderSearchInput({
                 updateRoute: true,

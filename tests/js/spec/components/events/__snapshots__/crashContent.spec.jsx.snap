@@ -149,7 +149,6 @@ exports[`CrashContent renders with meta data 1`] = `
                               <Container
                                 aria-describedby="tooltip-123456"
                                 containerDisplayMode="inline-block"
-                                innerRef={[Function]}
                                 onBlur={[Function]}
                                 onFocus={[Function]}
                                 onMouseEnter={[Function]}
@@ -157,7 +156,7 @@ exports[`CrashContent renders with meta data 1`] = `
                               >
                                 <span
                                   aria-describedby="tooltip-123456"
-                                  className="css-1vf31z4-Container eowlwvy0"
+                                  className="css-sce1yi-Container eowlwvy0"
                                   onBlur={[Function]}
                                   onFocus={[Function]}
                                   onMouseEnter={[Function]}
@@ -165,7 +164,7 @@ exports[`CrashContent renders with meta data 1`] = `
                                 >
                                   <Redaction>
                                     <span
-                                      className="css-ielfiw-Redaction e1p1th7g1"
+                                      className="css-1vnqw28-Redaction e1p1th7g1"
                                     >
                                       python err A949AE01EBB07300D62AE0178F0944DD21F8C98C err
                                     </span>

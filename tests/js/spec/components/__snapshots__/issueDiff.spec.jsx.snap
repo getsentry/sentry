@@ -22,7 +22,7 @@ exports[`IssueDiff can diff message 1`] = `
     loading={false}
   >
     <div
-      className="css-1ap3513-StyledIssueDiff e1mqtsvu0"
+      className="css-whye05-StyledIssueDiff e1mqtsvu0"
     >
       <SplitDiff
         base="Foo World"
@@ -32,11 +32,11 @@ exports[`IssueDiff can diff message 1`] = `
       >
         <SplitTable>
           <table
-            className="css-wsqk0b-SplitTable earab4v0"
+            className="css-1tqeqql-SplitTable earab4v0"
           >
             <SplitBody>
               <tbody
-                className="css-19qmpmx-SplitBody earab4v1"
+                className="css-h1p2x1-SplitBody earab4v1"
               >
                 <tr
                   key="0"
@@ -52,18 +52,18 @@ exports[`IssueDiff can diff message 1`] = `
                     }
                   >
                     <td
-                      className="css-cpyxzz-Cell earab4v2"
+                      className="css-16vgdps-Cell earab4v2"
                     >
                       <Line>
                         <div
-                          className="css-bjvbcj-Line earab4v4"
+                          className="css-wtjkg5-Line earab4v4"
                         >
                           <Word
                             isRemoved={true}
                             key="0"
                           >
                             <span
-                              className="css-1hluz4h-Word earab4v5"
+                              className="css-a5wlhp-Word earab4v5"
                             >
                               Foo
                             </span>
@@ -72,7 +72,7 @@ exports[`IssueDiff can diff message 1`] = `
                             key="1"
                           >
                             <span
-                              className="css-1dmt934-Word earab4v5"
+                              className="css-16nwljm-Word earab4v5"
                             >
                                World
                             </span>
@@ -83,7 +83,7 @@ exports[`IssueDiff can diff message 1`] = `
                   </Cell>
                   <Gap>
                     <td
-                      className="css-yrby37-Gap earab4v3"
+                      className="css-lqso9g-Gap earab4v3"
                     />
                   </Gap>
                   <Cell
@@ -97,18 +97,18 @@ exports[`IssueDiff can diff message 1`] = `
                     }
                   >
                     <td
-                      className="css-uc8op2-Cell earab4v2"
+                      className="css-15x1ris-Cell earab4v2"
                     >
                       <Line>
                         <div
-                          className="css-bjvbcj-Line earab4v4"
+                          className="css-wtjkg5-Line earab4v4"
                         >
                           <Word
                             isAdded={true}
                             key="0"
                           >
                             <span
-                              className="css-1pqukun-Word earab4v5"
+                              className="css-jvievq-Word earab4v5"
                             >
                               Hello
                             </span>
@@ -117,7 +117,7 @@ exports[`IssueDiff can diff message 1`] = `
                             key="1"
                           >
                             <span
-                              className="css-1dmt934-Word earab4v5"
+                              className="css-16nwljm-Word earab4v5"
                             >
                                World
                             </span>
@@ -159,7 +159,7 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
     loading={false}
   >
     <div
-      className="css-1ap3513-StyledIssueDiff e1mqtsvu0"
+      className="css-whye05-StyledIssueDiff e1mqtsvu0"
     >
       <SplitDiff
         base="SyntaxError: Unexpected token else
@@ -171,28 +171,28 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
       >
         <SplitTable>
           <table
-            className="css-wsqk0b-SplitTable earab4v0"
+            className="css-1tqeqql-SplitTable earab4v0"
           >
             <SplitBody>
               <tbody
-                className="css-19qmpmx-SplitBody earab4v1"
+                className="css-h1p2x1-SplitBody earab4v1"
               >
                 <tr
                   key="0"
                 >
                   <Cell>
                     <td
-                      className="css-13bglbj-Cell earab4v2"
+                      className="css-1kp4lih-Cell earab4v2"
                     >
                       <Line>
                         <div
-                          className="css-bjvbcj-Line earab4v4"
+                          className="css-wtjkg5-Line earab4v4"
                         >
                           <Word
                             key="0"
                           >
                             <span
-                              className="css-1dmt934-Word earab4v5"
+                              className="css-16nwljm-Word earab4v5"
                             >
                               SyntaxError: Unexpected token else
                             </span>
@@ -203,22 +203,22 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
                   </Cell>
                   <Gap>
                     <td
-                      className="css-yrby37-Gap earab4v3"
+                      className="css-lqso9g-Gap earab4v3"
                     />
                   </Gap>
                   <Cell>
                     <td
-                      className="css-13bglbj-Cell earab4v2"
+                      className="css-1kp4lih-Cell earab4v2"
                     >
                       <Line>
                         <div
-                          className="css-bjvbcj-Line earab4v4"
+                          className="css-wtjkg5-Line earab4v4"
                         >
                           <Word
                             key="0"
                           >
                             <span
-                              className="css-1dmt934-Word earab4v5"
+                              className="css-16nwljm-Word earab4v5"
                             >
                               SyntaxError: Unexpected token else
                             </span>
@@ -242,17 +242,17 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
                     }
                   >
                     <td
-                      className="css-cpyxzz-Cell earab4v2"
+                      className="css-16vgdps-Cell earab4v2"
                     >
                       <Line>
                         <div
-                          className="css-bjvbcj-Line earab4v4"
+                          className="css-wtjkg5-Line earab4v4"
                         >
                           <Word
                             key="0"
                           >
                             <span
-                              className="css-1dmt934-Word earab4v5"
+                              className="css-16nwljm-Word earab4v5"
                             >
                                 
                             </span>
@@ -262,7 +262,7 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
                             key="1"
                           >
                             <span
-                              className="css-1hluz4h-Word earab4v5"
+                              className="css-a5wlhp-Word earab4v5"
                             >
                               at
                             </span>
@@ -271,7 +271,7 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
                             key="2"
                           >
                             <span
-                              className="css-1dmt934-Word earab4v5"
+                              className="css-16nwljm-Word earab4v5"
                             >
                                
                             </span>
@@ -281,7 +281,7 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
                             key="3"
                           >
                             <span
-                              className="css-1hluz4h-Word earab4v5"
+                              className="css-a5wlhp-Word earab4v5"
                             >
                               ? (/
                             </span>
@@ -290,7 +290,7 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
                             key="4"
                           >
                             <span
-                              className="css-1dmt934-Word earab4v5"
+                              className="css-16nwljm-Word earab4v5"
                             >
                               hiventy/kraken-prod/issues/438681831
                             </span>
@@ -300,7 +300,7 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
                             key="5"
                           >
                             <span
-                              className="css-1hluz4h-Word earab4v5"
+                              className="css-a5wlhp-Word earab4v5"
                             >
                               /)
                             </span>
@@ -311,7 +311,7 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
                   </Cell>
                   <Gap>
                     <td
-                      className="css-yrby37-Gap earab4v3"
+                      className="css-lqso9g-Gap earab4v3"
                     />
                   </Gap>
                   <Cell
@@ -325,17 +325,17 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
                     }
                   >
                     <td
-                      className="css-uc8op2-Cell earab4v2"
+                      className="css-15x1ris-Cell earab4v2"
                     >
                       <Line>
                         <div
-                          className="css-bjvbcj-Line earab4v4"
+                          className="css-wtjkg5-Line earab4v4"
                         >
                           <Word
                             key="0"
                           >
                             <span
-                              className="css-1dmt934-Word earab4v5"
+                              className="css-16nwljm-Word earab4v5"
                             >
                                 
                             </span>
@@ -345,7 +345,7 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
                             key="1"
                           >
                             <span
-                              className="css-1pqukun-Word earab4v5"
+                              className="css-jvievq-Word earab4v5"
                             >
                               File
                             </span>
@@ -354,7 +354,7 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
                             key="2"
                           >
                             <span
-                              className="css-1dmt934-Word earab4v5"
+                              className="css-16nwljm-Word earab4v5"
                             >
                                
                             </span>
@@ -364,7 +364,7 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
                             key="3"
                           >
                             <span
-                              className="css-1pqukun-Word earab4v5"
+                              className="css-jvievq-Word earab4v5"
                             >
                               "/
                             </span>
@@ -373,7 +373,7 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
                             key="4"
                           >
                             <span
-                              className="css-1dmt934-Word earab4v5"
+                              className="css-16nwljm-Word earab4v5"
                             >
                               hiventy/kraken-prod/issues/438681831
                             </span>
@@ -383,7 +383,7 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
                             key="5"
                           >
                             <span
-                              className="css-1pqukun-Word earab4v5"
+                              className="css-jvievq-Word earab4v5"
                             >
                               /"
                             </span>

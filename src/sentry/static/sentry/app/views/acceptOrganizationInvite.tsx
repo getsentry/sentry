@@ -1,5 +1,5 @@
 import React, {MouseEvent} from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import {browserHistory} from 'react-router';
 import {RouteComponentProps} from 'react-router/lib/Router';
 

@@ -38,7 +38,7 @@ class PasswordForm extends React.Component {
           forms={accountPasswordFields}
           additionalFieldProps={{user}}
           renderFooter={({title, fields}) => (
-            <PanelItem justify="flex-end">
+            <PanelItem justifyContent="flex-end">
               <Button type="submit" priority="primary">
                 {t('Change password')}
               </Button>

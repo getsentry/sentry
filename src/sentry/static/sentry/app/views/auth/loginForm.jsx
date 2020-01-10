@@ -1,7 +1,8 @@
+import {ClassNames} from '@emotion/core';
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {formFooterClass} from 'app/views/auth/login';
 import {t} from 'app/locale';
@@ -97,35 +98,41 @@ class LoginForm extends React.Component {
     const hasLoginProvider = githubLoginLink || vstsLoginLink;
 
     return (
-      <FormWrapper hasLoginProvider={hasLoginProvider}>
-        <Form
-          submitLabel={t('Continue')}
-          onSubmit={this.handleSubmit}
-          footerClass={formFooterClass}
-          errorMessage={errorMessage}
-          extraButton={
-            <LostPasswordLink to="/account/recover/">
-              {t('Lost your password?')}
-            </LostPasswordLink>
-          }
-        >
-          <TextField
-            name="username"
-            placeholder={t('username or email')}
-            label={t('Account')}
-            error={errors.username}
-            required
-          />
-          <PasswordField
-            name="password"
-            placeholder={t('password')}
-            label={t('Password')}
-            error={errors.password}
-            required
-          />
-        </Form>
-        {hasLoginProvider && <LoginProviders {...{vstsLoginLink, githubLoginLink}} />}
-      </FormWrapper>
+      <ClassNames>
+        {({css}) => (
+          <FormWrapper hasLoginProvider={hasLoginProvider}>
+            <Form
+              submitLabel={t('Continue')}
+              onSubmit={this.handleSubmit}
+              footerClass={css`
+                ${formFooterClass}
+              `}
+              errorMessage={errorMessage}
+              extraButton={
+                <LostPasswordLink to="/account/recover/">
+                  {t('Lost your password?')}
+                </LostPasswordLink>
+              }
+            >
+              <TextField
+                name="username"
+                placeholder={t('username or email')}
+                label={t('Account')}
+                error={errors.username}
+                required
+              />
+              <PasswordField
+                name="password"
+                placeholder={t('password')}
+                label={t('Password')}
+                error={errors.password}
+                required
+              />
+            </Form>
+            {hasLoginProvider && <LoginProviders {...{vstsLoginLink, githubLoginLink}} />}
+          </FormWrapper>
+        )}
+      </ClassNames>
     );
   }
 }

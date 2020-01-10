@@ -1,4 +1,4 @@
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 const Toolbar = styled('div')`
   background: ${p => p.theme.whiteDark};

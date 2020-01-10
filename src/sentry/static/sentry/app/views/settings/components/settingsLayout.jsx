@@ -1,7 +1,6 @@
-import {Box, Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
 
@@ -27,16 +26,14 @@ class SettingsLayout extends React.Component {
       <React.Fragment>
         <SettingsColumn>
           <SettingsHeader>
-            <Flex align="center" width={1}>
-              <Box flex="1">
-                <SettingsBreadcrumb
-                  params={params}
-                  routes={childRoutes}
-                  route={childRoute}
-                />
-              </Box>
+            <HeaderContent>
+              <StyledSettingsBreadcrumb
+                params={params}
+                routes={childRoutes}
+                route={childRoute}
+              />
               <SettingsSearch routes={routes} router={router} params={params} />
-            </Flex>
+            </HeaderContent>
           </SettingsHeader>
 
           <MaxWidthContainer>
@@ -64,6 +61,15 @@ const SidebarWrapper = styled('div')`
   background: #fff;
   border-right: 1px solid ${p => p.theme.borderLight};
   padding: ${space(4)};
+`;
+
+const HeaderContent = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+const StyledSettingsBreadcrumb = styled(SettingsBreadcrumb)`
+  flex: 1;
 `;
 
 const SettingsColumn = styled('div')`

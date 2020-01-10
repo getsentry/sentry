@@ -1,11 +1,13 @@
 import React from 'react';
-import {mountWithTheme, shallow} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import SelectControl from 'app/components/forms/selectControl';
 
 describe('SelectControl', function() {
   it('renders with react-select "options"', function() {
-    const wrapper = shallow(<SelectControl options={[{value: 'foo', label: 'Foo'}]} />);
+    const wrapper = mountWithTheme(
+      <SelectControl options={[{value: 'foo', label: 'Foo'}]} />
+    );
 
     expect(wrapper.find('StyledSelect').prop('options')).toEqual([
       {value: 'foo', label: 'Foo'},
@@ -13,21 +15,23 @@ describe('SelectControl', function() {
   });
 
   it('renders with react-select "multi"', function() {
-    let wrapper = shallow(<SelectControl multiple />);
+    let wrapper = mountWithTheme(<SelectControl multiple />);
 
     expect(wrapper.find('StyledSelect').prop('multi')).toEqual(true);
 
-    wrapper = shallow(<SelectControl multi />);
+    wrapper = mountWithTheme(<SelectControl multi />);
 
     expect(wrapper.find('StyledSelect').prop('multi')).toEqual(true);
 
-    wrapper = shallow(<SelectControl />);
+    wrapper = mountWithTheme(<SelectControl />);
 
     expect(wrapper.find('StyledSelect').prop('multi')).toBeUndefined();
   });
 
   it('renders with select2 flat "choices"', function() {
-    const wrapper = shallow(<SelectControl choices={['a', 'b', 'c']} name="fieldName" />);
+    const wrapper = mountWithTheme(
+      <SelectControl choices={['a', 'b', 'c']} name="fieldName" />
+    );
     expect(wrapper.find('StyledSelect').prop('options')).toEqual([
       {value: 'a', label: 'a'},
       {value: 'b', label: 'b'},
@@ -36,7 +40,7 @@ describe('SelectControl', function() {
   });
 
   it('renders with select2 paired "choices"', function() {
-    const wrapper = shallow(
+    const wrapper = mountWithTheme(
       <SelectControl
         choices={[['a', 'abc'], ['b', 'bcd'], ['c', 'cde']]}
         name="fieldName"

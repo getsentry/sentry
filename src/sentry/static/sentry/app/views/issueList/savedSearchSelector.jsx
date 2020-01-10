@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import Access from 'app/components/acl/access';
@@ -114,7 +114,7 @@ const Container = styled('div')`
 `;
 
 const StyledDropdownButton = styled(
-  React.forwardRef((prop, ref) => <DropdownButton innerRef={ref} {...prop} />)
+  React.forwardRef((prop, ref) => <DropdownButton ref={ref} {...prop} />)
 )`
   border-right: 0;
   z-index: ${p => p.theme.zIndex.dropdownAutocomplete.actor};

@@ -1,7 +1,7 @@
+import {ClassNames} from '@emotion/core';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
-import {css} from 'emotion';
+import styled from '@emotion/styled';
 import $ from 'jquery';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
@@ -43,7 +43,7 @@ const GuideAnchor = createReactClass({
     registerAnchor(this);
   },
 
-  componentDidUpdate(prevProps, prevState) {
+  componentDidUpdate(_prevProps, prevState) {
     if (this.containerElement && !prevState.active && this.state.active) {
       const windowHeight = $(window).height();
       $('html,body').animate({
@@ -74,7 +74,7 @@ const GuideAnchor = createReactClass({
 
   interpolate(template, variables) {
     const regex = /\${([^{]+)}/g;
-    return template.replace(regex, (match, g1) => {
+    return template.replace(regex, (_match, g1) => {
       return variables[g1.trim()];
     });
   },
@@ -124,7 +124,7 @@ const GuideAnchor = createReactClass({
               __html: this.interpolate(guide.steps[step].message, messageVariables),
             }}
           />
-          <div css={{marginTop: '1em'}}>
+          <Actions>
             <div>
               {step < guide.steps.length - 1 ? (
                 <Button priority="success" size="small" onClick={this.handleNextStep}>
@@ -136,24 +136,28 @@ const GuideAnchor = createReactClass({
                 </Button>
               )}
             </div>
-          </div>
+          </Actions>
         </StyledContent>
       </GuideContainer>
     );
 
     return (
-      <Hovercard
-        show
-        body={body}
-        bodyClassName={css`
-          background-color: ${theme.greenDark};
-          margin: -1px;
-        `}
-        tipColor={theme.greenDark}
-        position={this.props.position}
-      >
-        <span ref={el => (this.containerElement = el)}>{this.props.children}</span>
-      </Hovercard>
+      <ClassNames>
+        {({css}) => (
+          <Hovercard
+            show
+            body={body}
+            bodyClassName={css`
+              background-color: ${theme.greenDark};
+              margin: -1px;
+            `}
+            tipColor={theme.greenDark}
+            position={this.props.position}
+          >
+            <span ref={el => (this.containerElement = el)}>{this.props.children}</span>
+          </Hovercard>
+        )}
+      </ClassNames>
     );
   },
 });
@@ -190,6 +194,10 @@ const StyledContent = styled('div')`
   a {
     color: ${p => p.theme.greenLight};
   }
+`;
+
+const Actions = styled('div')`
+  margin-top: 1em;
 `;
 
 export default GuideAnchor;

@@ -1,7 +1,7 @@
-import {Box, Flex} from 'grid-emotion';
+import {Box, Flex} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
@@ -98,8 +98,8 @@ export default class ProjectSecurityHeaders extends AsyncView {
           <PanelHeader>{t('Supported Formats')}</PanelHeader>
           <PanelBody>
             {this.getReports().map(({name, description, url}) => (
-              <PanelItem key={url} p={0} direction="column">
-                <Flex flex="1" p={2} align="center">
+              <PanelItem key={url} p={0} flexDirection="column">
+                <Flex flex="1" p={2} alignItems="center">
                   <Box flex="1">
                     <HeaderName>{name}</HeaderName>
                   </Box>

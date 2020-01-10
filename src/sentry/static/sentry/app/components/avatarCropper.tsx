@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {AVATAR_URL_MAP} from 'app/constants';
@@ -368,7 +368,7 @@ class AvatarCropper extends React.Component<Props, State> {
 
     return (
       <ImageCropper resizeDirection={resizeDirection}>
-        <CropContainer innerRef={this.cropContainer}>
+        <CropContainer ref={this.cropContainer}>
           <img
             ref={this.image}
             src={src}
@@ -402,12 +402,12 @@ class AvatarCropper extends React.Component<Props, State> {
     return (
       <React.Fragment>
         {!src && uploader}
-        {src && <HiddenCanvas innerRef={this.canvas} />}
+        {src && <HiddenCanvas ref={this.canvas} />}
         {this.renderImageCrop()}
         <div className="form-group">
           {src && <a onClick={this.uploadClick}>{t('Change Photo')}</a>}
           <UploadInput
-            innerRef={this.file}
+            ref={this.file}
             type="file"
             accept="image/gif,image/jpeg,image/png"
             onChange={this.onSelectFile}

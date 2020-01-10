@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import isEqual from 'lodash/isEqual';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import FormState from 'app/components/forms/state';
 import {t} from 'app/locale';

@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {SEARCH_TYPES} from 'app/constants';
 import {fetchRecentSearches} from 'app/actionCreators/savedSearches';

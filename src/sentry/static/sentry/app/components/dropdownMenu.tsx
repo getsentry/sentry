@@ -318,17 +318,12 @@ class DropdownMenu extends React.Component<Props, State> {
     onMouseEnter,
     onMouseLeave,
     onKeyDown,
-    isStyled,
     style = {},
     ...props
   } = {}) => {
     const {isNestedDropdown, closeOnEscape} = this.props;
 
-    // `isStyled`: with styled-components we need to pass `innerRef` to get DOM
-    // el's ref vs `ref` otherwise
-    const refProps = isStyled
-      ? {innerRef: this.handleActorMount}
-      : {ref: this.handleActorMount};
+    const refProps = {ref: this.handleActorMount};
 
     // Props that the actor needs to have <DropdownMenu> work
     return {
@@ -393,14 +388,9 @@ class DropdownMenu extends React.Component<Props, State> {
     onClick,
     onMouseLeave,
     onMouseEnter,
-    isStyled,
     ...props
-  } = {}) => {
-    // `isStyled`: with styled-components we need to pass `innerRef` to get DOM
-    // el's ref vs `ref` otherwise
-    const refProps = isStyled
-      ? {innerRef: this.handleMenuMount}
-      : {ref: this.handleMenuMount};
+  }: GetMenuArgs = {}): MenuProps => {
+    const refProps = {ref: this.handleMenuMount};
 
     // Props that the menu needs to have <DropdownMenu> work
     return {

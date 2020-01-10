@@ -13,11 +13,11 @@ exports[`AccountIdentities renders empty 1`] = `
       <PanelHeader
         disablePadding={true}
       >
-        <Box
+        <Styled(div)
           px={2}
         >
           Identities
-        </Box>
+        </Styled(div)>
       </PanelHeader>
       <PanelBody
         direction="column"
@@ -46,11 +46,11 @@ exports[`AccountIdentities renders list 1`] = `
       <PanelHeader
         disablePadding={true}
       >
-        <Box
+        <Styled(div)
           px={2}
         >
           Identities
-        </Box>
+        </Styled(div)>
       </PanelHeader>
       <PanelBody
         direction="column"
@@ -58,17 +58,17 @@ exports[`AccountIdentities renders list 1`] = `
         flex={false}
       >
         <PanelItem
-          align="center"
+          alignItems="center"
           key="1"
           p={0}
         >
-          <Box
+          <Styled(div)
             flex="1"
             p={2}
           >
             GitHub
-          </Box>
-          <Box
+          </Styled(div)>
+          <Styled(div)
             p={2}
           >
             <Button
@@ -79,7 +79,7 @@ exports[`AccountIdentities renders list 1`] = `
             >
               Disconnect
             </Button>
-          </Box>
+          </Styled(div)>
         </PanelItem>
       </PanelBody>
     </Panel>

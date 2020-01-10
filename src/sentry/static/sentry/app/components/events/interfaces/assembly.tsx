@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import InlineSvg from 'app/components/inlineSvg';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';

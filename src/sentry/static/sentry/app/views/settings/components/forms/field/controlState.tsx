@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {fadeOut, pulse} from 'app/styles/animations';
 import InlineSvg from 'app/components/inlineSvg';

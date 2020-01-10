@@ -1,4 +1,4 @@
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 const ToolbarHeader = styled('div')`
   font-size: 12px;

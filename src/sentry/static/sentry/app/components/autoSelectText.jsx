@@ -9,9 +9,8 @@ class AutoSelectText extends React.Component {
     /**
      * Can be a `node` for a simple auto select div container.
      * When children is a render function, it is passed 2 functions:
-     * - `doMount` - should be applied on parent element's `ref`
-     *   (or `innerRef` for styled components) whose children is the
-     *   text to be copied
+     * - `doMount` - should be applied on parent element's `ref` whose
+     * children is the text to be copied
      * - `doSelect` - selects text
      */
     children: PropTypes.oneOfType([PropTypes.func, PropTypes.node]),

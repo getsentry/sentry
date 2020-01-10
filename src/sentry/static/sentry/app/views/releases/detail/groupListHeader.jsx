@@ -1,27 +1,27 @@
 import React from 'react';
-import {Flex, Box} from 'grid-emotion';
+import {Flex, Box} from 'reflexbox';
 import {t} from 'app/locale';
 import {PanelHeader} from 'app/components/panels';
 
 const GroupListHeader = () => {
   return (
     <PanelHeader disablePadding>
-      <Box w={[8 / 12, 8 / 12, 6 / 12]} mx={2} flex="1" className="toolbar-header">
+      <Box width={[8 / 12, 8 / 12, 6 / 12]} mx={2} flex="1" className="toolbar-header">
         {t('Issue')}
       </Box>
-      <Box w={160} mx={2} className="toolbar-header hidden-xs hidden-sm">
+      <Box width={160} mx={2} className="toolbar-header hidden-xs hidden-sm">
         {t('Last 24 hours')}
       </Box>
-      <Flex w={80} mx={2} justify="flex-end" className="toolbar-header">
+      <Flex width={80} mx={2} justifyContent="flex-end" className="toolbar-header">
         {t('events')}
       </Flex>
-      <Flex w={80} mx={2} justify="flex-end" className="toolbar-header">
+      <Flex width={80} mx={2} justifyContent="flex-end" className="toolbar-header">
         {t('users')}
       </Flex>
       <Flex
-        w={80}
+        width={80}
         mx={2}
-        justify="flex-end"
+        justifyContent="flex-end"
         className="hidden-xs hidden-sm toolbar-header"
       >
         {t('Assignee')}

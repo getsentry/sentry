@@ -2,7 +2,7 @@ import debounce from 'lodash/debounce';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {analytics} from 'app/utils/analytics';
@@ -201,7 +201,7 @@ class Search extends React.Component {
                   sources={sources}
                 >
                   {({isLoading, results, hasAnyResults}) => (
-                    <DropdownBox css={dropdownStyle}>
+                    <DropdownBox className={dropdownStyle}>
                       {isLoading && (
                         <LoadingWrapper>
                           <LoadingIndicator mini hideMessage relative />

@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import {Params} from 'react-router/lib/Router';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';

@@ -4,7 +4,7 @@ import {sprintf} from 'sprintf-js';
 import isString from 'lodash/isString';
 import isArray from 'lodash/isArray';
 import isObject from 'lodash/isObject';
-import {css} from 'react-emotion';
+import {css} from '@emotion/core';
 
 import {getTranslations} from 'app/translations';
 

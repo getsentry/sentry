@@ -1,4 +1,4 @@
-import {css} from 'react-emotion';
+import {ClassNames} from '@emotion/core';
 import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -12,10 +12,6 @@ import {WIDGET_DISPLAY} from './constants';
 import {getChartComponent} from './utils/getChartComponent';
 import {getData} from './utils/getData';
 import {getEventsUrlFromDiscoverQueryWithConditions} from './utils/getEventsUrlFromDiscoverQueryWithConditions';
-
-const tableRowCss = css`
-  color: ${theme.textColor};
-`;
 
 /**
  * Component that decides what Chart to render
@@ -54,7 +50,19 @@ class WidgetChart extends React.Component {
     const {router, selection} = this.props;
     return (
       <ChartZoom router={router} useShortDate {...selection.datetime}>
-        {zoomRenderProps => <ChartComponent {...props} {...zoomRenderProps} />}
+        {zoomRenderProps => (
+          <ClassNames>
+            {({css}) => (
+              <ChartComponent
+                rowClassName={css`
+                  color: ${theme.textColor};
+                `}
+                {...props}
+                {...zoomRenderProps}
+              />
+            )}
+          </ClassNames>
+        )}
       </ChartZoom>
     );
   }
@@ -71,7 +79,6 @@ class WidgetChart extends React.Component {
 
     const extra = {
       ...(isTable && {
-        rowClassName: tableRowCss,
         getRowLink: rowObject => {
           // Table Charts don't support multiple queries
           const [query] = widget.queries.discover;
@@ -108,7 +115,19 @@ class WidgetChart extends React.Component {
       });
     }
 
-    return <ChartComponent {...extra} {...chartData} />;
+    return (
+      <ClassNames>
+        {({css}) => (
+          <ChartComponent
+            rowClassName={css`
+              color: ${theme.textColor};
+            `}
+            {...extra}
+            {...chartData}
+          />
+        )}
+      </ClassNames>
+    );
   }
 }
 

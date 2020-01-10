@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {selectText} from 'app/utils/selectText';
 import {t, tct} from 'app/locale';
@@ -32,7 +32,7 @@ type Props = {
    * Attaches additional styles to the FeatureDisabled component to make it
    * look consistent within the Alert.
    */
-  alert?: boolean | React.ReactElement;
+  alert?: boolean | React.ElementType;
   /**
    * Do not show the help toggle. The description will always be rendered.
    */
@@ -118,7 +118,7 @@ class FeatureDisabled extends React.Component<Props, State> {
       return this.renderFeatureDisabled();
     }
 
-    const AlertComponent = typeof alert === 'function' ? alert : Alert;
+    const AlertComponent = typeof alert === 'boolean' ? Alert : alert;
 
     return (
       <AlertComponent type="warning" icon="icon-lock">

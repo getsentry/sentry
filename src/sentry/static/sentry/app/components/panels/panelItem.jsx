@@ -1,6 +1,6 @@
-import {Flex} from 'grid-emotion';
+import {Flex} from 'reflexbox';
 import PropTypes from 'prop-types';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 const PanelItem = styled(Flex)`
   border-bottom: 1px solid ${p => p.theme.borderLight};

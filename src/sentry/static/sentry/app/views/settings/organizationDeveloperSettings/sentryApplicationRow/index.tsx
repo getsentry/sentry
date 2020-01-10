@@ -1,9 +1,9 @@
 import React from 'react';
-import {Box, Flex} from 'grid-emotion';
+import {Box, Flex} from 'reflexbox';
 import {Link} from 'react-router';
 import capitalize from 'lodash/capitalize';
 import omit from 'lodash/omit';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
 import SentryTypes from 'app/sentryTypes';
@@ -211,7 +211,7 @@ const StatusIndicator = styled(({status, ...props}: StatusIndicatorProps) => {
   //need to omit isInternal
   const propsToPass = omit(props, ['isInternal']);
   return (
-    <Flex align="center">
+    <Flex alignItems="center">
       <CircleIndicator size={6} color={theme[color[status]]} />
       <div {...propsToPass}>{t(`${status}`)}</div>
     </Flex>
@@ -233,7 +233,7 @@ type PublishStatusProps = {status: SentryApp['status']; theme?: any};
 
 const PublishStatus = styled(({status, ...props}: PublishStatusProps) => {
   return (
-    <Flex align="center">
+    <Flex alignItems="center">
       <div {...props}>{t(`${status}`)}</div>
     </Flex>
   );

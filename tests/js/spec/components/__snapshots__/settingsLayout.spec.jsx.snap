@@ -4,22 +4,15 @@ exports[`SettingsLayout renders 1`] = `
 <Fragment>
   <SettingsColumn>
     <SettingsHeader>
-      <Flex
-        align="center"
-        width={1}
-      >
-        <Box
-          flex="1"
-        >
-          <ConnectedSettingsBreadcrumb
-            route={Object {}}
-            routes={Array []}
-          />
-        </Box>
+      <HeaderContent>
+        <StyledSettingsBreadcrumb
+          route={Object {}}
+          routes={Array []}
+        />
         <StyledSettingsSearch
           routes={Array []}
         />
-      </Flex>
+      </HeaderContent>
     </SettingsHeader>
     <MaxWidthContainer>
       <Content />

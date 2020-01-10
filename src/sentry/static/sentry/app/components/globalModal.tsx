@@ -30,6 +30,7 @@ class GlobalModal extends React.Component<Props> {
       onClose: PropTypes.func,
       dialogClassName: PropTypes.string,
       modalClassName: PropTypes.string,
+      modalCss: PropTypes.any,
     }),
     visible: PropTypes.bool,
     /**
@@ -82,6 +83,7 @@ class GlobalModal extends React.Component<Props> {
     return (
       <Modal
         className={options && options.modalClassName}
+        css={options && options.modalCss}
         dialogClassName={options && options.dialogClassName}
         show={visible}
         animation={false}

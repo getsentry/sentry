@@ -2,12 +2,9 @@
 
 exports[`StreamGroup renders with anchors 1`] = `
 <Group
-  align="center"
   data-test-id="group"
   onClick={[Function]}
   p={2}
-  px={0}
-  py={1}
 >
   <GroupCheckbox
     ml={2}
@@ -20,7 +17,7 @@ exports[`StreamGroup renders with anchors 1`] = `
     flex="1"
     ml={1}
     mr={1}
-    w={
+    width={
       Array [
         0.6666666666666666,
         0.6666666666666666,
@@ -174,10 +171,10 @@ exports[`StreamGroup renders with anchors 1`] = `
   <GuideAnchor
     target="issue_stream"
   />
-  <Box
+  <Styled(div)
     className="hidden-xs hidden-sm"
     mx={2}
-    w={160}
+    width={160}
   >
     <GroupChart
       data={
@@ -252,11 +249,11 @@ exports[`StreamGroup renders with anchors 1`] = `
       id="1337"
       statsPeriod="24h"
     />
-  </Box>
-  <Flex
-    justify="flex-end"
+  </Styled(div)>
+  <Styled(div)
+    justifyContent="flex-end"
     mx={2}
-    w={
+    width={
       Array [
         40,
         60,
@@ -268,11 +265,11 @@ exports[`StreamGroup renders with anchors 1`] = `
     <StyledCount
       value="327482"
     />
-  </Flex>
-  <Flex
-    justify="flex-end"
+  </Styled(div)>
+  <Styled(div)
+    justifyContent="flex-end"
     mx={2}
-    w={
+    width={
       Array [
         40,
         60,
@@ -284,16 +281,16 @@ exports[`StreamGroup renders with anchors 1`] = `
     <StyledCount
       value={35097}
     />
-  </Flex>
-  <Box
+  </Styled(div)>
+  <Styled(div)
     className="hidden-xs hidden-sm"
     mx={2}
-    w={80}
+    width={80}
   >
     <AssigneeSelector
       id="1337"
       size={20}
     />
-  </Box>
+  </Styled(div)>
 </Group>
 `;

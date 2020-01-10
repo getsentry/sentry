@@ -1,3 +1,4 @@
+import {ClassNames} from '@emotion/core';
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -5,7 +6,7 @@ import Reflux from 'reflux';
 import * as Sentry from '@sentry/browser';
 import debounce from 'lodash/debounce';
 import createReactClass from 'create-react-class';
-import styled, {css} from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {
   DEFAULT_DEBOUNCE_DURATION,
@@ -49,7 +50,7 @@ const getMediaQuery = (size, type) => `
   }
 `;
 
-const getInputButtonStyles = p => css`
+const getInputButtonStyles = p => `
   color: ${p.isActive ? theme.blueLight : theme.gray2};
   margin-left: ${space(0.5)};
   width: 18px;
@@ -68,7 +69,7 @@ const getInputButtonStyles = p => css`
     getMediaQuery(theme.breakpoints[p.collapseIntoEllipsisMenu], 'none')};
 `;
 
-const getDropdownElementStyles = p => css`
+const getDropdownElementStyles = p => `
   padding: 0 ${space(1)} ${p.last ? null : space(0.5)};
   margin-bottom: ${p.last ? null : space(0.5)};
   display: none;
@@ -920,7 +921,7 @@ class SmartSearchBar extends React.Component {
           placeholder={placeholder}
           id="smart-search-input"
           name="query"
-          innerRef={this.searchInput}
+          ref={this.searchInput}
           autoComplete="off"
           value={this.state.query}
           onFocus={this.onQueryFocus}
@@ -995,16 +996,22 @@ class SmartSearchBar extends React.Component {
             </InputButton>
           )}
           {canCreateSavedSearch && (
-            <CreateSavedSearchButton
-              query={this.state.query}
-              organization={organization}
-              disabled={!hasQuery}
-              withTooltip
-              iconOnly
-              buttonClassName={getInputButtonStyles({
-                collapseIntoEllipsisMenu: 2,
-              })}
-            />
+            <ClassNames>
+              {({css}) => (
+                <CreateSavedSearchButton
+                  query={this.state.query}
+                  organization={organization}
+                  disabled={!hasQuery}
+                  withTooltip
+                  iconOnly
+                  buttonClassName={css`
+                    ${getInputButtonStyles({
+                      collapseIntoEllipsisMenu: 2,
+                    })}
+                  `}
+                />
+              )}
+            </ClassNames>
           )}
           {hasSearchBuilder && (
             <SearchBuilderButton
@@ -1051,15 +1058,21 @@ class SmartSearchBar extends React.Component {
                 </DropdownElement>
               )}
               {canCreateSavedSearch && (
-                <CreateSavedSearchButton
-                  query={this.state.query}
-                  organization={organization}
-                  disabled={!hasQuery}
-                  buttonClassName={getDropdownElementStyles({
-                    showBelowMediaQuery: 2,
-                    last: false,
-                  })}
-                />
+                <ClassNames>
+                  {({css}) => (
+                    <CreateSavedSearchButton
+                      query={this.state.query}
+                      organization={organization}
+                      disabled={!hasQuery}
+                      buttonClassName={css`
+                        ${getDropdownElementStyles({
+                          showBelowMediaQuery: 2,
+                          last: false,
+                        })}
+                      `}
+                    />
+                  )}
+                </ClassNames>
               )}
               {hasSearchBuilder && (
                 <DropdownElement showBelowMediaQuery={2} last onClick={onSidebarToggle}>
@@ -1175,7 +1188,7 @@ const StyledInput = styled('input')`
 `;
 
 const InputButton = styled(Button)`
-  ${p => getInputButtonStyles(p)}
+  ${getInputButtonStyles}
 `;
 
 const SearchBuilderButton = styled(InputButton)`

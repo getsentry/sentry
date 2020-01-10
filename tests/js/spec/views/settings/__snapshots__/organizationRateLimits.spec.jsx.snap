@@ -2,10 +2,10 @@
 
 exports[`Organization Rate Limits renders with maxRate and maxRateInterval set 1`] = `
 <TextBlock
-  className="css-gx0lhm"
+  className="css-jpe7q8-OrganizationRateLimit"
 >
   <div
-    className="css-1ai2po6-TextBlock e1x1lar10"
+    className="css-mc9cv5-TextBlock-OrganizationRateLimit e1x1lar10"
   >
     <span
       key="8"

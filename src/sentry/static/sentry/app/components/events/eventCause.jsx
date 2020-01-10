@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import uniqBy from 'lodash/uniqBy';
 import flatMap from 'lodash/flatMap';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import CommitRow from 'app/components/commitRow';
 import InlineSvg from 'app/components/inlineSvg';

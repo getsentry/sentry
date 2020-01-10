@@ -103,101 +103,122 @@ exports[`ProjectPluginRow renders 1`] = `
         renderNoAccessMessage={false}
         requireAll={true}
       >
-        <Flex
-          align="center"
+        <Styled(div)
+          alignItems="center"
           className="amazon-sqs"
           flex="1"
           key="amazon-sqs"
         >
-          <Base
-            align="center"
-            className="amazon-sqs css-1yrw3fm"
-            flex="1"
+          <div
+            className="amazon-sqs css-1j7oo6s"
           >
-            <div
-              className="amazon-sqs css-1yrw3fm"
-              is={null}
-            >
-              <PluginInfo>
-                <div
-                  className="css-sm2hu2-PluginInfo e1y7j6vq0"
+            <PluginInfo>
+              <div
+                className="css-1jrzgda-PluginInfo e1y7j6vq0"
+              >
+                <StyledPluginIcon
+                  pluginId="amazon-sqs"
+                  size={48}
                 >
-                  <StyledPluginIcon
-                    pluginId="amazon-sqs"
+                  <div
+                    className="css-1xh0prp-PluginIcon-StyledPluginIcon e1y7j6vq2"
                     size={48}
+                  />
+                </StyledPluginIcon>
+                <Styled(div)
+                  flexDirection="column"
+                  justifyContent="center"
+                >
+                  <div
+                    className="css-bq2mgp"
                   >
-                    <div
-                      className="css-3pocio-PluginIcon-StyledPluginIcon e1y7j6vq2"
-                      size={48}
-                    />
-                  </StyledPluginIcon>
-                  <Flex
-                    direction="column"
-                    justify="center"
-                  >
-                    <Base
-                      className="css-11zjqd3"
-                      direction="column"
-                      justify="center"
-                    >
+                    <PluginName>
                       <div
-                        className="css-11zjqd3"
-                        is={null}
+                        className="css-1rrljgj-PluginName e1y7j6vq1"
                       >
-                        <PluginName>
-                          <div
-                            className="css-36lssg-PluginName e1y7j6vq1"
+                        Amazon SQS 
+                        <Version>
+                          <span
+                            className="css-1czymow-Version e1y7j6vq3"
                           >
-                            Amazon SQS 
-                            <Version>
-                              <span
-                                className="css-1det7j8-Version e1y7j6vq3"
-                              >
-                                v8.23.0.dev0
-                              </span>
-                            </Version>
-                          </div>
-                        </PluginName>
-                        <div>
-                          <ForwardRef
-                            className="css-8vm1xp-grayText"
+                            v8.23.0.dev0
+                          </span>
+                        </Version>
+                      </div>
+                    </PluginName>
+                    <div>
+                      <EmotionCssPropInternal
+                        __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+                          Object {
+                            "$$typeof": Symbol(react.forward_ref),
+                            "render": [Function],
+                          }
+                        }
+                        css={
+                          Object {
+                            "name": "1nx57m5-grayText",
+                            "styles": "color:#979ba0;;label:grayText;",
+                          }
+                        }
+                        href="https://github.com/getsentry/sentry"
+                      >
+                        <ForwardRef
+                          className="css-1nx57m5-grayText"
+                          href="https://github.com/getsentry/sentry"
+                        >
+                          <a
+                            className="css-1nx57m5-grayText"
                             href="https://github.com/getsentry/sentry"
+                            rel="noreferrer noopener"
+                            target="_blank"
+                          >
+                            Sentry Team
+                          </a>
+                        </ForwardRef>
+                      </EmotionCssPropInternal>
+                      <span>
+                         
+                        ·
+                         
+                        <EmotionCssPropInternal
+                          __EMOTION_TYPE_PLEASE_DO_NOT_USE__={[Function]}
+                          css={
+                            Object {
+                              "name": "1nx57m5-grayText",
+                              "styles": "color:#979ba0;;label:grayText;",
+                            }
+                          }
+                          to="amazon-sqs"
+                        >
+                          <Link
+                            className="css-1nx57m5-grayText"
+                            onlyActiveOnIndex={false}
+                            style={Object {}}
+                            to="amazon-sqs"
                           >
                             <a
-                              className="css-8vm1xp-grayText"
-                              href="https://github.com/getsentry/sentry"
-                              rel="noreferrer noopener"
-                              target="_blank"
-                            >
-                              Sentry Team
-                            </a>
-                          </ForwardRef>
-                          <span>
-                             
-                            ·
-                             
-                            <Link
-                              className="css-8vm1xp-grayText"
-                              onlyActiveOnIndex={false}
+                              className="css-1nx57m5-grayText"
+                              onClick={[Function]}
                               style={Object {}}
-                              to="amazon-sqs"
                             >
-                              <a
-                                className="css-8vm1xp-grayText"
-                                onClick={[Function]}
-                                style={Object {}}
-                              >
-                                Configure plugin
-                              </a>
-                            </Link>
-                          </span>
-                        </div>
-                      </div>
-                    </Base>
-                  </Flex>
-                </div>
-              </PluginInfo>
+                              Configure plugin
+                            </a>
+                          </Link>
+                        </EmotionCssPropInternal>
+                      </span>
+                    </div>
+                  </div>
+                </Styled(div)>
+              </div>
+            </PluginInfo>
+            <ForwardRef
+              isActive={false}
+              isDisabled={false}
+              size="lg"
+              toggle={[Function]}
+            >
               <Switch
+                forwardRef={null}
                 isActive={false}
                 isDisabled={false}
                 size="lg"
@@ -215,7 +236,7 @@ exports[`ProjectPluginRow renders 1`] = `
                 >
                   <button
                     aria-checked={false}
-                    className="css-qiticg-SwitchButton ezmyi9u0"
+                    className="css-1dy0xgk-SwitchButton ezmyi9u0"
                     data-test-id="switch"
                     onClick={[Function]}
                     role="checkbox"
@@ -228,16 +249,16 @@ exports[`ProjectPluginRow renders 1`] = `
                       size="lg"
                     >
                       <span
-                        className="css-pa284f-Toggle ezmyi9u1"
+                        className="css-1oum9in-Toggle ezmyi9u1"
                         size="lg"
                       />
                     </Toggle>
                   </button>
                 </SwitchButton>
               </Switch>
-            </div>
-          </Base>
-        </Flex>
+            </ForwardRef>
+          </div>
+        </Styled(div)>
       </Access>
     </withConfig(Access)>
   </WithOrganizationMockWrapper>

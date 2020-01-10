@@ -1,7 +1,7 @@
-import {Flex} from 'grid-emotion';
+import {Flex} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
 import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
@@ -224,8 +224,8 @@ class EnvironmentRow extends React.Component {
     const {environment, shouldShowAction, isSystemRow, isHidden, actionText} = this.props;
 
     return (
-      <PanelItem align="center" justify="space-between">
-        <Flex align="center">
+      <PanelItem alignItems="center" justifyContent="space-between">
+        <Flex alignItems="center">
           {isSystemRow ? t('All Environments') : environment.name}
         </Flex>
         <Access access={['project:write']}>

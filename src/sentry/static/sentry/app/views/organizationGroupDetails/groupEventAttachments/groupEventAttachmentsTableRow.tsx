@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import Link from 'app/components/links/link';
 import {t} from 'app/locale';

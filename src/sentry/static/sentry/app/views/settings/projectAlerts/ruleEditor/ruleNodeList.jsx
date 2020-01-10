@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import SelectControl from 'app/components/forms/selectControl';
 import RuleNode from 'app/views/settings/projectAlerts/ruleEditor/ruleNode';

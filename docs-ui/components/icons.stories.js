@@ -1,7 +1,7 @@
 import React from 'react';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import InlineSvg from 'app/components/inlineSvg';
 

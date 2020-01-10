@@ -3,7 +3,7 @@ import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';
 import React from 'react';
 import * as Sentry from '@sentry/browser';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {Panel} from 'app/components/panels';
 import {addErrorMessage} from 'app/actionCreators/indicator';

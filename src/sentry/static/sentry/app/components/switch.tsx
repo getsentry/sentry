@@ -1,8 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 type Props = {
+  forwardRef?: React.Ref<HTMLButtonElement>;
   className?: string;
   id?: string;
   size?: 'sm' | 'lg';
@@ -13,6 +14,7 @@ type Props = {
 };
 
 const Switch: React.FC<Props> = ({
+  forwardRef,
   size,
   isActive,
   isLoading,
@@ -22,6 +24,7 @@ const Switch: React.FC<Props> = ({
   className,
 }) => (
   <SwitchButton
+    ref={forwardRef}
     id={id}
     type="button"
     className={className}
@@ -40,6 +43,7 @@ const Switch: React.FC<Props> = ({
 
 Switch.propTypes = {
   id: PropTypes.string,
+  forwardRef: PropTypes.any,
   size: PropTypes.oneOf(['sm', 'lg']),
   isActive: PropTypes.bool,
   isLoading: PropTypes.bool,
@@ -98,4 +102,7 @@ const Toggle = styled('span')<StyleProps>`
   background: ${p => (p.isActive ? p.theme.green : p.theme.gray6)};
   opacity: ${p => (p.isDisabled ? 0.4 : null)};
 `;
-export default Switch;
+
+export default React.forwardRef<HTMLButtonElement, Props>((props, ref) => (
+  <Switch {...props} forwardRef={ref} />
+));

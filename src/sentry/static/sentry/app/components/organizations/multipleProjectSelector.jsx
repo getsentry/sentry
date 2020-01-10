@@ -1,6 +1,7 @@
+import {ClassNames} from '@emotion/core';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled, {css} from 'react-emotion';
+import styled from '@emotion/styled';
 
 import SentryTypes from 'app/sentryTypes';
 import {analytics} from 'app/utils/analytics';
@@ -14,10 +15,6 @@ import InlineSvg from 'app/components/inlineSvg';
 import HeaderItem from 'app/components/organizations/headerItem';
 import {growIn} from 'app/styles/animations';
 import space from 'app/styles/space';
-
-const rootContainerStyles = css`
-  display: flex;
-`;
 
 export default class MultipleProjectSelector extends React.PureComponent {
   static propTypes = {
@@ -182,58 +179,64 @@ export default class MultipleProjectSelector extends React.PureComponent {
         {t('Loading\u2026')}
       </StyledHeaderItem>
     ) : (
-      <StyledProjectSelector
-        {...this.props}
-        multi={multi}
-        selectedProjects={selected}
-        multiProjects={projects}
-        onSelect={this.handleQuickSelect}
-        onClose={this.handleClose}
-        onMultiSelect={this.handleMultiSelect}
-        rootClassName={rootContainerStyles}
-        menuFooter={({actions}) => (
-          <SelectorFooterControls
-            selected={selectedProjectIds}
+      <ClassNames>
+        {({css}) => (
+          <StyledProjectSelector
+            {...this.props}
             multi={multi}
-            organization={organization}
-            hasChanges={this.state.hasChanges}
-            onApply={() => this.handleUpdate(actions)}
-            onShowAllProjects={() => {
-              this.handleQuickSelect({id: ALL_ACCESS_PROJECTS});
-              actions.close();
-            }}
-            onShowMyProjects={() => {
-              this.handleClear();
-              actions.close();
-            }}
-          />
-        )}
-      >
-        {({getActorProps, selectedProjects, isOpen}) => {
-          const hasSelected = !!selectedProjects.length;
-          const title = hasSelected
-            ? selectedProjects.map(({slug}) => slug).join(', ')
-            : selectedProjectIds.has(ALL_ACCESS_PROJECTS)
-            ? t('All Projects')
-            : t('My Projects');
+            selectedProjects={selected}
+            multiProjects={projects}
+            onSelect={this.handleQuickSelect}
+            onClose={this.handleClose}
+            onMultiSelect={this.handleMultiSelect}
+            rootClassName={css`
+              display: flex;
+            `}
+            menuFooter={({actions}) => (
+              <SelectorFooterControls
+                selected={selectedProjectIds}
+                multi={multi}
+                organization={organization}
+                hasChanges={this.state.hasChanges}
+                onApply={() => this.handleUpdate(actions)}
+                onShowAllProjects={() => {
+                  this.handleQuickSelect({id: ALL_ACCESS_PROJECTS});
+                  actions.close();
+                }}
+                onShowMyProjects={() => {
+                  this.handleClear();
+                  actions.close();
+                }}
+              />
+            )}
+          >
+            {({getActorProps, selectedProjects, isOpen}) => {
+              const hasSelected = !!selectedProjects.length;
+              const title = hasSelected
+                ? selectedProjects.map(({slug}) => slug).join(', ')
+                : selectedProjectIds.has(ALL_ACCESS_PROJECTS)
+                ? t('All Projects')
+                : t('My Projects');
 
-          return (
-            <StyledHeaderItem
-              data-test-id="global-header-project-selector"
-              active={hasSelected || isOpen}
-              icon={<StyledInlineSvg src="icon-project" />}
-              hasSelected={hasSelected}
-              hasChanges={this.state.hasChanges}
-              isOpen={isOpen}
-              onClear={this.handleClear}
-              allowClear={multi}
-              {...getActorProps()}
-            >
-              {title}
-            </StyledHeaderItem>
-          );
-        }}
-      </StyledProjectSelector>
+              return (
+                <StyledHeaderItem
+                  data-test-id="global-header-project-selector"
+                  active={hasSelected || isOpen}
+                  icon={<StyledInlineSvg src="icon-project" />}
+                  hasSelected={hasSelected}
+                  hasChanges={this.state.hasChanges}
+                  isOpen={isOpen}
+                  onClear={this.handleClear}
+                  allowClear={multi}
+                  {...getActorProps()}
+                >
+                  {title}
+                </StyledHeaderItem>
+              );
+            }}
+          </StyledProjectSelector>
+        )}
+      </ClassNames>
     );
   }
 }

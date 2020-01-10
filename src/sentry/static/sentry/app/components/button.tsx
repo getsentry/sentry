@@ -1,7 +1,9 @@
 import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled, {css} from 'react-emotion';
+import styled from '@emotion/styled';
+import {css} from '@emotion/core';
+
 import isPropValid from '@emotion/is-prop-valid';
 import pickBy from 'lodash/pickBy';
 

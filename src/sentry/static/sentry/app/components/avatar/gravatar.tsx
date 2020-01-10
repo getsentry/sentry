@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import qs from 'query-string';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import ConfigStore from 'app/stores/configStore';
 import {callIfFunction} from 'app/utils/callIfFunction';
