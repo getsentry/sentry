@@ -41,7 +41,6 @@ export type NavigationItem = {
    * Returns the text of the badge to render next to the navigation.
    */
   badge?: (opts: NavigationGroupProps) => string | number | null;
-
   /**
    * Should clicking on the sidebar generate an analytics event
    */
