@@ -2,13 +2,16 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 from django.test import override_settings
-from six.moves.urllib.parse import quote
+from django.utils.html import escape
+from django.utils.safestring import mark_safe, SafeData
+from six.moves.urllib.parse import quote, urlencode
 from uuid import uuid4
 import logging
 
 from sentry.models import Environment, UserReport
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.utils import json
 
 
 @override_settings(ROOT_URLCONF="sentry.conf.urls")
@@ -89,6 +92,53 @@ class ErrorPageEmbedTest(TestCase):
         assert resp.status_code == 200, resp.content
         self.assertTemplateUsed(resp, "sentry/error-page-embed.html")
         assert "Fermer" in resp.content  # Close
+
+    def test_xss(self):
+        user_feedback_options = {}
+
+        # options that are known to be injected into JS
+        unsafe_option_keys = ["errorFormEntry", "successMessage", "errorGeneric"]
+        for key in unsafe_option_keys:
+            user_feedback_options[key] = "<img src=x onerror=alert({0})>XSS_{0}".format(key)
+
+        # options that are known to be used within a Django template but are automatically escaped
+        safe_option_keys = [
+            "title",
+            "subtitle",
+            "subtitle2",
+            "labelName",
+            "labelEmail",
+            "labelComments",
+            "labelSubmit",
+            "labelClose",
+        ]
+        for key in safe_option_keys:
+            user_feedback_options[key] = mark_safe(
+                "<img src=x onerror=alert({0})>XSS_{0}".format(key)
+            )
+
+        user_feedback_options_qs = urlencode(user_feedback_options)
+        path_with_qs = "%s?eventId=%s&dsn=%s&%s" % (
+            self.path,
+            quote(self.event_id),
+            quote(self.key.dsn_public),
+            user_feedback_options_qs,
+        )
+        resp = self.client.get(
+            path_with_qs,
+            HTTP_REFERER="http://example.com",
+            HTTP_ACCEPT="text/html, text/javascript",
+        )
+        assert resp.status_code == 200, resp.content
+        self.assertTemplateUsed(resp, "sentry/error-page-embed.html")
+
+        for xss_payload in user_feedback_options.values():
+            is_safe = isinstance(xss_payload, SafeData)
+            if is_safe:
+                assert escape(xss_payload) in resp.content, resp.content
+            else:
+                assert json.dumps_htmlsafe(escape(xss_payload)) in resp.content, resp.content
+            assert xss_payload not in resp.content
 
     def test_submission(self):
         resp = self.client.post(
