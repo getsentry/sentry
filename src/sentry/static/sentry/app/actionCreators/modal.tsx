@@ -103,20 +103,6 @@ export function openDiffModal(options: ModalOptions) {
 /**
  * @param Object options
  * @param Object options.organization The organization to create a team for
- */
-export function openCreateIncidentModal(options: ModalOptions = {}) {
-  import(/* webpackChunkName: "CreateIncidentModal" */ 'app/components/modals/createIncidentModal')
-    .then(mod => mod.default)
-    .then(Modal => {
-      openModal(deps => (
-        <Modal data-test-id="create-incident-modal" {...deps} {...options} />
-      ));
-    });
-}
-
-/**
- * @param Object options
- * @param Object options.organization The organization to create a team for
  * @param Object options.project (optional) An initial project to add the team to. This may be deprecated soon as
  * we may add a project selection inside of the modal flow
  */
