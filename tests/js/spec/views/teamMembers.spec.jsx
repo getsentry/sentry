@@ -2,12 +2,15 @@ import React from 'react';
 
 import {Client} from 'app/api';
 import {mountWithTheme} from 'sentry-test/enzyme';
-import {openInviteMembersModal, openTeamRequestModal} from 'app/actionCreators/modal';
+import {
+  openInviteMembersModal,
+  openTeamAccessRequestModal,
+} from 'app/actionCreators/modal';
 import TeamMembers from 'app/views/settings/organizationTeams/teamMembers';
 
 jest.mock('app/actionCreators/modal', () => ({
   openInviteMembersModal: jest.fn(),
-  openTeamRequestModal: jest.fn(),
+  openTeamAccessRequestModal: jest.fn(),
 }));
 
 describe('TeamMembers', function() {
@@ -153,7 +156,7 @@ describe('TeamMembers', function() {
       .first()
       .simulate('click');
 
-    expect(openTeamRequestModal).toHaveBeenCalled();
+    expect(openTeamAccessRequestModal).toHaveBeenCalled();
   });
 
   it('can invite member from team dropdown with access', async function() {

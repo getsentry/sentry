@@ -1,16 +1,16 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
-import {ModalRenderProps, TeamRequestModalOptions} from 'app/actionCreators/modal';
+import {ModalRenderProps, TeamAccessRequestModalOptions} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 
 type Props = ModalRenderProps &
-  TeamRequestModalOptions & {
+  TeamAccessRequestModalOptions & {
     api: Client;
     memberId: string;
     teamId: string;
@@ -21,7 +21,7 @@ type State = {
   createBusy: boolean;
 };
 
-class CreateTeamRequest extends React.Component<Props, State> {
+class CreateTeamAccessRequest extends React.Component<Props, State> {
   state: State = {
     createBusy: false,
   };
@@ -42,7 +42,7 @@ class CreateTeamRequest extends React.Component<Props, State> {
       addSuccessMessage(t('Team request sent for approval'));
     } catch (err) {
       this.setState({createBusy: false});
-      addErrorMessage(t('Unable to send team request.'));
+      addErrorMessage(t('Unable to send team request'));
     }
     closeModal();
   };
@@ -83,4 +83,4 @@ const ButtonGroup = styled('div')`
   grid-gap: ${space(1)};
 `;
 
-export default withApi(CreateTeamRequest);
+export default withApi(CreateTeamAccessRequest);

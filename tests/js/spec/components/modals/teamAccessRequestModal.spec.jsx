@@ -2,9 +2,9 @@ import {Modal} from 'react-bootstrap';
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
-import TeamRequestModal from 'app/components/modals/teamRequestModal';
+import TeamAccessRequestModal from 'app/components/modals/teamAccessRequestModal';
 
-describe('TeamRequestModal', function() {
+describe('TeamAccessRequestModal', function() {
   let wrapper;
   let createMock;
   const closeModal = jest.fn();
@@ -25,7 +25,7 @@ describe('TeamRequestModal', function() {
   beforeEach(function() {
     MockApiClient.clearMockResponses();
     wrapper = mountWithTheme(
-      <TeamRequestModal
+      <TeamAccessRequestModal
         orgId={orgId}
         teamId={teamId}
         memberId={memberId}

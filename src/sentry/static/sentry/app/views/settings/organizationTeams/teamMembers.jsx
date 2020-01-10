@@ -6,7 +6,10 @@ import styled from '@emotion/styled';
 import {Panel, PanelHeader} from 'app/components/panels';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {joinTeam, leaveTeam} from 'app/actionCreators/teams';
-import {openInviteMembersModal, openTeamRequestModal} from 'app/actionCreators/modal';
+import {
+  openInviteMembersModal,
+  openTeamAccessRequestModal,
+} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import UserAvatar from 'app/components/avatar/userAvatar';
 import Button from 'app/components/button';
@@ -188,12 +191,6 @@ class TeamMembers extends React.Component {
     );
   };
 
-  requestAddTeamMember = selection => {
-    const {params} = this.props;
-    const {orgId, teamId} = params;
-    openTeamRequestModal({teamId, orgId, memberId: selection.value});
-  };
-
   /**
    * We perform an API request to support orgs with > 100 members (since that's the max API returns)
    *
@@ -205,7 +202,7 @@ class TeamMembers extends React.Component {
   };
 
   renderDropdown = access => {
-    const {organization} = this.props;
+    const {organization, params} = this.props;
     const existingMembers = new Set(this.state.teamMemberList.map(member => member.id));
 
     // members can add other members to a team if the `Open Membership` setting is enabled
@@ -244,7 +241,16 @@ class TeamMembers extends React.Component {
     return (
       <DropdownAutoComplete
         items={items}
-        onSelect={canAddMembers ? this.addTeamMember : this.requestAddTeamMember}
+        onSelect={
+          canAddMembers
+            ? this.addTeamMember
+            : selection =>
+                openTeamAccessRequestModal({
+                  teamId: params.teamId,
+                  orgId: params.orgId,
+                  memberId: selection.value,
+                })
+        }
         menuHeader={menuHeader}
         emptyMessage={t('No members')}
         onChange={this.handleMemberFilterChange}

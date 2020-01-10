@@ -33,7 +33,7 @@ export type SentryAppDetailsModalOptions = {
   organization: Organization;
 };
 
-export type TeamRequestModalOptions = {
+export type TeamAccessRequestModalOptions = {
   memberId: string;
   teamId: string;
   orgId: string;
@@ -157,8 +157,8 @@ export function openRecoveryOptions(options: ModalOptions = {}) {
     });
 }
 
-export function openTeamRequestModal(options: TeamRequestModalOptions) {
-  import(/* webpackChunkName: "TeamRequestModal" */ 'app/components/modals/teamRequestModal')
+export function openTeamAccessRequestModal(options: TeamAccessRequestModalOptions) {
+  import(/* webpackChunkName: "TeamAccessRequestModal" */ 'app/components/modals/teamAccessRequestModal')
     .then(mod => mod.default)
     .then(Modal => {
       openModal(deps => <Modal {...deps} {...options} />, {
