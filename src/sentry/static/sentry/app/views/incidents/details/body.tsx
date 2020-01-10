@@ -4,19 +4,19 @@ import styled from '@emotion/styled';
 
 import {PageContent} from 'app/styles/organization';
 import {t} from 'app/locale';
-import Chart from 'app/views/incidents/details/chart';
 import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/links/link';
 import NavTabs from 'app/components/navTabs';
 import Placeholder from 'app/components/placeholder';
 import SeenByList from 'app/components/seenByList';
-import SideHeader from 'app/views/incidents/details/sideHeader';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
 import {Incident} from '../types';
 import Activity from './activity';
+import Chart from './chart';
+import SideHeader from './sideHeader';
 
 type Props = {
   incident?: Incident;
@@ -69,11 +69,9 @@ export default class DetailsBody extends React.Component<Props> {
                 <SideHeader>{t('Threshold')}</SideHeader>
                 <SideHeader>{t('Time Interval')}</SideHeader>
 
-                <RuleDetailItem>Events</RuleDetailItem>
-
-                <RuleDetailItem>> 1000</RuleDetailItem>
-
-                <RuleDetailItem>1 hour</RuleDetailItem>
+                <span>Events</span>
+                <span>> 1000</span>
+                <span>1 hour</span>
               </RuleDetails>
 
               <SideHeader>{t('Query')}</SideHeader>
@@ -95,12 +93,17 @@ const Main = styled('div')`
   display: flex;
   border-top: 1px solid ${p => p.theme.borderLight};
   background-color: ${p => p.theme.white};
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    flex-direction: column-reverse;
+  }
 `;
 
 const ActivityPageContent = styled(PageContent)`
   width: 60%;
   @media (max-width: ${theme.breakpoints[0]}) {
     width: 100%;
+    margin-bottom: 0;
   }
 `;
 
@@ -114,6 +117,12 @@ const Sidebar = styled('div')`
   @media (max-width: ${theme.breakpoints[0]}) {
     width: 100%;
     border: 0;
+
+    ${PageContent} {
+      padding-top: ${space(3)};
+      margin-bottom: 0;
+      border-bottom: 1px solid ${p => p.theme.borderLight};
+    }
   }
 `;
 
@@ -147,6 +156,7 @@ const StyledSeenByList = styled(SeenByList)`
 const RuleDetails = styled('div')`
   display: grid;
   grid-template-columns: repeat(3, 1fr);
+  grid-gap: ${space(1)};
   font-size: ${p => p.theme.fontSizeExtraLarge};
   margin-bottom: ${space(2)};
 `;
@@ -160,8 +170,6 @@ const Query = styled('div')`
   color: ${p => p.theme.gray4};
   ${overflowEllipsis}
 `;
-
-const RuleDetailItem = styled('div')``;
 
 const EditRuleLink = styled(Link)`
   display: grid;
