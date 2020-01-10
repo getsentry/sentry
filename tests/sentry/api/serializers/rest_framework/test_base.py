@@ -7,6 +7,7 @@ from sentry.api.serializers.rest_framework.base import (
     CamelSnakeModelSerializer,
     convert_dict_key_case,
     camel_to_snake_case,
+    snake_to_camel_case,
 )
 
 
@@ -32,18 +33,21 @@ class CamelSnakeModelSerializerTest(TestCase):
 
 
 def test_convert_dict_key_case():
-    data = {
+    camelData = {
         "appLabel": "hello",
         "model": "Something",
         "nestedList": [
             {"someObject": "someValue", "nestWithinNest": [{"anotherKey": "andAValue"}]}
         ],
     }
-    converted_data = convert_dict_key_case(data, camel_to_snake_case)
-    assert converted_data == {
+    snake_data = convert_dict_key_case(camelData, camel_to_snake_case)
+    assert snake_data == {
         "app_label": "hello",
         "model": "Something",
         "nested_list": [
             {"some_object": "someValue", "nest_within_nest": [{"another_key": "andAValue"}]}
         ],
     }
+
+    camelData2 = convert_dict_key_case(snake_data, snake_to_camel_case)
+    assert camelData2 == camelData
