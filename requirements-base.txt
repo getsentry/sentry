@@ -13,7 +13,7 @@ django-crispy-forms==1.7.2
 django-picklefield>=0.3.0,<1.1.0
 django-sudo>=3.0.0,<4.0.0
 Django>=1.10,<1.11
-djangorestframework==3.4.7
+djangorestframework==3.5.4
 email-reply-parser>=0.2.0,<0.3.0
 enum34>=1.1.6,<1.2.0
 functools32>=3.2.3,<3.3
