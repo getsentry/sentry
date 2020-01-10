@@ -3,6 +3,8 @@ from __future__ import absolute_import
 from datetime import timedelta
 
 import six
+import operator
+
 from enum import Enum
 from rest_framework import serializers
 
@@ -382,20 +384,25 @@ class UnifiedAlertRuleSerializer(AlertRuleSerializer):
                 else:
                     if critical['threshold_type'] != warning['threshold_type']:
                         raise serializers.ValidationError('Must have matching threshold types (i.e. critical and warning triggers must both be an upper or lower bound)')
+
                     if critical['threshold_type'] == AlertRuleThresholdType.ABOVE:
-                        if critical['alert_threshold'] < warning['alert_threshold']:
-                            raise serializers.ValidationError('"%s" trigger must have an alert threshold above "%s" trigger' % (CRITICAL_TRIGGER_LABEL, WARNING_TRIGGER_LABEL))
-                        elif critical['resolve_threshold'] > warning['resolve_threshold']:
-                            raise serializers.ValidationError('"%s" trigger must have a resolution threshold below (or equal to) "%s" trigger' % (CRITICAL_TRIGGER_LABEL, WARNING_TRIGGER_LABEL))
+                        alert_op, resolve_op = operator.lt, operator.lt
+                        alert_error = 'Critical trigger must have an alert threshold above warning trigger'
+                        resolve_error = 'Critical trigger must have a resolution threshold above (or equal to) warning trigger'
                     elif critical['threshold_type'] == AlertRuleThresholdType.BELOW:
-                        if critical['alert_threshold'] > warning['alert_threshold']:
-                            raise serializers.ValidationError('"%s" trigger must have an alert threshold below "%s" trigger' % (CRITICAL_TRIGGER_LABEL, WARNING_TRIGGER_LABEL))
-                        elif critical['resolve_threshold'] < warning['resolve_threshold']:
-                            raise serializers.ValidationError('"%s" trigger must have a resolution threshold above (or equal to) "%s" trigger' % (CRITICAL_TRIGGER_LABEL, WARNING_TRIGGER_LABEL))
+                        alert_op, resolve_op = operator.gt, operator.gt
+                        alert_error = 'Critical trigger must have an alert threshold below warning trigger'
+                        resolve_error = 'Critical trigger must have a resolution threshold below (or equal to) warning trigger'
                     else:
                         raise serializers.ValidationError('Invalid threshold type. Valid values are %s' % [item.value for item in AlertRuleThresholdType])
+
+                    if alert_op(critical['alert_threshold'], warning['alert_threshold']):
+                        raise serializers.ValidationError(alert_error)
+                    elif resolve_op(critical['resolve_threshold'], warning['resolve_threshold']):
+                        raise serializers.ValidationError(resolve_error)
+
             else:
-                raise serializers.ValidationError('Must send 1 or 2 triggers - 1 "%s" trigger, and 1 optional "%s" trigger' % (CRITICAL_TRIGGER_LABEL, WARNING_TRIGGER_LABEL))
+                raise serializers.ValidationError('Must send 1 or 2 triggers - A critical trigger, and an optional warning trigger')
 
             # Triggers have passed checks. Check that all triggers have at least one action now.
             for trigger in triggers:
@@ -428,7 +435,6 @@ class UnifiedAlertRuleSerializer(AlertRuleSerializer):
     def update(self, instance, validated_data):
         validated_data = self._remove_unchanged_fields(instance, validated_data)
         triggers_data = validated_data.pop("triggers")
-        # TODO: User super.update?
         alert_rule = update_alert_rule(instance, **validated_data)
         for trigger_data in triggers_data:
             actions_data = trigger_data.pop("actions")
