@@ -255,6 +255,36 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         assert len(resp.data["triggers"][0]["actions"])==1
         assert len(resp.data["triggers"][1]["actions"])==2
 
+    def test_invalid_thresholds(self):
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+        alert_rule = self.alert_rule
+        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+        serialized_alert_rule = self.get_serialized_alert_rule()
+
+        serialized_alert_rule["triggers"][0]["alertThreshold"] = 50 # Invalid
+        with self.feature("organizations:incidents"):
+            self.get_valid_response(
+                self.organization.slug, alert_rule.id, status_code=400, **serialized_alert_rule
+            )
+        serialized_alert_rule["triggers"][0]["alertThreshold"] = 200 # Back to normal, valid.
+
+        serialized_alert_rule["triggers"][0]["resolveThreshold"] = 50 # Invalid, less than warning resolve threshold.
+        with self.feature("organizations:incidents"):
+            self.get_valid_response(
+                self.organization.slug, alert_rule.id, status_code=400, **serialized_alert_rule
+            )
+        serialized_alert_rule["triggers"][0]["resolveThreshold"] = 100 # Back to normal, valid.
+
+        serialized_alert_rule["triggers"][0]["thresholdType"] = 1 # Invalid, different than other trigger.
+        with self.feature("organizations:incidents"):
+            self.get_valid_response(
+                self.organization.slug, alert_rule.id, status_code=400, **serialized_alert_rule
+            )
+        serialized_alert_rule["triggers"][0]["thresholdType"] = 0 # Back to normal, valid.
+
 
 class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
     method = "delete"
