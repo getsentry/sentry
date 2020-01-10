@@ -627,7 +627,6 @@ def create_alert_rule(
     `include_all_projects`.
     :return: The created `AlertRule`
     """
-    print("logic.py create_alert_rule called")
     dataset = QueryDatasets.EVENTS
     resolution = DEFAULT_ALERT_RULE_RESOLUTION
     validate_alert_rule_query(query)
@@ -883,7 +882,6 @@ def create_alert_rule_trigger(
     trigger. These projects must be associate with the alert rule already
     :return: The created AlertRuleTrigger
     """
-    print ("Creating alert rule trigger")
 
     if AlertRuleTrigger.objects.filter(alert_rule=alert_rule, label=label).exists():
         raise AlertRuleTriggerLabelAlreadyUsedError()
@@ -893,7 +891,6 @@ def create_alert_rule_trigger(
         excluded_subs = get_subscriptions_from_alert_rule(alert_rule, excluded_projects)
 
     with transaction.atomic():
-        print("Create attempt incoming..")
         trigger = AlertRuleTrigger.objects.create(
             alert_rule=alert_rule,
             label=label,
@@ -901,14 +898,12 @@ def create_alert_rule_trigger(
             alert_threshold=alert_threshold,
             resolve_threshold=resolve_threshold,
         )
-        print("Success?")
         if excluded_subs:
             new_exclusions = [
                 AlertRuleTriggerExclusion(alert_rule_trigger=trigger, query_subscription=sub)
                 for sub in excluded_subs
             ]
             AlertRuleTriggerExclusion.objects.bulk_create(new_exclusions)
-    print("Returning trigger:",trigger)
     return trigger
 
 

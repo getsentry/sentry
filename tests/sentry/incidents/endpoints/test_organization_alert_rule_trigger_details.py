@@ -114,6 +114,7 @@ class AlertRuleTriggerDetailsPutEndpointTest(AlertRuleTriggerDetailsBase, APITes
         # Alert rule should be exactly the same
         assert resp.data == serialize(self.trigger)
 
+
 class AlertRuleTriggerDetailsDeleteEndpointTest(AlertRuleTriggerDetailsBase, APITestCase):
     method = "delete"
 
