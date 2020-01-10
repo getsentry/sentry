@@ -8,6 +8,7 @@ import * as Sentry from '@sentry/browser';
 import space from 'app/styles/space';
 import {Client} from 'app/api';
 import SentryTypes from 'app/sentryTypes';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Placeholder from 'app/components/placeholder';
 import TagDistributionMeter from 'app/components/tagDistributionMeter';
 import withApi from 'app/utils/withApi';
@@ -144,7 +145,10 @@ class Tags extends React.Component<Props, State> {
       <TagSection>
         <StyledHeading>{t('Event Tag Summary')}</StyledHeading>
         {this.state.loading && this.renderPlaceholders()}
-        {this.state.tags && this.state.tags.map(tag => this.renderTag(tag))}
+        {this.state.tags.length > 0 && this.state.tags.map(tag => this.renderTag(tag))}
+        {!this.state.loading && !this.state.tags.length && (
+          <EmptyStateWarning small>{t('No tags')}</EmptyStateWarning>
+        )}
       </TagSection>
     );
   }
