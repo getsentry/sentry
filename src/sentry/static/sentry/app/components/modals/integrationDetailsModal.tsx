@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {analytics} from 'app/utils/analytics';
+import {trackEcosystemEvent} from 'app/utils/ecosystemUtil';
 import {t} from 'app/locale';
 import Access from 'app/components/acl/access';
 import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
@@ -57,10 +57,16 @@ class IntegrationDetailsModal extends React.Component<Props> {
   };
 
   componentDidMount() {
-    analytics('integrations.install_modal_opened', {
-      org_id: parseInt(this.props.organization.id, 10),
-      integration: this.props.provider.key,
-    });
+    trackEcosystemEvent(
+      {
+        eventKey: 'integrations.install_modal_opened',
+        eventName: 'Integrations: Install Modal Opened',
+        integration_type: 'first_party',
+        integration: this.props.provider.key,
+        already_installed: this.props.isInstalled,
+      },
+      this.props.organization
+    );
   }
 
   onAddIntegration = (integration: Integration) => {
@@ -68,7 +74,7 @@ class IntegrationDetailsModal extends React.Component<Props> {
     this.props.onAddIntegration(integration);
   };
 
-  featureTags(features) {
+  featureTags(features: string[]) {
     return features.map(feature => (
       <StyledTag key={feature}>{feature.replace(/-/g, ' ')}</StyledTag>
     ));

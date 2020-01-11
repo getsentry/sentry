@@ -14,7 +14,6 @@ import OrganizationAvatar from 'app/components/avatar/organizationAvatar';
 import SentryAppDetailsModal from 'app/components/modals/sentryAppDetailsModal';
 import {installSentryApp} from 'app/actionCreators/sentryAppInstallations';
 import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
-import {recordInteraction} from 'app/utils/recordSentryAppInteraction';
 import {
   LightWeightOrganization,
   Organization,
@@ -33,10 +32,6 @@ type State = AsyncView['state'] & {
 };
 
 export default class SentryAppExternalInstallation extends AsyncView<Props, State> {
-  componentDidMount() {
-    recordInteraction(this.sentryAppSlug, 'sentry_app_viewed');
-  }
-
   getDefaultState() {
     const state = super.getDefaultState();
     return {
@@ -128,13 +123,14 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
       const isInstalled = installations
         .map(install => install.app.slug)
         .includes(this.sentryAppSlug);
-      this.setState({organization, isInstalled});
+      //all state fields should be set at the same time so analytics in SentryAppDetailsModal works properly
+      this.setState({organization, isInstalled, reloading: false});
     } catch (err) {
       IndicatorStore.addError(
         t('Failed to retrieve organization or integration details')
       );
+      this.setState({reloading: false});
     }
-    this.setState({reloading: false});
   };
 
   onRequestSuccess = ({stateKey, data}) => {

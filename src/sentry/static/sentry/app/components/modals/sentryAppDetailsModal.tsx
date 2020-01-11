@@ -20,6 +20,8 @@ import CircleIndicator from 'app/components/circleIndicator';
 import {SentryAppDetailsModalOptions} from 'app/actionCreators/modal';
 import {Hooks} from 'app/types/hooks';
 import {IntegrationFeature} from 'app/types';
+import {recordInteraction} from 'app/utils/recordSentryAppInteraction';
+import {trackEcosystemEvent} from 'app/utils/ecosystemUtil';
 
 type Props = {
   closeOnInstall?: boolean;
@@ -61,6 +63,34 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
   static defaultProps = {
     closeOnInstall: true,
   };
+
+  componentDidUpdate(prevProps: Props) {
+    //if the user changes org, count this as a fresh event to track
+    if (this.props.organization.id !== prevProps.organization.id) {
+      this.trackOpened();
+    }
+  }
+
+  componentDidMount() {
+    this.trackOpened();
+  }
+
+  trackOpened() {
+    const {sentryApp, organization, isInstalled} = this.props;
+    recordInteraction(sentryApp.slug, 'sentry_app_viewed');
+
+    trackEcosystemEvent(
+      {
+        eventKey: 'integrations.install_modal_opened',
+        eventName: 'Integrations: Install Modal Opened',
+        integration_type: 'sentry_app',
+        integration: sentryApp.slug,
+        already_installed: isInstalled,
+        view: 'external_install',
+      },
+      organization
+    );
+  }
 
   getEndpoints(): [string, string][] {
     const {sentryApp} = this.props;

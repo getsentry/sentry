@@ -76,7 +76,12 @@ export default class ProviderRow extends React.Component<Props> {
     const organization = this.context.organization;
     const provider = this.props.provider;
     const onAddIntegration = this.props.onInstall;
-    openIntegrationDetails({provider, organization, onAddIntegration});
+    openIntegrationDetails({
+      provider,
+      organization,
+      onAddIntegration,
+      isInstalled: this.isEnabled,
+    });
   };
 
   // Rendering
