@@ -53,27 +53,26 @@ export default class Status extends React.Component<Props> {
 
 type StatusType = 'warning' | 'critical' | 'resolved';
 
-// TODO(ts): type theme somehow
-type WrapperProps = {theme?: any; status: StatusType};
+type WrapperProps = {status: StatusType};
 
-function getHighlight({theme, status}: WrapperProps) {
+function getHighlight({theme, status}) {
   if (status === 'resolved') {
     return theme.greenDark;
   } else if (status === 'warning') {
-    return theme.redDark;
+    return theme.yellowDark;
   }
 
-  return theme.yellowDark;
+  return theme.redDark;
 }
 
-function getColor({theme, status}: WrapperProps) {
+function getColor({theme, status}) {
   if (status === 'resolved') {
     return theme.greenLightest;
   } else if (status === 'warning') {
-    return theme.redLightest;
+    return theme.yellowLightest;
   }
 
-  return theme.yellowLightest;
+  return theme.redLightest;
 }
 
 const Wrapper = styled('div')<WrapperProps>`
