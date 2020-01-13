@@ -525,7 +525,7 @@ def get_query_params_to_update_for_projects(query_params):
         )
 
     # any project will do, as they should all be from the same organization
-    organization_id = Project.objects.get(pk=project_ids[0]).organization_id
+    organization_id = Project.objects.get_from_cache(pk=project_ids[0]).organization_id
 
     return organization_id, {"project": project_ids}
 
