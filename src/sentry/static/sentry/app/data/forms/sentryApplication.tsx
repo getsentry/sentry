@@ -27,8 +27,14 @@ const getPublicFormFields = (): Field[] => [
     required: true,
     label: 'Webhook URL',
     placeholder: 'e.g. https://example.com/sentry/webhook/',
-    help:
-      'The URL Sentry will send requests to for events such as installation changes and any Resource Subscriptions the Integration subscribes to.',
+    help: tct(
+      'All webhook requests for your integration will be sent to this URL. Visit the [webhook_docs:documentation] to see the different types and payloads.',
+      {
+        webhook_docs: (
+          <a href="https://docs.sentry.io/workflow/integrations/integration-platform/webhooks/" />
+        ),
+      }
+    ),
   },
   {
     name: 'redirectUrl',
@@ -50,7 +56,7 @@ const getPublicFormFields = (): Field[] => [
     disabled: ({webhookDisabled}) => webhookDisabled,
     disabledReason: 'Cannot enable alert rule action without a webhook url',
     help: tct(
-      'If enabled, this integration will be an action under alert rules in Sentry. The notification destination is the Webhook URL specified above. More on actions [learn_more:Here].',
+      'If enabled, this integration will be an action under alert rules in Sentry. The notification destination is the Webhook URL specified above. More on actions [learn_more:here].',
       {
         learn_more: <a href="https://docs.sentry.io/product/notifications/#actions" />,
       }
