@@ -3,8 +3,6 @@ import React from 'react';
 
 import {IncidentRule} from 'app/views/settings/incidentRules/types';
 import {Organization} from 'app/types';
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import RuleForm from 'app/views/settings/incidentRules/ruleForm';
 import recreateRoute from 'app/utils/recreateRoute';
