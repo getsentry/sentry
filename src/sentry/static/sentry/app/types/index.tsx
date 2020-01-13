@@ -228,9 +228,11 @@ export type AvatarUser = {
   name: string;
   username: string;
   email: string;
-  avatarUrl: string;
-  avatar: Avatar;
+  avatarUrl?: string;
+  avatar?: Avatar;
   ip_address: string;
+  // Compatibility shim with EventUser serializer
+  ipAddress?: string;
   options?: {
     avatarType: string;
   };
@@ -627,6 +629,12 @@ export type UserReport = {
   id: string;
   eventID: string;
   issue: Group;
+  name: string;
+  event: {eventID: string; id: string};
+  user: User;
+  dateCreated: string;
+  comments: string;
+  email: string;
 };
 
 export type Commit = {
@@ -700,4 +708,39 @@ export type SavedQueryState = {
 export type SelectValue<T> = {
   label: string;
   value: T;
+};
+
+/**
+ * The issue config form fields we get are basically the form fields we use in the UI but with some extra information.
+ * Some fields marked optional in the form field are guaranteed to exist so we can mark them as required here
+ */
+
+export type IssueConfigField = Field & {
+  name: string;
+  default?: string;
+  choices?: [number | string, number | string][];
+  url?: string;
+  multiple?: boolean;
+};
+
+export type IntegrationIssueConfig = {
+  status: ObjectStatus;
+  name: string;
+  domainName: string;
+  linkIssueConfig?: IssueConfigField[];
+  createIssueConfig?: IssueConfigField[];
+  provider: IntegrationProvider;
+  icon: string[];
+};
+
+export type OnboardingTask = {
+  task: number;
+  title: string;
+  description: string;
+  detailedDescription?: string;
+  skippable: boolean;
+  prereq: number[];
+  featureLocation: string;
+  location: string | (() => void);
+  display: boolean;
 };

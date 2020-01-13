@@ -1,7 +1,8 @@
 import {Link} from 'react-router';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
-import styled, {css} from 'react-emotion';
+import styled from '@emotion/styled';
+import {css} from '@emotion/core';
 
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';

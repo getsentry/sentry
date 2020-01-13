@@ -1,18 +1,26 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import ErrorLevel from 'app/components/events/errorLevel';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 
-const Message = styled('span')`
-  ${overflowEllipsis}
-  width: auto;
-  max-height: 38px;
-`;
+type Props = {
+  level?: 'error' | 'fatal' | 'info' | 'warning' | 'sample';
+  levelIndicatorSize?: string;
+  message?: React.ReactNode;
+  annotations?: React.ReactNode;
+  className?: string;
+};
 
-function EventMessage({className, level, levelIndicatorSize, message, annotations}) {
+const EventMessage: React.FC<Props> = ({
+  className,
+  level,
+  levelIndicatorSize,
+  message,
+  annotations,
+}) => {
   return (
     <div className={className}>
       {level && (
@@ -24,16 +32,17 @@ function EventMessage({className, level, levelIndicatorSize, message, annotation
       {annotations}
     </div>
   );
-}
+};
 
 EventMessage.propTypes = {
   level: PropTypes.oneOf(['error', 'fatal', 'info', 'warning', 'sample']),
   levelIndicatorSize: PropTypes.string,
   message: PropTypes.node,
   annotations: PropTypes.node,
+  className: PropTypes.string,
 };
 
-export default styled(EventMessage)`
+const StyledEventMessage = styled(EventMessage)`
   display: flex;
   align-items: center;
   position: relative;
@@ -47,3 +56,11 @@ export default styled(EventMessage)`
 const StyledErrorLevel = styled(ErrorLevel)`
   margin-right: ${space(1)};
 `;
+
+const Message = styled('span')`
+  ${overflowEllipsis}
+  width: auto;
+  max-height: 38px;
+`;
+
+export default StyledEventMessage;

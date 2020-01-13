@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
@@ -67,7 +67,7 @@ export default class ProviderItem extends React.PureComponent {
         }
       >
         {({hasFeature, features, renderDisabled, renderInstallButton}) => (
-          <PanelItem align="center">
+          <PanelItem alignItems="center">
             <ProviderInfo>
               <ProviderLogo className={`provider-logo ${provider.name.toLowerCase()}`} />
               <div>

@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import UserAvatar from 'app/components/avatar/userAvatar';
@@ -109,7 +109,7 @@ class AuditLogList extends React.Component {
             {hasEntries &&
               entries.map(entry => {
                 return (
-                  <StyledPanelItem align="center" key={entry.id}>
+                  <StyledPanelItem alignItems="center" key={entry.id}>
                     <UserInfo>
                       <div>
                         {entry.actor.email && (

@@ -1,7 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
+import {UserReport} from 'app/types';
+import SentryTypes from 'app/sentryTypes';
 import {nl2br, escape} from 'app/utils';
 import {t} from 'app/locale';
 import ActivityAuthor from 'app/components/activity/author';
@@ -11,11 +13,19 @@ import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/links/link';
 import space from 'app/styles/space';
 
-class EventUserFeedback extends React.Component {
+type Props = {
+  report: UserReport;
+  orgId: string;
+  issueId: string;
+  className?: string;
+};
+
+class EventUserFeedback extends React.Component<Props> {
   static propTypes = {
-    report: PropTypes.object.isRequired,
+    report: SentryTypes.UserReport.isRequired,
     orgId: PropTypes.string.isRequired,
     issueId: PropTypes.string.isRequired,
+    className: PropTypes.string,
   };
 
   getUrl() {

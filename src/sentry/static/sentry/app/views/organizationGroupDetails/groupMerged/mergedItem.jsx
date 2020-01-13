@@ -1,9 +1,9 @@
-import {Flex} from 'grid-emotion';
+import {Flex} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import Checkbox from 'app/components/checkbox';
 import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
@@ -151,7 +151,7 @@ const ActionColumn = styled(Flex)`
 `;
 
 const Controls = styled(({expanded: _expanded, ...props}) => (
-  <Flex justify="space-between" {...props} />
+  <Flex justifyContent="space-between" {...props} />
 ))`
   border-top: 1px solid ${p => p.theme.borderLight};
   background-color: #f3f1f6;

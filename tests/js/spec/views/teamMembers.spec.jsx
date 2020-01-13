@@ -41,12 +41,10 @@ describe('TeamMembers', function() {
     wrapper.update();
   });
 
-  it('can invite member from team dropdown', async function() {
+  it('can invite member from team dropdown with access', async function() {
+    const org = TestStubs.Organization({access: ['team:admin'], openMembership: false});
     const wrapper = mountWithTheme(
-      <TeamMembers
-        params={{orgId: organization.slug, teamId: team.slug}}
-        organization={organization}
-      />,
+      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
       routerContext
     );
 
@@ -59,6 +57,57 @@ describe('TeamMembers', function() {
       .simulate('click');
 
     expect(openInviteMembersModal).toHaveBeenCalled();
+  });
+
+  it('can invite member from team dropdown with access and `Open Membership` enabled', async function() {
+    const org = TestStubs.Organization({access: ['team:admin'], openMembership: true});
+    const wrapper = mountWithTheme(
+      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
+      routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    wrapper.find('DropdownButton[data-test-id="add-member"]').simulate('click');
+    wrapper
+      .find('StyledCreateMemberLink[data-test-id="invite-member"]')
+      .simulate('click');
+
+    expect(openInviteMembersModal).toHaveBeenCalled();
+  });
+
+  it('can invite member from team dropdown without access and `Open Membership` enabled', async function() {
+    const org = TestStubs.Organization({access: [], openMembership: true});
+    const wrapper = mountWithTheme(
+      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
+      routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    wrapper.find('DropdownButton[data-test-id="add-member"]').simulate('click');
+    wrapper
+      .find('StyledCreateMemberLink[data-test-id="invite-member"]')
+      .simulate('click');
+
+    expect(openInviteMembersModal).toHaveBeenCalled();
+  });
+
+  it('cannot invite member from team dropdown without access and `Open Membership` disabled', async function() {
+    const org = TestStubs.Organization({access: [], openMembership: false});
+    const wrapper = mountWithTheme(
+      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
+      routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    expect(
+      wrapper.find('DropdownButton[data-test-id="add-member"]').prop('disabled')
+    ).toBe(true);
   });
 
   it('can remove member from team', async function() {

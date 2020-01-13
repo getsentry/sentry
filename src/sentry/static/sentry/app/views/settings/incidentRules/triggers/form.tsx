@@ -22,6 +22,7 @@ type AlertRuleThresholdKey = {
 type Props = {
   api: Client;
   config: Config;
+  disabled: boolean;
   organization: Organization;
 
   /**
@@ -119,7 +120,7 @@ class TriggerForm extends React.PureComponent<Props> {
   };
 
   render() {
-    const {error, trigger, isCritical} = this.props;
+    const {disabled, error, trigger, isCritical} = this.props;
     const triggerLabel = isCritical
       ? t('Critical Trigger Threshold')
       : t('Warning Trigger Threshold');
@@ -136,6 +137,7 @@ class TriggerForm extends React.PureComponent<Props> {
           error={error && error.alertThreshold}
         >
           <ThresholdControl
+            disabled={disabled}
             type={AlertRuleThreshold.INCIDENT}
             thresholdType={trigger.thresholdType}
             threshold={trigger.alertThreshold}
@@ -149,6 +151,7 @@ class TriggerForm extends React.PureComponent<Props> {
           error={error && error.resolutionThreshold}
         >
           <ThresholdControl
+            disabled={disabled}
             type={AlertRuleThreshold.RESOLUTION}
             thresholdType={trigger.thresholdType}
             threshold={trigger.resolveThreshold}
@@ -219,6 +222,7 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
       availableActions,
       config,
       currentProject,
+      disabled,
       error,
       isCritical,
       organization,
@@ -232,6 +236,7 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
         <TriggerForm
           api={api}
           config={config}
+          disabled={disabled}
           error={error}
           trigger={trigger}
           organization={organization}
@@ -241,6 +246,7 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
           onChange={this.handleChangeTrigger}
         />
         <ActionsPanel
+          disabled={disabled}
           loading={availableActions === null}
           error={false}
           availableActions={availableActions}

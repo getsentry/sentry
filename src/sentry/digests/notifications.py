@@ -66,6 +66,8 @@ def attach_state(project, groups, rules, event_counts, user_counts):
     for id, group in six.iteritems(groups):
         assert group.project_id == project.id, "Group must belong to Project"
         group.project = project
+        group.event_count = 0
+        group.user_count = 0
 
     for id, rule in six.iteritems(rules):
         assert rule.project_id == project.id, "Rule must belong to Project"

@@ -272,6 +272,14 @@ class TagStorageTest(TestCase, SnubaTestCase):
                 value="notreal",
             )
 
+    def test_get_tag_value_label(self):
+        assert self.ts.get_tag_value_label("foo", "notreal") == "notreal"
+        assert self.ts.get_tag_value_label("sentry:user", None) is None
+        assert self.ts.get_tag_value_label("sentry:user", "id:stuff") == "stuff"
+        assert self.ts.get_tag_value_label("sentry:user", "email:stuff") == "stuff"
+        assert self.ts.get_tag_value_label("sentry:user", "username:stuff") == "stuff"
+        assert self.ts.get_tag_value_label("sentry:user", "ip:stuff") == "stuff"
+
     def test_get_groups_user_counts(self):
         assert self.ts.get_groups_user_counts(
             project_ids=[self.proj1.id],

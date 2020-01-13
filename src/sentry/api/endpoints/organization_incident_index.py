@@ -1,8 +1,6 @@
 from __future__ import absolute_import
 
 from rest_framework import serializers
-from rest_framework.exceptions import PermissionDenied
-from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.bases.incident import IncidentPermission
@@ -11,8 +9,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ListField
-from sentry.incidents.logic import create_incident
-from sentry.incidents.models import Incident, IncidentStatus, IncidentType
+from sentry.incidents.models import Incident, IncidentStatus
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.snuba.models import QueryAggregations
@@ -84,32 +81,3 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
             on_results=lambda x: serialize(x, request.user),
             default_per_page=25,
         )
-
-    def post(self, request, organization):
-        if not features.has("organizations:incidents", organization, actor=request.user):
-            return self.respond(status=404)
-
-        serializer = IncidentSerializer(data=request.data, context={"organization": organization})
-
-        if serializer.is_valid():
-
-            result = serializer.validated_data
-            groups = result["groups"]
-            all_projects = set(result["projects"]) | set(g.project for g in result["groups"])
-            if any(p for p in all_projects if not request.access.has_project_access(p)):
-                raise PermissionDenied
-
-            incident = create_incident(
-                organization=organization,
-                type=IncidentType.CREATED,
-                title=result["title"],
-                query=result.get("query", ""),
-                aggregation=result["aggregation"],
-                date_started=result.get("dateStarted"),
-                date_detected=result.get("dateDetected"),
-                projects=result["projects"],
-                groups=groups,
-                user=request.user,
-            )
-            return Response(serialize(incident, request.user), status=201)
-        return Response(serializer.errors, status=400)
