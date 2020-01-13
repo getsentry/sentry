@@ -394,7 +394,7 @@ class Sidebar extends React.Component {
                           evt
                         )
                       }
-                      icon={<InlineSvg src="icon-health" />}
+                      icon={<InlineSvg src="icon-health" />} // this needs to have different icon, because health is already taken (Dashboards)
                       label={t('Health')}
                       to={`/organizations/${organization.slug}/health/`}
                       id="health"

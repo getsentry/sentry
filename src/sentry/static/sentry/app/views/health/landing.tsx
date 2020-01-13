@@ -1,74 +1,70 @@
 import React from 'react';
-import PropTypes from 'prop-types';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import * as ReactRouter from 'react-router';
 import {Params} from 'react-router/lib/Router';
 import {Location} from 'history';
 
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import {Organization} from 'app/types';
 import localStorage from 'app/utils/localStorage';
-import AsyncComponent from 'app/components/asyncComponent';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import AsyncView from 'app/views/asyncView';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import Banner from 'app/components/banner';
 import NoProjectMessage from 'app/components/noProjectMessage';
-import {PageContent} from 'app/styles/organization';
+import {PageContent, PageHeader} from 'app/styles/organization';
+import PageHeading from 'app/components/pageHeading';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
+import GlobalSelectionLink from 'app/components/globalSelectionLink';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
+import routeTitleGen from 'app/utils/routeTitle';
 
 const BANNER_DISMISSED_KEY = 'health-banner-dismissed';
-
-function checkIsBannerHidden(): boolean {
-  return localStorage.getItem(BANNER_DISMISSED_KEY) === 'true';
-}
 
 type Props = {
   organization: Organization;
   location: Location;
   router: ReactRouter.InjectedRouter;
   params: Params;
-} & AsyncComponent['props'];
+} & AsyncView['props'];
 
 type State = {
   isBannerHidden: boolean;
-} & AsyncComponent['state'];
+} & AsyncView['state'];
 
-class HealthLanding extends AsyncComponent<Props, State> {
-  static propTypes: any = {
-    organization: SentryTypes.Organization.isRequired,
-    location: PropTypes.object.isRequired,
-    router: PropTypes.object.isRequired,
-  };
-
-  state: State = {
-    // AsyncComponent state
-    loading: true,
-    reloading: false,
-    error: false,
-    errors: [],
-
-    // local component state
-    isBannerHidden: checkIsBannerHidden(),
-  };
-
-  shouldReload = true;
-
-  componentDidUpdate() {
-    const isBannerHidden = checkIsBannerHidden();
-    if (isBannerHidden !== this.state.isBannerHidden) {
-      // eslint-disable-next-line react/no-did-update-set-state
-      this.setState({
-        isBannerHidden,
-      });
-    }
+class HealthLanding extends AsyncView<Props, State> {
+  getTitle() {
+    return routeTitleGen(t('Health'), this.props.organization.slug, false);
   }
 
-  handleClick = () => {
+  getDefaultState() {
+    return {
+      ...super.getDefaultState(),
+      isBannerHidden: localStorage.getItem(BANNER_DISMISSED_KEY) === 'true',
+    };
+  }
+
+  getEndpoints(): [string, string][] {
+    return [['dummy', '/organizations/sentry/projects/']];
+  }
+
+  handleBannerCloseClick = () => {
     localStorage.setItem(BANNER_DISMISSED_KEY, 'true');
     this.setState({isBannerHidden: true});
   };
+
+  renderLoading() {
+    return this.renderBody();
+  }
+
+  renderEmpty() {
+    return (
+      <EmptyStateWarning small>
+        {t('There are no dummy health something.')}
+      </EmptyStateWarning>
+    );
+  }
 
   renderBanner() {
     const bannerDismissed = this.state.isBannerHidden;
@@ -81,110 +77,70 @@ class HealthLanding extends AsyncComponent<Props, State> {
       <Banner
         title={t('Health')}
         subtitle={t('Monitoring the health of your application')}
-        onCloseClick={this.handleClick}
+        onCloseClick={this.handleBannerCloseClick}
       />
     );
   }
 
-  render() {
-    let body;
+  renderInnerBody() {
     const {organization} = this.props;
-    const {loading, error} = this.state;
-    if (loading) {
-      body = this.renderLoading();
-    } else if (error) {
-      body = this.renderError();
-    } else {
-      body = (
-        <PageContent>
-          <StyledPageHeader>{t('Health')}</StyledPageHeader>
-          {this.renderBanner()}
+    const {loading, dummy} = this.state;
 
-          <StyledGrid>
-            <p>
-              Lorem ipsum dolor sit amet consectetur adipisicing elit. Vel neque nostrum
-              repellendus non optio. Est consectetur, amet excepturi delectus animi soluta
-              reprehenderit repellendus nostrum veniam? Odio incidunt consequatur
-              necessitatibus ea.
-            </p>
-            <p>
-              Lorem ipsum dolor sit amet consectetur adipisicing elit. Vel neque nostrum
-              repellendus non optio. Est consectetur, amet excepturi delectus animi soluta
-              reprehenderit repellendus nostrum veniam? Odio incidunt consequatur
-              necessitatibus ea.
-            </p>
-            <p>
-              Lorem ipsum dolor sit amet consectetur adipisicing elit. Vel neque nostrum
-              repellendus non optio. Est consectetur, amet excepturi delectus animi soluta
-              reprehenderit repellendus nostrum veniam? Odio incidunt consequatur
-              necessitatibus ea.
-            </p>
-            <p>
-              Lorem ipsum dolor sit amet consectetur adipisicing elit. Vel neque nostrum
-              repellendus non optio. Est consectetur, amet excepturi delectus animi soluta
-              reprehenderit repellendus nostrum veniam? Odio incidunt consequatur
-              necessitatibus ea.
-            </p>
-            <p>
-              Lorem ipsum dolor sit amet consectetur adipisicing elit. Vel neque nostrum
-              repellendus non optio. Est consectetur, amet excepturi delectus animi soluta
-              reprehenderit repellendus nostrum veniam? Odio incidunt consequatur
-              necessitatibus ea.
-            </p>
-            <p>
-              Lorem ipsum dolor sit amet consectetur adipisicing elit. Vel neque nostrum
-              repellendus non optio. Est consectetur, amet excepturi delectus animi soluta
-              reprehenderit repellendus nostrum veniam? Odio incidunt consequatur
-              necessitatibus ea.
-            </p>
-            <p>
-              Lorem ipsum dolor sit amet consectetur adipisicing elit. Vel neque nostrum
-              repellendus non optio. Est consectetur, amet excepturi delectus animi soluta
-              reprehenderit repellendus nostrum veniam? Odio incidunt consequatur
-              necessitatibus ea.
-            </p>
-            <p>
-              Lorem ipsum dolor sit amet consectetur adipisicing elit. Vel neque nostrum
-              repellendus non optio. Est consectetur, amet excepturi delectus animi soluta
-              reprehenderit repellendus nostrum veniam? Odio incidunt consequatur
-              necessitatibus ea.
-            </p>
-            <p>
-              Lorem ipsum dolor sit amet consectetur adipisicing elit. Vel neque nostrum
-              repellendus non optio. Est consectetur, amet excepturi delectus animi soluta
-              reprehenderit repellendus nostrum veniam? Odio incidunt consequatur
-              necessitatibus ea.
-            </p>
-            <p>
-              Lorem ipsum dolor sit amet consectetur adipisicing elit. Vel neque nostrum
-              repellendus non optio. Est consectetur, amet excepturi delectus animi soluta
-              reprehenderit repellendus nostrum veniam? Odio incidunt consequatur
-              necessitatibus ea.
-            </p>
-          </StyledGrid>
-        </PageContent>
-      );
+    if (loading) {
+      return <LoadingIndicator />;
+    }
+
+    if (!dummy.length) {
+      return this.renderEmpty();
     }
 
     return (
-      <SentryDocumentTitle title={t('Health')} objSlug={organization.slug}>
-        <React.Fragment>
-          <GlobalSelectionHeader organization={organization} />
-          <NoProjectMessage organization={organization}>{body}</NoProjectMessage>
-        </React.Fragment>
-      </SentryDocumentTitle>
+      <React.Fragment>
+        {this.renderBanner()}
+
+        <StyledGrid>
+          {[1, 2, 3, 4].map(number => (
+            <div key={number}>
+              <GlobalSelectionLink
+                to={`/organizations/${organization.slug}/health/${number}/`}
+              >
+                Dummy
+              </GlobalSelectionLink>
+              <p>
+                Lorem ipsum dolor sit amet consectetur adipisicing elit. Vel neque nostrum
+                repellendus non optio. Est consectetur, amet excepturi delectus animi
+                soluta reprehenderit repellendus nostrum veniam? Odio incidunt consequatur
+                necessitatibus ea.
+              </p>
+            </div>
+          ))}
+        </StyledGrid>
+      </React.Fragment>
+    );
+  }
+
+  renderBody() {
+    const {organization} = this.props;
+
+    return (
+      <React.Fragment>
+        <GlobalSelectionHeader organization={organization} />
+
+        <NoProjectMessage organization={organization}>
+          <PageContent>
+            <PageHeader>
+              <PageHeading withMargins>
+                {t('Health Detail ')} {this.props.params.healthSlug}
+              </PageHeading>
+            </PageHeader>
+
+            {this.renderInnerBody()}
+          </PageContent>
+        </NoProjectMessage>
+      </React.Fragment>
     );
   }
 }
-
-const StyledPageHeader = styled('div')`
-  display: flex;
-  align-items: center;
-  font-size: ${p => p.theme.headerFontSize};
-  color: ${p => p.theme.gray4};
-  height: 40px;
-  margin-bottom: ${space(1)};
-`;
 
 const StyledGrid = styled('div')`
   display: grid;

@@ -1235,6 +1235,13 @@ function routes() {
               }
               component={errorHandler(LazyLoad)}
             />
+            <Route
+              path=":healthSlug/"
+              componentPromise={() =>
+                import(/* webpackChunkName: "HealthDetail" */ 'app/views/health/detail')
+              }
+              component={errorHandler(LazyLoad)}
+            />
           </Route>
           <Route
             path="/organizations/:orgId/incidents/"
