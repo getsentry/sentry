@@ -10,6 +10,7 @@ from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 
 class ContentTypeSerializer(CamelSnakeModelSerializer):
     nested_list = serializers.ListField()
+
     class Meta:
         model = ContentType
         fields = ["app_label", "model", "nested_list"]
@@ -22,10 +23,24 @@ class CamelSnakeModelSerializerTest(TestCase):
         assert serializer.data == {"model": u"Something", "app_label": u"hello"}
 
     def test_nested(self):
-        serializer = ContentTypeSerializer(data={"appLabel": "hello", "model": "Something", "nestedList":[{"someObject":"someValue", "nestWithinNest":[{"anotherKey":"andAValue"}]}]})
+        serializer = ContentTypeSerializer(
+            data={
+                "appLabel": "hello",
+                "model": "Something",
+                "nestedList": [
+                    {"someObject": "someValue", "nestWithinNest": [{"anotherKey": "andAValue"}]}
+                ],
+            }
+        )
         assert serializer.is_valid()
-        print("data:",serializer.data)
-        assert serializer.data == {"app_label": "hello", "model": "Something", "nested_list":[{"some_object":"someValue", "nest_within_nest":[{"another_key":"andAValue"}]}]}
+        print ("data:", serializer.data)
+        assert serializer.data == {
+            "app_label": "hello",
+            "model": "Something",
+            "nested_list": [
+                {"some_object": "someValue", "nest_within_nest": [{"another_key": "andAValue"}]}
+            ],
+        }
 
     def test_error(self):
         serializer = ContentTypeSerializer(data={"appLabel": None})
