@@ -318,9 +318,9 @@ exports[`SettingsIndex renders 1`] = `
             </li>
             <li>
               <HomeLink
-                to="/settings/org-slug/developer-settings/"
+                to="/settings/account/api/applications/"
               >
-                Your Integrations
+                Applications
               </HomeLink>
             </li>
             <li>
