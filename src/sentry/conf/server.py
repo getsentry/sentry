@@ -552,6 +552,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.store",
     "sentry.tasks.unmerge",
     "sentry.tasks.update_user_reports",
+    "sentry.tasks.relay",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
