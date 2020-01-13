@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 from django.test import override_settings
-from six.moves.urllib.parse import quote
+from six.moves.urllib.parse import quote, urlencode
 from uuid import uuid4
 import logging
 
@@ -89,6 +89,43 @@ class ErrorPageEmbedTest(TestCase):
         assert resp.status_code == 200, resp.content
         self.assertTemplateUsed(resp, "sentry/error-page-embed.html")
         assert "Fermer" in resp.content  # Close
+
+    def test_xss(self):
+        user_feedback_options = {}
+
+        option_keys = [
+            "errorFormEntry",
+            "successMessage",
+            "errorGeneric",
+            "title",
+            "subtitle",
+            "subtitle2",
+            "labelName",
+            "labelEmail",
+            "labelComments",
+            "labelSubmit",
+            "labelClose",
+        ]
+        for key in option_keys:
+            user_feedback_options[key] = "<img src=x onerror=alert({0})>XSS_{0}".format(key)
+
+        user_feedback_options_qs = urlencode(user_feedback_options)
+        path_with_qs = "%s?eventId=%s&dsn=%s&%s" % (
+            self.path,
+            quote(self.event_id),
+            quote(self.key.dsn_public),
+            user_feedback_options_qs,
+        )
+        resp = self.client.get(
+            path_with_qs,
+            HTTP_REFERER="http://example.com",
+            HTTP_ACCEPT="text/html, text/javascript",
+        )
+        assert resp.status_code == 200, resp.content
+        self.assertTemplateUsed(resp, "sentry/error-page-embed.html")
+
+        for xss_payload in user_feedback_options.values():
+            assert xss_payload not in resp.content
 
     def test_submission(self):
         resp = self.client.post(
