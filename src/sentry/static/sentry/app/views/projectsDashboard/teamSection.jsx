@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {Flex} from 'grid-emotion';
-import styled from 'react-emotion';
+import {Flex} from 'reflexbox';
+import styled from '@emotion/styled';
 
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
@@ -28,7 +28,7 @@ class TeamSection extends React.Component {
 
     return (
       <TeamSectionWrapper data-test-id="team" showBorder={showBorder}>
-        <TeamTitleBar justify="space-between" align="center">
+        <TeamTitleBar justifyContent="space-between" alignItems="center">
           <TeamName>{title}</TeamName>
           {hasTeamAccess && team && <TeamMembers teamId={team.slug} orgId={orgId} />}
         </TeamTitleBar>

@@ -21,7 +21,7 @@ export default class NewIssues extends React.Component {
     return (
       <Panel>
         <PanelBody>
-          <PanelItem justify="center">
+          <PanelItem justifyContent="center">
             {t('No new issues have been seen in the last week.')}
           </PanelItem>
         </PanelBody>

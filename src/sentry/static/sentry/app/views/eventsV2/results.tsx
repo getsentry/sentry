@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import * as ReactRouter from 'react-router';
 import {Location} from 'history';
 import omit from 'lodash/omit';
@@ -141,7 +141,7 @@ class Results extends React.Component<Props, State> {
               location={location}
               eventView={eventView}
             />
-            <ContentBox>
+            <StyledPageContent>
               <Top>
                 <StyledSearchBar
                   organization={organization}
@@ -176,7 +176,7 @@ class Results extends React.Component<Props, State> {
                 />
               </Main>
               <Side eventView={eventView}>{this.renderTagsTable()}</Side>
-            </ContentBox>
+            </StyledPageContent>
           </NoProjectMessage>
         </React.Fragment>
       </SentryDocumentTitle>
@@ -184,11 +184,28 @@ class Results extends React.Component<Props, State> {
   }
 }
 
+const StyledPageContent = styled(PageContent)`
+  margin: 0;
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    display: grid;
+    /* HACK(leedongwei): Hardcoded height for search bar and graph */
+    grid-template-rows: 270px auto;
+    grid-template-columns: 66% auto;
+    grid-column-gap: ${space(3)};
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    grid-template-columns: auto 325px;
+  }
+`;
+
 const StyledSearchBar = styled(SearchBar)`
   margin-bottom: ${space(2)};
 `;
-
 const StyledPanel = styled(Panel)`
+  /* HACK(leedongwei): Hardcoded height for graph */
+  height: 200px;
   margin-bottom: ${space(1.5)};
 
   .echarts-for-react div:first-child {
@@ -200,36 +217,14 @@ const Top = styled('div')`
   grid-column: 1/3;
   flex-grow: 0;
 `;
-
 const Main = styled('div')<{eventView: EventView}>`
   grid-column: ${p => (p.eventView.tags.length <= 0 ? '1/3' : '1/2')};
-
-  /* Defining the width prevent child elements from expanding the grid
-     past the width of the screen */
-  width: 100%;
   max-width: 100%;
   overflow: hidden;
 `;
-
 const Side = styled('div')<{eventView: EventView}>`
   display: ${p => (p.eventView.tags.length <= 0 ? 'none' : 'initial')};
   grid-column: 2/3;
-`;
-
-const ContentBox = styled(PageContent)`
-  margin: 0;
-
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    display: grid;
-    grid-template-rows: 270px auto; /* HACK(leedongwei): Hard-coded height for
-                                       search bar and graph */
-    grid-template-columns: 65% auto;
-    grid-column-gap: ${space(3)};
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-columns: auto 325px;
-  }
 `;
 
 export function generateDiscoverResultsRoute(orgSlug: string): string {

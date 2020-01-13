@@ -10,7 +10,7 @@ describe('AlertLink', function() {
 
   it('can open', function() {
     const onOpen = jest.fn();
-    const wrapper = shallow(
+    const wrapper = mount(
       <IssueSyncListElement integrationType="github" onOpen={onOpen} />
     );
     expect(onOpen).not.toHaveBeenCalled();

@@ -118,11 +118,11 @@ exports[`ExternalIssueForm create renders 1`] = `
         saveOnBlur={false}
       >
         <div
-          className="modal-footer css-bobn3u-StyledFooter e1r1zmbj0"
+          className="modal-footer css-yfxs1k-StyledFooter e1r1zmbj0"
         >
           <DefaultButtons>
             <div
-              className="css-5mbz2j-DefaultButtons e1r1zmbj1"
+              className="css-1utgghf-DefaultButtons e1r1zmbj1"
             >
               <Observer>
                 <Button
@@ -145,7 +145,7 @@ exports[`ExternalIssueForm create renders 1`] = `
                     <ForwardRef
                       aria-disabled={false}
                       aria-label="Create Issue"
-                      className="css-xiynrq-StyledButton-getColors edwq9my0"
+                      className="css-1e05jtd-StyledButton edwq9my0"
                       data-test-id="form-submit"
                       disabled={false}
                       onClick={[Function]}
@@ -156,7 +156,7 @@ exports[`ExternalIssueForm create renders 1`] = `
                       <button
                         aria-disabled={false}
                         aria-label="Create Issue"
-                        className="css-xiynrq-StyledButton-getColors edwq9my0"
+                        className="css-1e05jtd-StyledButton edwq9my0"
                         data-test-id="form-submit"
                         onClick={[Function]}
                         role="button"
@@ -168,11 +168,11 @@ exports[`ExternalIssueForm create renders 1`] = `
                         >
                           <Component
                             align="center"
-                            className="css-oo1m2a-ButtonLabel edwq9my1"
+                            className="css-zmpclt-ButtonLabel edwq9my1"
                             priority="primary"
                           >
                             <span
-                              className="css-oo1m2a-ButtonLabel edwq9my1"
+                              className="css-zmpclt-ButtonLabel edwq9my1"
                             >
                               Create Issue
                             </span>
@@ -512,27 +512,27 @@ exports[`ExternalIssueForm link renders 1`] = `
                     stacked={true}
                   >
                     <div
-                      className="css-4bhbmi-FieldWrapper-getPadding-inlineStyle-FieldWrapper e2iyls20"
+                      className="css-1kl5jlp-FieldWrapper-FieldWrapper e2iyls20"
                     >
                       <FieldDescription
                         htmlFor="repo"
                         inline={false}
                       >
                         <label
-                          className="css-jq43rd-FieldDescription-inlineStyle e3z18c30"
+                          className="css-1q141sp-FieldDescription e3z18c30"
                           htmlFor="repo"
                         >
                           <FieldLabel
                             disabled={false}
                           >
                             <div
-                              className="css-qzvhly-FieldLabel e16ushrl0"
+                              className="css-1c18lg-FieldLabel e16ushrl0"
                             >
                               GitHub Repository
                                
                               <FieldRequiredBadge>
                                 <div
-                                  className="css-x360nj-FieldRequiredBadge e1uclnuk0"
+                                  className="css-z6v0fv-FieldRequiredBadge e1uclnuk0"
                                 />
                               </FieldRequiredBadge>
                             </div>
@@ -689,20 +689,20 @@ exports[`ExternalIssueForm link renders 1`] = `
                           inline={false}
                         >
                           <div
-                            className="css-1ge7tqf-FieldControlErrorWrapper e12jpfuq0"
+                            className="css-szisuz-FieldControlErrorWrapper e12jpfuq0"
                           >
                             <FieldControlWrapper>
                               <div
-                                className="css-1muvdry-FieldControlWrapper e12jpfuq2"
+                                className="css-1evsibf-FieldControlWrapper e12jpfuq2"
                               >
                                 <FieldControlStyled
                                   alignRight={false}
                                 >
                                   <div
-                                    className="css-1pkvhmy-FieldControlStyled e12jpfuq1"
+                                    className="css-ld1e0a-FieldControlStyled e12jpfuq1"
                                   >
                                     <Observer>
-                                      <SelectControl
+                                      <ForwardRef(RefForwardedSelectControl)
                                         alignRight={false}
                                         allowEmpty={false}
                                         async={true}
@@ -727,7 +727,6 @@ exports[`ExternalIssueForm link renders 1`] = `
                                         escapeMarkup={true}
                                         field={[Function]}
                                         formatMessageValue={[Function]}
-                                        height={36}
                                         id="repo"
                                         initialData={
                                           Object {
@@ -737,7 +736,6 @@ exports[`ExternalIssueForm link renders 1`] = `
                                           }
                                         }
                                         inline={false}
-                                        innerRef={[Function]}
                                         label="GitHub Repository"
                                         loadOptions={[Function]}
                                         multiple={false}
@@ -767,22 +765,32 @@ exports[`ExternalIssueForm link renders 1`] = `
                                         url="/search"
                                         value="scefali/test"
                                       >
-                                        <StyledSelect
+                                        <SelectControl
                                           alignRight={false}
                                           allowEmpty={false}
-                                          arrowRenderer={[Function]}
                                           async={true}
                                           autoload={true}
-                                          backspaceRemoves={false}
                                           cache={false}
+                                          choices={
+                                            Array [
+                                              Array [
+                                                "scefali/test",
+                                                "test",
+                                              ],
+                                              Array [
+                                                "scefali/ZeldaBazaar",
+                                                "ZeldaBazaar",
+                                              ],
+                                            ]
+                                          }
                                           clearable={false}
                                           default="scefali/test"
-                                          deleteRemoves={false}
                                           disabled={false}
                                           error={false}
                                           escapeMarkup={true}
                                           field={[Function]}
                                           formatMessageValue={[Function]}
+                                          forwardedRef={[Function]}
                                           height={36}
                                           id="repo"
                                           initialData={
@@ -793,7 +801,6 @@ exports[`ExternalIssueForm link renders 1`] = `
                                             }
                                           }
                                           inline={false}
-                                          innerRef={[Function]}
                                           label="GitHub Repository"
                                           loadOptions={[Function]}
                                           multiple={false}
@@ -823,7 +830,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                           url="/search"
                                           value="scefali/test"
                                         >
-                                          <ForwardRef(SelectPicker)
+                                          <StyledSelect
                                             alignRight={false}
                                             allowEmpty={false}
                                             arrowRenderer={[Function]}
@@ -831,7 +838,6 @@ exports[`ExternalIssueForm link renders 1`] = `
                                             autoload={true}
                                             backspaceRemoves={false}
                                             cache={false}
-                                            className="css-5srpa7-StyledSelect eho28m20"
                                             clearable={false}
                                             default="scefali/test"
                                             deleteRemoves={false}
@@ -840,6 +846,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                             escapeMarkup={true}
                                             field={[Function]}
                                             formatMessageValue={[Function]}
+                                            forwardedRef={[Function]}
                                             height={36}
                                             id="repo"
                                             initialData={
@@ -887,7 +894,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                               autoload={true}
                                               backspaceRemoves={false}
                                               cache={false}
-                                              className="css-5srpa7-StyledSelect eho28m20"
+                                              className="css-140v9or-StyledSelect eho28m20"
                                               clearable={false}
                                               default="scefali/test"
                                               deleteRemoves={false}
@@ -943,7 +950,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                                 autoload={true}
                                                 backspaceRemoves={false}
                                                 cache={false}
-                                                className="css-5srpa7-StyledSelect eho28m20"
+                                                className="css-140v9or-StyledSelect eho28m20"
                                                 clearable={false}
                                                 default="scefali/test"
                                                 deleteRemoves={false}
@@ -1004,7 +1011,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                                   backspaceRemoves={false}
                                                   backspaceToRemoveMessage="Press backspace to remove {label}"
                                                   cache={false}
-                                                  className="css-5srpa7-StyledSelect eho28m20"
+                                                  className="css-140v9or-StyledSelect eho28m20"
                                                   clearAllText="Clear all"
                                                   clearRenderer={[Function]}
                                                   clearValueText="Clear value"
@@ -1077,7 +1084,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                                   valueKey="value"
                                                 >
                                                   <div
-                                                    className="Select css-5srpa7-StyledSelect eho28m20 is-loading is-searchable Select--single"
+                                                    className="Select css-140v9or-StyledSelect eho28m20 is-loading is-searchable Select--single"
                                                   >
                                                     <div
                                                       className="Select-control"
@@ -1176,9 +1183,9 @@ exports[`ExternalIssueForm link renders 1`] = `
                                                 </Select>
                                               </Async>
                                             </SelectPicker>
-                                          </ForwardRef(SelectPicker)>
-                                        </StyledSelect>
-                                      </SelectControl>
+                                          </StyledSelect>
+                                        </SelectControl>
+                                      </ForwardRef(RefForwardedSelectControl)>
                                     </Observer>
                                   </div>
                                 </FieldControlStyled>
@@ -1186,7 +1193,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                   flexibleControlStateSize={true}
                                 >
                                   <div
-                                    className="css-18vhbhh-FieldControlState ep9s0su0"
+                                    className="css-mlgkyn-FieldControlState ep9s0su0"
                                   >
                                     <FormFieldControlState
                                       model={
@@ -1487,27 +1494,27 @@ exports[`ExternalIssueForm link renders 1`] = `
                     stacked={true}
                   >
                     <div
-                      className="css-4bhbmi-FieldWrapper-getPadding-inlineStyle-FieldWrapper e2iyls20"
+                      className="css-1kl5jlp-FieldWrapper-FieldWrapper e2iyls20"
                     >
                       <FieldDescription
                         htmlFor="externalIssue"
                         inline={false}
                       >
                         <label
-                          className="css-jq43rd-FieldDescription-inlineStyle e3z18c30"
+                          className="css-1q141sp-FieldDescription e3z18c30"
                           htmlFor="externalIssue"
                         >
                           <FieldLabel
                             disabled={false}
                           >
                             <div
-                              className="css-qzvhly-FieldLabel e16ushrl0"
+                              className="css-1c18lg-FieldLabel e16ushrl0"
                             >
                               Issue
                                
                               <FieldRequiredBadge>
                                 <div
-                                  className="css-x360nj-FieldRequiredBadge e1uclnuk0"
+                                  className="css-z6v0fv-FieldRequiredBadge e1uclnuk0"
                                 />
                               </FieldRequiredBadge>
                             </div>
@@ -1664,20 +1671,20 @@ exports[`ExternalIssueForm link renders 1`] = `
                           inline={false}
                         >
                           <div
-                            className="css-1ge7tqf-FieldControlErrorWrapper e12jpfuq0"
+                            className="css-szisuz-FieldControlErrorWrapper e12jpfuq0"
                           >
                             <FieldControlWrapper>
                               <div
-                                className="css-1muvdry-FieldControlWrapper e12jpfuq2"
+                                className="css-1evsibf-FieldControlWrapper e12jpfuq2"
                               >
                                 <FieldControlStyled
                                   alignRight={false}
                                 >
                                   <div
-                                    className="css-1pkvhmy-FieldControlStyled e12jpfuq1"
+                                    className="css-ld1e0a-FieldControlStyled e12jpfuq1"
                                   >
                                     <Observer>
-                                      <SelectControl
+                                      <ForwardRef(RefForwardedSelectControl)
                                         alignRight={false}
                                         allowEmpty={false}
                                         async={true}
@@ -1691,7 +1698,6 @@ exports[`ExternalIssueForm link renders 1`] = `
                                         escapeMarkup={true}
                                         field={[Function]}
                                         formatMessageValue={[Function]}
-                                        height={36}
                                         id="externalIssue"
                                         initialData={
                                           Object {
@@ -1701,7 +1707,6 @@ exports[`ExternalIssueForm link renders 1`] = `
                                           }
                                         }
                                         inline={false}
-                                        innerRef={[Function]}
                                         label="Issue"
                                         loadOptions={[Function]}
                                         multiple={false}
@@ -1719,22 +1724,21 @@ exports[`ExternalIssueForm link renders 1`] = `
                                         url="/search"
                                         value=""
                                       >
-                                        <StyledSelect
+                                        <SelectControl
                                           alignRight={false}
                                           allowEmpty={false}
-                                          arrowRenderer={[Function]}
                                           async={true}
                                           autoload={true}
-                                          backspaceRemoves={false}
                                           cache={false}
+                                          choices={Array []}
                                           clearable={false}
                                           default=""
-                                          deleteRemoves={false}
                                           disabled={false}
                                           error={false}
                                           escapeMarkup={true}
                                           field={[Function]}
                                           formatMessageValue={[Function]}
+                                          forwardedRef={[Function]}
                                           height={36}
                                           id="externalIssue"
                                           initialData={
@@ -1745,7 +1749,6 @@ exports[`ExternalIssueForm link renders 1`] = `
                                             }
                                           }
                                           inline={false}
-                                          innerRef={[Function]}
                                           label="Issue"
                                           loadOptions={[Function]}
                                           multiple={false}
@@ -1763,7 +1766,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                           url="/search"
                                           value=""
                                         >
-                                          <ForwardRef(SelectPicker)
+                                          <StyledSelect
                                             alignRight={false}
                                             allowEmpty={false}
                                             arrowRenderer={[Function]}
@@ -1771,7 +1774,6 @@ exports[`ExternalIssueForm link renders 1`] = `
                                             autoload={true}
                                             backspaceRemoves={false}
                                             cache={false}
-                                            className="css-5srpa7-StyledSelect eho28m20"
                                             clearable={false}
                                             default=""
                                             deleteRemoves={false}
@@ -1780,6 +1782,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                             escapeMarkup={true}
                                             field={[Function]}
                                             formatMessageValue={[Function]}
+                                            forwardedRef={[Function]}
                                             height={36}
                                             id="externalIssue"
                                             initialData={
@@ -1815,7 +1818,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                               autoload={true}
                                               backspaceRemoves={false}
                                               cache={false}
-                                              className="css-5srpa7-StyledSelect eho28m20"
+                                              className="css-140v9or-StyledSelect eho28m20"
                                               clearable={false}
                                               default=""
                                               deleteRemoves={false}
@@ -1859,7 +1862,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                                 autoload={true}
                                                 backspaceRemoves={false}
                                                 cache={false}
-                                                className="css-5srpa7-StyledSelect eho28m20"
+                                                className="css-140v9or-StyledSelect eho28m20"
                                                 clearable={false}
                                                 default=""
                                                 deleteRemoves={false}
@@ -1908,7 +1911,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                                   backspaceRemoves={false}
                                                   backspaceToRemoveMessage="Press backspace to remove {label}"
                                                   cache={false}
-                                                  className="css-5srpa7-StyledSelect eho28m20"
+                                                  className="css-140v9or-StyledSelect eho28m20"
                                                   clearAllText="Clear all"
                                                   clearRenderer={[Function]}
                                                   clearValueText="Clear value"
@@ -1980,7 +1983,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                                   valueKey="value"
                                                 >
                                                   <div
-                                                    className="Select css-5srpa7-StyledSelect eho28m20 is-loading is-searchable Select--single"
+                                                    className="Select css-140v9or-StyledSelect eho28m20 is-loading is-searchable Select--single"
                                                   >
                                                     <div
                                                       className="Select-control"
@@ -2079,9 +2082,9 @@ exports[`ExternalIssueForm link renders 1`] = `
                                                 </Select>
                                               </Async>
                                             </SelectPicker>
-                                          </ForwardRef(SelectPicker)>
-                                        </StyledSelect>
-                                      </SelectControl>
+                                          </StyledSelect>
+                                        </SelectControl>
+                                      </ForwardRef(RefForwardedSelectControl)>
                                     </Observer>
                                   </div>
                                 </FieldControlStyled>
@@ -2089,7 +2092,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                   flexibleControlStateSize={true}
                                 >
                                   <div
-                                    className="css-18vhbhh-FieldControlState ep9s0su0"
+                                    className="css-mlgkyn-FieldControlState ep9s0su0"
                                   >
                                     <FormFieldControlState
                                       model={
@@ -2325,21 +2328,21 @@ exports[`ExternalIssueForm link renders 1`] = `
                     stacked={true}
                   >
                     <div
-                      className="css-4bhbmi-FieldWrapper-getPadding-inlineStyle-FieldWrapper e2iyls20"
+                      className="css-1kl5jlp-FieldWrapper-FieldWrapper e2iyls20"
                     >
                       <FieldDescription
                         htmlFor="comment"
                         inline={false}
                       >
                         <label
-                          className="css-jq43rd-FieldDescription-inlineStyle e3z18c30"
+                          className="css-1q141sp-FieldDescription e3z18c30"
                           htmlFor="comment"
                         >
                           <FieldLabel
                             disabled={false}
                           >
                             <div
-                              className="css-qzvhly-FieldLabel e16ushrl0"
+                              className="css-1c18lg-FieldLabel e16ushrl0"
                             >
                               Comment
                                
@@ -2350,7 +2353,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                             stacked={true}
                           >
                             <div
-                              className="css-18eefdy-FieldHelp e54sr8f0"
+                              className="css-1i2y8a7-FieldHelp e54sr8f0"
                             >
                               Leave blank if you don't want to add a comment to the GitHub issue.
                             </div>
@@ -2507,17 +2510,17 @@ exports[`ExternalIssueForm link renders 1`] = `
                           inline={false}
                         >
                           <div
-                            className="css-1ge7tqf-FieldControlErrorWrapper e12jpfuq0"
+                            className="css-szisuz-FieldControlErrorWrapper e12jpfuq0"
                           >
                             <FieldControlWrapper>
                               <div
-                                className="css-1muvdry-FieldControlWrapper e12jpfuq2"
+                                className="css-1evsibf-FieldControlWrapper e12jpfuq2"
                               >
                                 <FieldControlStyled
                                   alignRight={false}
                                 >
                                   <div
-                                    className="css-1pkvhmy-FieldControlStyled e12jpfuq1"
+                                    className="css-ld1e0a-FieldControlStyled e12jpfuq1"
                                   >
                                     <Observer>
                                       <TextArea
@@ -2535,7 +2538,6 @@ exports[`ExternalIssueForm link renders 1`] = `
                                           }
                                         }
                                         inline={false}
-                                        innerRef={[Function]}
                                         label="Comment"
                                         name="comment"
                                         onBlur={[Function]}
@@ -2546,7 +2548,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                         value="Default Value"
                                       >
                                         <ForwardRef
-                                          className="css-11229su-TextArea-inputStyles e1oph3pe0"
+                                          className="css-1eaosb4-TextArea e1oph3pe0"
                                           default="Default Value"
                                           disabled={false}
                                           id="comment"
@@ -2559,7 +2561,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                           value="Default Value"
                                         >
                                           <textarea
-                                            className="css-11229su-TextArea-inputStyles e1oph3pe0"
+                                            className="css-1eaosb4-TextArea e1oph3pe0"
                                             default="Default Value"
                                             disabled={false}
                                             id="comment"
@@ -2580,7 +2582,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                   flexibleControlStateSize={true}
                                 >
                                   <div
-                                    className="css-18vhbhh-FieldControlState ep9s0su0"
+                                    className="css-mlgkyn-FieldControlState ep9s0su0"
                                   >
                                     <FormFieldControlState
                                       model={
@@ -2744,11 +2746,11 @@ exports[`ExternalIssueForm link renders 1`] = `
         saveOnBlur={false}
       >
         <div
-          className="modal-footer css-bobn3u-StyledFooter e1r1zmbj0"
+          className="modal-footer css-yfxs1k-StyledFooter e1r1zmbj0"
         >
           <DefaultButtons>
             <div
-              className="css-5mbz2j-DefaultButtons e1r1zmbj1"
+              className="css-1utgghf-DefaultButtons e1r1zmbj1"
             >
               <Observer>
                 <Button
@@ -2771,7 +2773,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                     <ForwardRef
                       aria-disabled={false}
                       aria-label="Link Issue"
-                      className="css-xiynrq-StyledButton-getColors edwq9my0"
+                      className="css-1e05jtd-StyledButton edwq9my0"
                       data-test-id="form-submit"
                       disabled={false}
                       onClick={[Function]}
@@ -2782,7 +2784,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                       <button
                         aria-disabled={false}
                         aria-label="Link Issue"
-                        className="css-xiynrq-StyledButton-getColors edwq9my0"
+                        className="css-1e05jtd-StyledButton edwq9my0"
                         data-test-id="form-submit"
                         onClick={[Function]}
                         role="button"
@@ -2794,11 +2796,11 @@ exports[`ExternalIssueForm link renders 1`] = `
                         >
                           <Component
                             align="center"
-                            className="css-oo1m2a-ButtonLabel edwq9my1"
+                            className="css-zmpclt-ButtonLabel edwq9my1"
                             priority="primary"
                           >
                             <span
-                              className="css-oo1m2a-ButtonLabel edwq9my1"
+                              className="css-zmpclt-ButtonLabel edwq9my1"
                             >
                               Link Issue
                             </span>

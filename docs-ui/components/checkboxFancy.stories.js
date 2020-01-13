@@ -2,7 +2,7 @@ import React from 'react';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 import {number, boolean} from '@storybook/addon-knobs';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import CheckboxFancy from 'app/components/checkboxFancy';
 
