@@ -7,7 +7,12 @@ import json
 import six
 
 from pkg_resources import parse_version
-from functools32 import lru_cache
+
+try:
+    # TODO: remove when we drop Python 2.7 compat
+    from functools32 import lru_cache
+except ImportError:
+    from functools import lru_cache
 
 import sentry
 

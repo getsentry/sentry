@@ -16,7 +16,7 @@ Django>=1.10,<1.11
 djangorestframework==3.6.4
 email-reply-parser>=0.2.0,<0.3.0
 enum34>=1.1.6,<1.2.0
-functools32>=3.2.3,<3.3
+functools32>=3.2.3,<3.3 ; python_version < "3.2"
 futures>=3.2.0,<4.0.0
 # optional but needed for google stuff below
 google-api-core==1.14.3
