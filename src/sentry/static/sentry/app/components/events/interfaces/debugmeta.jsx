@@ -1,7 +1,7 @@
 import isNil from 'lodash/isNil';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import get from 'lodash/get';
 
 import Access from 'app/components/acl/access';

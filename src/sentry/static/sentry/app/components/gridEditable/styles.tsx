@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import Alert from 'app/components/alert';
 import InlineSvg from 'app/components/inlineSvg';
@@ -8,10 +8,19 @@ import space from 'app/styles/space';
 
 export const GRID_HEAD_ROW_HEIGHT = 45;
 export const GRID_BODY_ROW_HEIGHT = 40;
+export const GRID_STATUS_MESSAGE_HEIGHT = GRID_BODY_ROW_HEIGHT * 4;
 
-// Local z-index stacking context
-// https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Positioning/Understanding_z_index/The_stacking_context
-export const Z_INDEX_RESIZER = 1;
+/**
+ * Local z-index stacking context
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Positioning/Understanding_z_index/The_stacking_context
+ */
+// Parent context is Panel
+const Z_INDEX_PANEL = 1;
+const Z_INDEX_GRID_STATUS = -1;
+const Z_INDEX_GRID = 5;
+
+// Parent context is GridHeadCell
+const Z_INDEX_GRID_RESIZER = 1;
 
 type GridEditableProps = {
   numColumn?: number;
@@ -53,6 +62,7 @@ export const HeaderButton = styled('div')`
 
 const PanelWithProtectedBorder = styled(Panel)`
   overflow: hidden;
+  z-index: ${Z_INDEX_PANEL};
 `;
 export const Body: React.FC = props => (
   <PanelWithProtectedBorder>
@@ -74,7 +84,7 @@ export const Body: React.FC = props => (
  * The entire layout is determined by the usage of <th> and <td>.
  */
 export const Grid = styled('table')`
-  position: relative;
+  position: inherit;
   display: grid;
 
   /* Overwritten by GridEditable.setGridTemplateColumns */
@@ -84,8 +94,8 @@ export const Grid = styled('table')`
   border-collapse: collapse;
   margin: 0;
 
-  /* background-color: ${p => p.theme.offWhite}; */
   overflow-x: scroll;
+  z-index: ${Z_INDEX_GRID};
 `;
 export const GridRow = styled('tr')`
   display: contents;
@@ -274,7 +284,6 @@ export const GridBody = styled('tbody')`
   }
 `;
 export const GridBodyCell = styled('td')`
-  position: relative;
   /* By default, a grid item cannot be smaller than the size of its content.
      We override this by setting min-width to be 0. */
   min-width: 0;
@@ -293,15 +302,34 @@ export const GridBodyCell = styled('td')`
     border-right: none;
   }
 `;
-export const GridBodyCellSpan = styled(GridBodyCell)`
-  grid-column: 1 / -1;
-`;
-export const GridBodyCellLoading = styled('div')`
-  min-height: 220px;
-`;
 
-export const GridBodyErrorAlert = styled(Alert)`
-  margin: 0;
+const GridStatusWrapper = styled(GridBodyCell)`
+  grid-column: 1 / -1;
+  width: 100%;
+  height: ${GRID_STATUS_MESSAGE_HEIGHT}px;
+  background-color: transparent;
+`;
+const GridStatusFloat = styled('div')`
+  position: absolute;
+  top: 45px;
+  left: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: ${GRID_STATUS_MESSAGE_HEIGHT}px;
+
+  z-index: ${Z_INDEX_GRID_STATUS};
+  background: ${p => p.theme.white};
+`;
+export const GridBodyCellStatus: React.FC = props => (
+  <GridStatusWrapper>
+    <GridStatusFloat>{props.children}</GridStatusFloat>
+  </GridStatusWrapper>
+);
+export const GridStatusErrorAlert = styled(Alert)`
+  width: 100%;
+  margin: ${space(2)};
 `;
 
 /**
@@ -323,7 +351,7 @@ export const GridResizer = styled('div')<{dataRows: number; isLast?: boolean}>`
   padding-right: ${p => (p.isLast ? '0px' : '4px')};
 
   cursor: col-resize;
-  z-index: ${Z_INDEX_RESIZER};
+  z-index: ${Z_INDEX_GRID_RESIZER};
 
   /**
    * This element allows us to have a fat GridResizer that is easy to hover and

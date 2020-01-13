@@ -1,6 +1,6 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {PageContent} from 'app/styles/organization';
 import {t} from 'app/locale';
@@ -16,8 +16,6 @@ import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
 import Activity from './activity';
-import RelatedIssues from './relatedIssues';
-import Suspects from './suspects';
 
 import {Incident} from '../types';
 
@@ -85,10 +83,6 @@ export default class DetailsBody extends React.Component<Props> {
                 </div>
               )}
             </div>
-
-            <Suspects {...this.props} />
-
-            <RelatedIssues params={params} incident={incident} />
           </PageContent>
         </Sidebar>
       </StyledPageContent>
