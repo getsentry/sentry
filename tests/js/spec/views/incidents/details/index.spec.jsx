@@ -37,15 +37,7 @@ describe('IncidentDetails', function() {
     });
 
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/incidents/123/suspects/',
-      body: [TestStubs.IncidentSuspectCommit()],
-    });
-    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/456/',
-      statusCode: 404,
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/incidents/456/suspects/',
       statusCode: 404,
     });
     MockApiClient.addMockResponse({
@@ -80,24 +72,15 @@ describe('IncidentDetails', function() {
     expect(
       wrapper
         .find('ItemValue')
-        .at(3)
+        .at(4)
         .text()
     ).toBe('100');
     expect(
       wrapper
         .find('ItemValue')
-        .at(2)
+        .at(3)
         .text()
     ).toBe('20');
-
-    expect(wrapper.find('SuspectItem')).toHaveLength(1);
-    expect(
-      wrapper
-        .find('SuspectItem')
-        .at(0)
-        .find('MessageOverflow')
-        .text()
-    ).toBe('feat: Do something to raven/base.py');
   });
 
   it('handles invalid incident', async function() {
@@ -125,7 +108,7 @@ describe('IncidentDetails', function() {
 
     expect(activitiesList).toHaveBeenCalledTimes(1);
 
-    expect(wrapper.find('Status').text()).toBe('Open');
+    expect(wrapper.find('Status').text()).not.toBe('Resolved');
     wrapper.find('[data-test-id="status-dropdown"] DropdownButton').simulate('click');
     wrapper
       .find('[data-test-id="status-dropdown"] MenuItem a')
@@ -143,7 +126,7 @@ describe('IncidentDetails', function() {
 
     // Refresh activities list since status changes also creates an activity
     expect(activitiesList).toHaveBeenCalledTimes(2);
-    expect(wrapper.find('Status').text()).toBe('Closed');
+    expect(wrapper.find('Status').text()).toBe('Resolved');
   });
 
   it('toggles subscribe status with Subscribe button', async function() {
@@ -173,71 +156,5 @@ describe('IncidentDetails', function() {
     // Click again to re-subscribe
     wrapper.find('SubscribeButton').simulate('click');
     expect(subscribe).toHaveBeenCalled();
-  });
-
-  it('loads related incidents', async function() {
-    MockApiClient.addMockResponse({
-      url: '/issues/1/',
-      body: TestStubs.Group({
-        id: '1',
-        organization,
-      }),
-    });
-    MockApiClient.addMockResponse({
-      url: '/issues/2/',
-      body: TestStubs.Group({
-        id: '2',
-        organization,
-      }),
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/incidents/123/',
-      body: {
-        ...mockIncident,
-
-        groups: ['1', '2'],
-      },
-    });
-
-    const wrapper = createWrapper();
-
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('RelatedItem')).toHaveLength(2);
-
-    expect(
-      wrapper
-        .find('RelatedItem Title')
-        .at(0)
-        .text()
-    ).toBe('RequestErrorfetchData(app/components/group/suggestedOwners)');
-
-    expect(
-      wrapper
-        .find('RelatedItem GroupShortId')
-        .at(0)
-        .text()
-    ).toBe('JAVASCRIPT-6QS');
-  });
-
-  it('renders incident without issues', async function() {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/incidents/123/',
-      body: {
-        ...mockIncident,
-        groups: [],
-      },
-    });
-
-    const wrapper = createWrapper();
-
-    expect(wrapper.find('RelatedIssues Placeholder')).toHaveLength(1);
-
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('RelatedItem')).toHaveLength(0);
-    expect(wrapper.find('RelatedIssues Placeholder')).toHaveLength(0);
   });
 });

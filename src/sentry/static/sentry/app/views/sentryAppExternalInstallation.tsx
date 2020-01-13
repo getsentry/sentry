@@ -1,6 +1,6 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import get from 'lodash/get';
 
 import {t, tct} from 'app/locale';

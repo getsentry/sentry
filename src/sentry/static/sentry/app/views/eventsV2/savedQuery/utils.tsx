@@ -230,11 +230,10 @@ export function getAnalyticsCreateEventKeyName(
  * the desired fields to populate into reload analytics
  */
 export function extractAnalyticsQueryFields(payload: NewQuery): Partial<NewQuery> {
-  const {projects, fields, query, tags} = payload;
+  const {projects, fields, query} = payload;
   return {
     projects,
     fields,
     query,
-    tags,
   };
 }

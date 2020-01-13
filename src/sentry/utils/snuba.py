@@ -11,6 +11,7 @@ import re
 import six
 import time
 import urllib3
+import sentry_sdk
 
 from concurrent.futures import ThreadPoolExecutor
 from django.conf import settings
@@ -524,7 +525,7 @@ def get_query_params_to_update_for_projects(query_params):
         )
 
     # any project will do, as they should all be from the same organization
-    organization_id = Project.objects.get(pk=project_ids[0]).organization_id
+    organization_id = Project.objects.get_from_cache(pk=project_ids[0]).organization_id
 
     return organization_id, {"project": project_ids}
 
@@ -724,13 +725,16 @@ def bulk_raw_query(snuba_param_list, referrer=None):
         query_params, forward, reverse = params
         try:
             with timer("snuba_query"):
-                return (
-                    _snuba_pool.urlopen(
-                        "POST", "/query", body=json.dumps(query_params), headers=headers
-                    ),
-                    forward,
-                    reverse,
-                )
+                body = json.dumps(query_params)
+                with sentry_sdk.start_span(
+                    op="snuba", description=u"query {}".format(body)
+                ) as span:
+                    span.set_tag("referrer", headers.get("referer", "<unknown>"))
+                    return (
+                        _snuba_pool.urlopen("POST", "/query", body=body, headers=headers),
+                        forward,
+                        reverse,
+                    )
         except urllib3.exceptions.HTTPError as err:
             raise SnubaError(err)
 

@@ -228,9 +228,11 @@ export type AvatarUser = {
   name: string;
   username: string;
   email: string;
-  avatarUrl: string;
-  avatar: Avatar;
+  avatarUrl?: string;
+  avatar?: Avatar;
   ip_address: string;
+  // Compatibility shim with EventUser serializer
+  ipAddress?: string;
   options?: {
     avatarType: string;
   };
@@ -729,4 +731,16 @@ export type IntegrationIssueConfig = {
   createIssueConfig?: IssueConfigField[];
   provider: IntegrationProvider;
   icon: string[];
+};
+
+export type OnboardingTask = {
+  task: number;
+  title: string;
+  description: string;
+  detailedDescription?: string;
+  skippable: boolean;
+  prereq: number[];
+  featureLocation: string;
+  location: string | (() => void);
+  display: boolean;
 };

@@ -1,7 +1,7 @@
 import React, {ReactElement} from 'react';
 import PropTypes from 'prop-types';
 import Modal from 'react-bootstrap/lib/Modal';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
 import withApi from 'app/utils/withApi';
@@ -200,6 +200,7 @@ class SentryAppExternalIssueActions extends React.Component<Props, State> {
   }
 }
 
+// @ts-ignore ; TS2589: Type instantiation is excessively deep and possibly infinite.
 const StyledSentryAppIcon = styled(SentryAppIcon)`
   color: ${p => p.theme.gray4};
   width: ${space(3)};

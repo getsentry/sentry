@@ -1,5 +1,5 @@
 import React, {ReactText} from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import uniq from 'lodash/uniq';
 
 import {trackAnalyticsEvent} from 'app/utils/analytics';

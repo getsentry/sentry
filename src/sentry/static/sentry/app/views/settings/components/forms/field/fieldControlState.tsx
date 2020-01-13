@@ -1,4 +1,4 @@
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 const width = '36px';
 const FieldControlState = styled('div')<{flexibleControlStateSize: boolean}>`

@@ -1,12 +1,12 @@
-import {Flex} from 'grid-emotion';
-import {css, cx} from 'react-emotion';
+import {css} from '@emotion/core';
+import {Flex} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
 
 import space from 'app/styles/space';
 import textStyles from 'app/styles/text';
 
-const PanelBody = ({className, disablePadding, flex, direction, ...props}) => {
+const PanelBody = ({disablePadding, flex, direction, ...props}) => {
   const padding = !disablePadding
     ? css`
         padding: ${space(2)};
@@ -14,13 +14,12 @@ const PanelBody = ({className, disablePadding, flex, direction, ...props}) => {
     : '';
   const flexDirection = flex ? direction : undefined;
   const Comp = flex ? Flex : 'div';
-  const textClassName = textStyles(props);
 
   return (
     <Comp
-      className={cx(padding, textClassName, className)}
+      css={[textStyles(props), padding]}
       {...props}
-      direction={flexDirection}
+      {...(flexDirection ? {flexDirection} : null)}
     />
   );
 };
