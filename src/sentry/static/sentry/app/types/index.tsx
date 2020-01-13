@@ -228,9 +228,11 @@ export type AvatarUser = {
   name: string;
   username: string;
   email: string;
-  avatarUrl: string;
-  avatar: Avatar;
+  avatarUrl?: string;
+  avatar?: Avatar;
   ip_address: string;
+  // Compatibility shim with EventUser serializer
+  ipAddress?: string;
   options?: {
     avatarType: string;
   };
