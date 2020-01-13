@@ -178,6 +178,7 @@ RUN set -x \
 COPY ./docker/docker-entrypoint.sh ./docker/sentry.conf.py ./docker/config.yml $SENTRY_CONF/
 
 EXPOSE 9000
+VOLUME /data
 
 ENTRYPOINT exec $SENTRY_CONF/docker-entrypoint.sh $0 $@
 CMD ["run", "web"]
