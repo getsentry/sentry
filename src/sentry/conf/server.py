@@ -1070,24 +1070,6 @@ SENTRY_SEARCH_OPTIONS = {}
 SENTRY_TSDB = "sentry.tsdb.dummy.DummyTSDB"
 SENTRY_TSDB_OPTIONS = {}
 
-# Event storage backend
-SENTRY_EVENTSTORE = "sentry.utils.services.ServiceDelegator"
-SENTRY_EVENTSTORE_OPTIONS = {
-    "backend_base": "sentry.eventstore.base.EventStorage",
-    "backends": {
-        "snuba": {
-            "path": "sentry.eventstore.snuba.SnubaEventStorage",
-            "executor": {"path": "sentry.utils.concurrent.SynchronousExecutor"},
-        },
-        "snuba_discover": {
-            "path": "sentry.eventstore.snuba_discover.SnubaDiscoverEventStorage",
-            "executor": {"path": "sentry.utils.services.ThreadedExecutor"},
-        },
-    },
-    "selector_func": "sentry.eventstore.utils.selector_func",
-    "callback_func": "sentry.eventstore.utils.callback_func",
-}
-
 SENTRY_NEWSLETTER = "sentry.newsletter.base.Newsletter"
 SENTRY_NEWSLETTER_OPTIONS = {}
 
