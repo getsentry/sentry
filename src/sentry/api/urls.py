@@ -108,9 +108,6 @@ from .endpoints.organization_incident_seen import OrganizationIncidentSeenEndpoi
 from .endpoints.organization_incident_subscription_index import (
     OrganizationIncidentSubscriptionIndexEndpoint,
 )
-from .endpoints.organization_incident_suspects_index import (
-    OrganizationIncidentSuspectsIndexEndpoint,
-)
 from .endpoints.organization_index import OrganizationIndexEndpoint
 from .endpoints.organization_integration_details import OrganizationIntegrationDetailsEndpoint
 from .endpoints.organization_integration_repos import OrganizationIntegrationReposEndpoint
@@ -294,7 +291,18 @@ from sentry.incidents.endpoints.organization_alert_rule_details import (
 from sentry.incidents.endpoints.organization_alert_rule_index import (
     OrganizationAlertRuleIndexEndpoint,
 )
-
+from sentry.incidents.endpoints.organization_alert_rule_trigger_action_details import (
+    OrganizationAlertRuleTriggerActionDetailsEndpoint,
+)
+from sentry.incidents.endpoints.organization_alert_rule_trigger_action_index import (
+    OrganizationAlertRuleTriggerActionIndexEndpoint,
+)
+from sentry.incidents.endpoints.organization_alert_rule_trigger_details import (
+    OrganizationAlertRuleTriggerDetailsEndpoint,
+)
+from sentry.incidents.endpoints.organization_alert_rule_trigger_index import (
+    OrganizationAlertRuleTriggerIndexEndpoint,
+)
 from sentry.incidents.endpoints.project_alert_rule_details import ProjectAlertRuleDetailsEndpoint
 from sentry.incidents.endpoints.project_alert_rule_index import (
     ProjectAlertRuleIndexEndpoint,
@@ -574,6 +582,26 @@ urlpatterns = [
                     OrganizationAlertRuleIndexEndpoint.as_view(),
                     name="sentry-api-0-organization-alert-rules",
                 ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/triggers/(?P<alert_rule_trigger_id>[^\/]+)/$",
+                    OrganizationAlertRuleTriggerDetailsEndpoint.as_view(),
+                    name="sentry-api-0-organization-alert-rule-trigger-details",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/triggers/$",
+                    OrganizationAlertRuleTriggerIndexEndpoint.as_view(),
+                    name="sentry-api-0-organization-alert-rules-triggers",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/triggers/(?P<alert_rule_trigger_id>[^\/]+)/actions/(?P<alert_rule_trigger_action_id>[^\/]+)/$",
+                    OrganizationAlertRuleTriggerActionDetailsEndpoint.as_view(),
+                    name="sentry-api-0-organization-alert-rule-trigger-action-details",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/triggers/(?P<alert_rule_trigger_id>[^\/]+)/actions/$",
+                    OrganizationAlertRuleTriggerActionIndexEndpoint.as_view(),
+                    name="sentry-api-0-organization-alert-rules-trigger-actions",
+                ),
                 # Incidents
                 url(
                     r"^(?P<organization_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/activity/$",
@@ -609,11 +637,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/subscriptions/$",
                     OrganizationIncidentSubscriptionIndexEndpoint.as_view(),
                     name="sentry-api-0-organization-incident-subscription-index",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/suspects/$",
-                    OrganizationIncidentSuspectsIndexEndpoint.as_view(),
-                    name="sentry-api-0-organization-incident-suspect-index",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/chunk-upload/$",
