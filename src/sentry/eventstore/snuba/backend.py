@@ -5,7 +5,6 @@ import six
 from copy import deepcopy
 from datetime import datetime, timedelta
 
-from sentry import options
 from sentry.eventstore.base import EventStorage
 from sentry.snuba.events import Columns
 from sentry.utils import snuba
@@ -76,7 +75,7 @@ class SnubaEventStorage(EventStorage):
 
         return []
 
-    def get_event_by_id(self, project_id, event_id, additional_columns=None):
+    def get_event_by_id(self, project_id, event_id):
         """
         Get an event given a project ID and event ID
         Returns None if an event cannot be found
@@ -86,22 +85,6 @@ class SnubaEventStorage(EventStorage):
         if not event_id:
             return None
 
-        if options.get("eventstore.use-nodestore"):
-            return self.__get_event_by_id_nodestore(project_id, event_id)
-
-        cols = self.__get_columns(additional_columns)
-
-        result = snuba.raw_query(
-            selected_columns=cols,
-            filter_keys={"event_id": [event_id], "project_id": [project_id]},
-            referrer="eventstore.get_event_by_id",
-            limit=1,
-        )
-        if "error" not in result and len(result["data"]) == 1:
-            return self.__make_event(result["data"][0])
-        return None
-
-    def __get_event_by_id_nodestore(self, project_id, event_id):
         event = Event(project_id=project_id, event_id=event_id)
         event.bind_node_data()
 

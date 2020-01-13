@@ -3,8 +3,6 @@ from __future__ import absolute_import
 import six
 import pytest
 
-from django.conf import settings
-
 from sentry.testutils import TestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.eventstore.snuba.backend import SnubaEventStorage
@@ -117,22 +115,19 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         assert event.project_id == self.project2.id
 
     def test_get_event_by_id_nodestore(self):
-        options = settings.SENTRY_OPTIONS.copy()
-        options["eventstore.use-nodestore"] = True
-        with self.settings(SENTRY_OPTIONS=options):
-            event = self.eventstore.get_event_by_id(self.project1.id, "a" * 32)
-            assert event
-            assert event.group_id == event.group.id
+        event = self.eventstore.get_event_by_id(self.project1.id, "a" * 32)
+        assert event
+        assert event.group_id == event.group.id
 
-            # Transaction event
-            event = self.eventstore.get_event_by_id(self.project2.id, "d" * 32)
-            assert event
-            assert not event.group_id
-            assert not event.group
+        # Transaction event
+        event = self.eventstore.get_event_by_id(self.project2.id, "d" * 32)
+        assert event
+        assert not event.group_id
+        assert not event.group
 
-            # Non existent event
-            event = self.eventstore.get_event_by_id(self.project.id, "f" * 32)
-            assert not event
+        # Non existent event
+        event = self.eventstore.get_event_by_id(self.project.id, "f" * 32)
+        assert not event
 
     def test_get_next_prev_event_id(self):
         event = self.eventstore.get_event_by_id(self.project2.id, "b" * 32)

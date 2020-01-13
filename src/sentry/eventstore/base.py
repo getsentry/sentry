@@ -117,14 +117,13 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
-    def get_event_by_id(self, project_id, event_id, additional_columns=None):
+    def get_event_by_id(self, project_id, event_id):
         """
         Gets a single event given a project_id and event_id.
 
         Arguments:
         project_id (int): Project ID
         event_id (str): Event ID
-        additional_columns: (Sequence[Column]) - List of addition columns to fetch - default None
         """
         raise NotImplementedError
 
