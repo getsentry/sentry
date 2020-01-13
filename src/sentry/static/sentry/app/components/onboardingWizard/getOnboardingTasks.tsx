@@ -1,15 +1,16 @@
 import {t} from 'app/locale';
 import {openInviteMembersModal} from 'app/actionCreators/modal';
 import {sourceMaps} from 'app/data/platformCategories';
+import {Organization, OnboardingTask} from 'app/types';
 
-function hasPlatformWithSourceMaps(organization) {
+function hasPlatformWithSourceMaps(organization: Organization): boolean {
   if (!organization || !organization.projects) {
     return false;
   }
   return organization.projects.some(({platform}) => sourceMaps.includes(platform));
 }
 
-export default function getOnboardingTasks(organization) {
+export default function getOnboardingTasks(organization: Organization): OnboardingTask[] {
   return [
     {
       task: 1,
