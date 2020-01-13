@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {openHelpSearchModal} from 'app/actionCreators/modal';
 import App from 'app/views/app';
 
@@ -53,7 +53,7 @@ describe('Docs Search Modal', function() {
 
   it('can open help search modal and complete a search', async function() {
     jest.mock('algoliasearch', () => {
-      const search = jest.fn(params => {
+      const search = jest.fn(() => {
         const docHits = [
           {
             url: '/doc_result',
@@ -83,7 +83,7 @@ describe('Docs Search Modal', function() {
       return () => ({search});
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <App params={{orgId: 'org-slug'}}>{<div>placeholder content</div>}</App>,
       TestStubs.routerContext([
         {
