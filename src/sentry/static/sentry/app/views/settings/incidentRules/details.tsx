@@ -50,45 +50,6 @@ class IncidentRulesDetails extends AsyncView<Props, State> {
     router.push(recreateRoute('', {params, routes, location, stepBack: -2}));
   };
 
-  // XXX(billy): This is temporary, ideally we want actions fetched with triggers?
-  onRequestSuccess = async ({data}) => {
-    const {orgId, incidentRuleId} = this.props.params;
-
-    // fetch actions for trigger
-    this.setState({loading: true});
-
-    try {
-      const resp = data.triggers.map(async trigger => {
-        const actions = await this.api.requestPromise(
-          `/organizations/${orgId}/alert-rules/${incidentRuleId}/triggers/${
-            trigger.id
-          }/actions/`
-        );
-        return [trigger.id, actions];
-      });
-
-      const actionsTriggersTuples: [string, any][] = await Promise.all(resp);
-      this.setState({
-        actions: new Map(actionsTriggersTuples),
-      });
-    } catch (_err) {
-      addErrorMessage(t('Unable to fetch actions'));
-    }
-    this.setState({loading: false});
-  };
-
-  getActions = (rule, actions) => {
-    const triggers = rule.triggers.map(trigger => ({
-      ...trigger,
-      actions: actions.get(trigger.id) || [],
-    }));
-
-    return {
-      ...rule,
-      triggers,
-    };
-  };
-
   renderBody() {
     const {incidentRuleId} = this.props.params;
     const {rule} = this.state;
@@ -97,7 +58,7 @@ class IncidentRulesDetails extends AsyncView<Props, State> {
       <RuleForm
         {...this.props}
         incidentRuleId={incidentRuleId}
-        rule={this.getActions(rule, this.state.actions)}
+        rule={rule}
         onSubmitSuccess={this.handleSubmitSuccess}
       />
     );
