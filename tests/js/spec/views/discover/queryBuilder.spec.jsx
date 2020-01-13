@@ -71,7 +71,7 @@ describe('Query Builder', function() {
             aggregations: [['count()', null, 'count']],
             orderby: '-count',
             projects: [2],
-            range: '14d',
+            range: '90d',
             turbo: true,
           }),
         })
@@ -116,7 +116,7 @@ describe('Query Builder', function() {
             aggregations: [['count()', null, 'count']],
             orderby: '-count',
             projects: [1, 2],
-            range: '14d',
+            range: '90d',
             turbo: true,
           }),
         })
@@ -162,7 +162,7 @@ describe('Query Builder', function() {
             aggregations: [['count()', null, 'count']],
             orderby: '-count',
             projects: [1, 2],
-            range: '14d',
+            range: '90d',
             turbo: true,
           }),
         })

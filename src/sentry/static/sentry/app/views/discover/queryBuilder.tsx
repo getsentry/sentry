@@ -150,7 +150,7 @@ export default function createQueryBuilder(
     const projects = query.projects.length ? query.projects : defaultProjectIds;
 
     // Default to DEFAULT_STATS_PERIOD when no date range selected (either relative or absolute)
-    const {statsPeriod, start, end} = getParams(query);
+    const {statsPeriod, start, end} = getParams({...query, statsPeriod: query.range});
     const hasAbsolute = start && end;
     const daterange = {
       ...(hasAbsolute && {start, end}),
@@ -247,7 +247,7 @@ export default function createQueryBuilder(
       return Promise.reject(new Error('Start date cannot be after end date'));
     }
 
-    const {start, end, statsPeriod} = getParams(data);
+    const {start, end, statsPeriod} = getParams({...data, statsPeriod: data.range});
 
     if (start && end) {
       data.start = start;
@@ -296,7 +296,7 @@ export default function createQueryBuilder(
       return Promise.reject(new Error('Start date cannot be after end date'));
     }
 
-    const {start, end, statsPeriod} = getParams(data);
+    const {start, end, statsPeriod} = getParams({...data, statsPeriod: data.range});
 
     if (start && end) {
       data.start = start;
