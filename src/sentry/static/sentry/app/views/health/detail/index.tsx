@@ -82,7 +82,7 @@ class HealthDetail extends AsyncView<Props, State> {
           <PageContent>
             <PageHeader>
               <PageHeading withMargins>
-                {t('Health Detail ')} {this.props.params.healthSlug}
+                {t('Health Detail')} {this.props.params.healthSlug}
               </PageHeading>
             </PageHeader>
 

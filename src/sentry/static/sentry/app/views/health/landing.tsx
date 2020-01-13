@@ -129,9 +129,7 @@ class HealthLanding extends AsyncView<Props, State> {
         <NoProjectMessage organization={organization}>
           <PageContent>
             <PageHeader>
-              <PageHeading withMargins>
-                {t('Health Detail ')} {this.props.params.healthSlug}
-              </PageHeading>
+              <PageHeading withMargins>{t('Health')}</PageHeading>
             </PageHeader>
 
             {this.renderInnerBody()}
