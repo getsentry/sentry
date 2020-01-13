@@ -8,7 +8,9 @@ from sentry.incidents.logic import create_alert_rule
 from sentry.incidents.models import AlertRule
 from sentry.snuba.models import QueryAggregations
 from sentry.testutils import APITestCase
+
 # from sentry.incidents.endpoints.serializers import CRITICAL_TRIGGER_LABEL, WARNING_TRIGGER_LABEL
+
 
 class AlertRuleListEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-alert-rules"
@@ -134,8 +136,9 @@ class AlertRuleCreateEndpointTest(APITestCase):
         }
 
         with self.feature("organizations:incidents"):
-            self.get_valid_response(self.organization.slug, status_code=400, **rule_one_trigger_no_label)
-
+            self.get_valid_response(
+                self.organization.slug, status_code=400, **rule_one_trigger_no_label
+            )
 
     def test_only_critical_trigger(self):
         self.create_member(
@@ -152,8 +155,8 @@ class AlertRuleCreateEndpointTest(APITestCase):
             "triggers": [
                 {
                     "label": "critical",
-                    "alertThreshold": 200,
-                    "resolveThreshold": 100,
+                    "alertThreshold": 100,
+                    "resolveThreshold": 200,
                     "thresholdType": 1,
                     "actions": [
                         {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
@@ -185,9 +188,10 @@ class AlertRuleCreateEndpointTest(APITestCase):
         }
 
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(self.organization.slug, status_code=400, **rule_no_triggers)
-            assert resp.data == {"triggers": [u'This field is required.']}
-
+            resp = self.get_valid_response(
+                self.organization.slug, status_code=400, **rule_no_triggers
+            )
+            assert resp.data == {"triggers": [u"This field is required."]}
 
     def test_no_critical_trigger(self):
         self.create_member(
@@ -221,7 +225,6 @@ class AlertRuleCreateEndpointTest(APITestCase):
             )
             assert resp.data == {"nonFieldErrors": [u'First trigger must be labeled "critical"']}
 
-
     def test_critical_trigger_no_action(self):
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
@@ -249,8 +252,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
             resp = self.get_valid_response(
                 self.organization.slug, status_code=400, **rule_one_trigger_only_critical_no_action
             )
-            assert resp.data == {"triggers": [{'actions': [u'This field is required.']}]}
-
+            assert resp.data == {"triggers": [{"actions": [u"This field is required."]}]}
 
     def test_invalid_projects(self):
         self.create_member(
