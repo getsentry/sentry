@@ -135,6 +135,9 @@ class EventNodeStoreTest(TestCase):
 
         assert event.data.get_ref(event) != event.data.get_ref(invalid_event)
 
+        # Unload node data to force reloading from nodestore
+        event.data._node_data = None
+
         with pytest.raises(NodeIntegrityFailure):
             event.bind_node_data()
 
