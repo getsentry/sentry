@@ -1,9 +1,10 @@
 from __future__ import absolute_import
 
+import mock
 import pickle
 import pytest
 
-from sentry import eventstore
+from sentry import eventstore, nodestore
 from sentry.db.models.fields.node import NodeData
 from sentry.eventstore.models import Event
 from sentry.models import Environment
@@ -226,6 +227,26 @@ class EventTest(TestCase):
 
         assert not event_from_nodestore.group_id
         assert not event_from_nodestore.group
+
+    def test_bind_node_data(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "test",
+                "timestamp": iso_format(before_now(seconds=1)),
+                "type": "error",
+            },
+            project_id=self.project.id,
+        )
+        group_id = event.group.id
+
+        e1 = Event(self.project.id, "a" * 32, group_id=group_id)
+        e1.bind_node_data()
+
+        with mock.patch.object(nodestore, "get") as mock_get:
+            event.bind_node_data()
+            event.bind_node_data()
+            assert mock_get.call_count == 0
 
 
 @pytest.mark.django_db
