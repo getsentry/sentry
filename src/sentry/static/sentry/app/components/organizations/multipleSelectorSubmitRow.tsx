@@ -6,23 +6,23 @@ import {growIn} from 'app/styles/animations';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 
-class MultipleSelectorSubmitRow extends React.Component {
-  static propTypes = {
-    onSubmit: PropTypes.func,
-  };
+type Props = {
+  onSubmit: () => void;
+};
 
-  render() {
-    const {onSubmit} = this.props;
+const MultipleSelectorSubmitRow: React.FC<Props> = ({onSubmit}) => {
+  return (
+    <SubmitButtonContainer>
+      <SubmitButton onClick={onSubmit} size="xsmall" priority="primary">
+        {t('Apply')}
+      </SubmitButton>
+    </SubmitButtonContainer>
+  );
+};
 
-    return (
-      <SubmitButtonContainer>
-        <SubmitButton onClick={onSubmit} size="xsmall" priority="primary">
-          {t('Apply')}
-        </SubmitButton>
-      </SubmitButtonContainer>
-    );
-  }
-}
+MultipleSelectorSubmitRow.propTypes = {
+  onSubmit: PropTypes.func.isRequired,
+};
 
 const SubmitButtonContainer = styled('div')`
   display: flex;
